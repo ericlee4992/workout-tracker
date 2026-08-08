@@ -177,6 +177,8 @@ struct SetRowView: View {
     // (end-editing / completion) — SPEC's durability boundary.
     @State private var weightText: String
     @State private var repsText: String
+    @State private var previousLabel = "—"
+    @State private var isDirty = false
     @FocusState private var focusedField: Field?
 
     private enum Field { case weight, reps }
@@ -202,10 +204,9 @@ struct SetRowView: View {
         HStack(spacing: 8) {
             setTypeButton
 
-            // Same-machine previous performance prefills here from ticket 11.
-            Text("—")
+            Text(previousLabel)
                 .font(.footnote)
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(previousLabel == "—" ? .tertiary : .secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 4) {
@@ -253,6 +254,15 @@ struct SetRowView: View {
             case .reps: commitReps()
             case nil: break
             }
+        }
+        .onChange(of: weightText) { _, _ in
+            if focusedField == .weight { isDirty = true }
+        }
+        .onChange(of: repsText) { _, _ in
+            if focusedField == .reps { isDirty = true }
+        }
+        .task(id: prefillTaskID) {
+            loadPreviousAndPrefill()
         }
     }
 
@@ -312,6 +322,7 @@ struct SetRowView: View {
 
     private func toggleUnit() {
         guard !set.isDeleted else { return }
+        isDirty = true
         do {
             // Commit any in-progress weight text first so the toggle applies
             // to what is on screen.
@@ -346,5 +357,41 @@ struct SetRowView: View {
             focusedField = nil
             onCompleted(set.type)
         }
+    }
+
+    /// Snapshot-keyed ticket-11 query. The label always shows the selected
+    /// historical row; values are applied only while this draft remains
+    /// untouched, so a delayed refresh can never clobber typing.
+    private func loadPreviousAndPrefill() {
+        guard !set.isDeleted else { return }
+        do {
+            let history = PerformanceHistory(context: modelContext)
+            guard let candidate = try history.prefill(for: set) else {
+                previousLabel = "—"
+                return
+            }
+            previousLabel = candidate.displayLabel
+            guard try history.applyPrefill(candidate, to: set, isDirty: isDirty) else {
+                return
+            }
+            weightText = candidate.weightValue.map(Format.weight) ?? ""
+            repsText = String(candidate.reps)
+        } catch {
+            assertionFailure("Failed to load previous performance: \(error)")
+        }
+    }
+
+    /// Changing equipment, set type, or type-relative order selects a new
+    /// candidate. A dirty row still refreshes its PREVIOUS reference label
+    /// but `loadPreviousAndPrefill` refuses to overwrite its inputs.
+    private var prefillTaskID: String {
+        let entry = set.entry
+        return [
+            set.id.uuidString,
+            String(set.order),
+            set.type.rawValue,
+            entry?.machine?.id.uuidString ?? "no-machine",
+            entry?.freeWeightTag?.rawValue ?? "no-tag",
+        ].joined(separator: "|")
     }
 }
