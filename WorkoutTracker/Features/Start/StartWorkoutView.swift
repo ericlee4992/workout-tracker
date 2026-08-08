@@ -68,6 +68,9 @@ struct StartWorkoutView: View {
 
     private func startNew() {
         do {
+            if let active = try session.resumableWorkout() {
+                try RestTimerService(context: modelContext).skip(active)
+            }
             // The service finishes any lingering active workout first.
             onWorkoutStarted(try session.startWorkout(at: selectedGym))
         } catch {

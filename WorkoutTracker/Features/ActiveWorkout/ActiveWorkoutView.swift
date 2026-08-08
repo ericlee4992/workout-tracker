@@ -4,10 +4,9 @@ import SwiftUI
 struct ActiveWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Query private var allPreferences: [AppPreferences]
+    @Environment(\.scenePhase) private var scenePhase
     var workout: Workout
 
-    // Rest timer is UI state only in this ticket; ticket 14 persists it.
     @State private var restEnd: Date?
     @State private var restTotal: Double = 120
     @State private var machinePickerEntry: ExerciseEntry?
@@ -33,7 +32,9 @@ struct ActiveWorkoutView: View {
                             entry: entry,
                             showMachinePicker: { machinePickerEntry = entry },
                             showPerformance: { performanceEntry = entry },
-                            setCompleted: { setType in startRest(after: setType) }
+                            completionChanged: { set, completed in
+                                updateRest(for: set, isCompleted: completed)
+                            }
                         )
                     }
 
@@ -63,8 +64,13 @@ struct ActiveWorkoutView: View {
             }
             .background(Color(.systemGroupedBackground))
             .safeAreaInset(edge: .bottom) {
-                if restEnd != nil {
-                    RestTimerBar(restEnd: $restEnd, restTotal: restTotal)
+                if let restEnd {
+                    RestTimerBar(
+                        restEnd: restEnd,
+                        restTotal: restTotal,
+                        addFifteen: addFifteen,
+                        skip: skipRest,
+                        expired: refreshRest)
                 }
             }
             .navigationTitle("Workout")
@@ -106,6 +112,10 @@ struct ActiveWorkoutView: View {
                 AddByMachineSheet(workout: workout)
                     .presentationDetents([.medium, .large])
             }
+            .onAppear(perform: refreshRest)
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshRest() }
+            }
         }
     }
 
@@ -134,6 +144,7 @@ struct ActiveWorkoutView: View {
 
     private func finishWorkout() {
         do {
+            try restTimer.skip(workout)
             try session.finish(workout)
         } catch {
             assertionFailure("Failed to finish workout: \(error)")
@@ -143,6 +154,7 @@ struct ActiveWorkoutView: View {
 
     private func cancelWorkout() {
         do {
+            try restTimer.skip(workout)
             try session.cancel(workout)
         } catch {
             assertionFailure("Failed to cancel workout: \(error)")
@@ -161,16 +173,41 @@ struct ActiveWorkoutView: View {
         }
     }
 
-    /// Auto-start rest on completion (D13). Global defaults for now —
-    /// per-exercise overrides and persistence land with ticket 14. Failure
-    /// sets use the working duration (D22).
-    private func startRest(after setType: SetType) {
-        let preferences = AppPreferences.canonical(of: allPreferences)
-        let seconds = setType == .warmup
-            ? preferences?.globalWarmupRestSeconds ?? 60
-            : preferences?.globalWorkingRestSeconds ?? 120
-        restTotal = Double(seconds)
-        restEnd = Date().addingTimeInterval(Double(seconds))
+    private var restTimer: RestTimerService {
+        RestTimerService(context: modelContext)
+    }
+
+    private func updateRest(for set: SetRecord, isCompleted: Bool) {
+        do {
+            apply(try restTimer.handleCompletionChange(
+                of: set, isCompleted: isCompleted))
+        } catch {
+            assertionFailure("Failed to update rest timer: \(error)")
+        }
+    }
+
+    private func addFifteen() {
+        do { apply(try restTimer.add(seconds: 15, to: workout)) }
+        catch { assertionFailure("Failed to extend rest timer: \(error)") }
+    }
+
+    private func skipRest() {
+        do {
+            try restTimer.skip(workout)
+            restEnd = nil
+        } catch {
+            assertionFailure("Failed to skip rest timer: \(error)")
+        }
+    }
+
+    private func refreshRest() {
+        do { apply(try restTimer.currentState(for: workout)) }
+        catch { assertionFailure("Failed to restore rest timer: \(error)") }
+    }
+
+    private func apply(_ state: RestTimerState?) {
+        restEnd = state?.end
+        if let state { restTotal = max(1, state.remaining) }
     }
 }
 

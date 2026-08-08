@@ -31,10 +31,20 @@ struct GymsView: View {
                         }
                     }
                     .pickerStyle(.menu)
+                    Stepper(
+                        "Working rest · \(durationLabel(globalWorkingRest))",
+                        value: globalWorkingRestBinding,
+                        in: 0...600,
+                        step: 15)
+                    Stepper(
+                        "Warmup rest · \(durationLabel(globalWarmupRest))",
+                        value: globalWarmupRestBinding,
+                        in: 0...600,
+                        step: 15)
                 } header: {
                     Text("Settings")
                 } footer: {
-                    Text("Used when neither the machine nor the gym sets a unit.")
+                    Text("The unit is used when neither machine nor gym sets one. Rest durations are global defaults; each exercise can override them from its workout menu.")
                 }
             }
             .navigationTitle("Gyms")
@@ -69,6 +79,44 @@ struct GymsView: View {
                 }
             }
         )
+    }
+
+    private var globalWorkingRest: Int {
+        AppPreferences.canonical(of: allPreferences)?.globalWorkingRestSeconds ?? 120
+    }
+
+    private var globalWarmupRest: Int {
+        AppPreferences.canonical(of: allPreferences)?.globalWarmupRestSeconds ?? 60
+    }
+
+    private var globalWorkingRestBinding: Binding<Int> {
+        durationBinding(\.globalWorkingRestSeconds, fallback: 120)
+    }
+
+    private var globalWarmupRestBinding: Binding<Int> {
+        durationBinding(\.globalWarmupRestSeconds, fallback: 60)
+    }
+
+    private func durationBinding(
+        _ keyPath: ReferenceWritableKeyPath<AppPreferences, Int>,
+        fallback: Int
+    ) -> Binding<Int> {
+        Binding(
+            get: { AppPreferences.canonical(of: allPreferences)?[keyPath: keyPath] ?? fallback },
+            set: { value in
+                do {
+                    let preferences = try AppPreferences.canonical(in: modelContext)
+                    preferences[keyPath: keyPath] = value
+                    preferences.updatedAt = .now
+                    try modelContext.save()
+                } catch {
+                    assertionFailure("Failed to save rest default: \(error)")
+                }
+            })
+    }
+
+    private func durationLabel(_ seconds: Int) -> String {
+        "\(seconds / 60):\(String(format: "%02d", seconds % 60))"
     }
 }
 

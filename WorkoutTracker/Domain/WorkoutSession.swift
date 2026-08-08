@@ -85,6 +85,8 @@ struct WorkoutSession {
                 context.delete(entry)
             }
         }
+        workout.restEndsAt = nil
+        workout.restStartedBySetID = nil
         workout.finishedAt = date
     }
 

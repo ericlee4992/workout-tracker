@@ -15,7 +15,8 @@ struct ExerciseEntryCard: View {
     var entry: ExerciseEntry
     var showMachinePicker: () -> Void
     var showPerformance: () -> Void
-    var setCompleted: (SetType) -> Void
+    var completionChanged: (SetRecord, Bool) -> Void
+    @State private var showingRestSettings = false
 
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
 
@@ -44,7 +45,9 @@ struct ExerciseEntryCard: View {
                 SetRowView(
                     set: set,
                     index: workingIndex(of: set),
-                    onCompleted: { setType in setCompleted(setType) },
+                    onCompletionChanged: { completed in
+                        completionChanged(set, completed)
+                    },
                     onDelete: { deleteSet(set) })
             }
 
@@ -62,6 +65,11 @@ struct ExerciseEntryCard: View {
         .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .padding(.horizontal)
+        .sheet(isPresented: $showingRestSettings) {
+            if let exercise = entry.exercise {
+                ExerciseRestSettingsSheet(exercise: exercise)
+            }
+        }
     }
 
     private var titleRow: some View {
@@ -70,6 +78,11 @@ struct ExerciseEntryCard: View {
                 .font(.headline)
             Spacer()
             Menu {
+                if entry.exercise != nil {
+                    Button("Rest Durations…", systemImage: "timer") {
+                        showingRestSettings = true
+                    }
+                }
                 Button("Delete Exercise", systemImage: "trash", role: .destructive) {
                     deleteEntry()
                 }
@@ -169,8 +182,9 @@ struct SetRowView: View {
     @Environment(\.modelContext) private var modelContext
     var set: SetRecord
     var index: Int
-    /// Called when the tap completed (not un-completed) the set.
-    var onCompleted: (SetType) -> Void
+    /// Called after either completion direction so the rest timer can start,
+    /// replace, or cancel its persisted source.
+    var onCompletionChanged: (Bool) -> Void
     var onDelete: () -> Void
 
     // In-progress keystrokes live here; they hit the store only on commit
@@ -187,12 +201,12 @@ struct SetRowView: View {
 
     init(
         set: SetRecord, index: Int,
-        onCompleted: @escaping (SetType) -> Void,
+        onCompletionChanged: @escaping (Bool) -> Void,
         onDelete: @escaping () -> Void
     ) {
         self.set = set
         self.index = index
-        self.onCompleted = onCompleted
+        self.onCompletionChanged = onCompletionChanged
         self.onDelete = onDelete
         _weightText = State(initialValue: set.weightValue.map(Format.weight) ?? "")
         _repsText = State(initialValue: set.reps.map(String.init) ?? "")
@@ -344,7 +358,6 @@ struct SetRowView: View {
 
     private func toggleCompletion() {
         guard !set.isDeleted else { return }
-        let completing = set.completedAt == nil
         do {
             // Completion is a commit boundary: on-screen values first.
             try session.commitWeight(weightText, for: set)
@@ -353,10 +366,11 @@ struct SetRowView: View {
         } catch {
             assertionFailure("Failed to toggle completion: \(error)")
         }
-        if completing {
+        let completed = set.completedAt != nil
+        if completed {
             focusedField = nil
-            onCompleted(set.type)
         }
+        onCompletionChanged(completed)
     }
 
     /// Snapshot-keyed ticket-11 query. The label always shows the selected

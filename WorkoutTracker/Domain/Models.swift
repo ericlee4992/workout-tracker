@@ -201,6 +201,10 @@ final class Workout {
     var sourceTemplateID: UUID?
     /// Persisted rest-timer end so the timer survives relaunch.
     var restEndsAt: Date?
+    /// Set whose completion started/replaced the current rest timer. Needed
+    /// so un-completing that exact set cancels the timer, including after a
+    /// relaunch. Added by ticket 14 (noted in ticket 02).
+    var restStartedBySetID: UUID?
 
     var gym: Gym?
     @Relationship(deleteRule: .cascade, inverse: \ExerciseEntry.workout)
@@ -213,6 +217,7 @@ final class Workout {
         notes: String = "",
         sourceTemplateID: UUID? = nil,
         restEndsAt: Date? = nil,
+        restStartedBySetID: UUID? = nil,
         gym: Gym? = nil
     ) {
         self.id = id
@@ -221,6 +226,7 @@ final class Workout {
         self.notes = notes
         self.sourceTemplateID = sourceTemplateID
         self.restEndsAt = restEndsAt
+        self.restStartedBySetID = restStartedBySetID
         self.gym = gym
     }
 }
