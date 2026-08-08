@@ -1,0 +1,257 @@
+{
+  "version": 1,
+  "exercises": [
+    {
+      "id": "5EED0001-0000-4000-8000-000000000001",
+      "name": "Seated Chest Press",
+      "loadType": "weighted",
+      "equipmentTypeTags": ["machine"],
+      "muscleGroup": "Chest"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000002",
+      "name": "Lat Pulldown",
+      "loadType": "weighted",
+      "equipmentTypeTags": ["machine", "cable"],
+      "muscleGroup": "Back"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000003",
+      "name": "Seated Row",
+      "loadType": "weighted",
+      "equipmentTypeTags": ["machine", "cable"],
+      "muscleGroup": "Back"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000004",
+      "name": "Leg Press",
+      "loadType": "weighted",
+      "equipmentTypeTags": ["machine"],
+      "muscleGroup": "Legs"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000005",
+      "name": "Machine Shoulder Press",
+      "loadType": "weighted",
+      "equipmentTypeTags": ["machine"],
+      "muscleGroup": "Shoulders"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000006",
+      "name": "Bench Press",
+      "loadType": "weighted",
+      "equipmentTypeTags": ["barbell"],
+      "muscleGroup": "Chest"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000007",
+      "name": "Squat",
+      "loadType": "weighted",
+      "equipmentTypeTags": ["barbell"],
+      "muscleGroup": "Legs"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000008",
+      "name": "Pull-Up",
+      "loadType": "bodyweightPlus",
+      "equipmentTypeTags": ["bodyweight"],
+      "muscleGroup": "Back"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000009",
+      "name": "Assisted Pull-Up",
+      "loadType": "assisted",
+      "equipmentTypeTags": ["machine"],
+      "muscleGroup": "Back"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000010",
+      "name": "Dumbbell Curl",
+      "loadType": "weighted",
+      "equipmentTypeTags": ["dumbbell"],
+      "muscleGroup": "Arms"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000011",
+      "name": "Triceps Pushdown",
+      "loadType": "weighted",
+      "equipmentTypeTags": ["cable"],
+      "muscleGroup": "Arms"
+    },
+    {
+      "id": "5EED0001-0000-4000-8000-000000000012",
+      "name": "Dip",
+      "loadType": "bodyweightPlus",
+      "equipmentTypeTags": ["bodyweight"],
+      "muscleGroup": "Chest"
+    }
+  ],
+  "equipmentModels": [
+    {
+      "id": "5EED0002-0000-4000-8000-000000000001",
+      "manufacturer": "Life Fitness",
+      "modelName": "Insignia Series Chest Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000001"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000002",
+      "manufacturer": "Life Fitness",
+      "modelName": "Signature Series Shoulder Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000005"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000003",
+      "manufacturer": "Life Fitness",
+      "modelName": "Signature Series Lat Pulldown",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000002"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000004",
+      "manufacturer": "Life Fitness",
+      "modelName": "Signature Series Cable Motion Dual Adjustable Pulley",
+      "exerciseIDs": [
+        "5EED0001-0000-4000-8000-000000000002",
+        "5EED0001-0000-4000-8000-000000000003",
+        "5EED0001-0000-4000-8000-000000000011"
+      ]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000005",
+      "manufacturer": "Hammer Strength",
+      "modelName": "MTS Iso-Lateral Chest Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000001"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000006",
+      "manufacturer": "Hammer Strength",
+      "modelName": "Plate-Loaded Seated Row",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000003"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000007",
+      "manufacturer": "Hammer Strength",
+      "modelName": "Select Leg Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000004"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000008",
+      "manufacturer": "Technogym",
+      "modelName": "Selection 900 Lat Pulldown",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000002"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000009",
+      "manufacturer": "Technogym",
+      "modelName": "Selection 900 Chest Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000001"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000010",
+      "manufacturer": "Technogym",
+      "modelName": "Cable Stations Dual Adjustable Pulley",
+      "exerciseIDs": [
+        "5EED0001-0000-4000-8000-000000000002",
+        "5EED0001-0000-4000-8000-000000000003",
+        "5EED0001-0000-4000-8000-000000000011"
+      ]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000011",
+      "manufacturer": "Precor",
+      "modelName": "Vitality Series Seated Row",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000003"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000012",
+      "manufacturer": "Precor",
+      "modelName": "Resolute Series Leg Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000004"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000013",
+      "manufacturer": "Precor",
+      "modelName": "Discovery Series Shoulder Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000005"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000014",
+      "manufacturer": "Cybex",
+      "modelName": "Eagle NX Leg Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000004"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000015",
+      "manufacturer": "Cybex",
+      "modelName": "Eagle NX Chest Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000001"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000016",
+      "manufacturer": "Cybex",
+      "modelName": "Bravo Functional Trainer",
+      "exerciseIDs": [
+        "5EED0001-0000-4000-8000-000000000002",
+        "5EED0001-0000-4000-8000-000000000003",
+        "5EED0001-0000-4000-8000-000000000011"
+      ]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000017",
+      "manufacturer": "Matrix",
+      "modelName": "Ultra Series Assisted Chin/Dip",
+      "exerciseIDs": [
+        "5EED0001-0000-4000-8000-000000000009",
+        "5EED0001-0000-4000-8000-000000000012"
+      ]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000018",
+      "manufacturer": "Matrix",
+      "modelName": "Versa Series Chest Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000001"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000019",
+      "manufacturer": "Matrix",
+      "modelName": "Aura Series Seated Row",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000003"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000020",
+      "manufacturer": "Matrix",
+      "modelName": "Magnum Smith Machine",
+      "exerciseIDs": [
+        "5EED0001-0000-4000-8000-000000000006",
+        "5EED0001-0000-4000-8000-000000000007"
+      ]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000021",
+      "manufacturer": "Nautilus",
+      "modelName": "Impact Strength Shoulder Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000005"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000022",
+      "manufacturer": "Nautilus",
+      "modelName": "Impact Strength Leg Press",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000004"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000023",
+      "manufacturer": "Hoist",
+      "modelName": "ROC-IT Lat Pulldown",
+      "exerciseIDs": ["5EED0001-0000-4000-8000-000000000002"]
+    },
+    {
+      "id": "5EED0002-0000-4000-8000-000000000024",
+      "manufacturer": "Hoist",
+      "modelName": "Mi7 Functional Trainer",
+      "exerciseIDs": [
+        "5EED0001-0000-4000-8000-000000000002",
+        "5EED0001-0000-4000-8000-000000000003",
+        "5EED0001-0000-4000-8000-000000000011"
+      ]
+    }
+  ]
+}

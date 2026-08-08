@@ -1,12 +1,19 @@
+import SwiftData
 import SwiftUI
 
+// Exercises tab — reads the seeded catalog from the SwiftData store
+// (ticket 04). The rest of the prototype UI still runs on SampleStore
+// until ticket 07 rewires it.
 struct ExercisesView: View {
-    @EnvironmentObject private var store: SampleStore
+    @Query(
+        filter: #Predicate<Exercise> { $0.isSeeded },
+        sort: \Exercise.name
+    ) private var exercises: [Exercise]
     @State private var searchText = ""
 
-    private var filtered: [SampleExercise] {
-        guard !searchText.isEmpty else { return store.exercises }
-        return store.exercises.filter {
+    private var filtered: [Exercise] {
+        guard !searchText.isEmpty else { return exercises }
+        return exercises.filter {
             $0.name.localizedCaseInsensitiveContains(searchText)
         }
     }
@@ -29,6 +36,13 @@ struct ExercisesView: View {
 }
 
 #Preview {
-    ExercisesView()
-        .environmentObject(SampleStore())
+    let schema = WorkoutTrackerStore.schema
+    let container = try! ModelContainer(
+        for: schema,
+        configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+    if let catalog = try? SeedCatalog.bundled() {
+        try? CatalogSeeder.reconcile(catalog, in: container.mainContext)
+    }
+    return ExercisesView()
+        .modelContainer(container)
 }

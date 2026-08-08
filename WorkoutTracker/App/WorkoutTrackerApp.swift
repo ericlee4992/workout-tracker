@@ -13,6 +13,14 @@ struct WorkoutTrackerApp: App {
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
+        // Versioned idempotent catalog seeding on every launch (D24). A
+        // failure must not block launch — the catalog reconciles next run.
+        do {
+            let catalog = try SeedCatalog.bundled()
+            try CatalogSeeder.reconcile(catalog, in: modelContainer.mainContext)
+        } catch {
+            assertionFailure("Catalog seeding failed: \(error)")
+        }
     }
 
     var body: some Scene {
