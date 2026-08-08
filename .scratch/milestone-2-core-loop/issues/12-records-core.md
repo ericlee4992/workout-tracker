@@ -4,11 +4,13 @@
 
 **Blocked by:** 03.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] No UI or SwiftData imports; operates on plain set-record values
-- [ ] Brzycki tests at reps 1, 12 (counted) and 13 (ignored for records); formula exact: `weight / (1.0278 − 0.0278 × reps)`
-- [ ] Assisted monotonicity test: at equal assistance, more reps never ranks worse; lower assistance beats higher at same reps
-- [ ] Mixed-unit tie test: 100 lb vs 45.5 kg resolved via normalizedKg; displayed as entered
-- [ ] Draft/incomplete/invalid sets and warmups contribute nothing; failure sets contribute
-- [ ] Volume: dumbbell entries not doubled; assisted/bodyweight excluded
+- [x] No UI or SwiftData imports; operates on plain set-record values
+- [x] Brzycki tests at reps 1, 12 (counted) and 13 (ignored for records); formula exact: `weight / (1.0278 − 0.0278 × reps)`
+- [x] Assisted monotonicity test: at equal assistance, more reps never ranks worse; lower assistance beats higher at same reps
+- [x] Mixed-unit tie test: 100 lb vs 45.5 kg resolved via normalizedKg; displayed as entered
+- [x] Draft/incomplete/invalid sets and warmups contribute nothing; failure sets contribute
+- [x] Volume: dumbbell entries not doubled; assisted/bodyweight excluded
+
+**Resolution (2026-08-08):** Implemented in `WorkoutTracker/Domain/RecordsMath.swift` (Foundation-only). `RecordSetInput` mirrors a completed set plus its entry's context snapshot (loadType, exercise/machine/model UUIDs, freeWeightTag, set type, reps, as-entered value+unit, normalizedKg, completedAt). `RecordsMath` provides: `isEligible` (completed, positive reps, warmups out, failure in; weighted > 0, assisted ≥ 0, bodyweightPlus ≥ 0, bodyweight load ignored); `outranks` (normalizedKg with per-load-type direction, then more reps, then earliest completedAt); `repCountBests` (1–12 cap, weight-keyed tables only); `mostRepsRecord` (bodyweight, uncapped); `brzyckiE1RMKg`/`bestE1RM` (weighted only, reps ≤ 12, exact formula); `totalVolumeKg` (Σ normalizedKg × reps, weighted working+failure only — no dumbbell special-casing, so nothing doubles); `groupKeys`/`grouped` (machine/model/exercise UUIDs; machineless → (exercise, freeWeightTag), so barbell and dumbbell never merge). Results (`RecordAchievement`, `E1RMRecord`) carry the as-entered value+unit. TDD: 22 tests in `WorkoutTrackerTests/RecordsMathTests.swift` cover every checkbox (incl. exact mixed-unit tie → earliest wins, zero assistance/zero added eligibility, tag-grouping separation) — full suite 74 tests `** TEST SUCCEEDED **`.
