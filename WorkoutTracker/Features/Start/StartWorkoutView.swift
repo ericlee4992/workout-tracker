@@ -1,7 +1,14 @@
+import SwiftData
 import SwiftUI
 
 struct StartWorkoutView: View {
     @EnvironmentObject private var store: SampleStore
+    // Persisted gyms (ticket 05). The rest of the workout flow stays on
+    // SampleStore until ticket 07 rewires it onto SwiftData.
+    @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
+    private var savedGyms: [Gym]
+    @Query private var allPreferences: [AppPreferences]
+    @State private var selectedSavedGym: Gym?
     var startWorkout: () -> Void
 
     var body: some View {
@@ -10,7 +17,7 @@ struct StartWorkoutView: View {
                 Section {
                     gymPicker
                 } footer: {
-                    Text("Sets default to \(store.currentGym.defaultUnit.rawValue) here. You can switch units on any set.")
+                    Text("Sets default to \(currentUnit.rawValue) here. You can switch units on any set.")
                 }
 
                 Section {
@@ -30,34 +37,62 @@ struct StartWorkoutView: View {
         }
     }
 
+    /// Gym-level unit for the currently picked gym, falling through to the
+    /// app preference when the gym doesn't set one (T7; no machine context here).
+    private var currentUnit: WeightUnit {
+        if let selectedSavedGym {
+            return UnitPrecedence.defaultUnit(
+                machineUnit: nil,
+                gymUnit: selectedSavedGym.defaultUnit,
+                appPreference: AppPreferences.canonical(of: allPreferences)?.unitPreference)
+        }
+        return store.currentGym.defaultUnit
+    }
+
+    private var currentGymName: String {
+        selectedSavedGym?.name ?? store.currentGym.name
+    }
+
     private var gymPicker: some View {
         Menu {
+            ForEach(savedGyms) { gym in
+                Button {
+                    selectedSavedGym = gym
+                } label: {
+                    let title = gym.city.map { "\(gym.name) · \($0)" } ?? gym.name
+                    if gym.id == selectedSavedGym?.id {
+                        Label(title, systemImage: "checkmark")
+                    } else {
+                        Text(title)
+                    }
+                }
+            }
             ForEach(store.gyms) { gym in
                 Button {
+                    selectedSavedGym = nil
                     store.currentGym = gym
                 } label: {
-                    if gym.id == store.currentGym.id {
+                    if selectedSavedGym == nil, gym.id == store.currentGym.id {
                         Label("\(gym.name) · \(gym.city)", systemImage: "checkmark")
                     } else {
                         Text("\(gym.name) · \(gym.city)")
                     }
                 }
             }
-            Button("Add Gym…", systemImage: "plus") {}
         } label: {
             HStack {
                 Image(systemName: "mappin.and.ellipse")
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(store.currentGym.name)
+                    Text(currentGymName)
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Text(store.currentGym.city)
+                    Text(selectedSavedGym.map { $0.city ?? "" } ?? store.currentGym.city)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                UnitBadge(unit: store.currentGym.defaultUnit)
+                UnitBadge(unit: currentUnit)
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -109,6 +144,10 @@ struct UnitBadge: View {
 }
 
 #Preview {
-    StartWorkoutView(startWorkout: {})
+    let container = try! ModelContainer(
+        for: WorkoutTrackerStore.schema,
+        configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+    return StartWorkoutView(startWorkout: {})
         .environmentObject(SampleStore())
+        .modelContainer(container)
 }

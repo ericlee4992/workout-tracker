@@ -17,7 +17,7 @@ enum CatalogSeeder {
     /// Reconciles `catalog` into the store behind `context`, saving only when
     /// something actually changed.
     static func reconcile(_ catalog: SeedCatalog, in context: ModelContext) throws {
-        let preferences = try resolvePreferences(in: context)
+        let preferences = try AppPreferences.canonical(in: context)
         let applyUpdates = catalog.version > preferences.seededCatalogVersion
 
         try reconcileExercises(catalog.exercises, applyUpdates: applyUpdates, in: context)
@@ -90,22 +90,5 @@ enum CatalogSeeder {
     /// context without changes (no save, no CloudKit churn).
     private static func setIfChanged<T: Equatable>(_ field: inout T, _ value: T) {
         if field != value { field = value }
-    }
-
-    // MARK: Preferences
-
-    /// Canonical AppPreferences row (app-side upsert: latest `updatedAt`,
-    /// ties broken by `id` — no unique constraints under CloudKit). Creates
-    /// the row on first launch.
-    private static func resolvePreferences(in context: ModelContext) throws -> AppPreferences {
-        let all = try context.fetch(FetchDescriptor<AppPreferences>())
-        if let canonical = all.max(by: {
-            ($0.updatedAt, $0.id.uuidString) < ($1.updatedAt, $1.id.uuidString)
-        }) {
-            return canonical
-        }
-        let fresh = AppPreferences()
-        context.insert(fresh)
-        return fresh
     }
 }

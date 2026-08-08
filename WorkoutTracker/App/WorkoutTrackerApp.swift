@@ -21,6 +21,13 @@ struct WorkoutTrackerApp: App {
         } catch {
             assertionFailure("Catalog seeding failed: \(error)")
         }
+        // First-launch unit preference: derive from the locale measurement
+        // system (US → lb, else kg). Idempotent; never blocks launch.
+        do {
+            try AppPreferences.ensureUnitPreference(in: modelContainer.mainContext)
+        } catch {
+            assertionFailure("Unit-preference bootstrap failed: \(error)")
+        }
     }
 
     var body: some Scene {

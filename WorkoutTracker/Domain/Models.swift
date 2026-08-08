@@ -398,6 +398,46 @@ final class AppPreferences {
     }
 }
 
+extension AppPreferences {
+    /// Canonical row among duplicates: latest `updatedAt`, ties broken by
+    /// `id` (app-side upsert — no unique constraints under CloudKit).
+    static func canonical(of rows: [AppPreferences]) -> AppPreferences? {
+        rows.max {
+            ($0.updatedAt, $0.id.uuidString) < ($1.updatedAt, $1.id.uuidString)
+        }
+    }
+
+    /// Canonical AppPreferences row for `context`, inserting a fresh row when
+    /// none exists yet (first launch).
+    static func canonical(in context: ModelContext) throws -> AppPreferences {
+        if let canonical = canonical(of: try context.fetch(FetchDescriptor<AppPreferences>())) {
+            return canonical
+        }
+        let fresh = AppPreferences()
+        context.insert(fresh)
+        return fresh
+    }
+
+    /// First-launch unit-preference resolution: when unset, derive the default
+    /// from the locale measurement system (US → lb, else kg) and persist it.
+    /// Idempotent — an already-set preference is never overwritten.
+    @discardableResult
+    static func ensureUnitPreference(
+        in context: ModelContext,
+        measurementSystem: Locale.MeasurementSystem = Locale.current.measurementSystem
+    ) throws -> AppPreferences {
+        let preferences = try canonical(in: context)
+        if preferences.unitPreference == nil {
+            preferences.unitPreference = UnitPrecedence.firstLaunchDefault(for: measurementSystem)
+            preferences.updatedAt = .now
+        }
+        if context.hasChanges {
+            try context.save()
+        }
+        return preferences
+    }
+}
+
 /// Per-exercise rest override (D22 precedence: override → global default).
 /// Scalar exercise id; app-level upsert like GymExerciseMemory.
 @Model
