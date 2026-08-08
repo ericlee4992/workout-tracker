@@ -39,6 +39,17 @@ struct PerformanceLayerResult: Sendable, Equatable, Identifiable {
     var id: PerformanceLayerKind { kind }
 }
 
+struct RecordLayerSummary: Sendable, Equatable {
+    var loadType: LoadType
+    var repCountBests: [Int: RecordAchievement]
+    var bodyweightBest: RecordAchievement?
+    var estimatedOneRepMax: E1RMRecord?
+
+    var isEmpty: Bool {
+        repCountBests.isEmpty && bodyweightBest == nil && estimatedOneRepMax == nil
+    }
+}
+
 /// Ticket 11 history selection. Every grouping decision uses entry snapshots
 /// (D23), and every source is a finished workout with completed sets only.
 /// Live catalog relationships are used solely to identify the draft entry's
@@ -150,6 +161,47 @@ struct PerformanceHistory {
         }
     }
 
+    /// Ticket 13 bridge from SwiftData snapshots into ticket 12's pure
+    /// records core. Group selection follows `RecordGroupKey`: machine,
+    /// model, exercise, or tag-specific free weight. Thus barbell and
+    /// dumbbell records never merge even though both share an exercise UUID.
+    func recordSummary(
+        for entry: ExerciseEntry,
+        layer: PerformanceLayerKind
+    ) throws -> RecordLayerSummary {
+        let loadType = entry.exercise?.loadType ?? entry.snapshotLoadType
+        let allInputs = try historicalEntries().flatMap(recordInputs(from:))
+        let grouped = RecordsMath.grouped(allInputs)
+        let exerciseID = currentExerciseID(for: entry)
+        let key: RecordGroupKey?
+        switch layer {
+        case .thisEquipment:
+            if let machineID = entry.machine?.id {
+                key = .machine(machineID)
+            } else {
+                key = .freeWeight(exerciseID: exerciseID, tag: entry.freeWeightTag)
+            }
+        case .sameModelElsewhere:
+            if let modelID = entry.machine?.model?.id {
+                key = .model(modelID)
+            } else {
+                key = nil
+            }
+        case .anyEquipment:
+            if entry.machine == nil {
+                key = .freeWeight(exerciseID: exerciseID, tag: entry.freeWeightTag)
+            } else {
+                key = .exercise(exerciseID)
+            }
+        }
+        let inputs = key.flatMap { grouped[$0] } ?? []
+        return RecordLayerSummary(
+            loadType: loadType,
+            repCountBests: RecordsMath.repCountBests(among: inputs, loadType: loadType),
+            bodyweightBest: RecordsMath.mostRepsRecord(among: inputs),
+            estimatedOneRepMax: RecordsMath.bestE1RM(among: inputs))
+    }
+
     // MARK: Selection
 
     private func historicalEntries() throws -> [ExerciseEntry] {
@@ -223,6 +275,23 @@ struct PerformanceHistory {
             weightUnit: set.weightUnit,
             normalizedKg: set.normalizedKg,
             completedAt: set.completedAt ?? .distantPast)
+    }
+
+    private func recordInputs(from entry: ExerciseEntry) -> [RecordSetInput] {
+        completedSets(of: entry).map { set in
+            RecordSetInput(
+                loadType: entry.snapshotLoadType,
+                exerciseID: entry.snapshotExerciseID,
+                machineID: entry.snapshotMachineID,
+                modelID: entry.snapshotModelID,
+                freeWeightTag: entry.snapshotFreeWeightTag,
+                setType: set.type,
+                reps: set.reps,
+                weightValue: set.weightValue,
+                weightUnit: set.weightUnit,
+                normalizedKg: set.normalizedKg,
+                completedAt: set.completedAt)
+        }
     }
 
     private func snapshot(

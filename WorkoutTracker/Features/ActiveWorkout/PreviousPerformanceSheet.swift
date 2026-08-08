@@ -9,6 +9,7 @@ struct PreviousPerformanceSheet: View {
     @Environment(\.dismiss) private var dismiss
     var entry: ExerciseEntry
     @State private var layers: [PerformanceLayerResult] = []
+    @State private var recordSummaries: [PerformanceLayerKind: RecordLayerSummary] = [:]
 
     var body: some View {
         NavigationStack {
@@ -22,6 +23,8 @@ struct PreviousPerformanceSheet: View {
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
+                        Divider()
+                        recordsView(for: layer.kind)
                     } header: {
                         header(for: layer.kind)
                     } footer: {
@@ -68,6 +71,77 @@ struct PreviousPerformanceSheet: View {
             }
         }
         .padding(.vertical, 3)
+    }
+
+    @ViewBuilder
+    private func recordsView(for kind: PerformanceLayerKind) -> some View {
+        if let summary = recordSummaries[kind], !summary.isEmpty {
+            VStack(alignment: .leading, spacing: 7) {
+                Text(recordTitle(for: summary.loadType))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                if summary.loadType == .bodyweight,
+                   let best = summary.bodyweightBest {
+                    recordRow(label: "Most reps", value: "\(best.reps) reps")
+                } else {
+                    ForEach(summary.repCountBests.keys.sorted(), id: \.self) { reps in
+                        if let achievement = summary.repCountBests[reps] {
+                            recordRow(
+                                label: "\(reps) reps",
+                                value: achievementLabel(achievement))
+                        }
+                    }
+                }
+
+                if let estimate = summary.estimatedOneRepMax {
+                    recordRow(
+                        label: "e1RM (Brzycki, est.)",
+                        value: estimateLabel(estimate))
+                    Text("From \(Format.weight(estimate.weightValue)) \(estimate.weightUnit.rawValue) × \(estimate.reps)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.vertical, 3)
+        } else {
+            Text("No eligible records at this layer yet.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func recordRow(label: String, value: String) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Text(value)
+                .font(.subheadline.monospacedDigit().weight(.medium))
+        }
+        .font(.subheadline)
+    }
+
+    private func recordTitle(for loadType: LoadType) -> String {
+        switch loadType {
+        case .weighted: "Weight records"
+        case .assisted: "Least-assistance records · lower is better"
+        case .bodyweightPlus: "Added-weight records"
+        case .bodyweight: "Bodyweight record"
+        }
+    }
+
+    private func achievementLabel(_ achievement: RecordAchievement) -> String {
+        guard let value = achievement.weightValue,
+              let unit = achievement.weightUnit else {
+            return "\(achievement.reps) reps"
+        }
+        return "\(WeightMath.displayNumber(value)) \(unit.rawValue)"
+    }
+
+    private func estimateLabel(_ estimate: E1RMRecord) -> String {
+        let value = WeightMath.convert(
+            estimate.e1RMKg, from: .kg, to: estimate.weightUnit)
+        return "≈\(WeightMath.displayNumber(value)) \(estimate.weightUnit.rawValue)"
     }
 
     @ViewBuilder
@@ -131,10 +205,15 @@ struct PreviousPerformanceSheet: View {
     private func loadLayers() {
         guard !entry.isDeleted else { return }
         do {
-            layers = try PerformanceHistory(context: modelContext).layers(for: entry)
+            let history = PerformanceHistory(context: modelContext)
+            layers = try history.layers(for: entry)
+            recordSummaries = try Dictionary(uniqueKeysWithValues: layers.map { layer in
+                (layer.kind, try history.recordSummary(for: entry, layer: layer.kind))
+            })
         } catch {
             assertionFailure("Failed to load performance layers: \(error)")
             layers = []
+            recordSummaries = [:]
         }
     }
 }
