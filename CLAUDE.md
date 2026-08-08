@@ -29,7 +29,17 @@ xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
 
 # Prototype screenshots: launch env PROTO_SCREEN=start|active|history|gyms|exercises
 # preselects a screen (milestone 1 only).
+
+# Test (unit tests in WorkoutTrackerTests/, Swift Testing; shared scheme has a TestAction)
+xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=WT-iPhone'
 ```
+
+Device bootstrap: tests target the `WT-iPhone` simulator. If `xcrun simctl list devices`
+shows no such device, create it first (any available iPhone device type / latest runtime works):
+`xcrun simctl create WT-iPhone "iPhone 17 Pro"`. Alternatively substitute
+`name=<first available iPhone>` from `xcrun simctl list devices`. Test files added under
+`WorkoutTrackerTests/` auto-register via the synchronized folder — never edit `project.pbxproj`.
 
 ## Workflow
 
