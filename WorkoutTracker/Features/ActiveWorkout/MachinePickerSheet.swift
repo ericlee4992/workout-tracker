@@ -12,7 +12,8 @@ struct MachinePickerSheet: View {
     private var gym: Gym? { entry.workout?.gym }
 
     private var machines: [MachineInstance] {
-        (gym?.machines ?? [])
+        guard gym?.archived == false else { return [] }
+        return (gym?.machines ?? [])
             .filter { !$0.archived }
             .sorted { $0.label < $1.label }
     }

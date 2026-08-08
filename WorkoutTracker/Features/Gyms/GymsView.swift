@@ -100,8 +100,18 @@ private struct GymRow: View {
 }
 
 struct GymDetailView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     var gym: Gym
     @State private var showingAddMachine = false
+    @State private var renamingGym = false
+    @State private var gymName = ""
+    @State private var renamingMachine: MachineInstance?
+    @State private var machineLabel = ""
+    @State private var correctingMachine: MachineInstance?
+    @State private var renamingModel: EquipmentModel?
+    @State private var modelManufacturer = ""
+    @State private var modelName = ""
 
     var body: some View {
         List {
@@ -139,6 +149,25 @@ struct GymDetailView: View {
                         }
                     }
                     .padding(.vertical, 2)
+                    .contextMenu {
+                        Button("Rename Machine…") {
+                            machineLabel = machine.label
+                            renamingMachine = machine
+                        }
+                        Button("Correct Model…") {
+                            correctingMachine = machine
+                        }
+                        if let model = machine.model, !model.isSeeded {
+                            Button("Rename Model…") {
+                                modelManufacturer = model.manufacturer
+                                modelName = model.modelName
+                                renamingModel = model
+                            }
+                        }
+                        Button("Archive Machine", role: .destructive) {
+                            archive(machine)
+                        }
+                    }
                 }
                 if activeMachines.isEmpty {
                     Text("No machines yet")
@@ -157,8 +186,62 @@ struct GymDetailView: View {
         }
         .navigationTitle(gym.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Rename Gym…") {
+                        gymName = gym.name
+                        renamingGym = true
+                    }
+                    Button("Archive Gym", role: .destructive) {
+                        archiveGym()
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+            }
+        }
         .sheet(isPresented: $showingAddMachine) {
             AddMachineSheet(gym: gym)
+        }
+        .sheet(item: $correctingMachine) { machine in
+            MachineModelCorrectionSheet(machine: machine)
+        }
+        .alert("Rename Gym", isPresented: $renamingGym) {
+            TextField("Name", text: $gymName)
+            Button("Save") { renameGym() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Existing workout history keeps the name captured when each workout was logged.")
+        }
+        .alert(
+            "Rename Machine",
+            isPresented: Binding(
+                get: { renamingMachine != nil },
+                set: { if !$0 { renamingMachine = nil } }
+            ),
+            presenting: renamingMachine
+        ) { machine in
+            TextField("Label", text: $machineLabel)
+            Button("Save") { rename(machine) }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("Existing history keeps the machine label captured at log time.")
+        }
+        .alert(
+            "Rename Model",
+            isPresented: Binding(
+                get: { renamingModel != nil },
+                set: { if !$0 { renamingModel = nil } }
+            ),
+            presenting: renamingModel
+        ) { model in
+            TextField("Manufacturer", text: $modelManufacturer)
+            TextField("Model", text: $modelName)
+            Button("Save") { rename(model) }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("Only custom models can be renamed. Existing history keeps its captured model name.")
         }
     }
 
@@ -166,6 +249,100 @@ struct GymDetailView: View {
         (gym.machines ?? [])
             .filter { !$0.archived }
             .sorted { $0.label < $1.label }
+    }
+
+    private var lifecycle: EquipmentLifecycle {
+        EquipmentLifecycle(context: modelContext)
+    }
+
+    private func renameGym() {
+        do { try lifecycle.rename(gym, to: gymName) }
+        catch { assertionFailure("Failed to rename gym: \(error)") }
+    }
+
+    private func rename(_ machine: MachineInstance) {
+        do { try lifecycle.rename(machine, to: machineLabel) }
+        catch { assertionFailure("Failed to rename machine: \(error)") }
+    }
+
+    private func rename(_ model: EquipmentModel) {
+        do {
+            try lifecycle.rename(
+                model, manufacturer: modelManufacturer, modelName: modelName)
+        } catch {
+            assertionFailure("Failed to rename model: \(error)")
+        }
+    }
+
+    private func archive(_ machine: MachineInstance) {
+        do { try lifecycle.archive(machine) }
+        catch { assertionFailure("Failed to archive machine: \(error)") }
+    }
+
+    private func archiveGym() {
+        do {
+            try lifecycle.archive(gym)
+            dismiss()
+        } catch {
+            assertionFailure("Failed to archive gym: \(error)")
+        }
+    }
+}
+
+/// D10's explicit model-correction prompt. Merely renaming a model never
+/// rewrites history; changing which model a machine is attaches the selected
+/// scope to the save operation.
+private struct MachineModelCorrectionSheet: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    var machine: MachineInstance
+    @State private var model: EquipmentModel?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    NavigationLink {
+                        ModelPickerView(selection: $model)
+                    } label: {
+                        HStack {
+                            Text("Correct model")
+                            Spacer()
+                            Text(model?.displayName ?? "None")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } footer: {
+                    Text("Choose whether existing workout snapshots for this exact machine should also move to the corrected model.")
+                }
+                Section {
+                    Button("Future Workouts Only") {
+                        apply(.futureOnly)
+                    }
+                    Button("Apply to Past Workouts Too") {
+                        apply(.applyToPast)
+                    }
+                }
+            }
+            .navigationTitle("Correct Model")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear { model = machine.model }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func apply(_ scope: ModelCorrectionScope) {
+        do {
+            try EquipmentLifecycle(context: modelContext)
+                .correctModel(of: machine, to: model, scope: scope)
+            dismiss()
+        } catch {
+            assertionFailure("Failed to correct model: \(error)")
+        }
     }
 }
 
@@ -308,7 +485,7 @@ struct AddMachineSheet: View {
 /// Searchable picker over the whole equipment-model catalog (seeded + user),
 /// with "None" for model-less machines and inline user-model creation for
 /// models the catalog lacks.
-private struct ModelPickerView: View {
+struct ModelPickerView: View {
     @Binding var selection: EquipmentModel?
     @Environment(\.dismiss) private var dismiss
     @Query(sort: [

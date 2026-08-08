@@ -74,9 +74,8 @@ struct ExercisesView: View {
     private func rename(_ exercise: Exercise) {
         let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !exercise.isSeeded else { return }
-        exercise.name = trimmed
         do {
-            try modelContext.save()
+            try EquipmentLifecycle(context: modelContext).rename(exercise, to: trimmed)
         } catch {
             assertionFailure("Failed to rename exercise: \(error)")
         }
