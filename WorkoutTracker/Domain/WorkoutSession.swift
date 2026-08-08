@@ -118,6 +118,34 @@ struct WorkoutSession {
         return entry
     }
 
+    /// Machine-first logging (D7): the exercises linked to `machine`'s
+    /// equipment model, resolved from the model's scalar `exerciseIDs` in
+    /// link order. Exactly one → the UI auto-fills it with zero extra
+    /// prompts; several → the UI offers a chooser restricted to these; empty
+    /// (model-less machine, or no link resolves) → the UI falls back to the
+    /// full exercise picker.
+    func exercisesFor(machine: MachineInstance) throws -> [Exercise] {
+        let ids = machine.model?.exerciseIDs ?? []
+        guard !ids.isEmpty else { return [] }
+        let fetched = try context.fetch(FetchDescriptor<Exercise>(
+            predicate: #Predicate { ids.contains($0.id) }))
+        let byID = Dictionary(fetched.map { ($0.id, $0) }) { first, _ in first }
+        return ids.compactMap { byID[$0] }
+    }
+
+    /// Machine-first add (D7): appends an entry with the machine already
+    /// set. `exercise` is the machine's single linked exercise (auto-fill),
+    /// the one chosen from a multi-exercise station's chooser, or any
+    /// exercise from the full picker when the machine has no model.
+    @discardableResult
+    func addEntry(
+        machine: MachineInstance,
+        exercise: Exercise,
+        to workout: Workout
+    ) throws -> ExerciseEntry {
+        try addEntry(for: exercise, to: workout, machine: machine)
+    }
+
     func deleteEntry(_ entry: ExerciseEntry) throws {
         let workout = entry.workout
         context.delete(entry)

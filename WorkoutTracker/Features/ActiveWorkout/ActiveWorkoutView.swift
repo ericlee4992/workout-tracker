@@ -13,6 +13,7 @@ struct ActiveWorkoutView: View {
     @State private var machinePickerEntry: ExerciseEntry?
     @State private var performanceEntry: ExerciseEntry?
     @State private var showExercisePicker = false
+    @State private var showMachinePicker = false
     @State private var confirmingCancel = false
 
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
@@ -36,11 +37,23 @@ struct ActiveWorkoutView: View {
                         )
                     }
 
-                    Button {
-                        showExercisePicker = true
-                    } label: {
-                        Label("Add Exercise", systemImage: "plus")
-                            .frame(maxWidth: .infinity)
+                    HStack(spacing: 12) {
+                        Button {
+                            showExercisePicker = true
+                        } label: {
+                            Label("Add Exercise", systemImage: "plus")
+                                .frame(maxWidth: .infinity)
+                        }
+                        // Machine-first path (D7): hidden for no-gym workouts —
+                        // there are no machines to list.
+                        if !workout.isDeleted, workout.gym != nil {
+                            Button {
+                                showMachinePicker = true
+                            } label: {
+                                Label("Add by Machine", systemImage: "figure.strengthtraining.traditional")
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
                     }
                     .buttonStyle(.bordered)
                     .padding(.horizontal)
@@ -88,6 +101,10 @@ struct ActiveWorkoutView: View {
                 ExercisePickerSheet { exercise in
                     addEntry(for: exercise)
                 }
+            }
+            .sheet(isPresented: $showMachinePicker) {
+                AddByMachineSheet(workout: workout)
+                    .presentationDetents([.medium, .large])
             }
         }
     }
