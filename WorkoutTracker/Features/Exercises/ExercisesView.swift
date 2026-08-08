@@ -3,8 +3,7 @@ import SwiftUI
 
 // Exercises tab — the full persisted catalog: seeded rows (ticket 04) plus
 // user-created exercises (ticket 06) side by side. Seeded rows are read-only
-// (D24); only user-created exercises can be renamed. The active-workout
-// pickers stay on SampleStore until ticket 07 rewires them.
+// (D24); only user-created exercises can be renamed.
 struct ExercisesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Exercise.name) private var exercises: [Exercise]

@@ -3,8 +3,6 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
-    // History stays on sample data until ticket 09 rewires it.
-    @StateObject private var store = SampleStore()
     @State private var selection: Tab = .workout
     @State private var activeWorkout: Workout?
 
@@ -30,7 +28,6 @@ struct RootView: View {
                 .tabItem { Label("Exercises", systemImage: "list.bullet.rectangle") }
                 .tag(Tab.exercises)
         }
-        .environmentObject(store)
         .fullScreenCover(item: $activeWorkout) { workout in
             ActiveWorkoutView(workout: workout)
         }
@@ -46,13 +43,11 @@ struct RootView: View {
     }
 
     // Lets scripted screenshot runs land on a specific screen:
-    // SIMCTL_CHILD_PROTO_SCREEN=history|gyms|exercises
-    // ("active" was a milestone-1 deep link; the live screen now requires a
-    // real persisted workout.)
+    // SIMCTL_CHILD_PROTO_SCREEN=gyms|exercises
+    // ("active", "history", and "detail" were milestone-1 deep links; those
+    // screens now render real persisted data.)
     private func applyLaunchOverride() {
         switch ProcessInfo.processInfo.environment["PROTO_SCREEN"] {
-        case "history", "detail":
-            selection = .history
         case "gyms":
             selection = .gyms
         case "exercises":

@@ -9,7 +9,7 @@ Private iPhone workout tracker (two developers). **Read `docs/SPEC.md` before ma
   - `App/` — entry point, root navigation
   - `Domain/` — value types and (later) SwiftData models, pure logic
   - `Features/<Feature>/` — one folder per screen/feature (SwiftUI)
-  - `SampleData/` — in-memory prototype data (milestone 1; removed when SwiftData lands)
+  - `SampleData/` — sample templates backing the Start screen (removed when ticket 15 lands template CRUD)
 - `docs/` — SPEC.md (product spec), DECISIONS.md (decision log)
 
 ## Conventions
@@ -27,8 +27,7 @@ Private iPhone workout tracker (two developers). **Read `docs/SPEC.md` before ma
 xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
   -sdk iphonesimulator -configuration Debug build
 
-# Prototype screenshots: launch env PROTO_SCREEN=start|active|history|gyms|exercises
-# preselects a screen (milestone 1 only).
+# Screenshot deep links: launch env PROTO_SCREEN=gyms|exercises preselects a tab.
 
 # Test (unit tests in WorkoutTrackerTests/, Swift Testing; shared scheme has a TestAction)
 xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \

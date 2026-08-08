@@ -3,8 +3,6 @@ import SwiftUI
 
 struct StartWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
-    // Templates render from sample data until ticket 15 lands template CRUD.
-    @EnvironmentObject private var store: SampleStore
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
     private var gyms: [Gym]
     @Query private var allPreferences: [AppPreferences]
@@ -31,8 +29,10 @@ struct StartWorkoutView: View {
                     }
                 }
 
+                // Templates render from sample data until ticket 15 lands
+                // template CRUD.
                 Section("Templates") {
-                    ForEach(store.templates) { template in
+                    ForEach(SampleWorkoutTemplate.samples) { template in
                         TemplateRow(
                             template: template,
                             gymName: selectedGym?.name ?? "your gym",
@@ -185,6 +185,5 @@ struct UnitBadge: View {
         configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
     container.mainContext.insert(Gym(name: "Gold's Gym Gangnam", city: "Seoul", defaultUnit: .kg))
     return StartWorkoutView(onWorkoutStarted: { _ in })
-        .environmentObject(SampleStore())
         .modelContainer(container)
 }
