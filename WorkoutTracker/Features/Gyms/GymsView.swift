@@ -101,6 +101,7 @@ private struct GymRow: View {
 
 struct GymDetailView: View {
     var gym: Gym
+    @State private var showingAddMachine = false
 
     var body: some View {
         List {
@@ -122,16 +123,20 @@ struct GymDetailView: View {
                 }
             }
 
-            // Machine management lands in ticket 06 — until then the list
-            // only reflects the (empty) persisted relationship.
-            Section("Machines") {
+            Section {
                 ForEach(activeMachines) { machine in
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(machine.label)
-                            .font(.body.weight(.medium))
-                        Text(machine.model?.displayName ?? "Unknown model")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(machine.label)
+                                .font(.body.weight(.medium))
+                            Text(machine.model?.displayName ?? "No model")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        if let unit = machine.defaultUnit {
+                            UnitBadge(unit: unit)
+                        }
                     }
                     .padding(.vertical, 2)
                 }
@@ -139,12 +144,22 @@ struct GymDetailView: View {
                     Text("No machines yet")
                         .foregroundStyle(.secondary)
                 }
-                Button("Add Machine…", systemImage: "plus") {}
-                    .disabled(true)
+                Button("Add Machine…", systemImage: "plus") {
+                    showingAddMachine = true
+                }
+            } header: {
+                Text("Machines")
+            } footer: {
+                // Model-less machines are allowed: when logging machine-first
+                // they open the full exercise picker instead of auto-filling.
+                Text("The model is optional — a machine without one asks for the exercise when you log with it.")
             }
         }
         .navigationTitle(gym.name)
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingAddMachine) {
+            AddMachineSheet(gym: gym)
+        }
     }
 
     private var activeMachines: [MachineInstance] {
@@ -208,6 +223,257 @@ private struct AddGymSheet: View {
         } catch {
             assertionFailure("Failed to save new gym: \(error)")
         }
+        dismiss()
+    }
+}
+
+// MARK: - Add Machine (ticket 06)
+
+private struct AddMachineSheet: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    var gym: Gym
+    @State private var label = ""
+    @State private var model: EquipmentModel?
+    @State private var defaultUnit: WeightUnit?
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Label (e.g. “Chest press by the window”)", text: $label)
+                } footer: {
+                    Text("How you'll recognize this machine at \(gym.name).")
+                }
+                Section {
+                    NavigationLink {
+                        ModelPickerView(selection: $model)
+                    } label: {
+                        HStack {
+                            Text("Catalog model")
+                            Spacer()
+                            Text(model?.displayName ?? "None")
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } footer: {
+                    Text("Optional. Without a model, logging on this machine opens the full exercise picker.")
+                }
+                Section {
+                    Picker("Default unit", selection: $defaultUnit) {
+                        Text("Gym default").tag(WeightUnit?.none)
+                        ForEach(WeightUnit.allCases) { unit in
+                            Text(unit.rawValue).tag(WeightUnit?.some(unit))
+                        }
+                    }
+                } footer: {
+                    Text("Leave on Gym default to fall through to the gym's unit (then the app preference).")
+                }
+            }
+            .navigationTitle("New Machine")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") { addMachine() }
+                        .disabled(trimmedLabel.isEmpty)
+                }
+            }
+        }
+    }
+
+    private var trimmedLabel: String {
+        label.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func addMachine() {
+        modelContext.insert(MachineInstance(
+            label: trimmedLabel,
+            defaultUnit: defaultUnit,
+            gym: gym,
+            model: model))
+        do {
+            try modelContext.save()
+        } catch {
+            assertionFailure("Failed to save new machine: \(error)")
+        }
+        dismiss()
+    }
+}
+
+/// Searchable picker over the whole equipment-model catalog (seeded + user),
+/// with "None" for model-less machines and inline user-model creation for
+/// models the catalog lacks.
+private struct ModelPickerView: View {
+    @Binding var selection: EquipmentModel?
+    @Environment(\.dismiss) private var dismiss
+    @Query(sort: [
+        SortDescriptor(\EquipmentModel.manufacturer),
+        SortDescriptor(\EquipmentModel.modelName),
+    ]) private var models: [EquipmentModel]
+    @State private var searchText = ""
+    @State private var showingAddModel = false
+
+    private var filtered: [EquipmentModel] {
+        guard !searchText.isEmpty else { return models }
+        return models.filter {
+            $0.displayName.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                Button {
+                    selection = nil
+                    dismiss()
+                } label: {
+                    HStack {
+                        Text("None")
+                        Spacer()
+                        if selection == nil {
+                            Image(systemName: "checkmark")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+            Section {
+                ForEach(filtered) { model in
+                    Button {
+                        selection = model
+                        dismiss()
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(model.displayName)
+                                if !model.isSeeded {
+                                    Text("Custom")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            if selection?.id == model.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                    }
+                    .buttonStyle(.plain)
+                }
+                Button("New Model…", systemImage: "plus") {
+                    showingAddModel = true
+                }
+            } footer: {
+                Text("Can't find the machine's model? Add it — your models live alongside the catalog.")
+            }
+        }
+        .searchable(text: $searchText, prompt: "Search models")
+        .navigationTitle("Catalog Model")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showingAddModel) {
+            AddModelSheet { newModel in
+                selection = newModel
+                dismiss()
+            }
+        }
+    }
+}
+
+/// Inline user-model creation (D24: user ID space, `isSeeded == false`;
+/// must link at least one exercise).
+private struct AddModelSheet: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    var onCreate: (EquipmentModel) -> Void
+    @Query(sort: \Exercise.name) private var exercises: [Exercise]
+    @State private var manufacturer = ""
+    @State private var modelName = ""
+    @State private var linkedExerciseIDs: Set<UUID> = []
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Manufacturer", text: $manufacturer)
+                    TextField("Model", text: $modelName)
+                }
+                Section {
+                    ForEach(exercises) { exercise in
+                        Button {
+                            toggle(exercise.id)
+                        } label: {
+                            HStack {
+                                Text(exercise.name)
+                                Spacer()
+                                if linkedExerciseIDs.contains(exercise.id) {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } header: {
+                    Text("Exercises")
+                } footer: {
+                    Text("Link at least one exercise this model serves — multi-exercise stations can link several.")
+                }
+            }
+            .navigationTitle("New Model")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Add") { addModel() }
+                        .disabled(!isValid)
+                }
+            }
+        }
+    }
+
+    private var trimmedManufacturer: String {
+        manufacturer.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var trimmedModelName: String {
+        modelName.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var isValid: Bool {
+        !trimmedManufacturer.isEmpty && !trimmedModelName.isEmpty
+            && !linkedExerciseIDs.isEmpty
+    }
+
+    private func toggle(_ id: UUID) {
+        if linkedExerciseIDs.contains(id) {
+            linkedExerciseIDs.remove(id)
+        } else {
+            linkedExerciseIDs.insert(id)
+        }
+    }
+
+    private func addModel() {
+        // Preserve the catalog's display order in the stored link list.
+        let orderedIDs = exercises.map(\.id).filter(linkedExerciseIDs.contains)
+        let model = EquipmentModel(
+            manufacturer: trimmedManufacturer,
+            modelName: trimmedModelName,
+            exerciseIDs: orderedIDs,
+            isSeeded: false)
+        modelContext.insert(model)
+        do {
+            try modelContext.save()
+        } catch {
+            assertionFailure("Failed to save new model: \(error)")
+        }
+        onCreate(model)
         dismiss()
     }
 }
