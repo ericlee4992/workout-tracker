@@ -21,3 +21,8 @@
 set whose completion started/replaced the persisted rest timer. This makes the D13
 un-completion cancellation rule recoverable across relaunch. Optional scalar with nil default,
 CloudKit-safe, additive-only (lightweight migration).
+
+**Field addition (ticket 15, 2026-08-08):** `TemplateItem.targetRepsBySet: [Int?]` —
+ordered per-set-slot target reps. `targetReps` remains as the first-slot compatibility value;
+the array is authoritative for ticket 15/16 template values. Non-relationship scalar with an
+empty default, CloudKit-safe, additive-only (lightweight migration).

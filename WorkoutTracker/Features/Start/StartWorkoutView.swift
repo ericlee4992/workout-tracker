@@ -5,9 +5,13 @@ struct StartWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
     private var gyms: [Gym]
+    @Query(sort: \WorkoutTemplate.name) private var templates: [WorkoutTemplate]
     @Query private var allPreferences: [AppPreferences]
     @State private var selectedGym: Gym?
     @State private var showingResumeDialog = false
+    @State private var pendingTemplate: WorkoutTemplate?
+    @State private var editingTemplate: WorkoutTemplate?
+    @State private var showingTemplateEditor = false
     /// Called with the workout to present — freshly started or resumed.
     var onWorkoutStarted: (Workout) -> Void
 
@@ -23,20 +27,31 @@ struct StartWorkoutView: View {
                 }
 
                 Section {
-                    Button(action: startTapped) {
+                    Button { startTapped(template: nil) } label: {
                         Label("Start Empty Workout", systemImage: "plus.circle.fill")
                             .font(.headline)
                     }
                 }
 
-                // Templates render from sample data until ticket 15 lands
-                // template CRUD.
                 Section("Templates") {
-                    ForEach(SampleWorkoutTemplate.samples) { template in
+                    ForEach(templates) { template in
                         TemplateRow(
                             template: template,
                             gymName: selectedGym?.name ?? "your gym",
-                            start: startTapped)
+                            start: { startTapped(template: template) })
+                        .contextMenu {
+                            Button("Edit…") {
+                                editingTemplate = template
+                                showingTemplateEditor = true
+                            }
+                            Button("Delete", role: .destructive) {
+                                delete(template)
+                            }
+                        }
+                    }
+                    Button("New Template…", systemImage: "plus") {
+                        editingTemplate = nil
+                        showingTemplateEditor = true
                     }
                 }
             }
@@ -52,13 +67,17 @@ struct StartWorkoutView: View {
             } message: {
                 Text("Resume it, or finish it and start a new one — only its completed sets are kept.")
             }
+            .sheet(isPresented: $showingTemplateEditor) {
+                TemplateEditorSheet(template: editingTemplate)
+            }
         }
     }
 
     // MARK: Start flow
 
     /// Start-while-active offers Resume or Finish-and-start-new.
-    private func startTapped() {
+    private func startTapped(template: WorkoutTemplate?) {
+        pendingTemplate = template
         if (try? session.resumableWorkout()) != nil {
             showingResumeDialog = true
         } else {
@@ -71,17 +90,30 @@ struct StartWorkoutView: View {
             if let active = try session.resumableWorkout() {
                 try RestTimerService(context: modelContext).skip(active)
             }
-            // The service finishes any lingering active workout first.
-            onWorkoutStarted(try session.startWorkout(at: selectedGym))
+            let workout: Workout
+            if let template = pendingTemplate {
+                workout = try WorkoutTemplateService(context: modelContext)
+                    .start(template, at: selectedGym)
+            } else {
+                workout = try session.startWorkout(at: selectedGym)
+            }
+            pendingTemplate = nil
+            onWorkoutStarted(workout)
         } catch {
             assertionFailure("Failed to start workout: \(error)")
         }
     }
 
     private func resumeActive() {
+        pendingTemplate = nil
         if let workout = try? session.resumableWorkout() {
             onWorkoutStarted(workout)
         }
+    }
+
+    private func delete(_ template: WorkoutTemplate) {
+        do { try WorkoutTemplateService(context: modelContext).delete(template) }
+        catch { assertionFailure("Failed to delete template: \(error)") }
     }
 
     // MARK: Gym & units
@@ -141,7 +173,7 @@ struct StartWorkoutView: View {
 }
 
 private struct TemplateRow: View {
-    var template: SampleWorkoutTemplate
+    var template: WorkoutTemplate
     var gymName: String
     var start: () -> Void
 
@@ -150,7 +182,9 @@ private struct TemplateRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(template.name)
                     .font(.headline)
-                Text(template.exerciseNames.joined(separator: " · "))
+                Text(WorkoutTemplateService.orderedItems(of: template)
+                    .compactMap { $0.exercise?.name }
+                    .joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)

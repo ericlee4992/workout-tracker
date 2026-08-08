@@ -14,6 +14,9 @@ struct ActiveWorkoutView: View {
     @State private var showExercisePicker = false
     @State private var showMachinePicker = false
     @State private var confirmingCancel = false
+    @State private var choosingFromScratchFinish = false
+    @State private var namingTemplate = false
+    @State private var templateName = ""
 
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
 
@@ -81,7 +84,7 @@ struct ActiveWorkoutView: View {
                         .tint(.red)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Finish") { finishWorkout() }
+                    Button("Finish") { finishTapped() }
                         .font(.headline)
                 }
             }
@@ -94,6 +97,28 @@ struct ActiveWorkoutView: View {
                 Button("Keep Logging", role: .cancel) {}
             } message: {
                 Text("The workout and everything logged in it will be deleted.")
+            }
+            .confirmationDialog(
+                "Finish workout",
+                isPresented: $choosingFromScratchFinish,
+                titleVisibility: .visible
+            ) {
+                Button("Finish & Save as Template") {
+                    templateName = defaultTemplateName
+                    namingTemplate = true
+                }
+                Button("Finish") { finishWorkout() }
+                Button("Keep Logging", role: .cancel) {}
+            } message: {
+                Text("You can keep the completed exercise and set structure as a reusable template.")
+            }
+            .alert("Save as Template", isPresented: $namingTemplate) {
+                TextField("Template name", text: $templateName)
+                Button("Save") { finishAndSaveTemplate() }
+                    .disabled(templateName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Completed sets become target set and rep slots. Weights and rest times are not saved.")
             }
             .sheet(item: $machinePickerEntry) { entry in
                 MachinePickerSheet(entry: entry)
@@ -142,6 +167,14 @@ struct ActiveWorkoutView: View {
 
     // MARK: Actions
 
+    private func finishTapped() {
+        if workout.sourceTemplateID == nil {
+            choosingFromScratchFinish = true
+        } else {
+            finishWorkout()
+        }
+    }
+
     private func finishWorkout() {
         do {
             try restTimer.skip(workout)
@@ -150,6 +183,25 @@ struct ActiveWorkoutView: View {
             assertionFailure("Failed to finish workout: \(error)")
         }
         dismiss()
+    }
+
+    private func finishAndSaveTemplate() {
+        do {
+            try restTimer.skip(workout)
+            try session.finish(workout)
+            try WorkoutTemplateService(context: modelContext).saveAsTemplate(
+                workout,
+                name: templateName)
+        } catch {
+            assertionFailure("Failed to finish and save template: \(error)")
+        }
+        dismiss()
+    }
+
+    private var defaultTemplateName: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        return "Workout \(formatter.string(from: workout.startedAt))"
     }
 
     private func cancelWorkout() {

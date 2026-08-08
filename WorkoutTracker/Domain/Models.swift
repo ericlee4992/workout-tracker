@@ -166,6 +166,9 @@ final class TemplateItem {
     var order: Int = 0
     var targetSets: Int?
     var targetReps: Int?
+    /// Per-set-slot target reps in scalar set order. Added by ticket 15 so
+    /// templates can retain differing rep targets across their set rows.
+    var targetRepsBySet: [Int?] = []
     // No rest durations in v1 (D22).
 
     var template: WorkoutTemplate?
@@ -176,12 +179,14 @@ final class TemplateItem {
         order: Int,
         targetSets: Int? = nil,
         targetReps: Int? = nil,
+        targetRepsBySet: [Int?] = [],
         exercise: Exercise? = nil
     ) {
         self.id = id
         self.order = order
         self.targetSets = targetSets
         self.targetReps = targetReps
+        self.targetRepsBySet = targetRepsBySet
         self.exercise = exercise
     }
 }

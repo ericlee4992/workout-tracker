@@ -4,11 +4,11 @@
 
 **Blocked by:** 07 (memory upsert behavior; ticket 08's UI is not required). Internal order: CRUD first, then startup/resolution.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Template CRUD survives relaunch; ordering stable via scalar order
-- [ ] Resolution test: same template started at gym A vs gym B resolves to each gym's remembered machines; unknown-at-B exercise starts machineless
-- [ ] No-gym start works; all entries machineless
-- [ ] Save-as-template captures exercise list + set counts from the finished workout
-- [ ] Started-from-template workouts record provenance via Workout.sourceTemplateID (for ticket 16's drift detection)
-- [ ] Target-rep capture: per set slot, from the workout's completed sets in order; target set count = completed set count
+- [x] Template CRUD survives relaunch; ordering stable via scalar order
+- [x] Resolution test: same template started at gym A vs gym B resolves to each gym's remembered machines; unknown-at-B exercise starts machineless
+- [x] No-gym start works; all entries machineless
+- [x] Save-as-template captures exercise list + set counts from the finished workout
+- [x] Started-from-template workouts record provenance via Workout.sourceTemplateID (for ticket 16's drift detection)
+- [x] Target-rep capture: per set slot, from the workout's completed sets in order; target set count = completed set count
