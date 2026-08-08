@@ -4,9 +4,9 @@ struct ExercisePickerSheet: View {
     @EnvironmentObject private var store: SampleStore
     @Environment(\.dismiss) private var dismiss
     @State private var searchText = ""
-    var onSelect: (Exercise) -> Void
+    var onSelect: (SampleExercise) -> Void
 
-    private var filtered: [Exercise] {
+    private var filtered: [SampleExercise] {
         guard !searchText.isEmpty else { return store.exercises }
         return store.exercises.filter {
             $0.name.localizedCaseInsensitiveContains(searchText)
@@ -37,14 +37,14 @@ struct ExercisePickerSheet: View {
 }
 
 struct ExerciseRow: View {
-    var exercise: Exercise
+    var exercise: SampleExercise
 
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 3) {
                 Text(exercise.name)
                     .font(.body.weight(.medium))
-                Text(exercise.tags.map(\.rawValue).joined(separator: " · "))
+                Text(exercise.tags.map(\.label).joined(separator: " · "))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

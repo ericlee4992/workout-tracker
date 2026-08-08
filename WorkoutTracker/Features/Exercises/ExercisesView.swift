@@ -4,7 +4,7 @@ struct ExercisesView: View {
     @EnvironmentObject private var store: SampleStore
     @State private var searchText = ""
 
-    private var filtered: [Exercise] {
+    private var filtered: [SampleExercise] {
         guard !searchText.isEmpty else { return store.exercises }
         return store.exercises.filter {
             $0.name.localizedCaseInsensitiveContains(searchText)

@@ -30,7 +30,7 @@ struct MachinePickerSheet: View {
                             select(freeWeight: tag)
                         } label: {
                             HStack {
-                                Label(tag.rawValue, systemImage: "dumbbell")
+                                Label(tag.label, systemImage: "dumbbell")
                                 Spacer()
                                 if isSelected(freeWeight: tag) {
                                     Image(systemName: "checkmark")

@@ -124,7 +124,7 @@ struct ActiveWorkoutView: View {
         restEnd = Date().addingTimeInterval(Double(seconds))
     }
 
-    private func addEntry(for exercise: Exercise) {
+    private func addEntry(for exercise: SampleExercise) {
         var set = LoggedSet()
         set.unit = store.activeWorkout.gym?.defaultUnit ?? .kg
         let entry = WorkoutEntry(

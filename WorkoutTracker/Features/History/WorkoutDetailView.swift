@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct WorkoutDetailView: View {
-    var workout: Workout
+    var workout: SampleWorkout
 
     var body: some View {
         List {
@@ -45,7 +45,7 @@ struct WorkoutDetailView: View {
             let model = machine.model?.displayName ?? "unknown model"
             return "\(machine.label) · \(model)"
         }
-        return entry.freeWeightTag?.rawValue ?? "No equipment"
+        return entry.freeWeightTag?.label ?? "No equipment"
     }
 
     private func setLine(index: Int, set: LoggedSet) -> some View {

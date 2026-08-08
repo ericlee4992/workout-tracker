@@ -2,13 +2,13 @@ import SwiftUI
 
 struct HistoryView: View {
     @EnvironmentObject private var store: SampleStore
-    @State private var path: [Workout] = []
+    @State private var path: [SampleWorkout] = []
 
-    private var byMonth: [(month: String, workouts: [Workout])] {
+    private var byMonth: [(month: String, workouts: [SampleWorkout])] {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
         var order: [String] = []
-        var groups: [String: [Workout]] = [:]
+        var groups: [String: [SampleWorkout]] = [:]
         for workout in store.history.sorted(by: { $0.date > $1.date }) {
             let key = formatter.string(from: workout.date)
             if groups[key] == nil { order.append(key) }
@@ -31,7 +31,7 @@ struct HistoryView: View {
                 }
             }
             .navigationTitle("History")
-            .navigationDestination(for: Workout.self) { workout in
+            .navigationDestination(for: SampleWorkout.self) { workout in
                 WorkoutDetailView(workout: workout)
             }
             .onAppear {
@@ -46,7 +46,7 @@ struct HistoryView: View {
 }
 
 private struct WorkoutSummaryRow: View {
-    var workout: Workout
+    var workout: SampleWorkout
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {

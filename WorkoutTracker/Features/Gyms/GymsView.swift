@@ -32,7 +32,7 @@ struct GymsView: View {
                 }
             }
             .navigationTitle("Gyms")
-            .navigationDestination(for: Gym.self) { gym in
+            .navigationDestination(for: SampleGym.self) { gym in
                 GymDetailView(gym: gym)
             }
         }
@@ -41,7 +41,7 @@ struct GymsView: View {
 
 struct GymDetailView: View {
     @EnvironmentObject private var store: SampleStore
-    var gym: Gym
+    var gym: SampleGym
 
     var body: some View {
         List {

@@ -8,33 +8,33 @@ final class SampleStore: ObservableObject {
 
     // MARK: Catalog
 
-    let gyms: [Gym]
+    let gyms: [SampleGym]
     let machines: [Machine]
-    let exercises: [Exercise]
-    let templates: [WorkoutTemplate]
+    let exercises: [SampleExercise]
+    let templates: [SampleWorkoutTemplate]
 
-    @Published var currentGym: Gym
-    @Published var history: [Workout]
-    @Published var activeWorkout: Workout
+    @Published var currentGym: SampleGym
+    @Published var history: [SampleWorkout]
+    @Published var activeWorkout: SampleWorkout
 
-    var gymGangnam: Gym { gyms[0] }
-    var gymSF: Gym { gyms[1] }
+    var gymGangnam: SampleGym { gyms[0] }
+    var gymSF: SampleGym { gyms[1] }
 
     init() {
         // Gyms — one kg country, one lb country, to exercise mixed-unit UI.
-        let gangnam = Gym(name: "Gold's Gym Gangnam", city: "Seoul", defaultUnit: .kg)
-        let sf = Gym(name: "Fitness SF Transbay", city: "San Francisco", defaultUnit: .lb)
+        let gangnam = SampleGym(name: "Gold's Gym Gangnam", city: "Seoul", defaultUnit: .kg)
+        let sf = SampleGym(name: "Fitness SF Transbay", city: "San Francisco", defaultUnit: .lb)
         gyms = [gangnam, sf]
         currentGym = gangnam
 
         // Equipment models (stand-ins for the seeded catalog).
-        let lfInsignia = EquipmentModel(manufacturer: "Life Fitness", model: "Insignia Chest Press")
-        let hsMTS = EquipmentModel(manufacturer: "Hammer Strength", model: "MTS Iso-Lateral Chest Press")
-        let tgLat = EquipmentModel(manufacturer: "Technogym", model: "Selection 900 Lat Pulldown")
-        let matrixAssist = EquipmentModel(manufacturer: "Matrix", model: "Ultra Assisted Chin/Dip")
-        let cybexLeg = EquipmentModel(manufacturer: "Cybex", model: "Eagle NX Leg Press")
-        let precorRow = EquipmentModel(manufacturer: "Precor", model: "Vitality Seated Row")
-        let lfShoulder = EquipmentModel(manufacturer: "Life Fitness", model: "Signature Shoulder Press")
+        let lfInsignia = SampleEquipmentModel(manufacturer: "Life Fitness", model: "Insignia Chest Press")
+        let hsMTS = SampleEquipmentModel(manufacturer: "Hammer Strength", model: "MTS Iso-Lateral Chest Press")
+        let tgLat = SampleEquipmentModel(manufacturer: "Technogym", model: "Selection 900 Lat Pulldown")
+        let matrixAssist = SampleEquipmentModel(manufacturer: "Matrix", model: "Ultra Assisted Chin/Dip")
+        let cybexLeg = SampleEquipmentModel(manufacturer: "Cybex", model: "Eagle NX Leg Press")
+        let precorRow = SampleEquipmentModel(manufacturer: "Precor", model: "Vitality Seated Row")
+        let lfShoulder = SampleEquipmentModel(manufacturer: "Life Fitness", model: "Signature Shoulder Press")
 
         machines = [
             Machine(gymID: gangnam.id, label: "Chest Press #1", model: lfInsignia, defaultUnit: nil),
@@ -48,27 +48,27 @@ final class SampleStore: ObservableObject {
             Machine(gymID: sf.id, label: "Shoulder Press", model: lfShoulder, defaultUnit: .lb),
         ]
 
-        let seatedChestPress = Exercise(name: "Seated Chest Press")
-        let latPulldown = Exercise(name: "Lat Pulldown", tags: [.machine, .cable])
-        let seatedRow = Exercise(name: "Seated Row", tags: [.machine, .cable])
-        let legPress = Exercise(name: "Leg Press")
-        let shoulderPress = Exercise(name: "Machine Shoulder Press")
-        let benchPress = Exercise(name: "Bench Press", tags: [.barbell])
-        let squat = Exercise(name: "Squat", tags: [.barbell])
-        let pullUp = Exercise(name: "Pull-Up", loadType: .bodyweightPlus, tags: [.bodyweight])
-        let assistedPullUp = Exercise(name: "Assisted Pull-Up", loadType: .assisted)
-        let dbCurl = Exercise(name: "Dumbbell Curl", tags: [.dumbbell])
-        let pushdown = Exercise(name: "Triceps Pushdown", tags: [.cable])
-        let dip = Exercise(name: "Dip", loadType: .bodyweightPlus, tags: [.bodyweight])
+        let seatedChestPress = SampleExercise(name: "Seated Chest Press")
+        let latPulldown = SampleExercise(name: "Lat Pulldown", tags: [.machine, .cable])
+        let seatedRow = SampleExercise(name: "Seated Row", tags: [.machine, .cable])
+        let legPress = SampleExercise(name: "Leg Press")
+        let shoulderPress = SampleExercise(name: "Machine Shoulder Press")
+        let benchPress = SampleExercise(name: "Bench Press", tags: [.barbell])
+        let squat = SampleExercise(name: "Squat", tags: [.barbell])
+        let pullUp = SampleExercise(name: "Pull-Up", loadType: .bodyweightPlus, tags: [.bodyweight])
+        let assistedPullUp = SampleExercise(name: "Assisted Pull-Up", loadType: .assisted)
+        let dbCurl = SampleExercise(name: "Dumbbell Curl", tags: [.dumbbell])
+        let pushdown = SampleExercise(name: "Triceps Pushdown", tags: [.cable])
+        let dip = SampleExercise(name: "Dip", loadType: .bodyweightPlus, tags: [.bodyweight])
         exercises = [
             seatedChestPress, latPulldown, seatedRow, legPress, shoulderPress,
             benchPress, squat, pullUp, assistedPullUp, dbCurl, pushdown, dip,
         ]
 
         templates = [
-            WorkoutTemplate(name: "Push Day", exerciseNames: ["Seated Chest Press", "Bench Press", "Machine Shoulder Press", "Triceps Pushdown"]),
-            WorkoutTemplate(name: "Pull Day", exerciseNames: ["Lat Pulldown", "Seated Row", "Assisted Pull-Up", "Dumbbell Curl"]),
-            WorkoutTemplate(name: "Leg Day", exerciseNames: ["Squat", "Leg Press"]),
+            SampleWorkoutTemplate(name: "Push Day", exerciseNames: ["Seated Chest Press", "Bench Press", "Machine Shoulder Press", "Triceps Pushdown"]),
+            SampleWorkoutTemplate(name: "Pull Day", exerciseNames: ["Lat Pulldown", "Seated Row", "Assisted Pull-Up", "Dumbbell Curl"]),
+            SampleWorkoutTemplate(name: "Leg Day", exerciseNames: ["Squat", "Leg Press"]),
         ]
 
         let chestPress1 = machines[0]
@@ -78,7 +78,7 @@ final class SampleStore: ObservableObject {
         let tgLatMachine = machines[2]
 
         // Active workout: Push Day at Gangnam, mid-session.
-        activeWorkout = Workout(
+        activeWorkout = SampleWorkout(
             name: "Push Day",
             date: .now,
             gym: gangnam,
@@ -124,7 +124,7 @@ final class SampleStore: ObservableObject {
         }
 
         history = [
-            Workout(
+            SampleWorkout(
                 name: "Pull Day", date: daysAgo(1), gym: gangnam,
                 entries: [
                     WorkoutEntry(exercise: latPulldown, machine: tgLatMachine, freeWeightTag: nil, sets: [
@@ -139,7 +139,7 @@ final class SampleStore: ObservableObject {
                 ],
                 durationMinutes: 52
             ),
-            Workout(
+            SampleWorkout(
                 name: "Push Day", date: daysAgo(4), gym: gangnam,
                 entries: [
                     WorkoutEntry(exercise: seatedChestPress, machine: chestPress1, freeWeightTag: nil, sets: [
@@ -151,7 +151,7 @@ final class SampleStore: ObservableObject {
                 ],
                 durationMinutes: 61
             ),
-            Workout(
+            SampleWorkout(
                 name: "Push Day (travel)", date: daysAgo(21), gym: sf,
                 entries: [
                     WorkoutEntry(exercise: seatedChestPress, machine: chestPressA, freeWeightTag: nil, sets: [
@@ -163,7 +163,7 @@ final class SampleStore: ObservableObject {
                 ],
                 durationMinutes: 48
             ),
-            Workout(
+            SampleWorkout(
                 name: "Pull Day (travel)", date: daysAgo(23), gym: sf,
                 entries: [
                     WorkoutEntry(exercise: seatedRow, machine: precorRowMachine, freeWeightTag: nil, sets: [
@@ -175,7 +175,7 @@ final class SampleStore: ObservableObject {
                 ],
                 durationMinutes: 44
             ),
-            Workout(
+            SampleWorkout(
                 name: "Leg Day", date: daysAgo(35), gym: gangnam,
                 entries: [
                     WorkoutEntry(exercise: squat, machine: nil, freeWeightTag: .barbell, sets: [
@@ -192,7 +192,7 @@ final class SampleStore: ObservableObject {
 
     // MARK: Queries
 
-    func machines(at gym: Gym) -> [Machine] {
+    func machines(at gym: SampleGym) -> [Machine] {
         machines.filter { $0.gymID == gym.id }
     }
 

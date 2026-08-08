@@ -68,7 +68,7 @@ struct StartWorkoutView: View {
 
 private struct TemplateRow: View {
     @EnvironmentObject private var store: SampleStore
-    var template: WorkoutTemplate
+    var template: SampleWorkoutTemplate
     var start: () -> Void
 
     var body: some View {

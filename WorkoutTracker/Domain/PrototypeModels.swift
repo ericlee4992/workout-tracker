@@ -1,7 +1,10 @@
 import Foundation
 
-// Milestone-1 prototype domain: plain value types standing in for the future
-// SwiftData schema (docs/SPEC.md, "Data model sketch"). Replaced at milestone 2.
+// MARK: - Shared domain enums
+
+// Stored by the SwiftData models (Domain/Models.swift). String raw values are
+// stable storage identifiers — never change one once data has shipped; display
+// text lives in computed properties (`label`, `badge`, `marker`), not raw values.
 
 enum WeightUnit: String, CaseIterable, Identifiable, Codable {
     case kg
@@ -11,7 +14,7 @@ enum WeightUnit: String, CaseIterable, Identifiable, Codable {
     var toggled: WeightUnit { self == .kg ? .lb : .kg }
 }
 
-enum SetType: CaseIterable, Hashable {
+enum SetType: String, CaseIterable, Codable {
     case warmup
     case working
     case failure
@@ -25,7 +28,7 @@ enum SetType: CaseIterable, Hashable {
     }
 }
 
-enum LoadType: Hashable {
+enum LoadType: String, CaseIterable, Codable {
     case weighted
     case bodyweight
     case bodyweightPlus
@@ -41,25 +44,50 @@ enum LoadType: Hashable {
     }
 }
 
-enum EquipmentTag: String, CaseIterable, Identifiable, Hashable {
-    case machine = "Machine"
-    case barbell = "Barbell"
-    case dumbbell = "Dumbbell"
-    case cable = "Cable"
-    case smith = "Smith machine"
-    case bodyweight = "Bodyweight"
+enum EquipmentTag: String, CaseIterable, Identifiable, Codable {
+    case machine
+    case barbell
+    case dumbbell
+    case cable
+    case smith
+    case bodyweight
 
     var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .machine: "Machine"
+        case .barbell: "Barbell"
+        case .dumbbell: "Dumbbell"
+        case .cable: "Cable"
+        case .smith: "Smith machine"
+        case .bodyweight: "Bodyweight"
+        }
+    }
 }
 
-struct Exercise: Identifiable, Hashable {
+enum Format {
+    static func weight(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? String(Int(value))
+            : String(format: "%.1f", value)
+    }
+}
+
+// MARK: - Milestone-1 prototype value types
+
+// Throwaway in-memory stand-ins backing SampleStore and the prototype screens.
+// `Sample`-prefixed to keep the canonical names free for the SwiftData models.
+// Ticket 07 rewires the UI onto SwiftData and deletes everything below.
+
+struct SampleExercise: Identifiable, Hashable {
     let id = UUID()
     var name: String
     var loadType: LoadType = .weighted
     var tags: [EquipmentTag] = [.machine]
 }
 
-struct EquipmentModel: Identifiable, Hashable {
+struct SampleEquipmentModel: Identifiable, Hashable {
     let id = UUID()
     var manufacturer: String
     var model: String
@@ -67,7 +95,7 @@ struct EquipmentModel: Identifiable, Hashable {
     var displayName: String { "\(manufacturer) \(model)" }
 }
 
-struct Gym: Identifiable, Hashable {
+struct SampleGym: Identifiable, Hashable {
     let id = UUID()
     var name: String
     var city: String
@@ -78,7 +106,7 @@ struct Machine: Identifiable, Hashable {
     let id = UUID()
     var gymID: UUID
     var label: String
-    var model: EquipmentModel?
+    var model: SampleEquipmentModel?
     var defaultUnit: WeightUnit?
 }
 
@@ -101,7 +129,7 @@ struct LoggedSet: Identifiable, Hashable {
 
 struct WorkoutEntry: Identifiable, Hashable {
     let id = UUID()
-    var exercise: Exercise
+    var exercise: SampleExercise
     var machine: Machine?
     var freeWeightTag: EquipmentTag?
     var sets: [LoggedSet]
@@ -110,23 +138,23 @@ struct WorkoutEntry: Identifiable, Hashable {
 
     var equipmentLabel: String {
         if let machine { return machine.label }
-        if let freeWeightTag { return freeWeightTag.rawValue }
+        if let freeWeightTag { return freeWeightTag.label }
         return "Choose equipment"
     }
 }
 
-struct Workout: Identifiable, Hashable {
+struct SampleWorkout: Identifiable, Hashable {
     let id = UUID()
     var name: String
     var date: Date
-    var gym: Gym?
+    var gym: SampleGym?
     var entries: [WorkoutEntry]
     var durationMinutes: Int
 
     var totalSets: Int { entries.reduce(0) { $0 + $1.sets.count } }
 }
 
-struct WorkoutTemplate: Identifiable, Hashable {
+struct SampleWorkoutTemplate: Identifiable, Hashable {
     let id = UUID()
     var name: String
     var exerciseNames: [String]
@@ -142,12 +170,4 @@ struct PerformanceLayer: Identifiable {
     let id = UUID()
     var kind: Kind
     var lines: [String]
-}
-
-enum Format {
-    static func weight(_ value: Double) -> String {
-        value.truncatingRemainder(dividingBy: 1) == 0
-            ? String(Int(value))
-            : String(format: "%.1f", value)
-    }
 }
