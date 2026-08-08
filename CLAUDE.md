@@ -35,3 +35,17 @@ xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
 
 - Short-lived branches off `main`, small PRs, cross-review by the other developer's agent.
 - Commits/PRs must not break `xcodebuild build`.
+
+## Agent skills
+
+### Issue tracker
+
+Local markdown under `.scratch/` — no GitHub remote is configured yet. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Default five canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), unchanged. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context — `CONTEXT.md` and `docs/adr/` at the repo root (created lazily by `/domain-modeling` as terms/decisions resolve). See `docs/agents/domain.md`.

@@ -36,26 +36,27 @@ Four levels:
   2. Same equipment model at another gym
   3. The exercise on any equipment
 - **Prefill comes only from same-machine history.** Fallback layers are reference display, never prefilled into inputs.
-- **PRs**: best weight per rep count (capped at 12 reps) + estimated 1RM (Brzycki: `weight / (1.0278 − 0.0278 × reps)`), computed at all three layers (machine, model, exercise). Warmups excluded from PRs and volume.
-- **Log-time snapshots**: entries denormalize context (gym name, machine label, manufacturer+model, unit) when logged. Deleting a gym/machine archives it; history never orphans. Correcting a machine's model prompts: apply to past workouts or future only.
+- **PRs**: best weight per rep count (capped at 12 reps) + estimated 1RM (Brzycki: `weight / (1.0278 − 0.0278 × reps)`), computed at all three layers (machine, model, exercise). Only completed sets count; warmups excluded from PRs and volume. e1RM is weighted-only; assisted = least assistance per rep count, bodyweight+added = most added weight, bodyweight = most reps (D20). Volume = Σ(normalizedKg × reps), weighted exercises only, dumbbells never auto-doubled (D21).
+- **Log-time snapshots**: entries denormalize context when their first set completes — stable UUIDs (exercise, machine, model, gym), the exercise's loadType, the free-weight tag, and display strings (D23). Units live per set, not in the snapshot. Deleting a gym/machine archives it; history never orphans. Correcting a machine's model prompts: apply to past workouts or future only.
 
 ## Units
 
-- Per-set unit (kg/lb). Default precedence: **machine → gym → app preference** (most specific wins).
-- Original `(value, unit)` preserved verbatim; normalized kg stored alongside for analytics.
+- Per-set unit (kg/lb). Default precedence: **machine → gym → app preference** (most specific wins; the app preference is a persisted, editable setting).
+- Original `(value, unit)` preserved verbatim; normalized kg stored alongside for analytics (exactly 1 lb = 0.45359237 kg, recomputed atomically on edit, full precision — D25).
+- Workout summaries derive their unit badge from actual logged sets: kg, lb, or Mixed — never just the gym default.
 - Display **as entered**; a whole-view convert toggle renders converted values visibly marked (≈). Charts plot normalized values; tooltips show as-entered.
 - Never imply equal displayed weights on different equipment models represent equal resistance.
-- Dumbbell volume rule: one consistent rule across the app (decide at milestone 2; no per-platform divergence like Strong's).
+- Dumbbell rule (D21): weights logged as labeled (per hand), never auto-doubled — one consistent rule, no per-platform divergence like Strong's.
 
 ## Recording experience
 
-- Machine/gym optional on every set; once chosen, remembered **per gym per exercise** (`GymExerciseMemory`).
+- Machine/gym optional on every workout and entry; workouts can start with **no gym** (home/context-free). Once chosen, equipment is remembered **per gym per exercise** (`GymExerciseMemory`). An entry's equipment freezes once its first set completes — switching machines mid-exercise starts a new entry (D19).
 - **Templates are generic** exercise lists. Starting a workout at a gym resolves each exercise to the last-used machine there.
 - Template drift: on finishing a modified templated workout, prompt — update template / update values only / both / keep original (suppressible).
 - Set types: **warmup / working / failure**.
-- **Rest timer**: auto-starts on set completion; per-exercise durations (separate warmup vs. working) with a global default (2:00); local notification on finish.
+- **Rest timer**: auto-starts on set completion; per-exercise durations (separate warmup vs. working; failure sets use the working duration) with global defaults (2:00 working / 1:00 warmup); local notification on finish.
 - Speed bar (from Strong): set rows arrive prefilled from same-machine history; confirming an untouched row is **one tap**.
-- Active workout **auto-persists every change** — crash/force-quit loses nothing. Non-negotiable.
+- Active workout **auto-persists every committed change** (set completion, add/delete, equipment choice, unit toggle, field commit on end-editing) — crash/force-quit loses at most in-progress keystrokes in the currently focused field. Non-negotiable.
 
 ## Technical direction
 
@@ -67,14 +68,16 @@ Four levels:
 ## Data model sketch
 
 - `Exercise`: id, name, loadType, equipmentTypeTags, isSeeded, muscle grouping (light)
-- `EquipmentModel`: id, manufacturer, modelName, linked exercise ids, isSeeded
-- `Gym`: id, name, defaultUnit?, notes
+- `EquipmentModel`: id, manufacturer, modelName, linked exercise ids, isSeeded (seeded rows keyed by fixed catalog UUIDs; seeding is versioned idempotent reconciliation — D24)
+- `Gym`: id, name, city?, defaultUnit?, notes, archived
 - `MachineInstance`: id, gym, model?, label, defaultUnit?, archived
-- `WorkoutTemplate` / `TemplateItem`: ordered exercises, target sets/reps, rest durations
-- `Workout`: id, date, gym?, notes
-- `ExerciseEntry`: workout, exercise, machine?, **context snapshot**
-- `SetRecord`: entry, order, type, reps, weightValue, weightUnit, normalizedKg, completedAt
-- `GymExerciseMemory`: (gym, exercise) → last machine
+- `WorkoutTemplate` / `TemplateItem`: ordered exercises (scalar `order` field), target sets/reps. No rest durations in v1 (D22)
+- `Workout`: id, gym?, notes, sourceTemplateID?, restEndsAt? (persisted rest-timer end), **lifecycle**: startedAt, finishedAt? (nil = active; cancel deletes; Finish deletes uncompleted draft rows and zero-completed-set entries). At most one active workout — on conflict the newest keeps running and older strays are auto-finished
+- `ExerciseEntry`: workout, exercise, machine?, freeWeightTag?, scalar `order`, per-exercise rest overrides live in preferences, **context snapshot** = stable UUIDs (exercise, machine?, model?, gym?) + loadType + freeWeightTag + display strings (D23). Equipment freezes once the first set completes; changing equipment starts a new entry (D19)
+- `SetRecord`: entry, scalar `order`, type, reps?, weightValue? (optional while draft), weightUnit, normalizedKg?, completedAt? (nil = not completed; only completed sets feed records/volume/prefill)
+- `GymExerciseMemory`: scalar gymID/exerciseID/machineID + updatedAt; app-level upsert, duplicates resolved by latest updatedAt then id (no unique constraints allowed)
+- App-level preferences: unit preference (default from locale measurement system on first launch), drift-prompt suppression, global + per-exercise rest defaults, seeded-catalog version, notification-permission-requested marker
+- All relationships optional with explicit inverses; deliberate delete rules (no `deny` — unsupported by CloudKit); ordering always via scalar fields, never implicit to-many order
 - PRs are derived (computed/cached), never source-of-truth records.
 
 ## Strong benchmark facts we build against

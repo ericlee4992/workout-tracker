@@ -1,0 +1,2168 @@
+OpenAI Codex v0.147.0
+--------
+workdir: /Users/ericlee06/orca/projects/Health App
+model: gpt-5.6-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 019fe2a7-a708-70f2-996a-1c496e20f02d
+--------
+user
+You are doing an independent cross-review for a two-developer iOS project (the other developer's agent wrote these documents; your job is to catch what it missed — do not be agreeable).
+
+Review these documents in this repo:
+
+1. `docs/SPEC.md` — the product specification
+2. `.scratch/milestone-2-core-loop/issues/01-*.md` through `09-*.md` — nine tickets breaking down milestone 2 ("core loop on SwiftData")
+
+Also relevant context: `docs/DECISIONS.md` (decision log with rationale), `CLAUDE.md` (conventions), and the current prototype code under `WorkoutTracker/` (milestone-1 SwiftUI UI on in-memory sample data — the tickets migrate it to real SwiftData persistence).
+
+Review along these axes:
+
+A. **Internal consistency** — do the tickets contradict SPEC.md or DECISIONS.md anywhere? Do tickets contradict each other?
+B. **Completeness** — does the union of the nine tickets cover everything SPEC.md's milestone 2 promises ("schema, seeding, logging, prefill, PRs, snapshots, rest timer, continuous persistence")? What's missing or silently dropped?
+C. **Blocking edges** — are the declared dependencies right? Any ticket that can't actually start when its blockers complete? Any false dependency that serializes work that could be parallel?
+D. **Vertical-slice quality** — is each ticket a demoable end-to-end slice sized for one agent session, or are any actually horizontal layers / too big / too small?
+E. **Technical soundness** — SwiftData/CloudKit-compatibility pitfalls (the spec mandates UUID ids, optional relationships, no unique constraints), the snapshot/denormalization approach, prefill semantics, PR math (Brzycki, 12-rep cap, assisted inversion), unit normalization. Flag anything technically wrong or underspecified enough to bite during implementation.
+F. **Acceptance criteria** — are they testable as written? Any that are vague, untestable, or missing the case that matters most?
+
+Output format: a Markdown report with findings ordered by severity (Critical / Important / Minor / Nit). Each finding: which file, what's wrong, why it matters, and a concrete suggested fix. End with a verdict: which tickets are ready as-is, and which need edits before an agent picks them up. Print the full report to stdout.
+
+hook: SessionStart
+hook: SessionStart Completed
+hook: UserPromptSubmit
+hook: UserPromptSubmit Completed
+codex
+I’ll use the code-review skill because this is a spec/standards cross-review, then inspect every referenced document and the prototype evidence before writing the severity-ordered report. Since you asked for an independent review, I’ll treat ticket claims as hypotheses and actively look for contradictions and missing cases.
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,240p' '.agents/skills/code-review/SKILL.md'" in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+---
+name: code-review
+description: Review the changes since a fixed point (commit, branch, tag, or merge-base) along two axes — Standards (does the code follow this repo's documented coding standards?) and Spec (does the code match what the originating issue/spec asked for?). Runs both reviews in parallel sub-agents and reports them side by side. Use when the user wants to review a branch, a PR, work-in-progress changes, or asks to "review since X".
+---
+
+Two-axis review of the diff between `HEAD` and a fixed point the user supplies:
+
+- **Standards** — does the code conform to this repo's documented coding standards?
+- **Spec** — does the code faithfully implement the originating issue / spec?
+
+Both axes run as **parallel sub-agents** so they don't pollute each other's context, then this skill aggregates their findings.
+
+The issue tracker should have been provided to you — run `/setup-matt-pocock-skills` if `docs/agents/issue-tracker.md` is missing.
+
+## Process
+
+### 1. Pin the fixed point
+
+Whatever the user said is the fixed point — a commit SHA, branch name, tag, `main`, `HEAD~5`, etc. If they didn't specify one, ask for it.
+
+Capture the diff command once: `git diff <fixed-point>...HEAD` (three-dot, so the comparison is against the merge-base). Also note the list of commits via `git log <fixed-point>..HEAD --oneline`.
+
+Before going further, confirm the fixed point resolves (`git rev-parse <fixed-point>`) and the diff is non-empty. A bad ref or empty diff should fail here — not inside two parallel sub-agents.
+
+### 2. Identify the spec source
+
+Look for the originating spec, in this order:
+
+1. Issue references in the commit messages (`#123`, `Closes #45`, GitLab `!67`, etc.) — fetch via the workflow in `docs/agents/issue-tracker.md`.
+2. A path the user passed as an argument.
+3. A spec file under `docs/`, `specs/`, or `.scratch/` matching the branch name or feature.
+4. If nothing is found, ask the user where the spec is. If they say there isn't one, the **Spec** sub-agent will skip and report "no spec available".
+
+### 3. Identify the standards sources
+
+Anything in the repo that documents how code should be written, such as `CODING_STANDARDS.md` or `CONTRIBUTING.md`.
+
+On top of whatever the repo documents, the Standards axis always carries the **smell baseline** below — a fixed set of Fowler code smells (_Refactoring_, ch.3) that applies even when a repo documents nothing. Two rules bind it:
+
+- **The repo overrides.** A documented repo standard always wins; where it endorses something the baseline would flag, suppress the smell.
+- **Always a judgement call.** Each smell is a labelled heuristic ("possible Feature Envy"), never a hard violation — and, like any standard here, skip anything tooling already enforces.
+
+Each smell reads *what it is* → *how to fix*; match it against the diff:
+
+- **Mysterious Name** — a function, variable, or type whose name doesn't reveal what it does or holds. → rename it; if no honest name comes, the design's murky.
+- **Duplicated Code** — the same logic shape appears in more than one hunk or file in the change. → extract the shared shape, call it from both.
+- **Feature Envy** — a method that reaches into another object's data more than its own. → move the method onto the data it envies.
+- **Data Clumps** — the same few fields or params keep travelling together (a type wanting to be born). → bundle them into one type, pass that.
+- **Primitive Obsession** — a primitive or string standing in for a domain concept that deserves its own type. → give the concept its own small type.
+- **Repeated Switches** — the same `switch`/`if`-cascade on the same type recurs across the change. → replace with polymorphism, or one map both sites share.
+- **Shotgun Surgery** — one logical change forces scattered edits across many files in the diff. → gather what changes together into one module.
+- **Divergent Change** — one file or module is edited for several unrelated reasons. → split so each module changes for one reason.
+- **Speculative Generality** — abstraction, parameters, or hooks added for needs the spec doesn't have. → delete it; inline back until a real need shows.
+- **Message Chains** — long `a.b().c().d()` navigation the caller shouldn't depend on. → hide the walk behind one method on the first object.
+- **Middle Man** — a class or function that mostly just delegates onward. → cut it, call the real target direct.
+- **Refused Bequest** — a subclass or implementer that ignores or overrides most of what it inherits. → drop the inheritance, use composition.
+
+### 4. Spawn both sub-agents in parallel
+
+**Standards sub-agent prompt** — include:
+
+- The full diff command and commit list.
+- The list of standards-source files you found in step 3, **plus the smell baseline from step 3** pasted in full — the sub-agent has no other access to it.
+- The brief: "Report — per file/hunk where relevant — (a) every place the diff violates a documented standard: cite the standard (file + the rule); and (b) any baseline smell you spot: name it and quote the hunk. Distinguish hard violations from judgement calls — documented-standard breaches can be hard, but baseline smells are always judgement calls, and a documented repo standard overrides the baseline. Skip anything tooling enforces. Under 400 words."
+
+**Spec sub-agent prompt** — include:
+
+- The diff command and commit list.
+- The path or fetched contents of the spec.
+- The brief: "Report: (a) requirements the spec asked for that are missing or partial; (b) behaviour in the diff that wasn't asked for (scope creep); (c) requirements that look implemented but where the implementation looks wrong. Quote the spec line for each finding. Under 400 words."
+
+If the spec is missing, skip the Spec sub-agent and note this in the final report.
+
+### 5. Aggregate
+
+Present the two reports under `## Standards` and `## Spec` headings, verbatim or lightly cleaned. Do **not** merge or rerank findings — the two axes are deliberately separate (see _Why two axes_).
+
+End with a one-line summary: total findings per axis, and the worst issue _within each axis_ (if any). Don't pick a single winner across axes — that's the reranking the separation exists to prevent.
+
+## Why two axes
+
+A change can pass one axis and fail the other:
+
+- Code that follows every standard but implements the wrong thing → **Standards pass, Spec fail.**
+- Code that does exactly what the issue asked but breaks the project's conventions → **Spec pass, Standards fail.**
+
+Reporting them separately stops one axis from masking the other.
+
+hook: PostToolUse
+hook: PostToolUse Completed
+codex
+The skill normally compares a code diff, but this request is a document-set review with no fixed point; I’m adapting its required two independent axes to the materials you named. It explicitly calls for parallel reviewers, so I’m dispatching one for consistency/dependency/slicing and one for technical/acceptance scrutiny while I read the full set myself.
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg --files docs .scratch/milestone-2-core-loop/issues WorkoutTracker | sort && wc -l docs/SPEC.md docs/DECISIONS.md CLAUDE.md .scratch/milestone-2-core-loop/issues/*.md' in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+.scratch/milestone-2-core-loop/issues/01-swiftdata-schema-and-store.md
+.scratch/milestone-2-core-loop/issues/02-seed-catalogs.md
+.scratch/milestone-2-core-loop/issues/03-gym-and-machine-creation.md
+.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md
+.scratch/milestone-2-core-loop/issues/05-history-and-snapshots.md
+.scratch/milestone-2-core-loop/issues/06-prefill-and-previous-performance.md
+.scratch/milestone-2-core-loop/issues/07-pr-computation.md
+.scratch/milestone-2-core-loop/issues/08-rest-timer-durations.md
+.scratch/milestone-2-core-loop/issues/09-template-resolution-and-drift.md
+WorkoutTracker/App/RootView.swift
+WorkoutTracker/App/WorkoutTrackerApp.swift
+WorkoutTracker/Assets.xcassets/AccentColor.colorset/Contents.json
+WorkoutTracker/Assets.xcassets/AppIcon.appiconset/Contents.json
+WorkoutTracker/Assets.xcassets/Contents.json
+WorkoutTracker/Domain/PrototypeModels.swift
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift
+WorkoutTracker/Features/ActiveWorkout/ExercisePickerSheet.swift
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift
+WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift
+WorkoutTracker/Features/Exercises/ExercisesView.swift
+WorkoutTracker/Features/Gyms/GymsView.swift
+WorkoutTracker/Features/History/HistoryView.swift
+WorkoutTracker/Features/History/WorkoutDetailView.swift
+WorkoutTracker/Features/Start/StartWorkoutView.swift
+WorkoutTracker/SampleData/SampleStore.swift
+docs/DECISIONS.md
+docs/SPEC.md
+docs/agents/domain.md
+docs/agents/issue-tracker.md
+docs/agents/triage-labels.md
+      96 docs/SPEC.md
+      47 docs/DECISIONS.md
+      51 CLAUDE.md
+      13 .scratch/milestone-2-core-loop/issues/01-swiftdata-schema-and-store.md
+      12 .scratch/milestone-2-core-loop/issues/02-seed-catalogs.md
+      12 .scratch/milestone-2-core-loop/issues/03-gym-and-machine-creation.md
+      13 .scratch/milestone-2-core-loop/issues/04-core-logging-loop.md
+      12 .scratch/milestone-2-core-loop/issues/05-history-and-snapshots.md
+      13 .scratch/milestone-2-core-loop/issues/06-prefill-and-previous-performance.md
+      13 .scratch/milestone-2-core-loop/issues/07-pr-computation.md
+      12 .scratch/milestone-2-core-loop/issues/08-rest-timer-durations.md
+      13 .scratch/milestone-2-core-loop/issues/09-template-resolution-and-drift.md
+     307 total
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'for f in docs/SPEC.md docs/DECISIONS.md CLAUDE.md .scratch/milestone-2-core-loop/issues/*.md; do nl -ba "$f"; done' in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+     1	# Workout Tracker — Product Specification
+     2	
+     3	> Source of truth for product behavior. Agent sessions (Claude Code, Codex) and both developers load context from this file, not from chat history. Changes to locked decisions go through both developers and are recorded in `DECISIONS.md`.
+     4	
+     5	## What this is
+     6	
+     7	A private, native iPhone workout logger for two users (the developers). It matches Strong-style fast logging, with two differentiators no mainstream tracker has:
+     8	
+     9	1. **Equipment-aware taxonomy** — the same exercise on different hardware is not comparable, so history and PRs anchor to equipment context.
+    10	2. **Honest kg/lb handling** — units chosen per set, defaulted by context, preserved as entered, never silently conflated.
+    11	
+    12	v1 is for the two developers only. Schema decisions (stable UUIDs, export fidelity, CloudKit-compatible models) keep public release and sync open later.
+    13	
+    14	## Taxonomy
+    15	
+    16	Four levels:
+    17	
+    18	| Level | Example | Created by |
+    19	|---|---|---|
+    20	| Exercise | Seated Chest Press | Seeded list + user additions |
+    21	| Equipment model | Life Fitness Insignia Chest Press | Seeded catalog + user additions |
+    22	| Machine instance | "Chest Press #2" | User, per gym |
+    23	| Gym | Gold's Gym Gangnam | User |
+    24	
+    25	- Seeded equipment catalog ships in-app (major manufacturers: Life Fitness, Hammer Strength, Technogym, Precor, Cybex, Matrix, Nautilus, Hoist, …; popular selectorized/plate-loaded lines; order of a few hundred models). Catalog updates ride app releases. Seeded entries have stable catalog IDs that survive updates; user-created entries live in a separate ID space (dedup deferred).
+    26	- Gyms and machine instances are **always user-created**. No gym seeding.
+    27	- Each catalog model links to one or more exercises. Picking a machine auto-fills its exercise; multi-exercise stations (cable, Smith) prompt.
+    28	- Free weights are **equipment-type tags** (barbell / dumbbell / cable / smith / bodyweight), not machine instances.
+    29	- Exercises carry a **load type**: `weighted | bodyweight | bodyweightPlus | assisted`. PR/prefill/chart logic respects direction — on assisted machines, *lowest* assistance wins.
+    30	- **Strength-only v1**: one set shape (weight × reps). Cardio machines may exist in the taxonomy but are not loggable.
+    31	
+    32	## History, PRs, integrity
+    33	
+    34	- **Previous performance** uses layered fallback, each layer clearly labeled:
+    35	  1. This machine
+    36	  2. Same equipment model at another gym
+    37	  3. The exercise on any equipment
+    38	- **Prefill comes only from same-machine history.** Fallback layers are reference display, never prefilled into inputs.
+    39	- **PRs**: best weight per rep count (capped at 12 reps) + estimated 1RM (Brzycki: `weight / (1.0278 − 0.0278 × reps)`), computed at all three layers (machine, model, exercise). Warmups excluded from PRs and volume.
+    40	- **Log-time snapshots**: entries denormalize context (gym name, machine label, manufacturer+model, unit) when logged. Deleting a gym/machine archives it; history never orphans. Correcting a machine's model prompts: apply to past workouts or future only.
+    41	
+    42	## Units
+    43	
+    44	- Per-set unit (kg/lb). Default precedence: **machine → gym → app preference** (most specific wins).
+    45	- Original `(value, unit)` preserved verbatim; normalized kg stored alongside for analytics.
+    46	- Display **as entered**; a whole-view convert toggle renders converted values visibly marked (≈). Charts plot normalized values; tooltips show as-entered.
+    47	- Never imply equal displayed weights on different equipment models represent equal resistance.
+    48	- Dumbbell volume rule: one consistent rule across the app (decide at milestone 2; no per-platform divergence like Strong's).
+    49	
+    50	## Recording experience
+    51	
+    52	- Machine/gym optional on every set; once chosen, remembered **per gym per exercise** (`GymExerciseMemory`).
+    53	- **Templates are generic** exercise lists. Starting a workout at a gym resolves each exercise to the last-used machine there.
+    54	- Template drift: on finishing a modified templated workout, prompt — update template / update values only / both / keep original (suppressible).
+    55	- Set types: **warmup / working / failure**.
+    56	- **Rest timer**: auto-starts on set completion; per-exercise durations (separate warmup vs. working) with a global default (2:00); local notification on finish.
+    57	- Speed bar (from Strong): set rows arrive prefilled from same-machine history; confirming an untouched row is **one tap**.
+    58	- Active workout **auto-persists every change** — crash/force-quit loses nothing. Non-negotiable.
+    59	
+    60	## Technical direction
+    61	
+    62	- Swift + SwiftUI, **iOS 17+**, iPhone-only, local-first, fully offline.
+    63	- **SwiftData** persistence; models simple; snapshots denormalized.
+    64	- **CloudKit-compatible schema** (UUID ids, optional relationships, no unique constraints); v1 ships single-device; export is the backup story.
+    65	- No backend, accounts, HealthKit, Watch, or third-party runtime dependencies.
+    66	
+    67	## Data model sketch
+    68	
+    69	- `Exercise`: id, name, loadType, equipmentTypeTags, isSeeded, muscle grouping (light)
+    70	- `EquipmentModel`: id, manufacturer, modelName, linked exercise ids, isSeeded
+    71	- `Gym`: id, name, defaultUnit?, notes
+    72	- `MachineInstance`: id, gym, model?, label, defaultUnit?, archived
+    73	- `WorkoutTemplate` / `TemplateItem`: ordered exercises, target sets/reps, rest durations
+    74	- `Workout`: id, date, gym?, notes
+    75	- `ExerciseEntry`: workout, exercise, machine?, **context snapshot**
+    76	- `SetRecord`: entry, order, type, reps, weightValue, weightUnit, normalizedKg, completedAt
+    77	- `GymExerciseMemory`: (gym, exercise) → last machine
+    78	- PRs are derived (computed/cached), never source-of-truth records.
+    79	
+    80	## Strong benchmark facts we build against
+    81	
+    82	- Strong has **no gym/location/machine entity**; equipment is a name suffix ("(Barbell)"). Our thesis is an unserved need.
+    83	- Strong CSV (import target, milestone 5): one row per set; columns `Date, Workout Name, Duration, Exercise Name, Set Order, Weight, Reps, Distance, Seconds, [Notes, Workout Notes,] RPE` (10/12-column variants). Hazards: **no unit column** (ask user at import), no workout ID (group by Date+Workout Name), set tags lost, equipment in name suffix (parse to tags), localized headers/semicolon delimiters possible, Duration as "2h 38m". Imported rows populate the exercise layer only and are flagged as imported.
+    84	- Our export must include what Strong's lacks: explicit units, stable UUIDs, set types, full equipment context.
+    85	
+    86	## Milestones (v1)
+    87	
+    88	0. Project setup — Xcode project (buildable folders), docs, repo hygiene
+    89	1. **UI prototype on sample data** — all key screens, no persistence; ends with explicit user review before anything else is built
+    90	2. Core loop on SwiftData — schema, seeding, logging, prefill, PRs, snapshots, rest timer, continuous persistence → dogfooding starts
+    91	3. CSV/JSON export (full fidelity; backup + dev-to-dev sharing)
+    92	4. Progress charts (Swift Charts; normalized axes, as-entered tooltips)
+    93	5. Strong CSV import
+    94	6. Plate/stack calculator
+    95	
+    96	Catalog curation runs as a parallel content task, shipped with releases.
+     1	# Decision Log
+     2	
+     3	Decisions made during product discovery (2026-08-08 interview). Each entry: decision, and why. Reopening a locked decision requires both developers.
+     4	
+     5	## Product
+     6	
+     7	| # | Decision | Why |
+     8	|---|---|---|
+     9	| D1 | Layered history fallback: this machine → same model elsewhere → exercise, labeled | Strict machine-only starts every new machine cold; exercise-first reduces the differentiator to a tag. Fallback keeps honesty *and* usefulness. |
+    10	| D2 | Machine/gym optional on sets; remembered per gym per exercise | Free weights, home workouts, and lazy logging must work; friction kills fast logging. |
+    11	| D3 | Seed equipment models only; gyms/machines always user-created | A worldwide gym database is impossible offline and its machine inventories are unknowable. Creating a gym takes 10 seconds, once. |
+    12	| D4 | Catalog depth: major brands, popular lines (~hundreds of models) | Covers most commercial gyms; long tail via user entry; exhaustive curation is weeks of work for two people. |
+    13	| D5 | Audience: the two developers only (v1) | Cuts onboarding/dedup/polish scope. Stable IDs + export keep public release open. |
+    14	| D6 | Templates are generic; resolved to last-used machine per gym at workout start | One "Push Day" works at every gym; gym-pinned templates break when traveling. |
+    15	| D7 | Models map to exercises; free weights are equipment tags, not machines | Machine pick auto-fills exercise (speed); multi-exercise stations prompt; barbells aren't machines. |
+    16	| D8 | PRs: per-rep-count bests + est. 1RM at machine/model/exercise layers | Heaviest-set-only is meaningless for machine training; mirrors the fallback layers. |
+    17	| D9 | Mixed units display as entered + marked convert toggle | Converting silently (90.7 kg for a 200 lb entry) is exactly the falseness the app rejects. |
+    18	| D10 | Log-time context snapshots; archive instead of delete; model corrections prompt past-vs-future | History must survive renames, re-modeling, and deletions without silently changing meaning. |
+    19	| D11 | Prefill from same-machine history only | Prefilling another machine's numbers would assert cross-machine comparability we reject. |
+    20	| D12 | Set types: warmup/working/failure; warmups excluded from PRs/volume | The minimal set that keeps records honest. Drop sets/RPE/supersets deferred. |
+    21	| D13 | Rest timer: auto-start on completion, per-exercise durations (warmup vs. working split), notification | Strong-standard behavior; the split is a verified Strong nicety worth matching. |
+    22	| D14 | Load types: weighted / bodyweight / bodyweightPlus / assisted, direction-aware | Assisted machines invert "better" (less assistance wins); naive weight×reps produces wrong PRs. |
+    23	| D15 | Strength-only v1 (no duration/distance sets) | Single set shape is the biggest scope containment available. |
+    24	| D16 | v1 extras all in scope but sequenced: export → charts → Strong import → plate calc | Everything ships in v1, but a gym-usable build exists early (dogfooding from milestone 2). |
+    25	| D17 | e1RM: Brzycki, 12-rep record cap | Strong parity (verified from their docs); estimates degrade past 12 reps. |
+    26	| D18 | Adopt Strong's template-drift prompt (update/values-only/both/keep) | Elegant, proven solution to template drift. |
+    27	
+    28	## Technical
+    29	
+    30	| # | Decision | Why |
+    31	|---|---|---|
+    32	| T1 | SwiftData | First-party, SwiftUI-native, fits no-dependency rule. Weak migrations mitigated by simple models + denormalized snapshots. |
+    33	| T2 | CloudKit-compatible schema; ship single-device | UUIDs/optional relationships/no unique constraints cost little now; retrofitting sync later is a painful migration. |
+    34	| T3 | UI-first build order | User requirement: see and approve the screens (sample data) before logic/persistence is wired. |
+    35	| T4 | Xcode buildable folders (synchronized groups) | Adding files doesn't touch project.pbxproj — kills the main two-dev merge hazard. |
+    36	| T5 | Repo is the source of truth for spec/context | Any agent session (Claude Code or Codex, either dev) loads identical context from docs/. |
+    37	| T6 | Cross-review over double-build | Each dev's PRs reviewed by the other's agent; Codex may independently author adversarial tests for the pure-logic core against this spec. |
+    38	| T7 | Unit-default precedence: machine → gym → app preference | Most specific context wins. |
+    39	
+    40	## Deferred / open
+    41	
+    42	- Assisted-machine UX details beyond PR direction (belt weight? bodyweight input?) — milestone 2
+    43	- Dumbbell volume rule — milestone 2
+    44	- Export column layout / JSON schema versioning — milestone 3
+    45	- Notification permission timing (on first completed set, not launch) — milestone 2
+    46	- Seeded catalog curation workflow — parallel content task
+    47	- Post-v1: iCloud sync, duration sets/cardio, drop sets/RPE/supersets, catalog dedup, Watch/HealthKit
+     1	# Workout Tracker — Agent & Contributor Guide
+     2	
+     3	Private iPhone workout tracker (two developers). **Read `docs/SPEC.md` before making product-behavior changes; record decision changes in `docs/DECISIONS.md`.** Those files — not chat history — are the source of truth.
+     4	
+     5	## Project layout
+     6	
+     7	- `WorkoutTracker.xcodeproj` — Xcode project. Uses **buildable folders** (filesystem-synchronized groups): to add a source file, just create it under `WorkoutTracker/`; never edit `project.pbxproj` to register files.
+     8	- `WorkoutTracker/` — app sources.
+     9	  - `App/` — entry point, root navigation
+    10	  - `Domain/` — value types and (later) SwiftData models, pure logic
+    11	  - `Features/<Feature>/` — one folder per screen/feature (SwiftUI)
+    12	  - `SampleData/` — in-memory prototype data (milestone 1; removed when SwiftData lands)
+    13	- `docs/` — SPEC.md (product spec), DECISIONS.md (decision log)
+    14	
+    15	## Conventions
+    16	
+    17	- Swift 5 / SwiftUI, iOS 17+, iPhone-only, portrait. No third-party runtime dependencies.
+    18	- SwiftData models: CloudKit-compatible — UUID ids, optional relationships, **no** `@Attribute(.unique)`.
+    19	- Units: never convert silently. Stored weights keep `(value, unit)` as entered plus `normalizedKg`. Converted display values are marked (≈).
+    20	- PR/volume logic must respect exercise `loadType` (assisted: lower is better) and exclude warmups.
+    21	- Pure logic (unit math, PR computation, fallback selection) lives in `Domain/` free of UI imports, unit-tested.
+    22	
+    23	## Build & run
+    24	
+    25	```sh
+    26	# Build (simulator SDK, no signing)
+    27	xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+    28	  -sdk iphonesimulator -configuration Debug build
+    29	
+    30	# Prototype screenshots: launch env PROTO_SCREEN=start|active|history|gyms|exercises
+    31	# preselects a screen (milestone 1 only).
+    32	```
+    33	
+    34	## Workflow
+    35	
+    36	- Short-lived branches off `main`, small PRs, cross-review by the other developer's agent.
+    37	- Commits/PRs must not break `xcodebuild build`.
+    38	
+    39	## Agent skills
+    40	
+    41	### Issue tracker
+    42	
+    43	Local markdown under `.scratch/` — no GitHub remote is configured yet. See `docs/agents/issue-tracker.md`.
+    44	
+    45	### Triage labels
+    46	
+    47	Default five canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), unchanged. See `docs/agents/triage-labels.md`.
+    48	
+    49	### Domain docs
+    50	
+    51	Single-context — `CONTEXT.md` and `docs/adr/` at the repo root (created lazily by `/domain-modeling` as terms/decisions resolve). See `docs/agents/domain.md`.
+     1	# 01 — SwiftData schema & persistent store
+     2	
+     3	**What to build:** The app boots on a real SwiftData store instead of in-memory sample data. All entities from the SPEC data-model sketch exist as SwiftData models (Exercise, EquipmentModel, Gym, MachineInstance, WorkoutTemplate/TemplateItem, Workout, ExerciseEntry with context snapshot fields, SetRecord, GymExerciseMemory), following the CloudKit-compatibility rules: UUID ids, optional relationships, no unique constraints.
+     4	
+     5	**Blocked by:** None — can start immediately.
+     6	
+     7	**Status:** ready-for-agent
+     8	
+     9	- [ ] App launches with a SwiftData ModelContainer; prototype value types in `Domain/PrototypeModels.swift` are removed or reduced to enums shared with the schema (WeightUnit, SetType, LoadType, EquipmentTag)
+    10	- [ ] SetRecord stores weight as entered (`weightValue`, `weightUnit`) plus `normalizedKg`
+    11	- [ ] ExerciseEntry carries denormalized snapshot fields (gym name, machine label, manufacturer+model)
+    12	- [ ] A save-then-fetch round-trip test passes in a test target (create workout → quit context → refetch → identical values)
+    13	- [ ] No `@Attribute(.unique)` anywhere; all relationships optional
+     1	# 02 — Seed exercise & equipment catalog
+     2	
+     3	**What to build:** On first launch the store is populated with the seeded exercise list (with load types and equipment tags) and a starter equipment-model catalog (major manufacturers, popular lines — small at first, grown alongside development). The Exercises tab shows this real seeded data. Seeded entries carry stable catalog identifiers that survive app updates; user-created entries are distinguishable from seeded ones.
+     4	
+     5	**Blocked by:** 01 — SwiftData schema & persistent store.
+     6	
+     7	**Status:** ready-for-agent
+     8	
+     9	- [ ] First launch seeds exercises and equipment models exactly once; relaunch does not duplicate
+    10	- [ ] Each catalog model links to one or more exercises (multi-exercise stations link to several)
+    11	- [ ] Seeded vs user-created is queryable (isSeeded flag or separate ID space per SPEC)
+    12	- [ ] Exercises tab lists seeded exercises with load-type badges from the store, not SampleStore
+     1	# 03 — Real gym & machine creation
+     2	
+     3	**What to build:** The "Add Gym…" and "Add Machine…" buttons (currently no-ops in the prototype) create and persist real records. Creating a machine means: label it, optionally pick a model from the catalog (searchable), optionally set a default unit. Gyms get a name, optional city, and default unit. Both survive relaunch and appear everywhere gyms/machines are listed or picked.
+     4	
+     5	**Blocked by:** 01, 02.
+     6	
+     7	**Status:** ready-for-agent
+     8	
+     9	- [ ] Add Gym flow creates a persisted Gym with name and default unit; appears in Gyms tab and gym picker
+    10	- [ ] Add Machine flow creates a persisted MachineInstance linked to the gym, optionally to a catalog model
+    11	- [ ] Machine picker in active workout lists real machines for the current gym
+    12	- [ ] Users can add a missing equipment model inline (user ID space) when the catalog lacks it
+     1	# 04 — Start & log a real workout (core loop)
+     2	
+     3	**What to build:** Starting a workout (empty or from template) creates a persisted Workout at the current gym; every set edit, completion toggle, machine choice, and unit change auto-persists immediately. Unit defaults follow machine → gym → app preference. Finishing stores the workout in history. The interruption guarantee from SPEC holds: force-quit mid-workout, relaunch, and the active workout resumes exactly as it was.
+     4	
+     5	**Blocked by:** 01, 02, 03.
+     6	
+     7	**Status:** ready-for-agent
+     8	
+     9	- [ ] Sets persist as entered: value + unit + normalizedKg; per-set unit toggle works against real records
+    10	- [ ] Set types (warmup/working/failure) and completion state persist
+    11	- [ ] Machine selection persists on the entry and updates GymExerciseMemory for that (gym, exercise)
+    12	- [ ] Kill the app mid-workout → relaunch → active workout resumes with identical state
+    13	- [ ] Finish moves the workout to history; Cancel discards it after confirmation
+     1	# 05 — History & log-time equipment snapshots
+     2	
+     3	**What to build:** History and workout detail read persisted workouts. Each entry displays its log-time context snapshot (machine label, manufacturer + model, gym) rather than live references, so renaming or archiving a machine after the fact never changes what past workouts show. Deleting a gym or machine archives it; archived equipment disappears from pickers but history keeps rendering.
+     4	
+     5	**Blocked by:** 04.
+     6	
+     7	**Status:** ready-for-agent
+     8	
+     9	- [ ] History groups persisted workouts by month with gym + unit badge + stats, as in the prototype
+    10	- [ ] Workout detail shows sets as entered (unit per set, W/F markers) and snapshot equipment labels
+    11	- [ ] Rename a machine → old workouts still show the old label; new workouts show the new one
+    12	- [ ] Delete a machine/gym with history → archived, not destroyed; pickers hide it, history unaffected
+     1	# 06 — Same-machine prefill + layered previous performance
+     2	
+     3	**What to build:** Real history queries replace the sample data. When an exercise starts on a machine, set rows prefill from that machine's most recent same-index sets — one tap confirms a repeat set. The previous-performance sheet shows the three real layers: this machine, same equipment model at other gyms, and the exercise on any equipment — each labeled, with fallback layers shown as reference and never prefilled.
+     4	
+     5	**Blocked by:** 04, 05.
+     6	
+     7	**Status:** ready-for-agent
+     8	
+     9	- [ ] Prefill draws only from the same MachineInstance's history; a machine with no history prefills nothing
+    10	- [ ] The "previous" column shows same-index sets from the last workout containing this exercise on this machine
+    11	- [ ] Layer 2 finds machines sharing the same EquipmentModel at other gyms (the travel case)
+    12	- [ ] Layer 3 aggregates the exercise across all equipment, labeled not-comparable
+    13	- [ ] Layer selection logic lives in Domain/ free of UI imports, unit-tested
+     1	# 07 — PR computation (Brzycki, load-type direction)
+     2	
+     3	**What to build:** Records become real: best weight per rep count (capped at 12 reps) and estimated 1RM via Brzycki, computed at all three layers (machine instance, equipment model, exercise). Load-type direction is respected — for assisted exercises the best is the *lowest* assistance — and warmup sets are excluded from all records and volume. Results appear in the previous-performance sheet.
+     4	
+     5	**Blocked by:** 06.
+     6	
+     7	**Status:** ready-for-agent
+     8	
+     9	- [ ] Pure functions in Domain/, unit-tested: rep-count bests, Brzycki e1RM (`weight / (1.0278 − 0.0278 × reps)`), 12-rep cap
+    10	- [ ] Assisted exercises invert comparison (lower normalizedKg wins); bodyweight+added compares added weight
+    11	- [ ] Warmup sets never contribute to records or volume
+    12	- [ ] Mixed-unit history compares via normalizedKg but displays each record as entered
+    13	- [ ] Tests cover: mixed units, assisted inversion, warmup exclusion, reps > 12 ignored for records
+     1	# 08 — Rest timer: real per-exercise durations
+     2	
+     3	**What to build:** Rest durations stop being hardcoded. Each exercise can carry its own working-set and warmup-set rest durations, falling back to a global default (2:00 working / 1:00 warmup). Completing a set auto-starts the timer with the right duration; a local notification fires when rest ends (permission requested on first completed set, not app launch).
+     4	
+     5	**Blocked by:** 04.
+     6	
+     7	**Status:** ready-for-agent
+     8	
+     9	- [ ] Per-exercise warmup/working rest durations persist and are editable from the exercise's entry in the active workout
+    10	- [ ] Global defaults used when no per-exercise value is set
+    11	- [ ] Timer auto-starts with warmup vs working duration based on the completed set's type
+    12	- [ ] Local notification on timer end; permission first requested after the first completed set
+     1	# 09 — Template resolution + drift prompt
+     2	
+     3	**What to build:** Templates become real and gym-aware. Starting a template at a gym creates a workout whose exercises resolve to the last-used machine at that gym (via GymExerciseMemory); exercises with no memory at this gym start machineless. Finishing a workout that deviated from its template offers the four-option drift prompt: update template / update values only / update both / keep original (suppressible in settings).
+     4	
+     5	**Blocked by:** 03, 04.
+     6	
+     7	**Status:** ready-for-agent
+     8	
+     9	- [ ] Templates persist (name, ordered exercises, target sets/reps)
+    10	- [ ] Starting "Push Day" at gym A picks gym-A machines; at gym B picks gym-B machines — same template
+    11	- [ ] Drift detection: added/removed exercises or changed set counts vs the template trigger the prompt
+    12	- [ ] All four prompt options behave per SPEC; a settings toggle suppresses the prompt
+    13	- [ ] Save-as-template offered when finishing a from-scratch workout
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "wc -l WorkoutTracker/**/*.swift && rg -n \"struct |enum |class |@Observable|SampleStore|rest|timer|template|PR|previous|prefill|volume|unit|machine|gym|snapshot|finish|cancel\" WorkoutTracker -g '*.swift'" in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+      58 WorkoutTracker/App/RootView.swift
+      10 WorkoutTracker/App/WorkoutTrackerApp.swift
+     153 WorkoutTracker/Domain/PrototypeModels.swift
+     143 WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift
+     213 WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift
+      63 WorkoutTracker/Features/ActiveWorkout/ExercisePickerSheet.swift
+     103 WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift
+      69 WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift
+      51 WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift
+      34 WorkoutTracker/Features/Exercises/ExercisesView.swift
+      83 WorkoutTracker/Features/Gyms/GymsView.swift
+      81 WorkoutTracker/Features/History/HistoryView.swift
+      68 WorkoutTracker/Features/History/WorkoutDetailView.swift
+     114 WorkoutTracker/Features/Start/StartWorkoutView.swift
+     235 WorkoutTracker/SampleData/SampleStore.swift
+    1478 total
+WorkoutTracker/Domain/PrototypeModels.swift:6:enum WeightUnit: String, CaseIterable, Identifiable, Codable {
+WorkoutTracker/Domain/PrototypeModels.swift:14:enum SetType: CaseIterable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:28:enum LoadType: Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:44:enum EquipmentTag: String, CaseIterable, Identifiable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:45:    case machine = "Machine"
+WorkoutTracker/Domain/PrototypeModels.swift:49:    case smith = "Smith machine"
+WorkoutTracker/Domain/PrototypeModels.swift:55:struct Exercise: Identifiable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:59:    var tags: [EquipmentTag] = [.machine]
+WorkoutTracker/Domain/PrototypeModels.swift:62:struct EquipmentModel: Identifiable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:70:struct Gym: Identifiable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:77:struct Machine: Identifiable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:79:    var gymID: UUID
+WorkoutTracker/Domain/PrototypeModels.swift:85:struct LoggedSet: Identifiable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:90:    var unit: WeightUnit = .kg
+WorkoutTracker/Domain/PrototypeModels.swift:96:    var previousLabel: String? {
+WorkoutTracker/Domain/PrototypeModels.swift:102:struct WorkoutEntry: Identifiable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:105:    var machine: Machine?
+WorkoutTracker/Domain/PrototypeModels.swift:112:        if let machine { return machine.label }
+WorkoutTracker/Domain/PrototypeModels.swift:118:struct Workout: Identifiable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:122:    var gym: Gym?
+WorkoutTracker/Domain/PrototypeModels.swift:129:struct WorkoutTemplate: Identifiable, Hashable {
+WorkoutTracker/Domain/PrototypeModels.swift:135:struct PerformanceLayer: Identifiable {
+WorkoutTracker/Domain/PrototypeModels.swift:136:    enum Kind {
+WorkoutTracker/Domain/PrototypeModels.swift:138:        case sameModel(gymName: String)
+WorkoutTracker/Domain/PrototypeModels.swift:147:enum Format {
+WorkoutTracker/Features/Gyms/GymsView.swift:3:struct GymsView: View {
+WorkoutTracker/Features/Gyms/GymsView.swift:4:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/Gyms/GymsView.swift:10:                    ForEach(store.gyms) { gym in
+WorkoutTracker/Features/Gyms/GymsView.swift:11:                        NavigationLink(value: gym) {
+WorkoutTracker/Features/Gyms/GymsView.swift:14:                                    Text(gym.name)
+WorkoutTracker/Features/Gyms/GymsView.swift:16:                                    Text("\(gym.city) · \(store.machines(at: gym).count) machines")
+WorkoutTracker/Features/Gyms/GymsView.swift:21:                                UnitBadge(unit: gym.defaultUnit)
+WorkoutTracker/Features/Gyms/GymsView.swift:27:                    Text("A gym's unit is the default for sets logged there — machines can override it, and so can you on any set.")
+WorkoutTracker/Features/Gyms/GymsView.swift:35:            .navigationDestination(for: Gym.self) { gym in
+WorkoutTracker/Features/Gyms/GymsView.swift:36:                GymDetailView(gym: gym)
+WorkoutTracker/Features/Gyms/GymsView.swift:42:struct GymDetailView: View {
+WorkoutTracker/Features/Gyms/GymsView.swift:43:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/Gyms/GymsView.swift:44:    var gym: Gym
+WorkoutTracker/Features/Gyms/GymsView.swift:50:                    Text("Default unit")
+WorkoutTracker/Features/Gyms/GymsView.swift:52:                    UnitBadge(unit: gym.defaultUnit)
+WorkoutTracker/Features/Gyms/GymsView.swift:57:                    Text(gym.city).foregroundStyle(.secondary)
+WorkoutTracker/Features/Gyms/GymsView.swift:62:                ForEach(store.machines(at: gym)) { machine in
+WorkoutTracker/Features/Gyms/GymsView.swift:64:                        Text(machine.label)
+WorkoutTracker/Features/Gyms/GymsView.swift:66:                        Text(machine.model?.displayName ?? "Unknown model")
+WorkoutTracker/Features/Gyms/GymsView.swift:75:        .navigationTitle(gym.name)
+WorkoutTracker/Features/Gyms/GymsView.swift:82:        .environmentObject(SampleStore())
+WorkoutTracker/Features/History/HistoryView.swift:3:struct HistoryView: View {
+WorkoutTracker/Features/History/HistoryView.swift:4:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/History/HistoryView.swift:39:                if ProcessInfo.processInfo.environment["PROTO_SCREEN"] == "detail",
+WorkoutTracker/Features/History/HistoryView.swift:48:private struct WorkoutSummaryRow: View {
+WorkoutTracker/Features/History/HistoryView.swift:62:                if let gym = workout.gym {
+WorkoutTracker/Features/History/HistoryView.swift:63:                    Label(gym.name, systemImage: "mappin.and.ellipse")
+WorkoutTracker/Features/History/HistoryView.swift:66:                    UnitBadge(unit: gym.defaultUnit)
+WorkoutTracker/Features/History/HistoryView.swift:80:        .environmentObject(SampleStore())
+WorkoutTracker/Features/History/WorkoutDetailView.swift:3:struct WorkoutDetailView: View {
+WorkoutTracker/Features/History/WorkoutDetailView.swift:10:                    Label(workout.gym?.name ?? "No gym", systemImage: "mappin.and.ellipse")
+WorkoutTracker/Features/History/WorkoutDetailView.swift:36:                Text("Equipment shown as it was when this workout was logged. Weights display in the unit you entered.")
+WorkoutTracker/Features/History/WorkoutDetailView.swift:44:        if let machine = entry.machine {
+WorkoutTracker/Features/History/WorkoutDetailView.swift:45:            let model = machine.model?.displayName ?? "unknown model"
+WorkoutTracker/Features/History/WorkoutDetailView.swift:46:            return "\(machine.label) · \(model)"
+WorkoutTracker/Features/History/WorkoutDetailView.swift:57:            Text("\(set.weightText) \(set.unit.rawValue) × \(set.repsText)")
+WorkoutTracker/Features/History/WorkoutDetailView.swift:66:        WorkoutDetailView(workout: SampleStore().history[0])
+WorkoutTracker/Features/Exercises/ExercisesView.swift:3:struct ExercisesView: View {
+WorkoutTracker/Features/Exercises/ExercisesView.swift:4:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/Exercises/ExercisesView.swift:22:                    Text("Picking a machine during a workout selects its exercise automatically — this list is for browsing and free-weight logging.")
+WorkoutTracker/Features/Exercises/ExercisesView.swift:33:        .environmentObject(SampleStore())
+WorkoutTracker/Features/Start/StartWorkoutView.swift:3:struct StartWorkoutView: View {
+WorkoutTracker/Features/Start/StartWorkoutView.swift:4:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/Start/StartWorkoutView.swift:11:                    gymPicker
+WorkoutTracker/Features/Start/StartWorkoutView.swift:13:                    Text("Sets default to \(store.currentGym.defaultUnit.rawValue) here. You can switch units on any set.")
+WorkoutTracker/Features/Start/StartWorkoutView.swift:24:                    ForEach(store.templates) { template in
+WorkoutTracker/Features/Start/StartWorkoutView.swift:25:                        TemplateRow(template: template, start: startWorkout)
+WorkoutTracker/Features/Start/StartWorkoutView.swift:33:    private var gymPicker: some View {
+WorkoutTracker/Features/Start/StartWorkoutView.swift:35:            ForEach(store.gyms) { gym in
+WorkoutTracker/Features/Start/StartWorkoutView.swift:37:                    store.currentGym = gym
+WorkoutTracker/Features/Start/StartWorkoutView.swift:39:                    if gym.id == store.currentGym.id {
+WorkoutTracker/Features/Start/StartWorkoutView.swift:40:                        Label("\(gym.name) · \(gym.city)", systemImage: "checkmark")
+WorkoutTracker/Features/Start/StartWorkoutView.swift:42:                        Text("\(gym.name) · \(gym.city)")
+WorkoutTracker/Features/Start/StartWorkoutView.swift:60:                UnitBadge(unit: store.currentGym.defaultUnit)
+WorkoutTracker/Features/Start/StartWorkoutView.swift:69:private struct TemplateRow: View {
+WorkoutTracker/Features/Start/StartWorkoutView.swift:70:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/Start/StartWorkoutView.swift:71:    var template: WorkoutTemplate
+WorkoutTracker/Features/Start/StartWorkoutView.swift:77:                Text(template.name)
+WorkoutTracker/Features/Start/StartWorkoutView.swift:79:                Text(template.exerciseNames.joined(separator: " · "))
+WorkoutTracker/Features/Start/StartWorkoutView.swift:97:struct UnitBadge: View {
+WorkoutTracker/Features/Start/StartWorkoutView.swift:98:    var unit: WeightUnit
+WorkoutTracker/Features/Start/StartWorkoutView.swift:101:        Text(unit.rawValue)
+WorkoutTracker/Features/Start/StartWorkoutView.swift:105:            .background(unit == .kg ? Color.blue.opacity(0.15) : Color.orange.opacity(0.18))
+WorkoutTracker/Features/Start/StartWorkoutView.swift:106:            .foregroundStyle(unit == .kg ? Color.blue : Color.orange)
+WorkoutTracker/Features/Start/StartWorkoutView.swift:113:        .environmentObject(SampleStore())
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:3:struct MachinePickerSheet: View {
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:4:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:12:                    ForEach(store.machines(at: store.currentGym)) { machine in
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:14:                            select(machine: machine)
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:16:                            machineRow(machine)
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:24:                    Text("History and records attach to the machine you pick — numbers on a different model aren't treated as comparable.")
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:55:    private func machineRow(_ machine: Machine) -> some View {
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:58:                Text(machine.label)
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:60:                Text(machine.model?.displayName ?? "Unknown model")
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:65:            if let unit = machine.defaultUnit {
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:66:                UnitBadge(unit: unit)
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:68:            if isSelected(machine: machine) {
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:79:    private func isSelected(machine: Machine) -> Bool {
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:81:        return store.activeWorkout.entries[entryIndex].machine?.id == machine.id
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:87:        return entry.machine == nil && entry.freeWeightTag == tag
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:90:    private func select(machine: Machine) {
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:92:        store.activeWorkout.entries[entryIndex].machine = machine
+WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift:99:        store.activeWorkout.entries[entryIndex].machine = nil
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:3:struct ActiveWorkoutView: View {
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:4:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:7:    @State private var restEnd: Date?
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:8:    @State private var restTotal: Double = 120
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:9:    @State private var machinePickerEntryID: UUID?
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:22:                            showMachinePicker: { machinePickerEntryID = entry.id },
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:42:                if restEnd != nil {
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:43:                    RestTimerBar(restEnd: $restEnd, restTotal: restTotal)
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:50:                    Button("Cancel", role: .cancel) { dismiss() }
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:58:            .sheet(item: machinePickerEntry) { entry in
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:75:    // Screenshot deep-links (milestone 1 only): SIMCTL_CHILD_PROTO_SHEET=machines|previous
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:77:        switch ProcessInfo.processInfo.environment["PROTO_SHEET"] {
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:78:        case "machines":
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:79:            machinePickerEntryID = store.activeWorkout.entries.first?.id
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:80:        case "previous":
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:91:            Text(store.activeWorkout.gym?.name ?? "No gym")
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:94:            Label("\(store.activeWorkout.durationMinutes) min", systemImage: "timer")
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:101:    private var machinePickerEntry: Binding<WorkoutEntry?> {
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:102:        entryBinding(id: machinePickerEntryID) { machinePickerEntryID = nil }
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:123:        restTotal = Double(seconds)
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:124:        restEnd = Date().addingTimeInterval(Double(seconds))
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:129:        set.unit = store.activeWorkout.gym?.defaultUnit ?? .kg
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:132:            machine: nil,
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:133:            freeWeightTag: exercise.tags.first { $0 != .machine },
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:142:        .environmentObject(SampleStore())
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift:3:struct RestTimerBar: View {
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift:4:    @Binding var restEnd: Date?
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift:5:    var restTotal: Double
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift:11:        let remaining = max(0, restEnd?.timeIntervalSince(now) ?? 0)
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift:23:                    restEnd = restEnd?.addingTimeInterval(15)
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift:28:                    restEnd = nil
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift:33:            ProgressView(value: restTotal > 0 ? remaining / restTotal : 0)
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift:41:            if let end = restEnd, end <= date {
+WorkoutTracker/Features/ActiveWorkout/RestTimerBar.swift:42:                restEnd = nil
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:3:struct ExerciseEntryCard: View {
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:12:            machineRow
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:30:                newSet.unit = entry.sets.last?.unit ?? .kg
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:62:    private var machineRow: some View {
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:65:                Image(systemName: entry.machine != nil ? "gearshape.2" : "dumbbell")
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:70:                    if let model = entry.machine?.model {
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:92:            Text("PREVIOUS").frame(maxWidth: .infinity, alignment: .leading)
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:115:struct SetRow: View {
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:124:            previousButton
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:137:                    set.unit = set.unit.toggled
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:139:                    UnitBadge(unit: set.unit)
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:186:    private var previousButton: some View {
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:188:            // One tap pulls same-machine previous numbers into the fields.
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:191:            set.unit = set.prevUnit
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:193:            Text(set.previousLabel ?? "—")
+WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:199:        .disabled(set.previousLabel == nil)
+WorkoutTracker/Features/ActiveWorkout/ExercisePickerSheet.swift:3:struct ExercisePickerSheet: View {
+WorkoutTracker/Features/ActiveWorkout/ExercisePickerSheet.swift:4:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/ActiveWorkout/ExercisePickerSheet.swift:39:struct ExerciseRow: View {
+WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift:3:struct PreviousPerformanceSheet: View {
+WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift:4:    @EnvironmentObject private var store: SampleStore
+WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift:39:                Text("This machine — \(entry.equipmentLabel)")
+WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift:43:        case .sameModel(let gymName):
+WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift:45:                Text("Same model — \(gymName)")
+WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift:62:            Text("Only this machine's history prefills your sets.")
+WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift:64:            Text("Same hardware at a different gym — shown for reference.")
+WorkoutTracker/Features/ActiveWorkout/PreviousPerformanceSheet.swift:66:            Text("Different machines — weights are not comparable.")
+WorkoutTracker/SampleData/SampleStore.swift:7:final class SampleStore: ObservableObject {
+WorkoutTracker/SampleData/SampleStore.swift:11:    let gyms: [Gym]
+WorkoutTracker/SampleData/SampleStore.swift:12:    let machines: [Machine]
+WorkoutTracker/SampleData/SampleStore.swift:14:    let templates: [WorkoutTemplate]
+WorkoutTracker/SampleData/SampleStore.swift:20:    var gymGangnam: Gym { gyms[0] }
+WorkoutTracker/SampleData/SampleStore.swift:21:    var gymSF: Gym { gyms[1] }
+WorkoutTracker/SampleData/SampleStore.swift:24:        // Gyms — one kg country, one lb country, to exercise mixed-unit UI.
+WorkoutTracker/SampleData/SampleStore.swift:27:        gyms = [gangnam, sf]
+WorkoutTracker/SampleData/SampleStore.swift:33:        let tgLat = EquipmentModel(manufacturer: "Technogym", model: "Selection 900 Lat Pulldown")
+WorkoutTracker/SampleData/SampleStore.swift:39:        machines = [
+WorkoutTracker/SampleData/SampleStore.swift:40:            Machine(gymID: gangnam.id, label: "Chest Press #1", model: lfInsignia, defaultUnit: nil),
+WorkoutTracker/SampleData/SampleStore.swift:41:            Machine(gymID: gangnam.id, label: "Chest Press #2", model: hsMTS, defaultUnit: nil),
+WorkoutTracker/SampleData/SampleStore.swift:42:            Machine(gymID: gangnam.id, label: "Lat Pulldown", model: tgLat, defaultUnit: nil),
+WorkoutTracker/SampleData/SampleStore.swift:43:            Machine(gymID: gangnam.id, label: "Assisted Pull-Up", model: matrixAssist, defaultUnit: nil),
+WorkoutTracker/SampleData/SampleStore.swift:44:            Machine(gymID: gangnam.id, label: "Leg Press", model: cybexLeg, defaultUnit: nil),
+WorkoutTracker/SampleData/SampleStore.swift:46:            Machine(gymID: sf.id, label: "Chest Press A", model: lfInsignia, defaultUnit: nil),
+WorkoutTracker/SampleData/SampleStore.swift:47:            Machine(gymID: sf.id, label: "Seated Row", model: precorRow, defaultUnit: nil),
+WorkoutTracker/SampleData/SampleStore.swift:48:            Machine(gymID: sf.id, label: "Shoulder Press", model: lfShoulder, defaultUnit: .lb),
+WorkoutTracker/SampleData/SampleStore.swift:52:        let latPulldown = Exercise(name: "Lat Pulldown", tags: [.machine, .cable])
+WorkoutTracker/SampleData/SampleStore.swift:53:        let seatedRow = Exercise(name: "Seated Row", tags: [.machine, .cable])
+WorkoutTracker/SampleData/SampleStore.swift:68:        templates = [
+WorkoutTracker/SampleData/SampleStore.swift:74:        let chestPress1 = machines[0]
+WorkoutTracker/SampleData/SampleStore.swift:75:        let assistMachine = machines[3]
+WorkoutTracker/SampleData/SampleStore.swift:76:        let chestPressA = machines[5]
+WorkoutTracker/SampleData/SampleStore.swift:77:        let precorRowMachine = machines[6]
+WorkoutTracker/SampleData/SampleStore.swift:78:        let tgLatMachine = machines[2]
+WorkoutTracker/SampleData/SampleStore.swift:84:            gym: gangnam,
+WorkoutTracker/SampleData/SampleStore.swift:88:                    machine: chestPress1,
+WorkoutTracker/SampleData/SampleStore.swift:91:                        LoggedSet(type: .warmup, weightText: "40", repsText: "12", unit: .kg, completed: true, prevWeight: 40, prevReps: 12, prevUnit: .kg),
+WorkoutTracker/SampleData/SampleStore.swift:92:                        LoggedSet(type: .working, weightText: "60", repsText: "10", unit: .kg, completed: true, prevWeight: 60, prevReps: 10, prevUnit: .kg),
+WorkoutTracker/SampleData/SampleStore.swift:93:                        LoggedSet(type: .working, weightText: "60", repsText: "", unit: .kg, completed: false, prevWeight: 60, prevReps: 9, prevUnit: .kg),
+WorkoutTracker/SampleData/SampleStore.swift:98:                    machine: nil,
+WorkoutTracker/SampleData/SampleStore.swift:101:                        // User overrode the gym's kg default on this one.
+WorkoutTracker/SampleData/SampleStore.swift:102:                        LoggedSet(type: .working, weightText: "135", repsText: "8", unit: .lb, completed: true, prevWeight: 135, prevReps: 8, prevUnit: .lb),
+WorkoutTracker/SampleData/SampleStore.swift:103:                        LoggedSet(type: .working, weightText: "135", repsText: "", unit: .lb, completed: false, prevWeight: 135, prevReps: 6, prevUnit: .lb),
+WorkoutTracker/SampleData/SampleStore.swift:108:                    machine: assistMachine,
+WorkoutTracker/SampleData/SampleStore.swift:111:                        LoggedSet(type: .working, weightText: "25", repsText: "", unit: .kg, completed: false, prevWeight: 30, prevReps: 8, prevUnit: .kg),
+WorkoutTracker/SampleData/SampleStore.swift:118:        // History across both gyms, mixed units.
+WorkoutTracker/SampleData/SampleStore.swift:123:            LoggedSet(type: type, weightText: Format.weight(w), repsText: String(r), unit: u, completed: true)
+WorkoutTracker/SampleData/SampleStore.swift:128:                name: "Pull Day", date: daysAgo(1), gym: gangnam,
+WorkoutTracker/SampleData/SampleStore.swift:130:                    WorkoutEntry(exercise: latPulldown, machine: tgLatMachine, freeWeightTag: nil, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:133:                    WorkoutEntry(exercise: assistedPullUp, machine: assistMachine, freeWeightTag: nil, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:136:                    WorkoutEntry(exercise: dbCurl, machine: nil, freeWeightTag: .dumbbell, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:143:                name: "Push Day", date: daysAgo(4), gym: gangnam,
+WorkoutTracker/SampleData/SampleStore.swift:145:                    WorkoutEntry(exercise: seatedChestPress, machine: chestPress1, freeWeightTag: nil, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:148:                    WorkoutEntry(exercise: benchPress, machine: nil, freeWeightTag: .barbell, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:155:                name: "Push Day (travel)", date: daysAgo(21), gym: sf,
+WorkoutTracker/SampleData/SampleStore.swift:157:                    WorkoutEntry(exercise: seatedChestPress, machine: chestPressA, freeWeightTag: nil, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:160:                    WorkoutEntry(exercise: shoulderPress, machine: machines[7], freeWeightTag: nil, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:167:                name: "Pull Day (travel)", date: daysAgo(23), gym: sf,
+WorkoutTracker/SampleData/SampleStore.swift:169:                    WorkoutEntry(exercise: seatedRow, machine: precorRowMachine, freeWeightTag: nil, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:172:                    WorkoutEntry(exercise: pullUp, machine: nil, freeWeightTag: .bodyweight, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:179:                name: "Leg Day", date: daysAgo(35), gym: gangnam,
+WorkoutTracker/SampleData/SampleStore.swift:181:                    WorkoutEntry(exercise: squat, machine: nil, freeWeightTag: .barbell, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:184:                    WorkoutEntry(exercise: legPress, machine: machines[4], freeWeightTag: nil, sets: [
+WorkoutTracker/SampleData/SampleStore.swift:195:    func machines(at gym: Gym) -> [Machine] {
+WorkoutTracker/SampleData/SampleStore.swift:196:        machines.filter { $0.gymID == gym.id }
+WorkoutTracker/SampleData/SampleStore.swift:199:    func gymName(for machine: Machine) -> String {
+WorkoutTracker/SampleData/SampleStore.swift:200:        gyms.first { $0.id == machine.gymID }?.name ?? "Unknown gym"
+WorkoutTracker/SampleData/SampleStore.swift:203:    /// Static sample of the layered previous-performance panel
+WorkoutTracker/SampleData/SampleStore.swift:204:    /// (this machine → same model elsewhere → any equipment).
+WorkoutTracker/SampleData/SampleStore.swift:214:                    "No other assisted machines logged",
+WorkoutTracker/SampleData/SampleStore.swift:224:            PerformanceLayer(kind: .sameModel(gymName: "Fitness SF Transbay"), lines: [
+WorkoutTracker/SampleData/SampleStore.swift:230:                "3 machines logged for this exercise",
+WorkoutTracker/App/WorkoutTrackerApp.swift:4:struct WorkoutTrackerApp: App {
+WorkoutTracker/App/RootView.swift:3:struct RootView: View {
+WorkoutTracker/App/RootView.swift:4:    @StateObject private var store = SampleStore()
+WorkoutTracker/App/RootView.swift:8:    enum Tab: Hashable {
+WorkoutTracker/App/RootView.swift:9:        case workout, history, gyms, exercises
+WorkoutTracker/App/RootView.swift:24:                .tag(Tab.gyms)
+WorkoutTracker/App/RootView.swift:39:    // SIMCTL_CHILD_PROTO_SCREEN=active|history|gyms|exercises
+WorkoutTracker/App/RootView.swift:41:        switch ProcessInfo.processInfo.environment["PROTO_SCREEN"] {
+WorkoutTracker/App/RootView.swift:46:        case "gyms":
+WorkoutTracker/App/RootView.swift:47:            selection = .gyms
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "rg -n \"Test|IPHONEOS_DEPLOYMENT_TARGET|SWIFT_VERSION|PBXFileSystemSynchronized\" WorkoutTracker.xcodeproj/project.pbxproj && sed -n '1,220p' WorkoutTracker/Domain/PrototypeModels.swift && sed -n '1,180p' WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift && sed -n '1,240p' WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift" in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+13:/* Begin PBXFileSystemSynchronizedRootGroup section */
+15:			isa = PBXFileSystemSynchronizedRootGroup;
+19:/* End PBXFileSystemSynchronizedRootGroup section */
+179:				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+235:				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+267:				SWIFT_VERSION = 5.0;
+294:				SWIFT_VERSION = 5.0;
+import Foundation
+
+// Milestone-1 prototype domain: plain value types standing in for the future
+// SwiftData schema (docs/SPEC.md, "Data model sketch"). Replaced at milestone 2.
+
+enum WeightUnit: String, CaseIterable, Identifiable, Codable {
+    case kg
+    case lb
+
+    var id: String { rawValue }
+    var toggled: WeightUnit { self == .kg ? .lb : .kg }
+}
+
+enum SetType: CaseIterable, Hashable {
+    case warmup
+    case working
+    case failure
+
+    var marker: String? {
+        switch self {
+        case .warmup: "W"
+        case .working: nil
+        case .failure: "F"
+        }
+    }
+}
+
+enum LoadType: Hashable {
+    case weighted
+    case bodyweight
+    case bodyweightPlus
+    case assisted
+
+    var badge: String {
+        switch self {
+        case .weighted: "Weighted"
+        case .bodyweight: "Bodyweight"
+        case .bodyweightPlus: "BW + added"
+        case .assisted: "Assisted"
+        }
+    }
+}
+
+enum EquipmentTag: String, CaseIterable, Identifiable, Hashable {
+    case machine = "Machine"
+    case barbell = "Barbell"
+    case dumbbell = "Dumbbell"
+    case cable = "Cable"
+    case smith = "Smith machine"
+    case bodyweight = "Bodyweight"
+
+    var id: String { rawValue }
+}
+
+struct Exercise: Identifiable, Hashable {
+    let id = UUID()
+    var name: String
+    var loadType: LoadType = .weighted
+    var tags: [EquipmentTag] = [.machine]
+}
+
+struct EquipmentModel: Identifiable, Hashable {
+    let id = UUID()
+    var manufacturer: String
+    var model: String
+
+    var displayName: String { "\(manufacturer) \(model)" }
+}
+
+struct Gym: Identifiable, Hashable {
+    let id = UUID()
+    var name: String
+    var city: String
+    var defaultUnit: WeightUnit
+}
+
+struct Machine: Identifiable, Hashable {
+    let id = UUID()
+    var gymID: UUID
+    var label: String
+    var model: EquipmentModel?
+    var defaultUnit: WeightUnit?
+}
+
+struct LoggedSet: Identifiable, Hashable {
+    let id = UUID()
+    var type: SetType = .working
+    var weightText: String = ""
+    var repsText: String = ""
+    var unit: WeightUnit = .kg
+    var completed: Bool = false
+    var prevWeight: Double?
+    var prevReps: Int?
+    var prevUnit: WeightUnit = .kg
+
+    var previousLabel: String? {
+        guard let prevWeight, let prevReps else { return nil }
+        return "\(Format.weight(prevWeight)) \(prevUnit.rawValue) × \(prevReps)"
+    }
+}
+
+struct WorkoutEntry: Identifiable, Hashable {
+    let id = UUID()
+    var exercise: Exercise
+    var machine: Machine?
+    var freeWeightTag: EquipmentTag?
+    var sets: [LoggedSet]
+    var workingRest: Int = 120
+    var warmupRest: Int = 60
+
+    var equipmentLabel: String {
+        if let machine { return machine.label }
+        if let freeWeightTag { return freeWeightTag.rawValue }
+        return "Choose equipment"
+    }
+}
+
+struct Workout: Identifiable, Hashable {
+    let id = UUID()
+    var name: String
+    var date: Date
+    var gym: Gym?
+    var entries: [WorkoutEntry]
+    var durationMinutes: Int
+
+    var totalSets: Int { entries.reduce(0) { $0 + $1.sets.count } }
+}
+
+struct WorkoutTemplate: Identifiable, Hashable {
+    let id = UUID()
+    var name: String
+    var exerciseNames: [String]
+}
+
+struct PerformanceLayer: Identifiable {
+    enum Kind {
+        case thisMachine
+        case sameModel(gymName: String)
+        case anyEquipment
+    }
+
+    let id = UUID()
+    var kind: Kind
+    var lines: [String]
+}
+
+enum Format {
+    static func weight(_ value: Double) -> String {
+        value.truncatingRemainder(dividingBy: 1) == 0
+            ? String(Int(value))
+            : String(format: "%.1f", value)
+    }
+}
+import SwiftUI
+
+struct ActiveWorkoutView: View {
+    @EnvironmentObject private var store: SampleStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var restEnd: Date?
+    @State private var restTotal: Double = 120
+    @State private var machinePickerEntryID: UUID?
+    @State private var performanceEntryID: UUID?
+    @State private var showExercisePicker = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 14) {
+                    header
+
+                    ForEach($store.activeWorkout.entries) { $entry in
+                        ExerciseEntryCard(
+                            entry: $entry,
+                            showMachinePicker: { machinePickerEntryID = entry.id },
+                            showPerformance: { performanceEntryID = entry.id },
+                            setCompleted: { setType in startRest(for: entry, setType: setType) }
+                        )
+                    }
+
+                    Button {
+                        showExercisePicker = true
+                    } label: {
+                        Label("Add Exercise", systemImage: "plus")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .padding(.horizontal)
+                    .padding(.bottom, 24)
+                }
+                .padding(.top, 8)
+            }
+            .background(Color(.systemGroupedBackground))
+            .safeAreaInset(edge: .bottom) {
+                if restEnd != nil {
+                    RestTimerBar(restEnd: $restEnd, restTotal: restTotal)
+                }
+            }
+            .navigationTitle(store.activeWorkout.name)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Cancel", role: .cancel) { dismiss() }
+                        .tint(.red)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Finish") { dismiss() }
+                        .font(.headline)
+                }
+            }
+            .sheet(item: machinePickerEntry) { entry in
+                MachinePickerSheet(entryID: entry.id)
+                    .presentationDetents([.medium, .large])
+            }
+            .sheet(item: performanceEntry) { entry in
+                PreviousPerformanceSheet(entry: entry)
+                    .presentationDetents([.medium, .large])
+            }
+            .sheet(isPresented: $showExercisePicker) {
+                ExercisePickerSheet { exercise in
+                    addEntry(for: exercise)
+                }
+            }
+            .onAppear(perform: applyLaunchOverride)
+        }
+    }
+
+    // Screenshot deep-links (milestone 1 only): SIMCTL_CHILD_PROTO_SHEET=machines|previous
+    private func applyLaunchOverride() {
+        switch ProcessInfo.processInfo.environment["PROTO_SHEET"] {
+        case "machines":
+            machinePickerEntryID = store.activeWorkout.entries.first?.id
+        case "previous":
+            performanceEntryID = store.activeWorkout.entries.first?.id
+        default:
+            break
+        }
+    }
+
+    private var header: some View {
+        HStack {
+            Image(systemName: "mappin.and.ellipse")
+                .foregroundStyle(.tint)
+            Text(store.activeWorkout.gym?.name ?? "No gym")
+                .font(.subheadline.weight(.medium))
+            Spacer()
+            Label("\(store.activeWorkout.durationMinutes) min", systemImage: "timer")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal)
+    }
+
+    private var machinePickerEntry: Binding<WorkoutEntry?> {
+        entryBinding(id: machinePickerEntryID) { machinePickerEntryID = nil }
+    }
+
+    private var performanceEntry: Binding<WorkoutEntry?> {
+        entryBinding(id: performanceEntryID) { performanceEntryID = nil }
+    }
+
+    private func entryBinding(id: UUID?, clear: @escaping () -> Void) -> Binding<WorkoutEntry?> {
+        Binding(
+            get: {
+                guard let id else { return nil }
+                return store.activeWorkout.entries.first { $0.id == id }
+            },
+            set: { newValue in
+                if newValue == nil { clear() }
+            }
+        )
+    }
+
+    private func startRest(for entry: WorkoutEntry, setType: SetType) {
+        let seconds = setType == .warmup ? entry.warmupRest : entry.workingRest
+        restTotal = Double(seconds)
+        restEnd = Date().addingTimeInterval(Double(seconds))
+    }
+
+    private func addEntry(for exercise: Exercise) {
+        var set = LoggedSet()
+        set.unit = store.activeWorkout.gym?.defaultUnit ?? .kg
+        let entry = WorkoutEntry(
+            exercise: exercise,
+            machine: nil,
+            freeWeightTag: exercise.tags.first { $0 != .machine },
+            sets: [set]
+        )
+        store.activeWorkout.entries.append(entry)
+    }
+}
+
+#Preview {
+    ActiveWorkoutView()
+        .environmentObject(SampleStore())
+}
+import SwiftUI
+
+struct ExerciseEntryCard: View {
+    @Binding var entry: WorkoutEntry
+    var showMachinePicker: () -> Void
+    var showPerformance: () -> Void
+    var setCompleted: (SetType) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            titleRow
+            machineRow
+
+            if entry.exercise.loadType == .assisted {
+                Label("Assisted: lower weight = harder. Records track least assistance.", systemImage: "arrow.down.right.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            columnHeaders
+
+            ForEach($entry.sets) { $set in
+                SetRow(set: $set, index: workingIndex(of: set), onComplete: {
+                    setCompleted(set.type)
+                })
+            }
+
+            Button {
+                var newSet = LoggedSet()
+                newSet.unit = entry.sets.last?.unit ?? .kg
+                newSet.prevWeight = entry.sets.last?.prevWeight
+                newSet.prevReps = entry.sets.last?.prevReps
+                newSet.prevUnit = entry.sets.last?.prevUnit ?? .kg
+                entry.sets.append(newSet)
+            } label: {
+                Label("Add Set", systemImage: "plus")
+                    .font(.subheadline)
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderless)
+            .padding(.top, 2)
+        }
+        .padding(14)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal)
+    }
+
+    private var titleRow: some View {
+        HStack {
+            Text(entry.exercise.name)
+                .font(.headline)
+            Spacer()
+            Button(action: showPerformance) {
+                Image(systemName: "chart.bar.doc.horizontal")
+                    .foregroundStyle(.tint)
+            }
+            .accessibilityLabel("Previous performance")
+        }
+    }
+
+    private var machineRow: some View {
+        Button(action: showMachinePicker) {
+            HStack(spacing: 6) {
+                Image(systemName: entry.machine != nil ? "gearshape.2" : "dumbbell")
+                    .font(.caption)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(entry.equipmentLabel)
+                        .font(.subheadline.weight(.medium))
+                    if let model = entry.machine?.model {
+                        Text(model.displayName)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                Spacer()
+            }
+            .padding(.vertical, 6)
+            .padding(.horizontal, 10)
+            .background(Color(.tertiarySystemFill))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var columnHeaders: some View {
+        HStack(spacing: 8) {
+            Text("SET").frame(width: 34)
+            Text("PREVIOUS").frame(maxWidth: .infinity, alignment: .leading)
+            Text(weightHeader).frame(width: 88)
+            Text("REPS").frame(width: 48)
+            Color.clear.frame(width: 30)
+        }
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(.secondary)
+    }
+
+    private var weightHeader: String {
+        entry.exercise.loadType == .assisted ? "ASSIST" : "WEIGHT"
+    }
+
+    private func workingIndex(of set: LoggedSet) -> Int {
+        var index = 0
+        for s in entry.sets {
+            if s.type != .warmup { index += 1 }
+            if s.id == set.id { break }
+        }
+        return index
+    }
+}
+
+struct SetRow: View {
+    @Binding var set: LoggedSet
+    var index: Int
+    var onComplete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            setTypeButton
+
+            previousButton
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 4) {
+                TextField("–", text: $set.weightText)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.center)
+                    .frame(width: 48)
+                    .padding(.vertical, 5)
+                    .background(Color(.tertiarySystemFill))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                Button {
+                    set.unit = set.unit.toggled
+                } label: {
+                    UnitBadge(unit: set.unit)
+                }
+                .buttonStyle(.plain)
+            }
+            .frame(width: 88)
+
+            TextField("–", text: $set.repsText)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.center)
+                .frame(width: 48)
+                .padding(.vertical, 5)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+            completeButton
+                .frame(width: 30)
+        }
+        .font(.subheadline)
+        .opacity(set.completed ? 0.75 : 1)
+    }
+
+    private var setTypeButton: some View {
+        Button {
+            switch set.type {
+            case .working: set.type = .warmup
+            case .warmup: set.type = .failure
+            case .failure: set.type = .working
+            }
+        } label: {
+            Text(set.type.marker ?? "\(index)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(markerColor)
+                .frame(width: 34, height: 28)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var markerColor: Color {
+        switch set.type {
+        case .warmup: .orange
+        case .working: .primary
+        case .failure: .red
+        }
+    }
+
+    private var previousButton: some View {
+        Button {
+            // One tap pulls same-machine previous numbers into the fields.
+            if let w = set.prevWeight { set.weightText = Format.weight(w) }
+            if let r = set.prevReps { set.repsText = String(r) }
+            set.unit = set.prevUnit
+        } label: {
+            Text(set.previousLabel ?? "—")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
+        .buttonStyle(.plain)
+        .disabled(set.previousLabel == nil)
+    }
+
+    private var completeButton: some View {
+        Button {
+            set.completed.toggle()
+            if set.completed { onComplete() }
+        } label: {
+            Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
+                .font(.title3)
+                .foregroundStyle(set.completed ? Color.green : Color.secondary)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'rg -n "PBXNativeTarget|productType|XCConfigurationList|PBXSourcesBuildPhase|Tests" WorkoutTracker.xcodeproj/project.pbxproj' in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+50:/* Begin PBXNativeTarget section */
+52:			isa = PBXNativeTarget;
+53:			buildConfigurationList = 1A000000000000000000000B /* Build configuration list for PBXNativeTarget "WorkoutTracker" */;
+71:			productType = "com.apple.product-type.application";
+73:/* End PBXNativeTarget section */
+117:/* Begin PBXSourcesBuildPhase section */
+119:			isa = PBXSourcesBuildPhase;
+125:/* End PBXSourcesBuildPhase section */
+301:/* Begin XCConfigurationList section */
+303:			isa = XCConfigurationList;
+311:		1A000000000000000000000B /* Build configuration list for PBXNativeTarget "WorkoutTracker" */ = {
+312:			isa = XCConfigurationList;
+320:/* End XCConfigurationList section */
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc 'find .. -name AGENTS.md -print' in /Users/ericlee06/orca/projects/Health App
+ succeeded in 198ms:
+hook: PostToolUse
+hook: PostToolUse Completed
+codex
+The first major fault line is emerging: several tickets require behavior that the proposed schema cannot faithfully represent—especially active-workout lifecycle, historical model identity, and mid-workout equipment changes. I’m now validating the SwiftData/CloudKit constraints and then I’ll reconcile both independent reviews into one ranked report.
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:developer.apple.com SwiftData CloudKit optional relationships unique constraints default values ModelConfiguration cloudKitDatabase ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+2026-08-08T18:38:25.829145Z ERROR codex_core::tools::router: error=timeout_ms must be at least 10000
+hook: PreToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,130p' WorkoutTracker/Features/Start/StartWorkoutView.swift && sed -n '1,115p' WorkoutTracker/Features/History/HistoryView.swift && sed -n '1,110p' WorkoutTracker/Features/History/WorkoutDetailView.swift && sed -n '190,245p' WorkoutTracker/SampleData/SampleStore.swift && sed -n '1,120p' WorkoutTracker/Features/ActiveWorkout/MachinePickerSheet.swift" in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+import SwiftUI
+
+struct StartWorkoutView: View {
+    @EnvironmentObject private var store: SampleStore
+    var startWorkout: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    gymPicker
+                } footer: {
+                    Text("Sets default to \(store.currentGym.defaultUnit.rawValue) here. You can switch units on any set.")
+                }
+
+                Section {
+                    Button(action: startWorkout) {
+                        Label("Start Empty Workout", systemImage: "plus.circle.fill")
+                            .font(.headline)
+                    }
+                }
+
+                Section("Templates") {
+                    ForEach(store.templates) { template in
+                        TemplateRow(template: template, start: startWorkout)
+                    }
+                }
+            }
+            .navigationTitle("Workout")
+        }
+    }
+
+    private var gymPicker: some View {
+        Menu {
+            ForEach(store.gyms) { gym in
+                Button {
+                    store.currentGym = gym
+                } label: {
+                    if gym.id == store.currentGym.id {
+                        Label("\(gym.name) · \(gym.city)", systemImage: "checkmark")
+                    } else {
+                        Text("\(gym.name) · \(gym.city)")
+                    }
+                }
+            }
+            Button("Add Gym…", systemImage: "plus") {}
+        } label: {
+            HStack {
+                Image(systemName: "mappin.and.ellipse")
+                    .foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(store.currentGym.name)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(store.currentGym.city)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                UnitBadge(unit: store.currentGym.defaultUnit)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private struct TemplateRow: View {
+    @EnvironmentObject private var store: SampleStore
+    var template: WorkoutTemplate
+    var start: () -> Void
+
+    var body: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(template.name)
+                    .font(.headline)
+                Text(template.exerciseNames.joined(separator: " · "))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                Text("Machines resolve to your last-used at \(store.currentGym.name)")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            Spacer()
+            Button("Start", action: start)
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .controlSize(.small)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+struct UnitBadge: View {
+    var unit: WeightUnit
+
+    var body: some View {
+        Text(unit.rawValue)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .background(unit == .kg ? Color.blue.opacity(0.15) : Color.orange.opacity(0.18))
+            .foregroundStyle(unit == .kg ? Color.blue : Color.orange)
+            .clipShape(Capsule())
+    }
+}
+
+#Preview {
+    StartWorkoutView(startWorkout: {})
+        .environmentObject(SampleStore())
+}
+import SwiftUI
+
+struct HistoryView: View {
+    @EnvironmentObject private var store: SampleStore
+    @State private var path: [Workout] = []
+
+    private var byMonth: [(month: String, workouts: [Workout])] {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMMM yyyy"
+        var order: [String] = []
+        var groups: [String: [Workout]] = [:]
+        for workout in store.history.sorted(by: { $0.date > $1.date }) {
+            let key = formatter.string(from: workout.date)
+            if groups[key] == nil { order.append(key) }
+            groups[key, default: []].append(workout)
+        }
+        return order.map { ($0, groups[$0] ?? []) }
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            List {
+                ForEach(byMonth, id: \.month) { group in
+                    Section(group.month) {
+                        ForEach(group.workouts) { workout in
+                            NavigationLink(value: workout) {
+                                WorkoutSummaryRow(workout: workout)
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("History")
+            .navigationDestination(for: Workout.self) { workout in
+                WorkoutDetailView(workout: workout)
+            }
+            .onAppear {
+                // Screenshot deep-link (milestone 1 only)
+                if ProcessInfo.processInfo.environment["PROTO_SCREEN"] == "detail",
+                   let first = store.history.first {
+                    path = [first]
+                }
+            }
+        }
+    }
+}
+
+private struct WorkoutSummaryRow: View {
+    var workout: Workout
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(workout.name)
+                    .font(.headline)
+                Spacer()
+                Text(workout.date, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            HStack(spacing: 6) {
+                if let gym = workout.gym {
+                    Label(gym.name, systemImage: "mappin.and.ellipse")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    UnitBadge(unit: gym.defaultUnit)
+                }
+                Spacer()
+                Text("\(workout.entries.count) exercises · \(workout.totalSets) sets · \(workout.durationMinutes) min")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+#Preview {
+    HistoryView()
+        .environmentObject(SampleStore())
+}
+import SwiftUI
+
+struct WorkoutDetailView: View {
+    var workout: Workout
+
+    var body: some View {
+        List {
+            Section {
+                HStack {
+                    Label(workout.gym?.name ?? "No gym", systemImage: "mappin.and.ellipse")
+                    Spacer()
+                    Text("\(workout.durationMinutes) min")
+                        .foregroundStyle(.secondary)
+                }
+                .font(.subheadline)
+            }
+
+            ForEach(workout.entries) { entry in
+                Section {
+                    ForEach(Array(entry.sets.enumerated()), id: \.element.id) { pair in
+                        setLine(index: pair.offset, set: pair.element)
+                    }
+                } header: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(entry.exercise.name)
+                        Text(equipmentSnapshot(for: entry))
+                            .font(.caption2)
+                            .textCase(nil)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            Section {
+            } footer: {
+                Text("Equipment shown as it was when this workout was logged. Weights display in the unit you entered.")
+            }
+        }
+        .navigationTitle(workout.name)
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func equipmentSnapshot(for entry: WorkoutEntry) -> String {
+        if let machine = entry.machine {
+            let model = machine.model?.displayName ?? "unknown model"
+            return "\(machine.label) · \(model)"
+        }
+        return entry.freeWeightTag?.rawValue ?? "No equipment"
+    }
+
+    private func setLine(index: Int, set: LoggedSet) -> some View {
+        HStack(spacing: 10) {
+            Text(set.type.marker ?? "\(index + 1)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(set.type == .warmup ? .orange : set.type == .failure ? .red : .primary)
+                .frame(width: 24)
+            Text("\(set.weightText) \(set.unit.rawValue) × \(set.repsText)")
+                .font(.body)
+            Spacer()
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        WorkoutDetailView(workout: SampleStore().history[0])
+    }
+}
+        ]
+    }
+
+    // MARK: Queries
+
+    func machines(at gym: Gym) -> [Machine] {
+        machines.filter { $0.gymID == gym.id }
+    }
+
+    func gymName(for machine: Machine) -> String {
+        gyms.first { $0.id == machine.gymID }?.name ?? "Unknown gym"
+    }
+
+    /// Static sample of the layered previous-performance panel
+    /// (this machine → same model elsewhere → any equipment).
+    func performanceLayers(for entry: WorkoutEntry) -> [PerformanceLayer] {
+        if entry.exercise.loadType == .assisted {
+            return [
+                PerformanceLayer(kind: .thisMachine, lines: [
+                    "Last: 30 kg assist × 8, 30 × 7 (yesterday)",
+                    "Best (least assistance) at 8 reps: 25 kg",
+                    "Trend: assistance down 10 kg over 6 weeks",
+                ]),
+                PerformanceLayer(kind: .anyEquipment, lines: [
+                    "No other assisted machines logged",
+                ]),
+            ]
+        }
+        return [
+            PerformanceLayer(kind: .thisMachine, lines: [
+                "Last: 60 kg × 10, 60 × 9 (4 days ago)",
+                "Best 10-rep: 60 kg · Best 8-rep: 65 kg",
+                "Est. 1RM 80 kg (Brzycki)",
+            ]),
+            PerformanceLayer(kind: .sameModel(gymName: "Fitness SF Transbay"), lines: [
+                "Chest Press A · same model (Life Fitness Insignia)",
+                "Last: 135 lb × 10 (3 weeks ago)",
+                "Best 10-rep: 135 lb",
+            ]),
+            PerformanceLayer(kind: .anyEquipment, lines: [
+                "3 machines logged for this exercise",
+                "Heaviest set anywhere: 70 kg × 8 (Chest Press #2)",
+            ]),
+        ]
+    }
+}
+import SwiftUI
+
+struct MachinePickerSheet: View {
+    @EnvironmentObject private var store: SampleStore
+    @Environment(\.dismiss) private var dismiss
+    var entryID: UUID
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    ForEach(store.machines(at: store.currentGym)) { machine in
+                        Button {
+                            select(machine: machine)
+                        } label: {
+                            machineRow(machine)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                    Button("Add Machine…", systemImage: "plus") {}
+                } header: {
+                    Text("Machines at \(store.currentGym.name)")
+                } footer: {
+                    Text("History and records attach to the machine you pick — numbers on a different model aren't treated as comparable.")
+                }
+
+                Section("Free weights") {
+                    ForEach([EquipmentTag.barbell, .dumbbell, .cable, .smith, .bodyweight]) { tag in
+                        Button {
+                            select(freeWeight: tag)
+                        } label: {
+                            HStack {
+                                Label(tag.rawValue, systemImage: "dumbbell")
+                                Spacer()
+                                if isSelected(freeWeight: tag) {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.tint)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle("Equipment")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func machineRow(_ machine: Machine) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(machine.label)
+                    .font(.body.weight(.medium))
+                Text(machine.model?.displayName ?? "Unknown model")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let unit = machine.defaultUnit {
+                UnitBadge(unit: unit)
+            }
+            if isSelected(machine: machine) {
+                Image(systemName: "checkmark")
+                    .foregroundStyle(.tint)
+            }
+        }
+    }
+
+    private var entryIndex: Int? {
+        store.activeWorkout.entries.firstIndex { $0.id == entryID }
+    }
+
+    private func isSelected(machine: Machine) -> Bool {
+        guard let entryIndex else { return false }
+        return store.activeWorkout.entries[entryIndex].machine?.id == machine.id
+    }
+
+    private func isSelected(freeWeight tag: EquipmentTag) -> Bool {
+        guard let entryIndex else { return false }
+        let entry = store.activeWorkout.entries[entryIndex]
+        return entry.machine == nil && entry.freeWeightTag == tag
+    }
+
+    private func select(machine: Machine) {
+        guard let entryIndex else { return }
+        store.activeWorkout.entries[entryIndex].machine = machine
+        store.activeWorkout.entries[entryIndex].freeWeightTag = nil
+        dismiss()
+    }
+
+    private func select(freeWeight tag: EquipmentTag) {
+        guard let entryIndex else { return }
+        store.activeWorkout.entries[entryIndex].machine = nil
+        store.activeWorkout.entries[entryIndex].freeWeightTag = tag
+        dismiss()
+    }
+}
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+collab: Wait
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+collab: Wait
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+collab: Wait
+hook: PostToolUse
+hook: PostToolUse Completed
+codex
+# Independent cross-review — Milestone 2 tickets
+
+Overall verdict: **the ticket set is not ready for implementation**. Several foundational ambiguities can cause irreversible historical misclassification, and the dependency graph contains an actual ownership cycle.
+
+## Critical
+
+### 1. Tickets 04 and 09 have a template-start ownership cycle
+
+**Files:** [04:3–5](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md:3>), [09:3–5](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/09-template-resolution-and-drift.md:3>)
+
+**What’s wrong:** Ticket 04 promises starting a persisted workout “empty or from template.” Ticket 09 owns persisted templates and template-based startup, but is blocked by 04. Ticket 01 creates only the schema, and Ticket 02 seeds no templates.
+
+**Why it matters:** Ticket 04 cannot meet its stated scope without implementing part of 09. Ticket 09 then inherits overlapping behavior and likely rewrites it.
+
+**Suggested fix:** Make Ticket 04 explicitly empty-workout-only. Give Ticket 09 all template startup behavior. Better still, split 09 into:
+
+1. Template CRUD and ordinary startup.
+2. Gym/machine resolution.
+3. Drift detection and mutation choices.
+
+---
+
+### 2. The documents disagree about whether equipment context belongs to a set or an entry
+
+**Files:** [SPEC:52](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:52>), [SPEC:74–76](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:74>), [DECISIONS D2](</Users/ericlee06/orca/projects/Health App/docs/DECISIONS.md:10>), [04:11](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md:11>)
+
+**What’s wrong:** The locked behavior says machine and gym are optional “on every set,” but the proposed schema puts gym on `Workout` and machine on `ExerciseEntry`. The prototype also edits equipment at entry level.
+
+Changing equipment after completing some sets would retroactively relabel those completed sets unless special behavior is added.
+
+**Why it matters:** Snapshots, prefill, and machine/model PRs cannot be historically honest if one entry contains sets performed on different machines.
+
+**Suggested fix:** Resolve this before Ticket 01 starts:
+
+- Either put equipment context and snapshot identity on `SetRecord`; or
+- Declare `ExerciseEntry` an indivisible equipment segment, freeze its context after the first completed set, and create a new entry whenever equipment changes.
+
+Add an acceptance test for changing machine after one set has already been completed.
+
+---
+
+### 3. Snapshot display strings are insufficient for historical queries
+
+**Files:** [01:11](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/01-swiftdata-schema-and-store.md:11>), [05:3](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/05-history-and-snapshots.md:3>), [06:11](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/06-prefill-and-previous-performance.md:11>), [SPEC:40](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:40>)
+
+**What’s wrong:** Ticket 01 snapshots gym, machine, and model names, but not stable historical IDs. Ticket 06’s model-layer queries will therefore be tempted to follow the mutable live `MachineInstance.model` relationship.
+
+If a machine’s model is corrected for future workouts only, old sets will silently move into the new model’s PR/history layer even if their displayed label remains old.
+
+**Why it matters:** This violates the product’s central historical-integrity guarantee.
+
+**Suggested fix:** Snapshot scalar UUIDs as well as display strings:
+
+- `exerciseID`
+- `machineInstanceID?`
+- `equipmentModelID?`
+- `gymID?`
+- relevant free-weight tag/load type
+- display names used by history
+
+Historical prefill/PR queries must group by snapshot IDs, not live relationships. Define exactly when snapshots are captured and what “apply to past” rewrites. Test rename, archive, relationship becoming `nil`, future-only correction, and apply-to-past correction.
+
+---
+
+### 4. The schema cannot represent active-workout recovery
+
+**Files:** [01:3](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/01-swiftdata-schema-and-store.md:3>), [04:3,12–13](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md:3>), [SPEC:74–76](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:74>)
+
+**What’s wrong:** The schema sketch has no persisted workout lifecycle state. Nothing distinguishes active, finished, and canceled workouts or resolves multiple unfinished workouts.
+
+“Finish moves the workout to history” is not a meaningful store operation without such state.
+
+**Why it matters:** Deterministic force-quit recovery—the non-negotiable acceptance case—cannot be implemented from the schema Ticket 01 promises.
+
+**Suggested fix:** Add, at minimum:
+
+- `startedAt`
+- `finishedAt?` or an explicit stored lifecycle state
+- deterministic active-workout selection/invariant
+- `SetRecord.completedAt?` as completion state
+- explicit cancellation deletion/cascade semantics
+
+Test by saving, destroying the container/context, reopening the same disk store, and refetching. A fetch from the original context is not a persistence test.
+
+---
+
+### 5. Assisted and bodyweight e1RM is mathematically wrong or undefined
+
+**Files:** [07:3,9–10](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/07-pr-computation.md:3>), [DECISIONS D14/D17](</Users/ericlee06/orca/projects/Health App/docs/DECISIONS.md:22>), [open assisted UX decision](</Users/ericlee06/orca/projects/Health App/docs/DECISIONS.md:42>)
+
+**What’s wrong:** Merely selecting the lowest Brzycki result does not make assisted e1RM valid. At the same 20 kg assistance, Brzycki produces a lower number for five reps than ten; inversion would claim five reps is the better performance. Pure bodyweight has no stored load from which to calculate e1RM.
+
+**Why it matters:** Ticket 07 can ship objectively false PRs while satisfying its current acceptance criteria.
+
+**Suggested fix:** Until effective resistance is defined:
+
+- Keep per-rep-count minimum-assistance records.
+- Do not calculate assisted or pure-bodyweight e1RM.
+
+Alternatively, snapshot bodyweight and define effective load, such as bodyweight minus assistance or bodyweight plus added load. Record that as a locked decision first. Add a test proving more reps at equal assistance cannot rank worse.
+
+---
+
+### 6. The union omits the core machine-first logging interaction
+
+**Files:** [SPEC:27–28](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:27>), [DECISIONS D7](</Users/ericlee06/orca/projects/Health App/docs/DECISIONS.md:15>), [02:10](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/02-seed-catalogs.md:10>), [03:10–12](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/03-gym-and-machine-creation.md:10>)
+
+**What’s wrong:** Ticket 02 creates model-to-exercise links, but no ticket consumes them to implement:
+
+- Pick a single-exercise machine → automatically select its exercise.
+- Pick a multi-exercise station → prompt for the exercise.
+
+The SwiftData tickets also never explicitly preserve the prototype’s per-entry free-weight tag.
+
+**Why it matters:** Milestone 2 would omit the main equipment-aware speed interaction and could lose barbell/dumbbell/cable/smith/bodyweight context during migration.
+
+**Suggested fix:** Add a machine-first logging slice with persisted free-weight context and acceptance cases for single-exercise, multi-exercise, and free-weight selection.
+
+## Important
+
+### 7. Ticket 01 is not a stable foundation for its dependents
+
+**Files:** [01](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/01-swiftdata-schema-and-store.md:3>), [SPEC model sketch](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:67>)
+
+**What’s wrong:** Later tickets require fields not assigned to any schema owner: workout lifecycle, gym/machine archival, free-weight context, snapshot IDs, rest-duration ownership, ordered entries/template items, and drift-suppression settings.
+
+SwiftData to-many relationships should not be treated as the authoritative order when prefill depends on “same index.”
+
+The CloudKit checklist also omits deliberate inverses and delete rules. Apple notes that ambiguous inverses need to be explicit and that CloudKit does not support the `deny` delete rule. [Apple SwiftData CloudKit guidance](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices)
+
+**Suggested fix:** Enumerate the complete milestone-2 schema in Ticket 01, including scalar `order` fields, optional relationships with explicit inverses, and deliberate deletion/archive behavior. Alternatively, explicitly assign each additive field to a later ticket.
+
+---
+
+### 8. `GymExerciseMemory` has no deterministic no-unique-constraint design
+
+**Files:** [SPEC:77](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:77>), [04:11](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md:11>), [09:3](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/09-template-resolution-and-drift.md:3>)
+
+**What’s wrong:** It conceptually has a unique `(gym, exercise)` key, but unique constraints are forbidden. Neither ticket specifies duplicate reconciliation or deterministic selection.
+
+**Why it matters:** Template resolution can return different machines depending on fetch order, particularly after future CloudKit merges.
+
+**Suggested fix:** Store scalar gym/exercise/machine UUIDs plus `updatedAt`; perform application-level upsert; resolve duplicates deterministically by `updatedAt` and UUID; and test a store containing duplicate memory rows.
+
+---
+
+### 9. “Seed exactly once” contradicts release-driven catalog updates
+
+**Files:** [SPEC:25,96](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:25>), [02:3,9](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/02-seed-catalogs.md:3>)
+
+**What’s wrong:** A first-launch-only seed cannot install later catalog additions or metadata/link corrections. Without uniqueness constraints, naive reruns can duplicate records. “Major manufacturers, popular lines—small at first” is also not measurable.
+
+**Why it matters:** Existing installations can become permanently stranded on the first catalog version.
+
+**Suggested fix:** Require versioned, idempotent reconciliation by fixed catalog UUID:
+
+- insert missing seeded records;
+- update explicitly mutable seeded metadata;
+- preserve user-created records and historical references;
+- recover from partial seeding;
+- never duplicate.
+
+Test first seed, identical rerun, partial store, and v1→v2 update.
+
+---
+
+### 10. Optional-gym logging and app-preference fallback are missing
+
+**Files:** [SPEC:44,52](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:44>), [DECISIONS D2/T7](</Users/ericlee06/orca/projects/Health App/docs/DECISIONS.md:10>), [03:3,9](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/03-gym-and-machine-creation.md:3>), [04:3](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md:3>)
+
+**What’s wrong:** Ticket 04 always starts at “the current gym,” Ticket 03 effectively requires a gym default unit, and no ticket supplies an editable persisted app preference.
+
+**Why it matters:** Home/context-free workouts cannot be logged, and the documented app-preference fallback may be unreachable.
+
+**Suggested fix:** Require:
+
+- a “No gym” start option;
+- optional gym default unit;
+- persisted app unit preference;
+- tests for machine → gym → app precedence, including no gym and machineless entries.
+
+---
+
+### 11. Continuous persistence is underspecified and under-tested
+
+**Files:** [SPEC:58](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:58>), [04:3,9–12](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md:3>)
+
+**What’s wrong:** The ticket does not define whether it relies on SwiftData autosave or explicit saves, nor does it cover set/exercise insertion, deletion, reordering, notes, rest edits, or incomplete text input.
+
+The prototype stores weight and reps as editable strings. A numeric-only persisted field cannot preserve intermediate input such as empty text or `1.` across a force-quit.
+
+**Why it matters:** “Every change” can pass a happy-path manual test while still losing structural edits or in-progress input.
+
+**Suggested fix:** Define accepted-edit boundaries and explicit `ModelContext.save()` behavior, or document a bounded debounce if the non-negotiable wording is changed. Add a table-driven recovery test for every mutable field and collection operation using a newly opened disk-backed container.
+
+---
+
+### 12. Unit normalization has no executable contract
+
+**Files:** [01:10](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/01-swiftdata-schema-and-store.md:10>), [04:9](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md:9>), [CLAUDE:19–21](</Users/ericlee06/orca/projects/Health App/CLAUDE.md:19>)
+
+**What’s wrong:** No ticket defines the lb→kg constant, recomputation timing, invalid values, rounding policy, or stale-derived-value prevention.
+
+**Why it matters:** `normalizedKg` can disagree with the entered value after a unit or weight edit, corrupting PR comparisons and later charts.
+
+**Suggested fix:** Put one pure conversion function in `Domain/`, use exact `1 lb = 0.45359237 kg`, recompute atomically on value/unit changes, reject nonfinite values, and keep full precision in storage. Test kg identity, lb tolerance, edits in both directions, and exact as-entered prefill.
+
+---
+
+### 13. Ticket 06 does not guarantee the promised one-tap speed bar
+
+**Files:** [SPEC:38,57](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:38>), [06:3,9–10](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/06-prefill-and-previous-performance.md:3>), [prototype copy button](</Users/ericlee06/orca/projects/Health App/WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift:186>)
+
+**What’s wrong:** The prototype requires one tap to copy previous values and a second tap to complete. “Same-index” does not define raw order versus per-type order, completed-set filtering, or protection against a late query overwriting user input.
+
+**Why it matters:** An implementation can satisfy the current criteria while still violating the explicit one-tap-confirmation requirement.
+
+**Suggested fix:** Require input fields to arrive populated while completion remains false. Source only completed sets from the most recent finished workout before the current workout, define set-type/index matching, copy the original value and unit, and never overwrite a dirty row. Test inserted warmups, fewer previous sets, incomplete sets, machine changes, and late query results.
+
+---
+
+### 14. PR and volume eligibility is incomplete
+
+**Files:** [07:3,9–13](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/07-pr-computation.md:3>), [SPEC:39,48](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:39>), [open volume decision](</Users/ericlee06/orca/projects/Health App/docs/DECISIONS.md:43>)
+
+**What’s wrong:** Ticket 07 never says only completed, valid sets count. It mentions volume exclusion but neither defines volume nor resolves the milestone-2 dumbbell rule. Assisted and bodyweight volume are also undefined.
+
+**Why it matters:** Draft rows can become records, and later history/charts can embed inconsistent volume assumptions.
+
+**Suggested fix:** Require `completedAt != nil`, positive reps, valid finite load, warmup exclusion, and explicit failure-set participation. Record the dumbbell/bodyweight/assisted volume rules in `DECISIONS.md` before implementation. Test Brzycki at reps 1, 12, and 13, invalid drafts, ties, and every load type.
+
+---
+
+### 15. Snapshot capture and model correction have no owning ticket
+
+**Files:** [04](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md:3>), [05:3,11–12](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/05-history-and-snapshots.md:3>), [SPEC:40](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:40>)
+
+**What’s wrong:** Ticket 01 creates snapshot fields, but Ticket 04 never requires populating them. Ticket 05 assumes snapshots exist and tests only machine rename. No ticket implements the locked past-versus-future model-correction prompt.
+
+**Why it matters:** Ticket 04 can create permanently blank snapshots, and the riskiest historical mutation is untested.
+
+**Suggested fix:** Make Ticket 04 capture snapshots at the agreed log boundary. Give Ticket 05 explicit cases for gym rename, machine rename, model rename, archive, future-only correction, and apply-to-past correction.
+
+---
+
+### 16. Rest-timer defaults and storage ownership contradict the source documents
+
+**Files:** [SPEC:56,73](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:56>), [DECISIONS D13](</Users/ericlee06/orca/projects/Health App/docs/DECISIONS.md:21>), [08:3,9–12](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/08-rest-timer-durations.md:3>)
+
+**What’s wrong:** Ticket 08 invents a 1:00 global warmup default even though SPEC gives one global 2:00 default. It places overrides on `Exercise`, while the model sketch places rest durations on `TemplateItem`.
+
+It also does not say whether timer end state survives relaunch or how pending notifications behave when a set is uncompleted, a new timer starts, or the user skips/adds time.
+
+**Why it matters:** Two agents can implement incompatible sources of truth, and a product default is being changed without a decision-log update.
+
+**Suggested fix:** Lock and document a precedence hierarchy, such as template-item override → exercise override → global defaults. Persist/reconstruct the absolute end time and replace or cancel pending notifications appropriately. Test through injected clock and notification-scheduler interfaces; keep notification permission as one manual integration test.
+
+---
+
+### 17. Template drift actions are not defined well enough to implement
+
+**Files:** [SPEC:54](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:54>), [09:9–12](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/09-template-resolution-and-drift.md:9>)
+
+**What’s wrong:** “All four options behave per SPEC” is circular: the SPEC only names them. It never distinguishes structure from values, and the stated template schema has no target weight, making “update values only” unclear. Suppression also has no defined automatic action.
+
+**Why it matters:** All four implementations can differ materially while claiming compliance.
+
+**Suggested fix:** Define:
+
+- which fields are “structure” and which are “values”;
+- whether order, reps, rest, set types, and weights participate in drift;
+- the exact write set for each option;
+- what suppression does by default.
+
+Then create one state-transition test per option.
+
+---
+
+### 18. The dependency graph over-serializes independent work
+
+**Files:** [03:5](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/03-gym-and-machine-creation.md:5>), [06:5](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/06-prefill-and-previous-performance.md:5>), [07:5](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/07-pr-computation.md:5>), [09:5](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/09-template-resolution-and-drift.md:5>)
+
+**What’s wrong:**
+
+- Gym creation needs 01, while catalog-backed machine creation needs 02.
+- Ticket 06 needs completed persisted workouts from 04, not Ticket 05’s history UI.
+- Ticket 07’s pure calculation core does not need Ticket 06; only sheet integration does.
+- Ticket 09 redundantly names 03 even though 04 already transitively depends on it.
+
+**Why it matters:** The current graph effectively forces `01 → 02 → 03 → 04 → 05 → 06 → 07`.
+
+**Suggested fix:** Split gym and machine/model creation; make 06 depend on 04; split pure PR computation from its sheet integration; remove redundant blockers.
+
+---
+
+### 19. Tickets 01, 04, 05, and 09 are not one-agent-session slices
+
+**Files:** [01](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/01-swiftdata-schema-and-store.md:1>), [04](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/04-core-logging-loop.md:1>), [05](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/05-history-and-snapshots.md:1>), [09](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/09-template-resolution-and-drift.md:1>)
+
+**What’s wrong:** These are horizontal bundles:
+
+- 01: ten-model schema, app migration, store setup, prototype removal, and test infrastructure.
+- 04: lifecycle, form persistence, unit logic, memory, recovery, finish, cancel, and template startup.
+- 05: history queries, two screens, snapshots, rename, archive, and picker filtering.
+- 09: template CRUD, resolution, drift engine, four update modes, settings, and save-as-template.
+
+**Why it matters:** They cannot be independently demonstrated or reviewed at useful intermediate boundaries.
+
+**Suggested fix:** Split them around demonstrable behavior. The most urgent splits are 04 and 09; Ticket 05 should separate snapshot-backed history from equipment lifecycle/correction.
+
+## Minor
+
+### 20. Several promised behaviors are silently absent
+
+**Files:** [SPEC:20](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:20>), [SPEC:46](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:46>), [02](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/02-seed-catalogs.md:3>)
+
+**What’s wrong:** No ticket implements user-created exercises or the whole-view visibly marked conversion toggle.
+
+**Why it matters:** Both are source-of-truth product behaviors, and neither is explicitly deferred beyond milestone 2.
+
+**Suggested fix:** Add an Add Exercise slice with name/load type/tags. Assign the conversion toggle to Ticket 05 or explicitly defer it in SPEC/DECISIONS.
+
+---
+
+### 21. Ticket 05 repeats the prototype’s misleading workout unit badge
+
+**Files:** [05:9](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/05-history-and-snapshots.md:9>), [prototype HistoryView](</Users/ericlee06/orca/projects/Health App/WorkoutTracker/Features/History/HistoryView.swift:61>), [SPEC:44–46](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:44>)
+
+**What’s wrong:** The prototype displays the current gym default as the workout’s unit badge. A workout can contain both kg and lb sets.
+
+**Why it matters:** It falsely implies that the workout used one unit.
+
+**Suggested fix:** Derive `kg`, `lb`, or `Mixed` from actual logged sets, or omit the summary badge.
+
+---
+
+### 22. Ticket 03 adds an undocumented city field
+
+**Files:** [03:3](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/03-gym-and-machine-creation.md:3>), [SPEC Gym sketch](</Users/ericlee06/orca/projects/Health App/docs/SPEC.md:71>)
+
+**What’s wrong:** Ticket 03 requires optional city, while SPEC defines name, default unit, and notes. The prototype has city, but the SPEC—not the prototype—is the source of truth.
+
+**Why it matters:** This is unlogged scope/model expansion.
+
+**Suggested fix:** Either add city to SPEC/DECISIONS or remove it from the ticket.
+
+---
+
+### 23. Ticket 01 assumes test infrastructure that does not exist
+
+**Files:** [01:12](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/01-swiftdata-schema-and-store.md:12>), [project target definition](</Users/ericlee06/orca/projects/Health App/WorkoutTracker.xcodeproj/project.pbxproj:50>), [CLAUDE:7](</Users/ericlee06/orca/projects/Health App/CLAUDE.md:7>)
+
+**What’s wrong:** The project has only an application target. A test target requires project configuration; synchronized folders merely avoid registering each new source file.
+
+**Why it matters:** Ticket 01 contains hidden project-setup scope, and all later unit-test criteria depend on it.
+
+**Suggested fix:** Explicitly include creation of `WorkoutTrackerTests`, permit the one-time project-file edit, and provide the expected `xcodebuild test` command.
+
+## Nit
+
+### 24. Several acceptance criteria are not objectively testable
+
+**Files:** [01:12](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/01-swiftdata-schema-and-store.md:12>), [02:3](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/02-seed-catalogs.md:3>), [03:3](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/03-gym-and-machine-creation.md:3>), [08:12](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/08-rest-timer-durations.md:12>), [09:12](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-2-core-loop/issues/09-template-resolution-and-drift.md:12>)
+
+Phrases such as “identical values,” “major manufacturers,” “appears everywhere,” “notification fires,” and “behave per SPEC” need exact fixtures, expected fields/screens, tolerances, or injectable collaborators.
+
+**Suggested fix:** Replace each with deterministic test setup and expected results. Keep only OS authorization presentation as a manual check.
+
+## Verdict by ticket
+
+| Ticket | Verdict | Required before pickup |
+|---|---|---|
+| **01 — Schema/store** | **Not ready** | Resolve set-vs-entry context; add lifecycle, snapshot IDs, ordering, archival/delete rules, and test-target scope. |
+| **02 — Seeding** | **Not ready** | Replace “exactly once” with versioned idempotent reconciliation and define a measurable seed fixture. |
+| **03 — Gym/machine creation** | **Not ready** | Split dependency where useful; preserve optional defaults; define user-model exercise links and machine auto-fill/multi-exercise behavior. |
+| **04 — Core logging** | **Rewrite/split** | Remove template startup; define lifecycle, explicit durability, snapshot capture, optional gym, equipment-change behavior, and complete mutation coverage. |
+| **05 — History/snapshots** | **Not ready** | Add historical IDs, correction behavior, honest mixed-unit summary, and split equipment lifecycle from history rendering. |
+| **06 — Prefill/history** | **Not ready, but close** | Remove false blocker on 05 and define completed-workout filtering, index/type semantics, dirty-row protection, and true one-tap prefill. |
+| **07 — PRs** | **Not ready** | Resolve assisted/bodyweight e1RM and volume decisions; filter unfinished/invalid sets; add boundary/tie cases. |
+| **08 — Rest timer** | **Not ready** | Reconcile defaults and storage ownership; define durable timer/notification replacement behavior and deterministic tests. |
+| **09 — Templates/drift** | **Rewrite/split** | Resolve cycle with 04; define the four mutations and suppression semantics; split CRUD/resolution/drift. |
+
+**Ready as-is: none.** Ticket 06 is the closest structurally, but its current acceptance criteria still permit the wrong prefill behavior.
+hook: Stop
+hook: Stop Completed
+tokens used
+82,619
