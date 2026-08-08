@@ -12,6 +12,9 @@ struct StartWorkoutView: View {
     @State private var pendingTemplate: WorkoutTemplate?
     @State private var editingTemplate: WorkoutTemplate?
     @State private var showingTemplateEditor = false
+    @State private var replacementWorkout: Workout?
+    @State private var replacementSourceTemplate: WorkoutTemplate?
+    @State private var showingReplacementDrift = false
     /// Called with the workout to present — freshly started or resumed.
     var onWorkoutStarted: (Workout) -> Void
 
@@ -62,10 +65,31 @@ struct StartWorkoutView: View {
                 titleVisibility: .visible
             ) {
                 Button("Resume Workout") { resumeActive() }
-                Button("Finish It & Start New") { startNew() }
+                Button("Finish It & Start New") { finishActiveThenStartTapped() }
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Resume it, or finish it and start a new one — only its completed sets are kept.")
+            }
+            .confirmationDialog(
+                "Update workout template?",
+                isPresented: $showingReplacementDrift,
+                titleVisibility: .visible
+            ) {
+                Button("Update Template") {
+                    resolveReplacementDrift(.updateTemplate)
+                }
+                Button("Update Values Only") {
+                    resolveReplacementDrift(.updateValuesOnly)
+                }
+                Button("Update Both") {
+                    resolveReplacementDrift(.updateBoth)
+                }
+                Button("Keep Original") {
+                    resolveReplacementDrift(.keepOriginal)
+                }
+                Button("Keep Current Workout", role: .cancel) {}
+            } message: {
+                Text("The active workout differs from the template it started from. Choose how to save that template before starting the next workout.")
             }
             .sheet(isPresented: $showingTemplateEditor) {
                 TemplateEditorSheet(template: editingTemplate)
@@ -101,6 +125,43 @@ struct StartWorkoutView: View {
             onWorkoutStarted(workout)
         } catch {
             assertionFailure("Failed to start workout: \(error)")
+        }
+    }
+
+    private func finishActiveThenStartTapped() {
+        do {
+            guard let active = try session.resumableWorkout() else {
+                startNew()
+                return
+            }
+            let drift = TemplateDriftService(context: modelContext)
+            if let template = try drift.sourceTemplate(for: active),
+               try drift.shouldPrompt(for: active, template: template) {
+                replacementWorkout = active
+                replacementSourceTemplate = template
+                showingReplacementDrift = true
+            } else {
+                startNew()
+            }
+        } catch {
+            assertionFailure("Failed to inspect active workout drift: \(error)")
+        }
+    }
+
+    private func resolveReplacementDrift(_ resolution: TemplateDriftResolution) {
+        do {
+            if let workout = replacementWorkout,
+               let template = replacementSourceTemplate {
+                try RestTimerService(context: modelContext).skip(workout)
+                try TemplateDriftService(context: modelContext).apply(
+                    resolution, workout: workout, to: template)
+                try session.finish(workout)
+            }
+            replacementWorkout = nil
+            replacementSourceTemplate = nil
+            startNew()
+        } catch {
+            assertionFailure("Failed to resolve template before starting: \(error)")
         }
     }
 

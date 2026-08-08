@@ -4,9 +4,9 @@
 
 **Blocked by:** 15.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
-- [ ] Drift detection tests: added exercise, removed exercise, reordered exercises, changed set count, reps-only change → prompt; identical workout → no prompt
-- [ ] One state-transition test per option asserting the template's exact post-state
-- [ ] Suppression toggle: no prompt, template unchanged
-- [ ] Uncompleted (empty) entries don't count as drift
+- [x] Drift detection tests: added exercise, removed exercise, reordered exercises, changed set count, reps-only change → prompt; identical workout → no prompt
+- [x] One state-transition test per option asserting the template's exact post-state
+- [x] Suppression toggle: no prompt, template unchanged
+- [x] Uncompleted (empty) entries don't count as drift

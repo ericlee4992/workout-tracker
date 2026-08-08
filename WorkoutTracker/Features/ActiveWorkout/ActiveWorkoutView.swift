@@ -17,6 +17,8 @@ struct ActiveWorkoutView: View {
     @State private var choosingFromScratchFinish = false
     @State private var namingTemplate = false
     @State private var templateName = ""
+    @State private var driftTemplate: WorkoutTemplate?
+    @State private var choosingDriftResolution = false
 
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
 
@@ -120,6 +122,27 @@ struct ActiveWorkoutView: View {
             } message: {
                 Text("Completed sets become target set and rep slots. Weights and rest times are not saved.")
             }
+            .confirmationDialog(
+                "Update workout template?",
+                isPresented: $choosingDriftResolution,
+                titleVisibility: .visible
+            ) {
+                Button("Update Template") {
+                    finishTemplatedWorkout(using: .updateTemplate)
+                }
+                Button("Update Values Only") {
+                    finishTemplatedWorkout(using: .updateValuesOnly)
+                }
+                Button("Update Both") {
+                    finishTemplatedWorkout(using: .updateBoth)
+                }
+                Button("Keep Original") {
+                    finishTemplatedWorkout(using: .keepOriginal)
+                }
+                Button("Keep Logging", role: .cancel) {}
+            } message: {
+                Text("This workout's completed exercises, set counts, or target reps differ from the template.")
+            }
             .sheet(item: $machinePickerEntry) { entry in
                 MachinePickerSheet(entry: entry)
                     .presentationDetents([.medium, .large])
@@ -170,8 +193,19 @@ struct ActiveWorkoutView: View {
     private func finishTapped() {
         if workout.sourceTemplateID == nil {
             choosingFromScratchFinish = true
-        } else {
-            finishWorkout()
+            return
+        }
+        do {
+            let drift = TemplateDriftService(context: modelContext)
+            if let template = try drift.sourceTemplate(for: workout),
+               try drift.shouldPrompt(for: workout, template: template) {
+                driftTemplate = template
+                choosingDriftResolution = true
+            } else {
+                finishWorkout()
+            }
+        } catch {
+            assertionFailure("Failed to inspect template drift: \(error)")
         }
     }
 
@@ -195,6 +229,21 @@ struct ActiveWorkoutView: View {
         } catch {
             assertionFailure("Failed to finish and save template: \(error)")
         }
+        dismiss()
+    }
+
+    private func finishTemplatedWorkout(using resolution: TemplateDriftResolution) {
+        do {
+            try restTimer.skip(workout)
+            if let driftTemplate {
+                try TemplateDriftService(context: modelContext).apply(
+                    resolution, workout: workout, to: driftTemplate)
+            }
+            try session.finish(workout)
+        } catch {
+            assertionFailure("Failed to finish templated workout: \(error)")
+        }
+        driftTemplate = nil
         dismiss()
     }
 

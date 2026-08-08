@@ -41,10 +41,13 @@ struct GymsView: View {
                         value: globalWarmupRestBinding,
                         in: 0...600,
                         step: 15)
+                    Toggle(
+                        "Suppress template update prompts",
+                        isOn: driftPromptSuppressedBinding)
                 } header: {
                     Text("Settings")
                 } footer: {
-                    Text("The unit is used when neither machine nor gym sets one. Rest durations are global defaults; each exercise can override them from its workout menu.")
+                    Text("The unit is used when neither machine nor gym sets one. Rest durations are global defaults; each exercise can override them from its workout menu. Suppressed template prompts always keep the original template.")
                 }
             }
             .navigationTitle("Gyms")
@@ -95,6 +98,24 @@ struct GymsView: View {
 
     private var globalWarmupRestBinding: Binding<Int> {
         durationBinding(\.globalWarmupRestSeconds, fallback: 60)
+    }
+
+    private var driftPromptSuppressedBinding: Binding<Bool> {
+        Binding(
+            get: {
+                AppPreferences.canonical(of: allPreferences)?.driftPromptSuppressed
+                    ?? false
+            },
+            set: { value in
+                do {
+                    let preferences = try AppPreferences.canonical(in: modelContext)
+                    preferences.driftPromptSuppressed = value
+                    preferences.updatedAt = .now
+                    try modelContext.save()
+                } catch {
+                    assertionFailure("Failed to save template prompt preference: \(error)")
+                }
+            })
     }
 
     private func durationBinding(
