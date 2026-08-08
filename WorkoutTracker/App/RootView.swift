@@ -41,7 +41,7 @@ struct RootView: View {
         switch ProcessInfo.processInfo.environment["PROTO_SCREEN"] {
         case "active":
             showActiveWorkout = true
-        case "history":
+        case "history", "detail":
             selection = .history
         case "gyms":
             selection = .gyms
