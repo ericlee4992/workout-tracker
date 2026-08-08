@@ -1,30 +1,54 @@
+import SwiftData
 import SwiftUI
 
 struct MachinePickerSheet: View {
-    @EnvironmentObject private var store: SampleStore
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    var entryID: UUID
+    var entry: ExerciseEntry
+    @State private var showingAddMachine = false
+
+    private var session: WorkoutSession { WorkoutSession(context: modelContext) }
+
+    private var gym: Gym? { entry.workout?.gym }
+
+    private var machines: [MachineInstance] {
+        (gym?.machines ?? [])
+            .filter { !$0.archived }
+            .sorted { $0.label < $1.label }
+    }
+
+    /// After one completed set the entry's equipment is frozen (D19) —
+    /// picking different equipment starts a new entry.
+    private var isFrozen: Bool { entry.snapshotCapturedAt != nil }
 
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    ForEach(store.machines(at: store.currentGym)) { machine in
-                        Button {
-                            select(machine: machine)
-                        } label: {
-                            machineRow(machine)
+                if let gym {
+                    Section {
+                        ForEach(machines) { machine in
+                            Button {
+                                select(machine: machine)
+                            } label: {
+                                machineRow(machine)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
+                        if machines.isEmpty {
+                            Text("No machines yet")
+                                .foregroundStyle(.secondary)
+                        }
+                        Button("Add Machine…", systemImage: "plus") {
+                            showingAddMachine = true
+                        }
+                    } header: {
+                        Text("Machines at \(gym.name)")
+                    } footer: {
+                        Text("History and records attach to the machine you pick — numbers on a different model aren't treated as comparable.")
                     }
-                    Button("Add Machine…", systemImage: "plus") {}
-                } header: {
-                    Text("Machines at \(store.currentGym.name)")
-                } footer: {
-                    Text("History and records attach to the machine you pick — numbers on a different model aren't treated as comparable.")
                 }
 
-                Section("Free weights") {
+                Section {
                     ForEach([EquipmentTag.barbell, .dumbbell, .cable, .smith, .bodyweight]) { tag in
                         Button {
                             select(freeWeight: tag)
@@ -40,6 +64,12 @@ struct MachinePickerSheet: View {
                         }
                         .buttonStyle(.plain)
                     }
+                } header: {
+                    Text("Free weights")
+                } footer: {
+                    if isFrozen {
+                        Text("This exercise already has a completed set, so its equipment is locked in — picking something else continues in a new entry.")
+                    }
                 }
             }
             .navigationTitle("Equipment")
@@ -49,15 +79,20 @@ struct MachinePickerSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .sheet(isPresented: $showingAddMachine) {
+                if let gym {
+                    AddMachineSheet(gym: gym)
+                }
+            }
         }
     }
 
-    private func machineRow(_ machine: Machine) -> some View {
+    private func machineRow(_ machine: MachineInstance) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(machine.label)
                     .font(.body.weight(.medium))
-                Text(machine.model?.displayName ?? "Unknown model")
+                Text(machine.model?.displayName ?? "No model")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -65,39 +100,33 @@ struct MachinePickerSheet: View {
             if let unit = machine.defaultUnit {
                 UnitBadge(unit: unit)
             }
-            if isSelected(machine: machine) {
+            if entry.machine?.id == machine.id {
                 Image(systemName: "checkmark")
                     .foregroundStyle(.tint)
             }
         }
     }
 
-    private var entryIndex: Int? {
-        store.activeWorkout.entries.firstIndex { $0.id == entryID }
-    }
-
-    private func isSelected(machine: Machine) -> Bool {
-        guard let entryIndex else { return false }
-        return store.activeWorkout.entries[entryIndex].machine?.id == machine.id
-    }
-
     private func isSelected(freeWeight tag: EquipmentTag) -> Bool {
-        guard let entryIndex else { return false }
-        let entry = store.activeWorkout.entries[entryIndex]
-        return entry.machine == nil && entry.freeWeightTag == tag
+        entry.machine == nil && entry.freeWeightTag == tag
     }
 
-    private func select(machine: Machine) {
-        guard let entryIndex else { return }
-        store.activeWorkout.entries[entryIndex].machine = machine
-        store.activeWorkout.entries[entryIndex].freeWeightTag = nil
-        dismiss()
+    /// Equipment choice boundary: the service edits the draft entry in place,
+    /// or — once frozen (D19) — starts a new entry and moves the draft rows.
+    private func select(machine: MachineInstance) {
+        choose(machine: machine, tag: nil)
     }
 
     private func select(freeWeight tag: EquipmentTag) {
-        guard let entryIndex else { return }
-        store.activeWorkout.entries[entryIndex].machine = nil
-        store.activeWorkout.entries[entryIndex].freeWeightTag = tag
+        choose(machine: nil, tag: tag)
+    }
+
+    private func choose(machine: MachineInstance?, tag: EquipmentTag?) {
+        do {
+            try session.chooseEquipment(for: entry, machine: machine, freeWeightTag: tag)
+        } catch {
+            assertionFailure("Failed to choose equipment: \(error)")
+        }
         dismiss()
     }
 }

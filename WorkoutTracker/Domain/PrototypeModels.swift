@@ -78,7 +78,9 @@ enum Format {
 
 // Throwaway in-memory stand-ins backing SampleStore and the prototype screens.
 // `Sample`-prefixed to keep the canonical names free for the SwiftData models.
-// Ticket 07 rewires the UI onto SwiftData and deletes everything below.
+// Ticket 07 rewired the logging flow onto SwiftData; the types below only
+// back the sample History screens (until ticket 09) and the sample templates
+// list (until ticket 15), then get deleted.
 
 struct SampleExercise: Identifiable, Hashable {
     let id = UUID()

@@ -1,14 +1,25 @@
+import SwiftData
 import SwiftUI
 
 struct ActiveWorkoutView: View {
-    @EnvironmentObject private var store: SampleStore
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Query private var allPreferences: [AppPreferences]
+    var workout: Workout
 
+    // Rest timer is UI state only in this ticket; ticket 14 persists it.
     @State private var restEnd: Date?
     @State private var restTotal: Double = 120
-    @State private var machinePickerEntryID: UUID?
-    @State private var performanceEntryID: UUID?
+    @State private var machinePickerEntry: ExerciseEntry?
+    @State private var performanceEntry: ExerciseEntry?
     @State private var showExercisePicker = false
+    @State private var confirmingCancel = false
+
+    private var session: WorkoutSession { WorkoutSession(context: modelContext) }
+
+    private var entries: [ExerciseEntry] {
+        workout.isDeleted ? [] : WorkoutSession.orderedEntries(of: workout)
+    }
 
     var body: some View {
         NavigationStack {
@@ -16,12 +27,12 @@ struct ActiveWorkoutView: View {
                 VStack(spacing: 14) {
                     header
 
-                    ForEach($store.activeWorkout.entries) { $entry in
+                    ForEach(entries) { entry in
                         ExerciseEntryCard(
-                            entry: $entry,
-                            showMachinePicker: { machinePickerEntryID = entry.id },
-                            showPerformance: { performanceEntryID = entry.id },
-                            setCompleted: { setType in startRest(for: entry, setType: setType) }
+                            entry: entry,
+                            showMachinePicker: { machinePickerEntry = entry },
+                            showPerformance: { performanceEntry = entry },
+                            setCompleted: { setType in startRest(after: setType) }
                         )
                     }
 
@@ -43,23 +54,33 @@ struct ActiveWorkoutView: View {
                     RestTimerBar(restEnd: $restEnd, restTotal: restTotal)
                 }
             }
-            .navigationTitle(store.activeWorkout.name)
+            .navigationTitle("Workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel", role: .cancel) { dismiss() }
+                    Button("Cancel", role: .cancel) { confirmingCancel = true }
                         .tint(.red)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Finish") { dismiss() }
+                    Button("Finish") { finishWorkout() }
                         .font(.headline)
                 }
             }
-            .sheet(item: machinePickerEntry) { entry in
-                MachinePickerSheet(entryID: entry.id)
+            .confirmationDialog(
+                "Cancel this workout?",
+                isPresented: $confirmingCancel,
+                titleVisibility: .visible
+            ) {
+                Button("Discard Workout", role: .destructive) { cancelWorkout() }
+                Button("Keep Logging", role: .cancel) {}
+            } message: {
+                Text("The workout and everything logged in it will be deleted.")
+            }
+            .sheet(item: $machinePickerEntry) { entry in
+                MachinePickerSheet(entry: entry)
                     .presentationDetents([.medium, .large])
             }
-            .sheet(item: performanceEntry) { entry in
+            .sheet(item: $performanceEntry) { entry in
                 PreviousPerformanceSheet(entry: entry)
                     .presentationDetents([.medium, .large])
             }
@@ -68,19 +89,6 @@ struct ActiveWorkoutView: View {
                     addEntry(for: exercise)
                 }
             }
-            .onAppear(perform: applyLaunchOverride)
-        }
-    }
-
-    // Screenshot deep-links (milestone 1 only): SIMCTL_CHILD_PROTO_SHEET=machines|previous
-    private func applyLaunchOverride() {
-        switch ProcessInfo.processInfo.environment["PROTO_SHEET"] {
-        case "machines":
-            machinePickerEntryID = store.activeWorkout.entries.first?.id
-        case "previous":
-            performanceEntryID = store.activeWorkout.entries.first?.id
-        default:
-            break
         }
     }
 
@@ -88,56 +96,79 @@ struct ActiveWorkoutView: View {
         HStack {
             Image(systemName: "mappin.and.ellipse")
                 .foregroundStyle(.tint)
-            Text(store.activeWorkout.gym?.name ?? "No gym")
+            Text(workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"))
                 .font(.subheadline.weight(.medium))
             Spacer()
-            Label("\(store.activeWorkout.durationMinutes) min", systemImage: "timer")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                Label("\(elapsedMinutes(at: timeline.date)) min", systemImage: "timer")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(.horizontal)
     }
 
-    private var machinePickerEntry: Binding<WorkoutEntry?> {
-        entryBinding(id: machinePickerEntryID) { machinePickerEntryID = nil }
+    private func elapsedMinutes(at date: Date) -> Int {
+        guard !workout.isDeleted else { return 0 }
+        return max(0, Int(date.timeIntervalSince(workout.startedAt) / 60))
     }
 
-    private var performanceEntry: Binding<WorkoutEntry?> {
-        entryBinding(id: performanceEntryID) { performanceEntryID = nil }
+    // MARK: Actions
+
+    private func finishWorkout() {
+        do {
+            try session.finish(workout)
+        } catch {
+            assertionFailure("Failed to finish workout: \(error)")
+        }
+        dismiss()
     }
 
-    private func entryBinding(id: UUID?, clear: @escaping () -> Void) -> Binding<WorkoutEntry?> {
-        Binding(
-            get: {
-                guard let id else { return nil }
-                return store.activeWorkout.entries.first { $0.id == id }
-            },
-            set: { newValue in
-                if newValue == nil { clear() }
-            }
-        )
+    private func cancelWorkout() {
+        do {
+            try session.cancel(workout)
+        } catch {
+            assertionFailure("Failed to cancel workout: \(error)")
+        }
+        dismiss()
     }
 
-    private func startRest(for entry: WorkoutEntry, setType: SetType) {
-        let seconds = setType == .warmup ? entry.warmupRest : entry.workingRest
+    private func addEntry(for exercise: Exercise) {
+        do {
+            try session.addEntry(
+                for: exercise,
+                to: workout,
+                freeWeightTag: exercise.equipmentTypeTags.first { $0 != .machine })
+        } catch {
+            assertionFailure("Failed to add entry: \(error)")
+        }
+    }
+
+    /// Auto-start rest on completion (D13). Global defaults for now —
+    /// per-exercise overrides and persistence land with ticket 14. Failure
+    /// sets use the working duration (D22).
+    private func startRest(after setType: SetType) {
+        let preferences = AppPreferences.canonical(of: allPreferences)
+        let seconds = setType == .warmup
+            ? preferences?.globalWarmupRestSeconds ?? 60
+            : preferences?.globalWorkingRestSeconds ?? 120
         restTotal = Double(seconds)
         restEnd = Date().addingTimeInterval(Double(seconds))
-    }
-
-    private func addEntry(for exercise: SampleExercise) {
-        var set = LoggedSet()
-        set.unit = store.activeWorkout.gym?.defaultUnit ?? .kg
-        let entry = WorkoutEntry(
-            exercise: exercise,
-            machine: nil,
-            freeWeightTag: exercise.tags.first { $0 != .machine },
-            sets: [set]
-        )
-        store.activeWorkout.entries.append(entry)
     }
 }
 
 #Preview {
-    ActiveWorkoutView()
-        .environmentObject(SampleStore())
+    let container = try! ModelContainer(
+        for: WorkoutTrackerStore.schema,
+        configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+    let context = container.mainContext
+    let gym = Gym(name: "Gold's Gym Gangnam", city: "Seoul", defaultUnit: .kg)
+    context.insert(gym)
+    let workout = Workout(gym: gym)
+    context.insert(workout)
+    let exercise = Exercise(name: "Seated Chest Press")
+    context.insert(exercise)
+    try? WorkoutSession(context: context).addEntry(for: exercise, to: workout)
+    return ActiveWorkoutView(workout: workout)
+        .modelContainer(container)
 }

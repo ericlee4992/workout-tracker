@@ -242,6 +242,11 @@ final class ExerciseEntry {
     // Context snapshot (D23): stable UUIDs + loadType + freeWeightTag +
     // display strings, frozen once the entry's first set completes (D19).
     // Historical queries group by these values, never live relationships.
+    /// When the snapshot was captured (first set completion). nil = draft
+    /// entry, equipment still editable. Non-nil = equipment frozen (D19) —
+    /// permanently, even if the completion is later undone, so this field is
+    /// never reset. Added by ticket 07 (noted in ticket 02).
+    var snapshotCapturedAt: Date?
     var snapshotExerciseID: UUID = UUID()
     var snapshotMachineID: UUID?
     var snapshotModelID: UUID?
@@ -260,6 +265,7 @@ final class ExerciseEntry {
         workout: Workout? = nil,
         exercise: Exercise? = nil,
         machine: MachineInstance? = nil,
+        snapshotCapturedAt: Date? = nil,
         snapshotExerciseID: UUID,
         snapshotMachineID: UUID? = nil,
         snapshotModelID: UUID? = nil,
@@ -277,6 +283,7 @@ final class ExerciseEntry {
         self.workout = workout
         self.exercise = exercise
         self.machine = machine
+        self.snapshotCapturedAt = snapshotCapturedAt
         self.snapshotExerciseID = snapshotExerciseID
         self.snapshotMachineID = snapshotMachineID
         self.snapshotModelID = snapshotModelID

@@ -1,9 +1,12 @@
+import SwiftData
 import SwiftUI
 
 struct RootView: View {
+    @Environment(\.modelContext) private var modelContext
+    // History stays on sample data until ticket 09 rewires it.
     @StateObject private var store = SampleStore()
     @State private var selection: Tab = .workout
-    @State private var showActiveWorkout = false
+    @State private var activeWorkout: Workout?
 
     enum Tab: Hashable {
         case workout, history, gyms, exercises
@@ -11,7 +14,7 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            StartWorkoutView(startWorkout: { showActiveWorkout = true })
+            StartWorkoutView(onWorkoutStarted: { activeWorkout = $0 })
                 .tabItem { Label("Workout", systemImage: "figure.strengthtraining.traditional") }
                 .tag(Tab.workout)
 
@@ -28,19 +31,26 @@ struct RootView: View {
                 .tag(Tab.exercises)
         }
         .environmentObject(store)
-        .fullScreenCover(isPresented: $showActiveWorkout) {
-            ActiveWorkoutView()
-                .environmentObject(store)
+        .fullScreenCover(item: $activeWorkout) { workout in
+            ActiveWorkoutView(workout: workout)
         }
+        .onAppear(perform: recoverActiveWorkout)
         .onAppear(perform: applyLaunchOverride)
     }
 
+    /// Relaunch resumes the newest active workout; older strays are
+    /// auto-finished by the service (exactly-one-active invariant).
+    private func recoverActiveWorkout() {
+        guard activeWorkout == nil else { return }
+        activeWorkout = try? WorkoutSession(context: modelContext).resumableWorkout()
+    }
+
     // Lets scripted screenshot runs land on a specific screen:
-    // SIMCTL_CHILD_PROTO_SCREEN=active|history|gyms|exercises
+    // SIMCTL_CHILD_PROTO_SCREEN=history|gyms|exercises
+    // ("active" was a milestone-1 deep link; the live screen now requires a
+    // real persisted workout.)
     private func applyLaunchOverride() {
         switch ProcessInfo.processInfo.environment["PROTO_SCREEN"] {
-        case "active":
-            showActiveWorkout = true
         case "history", "detail":
             selection = .history
         case "gyms":
@@ -54,5 +64,9 @@ struct RootView: View {
 }
 
 #Preview {
-    RootView()
+    let container = try! ModelContainer(
+        for: WorkoutTrackerStore.schema,
+        configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+    return RootView()
+        .modelContainer(container)
 }

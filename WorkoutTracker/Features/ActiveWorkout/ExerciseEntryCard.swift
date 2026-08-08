@@ -1,17 +1,38 @@
+import SwiftData
 import SwiftUI
 
+extension ExerciseEntry {
+    /// Display label for the entry's current equipment choice.
+    var equipmentDisplayLabel: String {
+        if let machine { return machine.label }
+        if let freeWeightTag { return freeWeightTag.label }
+        return "Choose equipment"
+    }
+}
+
 struct ExerciseEntryCard: View {
-    @Binding var entry: WorkoutEntry
+    @Environment(\.modelContext) private var modelContext
+    var entry: ExerciseEntry
     var showMachinePicker: () -> Void
     var showPerformance: () -> Void
     var setCompleted: (SetType) -> Void
+
+    private var session: WorkoutSession { WorkoutSession(context: modelContext) }
+
+    private var orderedSets: [SetRecord] {
+        entry.isDeleted ? [] : WorkoutSession.orderedSets(of: entry)
+    }
+
+    private var loadType: LoadType {
+        entry.exercise?.loadType ?? entry.snapshotLoadType
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             titleRow
             machineRow
 
-            if entry.exercise.loadType == .assisted {
+            if loadType == .assisted {
                 Label("Assisted: lower weight = harder. Records track least assistance.", systemImage: "arrow.down.right.circle")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -19,19 +40,16 @@ struct ExerciseEntryCard: View {
 
             columnHeaders
 
-            ForEach($entry.sets) { $set in
-                SetRow(set: $set, index: workingIndex(of: set), onComplete: {
-                    setCompleted(set.type)
-                })
+            ForEach(orderedSets) { set in
+                SetRowView(
+                    set: set,
+                    index: workingIndex(of: set),
+                    onCompleted: { setType in setCompleted(setType) },
+                    onDelete: { deleteSet(set) })
             }
 
             Button {
-                var newSet = LoggedSet()
-                newSet.unit = entry.sets.last?.unit ?? .kg
-                newSet.prevWeight = entry.sets.last?.prevWeight
-                newSet.prevReps = entry.sets.last?.prevReps
-                newSet.prevUnit = entry.sets.last?.prevUnit ?? .kg
-                entry.sets.append(newSet)
+                addSet()
             } label: {
                 Label("Add Set", systemImage: "plus")
                     .font(.subheadline)
@@ -48,9 +66,18 @@ struct ExerciseEntryCard: View {
 
     private var titleRow: some View {
         HStack {
-            Text(entry.exercise.name)
+            Text(entry.exercise?.name ?? entry.snapshotExerciseName)
                 .font(.headline)
             Spacer()
+            Menu {
+                Button("Delete Exercise", systemImage: "trash", role: .destructive) {
+                    deleteEntry()
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+                    .foregroundStyle(.secondary)
+            }
+            .accessibilityLabel("Exercise options")
             Button(action: showPerformance) {
                 Image(systemName: "chart.bar.doc.horizontal")
                     .foregroundStyle(.tint)
@@ -65,7 +92,7 @@ struct ExerciseEntryCard: View {
                 Image(systemName: entry.machine != nil ? "gearshape.2" : "dumbbell")
                     .font(.caption)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(entry.equipmentLabel)
+                    Text(entry.equipmentDisplayLabel)
                         .font(.subheadline.weight(.medium))
                     if let model = entry.machine?.model {
                         Text(model.displayName)
@@ -99,34 +126,92 @@ struct ExerciseEntryCard: View {
     }
 
     private var weightHeader: String {
-        entry.exercise.loadType == .assisted ? "ASSIST" : "WEIGHT"
+        loadType == .assisted ? "ASSIST" : "WEIGHT"
     }
 
-    private func workingIndex(of set: LoggedSet) -> Int {
+    private func workingIndex(of set: SetRecord) -> Int {
         var index = 0
-        for s in entry.sets {
+        for s in orderedSets {
             if s.type != .warmup { index += 1 }
             if s.id == set.id { break }
         }
         return index
     }
+
+    // MARK: Actions
+
+    private func addSet() {
+        do {
+            try session.addSet(to: entry)
+        } catch {
+            assertionFailure("Failed to add set: \(error)")
+        }
+    }
+
+    private func deleteSet(_ set: SetRecord) {
+        do {
+            try session.deleteSet(set)
+        } catch {
+            assertionFailure("Failed to delete set: \(error)")
+        }
+    }
+
+    private func deleteEntry() {
+        do {
+            try session.deleteEntry(entry)
+        } catch {
+            assertionFailure("Failed to delete entry: \(error)")
+        }
+    }
 }
 
-struct SetRow: View {
-    @Binding var set: LoggedSet
+struct SetRowView: View {
+    @Environment(\.modelContext) private var modelContext
+    var set: SetRecord
     var index: Int
-    var onComplete: () -> Void
+    /// Called when the tap completed (not un-completed) the set.
+    var onCompleted: (SetType) -> Void
+    var onDelete: () -> Void
+
+    // In-progress keystrokes live here; they hit the store only on commit
+    // (end-editing / completion) — SPEC's durability boundary.
+    @State private var weightText: String
+    @State private var repsText: String
+    @FocusState private var focusedField: Field?
+
+    private enum Field { case weight, reps }
+
+    private var session: WorkoutSession { WorkoutSession(context: modelContext) }
+
+    init(
+        set: SetRecord, index: Int,
+        onCompleted: @escaping (SetType) -> Void,
+        onDelete: @escaping () -> Void
+    ) {
+        self.set = set
+        self.index = index
+        self.onCompleted = onCompleted
+        self.onDelete = onDelete
+        _weightText = State(initialValue: set.weightValue.map(Format.weight) ?? "")
+        _repsText = State(initialValue: set.reps.map(String.init) ?? "")
+    }
+
+    private var isCompleted: Bool { !set.isDeleted && set.completedAt != nil }
 
     var body: some View {
         HStack(spacing: 8) {
             setTypeButton
 
-            previousButton
+            // Same-machine previous performance prefills here from ticket 11.
+            Text("—")
+                .font(.footnote)
+                .foregroundStyle(.tertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 4) {
-                TextField("–", text: $set.weightText)
+                TextField("–", text: $weightText)
                     .keyboardType(.decimalPad)
+                    .focused($focusedField, equals: .weight)
                     .multilineTextAlignment(.center)
                     .frame(width: 48)
                     .padding(.vertical, 5)
@@ -134,16 +219,17 @@ struct SetRow: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
 
                 Button {
-                    set.unit = set.unit.toggled
+                    toggleUnit()
                 } label: {
-                    UnitBadge(unit: set.unit)
+                    UnitBadge(unit: set.isDeleted ? .kg : set.weightUnit)
                 }
                 .buttonStyle(.plain)
             }
             .frame(width: 88)
 
-            TextField("–", text: $set.repsText)
+            TextField("–", text: $repsText)
                 .keyboardType(.numberPad)
+                .focused($focusedField, equals: .reps)
                 .multilineTextAlignment(.center)
                 .frame(width: 48)
                 .padding(.vertical, 5)
@@ -154,18 +240,27 @@ struct SetRow: View {
                 .frame(width: 30)
         }
         .font(.subheadline)
-        .opacity(set.completed ? 0.75 : 1)
+        .opacity(isCompleted ? 0.75 : 1)
+        .contextMenu {
+            Button("Delete Set", systemImage: "trash", role: .destructive) {
+                onDelete()
+            }
+        }
+        .onChange(of: focusedField) { previous, _ in
+            // Field commit on end-editing (SPEC durability boundary).
+            switch previous {
+            case .weight: commitWeight()
+            case .reps: commitReps()
+            case nil: break
+            }
+        }
     }
 
     private var setTypeButton: some View {
         Button {
-            switch set.type {
-            case .working: set.type = .warmup
-            case .warmup: set.type = .failure
-            case .failure: set.type = .working
-            }
+            cycleType()
         } label: {
-            Text(set.type.marker ?? "\(index)")
+            Text(set.isDeleted ? "" : (set.type.marker ?? "\(index)"))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(markerColor)
                 .frame(width: 34, height: 28)
@@ -176,38 +271,80 @@ struct SetRow: View {
     }
 
     private var markerColor: Color {
+        guard !set.isDeleted else { return .primary }
         switch set.type {
-        case .warmup: .orange
-        case .working: .primary
-        case .failure: .red
+        case .warmup: return .orange
+        case .working: return .primary
+        case .failure: return .red
         }
-    }
-
-    private var previousButton: some View {
-        Button {
-            // One tap pulls same-machine previous numbers into the fields.
-            if let w = set.prevWeight { set.weightText = Format.weight(w) }
-            if let r = set.prevReps { set.repsText = String(r) }
-            set.unit = set.prevUnit
-        } label: {
-            Text(set.previousLabel ?? "—")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-        }
-        .buttonStyle(.plain)
-        .disabled(set.previousLabel == nil)
     }
 
     private var completeButton: some View {
         Button {
-            set.completed.toggle()
-            if set.completed { onComplete() }
+            toggleCompletion()
         } label: {
-            Image(systemName: set.completed ? "checkmark.circle.fill" : "circle")
+            Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
                 .font(.title3)
-                .foregroundStyle(set.completed ? Color.green : Color.secondary)
+                .foregroundStyle(isCompleted ? Color.green : Color.secondary)
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: Commits
+
+    private func commitWeight() {
+        guard !set.isDeleted else { return }
+        do {
+            try session.commitWeight(weightText, for: set)
+        } catch {
+            assertionFailure("Failed to commit weight: \(error)")
+        }
+    }
+
+    private func commitReps() {
+        guard !set.isDeleted else { return }
+        do {
+            try session.commitReps(repsText, for: set)
+        } catch {
+            assertionFailure("Failed to commit reps: \(error)")
+        }
+    }
+
+    private func toggleUnit() {
+        guard !set.isDeleted else { return }
+        do {
+            // Commit any in-progress weight text first so the toggle applies
+            // to what is on screen.
+            try session.commitWeight(weightText, for: set)
+            try session.toggleUnit(of: set)
+        } catch {
+            assertionFailure("Failed to toggle unit: \(error)")
+        }
+    }
+
+    private func cycleType() {
+        guard !set.isDeleted else { return }
+        do {
+            try session.cycleSetType(set)
+        } catch {
+            assertionFailure("Failed to cycle set type: \(error)")
+        }
+    }
+
+    private func toggleCompletion() {
+        guard !set.isDeleted else { return }
+        let completing = set.completedAt == nil
+        do {
+            // Completion is a commit boundary: on-screen values first.
+            try session.commitWeight(weightText, for: set)
+            try session.commitReps(repsText, for: set)
+            try session.toggleCompletion(of: set)
+        } catch {
+            assertionFailure("Failed to toggle completion: \(error)")
+        }
+        if completing {
+            focusedField = nil
+            onCompleted(set.type)
+        }
     }
 }

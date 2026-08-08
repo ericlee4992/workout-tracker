@@ -229,7 +229,9 @@ private struct AddGymSheet: View {
 
 // MARK: - Add Machine (ticket 06)
 
-private struct AddMachineSheet: View {
+// Internal (not private): the active-workout machine picker (ticket 07)
+// reuses it to add a machine mid-workout.
+struct AddMachineSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     var gym: Gym

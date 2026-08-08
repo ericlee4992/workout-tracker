@@ -2,14 +2,18 @@ import SwiftData
 import SwiftUI
 
 struct StartWorkoutView: View {
+    @Environment(\.modelContext) private var modelContext
+    // Templates render from sample data until ticket 15 lands template CRUD.
     @EnvironmentObject private var store: SampleStore
-    // Persisted gyms (ticket 05). The rest of the workout flow stays on
-    // SampleStore until ticket 07 rewires it onto SwiftData.
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
-    private var savedGyms: [Gym]
+    private var gyms: [Gym]
     @Query private var allPreferences: [AppPreferences]
-    @State private var selectedSavedGym: Gym?
-    var startWorkout: () -> Void
+    @State private var selectedGym: Gym?
+    @State private var showingResumeDialog = false
+    /// Called with the workout to present — freshly started or resumed.
+    var onWorkoutStarted: (Workout) -> Void
+
+    private var session: WorkoutSession { WorkoutSession(context: modelContext) }
 
     var body: some View {
         NavigationStack {
@@ -21,7 +25,7 @@ struct StartWorkoutView: View {
                 }
 
                 Section {
-                    Button(action: startWorkout) {
+                    Button(action: startTapped) {
                         Label("Start Empty Workout", systemImage: "plus.circle.fill")
                             .font(.headline)
                     }
@@ -29,53 +33,85 @@ struct StartWorkoutView: View {
 
                 Section("Templates") {
                     ForEach(store.templates) { template in
-                        TemplateRow(template: template, start: startWorkout)
+                        TemplateRow(
+                            template: template,
+                            gymName: selectedGym?.name ?? "your gym",
+                            start: startTapped)
                     }
                 }
             }
             .navigationTitle("Workout")
+            .confirmationDialog(
+                "A workout is already in progress",
+                isPresented: $showingResumeDialog,
+                titleVisibility: .visible
+            ) {
+                Button("Resume Workout") { resumeActive() }
+                Button("Finish It & Start New") { startNew() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Resume it, or finish it and start a new one — only its completed sets are kept.")
+            }
         }
     }
+
+    // MARK: Start flow
+
+    /// Start-while-active offers Resume or Finish-and-start-new.
+    private func startTapped() {
+        if (try? session.resumableWorkout()) != nil {
+            showingResumeDialog = true
+        } else {
+            startNew()
+        }
+    }
+
+    private func startNew() {
+        do {
+            // The service finishes any lingering active workout first.
+            onWorkoutStarted(try session.startWorkout(at: selectedGym))
+        } catch {
+            assertionFailure("Failed to start workout: \(error)")
+        }
+    }
+
+    private func resumeActive() {
+        if let workout = try? session.resumableWorkout() {
+            onWorkoutStarted(workout)
+        }
+    }
+
+    // MARK: Gym & units
 
     /// Gym-level unit for the currently picked gym, falling through to the
-    /// app preference when the gym doesn't set one (T7; no machine context here).
+    /// app preference (T7; no machine context here).
     private var currentUnit: WeightUnit {
-        if let selectedSavedGym {
-            return UnitPrecedence.defaultUnit(
-                machineUnit: nil,
-                gymUnit: selectedSavedGym.defaultUnit,
-                appPreference: AppPreferences.canonical(of: allPreferences)?.unitPreference)
-        }
-        return store.currentGym.defaultUnit
-    }
-
-    private var currentGymName: String {
-        selectedSavedGym?.name ?? store.currentGym.name
+        UnitPrecedence.defaultUnit(
+            machineUnit: nil,
+            gymUnit: selectedGym?.defaultUnit,
+            appPreference: AppPreferences.canonical(of: allPreferences)?.unitPreference)
     }
 
     private var gymPicker: some View {
         Menu {
-            ForEach(savedGyms) { gym in
+            Button {
+                selectedGym = nil
+            } label: {
+                if selectedGym == nil {
+                    Label("No gym", systemImage: "checkmark")
+                } else {
+                    Text("No gym")
+                }
+            }
+            ForEach(gyms) { gym in
                 Button {
-                    selectedSavedGym = gym
+                    selectedGym = gym
                 } label: {
                     let title = gym.city.map { "\(gym.name) · \($0)" } ?? gym.name
-                    if gym.id == selectedSavedGym?.id {
+                    if gym.id == selectedGym?.id {
                         Label(title, systemImage: "checkmark")
                     } else {
                         Text(title)
-                    }
-                }
-            }
-            ForEach(store.gyms) { gym in
-                Button {
-                    selectedSavedGym = nil
-                    store.currentGym = gym
-                } label: {
-                    if selectedSavedGym == nil, gym.id == store.currentGym.id {
-                        Label("\(gym.name) · \(gym.city)", systemImage: "checkmark")
-                    } else {
-                        Text("\(gym.name) · \(gym.city)")
                     }
                 }
             }
@@ -84,10 +120,10 @@ struct StartWorkoutView: View {
                 Image(systemName: "mappin.and.ellipse")
                     .foregroundStyle(.tint)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(currentGymName)
+                    Text(selectedGym?.name ?? "No gym")
                         .font(.headline)
                         .foregroundStyle(.primary)
-                    Text(selectedSavedGym.map { $0.city ?? "" } ?? store.currentGym.city)
+                    Text(selectedGym.map { $0.city ?? "" } ?? "Home / no location")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
@@ -102,8 +138,8 @@ struct StartWorkoutView: View {
 }
 
 private struct TemplateRow: View {
-    @EnvironmentObject private var store: SampleStore
     var template: SampleWorkoutTemplate
+    var gymName: String
     var start: () -> Void
 
     var body: some View {
@@ -115,7 +151,7 @@ private struct TemplateRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
-                Text("Machines resolve to your last-used at \(store.currentGym.name)")
+                Text("Machines resolve to your last-used at \(gymName)")
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
@@ -147,7 +183,8 @@ struct UnitBadge: View {
     let container = try! ModelContainer(
         for: WorkoutTrackerStore.schema,
         configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
-    return StartWorkoutView(startWorkout: {})
+    container.mainContext.insert(Gym(name: "Gold's Gym Gangnam", city: "Seoul", defaultUnit: .kg))
+    return StartWorkoutView(onWorkoutStarted: { _ in })
         .environmentObject(SampleStore())
         .modelContainer(container)
 }

@@ -1,14 +1,15 @@
+import SwiftData
 import SwiftUI
 
 struct ExercisePickerSheet: View {
-    @EnvironmentObject private var store: SampleStore
     @Environment(\.dismiss) private var dismiss
+    @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @State private var searchText = ""
-    var onSelect: (SampleExercise) -> Void
+    var onSelect: (Exercise) -> Void
 
-    private var filtered: [SampleExercise] {
-        guard !searchText.isEmpty else { return store.exercises }
-        return store.exercises.filter {
+    private var filtered: [Exercise] {
+        guard !searchText.isEmpty else { return exercises }
+        return exercises.filter {
             $0.name.localizedCaseInsensitiveContains(searchText)
         }
     }
@@ -45,10 +46,6 @@ struct ExerciseRow: View {
         self.name = name
         self.loadType = loadType
         self.tags = tags
-    }
-
-    init(exercise: SampleExercise) {
-        self.init(name: exercise.name, loadType: exercise.loadType, tags: exercise.tags)
     }
 
     init(exercise: Exercise) {
