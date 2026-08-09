@@ -16,6 +16,20 @@ enum EquipmentLifecycleError: Error, Equatable {
     case emptyName
 }
 
+extension Gym {
+    /// The machines a picker may offer at this gym, label-sorted (ticket 10).
+    /// An archived gym offers none — archiving a gym archives its pickable
+    /// inventory with it, the same way an archived machine disappears. Every
+    /// machine list goes through here so that rule cannot be forgotten at one
+    /// call site; history stays visible because it reads snapshots, not this.
+    var activeMachines: [MachineInstance] {
+        guard !archived else { return [] }
+        return (machines ?? [])
+            .filter { !$0.archived }
+            .sorted { $0.label < $1.label }
+    }
+}
+
 /// Ticket 10's persistence boundary for rename, archive, and model-correction
 /// operations. History display remains snapshot-driven; the sole operation
 /// allowed to rewrite historical equipment context is an explicit
@@ -97,9 +111,8 @@ struct EquipmentLifecycle {
         let rows = try context.fetch(FetchDescriptor<GymExerciseMemory>(
             predicate: #Predicate { $0.gymID == gymID && $0.exerciseID == exerciseID }
         ))
-        guard let memory = rows.max(by: {
-            ($0.updatedAt, $0.id.uuidString) < ($1.updatedAt, $1.id.uuidString)
-        }), let machineID = memory.machineID else { return nil }
+        guard let memory = rows.canonical,
+              let machineID = memory.machineID else { return nil }
 
         let machines = try context.fetch(FetchDescriptor<MachineInstance>(
             predicate: #Predicate { $0.id == machineID && !$0.archived }

@@ -196,11 +196,12 @@ struct PreviousPerformanceSheet: View {
     private func loadLayers() {
         guard !entry.isDeleted else { return }
         do {
-            let history = PerformanceHistory(context: modelContext)
-            layers = try history.layers(for: entry)
-            recordSummaries = try Dictionary(uniqueKeysWithValues: layers.map { layer in
-                (layer.kind, try history.recordSummary(for: entry, layer: layer.kind))
-            })
+            // One pass over history for the whole sheet — layers and records
+            // are rendered together and must agree.
+            let summary = try PerformanceHistory(context: modelContext)
+                .summary(for: entry)
+            layers = summary.layers
+            recordSummaries = summary.records
         } catch {
             assertionFailure("Failed to load performance layers: \(error)")
             layers = []

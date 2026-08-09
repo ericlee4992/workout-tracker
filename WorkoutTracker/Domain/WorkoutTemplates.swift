@@ -16,6 +16,48 @@ enum WorkoutTemplateError: Error, Equatable {
     case noExercises
 }
 
+/// The per-slot rep targets a `TemplateItem` describes. `targetSets`,
+/// `targetReps`, and `targetRepsBySet` always travel together and are
+/// derivable from one another, so the derivation lives here once instead of
+/// being re-spelled — with drifting floors — by every reader.
+struct TemplateTargets: Equatable {
+    /// One entry per set slot; nil = that slot carries no rep target.
+    var repsBySet: [Int?]
+
+    /// How many set rows the item describes.
+    var count: Int { repsBySet.count }
+
+    /// `targetSets` decides the slot count (falling back to the stored
+    /// per-slot list); slots beyond the per-slot list inherit the item's
+    /// single `targetReps`. `minimumSets` is the caller's floor — see
+    /// `TemplateItem.storedTargets` / `.editableTargets`.
+    fileprivate init(of item: TemplateItem, minimumSets: Int) {
+        let count = max(minimumSets, item.targetSets ?? item.targetRepsBySet.count)
+        repsBySet = (0..<count).map { slot in
+            item.targetRepsBySet.indices.contains(slot)
+                ? item.targetRepsBySet[slot]
+                : item.targetReps
+        }
+    }
+
+    init(repsBySet: [Int?]) {
+        self.repsBySet = repsBySet
+    }
+}
+
+extension TemplateItem {
+    /// The item exactly as stored, floored at zero: an item describing no sets
+    /// describes no slots. Used where the targets are *reported* — a drift
+    /// snapshot of an empty item must be able to come back empty rather than
+    /// inventing a phantom row that would read as drift.
+    var storedTargets: TemplateTargets { TemplateTargets(of: self, minimumSets: 0) }
+
+    /// The same derivation floored at one row. Used where the targets are
+    /// *materialized* — starting a template must produce at least one set row
+    /// to log into, and the editor must show at least one slot to edit.
+    var editableTargets: TemplateTargets { TemplateTargets(of: self, minimumSets: 1) }
+}
+
 /// Ticket 15's persisted template boundary: CRUD, gym-specific startup
 /// resolution, provenance, and finished-workout capture. Templates never own
 /// weights or rest durations (D6/D22).
@@ -79,7 +121,7 @@ struct WorkoutTemplateService {
             }
             let entry = try session.addEntry(
                 for: exercise, to: workout, machine: machine)
-            let count = max(1, item.targetSets ?? item.targetRepsBySet.count)
+            let count = item.editableTargets.count
             while WorkoutSession.orderedSets(of: entry).count < count {
                 try session.addSet(to: entry)
             }

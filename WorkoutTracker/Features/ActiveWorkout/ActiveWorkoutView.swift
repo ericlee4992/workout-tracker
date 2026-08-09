@@ -135,27 +135,11 @@ struct ActiveWorkoutView: View {
             } message: {
                 Text(templateFailure ?? "")
             }
-            .confirmationDialog(
-                "Update workout template?",
+            .templateDriftDialog(
                 isPresented: $choosingDriftResolution,
-                titleVisibility: .visible
-            ) {
-                Button("Update Template") {
-                    finishTemplatedWorkout(using: .updateTemplate)
-                }
-                Button("Update Values Only") {
-                    finishTemplatedWorkout(using: .updateValuesOnly)
-                }
-                Button("Update Both") {
-                    finishTemplatedWorkout(using: .updateBoth)
-                }
-                Button("Keep Original") {
-                    finishTemplatedWorkout(using: .keepOriginal)
-                }
-                Button("Keep Logging", role: .cancel) {}
-            } message: {
-                Text("This workout's completed exercises, set counts, or target reps differ from the template.")
-            }
+                message: "This workout's completed exercises, set counts, or target reps differ from the template.",
+                cancelLabel: "Keep Logging",
+                resolve: finishTemplatedWorkout)
             .sheet(item: $machinePickerEntry) { entry in
                 MachinePickerSheet(entry: entry)
                     .presentationDetents([.medium, .large])
@@ -275,10 +259,11 @@ struct ActiveWorkoutView: View {
     private func finishTemplatedWorkout(using resolution: TemplateDriftResolution) {
         do {
             if let driftTemplate {
-                try TemplateDriftService(context: modelContext).apply(
+                try TemplateDriftService(context: modelContext).resolve(
                     resolution, workout: workout, to: driftTemplate)
+            } else {
+                try session.finish(workout)
             }
-            try session.finish(workout)
         } catch {
             assertionFailure("Failed to finish templated workout: \(error)")
         }

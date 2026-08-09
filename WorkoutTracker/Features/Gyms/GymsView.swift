@@ -2,10 +2,8 @@ import SwiftData
 import SwiftUI
 
 struct GymsView: View {
-    @Environment(\.modelContext) private var modelContext
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
     private var gyms: [Gym]
-    @Query private var allPreferences: [AppPreferences]
     @State private var showingAddGym = false
 
     var body: some View {
@@ -24,31 +22,7 @@ struct GymsView: View {
                     Text("A gym's unit is the default for sets logged there — machines can override it, and so can you on any set.")
                 }
 
-                Section {
-                    Picker("App unit preference", selection: appUnitBinding) {
-                        ForEach(WeightUnit.allCases) { unit in
-                            Text(unit.rawValue).tag(unit)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    Stepper(
-                        "Working rest · \(durationLabel(globalWorkingRest))",
-                        value: globalWorkingRestBinding,
-                        in: 0...600,
-                        step: 15)
-                    Stepper(
-                        "Warmup rest · \(durationLabel(globalWarmupRest))",
-                        value: globalWarmupRestBinding,
-                        in: 0...600,
-                        step: 15)
-                    Toggle(
-                        "Suppress template update prompts",
-                        isOn: driftPromptSuppressedBinding)
-                } header: {
-                    Text("Settings")
-                } footer: {
-                    Text("The unit is used when neither machine nor gym sets one. Rest durations are global defaults; each exercise can override them from its workout menu. Suppressed template prompts always keep the original template.")
-                }
+                AppSettingsSection()
             }
             .navigationTitle("Gyms")
             .navigationDestination(for: UUID.self) { gymID in
@@ -60,84 +34,6 @@ struct GymsView: View {
                 AddGymSheet()
             }
         }
-    }
-
-    /// Binding onto the canonical persisted preference row. The row exists
-    /// after first-launch bootstrap; reads fall back to the locale default.
-    private var appUnitBinding: Binding<WeightUnit> {
-        Binding(
-            get: {
-                AppPreferences.canonical(of: allPreferences)?.unitPreference
-                    ?? UnitPrecedence.firstLaunchDefault(
-                        for: Locale.current.measurementSystem)
-            },
-            set: { newValue in
-                do {
-                    let preferences = try AppPreferences.canonical(in: modelContext)
-                    preferences.unitPreference = newValue
-                    preferences.updatedAt = .now
-                    try modelContext.save()
-                } catch {
-                    assertionFailure("Failed to save unit preference: \(error)")
-                }
-            }
-        )
-    }
-
-    private var globalWorkingRest: Int {
-        AppPreferences.canonical(of: allPreferences)?.globalWorkingRestSeconds ?? 120
-    }
-
-    private var globalWarmupRest: Int {
-        AppPreferences.canonical(of: allPreferences)?.globalWarmupRestSeconds ?? 60
-    }
-
-    private var globalWorkingRestBinding: Binding<Int> {
-        durationBinding(\.globalWorkingRestSeconds, fallback: 120)
-    }
-
-    private var globalWarmupRestBinding: Binding<Int> {
-        durationBinding(\.globalWarmupRestSeconds, fallback: 60)
-    }
-
-    private var driftPromptSuppressedBinding: Binding<Bool> {
-        Binding(
-            get: {
-                AppPreferences.canonical(of: allPreferences)?.driftPromptSuppressed
-                    ?? false
-            },
-            set: { value in
-                do {
-                    let preferences = try AppPreferences.canonical(in: modelContext)
-                    preferences.driftPromptSuppressed = value
-                    preferences.updatedAt = .now
-                    try modelContext.save()
-                } catch {
-                    assertionFailure("Failed to save template prompt preference: \(error)")
-                }
-            })
-    }
-
-    private func durationBinding(
-        _ keyPath: ReferenceWritableKeyPath<AppPreferences, Int>,
-        fallback: Int
-    ) -> Binding<Int> {
-        Binding(
-            get: { AppPreferences.canonical(of: allPreferences)?[keyPath: keyPath] ?? fallback },
-            set: { value in
-                do {
-                    let preferences = try AppPreferences.canonical(in: modelContext)
-                    preferences[keyPath: keyPath] = value
-                    preferences.updatedAt = .now
-                    try modelContext.save()
-                } catch {
-                    assertionFailure("Failed to save rest default: \(error)")
-                }
-            })
-    }
-
-    private func durationLabel(_ seconds: Int) -> String {
-        "\(seconds / 60):\(String(format: "%02d", seconds % 60))"
     }
 }
 
@@ -203,7 +99,7 @@ struct GymDetailView: View {
             }
 
             Section {
-                ForEach(activeMachines) { machine in
+                ForEach(gym.activeMachines) { machine in
                     HStack {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(machine.label)
@@ -238,7 +134,7 @@ struct GymDetailView: View {
                         }
                     }
                 }
-                if activeMachines.isEmpty {
+                if gym.activeMachines.isEmpty {
                     Text("No machines yet")
                         .foregroundStyle(.secondary)
                 }
@@ -314,12 +210,6 @@ struct GymDetailView: View {
         }
     }
 
-    private var activeMachines: [MachineInstance] {
-        (gym.machines ?? [])
-            .filter { !$0.archived }
-            .sorted { $0.label < $1.label }
-    }
-
     private var lifecycle: EquipmentLifecycle {
         EquipmentLifecycle(context: modelContext)
     }
@@ -354,63 +244,6 @@ struct GymDetailView: View {
             dismiss()
         } catch {
             assertionFailure("Failed to archive gym: \(error)")
-        }
-    }
-}
-
-/// D10's explicit model-correction prompt. Merely renaming a model never
-/// rewrites history; changing which model a machine is attaches the selected
-/// scope to the save operation.
-private struct MachineModelCorrectionSheet: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    var machine: MachineInstance
-    @State private var model: EquipmentModel?
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    NavigationLink {
-                        ModelPickerView(selection: $model)
-                    } label: {
-                        HStack {
-                            Text("Correct model")
-                            Spacer()
-                            Text(model?.displayName ?? "None")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                } footer: {
-                    Text("Choose whether existing workout snapshots for this exact machine should also move to the corrected model.")
-                }
-                Section {
-                    Button("Future Workouts Only") {
-                        apply(.futureOnly)
-                    }
-                    Button("Apply to Past Workouts Too") {
-                        apply(.applyToPast)
-                    }
-                }
-            }
-            .navigationTitle("Correct Model")
-            .navigationBarTitleDisplayMode(.inline)
-            .onAppear { model = machine.model }
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-            }
-        }
-    }
-
-    private func apply(_ scope: ModelCorrectionScope) {
-        do {
-            try EquipmentLifecycle(context: modelContext)
-                .correctModel(of: machine, to: model, scope: scope)
-            dismiss()
-        } catch {
-            assertionFailure("Failed to correct model: \(error)")
         }
     }
 }

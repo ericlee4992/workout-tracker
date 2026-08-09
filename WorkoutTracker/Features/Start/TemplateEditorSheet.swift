@@ -132,14 +132,10 @@ struct TemplateEditorSheet: View {
         name = template.name
         items = WorkoutTemplateService.orderedItems(of: template).compactMap { item in
             guard let exercise = item.exercise else { return nil }
-            let count = max(1, item.targetSets ?? item.targetRepsBySet.count)
-            let values = (0..<count).map { index -> Int in
-                if item.targetRepsBySet.indices.contains(index) {
-                    return item.targetRepsBySet[index] ?? 0
-                }
-                return item.targetReps ?? 0
-            }
-            return EditorItem(exerciseID: exercise.id, repsBySet: values)
+            // 0 is the editor's "no target" value for a slot.
+            return EditorItem(
+                exerciseID: exercise.id,
+                repsBySet: item.editableTargets.repsBySet.map { $0 ?? 0 })
         }
     }
 

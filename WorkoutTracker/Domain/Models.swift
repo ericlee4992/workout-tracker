@@ -427,9 +427,7 @@ extension AppPreferences {
     /// Canonical row among duplicates: latest `updatedAt`, ties broken by
     /// `id` (app-side upsert — no unique constraints under CloudKit).
     static func canonical(of rows: [AppPreferences]) -> AppPreferences? {
-        rows.max {
-            ($0.updatedAt, $0.id.uuidString) < ($1.updatedAt, $1.id.uuidString)
-        }
+        rows.canonical
     }
 
     /// Canonical AppPreferences row for `context`, inserting a fresh row when

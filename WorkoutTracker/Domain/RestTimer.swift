@@ -89,9 +89,7 @@ struct RestTimerService {
         let overrides = try context.fetch(FetchDescriptor<ExerciseRestOverride>(
             predicate: #Predicate { $0.exerciseID == exerciseID }
         ))
-        let canonical = overrides.max {
-            ($0.updatedAt, $0.id.uuidString) < ($1.updatedAt, $1.id.uuidString)
-        }
+        let canonical = overrides.canonical
         if isWarmup, let seconds = canonical?.warmupRestSeconds { return max(0, seconds) }
         if !isWarmup, let seconds = canonical?.workingRestSeconds { return max(0, seconds) }
         return max(0, isWarmup
@@ -193,9 +191,7 @@ struct RestTimerService {
         let rows = try context.fetch(FetchDescriptor<ExerciseRestOverride>(
             predicate: #Predicate { $0.exerciseID == exerciseID }
         ))
-        let row = rows.max {
-            ($0.updatedAt, $0.id.uuidString) < ($1.updatedAt, $1.id.uuidString)
-        } ?? ExerciseRestOverride(exerciseID: exerciseID)
+        let row = rows.canonical ?? ExerciseRestOverride(exerciseID: exerciseID)
         if rows.isEmpty { context.insert(row) }
         row.warmupRestSeconds = warmupSeconds.map { max(0, $0) }
         row.workingRestSeconds = workingSeconds.map { max(0, $0) }

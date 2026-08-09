@@ -72,6 +72,13 @@ struct RecordLayerSummary: Sendable, Equatable {
     }
 }
 
+/// Everything the performance sheet renders for one entry: each applicable
+/// fallback layer's reference snapshot, and that layer's records.
+struct PerformanceSummary: Sendable, Equatable {
+    var layers: [PerformanceLayerResult]
+    var records: [PerformanceLayerKind: RecordLayerSummary]
+}
+
 /// Ticket 11 history selection. Every grouping decision uses entry snapshots
 /// (D23), and every source is a finished workout with completed sets only.
 /// Live catalog relationships are used solely to identify the draft entry's
@@ -122,7 +129,29 @@ struct PerformanceHistory {
     /// machine entry has three layers. A machineless entry has a tag-specific
     /// first layer and an exercise-wide reference layer.
     func layers(for entry: ExerciseEntry) throws -> [PerformanceLayerResult] {
+        layers(for: entry, in: try historicalEntries())
+    }
+
+    /// Layers *and* their records from a single pass over history. The sheet
+    /// shows both together, and each of the four values it used to request
+    /// separately re-read the whole entry table (and re-grouped every set in
+    /// it). Results are identical to calling the pieces one by one.
+    func summary(for entry: ExerciseEntry) throws -> PerformanceSummary {
         let all = try historicalEntries()
+        let grouped = RecordsMath.grouped(all.flatMap(recordInputs(from:)))
+        let layers = layers(for: entry, in: all)
+        return PerformanceSummary(
+            layers: layers,
+            records: Dictionary(uniqueKeysWithValues: layers.map { layer in
+                (layer.kind, recordSummary(
+                    for: entry, layer: layer.kind, in: grouped))
+            }))
+    }
+
+    private func layers(
+        for entry: ExerciseEntry,
+        in all: [ExerciseEntry]
+    ) -> [PerformanceLayerResult] {
         var results: [PerformanceLayerResult] = []
 
         results.append(PerformanceLayerResult(
@@ -201,8 +230,18 @@ struct PerformanceHistory {
         for entry: ExerciseEntry,
         layer: PerformanceLayerKind
     ) throws -> RecordLayerSummary {
-        let allInputs = try historicalEntries().flatMap(recordInputs(from:))
-        let grouped = RecordsMath.grouped(allInputs)
+        recordSummary(
+            for: entry,
+            layer: layer,
+            in: RecordsMath.grouped(
+                try historicalEntries().flatMap(recordInputs(from:))))
+    }
+
+    private func recordSummary(
+        for entry: ExerciseEntry,
+        layer: PerformanceLayerKind,
+        in grouped: [RecordGroupKey: [RecordSetInput]]
+    ) -> RecordLayerSummary {
         let exerciseID = currentExerciseID(for: entry)
         let key: RecordGroupKey?
         // Set when the layer is scoped to gyms other than the current one.

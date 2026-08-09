@@ -104,6 +104,22 @@ struct EquipmentLifecycleTests {
         #expect(f.entry.snapshotEquipmentLabel == display)
     }
 
+    /// Ticket 10: pickers offer active machines at an active gym only. Every
+    /// machine list (equipment picker, add-by-machine, gym detail) reads this
+    /// one property, so archiving is honoured identically in all of them.
+    @Test func archivedGymOffersNoMachinesToPickers() throws {
+        let f = try makeFixture()
+        #expect(f.gym.activeMachines.map(\.label) == ["Machine One", "Machine Two"])
+
+        try f.lifecycle.archive(f.machine)
+        #expect(f.gym.activeMachines.map(\.label) == ["Machine Two"])
+
+        try f.lifecycle.archive(f.gym)
+        #expect(f.gym.activeMachines.isEmpty)
+        // The machines themselves are untouched — only the gym was archived.
+        #expect(f.otherMachine.archived == false)
+    }
+
     @Test func futureOnlyCorrectionKeepsHistoricalModelLayer() throws {
         let f = try makeFixture()
         let oldID = f.oldModel.id

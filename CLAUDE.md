@@ -7,10 +7,12 @@ Private iPhone workout tracker (two developers). **Read `docs/SPEC.md` before ma
 - `WorkoutTracker.xcodeproj` — Xcode project. Uses **buildable folders** (filesystem-synchronized groups): to add a source file, just create it under `WorkoutTracker/`; never edit `project.pbxproj` to register files.
 - `WorkoutTracker/` — app sources.
   - `App/` — entry point, root navigation
-  - `Domain/` — value types and (later) SwiftData models, pure logic
-  - `Features/<Feature>/` — one folder per screen/feature (SwiftUI)
-  - `SampleData/` — sample templates backing the Start screen (removed when ticket 15 lands template CRUD)
-- `docs/` — SPEC.md (product spec), DECISIONS.md (decision log)
+  - `Domain/` — SwiftData models (`Models.swift`) plus value types and pure logic (units, records, rest timer, templates, drift, history), free of UI imports
+  - `Features/<Feature>/` — one folder per screen/feature (SwiftUI): ActiveWorkout, Exercises, Gyms, History, Settings, Start, Templates
+  - `Resources/` — `SeedCatalog.json`, the versioned seeded catalog (D24)
+  - `Assets.xcassets` — app icon and colors
+- `WorkoutTrackerTests/` — unit tests (Swift Testing)
+- `docs/` — SPEC.md (product spec), DECISIONS.md (decision log), `agents/` (agent skill docs)
 
 ## Conventions
 

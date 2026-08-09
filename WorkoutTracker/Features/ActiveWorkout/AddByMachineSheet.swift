@@ -27,12 +27,7 @@ struct AddByMachineSheet: View {
 
     private var gym: Gym? { workout.gym }
 
-    private var machines: [MachineInstance] {
-        guard gym?.archived == false else { return [] }
-        return (gym?.machines ?? [])
-            .filter { !$0.archived }
-            .sorted { $0.label < $1.label }
-    }
+    private var machines: [MachineInstance] { gym?.activeMachines ?? [] }
 
     var body: some View {
         NavigationStack {

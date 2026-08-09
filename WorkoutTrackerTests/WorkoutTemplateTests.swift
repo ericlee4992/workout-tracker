@@ -158,6 +158,53 @@ struct WorkoutTemplateTests {
             .map(\.targetRepsBySet) == [[10, 8, 6], [12]])
     }
 
+    /// `targetSets`/`targetReps`/`targetRepsBySet` travel together, and every
+    /// reader used to re-derive them with its own floor. `storedTargets`
+    /// reports the item as stored (floor 0, so a drift snapshot of an empty
+    /// item stays empty instead of inventing a slot that reads as drift);
+    /// `editableTargets` materializes it (floor 1, so starting a template and
+    /// editing one always have a row).
+    @Test func templateTargetsDeriveOnceWithStoredAndMaterializedFloors() throws {
+        let context = try makeInMemoryContext()
+        let bench = Exercise(name: "Bench")
+        let template = WorkoutTemplate(name: "Push")
+        context.insert(bench)
+        context.insert(template)
+
+        // targetSets decides the slot count: extra slots inherit the item's
+        // single targetReps, slots past it are dropped.
+        let padded = TemplateItem(
+            order: 0, targetSets: 3, targetReps: 8, targetRepsBySet: [10],
+            exercise: bench)
+        let truncated = TemplateItem(
+            order: 1, targetSets: 1, targetRepsBySet: [10, 8], exercise: bench)
+        let empty = TemplateItem(order: 2, targetSets: 0, exercise: bench)
+        for item in [padded, truncated, empty] {
+            item.template = template
+            context.insert(item)
+        }
+        try context.save()
+
+        #expect(padded.storedTargets.repsBySet == [10, 8, 8])
+        #expect(padded.editableTargets.repsBySet == [10, 8, 8])
+        #expect(truncated.storedTargets.repsBySet == [10])
+        #expect(truncated.editableTargets.count == 1)
+
+        #expect(empty.storedTargets.repsBySet == [])
+        #expect(empty.editableTargets.repsBySet == [nil])
+
+        // The floors' visible consequences: the drift snapshot of the empty
+        // item carries no slots, and starting the template still yields one
+        // loggable row per item.
+        let snapshot = TemplateDriftService(context: context).templateSnapshot(template)
+        #expect(snapshot.map(\.targetRepsBySet) == [[10, 8, 8], [10], []])
+
+        let workout = try WorkoutTemplateService(context: context)
+            .start(template, at: nil)
+        #expect(WorkoutSession.orderedEntries(of: workout)
+            .map { WorkoutSession.orderedSets(of: $0).count } == [3, 1, 1])
+    }
+
     /// Defect 6 regression: the save-as-template offer must be gated on a
     /// predicate that agrees with `saveAsTemplate`, and capture must work
     /// before `finish` so a failure can never leave a finished workout with

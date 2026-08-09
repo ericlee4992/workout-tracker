@@ -75,4 +75,10 @@ enum Format {
             ? String(Int(value))
             : String(format: "%.1f", value)
     }
+
+    /// `m:ss` for every rest duration the app shows — the running timer, the
+    /// global defaults, and the per-exercise overrides read the same way.
+    static func duration(seconds: Int) -> String {
+        String(format: "%d:%02d", seconds / 60, seconds % 60)
+    }
 }

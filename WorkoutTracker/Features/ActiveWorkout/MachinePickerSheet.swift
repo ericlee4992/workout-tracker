@@ -11,12 +11,7 @@ struct MachinePickerSheet: View {
 
     private var gym: Gym? { entry.workout?.gym }
 
-    private var machines: [MachineInstance] {
-        guard gym?.archived == false else { return [] }
-        return (gym?.machines ?? [])
-            .filter { !$0.archived }
-            .sorted { $0.label < $1.label }
-    }
+    private var machines: [MachineInstance] { gym?.activeMachines ?? [] }
 
     /// After one completed set the entry's equipment is frozen (D19) —
     /// picking different equipment starts a new entry.

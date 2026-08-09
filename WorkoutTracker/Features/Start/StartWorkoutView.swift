@@ -70,27 +70,11 @@ struct StartWorkoutView: View {
             } message: {
                 Text("Resume it, or finish it and start a new one — only its completed sets are kept.")
             }
-            .confirmationDialog(
-                "Update workout template?",
+            .templateDriftDialog(
                 isPresented: $showingReplacementDrift,
-                titleVisibility: .visible
-            ) {
-                Button("Update Template") {
-                    resolveReplacementDrift(.updateTemplate)
-                }
-                Button("Update Values Only") {
-                    resolveReplacementDrift(.updateValuesOnly)
-                }
-                Button("Update Both") {
-                    resolveReplacementDrift(.updateBoth)
-                }
-                Button("Keep Original") {
-                    resolveReplacementDrift(.keepOriginal)
-                }
-                Button("Keep Current Workout", role: .cancel) {}
-            } message: {
-                Text("The active workout differs from the template it started from. Choose how to save that template before starting the next workout.")
-            }
+                message: "The active workout differs from the template it started from. Choose how to save that template before starting the next workout.",
+                cancelLabel: "Keep Current Workout",
+                resolve: resolveReplacementDrift)
             .sheet(isPresented: $showingTemplateEditor) {
                 TemplateEditorSheet(template: editingTemplate)
             }
@@ -151,9 +135,8 @@ struct StartWorkoutView: View {
         do {
             if let workout = replacementWorkout,
                let template = replacementSourceTemplate {
-                try TemplateDriftService(context: modelContext).apply(
+                try TemplateDriftService(context: modelContext).resolve(
                     resolution, workout: workout, to: template)
-                try session.finish(workout)
             }
             replacementWorkout = nil
             replacementSourceTemplate = nil

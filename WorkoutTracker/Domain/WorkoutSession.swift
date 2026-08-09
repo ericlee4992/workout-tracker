@@ -366,9 +366,7 @@ struct WorkoutSession {
         let rows = (try? context.fetch(FetchDescriptor<GymExerciseMemory>(
             predicate: #Predicate { $0.gymID == gymID && $0.exerciseID == exerciseID }
         ))) ?? []
-        if let canonical = rows.max(by: {
-            ($0.updatedAt, $0.id.uuidString) < ($1.updatedAt, $1.id.uuidString)
-        }) {
+        if let canonical = rows.canonical {
             canonical.machineID = machineID
             canonical.updatedAt = date
         } else {

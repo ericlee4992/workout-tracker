@@ -148,6 +148,20 @@ struct TemplateDriftService {
         try context.save()
     }
 
+    /// Close out a template-sourced workout: apply the chosen resolution, then
+    /// finish the workout. The order matters — `apply` reads the workout's
+    /// completed structure and `finish` prunes the workout — so both drift
+    /// prompts (finishing, and replacing an active workout) share this one
+    /// sequence rather than each spelling it out.
+    func resolve(
+        _ resolution: TemplateDriftResolution,
+        workout: Workout,
+        to template: WorkoutTemplate
+    ) throws {
+        try apply(resolution, workout: workout, to: template)
+        try WorkoutSession(context: context).finish(workout)
+    }
+
     func templateSnapshot(_ template: WorkoutTemplate) -> [TemplateDriftItem] {
         snapshotRows(template).map(\.snapshot)
     }
@@ -161,15 +175,9 @@ struct TemplateDriftService {
     ) -> [(item: TemplateItem, snapshot: TemplateDriftItem)] {
         WorkoutTemplateService.orderedItems(of: template).compactMap { item in
             guard let exerciseID = item.exercise?.id else { return nil }
-            let count = max(0, item.targetSets ?? item.targetRepsBySet.count)
-            let targets = (0..<count).map { slot -> Int? in
-                if item.targetRepsBySet.indices.contains(slot) {
-                    return item.targetRepsBySet[slot]
-                }
-                return item.targetReps
-            }
             return (item, TemplateDriftItem(
-                exerciseID: exerciseID, targetRepsBySet: targets))
+                exerciseID: exerciseID,
+                targetRepsBySet: item.storedTargets.repsBySet))
         }
     }
 
