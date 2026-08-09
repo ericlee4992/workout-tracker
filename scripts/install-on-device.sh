@@ -198,9 +198,36 @@ detect_team_id() {
     | head -1 | sed -E 's/.*=[[:space:]]*//' | tr -d '[:space:]'
 }
 
-# has_signing_identity — true once Xcode has issued a development certificate.
+# has_signing_identity — true once a USABLE development identity exists.
 has_signing_identity() {
   security find-identity -v -p codesigning 2>/dev/null | grep -q "Apple Development"
+}
+
+# has_dev_cert_but_invalid — Xcode issued a certificate, but macOS won't accept
+# it for signing. Almost always a broken chain: Apple's development certs are
+# issued by the WWDR *G3* intermediate, and a Mac that only carries the
+# original WWDR intermediate (expired 2023-02-07) cannot build a chain to the
+# root. Symptom is a misleading "no certificate" — the cert is right there.
+has_dev_cert_but_invalid() {
+  ! has_signing_identity \
+    && security find-identity -p codesigning 2>/dev/null | grep -q "Apple Development"
+}
+
+# repair_wwdr_chain — install the current WWDR G3 intermediate. Idempotent.
+repair_wwdr_chain() {
+  local cer; cer=$(mktemp)/AppleWWDRCAG3.cer 2>/dev/null || cer="${TMPDIR:-/tmp}/AppleWWDRCAG3.cer"
+  say "Downloading Apple's current WWDR G3 intermediate…"
+  if ! curl -fsSL -o "$cer" https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer; then
+    warn "Download failed — check your network, or grab it manually from"
+    note "https://www.apple.com/certificateauthority/ and double-click to install."
+    return 1
+  fi
+  if ! openssl x509 -inform DER -in "$cer" -noout -subject 2>/dev/null | grep -q "OU *= *G3"; then
+    warn "Downloaded file isn't the expected G3 intermediate — not importing."
+    return 1
+  fi
+  security import "$cer" -k "$HOME/Library/Keychains/login.keychain-db" 2>&1 | head -2 || true
+  rm -f "$cer"
 }
 
 # write_team_id TEAMID — upsert DEVELOPMENT_TEAM beside every automatic
@@ -267,7 +294,24 @@ else
   printf '\n'
   until has_signing_identity; do
     pause "Signed in? Press Enter and I'll check for the certificate"
-    has_signing_identity || warn "No Apple Development certificate yet — finish the sign-in, then retry."
+    if has_signing_identity; then break; fi
+    if has_dev_cert_but_invalid; then
+      printf '\n'
+      warn "Your certificate exists but macOS won't accept it for signing."
+      note "Cause: it's issued by Apple's WWDR G3 intermediate, which this Mac is"
+      note "missing (the original WWDR intermediate expired 2023-02-07). Fixable."
+      printf '\n'
+      if confirm "Install the G3 intermediate now?"; then
+        repair_wwdr_chain || true
+        has_signing_identity \
+          && printf '  %s✓%s Chain repaired — identity is now valid.\n' "$GREEN" "$RESET" \
+          || warn "Still invalid. Run: security find-identity -v -p codesigning"
+      fi
+    else
+      warn "No Apple Development certificate yet — finish the sign-in, then retry."
+      note "Xcode mints one lazily: Settings ▸ Accounts ▸ select your Apple ID ▸"
+      note "Manage Certificates… ▸ + ▸ Apple Development, if it hasn't appeared."
+    fi
   done
   printf '  %s✓%s Apple Development certificate found.\n' "$GREEN" "$RESET"
   pause "Press Enter to continue"
