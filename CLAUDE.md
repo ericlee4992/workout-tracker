@@ -36,11 +36,27 @@ xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
   -sdk iphonesimulator -destination 'platform=iOS Simulator,name=WT-iPhone'
 ```
 
-Device bootstrap: tests target the `WT-iPhone` simulator. If `xcrun simctl list devices`
+Simulator bootstrap: tests target the `WT-iPhone` simulator. If `xcrun simctl list devices`
 shows no such device, create it first (any available iPhone device type / latest runtime works):
 `xcrun simctl create WT-iPhone "iPhone 17 Pro"`. Alternatively substitute
 `name=<first available iPhone>` from `xcrun simctl list devices`. Test files added under
 `WorkoutTrackerTests/` auto-register via the synchronized folder — never edit `project.pbxproj`.
+
+### Running on a real iPhone
+
+```sh
+./scripts/install-on-device.sh
+```
+
+Guided setup + install: attaches an Apple ID signing identity, writes
+`DEVELOPMENT_TEAM` into the project, enables Developer Mode on the phone, then
+builds, installs, and points at the trust step. Safe to re-run — every stage
+detects work already done and skips it.
+
+Re-run it whenever the build stops launching: a **free** Apple account signs
+builds for **7 days only**. A paid Developer Program account lasts a year.
+Bundle ID `com.ericlee4992.workouttracker` must stay globally unique across
+Apple's system.
 
 ## Workflow
 
