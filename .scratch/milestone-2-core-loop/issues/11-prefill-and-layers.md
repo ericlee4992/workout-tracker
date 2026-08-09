@@ -34,3 +34,17 @@ gym/date, completed sets, and as-entered units with explicit prefill/reference f
 labeled empty states. Seven focused tests cover one-tap completion, no-history fallback,
 type-aware matching, dirty rejection, travel units, barbell/dumbbell isolation, and duplicate
 entry determinism.
+
+Post-review fixes 2026-08-08 (cross-review, records layer keys). Two layer definitions in
+`recordSummary` did not match this ticket. Layer 3 keyed machineless entries by
+`(exercise, freeWeightTag)`, byte-identical to layer 1, so a barbell entry's "Any equipment"
+records were just its barbell records and exercise-wide history never appeared; it now always
+keys `.exercise(exerciseID)` ("exercise anywhere"). Layer 1 keeps the tag-specific key, so
+barbell and dumbbell still never merge. Layer 2 keyed `.model(modelID)`, which includes the
+current gym's own sets — contradicting both its "Same model elsewhere" header and the
+snapshot list beside it; the model group is now filtered by the current gym id, mirroring the
+snapshot list's `snapshotGymID != gymID`. `RecordSetInput` gained a snapshot `gymID`
+(populated in `recordInputs`) to make that possible; it is deliberately not a group key,
+since a model group legitimately spans gyms. The live-catalog reads in `currentExerciseID`,
+`layerOneMatch`, and `layers` are unchanged: they answer "which exercise/equipment is the
+user on right now" for the draft entry, which is identity, not history classification.

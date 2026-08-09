@@ -105,7 +105,7 @@ struct PreviousPerformanceSheet: View {
             }
             .padding(.vertical, 3)
         } else {
-            Text("No eligible records at this layer yet.")
+            Text(PerformanceLayerKind.emptyRecordsMessage)
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -181,16 +181,7 @@ struct PreviousPerformanceSheet: View {
     }
 
     private func emptyMessage(for kind: PerformanceLayerKind) -> String {
-        switch kind {
-        case .thisEquipment:
-            entry.machine == nil
-                ? "No completed sets with this equipment yet."
-                : "No completed sets on this machine yet."
-        case .sameModelElsewhere:
-            "No other gyms with this model logged yet."
-        case .anyEquipment:
-            "No history for this exercise yet."
-        }
+        kind.emptyHistoryMessage(hasMachine: entry.machine != nil)
     }
 
     private var queryIdentity: String {

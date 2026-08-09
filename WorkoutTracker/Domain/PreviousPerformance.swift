@@ -7,6 +7,28 @@ enum PerformanceLayerKind: String, Sendable, Hashable {
     case anyEquipment
 }
 
+extension PerformanceLayerKind {
+    /// Ticket 13: a layer with no history still renders a labeled explanation
+    /// naming *this* layer — never a blank section. Kept beside the layer kind
+    /// (Foundation-only, unit-tested) so the empty states cannot silently
+    /// vanish from the sheet.
+    func emptyHistoryMessage(hasMachine: Bool) -> String {
+        switch self {
+        case .thisEquipment:
+            hasMachine
+                ? "No completed sets on this machine yet."
+                : "No completed sets with this equipment yet."
+        case .sameModelElsewhere:
+            "No other gyms with this model logged yet."
+        case .anyEquipment:
+            "No history for this exercise yet."
+        }
+    }
+
+    /// Shown in place of a layer's records block when it has no eligible sets.
+    static let emptyRecordsMessage = "No eligible records at this layer yet."
+}
+
 struct PreviousSetValue: Sendable, Equatable, Identifiable {
     var id: UUID
     var order: Int
@@ -165,15 +187,26 @@ struct PerformanceHistory {
     /// records core. Group selection follows `RecordGroupKey`: machine,
     /// model, exercise, or tag-specific free weight. Thus barbell and
     /// dumbbell records never merge even though both share an exercise UUID.
+    ///
+    /// The summary's load type classifies *history*, so it is derived from
+    /// the layer's own inputs' snapshot load types (D23), never from the live
+    /// exercise: RecordsMath filters each input by its snapshot load type, so
+    /// a catalog loadType edit would otherwise leave the summary's load type
+    /// disagreeing with every one of its inputs and blank every past record
+    /// at every layer. Live catalog reads survive only where they answer
+    /// "which exercise/equipment is the user on right now" for the draft
+    /// entry (`currentExerciseID`, `layerOneMatch`, `layers`); nothing that
+    /// classifies or filters history reads a live relationship.
     func recordSummary(
         for entry: ExerciseEntry,
         layer: PerformanceLayerKind
     ) throws -> RecordLayerSummary {
-        let loadType = entry.exercise?.loadType ?? entry.snapshotLoadType
         let allInputs = try historicalEntries().flatMap(recordInputs(from:))
         let grouped = RecordsMath.grouped(allInputs)
         let exerciseID = currentExerciseID(for: entry)
         let key: RecordGroupKey?
+        // Set when the layer is scoped to gyms other than the current one.
+        var elsewhereThanGymID: UUID?
         switch layer {
         case .thisEquipment:
             if let machineID = entry.machine?.id {
@@ -182,24 +215,48 @@ struct PerformanceHistory {
                 key = .freeWeight(exerciseID: exerciseID, tag: entry.freeWeightTag)
             }
         case .sameModelElsewhere:
-            if let modelID = entry.machine?.model?.id {
+            // "Elsewhere" is part of the layer, not just its header: the model
+            // group spans gyms, so the current gym's own sets are dropped —
+            // the same rule `layers`/`completedValues` apply to snapshots.
+            if let modelID = entry.machine?.model?.id,
+               let gymID = entry.workout?.gym?.id {
                 key = .model(modelID)
+                elsewhereThanGymID = gymID
             } else {
                 key = nil
             }
         case .anyEquipment:
-            if entry.machine == nil {
-                key = .freeWeight(exerciseID: exerciseID, tag: entry.freeWeightTag)
-            } else {
-                key = .exercise(exerciseID)
-            }
+            // Layer 3 is "exercise anywhere" (ticket 11) — always the
+            // exercise-wide key. Keying machineless entries by free-weight tag
+            // made it byte-identical to layer 1, hiding all other equipment.
+            key = .exercise(exerciseID)
         }
-        let inputs = key.flatMap { grouped[$0] } ?? []
+        var inputs = key.flatMap { grouped[$0] } ?? []
+        if let elsewhereThanGymID {
+            inputs = inputs.filter { $0.gymID != elsewhereThanGymID }
+        }
+        let loadType = historicalLoadType(among: inputs) ?? entry.snapshotLoadType
         return RecordLayerSummary(
             loadType: loadType,
             repCountBests: RecordsMath.repCountBests(among: inputs, loadType: loadType),
             bodyweightBest: RecordsMath.mostRepsRecord(among: inputs),
             estimatedOneRepMax: RecordsMath.bestE1RM(among: inputs))
+    }
+
+    /// The load type a layer's history is recorded under: the dominant
+    /// snapshot load type among its inputs, ties resolving to the most
+    /// recently completed set's. nil when the layer has no history, leaving
+    /// the caller to fall back to the entry's own snapshot load type.
+    private func historicalLoadType(among inputs: [RecordSetInput]) -> LoadType? {
+        var counts: [LoadType: Int] = [:]
+        for input in inputs { counts[input.loadType, default: 0] += 1 }
+        guard let topCount = counts.values.max() else { return nil }
+        let leaders = Set(counts.filter { $0.value == topCount }.keys)
+        if leaders.count == 1 { return leaders.first }
+        return inputs
+            .filter { leaders.contains($0.loadType) }
+            .max { ($0.completedAt ?? .distantPast) < ($1.completedAt ?? .distantPast) }?
+            .loadType
     }
 
     // MARK: Selection
@@ -282,6 +339,7 @@ struct PerformanceHistory {
             RecordSetInput(
                 loadType: entry.snapshotLoadType,
                 exerciseID: entry.snapshotExerciseID,
+                gymID: entry.snapshotGymID,
                 machineID: entry.snapshotMachineID,
                 modelID: entry.snapshotModelID,
                 freeWeightTag: entry.snapshotFreeWeightTag,

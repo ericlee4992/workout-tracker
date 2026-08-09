@@ -20,6 +20,10 @@ import Foundation
 struct RecordSetInput: Equatable {
     var loadType: LoadType
     var exerciseID: UUID
+    /// Gym the set was logged at, from the entry snapshot (nil = no gym).
+    /// Not a group key — `.model` records span gyms by design; callers scope
+    /// a model group to "elsewhere" by filtering out the current gym's id.
+    var gymID: UUID?
     var machineID: UUID?
     var modelID: UUID?
     var freeWeightTag: EquipmentTag?
