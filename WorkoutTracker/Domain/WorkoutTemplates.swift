@@ -53,8 +53,11 @@ struct WorkoutTemplateService {
     }
 
     /// Starts a template at `gym` (or no gym), resolving each exercise to the
-    /// latest active remembered machine at that gym. Target set rows remain
-    /// drafts; per-slot target reps are copied into their input values.
+    /// latest active remembered machine at that gym. Target set counts
+    /// materialize as genuinely empty, uncompleted draft rows: a *planned*
+    /// rep count is not a *performed* one, so it is never written into a
+    /// SetRecord. Ticket 11's same-machine prefill fills rows from real
+    /// history, and it can only do so while the row is untouched.
     @discardableResult
     func start(
         _ template: WorkoutTemplate,
@@ -80,12 +83,6 @@ struct WorkoutTemplateService {
             while WorkoutSession.orderedSets(of: entry).count < count {
                 try session.addSet(to: entry)
             }
-            for (index, set) in WorkoutSession.orderedSets(of: entry).enumerated() {
-                let perSlot = item.targetRepsBySet.indices.contains(index)
-                    ? item.targetRepsBySet[index]
-                    : nil
-                set.reps = perSlot ?? item.targetReps
-            }
         }
         try context.save()
         return workout
@@ -99,7 +96,21 @@ struct WorkoutTemplateService {
         _ workout: Workout,
         name: String
     ) throws -> WorkoutTemplate {
-        let drafts = WorkoutSession.orderedEntries(of: workout).compactMap { entry -> TemplateItemDraft? in
+        try create(name: name, items: Self.capturableItems(of: workout))
+    }
+
+    /// Whether `saveAsTemplate` can succeed for this workout. The UI must
+    /// gate the option on this instead of finishing first and discovering
+    /// `noExercises` afterwards.
+    static func canSaveAsTemplate(_ workout: Workout) -> Bool {
+        guard !workout.isDeleted else { return false }
+        return !capturableItems(of: workout).isEmpty
+    }
+
+    /// The completed structure a template would be built from: entries with a
+    /// live exercise and at least one completed set, in scalar order.
+    private static func capturableItems(of workout: Workout) -> [TemplateItemDraft] {
+        WorkoutSession.orderedEntries(of: workout).compactMap { entry -> TemplateItemDraft? in
             guard let exercise = entry.exercise else { return nil }
             let completed = WorkoutSession.orderedSets(of: entry)
                 .filter { $0.completedAt != nil }
@@ -108,7 +119,6 @@ struct WorkoutTemplateService {
                 exercise: exercise,
                 targetRepsBySet: completed.map(\.reps))
         }
-        return try create(name: name, items: drafts)
     }
 
     static func orderedItems(of template: WorkoutTemplate) -> [TemplateItem] {

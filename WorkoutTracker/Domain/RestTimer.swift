@@ -54,6 +54,10 @@ final class UserNotificationScheduler: RestNotificationScheduling {
 struct RestTimerState: Equatable {
     var end: Date
     var remaining: TimeInterval
+    /// The full duration this rest was started with, including any +15s
+    /// extensions. `remaining / total` is the progress-bar fraction; using
+    /// `remaining` as the denominator would show a restored timer as full.
+    var total: TimeInterval
 }
 
 /// Ticket 14 timer state machine. Absolute time lives on Workout, duration
@@ -123,10 +127,14 @@ struct RestTimerService {
         let seconds = try durationSeconds(for: set)
         let end = clock.now.addingTimeInterval(TimeInterval(seconds))
         workout.restEndsAt = end
+        workout.restStartedAt = clock.now
         workout.restStartedBySetID = set.id
         try context.save()
         notifications.schedule(at: end)
-        return RestTimerState(end: end, remaining: TimeInterval(seconds))
+        return RestTimerState(
+            end: end,
+            remaining: TimeInterval(seconds),
+            total: TimeInterval(seconds))
     }
 
     /// Reconstruct or expire a persisted timer. Expired timers are cleared so
@@ -140,7 +148,8 @@ struct RestTimerService {
             notifications.cancel()
             return nil
         }
-        return RestTimerState(end: end, remaining: remaining)
+        return RestTimerState(
+            end: end, remaining: remaining, total: total(of: workout, end: end))
     }
 
     @discardableResult
@@ -150,7 +159,21 @@ struct RestTimerService {
         workout.restEndsAt = end
         try context.save()
         notifications.schedule(at: end)
-        return RestTimerState(end: end, remaining: end.timeIntervalSince(clock.now))
+        // `restStartedAt` is untouched, so the total grows with the extension
+        // and the bar keeps shrinking from wherever it was.
+        return RestTimerState(
+            end: end,
+            remaining: end.timeIntervalSince(clock.now),
+            total: total(of: workout, end: end))
+    }
+
+    /// Total = end − start. Timers persisted before `restStartedAt` existed
+    /// fall back to the remaining time (the old behaviour) rather than zero.
+    private func total(of workout: Workout, end: Date) -> TimeInterval {
+        guard let started = workout.restStartedAt else {
+            return max(0, end.timeIntervalSince(clock.now))
+        }
+        return max(0, end.timeIntervalSince(started))
     }
 
     func skip(_ workout: Workout) throws {
@@ -182,6 +205,7 @@ struct RestTimerService {
 
     private func clear(_ workout: Workout) {
         workout.restEndsAt = nil
+        workout.restStartedAt = nil
         workout.restStartedBySetID = nil
     }
 }

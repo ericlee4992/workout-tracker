@@ -15,9 +15,17 @@ import SwiftData
 struct WorkoutSession {
 
     let context: ModelContext
+    /// Owns rest-timer teardown so ending a workout can never leave a pending
+    /// local notification behind (it used to be correct only because every
+    /// call site happened to skip the timer first).
+    private let restTimer: RestTimerService
 
-    init(context: ModelContext) {
+    init(
+        context: ModelContext,
+        notifications: any RestNotificationScheduling = UserNotificationScheduler.shared
+    ) {
         self.context = context
+        self.restTimer = RestTimerService(context: context, notifications: notifications)
     }
 
     // MARK: - Lifecycle
@@ -28,7 +36,7 @@ struct WorkoutSession {
     @discardableResult
     func startWorkout(at gym: Gym?, on date: Date = .now) throws -> Workout {
         for stray in try activeWorkouts() {
-            finishInPlace(stray, at: date)
+            try finishInPlace(stray, at: date)
         }
         let workout = Workout(startedAt: date, gym: gym)
         context.insert(workout)
@@ -46,7 +54,7 @@ struct WorkoutSession {
         let strays = active.dropFirst()
         guard !strays.isEmpty else { return newest }
         for stray in strays {
-            finishInPlace(stray, at: date)
+            try finishInPlace(stray, at: date)
         }
         try context.save()
         return newest
@@ -56,13 +64,14 @@ struct WorkoutSession {
     /// completed sets, then stamps `finishedAt` — only completed data
     /// reaches history.
     func finish(_ workout: Workout, at date: Date = .now) throws {
-        finishInPlace(workout, at: date)
+        try finishInPlace(workout, at: date)
         try context.save()
     }
 
     /// Cancel: deletes the workout and its whole graph (entries cascade to
     /// sets). The UI confirms before calling this.
     func cancel(_ workout: Workout) throws {
+        try restTimer.skip(workout)
         context.delete(workout)
         try context.save()
     }
@@ -74,7 +83,11 @@ struct WorkoutSession {
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]))
     }
 
-    private func finishInPlace(_ workout: Workout, at date: Date) {
+    private func finishInPlace(_ workout: Workout, at date: Date) throws {
+        // Ending the workout ends its rest: clearing the persisted timer and
+        // cancelling the pending notification are one operation, owned by the
+        // rest-timer service.
+        try restTimer.skip(workout)
         for entry in workout.entries ?? [] {
             let sets = entry.sets ?? []
             let completed = sets.filter { $0.completedAt != nil }
@@ -85,8 +98,6 @@ struct WorkoutSession {
                 context.delete(entry)
             }
         }
-        workout.restEndsAt = nil
-        workout.restStartedBySetID = nil
         workout.finishedAt = date
     }
 

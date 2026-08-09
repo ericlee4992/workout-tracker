@@ -17,6 +17,7 @@ struct ActiveWorkoutView: View {
     @State private var choosingFromScratchFinish = false
     @State private var namingTemplate = false
     @State private var templateName = ""
+    @State private var templateFailure: String?
     @State private var driftTemplate: WorkoutTemplate?
     @State private var choosingDriftResolution = false
 
@@ -105,6 +106,8 @@ struct ActiveWorkoutView: View {
                 isPresented: $choosingFromScratchFinish,
                 titleVisibility: .visible
             ) {
+                // Only offered when it can actually succeed — see
+                // `canSaveAsTemplate`.
                 Button("Finish & Save as Template") {
                     templateName = defaultTemplateName
                     namingTemplate = true
@@ -121,6 +124,16 @@ struct ActiveWorkoutView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Completed sets become target set and rep slots. Weights and rest times are not saved.")
+            }
+            .alert(
+                "Couldn't Save Template",
+                isPresented: Binding(
+                    get: { templateFailure != nil },
+                    set: { if !$0 { templateFailure = nil } })
+            ) {
+                Button("OK", role: .cancel) { templateFailure = nil }
+            } message: {
+                Text(templateFailure ?? "")
             }
             .confirmationDialog(
                 "Update workout template?",
@@ -190,9 +203,21 @@ struct ActiveWorkoutView: View {
 
     // MARK: Actions
 
+    /// A from-scratch workout can only become a template once something has
+    /// been completed — `saveAsTemplate` captures completed sets only and
+    /// throws `noExercises` otherwise. Offering the option when it cannot
+    /// succeed used to finish the workout and then fail.
+    private var canSaveAsTemplate: Bool {
+        WorkoutTemplateService.canSaveAsTemplate(workout)
+    }
+
     private func finishTapped() {
         if workout.sourceTemplateID == nil {
-            choosingFromScratchFinish = true
+            if canSaveAsTemplate {
+                choosingFromScratchFinish = true
+            } else {
+                finishWorkout()
+            }
             return
         }
         do {
@@ -209,9 +234,10 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    // `session.finish` / `session.cancel` end the rest timer (state and
+    // pending notification) themselves — call sites no longer skip first.
     private func finishWorkout() {
         do {
-            try restTimer.skip(workout)
             try session.finish(workout)
         } catch {
             assertionFailure("Failed to finish workout: \(error)")
@@ -219,22 +245,35 @@ struct ActiveWorkoutView: View {
         dismiss()
     }
 
+    /// Capture the template BEFORE finishing: a failure must leave the
+    /// workout untouched and tell the user, not finish it and swallow the
+    /// error. Capture reads completed sets only, so the result is identical
+    /// either side of `finish`.
     private func finishAndSaveTemplate() {
         do {
-            try restTimer.skip(workout)
-            try session.finish(workout)
             try WorkoutTemplateService(context: modelContext).saveAsTemplate(
                 workout,
                 name: templateName)
         } catch {
-            assertionFailure("Failed to finish and save template: \(error)")
+            templateFailure = Self.templateFailureMessage(error)
+            return
         }
-        dismiss()
+        finishWorkout()
+    }
+
+    private static func templateFailureMessage(_ error: Error) -> String {
+        switch error as? WorkoutTemplateError {
+        case .emptyName:
+            return "Give the template a name and try again."
+        case .noExercises:
+            return "This workout has no completed sets yet, so there is nothing to save as a template. Complete a set first, or finish without saving."
+        case nil:
+            return "The template could not be saved: \(error.localizedDescription)"
+        }
     }
 
     private func finishTemplatedWorkout(using resolution: TemplateDriftResolution) {
         do {
-            try restTimer.skip(workout)
             if let driftTemplate {
                 try TemplateDriftService(context: modelContext).apply(
                     resolution, workout: workout, to: driftTemplate)
@@ -255,7 +294,6 @@ struct ActiveWorkoutView: View {
 
     private func cancelWorkout() {
         do {
-            try restTimer.skip(workout)
             try session.cancel(workout)
         } catch {
             assertionFailure("Failed to cancel workout: \(error)")
@@ -280,7 +318,7 @@ struct ActiveWorkoutView: View {
 
     private func updateRest(for set: SetRecord, isCompleted: Bool) {
         do {
-            apply(try restTimer.handleCompletionChange(
+            showRestTimer(try restTimer.handleCompletionChange(
                 of: set, isCompleted: isCompleted))
         } catch {
             assertionFailure("Failed to update rest timer: \(error)")
@@ -288,7 +326,7 @@ struct ActiveWorkoutView: View {
     }
 
     private func addFifteen() {
-        do { apply(try restTimer.add(seconds: 15, to: workout)) }
+        do { showRestTimer(try restTimer.add(seconds: 15, to: workout)) }
         catch { assertionFailure("Failed to extend rest timer: \(error)") }
     }
 
@@ -302,13 +340,16 @@ struct ActiveWorkoutView: View {
     }
 
     private func refreshRest() {
-        do { apply(try restTimer.currentState(for: workout)) }
+        do { showRestTimer(try restTimer.currentState(for: workout)) }
         catch { assertionFailure("Failed to restore rest timer: \(error)") }
     }
 
-    private func apply(_ state: RestTimerState?) {
+    /// Drives the rest bar from a timer state. The progress denominator is the
+    /// state's *total* duration — using the remaining time would make a bar
+    /// restored mid-rest jump straight back to full.
+    private func showRestTimer(_ state: RestTimerState?) {
         restEnd = state?.end
-        if let state { restTotal = max(1, state.remaining) }
+        if let state { restTotal = max(1, state.total) }
     }
 }
 

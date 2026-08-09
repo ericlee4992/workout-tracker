@@ -111,9 +111,8 @@ struct StartWorkoutView: View {
 
     private func startNew() {
         do {
-            if let active = try session.resumableWorkout() {
-                try RestTimerService(context: modelContext).skip(active)
-            }
+            // Any still-active workout is auto-finished by `startWorkout`,
+            // which ends its rest timer and pending notification.
             let workout: Workout
             if let template = pendingTemplate {
                 workout = try WorkoutTemplateService(context: modelContext)
@@ -152,7 +151,6 @@ struct StartWorkoutView: View {
         do {
             if let workout = replacementWorkout,
                let template = replacementSourceTemplate {
-                try RestTimerService(context: modelContext).skip(workout)
                 try TemplateDriftService(context: modelContext).apply(
                     resolution, workout: workout, to: template)
                 try session.finish(workout)

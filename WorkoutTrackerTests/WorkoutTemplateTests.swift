@@ -98,7 +98,7 @@ struct WorkoutTemplateTests {
         #expect(atA.sourceTemplateID == template.id)
         let entriesA = WorkoutSession.orderedEntries(of: atA)
         #expect(entriesA.map { $0.machine?.id } == [benchA.id, rowA.id])
-        #expect(WorkoutSession.orderedSets(of: entriesA[0]).map(\.reps) == [10, 8])
+        #expect(WorkoutSession.orderedSets(of: entriesA[0]).count == 2)
         try WorkoutSession(context: context).cancel(atA)
 
         let atB = try service.start(
@@ -123,6 +123,72 @@ struct WorkoutTemplateTests {
         let workout = try service.start(template, at: nil)
         #expect(workout.gym == nil)
         #expect(WorkoutSession.orderedEntries(of: workout).allSatisfy { $0.machine == nil })
+    }
+
+    /// Defect 4 regression: a template's target reps are a *plan*. Starting a
+    /// template must materialize empty uncompleted drafts, never pre-write
+    /// planned reps that a one-tap completion would log as performed (and
+    /// that ticket 11's prefill would silently overwrite anyway).
+    @Test func startedTemplateRowsAreEmptyUncompletedDrafts() throws {
+        let context = try makeInMemoryContext()
+        let bench = Exercise(name: "Bench")
+        let row = Exercise(name: "Row")
+        context.insert(bench)
+        context.insert(row)
+        try context.save()
+        let service = WorkoutTemplateService(context: context)
+        let template = try service.create(name: "Push", items: [
+            TemplateItemDraft(exercise: bench, targetRepsBySet: [10, 8, 6]),
+            TemplateItemDraft(exercise: row, targetRepsBySet: [12]),
+        ])
+
+        let workout = try service.start(template, at: nil)
+        let entries = WorkoutSession.orderedEntries(of: workout)
+        #expect(entries.map { WorkoutSession.orderedSets(of: $0).count } == [3, 1])
+        for entry in entries {
+            for set in WorkoutSession.orderedSets(of: entry) {
+                #expect(set.reps == nil)
+                #expect(set.completedAt == nil)
+                #expect(set.weightValue == nil)
+                #expect(set.normalizedKg == nil)
+            }
+        }
+        // The template itself still owns the targets.
+        #expect(WorkoutTemplateService.orderedItems(of: template)
+            .map(\.targetRepsBySet) == [[10, 8, 6], [12]])
+    }
+
+    /// Defect 6 regression: the save-as-template offer must be gated on a
+    /// predicate that agrees with `saveAsTemplate`, and capture must work
+    /// before `finish` so a failure can never leave a finished workout with
+    /// no template.
+    @Test func saveAsTemplateIsOfferedOnlyWhenItCanSucceed() throws {
+        let context = try makeInMemoryContext()
+        let session = WorkoutSession(context: context)
+        let bench = Exercise(name: "Bench")
+        context.insert(bench)
+        try context.save()
+        let workout = try session.startWorkout(at: nil)
+        let entry = try session.addEntry(for: bench, to: workout)
+        let service = WorkoutTemplateService(context: context)
+
+        // Drafts only: not offerable, and attempting it fails loudly.
+        #expect(!WorkoutTemplateService.canSaveAsTemplate(workout))
+        #expect(throws: WorkoutTemplateError.noExercises) {
+            try service.saveAsTemplate(workout, name: "Nope")
+        }
+        #expect(try context.fetchCount(FetchDescriptor<WorkoutTemplate>()) == 0)
+        #expect(workout.finishedAt == nil)
+
+        let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+        try session.commitReps("9", for: set)
+        try session.toggleCompletion(of: set)
+
+        // Offerable, and capture works on the still-active workout.
+        #expect(WorkoutTemplateService.canSaveAsTemplate(workout))
+        let template = try service.saveAsTemplate(workout, name: "Yes")
+        #expect(WorkoutTemplateService.orderedItems(of: template)
+            .map(\.targetRepsBySet) == [[9]])
     }
 
     @Test func saveAsTemplateCapturesCompletedStructureAndSlotRepsOnly() throws {

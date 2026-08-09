@@ -105,13 +105,20 @@ struct RestTimerTests {
         #expect(rig.workout.restStartedBySetID == rig.working.id)
         #expect(notifications.authorizationRequests == 1)
 
+        #expect(replaced.total == 120)
+        #expect(rig.workout.restStartedAt == Date(timeIntervalSince1970: 110))
+
         let extendedState = try timer.add(seconds: 15, to: rig.workout)
         let extended = try #require(extendedState)
         #expect(extended.end == Date(timeIntervalSince1970: 245))
+        // +15s grows the total too, so the bar keeps shrinking from where it was.
+        #expect(extended.total == 135)
+        #expect(extended.remaining == 135)
         #expect(notifications.scheduledDates.last == extended.end)
 
         try timer.skip(rig.workout)
         #expect(rig.workout.restEndsAt == nil)
+        #expect(rig.workout.restStartedAt == nil)
         #expect(rig.workout.restStartedBySetID == nil)
         #expect(notifications.cancellations == 1)
     }
@@ -170,6 +177,57 @@ struct RestTimerTests {
         let state = try #require(restored)
         #expect(state.end == Date(timeIntervalSince1970: 220))
         #expect(state.remaining == 70)
+        // The progress denominator is the TOTAL duration, not the remaining
+        // time — otherwise a restored bar jumps back to full.
+        #expect(state.total == 120)
+    }
+
+    /// Defect 7 regression: finishing (or cancelling) a workout must end the
+    /// rest timer's notification itself. It used to be correct only because
+    /// every call site happened to skip the timer first.
+    @Test func finishAndCancelCancelPendingNotificationWithoutAnExplicitSkip() throws {
+        for cancelInsteadOfFinish in [false, true] {
+            let context = try makeInMemoryContext()
+            let rig = try makeRig(context: context)
+            let clock = FakeClock(now: Date(timeIntervalSince1970: 100))
+            let notifications = FakeNotifications()
+            rig.working.completedAt = clock.now
+            try RestTimerService(
+                context: context, clock: clock, notifications: notifications)
+                .handleCompletionChange(of: rig.working, isCompleted: true)
+            #expect(rig.workout.restEndsAt != nil)
+            #expect(notifications.cancellations == 0)
+
+            let session = WorkoutSession(context: context, notifications: notifications)
+            if cancelInsteadOfFinish {
+                try session.cancel(rig.workout)
+            } else {
+                try session.finish(rig.workout, at: Date(timeIntervalSince1970: 150))
+                #expect(rig.workout.restEndsAt == nil)
+                #expect(rig.workout.restStartedAt == nil)
+                #expect(rig.workout.restStartedBySetID == nil)
+            }
+            #expect(notifications.cancellations == 1)
+        }
+    }
+
+    /// Starting a new workout auto-finishes strays; their notifications go too.
+    @Test func startingANewWorkoutCancelsAStrayWorkoutsRestNotification() throws {
+        let context = try makeInMemoryContext()
+        let rig = try makeRig(context: context)
+        let clock = FakeClock(now: Date(timeIntervalSince1970: 100))
+        let notifications = FakeNotifications()
+        rig.working.completedAt = clock.now
+        try RestTimerService(
+            context: context, clock: clock, notifications: notifications)
+            .handleCompletionChange(of: rig.working, isCompleted: true)
+
+        try WorkoutSession(context: context, notifications: notifications)
+            .startWorkout(at: nil, on: Date(timeIntervalSince1970: 300))
+
+        #expect(rig.workout.finishedAt == Date(timeIntervalSince1970: 300))
+        #expect(rig.workout.restEndsAt == nil)
+        #expect(notifications.cancellations >= 1)
     }
 
     @Test func returningAfterTimerEndClearsStalePersistenceAndNotification() throws {

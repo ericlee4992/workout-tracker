@@ -118,11 +118,15 @@ struct TemplateDriftService {
             resolution, template: original, workout: completed)
 
         if resolution == .updateValuesOnly {
-            for (item, values) in zip(
-                WorkoutTemplateService.orderedItems(of: template), resolved) {
-                item.targetSets = values.targetRepsBySet.count
-                item.targetRepsBySet = values.targetRepsBySet
-                item.targetReps = values.targetRepsBySet.first.flatMap { $0 }
+            // Pair rows with resolved values from ONE filtered source. A
+            // positional zip over `orderedItems` would shift every target by
+            // one for each item whose exercise was nullified by a delete,
+            // writing one exercise's reps onto another.
+            for (row, values) in zip(snapshotRows(template), resolved) {
+                guard row.snapshot.exerciseID == values.exerciseID else { continue }
+                row.item.targetSets = values.targetRepsBySet.count
+                row.item.targetRepsBySet = values.targetRepsBySet
+                row.item.targetReps = values.targetRepsBySet.first.flatMap { $0 }
             }
             try context.save()
             return
@@ -145,6 +149,16 @@ struct TemplateDriftService {
     }
 
     func templateSnapshot(_ template: WorkoutTemplate) -> [TemplateDriftItem] {
+        snapshotRows(template).map(\.snapshot)
+    }
+
+    /// The template's comparable rows, each still carrying the `TemplateItem`
+    /// it came from. Items whose `exercise` was nullified by a delete have no
+    /// identity to match on and are dropped here — the single place that
+    /// filtering happens, so snapshots and write targets can never diverge.
+    private func snapshotRows(
+        _ template: WorkoutTemplate
+    ) -> [(item: TemplateItem, snapshot: TemplateDriftItem)] {
         WorkoutTemplateService.orderedItems(of: template).compactMap { item in
             guard let exerciseID = item.exercise?.id else { return nil }
             let count = max(0, item.targetSets ?? item.targetRepsBySet.count)
@@ -154,8 +168,8 @@ struct TemplateDriftService {
                 }
                 return item.targetReps
             }
-            return TemplateDriftItem(
-                exerciseID: exerciseID, targetRepsBySet: targets)
+            return (item, TemplateDriftItem(
+                exerciseID: exerciseID, targetRepsBySet: targets))
         }
     }
 

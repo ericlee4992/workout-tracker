@@ -103,13 +103,64 @@ struct TemplateDriftTests {
         let workout = try WorkoutTemplateService(context: context)
             .start(template, at: nil)
         let session = WorkoutSession(context: context)
-        let aSet = try #require(WorkoutSession.orderedEntries(of: workout).first)
-        try session.toggleCompletion(of: try #require(
-            WorkoutSession.orderedSets(of: aSet).first))
+        let aEntry = try #require(WorkoutSession.orderedEntries(of: workout).first)
+        let aSet = try #require(WorkoutSession.orderedSets(of: aEntry).first)
+        // Started rows are empty drafts (defect 4), so matching the template
+        // means actually logging its target.
+        try session.commitReps("10", for: aSet)
+        try session.toggleCompletion(of: aSet)
         _ = try session.addEntry(for: exerciseC, to: workout)
 
         #expect(try !TemplateDriftService(context: context)
             .shouldPrompt(for: workout, template: template))
+    }
+
+    /// Defect 5 regression: an item whose exercise was deleted (nullify) is
+    /// dropped from the template snapshot. "Update values only" must still
+    /// write each exercise's completed reps onto ITS OWN item — a positional
+    /// zip shifted every later item's targets by one.
+    @Test func updateValuesOnlySkipsOrphanedItemsInsteadOfShiftingTargets() throws {
+        let context = try makeContext()
+        let exerciseA = Exercise(id: a, name: "A")
+        let exerciseB = Exercise(id: b, name: "B")
+        let exerciseC = Exercise(id: c, name: "C")
+        context.insert(exerciseA)
+        context.insert(exerciseB)
+        context.insert(exerciseC)
+        try context.save()
+        let templates = WorkoutTemplateService(context: context)
+        let template = try templates.create(name: "Original", items: [
+            TemplateItemDraft(exercise: exerciseA, targetRepsBySet: [10, 8]),
+            TemplateItemDraft(exercise: exerciseB, targetRepsBySet: [12]),
+            TemplateItemDraft(exercise: exerciseC, targetRepsBySet: [20, 20]),
+        ])
+        // The MIDDLE item loses its exercise to a catalog delete.
+        context.delete(exerciseB)
+        try context.save()
+        let items = WorkoutTemplateService.orderedItems(of: template)
+        #expect(items.count == 3)
+        #expect(items[1].exercise == nil)
+
+        let session = WorkoutSession(context: context)
+        let workout = try session.startWorkout(at: nil)
+        workout.sourceTemplateID = template.id
+        try addCompleted([9, 7], exercise: exerciseA, workout: workout, session: session)
+        try addCompleted([15, 14], exercise: exerciseC, workout: workout, session: session)
+
+        let service = TemplateDriftService(context: context)
+        try service.apply(.updateValuesOnly, workout: workout, to: template)
+
+        let after = WorkoutTemplateService.orderedItems(of: template)
+        #expect(after[0].exercise?.id == a)
+        #expect(after[0].targetRepsBySet == [9, 7])
+        // The orphan keeps its own values; C's reps must not land on it.
+        #expect(after[1].exercise == nil)
+        #expect(after[1].targetRepsBySet == [12])
+        #expect(after[2].exercise?.id == c)
+        #expect(after[2].targetRepsBySet == [15, 14])
+        #expect(service.templateSnapshot(template) == [
+            item(a, [9, 7]), item(c, [15, 14]),
+        ])
     }
 
     @Test func suppressionMeansNoPromptAndLeavesTemplateUnchanged() throws {

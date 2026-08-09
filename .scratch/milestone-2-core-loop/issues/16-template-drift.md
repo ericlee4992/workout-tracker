@@ -10,3 +10,25 @@
 - [x] One state-transition test per option asserting the template's exact post-state
 - [x] Suppression toggle: no prompt, template unchanged
 - [x] Uncompleted (empty) entries don't count as drift
+
+**Review fix (2026-08-08).** "Update values only" wrote reps onto the wrong exercise.
+`TemplateDriftService.apply` zipped `orderedItems(of: template)` with the resolved values, but
+those values are positionally aligned to `templateSnapshot`, which `compactMap`s away items
+whose `exercise` is nil (nullify delete rule). A single orphaned item shifted every later
+item's targets by one. Snapshot construction and write targets now come from one filtered
+source — `snapshotRows(_:)` returns each surviving `TemplateItem` together with its
+`TemplateDriftItem`, and `templateSnapshot` is just its `.snapshot` projection — with an
+exercise-id equality guard before each write, so identity matching (duplicates in order, per
+this ticket) can no longer diverge from the comparison. Orphaned items keep their own values.
+
+Test: `updateValuesOnlySkipsOrphanedItemsInsteadOfShiftingTargets` — three-item template whose
+MIDDLE item's exercise is deleted, workout completes the first and third; asserts each item
+keeps its own reps.
+
+**Judgement call — the drift prompt on "Finish It & Start New" is correct behavior, not scope
+creep.** This ticket scopes the prompt to "finishing a templated workout"; `StartWorkoutView`'s
+"Finish It & Start New" *does* finish a templated workout, just from a different button. The
+alternative — suppressing the prompt there — would mean the D18 decision silently loses the
+user's drift whenever they finish from the Start screen instead of the workout screen, which is
+the behavior D18 exists to prevent. Kept deliberately; the wording of the ticket describes the
+event, not the button.

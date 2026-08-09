@@ -28,3 +28,26 @@ Gyms settings, and each active entry menu opens a warmup/working override editor
 global fall-through. Five fake-driven tests cover precedence, failure behavior, replacement,
 permission-once, extension/skip, source-aware un-completion, disk-backed relaunch, and suspended
 expiry. The system permission sheet remains the ticket's documented one-time manual device check.
+
+**Review fix (2026-08-08).** Two lifecycle defects, both fixed by construction rather than by
+convention:
+
+- `WorkoutSession.finish` cleared `restEndsAt`/`restStartedBySetID` inline while leaving the
+  pending local notification scheduled. That was only ever correct because every call site
+  happened to call `RestTimerService.skip` first — a new call site would have shipped a
+  notification that fires after the workout ended. `WorkoutSession` now owns a
+  `RestTimerService` (scheduler injectable, defaulting to the shared one) and routes
+  `finish`/`cancel`/stray auto-finish through `skip`, so state and notification always die
+  together. The redundant `skip` calls in `ActiveWorkoutView` and `StartWorkoutView` were
+  removed; the Skip button still calls it directly.
+- The rest bar's progress denominator was `state.remaining`, so a timer restored mid-rest
+  rendered as full and never appeared to shrink. `RestTimerState` now carries `total`, derived
+  from the new persisted `Workout.restStartedAt` (noted in ticket 02); +15s grows end and total
+  together. `ActiveWorkoutView.apply(_:)` — which did more than "apply" — is now
+  `showRestTimer(_:)`.
+
+Tests: `finishAndCancelCancelPendingNotificationWithoutAnExplicitSkip` (finish and cancel, no
+prior skip, fake scheduler),
+`startingANewWorkoutCancelsAStrayWorkoutsRestNotification`, plus `total` assertions in
+`completionReplaceAddAndSkipRescheduleOneTimer` and
+`relaunchMidRestReconstructsFromAbsoluteEnd`.

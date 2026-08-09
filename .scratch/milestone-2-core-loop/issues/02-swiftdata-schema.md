@@ -26,3 +26,9 @@ CloudKit-safe, additive-only (lightweight migration).
 ordered per-set-slot target reps. `targetReps` remains as the first-slot compatibility value;
 the array is authoritative for ticket 15/16 template values. Non-relationship scalar with an
 empty default, CloudKit-safe, additive-only (lightweight migration).
+
+**Field addition (review fix, 2026-08-08):** `Workout.restStartedAt: Date?` — when the
+current rest timer started. Persisted alongside `restEndsAt` so the timer's *total* duration
+(end − start, growing with each +15s) survives relaunch; the progress bar's denominator must
+be the total, not the remaining time. Cleared with the rest of the timer state. Optional scalar
+with nil default, CloudKit-safe, additive-only (lightweight migration).

@@ -206,6 +206,11 @@ final class Workout {
     var sourceTemplateID: UUID?
     /// Persisted rest-timer end so the timer survives relaunch.
     var restEndsAt: Date?
+    /// When the current rest timer started. Persisted alongside `restEndsAt`
+    /// so the *total* duration (end − start, including any +15s) survives
+    /// relaunch — the progress bar's denominator must not be the remaining
+    /// time, or a restored timer renders as full.
+    var restStartedAt: Date?
     /// Set whose completion started/replaced the current rest timer. Needed
     /// so un-completing that exact set cancels the timer, including after a
     /// relaunch. Added by ticket 14 (noted in ticket 02).
@@ -222,6 +227,7 @@ final class Workout {
         notes: String = "",
         sourceTemplateID: UUID? = nil,
         restEndsAt: Date? = nil,
+        restStartedAt: Date? = nil,
         restStartedBySetID: UUID? = nil,
         gym: Gym? = nil
     ) {
@@ -231,6 +237,7 @@ final class Workout {
         self.notes = notes
         self.sourceTemplateID = sourceTemplateID
         self.restEndsAt = restEndsAt
+        self.restStartedAt = restStartedAt
         self.restStartedBySetID = restStartedBySetID
         self.gym = gym
     }
