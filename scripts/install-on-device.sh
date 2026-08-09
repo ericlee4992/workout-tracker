@@ -324,15 +324,22 @@ if [[ -n "$TEAM_ID" ]]; then
   say "Detected Team ID from your certificate: ${BOLD}${TEAM_ID}${RESET}"
   if ! confirm "Use this Team ID?"; then TEAM_ID=""; fi
 fi
-if [[ -z "$TEAM_ID" ]]; then
+while [[ ! "$TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]; do
+  [[ -n "$TEAM_ID" ]] && warn "'$TEAM_ID' isn't a Team ID — it's exactly 10 letters/digits, e.g. A1B2C3D4E5."
   step "In Xcode ▸ Settings ▸ Accounts, select your Apple ID."
-  step "The team list shows a 10-character ID in the Team ID column."
-  ask TEAM_ID "Paste your Team ID:"
-fi
-if [[ -z "$TEAM_ID" ]]; then
-  warn "No Team ID — cannot sign. Re-run once you have one."
-  exit 1
-fi
+  step "The team list on the right shows Team ID as a 10-character code."
+  note "Can't find it? Leave this blank and press Enter — I'll read it off your"
+  note "certificate instead."
+  ask TEAM_ID "Paste your Team ID (or Enter to auto-detect):"
+  if [[ -z "$TEAM_ID" ]]; then
+    TEAM_ID=$(detect_team_id || true)
+    if [[ -z "$TEAM_ID" ]]; then
+      warn "Couldn't auto-detect either. Finish stage 1 first, then re-run."
+      exit 1
+    fi
+    say "Auto-detected: ${BOLD}${TEAM_ID}${RESET}"
+  fi
+done
 write_team_id "$TEAM_ID"
 note "Bundle ID is com.ericlee4992.workouttracker — must be globally unique."
 note "If Xcode later says it is taken, change it in the project and re-run."
