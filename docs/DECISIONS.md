@@ -1,6 +1,6 @@
 # Decision Log
 
-Decisions made during product discovery (2026-08-08 interview). Each entry: decision, and why. Reopening a locked decision requires both developers.
+Decisions made during product discovery (2026-08-08 interview). Each entry: decision, and why. Locked decisions are reopened deliberately, not drifted away from — an agent that finds one inconvenient should surface the conflict, not silently work around it.
 
 ## Product
 
@@ -10,7 +10,7 @@ Decisions made during product discovery (2026-08-08 interview). Each entry: deci
 | D2 | Machine/gym optional; remembered per gym per exercise. (Refined by D19: equipment context lives on the entry, not per set) | Free weights, home workouts, and lazy logging must work; friction kills fast logging. |
 | D3 | Seed equipment models only; gyms/machines always user-created | A worldwide gym database is impossible offline and its machine inventories are unknowable. Creating a gym takes 10 seconds, once. |
 | D4 | Catalog depth: major brands, popular lines (~hundreds of models) | Covers most commercial gyms; long tail via user entry; exhaustive curation is weeks of work for two people. |
-| D5 | Audience: the two developers only (v1) | Cuts onboarding/dedup/polish scope. Stable IDs + export keep public release open. |
+| D5 | Audience: the developer alone (v1) | Cuts onboarding/dedup/polish scope. Stable IDs + export keep public release open. (Amended 2026-08-08: project is solo, not two-person.) |
 | D6 | Templates are generic; resolved to last-used machine per gym at workout start | One "Push Day" works at every gym; gym-pinned templates break when traveling. |
 | D7 | Models map to exercises; free weights are equipment tags, not machines | Machine pick auto-fills exercise (speed); multi-exercise stations prompt; barbells aren't machines. |
 | D8 | PRs: per-rep-count bests + est. 1RM at machine/model/exercise layers | Heaviest-set-only is meaningless for machine training; mirrors the fallback layers. |
@@ -39,9 +39,9 @@ Decisions made during product discovery (2026-08-08 interview). Each entry: deci
 | T1 | SwiftData | First-party, SwiftUI-native, fits no-dependency rule. Weak migrations mitigated by simple models + denormalized snapshots. |
 | T2 | CloudKit-compatible schema; ship single-device | UUIDs/optional relationships/no unique constraints cost little now; retrofitting sync later is a painful migration. |
 | T3 | UI-first build order | User requirement: see and approve the screens (sample data) before logic/persistence is wired. |
-| T4 | Xcode buildable folders (synchronized groups) | Adding files doesn't touch project.pbxproj — kills the main two-dev merge hazard. |
+| T4 | Xcode buildable folders (synchronized groups) | Adding files doesn't touch project.pbxproj — no merge hazard, and agents can add source files without editing project config. |
 | T5 | Repo is the source of truth for spec/context | Any agent session (Claude Code or Codex, either dev) loads identical context from docs/. |
-| T6 | Cross-review over double-build | Each dev's PRs reviewed by the other's agent; Codex may independently author adversarial tests for the pure-logic core against this spec. |
+| T6 | Cross-review over double-build | Work is reviewed by a **different agent than the one that wrote it** (Claude ↔ Codex), against the tickets and this decision log. Solo development means this is the only independent check that exists — it is not optional ceremony. Proven 2026-08-08: a Codex review of Codex-written code plus a Claude review of it caught 9 real defects, 3 of which broke the product's historical-honesty thesis. Codex may also independently author adversarial tests for the pure-logic core against the spec. |
 | T7 | Unit-default precedence: machine → gym → app preference | Most specific context wins. |
 
 ## Deferred / open

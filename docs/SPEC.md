@@ -1,6 +1,6 @@
 # Workout Tracker — Product Specification
 
-> Source of truth for product behavior. Agent sessions (Claude Code, Codex) and both developers load context from this file, not from chat history. Changes to locked decisions go through both developers and are recorded in `DECISIONS.md`.
+> Source of truth for product behavior. Agent sessions (Claude Code, Codex) load context from this file, not from chat history. Changes to locked decisions are recorded in `DECISIONS.md`.
 
 ## What this is
 
@@ -9,7 +9,7 @@ A private, native iPhone workout logger for two users (the developers). It match
 1. **Equipment-aware taxonomy** — the same exercise on different hardware is not comparable, so history and PRs anchor to equipment context.
 2. **Honest kg/lb handling** — units chosen per set, defaulted by context, preserved as entered, never silently conflated.
 
-v1 is for the two developers only. Schema decisions (stable UUIDs, export fidelity, CloudKit-compatible models) keep public release and sync open later.
+v1 is for the developer's own use only. Schema decisions (stable UUIDs, export fidelity, CloudKit-compatible models) keep public release and sync open later.
 
 ## Taxonomy
 
@@ -91,7 +91,7 @@ Four levels:
 0. Project setup — Xcode project (buildable folders), docs, repo hygiene
 1. **UI prototype on sample data** — all key screens, no persistence; ends with explicit user review before anything else is built
 2. Core loop on SwiftData — schema, seeding, logging, prefill, PRs, snapshots, rest timer, continuous persistence → dogfooding starts
-3. CSV/JSON export (full fidelity; backup + dev-to-dev sharing)
+3. CSV/JSON export (full fidelity; backup and data ownership — the only copy of your history is on one device until sync exists)
 4. Progress charts (Swift Charts; normalized axes, as-entered tooltips)
 5. Strong CSV import
 6. Plate/stack calculator

@@ -1,6 +1,6 @@
 # Workout Tracker — Agent & Contributor Guide
 
-Private iPhone workout tracker (two developers). **Read `docs/SPEC.md` before making product-behavior changes; record decision changes in `docs/DECISIONS.md`.** Those files — not chat history — are the source of truth.
+Private iPhone workout tracker (solo developer, working with coding agents). **Read `docs/SPEC.md` before making product-behavior changes; record decision changes in `docs/DECISIONS.md`.** Those files — not chat history — are the source of truth: every agent session starts cold and loads context from them.
 
 ## Project layout
 
@@ -44,7 +44,7 @@ shows no such device, create it first (any available iPhone device type / latest
 
 ## Workflow
 
-- Short-lived branches off `main`, small PRs, cross-review by the other developer's agent.
+- Short-lived branches off `main`, small changes, **cross-reviewed by a different agent than the one that wrote them** (Claude ↔ Codex). Solo means no second pair of human eyes — the cross-review is the only independent check, so don't skip it on load-bearing work.
 - Commits/PRs must not break `xcodebuild build`.
 
 ## Agent skills
