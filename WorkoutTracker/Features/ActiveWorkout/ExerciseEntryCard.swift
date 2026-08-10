@@ -45,6 +45,7 @@ struct ExerciseEntryCard: View {
                 SetRowView(
                     set: set,
                     index: workingIndex(of: set),
+                    loadType: loadType,
                     onCompletionChanged: { completed in
                         completionChanged(set, completed)
                     },
@@ -59,6 +60,7 @@ struct ExerciseEntryCard: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderless)
+            .accessibilityIdentifier("addSet")
             .padding(.top, 2)
         }
         .padding(14)
@@ -182,6 +184,9 @@ struct SetRowView: View {
     @Environment(\.modelContext) private var modelContext
     var set: SetRecord
     var index: Int
+    /// The entry's load type — decides which fields this row must carry
+    /// before it may be logged (A1).
+    var loadType: LoadType
     /// Called after either completion direction so the rest timer can start,
     /// replace, or cancel its persisted source.
     var onCompletionChanged: (Bool) -> Void
@@ -200,12 +205,13 @@ struct SetRowView: View {
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
 
     init(
-        set: SetRecord, index: Int,
+        set: SetRecord, index: Int, loadType: LoadType,
         onCompletionChanged: @escaping (Bool) -> Void,
         onDelete: @escaping () -> Void
     ) {
         self.set = set
         self.index = index
+        self.loadType = loadType
         self.onCompletionChanged = onCompletionChanged
         self.onDelete = onDelete
         _weightText = State(initialValue: set.weightValue.map(Format.weight) ?? "")
@@ -282,11 +288,38 @@ struct SetRowView: View {
         .task(id: prefillTaskID) {
             loadPreviousAndPrefill()
         }
+        // B3: decimalPad/numberPad have no return key, so the keyboard used
+        // to cover the lower rows with no way out. Only the focused row
+        // contributes a bar, or every row would stack one.
+        .toolbar {
+            if focusedField != nil {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    // Clearing focus runs the same end-editing commit as
+                    // tapping away (ticket 07's durability boundary).
+                    Button("Done") { focusedField = nil }
+                        .accessibilityIdentifier("keyboardDone")
+                }
+            }
+        }
     }
 
+    /// E5: the marker is a menu of named set types — the old control cycled
+    /// blindly through them and announced itself as "1". The compact W/#/F
+    /// visual is unchanged.
     private var setTypeButton: some View {
-        Button {
-            cycleType()
+        Menu {
+            ForEach(SetType.allCases, id: \.self) { type in
+                Button {
+                    apply(type)
+                } label: {
+                    if !set.isDeleted, set.type == type {
+                        Label(Self.setTypeName(type), systemImage: "checkmark")
+                    } else {
+                        Text(Self.setTypeName(type))
+                    }
+                }
+            }
         } label: {
             Text(set.isDeleted ? "" : (set.type.marker ?? "\(index)"))
                 .font(.subheadline.weight(.semibold))
@@ -295,7 +328,17 @@ struct SetRowView: View {
                 .background(Color(.tertiarySystemFill))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
         }
-        .buttonStyle(.plain)
+        .accessibilityIdentifier("setRow.setType")
+        .accessibilityLabel(
+            "Set type: \(set.isDeleted ? "" : Self.setTypeName(set.type).lowercased())")
+    }
+
+    private static func setTypeName(_ type: SetType) -> String {
+        switch type {
+        case .warmup: "Warmup"
+        case .working: "Working"
+        case .failure: "Failure"
+        }
     }
 
     private var markerColor: Color {
@@ -307,18 +350,47 @@ struct SetRowView: View {
         }
     }
 
+    /// A1: the checkmark is live only once the row says something true —
+    /// judged on what is *on screen*, since the fields commit on end-editing
+    /// and the tap itself is the commit. An already-completed row stays
+    /// tappable so it can always be un-completed.
+    private var canComplete: Bool {
+        isCompleted || WorkoutSession.isLoggable(
+            reps: Int(repsText.trimmingCharacters(in: .whitespaces)),
+            weightValue: Self.parseWeight(weightText),
+            loadType: loadType)
+    }
+
+    private static func parseWeight(_ text: String) -> Double? {
+        Double(text.trimmingCharacters(in: .whitespaces)
+            .replacingOccurrences(of: ",", with: "."))
+    }
+
     private var completeButton: some View {
         Button {
             toggleCompletion()
         } label: {
             Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
                 .font(.title3)
-                .foregroundStyle(isCompleted ? Color.green : Color.secondary)
+                .foregroundStyle(completeTint)
         }
         .buttonStyle(.plain)
+        .disabled(!canComplete)
         .accessibilityIdentifier("setRow.complete")
         .accessibilityLabel("Complete set")
         .accessibilityValue(isCompleted ? "Completed" : "Not completed")
+        .accessibilityHint(canComplete ? "" : incompleteHint)
+    }
+
+    private var completeTint: Color {
+        if isCompleted { return .green }
+        return canComplete ? .secondary : Color(.quaternaryLabel)
+    }
+
+    private var incompleteHint: String {
+        loadType == .bodyweight
+            ? "Enter reps to log this set"
+            : "Enter \(loadType == .assisted ? "assistance" : "weight") and reps to log this set"
     }
 
     // MARK: Commits
@@ -354,22 +426,26 @@ struct SetRowView: View {
         }
     }
 
-    private func cycleType() {
+    private func apply(_ type: SetType) {
         guard !set.isDeleted else { return }
         do {
-            try session.cycleSetType(set)
+            try session.setType(type, of: set)
         } catch {
-            assertionFailure("Failed to cycle set type: \(error)")
+            assertionFailure("Failed to set the set type: \(error)")
         }
     }
 
     private func toggleCompletion() {
-        guard !set.isDeleted else { return }
+        guard !set.isDeleted, canComplete else { return }
         do {
             // Completion is a commit boundary: on-screen values first.
             try session.commitWeight(weightText, for: set)
             try session.commitReps(repsText, for: set)
             try session.toggleCompletion(of: set)
+        } catch WorkoutSessionError.setNotLoggable {
+            // A1: the button is disabled until the row is loggable, so this
+            // is unreachable — and silently ignoring it beats logging a set
+            // that says nothing.
         } catch {
             assertionFailure("Failed to toggle completion: \(error)")
         }

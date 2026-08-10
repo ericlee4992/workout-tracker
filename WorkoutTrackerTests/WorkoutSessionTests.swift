@@ -401,6 +401,8 @@ struct WorkoutSessionTests {
         let workout = try session.startWorkout(at: gym)
         let entry = try session.addEntry(for: exercise, to: workout, machine: machine1)
         let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+        try session.commitWeight("60", for: set)
+        try session.commitReps("10", for: set)
         try session.toggleCompletion(of: set)
         try session.toggleCompletion(of: set) // undo
         #expect(set.completedAt == nil)
@@ -483,6 +485,8 @@ struct WorkoutSessionTests {
         let entry = try session.addEntry(for: exercise, to: workout, machine: machine1)
         let set = try #require(WorkoutSession.orderedSets(of: entry).first)
         let completedAt = newer.addingTimeInterval(5_000)
+        try session.commitWeight("60", for: set)
+        try session.commitReps("10", for: set)
         try session.toggleCompletion(of: set, at: completedAt)
 
         var rows = try context.fetch(FetchDescriptor<GymExerciseMemory>())
@@ -518,6 +522,8 @@ struct WorkoutSessionTests {
         let homeEntry = try session.addEntry(
             for: exercise, to: homeWorkout, freeWeightTag: .dumbbell)
         let homeSet = try #require(WorkoutSession.orderedSets(of: homeEntry).first)
+        try session.commitWeight("30", for: homeSet)
+        try session.commitReps("10", for: homeSet)
         try session.toggleCompletion(of: homeSet)
         #expect(try context.fetch(FetchDescriptor<GymExerciseMemory>()).isEmpty)
         try session.finish(homeWorkout)
@@ -527,6 +533,8 @@ struct WorkoutSessionTests {
         let entry = try session.addEntry(
             for: exercise, to: workout, freeWeightTag: .barbell)
         let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+        try session.commitWeight("40", for: set)
+        try session.commitReps("10", for: set)
         try session.toggleCompletion(of: set)
         let rows = try context.fetch(FetchDescriptor<GymExerciseMemory>())
         try #require(rows.count == 1)
@@ -665,6 +673,7 @@ struct WorkoutSessionTests {
                 for: exercise, to: workout, machine: machine1)
             let set = try #require(WorkoutSession.orderedSets(of: entry).first)
             try session.commitWeight("60", for: set)
+            try session.commitReps("10", for: set)
             try session.toggleCompletion(of: set)
             _ = try session.addSet(to: entry)
 

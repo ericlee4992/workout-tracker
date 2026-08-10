@@ -12,6 +12,15 @@ import SwiftData
 // tests construct one around a disk-backed container's context and reopen
 // the store to prove durability.
 
+/// Errors the logging service refuses to paper over.
+enum WorkoutSessionError: Error, Equatable {
+    /// A1 (ticket 17): completion was attempted on a row that does not carry
+    /// the values its load type requires. The UI disables the checkmark until
+    /// the row is loggable, so reaching this is a programming error — but the
+    /// service is the honest boundary, not the view.
+    case setNotLoggable
+}
+
 struct WorkoutSession {
 
     let context: ModelContext
@@ -243,16 +252,32 @@ struct WorkoutSession {
 
     // MARK: - Sets
 
-    /// Appends a draft set. Unit: last set's unit as entered, else the
-    /// precedence chain (machine → gym → app preference).
+    /// Appends a draft set.
+    ///
+    /// B1 (ticket 17) — within-session carry-forward: the row is seeded from
+    /// the entry's last **completed** set (weight value, unit, reps) and
+    /// arrives uncompleted, so a repeat set costs one tap — the same contract
+    /// as ticket 11's cross-workout prefill. On a 4-set exercise the numbers
+    /// are typed once.
+    ///
+    /// With nothing completed yet the old behaviour stands: the last row's
+    /// unit as entered (else the precedence chain machine → gym → app
+    /// preference) and no values, leaving ticket 11's prefill to populate the
+    /// row from previous workouts.
     @discardableResult
     func addSet(to entry: ExerciseEntry) throws -> SetRecord {
         let existing = Self.orderedSets(of: entry)
-        let unit = existing.last?.weightUnit ?? defaultUnit(for: entry)
+        let carryForward = existing.last { $0.completedAt != nil }
+        let unit = carryForward?.weightUnit ?? existing.last?.weightUnit
+            ?? defaultUnit(for: entry)
         let set = SetRecord(
             order: (existing.last?.order).map { $0 + 1 } ?? 0,
             type: existing.last?.type ?? .working,
+            reps: carryForward?.reps,
+            weightValue: carryForward?.weightValue,
             weightUnit: unit,
+            // Carried from the same source set, so it already matches `unit`.
+            normalizedKg: carryForward?.normalizedKg,
             entry: entry)
         context.insert(set)
         try context.save()
@@ -276,6 +301,14 @@ struct WorkoutSession {
         case .warmup: set.type = .failure
         case .failure: set.type = .working
         }
+        try context.save()
+    }
+
+    /// Direct set-type pick (E5, ticket 17): the row's marker is a menu with
+    /// named options, so the type can be chosen instead of cycled blindly.
+    func setType(_ type: SetType, of set: SetRecord) throws {
+        guard set.type != type else { return }
+        set.type = type
         try context.save()
     }
 
@@ -311,12 +344,62 @@ struct WorkoutSession {
         try context.save()
     }
 
+    // MARK: Loggability (A1)
+
+    /// A1 (ticket 17) — the honesty gate on completion. A row may only be
+    /// logged once it says something true: positive reps always, plus a
+    /// weight *value* for every load type that carries one.
+    ///
+    /// `bodyweight` needs reps alone. `assisted` and `bodyweightPlus` need a
+    /// value but accept `0` — zero assistance and zero added weight are both
+    /// meaningful (they mirror ticket 12's record eligibility, `RecordsMath.
+    /// isEligible`), whereas *nil* is simply an unanswered question.
+    static func isLoggable(
+        reps: Int?,
+        weightValue: Double?,
+        loadType: LoadType
+    ) -> Bool {
+        guard let reps, reps > 0 else { return false }
+        switch loadType {
+        case .bodyweight:
+            return true
+        case .weighted, .assisted, .bodyweightPlus:
+            return weightValue != nil
+        }
+    }
+
+    /// The load type a row is logged under: the live exercise while it can
+    /// still change, falling back to the entry's frozen snapshot (D23).
+    static func loadType(of set: SetRecord) -> LoadType {
+        guard !set.isDeleted, let entry = set.entry, !entry.isDeleted else {
+            return .weighted
+        }
+        return entry.exercise?.loadType ?? entry.snapshotLoadType
+    }
+
+    static func isLoggable(_ set: SetRecord) -> Bool {
+        guard !set.isDeleted else { return false }
+        return isLoggable(
+            reps: set.reps,
+            weightValue: set.weightValue,
+            loadType: loadType(of: set))
+    }
+
     /// Completion toggle. Completing stamps `completedAt`, captures the
     /// entry's context snapshot when it is the first-ever completion (D23),
     /// and upserts GymExerciseMemory. Un-completing clears the stamp only —
     /// the equipment freeze survives (D19).
+    ///
+    /// A1: completing an empty (or under-specified) row throws
+    /// `WorkoutSessionError.setNotLoggable` — an unlogged set is honest, a set
+    /// reading `— × —` in history and feeding records is not. The guard only
+    /// ever blocks the completing direction; an already-completed row can
+    /// always be un-completed.
     func toggleCompletion(of set: SetRecord, at date: Date = .now) throws {
         if set.completedAt == nil {
+            guard Self.isLoggable(set) else {
+                throw WorkoutSessionError.setNotLoggable
+            }
             set.completedAt = date
             if let entry = set.entry {
                 if entry.snapshotCapturedAt == nil {

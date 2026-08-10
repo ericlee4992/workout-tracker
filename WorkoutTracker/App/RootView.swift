@@ -5,6 +5,8 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selection: Tab = .workout
     @State private var activeWorkout: Workout?
+    /// C2: the workout just finished, awaiting its confirmation sheet.
+    @State private var finishedWorkout: Workout?
 
     enum Tab: Hashable {
         case workout, history, gyms, exercises
@@ -29,7 +31,25 @@ struct RootView: View {
                 .tag(Tab.exercises)
         }
         .fullScreenCover(item: $activeWorkout) { workout in
-            ActiveWorkoutView(workout: workout)
+            ActiveWorkoutView(
+                workout: workout,
+                // C1: minimising drops the cover and leaves the workout
+                // active; StartWorkoutView shows the resume affordance.
+                onMinimize: { activeWorkout = nil },
+                onFinished: { finished in
+                    activeWorkout = nil
+                    finishedWorkout = finished
+                })
+        }
+        .sheet(item: $finishedWorkout) { workout in
+            WorkoutFinishedSheet(
+                workout: workout,
+                viewInHistory: {
+                    finishedWorkout = nil
+                    selection = .history
+                },
+                done: { finishedWorkout = nil })
+            .presentationDetents([.medium])
         }
         .onAppear(perform: recoverActiveWorkout)
         .onAppear(perform: applyLaunchOverride)

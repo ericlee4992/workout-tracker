@@ -178,6 +178,9 @@ struct MachineFirstLoggingTests {
 
         // Free-weight tag reaches the snapshot at first completion.
         let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+        // A1: a row only completes once it carries weight and reps.
+        try session.commitWeight("30", for: set)
+        try session.commitReps("10", for: set)
         try session.toggleCompletion(of: set)
         #expect(entry.snapshotFreeWeightTag == .dumbbell)
         #expect(entry.snapshotMachineID == nil)

@@ -110,19 +110,34 @@ struct PerformanceHistory {
     /// Applies a previously selected candidate without completing the row.
     /// Callers pass their dirty state at the last possible moment; a dirty
     /// row is never overwritten by a delayed result.
+    ///
+    /// B1 (ticket 17): once the entry has a completed set, its draft rows are
+    /// seeded by within-session carry-forward (`WorkoutSession.addSet`) and
+    /// the cross-workout candidate stays a reference label only — today's
+    /// numbers outrank last week's, and clobbering them would undo the
+    /// carry-forward the moment the row appeared.
     @discardableResult
     func applyPrefill(
         _ value: PreviousSetValue,
         to target: SetRecord,
         isDirty: Bool
     ) throws -> Bool {
-        guard !isDirty, target.completedAt == nil else { return false }
+        guard !isDirty, target.completedAt == nil,
+              !entryHasOtherCompletedSet(than: target)
+        else { return false }
         target.reps = value.reps
         target.weightValue = value.weightValue
         target.weightUnit = value.weightUnit
         target.normalizedKg = value.normalizedKg
         try context.save()
         return true
+    }
+
+    private func entryHasOtherCompletedSet(than target: SetRecord) -> Bool {
+        guard let entry = target.entry else { return false }
+        return (entry.sets ?? []).contains {
+            $0.id != target.id && $0.completedAt != nil
+        }
     }
 
     /// Latest reference snapshot for each applicable fallback layer. A

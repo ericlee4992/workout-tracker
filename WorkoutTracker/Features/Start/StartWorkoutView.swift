@@ -7,6 +7,13 @@ struct StartWorkoutView: View {
     private var gyms: [Gym]
     @Query(sort: \WorkoutTemplate.name) private var templates: [WorkoutTemplate]
     @Query private var allPreferences: [AppPreferences]
+    /// C1: a minimised workout keeps running, so the tab must offer the way
+    /// back in. Newest first — the same newest-active-wins rule the recovery
+    /// path uses.
+    @Query(
+        filter: #Predicate<Workout> { $0.finishedAt == nil },
+        sort: [SortDescriptor(\Workout.startedAt, order: .reverse)])
+    private var activeWorkouts: [Workout]
     @State private var selectedGym: Gym?
     @State private var showingResumeDialog = false
     @State private var pendingTemplate: WorkoutTemplate?
@@ -23,6 +30,12 @@ struct StartWorkoutView: View {
     var body: some View {
         NavigationStack {
             List {
+                if let active = activeWorkouts.first, !active.isDeleted {
+                    Section {
+                        resumeRow(active)
+                    }
+                }
+
                 Section {
                     gymPicker
                 } footer: {
@@ -80,6 +93,40 @@ struct StartWorkoutView: View {
                 TemplateEditorSheet(template: editingTemplate)
             }
         }
+    }
+
+    /// The way back into a minimised workout (C1). Resuming re-presents the
+    /// newest active workout, auto-finishing older strays exactly as the
+    /// relaunch recovery does.
+    private func resumeRow(_ workout: Workout) -> some View {
+        Button {
+            resumeActive()
+        } label: {
+            HStack {
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .foregroundStyle(.tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Resume workout")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(resumeSubtitle(workout))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .accessibilityIdentifier("resumeWorkout")
+    }
+
+    private func resumeSubtitle(_ workout: Workout) -> String {
+        let count = WorkoutSession.orderedEntries(of: workout).count
+        let exercises = "\(count) \(count == 1 ? "exercise" : "exercises")"
+        guard let gymName = workout.gym?.name else { return "In progress · \(exercises)" }
+        return "\(gymName) · \(exercises)"
     }
 
     // MARK: Start flow

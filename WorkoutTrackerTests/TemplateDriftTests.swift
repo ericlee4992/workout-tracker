@@ -106,7 +106,8 @@ struct TemplateDriftTests {
         let aEntry = try #require(WorkoutSession.orderedEntries(of: workout).first)
         let aSet = try #require(WorkoutSession.orderedSets(of: aEntry).first)
         // Started rows are empty drafts (defect 4), so matching the template
-        // means actually logging its target.
+        // means actually logging its target (A1: weight + reps).
+        try session.commitWeight("50", for: aSet)
         try session.commitReps("10", for: aSet)
         try session.toggleCompletion(of: aSet)
         _ = try session.addEntry(for: exerciseC, to: workout)
@@ -178,6 +179,7 @@ struct TemplateDriftTests {
         let session = WorkoutSession(context: context)
         let entry = try #require(WorkoutSession.orderedEntries(of: workout).first)
         let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+        try session.commitWeight("50", for: set)
         try session.commitReps("9", for: set)
         try session.toggleCompletion(of: set)
         let service = TemplateDriftService(context: context)
@@ -218,6 +220,7 @@ struct TemplateDriftTests {
             try session.addSet(to: entry)
         }
         for (index, set) in WorkoutSession.orderedSets(of: entry).enumerated() {
+            try session.commitWeight("50", for: set)
             try session.commitReps(String(reps[index]), for: set)
             try session.toggleCompletion(of: set)
         }

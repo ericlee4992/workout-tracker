@@ -104,6 +104,91 @@ final class CoreLoopUITests: XCTestCase {
         XCTAssertEqual(rows.count, 2, "Both workouts should be in History")
     }
 
+    // MARK: - B1: within-session carry-forward
+
+    /// Ticket 17 B1: the second set of an exercise must not be retyped. Add
+    /// Set inherits the last completed row's weight, unit and reps, arrives
+    /// uncompleted, and logs in a single tap.
+    func testAddSetCarriesForwardTheLastCompletedSet() {
+        createGym()
+        addMachine()
+        startEmptyWorkout()
+        addByMachine()
+
+        let weight = app.textFields["setRow.weight"].firstMatch
+        XCTAssertTrue(weight.waitForExistence(timeout: 5))
+        weight.tap()
+        weight.typeText("80")
+        let reps = app.textFields["setRow.reps"].firstMatch
+        reps.tap()
+        reps.typeText("12")
+        app.buttons["setRow.unit"].firstMatch.tap() // kg → lb, as entered
+        app.buttons["setRow.complete"].firstMatch.tap()
+
+        app.buttons["addSet"].firstMatch.tap()
+
+        let secondWeight = app.textFields.matching(identifier: "setRow.weight")
+            .element(boundBy: 1)
+        XCTAssertTrue(
+            secondWeight.waitForExistence(timeout: 5), "Add Set should append a row")
+        XCTAssertEqual(
+            value(of: secondWeight), "80",
+            "The new set should inherit the last completed set's weight")
+        XCTAssertEqual(
+            value(of: app.textFields.matching(identifier: "setRow.reps").element(boundBy: 1)),
+            "12",
+            "The new set should inherit the last completed set's reps")
+        XCTAssertEqual(
+            app.buttons.matching(identifier: "setRow.unit").element(boundBy: 1).label, "lb",
+            "The new set should inherit the unit as entered")
+
+        // Populated but uncompleted: one tap logs it, no typing.
+        let secondComplete = app.buttons.matching(identifier: "setRow.complete")
+            .element(boundBy: 1)
+        XCTAssertEqual(completeValue(of: secondComplete), "Not completed")
+        secondComplete.tap()
+        XCTAssertEqual(
+            completeValue(of: secondComplete), "Completed",
+            "One tap should log the carried-forward set")
+
+        finishWorkout()
+    }
+
+    // MARK: - C1: leaving and resuming an active workout
+
+    /// Ticket 17 C1: the active workout is no longer a trap — it can be
+    /// minimised, the tabs are usable, and the Workout tab offers the way
+    /// back in.
+    func testMinimizeKeepsTheWorkoutActiveAndResumeReopensIt() {
+        tab("Workout").tap()
+        app.buttons["startEmptyWorkout"].tap()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
+
+        app.buttons["minimizeWorkout"].tap()
+
+        let resume = app.buttons["resumeWorkout"]
+        XCTAssertTrue(
+            resume.waitForExistence(timeout: 5),
+            "Minimising should reveal a resume affordance on the Workout tab")
+
+        // The tab bar is genuinely usable again.
+        let history = tab("History")
+        XCTAssertTrue(history.isHittable, "The tab bar should be hittable once minimised")
+        history.tap()
+        tab("Workout").tap()
+
+        XCTAssertTrue(resume.waitForExistence(timeout: 5))
+        resume.tap()
+        XCTAssertTrue(
+            app.buttons["finishWorkout"].waitForExistence(timeout: 5),
+            "Resuming should reopen the still-active workout")
+
+        // Leave nothing behind.
+        app.buttons["Cancel"].firstMatch.tap()
+        app.buttons["Discard Workout"].firstMatch.tap()
+        XCTAssertTrue(tab("History").waitForExistence(timeout: 5))
+    }
+
     // MARK: - Flow helpers
 
     private func createGym() {
@@ -172,13 +257,13 @@ final class CoreLoopUITests: XCTestCase {
 
     private func finishWorkout() {
         app.buttons["finishWorkout"].tap()
-        // A from-scratch workout with completed sets asks whether to keep it
-        // as a template before it will finish — the toolbar "Finish" only
-        // opens that dialog, so finishing always costs a second tap.
-        let confirm = app.sheets.buttons["Finish"].firstMatch
-        if confirm.waitForExistence(timeout: 3) {
-            confirm.tap()
-        }
+        // B2/C2 (ticket 17): Finish finishes on the first tap; what follows
+        // is a confirmation of what was saved, not a question blocking it.
+        let done = app.buttons["finishedDone"]
+        XCTAssertTrue(
+            done.waitForExistence(timeout: 5),
+            "Finishing should confirm what was saved")
+        done.tap()
         XCTAssertTrue(
             tab("History").waitForExistence(timeout: 5),
             "Finishing should return to the tab bar")

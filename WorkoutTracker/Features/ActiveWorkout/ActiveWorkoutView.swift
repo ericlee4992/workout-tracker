@@ -6,6 +6,12 @@ struct ActiveWorkoutView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     var workout: Workout
+    /// C1: dismisses the cover while the workout keeps running — the Workout
+    /// tab then shows a resume affordance. Defaults to a plain dismiss.
+    var onMinimize: (() -> Void)?
+    /// C2: hands the finished workout back so the presenter can confirm what
+    /// was saved. Not called when nothing survived the finish cleanup.
+    var onFinished: ((Workout) -> Void)?
 
     @State private var restEnd: Date?
     @State private var restTotal: Double = 120
@@ -14,10 +20,6 @@ struct ActiveWorkoutView: View {
     @State private var showExercisePicker = false
     @State private var showMachinePicker = false
     @State private var confirmingCancel = false
-    @State private var choosingFromScratchFinish = false
-    @State private var namingTemplate = false
-    @State private var templateName = ""
-    @State private var templateFailure: String?
     @State private var driftTemplate: WorkoutTemplate?
     @State private var choosingDriftResolution = false
 
@@ -84,6 +86,15 @@ struct ActiveWorkoutView: View {
             .navigationTitle("Workout")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // C1: leaving an active workout no longer means finishing or
+                // discarding it — minimise keeps it running behind the tabs.
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { minimize() } label: {
+                        Image(systemName: "chevron.down")
+                    }
+                    .accessibilityIdentifier("minimizeWorkout")
+                    .accessibilityLabel("Minimize workout")
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel", role: .cancel) { confirmingCancel = true }
                         .tint(.red)
@@ -103,40 +114,6 @@ struct ActiveWorkoutView: View {
                 Button("Keep Logging", role: .cancel) {}
             } message: {
                 Text("The workout and everything logged in it will be deleted.")
-            }
-            .confirmationDialog(
-                "Finish workout",
-                isPresented: $choosingFromScratchFinish,
-                titleVisibility: .visible
-            ) {
-                // Only offered when it can actually succeed — see
-                // `canSaveAsTemplate`.
-                Button("Finish & Save as Template") {
-                    templateName = defaultTemplateName
-                    namingTemplate = true
-                }
-                Button("Finish") { finishWorkout() }
-                Button("Keep Logging", role: .cancel) {}
-            } message: {
-                Text("You can keep the completed exercise and set structure as a reusable template.")
-            }
-            .alert("Save as Template", isPresented: $namingTemplate) {
-                TextField("Template name", text: $templateName)
-                Button("Save") { finishAndSaveTemplate() }
-                    .disabled(templateName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Completed sets become target set and rep slots. Weights and rest times are not saved.")
-            }
-            .alert(
-                "Couldn't Save Template",
-                isPresented: Binding(
-                    get: { templateFailure != nil },
-                    set: { if !$0 { templateFailure = nil } })
-            ) {
-                Button("OK", role: .cancel) { templateFailure = nil }
-            } message: {
-                Text(templateFailure ?? "")
             }
             .templateDriftDialog(
                 isPresented: $choosingDriftResolution,
@@ -190,21 +167,22 @@ struct ActiveWorkoutView: View {
 
     // MARK: Actions
 
-    /// A from-scratch workout can only become a template once something has
-    /// been completed — `saveAsTemplate` captures completed sets only and
-    /// throws `noExercises` otherwise. Offering the option when it cannot
-    /// succeed used to finish the workout and then fail.
-    private var canSaveAsTemplate: Bool {
-        WorkoutTemplateService.canSaveAsTemplate(workout)
+    private func minimize() {
+        if let onMinimize {
+            onMinimize()
+        } else {
+            dismiss()
+        }
     }
 
+    /// B2: Finish finishes. A from-scratch workout gets no pre-finish
+    /// interrogation — save-as-template moved to the post-finish confirmation
+    /// (C2), where it is offered once the workout is safely stored. The
+    /// template-drift prompt (D18) survives, but only for workouts that
+    /// actually came from a template.
     private func finishTapped() {
         if workout.sourceTemplateID == nil {
-            if canSaveAsTemplate {
-                choosingFromScratchFinish = true
-            } else {
-                finishWorkout()
-            }
+            finishWorkout()
             return
         }
         do {
@@ -229,34 +207,7 @@ struct ActiveWorkoutView: View {
         } catch {
             assertionFailure("Failed to finish workout: \(error)")
         }
-        dismiss()
-    }
-
-    /// Capture the template BEFORE finishing: a failure must leave the
-    /// workout untouched and tell the user, not finish it and swallow the
-    /// error. Capture reads completed sets only, so the result is identical
-    /// either side of `finish`.
-    private func finishAndSaveTemplate() {
-        do {
-            try WorkoutTemplateService(context: modelContext).saveAsTemplate(
-                workout,
-                name: templateName)
-        } catch {
-            templateFailure = Self.templateFailureMessage(error)
-            return
-        }
-        finishWorkout()
-    }
-
-    private static func templateFailureMessage(_ error: Error) -> String {
-        switch error as? WorkoutTemplateError {
-        case .emptyName:
-            return "Give the template a name and try again."
-        case .noExercises:
-            return "This workout has no completed sets yet, so there is nothing to save as a template. Complete a set first, or finish without saving."
-        case nil:
-            return "The template could not be saved: \(error.localizedDescription)"
-        }
+        reportFinished()
     }
 
     private func finishTemplatedWorkout(using resolution: TemplateDriftResolution) {
@@ -271,13 +222,19 @@ struct ActiveWorkoutView: View {
             assertionFailure("Failed to finish templated workout: \(error)")
         }
         driftTemplate = nil
-        dismiss()
+        reportFinished()
     }
 
-    private var defaultTemplateName: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        return "Workout \(formatter.string(from: workout.startedAt))"
+    /// C2: hand the stored workout to the presenter so it can confirm what
+    /// was saved. A workout that finish cleanup emptied out (nothing logged)
+    /// has nothing to confirm — and may have been deleted outright — so it
+    /// just dismisses.
+    private func reportFinished() {
+        if let onFinished, !workout.isDeleted, workout.finishedAt != nil {
+            onFinished(workout)
+        } else {
+            dismiss()
+        }
     }
 
     private func cancelWorkout() {

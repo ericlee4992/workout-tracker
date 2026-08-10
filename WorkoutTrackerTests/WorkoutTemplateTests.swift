@@ -228,6 +228,7 @@ struct WorkoutTemplateTests {
         #expect(workout.finishedAt == nil)
 
         let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+        try session.commitWeight("50", for: set)
         try session.commitReps("9", for: set)
         try session.toggleCompletion(of: set)
 
