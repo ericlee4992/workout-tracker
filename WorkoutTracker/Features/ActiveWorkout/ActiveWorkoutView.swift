@@ -51,6 +51,7 @@ struct ActiveWorkoutView: View {
                             Label("Add Exercise", systemImage: "plus")
                                 .frame(maxWidth: .infinity)
                         }
+                        .accessibilityIdentifier("addExercise")
                         // Machine-first path (D7): hidden for no-gym workouts —
                         // there are no machines to list.
                         if !workout.isDeleted, workout.gym != nil {
@@ -60,6 +61,7 @@ struct ActiveWorkoutView: View {
                                 Label("Add by Machine", systemImage: "figure.strengthtraining.traditional")
                                     .frame(maxWidth: .infinity)
                             }
+                            .accessibilityIdentifier("addByMachine")
                         }
                     }
                     .buttonStyle(.bordered)
@@ -89,6 +91,7 @@ struct ActiveWorkoutView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Finish") { finishTapped() }
                         .font(.headline)
+                        .accessibilityIdentifier("finishWorkout")
                 }
             }
             .confirmationDialog(

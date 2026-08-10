@@ -12,6 +12,7 @@ Private iPhone workout tracker (solo developer, working with coding agents). **R
   - `Resources/` — `SeedCatalog.json`, the versioned seeded catalog (D24)
   - `Assets.xcassets` — app icon and colors
 - `WorkoutTrackerTests/` — unit tests (Swift Testing)
+- `WorkoutTrackerUITests/` — XCUITest UI tests (XCTest) that drive the app end to end. They launch with `-uiTestReset`, which makes the app open a throwaway store wiped at launch, so runs start from an empty database. Views expose `.accessibilityIdentifier`s (`startEmptyWorkout`, `addByMachine`, `gymPicker`, `finishWorkout`, `setRow.*`, …) for querying.
 - `docs/` — SPEC.md (product spec), DECISIONS.md (decision log), `agents/` (agent skill docs)
 
 ## Conventions
@@ -31,7 +32,8 @@ xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
 
 # Screenshot deep links: launch env PROTO_SCREEN=gyms|exercises preselects a tab.
 
-# Test (unit tests in WorkoutTrackerTests/, Swift Testing; shared scheme has a TestAction)
+# Test (WorkoutTrackerTests/ unit tests + WorkoutTrackerUITests/ XCUITests; shared scheme's
+# TestAction runs both. Add -only-testing:WorkoutTrackerTests to skip the slow UI tests.)
 xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
   -sdk iphonesimulator -destination 'platform=iOS Simulator,name=WT-iPhone'
 ```

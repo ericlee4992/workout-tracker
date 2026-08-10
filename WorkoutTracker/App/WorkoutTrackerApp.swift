@@ -9,7 +9,11 @@ struct WorkoutTrackerApp: App {
 
     init() {
         do {
-            modelContainer = try WorkoutTrackerStore.makeContainer()
+            // `-uiTestReset` starts from an empty throwaway store so UI tests
+            // never inherit state from a previous run.
+            modelContainer = WorkoutTrackerStore.isUITestReset
+                ? try WorkoutTrackerStore.makeUITestContainer()
+                : try WorkoutTrackerStore.makeContainer()
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }

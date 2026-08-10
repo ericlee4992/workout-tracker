@@ -34,6 +34,7 @@ struct StartWorkoutView: View {
                         Label("Start Empty Workout", systemImage: "plus.circle.fill")
                             .font(.headline)
                     }
+                    .accessibilityIdentifier("startEmptyWorkout")
                 }
 
                 Section("Templates") {
@@ -211,6 +212,7 @@ struct StartWorkoutView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .accessibilityIdentifier("gymPicker")
     }
 }
 

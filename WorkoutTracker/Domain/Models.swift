@@ -520,4 +520,24 @@ enum WorkoutTrackerStore {
         }
         return try ModelContainer(for: schema, configurations: [configuration])
     }
+
+    /// Launch argument that makes the app start from an empty store, so
+    /// XCUITest runs are deterministic (`WorkoutTrackerUITests`).
+    static let uiTestResetArgument = "-uiTestReset"
+
+    static var isUITestReset: Bool {
+        ProcessInfo.processInfo.arguments.contains(uiTestResetArgument)
+    }
+
+    /// Throwaway UI-test store: a dedicated on-disk location wiped on every
+    /// launch. On-disk (not in-memory) so the app exercises the real
+    /// SwiftData persistence path the tests are meant to drive.
+    static func makeUITestContainer() throws -> ModelContainer {
+        let directory = URL.cachesDirectory.appending(
+            path: "UITestStore", directoryHint: .isDirectory)
+        try? FileManager.default.removeItem(at: directory)
+        try FileManager.default.createDirectory(
+            at: directory, withIntermediateDirectories: true)
+        return try makeContainer(url: directory.appending(path: "UITestStore.store"))
+    }
 }

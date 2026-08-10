@@ -222,6 +222,7 @@ struct SetRowView: View {
                 .font(.footnote)
                 .foregroundStyle(previousLabel == "—" ? .tertiary : .secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("setRow.previous")
 
             HStack(spacing: 4) {
                 TextField("–", text: $weightText)
@@ -232,6 +233,7 @@ struct SetRowView: View {
                     .padding(.vertical, 5)
                     .background(Color(.tertiarySystemFill))
                     .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .accessibilityIdentifier("setRow.weight")
 
                 Button {
                     toggleUnit()
@@ -239,6 +241,7 @@ struct SetRowView: View {
                     UnitBadge(unit: set.isDeleted ? .kg : set.weightUnit)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("setRow.unit")
             }
             .frame(width: 88)
 
@@ -250,6 +253,7 @@ struct SetRowView: View {
                 .padding(.vertical, 5)
                 .background(Color(.tertiarySystemFill))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
+                .accessibilityIdentifier("setRow.reps")
 
             completeButton
                 .frame(width: 30)
@@ -312,6 +316,9 @@ struct SetRowView: View {
                 .foregroundStyle(isCompleted ? Color.green : Color.secondary)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("setRow.complete")
+        .accessibilityLabel("Complete set")
+        .accessibilityValue(isCompleted ? "Completed" : "Not completed")
     }
 
     // MARK: Commits

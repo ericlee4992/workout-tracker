@@ -40,6 +40,7 @@ struct AddByMachineSheet: View {
                             machineRow(machine)
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("machineOption.\(machine.label)")
                     }
                     if machines.isEmpty {
                         Text("No machines yet")

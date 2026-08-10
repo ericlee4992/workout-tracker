@@ -14,10 +14,12 @@ struct GymsView: View {
                         NavigationLink(value: gym.id) {
                             GymRow(gym: gym)
                         }
+                        .accessibilityIdentifier("gymRow.\(gym.name)")
                     }
                     Button("Add Gym…", systemImage: "plus") {
                         showingAddGym = true
                     }
+                    .accessibilityIdentifier("addGym")
                 } footer: {
                     Text("A gym's unit is the default for sets logged there — machines can override it, and so can you on any set.")
                 }
@@ -141,6 +143,7 @@ struct GymDetailView: View {
                 Button("Add Machine…", systemImage: "plus") {
                     showingAddMachine = true
                 }
+                .accessibilityIdentifier("addMachine")
             } header: {
                 Text("Machines")
             } footer: {
@@ -260,6 +263,7 @@ private struct AddGymSheet: View {
             Form {
                 Section {
                     TextField("Name", text: $name)
+                        .accessibilityIdentifier("gymName")
                     TextField("City (optional)", text: $city)
                 }
                 Section {
@@ -269,6 +273,7 @@ private struct AddGymSheet: View {
                             Text(unit.rawValue).tag(WeightUnit?.some(unit))
                         }
                     }
+                    .accessibilityIdentifier("gymUnitPicker")
                 } footer: {
                     Text("Leave on App preference to fall through to your app-wide unit.")
                 }
@@ -282,6 +287,7 @@ private struct AddGymSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") { addGym() }
                         .disabled(trimmedName.isEmpty)
+                        .accessibilityIdentifier("saveGym")
                 }
             }
         }
@@ -323,6 +329,7 @@ struct AddMachineSheet: View {
             Form {
                 Section {
                     TextField("Label (e.g. “Chest press by the window”)", text: $label)
+                        .accessibilityIdentifier("machineLabel")
                 } footer: {
                     Text("How you'll recognize this machine at \(gym.name).")
                 }
@@ -337,6 +344,7 @@ struct AddMachineSheet: View {
                                 .foregroundStyle(.secondary)
                         }
                     }
+                    .accessibilityIdentifier("catalogModel")
                 } footer: {
                     Text("Optional. Without a model, logging on this machine opens the full exercise picker.")
                 }
@@ -360,6 +368,7 @@ struct AddMachineSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") { addMachine() }
                         .disabled(trimmedLabel.isEmpty)
+                        .accessibilityIdentifier("saveMachine")
                 }
             }
         }
@@ -445,6 +454,7 @@ struct ModelPickerView: View {
                         }
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("modelOption.\(model.displayName)")
                 }
                 Button("New Model…", systemImage: "plus") {
                     showingAddModel = true
