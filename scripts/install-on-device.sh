@@ -264,8 +264,11 @@ for d in devices:
         continue
     udid = d.get("hardwareProperties", {}).get("udid") or d.get("identifier", "")
     name = props.get("name", "iPhone")
+    # Developer Mode gates every install; a paired phone with it off will
+    # sail past a naive "is it connected?" check and fail at build time.
+    devmode = props.get("developerModeStatus", "unknown")
     if udid:
-        print(f"{udid}\t{name}")
+        print(f"{udid}\t{name}\t{devmode}")
         break
 PY
   rm -f "$json"
@@ -346,28 +349,41 @@ note "If Xcode later says it is taken, change it in the project and re-run."
 pause "Press Enter to continue"
 
 # ── 3 ─────────────────────────────────────────────────────────────────────
+# Two separate gates: the Mac must SEE the phone, and the phone must have
+# Developer Mode ON. A paired phone with it off passes a naive connectivity
+# check and then fails deep inside the build with a destination timeout.
 stage "iPhone — connect it and unlock developer installs"
-DEVICE_LINE=$(first_connected_device || true)
-if [[ -z "$DEVICE_LINE" ]]; then
-  say "Your Mac has to see the phone before it can install anything."
+device_ready() {
+  local line; line=$(first_connected_device || true)
+  [[ -n "$line" ]] || return 1
+  DEVICE_UDID="${line%%$'\t'*}"
+  local rest="${line#*$'\t'}"
+  DEVICE_NAME="${rest%%$'\t'*}"
+  DEVICE_DEVMODE="${rest##*$'\t'}"
+  [[ "$DEVICE_DEVMODE" == "enabled" ]]
+}
+if ! device_ready; then
+  say "Your Mac has to see the phone, and the phone has to allow developer installs."
   printf '\n'
   step "Plug the iPhone into this Mac with a cable."
   step "Unlock the phone. If it asks 'Trust This Computer?' tap Trust, enter your passcode."
   step "On the phone: Settings ▸ Privacy & Security ▸ Developer Mode ▸ turn ON."
-  step "The phone restarts. After it reboots, unlock it and confirm Developer Mode."
+  step "The phone restarts. After it reboots, unlock it — that confirms Developer Mode."
   printf '\n'
   note "Developer Mode only appears in Settings after a Mac has tried to talk to"
   note "the phone — if you don't see it, plug in and unlock first, then look again."
   printf '\n'
-  until [[ -n "$DEVICE_LINE" ]]; do
-    pause "Phone connected and Developer Mode on? Press Enter to check"
-    DEVICE_LINE=$(first_connected_device || true)
-    [[ -n "$DEVICE_LINE" ]] || warn "No device visible yet — keep it plugged in and unlocked."
+  until device_ready; do
+    pause "Done? Press Enter to check"
+    if [[ -z "${DEVICE_UDID:-}" ]]; then
+      warn "No device visible yet — keep it plugged in and unlocked."
+    elif [[ "${DEVICE_DEVMODE:-}" != "enabled" ]]; then
+      warn "Found ${DEVICE_NAME}, but Developer Mode is ${DEVICE_DEVMODE:-off}."
+      note "Settings ▸ Privacy & Security ▸ Developer Mode ▸ ON, then let it restart."
+    fi
   done
 fi
-DEVICE_UDID="${DEVICE_LINE%%$'\t'*}"
-DEVICE_NAME="${DEVICE_LINE#*$'\t'}"
-printf '  %s✓%s Found %s\n' "$GREEN" "$RESET" "$DEVICE_NAME"
+printf '  %s✓%s Found %s, Developer Mode enabled\n' "$GREEN" "$RESET" "$DEVICE_NAME"
 note "UDID $DEVICE_UDID"
 pause "Press Enter to build"
 
@@ -384,11 +400,25 @@ if xcodebuild -project "$PROJECT_DIR/WorkoutTracker.xcodeproj" \
       -allowProvisioningUpdates build > "$BUILD_LOG" 2>&1; then
   printf '  %s✓%s Build succeeded.\n' "$GREEN" "$RESET"
 else
-  warn "Build failed. Last lines:"
-  grep -E "error:|Signing|Provisioning|No profiles" "$BUILD_LOG" | tail -12 || tail -12 "$BUILD_LOG"
+  warn "Build failed. What xcodebuild actually said:"
+  # Surface the real reason. xcodebuild buries the useful sentence inside the
+  # destination line, so pull that out before falling back to generic errors.
+  REASON=$(grep -oE "error:[^}]*" "$BUILD_LOG" | tail -3)
+  [[ -n "$REASON" ]] && printf '  %s\n' "$REASON"
+  grep -E "Signing|Provisioning|No profiles|not available|Developer Mode" "$BUILD_LOG" | tail -6 || true
   printf '\n'
+  # Only guess a cause when the log supports it.
+  if grep -q "Developer Mode disabled" "$BUILD_LOG"; then
+    warn "Developer Mode is off on the phone."
+    note "Settings ▸ Privacy & Security ▸ Developer Mode ▸ ON, let it restart, re-run this script."
+  elif grep -qE "bundle identifier .* is not available|already in use" "$BUILD_LOG"; then
+    warn "That bundle ID is taken by another Apple account."
+    note "Change PRODUCT_BUNDLE_IDENTIFIER in the project, then re-run."
+  elif grep -q "No profiles for" "$BUILD_LOG"; then
+    warn "Xcode couldn't create a provisioning profile."
+    note "Check Xcode ▸ Settings ▸ Accounts still shows your Apple ID and team."
+  fi
   note "Full log: $BUILD_LOG"
-  note "Most common cause: the bundle ID is already taken by another Apple account."
   exit 1
 fi
 APP_PATH="$DERIVED/Build/Products/Debug-iphoneos/WorkoutTracker.app"
