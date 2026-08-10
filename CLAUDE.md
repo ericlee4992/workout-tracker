@@ -69,7 +69,7 @@ Apple's system.
 
 ### Issue tracker
 
-Local markdown under `.scratch/` — no GitHub remote is configured yet. See `docs/agents/issue-tracker.md`.
+Local markdown under `.scratch/` — remote: github.com/ericlee4992/workout-tracker (private). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
