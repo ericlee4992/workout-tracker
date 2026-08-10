@@ -350,4 +350,90 @@ struct SetLoggingTests {
         #expect(second.weightValue == 60)
         #expect(second.reps == 10)
     }
+
+    // MARK: - Ticket 18 B: the consequences of deleting a set
+
+    /// Deleting a completed set has to be a real undo, not a cosmetic one:
+    /// the entry's remaining sets renumber, records and volume recompute
+    /// without it, and carry-forward re-seeds from the NEW last completed set.
+    @Test func deletingTheLastCompletedSetReseedsCarryForwardAndRecomputes() throws {
+        let rig = try makeRig()
+        let (_, entry, first) = try firstDraft(rig)
+        try rig.session.commitWeight("60", for: first)
+        try rig.session.commitReps("10", for: first)
+        try rig.session.toggleCompletion(of: first, at: Date(timeIntervalSince1970: 110))
+
+        let second = try rig.session.addSet(to: entry)
+        try rig.session.commitWeight("100", for: second)
+        try rig.session.commitReps("3", for: second)
+        try rig.session.toggleCompletion(of: second, at: Date(timeIntervalSince1970: 120))
+
+        // A third row follows the newest completed set (100 × 3)…
+        let third = try rig.session.addSet(to: entry)
+        #expect(third.weightValue == 100)
+        #expect(third.reps == 3)
+
+        // …until that set is deleted as a mistake.
+        try rig.session.deleteSet(second)
+        try rig.session.deleteSet(third)
+        #expect(WorkoutSession.orderedSets(of: entry).count == 1)
+        #expect(WorkoutSession.orderedSets(of: entry).map(\.order) == [0])
+
+        let replacement = try rig.session.addSet(to: entry)
+        #expect(replacement.weightValue == 60, "Carry-forward must re-seed from 60 × 10")
+        #expect(replacement.reps == 10)
+        #expect(replacement.order == 1)
+
+        // Records and volume are derived, so they lose the deleted set too:
+        // 60 × 10 only, and no 3-rep record at all.
+        let inputs = WorkoutSession.orderedSets(of: entry)
+            .filter { $0.completedAt != nil }
+            .map { set in
+                RecordSetInput(
+                    loadType: entry.snapshotLoadType,
+                    exerciseID: entry.snapshotExerciseID,
+                    machineID: entry.snapshotMachineID,
+                    setType: set.type,
+                    reps: set.reps,
+                    weightValue: set.weightValue,
+                    weightUnit: set.weightUnit,
+                    normalizedKg: set.normalizedKg,
+                    completedAt: set.completedAt)
+            }
+        #expect(abs(RecordsMath.totalVolumeKg(among: inputs) - 600) < 1e-9)
+        let bests = RecordsMath.repCountBests(among: inputs, loadType: .weighted)
+        #expect(bests[3] == nil, "The deleted set must not hold a record")
+        #expect(try #require(bests[10]).weightValue == 60)
+    }
+
+    /// Deleting an entry's only set leaves the entry standing and usable —
+    /// empty-entry pruning is ticket 17's *finish* step, not something that
+    /// happens under the user mid-workout.
+    @Test func deletingTheOnlySetLeavesTheEntryIntactAndUsable() throws {
+        let rig = try makeRig()
+        let (workout, entry, only) = try firstDraft(rig)
+        try rig.session.commitWeight("60", for: only)
+        try rig.session.commitReps("10", for: only)
+        try rig.session.toggleCompletion(of: only, at: Date(timeIntervalSince1970: 110))
+
+        try rig.session.deleteSet(only)
+        #expect(!entry.isDeleted, "The entry must survive losing its last set")
+        #expect(WorkoutSession.orderedSets(of: entry).isEmpty)
+        #expect(WorkoutSession.orderedEntries(of: workout).count == 1)
+
+        // Still usable: a fresh row logs normally.
+        let replacement = try rig.session.addSet(to: entry)
+        #expect(replacement.order == 0)
+        #expect(replacement.completedAt == nil)
+        try rig.session.commitWeight("65", for: replacement)
+        try rig.session.commitReps("8", for: replacement)
+        try rig.session.toggleCompletion(
+            of: replacement, at: Date(timeIntervalSince1970: 120))
+        #expect(replacement.completedAt == Date(timeIntervalSince1970: 120))
+
+        // And it reaches history, because it was never orphaned.
+        #expect(try rig.session.finish(
+            workout, at: Date(timeIntervalSince1970: 200)) == .saved)
+        #expect(workout.finishedAt == Date(timeIntervalSince1970: 200))
+    }
 }

@@ -80,7 +80,9 @@ struct WorkoutDetailView: View {
         HStack(spacing: 10) {
             Text(set.type.marker ?? "\(index + 1)")
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(set.type == .warmup ? .orange : set.type == .failure ? .red : .primary)
+                // Same marker tints as the active workout (W/F/D), so a `D`
+                // in history means what it meant while logging (D26).
+                .foregroundStyle(set.type.markerColor)
                 .frame(width: 24)
             Text("\(weightLabel(for: set)) × \(set.reps.map(String.init) ?? "—")")
                 .font(.body)

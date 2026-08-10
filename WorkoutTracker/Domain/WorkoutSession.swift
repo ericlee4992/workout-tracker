@@ -341,13 +341,15 @@ struct WorkoutSession {
         try context.save()
     }
 
-    /// Set-type cycle used by the row's marker button: working → warmup →
-    /// failure → working.
+    /// Set-type cycle: working → warmup → failure → drop → working. The row's
+    /// marker is a menu now (E5), so this is the keep-it-honest fallback path
+    /// rather than the primary control — it still has to visit every type.
     func cycleSetType(_ set: SetRecord) throws {
         switch set.type {
         case .working: set.type = .warmup
         case .warmup: set.type = .failure
-        case .failure: set.type = .working
+        case .failure: set.type = .drop
+        case .drop: set.type = .working
         }
         try context.save()
     }

@@ -91,9 +91,11 @@ struct PerformanceHistory {
     }
 
     /// Prefill source for one draft row, matched by exact set type and its
-    /// zero-based ordinal among rows of that type. The source entry is from
-    /// the most recent finished matching workout; if that workout contains
-    /// duplicates, the last entry by scalar order wins.
+    /// zero-based ordinal among rows of that type — so every type, `drop`
+    /// included (D26), is its own sequence: the nth drop set matches the
+    /// previous session's nth drop set. The source entry is from the most
+    /// recent finished matching workout; if that workout contains duplicates,
+    /// the last entry by scalar order wins.
     func prefill(for target: SetRecord) throws -> PreviousSetValue? {
         guard target.completedAt == nil, let entry = target.entry else { return nil }
         let peers = WorkoutSession.orderedSets(of: entry)

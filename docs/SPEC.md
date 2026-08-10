@@ -53,7 +53,8 @@ Four levels:
 - Machine/gym optional on every workout and entry; workouts can start with **no gym** (home/context-free). Once chosen, equipment is remembered **per gym per exercise** (`GymExerciseMemory`). An entry's equipment freezes once its first set completes — switching machines mid-exercise starts a new entry (D19).
 - **Templates are generic** exercise lists. Starting a workout at a gym resolves each exercise to the last-used machine there.
 - Template drift: on finishing a modified templated workout, prompt — update template / update values only / both / keep original (suppressible).
-- Set types: **warmup / working / failure**.
+- Set types: **warmup / working / failure / drop** (D26). Drop sets count toward records and volume like working sets; only warmups are excluded. Completing a drop set does not start the rest timer, since a drop set is performed without rest.
+- Any set can be deleted from its row (swipe, plus a menu action).
 - **Rest timer**: auto-starts on set completion; per-exercise durations (separate warmup vs. working; failure sets use the working duration) with global defaults (2:00 working / 1:00 warmup); local notification on finish.
 - Speed bar (from Strong): set rows arrive prefilled from same-machine history; confirming an untouched row is **one tap**.
 - Active workout **auto-persists every committed change** (set completion, add/delete, equipment choice, unit toggle, field commit on end-editing) — crash/force-quit loses at most in-progress keystrokes in the currently focused field. Non-negotiable.

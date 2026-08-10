@@ -78,6 +78,9 @@ struct RestTimerService {
         self.notifications = notifications
     }
 
+    /// D22: warmups get the warmup duration, working and failure sets the
+    /// working one. Drop sets never reach here — `handleCompletionChange`
+    /// starts no timer for them (D26) — so they carry no duration of their own.
     func durationSeconds(for set: SetRecord) throws -> Int {
         let preferences = try AppPreferences.canonical(in: context)
         let isWarmup = set.type == .warmup
@@ -100,6 +103,11 @@ struct RestTimerService {
     /// Call after WorkoutSession toggles completion. A completion starts or
     /// replaces the timer. An un-completion only cancels when this exact set
     /// started the current timer; it never starts a new one.
+    ///
+    /// D26: completing a *drop* set starts nothing — a drop set is performed
+    /// without rest, so a countdown here would only be something to dismiss.
+    /// Any timer already running is left exactly as it is (the rest the user
+    /// is actually taking is not this set's to cancel).
     @discardableResult
     func handleCompletionChange(
         of set: SetRecord,
@@ -114,6 +122,7 @@ struct RestTimerService {
             }
             return try currentState(for: workout)
         }
+        guard set.type.startsRestTimer else { return try currentState(for: workout) }
 
         let preferences = try AppPreferences.canonical(in: context)
         if !preferences.notificationPermissionRequested {

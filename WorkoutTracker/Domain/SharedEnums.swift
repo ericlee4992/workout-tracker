@@ -14,18 +14,48 @@ enum WeightUnit: String, CaseIterable, Identifiable, Codable {
     var toggled: WeightUnit { self == .kg ? .lb : .kg }
 }
 
+/// D12, amended by D26. Raw values are persisted — `drop` is appended, never
+/// inserted, so stores written before it existed keep decoding.
 enum SetType: String, CaseIterable, Codable {
     case warmup
     case working
     case failure
+    case drop
 
     var marker: String? {
         switch self {
         case .warmup: "W"
         case .working: nil
         case .failure: "F"
+        case .drop: "D"
         }
     }
+
+    /// Named option in the row's set-type menu (E5).
+    var displayName: String {
+        switch self {
+        case .warmup: "Warmup"
+        case .working: "Working"
+        case .failure: "Failure"
+        case .drop: "Drop"
+        }
+    }
+
+    /// D26: a drop set is *by definition* performed without resting, so
+    /// completing one starts no rest timer. Every other type rests, on the
+    /// durations D13/D22 lay down (warmup duration for warmups, working
+    /// duration for working and failure).
+    var startsRestTimer: Bool {
+        switch self {
+        case .warmup, .working, .failure: true
+        case .drop: false
+        }
+    }
+
+    /// D12/D26: only warmups are excluded from records and volume — working,
+    /// failure and drop sets are all real work. `RecordsMath` is the one
+    /// place that decides eligibility; this states the rule it applies.
+    var countsTowardRecords: Bool { self != .warmup }
 }
 
 enum LoadType: String, CaseIterable, Codable {

@@ -274,6 +274,77 @@ final class CoreLoopUITests: XCTestCase {
         finishWorkout()
     }
 
+    // MARK: - Ticket 18 B: swipe-to-delete on a set row
+
+    /// Deleting a set was always possible from the row's menu; nobody found
+    /// it. The swipe is the discoverable half of the same action — and
+    /// deleting an entry's *last* set must leave the exercise standing, not
+    /// quietly remove it mid-workout.
+    func testSwipeToDeleteRemovesASetAndLeavesTheExerciseIntact() {
+        createGym()
+        addMachine()
+        startEmptyWorkout()
+        addByMachine()
+
+        XCTAssertTrue(
+            app.textFields["setRow.weight"].firstMatch.waitForExistence(timeout: 5))
+        app.buttons["addSet"].firstMatch.tap()
+        XCTAssertEqual(setRowCount(), 2, "Add Set should append a second row")
+
+        swipeLeftOnSetRow(at: 1)
+        let delete = app.buttons["setRow.swipeDelete"].firstMatch
+        XCTAssertTrue(
+            delete.waitForExistence(timeout: 5),
+            "Swiping a set row left should reveal a Delete action")
+        delete.tap()
+        XCTAssertTrue(
+            waitForSetRowCount(1), "Swipe-to-delete should remove the swiped set")
+
+        // The last remaining set: the exercise stays, ready to log again.
+        swipeLeftOnSetRow(at: 0)
+        let deleteLast = app.buttons["setRow.swipeDelete"].firstMatch
+        XCTAssertTrue(deleteLast.waitForExistence(timeout: 5))
+        deleteLast.tap()
+        XCTAssertTrue(
+            waitForSetRowCount(0), "The last set should be deletable too")
+        XCTAssertTrue(
+            app.staticTexts[exerciseName].exists,
+            "Deleting the last set must not remove the exercise mid-workout")
+        XCTAssertTrue(
+            app.buttons["addSet"].firstMatch.exists,
+            "The emptied exercise must stay usable")
+
+        // Leave nothing behind.
+        app.buttons["Cancel"].firstMatch.tap()
+        app.buttons["Discard Workout"].firstMatch.tap()
+        XCTAssertTrue(tab("History").waitForExistence(timeout: 5))
+    }
+
+    private func setRowCount() -> Int {
+        app.textFields.matching(identifier: "setRow.weight").count
+    }
+
+    private func waitForSetRowCount(_ expected: Int, timeout: TimeInterval = 5) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if setRowCount() == expected { return true }
+            _ = app.wait(for: .runningForeground, timeout: 0.2)
+        }
+        return setRowCount() == expected
+    }
+
+    /// A horizontal drag across the row's PREVIOUS column — the one wide part
+    /// of the row that is neither a text field nor a button.
+    private func swipeLeftOnSetRow(at index: Int) {
+        let label = app.staticTexts.matching(identifier: "setRow.previous")
+            .element(boundBy: index)
+        XCTAssertTrue(label.waitForExistence(timeout: 5))
+        let start = label.coordinate(withNormalizedOffset: CGVector(dx: 1, dy: 0.5))
+        start.press(
+            forDuration: 0.1,
+            thenDragTo: start.withOffset(CGVector(dx: -140, dy: 0)))
+    }
+
     // MARK: - C1: leaving and resuming an active workout
 
     /// Ticket 17 C1: the active workout is no longer a trap — it can be

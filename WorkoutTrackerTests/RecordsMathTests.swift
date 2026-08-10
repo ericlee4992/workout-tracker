@@ -224,6 +224,80 @@ struct RecordsMathTests {
         #expect(abs(RecordsMath.totalVolumeKg(among: sets) - 1140) < 1e-9)
     }
 
+    // MARK: - D26: drop sets are real work
+
+    /// A drop set counts exactly like a working or failure set for
+    /// eligibility, in every load type — only warmups are excluded.
+    @Test func dropSetsAreEligibleInEveryLoadType_warmupStillIsNot() {
+        for loadType in LoadType.allCases {
+            let value: Double? = loadType == .bodyweight ? nil : 40
+            #expect(
+                RecordsMath.isEligible(
+                    Self.set(loadType, type: .drop, reps: 8, value: value)),
+                "A drop set must be eligible under \(loadType)")
+            #expect(
+                !RecordsMath.isEligible(
+                    Self.set(loadType, type: .warmup, reps: 8, value: value)),
+                "A warmup must stay ineligible under \(loadType)")
+        }
+    }
+
+    /// …and it can therefore *hold* a record: the drop set here is the only
+    /// set at 8 reps in each weight-keyed table, and the best in the
+    /// bodyweight most-reps table.
+    @Test func dropSetsCanHoldTheRecordInEveryLoadType() throws {
+        // weighted: heaviest at 8 reps.
+        let weighted = RecordsMath.repCountBests(
+            among: [
+                Self.set(.weighted, type: .drop, reps: 8, value: 90, completedAt: Self.at(0)),
+                Self.set(.weighted, type: .warmup, reps: 8, value: 200, completedAt: Self.at(1)),
+            ],
+            loadType: .weighted)
+        #expect(try #require(weighted[8]).weightValue == 90)
+
+        // assisted: least assistance at 8 reps — the drop set beats the
+        // working one because 10 kg of help is less than 30 kg.
+        let assisted = RecordsMath.repCountBests(
+            among: [
+                Self.set(.assisted, type: .working, reps: 8, value: 30, completedAt: Self.at(0)),
+                Self.set(.assisted, type: .drop, reps: 8, value: 10, completedAt: Self.at(1)),
+            ],
+            loadType: .assisted)
+        #expect(try #require(assisted[8]).weightValue == 10)
+
+        // bodyweightPlus: most added weight at 8 reps.
+        let bodyweightPlus = RecordsMath.repCountBests(
+            among: [
+                Self.set(.bodyweightPlus, type: .working, reps: 8, value: 5, completedAt: Self.at(0)),
+                Self.set(.bodyweightPlus, type: .drop, reps: 8, value: 15, completedAt: Self.at(1)),
+            ],
+            loadType: .bodyweightPlus)
+        #expect(try #require(bodyweightPlus[8]).weightValue == 15)
+
+        // bodyweight: most reps, uncapped.
+        let bodyweight = try #require(RecordsMath.mostRepsRecord(among: [
+            Self.set(.bodyweight, type: .working, reps: 20, value: nil, completedAt: Self.at(0)),
+            Self.set(.bodyweight, type: .drop, reps: 25, value: nil, completedAt: Self.at(1)),
+        ]))
+        #expect(bodyweight.reps == 25)
+
+        // e1RM (weighted only) sees drop sets too.
+        let e1RM = try #require(RecordsMath.bestE1RM(among: [
+            Self.set(.weighted, type: .drop, reps: 5, value: 100, completedAt: Self.at(0)),
+        ]))
+        #expect(e1RM.reps == 5)
+    }
+
+    /// Volume: the drop set's tonnage is in, the warmup's is not.
+    @Test func volume_includesDropSets() {
+        let sets = [
+            Self.set(reps: 5, value: 100, completedAt: Self.at(0)),                  // 500
+            Self.set(type: .drop, reps: 10, value: 50, completedAt: Self.at(10)),    // 500
+            Self.set(type: .warmup, reps: 10, value: 60, completedAt: Self.at(20)),  // out
+        ]
+        #expect(abs(RecordsMath.totalVolumeKg(among: sets) - 1000) < 1e-9)
+    }
+
     @Test func volume_dumbbellEntriesAreNotDoubled() {
         // Dumbbells log the per-hand label (D21); no equipment special-casing.
         let sets = [

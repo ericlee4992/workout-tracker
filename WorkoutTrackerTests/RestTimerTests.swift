@@ -26,6 +26,7 @@ struct RestTimerTests {
         let warmup: SetRecord
         let working: SetRecord
         let failure: SetRecord
+        let drop: SetRecord
     }
 
     private func makeRig(context: ModelContext) throws -> Rig {
@@ -42,13 +43,15 @@ struct RestTimerTests {
         let warmup = SetRecord(order: 0, type: .warmup, entry: entry)
         let working = SetRecord(order: 1, type: .working, entry: entry)
         let failure = SetRecord(order: 2, type: .failure, entry: entry)
+        let drop = SetRecord(order: 3, type: .drop, entry: entry)
         context.insert(warmup)
         context.insert(working)
         context.insert(failure)
+        context.insert(drop)
         try context.save()
         return Rig(
             context: context, workout: workout, exercise: exercise, entry: entry,
-            warmup: warmup, working: working, failure: failure)
+            warmup: warmup, working: working, failure: failure, drop: drop)
     }
 
     private func makeInMemoryContext() throws -> ModelContext {
@@ -209,6 +212,66 @@ struct RestTimerTests {
             }
             #expect(notifications.cancellations == 1)
         }
+    }
+
+    /// D26: a drop set is performed without rest, so completing one starts no
+    /// timer and schedules no notification — while the other three types all
+    /// still do, on their D22 durations.
+    @Test func completingADropSetStartsNoTimer_theOtherTypesStillDo() throws {
+        for type in SetType.allCases {
+            let rig = try makeRig(context: makeInMemoryContext())
+            let clock = FakeClock(now: Date(timeIntervalSince1970: 100))
+            let notifications = FakeNotifications()
+            let timer = RestTimerService(
+                context: rig.context, clock: clock, notifications: notifications)
+            let set: SetRecord
+            switch type {
+            case .warmup: set = rig.warmup
+            case .working: set = rig.working
+            case .failure: set = rig.failure
+            case .drop: set = rig.drop
+            }
+            set.completedAt = clock.now
+
+            let state = try timer.handleCompletionChange(of: set, isCompleted: true)
+
+            if type == .drop {
+                #expect(state == nil, "A drop set must not start a rest timer")
+                #expect(rig.workout.restEndsAt == nil)
+                #expect(rig.workout.restStartedBySetID == nil)
+                #expect(notifications.scheduledDates.isEmpty)
+                #expect(notifications.cancellations == 0)
+            } else {
+                let started = try #require(state, "\(type) must start a rest timer")
+                // Global defaults: 60s warmup, 120s working (failure too).
+                #expect(started.end == Date(
+                    timeIntervalSince1970: type == .warmup ? 160 : 220))
+                #expect(rig.workout.restStartedBySetID == set.id)
+                #expect(notifications.scheduledDates == [started.end])
+            }
+        }
+    }
+
+    /// A drop set logged mid-rest leaves the running timer alone: it starts
+    /// nothing, but the rest the user is actually taking is not its to cancel.
+    @Test func completingADropSetLeavesARunningTimerUntouched() throws {
+        let rig = try makeRig(context: makeInMemoryContext())
+        let clock = FakeClock(now: Date(timeIntervalSince1970: 100))
+        let notifications = FakeNotifications()
+        let timer = RestTimerService(
+            context: rig.context, clock: clock, notifications: notifications)
+        rig.working.completedAt = clock.now
+        try timer.handleCompletionChange(of: rig.working, isCompleted: true)
+
+        clock.now = Date(timeIntervalSince1970: 110)
+        rig.drop.completedAt = clock.now
+        let state = try timer.handleCompletionChange(of: rig.drop, isCompleted: true)
+
+        let running = try #require(state)
+        #expect(running.end == Date(timeIntervalSince1970: 220))
+        #expect(rig.workout.restStartedBySetID == rig.working.id)
+        #expect(notifications.scheduledDates.count == 1)
+        #expect(notifications.cancellations == 0)
     }
 
     /// Starting a new workout auto-finishes strays; their notifications go too.

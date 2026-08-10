@@ -10,6 +10,22 @@ extension ExerciseEntry {
     }
 }
 
+extension SetType {
+    /// The marker's tint, shared by the active workout and history detail so
+    /// a `D` never means one thing on one screen and another elsewhere.
+    /// W orange, F red, D purple: three hues that stay legible on both the
+    /// light and dark card backgrounds, and none of them the green the
+    /// completion tick owns.
+    var markerColor: Color {
+        switch self {
+        case .warmup: .orange
+        case .working: .primary
+        case .failure: .red
+        case .drop: .purple
+        }
+    }
+}
+
 struct ExerciseEntryCard: View {
     @Environment(\.modelContext) private var modelContext
     var entry: ExerciseEntry
@@ -147,6 +163,9 @@ struct ExerciseEntryCard: View {
         loadType == .assisted ? "ASSIST" : "WEIGHT"
     }
 
+    /// The number a marker-less row shows. Only warmups sit outside the
+    /// count — failure and drop rows are numbered work like any other, they
+    /// just display their letter instead of the number (D26).
     private func workingIndex(of set: SetRecord) -> Int {
         var index = 0
         for s in orderedSets {
@@ -201,7 +220,14 @@ struct SetRowView: View {
     @State private var repsText: String
     @State private var previousLabel = "—"
     @State private var isDirty = false
+    /// Swipe-to-delete: how far the row is currently pulled left (≤ 0) and
+    /// whether it has settled open. Only an open row's button is tappable, so
+    /// a half-swipe can never delete anything.
+    @State private var swipeOffset: CGFloat = 0
+    @State private var isSwipeOpen = false
     @FocusState private var focusedField: Field?
+
+    private static let swipeDeleteWidth: CGFloat = 88
 
     private enum Field { case weight, reps }
 
@@ -223,7 +249,97 @@ struct SetRowView: View {
 
     private var isCompleted: Bool { !set.isDeleted && set.completedAt != nil }
 
+    /// Deleting a set was already possible from the row's menu, but nobody
+    /// finds a menu they don't know is there. The swipe is the discoverable
+    /// half of the same action — both call `WorkoutSession.deleteSet`.
     var body: some View {
+        ZStack(alignment: .trailing) {
+            if swipeOffset < 0 { swipeDeleteButton }
+            rowContent
+                // Opaque, so the delete button stays hidden behind the row
+                // until the swipe pulls it out from under.
+                .background(Color(.secondarySystemGroupedBackground))
+                .offset(x: swipeOffset)
+                .gesture(swipeToDelete)
+        }
+        .onChange(of: focusedField) { previous, _ in
+            // Field commit on end-editing (SPEC durability boundary).
+            switch previous {
+            case .weight: commitWeight()
+            case .reps: commitReps()
+            case nil: break
+            }
+        }
+        .onChange(of: weightText) { _, _ in
+            if focusedField == .weight { isDirty = true }
+        }
+        .onChange(of: repsText) { _, _ in
+            if focusedField == .reps { isDirty = true }
+        }
+        .task(id: prefillTaskID) {
+            loadPreviousAndPrefill()
+        }
+        // B3: decimalPad/numberPad have no return key, so the keyboard used
+        // to cover the lower rows with no way out. Only the focused row
+        // contributes a bar, or every row would stack one.
+        .toolbar {
+            if focusedField != nil {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    // Clearing focus runs the same end-editing commit as
+                    // tapping away (ticket 07's durability boundary).
+                    Button("Done") { focusedField = nil }
+                        .accessibilityIdentifier("keyboardDone")
+                }
+            }
+        }
+    }
+
+    private var swipeToDelete: some Gesture {
+        DragGesture(minimumDistance: 14)
+            .onChanged { value in
+                // Vertical drags belong to the scroll view, not to us.
+                guard abs(value.translation.width) > abs(value.translation.height)
+                else { return }
+                swipeOffset = settledOffset(after: value.translation.width)
+            }
+            .onEnded { value in
+                setSwipeOpen(
+                    settledOffset(after: value.translation.width)
+                        < -Self.swipeDeleteWidth / 2)
+            }
+    }
+
+    private func settledOffset(after translation: CGFloat) -> CGFloat {
+        let base: CGFloat = isSwipeOpen ? -Self.swipeDeleteWidth : 0
+        return min(0, max(-Self.swipeDeleteWidth, base + translation))
+    }
+
+    private func setSwipeOpen(_ open: Bool) {
+        isSwipeOpen = open
+        withAnimation(.snappy) {
+            swipeOffset = open ? -Self.swipeDeleteWidth : 0
+        }
+    }
+
+    private var swipeDeleteButton: some View {
+        Button(role: .destructive) {
+            setSwipeOpen(false)
+            onDelete()
+        } label: {
+            Image(systemName: "trash")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .frame(width: Self.swipeDeleteWidth - 10, height: 34)
+                .background(Color.red, in: RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .allowsHitTesting(isSwipeOpen)
+        .accessibilityIdentifier("setRow.swipeDelete")
+        .accessibilityLabel("Delete set")
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 8) {
             setTypeButton
 
@@ -274,43 +390,12 @@ struct SetRowView: View {
                 onDelete()
             }
         }
-        .onChange(of: focusedField) { previous, _ in
-            // Field commit on end-editing (SPEC durability boundary).
-            switch previous {
-            case .weight: commitWeight()
-            case .reps: commitReps()
-            case nil: break
-            }
-        }
-        .onChange(of: weightText) { _, _ in
-            if focusedField == .weight { isDirty = true }
-        }
-        .onChange(of: repsText) { _, _ in
-            if focusedField == .reps { isDirty = true }
-        }
-        .task(id: prefillTaskID) {
-            loadPreviousAndPrefill()
-        }
-        // B3: decimalPad/numberPad have no return key, so the keyboard used
-        // to cover the lower rows with no way out. Only the focused row
-        // contributes a bar, or every row would stack one.
-        .toolbar {
-            if focusedField != nil {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    // Clearing focus runs the same end-editing commit as
-                    // tapping away (ticket 07's durability boundary).
-                    Button("Done") { focusedField = nil }
-                        .accessibilityIdentifier("keyboardDone")
-                }
-            }
-        }
     }
 
     /// E5: the marker is a menu of named set types — the old control cycled
-    /// blindly through them and announced itself as "1". The compact W/#/F
-    /// visual keeps its footprint, plus a small chevron so it reads as
-    /// something with options rather than as a plain number.
+    /// blindly through them and announced itself as "1". The compact
+    /// W/#/F/D visual keeps its footprint, plus a small chevron so it reads
+    /// as something with options rather than as a plain number.
     private var setTypeButton: some View {
         Menu {
             ForEach(SetType.allCases, id: \.self) { type in
@@ -318,9 +403,9 @@ struct SetRowView: View {
                     apply(type)
                 } label: {
                     if !set.isDeleted, set.type == type {
-                        Label(Self.setTypeName(type), systemImage: "checkmark")
+                        Label(type.displayName, systemImage: "checkmark")
                     } else {
-                        Text(Self.setTypeName(type))
+                        Text(type.displayName)
                     }
                 }
             }
@@ -339,24 +424,12 @@ struct SetRowView: View {
         }
         .accessibilityIdentifier("setRow.setType")
         .accessibilityLabel(
-            "Set type: \(set.isDeleted ? "" : Self.setTypeName(set.type).lowercased())")
-    }
-
-    private static func setTypeName(_ type: SetType) -> String {
-        switch type {
-        case .warmup: "Warmup"
-        case .working: "Working"
-        case .failure: "Failure"
-        }
+            "Set type: \(set.isDeleted ? "" : set.type.displayName.lowercased())")
     }
 
     private var markerColor: Color {
-        guard !set.isDeleted else { return .primary }
-        switch set.type {
-        case .warmup: return .orange
-        case .working: return .primary
-        case .failure: return .red
-        }
+        // `set` first in a computed property's body reads as a setter clause.
+        return self.set.isDeleted ? .primary : self.set.type.markerColor
     }
 
     /// A1: the checkmark is live only once the row says something true —

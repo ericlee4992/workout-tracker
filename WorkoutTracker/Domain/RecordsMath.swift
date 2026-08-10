@@ -81,12 +81,13 @@ enum RecordsMath {
     // MARK: Eligibility
 
     /// Load-type-specific eligibility: completed, positive reps, warmups out,
-    /// failure in; load finite and — weighted: > 0; assisted: ≥ 0 (0 =
+    /// failure and drop in (D26 — a drop set is real work, the weight was
+    /// lifted); load finite and — weighted: > 0; assisted: ≥ 0 (0 =
     /// unassisted); bodyweightPlus: ≥ 0 (0 = plain); bodyweight: load ignored.
     static func isEligible(_ set: RecordSetInput) -> Bool {
         guard set.completedAt != nil,
               let reps = set.reps, reps > 0,
-              set.setType != .warmup
+              set.setType.countsTowardRecords
         else { return false }
 
         switch set.loadType {
@@ -219,8 +220,9 @@ enum RecordsMath {
 
     // MARK: Volume (D21)
 
-    /// Σ(normalizedKg × reps) over eligible working+failure sets of weighted
-    /// exercises only. Dumbbell sets are logged per-hand and summed as
+    /// Σ(normalizedKg × reps) over eligible working+failure+drop sets of
+    /// weighted exercises only (warmups are the sole exclusion, D26).
+    /// Dumbbell sets are logged per-hand and summed as
     /// labeled — no equipment special-casing, so nothing is doubled.
     /// Assisted/bodyweight/bodyweightPlus contribute nothing.
     static func totalVolumeKg(among sets: [RecordSetInput]) -> Double {

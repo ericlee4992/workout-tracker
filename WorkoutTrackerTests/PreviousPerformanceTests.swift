@@ -115,6 +115,42 @@ struct PreviousPerformanceTests {
         #expect(try rig.history.prefill(for: second)?.weightValue == 55)
     }
 
+    /// D26: `drop` is its own sequence, exactly as warmup and working already
+    /// are — the nth drop set matches the previous session's nth drop set,
+    /// not its nth working set.
+    @Test func typeAwareOrdinalMatchingTreatsDropSetsAsTheirOwnSequence() throws {
+        let rig = try makeRig()
+        try log(
+            rig: rig, gym: rig.gymA, machine: rig.machineA,
+            values: [
+                (.warmup, 20, .kg, 12),
+                (.working, 100, .kg, 8),
+                (.working, 100, .kg, 6),
+                (.drop, 70, .kg, 8),
+                (.drop, 50, .kg, 10),
+            ],
+            start: Date(timeIntervalSince1970: 100))
+
+        let workout = try rig.session.startWorkout(
+            at: rig.gymA, on: Date(timeIntervalSince1970: 300))
+        let entry = try rig.session.addEntry(
+            for: rig.exercise, to: workout, machine: rig.machineA)
+        let firstWorking = try #require(WorkoutSession.orderedSets(of: entry).first)
+        let firstDrop = try rig.session.addSet(to: entry)
+        try rig.session.setType(.drop, of: firstDrop)
+        let secondDrop = try rig.session.addSet(to: entry)
+        try rig.session.setType(.drop, of: secondDrop)
+
+        #expect(try rig.history.prefill(for: firstWorking)?.weightValue == 100)
+        #expect(try rig.history.prefill(for: firstDrop)?.weightValue == 70)
+        #expect(try rig.history.prefill(for: secondDrop)?.weightValue == 50)
+
+        // A third drop row has no counterpart last time — no invented match.
+        let thirdDrop = try rig.session.addSet(to: entry)
+        try rig.session.setType(.drop, of: thirdDrop)
+        #expect(try rig.history.prefill(for: thirdDrop) == nil)
+    }
+
     @Test func dirtyRowRejectsDelayedPrefill() throws {
         let rig = try makeRig()
         try log(
