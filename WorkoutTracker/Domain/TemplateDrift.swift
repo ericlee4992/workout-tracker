@@ -97,6 +97,11 @@ struct TemplateDriftService {
     }
 
     func shouldPrompt(for workout: Workout, template: WorkoutTemplate) throws -> Bool {
+        // Nothing was logged: there is nothing the template could be updated
+        // *from*, and the workout itself is about to be discarded (A2). Asking
+        // "how should this update the template?" about nothing is a question
+        // with no honest answer.
+        guard !workoutSnapshot(workout).isEmpty else { return false }
         let preferences = try context.fetch(FetchDescriptor<AppPreferences>())
         guard AppPreferences.canonical(of: preferences)?.driftPromptSuppressed != true else {
             return false
@@ -112,8 +117,15 @@ struct TemplateDriftService {
         to template: WorkoutTemplate
     ) throws {
         guard resolution != .keepOriginal else { return }
-        let original = templateSnapshot(template)
         let completed = workoutSnapshot(workout)
+        // A workout with no completed entries has no drift to apply. The
+        // rebuild below deletes every item before writing the resolved ones,
+        // so an empty resolution used to *erase the template* — and because
+        // `resolve` then discards the empty workout (A2), the receipt said
+        // "nothing was saved" while the reusable template was gone. The guard
+        // lives here, not in the finish screen, so it holds for every caller.
+        guard !completed.isEmpty else { return }
+        let original = templateSnapshot(template)
         let resolved = TemplateDrift.resolving(
             resolution, template: original, workout: completed)
 

@@ -138,35 +138,51 @@ struct HistoryRenderingTests {
 
     // MARK: Row titles (E1, ticket 17)
 
+    private func exercise(_ name: String, id: UUID = UUID()) -> HistoryExercise {
+        HistoryExercise(id: id, name: name)
+    }
+
     /// The template a workout started from names it, whatever was performed.
     @Test func templateNameWinsOverExercises() {
         #expect(HistoryRendering.title(
             templateName: "Push Day",
-            exerciseNames: ["Chest Press", "Lateral Raise"]) == "Push Day")
+            exercises: [exercise("Chest Press"), exercise("Lateral Raise")]) == "Push Day")
         // Whitespace-only is not a name.
         #expect(HistoryRendering.title(
-            templateName: "   ", exerciseNames: ["Chest Press"]) == "Chest Press")
+            templateName: "   ", exercises: [exercise("Chest Press")]) == "Chest Press")
     }
 
     /// Without a template the exercises performed name the workout — the
     /// first one, plus how many others.
     @Test func exercisesDeriveTheTitleWhenThereIsNoTemplate() {
         #expect(HistoryRendering.title(
-            templateName: nil, exerciseNames: ["Chest Press"]) == "Chest Press")
+            templateName: nil, exercises: [exercise("Chest Press")]) == "Chest Press")
         #expect(HistoryRendering.title(
             templateName: nil,
-            exerciseNames: ["Chest Press", "Row", "Curl"]) == "Chest Press +2")
+            exercises: [exercise("Chest Press"), exercise("Row"), exercise("Curl")])
+            == "Chest Press +2")
         // Repeating an exercise (a split entry, D19) is one exercise.
+        let press = UUID()
         #expect(HistoryRendering.title(
             templateName: nil,
-            exerciseNames: ["Chest Press", "Chest Press"]) == "Chest Press")
+            exercises: [exercise("Chest Press", id: press), exercise("Chest Press", id: press)])
+            == "Chest Press")
+    }
+
+    /// Identity is the snapshot ID, not the display name: two distinct
+    /// exercises that happen to share a name are two exercises, and collapsing
+    /// them produced a title that could not tell the workouts apart.
+    @Test func sameNamedDistinctExercisesAreNotCollapsed() {
+        #expect(HistoryRendering.title(
+            templateName: nil,
+            exercises: [exercise("Row"), exercise("Row")]) == "Row +1")
     }
 
     /// Neither template nor exercises → a neutral label, never an empty row.
     @Test func titleFallsBackWhenNothingNamesTheWorkout() {
-        #expect(HistoryRendering.title(templateName: nil, exerciseNames: []) == "Workout")
+        #expect(HistoryRendering.title(templateName: nil, exercises: []) == "Workout")
         #expect(HistoryRendering.title(
-            templateName: nil, exerciseNames: ["", "  "]) == "Workout")
+            templateName: nil, exercises: [exercise(""), exercise("  ")]) == "Workout")
     }
 
     /// E1 against real persisted data: the title comes from SNAPSHOTS (D23),
@@ -192,12 +208,54 @@ struct HistoryRenderingTests {
         }
         try session.finish(workout)
 
-        #expect(workout.historyTitle(templateName: nil) == "Chest Press +1")
-        #expect(workout.historyTitle(templateName: "Push Day") == "Push Day")
+        #expect(workout.historyTitle == "Chest Press +1")
 
         press.name = "Renamed Press"
         try context.save()
-        #expect(workout.historyTitle(templateName: nil) == "Chest Press +1")
+        #expect(workout.historyTitle == "Chest Press +1")
+    }
+
+    /// D23 regression: a workout started from a template is titled by the
+    /// template name captured AT START, and subtitled by the gym name captured
+    /// at start/log time. Renaming (or deleting) either afterwards must leave
+    /// the finished row exactly as it was — history is a record, not a live
+    /// view of the library.
+    @Test func renamingTheTemplateOrGymDoesNotRewriteFinishedWorkouts() throws {
+        let context = try makeContext()
+        let press = Exercise(name: "Chest Press")
+        let gym = Gym(name: "Gangnam Fitness", defaultUnit: .kg)
+        context.insert(press)
+        context.insert(gym)
+        try context.save()
+        let template = try WorkoutTemplateService(context: context).create(
+            name: "Push Day", items: [
+                TemplateItemDraft(exercise: press, targetRepsBySet: [10]),
+            ])
+
+        let session = WorkoutSession(context: context)
+        let workout = try WorkoutTemplateService(context: context)
+            .start(template, at: gym)
+        let entry = try #require(WorkoutSession.orderedEntries(of: workout).first)
+        let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+        try session.commitWeight("60", for: set)
+        try session.commitReps("10", for: set)
+        try session.toggleCompletion(of: set)
+        try session.finish(workout)
+
+        #expect(workout.historyTitle == "Push Day")
+        #expect(workout.historyGymName == "Gangnam Fitness")
+
+        // Rename both live rows...
+        template.name = "Renamed Template"
+        gym.name = "Renamed Gym"
+        try context.save()
+        #expect(workout.historyTitle == "Push Day")
+        #expect(workout.historyGymName == "Gangnam Fitness")
+
+        // ...and then delete the template outright.
+        try WorkoutTemplateService(context: context).delete(template)
+        #expect(workout.historyTitle == "Push Day")
+        #expect(workout.historyGymName == "Gangnam Fitness")
     }
 
     // MARK: Stats line (E2, E3)

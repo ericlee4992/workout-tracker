@@ -150,6 +150,78 @@ struct SetLoggingTests {
         #expect(plusRow.completedAt != nil)
     }
 
+    /// Post-review regression (D19/D23): once the entry's snapshot is frozen,
+    /// the SNAPSHOT's load type decides what the remaining rows must carry. A
+    /// catalog reconciliation or an exercise edit mid-workout used to relax
+    /// the rule under a half-logged exercise, so a weighted snapshot would
+    /// accept reps-only and put `— × reps` rows back into history.
+    @Test func frozenEntriesValidateWithTheSnapshotLoadTypeNotTheLiveOne() throws {
+        let rig = try makeRig(loadType: .weighted)
+        let (_, entry, first) = try firstDraft(rig)
+        try rig.session.commitWeight("60", for: first)
+        try rig.session.commitReps("10", for: first)
+        try rig.session.toggleCompletion(of: first)
+        #expect(entry.snapshotCapturedAt != nil)
+        #expect(entry.snapshotLoadType == .weighted)
+
+        // The live catalog row changes underneath the frozen entry.
+        rig.exercise.loadType = .bodyweight
+        try rig.context.save()
+
+        #expect(entry.effectiveLoadType == .weighted)
+        let second = try rig.session.addSet(to: entry)
+        try rig.session.commitWeight("", for: second)
+        try rig.session.commitReps("12", for: second)
+        #expect(WorkoutSession.loadType(of: second) == .weighted)
+        #expect(!WorkoutSession.isLoggable(second))
+        #expect(throws: WorkoutSessionError.setNotLoggable) {
+            try rig.session.toggleCompletion(of: second)
+        }
+        #expect(second.completedAt == nil)
+
+        // Before the freeze the live exercise still owns the answer: a fresh
+        // entry for the same (now bodyweight) exercise logs on reps alone.
+        let workout = try #require(entry.workout)
+        let fresh = try rig.session.addEntry(for: rig.exercise, to: workout)
+        let freshSet = try #require(WorkoutSession.orderedSets(of: fresh).first)
+        #expect(fresh.effectiveLoadType == .bodyweight)
+        try rig.session.commitReps("15", for: freshSet)
+        try rig.session.toggleCompletion(of: freshSet)
+        #expect(freshSet.completedAt != nil)
+    }
+
+    /// The UI judges the text on screen; the store judges the parsed values.
+    /// They must be one rule — a negative, NaN, or infinite weight used to
+    /// enable the checkmark and then be rejected, so the tap did nothing.
+    @Test func onScreenLoggabilityMatchesWhatTheStoreAccepts() throws {
+        #expect(WorkoutSession.weightValue(from: "60") == 60)
+        #expect(WorkoutSession.weightValue(from: " 60,5 ") == 60.5)
+        #expect(WorkoutSession.weightValue(from: "0") == 0)
+        for rejected in ["-5", "nan", "inf", "-inf", "abc", ""] {
+            #expect(
+                WorkoutSession.weightValue(from: rejected) == nil,
+                "\(rejected) is not a weight")
+            #expect(!WorkoutSession.isLoggable(
+                weightText: rejected, repsText: "10", loadType: .weighted))
+        }
+        #expect(WorkoutSession.isLoggable(
+            weightText: "60", repsText: "10", loadType: .weighted))
+        // Bodyweight ignores the weight field entirely, invalid or not.
+        #expect(WorkoutSession.isLoggable(
+            weightText: "-5", repsText: "10", loadType: .bodyweight))
+
+        // And the store agrees: an invalid weight leaves the row unloggable.
+        let rig = try makeRig()
+        let set = try firstDraft(rig).set
+        try rig.session.commitWeight("-5", for: set)
+        try rig.session.commitReps("10", for: set)
+        #expect(set.weightValue == nil)
+        #expect(!WorkoutSession.isLoggable(set))
+        #expect(throws: WorkoutSessionError.setNotLoggable) {
+            try rig.session.toggleCompletion(of: set)
+        }
+    }
+
     /// The guard only ever blocks the completing direction: an already
     /// completed row — including one stored before the rule existed — can
     /// always be un-completed.

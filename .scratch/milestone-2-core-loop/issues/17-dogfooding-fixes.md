@@ -118,3 +118,54 @@ sourcing under a live rename, pluralization, sub-minute durations), `GymSelectio
 `EquipmentLifecycleTests` (+2 — gym/machine update, blank-name rejection), and two new UI tests
 (`testFinishingAnEmptyWorkoutDiscardsItAndSaysSo`, `testGymSettingsAreEditableAndModelNamesTheMachine`).
 Suite: 159 unit + 5 UI green.
+
+## Resolution — post-review fixes (Codex cross-review 3), 2026-08-09
+
+The two halves above were written in parallel; the review found a data-loss seam between them
+plus four D23/A1 leaks. Fixes, in the reviewer's severity order:
+
+- **CRITICAL — an empty template workout erased its template.** `TemplateDriftService.apply`
+  deletes every `TemplateItem` and rebuilds from the resolved snapshot; with nothing completed
+  (B2 kept the D18 prompt, A2 made finish discard empties) the resolved snapshot was empty, so
+  "Update Template"/"Update Both" deleted all items and wrote none back — and `resolve` then
+  discarded the workout, so the receipt said "nothing was saved" while the template was gone.
+  `apply` now returns without touching the template when the workout has no completed entries,
+  and `shouldPrompt` no longer offers the question at all: with nothing logged there is nothing
+  the template could be updated *from*. The guard lives in the domain service, so it holds for
+  the finish screen, the replace-active-workout path, and any future caller.
+- **D23 — history titles read live rows.** `Workout.sourceTemplateName` and
+  `Workout.snapshotGymName` are captured when the workout starts (schema note in ticket 02).
+  `historyTitle` is now a snapshot-only property (no live `WorkoutTemplate` query in
+  `HistoryView` at all) and `historyGymName` falls back to the workout's own snapshot rather
+  than to `gym?.name`. Renaming or deleting a template, or renaming a gym, leaves finished rows
+  untouched.
+- **A1/D19 — frozen entries validated with the live load type.** `ExerciseEntry
+  .effectiveLoadType`: once `snapshotCapturedAt` is set the snapshot decides; before the freeze
+  the live exercise still does. `WorkoutSession.loadType(of:)` and `ExerciseEntryCard` both read
+  it, so a catalog reconciliation or an exercise edit mid-workout can no longer let a weighted
+  snapshot accept reps-only and recreate `— × reps` rows.
+- **C2 — "View in History" now opens the workout.** `HistoryView` takes a `target` binding that
+  it consumes into its navigation path (on appear as well as on change, since the tab may be
+  created only after the request); `RootView` hands it the workout the receipt is about.
+- **E1 — title dedup keyed on snapshot exercise IDs.** `HistoryRendering.title` takes
+  `[HistoryExercise]` (id + name) and collapses repeats by id, so two distinct exercises sharing
+  a display name stay two exercises.
+- **Minor — UI and domain disagreed on weight validity.** `WorkoutSession.weightValue(from:)` /
+  `isLoggable(weightText:repsText:loadType:)` own the parsing for both the view and
+  `commitWeight`, and reject what `StoredWeight` rejects (negative, NaN, infinite). The
+  checkmark can no longer light up on input the store will refuse.
+- **Minor — post-finish summary read the live gym**; it uses `historyGymName` like the rest of
+  history.
+- **Minor — E5 had no visible menu affordance.** The set-type marker keeps its 34×28 footprint
+  and gains a 7-point chevron, so it reads as a control with options rather than a number.
+
+Tests: `TemplateDriftTests.emptyTemplateWorkoutNeverTouchesItsTemplate` (parameterized over all
+four resolutions — 3-item template, nothing completed, template intact after both `apply` and
+`resolve`, workout discarded), `HistoryRenderingTests` (+2 — rename/delete the template and
+rename the gym after logging, row unchanged; same-named distinct exercises not collapsed),
+`SetLoggingTests` (+2 — frozen entry validates with the snapshot load type while a fresh entry
+follows the live one; on-screen loggability matches what the store accepts), and a new UI test
+`testViewInHistoryOpensTheWorkoutJustLogged`. Suite: 164 unit + 6 UI green.
+
+Not changed (correct per the review): the carry-forward prefill contract, the loggable-set
+guard's shape, and the empty-workout discard.

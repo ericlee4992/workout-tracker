@@ -143,6 +143,40 @@ final class CoreLoopUITests: XCTestCase {
             "An empty workout must never reach History")
     }
 
+    // MARK: - C2: the receipt links to the workout, not just the tab
+
+    /// Ticket 17 C2 (post-review): "View in History" used to select the
+    /// History tab and stop there. It must open the workout just logged.
+    func testViewInHistoryOpensTheWorkoutJustLogged() {
+        createGym()
+        addMachine()
+        startEmptyWorkout()
+        addByMachine()
+
+        let weight = app.textFields["setRow.weight"].firstMatch
+        XCTAssertTrue(weight.waitForExistence(timeout: 5))
+        weight.tap()
+        weight.typeText("70")
+        let reps = app.textFields["setRow.reps"].firstMatch
+        reps.tap()
+        reps.typeText("8")
+        app.buttons["setRow.complete"].firstMatch.tap()
+
+        app.buttons["finishWorkout"].tap()
+        let link = app.buttons["viewFinishedWorkout"]
+        XCTAssertTrue(link.waitForExistence(timeout: 5))
+        link.tap()
+
+        // The workout detail screen, not the History list: it renders the
+        // snapshot equipment label and the per-workout unit toggle.
+        XCTAssertTrue(
+            app.buttons["As entered"].waitForExistence(timeout: 5),
+            "View in History should push the finished workout's detail")
+        XCTAssertTrue(
+            app.staticTexts["70 kg × 8"].waitForExistence(timeout: 5),
+            "The opened workout should show the set just logged")
+    }
+
     // MARK: - D2/D3: gyms and machines are editable
 
     /// Ticket 17 D2: a gym's unit and city are corrections, not one-shot

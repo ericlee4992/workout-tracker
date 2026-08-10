@@ -8,14 +8,14 @@ struct HistoryView: View {
         filter: #Predicate<Workout> { $0.finishedAt != nil },
         sort: \Workout.startedAt, order: .reverse)
     private var workouts: [Workout]
-    /// E1: a workout started from a template is titled by that template's
-    /// current name; a deleted template simply falls through to the
-    /// exercise-derived title.
-    @Query private var templates: [WorkoutTemplate]
+    /// C2: a workout the presenter wants opened — "View in History" on the
+    /// post-finish receipt. Consumed (set back to nil) once pushed, so the
+    /// same workout can be opened again later.
+    @Binding private var target: Workout?
     @State private var path: [Workout] = []
 
-    private var templateNames: [UUID: String] {
-        Dictionary(templates.map { ($0.id, $0.name) }) { first, _ in first }
+    init(target: Binding<Workout?> = .constant(nil)) {
+        _target = target
     }
 
     private var byMonth: [(month: String, workouts: [Workout])] {
@@ -45,10 +45,7 @@ struct HistoryView: View {
                             Section(group.month) {
                                 ForEach(group.workouts) { workout in
                                     NavigationLink(value: workout) {
-                                        WorkoutSummaryRow(
-                                            workout: workout,
-                                            templateName: workout.sourceTemplateID
-                                                .flatMap { templateNames[$0] })
+                                        WorkoutSummaryRow(workout: workout)
                                     }
                                 }
                             }
@@ -61,6 +58,21 @@ struct HistoryView: View {
                 WorkoutDetailView(workout: workout)
             }
         }
+        // The tab may only be created once the presenter has already asked
+        // for a workout, so the arrival is handled on appear as well as on
+        // change — otherwise "View in History" would land on the list.
+        .onAppear(perform: openTarget)
+        .onChange(of: target?.id) { _, _ in openTarget() }
+    }
+
+    /// C2: opens the requested workout's detail rather than merely selecting
+    /// the tab. A deleted workout is dropped — the receipt's link outlives
+    /// nothing.
+    private func openTarget() {
+        guard let workout = target else { return }
+        target = nil
+        guard !workout.isDeleted, workout.finishedAt != nil else { return }
+        path = [workout]
     }
 }
 
@@ -69,13 +81,12 @@ struct HistoryView: View {
 /// qualifies — so every row has the same left edge whether or not it has one.
 private struct WorkoutSummaryRow: View {
     var workout: Workout
-    var templateName: String?
 
     var body: some View {
         let completedSets = workout.completedSets
         VStack(alignment: .leading, spacing: 3) {
             HStack(alignment: .firstTextBaseline) {
-                Text(workout.historyTitle(templateName: templateName))
+                Text(workout.historyTitle)
                     .font(.headline)
                     .lineLimit(1)
                 Spacer(minLength: 8)

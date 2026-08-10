@@ -32,6 +32,20 @@ enum WorkoutSessionError: Error, Equatable {
     case setNotLoggable
 }
 
+extension ExerciseEntry {
+    /// The load type this entry's sets are judged and displayed under. Once
+    /// the entry's snapshot is frozen (D19) that snapshot decides — a catalog
+    /// reconciliation (D24) or an exercise edit mid-workout must not make
+    /// later sets validate under different rules than the ones they enter
+    /// history with. A weighted snapshot silently accepting reps-only would
+    /// put `— × reps` rows back into history, which is exactly what A1 exists
+    /// to prevent. Before the freeze the live exercise still owns the answer.
+    var effectiveLoadType: LoadType {
+        guard snapshotCapturedAt == nil else { return snapshotLoadType }
+        return exercise?.loadType ?? snapshotLoadType
+    }
+}
+
 struct WorkoutSession {
 
     let context: ModelContext
@@ -58,7 +72,10 @@ struct WorkoutSession {
         for stray in try activeWorkouts() {
             try finishInPlace(stray, at: date)
         }
-        let workout = Workout(startedAt: date, gym: gym)
+        // D23: the gym's name is snapshotted here, so a later rename cannot
+        // rewrite what this workout's history row says.
+        let workout = Workout(
+            startedAt: date, snapshotGymName: gym?.name, gym: gym)
         context.insert(workout)
         try context.save()
         return workout
@@ -347,8 +364,7 @@ struct WorkoutSession {
     /// the draft value; a valid value recomputes `normalizedKg` atomically
     /// through `StoredWeight` (D25).
     func commitWeight(_ text: String, for set: SetRecord) throws {
-        let trimmed = text.trimmingCharacters(in: .whitespaces)
-        if let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")),
+        if let value = Self.weightValue(from: text),
            let stored = StoredWeight(value: value, unit: set.weightUnit) {
             set.weightValue = stored.value
             set.normalizedKg = stored.normalizedKg
@@ -361,7 +377,7 @@ struct WorkoutSession {
 
     /// Reps-field commit (end-editing).
     func commitReps(_ text: String, for set: SetRecord) throws {
-        set.reps = Int(text.trimmingCharacters(in: .whitespaces))
+        set.reps = Self.repsValue(from: text)
         try context.save()
     }
 
@@ -399,13 +415,13 @@ struct WorkoutSession {
         }
     }
 
-    /// The load type a row is logged under: the live exercise while it can
-    /// still change, falling back to the entry's frozen snapshot (D23).
+    /// The load type a row is logged under (D19/D23) — see
+    /// `ExerciseEntry.effectiveLoadType`.
     static func loadType(of set: SetRecord) -> LoadType {
         guard !set.isDeleted, let entry = set.entry, !entry.isDeleted else {
             return .weighted
         }
-        return entry.exercise?.loadType ?? entry.snapshotLoadType
+        return entry.effectiveLoadType
     }
 
     static func isLoggable(_ set: SetRecord) -> Bool {
@@ -414,6 +430,37 @@ struct WorkoutSession {
             reps: set.reps,
             weightValue: set.weightValue,
             loadType: loadType(of: set))
+    }
+
+    /// A1, asked of what is on *screen*: the fields commit on end-editing and
+    /// the completing tap is itself the commit, so the UI has to judge the
+    /// text. Parsing lives here rather than in the view, so the checkmark can
+    /// never enable on input the store will then refuse.
+    static func isLoggable(
+        weightText: String,
+        repsText: String,
+        loadType: LoadType
+    ) -> Bool {
+        isLoggable(
+            reps: repsValue(from: repsText),
+            weightValue: weightValue(from: weightText),
+            loadType: loadType)
+    }
+
+    /// The weight a field's text stands for: decimal comma accepted, and only
+    /// values `StoredWeight` will accept come back — a negative, NaN, or
+    /// infinite entry is not a weight, so it reads as *no* value rather than
+    /// as a present one the store would silently reject.
+    static func weightValue(from text: String) -> Double? {
+        guard let value = Double(
+                text.trimmingCharacters(in: .whitespaces)
+                    .replacingOccurrences(of: ",", with: ".")),
+              WeightMath.isValidInput(value) else { return nil }
+        return value
+    }
+
+    static func repsValue(from text: String) -> Int? {
+        Int(text.trimmingCharacters(in: .whitespaces))
     }
 
     /// Completion toggle. Completing stamps `completedAt`, captures the

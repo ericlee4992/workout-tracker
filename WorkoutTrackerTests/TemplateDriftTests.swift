@@ -164,6 +164,55 @@ struct TemplateDriftTests {
         ])
     }
 
+    /// Post-review critical regression: start a populated template, complete
+    /// NOTHING, and resolve the drift. "Update Template"/"Update Both" used to
+    /// delete every item and rebuild from an empty snapshot — the template was
+    /// erased while the receipt said nothing was saved. A workout with no
+    /// completed entries has no drift to apply, whichever resolution is asked
+    /// for, and there is nothing to prompt about either.
+    @Test(arguments: TemplateDriftResolution.allCases)
+    func emptyTemplateWorkoutNeverTouchesItsTemplate(
+        _ resolution: TemplateDriftResolution
+    ) throws {
+        let context = try makeContext()
+        let exerciseA = Exercise(id: a, name: "A")
+        let exerciseB = Exercise(id: b, name: "B")
+        let exerciseC = Exercise(id: c, name: "C")
+        for exercise in [exerciseA, exerciseB, exerciseC] { context.insert(exercise) }
+        try context.save()
+        let template = try WorkoutTemplateService(context: context).create(
+            name: "Push Day", items: [
+                TemplateItemDraft(exercise: exerciseA, targetRepsBySet: [10, 8]),
+                TemplateItemDraft(exercise: exerciseB, targetRepsBySet: [12]),
+                TemplateItemDraft(exercise: exerciseC, targetRepsBySet: [20, 20]),
+            ])
+        let before = TemplateDriftService(context: context).templateSnapshot(template)
+        // Start it and log nothing at all — the rows materialize as drafts.
+        let workout = try WorkoutTemplateService(context: context)
+            .start(template, at: nil)
+        #expect(WorkoutSession.orderedEntries(of: workout).count == 3)
+
+        let service = TemplateDriftService(context: context)
+        // Nothing completed → nothing to ask about.
+        #expect(try !service.shouldPrompt(for: workout, template: template))
+
+        try service.apply(resolution, workout: workout, to: template)
+
+        #expect(WorkoutTemplateService.orderedItems(of: template).count == 3)
+        #expect(service.templateSnapshot(template) == before)
+        #expect(service.templateSnapshot(template) == [
+            item(a, [10, 8]), item(b, [12]), item(c, [20, 20]),
+        ])
+
+        // The whole path (`resolve` = apply + finish) leaves the template
+        // intact and discards the empty workout (A2).
+        let outcome = try service.resolve(resolution, workout: workout, to: template)
+        #expect(outcome == .discardedEmpty)
+        #expect(WorkoutTemplateService.orderedItems(of: template).count == 3)
+        #expect(service.templateSnapshot(template) == before)
+        #expect(try context.fetch(FetchDescriptor<Workout>()).isEmpty)
+    }
+
     @Test func suppressionMeansNoPromptAndLeavesTemplateUnchanged() throws {
         let context = try makeContext()
         let exerciseA = Exercise(id: a, name: "A")

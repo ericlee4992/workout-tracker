@@ -37,3 +37,11 @@ with nil default, CloudKit-safe, additive-only (lightweight migration).
 Start screen is set to, remembered across launches (D1). Scalar id rather than a relationship, so
 an archived or deleted gym degrades to "No gym" instead of resurrecting; nil is itself a real
 remembered choice. Optional with nil default, CloudKit-safe, additive-only (lightweight migration).
+
+**Field addition (ticket 17 post-review, 2026-08-09):** `Workout.sourceTemplateName: String?` and
+`Workout.snapshotGymName: String?` — the template name and gym name captured when the workout
+starts. History titles and subtitles read these snapshots instead of the live `WorkoutTemplate`
+/`Gym` rows (D23), so renaming or deleting a template no longer retitles finished workouts and
+renaming a gym no longer rewrites old rows. Optional scalars with nil defaults, CloudKit-safe,
+additive-only (lightweight migration); workouts logged before this addition simply fall through
+to the exercise-derived title and the entry-level gym snapshot.

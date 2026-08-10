@@ -122,7 +122,9 @@ struct WorkoutFinishedSheet: View {
             HistoryRendering.pluralized(entryCount, "exercise", "exercises"),
             HistoryRendering.pluralized(setCount, "set", "sets"),
         ]
-        if let gymName = saved.gym?.name {
+        // The snapshot name (D23), like the rest of history — the receipt
+        // describes what was logged, not what the gym is called now.
+        if let gymName = saved.historyGymName {
             parts.append(gymName)
         }
         return parts.joined(separator: " · ")
@@ -172,7 +174,9 @@ struct WorkoutFinishedSheet: View {
     let context = container.mainContext
     let gym = Gym(name: "Gold's Gym Gangnam", city: "Seoul", defaultUnit: .kg)
     context.insert(gym)
-    let workout = Workout(startedAt: .now.addingTimeInterval(-2_700), finishedAt: .now, gym: gym)
+    let workout = Workout(
+        startedAt: .now.addingTimeInterval(-2_700), finishedAt: .now,
+        snapshotGymName: gym.name, gym: gym)
     context.insert(workout)
     return WorkoutFinishedSheet(workout: workout, viewInHistory: {}, done: {})
         .modelContainer(container)

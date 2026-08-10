@@ -7,6 +7,9 @@ struct RootView: View {
     @State private var activeWorkout: Workout?
     /// C2/A2: the finish that just happened, awaiting its confirmation sheet.
     @State private var finishConfirmation: FinishConfirmation?
+    /// C2: the workout History should open — selecting the tab is not the
+    /// same as showing the workout that was just logged.
+    @State private var historyTarget: Workout?
 
     enum Tab: Hashable {
         case workout, history, gyms, exercises
@@ -27,7 +30,7 @@ struct RootView: View {
                 .tabItem { Label("Workout", systemImage: "figure.strengthtraining.traditional") }
                 .tag(Tab.workout)
 
-            HistoryView()
+            HistoryView(target: $historyTarget)
                 .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
                 .tag(Tab.history)
 
@@ -54,8 +57,10 @@ struct RootView: View {
             WorkoutFinishedSheet(
                 workout: confirmation.workout,
                 viewInHistory: {
+                    let finished = confirmation.workout
                     finishConfirmation = nil
                     selection = .history
+                    historyTarget = finished
                 },
                 done: { finishConfirmation = nil })
             .presentationDetents([.medium])

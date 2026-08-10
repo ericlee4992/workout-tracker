@@ -109,6 +109,9 @@ struct WorkoutTemplateService {
         let session = WorkoutSession(context: context)
         let workout = try session.startWorkout(at: gym, on: date)
         workout.sourceTemplateID = template.id
+        // D23: history titles read this snapshot, so renaming or deleting the
+        // template later cannot retitle the workouts it produced.
+        workout.sourceTemplateName = template.name
 
         for item in Self.orderedItems(of: template) {
             guard let exercise = item.exercise else { continue }

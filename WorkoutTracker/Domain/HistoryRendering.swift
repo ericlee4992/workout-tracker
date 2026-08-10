@@ -43,6 +43,19 @@ extension ExerciseEntry {
     }
 }
 
+/// One exercise as history knows it: the snapshot ID that decides identity
+/// and the snapshot name that gets displayed (D23). Two different exercises
+/// that happen to share a display name are still two exercises.
+struct HistoryExercise: Equatable {
+    var id: UUID
+    var name: String
+
+    init(id: UUID, name: String) {
+        self.id = id
+        self.name = name
+    }
+}
+
 /// Ticket 17 E1–E3 — the words a history row is made of, kept here so they
 /// can be tested without a view. Rows used to be headlined by the gym (every
 /// workout at one gym indistinguishable), count "1 exercises", and flatten
@@ -58,17 +71,20 @@ enum HistoryRendering {
     /// subtitle, never the title — it is what workouts have in common, not
     /// what tells them apart.
     ///
-    /// `exerciseNames` must come from entry SNAPSHOTS (D23), so a later
-    /// rename or model correction cannot retitle a finished workout.
-    static func title(templateName: String?, exerciseNames: [String]) -> String {
+    /// `templateName` and `exercises` must both come from SNAPSHOTS (D23), so
+    /// a later rename, deletion, or model correction cannot retitle a finished
+    /// workout. Repeats are collapsed by snapshot exercise ID, never by
+    /// display name — two distinct exercises may legitimately share one.
+    static func title(templateName: String?, exercises: [HistoryExercise]) -> String {
         if let templateName {
             let trimmed = templateName.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
         }
-        var seen = Set<String>()
-        let names = exerciseNames
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty && seen.insert($0).inserted }
+        var seen = Set<UUID>()
+        let names = exercises
+            .filter { seen.insert($0.id).inserted }
+            .map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
         guard let first = names.first else { return untitledWorkout }
         return names.count == 1 ? first : "\(first) +\(names.count - 1)"
     }
@@ -118,25 +134,30 @@ extension Workout {
             .filter { $0.completedAt != nil }
     }
 
-    /// Snapshot exercise names in entry order (D23) — the live `exercise`
+    /// Snapshot exercises in entry order (D23) — the live `exercise`
     /// relationship is deliberately not consulted.
-    var snapshotExerciseNames: [String] {
-        WorkoutSession.orderedEntries(of: self).map(\.snapshotExerciseName)
+    var snapshotExercises: [HistoryExercise] {
+        WorkoutSession.orderedEntries(of: self).map {
+            HistoryExercise(id: $0.snapshotExerciseID, name: $0.snapshotExerciseName)
+        }
     }
 
-    /// E1: the row headline. `templateName` is the name of the template
-    /// `sourceTemplateID` points at, or nil when there is none (or it has
-    /// since been deleted).
-    func historyTitle(templateName: String?) -> String {
+    /// E1: the row headline, sourced entirely from snapshots (D23) — the
+    /// template name captured when the workout started, else the exercises
+    /// performed. Renaming or deleting the template afterwards leaves this
+    /// row alone; it is a record of what happened, not a live view of the
+    /// library.
+    var historyTitle: String {
         HistoryRendering.title(
-            templateName: templateName, exerciseNames: snapshotExerciseNames)
+            templateName: sourceTemplateName, exercises: snapshotExercises)
     }
 
-    /// Gym label for history: the name captured at log time (D23) when the
-    /// workout logged anything, falling back to the live gym for a workout
-    /// whose entries carry no snapshot.
+    /// Gym label for history: the name captured at log time (D23) — the
+    /// entry snapshots first, then the workout's own start-time snapshot. The
+    /// live `gym` relationship is never consulted, so renaming a gym cannot
+    /// rewrite the workouts already logged there.
     var historyGymName: String? {
         WorkoutSession.orderedEntries(of: self)
-            .compactMap(\.snapshotGymName).first ?? gym?.name
+            .compactMap(\.snapshotGymName).first ?? snapshotGymName
     }
 }

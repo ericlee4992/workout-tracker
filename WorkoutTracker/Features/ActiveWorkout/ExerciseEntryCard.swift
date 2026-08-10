@@ -24,8 +24,11 @@ struct ExerciseEntryCard: View {
         entry.isDeleted ? [] : WorkoutSession.orderedSets(of: entry)
     }
 
+    /// D19/D23: the snapshot's load type once the entry is frozen, so the
+    /// rules the rows validate and render under cannot change under a
+    /// half-logged exercise.
     private var loadType: LoadType {
-        entry.exercise?.loadType ?? entry.snapshotLoadType
+        entry.isDeleted ? .weighted : entry.effectiveLoadType
     }
 
     var body: some View {
@@ -306,7 +309,8 @@ struct SetRowView: View {
 
     /// E5: the marker is a menu of named set types — the old control cycled
     /// blindly through them and announced itself as "1". The compact W/#/F
-    /// visual is unchanged.
+    /// visual keeps its footprint, plus a small chevron so it reads as
+    /// something with options rather than as a plain number.
     private var setTypeButton: some View {
         Menu {
             ForEach(SetType.allCases, id: \.self) { type in
@@ -321,12 +325,17 @@ struct SetRowView: View {
                 }
             }
         } label: {
-            Text(set.isDeleted ? "" : (set.type.marker ?? "\(index)"))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(markerColor)
-                .frame(width: 34, height: 28)
-                .background(Color(.tertiarySystemFill))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
+            HStack(spacing: 1) {
+                Text(set.isDeleted ? "" : (set.type.marker ?? "\(index)"))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(markerColor)
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 7, weight: .bold))
+                    .foregroundStyle(.tertiary)
+            }
+            .frame(width: 34, height: 28)
+            .background(Color(.tertiarySystemFill))
+            .clipShape(RoundedRectangle(cornerRadius: 6))
         }
         .accessibilityIdentifier("setRow.setType")
         .accessibilityLabel(
@@ -354,16 +363,12 @@ struct SetRowView: View {
     /// judged on what is *on screen*, since the fields commit on end-editing
     /// and the tap itself is the commit. An already-completed row stays
     /// tappable so it can always be un-completed.
+    /// The domain owns the parsing as well as the rule, so "the checkmark is
+    /// live" and "the store will accept this" can never disagree — a negative
+    /// or NaN weight used to enable the tap and then do nothing.
     private var canComplete: Bool {
         isCompleted || WorkoutSession.isLoggable(
-            reps: Int(repsText.trimmingCharacters(in: .whitespaces)),
-            weightValue: Self.parseWeight(weightText),
-            loadType: loadType)
-    }
-
-    private static func parseWeight(_ text: String) -> Double? {
-        Double(text.trimmingCharacters(in: .whitespaces)
-            .replacingOccurrences(of: ",", with: "."))
+            weightText: weightText, repsText: repsText, loadType: loadType)
     }
 
     private var completeButton: some View {

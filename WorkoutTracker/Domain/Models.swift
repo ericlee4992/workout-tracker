@@ -204,6 +204,12 @@ final class Workout {
     var notes: String = ""
     /// Scalar reference to the template this workout was started from, if any.
     var sourceTemplateID: UUID?
+    /// D23 history snapshots, captured when the workout starts. History reads
+    /// these, never the live `WorkoutTemplate`/`Gym` rows: renaming or
+    /// deleting a template must not retitle old workouts, and renaming a gym
+    /// must not rewrite old subtitles. Added by ticket 17 (noted in ticket 02).
+    var sourceTemplateName: String?
+    var snapshotGymName: String?
     /// Persisted rest-timer end so the timer survives relaunch.
     var restEndsAt: Date?
     /// When the current rest timer started. Persisted alongside `restEndsAt`
@@ -226,6 +232,8 @@ final class Workout {
         finishedAt: Date? = nil,
         notes: String = "",
         sourceTemplateID: UUID? = nil,
+        sourceTemplateName: String? = nil,
+        snapshotGymName: String? = nil,
         restEndsAt: Date? = nil,
         restStartedAt: Date? = nil,
         restStartedBySetID: UUID? = nil,
@@ -236,6 +244,8 @@ final class Workout {
         self.finishedAt = finishedAt
         self.notes = notes
         self.sourceTemplateID = sourceTemplateID
+        self.sourceTemplateName = sourceTemplateName
+        self.snapshotGymName = snapshotGymName
         self.restEndsAt = restEndsAt
         self.restStartedAt = restStartedAt
         self.restStartedBySetID = restStartedBySetID

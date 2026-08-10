@@ -95,6 +95,7 @@ struct WorkoutDetailView: View {
         configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
     let workout = Workout(
         startedAt: .now.addingTimeInterval(-3600), finishedAt: .now,
+        snapshotGymName: "Gold's Gym Gangnam",
         gym: Gym(name: "Gold's Gym Gangnam", city: "Seoul", defaultUnit: .kg))
     container.mainContext.insert(workout)
     let entry = ExerciseEntry(
