@@ -4,12 +4,12 @@
 
 **Blocked by:** None — 01–16 are all resolved.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## A. Honesty / data integrity (highest priority)
 
 - [x] **A1 — An empty set can be completed.** Tapping the checkmark with no weight and no reps persists the set; History shows "1 sets" and the detail reads `— × —`, and that row feeds records/volume/prefill. Completion must require valid reps (> 0) and, for every load type except plain `bodyweight`, a weight value. Bodyweight exercises need reps only.
-- [ ] **A2 — Empty workouts persist to History.** `WorkoutSession.finishInPlace` deletes draft sets and empty entries, then stamps `finishedAt` unconditionally, so Start → Finish with nothing logged leaves permanent litter. If nothing survives cleanup, delete the workout instead of finishing it.
+- [x] **A2 — Empty workouts persist to History.** `WorkoutSession.finishInPlace` deletes draft sets and empty entries, then stamps `finishedAt` unconditionally, so Start → Finish with nothing logged leaves permanent litter. If nothing survives cleanup, delete the workout instead of finishing it.
 
 ## B. Speed (the product's core claim)
 
@@ -24,23 +24,23 @@
 
 ## D. Equipment context discoverability
 
-- [ ] **D1 — Selected gym is not remembered** (resets to "No gym" each launch), and a no-gym workout **silently hides "Add by Machine"**, so the entire equipment-aware differentiator vanishes with no explanation. Persist the selection; when no gym is set, keep the affordance visible and explain why it's unavailable.
-- [ ] **D2 — Gym default unit and city are set-once.** Detail shows them read-only; the menu offers only Rename/Archive. Same for a machine's default unit. A wrong unit currently means archive-and-recreate. Make them editable.
-- [ ] **D3 — New machine's Add stays disabled until a label is invented**, even after picking a catalog model that could supply a sensible default label.
+- [x] **D1 — Selected gym is not remembered** (resets to "No gym" each launch), and a no-gym workout **silently hides "Add by Machine"**, so the entire equipment-aware differentiator vanishes with no explanation. Persist the selection; when no gym is set, keep the affordance visible and explain why it's unavailable.
+- [x] **D2 — Gym default unit and city are set-once.** Detail shows them read-only; the menu offers only Rename/Archive. Same for a machine's default unit. A wrong unit currently means archive-and-recreate. Make them editable.
+- [x] **D3 — New machine's Add stays disabled until a label is invented**, even after picking a catalog model that could supply a sensible default label.
 
 ## E. Legibility
 
-- [ ] **E1 — History rows are headlined by the gym name**, so every workout at one gym is indistinguishable. Derive a real title: template name when `sourceTemplateID` is set, else the exercises performed (e.g. "Chest Press +2"), with the gym as subtitle.
-- [ ] **E2 — "1 exercises".** Hardcoded plurals in the History stats string; applies to sets too.
-- [ ] **E3 — Short workouts all read "0 min".** A 14-second and a 45-second workout are indistinguishable. Show seconds below a minute.
-- [ ] **E4 — Unit badge is orphaned** bottom-left under the map pin, far from the stats it qualifies; rows without a badge have a different left edge.
+- [x] **E1 — History rows are headlined by the gym name**, so every workout at one gym is indistinguishable. Derive a real title: template name when `sourceTemplateID` is set, else the exercises performed (e.g. "Chest Press +2"), with the gym as subtitle.
+- [x] **E2 — "1 exercises".** Hardcoded plurals in the History stats string; applies to sets too.
+- [x] **E3 — Short workouts all read "0 min".** A 14-second and a 45-second workout are indistinguishable. Show seconds below a minute.
+- [x] **E4 — Unit badge is orphaned** bottom-left under the map pin, far from the stats it qualifies; rows without a badge have a different left edge.
 - [x] **E5 — The set-type control is an unlabelled number button** ("1"); cycling warmup/working/failure is undiscoverable and its accessibility label is literally "1". Give it a proper label and a discoverable affordance.
 
 ## Acceptance
 
-- [ ] Every box above ticked, with a regression test for A1, A2, B1 specifically
-- [ ] `xcodebuild test` green (unit + UI)
-- [ ] The UI-test walkthrough still passes end to end
+- [x] Every box above ticked, with a regression test for A1, A2, B1 specifically
+- [x] `xcodebuild test` green (unit + UI)
+- [x] The UI-test walkthrough still passes end to end
 
 ## Resolution — active-workout half (A1, B1, B2, B3, C1, C2, E5), 2026-08-09
 
@@ -78,3 +78,43 @@ sets now log weight+reps. Suite: 144 unit + 3 UI green.
 
 Not done here (owned by the sibling agent): A2, D1–D3, E1–E4 — the Acceptance boxes stay open
 until those land.
+
+## Resolution — history/gyms half (A2, D1–D3, E1–E4), 2026-08-09
+
+- **A2** — `finish` now returns `WorkoutFinishOutcome` (`.saved` / `.discardedEmpty`).
+  `finishInPlace` counts the entries that survive cleanup; zero survivors means the workout is
+  *deleted* rather than stamped, so Start → Finish with nothing logged leaves no trace — including
+  for the strays `startWorkout`/`resumableWorkout` auto-finish. The C2 sheet takes an optional
+  workout: nil renders "Nothing to save · No sets were completed, so this workout wasn't saved."
+  with no History link and no save-as-template, so a discarded workout is *said*, not vanished.
+  `RootView` presents it through a per-finish `FinishConfirmation` (a deleted workout cannot be a
+  `sheet(item:)` subject).
+- **D1** — `AppPreferences.selectedGymID` (scalar, ticket 02 noted) + `Domain/GymSelection.swift`:
+  every pick is remembered, restored once per screen lifetime, and an archived or deleted gym
+  resolves back to "No gym" rather than sneaking past archival. "Add by Machine" is no longer
+  hidden for no-gym workouts — it stays visible, disabled, under "Pick a gym to log by machine".
+- **D2** — `EquipmentLifecycle.update(gym:…)` / `update(machine:…)`. Ticket 06's add sheets are now
+  `GymEditorSheet` / `MachineEditorSheet`, create-or-edit by an optional target: gym name + city +
+  default unit, machine label + default unit. Gym detail gained an "Edit Gym…" row next to the
+  values it shows, and the machine context menu offers "Edit Machine…" in place of the rename
+  alert. A machine's *model* still changes only through "Correct Model…" (D10 past-vs-future), and
+  seeded catalog models/exercises stay read-only (D24).
+- **D3** — Picking a catalog model fills the label from the model name, so Add is immediately
+  enabled. Only a label the sheet wrote itself is ever overwritten; a model-less machine still
+  needs one typed.
+- **E1** — `HistoryRendering.title(templateName:exerciseNames:)`: template name wins, else the
+  exercises performed ("Chest Press +2", duplicates collapsed), else "Workout". Names come from
+  entry SNAPSHOTS (D23), so a later rename never retitles history. Gym is the subtitle, taken from
+  `snapshotGymName` with the live gym as fallback.
+- **E2/E3** — `HistoryRendering.pluralized` and `durationLabel` (seconds below a minute, minutes
+  above, never negative) feed one `statsLine`; the detail screen uses the same duration label.
+- **E4** — The unit badge moved inline, straight after the stats it qualifies, so every row has the
+  same left edge whether or not it has one.
+
+Tests: `WorkoutSessionTests` (+3 — empty finish deletes across a reopen, one completed set
+survives, empty strays discarded; `startWorkoutFinishesLingeringActives` now logs a set so it still
+tests finishing rather than discarding), `HistoryRenderingTests` (+7 — title precedence, snapshot
+sourcing under a live rename, pluralization, sub-minute durations), `GymSelectionTests` (+3, new),
+`EquipmentLifecycleTests` (+2 — gym/machine update, blank-name rejection), and two new UI tests
+(`testFinishingAnEmptyWorkoutDiscardsItAndSaysSo`, `testGymSettingsAreEditableAndModelNamesTheMachine`).
+Suite: 159 unit + 5 UI green.

@@ -9,9 +9,11 @@ struct ActiveWorkoutView: View {
     /// C1: dismisses the cover while the workout keeps running — the Workout
     /// tab then shows a resume affordance. Defaults to a plain dismiss.
     var onMinimize: (() -> Void)?
-    /// C2: hands the finished workout back so the presenter can confirm what
-    /// was saved. Not called when nothing survived the finish cleanup.
-    var onFinished: ((Workout) -> Void)?
+    /// C2/A2: hands the finish result back so the presenter can confirm it.
+    /// The finished workout when something was logged; `nil` when nothing
+    /// survived cleanup and the workout was discarded instead (A2) — that
+    /// outcome must be *said*, not silently vanish behind a "saved" sheet.
+    var onFinished: ((Workout?) -> Void)?
 
     @State private var restEnd: Date?
     @State private var restTotal: Double = 120
@@ -27,6 +29,11 @@ struct ActiveWorkoutView: View {
 
     private var entries: [ExerciseEntry] {
         workout.isDeleted ? [] : WorkoutSession.orderedEntries(of: workout)
+    }
+
+    /// Whether the machine-first path has anything to offer (D1).
+    private var hasGym: Bool {
+        !workout.isDeleted && workout.gym != nil
     }
 
     var body: some View {
@@ -46,27 +53,38 @@ struct ActiveWorkoutView: View {
                         )
                     }
 
-                    HStack(spacing: 12) {
-                        Button {
-                            showExercisePicker = true
-                        } label: {
-                            Label("Add Exercise", systemImage: "plus")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .accessibilityIdentifier("addExercise")
-                        // Machine-first path (D7): hidden for no-gym workouts —
-                        // there are no machines to list.
-                        if !workout.isDeleted, workout.gym != nil {
+                    VStack(spacing: 6) {
+                        HStack(spacing: 12) {
+                            Button {
+                                showExercisePicker = true
+                            } label: {
+                                Label("Add Exercise", systemImage: "plus")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .accessibilityIdentifier("addExercise")
+                            // Machine-first path (D7). D1 (ticket 17): a no-gym
+                            // workout has no machines to list, but hiding the
+                            // button hid the whole equipment-aware
+                            // differentiator with no explanation — so it stays
+                            // visible, disabled, and says why below.
                             Button {
                                 showMachinePicker = true
                             } label: {
                                 Label("Add by Machine", systemImage: "figure.strengthtraining.traditional")
                                     .frame(maxWidth: .infinity)
                             }
+                            .disabled(!hasGym)
                             .accessibilityIdentifier("addByMachine")
                         }
+                        .buttonStyle(.bordered)
+                        if !hasGym {
+                            Text("Pick a gym to log by machine")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .accessibilityIdentifier("addByMachineUnavailable")
+                        }
                     }
-                    .buttonStyle(.bordered)
                     .padding(.horizontal)
                     .padding(.bottom, 24)
                 }
@@ -202,39 +220,42 @@ struct ActiveWorkoutView: View {
     // `session.finish` / `session.cancel` end the rest timer (state and
     // pending notification) themselves — call sites no longer skip first.
     private func finishWorkout() {
+        var outcome = WorkoutFinishOutcome.discardedEmpty
         do {
-            try session.finish(workout)
+            outcome = try session.finish(workout)
         } catch {
             assertionFailure("Failed to finish workout: \(error)")
         }
-        reportFinished()
+        reportFinished(outcome)
     }
 
     private func finishTemplatedWorkout(using resolution: TemplateDriftResolution) {
+        var outcome = WorkoutFinishOutcome.discardedEmpty
         do {
             if let driftTemplate {
-                try TemplateDriftService(context: modelContext).resolve(
+                outcome = try TemplateDriftService(context: modelContext).resolve(
                     resolution, workout: workout, to: driftTemplate)
             } else {
-                try session.finish(workout)
+                outcome = try session.finish(workout)
             }
         } catch {
             assertionFailure("Failed to finish templated workout: \(error)")
         }
         driftTemplate = nil
-        reportFinished()
+        reportFinished(outcome)
     }
 
-    /// C2: hand the stored workout to the presenter so it can confirm what
-    /// was saved. A workout that finish cleanup emptied out (nothing logged)
-    /// has nothing to confirm — and may have been deleted outright — so it
-    /// just dismisses.
-    private func reportFinished() {
-        if let onFinished, !workout.isDeleted, workout.finishedAt != nil {
-            onFinished(workout)
-        } else {
+    /// C2/A2: hand the outcome to the presenter. A saved workout goes back so
+    /// the confirmation can show what was logged; a discarded one goes back as
+    /// `nil` so the same sheet can say that nothing was saved instead.
+    private func reportFinished(_ outcome: WorkoutFinishOutcome) {
+        guard let onFinished else {
             dismiss()
+            return
         }
+        let saved = outcome == .saved && !workout.isDeleted
+            && workout.finishedAt != nil
+        onFinished(saved ? workout : nil)
     }
 
     private func cancelWorkout() {

@@ -12,6 +12,17 @@ import SwiftData
 // tests construct one around a disk-backed container's context and reopen
 // the store to prove durability.
 
+/// How a finish resolved (A2, ticket 17).
+enum WorkoutFinishOutcome: Equatable {
+    /// At least one entry survived cleanup carrying a completed set: the
+    /// workout is stamped `finishedAt` and is now history.
+    case saved
+    /// Nothing was ever logged, so the workout was deleted rather than
+    /// finished. An empty row in History is litter, not a record — and a
+    /// caller that says "saved" about it would be lying.
+    case discardedEmpty
+}
+
 /// Errors the logging service refuses to paper over.
 enum WorkoutSessionError: Error, Equatable {
     /// A1 (ticket 17): completion was attempted on a row that does not carry
@@ -72,9 +83,16 @@ struct WorkoutSession {
     /// Finish: deletes uncompleted draft set rows and entries with zero
     /// completed sets, then stamps `finishedAt` — only completed data
     /// reaches history.
-    func finish(_ workout: Workout, at date: Date = .now) throws {
-        try finishInPlace(workout, at: date)
+    ///
+    /// A2 (ticket 17): when nothing survives that cleanup the workout is
+    /// *deleted* instead of finished, and the outcome says so, so the caller
+    /// can tell "here is what you logged" from "there was nothing to log"
+    /// rather than confirming a save that never happened.
+    @discardableResult
+    func finish(_ workout: Workout, at date: Date = .now) throws -> WorkoutFinishOutcome {
+        let outcome = try finishInPlace(workout, at: date)
         try context.save()
+        return outcome
     }
 
     /// Cancel: deletes the workout and its whole graph (entries cascade to
@@ -92,11 +110,15 @@ struct WorkoutSession {
             sortBy: [SortDescriptor(\.startedAt, order: .reverse)]))
     }
 
-    private func finishInPlace(_ workout: Workout, at date: Date) throws {
+    @discardableResult
+    private func finishInPlace(
+        _ workout: Workout, at date: Date
+    ) throws -> WorkoutFinishOutcome {
         // Ending the workout ends its rest: clearing the persisted timer and
         // cancelling the pending notification are one operation, owned by the
         // rest-timer service.
         try restTimer.skip(workout)
+        var survivors = 0
         for entry in workout.entries ?? [] {
             let sets = entry.sets ?? []
             let completed = sets.filter { $0.completedAt != nil }
@@ -105,9 +127,18 @@ struct WorkoutSession {
             }
             if completed.isEmpty {
                 context.delete(entry)
+            } else {
+                survivors += 1
             }
         }
+        // A2: Start → Finish with nothing logged used to leave a permanent
+        // empty row in History. Nothing survived cleanup → nothing happened.
+        guard survivors > 0 else {
+            context.delete(workout)
+            return .discardedEmpty
+        }
         workout.finishedAt = date
+        return .saved
     }
 
     // MARK: - Entries

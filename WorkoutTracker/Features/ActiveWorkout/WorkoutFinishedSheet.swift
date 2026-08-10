@@ -6,10 +6,15 @@ import SwiftUI
 /// you just logged. This says what was saved, offers the workout itself, and
 /// carries the save-as-template option that used to block Finish (B2).
 ///
+/// A2: `workout` is nil when the workout was empty and got discarded instead
+/// of finished. The same receipt then says *that* — silently vanishing and
+/// confirming a save are both lies about what happened.
+///
 /// Light and skippable: Done is always one tap away.
 struct WorkoutFinishedSheet: View {
     @Environment(\.modelContext) private var modelContext
-    var workout: Workout
+    /// The saved workout, or nil when nothing was logged (A2).
+    var workout: Workout?
     /// Dismisses the sheet and shows the workout in History.
     var viewInHistory: () -> Void
     var done: () -> Void
@@ -19,12 +24,21 @@ struct WorkoutFinishedSheet: View {
     @State private var templateFailure: String?
     @State private var savedTemplateName: String?
 
+    /// The workout only when it really reached history — a deleted or
+    /// missing one is the discarded case, whatever the caller passed.
+    private var savedWorkout: Workout? {
+        guard let workout, !workout.isDeleted, workout.finishedAt != nil else {
+            return nil
+        }
+        return workout
+    }
+
     private var entryCount: Int {
-        workout.isDeleted ? 0 : WorkoutSession.orderedEntries(of: workout).count
+        savedWorkout.map { WorkoutSession.orderedEntries(of: $0).count } ?? 0
     }
 
     private var setCount: Int {
-        workout.isDeleted ? 0 : workout.completedSets.count
+        savedWorkout?.completedSets.count ?? 0
     }
 
     var body: some View {
@@ -32,9 +46,12 @@ struct WorkoutFinishedSheet: View {
             List {
                 Section {
                     VStack(alignment: .leading, spacing: 6) {
-                        Label("Workout saved", systemImage: "checkmark.circle.fill")
+                        Label(
+                            savedWorkout == nil ? "Nothing to save" : "Workout saved",
+                            systemImage: savedWorkout == nil
+                                ? "tray" : "checkmark.circle.fill")
                             .font(.headline)
-                            .foregroundStyle(.green)
+                            .foregroundStyle(savedWorkout == nil ? Color.secondary : Color.green)
                         Text(summaryLine)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -43,29 +60,31 @@ struct WorkoutFinishedSheet: View {
                     .padding(.vertical, 4)
                 }
 
-                Section {
-                    Button("View in History", systemImage: "clock.arrow.circlepath") {
-                        viewInHistory()
-                    }
-                    .accessibilityIdentifier("viewFinishedWorkout")
-
-                    if let savedTemplateName {
-                        Label("Saved as template “\(savedTemplateName)”", systemImage: "checkmark")
-                            .foregroundStyle(.secondary)
-                    } else if canSaveAsTemplate {
-                        Button("Save as Template", systemImage: "square.on.square") {
-                            templateName = defaultTemplateName
-                            namingTemplate = true
+                if savedWorkout != nil {
+                    Section {
+                        Button("View in History", systemImage: "clock.arrow.circlepath") {
+                            viewInHistory()
                         }
-                        .accessibilityIdentifier("saveAsTemplate")
-                    }
-                } footer: {
-                    if savedTemplateName == nil, canSaveAsTemplate {
-                        Text("Completed sets become target set and rep slots. Weights and rest times are not saved.")
+                        .accessibilityIdentifier("viewFinishedWorkout")
+
+                        if let savedTemplateName {
+                            Label("Saved as template “\(savedTemplateName)”", systemImage: "checkmark")
+                                .foregroundStyle(.secondary)
+                        } else if canSaveAsTemplate {
+                            Button("Save as Template", systemImage: "square.on.square") {
+                                templateName = defaultTemplateName
+                                namingTemplate = true
+                            }
+                            .accessibilityIdentifier("saveAsTemplate")
+                        }
+                    } footer: {
+                        if savedTemplateName == nil, canSaveAsTemplate {
+                            Text("Completed sets become target set and rep slots. Weights and rest times are not saved.")
+                        }
                     }
                 }
             }
-            .navigationTitle("Nice work")
+            .navigationTitle(savedWorkout == nil ? "Nothing logged" : "Nice work")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -96,11 +115,14 @@ struct WorkoutFinishedSheet: View {
     }
 
     private var summaryLine: String {
+        guard let saved = savedWorkout else {
+            return "No sets were completed, so this workout wasn't saved."
+        }
         var parts = [
-            "\(entryCount) \(entryCount == 1 ? "exercise" : "exercises")",
-            "\(setCount) \(setCount == 1 ? "set" : "sets")",
+            HistoryRendering.pluralized(entryCount, "exercise", "exercises"),
+            HistoryRendering.pluralized(setCount, "set", "sets"),
         ]
-        if let gymName = workout.isDeleted ? nil : workout.gym?.name {
+        if let gymName = saved.gym?.name {
             parts.append(gymName)
         }
         return parts.joined(separator: " · ")
@@ -110,19 +132,21 @@ struct WorkoutFinishedSheet: View {
     /// completed — `saveAsTemplate` captures completed sets only and throws
     /// `noExercises` otherwise.
     private var canSaveAsTemplate: Bool {
-        !workout.isDeleted && WorkoutTemplateService.canSaveAsTemplate(workout)
+        savedWorkout.map(WorkoutTemplateService.canSaveAsTemplate) ?? false
     }
 
     private var defaultTemplateName: String {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
-        return "Workout \(formatter.string(from: workout.startedAt))"
+        let date = savedWorkout?.startedAt ?? .now
+        return "Workout \(formatter.string(from: date))"
     }
 
     private func saveTemplate() {
+        guard let saved = savedWorkout else { return }
         do {
             let template = try WorkoutTemplateService(context: modelContext)
-                .saveAsTemplate(workout, name: templateName)
+                .saveAsTemplate(saved, name: templateName)
             savedTemplateName = template.name
         } catch {
             templateFailure = Self.templateFailureMessage(error)

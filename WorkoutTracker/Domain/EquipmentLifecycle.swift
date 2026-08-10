@@ -68,6 +68,36 @@ struct EquipmentLifecycle {
         try context.save()
     }
 
+    /// D2 (ticket 17): a gym's whole identity is editable — name, city, and
+    /// default unit. A wrong unit used to mean archive-and-recreate, which
+    /// stranded the gym's machines and memory. Gyms are user-owned, so D24's
+    /// seeded-catalog read-only rule does not apply here (it still guards
+    /// models and exercises).
+    func update(
+        _ gym: Gym,
+        name: String,
+        city: String?,
+        defaultUnit: WeightUnit?
+    ) throws {
+        gym.name = try validated(name)
+        gym.city = normalized(city)
+        gym.defaultUnit = defaultUnit
+        try context.save()
+    }
+
+    /// D2: a machine's label and default unit are editable. Its *model* is
+    /// not changed here — that is a correction with past-vs-future
+    /// consequences (D10), owned by `correctModel(of:to:scope:)`.
+    func update(
+        _ machine: MachineInstance,
+        label: String,
+        defaultUnit: WeightUnit?
+    ) throws {
+        machine.label = try validated(label)
+        machine.defaultUnit = defaultUnit
+        try context.save()
+    }
+
     func archive(_ machine: MachineInstance) throws {
         machine.archived = true
         try context.save()
@@ -118,6 +148,12 @@ struct EquipmentLifecycle {
             predicate: #Predicate { $0.id == machineID && !$0.archived }
         ))
         return machines.first { $0.gym?.id == gymID && $0.gym?.archived == false }
+    }
+
+    /// Optional free text: blank and whitespace both mean "not set".
+    private func normalized(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (trimmed?.isEmpty ?? true) ? nil : trimmed
     }
 
     private func validated(_ value: String) throws -> String {

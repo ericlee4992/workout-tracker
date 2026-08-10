@@ -8,7 +8,15 @@ struct HistoryView: View {
         filter: #Predicate<Workout> { $0.finishedAt != nil },
         sort: \Workout.startedAt, order: .reverse)
     private var workouts: [Workout]
+    /// E1: a workout started from a template is titled by that template's
+    /// current name; a deleted template simply falls through to the
+    /// exercise-derived title.
+    @Query private var templates: [WorkoutTemplate]
     @State private var path: [Workout] = []
+
+    private var templateNames: [UUID: String] {
+        Dictionary(templates.map { ($0.id, $0.name) }) { first, _ in first }
+    }
 
     private var byMonth: [(month: String, workouts: [Workout])] {
         let formatter = DateFormatter()
@@ -37,7 +45,10 @@ struct HistoryView: View {
                             Section(group.month) {
                                 ForEach(group.workouts) { workout in
                                     NavigationLink(value: workout) {
-                                        WorkoutSummaryRow(workout: workout)
+                                        WorkoutSummaryRow(
+                                            workout: workout,
+                                            templateName: workout.sourceTemplateID
+                                                .flatMap { templateNames[$0] })
                                     }
                                 }
                             }
@@ -53,30 +64,41 @@ struct HistoryView: View {
     }
 }
 
+/// E1–E4 (ticket 17): titled by what was actually done, with the gym demoted
+/// to a subtitle and the unit badge sitting inline with the stats it
+/// qualifies — so every row has the same left edge whether or not it has one.
 private struct WorkoutSummaryRow: View {
     var workout: Workout
+    var templateName: String?
 
     var body: some View {
         let completedSets = workout.completedSets
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Label(workout.gym?.name ?? "No gym", systemImage: "mappin.and.ellipse")
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(workout.historyTitle(templateName: templateName))
                     .font(.headline)
-                Spacer()
+                    .lineLimit(1)
+                Spacer(minLength: 8)
                 Text(workout.startedAt, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+            Label(workout.historyGymName ?? "No gym", systemImage: "mappin.and.ellipse")
+                .font(.caption)
+                .foregroundStyle(.secondary)
             HStack(spacing: 6) {
+                Text(HistoryRendering.statsLine(
+                    exerciseCount: workout.entries?.count ?? 0,
+                    setCount: completedSets.count,
+                    duration: workout.duration))
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
                 // Derived from the actual logged sets — never just the gym
                 // default (SPEC "Units").
                 if let badge = WorkoutUnitBadge.derive(fromCompleted: completedSets) {
                     WorkoutUnitBadgeView(badge: badge)
                 }
-                Spacer()
-                Text("\(workout.entries?.count ?? 0) exercises · \(completedSets.count) sets · \(workout.durationMinutes ?? 0) min")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                Spacer(minLength: 0)
             }
         }
         .padding(.vertical, 2)

@@ -90,6 +90,42 @@ struct EquipmentLifecycleTests {
         #expect(f.entry.snapshotEquipmentLabel == display)
     }
 
+    /// D2 (ticket 17): a gym's unit and city are corrections, not one-shot
+    /// choices — a wrong unit used to mean archive-and-recreate. History
+    /// still reads its snapshot.
+    @Test func gymUpdateEditsUnitAndCityWithoutTouchingHistory() throws {
+        let f = try makeFixture()
+        let snapshotName = f.entry.snapshotGymName
+        try f.lifecycle.update(
+            f.gym, name: "Corrected Gym", city: "Seoul", defaultUnit: .lb)
+        #expect(f.gym.name == "Corrected Gym")
+        #expect(f.gym.city == "Seoul")
+        #expect(f.gym.defaultUnit == .lb)
+        #expect(f.entry.snapshotGymName == snapshotName)
+
+        // Blank city clears it; a blank name is still refused.
+        try f.lifecycle.update(
+            f.gym, name: "Corrected Gym", city: "  ", defaultUnit: nil)
+        #expect(f.gym.city == nil)
+        #expect(f.gym.defaultUnit == nil)
+        #expect(throws: EquipmentLifecycleError.emptyName) {
+            try f.lifecycle.update(f.gym, name: " ", city: nil, defaultUnit: .kg)
+        }
+    }
+
+    /// D2: a machine's default unit is editable too, and editing it never
+    /// touches the model (that correction has its own past-vs-future flow).
+    @Test func machineUpdateEditsLabelAndUnitButNotModel() throws {
+        let f = try makeFixture()
+        try f.lifecycle.update(f.machine, label: "Corrected Machine", defaultUnit: .lb)
+        #expect(f.machine.label == "Corrected Machine")
+        #expect(f.machine.defaultUnit == .lb)
+        #expect(f.machine.model?.id == f.oldModel.id)
+        #expect(throws: EquipmentLifecycleError.emptyName) {
+            try f.lifecycle.update(f.machine, label: "", defaultUnit: .kg)
+        }
+    }
+
     @Test func archivesHideRowsWithoutChangingHistory() throws {
         let f = try makeFixture()
         let machineSnapshotID = f.entry.snapshotMachineID

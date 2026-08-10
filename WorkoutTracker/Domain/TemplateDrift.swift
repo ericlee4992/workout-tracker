@@ -153,13 +153,14 @@ struct TemplateDriftService {
     /// completed structure and `finish` prunes the workout — so both drift
     /// prompts (finishing, and replacing an active workout) share this one
     /// sequence rather than each spelling it out.
+    @discardableResult
     func resolve(
         _ resolution: TemplateDriftResolution,
         workout: Workout,
         to template: WorkoutTemplate
-    ) throws {
+    ) throws -> WorkoutFinishOutcome {
         try apply(resolution, workout: workout, to: template)
-        try WorkoutSession(context: context).finish(workout)
+        return try WorkoutSession(context: context).finish(workout)
     }
 
     func templateSnapshot(_ template: WorkoutTemplate) -> [TemplateDriftItem] {

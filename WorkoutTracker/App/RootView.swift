@@ -5,11 +5,20 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selection: Tab = .workout
     @State private var activeWorkout: Workout?
-    /// C2: the workout just finished, awaiting its confirmation sheet.
-    @State private var finishedWorkout: Workout?
+    /// C2/A2: the finish that just happened, awaiting its confirmation sheet.
+    @State private var finishConfirmation: FinishConfirmation?
 
     enum Tab: Hashable {
         case workout, history, gyms, exercises
+    }
+
+    /// The subject of the post-finish sheet. `workout` is nil when the
+    /// workout was empty and got discarded (A2) — the sheet still shows, it
+    /// just reports a different outcome. Identity is per-finish rather than
+    /// per-workout so the discarded case can be presented at all.
+    private struct FinishConfirmation: Identifiable {
+        let id = UUID()
+        let workout: Workout?
     }
 
     var body: some View {
@@ -38,17 +47,17 @@ struct RootView: View {
                 onMinimize: { activeWorkout = nil },
                 onFinished: { finished in
                     activeWorkout = nil
-                    finishedWorkout = finished
+                    finishConfirmation = FinishConfirmation(workout: finished)
                 })
         }
-        .sheet(item: $finishedWorkout) { workout in
+        .sheet(item: $finishConfirmation) { confirmation in
             WorkoutFinishedSheet(
-                workout: workout,
+                workout: confirmation.workout,
                 viewInHistory: {
-                    finishedWorkout = nil
+                    finishConfirmation = nil
                     selection = .history
                 },
-                done: { finishedWorkout = nil })
+                done: { finishConfirmation = nil })
             .presentationDetents([.medium])
         }
         .onAppear(perform: recoverActiveWorkout)

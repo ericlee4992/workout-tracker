@@ -43,10 +43,72 @@ extension ExerciseEntry {
     }
 }
 
+/// Ticket 17 E1–E3 — the words a history row is made of, kept here so they
+/// can be tested without a view. Rows used to be headlined by the gym (every
+/// workout at one gym indistinguishable), count "1 exercises", and flatten
+/// every sub-minute workout to "0 min".
+enum HistoryRendering {
+
+    /// Headline for a workout with nothing to name it after.
+    static let untitledWorkout = "Workout"
+
+    /// E1: what a workout is called in History. The template it started from
+    /// names it; otherwise the exercises performed do ("Chest Press +2"); a
+    /// workout with neither gets the neutral fallback. The gym is the
+    /// subtitle, never the title — it is what workouts have in common, not
+    /// what tells them apart.
+    ///
+    /// `exerciseNames` must come from entry SNAPSHOTS (D23), so a later
+    /// rename or model correction cannot retitle a finished workout.
+    static func title(templateName: String?, exerciseNames: [String]) -> String {
+        if let templateName {
+            let trimmed = templateName.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
+        var seen = Set<String>()
+        let names = exerciseNames
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0).inserted }
+        guard let first = names.first else { return untitledWorkout }
+        return names.count == 1 ? first : "\(first) +\(names.count - 1)"
+    }
+
+    /// E2: a count that agrees with its noun — never "1 exercises".
+    static func pluralized(_ count: Int, _ singular: String, _ plural: String) -> String {
+        "\(count) \(count == 1 ? singular : plural)"
+    }
+
+    /// E3: sub-minute workouts are not all "0 min" — a 14-second mistake and
+    /// a 45-second finisher have to be tellable apart. Minutes above a minute.
+    static func durationLabel(_ duration: TimeInterval) -> String {
+        let seconds = max(0, Int(duration))
+        return seconds < 60 ? "\(seconds)s" : "\(seconds / 60) min"
+    }
+
+    /// The stats line of a history row: exercises · sets · duration.
+    static func statsLine(
+        exerciseCount: Int,
+        setCount: Int,
+        duration: TimeInterval?
+    ) -> String {
+        var parts = [
+            pluralized(exerciseCount, "exercise", "exercises"),
+            pluralized(setCount, "set", "sets"),
+        ]
+        if let duration { parts.append(durationLabel(duration)) }
+        return parts.joined(separator: " · ")
+    }
+}
+
 extension Workout {
-    /// Whole minutes from start to finish; nil while the workout is active.
-    var durationMinutes: Int? {
-        finishedAt.map { max(0, Int($0.timeIntervalSince(startedAt)) / 60) }
+    /// Elapsed time from start to finish; nil while the workout is active.
+    var duration: TimeInterval? {
+        finishedAt.map { max(0, $0.timeIntervalSince(startedAt)) }
+    }
+
+    /// Rendered duration (E3); nil while the workout is active.
+    var durationLabel: String? {
+        duration.map(HistoryRendering.durationLabel)
     }
 
     /// Completed sets across all entries (entry order, then set order).
@@ -54,5 +116,27 @@ extension Workout {
         WorkoutSession.orderedEntries(of: self)
             .flatMap { WorkoutSession.orderedSets(of: $0) }
             .filter { $0.completedAt != nil }
+    }
+
+    /// Snapshot exercise names in entry order (D23) — the live `exercise`
+    /// relationship is deliberately not consulted.
+    var snapshotExerciseNames: [String] {
+        WorkoutSession.orderedEntries(of: self).map(\.snapshotExerciseName)
+    }
+
+    /// E1: the row headline. `templateName` is the name of the template
+    /// `sourceTemplateID` points at, or nil when there is none (or it has
+    /// since been deleted).
+    func historyTitle(templateName: String?) -> String {
+        HistoryRendering.title(
+            templateName: templateName, exerciseNames: snapshotExerciseNames)
+    }
+
+    /// Gym label for history: the name captured at log time (D23) when the
+    /// workout logged anything, falling back to the live gym for a workout
+    /// whose entries carry no snapshot.
+    var historyGymName: String? {
+        WorkoutSession.orderedEntries(of: self)
+            .compactMap(\.snapshotGymName).first ?? gym?.name
     }
 }

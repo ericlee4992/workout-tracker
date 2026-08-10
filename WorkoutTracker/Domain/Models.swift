@@ -400,6 +400,12 @@ final class AppPreferences {
     var seededCatalogVersion: Int = 0
     /// Whether notification permission has been requested (rest-timer alerts).
     var notificationPermissionRequested: Bool = false
+    /// Gym the Start screen is set to, remembered across launches (D1,
+    /// ticket 17). nil = "No gym", a real choice rather than a missing one.
+    /// Scalar id, never a relationship: an archived or deleted gym must
+    /// degrade to "No gym", not resurrect. Added by ticket 17 (noted in
+    /// ticket 02).
+    var selectedGymID: UUID?
     var updatedAt: Date = Date()
 
     init(
@@ -410,6 +416,7 @@ final class AppPreferences {
         globalWarmupRestSeconds: Int = 60,
         seededCatalogVersion: Int = 0,
         notificationPermissionRequested: Bool = false,
+        selectedGymID: UUID? = nil,
         updatedAt: Date = Date()
     ) {
         self.id = id
@@ -419,6 +426,7 @@ final class AppPreferences {
         self.globalWarmupRestSeconds = globalWarmupRestSeconds
         self.seededCatalogVersion = seededCatalogVersion
         self.notificationPermissionRequested = notificationPermissionRequested
+        self.selectedGymID = selectedGymID
         self.updatedAt = updatedAt
     }
 }

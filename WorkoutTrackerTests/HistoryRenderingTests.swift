@@ -9,6 +9,14 @@ import Testing
 
 struct HistoryRenderingTests {
 
+    private func makeContext() throws -> ModelContext {
+        let schema = WorkoutTrackerStore.schema
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        return ModelContext(container)
+    }
+
     // MARK: Unit badge derivation
 
     @Test func allKgSetsDeriveKgBadge() {
@@ -126,6 +134,108 @@ struct HistoryRenderingTests {
         #expect(entry.snapshotExerciseName == "Seated Chest Press")
         #expect(entry.snapshotEquipmentLabel == "Chest Press #1 · Life Fitness Insignia Chest Press")
         #expect(WorkoutUnitBadge.derive(fromCompleted: workout.completedSets) == .single(.kg))
+    }
+
+    // MARK: Row titles (E1, ticket 17)
+
+    /// The template a workout started from names it, whatever was performed.
+    @Test func templateNameWinsOverExercises() {
+        #expect(HistoryRendering.title(
+            templateName: "Push Day",
+            exerciseNames: ["Chest Press", "Lateral Raise"]) == "Push Day")
+        // Whitespace-only is not a name.
+        #expect(HistoryRendering.title(
+            templateName: "   ", exerciseNames: ["Chest Press"]) == "Chest Press")
+    }
+
+    /// Without a template the exercises performed name the workout — the
+    /// first one, plus how many others.
+    @Test func exercisesDeriveTheTitleWhenThereIsNoTemplate() {
+        #expect(HistoryRendering.title(
+            templateName: nil, exerciseNames: ["Chest Press"]) == "Chest Press")
+        #expect(HistoryRendering.title(
+            templateName: nil,
+            exerciseNames: ["Chest Press", "Row", "Curl"]) == "Chest Press +2")
+        // Repeating an exercise (a split entry, D19) is one exercise.
+        #expect(HistoryRendering.title(
+            templateName: nil,
+            exerciseNames: ["Chest Press", "Chest Press"]) == "Chest Press")
+    }
+
+    /// Neither template nor exercises → a neutral label, never an empty row.
+    @Test func titleFallsBackWhenNothingNamesTheWorkout() {
+        #expect(HistoryRendering.title(templateName: nil, exerciseNames: []) == "Workout")
+        #expect(HistoryRendering.title(
+            templateName: nil, exerciseNames: ["", "  "]) == "Workout")
+    }
+
+    /// E1 against real persisted data: the title comes from SNAPSHOTS (D23),
+    /// so renaming the live exercise afterwards never retitles history.
+    @Test func workoutTitleReadsSnapshotsNotLiveExercises() throws {
+        let context = try makeContext()
+        let press = Exercise(name: "Chest Press")
+        let row = Exercise(name: "Seated Row")
+        let gym = Gym(name: "Gangnam Fitness", defaultUnit: .kg)
+        for object in [press, row, gym] as [any PersistentModel] {
+            context.insert(object)
+        }
+        try context.save()
+
+        let session = WorkoutSession(context: context)
+        let workout = try session.startWorkout(at: gym)
+        for exercise in [press, row] {
+            let entry = try session.addEntry(for: exercise, to: workout)
+            let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+            try session.commitWeight("40", for: set)
+            try session.commitReps("10", for: set)
+            try session.toggleCompletion(of: set)
+        }
+        try session.finish(workout)
+
+        #expect(workout.historyTitle(templateName: nil) == "Chest Press +1")
+        #expect(workout.historyTitle(templateName: "Push Day") == "Push Day")
+
+        press.name = "Renamed Press"
+        try context.save()
+        #expect(workout.historyTitle(templateName: nil) == "Chest Press +1")
+    }
+
+    // MARK: Stats line (E2, E3)
+
+    /// E2: "1 exercises" was a hardcoded plural — for sets too.
+    @Test func countsAgreeWithTheirNouns() {
+        #expect(HistoryRendering.pluralized(1, "exercise", "exercises") == "1 exercise")
+        #expect(HistoryRendering.pluralized(2, "exercise", "exercises") == "2 exercises")
+        #expect(HistoryRendering.pluralized(0, "set", "sets") == "0 sets")
+        #expect(HistoryRendering.statsLine(
+            exerciseCount: 1, setCount: 1, duration: 3_600) == "1 exercise · 1 set · 60 min")
+        #expect(HistoryRendering.statsLine(
+            exerciseCount: 3, setCount: 12, duration: nil) == "3 exercises · 12 sets")
+    }
+
+    /// E3: a 14-second and a 45-second workout must not both read "0 min".
+    @Test func subMinuteWorkoutsShowSeconds() {
+        #expect(HistoryRendering.durationLabel(0) == "0s")
+        #expect(HistoryRendering.durationLabel(14) == "14s")
+        #expect(HistoryRendering.durationLabel(45) == "45s")
+        #expect(HistoryRendering.durationLabel(59.9) == "59s")
+        // A minute and above keeps minutes.
+        #expect(HistoryRendering.durationLabel(60) == "1 min")
+        #expect(HistoryRendering.durationLabel(2_700) == "45 min")
+        // Never negative, whatever the clock did.
+        #expect(HistoryRendering.durationLabel(-30) == "0s")
+    }
+
+    /// The same rule through the model: an active workout has no duration.
+    @Test func workoutDurationLabelFollowsFinishedAt() {
+        let start = Date(timeIntervalSince1970: 1_000)
+        #expect(Workout(startedAt: start).durationLabel == nil)
+        #expect(Workout(
+            startedAt: start,
+            finishedAt: start.addingTimeInterval(45)).durationLabel == "45s")
+        #expect(Workout(
+            startedAt: start,
+            finishedAt: start.addingTimeInterval(1_800)).durationLabel == "30 min")
     }
 
     // MARK: Convert-toggle formatting (D9/D25)

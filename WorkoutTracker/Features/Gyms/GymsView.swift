@@ -33,7 +33,7 @@ struct GymsView: View {
                 }
             }
             .sheet(isPresented: $showingAddGym) {
-                AddGymSheet()
+                GymEditorSheet()
             }
         }
     }
@@ -71,10 +71,8 @@ struct GymDetailView: View {
     @Environment(\.dismiss) private var dismiss
     var gym: Gym
     @State private var showingAddMachine = false
-    @State private var renamingGym = false
-    @State private var gymName = ""
-    @State private var renamingMachine: MachineInstance?
-    @State private var machineLabel = ""
+    @State private var editingGym = false
+    @State private var editingMachine: MachineInstance?
     @State private var correctingMachine: MachineInstance?
     @State private var renamingModel: EquipmentModel?
     @State private var modelManufacturer = ""
@@ -82,6 +80,10 @@ struct GymDetailView: View {
 
     var body: some View {
         List {
+            // D2 (ticket 17): these used to be a dead end — read-only rows
+            // with only Rename/Archive in the menu, so a wrong unit meant
+            // archive-and-recreate. Editing is now one tap from where the
+            // wrong value is displayed.
             Section {
                 HStack {
                     Text("Default unit")
@@ -98,6 +100,10 @@ struct GymDetailView: View {
                     Spacer()
                     Text(gym.city ?? "—").foregroundStyle(.secondary)
                 }
+                Button("Edit Gym…", systemImage: "pencil") {
+                    editingGym = true
+                }
+                .accessibilityIdentifier("editGym")
             }
 
             Section {
@@ -117,9 +123,9 @@ struct GymDetailView: View {
                     }
                     .padding(.vertical, 2)
                     .contextMenu {
-                        Button("Rename Machine…") {
-                            machineLabel = machine.label
-                            renamingMachine = machine
+                        // D2: label *and* default unit, not rename alone.
+                        Button("Edit Machine…") {
+                            editingMachine = machine
                         }
                         Button("Correct Model…") {
                             correctingMachine = machine
@@ -157,10 +163,7 @@ struct GymDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button("Rename Gym…") {
-                        gymName = gym.name
-                        renamingGym = true
-                    }
+                    Button("Edit Gym…") { editingGym = true }
                     Button("Archive Gym", role: .destructive) {
                         archiveGym()
                     }
@@ -170,31 +173,16 @@ struct GymDetailView: View {
             }
         }
         .sheet(isPresented: $showingAddMachine) {
-            AddMachineSheet(gym: gym)
+            MachineEditorSheet(gym: gym)
+        }
+        .sheet(isPresented: $editingGym) {
+            GymEditorSheet(gym: gym)
+        }
+        .sheet(item: $editingMachine) { machine in
+            MachineEditorSheet(gym: gym, machine: machine)
         }
         .sheet(item: $correctingMachine) { machine in
             MachineModelCorrectionSheet(machine: machine)
-        }
-        .alert("Rename Gym", isPresented: $renamingGym) {
-            TextField("Name", text: $gymName)
-            Button("Save") { renameGym() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Existing workout history keeps the name captured when each workout was logged.")
-        }
-        .alert(
-            "Rename Machine",
-            isPresented: Binding(
-                get: { renamingMachine != nil },
-                set: { if !$0 { renamingMachine = nil } }
-            ),
-            presenting: renamingMachine
-        ) { machine in
-            TextField("Label", text: $machineLabel)
-            Button("Save") { rename(machine) }
-            Button("Cancel", role: .cancel) {}
-        } message: { _ in
-            Text("Existing history keeps the machine label captured at log time.")
         }
         .alert(
             "Rename Model",
@@ -215,16 +203,6 @@ struct GymDetailView: View {
 
     private var lifecycle: EquipmentLifecycle {
         EquipmentLifecycle(context: modelContext)
-    }
-
-    private func renameGym() {
-        do { try lifecycle.rename(gym, to: gymName) }
-        catch { assertionFailure("Failed to rename gym: \(error)") }
-    }
-
-    private func rename(_ machine: MachineInstance) {
-        do { try lifecycle.rename(machine, to: machineLabel) }
-        catch { assertionFailure("Failed to rename machine: \(error)") }
     }
 
     private func rename(_ model: EquipmentModel) {
@@ -251,12 +229,18 @@ struct GymDetailView: View {
     }
 }
 
-private struct AddGymSheet: View {
+/// Ticket 06's add-gym form, doubling as the edit form (D2, ticket 17): the
+/// fields a gym is created with are exactly the fields it can be corrected
+/// with, so there is one place to learn and one place to maintain.
+private struct GymEditorSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    /// nil = create a new gym; non-nil = edit that gym in place.
+    var gym: Gym?
     @State private var name = ""
     @State private var city = ""
     @State private var defaultUnit: WeightUnit?
+    @State private var loaded = false
 
     var body: some View {
         NavigationStack {
@@ -265,6 +249,10 @@ private struct AddGymSheet: View {
                     TextField("Name", text: $name)
                         .accessibilityIdentifier("gymName")
                     TextField("City (optional)", text: $city)
+                } footer: {
+                    if gym != nil {
+                        Text("Existing workout history keeps the name captured when each workout was logged.")
+                    }
                 }
                 Section {
                     Picker("Default unit", selection: $defaultUnit) {
@@ -275,21 +263,24 @@ private struct AddGymSheet: View {
                     }
                     .accessibilityIdentifier("gymUnitPicker")
                 } footer: {
-                    Text("Leave on App preference to fall through to your app-wide unit.")
+                    Text(gym == nil
+                        ? "Leave on App preference to fall through to your app-wide unit."
+                        : "Changing this affects future sets only — sets already logged keep the unit you entered them in.")
                 }
             }
-            .navigationTitle("New Gym")
+            .navigationTitle(gym == nil ? "New Gym" : "Edit Gym")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") { addGym() }
+                    Button(gym == nil ? "Add" : "Save") { save() }
                         .disabled(trimmedName.isEmpty)
                         .accessibilityIdentifier("saveGym")
                 }
             }
+            .onAppear(perform: load)
         }
     }
 
@@ -297,32 +288,54 @@ private struct AddGymSheet: View {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func addGym() {
-        let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines)
-        modelContext.insert(Gym(
-            name: trimmedName,
-            city: trimmedCity.isEmpty ? nil : trimmedCity,
-            defaultUnit: defaultUnit))
+    private func load() {
+        guard !loaded else { return }
+        loaded = true
+        guard let gym else { return }
+        name = gym.name
+        city = gym.city ?? ""
+        defaultUnit = gym.defaultUnit
+    }
+
+    private func save() {
         do {
-            try modelContext.save()
+            if let gym {
+                try EquipmentLifecycle(context: modelContext).update(
+                    gym, name: name, city: city, defaultUnit: defaultUnit)
+            } else {
+                let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines)
+                modelContext.insert(Gym(
+                    name: trimmedName,
+                    city: trimmedCity.isEmpty ? nil : trimmedCity,
+                    defaultUnit: defaultUnit))
+                try modelContext.save()
+            }
         } catch {
-            assertionFailure("Failed to save new gym: \(error)")
+            assertionFailure("Failed to save gym: \(error)")
         }
         dismiss()
     }
 }
 
-// MARK: - Add Machine (ticket 06)
+// MARK: - Machine editor (ticket 06 add-sheet, ticket 17 edit-sheet)
 
 // Internal (not private): the active-workout machine picker (ticket 07)
 // reuses it to add a machine mid-workout.
-struct AddMachineSheet: View {
+struct MachineEditorSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     var gym: Gym
+    /// nil = create a new machine at `gym`; non-nil = edit that machine
+    /// (D2, ticket 17 — its default unit was previously set-once).
+    var machine: MachineInstance?
     @State private var label = ""
     @State private var model: EquipmentModel?
     @State private var defaultUnit: WeightUnit?
+    @State private var loaded = false
+    /// D3: the label this sheet filled in from a picked model. Only a label
+    /// the sheet wrote itself may be overwritten by the next pick — anything
+    /// typed is the user's.
+    @State private var modelDerivedLabel: String?
 
     var body: some View {
         NavigationStack {
@@ -333,20 +346,35 @@ struct AddMachineSheet: View {
                 } footer: {
                     Text("How you'll recognize this machine at \(gym.name).")
                 }
-                Section {
-                    NavigationLink {
-                        ModelPickerView(selection: $model)
-                    } label: {
+                if machine == nil {
+                    Section {
+                        NavigationLink {
+                            ModelPickerView(selection: $model)
+                        } label: {
+                            HStack {
+                                Text("Catalog model")
+                                Spacer()
+                                Text(model?.displayName ?? "None")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .accessibilityIdentifier("catalogModel")
+                    } footer: {
+                        Text("Optional — picking one names the machine for you. Without a model, logging on this machine opens the full exercise picker.")
+                    }
+                } else {
+                    Section {
                         HStack {
                             Text("Catalog model")
                             Spacer()
-                            Text(model?.displayName ?? "None")
+                            Text(machine?.model?.displayName ?? "None")
                                 .foregroundStyle(.secondary)
                         }
+                    } footer: {
+                        // Changing an existing machine's model has past-vs-
+                        // future consequences (D10), so it keeps its own flow.
+                        Text("Use “Correct Model…” on the machine to change this — it asks whether to apply the correction to past workouts.")
                     }
-                    .accessibilityIdentifier("catalogModel")
-                } footer: {
-                    Text("Optional. Without a model, logging on this machine opens the full exercise picker.")
                 }
                 Section {
                     Picker("Default unit", selection: $defaultUnit) {
@@ -355,22 +383,25 @@ struct AddMachineSheet: View {
                             Text(unit.rawValue).tag(WeightUnit?.some(unit))
                         }
                     }
+                    .accessibilityIdentifier("machineUnitPicker")
                 } footer: {
                     Text("Leave on Gym default to fall through to the gym's unit (then the app preference).")
                 }
             }
-            .navigationTitle("New Machine")
+            .navigationTitle(machine == nil ? "New Machine" : "Edit Machine")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") { addMachine() }
+                    Button(machine == nil ? "Add" : "Save") { save() }
                         .disabled(trimmedLabel.isEmpty)
                         .accessibilityIdentifier("saveMachine")
                 }
             }
+            .onAppear(perform: load)
+            .onChange(of: model?.id) { _, _ in applyModelDefaultLabel() }
         }
     }
 
@@ -378,16 +409,40 @@ struct AddMachineSheet: View {
         label.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func addMachine() {
-        modelContext.insert(MachineInstance(
-            label: trimmedLabel,
-            defaultUnit: defaultUnit,
-            gym: gym,
-            model: model))
+    private func load() {
+        guard !loaded else { return }
+        loaded = true
+        guard let machine else { return }
+        label = machine.label
+        model = machine.model
+        defaultUnit = machine.defaultUnit
+    }
+
+    /// D3: picking a catalog model supplies the label, so Add is immediately
+    /// enabled instead of waiting for a name to be invented. Still editable,
+    /// and a machine with no model still needs one typed.
+    private func applyModelDefaultLabel() {
+        guard let model else { return }
+        guard trimmedLabel.isEmpty || trimmedLabel == modelDerivedLabel else { return }
+        label = model.modelName
+        modelDerivedLabel = model.modelName
+    }
+
+    private func save() {
         do {
-            try modelContext.save()
+            if let machine {
+                try EquipmentLifecycle(context: modelContext).update(
+                    machine, label: label, defaultUnit: defaultUnit)
+            } else {
+                modelContext.insert(MachineInstance(
+                    label: trimmedLabel,
+                    defaultUnit: defaultUnit,
+                    gym: gym,
+                    model: model))
+                try modelContext.save()
+            }
         } catch {
-            assertionFailure("Failed to save new machine: \(error)")
+            assertionFailure("Failed to save machine: \(error)")
         }
         dismiss()
     }

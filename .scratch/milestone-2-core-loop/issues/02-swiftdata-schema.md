@@ -32,3 +32,8 @@ current rest timer started. Persisted alongside `restEndsAt` so the timer's *tot
 (end − start, growing with each +15s) survives relaunch; the progress bar's denominator must
 be the total, not the remaining time. Cleared with the rest of the timer state. Optional scalar
 with nil default, CloudKit-safe, additive-only (lightweight migration).
+
+**Field addition (ticket 17, 2026-08-09):** `AppPreferences.selectedGymID: UUID?` — the gym the
+Start screen is set to, remembered across launches (D1). Scalar id rather than a relationship, so
+an archived or deleted gym degrades to "No gym" instead of resurrecting; nil is itself a real
+remembered choice. Optional with nil default, CloudKit-safe, additive-only (lightweight migration).

@@ -12,9 +12,10 @@ struct WorkoutDetailView: View {
         List {
             Section {
                 HStack {
-                    Label(workout.gym?.name ?? "No gym", systemImage: "mappin.and.ellipse")
+                    Label(workout.historyGymName ?? "No gym", systemImage: "mappin.and.ellipse")
                     Spacer()
-                    Text("\(workout.durationMinutes ?? 0) min")
+                    // E3 (ticket 17): seconds below a minute, here too.
+                    Text(workout.durationLabel ?? "—")
                         .foregroundStyle(.secondary)
                 }
                 .font(.subheadline)

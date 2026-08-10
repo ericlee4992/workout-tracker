@@ -15,6 +15,9 @@ struct StartWorkoutView: View {
         sort: [SortDescriptor(\Workout.startedAt, order: .reverse)])
     private var activeWorkouts: [Workout]
     @State private var selectedGym: Gym?
+    /// D1: the stored pick is read once per screen lifetime — re-reading it
+    /// would fight the user's in-session choice.
+    @State private var restoredSelectedGym = false
     @State private var showingResumeDialog = false
     @State private var pendingTemplate: WorkoutTemplate?
     @State private var editingTemplate: WorkoutTemplate?
@@ -92,6 +95,7 @@ struct StartWorkoutView: View {
             .sheet(isPresented: $showingTemplateEditor) {
                 TemplateEditorSheet(template: editingTemplate)
             }
+            .onAppear(perform: restoreSelectedGym)
         }
     }
 
@@ -217,10 +221,29 @@ struct StartWorkoutView: View {
             appPreference: AppPreferences.canonical(of: allPreferences)?.unitPreference)
     }
 
+    /// D1: restore the remembered gym at launch. An archived or deleted gym
+    /// resolves to "No gym" — archival is how a gym leaves the pickers.
+    private func restoreSelectedGym() {
+        guard !restoredSelectedGym else { return }
+        restoredSelectedGym = true
+        selectedGym = GymSelection.resolve(
+            id: AppPreferences.canonical(of: allPreferences)?.selectedGymID,
+            among: gyms)
+    }
+
+    /// D1: every pick is remembered — the gym is the anchor of the whole
+    /// equipment model, so re-choosing it each launch was a tax on the
+    /// differentiator. "No gym" is itself a remembered choice.
+    private func select(_ gym: Gym?) {
+        selectedGym = gym
+        do { try GymSelection.remember(gym, in: modelContext) }
+        catch { assertionFailure("Failed to remember gym selection: \(error)") }
+    }
+
     private var gymPicker: some View {
         Menu {
             Button {
-                selectedGym = nil
+                select(nil)
             } label: {
                 if selectedGym == nil {
                     Label("No gym", systemImage: "checkmark")
@@ -230,7 +253,7 @@ struct StartWorkoutView: View {
             }
             ForEach(gyms) { gym in
                 Button {
-                    selectedGym = gym
+                    select(gym)
                 } label: {
                     let title = gym.city.map { "\(gym.name) · \($0)" } ?? gym.name
                     if gym.id == selectedGym?.id {

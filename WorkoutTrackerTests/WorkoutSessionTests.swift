@@ -279,7 +279,21 @@ struct WorkoutSessionTests {
         let context = ModelContext(container)
         let session = WorkoutSession(context: context)
 
+        let exercise = Exercise(name: "Bench Press")
+        context.insert(exercise)
+        try context.save()
+
+        // A2 (ticket 17): a lingering workout is only *finished* if it has
+        // something to keep, so log a set in it — an empty one would be
+        // discarded instead (see the A2 tests below).
         let old = try session.startWorkout(at: nil)
+        let entry = try session.addEntry(
+            for: exercise, to: old, freeWeightTag: .barbell)
+        let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+        try session.commitWeight("60", for: set)
+        try session.commitReps("10", for: set)
+        try session.toggleCompletion(of: set)
+
         let new = try session.startWorkout(
             at: nil, on: old.startedAt.addingTimeInterval(60))
         #expect(old.finishedAt != nil)
@@ -646,6 +660,111 @@ struct WorkoutSessionTests {
         // Nothing uncompleted reached history.
         #expect(try context.fetch(FetchDescriptor<SetRecord>(
             predicate: #Predicate { $0.completedAt == nil })).isEmpty)
+    }
+
+    /// A2 (ticket 17): Start → Finish with nothing logged must leave no
+    /// trace. Finishing an empty workout deletes it and reports
+    /// `.discardedEmpty` — an empty row in History is permanent litter, and
+    /// telling the user it was "saved" would be a lie.
+    @Test func finishingAnEmptyWorkoutDeletesItInsteadOfFinishing() throws {
+        let url = makeStoreURL()
+        defer { removeStore(at: url) }
+
+        try {
+            let container = try WorkoutTrackerStore.makeContainer(url: url)
+            let context = ModelContext(container)
+            _ = try seedFixture(in: context)
+            let session = WorkoutSession(context: context)
+            let gym = try #require(try context.fetch(FetchDescriptor<Gym>()).first)
+            let exercise = try #require(try context.fetch(
+                FetchDescriptor<Exercise>(
+                    predicate: #Predicate { $0.isSeeded == false })).first)
+
+            // Never touched at all.
+            let bare = try session.startWorkout(at: gym)
+            #expect(try session.finish(bare) == .discardedEmpty)
+
+            // Exercises added, sets typed into, but nothing ever completed —
+            // still nothing to keep.
+            let started = try session.startWorkout(at: gym)
+            let entry = try session.addEntry(for: exercise, to: started)
+            let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+            try session.commitWeight("60", for: set)
+            try session.commitReps("10", for: set)
+            #expect(try session.finish(started) == .discardedEmpty)
+        }()
+
+        // Nothing at all survived the reopen — not the workouts, not their
+        // entries, not their draft sets.
+        let container = try WorkoutTrackerStore.makeContainer(url: url)
+        let context = ModelContext(container)
+        #expect(try context.fetchCount(FetchDescriptor<Workout>()) == 0)
+        #expect(try context.fetchCount(FetchDescriptor<ExerciseEntry>()) == 0)
+        #expect(try context.fetchCount(FetchDescriptor<SetRecord>()) == 0)
+        // The gym graph is untouched — discarding a workout is not a purge.
+        #expect(try context.fetchCount(FetchDescriptor<Gym>()) == 1)
+        #expect(try context.fetchCount(FetchDescriptor<MachineInstance>()) == 2)
+    }
+
+    /// A2's other half: one completed set is enough to be history. The
+    /// outcome says `.saved` and the workout survives a reopen.
+    @Test func finishingAWorkoutWithOneCompletedSetKeepsIt() throws {
+        let url = makeStoreURL()
+        defer { removeStore(at: url) }
+
+        var workoutID = UUID()
+        try {
+            let container = try WorkoutTrackerStore.makeContainer(url: url)
+            let context = ModelContext(container)
+            _ = try seedFixture(in: context)
+            let session = WorkoutSession(context: context)
+            let gym = try #require(try context.fetch(FetchDescriptor<Gym>()).first)
+            let exercise = try #require(try context.fetch(
+                FetchDescriptor<Exercise>(
+                    predicate: #Predicate { $0.isSeeded == false })).first)
+
+            let workout = try session.startWorkout(at: gym)
+            workoutID = workout.id
+            let entry = try session.addEntry(for: exercise, to: workout)
+            let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+            try session.commitWeight("60", for: set)
+            try session.commitReps("10", for: set)
+            try session.toggleCompletion(of: set)
+            // A second, wholly empty entry must not rescue anything — nor
+            // sink the workout that does have a completed set.
+            _ = try session.addEntry(for: exercise, to: workout)
+            #expect(try session.finish(workout) == .saved)
+        }()
+
+        let container = try WorkoutTrackerStore.makeContainer(url: url)
+        let context = ModelContext(container)
+        let workout = try fetchWorkout(workoutID, in: context)
+        #expect(workout.finishedAt != nil)
+        #expect(WorkoutSession.orderedEntries(of: workout).count == 1)
+        #expect(workout.completedSets.count == 1)
+    }
+
+    /// The empty-workout rule also applies to the strays `startWorkout` and
+    /// `resumableWorkout` auto-finish: an abandoned empty workout is deleted
+    /// rather than quietly filed into History behind the user's back.
+    @Test func autoFinishedEmptyStraysAreDiscardedToo() throws {
+        let url = makeStoreURL()
+        defer { removeStore(at: url) }
+        let container = try WorkoutTrackerStore.makeContainer(url: url)
+        let context = ModelContext(container)
+        _ = try seedFixture(in: context)
+        let session = WorkoutSession(context: context)
+        let gym = try #require(try context.fetch(FetchDescriptor<Gym>()).first)
+
+        _ = try session.startWorkout(at: gym, on: Date(timeIntervalSince1970: 100))
+        let second = try session.startWorkout(at: gym, on: Date(timeIntervalSince1970: 200))
+
+        // Only the newest survives, and it is still active — nothing was
+        // filed into History.
+        #expect(try context.fetchCount(FetchDescriptor<Workout>()) == 1)
+        #expect(second.finishedAt == nil)
+        #expect(try context.fetchCount(FetchDescriptor<Workout>(
+            predicate: #Predicate { $0.finishedAt != nil })) == 0)
     }
 
     /// Cancel deletes the workout and all children; the catalog and gym

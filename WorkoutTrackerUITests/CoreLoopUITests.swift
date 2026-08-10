@@ -62,8 +62,13 @@ final class CoreLoopUITests: XCTestCase {
 
         // --- History -------------------------------------------------------
         tab("History").tap()
+        // E1/E2 (ticket 17): the row is headlined by what was performed, not
+        // by the gym, and the counts agree with their nouns.
+        XCTAssertTrue(
+            app.staticTexts[exerciseName].waitForExistence(timeout: 5),
+            "The history row should be titled by the exercise performed")
         let summary = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS %@", "1 exercises · 1 sets")).firstMatch
+            NSPredicate(format: "label CONTAINS %@", "1 exercise · 1 set")).firstMatch
         XCTAssertTrue(
             summary.waitForExistence(timeout: 5),
             "The finished workout should appear in History with 1 exercise and 1 set")
@@ -100,8 +105,89 @@ final class CoreLoopUITests: XCTestCase {
 
         tab("History").tap()
         let rows = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS %@", "1 exercises · 1 sets"))
+            NSPredicate(format: "label CONTAINS %@", "1 exercise · 1 set"))
         XCTAssertEqual(rows.count, 2, "Both workouts should be in History")
+    }
+
+    // MARK: - A2: an empty workout never reaches History
+
+    /// Ticket 17 A2: Start → Finish with nothing logged leaves no trace, and
+    /// says so rather than confirming a save that never happened.
+    func testFinishingAnEmptyWorkoutDiscardsItAndSaysSo() {
+        tab("Workout").tap()
+        app.buttons["startEmptyWorkout"].tap()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
+
+        // D1: with no gym the machine-first path stays visible and explains
+        // itself instead of silently disappearing.
+        let addByMachine = app.buttons["addByMachine"]
+        XCTAssertTrue(
+            addByMachine.waitForExistence(timeout: 5),
+            "Add by Machine should stay visible without a gym")
+        XCTAssertFalse(addByMachine.isEnabled, "…but disabled")
+        XCTAssertTrue(
+            anyElement("addByMachineUnavailable").exists,
+            "…with a short explanation of why")
+
+        app.buttons["finishWorkout"].tap()
+        let summary = app.staticTexts["finishedSummary"]
+        XCTAssertTrue(summary.waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            summary.label.contains("wasn't saved"),
+            "Finishing an empty workout should say nothing was saved, got: \(summary.label)")
+        app.buttons["finishedDone"].tap()
+
+        tab("History").tap()
+        XCTAssertTrue(
+            app.staticTexts["No workouts yet"].waitForExistence(timeout: 5),
+            "An empty workout must never reach History")
+    }
+
+    // MARK: - D2/D3: gyms and machines are editable
+
+    /// Ticket 17 D2: a gym's unit and city are corrections, not one-shot
+    /// choices. D3: picking a catalog model names the machine for you.
+    func testGymSettingsAreEditableAndModelNamesTheMachine() {
+        createGym()
+
+        anyElement("gymRow.\(gymName)").tap()
+        app.buttons["editGym"].tap()
+        let city = app.textFields["City (optional)"]
+        XCTAssertTrue(city.waitForExistence(timeout: 5))
+        city.tap()
+        city.typeText("Seoul")
+        anyElement("gymUnitPicker").tap()
+        tapOption("lb")
+        app.buttons["saveGym"].tap()
+
+        XCTAssertTrue(
+            app.staticTexts["Seoul"].waitForExistence(timeout: 5),
+            "The edited city should show on the gym")
+
+        // D3: a model supplies the label, so Add is enabled without typing.
+        app.buttons["addMachine"].tap()
+        XCTAssertTrue(app.textFields["machineLabel"].waitForExistence(timeout: 5))
+        let save = app.buttons["saveMachine"]
+        XCTAssertFalse(save.isEnabled, "A label-less, model-less machine cannot be added")
+        anyElement("catalogModel").tap()
+        let modelRow = anyElement("modelOption.\(modelName)")
+        XCTAssertTrue(modelRow.waitForExistence(timeout: 5))
+        modelRow.tap()
+        XCTAssertTrue(save.isEnabled, "Picking a model should supply a default label")
+        save.tap()
+
+        // D2: the machine's default unit is editable after creation.
+        let machineRow = app.staticTexts["Insignia Series Chest Press"]
+        XCTAssertTrue(
+            machineRow.waitForExistence(timeout: 5),
+            "The machine should be labelled after the model")
+        machineRow.press(forDuration: 1.2)
+        app.buttons["Edit Machine…"].tap()
+        XCTAssertTrue(anyElement("machineUnitPicker").waitForExistence(timeout: 5))
+        anyElement("machineUnitPicker").tap()
+        tapOption("kg")
+        app.buttons["saveMachine"].tap()
+        XCTAssertTrue(machineRow.waitForExistence(timeout: 5))
     }
 
     // MARK: - B1: within-session carry-forward

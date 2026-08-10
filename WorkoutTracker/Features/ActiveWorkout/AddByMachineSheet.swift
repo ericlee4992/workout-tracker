@@ -71,7 +71,7 @@ struct AddByMachineSheet: View {
             }
             .sheet(isPresented: $showingAddMachine) {
                 if let gym {
-                    AddMachineSheet(gym: gym)
+                    MachineEditorSheet(gym: gym)
                 }
             }
         }
