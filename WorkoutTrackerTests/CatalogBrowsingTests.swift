@@ -448,8 +448,27 @@ struct CatalogBrowsingTests {
         context.insert(model)
         try context.save()
 
+        // `ModelContext.didSave` is posted for every context in the process and
+        // Swift Testing runs tests in parallel, so this observer sees saves it
+        // did not cause. It must ignore those and resume exactly once — an
+        // unfiltered observer resumes the continuation again on someone else's
+        // save and traps with CONTINUATION MISUSE.
+        final class Gate: @unchecked Sendable {
+            private let lock = NSLock()
+            private var claimed = false
+            func claim() -> Bool {
+                lock.lock(); defer { lock.unlock() }
+                if claimed { return false }
+                claimed = true
+                return true
+            }
+        }
+        let gate = Gate()
+        let target = model.persistentModelID
+
         let names: [String] = await withCheckedContinuation { continuation in
-            let token = NotificationCenter.default.addObserver(
+            var token: NSObjectProtocol?
+            token = NotificationCenter.default.addObserver(
                 forName: ModelContext.didSave, object: nil, queue: nil
             ) { note in
                 let identifiers = [
@@ -459,11 +478,12 @@ struct CatalogBrowsingTests {
                 ].flatMap { key -> [PersistentIdentifier] in
                     note.userInfo?[key.rawValue] as? [PersistentIdentifier] ?? []
                 }
+                guard identifiers.contains(target), gate.claim() else { return }
+                if let token { NotificationCenter.default.removeObserver(token) }
                 continuation.resume(returning: identifiers.map(\.entityName))
             }
             model.modelName = "Impact Strength Shoulder Press"
             try? context.save()
-            NotificationCenter.default.removeObserver(token)
         }
 
         #expect(names.contains("EquipmentModel"))
