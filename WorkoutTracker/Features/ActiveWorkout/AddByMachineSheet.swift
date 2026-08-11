@@ -123,6 +123,8 @@ private struct MachineExerciseList: View {
     var onSelect: (Exercise) -> Void
     @Query(sort: \Exercise.name) private var allExercises: [Exercise]
     @State private var searchText = ""
+    /// Non-nil while the inline creation form is up (ticket 19).
+    @State private var creating: NewExerciseRequest?
 
     private var exercises: [Exercise] {
         let base = choice.linked ?? allExercises
@@ -130,18 +132,66 @@ private struct MachineExerciseList: View {
         return base.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
     }
 
+    private var trimmedSearch: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Ticket 19: an exercise invented at a station is linked to that
+    /// station's model, so the movement is offered here next time. A
+    /// model-less machine has nothing to link to — plain creation then.
+    private var model: EquipmentModel? { choice.machine.model }
+
     var body: some View {
-        List(exercises) { exercise in
-            Button {
-                onSelect(exercise)
-            } label: {
-                ExerciseRow(exercise: exercise)
+        List {
+            Section {
+                ForEach(exercises) { exercise in
+                    Button {
+                        select(exercise)
+                    } label: {
+                        ExerciseRow(exercise: exercise)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("exerciseOption.\(exercise.name)")
+                }
+                if exercises.isEmpty, !trimmedSearch.isEmpty {
+                    Button {
+                        creating = request(named: trimmedSearch)
+                    } label: {
+                        Label("Create “\(trimmedSearch)”", systemImage: "plus")
+                    }
+                    .accessibilityIdentifier("createExerciseFromSearch")
+                }
             }
-            .buttonStyle(.plain)
+            Section {
+                Button("New Exercise…", systemImage: "plus") {
+                    creating = request(named: trimmedSearch)
+                }
+                .accessibilityIdentifier("newExercise")
+            } footer: {
+                if let model {
+                    Text("A new exercise is linked to \(model.displayName), so this station offers it next time.")
+                } else {
+                    Text("This machine has no catalog model, so a new exercise is simply added to your catalog.")
+                }
+            }
         }
         .modifier(FullCatalogSearch(enabled: choice.linked == nil, text: $searchText))
         .navigationTitle(choice.linked == nil ? "Pick Exercise" : choice.machine.label)
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $creating) { request in
+            NewExerciseSheet(initialName: request.name, linkTo: request.linkTo) { exercise in
+                select(exercise)
+            }
+        }
+    }
+
+    private func request(named name: String) -> NewExerciseRequest {
+        NewExerciseRequest(name: name, linkTo: model)
+    }
+
+    private func select(_ exercise: Exercise) {
+        creating = nil
+        onSelect(exercise)
     }
 }
 

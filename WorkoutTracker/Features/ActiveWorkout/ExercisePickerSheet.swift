@@ -5,6 +5,8 @@ struct ExercisePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @State private var searchText = ""
+    /// Non-nil while the inline creation form is up (ticket 19).
+    @State private var creating: NewExerciseRequest?
     var onSelect: (Exercise) -> Void
 
     private var filtered: [Exercise] {
@@ -14,16 +16,44 @@ struct ExercisePickerSheet: View {
         }
     }
 
+    private var trimmedSearch: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var body: some View {
         NavigationStack {
-            List(filtered) { exercise in
-                Button {
-                    onSelect(exercise)
-                    dismiss()
-                } label: {
-                    ExerciseRow(exercise: exercise)
+            List {
+                Section {
+                    ForEach(filtered) { exercise in
+                        Button {
+                            select(exercise)
+                        } label: {
+                            ExerciseRow(exercise: exercise)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("exerciseOption.\(exercise.name)")
+                    }
+                    // Ticket 19: a search that matches nothing is exactly the
+                    // moment the movement needs inventing — offer it under the
+                    // name already typed rather than making the user clear the
+                    // field and start over.
+                    if filtered.isEmpty, !trimmedSearch.isEmpty {
+                        Button {
+                            creating = NewExerciseRequest(name: trimmedSearch)
+                        } label: {
+                            Label("Create “\(trimmedSearch)”", systemImage: "plus")
+                        }
+                        .accessibilityIdentifier("createExerciseFromSearch")
+                    }
                 }
-                .buttonStyle(.plain)
+                Section {
+                    Button("New Exercise…", systemImage: "plus") {
+                        creating = NewExerciseRequest(name: trimmedSearch)
+                    }
+                    .accessibilityIdentifier("newExercise")
+                } footer: {
+                    Text("Creating one here adds it to your Exercises tab and selects it for this entry straight away.")
+                }
             }
             .searchable(text: $searchText, prompt: "Search exercises")
             .navigationTitle("Add Exercise")
@@ -33,7 +63,20 @@ struct ExercisePickerSheet: View {
                     Button("Cancel") { dismiss() }
                 }
             }
+            .sheet(item: $creating) { request in
+                NewExerciseSheet(initialName: request.name) { exercise in
+                    select(exercise)
+                }
+            }
         }
+    }
+
+    /// Selecting closes the creation form first, so the picker is never
+    /// dismissed out from under a sheet it is still presenting.
+    private func select(_ exercise: Exercise) {
+        creating = nil
+        onSelect(exercise)
+        dismiss()
     }
 }
 

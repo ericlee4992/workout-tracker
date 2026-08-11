@@ -67,6 +67,12 @@ enum CatalogSeeder {
         let existing = try context.fetch(
             FetchDescriptor<EquipmentModel>(predicate: #Predicate { $0.isSeeded }))
         let byID = Dictionary(existing.map { ($0.id, $0) }) { first, _ in first }
+        // Links the *user* added to a seeded model (ticket 19: an exercise
+        // invented at a station) are user data living in an allowlisted
+        // seeded field. They are re-merged below rather than overwritten —
+        // D24 says reconciliation never touches user-created rows, and
+        // silently unlinking one is touching it.
+        let userExerciseIDs = applyUpdates ? try userCreatedExerciseIDs(in: context) : []
 
         for seed in seeds {
             if let row = byID[seed.id] {
@@ -74,7 +80,11 @@ enum CatalogSeeder {
                 // Allowlisted seeded fields only (D24): name + exercise links.
                 setIfChanged(&row.manufacturer, seed.manufacturer)
                 setIfChanged(&row.modelName, seed.modelName)
-                setIfChanged(&row.exerciseIDs, seed.exerciseIDs)
+                setIfChanged(
+                    &row.exerciseIDs,
+                    merged(
+                        seeded: seed.exerciseIDs, existing: row.exerciseIDs,
+                        preserving: userExerciseIDs))
             } else {
                 context.insert(EquipmentModel(
                     id: seed.id,
@@ -84,6 +94,21 @@ enum CatalogSeeder {
                     isSeeded: true))
             }
         }
+    }
+
+    /// The ids of user-created exercises (D24's user ID space).
+    private static func userCreatedExerciseIDs(in context: ModelContext) throws -> Set<UUID> {
+        Set(try context.fetch(
+            FetchDescriptor<Exercise>(predicate: #Predicate { !$0.isSeeded })).map(\.id))
+    }
+
+    /// The catalog's links, in catalog order, followed by the user-added ones
+    /// the store already had, in their existing order.
+    private static func merged(
+        seeded: [UUID], existing: [UUID], preserving userIDs: Set<UUID>
+    ) -> [UUID] {
+        let seededSet = Set(seeded)
+        return seeded + existing.filter { userIDs.contains($0) && !seededSet.contains($0) }
     }
 
     /// Writes only on a real difference so an identical rerun leaves the

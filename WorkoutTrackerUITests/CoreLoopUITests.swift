@@ -345,6 +345,69 @@ final class CoreLoopUITests: XCTestCase {
             thenDragTo: start.withOffset(CGVector(dx: -140, dy: 0)))
     }
 
+    // MARK: - Ticket 19: inventing an exercise mid-workout
+
+    /// The movement isn't in the catalog and the workout is already running.
+    /// Searching for it offers to create it under the name just typed, and the
+    /// new exercise is selected for the entry straight away — from "not
+    /// listed" to a logged set without leaving the workout.
+    func testCreatingAnExerciseMidWorkoutLogsASetAndReachesHistory() {
+        let newExercise = "Landmine Press \(Int.random(in: 100...999))"
+
+        tab("Workout").tap()
+        app.buttons["startEmptyWorkout"].tap()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
+
+        app.buttons["addExercise"].tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText(newExercise)
+
+        // Nothing matches — the picker offers the name typed rather than
+        // making the field be cleared and retyped.
+        let createRow = anyElement("createExerciseFromSearch")
+        XCTAssertTrue(
+            createRow.waitForExistence(timeout: 5),
+            "A search matching nothing should offer to create that exact name")
+        createRow.tap()
+
+        let nameField = app.textFields["newExerciseName"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 5))
+        XCTAssertEqual(
+            value(of: nameField), newExercise,
+            "The creation form should arrive prefilled with the searched name")
+        app.buttons["saveNewExercise"].tap()
+
+        // Created and selected for the entry being added: a set row is ready.
+        XCTAssertTrue(
+            app.staticTexts[newExercise].waitForExistence(timeout: 5),
+            "The created exercise should be selected for the entry immediately")
+        let weight = app.textFields["setRow.weight"].firstMatch
+        XCTAssertTrue(weight.waitForExistence(timeout: 5))
+        weight.tap()
+        weight.typeText("45")
+        let reps = app.textFields["setRow.reps"].firstMatch
+        reps.tap()
+        reps.typeText("6")
+        let complete = app.buttons["setRow.complete"].firstMatch
+        complete.tap()
+        XCTAssertEqual(completeValue(of: complete), "Completed")
+
+        finishWorkout()
+
+        tab("History").tap()
+        XCTAssertTrue(
+            app.staticTexts[newExercise].waitForExistence(timeout: 5),
+            "The workout logged against the new exercise should be in History")
+
+        // D24: it is a user-created row and lives in the Exercises tab too.
+        tab("Exercises").tap()
+        XCTAssertTrue(
+            app.staticTexts[newExercise].waitForExistence(timeout: 5),
+            "A mid-workout creation should appear in the Exercises tab")
+    }
+
     // MARK: - C1: leaving and resuming an active workout
 
     /// Ticket 17 C1: the active workout is no longer a trap — it can be

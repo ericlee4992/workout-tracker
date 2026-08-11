@@ -68,6 +68,37 @@ struct EquipmentLifecycle {
         try context.save()
     }
 
+    /// Creates a user-owned exercise (`isSeeded == false`, D24's user ID
+    /// space) and optionally links it to `model` by appending its id to the
+    /// model's `exerciseIDs` — which is what makes an unlisted movement on a
+    /// known station selectable there next time (D7, ticket 19).
+    ///
+    /// Linking to a *seeded* model is deliberately allowed: the station the
+    /// user is standing at is usually a catalog one. `exerciseIDs` is an
+    /// allowlisted seeded field (D24), so `CatalogSeeder` re-merges these
+    /// user-added links on a catalog version bump rather than dropping them.
+    @discardableResult
+    func createExercise(
+        name: String,
+        loadType: LoadType = .weighted,
+        equipmentTypeTags: [EquipmentTag] = [],
+        muscleGroup: String? = nil,
+        linkedTo model: EquipmentModel? = nil
+    ) throws -> Exercise {
+        let exercise = Exercise(
+            name: try validated(name),
+            loadType: loadType,
+            equipmentTypeTags: equipmentTypeTags,
+            muscleGroup: normalized(muscleGroup),
+            isSeeded: false)
+        context.insert(exercise)
+        if let model, !model.exerciseIDs.contains(exercise.id) {
+            model.exerciseIDs.append(exercise.id)
+        }
+        try context.save()
+        return exercise
+    }
+
     /// D2 (ticket 17): a gym's whole identity is editable — name, city, and
     /// default unit. A wrong unit used to mean archive-and-recreate, which
     /// stranded the gym's machines and memory. Gyms are user-owned, so D24's

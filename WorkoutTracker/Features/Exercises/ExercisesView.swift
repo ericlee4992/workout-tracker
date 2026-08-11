@@ -52,7 +52,8 @@ struct ExercisesView: View {
             .searchable(text: $searchText, prompt: "Search exercises")
             .navigationTitle("Exercises")
             .sheet(isPresented: $showingAddExercise) {
-                AddExerciseSheet()
+                // Same form the mid-workout pickers open (ticket 19).
+                NewExerciseSheet()
             }
             .alert(
                 "Rename Exercise",
@@ -79,92 +80,6 @@ struct ExercisesView: View {
         } catch {
             assertionFailure("Failed to rename exercise: \(error)")
         }
-    }
-}
-
-/// User-created exercise creation (ticket 06): name, load type (all four),
-/// equipment tags. Lands in the user ID space (`isSeeded == false`).
-private struct AddExerciseSheet: View {
-    @Environment(\.modelContext) private var modelContext
-    @Environment(\.dismiss) private var dismiss
-    @State private var name = ""
-    @State private var loadType: LoadType = .weighted
-    @State private var tags: Set<EquipmentTag> = []
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    TextField("Name", text: $name)
-                }
-                Section {
-                    Picker("Load type", selection: $loadType) {
-                        ForEach(LoadType.allCases, id: \.self) { type in
-                            Text(type.badge).tag(type)
-                        }
-                    }
-                } footer: {
-                    Text("Assisted machines count lower weight as harder — pick carefully, records depend on it.")
-                }
-                Section {
-                    ForEach(EquipmentTag.allCases) { tag in
-                        Button {
-                            toggle(tag)
-                        } label: {
-                            HStack {
-                                Text(tag.label)
-                                Spacer()
-                                if tags.contains(tag) {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.tint)
-                                }
-                            }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                } header: {
-                    Text("Equipment")
-                }
-            }
-            .navigationTitle("New Exercise")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Add") { addExercise() }
-                        .disabled(trimmedName.isEmpty)
-                }
-            }
-        }
-    }
-
-    private var trimmedName: String {
-        name.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private func toggle(_ tag: EquipmentTag) {
-        if tags.contains(tag) {
-            tags.remove(tag)
-        } else {
-            tags.insert(tag)
-        }
-    }
-
-    private func addExercise() {
-        let orderedTags = EquipmentTag.allCases.filter(tags.contains)
-        modelContext.insert(Exercise(
-            name: trimmedName,
-            loadType: loadType,
-            equipmentTypeTags: orderedTags,
-            isSeeded: false))
-        do {
-            try modelContext.save()
-        } catch {
-            assertionFailure("Failed to save new exercise: \(error)")
-        }
-        dismiss()
     }
 }
 
