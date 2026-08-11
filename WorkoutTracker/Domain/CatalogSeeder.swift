@@ -20,6 +20,17 @@ enum CatalogSeeder {
         let preferences = try AppPreferences.canonical(in: context)
         let applyUpdates = catalog.version > preferences.seededCatalogVersion
 
+        // Fast path (ticket 20: the catalog is ~2000 rows, and this runs on
+        // every launch). With no update to apply, the only work left is
+        // reinserting rows a damaged store is missing — and seeded rows are
+        // only ever inserted from the catalog, keyed by unique catalog UUID, so
+        // "as many seeded rows as the catalog has" means none are missing. A
+        // count query beats materialising every row to diff it.
+        if !applyUpdates, try isFullySeeded(catalog, in: context) {
+            if context.hasChanges { try context.save() }
+            return
+        }
+
         try reconcileExercises(catalog.exercises, applyUpdates: applyUpdates, in: context)
         try reconcileEquipmentModels(catalog.equipmentModels, applyUpdates: applyUpdates, in: context)
 
@@ -30,6 +41,21 @@ enum CatalogSeeder {
         if context.hasChanges {
             try context.save()
         }
+    }
+
+    /// Whether the store already holds every seeded row the catalog defines.
+    /// Deliberately a count comparison, not a per-row diff — see `reconcile`.
+    /// A store seeded from a *newer* catalog than the bundle (an app downgrade)
+    /// has more seeded rows than this catalog, which fails the check and falls
+    /// through to the full pass; that pass then finds every row present and
+    /// changes nothing.
+    private static func isFullySeeded(_ catalog: SeedCatalog, in context: ModelContext) throws -> Bool {
+        let seededExercises = try context.fetchCount(
+            FetchDescriptor<Exercise>(predicate: #Predicate { $0.isSeeded }))
+        guard seededExercises == catalog.exercises.count else { return false }
+        let seededModels = try context.fetchCount(
+            FetchDescriptor<EquipmentModel>(predicate: #Predicate { $0.isSeeded }))
+        return seededModels == catalog.equipmentModels.count
     }
 
     // MARK: Per-entity reconciliation

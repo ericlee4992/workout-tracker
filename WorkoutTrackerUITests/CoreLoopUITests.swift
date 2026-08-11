@@ -203,10 +203,7 @@ final class CoreLoopUITests: XCTestCase {
         XCTAssertTrue(app.textFields["machineLabel"].waitForExistence(timeout: 5))
         let save = app.buttons["saveMachine"]
         XCTAssertFalse(save.isEnabled, "A label-less, model-less machine cannot be added")
-        anyElement("catalogModel").tap()
-        let modelRow = anyElement("modelOption.\(modelName)")
-        XCTAssertTrue(modelRow.waitForExistence(timeout: 5))
-        modelRow.tap()
+        pickCatalogModel()
         XCTAssertTrue(save.isEnabled, "Picking a model should supply a default label")
         save.tap()
 
@@ -402,7 +399,10 @@ final class CoreLoopUITests: XCTestCase {
             "The workout logged against the new exercise should be in History")
 
         // D24: it is a user-created row and lives in the Exercises tab too.
+        // The seeded catalog is long (ticket 20), so search for it rather than
+        // relying on the row being on screen.
         tab("Exercises").tap()
+        typeInSearchField("Landmine Press")
         XCTAssertTrue(
             app.staticTexts[newExercise].waitForExistence(timeout: 5),
             "A mid-workout creation should appear in the Exercises tab")
@@ -474,10 +474,7 @@ final class CoreLoopUITests: XCTestCase {
         label.tap()
         label.typeText(machineLabel)
 
-        anyElement("catalogModel").tap()
-        let modelRow = anyElement("modelOption.\(modelName)")
-        XCTAssertTrue(modelRow.waitForExistence(timeout: 5), "Catalog model should be listed")
-        modelRow.tap()
+        pickCatalogModel()
 
         app.buttons["saveMachine"].tap()
         XCTAssertTrue(
@@ -527,6 +524,25 @@ final class CoreLoopUITests: XCTestCase {
 
     private func tab(_ name: String) -> XCUIElement {
         app.tabBars.buttons[name]
+    }
+
+    /// Types into the screen's search field. The seeded catalog is ~1900 models
+    /// and ~75 exercises (ticket 20), so a target row is usually only rendered
+    /// once a search has narrowed the list.
+    private func typeInSearchField(_ text: String) {
+        let field = app.searchFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5), "This screen should be searchable")
+        field.tap()
+        field.typeText(text)
+    }
+
+    /// Opens the catalog-model picker and selects the fixture model.
+    private func pickCatalogModel() {
+        anyElement("catalogModel").tap()
+        typeInSearchField("Insignia Series Chest Press")
+        let modelRow = anyElement("modelOption.\(modelName)")
+        XCTAssertTrue(modelRow.waitForExistence(timeout: 5), "Catalog model should be listed")
+        modelRow.tap()
     }
 
     /// Identifier lookup that does not care which element type SwiftUI chose
