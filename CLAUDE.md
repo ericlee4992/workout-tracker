@@ -1,6 +1,11 @@
 # Workout Tracker — Agent & Contributor Guide
 
-Private iPhone workout tracker (solo developer, working with coding agents). **Read `docs/SPEC.md` before making product-behavior changes; record decision changes in `docs/DECISIONS.md`.** Those files — not chat history — are the source of truth: every agent session starts cold and loads context from them.
+Private iPhone workout tracker (solo developer, working with coding agents). Every agent session starts cold; these files, not chat history, are the source of truth:
+
+1. **`docs/STATE.md` — read this first.** Where the project actually is right now, what to do next, the live install's details, and environment gotchas that cost hours to rediscover.
+2. **`docs/SPEC.md`** — what the product is. Read before any product-behavior change.
+3. **`docs/DECISIONS.md`** — why it is that way (D1–D27, T1–T7). Record decision changes here; reopen a locked decision deliberately rather than drifting from it.
+4. **`.scratch/milestone-2-core-loop/issues/`** — the work record: every ticket with its acceptance criteria and resolution notes.
 
 ## Project layout
 
