@@ -4,7 +4,7 @@
 
 ## What this is
 
-A private, native iPhone workout logger for two users (the developers). It matches Strong-style fast logging, with two differentiators no mainstream tracker has:
+A private, native iPhone workout logger built by a solo developer for their own use. It matches Strong-style fast logging, with two differentiators no mainstream tracker has:
 
 1. **Equipment-aware taxonomy** — the same exercise on different hardware is not comparable, so history and PRs anchor to equipment context.
 2. **Honest kg/lb handling** — units chosen per set, defaulted by context, preserved as entered, never silently conflated.
@@ -22,7 +22,7 @@ Four levels:
 | Machine instance | "Chest Press #2" | User, per gym |
 | Gym | Gold's Gym Gangnam | User |
 
-- Seeded equipment catalog ships in-app (major manufacturers: Life Fitness, Hammer Strength, Technogym, Precor, Cybex, Matrix, Nautilus, Hoist, …; popular selectorized/plate-loaded lines; order of a few hundred models). Catalog updates ride app releases. Seeded entries have stable catalog IDs that survive updates; user-created entries live in a separate ID space (dedup deferred).
+- Seeded equipment catalog ships in-app: **1887 models across 23 manufacturers** (ticket 20), every name verified against a manufacturer or authorised-dealer listing — sources in `docs/catalog-sources/`. Catalog updates ride app releases as a version bump through the D24 reconciler. Seeded entries have stable catalog IDs that survive updates; user-created entries live in a separate ID space (dedup deferred).
 - Gyms and machine instances are **always user-created**. No gym seeding.
 - Each catalog model links to one or more exercises. Picking a machine auto-fills its exercise; multi-exercise stations (cable, Smith) prompt.
 - Free weights are **equipment-type tags** (barbell / dumbbell / cable / smith / bodyweight), not machine instances.
