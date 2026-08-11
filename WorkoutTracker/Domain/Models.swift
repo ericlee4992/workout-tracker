@@ -56,6 +56,11 @@ final class EquipmentModel {
     var modelName: String = ""
     /// Linked exercise ids (scalar, per SPEC) — which exercises this model serves.
     var exerciseIDs: [UUID] = []
+    /// How the model is loaded (selectorized / plate-loaded / cable / rack).
+    /// Display-only browsing metadata (ticket 21, D23): nothing logged reads
+    /// it. nil = uncategorized — a seeded row the research left undetermined,
+    /// or a user-created model with no type chosen.
+    var equipmentType: EquipmentCategory?
     /// Seeded rows are keyed by fixed catalog UUIDs (D24).
     var isSeeded: Bool = false
 
@@ -67,12 +72,14 @@ final class EquipmentModel {
         manufacturer: String,
         modelName: String,
         exerciseIDs: [UUID] = [],
+        equipmentType: EquipmentCategory? = nil,
         isSeeded: Bool = false
     ) {
         self.id = id
         self.manufacturer = manufacturer
         self.modelName = modelName
         self.exerciseIDs = exerciseIDs
+        self.equipmentType = equipmentType
         self.isSeeded = isSeeded
     }
 
@@ -416,6 +423,18 @@ final class AppPreferences {
     /// degrade to "No gym", not resurrect. Added by ticket 17 (noted in
     /// ticket 02).
     var selectedGymID: UUID?
+    /// Catalog browsing state, remembered between visits (ticket 21). Purely
+    /// how lists are *shown* — no logged entry, snapshot or record ever reads
+    /// these (D23). Every field is optional: nil grouping = the screen's
+    /// default, nil filter = "All". (Optional rather than defaulted, because a
+    /// store written before these fields existed has no value to migrate and a
+    /// non-optional enum column would fail to materialise.)
+    var modelBrowseGrouping: CatalogGrouping?
+    var modelBrowseMuscleGroup: String?
+    var modelBrowseEquipmentType: EquipmentCategory?
+    var machineBrowseGrouping: MachineGrouping?
+    var exerciseBrowseMuscleGroup: String?
+    var exerciseBrowseEquipmentTag: EquipmentTag?
     var updatedAt: Date = Date()
 
     init(
@@ -427,6 +446,12 @@ final class AppPreferences {
         seededCatalogVersion: Int = 0,
         notificationPermissionRequested: Bool = false,
         selectedGymID: UUID? = nil,
+        modelBrowseGrouping: CatalogGrouping? = nil,
+        modelBrowseMuscleGroup: String? = nil,
+        modelBrowseEquipmentType: EquipmentCategory? = nil,
+        machineBrowseGrouping: MachineGrouping? = nil,
+        exerciseBrowseMuscleGroup: String? = nil,
+        exerciseBrowseEquipmentTag: EquipmentTag? = nil,
         updatedAt: Date = Date()
     ) {
         self.id = id
@@ -437,6 +462,12 @@ final class AppPreferences {
         self.seededCatalogVersion = seededCatalogVersion
         self.notificationPermissionRequested = notificationPermissionRequested
         self.selectedGymID = selectedGymID
+        self.modelBrowseGrouping = modelBrowseGrouping
+        self.modelBrowseMuscleGroup = modelBrowseMuscleGroup
+        self.modelBrowseEquipmentType = modelBrowseEquipmentType
+        self.machineBrowseGrouping = machineBrowseGrouping
+        self.exerciseBrowseMuscleGroup = exerciseBrowseMuscleGroup
+        self.exerciseBrowseEquipmentTag = exerciseBrowseEquipmentTag
         self.updatedAt = updatedAt
     }
 }

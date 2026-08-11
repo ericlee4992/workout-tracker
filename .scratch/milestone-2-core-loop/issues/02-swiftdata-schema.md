@@ -38,6 +38,24 @@ Start screen is set to, remembered across launches (D1). Scalar id rather than a
 an archived or deleted gym degrades to "No gym" instead of resurrecting; nil is itself a real
 remembered choice. Optional with nil default, CloudKit-safe, additive-only (lightweight migration).
 
+**Field additions (ticket 21, 2026-08-10):** `EquipmentModel.equipmentType: EquipmentCategory?`
+— selectorized / plate-loaded / cable / rack-or-Smith / bodyweight station. Ticket 21 allowed
+deriving this from the linked exercises' `equipmentTypeTags` and it does not work: those tags
+describe the *movement*, and a chest press exists as a selectorized stack, a plate-loaded lever and
+a Smith variant that all link to the same exercise (1147 of 1887 seeded models derive the single
+tag `machine`). So it is an explicit, seeded field, sourced from the section headings the ticket-20
+research was transcribed under (`TYPE(...)` markers in `scripts/catalog_data.py`); nil means "not
+established", never "guessed", and those rows browse under "Uncategorized". Allowlisted for
+reconciliation (D24) — catalog version 3 carries the values onto stores seeded at version 2.
+
+Also `AppPreferences.modelBrowseGrouping: CatalogGrouping?`, `modelBrowseMuscleGroup: String?`,
+`modelBrowseEquipmentType: EquipmentCategory?`, `machineBrowseGrouping: MachineGrouping?`,
+`exerciseBrowseMuscleGroup: String?`, `exerciseBrowseEquipmentTag: EquipmentTag?` — the remembered
+grouping mode and active filters per browsing surface. Display state only (D23): nothing logged
+reads them. All optional with nil defaults (nil = the screen's default / "All"): a non-optional
+enum column has no value to migrate into on an existing store and fails to materialise. CloudKit-
+safe, additive-only (lightweight migration).
+
 **Field addition (ticket 17 post-review, 2026-08-09):** `Workout.sourceTemplateName: String?` and
 `Workout.snapshotGymName: String?` — the template name and gym name captured when the workout
 starts. History titles and subtitles read these snapshots instead of the live `WorkoutTemplate`

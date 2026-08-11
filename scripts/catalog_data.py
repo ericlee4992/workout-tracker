@@ -10,6 +10,15 @@ invented.
 Format: MANUFACTURERS = [(manufacturer, [(modelName, "exerciseKey+exerciseKey"), …])]
 Exercise keys are defined in generate_seed_catalog.py.
 
+Equipment type (ticket 21): a `TYPE(...)` marker applies its type to every entry
+that follows it until the next marker — one line per line/section, so the type is
+read off the same section headings the research was transcribed under. An entry
+that differs from its section carries a third element with its own type (a Smith
+machine inside a selectorized line, a functional trainer inside a rack line, …).
+Types: "selectorized", "plateLoaded", "cable", "rackOrSmith", "bodyweight";
+`TYPE(None)` / a `None` third element means *not established by the research* —
+those rows show up under "Uncategorized" rather than being guessed into a group.
+
 Research caveats honoured (see docs/catalog-sources/*.md "Confidence" sections):
 - Eleiko: its "strength machines" category is resold Precor. Only genuinely
   Eleiko items (cable machines, Prestera racks) appear here.
@@ -28,6 +37,17 @@ Research caveats honoured (see docs/catalog-sources/*.md "Confidence" sections):
   keyed on it, D24), even where the research prefers a different string.
 """
 
+
+def TYPE(equipment_type):
+    """Equipment-type marker (ticket 21): everything after it, up to the next
+    marker, is of this type unless the entry names its own."""
+    return (TYPE_MARKER, equipment_type)
+
+
+TYPE_MARKER = "__equipmentType__"
+
+EQUIPMENT_TYPES = {"selectorized", "plateLoaded", "cable", "rackOrSmith", "bodyweight"}
+
 # Common link sets.
 FT = "cableCrossover+latPulldown+lowRow+tricepsPushdown+bicepsCurl"  # functional trainer / DAP
 JUNGLE = FT                                                          # multi-station cable gym
@@ -38,11 +58,13 @@ PULLDIP = "pullUp+dip+hangingKneeRaise"
 
 LIFE_FITNESS = [
     # --- shipped in catalog version 1 (names frozen, D24) ---
+    TYPE("selectorized"),
     ("Insignia Series Chest Press", "chestPress"),
     ("Signature Series Shoulder Press", "shoulderPress"),
     ("Signature Series Lat Pulldown", "latPulldown"),
-    ("Signature Series Cable Motion Dual Adjustable Pulley", FT),
+    ("Signature Series Cable Motion Dual Adjustable Pulley", FT, "cable"),
     # --- Insignia Series (selectorized) ---
+    TYPE("selectorized"),
     ("Insignia Series Dual Axis Chest Press", "chestPress"),
     ("Insignia Series Shoulder Press", "shoulderPress"),
     ("Insignia Series Pulldown", "latPulldown"),
@@ -71,6 +93,7 @@ LIFE_FITNESS = [
     ("Insignia Series Hip Adduction", "legAdduction"),
     ("Insignia Series Sit / Stand Hip Abductor", "legAbduction"),
     # --- Axiom Series (selectorized) ---
+    TYPE("selectorized"),
     ("Axiom Series Chest Press", "chestPress"),
     ("Axiom Series Multi-Press", "chestPress+shoulderPress"),
     ("Axiom Series Shoulder Press", "shoulderPress"),
@@ -91,9 +114,10 @@ LIFE_FITNESS = [
     ("Axiom Series Leg Extension / Leg Curl", "legExtension+lyingLegCurl"),
     ("Axiom Series Seated Leg Curl / Extension", "seatedLegCurl+legExtension"),
     ("Axiom Series Hip Abductor Adductor", "legAbduction+legAdduction"),
-    ("Axiom Series Smith Rack", SMITH),
-    ("Axiom Dual Adjustable Pulley", FT),
+    ("Axiom Series Smith Rack", SMITH, "rackOrSmith"),
+    ("Axiom Dual Adjustable Pulley", FT, "cable"),
     # --- Plate loaded ---
+    TYPE("plateLoaded"),
     ("Plate Loaded Incline Press", "inclineChestPress"),
     ("Plate Loaded Decline Chest Press", "declineChestPress"),
     ("Plate Loaded Shoulder Press", "shoulderPress"),
@@ -105,8 +129,9 @@ LIFE_FITNESS = [
     ("Plate Loaded Kneeling Leg Curl", "kneelingLegCurl"),
     ("Plate Loaded Linear Leg Press", "legPress"),
     ("Plate Loaded Calf Raise", "calfRaise"),
-    ("Plate Loaded Smith Machine (SSM)", SMITH),
+    ("Plate Loaded Smith Machine (SSM)", SMITH, "rackOrSmith"),
     # --- Cables & functional trainers ---
+    TYPE("cable"),
     ("Universal Cable", FT),
     ("Dual Adjustable Pulley", FT),
     ("Dual Adjustable Pulley with Stabilization", FT),
@@ -119,33 +144,37 @@ LIFE_FITNESS = [
     ("G4 Home Gym", JUNGLE),
     ("G7 Home Gym", JUNGLE),
     # --- Verified Signature Series survivors (line discontinued) ---
+    TYPE("selectorized"),
     ("Signature Series Chest Press", "chestPress"),
     ("Signature Series Row", "seatedRow"),
     ("Signature Series Leg Extension", "legExtension"),
-    ("Signature Series Olympic Squat Rack", "squat"),
+    ("Signature Series Olympic Squat Rack", "squat", "rackOrSmith"),
     # --- Benches / bodyweight stations that are exercise stations ---
+    TYPE("bodyweight"),
     ("Back Extension", "backExtension"),
     ("Abdominal Crunch Bench", "abdominalCrunch"),
     ("Abdominal Bench", "abdominalCrunch"),
-    ("Arm Curl Bench", "preacherCurl"),
-    ("Olympic Flat Bench", "benchPress"),
-    ("Olympic Incline Bench", "inclineBenchPress"),
-    ("Olympic Decline Bench", "declineBenchPress"),
-    ("Olympic Military Bench", "overheadPress"),
-    ("Olympic Squat Rack", "squat"),
+    ("Arm Curl Bench", "preacherCurl", "rackOrSmith"),
+    ("Olympic Flat Bench", "benchPress", "rackOrSmith"),
+    ("Olympic Incline Bench", "inclineBenchPress", "rackOrSmith"),
+    ("Olympic Decline Bench", "declineBenchPress", "rackOrSmith"),
+    ("Olympic Military Bench", "overheadPress", "rackOrSmith"),
+    ("Olympic Squat Rack", "squat", "rackOrSmith"),
     ("Dip/Leg Raise", "dip+hangingKneeRaise"),
     ("Leg Raise", "hangingKneeRaise"),
     ("Chin/Dip/Leg Raise", PULLDIP),
-    ("Power Play - 5 Stations", JUNGLE),
-    ("Power Play - Core +4", JUNGLE),
+    ("Power Play - 5 Stations", JUNGLE, "cable"),
+    ("Power Play - Core +4", JUNGLE, "cable"),
 ]
 
 HAMMER_STRENGTH = [
     # --- shipped in catalog version 1 (names frozen, D24) ---
+    TYPE("selectorized"),
     ("MTS Iso-Lateral Chest Press", "chestPress"),
-    ("Plate-Loaded Seated Row", "seatedRow"),
+    ("Plate-Loaded Seated Row", "seatedRow", "plateLoaded"),
     ("Select Leg Press", "legPress"),
     # --- Plate-loaded, Iso-Lateral ---
+    TYPE("plateLoaded"),
     ("Iso-Lateral Bench Press", "benchPress+chestPress"),
     ("Iso-Lateral Horizontal Bench Press", "chestPress"),
     ("Iso-Lateral Incline Press", "inclineChestPress"),
@@ -166,6 +195,7 @@ HAMMER_STRENGTH = [
     ("Iso-Lateral Leg Curl", "lyingLegCurl"),
     ("Iso-Lateral Kneeling Leg Curl", "kneelingLegCurl"),
     # --- Plate-loaded, named pieces ---
+    TYPE("plateLoaded"),
     ("Plate Loaded Super Fly", "chestFly"),
     ("Plate Loaded Pullover", "pullover"),
     ("Plate Loaded Lateral Raise", "lateralRaise"),
@@ -185,13 +215,15 @@ HAMMER_STRENGTH = [
     ("Plate Loaded Glute Drive", "hipThrust"),
     ("Plate Loaded Assisted Nordic Ham", "nordicCurl"),
     ("Glute Ham / Reverse Hyper", "gluteHamRaise+reverseHyper"),
-    ("Plate-Loaded Vertical Smith Machine", SMITH),
+    ("Plate-Loaded Vertical Smith Machine", SMITH, "rackOrSmith"),
     # --- Ground Base ---
+    TYPE("plateLoaded"),
     ("Ground Base Jammer", "jammerPress"),
     ("Ground Base Combo Twist", "torsoRotation"),
     ("Ground Base Squat / High Pull", "machineSquat+shrug"),
     ("Ground Base Multi-Squat", "machineSquat"),
     # --- Select (selectorized) ---
+    TYPE("selectorized"),
     ("Select Chest Press", "chestPress"),
     ("Select Shoulder Press", "shoulderPress"),
     ("Select Lat Pulldown", "latPulldown"),
@@ -215,6 +247,7 @@ HAMMER_STRENGTH = [
     ("Select Hip Adduction", "legAdduction"),
     ("Select Hip and Glute", "gluteKickback"),
     # --- MTS (Motion Technology Selectorized) ---
+    TYPE("selectorized"),
     ("MTS Iso-Lateral Incline Press", "inclineChestPress"),
     ("MTS Iso-Lateral Decline Press", "declineChestPress"),
     ("MTS Iso-Lateral Shoulder Press", "shoulderPress"),
@@ -227,6 +260,7 @@ HAMMER_STRENGTH = [
     ("MTS Iso-Lateral Leg Extension", "legExtension"),
     ("MTS Iso-Lateral Kneeling Leg Curl", "kneelingLegCurl"),
     # --- Racks & rigs ---
+    TYPE("rackOrSmith"),
     ("HD Elite iD Power Rack", RACK),
     ("HD Elite iD Half Rack", RACK),
     ("HD Elite iD Combo Rack", RACK),
@@ -240,12 +274,14 @@ HAMMER_STRENGTH = [
     ("HD Athletic NX Power Power Combo Rack", RACK),
     ("HD Perimeter", RACK + "+" + PULLDIP),
     # --- Cables ---
+    TYPE("cable"),
     ("HS Dual Adjustable Pulley", FT),
     ("Dual Pulldown/Row", "latPulldown+seatedRow"),
     # --- Benches that are exercise stations ---
+    TYPE("rackOrSmith"),
     ("Seated Arm Curl", "preacherCurl"),
-    ("Back Extension", "backExtension"),
-    ("Fixed Pad Glute/Ham", "gluteHamRaise"),
+    ("Back Extension", "backExtension", "bodyweight"),
+    ("Fixed Pad Glute/Ham", "gluteHamRaise", "bodyweight"),
     ("Smith Machine", SMITH),
     ("Olympic Flat Bench", "benchPress"),
     ("Olympic Incline Bench", "inclineBenchPress"),
@@ -255,10 +291,12 @@ HAMMER_STRENGTH = [
 
 PRECOR = [
     # --- shipped in catalog version 1 (names frozen, D24) ---
+    TYPE("selectorized"),
     ("Vitality Series Seated Row", "seatedRow"),
     ("Resolute Series Leg Press", "legPress"),
-    ("Discovery Series Shoulder Press", "shoulderPress"),
+    ("Discovery Series Shoulder Press", "shoulderPress", "plateLoaded"),
     # --- Resolute (selectorized) ---
+    TYPE("selectorized"),
     ("Resolute Converging Chest Press (RSL0414)", "chestPress"),
     ("Resolute Converging Shoulder Press (RSL0515)", "shoulderPress"),
     ("Resolute Diverging Lat Pulldown (RSL0314)", "latPulldown"),
@@ -283,6 +321,7 @@ PRECOR = [
     ("Resolute Inner / Outer Thigh (RSL0626)", "legAdduction+legAbduction"),
     ("Resolute Glute Extension (RSL0618)", "gluteKickback"),
     # --- Vitality (selectorized) ---
+    TYPE("selectorized"),
     ("Vitality Chest Press (VSL001BP)", "chestPress"),
     ("Vitality Multi-Press (VSL024BP)", "chestPress+shoulderPress"),
     ("Vitality Shoulder Press (VSL012BP)", "shoulderPress"),
@@ -302,6 +341,7 @@ PRECOR = [
     ("Vitality Leg Press / Calf Extension (VSL010BP)", "legPress+calfRaise"),
     ("Vitality Inner / Outer Thigh (VSL008BP)", "legAdduction+legAbduction"),
     # --- Discovery plate-loaded ---
+    TYPE("plateLoaded"),
     ("Discovery Plate Loaded Chest Press (DPL0540)", "chestPress"),
     ("Discovery Plate Loaded Incline Press (DPL0541)", "inclineChestPress"),
     ("Discovery Plate Loaded Decline Chest Press (DPL0543)", "declineChestPress"),
@@ -318,8 +358,9 @@ PRECOR = [
     ("Discovery Plate Loaded Hack Squat (DPL0603)", "hackSquat"),
     ("Discovery Plate Loaded Squat Machine (DPL0624)", "machineSquat"),
     ("Discovery Plate Loaded Calf Raise (DPL0616)", "calfRaise"),
-    ("Discovery Plate Loaded Smith Machine (DPL0802)", SMITH),
+    ("Discovery Plate Loaded Smith Machine (DPL0802)", SMITH, "rackOrSmith"),
     # --- Glutebuilder ---
+    TYPE("plateLoaded"),
     ("Glutebuilder Hip Thrust Elite", "hipThrust"),
     ("Glutebuilder Deadlift Elite", "deadlift"),
     ("Glutebuilder Pendulum Squat Pro (GPL0609)", "pendulumSquat"),
@@ -332,19 +373,21 @@ PRECOR = [
     ("Glutebuilder Glute Squat", "machineSquat"),
     ("Glutebuilder Glute Press", "glutePress"),
     ("Glutebuilder Glute Lunge", "lunge"),
-    ("Glutebuilder Hip Thrust Elite (GSL0612)", "hipThrust"),
-    ("Glutebuilder Pendulum Kickback (GSL0617)", "gluteKickback"),
-    ("Glutebuilder Kneeling Glute Isolator (GSL0360)", "gluteKickback"),
-    ("Glutebuilder 3D Multi-Abductor Pro (GSL0622)", "legAbduction"),
+    ("Glutebuilder Hip Thrust Elite (GSL0612)", "hipThrust", "selectorized"),
+    ("Glutebuilder Pendulum Kickback (GSL0617)", "gluteKickback", "selectorized"),
+    ("Glutebuilder Kneeling Glute Isolator (GSL0360)", "gluteKickback", "selectorized"),
+    ("Glutebuilder 3D Multi-Abductor Pro (GSL0622)", "legAbduction", "selectorized"),
     # --- Cable stations ---
+    TYPE("cable"),
     ("Resolute Dual Adjustable Pulley (RUD0915)", FT),
     ("Resolute Multi-Stations (RMS)", JUNGLE),
     ("Vitality FTS Glide (VUD6913)", FT),
     # --- Benches and racks that are exercise stations ---
+    TYPE("rackOrSmith"),
     ("Discovery Power Rack (DBR0610)", RACK),
     ("Discovery Half Rack (DBR0611)", RACK),
     ("Discovery Olympic Squat Rack (DBR0608)", "squat"),
-    ("Discovery GHD Bench (DBR0706)", "gluteHamRaise"),
+    ("Discovery GHD Bench (DBR0706)", "gluteHamRaise", "bodyweight"),
     ("Discovery Glute Bridge Bench (DBR0712)", "hipThrust"),
     ("Discovery Olympic Flat Bench (DBR0408)", "benchPress"),
     ("Discovery Olympic Spotter Bench (DBR0412)", "benchPress"),
@@ -352,21 +395,23 @@ PRECOR = [
     ("Discovery Olympic Decline Bench (DBR0411)", "declineBenchPress"),
     ("Discovery Olympic Shoulder Press Bench (DBR0507)", "overheadPress"),
     ("Discovery Preacher Curl Bench (DBR0202)", "preacherCurl"),
-    ("Discovery Back Extension (DBR0312)", "backExtension"),
-    ("Discovery Vertical Knee-Up (DBR0702)", "hangingKneeRaise"),
+    ("Discovery Back Extension (DBR0312)", "backExtension", "bodyweight"),
+    ("Discovery Vertical Knee-Up (DBR0702)", "hangingKneeRaise", "bodyweight"),
     ("Vitality Smith Machine (VBR6802)", SMITH),
-    ("Vitality Decline Ab Bench (VBR6113)", "abdominalCrunch"),
+    ("Vitality Decline Ab Bench (VBR6113)", "abdominalCrunch", "bodyweight"),
     ("Vitality Preacher Curl (VBR6202)", "preacherCurl"),
-    ("Vitality Vertical Knee Plus (VBR6702)", "hangingKneeRaise"),
-    ("Vitality Back Extension (VBR6312)", "backExtension"),
+    ("Vitality Vertical Knee Plus (VBR6702)", "hangingKneeRaise", "bodyweight"),
+    ("Vitality Back Extension (VBR6312)", "backExtension", "bodyweight"),
 ]
 
 CYBEX = [
     # --- shipped in catalog version 1 (names frozen, D24) ---
+    TYPE("selectorized"),
     ("Eagle NX Leg Press", "legPress"),
     ("Eagle NX Chest Press", "chestPress"),
-    ("Bravo Functional Trainer", FT),
+    ("Bravo Functional Trainer", FT, "cable"),
     # --- Eagle NX (selectorized) ---
+    TYPE("selectorized"),
     ("Eagle NX Overhead Press", "shoulderPress"),
     ("Eagle NX Lat Pulldown", "latPulldown"),
     ("Eagle NX Row", "seatedRow"),
@@ -381,16 +426,19 @@ CYBEX = [
     ("Eagle NX Glute", "gluteKickback"),
     ("Eagle NX Hip Abduction/Adduction", "legAbduction+legAdduction"),
     # --- Prestige Strength VRS ---
+    TYPE("selectorized"),
     ("Prestige Strength VRS Chest Press", "chestPress"),
     ("Prestige Strength VRS Pulldown", "latPulldown"),
     ("Prestige Strength VRS Row", "seatedRow"),
     ("Prestige Strength VRS Abdominal", "abdominalCrunch"),
     ("Prestige Strength VRS Back Extension", "backExtension"),
     # --- Prestige Strength Total Access ---
+    TYPE("selectorized"),
     ("Prestige Strength Total Access Chest Press", "chestPress"),
     ("Prestige Strength Total Access Leg Press", "legPress"),
-    ("Prestige Strength Total Access Cable Column", FT),
+    ("Prestige Strength Total Access Cable Column", FT, "cable"),
     # --- VR3 (legacy, names from Cybex owner's-manual titles) ---
+    TYPE("selectorized"),
     ("VR3 Chest Press (12001)", "chestPress"),
     ("VR3 Overhead Press (12010)", "shoulderPress"),
     ("VR3 Pulldown (12020)", "latPulldown"),
@@ -405,6 +453,7 @@ CYBEX = [
     ("VR3 Leg Extension (12050)", "legExtension"),
     ("VR3 Total Access Chest Press (14000)", "chestPress"),
     # --- VR1 (legacy) ---
+    TYPE("selectorized"),
     ("VR1 Chest Press (13000)", "chestPress"),
     ("VR1 Multi-Press (13240)", "chestPress+inclineChestPress+shoulderPress"),
     ("VR1 Lat Pull (13130)", "latPulldown"),
@@ -423,9 +472,11 @@ CYBEX = [
 
 NAUTILUS = [
     # --- shipped in catalog version 1 (names frozen, D24) ---
+    TYPE("selectorized"),
     ("Impact Strength Shoulder Press", "shoulderPress"),
     ("Impact Strength Leg Press", "legPress"),
     # --- Inspiration Line (selectorized) ---
+    TYPE("selectorized"),
     ("Inspiration Chest Press", "chestPress"),
     ("Inspiration Pec Fly/Rear Deltoid", "chestFly+rearDeltFly"),
     ("Inspiration Shoulder Press", "shoulderPress"),
@@ -445,8 +496,9 @@ NAUTILUS = [
     ("Inspiration Leg Curl", "lyingLegCurl"),
     ("Inspiration Abduction/ Adduction", "legAbduction+legAdduction"),
     ("Inspiration Glute Press", "glutePress"),
-    ("Inspiration Dual Adjustable Pulley", FT),
+    ("Inspiration Dual Adjustable Pulley", FT, "cable"),
     # --- Impact Line (selectorized) ---
+    TYPE("selectorized"),
     ("Impact Chest Press", "chestPress"),
     ("Impact Incline Press", "inclineChestPress"),
     ("Impact Shoulder Press", "shoulderPress"),
@@ -471,6 +523,7 @@ NAUTILUS = [
     ("Impact Abductor", "legAbduction"),
     ("Impact Adductor", "legAdduction"),
     # --- Instinct Line (selectorized) ---
+    TYPE("selectorized"),
     ("Instinct Chest Press", "chestPress"),
     ("Instinct Dual Multi-Press", "chestPress+shoulderPress"),
     ("Instinct Shoulder Press", "shoulderPress"),
@@ -487,16 +540,17 @@ NAUTILUS = [
     ("Instinct Dual Leg Press/Calf Raise", "legPress+calfRaise"),
     ("Instinct Dual Inner/Outer Thigh", "legAdduction+legAbduction"),
     ("Instinct Glute Press", "glutePress"),
-    ("Instinct Dual Adjustable Pulley", FT),
-    ("Instinct Adjustable Abdominal Decline Bench", "abdominalCrunch"),
+    ("Instinct Dual Adjustable Pulley", FT, "cable"),
+    ("Instinct Adjustable Abdominal Decline Bench", "abdominalCrunch", "bodyweight"),
     ("Instinct 45° Back Extension", "backExtension"),
-    ("Instinct Olympic Flat Bench", "benchPress"),
-    ("Instinct Olympic Incline Bench", "inclineBenchPress"),
-    ("Instinct Ab Bench", "abdominalCrunch"),
-    ("Instinct Half Rack", RACK),
-    ("Instinct Smith Machine", SMITH),
+    ("Instinct Olympic Flat Bench", "benchPress", "rackOrSmith"),
+    ("Instinct Olympic Incline Bench", "inclineBenchPress", "rackOrSmith"),
+    ("Instinct Ab Bench", "abdominalCrunch", "bodyweight"),
+    ("Instinct Half Rack", RACK, "rackOrSmith"),
+    ("Instinct Smith Machine", SMITH, "rackOrSmith"),
     ("Instinct 3 Stack Multi-station", JUNGLE),
     # --- Leverage / plate-loaded family ---
+    TYPE("plateLoaded"),
     ("Leverage Chest Press", "chestPress"),
     ("Leverage Incline Press", "inclineChestPress"),
     ("Leverage Decline Press", "declineChestPress"),
@@ -519,16 +573,18 @@ NAUTILUS = [
     ("Tilt Seat Calf", "seatedCalfRaise"),
     ("Tricep Dip", "seatedDip"),
     ("Glute Drive", "hipThrust"),
-    ("Freedom Rack", RACK),
-    ("Smith Machine", SMITH),
-    ("3D Motion Rack", RACK),
+    ("Freedom Rack", RACK, "rackOrSmith"),
+    ("Smith Machine", SMITH, "rackOrSmith"),
+    ("3D Motion Rack", RACK, "rackOrSmith"),
     # --- Multi-stations ---
+    TYPE("cable"),
     ("Cable Cross Over", "cableCrossover+" + FT),
     ("4 Station", JUNGLE),
     ("5 Station", JUNGLE),
     ("9 Station", JUNGLE),
     ("14 Station", JUNGLE),
     # --- HumanSport ---
+    TYPE("selectorized"),
     ("HumanSport Freedom Trainer", FT),
     ("HumanSport Lat Pulley", "latPulldown+lowRow"),
     ("HumanSport Pull Lift", "latPulldown+deadlift"),
@@ -542,18 +598,20 @@ NAUTILUS = [
 # ship as Nautilus today. Only these 8 Star Trac-branded strength names were
 # actually sighted (dealer catalogue) — the Nautilus lists were NOT rebranded.
 STAR_TRAC = [
+    TYPE("selectorized"),
     ("Impact Seated Leg Press", "legPress"),
     ("Inspiration Abduction/Adduction Combo", "legAbduction+legAdduction"),
     ("Inspiration Glute Press", "glutePress"),
     ("Instinct Leg Curl", "lyingLegCurl"),
-    ("Leverage Lat Pulldown", "latPulldown"),
-    ("Instinct Circuit", JUNGLE),
-    ("Instinct Smith Machine", SMITH),
-    ("Instinct DAP Functional Trainer", FT),
+    ("Leverage Lat Pulldown", "latPulldown", "plateLoaded"),
+    ("Instinct Circuit", JUNGLE, "selectorized"),
+    ("Instinct Smith Machine", SMITH, "rackOrSmith"),
+    ("Instinct DAP Functional Trainer", FT, "cable"),
 ]
 
 BODY_SOLID = [
     # --- Pro ClubLine Series 2 (selectorized) ---
+    TYPE("selectorized"),
     ("S2CPX Series 2 Chest Press", "chestPress"),
     ("S2MPX Series 2 Multi-Press", "chestPress+shoulderPress"),
     ("S2SP Series 2 Shoulder Press", "shoulderPress"),
@@ -567,8 +625,9 @@ BODY_SOLID = [
     ("S2LPCX Series 2 Leg Press and Calf", "legPress+calfRaise"),
     ("S2IOTX Series 2 Inner and Outer Thigh", "legAdduction+legAbduction"),
     ("S2CC Series II Cable Column", FT),
-    ("S2FTX Series 2 Functional Trainer with Dual Stacks", FT),
+    ("S2FTX Series 2 Functional Trainer with Dual Stacks", FT, "cable"),
     # --- ProDual (selectorized) ---
+    TYPE("selectorized"),
     ("DPRS ProDual Multi Press", "chestPress+shoulderPress"),
     ("DPLS ProDual Press Arm Lat", "chestPress+latPulldown"),
     ("DPEC ProDual Pec Rear Delt", "chestFly+rearDeltFly"),
@@ -581,12 +640,14 @@ BODY_SOLID = [
     ("DPCC ProDual Cable Column", FT),
     ("DGYM ProDual Modular Gym", JUNGLE),
     # --- Pro ClubLine single stations ---
+    TYPE("selectorized"),
     ("SLM300B Pro ClubLine Lat Mid Row", "latPulldown+seatedRow"),
     ("SLM300G Pro ClubLine Lat Mid Row", "latPulldown+seatedRow"),
     ("SLE200G Pro ClubLine Leg Extension", "legExtension"),
     ("SLC400G Pro ClubLine Leg Curl", "lyingLegCurl"),
     ("SLP500G Pro ClubLine Leg Press", "legPress"),
     # --- Pro ClubLine Leverage (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("LVBPB Leverage Bench Press", "benchPress+chestPress"),
     ("LVIPB Leverage Incline Press", "inclineChestPress"),
     ("LVSP Leverage Shoulder Press", "shoulderPress"),
@@ -597,6 +658,7 @@ BODY_SOLID = [
     ("LVLP Leverage Horizontal Leg Press", "legPress"),
     ("SLS500B Leverage Squat", "machineSquat"),
     # --- Plate-loaded / leg machines ---
+    TYPE("plateLoaded"),
     ("SGLP500 Linear Bearing Commercial Leg Press", "legPress"),
     ("GLPH1100B Leg Press Hack Squat", "legPress+hackSquat"),
     ("GCLP100 Compact Leg Press", "legPress"),
@@ -607,6 +669,7 @@ BODY_SOLID = [
     ("SBL460 Freeweight Leverage Gym", JUNGLE),
     ("GLGS100B Corner Leverage Gym", JUNGLE),
     # --- Pro Select / CAM ---
+    TYPE("selectorized"),
     ("GLP-STK Pro Select Leg Press", "legPress"),
     ("GMFP-STK Pro Select Multi Press", "chestPress+shoulderPress"),
     ("GCBT-STK Pro Select CAM Biceps Triceps", "bicepsCurl+tricepsExtension"),
@@ -618,10 +681,12 @@ BODY_SOLID = [
 
 TECHNOGYM = [
     # --- shipped in catalog version 1 (names frozen, D24) ---
+    TYPE("selectorized"),
     ("Selection 900 Lat Pulldown", "latPulldown"),
     ("Selection 900 Chest Press", "chestPress"),
-    ("Cable Stations Dual Adjustable Pulley", FT),
+    ("Cable Stations Dual Adjustable Pulley", FT, "cable"),
     # --- Selection 900 (selectorized) ---
+    TYPE("selectorized"),
     ("Selection 900 Pectoral", "chestFly"),
     ("Selection 900 Shoulder Press", "shoulderPress"),
     ("Selection 900 Delts Machine", "lateralRaise"),
@@ -629,7 +694,7 @@ TECHNOGYM = [
     ("Selection 900 Vertical Traction", "latPulldown"),
     ("Selection 900 Pulldown", "latPulldown"),
     ("Selection 900 Low Row", "lowRow"),
-    ("Selection 900 Pulley", "seatedRow+" + FT),
+    ("Selection 900 Pulley", "seatedRow+" + FT, "cable"),
     ("Selection 900 Arm Curl", "bicepsCurl"),
     ("Selection 900 Arm Extension", "tricepsExtension"),
     ("Selection 900 Leg Press", "legPress"),
@@ -647,6 +712,7 @@ TECHNOGYM = [
     ("Selection 900 Rotary Torso", "torsoRotation"),
     ("Selection 900 Lower Back", "backExtension"),
     # --- Selection 700 (selectorized) ---
+    TYPE("selectorized"),
     ("Selection 700 Chest Press", "chestPress"),
     ("Selection 700 Shoulder Press", "shoulderPress"),
     ("Selection 700 Delts Machine", "lateralRaise"),
@@ -663,6 +729,7 @@ TECHNOGYM = [
     ("Selection 700 Dual Abductor / Adductor", "legAbduction+legAdduction"),
     ("Selection 700 Dual Pectoral / Reverse Fly", "chestFly+rearDeltFly"),
     # --- Artis (selectorized) ---
+    TYPE("selectorized"),
     ("Artis Chest Press", "chestPress"),
     ("Artis Pectoral", "chestFly"),
     ("Artis Shoulder Press", "shoulderPress"),
@@ -683,6 +750,7 @@ TECHNOGYM = [
     ("Artis Rotary Torso", "torsoRotation"),
     ("Artis Lower Back", "backExtension"),
     # --- Pure Strength (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("Pure Strength Chest Press", "chestPress"),
     ("Pure Strength Wide Chest Press", "chestPress"),
     ("Pure Strength Incline Chest Press", "inclineChestPress"),
@@ -706,6 +774,7 @@ TECHNOGYM = [
     ("Pure Strength Calf", "calfRaise"),
     ("Pure Strength Seated Calf", "seatedCalfRaise"),
     # --- Kinesis (cable) ---
+    TYPE("cable"),
     ("Kinesis One", FT),
     ("Kinesis Personal", FT),
 ]
@@ -714,11 +783,13 @@ TECHNOGYM = [
 # package of the same machine — collapsed into the non-B entry.
 MATRIX = [
     # --- shipped in catalog version 1 (names frozen, D24) ---
+    TYPE("selectorized"),
     ("Ultra Series Assisted Chin/Dip", CHINDIP),
     ("Versa Series Chest Press", "chestPress"),
     ("Aura Series Seated Row", "seatedRow"),
-    ("Magnum Smith Machine", "benchPress+squat+" + SMITH),
+    ("Magnum Smith Machine", "benchPress+squat+" + SMITH, "rackOrSmith"),
     # --- Ultra Series (G7, selectorized) ---
+    TYPE("selectorized"),
     ("G7-S13 Converging Chest Press", "chestPress"),
     ("G7-S22 Pectoral Fly", "chestFly"),
     ("G7-S23 Converging Shoulder Press", "shoulderPress"),
@@ -742,6 +813,7 @@ MATRIX = [
     ("G7-S78 Glute", "gluteKickback"),
     ("G7-S79 Hip Thrust", "hipThrust"),
     # --- Aura Series (G3, selectorized) ---
+    TYPE("selectorized"),
     ("G3-S10 Chest Press", "chestPress"),
     ("G3-S13 Converging Chest Press", "chestPress"),
     ("G3-S12 Pectoral Fly", "chestFly"),
@@ -769,6 +841,7 @@ MATRIX = [
     ("G3-S76 Rotary Hip", "multiHip"),
     ("G3-S77 Calf Press", "calfRaise"),
     # --- Versa Series (VS, selectorized) ---
+    TYPE("selectorized"),
     ("VS-S13 Converging Chest Press", "chestPress"),
     ("VS-S22 Pectoral Fly / Rear Delt", "chestFly+rearDeltFly"),
     ("VS-S23 Converging Shoulder Press", "shoulderPress"),
@@ -789,9 +862,10 @@ MATRIX = [
     ("VS-S70 Leg Press / Calf Press", "legPress+calfRaise"),
     ("VS-S711 Leg Extension / Seated Leg Curl", "legExtension+seatedLegCurl"),
     ("VS-S74 Hip Abductor / Adductor", "legAbduction+legAdduction"),
-    ("VS-VFT Functional Trainer 18", FT),
-    ("VS-VFT Functional Trainer 30", FT),
+    ("VS-VFT Functional Trainer 18", FT, "cable"),
+    ("VS-VFT Functional Trainer 30", FT, "cable"),
     # --- Go Series ---
+    TYPE("selectorized"),
     ("GO-S13 Chest Press", "chestPress"),
     ("GO-S23 Shoulder Press", "shoulderPress"),
     ("GO-S33 Lat Pulldown", "latPulldown"),
@@ -802,8 +876,9 @@ MATRIX = [
     ("GO-S70 Leg Press", "legPress"),
     ("GO-S71 Leg Extension", "legExtension"),
     ("GO-S72 Seated Leg Curl", "seatedLegCurl"),
-    ("GO-FT Functional Trainer", FT),
+    ("GO-FT Functional Trainer", FT, "cable"),
     # --- Magnum Series (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("MG-PL12 Vertical Bench Press", "chestPress"),
     ("MG-PL13 Supine Bench Press", "benchPress"),
     ("MG-PL14 Incline Bench Press", "inclineChestPress"),
@@ -817,7 +892,7 @@ MATRIX = [
     ("MG-PL38 Low Row", "lowRow"),
     ("MG-PL41 Elevated Biceps Curl", "bicepsCurl"),
     ("MG-PL50 Ab Crunch Bench", "abdominalCrunch"),
-    ("MG-PL62 Smith Machine", SMITH),
+    ("MG-PL62 Smith Machine", SMITH, "rackOrSmith"),
     ("MG-PL70 45 Degree Leg Press", "legPress"),
     ("MG-PL71 Hack Squat", "hackSquat"),
     ("MG-PL72 Kneeling Leg Curl", "kneelingLegCurl"),
@@ -831,6 +906,7 @@ MATRIX = [
     ("MG-PL82 Standing Hip Thrust", "hipThrust"),
     ("MG-405 Reverse Back Extension", "reverseHyper"),
     # --- Magnum multi-station / cable ---
+    TYPE("cable"),
     ("MG-921 Lat Pulldown", "latPulldown"),
     ("MG-923 Adjustable Pulley", FT),
     ("MG-924 Adjustable Crossover", "cableCrossover+" + FT),
@@ -838,6 +914,7 @@ MATRIX = [
     ("MG-942 Triceps Pushdown", "tricepsPushdown"),
     ("MG-946 Lat Pulldown / Low Row", "latPulldown+lowRow"),
     # --- Magnum racks & Smith ---
+    TYPE("rackOrSmith"),
     ("MG-MX47 Power Rack", RACK),
     ("MG-MX690 Half Rack", RACK),
     ("MG-MX691 Double Half Rack", RACK),
@@ -849,14 +926,16 @@ MATRIX = [
     ("MG-PRO691 Pro Double Half Rack", RACK),
     ("MG-PRO691C Pro Conf Double Half Rack", RACK),
     # --- Varsity Series (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("VY-400 Perfect Squat", "machineSquat"),
     ("VY-401 Leg Extension", "legExtension"),
     ("VY-402 Prone Leg Curl", "lyingLegCurl"),
     ("VY-431 Biceps Curl", "bicepsCurl"),
     ("VY-432 Triceps Extension", "tricepsExtension"),
-    ("VY-M49-02 Angled Smith Machine", SMITH),
-    ("G1-FW161 Smith Machine (Varsity)", SMITH),
+    ("VY-M49-02 Angled Smith Machine", SMITH, "rackOrSmith"),
+    ("G1-FW161 Smith Machine (Varsity)", SMITH, "rackOrSmith"),
     # --- Other multi-station / functional ---
+    TYPE("cable"),
     ("G1-MG30 3-Stack Multi-Gym", JUNGLE),
     ("G3-MS20 Adjustable Cable Crossover", "cableCrossover+" + FT),
     ("G3-MS40P 4-Stack", JUNGLE),
@@ -869,14 +948,15 @@ MATRIX = [
 # distinct SKUs on Gym80's own range pages — kept separate.
 GYM80 = [
     # --- Sygnum (selectorized) ---
+    TYPE("selectorized"),
     ("3016 Seated Chest Press", "chestPress"),
     ("3023 Incline Chest Press", "inclineChestPress"),
     ("3097 Inner Chest Press", "chestPress"),
     ("3022 Butterfly", "chestFly"),
     ("3021 Butterfly with Pads", "chestFly"),
     ("3025 Butterfly Reverse", "rearDeltFly"),
-    ("3014 Chest Crossover Machine", "cableCrossover"),
-    ("3121 Standing Chest Crossover Machine", "cableCrossover"),
+    ("3014 Chest Crossover Machine", "cableCrossover", "cable"),
+    ("3121 Standing Chest Crossover Machine", "cableCrossover", "cable"),
     ("3032 Shoulder Press", "shoulderPress"),
     ("3050 Shoulder Lateral Raise with Grips", "lateralRaise"),
     ("3099 Standing Shoulder Lateral Raise", "lateralRaise"),
@@ -921,28 +1001,32 @@ GYM80 = [
     ("4116 Lat Pull Station", "latPulldown"),
     ("4016 Rowing Station", "seatedRow"),
     # --- Sygnum Innovation ---
+    TYPE("selectorized"),
     ("5001 Innovation Leg Press", "legPress"),
     ("5002 Innovation Glutes Machine", "glutePress"),
     ("5003 Innovation Rower Machine", "seatedRow"),
     ("5004 Innovation Curler Machine", "bicepsCurl"),
     ("5006 Innovation Multi Extension Machine", "legExtension+tricepsExtension"),
     # --- Sygnum Dual ---
+    TYPE("selectorized"),
     ("3041 Dual Chest Press", "chestPress"),
     ("3042 Dual Incline Chest Press", "inclineChestPress"),
     ("3043 Dual Incline Shoulder Press", "shoulderPress"),
     ("3044 Dual Lat Pulldown", "latPulldown"),
     ("3045 Dual Seated Row", "seatedRow"),
     ("3046 Dual Leg Press", "legPress"),
-    ("4401 Deadlift Machine", "deadlift"),
-    ("4402 Shoulder & Chest Press", "shoulderPress+chestPress"),
-    ("4403 Push & Pull Machine", "chestPress+seatedRow"),
+    ("4401 Deadlift Machine", "deadlift", None),
+    ("4402 Shoulder & Chest Press", "shoulderPress+chestPress", None),
+    ("4403 Push & Pull Machine", "chestPress+seatedRow", None),
     # --- Sygnum Combo ---
+    TYPE("selectorized"),
     ("5011 Abduction and Adduction Combo", "legAbduction+legAdduction"),
     ("5012 Abdominal and Back Combo", "abdominalCrunch+backExtension"),
     ("5013 Leg Curl and Leg Extension Combo", "seatedLegCurl+legExtension"),
     ("5014 Butterfly and Butterfly Reverse Combo", "chestFly+rearDeltFly"),
     ("5015 Shoulder and Lat Pull Combo", "shoulderPress+latPulldown"),
     # --- Sygnum Cable Art ---
+    TYPE("cable"),
     ("5101 Cable Art No. 1 – Shoulder & Back", "cableCrossover+latPulldown+lowRow"),
     ("5102 Cable Art No. 2 – Latisimus & Trapecius", "latPulldown+lowRow+shrug"),
     ("5103 Cable Art No. 3 – Chest & Shoulder", "cableCrossover+lateralRaise"),
@@ -950,6 +1034,7 @@ GYM80 = [
     ("5105 Cable Art No. 5 – Upper Body", FT),
     ("5106 Cable Art No. 6 – Legs", "gluteKickback+legAbduction+legAdduction"),
     # --- Sygnum Stations ---
+    TYPE("cable"),
     ("4004 Crossover Cable Station", "cableCrossover+" + FT),
     ("4012 Adjustable Cable Crossover Station", "cableCrossover+" + FT),
     ("4034 Dual Adjustable Pulley", FT),
@@ -959,20 +1044,21 @@ GYM80 = [
     ("4044 5-Station Tower", JUNGLE),
     ("4117 5 Station Tower", JUNGLE),
     ("4170 8-Station Tower", JUNGLE),
-    ("4036 Multipress Station", SMITH),
+    ("4036 Multipress Station", SMITH, "rackOrSmith"),
     ("4125 Pulley Explosive", FT),
     ("4134 Pulley Universal", FT),
-    ("5201 Multi-Power Station", SMITH),
-    ("5242 Multi-Power Station Privategym", SMITH),
+    ("5201 Multi-Power Station", SMITH, "rackOrSmith"),
+    ("5242 Multi-Power Station Privategym", SMITH, "rackOrSmith"),
     # --- Sygnum Basic ---
+    TYPE("rackOrSmith"),
     ("4002 Basic Multi Press Station", SMITH),
     ("4019 Standing Scott Curl", "preacherCurl"),
     ("4093 Basic Seated Scott Curl", "preacherCurl"),
-    ("4021 Basic Dip Station", "dip"),
-    ("4031 Basic Abdominal Flexor with Chinning Bar", "hangingKneeRaise+pullUp"),
-    ("4046 Basic Abdominal Flexor", "hangingKneeRaise"),
-    ("4119 Basic 45-Back Extension", "backExtension"),
-    ("4165 Basic Roman Chair Adjustable", "backExtension"),
+    ("4021 Basic Dip Station", "dip", "bodyweight"),
+    ("4031 Basic Abdominal Flexor with Chinning Bar", "hangingKneeRaise+pullUp", "bodyweight"),
+    ("4046 Basic Abdominal Flexor", "hangingKneeRaise", "bodyweight"),
+    ("4119 Basic 45-Back Extension", "backExtension", "bodyweight"),
+    ("4165 Basic Roman Chair Adjustable", "backExtension", "bodyweight"),
     ("4040 Basic Max Rack", RACK),
     ("4094 Basic Squat Rack", "squat"),
     ("4156 Multi Rack Station with Chin-Up Bar", RACK + "+pullUp"),
@@ -980,6 +1066,7 @@ GYM80 = [
     ("5226 Half Rack Platform", RACK),
     ("5233 Homerack", RACK),
     # --- Pure Kraft (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("4328 Seated Chest Press Dual", "chestPress"),
     ("4331 Bench Press Dual", "benchPress"),
     ("4329N Incline Chest Press Dual", "inclineChestPress"),
@@ -1037,6 +1124,7 @@ GYM80 = [
     ("4317 Ab Swing", "abdominalCrunch"),
     ("4307 Lying Abdominal", "abdominalCrunch"),
     # --- Pure Kraft STRONG ---
+    TYPE("plateLoaded"),
     ("4361 Pure Kraft STRONG Leg Press", "legPress"),
     ("4362 Pure Kraft STRONG Decline Chest Press Dual", "declineChestPress"),
     ("4363 Pure Kraft STRONG Shoulder Press Dual", "shoulderPress"),
@@ -1049,6 +1137,7 @@ GYM80 = [
 # the only disambiguator between lines, so it is part of the model name.
 PANATTA = [
     # --- Monolith (selectorized) ---
+    TYPE("selectorized"),
     ("1MTH001 Lat pulldown", "latPulldown"),
     ("1MTH002 Lat pulldown circular", "latPulldown"),
     ("1MTH007 Lat pulldown convergent", "latPulldown"),
@@ -1081,14 +1170,15 @@ PANATTA = [
     ("1MTH090 Multi hip", "multiHip"),
     ("1MTH092 Calf hack machine", "calfRaise+hackSquat"),
     ("1MTH097 Hip thrust", "hipThrust"),
-    ("1MTH111 Cable crossover", "cableCrossover+" + FT),
-    ("1MTH125 Adjustable cable crossover", "cableCrossover+" + FT),
+    ("1MTH111 Cable crossover", "cableCrossover+" + FT, "cable"),
+    ("1MTH125 Adjustable cable crossover", "cableCrossover+" + FT, "cable"),
     ("1MTH114 Adjustable cable station", FT),
     ("1MTH126 Cable station", FT),
-    ("1MTH112 4-station multi gym", JUNGLE),
-    ("1MTH127 2-Station Multi Gym", JUNGLE),
-    ("1MTH115 Jungle machine", JUNGLE),
+    ("1MTH112 4-station multi gym", JUNGLE, "cable"),
+    ("1MTH127 2-Station Multi Gym", JUNGLE, "cable"),
+    ("1MTH115 Jungle machine", JUNGLE, "cable"),
     # --- Fit Evo (selectorized) ---
+    TYPE("selectorized"),
     ("1FE001 Lat pulldown", "latPulldown"),
     ("1FE101 Lat pulldown double Stack", "latPulldown"),
     ("1FE002 Lat pulldown circular", "latPulldown"),
@@ -1141,19 +1231,20 @@ PANATTA = [
     ("1FE089 Calf machine", "calfRaise"),
     ("1FE090 Multi hip", "multiHip"),
     ("1FE098 Power runner", "sledPush"),
-    ("1FE111 Cable crossover", "cableCrossover+" + FT),
-    ("1FE125 Adjustable cable crossover", "cableCrossover+" + FT),
-    ("1FE114B High low pulley", FT),
-    ("1FE112 4-station multi gym", JUNGLE),
+    ("1FE111 Cable crossover", "cableCrossover+" + FT, "cable"),
+    ("1FE125 Adjustable cable crossover", "cableCrossover+" + FT, "cable"),
+    ("1FE114B High low pulley", FT, "cable"),
+    ("1FE112 4-station multi gym", JUNGLE, "cable"),
     ("1FE112F 4-Station Four HLP", JUNGLE),
-    ("1FE115 Jungle machine", JUNGLE),
-    ("1FE120 Jungle machine hlp", JUNGLE),
-    ("1FE120D Jungle machine double hlp", JUNGLE),
+    ("1FE115 Jungle machine", JUNGLE, "cable"),
+    ("1FE120 Jungle machine hlp", JUNGLE, "cable"),
+    ("1FE120D Jungle machine double hlp", JUNGLE, "cable"),
     ("1FE118A Multipurpose press", "chestPress+shoulderPress"),
-    ("1FE113B Smith machine linear bearings", SMITH),
+    ("1FE113B Smith machine linear bearings", SMITH, "rackOrSmith"),
     ("1FE121 Chin and dip counterbalanced", CHINDIP),
     ("1FE211 Chin and dip", CHINDIP),
     # --- Freeweight Special (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("1FW036 Super vertical chest press", "chestPress"),
     ("1FW035 Super inclined chest press", "inclineChestPress"),
     ("1FW041 Super declined chest press", "declineChestPress"),
@@ -1209,12 +1300,13 @@ PANATTA = [
     ("1FW099 Standing abductor", "legAbduction"),
     ("1FW096 Reverse hyperextension", "reverseHyper"),
     ("1FW098 Power runner", "sledPush"),
-    ("1FW520 Olympic smith machine counterbalanced", SMITH),
-    ("1FW534 Olympic half rack", RACK),
-    ("1FW531 Olympic power rack", RACK),
+    ("1FW520 Olympic smith machine counterbalanced", SMITH, "rackOrSmith"),
+    ("1FW534 Olympic half rack", RACK, "rackOrSmith"),
+    ("1FW531 Olympic power rack", RACK, "rackOrSmith"),
     ("1FW533 Military bench", "overheadPress"),
     ("1FW518 Seal row bench", "chestSupportedRow"),
     # --- Freeweight One (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("1FO001 Lat machine convergent", "latPulldown"),
     ("1FO101 Lat pulldown circular", "latPulldown"),
     ("1FO002 Low row", "lowRow"),
@@ -1247,8 +1339,9 @@ PANATTA = [
     ("1FO097 Hip thrust", "hipThrust"),
     ("1FO197 Standing Hip Thrust", "hipThrust"),
     ("1FO304 Adjustable Row 45°", "chestSupportedRow"),
-    ("1FO120 Power Smith Machine Multi Angles", SMITH),
+    ("1FO120 Power Smith Machine Multi Angles", SMITH, "rackOrSmith"),
     # --- SEC (selectorized) ---
+    TYPE("selectorized"),
     ("1SC001 Lat pulldown", "latPulldown"),
     ("1SC003 Pulley row", "seatedRow"),
     ("1SC004 Rowing machine", "seatedRow"),
@@ -1271,13 +1364,13 @@ PANATTA = [
     ("1SC093 Adductor/abductor machine", "legAdduction+legAbduction"),
     ("1SC089 Calf machine", "calfRaise"),
     ("1SC090 Multi hip", "multiHip"),
-    ("1SC111 Cable crossover", "cableCrossover+" + FT),
-    ("1SC120 Adjustable cable crossover", "cableCrossover+" + FT),
-    ("1SC114 High low pulley", FT),
-    ("1SC112 4-station multi gym", JUNGLE),
-    ("1SC115 Jungle machine", JUNGLE),
-    ("1SC110 Smith machine selectorized", SMITH),
-    ("1SC113A Smith machine linear bearings", SMITH),
+    ("1SC111 Cable crossover", "cableCrossover+" + FT, "cable"),
+    ("1SC120 Adjustable cable crossover", "cableCrossover+" + FT, "cable"),
+    ("1SC114 High low pulley", FT, "cable"),
+    ("1SC112 4-station multi gym", JUNGLE, "cable"),
+    ("1SC115 Jungle machine", JUNGLE, "cable"),
+    ("1SC110 Smith machine selectorized", SMITH, "rackOrSmith"),
+    ("1SC113A Smith machine linear bearings", SMITH, "rackOrSmith"),
     ("1SC211 Chin and dip (chin optional)", CHINDIP),
     ("1SCD010 Dual lat machine | pulley row", "latPulldown+seatedRow"),
     ("1SCD050 Dual curling | triceps machine", "bicepsCurl+tricepsExtension"),
@@ -1285,11 +1378,12 @@ PANATTA = [
     ("1SCD060 Dual abdominal | lower back", "abdominalCrunch+backExtension"),
     ("1SCD080 Dual leg extension | seated leg curling", "legExtension+seatedLegCurl"),
     # --- Freeweight HP (machines/stations only) ---
-    ("1HP534 Jammer", "jammerPress"),
-    ("1HP506 Combo twist", "torsoRotation"),
-    ("1HP590 Squat lunge", "machineSquat+lunge"),
-    ("1HP233 Power tower", PULLDIP),
-    ("1HP216 Multipurpose sit up bench", "abdominalCrunch"),
+    TYPE("rackOrSmith"),
+    ("1HP534 Jammer", "jammerPress", "plateLoaded"),
+    ("1HP506 Combo twist", "torsoRotation", "plateLoaded"),
+    ("1HP590 Squat lunge", "machineSquat+lunge", "plateLoaded"),
+    ("1HP233 Power tower", PULLDIP, "bodyweight"),
+    ("1HP216 Multipurpose sit up bench", "abdominalCrunch", "bodyweight"),
     ("1HP206 Olympic multi bench", "benchPress+inclineBenchPress+declineBenchPress"),
     ("1HP203 Super olympic flat bench", "benchPress"),
     ("1HP203B Olympic flat bench", "benchPress"),
@@ -1304,6 +1398,7 @@ PANATTA = [
 
 WATSON = [
     # --- PL — Plate Loaded ---
+    TYPE("plateLoaded"),
     ("PL Chest Press", "chestPress"),
     ("PL Standing Chest Press", "chestPress"),
     ("PL Decline Chest Press", "declineChestPress"),
@@ -1363,9 +1458,9 @@ WATSON = [
     ("PL Standing Hand Gripper", "gripTrainer"),
     ("PL Deluxe Reverse Hyper Extension", "reverseHyper"),
     ("PL Pakulski Leg Package", "legPress+legExtension+seatedLegCurl"),
-    ("PL Smith Machine with 4 x Weight Storage", SMITH),
-    ("PL Counter-Balanced Smith Machine with 4 x Weight Storage", SMITH),
-    ("PL Four-Way Smith Machine with Horizontal & Vertical Stops", SMITH),
+    ("PL Smith Machine with 4 x Weight Storage", SMITH, "rackOrSmith"),
+    ("PL Counter-Balanced Smith Machine with 4 x Weight Storage", SMITH, "rackOrSmith"),
+    ("PL Four-Way Smith Machine with Horizontal & Vertical Stops", SMITH, "rackOrSmith"),
     # Animal range
     ("PL Animal Converging Standing Chest Press", "chestPress"),
     ("PL Animal ISO Linear Row", "seatedRow"),
@@ -1376,7 +1471,7 @@ WATSON = [
     ("PL Animal Vertical Leg Press", "legPress"),
     ("PL Animal Adjustable Hack Squat", "hackSquat"),
     ("PL Animal Viking Press", "vikingPress"),
-    ("PL Animal Half Rack / Four Way Smith", RACK + "+" + SMITH),
+    ("PL Animal Half Rack / Four Way Smith", RACK + "+" + SMITH, "rackOrSmith"),
     # Westside range
     ("PL Westside MR-19", "reverseHyper"),
     ("PL Westside Reverse Hyper with Bent Pendulum", "reverseHyper"),
@@ -1385,6 +1480,7 @@ WATSON = [
     ("PL Westside Inverse Curl Pro", "nordicCurl"),
     ("PL Westside Hip & Quad Developer Pro", "backExtension+gluteHamRaise"),
     # --- SS — Single Stack ---
+    TYPE("selectorized"),
     ("SS Chest Press", "chestPress"),
     ("SS Pec Fly / Rear Delt", "chestFly+rearDeltFly"),
     ("SS Multi Pec / Delt", "chestFly+lateralRaise"),
@@ -1411,8 +1507,8 @@ WATSON = [
     ("SS Hyper Extension", "backExtension"),
     ("SS Rotator Cuff", "rotatorCuff"),
     ("SS Assisted Chin / Dip", CHINDIP),
-    ("SS Adjustable Pulley", FT),
-    ("SS Dual Cable Adjustable Pulley", FT),
+    ("SS Adjustable Pulley", FT, "cable"),
+    ("SS Dual Cable Adjustable Pulley", FT, "cable"),
     ("SS Leg Press", "legPress"),
     ("SS Leg Extension", "legExtension"),
     ("SS Seated Leg Curl", "seatedLegCurl"),
@@ -1429,6 +1525,7 @@ WATSON = [
     ("SS Calf Raise", "calfRaise"),
     ("Total Access Tricep Dip", "seatedDip"),
     # --- DS — Dual Stack ---
+    TYPE("selectorized"),
     ("DS Animal Chest Press", "chestPress"),
     ("DS Animal Decline Chest Press", "declineChestPress"),
     ("DS Animal Shoulder Press", "shoulderPress"),
@@ -1437,14 +1534,15 @@ WATSON = [
     ("DS Animal High Pulley Row", "highRow"),
     ("DS Animal Mid to Low Row", "lowRow"),
     ("DS Animal Bicep Curl", "bicepsCurl"),
-    ("DS Animal Low Pulley", FT),
+    ("DS Animal Low Pulley", FT, "cable"),
     ("DS Animal Leg Extension", "legExtension"),
-    ("DS Animal Functional Trainer", FT),
-    ("DS Cable Crossover", "cableCrossover+" + FT),
-    ("DS Dual Adjustable Pulley", FT),
+    ("DS Animal Functional Trainer", FT, "cable"),
+    ("DS Cable Crossover", "cableCrossover+" + FT, "cable"),
+    ("DS Dual Adjustable Pulley", FT, "cable"),
     ("DS Seated Dual Cables", FT),
-    ("DS Smith Machine", SMITH),
+    ("DS Smith Machine", SMITH, "rackOrSmith"),
     # --- Multi-gyms ---
+    TYPE("cable"),
     ("Animal 10 Stack Multi-Gym", JUNGLE),
     ("Animal Dual Stack Multi-Gym", JUNGLE),
     ("Animal Dual Stack Cable Column", JUNGLE),
@@ -1460,6 +1558,7 @@ WATSON = [
 # Eleiko does not make a machine range: its "strength machines" category is
 # largely resold Precor. Only genuinely Eleiko-branded equipment is seeded.
 ELEIKO = [
+    TYPE("cable"),
     ("Dual Adjustable Pulley", FT),
     ("Cable Cross", "cableCrossover+" + FT),
     ("Cable Cross Multi Station", "cableCrossover+" + FT),
@@ -1467,25 +1566,26 @@ ELEIKO = [
     ("Single Adjustable Pulley Wall Mounted", FT),
     ("Lat Pull Down", "latPulldown"),
     ("Low Row", "lowRow"),
-    ("Prestera Power Rack", RACK),
-    ("Prestera Half Rack", RACK),
-    ("Prestera Double Half Rack", RACK),
-    ("Prestera Fitness Half Rack", RACK),
-    ("Prestera Squat Rack", "squat"),
-    ("Prestera Half Rack w/ Smith Attachment", RACK + "+" + SMITH),
-    ("Prestera Double Half Rack w/ Smith Attachment", RACK + "+" + SMITH),
-    ("Classic Squat Stand", "squat+overheadPress"),
-    ("Light Squat Stand", "squat+overheadPress"),
-    ("Powerlifting Training Station", "squat+benchPress"),
-    ("Training Combo Rack", "squat+benchPress"),
-    ("IPF Competition Combo Rack", "squat+benchPress"),
-    ("XF Flat Bench", "benchPress"),
+    ("Prestera Power Rack", RACK, "rackOrSmith"),
+    ("Prestera Half Rack", RACK, "rackOrSmith"),
+    ("Prestera Double Half Rack", RACK, "rackOrSmith"),
+    ("Prestera Fitness Half Rack", RACK, "rackOrSmith"),
+    ("Prestera Squat Rack", "squat", "rackOrSmith"),
+    ("Prestera Half Rack w/ Smith Attachment", RACK + "+" + SMITH, "rackOrSmith"),
+    ("Prestera Double Half Rack w/ Smith Attachment", RACK + "+" + SMITH, "rackOrSmith"),
+    ("Classic Squat Stand", "squat+overheadPress", "rackOrSmith"),
+    ("Light Squat Stand", "squat+overheadPress", "rackOrSmith"),
+    ("Powerlifting Training Station", "squat+benchPress", "rackOrSmith"),
+    ("Training Combo Rack", "squat+benchPress", "rackOrSmith"),
+    ("IPF Competition Combo Rack", "squat+benchPress", "rackOrSmith"),
+    ("XF Flat Bench", "benchPress", "rackOrSmith"),
 ]
 
 # BH's own page names both PL150B and PL155B "Seated Triceps"; the model code in
 # the display name is what disambiguates them in a picker.
 BH_FITNESS = [
     # --- Movemia (selectorized) ---
+    TYPE("selectorized"),
     ("M070 Chest Press", "chestPress"),
     ("M270 Butterfly", "chestFly"),
     ("M420 Pec Fly / Rear Delt", "chestFly+rearDeltFly"),
@@ -1505,8 +1605,9 @@ BH_FITNESS = [
     ("M230 Calf Raise", "calfRaise"),
     ("M310 Abdominal", "abdominalCrunch"),
     ("M510 Lower Back", "backExtension"),
-    ("M370 Dual Adjustable Pulley", FT),
+    ("M370 Dual Adjustable Pulley", FT, "cable"),
     # --- PL Series (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("PL070B Chest Press", "chestPress"),
     ("PL075B Incline Chest Press", "inclineChestPress"),
     ("PL080 Multi-Position Press", "chestPress+shoulderPress"),
@@ -1530,9 +1631,10 @@ BH_FITNESS = [
     ("PL340B Hip Thrust", "hipThrust"),
     ("PL210B Seated Calf", "seatedCalfRaise"),
     ("PL310B Rotational Abdominal Crunch", "abdominalCrunch+torsoRotation"),
-    ("PL350B Half Rack", RACK),
-    ("PL400B Full Rack", RACK),
+    ("PL350B Half Rack", RACK, "rackOrSmith"),
+    ("PL400B Full Rack", RACK, "rackOrSmith"),
     # --- Inertia / L Series (selectorized) ---
+    TYPE("selectorized"),
     ("L070B Chest Press", "chestPress"),
     ("L270B Butterfly", "chestFly"),
     ("L410B Rear Deltoid / Peck Deck", "chestFly+rearDeltFly"),
@@ -1562,6 +1664,7 @@ BH_FITNESS = [
     ("L610B Abdominal/Lower Back", "abdominalCrunch+backExtension"),
     ("L430B Twister", "torsoRotation"),
     # --- TR Series stations ---
+    TYPE("cable"),
     ("L360 Multifunctional Station", FT),
     ("L365 Multifunctional Station", FT),
     ("L480B Multifunctional Station", FT),
@@ -1569,9 +1672,9 @@ BH_FITNESS = [
     ("L480X2 Multi (TR)", FT),
     ("L535B Multi (TR)", FT),
     ("L540B Multi (TR)", FT),
-    ("L830 Scott Bank", "preacherCurl"),
-    ("L840 Roman Chair", "backExtension"),
-    ("L885 Abdominal Flexor", "hangingKneeRaise"),
+    ("L830 Scott Bank", "preacherCurl", "rackOrSmith"),
+    ("L840 Roman Chair", "backExtension", "bodyweight"),
+    ("L885 Abdominal Flexor", "hangingKneeRaise", "bodyweight"),
 ]
 
 # Hoist ships two coexisting ROC-IT selectorized generations. Only the three
@@ -1579,9 +1682,11 @@ BH_FITNESS = [
 # generated from the RS-2xxx numbering.
 HOIST = [
     # --- shipped in catalog version 1 (names frozen, D24) ---
+    TYPE("selectorized"),
     ("ROC-IT Lat Pulldown", "latPulldown"),
-    ("Mi7 Functional Trainer", FT),
+    ("Mi7 Functional Trainer", FT, "cable"),
     # --- ROC-IT Selectorized (RS) ---
+    TYPE("selectorized"),
     ("Chest Press RS-2301", "chestPress"),
     ("Chest Press RS-1301", "chestPress"),
     ("Pec Fly RS-2302", "chestFly"),
@@ -1605,6 +1710,7 @@ HOIST = [
     ("Outer Thigh RS-2407", "legAbduction"),
     ("Glute Master RS-2412", "gluteKickback"),
     # --- ROC-IT Plate Loaded (RPL) ---
+    TYPE("plateLoaded"),
     ("Chest Press RPL-5301", "chestPress"),
     ("Incline Chest Press RPL-5303", "inclineChestPress"),
     ("Decline Chest Press RPL-5305", "declineChestPress"),
@@ -1619,6 +1725,7 @@ HOIST = [
     ("Seated Calf Raise RPL-5363", "seatedCalfRaise"),
     ("Standing Calf Raise RPL-5405", "standingCalfRaise"),
     # --- HD Dual Series (each SKU trio is one machine) ---
+    TYPE("selectorized"),
     ("Chest/Shoulder Press HD-3300", "chestPress+shoulderPress"),
     ("Lat Pulldown/Mid Row HD-3203", "latPulldown+seatedRow"),
     ("Pec Fly/Rear Delt HD-3900", "chestFly+rearDeltFly"),
@@ -1628,9 +1735,10 @@ HOIST = [
     ("Inner/Outer Thigh HD-3800", "legAdduction+legAbduction"),
     ("Ab Crunch/Low Back HD-3600", "abdominalCrunch+backExtension"),
     ("Chin/Dip Assist HD-3701", CHINDIP),
-    ("Dual Pulley Functional Trainer HD-3000", FT),
-    ("Simple Trainer HD-4000", FT),
+    ("Dual Pulley Functional Trainer HD-3000", FT, "cable"),
+    ("Simple Trainer HD-4000", FT, "cable"),
     # --- Club Line (CL) ---
+    TYPE("selectorized"),
     ("Chest Press CL-3301", "chestPress"),
     ("Commercial Pec Fly / Rear Delt CL-3309", "chestFly+rearDeltFly"),
     ("Shoulder Press CL-3501", "shoulderPress"),
@@ -1646,9 +1754,10 @@ HOIST = [
     ("Leg Press CL-3403", "legPress"),
     ("Inner / Outer Thigh CL-3800", "legAdduction+legAbduction"),
     # --- Commercial Freeweights (CF) ---
-    ("Commercial Angled Linear Leg Press CF-3355", "legPress"),
-    ("Commercial Hack Squat CF-3356", "hackSquat"),
-    ("Commercial Power Squat CF-3359", "machineSquat"),
+    TYPE("rackOrSmith"),
+    ("Commercial Angled Linear Leg Press CF-3355", "legPress", "plateLoaded"),
+    ("Commercial Hack Squat CF-3356", "hackSquat", "plateLoaded"),
+    ("Commercial Power Squat CF-3359", "machineSquat", "plateLoaded"),
     ("Power Cage CF-3364", RACK),
     ("Commercial Half Rack CF-3365", RACK),
     ("Commercial Squat Rack CF-3367-A", "squat"),
@@ -1657,16 +1766,17 @@ HOIST = [
     ("CF-3753 7 Degree Smith", SMITH),
     ("Commercial Preacher Curl CF-3550", "preacherCurl"),
     ("Commercial Standing Preacher Curl CF-3555", "preacherCurl"),
-    ("Commercial Incline Leverage Row CF-3661-A", "chestSupportedRow"),
-    ("Commercial Back Hyper CF-3663", "backExtension"),
+    ("Commercial Incline Leverage Row CF-3661-A", "chestSupportedRow", "plateLoaded"),
+    ("Commercial Back Hyper CF-3663", "backExtension", "bodyweight"),
     ("Commercial Military Press CF-3860", "overheadPress"),
     ("Commercial 3-Way Olympic Bench CF-2179-B",
      "benchPress+inclineBenchPress+declineBenchPress"),
     ("Commercial Olympic Flat Bench With Storage CF-3170-A", "benchPress"),
     ("Commercial Olympic Incline Bench With Storage CF-3172-A", "inclineBenchPress"),
     ("Olympic Decline Bench With Storage CF-3177-A", "declineBenchPress"),
-    ("Commercial Adjustable Decline AB Bench CF-3264", "abdominalCrunch"),
+    ("Commercial Adjustable Decline AB Bench CF-3264", "abdominalCrunch", "bodyweight"),
     # --- Multi-jungle systems ---
+    TYPE("cable"),
     ("Commercial Cable Crossover CMD-6180", "cableCrossover+" + FT),
     ("Commercial 4 Station - Single Pod CMJ-6000-1", JUNGLE),
     ("9 Station - Dual Pod CMJ-6000-2", JUNGLE),
@@ -1674,6 +1784,7 @@ HOIST = [
     ("6 Station - Single Pod CMJ-6600-S", JUNGLE),
     ("Commercial Stand Alone Hi-Lo Pulley CMS-6175-EZG", FT),
     # --- MotionCage ---
+    TYPE("rackOrSmith"),
     ("MotionCage Package 1 MC-7001", JUNGLE + "+" + PULLDIP),
     ("MotionCage Package 2 MC-7002", JUNGLE + "+" + PULLDIP),
     ("MotionCage Package 3 MC-7003", JUNGLE + "+" + PULLDIP),
@@ -1685,21 +1796,23 @@ HOIST = [
     ("MotionCage Studio Package 4 MCS-8004", JUNGLE + "+" + PULLDIP),
     ("MotionCage Studio Package 5 MCS-8005", JUNGLE + "+" + PULLDIP),
     # --- Home / light-commercial ---
+    TYPE("cable"),
     ("Mi1 Gym Mi-1-MB", JUNGLE),
     ("Mi5 Functional Trainer Mi-5-MB", FT),
     ("Mi6 Functional Trainer Mi-6B-MB", FT),
-    ("Mi7SMITH Functional Training System Mi-7-SMITH", FT + "+" + SMITH),
-    ("MiSMITH Dual Action Smith Mi-SMITH-MB", SMITH),
+    ("Mi7SMITH Functional Training System Mi-7-SMITH", FT + "+" + SMITH, "rackOrSmith"),
+    ("MiSMITH Dual Action Smith Mi-SMITH-MB", SMITH, "rackOrSmith"),
     ("V1-ELITE Gym V1-ELITE-MB", JUNGLE),
     ("V4-ELITE Gym V4-ELITE-MB", JUNGLE),
     ("H-8 Functional Trainer", FT + "+" + SMITH),
     ("2 Stack Multi Gym H-2200-MB", JUNGLE),
     ("4 Stack Multi Gym H-4400B-MB", JUNGLE),
-    ("Freestanding Ride Leg Press HV-RLP-MB", "legPress"),
+    ("Freestanding Ride Leg Press HV-RLP-MB", "legPress", "plateLoaded"),
 ]
 
 ARSENAL_STRENGTH = [
     # --- Reloaded (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("Reloaded ISO Flat Press (9018)", "chestPress"),
     ("Reloaded ISO Incline Press (9017)", "inclineChestPress"),
     ("Reloaded Vertical Chest Press (9010)", "chestPress"),
@@ -1730,6 +1843,7 @@ ARSENAL_STRENGTH = [
     ("Reloaded Horizontal Leg Press (8003)", "legPress"),
     ("Reloaded Posterior Chain Developer (1501)", "backExtension+gluteHamRaise"),
     # --- M-1 (selectorized) ---
+    TYPE("selectorized"),
     ("M1 Lat Pulldown/Row Combo (9030)", "latPulldown+seatedRow"),
     ("M1 Lat Pullover (9072)", "pullover"),
     ("M1 Pec Fly/Rear Delt (9027)", "chestFly+rearDeltFly"),
@@ -1740,10 +1854,11 @@ ARSENAL_STRENGTH = [
     ("M1 Glute Isolator (9042)", "gluteKickback"),
     ("M1 Standing Calf Raise (9028)", "standingCalfRaise"),
     ("M1 Donkey Calf Raise (9062)", "donkeyCalfRaise"),
-    ("M1 Functional Trainer (9066)", FT),
+    ("M1 Functional Trainer (9066)", FT, "cable"),
     ("M-1 8 Station Basic Trainer (M1-BT8)", JUNGLE),
     ("M1 Selectorized Standing Lateral Raise", "lateralRaise"),
     # --- FORGEX (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("FORGEX Converging Chest Press (8005)", "chestPress"),
     ("FORGEX Wide Chest Press (8007)", "chestPress"),
     ("FORGEX Upright Decline Fly (8006)", "chestFly"),
@@ -1757,6 +1872,7 @@ ARSENAL_STRENGTH = [
     ("FORGEX Lying Leg Curl (8015)", "lyingLegCurl"),
     ("FORGEX Pivot Leg Press (9079)", "legPress"),
     # --- Alpha (racks / benches) ---
+    TYPE("rackOrSmith"),
     ("Alpha Smith Machine (9016)", SMITH),
     ("Alpha-7 Power Rack (9139)", RACK),
     ("Alpha-7 Half Rack (9138)", RACK),
@@ -1765,11 +1881,11 @@ ARSENAL_STRENGTH = [
     ("Alpha-11 Double Half Rack (9122)", RACK),
     ("Alpha Combo Rack (9067)", "squat+benchPress"),
     ("Alpha Monolift w/Band Pegs (1046)", "squat"),
-    ("Alpha Glute/Ham Developer (9060)", "gluteHamRaise"),
-    ("Alpha 45 Degree Back Extension (9069)", "backExtension"),
+    ("Alpha Glute/Ham Developer (9060)", "gluteHamRaise", "bodyweight"),
+    ("Alpha 45 Degree Back Extension (9069)", "backExtension", "bodyweight"),
     ("Alpha Standing Preacher Curl Bench (9038)", "preacherCurl"),
-    ("Alpha Sissy Squat Stand (9037)", "sissySquat"),
-    ("Alpha Vertical Knee Raise/Dip Station (9040)", "hangingKneeRaise+dip"),
+    ("Alpha Sissy Squat Stand (9037)", "sissySquat", "bodyweight"),
+    ("Alpha Vertical Knee Raise/Dip Station (9040)", "hangingKneeRaise+dip", "bodyweight"),
     ("Alpha Bent Over Row Bench (9025)", "bentOverRow"),
     ("Alpha Dumbbell/Row Kickback Bench (9044)", "bentOverRow"),
     ("Alpha Olympic Flat Bench (9022)", "benchPress"),
@@ -1781,6 +1897,7 @@ ARSENAL_STRENGTH = [
 
 PRIME_FITNESS = [
     # --- Plate Loaded ---
+    TYPE("plateLoaded"),
     ("PLATE LOADED | Chest Press", "chestPress"),
     ("PLATE LOADED | Incline Press", "inclineChestPress"),
     ("PLATE LOADED | Shoulder Press", "shoulderPress"),
@@ -1799,6 +1916,7 @@ PRIME_FITNESS = [
     ("PLATE LOADED | Hack Squat", "hackSquat"),
     ("PLATE LOADED | Pendulum Squat", "pendulumSquat"),
     # --- Hybrid ---
+    TYPE("selectorized"),
     ("HYBRID | Chest Press", "chestPress"),
     ("HYBRID | Incline Press", "inclineChestPress"),
     ("HYBRID | Pec Fly", "chestFly"),
@@ -1825,6 +1943,7 @@ PRIME_FITNESS = [
     ("HYBRID | Inner/Outer Thigh", "legAdduction+legAbduction"),
     ("HYBRID | Multi-Hip", "multiHip"),
     # --- Evolution ---
+    TYPE("selectorized"),
     ("EVOLUTION | Chest Press", "chestPress"),
     ("EVOLUTION | Shoulder Press", "shoulderPress"),
     ("EVOLUTION | Lat Pulldown", "latPulldown"),
@@ -1838,6 +1957,7 @@ PRIME_FITNESS = [
     ("EVOLUTION | Prone Leg Curl", "lyingLegCurl"),
     ("EVOLUTION | Leg Press", "legPress"),
     # --- Prodigy racks + specialty ---
+    TYPE("rackOrSmith"),
     ("PRODIGY | Power Rack", RACK),
     ("PRODIGY | Half Rack", RACK),
     ("PRODIGY | HLP Plate Loaded Rack", RACK + "+latPulldown+lowRow"),
@@ -1846,15 +1966,16 @@ PRIME_FITNESS = [
     ("PRODIGY | HLP Selectorized Rack 4:1", RACK + "+latPulldown+lowRow"),
     ("PRODIGY | HLP Selectorized Single Stack 2:1", "latPulldown+lowRow"),
     ("PRODIGY | HLP Selectorized Single Stack 4:1", "latPulldown+lowRow"),
-    ("CHIN | DIP ASSIST", CHINDIP),
+    ("CHIN | DIP ASSIST", CHINDIP, "selectorized"),
     ("DOUBLE-SIDED PREACHER", "preacherCurl"),
-    ("Functional Trainer", FT),
+    ("Functional Trainer", FT, "cable"),
 ]
 
 # Atlantis is dealer-sourced only (atlantisstrength.com refused every fetch), so
 # this manufacturer carries lower confidence than the rest of the catalog.
 ATLANTIS = [
     # --- Precision Series, selectorized ---
+    TYPE("selectorized"),
     ("A-301 Precision Series Selectorized Dual Seated Crunch", "abdominalCrunch"),
     ("A-274 Precision Series Abdominal Rotation", "torsoRotation"),
     ("A-201 Precision Series Selectorized Multi-Forearm", "wristCurl+gripTrainer"),
@@ -1887,6 +2008,7 @@ ATLANTIS = [
     ("M-219 Seated Calf", "seatedCalfRaise"),
     ("M-126 Tibia Dorsi Flexion", "tibialisRaise"),
     # --- Precision Series, plate-loaded ---
+    TYPE("plateLoaded"),
     ("C-201 Precision Series Plate-Loaded Pivot Press", "chestPress"),
     ("PW737 Vertical Chest Press", "chestPress"),
     ("P443 Converging Incline Bench Press", "inclineBenchPress"),
@@ -1918,32 +2040,35 @@ ATLANTIS = [
     ("C-120 Precision Series Single Leg Squat Stand (Fixed)", "machineSquat"),
     ("C220 Adjustable Single Leg Squat Stand", "machineSquat"),
     # --- Racks, benches, other ---
+    TYPE("rackOrSmith"),
     ("E-155 Smith Machine", SMITH),
     ("C-513-8 Power Rack 8'", RACK),
     ("RS-611 Half Rack", RACK),
-    ("D-227 Glute & Ham", "gluteHamRaise"),
-    ("D-828 Deluxe Incline Hyper Extension", "backExtension"),
-    ("D-128 Angled Hyper Extension", "backExtension"),
-    ("A-264 Adjustable Sit Up Bench", "abdominalCrunch"),
-    ("R263 Extreme Sled", "sledPush"),
+    ("D-227 Glute & Ham", "gluteHamRaise", "bodyweight"),
+    ("D-828 Deluxe Incline Hyper Extension", "backExtension", "bodyweight"),
+    ("D-128 Angled Hyper Extension", "backExtension", "bodyweight"),
+    ("A-264 Adjustable Sit Up Bench", "abdominalCrunch", "bodyweight"),
+    ("R263 Extreme Sled", "sledPush", "plateLoaded"),
 ]
 
 ROGUE = [
     # --- Machines, lower body ---
+    TYPE("plateLoaded"),
     ("Iso Leg Press 35", "legPress"),
     ("Monster Rhino Belt Squat - Stand Alone", "beltSquat"),
     ("Monster Rhino Belt Squat - Drop-In", "beltSquat"),
     ("Monster Rhino Belt Squat + Rack", "beltSquat+" + RACK),
     ("Monster Rhino Trainer", "beltSquat"),
-    ("Air Rhino", "beltSquat"),
+    ("Air Rhino", "beltSquat", None),
     ("Donkey", "donkeyCalfRaise"),
-    ("Floor Glute", "gluteKickback"),
-    ("Z Hyper", "backExtension"),
-    ("GH-1 GHD", "gluteHamRaise"),
-    ("Abram GHD 2.0", "gluteHamRaise"),
+    ("Floor Glute", "gluteKickback", "bodyweight"),
+    ("Z Hyper", "backExtension", "bodyweight"),
+    ("GH-1 GHD", "gluteHamRaise", "bodyweight"),
+    ("Abram GHD 2.0", "gluteHamRaise", "bodyweight"),
     ("RH-2 Reverse Hyper", "reverseHyper"),
-    ("Combo Rack", "squat+benchPress"),
+    ("Combo Rack", "squat+benchPress", "rackOrSmith"),
     # --- Cable / functional trainers ---
+    TYPE("cable"),
     ("FT-1 Functional Trainer", FT),
     ("CC-1 Cable Crossover", "cableCrossover+" + FT),
     ("CT-1 Cable Tower", FT),
@@ -1967,6 +2092,7 @@ ROGUE = [
     ("SLM-6 Monster Weight Stack Slinger", FT),
     ("SLML-6 Monster Lite Weight Stack Slinger", FT),
     # --- Power racks ---
+    TYPE("rackOrSmith"),
     ("RML-390F Flat Foot Monster Lite Rack", RACK),
     ("RML-390 Power Rack 3.0", RACK),
     ("RML-490 Power Rack 3.0", RACK),
@@ -1992,6 +2118,7 @@ ROGUE = [
     ("R-6 Power Rack", RACK),
     ("R-3W Fold Back Wall Mount Rack", RACK),
     # --- Benches ---
+    TYPE("rackOrSmith"),
     ("Adjustable Bench 3.0", "benchPress+inclineBenchPress"),
     ("AB-3 Adjustable Bench", "benchPress+inclineBenchPress"),
     ("AB-2 Adjustable Bench", "benchPress+inclineBenchPress"),
@@ -2002,6 +2129,7 @@ ROGUE = [
 
 # IT9514 appears on Impulse's own index with no confirmable name — omitted.
 IMPULSE = [
+    TYPE("selectorized"),
     ("IT9501 Chest Press", "chestPress"),
     ("IT9502 Lat Pulldown", "latPulldown"),
     ("IT9503 Arm Curl", "bicepsCurl"),
@@ -2021,11 +2149,11 @@ IMPULSE = [
     ("IT9521 V Bench Leg Curl", "lyingLegCurl"),
     ("IT9522 Lat Pull Down / Vertical Row", "latPulldown+seatedRow"),
     ("IT9524 Lateral Raise", "lateralRaise"),
-    ("IT9525 Adjustable HI/LO Pulley", FT),
+    ("IT9525 Adjustable HI/LO Pulley", FT, "cable"),
     ("IT9526 Glute", "gluteKickback"),
     ("IT9528 Leg Extension/Leg Curl", "legExtension+seatedLegCurl"),
     ("IT9529 Multipress", "chestPress+shoulderPress"),
-    ("IT9530 Dual Adjustable Pulley", FT),
+    ("IT9530 Dual Adjustable Pulley", FT, "cable"),
     ("IT9533 Arm Curl / Extension", "bicepsCurl+tricepsExtension"),
     ("IT9534 Back Extension / Abdominal", "backExtension+abdominalCrunch"),
     ("IT9537 Standing Multi Flight Machine", "multiHip"),
@@ -2035,6 +2163,7 @@ IMPULSE = [
 
 LEGEND_FITNESS = [
     # --- SelectEDGE (selectorized) ---
+    TYPE("selectorized"),
     ("1100 Chest Press", "chestPress"),
     ("1101 Shoulder Press", "shoulderPress"),
     ("1102 Lat Pulldown", "latPulldown"),
@@ -2058,14 +2187,15 @@ LEGEND_FITNESS = [
     ("1123 Inner/Outer Thigh Combo", "legAdduction+legAbduction"),
     ("1124 Multi Press", "chestPress+shoulderPress"),
     ("1125 Leg Extension/Curl Combo", "legExtension+seatedLegCurl"),
-    ("1130 Functional Trainer", FT),
-    ("1131 Cable Crossover", "cableCrossover+" + FT),
-    ("1132 Cable Crossover Plus", "cableCrossover+" + FT + "+pullUp"),
+    ("1130 Functional Trainer", FT, "cable"),
+    ("1131 Cable Crossover", "cableCrossover+" + FT, "cable"),
+    ("1132 Cable Crossover Plus", "cableCrossover+" + FT + "+pullUp", "cable"),
     ("1134 Four Stack", JUNGLE),
     ("1135 Five Stack", JUNGLE),
     ("1136 Six Stack", JUNGLE),
     ("1138 Eight Stack", JUNGLE),
     # --- LeverEDGE (plate-loaded) ---
+    TYPE("plateLoaded"),
     ("6001 LeverEDGE Unilateral Converging Shoulder Press", "shoulderPress"),
     ("6002 LeverEDGE Unilateral Converging Incline Chest Press", "inclineChestPress"),
     ("6003 LeverEDGE Unilateral Converging Flat Chest Press", "chestPress"),
@@ -2078,13 +2208,14 @@ LEGEND_FITNESS = [
     ("6010 LeverEDGE Unilateral Seated Tricep Press", "tricepsExtension"),
     ("6011 LeverEDGE Unilateral Leg Extension/Curl Combo", "legExtension+seatedLegCurl"),
     # --- Plate-loaded / Pro & Performance Series ---
+    TYPE("plateLoaded"),
     ("3110 Incline Lever Row", "chestSupportedRow"),
     ("3229 Pro Series Incline Lever Row", "chestSupportedRow"),
     ("3119 Plate-Loaded Seated Calf", "seatedCalfRaise"),
     ("3122 Angle Leg Press", "legPress"),
     ("3308 Unilateral Angle Leg Press", "legPress"),
     ("3123 Hack Squat", "hackSquat"),
-    ("3124 Smith Machine", SMITH),
+    ("3124 Smith Machine", SMITH, "rackOrSmith"),
     ("3129 Squat Machine with Calf Blaster", "machineSquat+calfRaise"),
     ("3135 Plate-Loaded Leg Extension/Curl", "legExtension+seatedLegCurl"),
     ("3136 Plate-Loaded Lat/Low Row", "latPulldown+lowRow"),
@@ -2100,6 +2231,7 @@ LEGEND_FITNESS = [
     ("7015 Performance Series Stealth Leg Press", "legPress"),
     ("7016 Pro Series Stealth Leg Press/Sled", "legPress+sledPush"),
     # --- Specialty racks & cages ---
+    TYPE("rackOrSmith"),
     ("3121-V Varsity Power Rack", RACK),
     ("3230 Combo Cage", RACK),
     ("3138 Peg Squat Rack", "squat"),
@@ -2112,6 +2244,7 @@ LEGEND_FITNESS = [
 # machine (Titan) that were actually sighted. Apex / Dark Horse / T-3 / X-3 rack
 # families are known to exist but were not enumerated, so they are not seeded.
 SORINEX = [
+    TYPE("rackOrSmith"),
     ("Base Camp Half Rack", RACK),
     ("Base Camp Single Rack", RACK),
     ("Base Camp Power Rack", RACK),
@@ -2124,10 +2257,11 @@ SORINEX = [
     ("XL Series Rack & a Half", RACK),
     ("XL Series Double Full Rack", RACK),
     ("XL Series Double Half Rack", RACK),
-    ("El Diablo Dip Bar", "dip"),
+    ("El Diablo Dip Bar", "dip", "bodyweight"),
 ]
 
 TITAN = [
+    TYPE("plateLoaded"),
     ("Plate-Loaded Leg Press Hack Squat Machine", "legPress+hackSquat+calfRaise"),
 ]
 

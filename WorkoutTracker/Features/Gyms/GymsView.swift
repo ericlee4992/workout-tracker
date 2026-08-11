@@ -70,6 +70,8 @@ struct GymDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     var gym: Gym
+    @Query(sort: \Exercise.name) private var exercises: [Exercise]
+    @Query private var allPreferences: [AppPreferences]
     @State private var showingAddMachine = false
     @State private var editingGym = false
     @State private var editingMachine: MachineInstance?
@@ -106,42 +108,22 @@ struct GymDetailView: View {
                 .accessibilityIdentifier("editGym")
             }
 
-            Section {
-                ForEach(gym.activeMachines) { machine in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(machine.label)
-                                .font(.body.weight(.medium))
-                            Text(machine.model?.displayName ?? "No model")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if let unit = machine.defaultUnit {
-                            UnitBadge(unit: unit)
+            // Ticket 21: a 30-machine gym is only scannable grouped, and a
+            // 3-machine gym does not want headers at all — hence A–Z as a
+            // first-class mode, remembered between visits.
+            ForEach(machineSections) { section in
+                Section {
+                    ForEach(section.rows) { row in
+                        if let machine = machinesByID[row.id] {
+                            machineRow(machine)
                         }
                     }
-                    .padding(.vertical, 2)
-                    .contextMenu {
-                        // D2: label *and* default unit, not rename alone.
-                        Button("Edit Machine…") {
-                            editingMachine = machine
-                        }
-                        Button("Correct Model…") {
-                            correctingMachine = machine
-                        }
-                        if let model = machine.model, !model.isSeeded {
-                            Button("Rename Model…") {
-                                modelManufacturer = model.manufacturer
-                                modelName = model.modelName
-                                renamingModel = model
-                            }
-                        }
-                        Button("Archive Machine", role: .destructive) {
-                            archive(machine)
-                        }
-                    }
+                } header: {
+                    Text(section.title ?? "Machines")
                 }
+            }
+
+            Section {
                 if gym.activeMachines.isEmpty {
                     Text("No machines yet")
                         .foregroundStyle(.secondary)
@@ -150,8 +132,6 @@ struct GymDetailView: View {
                     showingAddMachine = true
                 }
                 .accessibilityIdentifier("addMachine")
-            } header: {
-                Text("Machines")
             } footer: {
                 // Model-less machines are allowed: when logging machine-first
                 // they open the full exercise picker instead of auto-filling.
@@ -163,6 +143,16 @@ struct GymDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Menu("Group Machines By") {
+                        ForEach(MachineGrouping.allCases) { mode in
+                            BrowseMenuOption(
+                                title: mode.label, isSelected: machineGrouping == mode
+                            ) {
+                                setMachineGrouping(mode)
+                            }
+                            .accessibilityIdentifier("machineGrouping.\(mode.rawValue)")
+                        }
+                    }
                     Button("Edit Gym…") { editingGym = true }
                     Button("Archive Gym", role: .destructive) {
                         archiveGym()
@@ -170,6 +160,7 @@ struct GymDetailView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
+                .accessibilityIdentifier("gymMenu")
             }
         }
         .sheet(isPresented: $showingAddMachine) {
@@ -198,6 +189,71 @@ struct GymDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: { _ in
             Text("Only custom models can be renamed. Existing history keeps its captured model name.")
+        }
+    }
+
+    /// The gym's machines, grouped the way this user last asked for. Pure
+    /// display state (D23) — the machines themselves are untouched.
+    private var machineSections: [CatalogSection<MachineBrowseRow>] {
+        let exercisesByID = Dictionary(exercises.map { ($0.id, $0) }) { first, _ in first }
+        let rows = gym.activeMachines.map {
+            MachineBrowseRow($0, exercisesByID: exercisesByID)
+        }
+        return CatalogBrowsing.machineSections(rows, by: machineGrouping)
+    }
+
+    private var machinesByID: [UUID: MachineInstance] {
+        Dictionary(gym.activeMachines.map { ($0.id, $0) }) { first, _ in first }
+    }
+
+    private var machineGrouping: MachineGrouping {
+        AppPreferences.canonical(of: allPreferences)?.machineBrowseGrouping ?? .alphabetical
+    }
+
+    private func setMachineGrouping(_ mode: MachineGrouping) {
+        do {
+            let preferences = try AppPreferences.canonical(in: modelContext)
+            preferences.machineBrowseGrouping = mode
+            preferences.updatedAt = .now
+            try modelContext.save()
+        } catch {
+            assertionFailure("Failed to save machine grouping: \(error)")
+        }
+    }
+
+    private func machineRow(_ machine: MachineInstance) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(machine.label)
+                    .font(.body.weight(.medium))
+                Text(machine.model?.displayName ?? "No model")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if let unit = machine.defaultUnit {
+                UnitBadge(unit: unit)
+            }
+        }
+        .padding(.vertical, 2)
+        .contextMenu {
+            // D2: label *and* default unit, not rename alone.
+            Button("Edit Machine…") {
+                editingMachine = machine
+            }
+            Button("Correct Model…") {
+                correctingMachine = machine
+            }
+            if let model = machine.model, !model.isSeeded {
+                Button("Rename Model…") {
+                    modelManufacturer = model.manufacturer
+                    modelName = model.modelName
+                    renamingModel = model
+                }
+            }
+            Button("Archive Machine", role: .destructive) {
+                archive(machine)
+            }
         }
     }
 
@@ -448,24 +504,47 @@ struct MachineEditorSheet: View {
     }
 }
 
-/// Searchable picker over the whole equipment-model catalog (seeded + user),
-/// with "None" for model-less machines and inline user-model creation for
-/// models the catalog lacks.
+/// Picker over the whole equipment-model catalog (seeded + user). With ~1900
+/// seeded models (ticket 20) a flat A–Z list is unusable, so this is the
+/// screen ticket 21 is really about: grouped (manufacturer / body area /
+/// equipment type), filterable by body area and equipment type, and searched
+/// across manufacturer *and* model together so "hammer incline" lands on the
+/// row. Grouping and filtering are display state only (D23) — remembered in
+/// AppPreferences, never written into anything logged.
 struct ModelPickerView: View {
     @Binding var selection: EquipmentModel?
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: [
         SortDescriptor(\EquipmentModel.manufacturer),
         SortDescriptor(\EquipmentModel.modelName),
     ]) private var models: [EquipmentModel]
+    @Query(sort: \Exercise.name) private var exercises: [Exercise]
+    @Query private var allPreferences: [AppPreferences]
     @State private var searchText = ""
     @State private var showingAddModel = false
+    /// Built once per catalog change, not per keystroke: filtering value types
+    /// is fast, re-reading 1900 SwiftData rows is not.
+    @State private var index = CatalogModelIndex.empty
+    @State private var modelsByID: [UUID: EquipmentModel] = [:]
 
-    private var filtered: [EquipmentModel] {
-        guard !searchText.isEmpty else { return models }
-        return models.filter {
-            $0.displayName.localizedCaseInsensitiveContains(searchText)
-        }
+    private var preferences: AppPreferences? {
+        AppPreferences.canonical(of: allPreferences)
+    }
+
+    private var grouping: CatalogGrouping {
+        preferences?.modelBrowseGrouping ?? .manufacturer
+    }
+
+    private var filter: CatalogModelFilter {
+        CatalogModelFilter(
+            searchText: searchText,
+            bodyArea: preferences?.modelBrowseMuscleGroup,
+            equipmentType: preferences?.modelBrowseEquipmentType)
+    }
+
+    private var sections: [CatalogSection<CatalogModelRow>] {
+        CatalogBrowsing.browse(index, filter: filter, grouping: grouping)
     }
 
     var body: some View {
@@ -486,30 +565,38 @@ struct ModelPickerView: View {
                 }
                 .buttonStyle(.plain)
             }
-            Section {
-                ForEach(filtered) { model in
-                    Button {
-                        selection = model
-                        dismiss()
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(model.displayName)
-                                if !model.isSeeded {
-                                    Text("Custom")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            Spacer()
-                            if selection?.id == model.id {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
-                            }
-                        }
+
+            if filter.hasActiveFilters {
+                Section {
+                    HStack {
+                        Label(filterSummary, systemImage: "line.3.horizontal.decrease.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Clear") { clearFilters() }
+                            .font(.caption.weight(.semibold))
+                            .accessibilityIdentifier("clearModelFilters")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("modelOption.\(model.displayName)")
+                }
+            }
+
+            ForEach(sections) { section in
+                Section {
+                    ForEach(section.rows) { row in
+                        modelButton(row)
+                    }
+                } header: {
+                    if let title = section.title {
+                        Text(title)
+                    }
+                }
+            }
+
+            Section {
+                if sections.isEmpty {
+                    Text("No models match")
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("noModelsMatch")
                 }
                 Button("New Model…", systemImage: "plus") {
                     showingAddModel = true
@@ -518,15 +605,146 @@ struct ModelPickerView: View {
                 Text("Can't find the machine's model? Add it — your models live alongside the catalog.")
             }
         }
-        .searchable(text: $searchText, prompt: "Search models")
+        .searchable(text: $searchText, prompt: "Search manufacturer or model")
         .navigationTitle("Catalog Model")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                browseMenu
+            }
+        }
+        .onChange(of: models.count, initial: true) { _, _ in rebuildIndex() }
         .sheet(isPresented: $showingAddModel) {
             AddModelSheet { newModel in
                 selection = newModel
                 dismiss()
             }
         }
+    }
+
+    private func modelButton(_ row: CatalogModelRow) -> some View {
+        Button {
+            select(row)
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(row.displayName)
+                    HStack(spacing: 6) {
+                        // D24: a user's own model sits in the same list as the
+                        // catalog's, labelled rather than segregated.
+                        if !row.isSeeded {
+                            Text("Custom")
+                        }
+                        if let type = row.equipmentType {
+                            Text(type.label)
+                        }
+                        if !row.bodyAreas.isEmpty {
+                            Text(row.bodyAreas.joined(separator: " · "))
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if selection?.id == row.id {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.tint)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("modelOption.\(row.displayName)")
+    }
+
+    /// Grouping and both filters in one menu. Deliberately plain `Button`s
+    /// rather than `Picker`s: a menu button can carry its own accessibility
+    /// identifier, which is what makes this screen drivable from a UI test.
+    private var browseMenu: some View {
+        Menu {
+            Menu("Group By") {
+                ForEach(CatalogGrouping.allCases) { mode in
+                    BrowseMenuOption(title: mode.label, isSelected: grouping == mode) {
+                        write { $0.modelBrowseGrouping = mode }
+                    }
+                    .accessibilityIdentifier("modelGrouping.\(mode.rawValue)")
+                }
+            }
+
+            Menu("Body Area") {
+                BrowseMenuOption(title: "All body areas", isSelected: filter.bodyArea == nil) {
+                    write { $0.modelBrowseMuscleGroup = nil }
+                }
+                .accessibilityIdentifier("modelFilter.bodyArea.all")
+                ForEach(index.bodyAreas, id: \.self) { area in
+                    BrowseMenuOption(title: area, isSelected: filter.bodyArea == area) {
+                        write { $0.modelBrowseMuscleGroup = area }
+                    }
+                    .accessibilityIdentifier("modelFilter.bodyArea.\(area)")
+                }
+            }
+
+            Menu("Equipment Type") {
+                BrowseMenuOption(
+                    title: "All types", isSelected: filter.equipmentType == nil
+                ) {
+                    write { $0.modelBrowseEquipmentType = nil }
+                }
+                .accessibilityIdentifier("modelFilter.type.all")
+                ForEach(index.equipmentTypes) { type in
+                    BrowseMenuOption(
+                        title: type.label, isSelected: filter.equipmentType == type
+                    ) {
+                        write { $0.modelBrowseEquipmentType = type }
+                    }
+                    .accessibilityIdentifier("modelFilter.type.\(type.rawValue)")
+                }
+            }
+
+            if filter.hasActiveFilters {
+                Button("Clear Filters", systemImage: "xmark.circle") { clearFilters() }
+            }
+        } label: {
+            Label(
+                "Browse",
+                systemImage: filter.hasActiveFilters
+                    ? "line.3.horizontal.decrease.circle.fill"
+                    : "line.3.horizontal.decrease.circle")
+        }
+        .accessibilityIdentifier("modelBrowseMenu")
+    }
+
+    private var filterSummary: String {
+        [filter.bodyArea, filter.equipmentType?.label]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+    }
+
+    private func clearFilters() {
+        write {
+            $0.modelBrowseMuscleGroup = nil
+            $0.modelBrowseEquipmentType = nil
+        }
+    }
+
+    private func write(_ change: (AppPreferences) -> Void) {
+        do {
+            let preferences = try AppPreferences.canonical(in: modelContext)
+            change(preferences)
+            preferences.updatedAt = .now
+            try modelContext.save()
+        } catch {
+            assertionFailure("Failed to save catalog browsing preference: \(error)")
+        }
+    }
+
+    private func select(_ row: CatalogModelRow) {
+        selection = modelsByID[row.id]
+        dismiss()
+    }
+
+    private func rebuildIndex() {
+        index = CatalogModelIndex.build(models: models, exercises: exercises)
+        modelsByID = Dictionary(models.map { ($0.id, $0) }) { first, _ in first }
     }
 }
 
@@ -539,6 +757,7 @@ private struct AddModelSheet: View {
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @State private var manufacturer = ""
     @State private var modelName = ""
+    @State private var equipmentType: EquipmentCategory?
     @State private var linkedExerciseIDs: Set<UUID> = []
 
     var body: some View {
@@ -547,6 +766,16 @@ private struct AddModelSheet: View {
                 Section {
                     TextField("Manufacturer", text: $manufacturer)
                     TextField("Model", text: $modelName)
+                    // Optional (ticket 21): a model with no type still shows
+                    // up — under "Uncategorized" — rather than being hidden
+                    // by a filter it cannot answer (D24).
+                    Picker("Equipment type", selection: $equipmentType) {
+                        Text("Not set").tag(EquipmentCategory?.none)
+                        ForEach(EquipmentCategory.allCases) { type in
+                            Text(type.label).tag(EquipmentCategory?.some(type))
+                        }
+                    }
+                    .accessibilityIdentifier("newModelEquipmentType")
                 }
                 Section {
                     ForEach(exercises) { exercise in
@@ -612,6 +841,7 @@ private struct AddModelSheet: View {
             manufacturer: trimmedManufacturer,
             modelName: trimmedModelName,
             exerciseIDs: orderedIDs,
+            equipmentType: equipmentType,
             isSeeded: false)
         modelContext.insert(model)
         do {

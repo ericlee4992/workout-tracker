@@ -96,6 +96,36 @@ enum EquipmentTag: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+/// How a catalog model is loaded and used — the "equipment type" ticket 21
+/// filters the model picker by. It is a property of the *machine*, not of the
+/// movement: a chest press exists as a selectorized stack, a plate-loaded
+/// lever and a Smith-rack variant, and all three link to the same exercise. So
+/// it is stored on `EquipmentModel` rather than derived from the linked
+/// exercises' `equipmentTypeTags`, which cannot tell those three apart.
+///
+/// nil is a real value: the seeded research did not establish a type for a few
+/// models, and user-created models have none until the user picks one. Those
+/// rows group under "Uncategorized" and are never filtered away (D24).
+enum EquipmentCategory: String, CaseIterable, Identifiable, Codable {
+    case selectorized
+    case plateLoaded
+    case cable
+    case rackOrSmith
+    case bodyweight
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .selectorized: "Selectorized"
+        case .plateLoaded: "Plate-loaded"
+        case .cable: "Cable & functional"
+        case .rackOrSmith: "Rack, Smith & bench"
+        case .bodyweight: "Bodyweight station"
+        }
+    }
+}
+
 /// Editing-field formatting (weight text fields): integer weights drop the
 /// decimal, fractional ones keep a single place. Display-only formatting for
 /// history lives in `WeightMath` (D25).

@@ -42,12 +42,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from catalog_data import MANUFACTURERS  # noqa: E402
+from catalog_data import (  # noqa: E402
+    EQUIPMENT_TYPES, MANUFACTURERS, TYPE_MARKER,
+)
 
 REPO = Path(__file__).resolve().parent.parent
 OUTPUT = REPO / "WorkoutTracker" / "Resources" / "SeedCatalog.json"
 
-CATALOG_VERSION = 2
+# 3 (ticket 21): every model gained an `equipmentType`. The bump is what makes
+# the reconciler rewrite already-seeded rows — without it, stores seeded at
+# version 2 would keep a nil type on all 1887 models (D24).
+CATALOG_VERSION = 3
 
 EXERCISE_NS = "5EED0001-0000-4000-8000-{:012d}"
 MODEL_NS = "5EED0002-0000-4000-8000-{:012d}"
@@ -205,7 +210,21 @@ def build() -> dict:
     models = []
     seen: set[tuple[str, str]] = set()
     for manufacturer, entries in MANUFACTURERS:
-        for model_name, links in entries:
+        # Ticket 21: `TYPE(...)` markers set the equipment type for the entries
+        # that follow; a three-element entry overrides it for itself. Both may
+        # be None — "the research did not establish it" is a real answer, and
+        # the app files those models under "Uncategorized".
+        section_type = None
+        for entry in entries:
+            if entry[0] == TYPE_MARKER:
+                section_type = entry[1]
+                assert section_type is None or section_type in EQUIPMENT_TYPES, \
+                    f"{manufacturer}: unknown equipment type {section_type}"
+                continue
+            model_name, links = entry[0], entry[1]
+            equipment_type = entry[2] if len(entry) > 2 else section_type
+            assert equipment_type is None or equipment_type in EQUIPMENT_TYPES, \
+                f"{manufacturer} {model_name}: unknown equipment type {equipment_type}"
             key = (manufacturer, model_name)
             assert key not in seen, f"duplicate model {manufacturer} / {model_name}"
             seen.add(key)
@@ -225,6 +244,7 @@ def build() -> dict:
                 "id": uuid,
                 "manufacturer": manufacturer,
                 "modelName": model_name,
+                "equipmentType": equipment_type,
                 "exerciseIDs": ids,
             })
 

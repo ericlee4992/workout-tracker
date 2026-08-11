@@ -9,10 +9,13 @@ struct ExercisePickerSheet: View {
     @State private var creating: NewExerciseRequest?
     var onSelect: (Exercise) -> Void
 
+    /// Same multi-token matching the catalog pickers use (ticket 21), so
+    /// "incline press" finds "Incline Bench Press" here too.
     private var filtered: [Exercise] {
-        guard !searchText.isEmpty else { return exercises }
+        let tokens = CatalogBrowsing.tokens(searchText)
+        guard !tokens.isEmpty else { return exercises }
         return exercises.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText)
+            CatalogBrowsing.matches(CatalogBrowsing.normalize($0.name), tokens: tokens)
         }
     }
 
@@ -84,17 +87,25 @@ struct ExerciseRow: View {
     var name: String
     var loadType: LoadType
     var tags: [EquipmentTag]
+    /// The exercise's `muscleGroup` (ticket 21) — the same vocabulary the
+    /// filters group by, shown so a filtered list explains itself.
+    var bodyArea: String?
 
-    init(name: String, loadType: LoadType, tags: [EquipmentTag]) {
+    init(name: String, loadType: LoadType, tags: [EquipmentTag], bodyArea: String? = nil) {
         self.name = name
         self.loadType = loadType
         self.tags = tags
+        self.bodyArea = bodyArea
     }
 
     init(exercise: Exercise) {
         self.init(
             name: exercise.name, loadType: exercise.loadType,
-            tags: exercise.equipmentTypeTags)
+            tags: exercise.equipmentTypeTags, bodyArea: exercise.muscleGroup)
+    }
+
+    private var subtitle: String {
+        ([bodyArea].compactMap { $0 } + tags.map(\.label)).joined(separator: " · ")
     }
 
     var body: some View {
@@ -102,7 +113,7 @@ struct ExerciseRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(name)
                     .font(.body.weight(.medium))
-                Text(tags.map(\.label).joined(separator: " · "))
+                Text(subtitle)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

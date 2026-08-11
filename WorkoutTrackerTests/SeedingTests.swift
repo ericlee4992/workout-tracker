@@ -347,6 +347,50 @@ struct SeedingTests {
         #expect(afterStale.name == "Seated Chest Press")
     }
 
+    /// Ticket 21's `equipmentType` is an allowlisted seeded field: a store
+    /// seeded before it existed picks it up on the version bump, and a
+    /// user-created model is left with the type the *user* chose (D24).
+    @Test func equipmentTypeArrivesWithTheVersionBump() throws {
+        let container = try makeInMemoryContainer()
+        let context = ModelContext(container)
+        try CatalogSeeder.reconcile(catalogV1(), in: context)
+
+        let beforeUpgrade = try #require(try context.fetch(
+            FetchDescriptor<EquipmentModel>(predicate: #Predicate { $0.id == modelXID })).first)
+        #expect(beforeUpgrade.equipmentType == nil)
+
+        let userModel = EquipmentModel(
+            manufacturer: "Acme", modelName: "Garage Press",
+            exerciseIDs: [exerciseAID], equipmentType: .rackOrSmith, isSeeded: false)
+        context.insert(userModel)
+        try context.save()
+
+        var typed = catalogV2()
+        typed.equipmentModels = typed.equipmentModels.map { model in
+            var copy = model
+            copy.equipmentType = .selectorized
+            return copy
+        }
+        try CatalogSeeder.reconcile(typed, in: context)
+
+        let upgraded = try #require(try context.fetch(
+            FetchDescriptor<EquipmentModel>(predicate: #Predicate { $0.id == modelXID })).first)
+        #expect(upgraded.equipmentType == .selectorized)
+        #expect(userModel.equipmentType == .rackOrSmith)
+    }
+
+    /// The shipped catalog classifies effectively every model, and never with
+    /// a value the app cannot render.
+    @Test func shippedModelsCarryAnEquipmentType() throws {
+        let catalog = try SeedCatalog.bundled()
+        let untyped = catalog.equipmentModels.filter { $0.equipmentType == nil }
+        #expect(untyped.count < 20, "\(untyped.count) models have no equipment type")
+        for type in EquipmentCategory.allCases {
+            #expect(catalog.equipmentModels.contains { $0.equipmentType == type },
+                    "no shipped model is \(type.label)")
+        }
+    }
+
     /// The real ticket-20 upgrade: a store seeded from the version-1 catalog is
     /// reconciled against the shipped one. New models appear, the version-1 ids
     /// keep their identity, and the user's own rows — including an exercise the

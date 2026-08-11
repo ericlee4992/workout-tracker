@@ -103,9 +103,11 @@ enum CatalogSeeder {
         for seed in seeds {
             if let row = byID[seed.id] {
                 guard applyUpdates else { continue }
-                // Allowlisted seeded fields only (D24): name + exercise links.
+                // Allowlisted seeded fields only (D24): name + metadata +
+                // exercise links.
                 setIfChanged(&row.manufacturer, seed.manufacturer)
                 setIfChanged(&row.modelName, seed.modelName)
+                setIfChanged(&row.equipmentType, seed.equipmentType)
                 setIfChanged(
                     &row.exerciseIDs,
                     merged(
@@ -117,6 +119,7 @@ enum CatalogSeeder {
                     manufacturer: seed.manufacturer,
                     modelName: seed.modelName,
                     exerciseIDs: seed.exerciseIDs,
+                    equipmentType: seed.equipmentType,
                     isSeeded: true))
             }
         }

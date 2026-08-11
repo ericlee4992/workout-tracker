@@ -69,7 +69,7 @@ Four levels:
 ## Data model sketch
 
 - `Exercise`: id, name, loadType, equipmentTypeTags, isSeeded, muscle grouping (light)
-- `EquipmentModel`: id, manufacturer, modelName, linked exercise ids, isSeeded (seeded rows keyed by fixed catalog UUIDs; seeding is versioned idempotent reconciliation — D24)
+- `EquipmentModel`: id, manufacturer, modelName, linked exercise ids, equipmentType? (selectorized / plate-loaded / cable / rack-or-Smith / bodyweight station — browsing metadata only, nil = uncategorized), isSeeded (seeded rows keyed by fixed catalog UUIDs; seeding is versioned idempotent reconciliation — D24)
 - `Gym`: id, name, city?, defaultUnit?, notes, archived
 - `MachineInstance`: id, gym, model?, label, defaultUnit?, archived
 - `WorkoutTemplate` / `TemplateItem`: ordered exercises (scalar `order` field), target sets/reps. No rest durations in v1 (D22)
@@ -77,7 +77,7 @@ Four levels:
 - `ExerciseEntry`: workout, exercise, machine?, freeWeightTag?, scalar `order`, per-exercise rest overrides live in preferences, **context snapshot** = stable UUIDs (exercise, machine?, model?, gym?) + loadType + freeWeightTag + display strings (D23). Equipment freezes once the first set completes; changing equipment starts a new entry (D19)
 - `SetRecord`: entry, scalar `order`, type, reps?, weightValue? (optional while draft), weightUnit, normalizedKg?, completedAt? (nil = not completed; only completed sets feed records/volume/prefill)
 - `GymExerciseMemory`: scalar gymID/exerciseID/machineID + updatedAt; app-level upsert, duplicates resolved by latest updatedAt then id (no unique constraints allowed)
-- App-level preferences: unit preference (default from locale measurement system on first launch), drift-prompt suppression, global + per-exercise rest defaults, seeded-catalog version, notification-permission-requested marker
+- App-level preferences: unit preference (default from locale measurement system on first launch), drift-prompt suppression, global + per-exercise rest defaults, seeded-catalog version, notification-permission-requested marker, remembered catalog browsing state (grouping mode + active filters per surface — display only, D23)
 - All relationships optional with explicit inverses; deliberate delete rules (no `deny` — unsupported by CloudKit); ordering always via scalar fields, never implicit to-many order
 - PRs are derived (computed/cached), never source-of-truth records.
 

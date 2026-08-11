@@ -221,6 +221,62 @@ final class CoreLoopUITests: XCTestCase {
         XCTAssertTrue(machineRow.waitForExistence(timeout: 5))
     }
 
+    // MARK: - Ticket 21: reaching one model in a 1887-model catalog
+
+    /// The catalog is far too long to scroll (ticket 20). Filtering it by
+    /// equipment type and searching manufacturer + model together must land on
+    /// the exact machine in seconds — and the filter must actually bite: the
+    /// selectorized "MTS Iso-Lateral Incline Press" answers the same search and
+    /// must be gone while "Plate-loaded" is on.
+    func testModelPickerFiltersAndSearchesDownToOneModel() {
+        let plateLoaded = "Hammer Strength Iso-Lateral Incline Press"
+        let selectorized = "Hammer Strength MTS Iso-Lateral Incline Press"
+
+        createGym()
+        anyElement("gymRow.\(gymName)").tap()
+        app.buttons["addMachine"].tap()
+        XCTAssertTrue(app.textFields["machineLabel"].waitForExistence(timeout: 5))
+        anyElement("catalogModel").tap()
+
+        let browseMenu = anyElement("modelBrowseMenu")
+        XCTAssertTrue(
+            browseMenu.waitForExistence(timeout: 5),
+            "The model picker should offer grouping and filtering")
+        browseMenu.tap()
+        tapMenuItem("Equipment Type")
+        let plateLoadedFilter = anyElement("modelFilter.type.plateLoaded")
+        XCTAssertTrue(
+            plateLoadedFilter.waitForExistence(timeout: 5),
+            "The equipment-type submenu should offer the seeded types")
+        plateLoadedFilter.tap()
+
+        XCTAssertTrue(
+            app.buttons["clearModelFilters"].waitForExistence(timeout: 5),
+            "An active filter should be visible, with a way out of it")
+
+        typeInSearchField("hammer incline")
+
+        let modelRow = anyElement("modelOption.\(plateLoaded)")
+        XCTAssertTrue(
+            modelRow.waitForExistence(timeout: 10),
+            "Searching manufacturer + model should reach the row")
+        XCTAssertFalse(
+            anyElement("modelOption.\(selectorized)").exists,
+            "The equipment-type filter should exclude the selectorized machine")
+
+        modelRow.tap()
+
+        // Back on the machine editor: the pick supplied the label (D3).
+        let save = app.buttons["saveMachine"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertTrue(save.isEnabled, "Picking a model should supply a default label")
+        save.tap()
+
+        XCTAssertTrue(
+            app.staticTexts["Iso-Lateral Incline Press"].waitForExistence(timeout: 5),
+            "The machine picked from the filtered catalog should be listed at the gym")
+    }
+
     // MARK: - B1: within-session carry-forward
 
     /// Ticket 17 B1: the second set of an exercise must not be retyped. Add
@@ -549,6 +605,15 @@ final class CoreLoopUITests: XCTestCase {
     /// for a row, picker, or menu.
     private func anyElement(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    /// Taps a menu entry by label. Menus nest (a submenu button and the
+    /// picker inside it can share a label), so this deliberately takes the
+    /// first match rather than requiring a unique one.
+    private func tapMenuItem(_ label: String) {
+        let item = app.buttons[label].firstMatch
+        XCTAssertTrue(item.waitForExistence(timeout: 5), "No menu item labelled \(label)")
+        item.tap()
     }
 
     /// Taps an option by its visible label, whether it renders as a menu

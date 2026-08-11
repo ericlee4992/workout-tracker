@@ -28,6 +28,10 @@ struct SeedEquipmentModel: Codable {
     var id: UUID
     var manufacturer: String
     var modelName: String
+    /// How the model is loaded (ticket 21). nil where the research did not
+    /// establish it — guessing would put a machine in a group it isn't in.
+    /// Absent from a catalog written before ticket 21 decodes as nil.
+    var equipmentType: EquipmentCategory? = nil
     /// Catalog UUIDs of the exercises this model serves (≥1; multi-exercise
     /// stations list several).
     var exerciseIDs: [UUID]

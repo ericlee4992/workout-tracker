@@ -128,8 +128,11 @@ private struct MachineExerciseList: View {
 
     private var exercises: [Exercise] {
         let base = choice.linked ?? allExercises
-        guard choice.linked == nil, !searchText.isEmpty else { return base }
-        return base.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+        let tokens = CatalogBrowsing.tokens(searchText)
+        guard choice.linked == nil, !tokens.isEmpty else { return base }
+        return base.filter {
+            CatalogBrowsing.matches(CatalogBrowsing.normalize($0.name), tokens: tokens)
+        }
     }
 
     private var trimmedSearch: String {

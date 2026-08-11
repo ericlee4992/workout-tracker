@@ -7,21 +7,58 @@ import SwiftUI
 struct ExercisesView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
+    @Query private var allPreferences: [AppPreferences]
     @State private var searchText = ""
     @State private var showingAddExercise = false
     @State private var renamingExercise: Exercise?
     @State private var renameText = ""
 
+    private var preferences: AppPreferences? {
+        AppPreferences.canonical(of: allPreferences)
+    }
+
+    /// Ticket 21: 74 seeded exercises is past the point of scrolling, so the
+    /// list filters by body area and equipment type. Display state only (D23),
+    /// remembered between visits.
+    private var filter: CatalogExerciseFilter {
+        CatalogExerciseFilter(
+            searchText: searchText,
+            bodyArea: preferences?.exerciseBrowseMuscleGroup,
+            equipmentTag: preferences?.exerciseBrowseEquipmentTag)
+    }
+
+    private var rows: [CatalogExerciseRow] {
+        CatalogBrowsing.exercises(exercises.map(CatalogExerciseRow.init), matching: filter)
+    }
+
+    private var exercisesByID: [UUID: Exercise] {
+        Dictionary(exercises.map { ($0.id, $0) }) { first, _ in first }
+    }
+
+    private var bodyAreas: [String] {
+        CatalogBrowsing.bodyAreasPresent(in: exercises.compactMap(\.muscleGroup))
+    }
+
     private var filtered: [Exercise] {
-        guard !searchText.isEmpty else { return exercises }
-        return exercises.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText)
-        }
+        rows.compactMap { exercisesByID[$0.id] }
     }
 
     var body: some View {
         NavigationStack {
             List {
+                if filter.hasActiveFilters {
+                    Section {
+                        HStack {
+                            Label(filterSummary, systemImage: "line.3.horizontal.decrease.circle.fill")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                            Button("Clear") { clearFilters() }
+                                .font(.caption.weight(.semibold))
+                                .accessibilityIdentifier("clearExerciseFilters")
+                        }
+                    }
+                }
                 Section {
                     ForEach(filtered) { exercise in
                         HStack {
@@ -42,6 +79,11 @@ struct ExercisesView: View {
                             }
                         }
                     }
+                    if filtered.isEmpty {
+                        Text("No exercises match")
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("noExercisesMatch")
+                    }
                     Button("Add Exercise…", systemImage: "plus") {
                         showingAddExercise = true
                     }
@@ -51,6 +93,11 @@ struct ExercisesView: View {
             }
             .searchable(text: $searchText, prompt: "Search exercises")
             .navigationTitle("Exercises")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    filterMenu
+                }
+            }
             .sheet(isPresented: $showingAddExercise) {
                 // Same form the mid-workout pickers open (ticket 19).
                 NewExerciseSheet()
@@ -69,6 +116,69 @@ struct ExercisesView: View {
             } message: { _ in
                 Text("Only your own exercises can be renamed — the built-in catalog is read-only.")
             }
+        }
+    }
+
+    private var filterMenu: some View {
+        Menu {
+            Menu("Body Area") {
+                BrowseMenuOption(title: "All body areas", isSelected: filter.bodyArea == nil) {
+                    write { $0.exerciseBrowseMuscleGroup = nil }
+                }
+                .accessibilityIdentifier("exerciseFilter.bodyArea.all")
+                ForEach(bodyAreas, id: \.self) { area in
+                    BrowseMenuOption(title: area, isSelected: filter.bodyArea == area) {
+                        write { $0.exerciseBrowseMuscleGroup = area }
+                    }
+                    .accessibilityIdentifier("exerciseFilter.bodyArea.\(area)")
+                }
+            }
+            Menu("Equipment Type") {
+                BrowseMenuOption(title: "All types", isSelected: filter.equipmentTag == nil) {
+                    write { $0.exerciseBrowseEquipmentTag = nil }
+                }
+                .accessibilityIdentifier("exerciseFilter.tag.all")
+                ForEach(EquipmentTag.allCases) { tag in
+                    BrowseMenuOption(title: tag.label, isSelected: filter.equipmentTag == tag) {
+                        write { $0.exerciseBrowseEquipmentTag = tag }
+                    }
+                    .accessibilityIdentifier("exerciseFilter.tag.\(tag.rawValue)")
+                }
+            }
+            if filter.hasActiveFilters {
+                Button("Clear Filters", systemImage: "xmark.circle") { clearFilters() }
+            }
+        } label: {
+            Label(
+                "Filter",
+                systemImage: filter.hasActiveFilters
+                    ? "line.3.horizontal.decrease.circle.fill"
+                    : "line.3.horizontal.decrease.circle")
+        }
+        .accessibilityIdentifier("exerciseFilterMenu")
+    }
+
+    private var filterSummary: String {
+        [filter.bodyArea, filter.equipmentTag?.label]
+            .compactMap { $0 }
+            .joined(separator: " · ")
+    }
+
+    private func clearFilters() {
+        write {
+            $0.exerciseBrowseMuscleGroup = nil
+            $0.exerciseBrowseEquipmentTag = nil
+        }
+    }
+
+    private func write(_ change: (AppPreferences) -> Void) {
+        do {
+            let preferences = try AppPreferences.canonical(in: modelContext)
+            change(preferences)
+            preferences.updatedAt = .now
+            try modelContext.save()
+        } catch {
+            assertionFailure("Failed to save exercise filter: \(error)")
         }
     }
 
