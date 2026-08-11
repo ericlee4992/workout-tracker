@@ -18,15 +18,25 @@ enum CatalogSeeder {
     /// something actually changed.
     static func reconcile(_ catalog: SeedCatalog, in context: ModelContext) throws {
         let preferences = try AppPreferences.canonical(in: context)
-        let applyUpdates = catalog.version > preferences.seededCatalogVersion
+        let fingerprint = catalog.fingerprint
 
-        // Fast path (ticket 20: the catalog is ~2000 rows, and this runs on
-        // every launch). With no update to apply, the only work left is
-        // reinserting rows a damaged store is missing — and seeded rows are
-        // only ever inserted from the catalog, keyed by unique catalog UUID, so
-        // "as many seeded rows as the catalog has" means none are missing. A
-        // count query beats materialising every row to diff it.
-        if !applyUpdates, try isFullySeeded(catalog, in: context) {
+        // What the store was last reconciled against. Equal fingerprints mean
+        // the catalog's *content* is unchanged since that run — which the
+        // version number alone cannot say, because a content edit that forgets
+        // the bump (or a rebuilt bundle at the same version) looks identical.
+        let contentAlreadyApplied =
+            preferences.seededCatalogFingerprint == fingerprint
+        let applyUpdates = catalog.version > preferences.seededCatalogVersion
+            || (catalog.version == preferences.seededCatalogVersion && !contentAlreadyApplied)
+
+        // Fast path (ticket 20: the catalog is ~1900 rows and this runs on every
+        // launch). Skipping the diff is only sound when the store still holds
+        // exactly the catalog's seeded rows, so that is what is checked — the
+        // set of seeded ids, not their number. A count check passes a store that
+        // lost one seeded row and gained an unrelated one, and would leave the
+        // lost row missing forever (codex-review-4).
+        if !applyUpdates, contentAlreadyApplied,
+           try seededIdentitiesMatch(catalog, in: context) {
             if context.hasChanges { try context.save() }
             return
         }
@@ -36,6 +46,7 @@ enum CatalogSeeder {
 
         if applyUpdates {
             preferences.seededCatalogVersion = catalog.version
+            preferences.seededCatalogFingerprint = fingerprint
             preferences.updatedAt = .now
         }
         if context.hasChanges {
@@ -43,19 +54,43 @@ enum CatalogSeeder {
         }
     }
 
-    /// Whether the store already holds every seeded row the catalog defines.
-    /// Deliberately a count comparison, not a per-row diff — see `reconcile`.
+    /// Whether the store's seeded rows are exactly the catalog's rows.
+    ///
+    /// Two aggregate queries per entity, no rows materialised: how many seeded
+    /// rows there are, and how many carry an id the catalog does not define.
+    /// Both zero-difference ⇒ every catalog row is present. Fetching the ids
+    /// themselves would be honest too, but materialises ~1950 SwiftData objects
+    /// and costs ~85 ms — the pass this exists to avoid (measured: 0.2 ms for
+    /// the counts, 5 ms for the two id-set queries, 63 ms for a plain fetch).
+    ///
+    /// Residual: a store holding *two* copies of one seeded row and missing
+    /// another passes both checks. Nothing in the app can produce that — the
+    /// reconciler inserts only by missing id — and it would take a CloudKit
+    /// merge conflict (no unique constraints, T2). The old count-only check, by
+    /// contrast, passed for any deletion balanced by any insertion, which is
+    /// what a partially restored backup looks like (codex-review-4).
+    ///
     /// A store seeded from a *newer* catalog than the bundle (an app downgrade)
-    /// has more seeded rows than this catalog, which fails the check and falls
-    /// through to the full pass; that pass then finds every row present and
-    /// changes nothing.
-    private static func isFullySeeded(_ catalog: SeedCatalog, in context: ModelContext) throws -> Bool {
-        let seededExercises = try context.fetchCount(
-            FetchDescriptor<Exercise>(predicate: #Predicate { $0.isSeeded }))
-        guard seededExercises == catalog.exercises.count else { return false }
-        let seededModels = try context.fetchCount(
-            FetchDescriptor<EquipmentModel>(predicate: #Predicate { $0.isSeeded }))
-        return seededModels == catalog.equipmentModels.count
+    /// holds ids this catalog does not define, fails the check, and falls
+    /// through to the full pass; that pass finds every row present and, since
+    /// `applyUpdates` is false, changes nothing.
+    private static func seededIdentitiesMatch(
+        _ catalog: SeedCatalog, in context: ModelContext
+    ) throws -> Bool {
+        guard try context.fetchCount(
+                FetchDescriptor<Exercise>(predicate: #Predicate { $0.isSeeded }))
+                == catalog.exercises.count,
+              try context.fetchCount(
+                FetchDescriptor<EquipmentModel>(predicate: #Predicate { $0.isSeeded }))
+                == catalog.equipmentModels.count
+        else { return false }
+
+        let exerciseIDs = Set(catalog.exercises.map(\.id))
+        let modelIDs = Set(catalog.equipmentModels.map(\.id))
+        return try context.fetchCount(FetchDescriptor<Exercise>(
+            predicate: #Predicate { $0.isSeeded && !exerciseIDs.contains($0.id) })) == 0
+            && context.fetchCount(FetchDescriptor<EquipmentModel>(
+                predicate: #Predicate { $0.isSeeded && !modelIDs.contains($0.id) })) == 0
     }
 
     // MARK: Per-entity reconciliation

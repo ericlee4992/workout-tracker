@@ -504,6 +504,33 @@ struct MachineEditorSheet: View {
     }
 }
 
+extension View {
+    /// Runs `action` whenever a store save touched the catalog (equipment
+    /// models or exercises) — the invalidation signal for a cached
+    /// `CatalogModelIndex`. Rebuilding on `models.count` alone left a rename,
+    /// an `equipmentType` change, a link change or a muscle-group edit invisible
+    /// until the view was recreated (codex-review-4); rebuilding on every body
+    /// evaluation would cost a full index build per keystroke.
+    func onCatalogChange(_ action: @escaping () -> Void) -> some View {
+        onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { note in
+            let touched = [
+                ModelContext.NotificationKey.insertedIdentifiers,
+                ModelContext.NotificationKey.updatedIdentifiers,
+                ModelContext.NotificationKey.deletedIdentifiers,
+            ].flatMap { key -> [PersistentIdentifier] in
+                note.userInfo?[key.rawValue] as? [PersistentIdentifier] ?? []
+            }
+            // A save whose payload cannot be read is treated as a change: a
+            // missed rebuild shows stale rows, a spare one costs milliseconds.
+            let unreadable = touched.isEmpty
+            if unreadable || CatalogIndexInvalidation
+                .touchesCatalog(entityNames: touched.map(\.entityName)) {
+                action()
+            }
+        }
+    }
+}
+
 /// Picker over the whole equipment-model catalog (seeded + user). With ~1900
 /// seeded models (ticket 20) a flat A–Z list is unusable, so this is the
 /// screen ticket 21 is really about: grouped (manufacturer / body area /
@@ -613,7 +640,10 @@ struct ModelPickerView: View {
                 browseMenu
             }
         }
+        // `initial: true` is what builds the index for the first frame; the
+        // count is no longer the invalidation signal — see `onCatalogChange`.
         .onChange(of: models.count, initial: true) { _, _ in rebuildIndex() }
+        .onCatalogChange { rebuildIndex() }
         .sheet(isPresented: $showingAddModel) {
             AddModelSheet { newModel in
                 selection = newModel

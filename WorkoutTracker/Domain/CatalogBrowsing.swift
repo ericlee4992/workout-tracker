@@ -407,6 +407,28 @@ enum CatalogBrowsing {
     }
 }
 
+// MARK: - Index invalidation
+
+/// When a cached `CatalogModelIndex` has gone stale.
+///
+/// The index is a *snapshot* of the catalog rows, so anything reconciliation or
+/// the user can change about those rows invalidates it: a rename, an
+/// `equipmentType` change, an exercise link change, an exercise's muscle group.
+/// Watching the row count catches none of those (codex-review-4), and hashing
+/// ~1900 SwiftData rows on every body evaluation would cost more than the
+/// rebuild it is trying to avoid — this screen re-evaluates on each keystroke.
+/// So invalidation is driven by which entities a store save actually touched.
+enum CatalogIndexInvalidation {
+
+    /// Entities the index reads. `Exercise` counts because a model's body areas
+    /// come from its linked exercises' muscle groups.
+    static let watchedEntities: Set<String> = ["EquipmentModel", "Exercise"]
+
+    static func touchesCatalog(entityNames: some Sequence<String>) -> Bool {
+        entityNames.contains { watchedEntities.contains($0) }
+    }
+}
+
 // MARK: - Building the value types from persisted rows
 
 // The single boundary between SwiftData and browsing. Building an index reads

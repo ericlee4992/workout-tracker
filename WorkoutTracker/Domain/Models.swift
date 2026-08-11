@@ -415,6 +415,14 @@ final class AppPreferences {
     var globalWarmupRestSeconds: Int = 60
     /// Version of the seeded catalog last reconciled (D24).
     var seededCatalogVersion: Int = 0
+    /// Fingerprint of the catalog *content* last reconciled (D24): ids plus
+    /// every allowlisted mutable field. The version alone cannot tell a
+    /// same-version content change from a no-op, and a row count cannot tell a
+    /// healthy store from one row deleted and another inserted. Optional so a
+    /// store written before this field existed migrates lightweightly — nil
+    /// simply means "unknown", which costs one full reconcile. Added by
+    /// codex-review-4 (noted in ticket 02).
+    var seededCatalogFingerprint: String?
     /// Whether notification permission has been requested (rest-timer alerts).
     var notificationPermissionRequested: Bool = false
     /// Gym the Start screen is set to, remembered across launches (D1,
@@ -444,6 +452,7 @@ final class AppPreferences {
         globalWorkingRestSeconds: Int = 120,
         globalWarmupRestSeconds: Int = 60,
         seededCatalogVersion: Int = 0,
+        seededCatalogFingerprint: String? = nil,
         notificationPermissionRequested: Bool = false,
         selectedGymID: UUID? = nil,
         modelBrowseGrouping: CatalogGrouping? = nil,
@@ -460,6 +469,7 @@ final class AppPreferences {
         self.globalWorkingRestSeconds = globalWorkingRestSeconds
         self.globalWarmupRestSeconds = globalWarmupRestSeconds
         self.seededCatalogVersion = seededCatalogVersion
+        self.seededCatalogFingerprint = seededCatalogFingerprint
         self.notificationPermissionRequested = notificationPermissionRequested
         self.selectedGymID = selectedGymID
         self.modelBrowseGrouping = modelBrowseGrouping

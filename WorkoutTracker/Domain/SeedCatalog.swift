@@ -4,6 +4,37 @@ import Foundation
 // catalog UUIDs for seeded exercises and equipment models. CatalogSeeder
 // reconciles it into the SwiftData store on every launch.
 
+/// 64-bit FNV-1a — a deterministic, process-independent hash (Swift's `Hasher`
+/// is randomly seeded per process, so its values cannot be persisted).
+struct FNV1a {
+    private(set) var value: UInt64 = 0xcbf2_9ce4_8422_2325
+    private static let prime: UInt64 = 0x1000_0000_01b3
+
+    /// Absorbs one field. A trailing separator byte keeps ("ab", "c") and
+    /// ("a", "bc") distinct — otherwise a rename could hash to its neighbour.
+    mutating func combine(_ field: String) {
+        for byte in field.utf8 {
+            value = (value ^ UInt64(byte)) &* Self.prime
+        }
+        endField()
+    }
+
+    /// UUIDs by their 16 raw bytes rather than their 36-character string: the
+    /// catalog carries ~4000 of them and this runs on every launch.
+    mutating func combine(_ field: UUID) {
+        withUnsafeBytes(of: field.uuid) { bytes in
+            for byte in bytes {
+                value = (value ^ UInt64(byte)) &* Self.prime
+            }
+        }
+        endField()
+    }
+
+    private mutating func endField() {
+        value = (value ^ 0xff) &* Self.prime
+    }
+}
+
 struct SeedCatalog: Codable {
     /// Monotonically increasing catalog version. Reconciliation updates
     /// allowlisted fields of existing seeded rows only when this exceeds
@@ -38,6 +69,36 @@ struct SeedEquipmentModel: Codable {
 }
 
 extension SeedCatalog {
+
+    /// Fingerprint of everything reconciliation writes: the version, every
+    /// row's fixed UUID, and every allowlisted mutable field (D24). Two
+    /// catalogs with the same fingerprint reconcile to the same store, so
+    /// `CatalogSeeder` can skip the diff when the stored fingerprint matches —
+    /// and, crucially, cannot skip it when the content changed without the
+    /// version changing.
+    ///
+    /// FNV-1a rather than `Hasher`: the value is persisted across launches and
+    /// Swift's `Hasher` is seeded per process, so its output is not stable.
+    var fingerprint: String {
+        var hash = FNV1a()
+        hash.combine(String(version))
+        for exercise in exercises {
+            hash.combine(exercise.id)
+            hash.combine(exercise.name)
+            hash.combine(exercise.loadType.rawValue)
+            for tag in exercise.equipmentTypeTags { hash.combine(tag.rawValue) }
+            hash.combine(exercise.muscleGroup ?? "")
+        }
+        for model in equipmentModels {
+            hash.combine(model.id)
+            hash.combine(model.manufacturer)
+            hash.combine(model.modelName)
+            hash.combine(model.equipmentType?.rawValue ?? "")
+            for id in model.exerciseIDs { hash.combine(id) }
+        }
+        return String(hash.value, radix: 16)
+    }
+
     enum LoadError: Error {
         case resourceMissing
     }

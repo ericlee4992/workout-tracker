@@ -412,4 +412,82 @@ struct CatalogBrowsingTests {
         #expect(!narrowed.isEmpty)
         #expect(narrowed.count < 60)
     }
+
+    // MARK: Index invalidation
+
+    /// The picker caches the whole catalog as value types, so it has to be told
+    /// when the rows behind it change. Rebuilding on `models.count` missed every
+    /// change that keeps the count: a rename, an `equipmentType` change, a link
+    /// change, a muscle-group edit (codex-review-4). The signal is now which
+    /// entities a store save touched.
+    @Test func catalogIndexInvalidatesOnCatalogEntitiesOnly() {
+        #expect(CatalogIndexInvalidation.touchesCatalog(entityNames: ["EquipmentModel"]))
+        #expect(CatalogIndexInvalidation.touchesCatalog(entityNames: ["Exercise"]))
+        // An exercise edit counts: a model's body areas come from its links.
+        #expect(CatalogIndexInvalidation.touchesCatalog(
+            entityNames: ["SetRecord", "Exercise"]))
+        // Saving a browsing preference or a logged set must not rebuild 1900 rows.
+        #expect(!CatalogIndexInvalidation.touchesCatalog(
+            entityNames: ["AppPreferences", "SetRecord", "Workout"]))
+        #expect(!CatalogIndexInvalidation.touchesCatalog(entityNames: []))
+    }
+
+    /// The signal the picker subscribes to really carries what the rule reads:
+    /// a save that renames a seeded model announces `EquipmentModel`. If
+    /// SwiftData ever stops publishing these identifiers this test fails rather
+    /// than the picker silently going stale again.
+    @Test func storeSavesAnnounceTheEntitiesTheyTouched() async throws {
+        let schema = WorkoutTrackerStore.schema
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        let context = ModelContext(container)
+        let model = EquipmentModel(
+            manufacturer: "Nautilus", modelName: "Impact Shoulder Press",
+            exerciseIDs: [], isSeeded: true)
+        context.insert(model)
+        try context.save()
+
+        let names: [String] = await withCheckedContinuation { continuation in
+            let token = NotificationCenter.default.addObserver(
+                forName: ModelContext.didSave, object: nil, queue: nil
+            ) { note in
+                let identifiers = [
+                    ModelContext.NotificationKey.insertedIdentifiers,
+                    ModelContext.NotificationKey.updatedIdentifiers,
+                    ModelContext.NotificationKey.deletedIdentifiers,
+                ].flatMap { key -> [PersistentIdentifier] in
+                    note.userInfo?[key.rawValue] as? [PersistentIdentifier] ?? []
+                }
+                continuation.resume(returning: identifiers.map(\.entityName))
+            }
+            model.modelName = "Impact Strength Shoulder Press"
+            try? context.save()
+            NotificationCenter.default.removeObserver(token)
+        }
+
+        #expect(names.contains("EquipmentModel"))
+        #expect(CatalogIndexInvalidation.touchesCatalog(entityNames: names))
+    }
+
+    /// The index is a snapshot: once built it cannot see an edit, which is why
+    /// invalidation has to be content-sensitive rather than count-sensitive.
+    @Test func rebuildingTheIndexPicksUpARenameThatKeepsTheCount() {
+        let id = UUID()
+        func index(named name: String, type: EquipmentCategory?) -> CatalogModelIndex {
+            CatalogModelIndex(rows: [
+                CatalogModelRow(id: id, manufacturer: "Nautilus", modelName: name,
+                                equipmentType: type, bodyAreas: ["Shoulders"])
+            ])
+        }
+        let before = index(named: "Impact Strength Shoulder Press", type: .selectorized)
+        let after = index(named: "Impact Shoulder Press", type: .plateLoaded)
+
+        #expect(before.rows.count == after.rows.count)
+        #expect(CatalogBrowsing.models(
+            before.rows, matching: CatalogModelFilter(searchText: "impact strength")).count == 1)
+        #expect(CatalogBrowsing.models(
+            after.rows, matching: CatalogModelFilter(searchText: "impact strength")).isEmpty)
+        #expect(before.equipmentTypes != after.equipmentTypes)
+    }
 }

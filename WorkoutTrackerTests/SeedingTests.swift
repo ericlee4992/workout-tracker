@@ -94,8 +94,11 @@ struct SeedingTests {
         let catalog = try SeedCatalog.bundled()
 
         #expect(catalog.version >= 2)
-        #expect(catalog.exercises.count >= 74)
-        #expect(catalog.equipmentModels.count >= 1887)
+        #expect(catalog.exercises.count >= 76)
+        // 1877 = ticket 20's 1887 minus the ten duplicate identities version 4
+        // merged onto their older UUID. The catalog may only shrink through a
+        // declared merge (RENAMED_MODELS in the generator).
+        #expect(catalog.equipmentModels.count >= 1877)
         #expect(Set(catalog.equipmentModels.map(\.manufacturer)).count >= 23)
 
         // A model name is the identity history and records are keyed on (D23),
@@ -165,32 +168,66 @@ struct SeedingTests {
         ("5EED0001-0000-4000-8000-000000000012", "Dip"),
     ]
 
-    private let version1ModelIDs: [(String, String, String)] = [
-        ("5EED0002-0000-4000-8000-000000000001", "Life Fitness", "Insignia Series Chest Press"),
-        ("5EED0002-0000-4000-8000-000000000002", "Life Fitness", "Signature Series Shoulder Press"),
-        ("5EED0002-0000-4000-8000-000000000003", "Life Fitness", "Signature Series Lat Pulldown"),
+    /// (id, manufacturer, the name shipped in version 1, the name today).
+    ///
+    /// The **id** is the invariant: every logged set, record and template
+    /// reference resolves through it. The **name** is an allowlisted mutable
+    /// field (D24) — version 4 merged ten rows that turned out to describe a
+    /// machine the researched catalog also listed, keeping the older id and
+    /// taking the researched name, and corrected three names the research could
+    /// verify verbatim (codex-review-4). Both columns are kept so a future
+    /// rename is a deliberate edit here, not a silent drift.
+    private let version1ModelIDs: [(String, String, String, String)] = [
+        ("5EED0002-0000-4000-8000-000000000001", "Life Fitness",
+         "Insignia Series Chest Press", "Insignia Series Chest Press"),
+        ("5EED0002-0000-4000-8000-000000000002", "Life Fitness",
+         "Signature Series Shoulder Press", "Signature Series Shoulder Press"),
+        ("5EED0002-0000-4000-8000-000000000003", "Life Fitness",
+         "Signature Series Lat Pulldown", "Signature Series Pulldown"),
         ("5EED0002-0000-4000-8000-000000000004", "Life Fitness",
-         "Signature Series Cable Motion Dual Adjustable Pulley"),
-        ("5EED0002-0000-4000-8000-000000000005", "Hammer Strength", "MTS Iso-Lateral Chest Press"),
-        ("5EED0002-0000-4000-8000-000000000006", "Hammer Strength", "Plate-Loaded Seated Row"),
-        ("5EED0002-0000-4000-8000-000000000007", "Hammer Strength", "Select Leg Press"),
-        ("5EED0002-0000-4000-8000-000000000008", "Technogym", "Selection 900 Lat Pulldown"),
-        ("5EED0002-0000-4000-8000-000000000009", "Technogym", "Selection 900 Chest Press"),
-        ("5EED0002-0000-4000-8000-000000000010", "Technogym", "Cable Stations Dual Adjustable Pulley"),
-        ("5EED0002-0000-4000-8000-000000000011", "Precor", "Vitality Series Seated Row"),
-        ("5EED0002-0000-4000-8000-000000000012", "Precor", "Resolute Series Leg Press"),
-        ("5EED0002-0000-4000-8000-000000000013", "Precor", "Discovery Series Shoulder Press"),
-        ("5EED0002-0000-4000-8000-000000000014", "Cybex", "Eagle NX Leg Press"),
-        ("5EED0002-0000-4000-8000-000000000015", "Cybex", "Eagle NX Chest Press"),
-        ("5EED0002-0000-4000-8000-000000000016", "Cybex", "Bravo Functional Trainer"),
-        ("5EED0002-0000-4000-8000-000000000017", "Matrix", "Ultra Series Assisted Chin/Dip"),
-        ("5EED0002-0000-4000-8000-000000000018", "Matrix", "Versa Series Chest Press"),
-        ("5EED0002-0000-4000-8000-000000000019", "Matrix", "Aura Series Seated Row"),
-        ("5EED0002-0000-4000-8000-000000000020", "Matrix", "Magnum Smith Machine"),
-        ("5EED0002-0000-4000-8000-000000000021", "Nautilus", "Impact Strength Shoulder Press"),
-        ("5EED0002-0000-4000-8000-000000000022", "Nautilus", "Impact Strength Leg Press"),
-        ("5EED0002-0000-4000-8000-000000000023", "Hoist", "ROC-IT Lat Pulldown"),
-        ("5EED0002-0000-4000-8000-000000000024", "Hoist", "Mi7 Functional Trainer"),
+         "Signature Series Cable Motion Dual Adjustable Pulley",
+         "Signature Series Dual Adjustable Pulley"),
+        ("5EED0002-0000-4000-8000-000000000005", "Hammer Strength",
+         "MTS Iso-Lateral Chest Press", "MTS Iso-Lateral Chest Press"),
+        ("5EED0002-0000-4000-8000-000000000006", "Hammer Strength",
+         "Plate-Loaded Seated Row", "Plate-Loaded Seated Row"),
+        ("5EED0002-0000-4000-8000-000000000007", "Hammer Strength",
+         "Select Leg Press", "Select Seated Leg Press"),
+        ("5EED0002-0000-4000-8000-000000000008", "Technogym",
+         "Selection 900 Lat Pulldown", "Selection 900 Lat Pulldown"),
+        ("5EED0002-0000-4000-8000-000000000009", "Technogym",
+         "Selection 900 Chest Press", "Selection 900 Chest Press"),
+        ("5EED0002-0000-4000-8000-000000000010", "Technogym",
+         "Cable Stations Dual Adjustable Pulley", "Cable Stations Dual Adjustable Pulley"),
+        ("5EED0002-0000-4000-8000-000000000011", "Precor",
+         "Vitality Series Seated Row", "Vitality Seated Row (VSL019BP)"),
+        ("5EED0002-0000-4000-8000-000000000012", "Precor",
+         "Resolute Series Leg Press", "Resolute Leg Press (RSL0602)"),
+        ("5EED0002-0000-4000-8000-000000000013", "Precor",
+         "Discovery Series Shoulder Press",
+         "Discovery Plate Loaded Shoulder Press (DPL0550)"),
+        ("5EED0002-0000-4000-8000-000000000014", "Cybex",
+         "Eagle NX Leg Press", "Eagle NX Leg Press"),
+        ("5EED0002-0000-4000-8000-000000000015", "Cybex",
+         "Eagle NX Chest Press", "Eagle NX Chest Press"),
+        ("5EED0002-0000-4000-8000-000000000016", "Cybex",
+         "Bravo Functional Trainer", "Bravo Functional Trainer"),
+        ("5EED0002-0000-4000-8000-000000000017", "Matrix",
+         "Ultra Series Assisted Chin/Dip", "Ultra Series Assisted Chin/Dip"),
+        ("5EED0002-0000-4000-8000-000000000018", "Matrix",
+         "Versa Series Chest Press", "VS-S13 Converging Chest Press"),
+        ("5EED0002-0000-4000-8000-000000000019", "Matrix",
+         "Aura Series Seated Row", "G3-S31 Seated Row"),
+        ("5EED0002-0000-4000-8000-000000000020", "Matrix",
+         "Magnum Smith Machine", "MG-PL62 Smith Machine"),
+        ("5EED0002-0000-4000-8000-000000000021", "Nautilus",
+         "Impact Strength Shoulder Press", "Impact Shoulder Press"),
+        ("5EED0002-0000-4000-8000-000000000022", "Nautilus",
+         "Impact Strength Leg Press", "Impact Seated Leg Press"),
+        ("5EED0002-0000-4000-8000-000000000023", "Hoist",
+         "ROC-IT Lat Pulldown", "Lat Pulldown RS-2201"),
+        ("5EED0002-0000-4000-8000-000000000024", "Hoist",
+         "Mi7 Functional Trainer", "Mi7 Functional Training System Mi-7-MB"),
     ]
 
     /// Every id shipped in catalog version 1 is still in the bundled catalog,
@@ -206,11 +243,22 @@ struct SeedingTests {
             let exercise = try #require(exercisesByID[id], "exercise id \(rawID) is gone")
             #expect(exercise.name == name, "exercise id \(rawID) now names \(exercise.name)")
         }
-        for (rawID, manufacturer, modelName) in version1ModelIDs {
+        for (rawID, manufacturer, version1Name, currentName) in version1ModelIDs {
             let id = try #require(UUID(uuidString: rawID))
             let model = try #require(modelsByID[id], "model id \(rawID) is gone")
             #expect(model.manufacturer == manufacturer)
-            #expect(model.modelName == modelName, "model id \(rawID) now names \(model.modelName)")
+            #expect(model.modelName == currentName,
+                    "model id \(rawID) (v1: \(version1Name)) now names \(model.modelName)")
+        }
+
+        // A merged-away duplicate's id is retired, never reissued: the machine
+        // it named is reachable only through the surviving version-1 id.
+        let retired = [169, 225, 239, 255, 376, 389, 634, 651, 697, 1404].map {
+            String(format: "5EED0002-0000-4000-8000-%012d", $0)
+        }
+        for rawID in retired {
+            let id = try #require(UUID(uuidString: rawID))
+            #expect(modelsByID[id] == nil, "retired model id \(rawID) is back")
         }
 
         // Ids come from two dense sequences, so the version-1 range is fully
@@ -379,6 +427,120 @@ struct SeedingTests {
         #expect(userModel.equipmentType == .rackOrSmith)
     }
 
+    /// No two catalog rows may describe the same real machine. D23 keys
+    /// history, records and the same-model-elsewhere layer on the model UUID,
+    /// so a duplicated identity silently splits a user's own history the day
+    /// they pick the other row. Byte-identical names are not the failure mode —
+    /// the version-2 catalog shipped "Impact Strength Shoulder Press" *and*
+    /// "Impact Shoulder Press", "Aura Series Seated Row" *and* "G3-S31 Seated
+    /// Row" — so this compares identities with line words and model codes
+    /// removed. `scripts/generate_seed_catalog.py` enforces a stricter version
+    /// of the same rule at generation time (codex-review-4).
+    @Test func bundledCatalogHasNoNearDuplicateIdentities() throws {
+        let catalog = try SeedCatalog.bundled()
+        var byManufacturer: [String: [(name: String, identity: ModelIdentity)]] = [:]
+        for model in catalog.equipmentModels {
+            byManufacturer[model.manufacturer, default: []]
+                .append((model.modelName, ModelIdentity(model.manufacturer, model.modelName)))
+        }
+
+        for (manufacturer, rows) in byManufacturer {
+            for outer in rows.indices {
+                for inner in rows.indices where inner > outer {
+                    let a = rows[outer], b = rows[inner]
+                    // A manufacturer's own model code is an identity: rows
+                    // carrying different codes are different products however
+                    // alike they read. Only an under-specified row (no code)
+                    // can be an alias of another row.
+                    guard a.identity.codes.isEmpty || b.identity.codes.isEmpty else { continue }
+                    #expect(a.identity.words != b.identity.words,
+                            """
+                            \(manufacturer): "\(a.name)" and "\(b.name)" are one \
+                            identity. Merge them onto the older UUID in \
+                            scripts/generate_seed_catalog.py (RENAMED_MODELS).
+                            """)
+                }
+            }
+        }
+    }
+
+    /// A model name split into its model codes and its identity words.
+    /// Mirrors `identity_tokens` in scripts/generate_seed_catalog.py.
+    private struct ModelIdentity {
+        let codes: Set<String>
+        let words: Set<String>
+
+        /// Words that name a *line*, never a machine, and that sources write
+        /// inconsistently ("Impact Strength Shoulder Press" / "Impact Shoulder
+        /// Press").
+        private static let noise: Set<String> = ["series", "line", "strength", "the"]
+        /// Matrix writes its lines as a code prefix (research-confirmed).
+        private static let matrixLines = [
+            "g3": "aura", "g7": "ultra", "vs": "versa",
+            "mg": "magnum", "go": "go", "vy": "varsity", "g1": "varsity",
+        ]
+
+        init(_ manufacturer: String, _ modelName: String) {
+            var codes: Set<String> = [], words: Set<String> = []
+            let separators = CharacterSet(charactersIn: " /(),|·")
+            for raw in modelName.components(separatedBy: separators) {
+                let token = raw.trimmingCharacters(in: CharacterSet(charactersIn: "-–.:"))
+                    .lowercased()
+                guard !token.isEmpty else { continue }
+                let head = token.components(separatedBy: "-")[0]
+                if manufacturer == "Matrix", token.contains("-"),
+                   let line = Self.matrixLines[head] {
+                    words.insert(line)
+                    codes.insert(token)
+                } else if token.contains(where: \.isNumber) {
+                    codes.insert(token)
+                } else {
+                    for word in token.components(separatedBy: "-")
+                    where !word.isEmpty && !Self.noise.contains(word) {
+                        words.insert(word)
+                    }
+                }
+            }
+            self.codes = codes
+            self.words = words
+        }
+    }
+
+    /// Load type is a property of the machine's mechanism, and records are
+    /// computed from it (D20): a decline ab bench or a Roman chair logged under
+    /// the *weighted* machine exercise gets weight×reps volume and a Brzycki
+    /// e1RM for a movement carrying no external load. Version 4 split
+    /// "Bench Crunch" and "Hyperextension" off for exactly this.
+    @Test func bodyweightStationsLinkBodyweightExercises() throws {
+        let catalog = try SeedCatalog.bundled()
+        let byID = Dictionary(uniqueKeysWithValues: catalog.exercises.map { ($0.id, $0) })
+
+        // The one row whose mechanism the research did not establish: Rogue's
+        // Floor Glute sits in a bodyweight-typed section but is loaded.
+        let unestablished: Set<String> = ["Floor Glute"]
+
+        for model in catalog.equipmentModels
+        where model.equipmentType == .bodyweight && !unestablished.contains(model.modelName) {
+            for id in model.exerciseIDs {
+                let exercise = try #require(byID[id])
+                #expect(exercise.loadType != .weighted,
+                        """
+                        \(model.manufacturer) \(model.modelName) links weighted \
+                        \(exercise.name) — a bodyweight station needs a \
+                        bodyweight movement (D20)
+                        """)
+            }
+        }
+
+        // And the split actually shipped, on enough rows to matter.
+        for name in ["Bench Crunch", "Hyperextension"] {
+            let exercise = try #require(catalog.exercises.first { $0.name == name })
+            #expect(exercise.loadType == .bodyweightPlus)
+            let linked = catalog.equipmentModels.filter { $0.exerciseIDs.contains(exercise.id) }
+            #expect(linked.count >= 8, "\(name) is linked by only \(linked.count) models")
+        }
+    }
+
     /// The shipped catalog classifies effectively every model, and never with
     /// a value the app cannot render.
     @Test func shippedModelsCarryAnEquipmentType() throws {
@@ -404,10 +566,15 @@ struct SeedingTests {
             exercises: shipped.exercises.filter { legacyExerciseIDs.contains($0.id) },
             equipmentModels: shipped.equipmentModels
                 .filter { legacyModelIDs.contains($0.id) }
-                .map {
+                .map { model in
                     SeedEquipmentModel(
-                        id: $0.id, manufacturer: $0.manufacturer, modelName: $0.modelName,
-                        exerciseIDs: $0.exerciseIDs.filter(legacyExerciseIDs.contains))
+                        id: model.id, manufacturer: model.manufacturer,
+                        // The name as version 1 shipped it — this store is the
+                        // phone's, seeded before the merges and renames.
+                        modelName: version1ModelIDs
+                            .first { UUID(uuidString: $0.0) == model.id }?.2
+                            ?? model.modelName,
+                        exerciseIDs: model.exerciseIDs.filter(legacyExerciseIDs.contains))
                 })
         #expect(version1.exercises.count == 12)
         #expect(version1.equipmentModels.count == 24)
@@ -446,11 +613,14 @@ struct SeedingTests {
         // Version-1 ids still resolve to the same machines.
         let models = try context.fetch(FetchDescriptor<EquipmentModel>())
         let modelsByID = Dictionary(uniqueKeysWithValues: models.map { ($0.id, $0) })
-        for (rawID, manufacturer, modelName) in version1ModelIDs {
+        for (rawID, manufacturer, _version1Name, currentName) in version1ModelIDs {
             let id = try #require(UUID(uuidString: rawID))
             let row = try #require(modelsByID[id])
             #expect(row.manufacturer == manufacturer)
-            #expect(row.modelName == modelName)
+            // Renamed in place where version 4 merged a duplicate onto this id:
+            // the machine keeps the UUID its sets are keyed on (D23) and gains
+            // the researched name (D24 allowlist).
+            #expect(row.modelName == currentName)
             #expect(row.isSeeded)
         }
         let exercises = try context.fetch(FetchDescriptor<Exercise>())
@@ -480,6 +650,99 @@ struct SeedingTests {
         #expect(rewritten.exerciseIDs.last == userExerciseID)
     }
 
+    /// The fast path must not be foolable by a store whose *count* is right.
+    /// Delete one seeded model and insert an unrelated `isSeeded` row: the old
+    /// count check saw 1877 == 1877 and returned, leaving the deleted machine
+    /// missing from the catalog forever (codex-review-4). Reconciliation is
+    /// keyed on ids, so the check has to be too.
+    @Test func countPreservingCorruptionStillHeals() throws {
+        let catalog = try SeedCatalog.bundled()
+        let container = try makeInMemoryContainer()
+        let context = ModelContext(container)
+        try CatalogSeeder.reconcile(catalog, in: context)
+
+        let victim = try #require(try context.fetch(
+            FetchDescriptor<EquipmentModel>(
+                predicate: #Predicate { $0.isSeeded })).first)
+        let victimID = victim.id
+        let victimName = victim.modelName
+        context.delete(victim)
+        // An impostor carrying the seeded flag but no catalog identity — what a
+        // half-finished sync or a restored backup can leave behind.
+        context.insert(EquipmentModel(
+            id: UUID(), manufacturer: "Ghost", modelName: "Impostor",
+            exerciseIDs: [catalog.exercises[0].id], isSeeded: true))
+        try context.save()
+
+        // The trap: counts match, so a count-based fast path sees nothing wrong.
+        let seededCount = try context.fetchCount(
+            FetchDescriptor<EquipmentModel>(predicate: #Predicate { $0.isSeeded }))
+        #expect(seededCount == catalog.equipmentModels.count)
+
+        try CatalogSeeder.reconcile(catalog, in: context)
+
+        let restored = try context.fetch(
+            FetchDescriptor<EquipmentModel>(predicate: #Predicate { $0.id == victimID }))
+        #expect(restored.count == 1, "\(victimName) was not restored")
+        #expect(restored.first?.modelName == victimName)
+        // Rows the catalog no longer defines are never deleted (D24): a
+        // historical reference must keep resolving.
+        #expect(try context.fetchCount(FetchDescriptor<EquipmentModel>(
+            predicate: #Predicate { $0.modelName == "Impostor" })) == 1)
+    }
+
+    /// Same version, different content — a catalog edited without a bump, or a
+    /// rebuilt bundle. The version comparison alone called that a no-op and left
+    /// the store on the old strings; the content fingerprint catches it.
+    @Test func sameVersionContentChangeIsApplied() throws {
+        let container = try makeInMemoryContainer()
+        let context = ModelContext(container)
+        try CatalogSeeder.reconcile(catalogV1(), in: context)
+
+        var edited = catalogV1()          // same version number
+        edited.exercises[0].name = "Chest Press (Converging)"
+        edited.equipmentModels[0].modelName = "Insignia Series Chest Press"
+        try CatalogSeeder.reconcile(edited, in: context)
+
+        let exercise = try #require(try context.fetch(
+            FetchDescriptor<Exercise>(predicate: #Predicate { $0.id == exerciseAID })).first)
+        #expect(exercise.name == "Chest Press (Converging)")
+        let model = try #require(try context.fetch(
+            FetchDescriptor<EquipmentModel>(predicate: #Predicate { $0.id == modelXID })).first)
+        #expect(model.modelName == "Insignia Series Chest Press")
+        #expect(try storedVersion(in: context) == 1)
+    }
+
+    /// The fingerprint has to cover everything reconciliation writes and be
+    /// stable across processes (it is persisted between launches).
+    @Test func fingerprintCoversEveryReconciledField() throws {
+        let base = catalogV2()
+        #expect(base.fingerprint == catalogV2().fingerprint)
+
+        func mutated(_ change: (inout SeedCatalog) -> Void) -> String {
+            var copy = catalogV2()
+            change(&copy)
+            return copy.fingerprint
+        }
+        #expect(mutated { $0.version += 1 } != base.fingerprint)
+        #expect(mutated { $0.exercises[0].name += "!" } != base.fingerprint)
+        #expect(mutated { $0.exercises[0].loadType = .assisted } != base.fingerprint)
+        #expect(mutated { $0.exercises[0].muscleGroup = "Neck" } != base.fingerprint)
+        #expect(mutated { $0.exercises[0].equipmentTypeTags = [.cable] } != base.fingerprint)
+        #expect(mutated { $0.equipmentModels[0].manufacturer += "!" } != base.fingerprint)
+        #expect(mutated { $0.equipmentModels[0].modelName += "!" } != base.fingerprint)
+        #expect(mutated { $0.equipmentModels[0].equipmentType = .cable } != base.fingerprint)
+        #expect(mutated { $0.equipmentModels[0].exerciseIDs.reverse() } != base.fingerprint)
+        #expect(mutated { $0.equipmentModels.removeLast() } != base.fingerprint)
+
+        // Field boundaries are hashed, so moving a character between adjacent
+        // fields is not the same catalog.
+        var shifted = catalogV2()
+        shifted.equipmentModels[0].manufacturer = "Life Fitnes"
+        shifted.equipmentModels[0].modelName = "sInsignia Chest Press"
+        #expect(shifted.fingerprint != base.fingerprint)
+    }
+
     /// The reconciler runs on every launch against ~1900 rows. Once the store is
     /// seeded at the current version there is nothing to do, and the fast path
     /// must make that nothing cheap rather than diffing every row.
@@ -492,8 +755,15 @@ struct SeedingTests {
         let start = Date()
         for _ in 0..<10 { try CatalogSeeder.reconcile(catalog, in: context) }
         let perRun = Date().timeIntervalSince(start) / 10
+        print("steady-state reconcile: \(String(format: "%.2f", perRun * 1000))ms per launch")
 
-        #expect(perRun < 0.25, "steady-state reconcile took \(perRun)s per launch")
+        // The fast path now proves the store still holds exactly the catalog's
+        // seeded rows, and that the catalog content is the content last applied
+        // (codex-review-4) — ~9 ms in a Debug simulator (catalog fingerprint
+        // ~2.7 ms, four aggregate queries ~6 ms) against ~60–100 ms for the
+        // per-field diff it replaces. The bound is loose enough not to be a
+        // flaky timing test on a busy machine.
+        #expect(perRun < 0.05, "steady-state reconcile took \(perRun)s per launch")
         #expect(try counts(in: context)
                 == (catalog.exercises.count, catalog.equipmentModels.count))
     }

@@ -22,7 +22,7 @@ Four levels:
 | Machine instance | "Chest Press #2" | User, per gym |
 | Gym | Gold's Gym Gangnam | User |
 
-- Seeded equipment catalog ships in-app: **1887 models across 23 manufacturers** (ticket 20), every name verified against a manufacturer or authorised-dealer listing — sources in `docs/catalog-sources/`. Catalog updates ride app releases as a version bump through the D24 reconciler. Seeded entries have stable catalog IDs that survive updates; user-created entries live in a separate ID space (dedup deferred).
+- Seeded equipment catalog ships in-app: **1877 models across 23 manufacturers** (ticket 20; 1887 minus the ten duplicate identities merged by codex-review-4), every name verified against a manufacturer or authorised-dealer listing, save six version-1 fixture names disclosed row by row — sources in `docs/catalog-sources/`. One real machine has exactly one catalog UUID; the generator fails on near-duplicate identities. Catalog updates ride app releases as a version bump through the D24 reconciler. Seeded entries have stable catalog IDs that survive updates; user-created entries live in a separate ID space (dedup deferred).
 - Gyms and machine instances are **always user-created**. No gym seeding.
 - Each catalog model links to one or more exercises. Picking a machine auto-fills its exercise; multi-exercise stations (cable, Smith) prompt.
 - Free weights are **equipment-type tags** (barbell / dumbbell / cable / smith / bodyweight), not machine instances.

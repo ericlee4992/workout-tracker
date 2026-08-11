@@ -17,6 +17,54 @@ The JSON is generated from `scripts/catalog_data.py` by
 `scripts/generate_seed_catalog.py` (`--check` fails if the committed JSON is
 stale). Catalog UUID allocation rules are documented in that script's docstring.
 
+## What "verified" means here
+
+Every seeded model name is read off **either the manufacturer's own listing or
+an authorised dealer's listing carrying the manufacturer's SKU codes** — not off
+the manufacturer alone. Dealer-sourced brands: **Atlantis Strength** (all 68
+models — atlantisstrength.com refused every fetch), **Arsenal Strength**,
+**Impulse Fitness**, **Panatta**, and three Star Trac rows (Instinct Circuit,
+Instinct Smith Machine, Instinct DAP Functional Trainer). Everything else came
+from a manufacturer property.
+
+**Version-1 names that no source corroborates.** The first 24 models shipped as
+a hand-written test fixture (ticket 04) and predate this research. Where the
+research found the same machine, version 4 merged the two rows and the survivor
+took the researched name (see below). These six could not be corroborated and
+keep their fixture name — the UUID is what history is keyed on (D23), so
+renaming them to a guess would mislabel logged sets:
+
+| id | name | why it is unverified |
+|---|---|---|
+| …0002 | Life Fitness Signature Series Shoulder Press | Signature Series is discontinued; only 10 Signature names could be verified and no shoulder press is among them |
+| …0006 | Hammer Strength Plate-Loaded Seated Row | the plate-loaded line lists Iso-Lateral Row / Low Row / High Row / D.Y. Row, never this string |
+| …0008 | Technogym Selection 900 Lat Pulldown | the line has a *Lat Machine* and a *Pulldown*; which one this row meant is unknowable |
+| …0010 | Technogym Cable Stations Dual Adjustable Pulley | Technogym's cable products are Kinesis; no such product name was found |
+| …0016 | Cybex Bravo Functional Trainer | Bravo is not on the current Cybex/Life Fitness listing |
+| …0017 | Matrix Ultra Series Assisted Chin/Dip | the G7 (Ultra) enumeration has no chin/dip; Aura and Versa do |
+
+Three further version-1 names *were* corrected to the researched string, because
+the research names the same machine unambiguously: …0003 → `Signature Series
+Pulldown`, …0004 → `Signature Series Dual Adjustable Pulley`, …0024 → `Mi7
+Functional Training System Mi-7-MB`.
+
+## One machine, one UUID
+
+D23 keys history, records and the same-model-elsewhere layer on the model UUID,
+so two rows for one real machine silently split a user's history. Version 2
+shipped ten such pairs: a version-1 fixture row and the researched row for the
+same machine. Version 4 merged each pair onto the **older** id (the one a
+version-1 install may already have logged against), gave it the researched name,
+and retired the duplicate's id forever. The mapping lives in `RENAMED_MODELS` in
+`scripts/generate_seed_catalog.py`; the generator now rejects near-duplicate
+identities (same manufacturer, same name once line words and model codes are
+stripped) unless they are listed as adjudicated-distinct with a reason.
+
+A whole-catalog sweep for the same pattern found no others. Two families that
+look alike are real: Precor's Glutebuilder sells the same movement plate-loaded
+*and* selectorized (the plate-loaded rows were renamed to say so), and PRIME's
+PRODIGY racks likewise.
+
 ## Traps the research flagged, and what the catalog does about them
 
 - **Eleiko** resells Precor under its "strength machines" category. Only
@@ -41,6 +89,9 @@ Worth re-researching before the next expansion:
 
 - **Atlantis Strength** — dealer-sourced only; atlantisstrength.com refused every
   fetch, so there is no manufacturer corroboration for any of its 68 models.
+- **Rogue Fitness "Floor Glute"** — the research records the movement but not the
+  loading mechanism. It sits in a bodyweight-typed section while linking the
+  weighted Glute Kickback; re-check it before the next expansion.
 - **Sorinex** (13, rack configurations only) and **Titan Fitness** (1 machine) —
   effectively unresearched beyond what is listed.
 - **Star Trac** (8) and **Eleiko** (20) — thin because there is genuinely little

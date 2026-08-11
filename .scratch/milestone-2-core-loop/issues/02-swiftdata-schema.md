@@ -63,3 +63,11 @@ starts. History titles and subtitles read these snapshots instead of the live `W
 renaming a gym no longer rewrites old rows. Optional scalars with nil defaults, CloudKit-safe,
 additive-only (lightweight migration); workouts logged before this addition simply fall through
 to the exercise-derived title and the entry-level gym snapshot.
+
+**Field addition (codex-review-4, 2026-08-10):** `AppPreferences.seededCatalogFingerprint:
+String?` — a hash of the catalog content last reconciled (every fixed UUID plus every allowlisted
+mutable field, D24). `seededCatalogVersion` alone cannot distinguish "same catalog" from "same
+version number, edited content", and the launch fast path used to trust a *row count*, which
+survives one seeded row being deleted and another inserted. The fingerprint plus an id-set check
+is what makes the fast path safe to skip work on. Optional with a nil default (nil = "unknown",
+costing one full reconcile), CloudKit-safe, additive-only (lightweight migration).
