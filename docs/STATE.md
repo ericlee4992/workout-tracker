@@ -24,12 +24,17 @@ critical and several high-severity ways to preselect a *wrong* catalog UUID — 
 regression-tested against the shipped 1877-row catalog in `CatalogMatcherAdversarialTests`.
 Suite: **296 unit + 12 UI tests**.
 
-**Exercise presets are built on branch `exercise-presets`** (uncommitted): grips, stances and
-single/double as named variations of an exercise, chosen at log time, that **split records**
+**Exercise presets are merged and installed** (`33be96d`): grips, stances and single/double as
+named variations of an exercise, chosen at log time, that **split records**
 (D36–D38, `.scratch/exercise-presets/`). Also from the same session: a scanned machine is now
 labelled by the *movement* it serves ("Leg Press"), not by its model, since the row already prints
-the model underneath. Codex cross-review done (one critical: the JSON export was not backing up
-preset definitions). Suite: **329 unit + 13 UI tests**.
+the model underneath, and scanning is a **live** camera read rather than take-a-photo. Codex
+cross-review done (one critical: the JSON export was not backing up preset definitions).
+Suite: **329 unit + 13 UI tests**.
+
+**Nothing here has met a real gym yet.** The scanner has never seen a real name plate, no export
+has been taken of the real history, and no preset has been logged against in a real session. Those
+three answers should shape the next session more than the backlog does.
 
 The app is being **dogfooded in real gym sessions** — that is the current activity. Feedback from
 those sessions outranks new features.
@@ -38,10 +43,10 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | `64188e2` (2026-08-11) — export **and** label scanning are on the phone |
+| Installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` (already in `project.pbxproj`) |
-| Signing | **Free** Apple account → builds expire **7 days**, so ~**18 Aug 2026**. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**, so ~**19 Aug 2026**. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
