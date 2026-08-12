@@ -74,18 +74,22 @@ nothing about whether the install worked.
 
 ## What to do next, in priority order
 
-1. **Act on gym feedback.** Anything the user reports from a real session beats the backlog.
-2. **Finish machine-label scanning**: Codex cross-review (T6), then commit and merge
-   `photo-machine-capture`. The matcher's thresholds (0.85 confident / 0.35 create-new) are tuned
-   against the shipped catalog and rendered plates — no *photographs* have been through it yet, so
-   expect to retune once the user has scanned a few real machines. Known conservative trade: a
-   plate that does not name its manufacturer never preselects (95% of clean brand+model readings
-   do; 0% of model-name-only readings), because a wrong model UUID splits history (D23).
-3. **Ask whether the export actually works on real data.** Both features are now on the phone
-   (`64188e2`) but neither has met the user's real gym: the export has never run over their full
-   history, and the scanner has never seen a real name plate. Those two answers should shape what
-   comes next more than the backlog does.
-4. Milestones 4–6: progress charts, Strong CSV import, plate calculator.
+1. **Act on gym feedback.** Anything the user reports from a real session beats the backlog. Three
+   questions are open and none of them can be answered by a test:
+   - Does the scanner read a **real** name plate? Every fixture is rendered type. If it reads the
+     plate but refuses to preselect, that is the D33 gate working — a plate that does not name its
+     manufacturer never preselects (95% of clean brand+model readings do, 0% of model-name-only
+     ones), because a wrong model UUID splits history (D23). Thresholds live in `CatalogMatcher`
+     (0.85 preselect / 0.35 create-new / 0.08 margin) and are tuned against the shipped catalog,
+     not photographs. Retune only with real misses in hand.
+   - Does the **export** look right over the real history in a spreadsheet? It has never run on
+     more than test data, and it is the only backup that exists.
+   - Are the **preset chips** reachable one-handed mid-set? Their layout is guesswork.
+2. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
+   next unbuilt milestone, and the one that makes the logged history worth something to look at.
+3. Milestones 5–6: Strong CSV import, plate calculator.
+4. **Reinstall before ~19 Aug 2026** or the free signature expires and the app stops launching.
+   Reinstalling preserves the data; the three commands are above.
 
 ## Decisions the user has NOT made yet
 
