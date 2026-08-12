@@ -1,0 +1,9 @@
+Review written: [codex-review.md](</Users/ericlee06/orca/projects/Health App/.scratch/exercise-presets/codex-review.md>).
+
+Verdict: do not merge/install. One critical, two high, five lower-severity spec findings. Worst failures:
+
+- JSON drops preset definitions and machine defaults.
+- Two previous-performance layers mix presets.
+- Preset switching can retain another preset’s auto-prefill.
+
+No code changed. Independent tests could not run because CoreSimulator had no available runtime.

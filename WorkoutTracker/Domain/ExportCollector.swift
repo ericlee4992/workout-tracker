@@ -36,6 +36,7 @@ struct ExportCollector {
         let gyms = try context.fetch(FetchDescriptor<Gym>())
         let machines = try context.fetch(FetchDescriptor<MachineInstance>())
         let exercises = try context.fetch(FetchDescriptor<Exercise>())
+        let presets = try context.fetch(FetchDescriptor<ExercisePreset>())
         let models = try context.fetch(FetchDescriptor<EquipmentModel>())
         let templates = try context.fetch(FetchDescriptor<WorkoutTemplate>())
         let workouts = try context.fetch(FetchDescriptor<Workout>())
@@ -59,7 +60,7 @@ struct ExportCollector {
         let referenced = referencedCatalogIDs(
             machines: machines, workouts: exportedWorkouts,
             templates: templates, memories: memories, overrides: overrides,
-            models: models,
+            presets: presets, models: models,
             userExerciseIDs: Set(exercises.lazy.filter { !$0.isSeeded }.map(\.id)))
 
         let exportedExercises = exercises
@@ -96,9 +97,20 @@ struct ExportCollector {
                 machines: exportedMachines.count,
                 exercises: exportedExercises.count,
                 equipmentModels: exportedModels.count,
-                templates: exportedTemplates.count),
+                templates: exportedTemplates.count,
+                presets: presets.count),
             preferences: preferences.map(self.preferences(from:)),
             gyms: exportedGyms,
+            presets: presets
+                .sorted {
+                    ($0.exercise?.name ?? "", $0.order, $0.id.uuidString)
+                        < ($1.exercise?.name ?? "", $1.order, $1.id.uuidString)
+                }
+                .map {
+                    ExportSnapshot.Preset(
+                        id: $0.id, name: $0.name, order: $0.order,
+                        exerciseID: $0.exercise?.id)
+                },
             machines: exportedMachines,
             exercises: exportedExercises,
             equipmentModels: exportedModels,
@@ -131,6 +143,7 @@ struct ExportCollector {
         templates: [WorkoutTemplate],
         memories: [GymExerciseMemory],
         overrides: [ExerciseRestOverride],
+        presets: [ExercisePreset],
         models: [EquipmentModel],
         userExerciseIDs: Set<UUID>
     ) -> ReferencedCatalog {
@@ -159,6 +172,12 @@ struct ExportCollector {
         for item in templates.flatMap({ $0.items ?? [] }) {
             if let exerciseID = item.exercise?.id { referenced.exerciseIDs.insert(exerciseID) }
         }
+        // An exercise the user has given a preset is an exercise they have
+        // touched, even if they have never logged it: the preset's owner has to
+        // export with it or the restored preset points at nothing (D28).
+        for preset in presets {
+            if let exerciseID = preset.exercise?.id { referenced.exerciseIDs.insert(exerciseID) }
+        }
         for memory in memories { referenced.exerciseIDs.insert(memory.exerciseID) }
         for override in overrides { referenced.exerciseIDs.insert(override.exerciseID) }
         return referenced
@@ -176,6 +195,7 @@ struct ExportCollector {
         ExportSnapshot.Machine(
             id: machine.id, label: machine.label, gymID: machine.gym?.id,
             modelID: machine.model?.id, defaultUnit: machine.defaultUnit,
+            defaultPresetID: machine.defaultPresetID,
             archived: machine.archived)
     }
 
@@ -257,6 +277,8 @@ struct ExportCollector {
             modelManufacturer: context.modelID.flatMap { modelsByID[$0]?.manufacturer },
             gymID: context.gymID,
             gymName: context.gymName,
+            presetID: context.presetID,
+            presetName: context.presetName,
             sets: sets)
     }
 
@@ -280,6 +302,8 @@ struct ExportCollector {
         var modelDisplayName: String?
         var gymID: UUID?
         var gymName: String?
+        var presetID: UUID?
+        var presetName: String?
     }
 
     private func context(of entry: ExerciseEntry) -> EntryContext {
@@ -294,7 +318,9 @@ struct ExportCollector {
                 modelID: entry.snapshotModelID,
                 modelDisplayName: entry.snapshotModelName,
                 gymID: entry.snapshotGymID,
-                gymName: entry.snapshotGymName)
+                gymName: entry.snapshotGymName,
+                presetID: entry.snapshotPresetID,
+                presetName: entry.snapshotPresetName)
         }
         let machine = entry.machine
         return EntryContext(
@@ -307,7 +333,9 @@ struct ExportCollector {
             modelID: machine?.model?.id,
             modelDisplayName: machine?.model?.displayName,
             gymID: entry.workout?.gym?.id,
-            gymName: entry.workout?.gym?.name)
+            gymName: entry.workout?.gym?.name,
+            presetID: entry.preset?.id,
+            presetName: entry.preset?.name)
     }
 
     private func setRow(from set: SetRecord) -> ExportSnapshot.SetRow {

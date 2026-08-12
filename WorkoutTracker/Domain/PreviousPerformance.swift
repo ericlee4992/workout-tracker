@@ -131,6 +131,10 @@ struct PerformanceHistory {
         target.weightValue = value.weightValue
         target.weightUnit = value.weightUnit
         target.normalizedKg = value.normalizedKg
+        // Inherited, not typed: a later change of variation or equipment clears
+        // these rather than letting last session's other context be logged as
+        // this one (D36).
+        target.prefilledAt = .now
         try context.save()
         return true
     }
@@ -170,6 +174,12 @@ struct PerformanceHistory {
         in all: [ExerciseEntry]
     ) -> [PerformanceLayerResult] {
         var results: [PerformanceLayerResult] = []
+        // Every layer is scoped to the variation being performed (D36). The
+        // record block under each layer already was; the *snapshot* rows above
+        // it were not, so a narrow-grip sheet could headline a wide-grip
+        // session while the table beneath it said something else entirely
+        // (codex-review, finding 2).
+        let presetID = currentPresetID(for: entry)
 
         results.append(PerformanceLayerResult(
             kind: .thisEquipment,
@@ -187,6 +197,7 @@ struct PerformanceHistory {
                         candidate.snapshotExerciseID == currentExerciseID(for: entry)
                             && candidate.snapshotModelID == modelID
                             && candidate.snapshotGymID != gymID
+                            && candidate.snapshotPresetID == presetID
                     })))
         }
 
@@ -196,6 +207,7 @@ struct PerformanceHistory {
                 layer: .anyEquipment,
                 entry: latestEntry(in: all) { candidate in
                     candidate.snapshotExerciseID == currentExerciseID(for: entry)
+                        && candidate.snapshotPresetID == presetID
                 })))
         return results
     }
@@ -214,13 +226,18 @@ struct PerformanceHistory {
         case .sameModelElsewhere:
             guard let modelID = entry.machine?.model?.id,
                   let gymID = entry.workout?.gym?.id else { return [] }
+            let presetID = currentPresetID(for: entry)
             matches = {
                 $0.snapshotExerciseID == exerciseID
                     && $0.snapshotModelID == modelID
                     && $0.snapshotGymID != gymID
+                    && $0.snapshotPresetID == presetID
             }
         case .anyEquipment:
-            matches = { $0.snapshotExerciseID == exerciseID }
+            let presetID = currentPresetID(for: entry)
+            matches = {
+                $0.snapshotExerciseID == exerciseID && $0.snapshotPresetID == presetID
+            }
         }
         return all.filter(matches).flatMap { historicalEntry in
             completedSets(of: historicalEntry).map {
@@ -260,15 +277,17 @@ struct PerformanceHistory {
         in grouped: [RecordGroupKey: [RecordSetInput]]
     ) -> RecordLayerSummary {
         let exerciseID = currentExerciseID(for: entry)
+        let presetID = currentPresetID(for: entry)
         let key: RecordGroupKey?
         // Set when the layer is scoped to gyms other than the current one.
         var elsewhereThanGymID: UUID?
         switch layer {
         case .thisEquipment:
             if let machineID = entry.machine?.id {
-                key = .machine(machineID)
+                key = .machine(machineID, preset: presetID)
             } else {
-                key = .freeWeight(exerciseID: exerciseID, tag: entry.freeWeightTag)
+                key = .freeWeight(
+                    exerciseID: exerciseID, tag: entry.freeWeightTag, preset: presetID)
             }
         case .sameModelElsewhere:
             // "Elsewhere" is part of the layer, not just its header: the model
@@ -276,7 +295,7 @@ struct PerformanceHistory {
             // the same rule `layers`/`completedValues` apply to snapshots.
             if let modelID = entry.machine?.model?.id,
                let gymID = entry.workout?.gym?.id {
-                key = .model(modelID)
+                key = .model(modelID, preset: presetID)
                 elsewhereThanGymID = gymID
             } else {
                 key = nil
@@ -285,7 +304,7 @@ struct PerformanceHistory {
             // Layer 3 is "exercise anywhere" (ticket 11) — always the
             // exercise-wide key. Keying machineless entries by free-weight tag
             // made it byte-identical to layer 1, hiding all other equipment.
-            key = .exercise(exerciseID)
+            key = .exercise(exerciseID, preset: presetID)
         }
         var inputs = key.flatMap { grouped[$0] } ?? []
         if let elsewhereThanGymID {
@@ -360,10 +379,15 @@ struct PerformanceHistory {
 
     private func layerOneMatch(for entry: ExerciseEntry) -> (ExerciseEntry) -> Bool {
         let exerciseID = currentExerciseID(for: entry)
+        // D36: the variation is part of "the same thing done before". Prefill
+        // especially — seeding a narrow-grip row with wide-grip numbers asserts
+        // a comparability the app exists to deny (D11's reasoning, one axis in).
+        let presetID = currentPresetID(for: entry)
         if let machineID = entry.machine?.id {
             return {
                 $0.snapshotExerciseID == exerciseID
                     && $0.snapshotMachineID == machineID
+                    && $0.snapshotPresetID == presetID
             }
         }
         let tag = entry.freeWeightTag
@@ -371,7 +395,14 @@ struct PerformanceHistory {
             $0.snapshotExerciseID == exerciseID
                 && $0.snapshotMachineID == nil
                 && $0.snapshotFreeWeightTag == tag
+                && $0.snapshotPresetID == presetID
         }
+    }
+
+    /// The preset the *draft* entry is set to right now — live until the
+    /// snapshot freezes it, like the machine it sits beside.
+    private func currentPresetID(for entry: ExerciseEntry) -> UUID? {
+        entry.snapshotCapturedAt == nil ? entry.preset?.id : entry.snapshotPresetID
     }
 
     private func completedSets(of entry: ExerciseEntry) -> [SetRecord] {
@@ -399,6 +430,7 @@ struct PerformanceHistory {
                 machineID: entry.snapshotMachineID,
                 modelID: entry.snapshotModelID,
                 freeWeightTag: entry.snapshotFreeWeightTag,
+                presetID: entry.snapshotPresetID,
                 setType: set.type,
                 reps: set.reps,
                 weightValue: set.weightValue,

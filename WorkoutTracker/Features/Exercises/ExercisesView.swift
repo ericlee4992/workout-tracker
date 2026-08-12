@@ -12,6 +12,7 @@ struct ExercisesView: View {
     @State private var showingAddExercise = false
     @State private var renamingExercise: Exercise?
     @State private var renameText = ""
+    @State private var presetsExercise: Exercise?
 
     private var preferences: AppPreferences? {
         AppPreferences.canonical(of: allPreferences)
@@ -70,7 +71,10 @@ struct ExercisesView: View {
                             }
                         }
                         .contextMenu {
-                            // Seeded rows are read-only (D24) — no actions.
+                            // Presets are the user's own data hanging off the
+                            // row, so they are offered on seeded exercises too
+                            // — unlike renaming, which D24 reserves.
+                            Button("Presets…") { presetsExercise = exercise }
                             if !exercise.isSeeded {
                                 Button("Rename…") {
                                     renameText = exercise.name
@@ -88,7 +92,7 @@ struct ExercisesView: View {
                         showingAddExercise = true
                     }
                 } footer: {
-                    Text("Picking a machine during a workout selects its exercise automatically — this list is for browsing and free-weight logging.")
+                    Text("Picking a machine during a workout selects its exercise automatically — this list is for browsing and free-weight logging. Long-press an exercise to give it presets (grips, single/double); records are kept per preset.")
                 }
             }
             .searchable(text: $searchText, prompt: "Search exercises")
@@ -101,6 +105,9 @@ struct ExercisesView: View {
             .sheet(isPresented: $showingAddExercise) {
                 // Same form the mid-workout pickers open (ticket 19).
                 NewExerciseSheet()
+            }
+            .sheet(item: $presetsExercise) { exercise in
+                ExercisePresetsSheet(exercise: exercise)
             }
             .alert(
                 "Rename Exercise",

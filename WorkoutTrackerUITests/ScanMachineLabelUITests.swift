@@ -12,6 +12,8 @@ final class ScanMachineLabelUITests: XCTestCase {
     private let gymName = "Scan Test Gym"
     /// What `ScanFixture` renders, and a real row in the seeded catalog.
     private let expectedModel = "Insignia Series Chest Press"
+    /// The movement that model serves — what the machine should be *called*.
+    private let expectedMovement = "Seated Chest Press"
 
     override func setUp() {
         super.setUp()
@@ -54,18 +56,20 @@ final class ScanMachineLabelUITests: XCTestCase {
             modelRow.label.contains(expectedModel),
             "The scanned model should be filled in, got: \(modelRow.label)")
 
-        // D3: picking a model names the machine, however it was picked.
+        // D3: picking a model names the machine, however it was picked — and
+        // it names it after the *movement*, since the row already prints the
+        // model underneath (user feedback, 2026-08-12).
         let label = app.textFields["machineLabel"]
         XCTAssertTrue(label.waitForExistence(timeout: 5))
         XCTAssertEqual(
-            label.value as? String, expectedModel,
-            "A scanned model should default the label exactly as a hand-picked one does")
+            label.value as? String, expectedMovement,
+            "The machine should be labelled by what you do on it, not by its model")
         // Saved as-is: the whole point of the default is that a scan leaves
         // nothing to type while standing at the machine.
         app.buttons["saveMachine"].tap()
         XCTAssertTrue(
-            app.staticTexts[expectedModel].waitForExistence(timeout: 5),
-            "The machine should be saved at the gym under its scanned name")
+            app.staticTexts[expectedMovement].waitForExistence(timeout: 5),
+            "The machine should be saved at the gym under the movement it serves")
 
         // The label alone proves nothing — it was defaulted from the candidate.
         // The machine row's subtitle is `machine.model?.displayName`, so this

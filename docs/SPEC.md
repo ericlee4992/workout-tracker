@@ -18,6 +18,7 @@ Four levels:
 | Level | Example | Created by |
 |---|---|---|
 | Exercise | Seated Chest Press | Seeded list + user additions |
+| Preset | Wide grip / Single leg | User, per exercise (D36–D38) |
 | Equipment model | Life Fitness Insignia Chest Press | Seeded catalog + user additions |
 | Machine instance | "Chest Press #2" | User, per gym |
 | Gym | Gold's Gym Gangnam | User |
@@ -27,6 +28,7 @@ Four levels:
 - Adding a machine can **photograph its name plate** (D33–D35): Vision reads the text on device, the app ranks catalog models against it and offers the candidates with scores, and the user confirms one — or creates a user-space model prefilled from the reading. The photo is discarded after reading; nothing leaves the phone. A scan identifies the *model*, never which of the gym's three chest presses this is — that is the machine's label, which the user writes.
 - Each catalog model links to one or more exercises. Picking a machine auto-fills its exercise; multi-exercise stations (cable, Smith) prompt.
 - Free weights are **equipment-type tags** (barbell / dumbbell / cable / smith / bodyweight), not machine instances.
+- **Presets** are named variations of a movement — grips, stances, single/double (D36–D38). They belong to the exercise, are chosen when logging (a machine preselects its usual one), and **split records**: a narrow-grip best is not a wide-grip best. The preset is part of the D23 snapshot, so switching it after a set is logged starts a new entry rather than relabelling completed work.
 - Exercises carry a **load type**: `weighted | bodyweight | bodyweightPlus | assisted`. PR/prefill/chart logic respects direction — on assisted machines, *lowest* assistance wins.
 - **Strength-only v1**: one set shape (weight × reps). Cardio machines may exist in the taxonomy but are not loggable.
 
@@ -37,6 +39,7 @@ Four levels:
   2. Same equipment model at another gym
   3. The exercise on any equipment
 - **Prefill comes only from same-machine history.** Fallback layers are reference display, never prefilled into inputs.
+- Records, previous performance and prefill are keyed by preset as well as by equipment (D36) — a machine with no preset chosen is its own group, which is what every set logged before 2026-08-12 is.
 - **PRs**: best weight per rep count (capped at 12 reps) + estimated 1RM (Brzycki: `weight / (1.0278 − 0.0278 × reps)`), computed at all three layers (machine, model, exercise). Only completed sets count; warmups excluded from PRs and volume. e1RM is weighted-only; assisted = least assistance per rep count, bodyweight+added = most added weight, bodyweight = most reps (D20). Volume = Σ(normalizedKg × reps), weighted exercises only, dumbbells never auto-doubled (D21).
 - **Log-time snapshots**: entries denormalize context when their first set completes — stable UUIDs (exercise, machine, model, gym), the exercise's loadType, the free-weight tag, and display strings (D23). Units live per set, not in the snapshot. Deleting a gym/machine archives it; history never orphans. Correcting a machine's model prompts: apply to past workouts or future only.
 
@@ -72,10 +75,11 @@ Four levels:
 - `Exercise`: id, name, loadType, equipmentTypeTags, isSeeded, muscle grouping (light)
 - `EquipmentModel`: id, manufacturer, modelName, linked exercise ids, equipmentType? (selectorized / plate-loaded / cable / rack-or-Smith / bodyweight station — browsing metadata only, nil = uncategorized), isSeeded (seeded rows keyed by fixed catalog UUIDs; seeding is versioned idempotent reconciliation — D24)
 - `Gym`: id, name, city?, defaultUnit?, notes, archived
-- `MachineInstance`: id, gym, model?, label, defaultUnit?, archived
+- `MachineInstance`: id, gym, model?, label, defaultUnit?, defaultPresetID? (the preset it usually is — scalar, degrades to none), archived
 - `WorkoutTemplate` / `TemplateItem`: ordered exercises (scalar `order` field), target sets/reps. No rest durations in v1 (D22)
 - `Workout`: id, gym?, notes, sourceTemplateID?, restEndsAt? (persisted rest-timer end), **lifecycle**: startedAt, finishedAt? (nil = active; cancel deletes; Finish deletes uncompleted draft rows and zero-completed-set entries). At most one active workout — on conflict the newest keeps running and older strays are auto-finished
-- `ExerciseEntry`: workout, exercise, machine?, freeWeightTag?, scalar `order`, per-exercise rest overrides live in preferences, **context snapshot** = stable UUIDs (exercise, machine?, model?, gym?) + loadType + freeWeightTag + display strings (D23). Equipment freezes once the first set completes; changing equipment starts a new entry (D19)
+- `ExercisePreset`: id, name, scalar `order`, exercise — user-created variations (D36–D38)
+- `ExerciseEntry`: workout, exercise, machine?, preset?, freeWeightTag?, scalar `order`, per-exercise rest overrides live in preferences, **context snapshot** = stable UUIDs (exercise, machine?, model?, gym?) + loadType + freeWeightTag + display strings (D23). Equipment freezes once the first set completes; changing equipment starts a new entry (D19)
 - `SetRecord`: entry, scalar `order`, type, reps?, weightValue? (optional while draft), weightUnit, normalizedKg?, completedAt? (nil = not completed; only completed sets feed records/volume/prefill)
 - `GymExerciseMemory`: scalar gymID/exerciseID/machineID + updatedAt; app-level upsert, duplicates resolved by latest updatedAt then id (no unique constraints allowed)
 - App-level preferences: unit preference (default from locale measurement system on first launch), drift-prompt suppression, global + per-exercise rest defaults, seeded-catalog version, notification-permission-requested marker, remembered catalog browsing state (grouping mode + active filters per surface — display only, D23)
@@ -86,8 +90,8 @@ Four levels:
 
 Two files, shared from Settings (Gyms screen) through the system share sheet — "Save to Files → iCloud Drive" is the intended backup. Both carry everything the user created; neither carries derived data (PRs, e1RM, volume) or the shipped catalog beyond the rows the user's data references (D28).
 
-- **CSV** — one row per set, 27 columns, fully denormalized: workout, gym, exercise, machine, model display name and manufacturer, set type, reps, `weight` + `unit` + `weightKg`, completion. Context columns come from the entry's D23 snapshot once it has one (a draft entry reports its live equipment), so renaming a gym never rewrites old rows. RFC 4180, CRLF, UTF-8 BOM, user text verbatim (D32). It is a complete ledger of *sets*: an object holding no set at all appears only in the JSON.
-- **JSON** — the object graph and the complete backup: `schemaVersion` 1, sorted keys, nil properties omitted (nil *array positions* stay `null` so set targets keep their index). Written to be re-importable; reading it back is not in v1's export milestone.
+- **CSV** — one row per set, 29 columns, fully denormalized: workout, gym, exercise, machine, model display name and manufacturer, set type, reps, `weight` + `unit` + `weightKg`, completion, and the preset performed. Context columns come from the entry's D23 snapshot once it has one (a draft entry reports its live equipment), so renaming a gym never rewrites old rows. RFC 4180, CRLF, UTF-8 BOM, user text verbatim (D32). It is a complete ledger of *sets*: an object holding no set at all appears only in the JSON.
+- **JSON** — the object graph and the complete backup: `schemaVersion` 2 (presets added `presetID`/`presetName` per entry), sorted keys, nil properties omitted (nil *array positions* stay `null` so set targets keep their index). Written to be re-importable; reading it back is not in v1's export milestone.
 - Timestamps are ISO 8601 with the device's UTC offset and fractional seconds (D31). Draft sets and the in-progress workout export, flagged (D30). Column layout and the JSON shape: `.scratch/milestone-3-export/spec.md`.
 
 ## Strong benchmark facts we build against

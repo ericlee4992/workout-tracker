@@ -31,6 +31,11 @@ final class Exercise {
     var entries: [ExerciseEntry]?
     @Relationship(deleteRule: .nullify, inverse: \TemplateItem.exercise)
     var templateItems: [TemplateItem]?
+    /// Named variations of this movement — grips, stances, single/double
+    /// (D37). Cascade: presets have no meaning without their exercise, and
+    /// history keeps its own snapshot of the one it used (D36/D23).
+    @Relationship(deleteRule: .cascade, inverse: \ExercisePreset.exercise)
+    var presets: [ExercisePreset]?
 
     init(
         id: UUID = UUID(),
@@ -46,6 +51,32 @@ final class Exercise {
         self.equipmentTypeTags = equipmentTypeTags
         self.muscleGroup = muscleGroup
         self.isSeeded = isSeeded
+    }
+}
+
+/// A named variation of an exercise: `wide grip`, `single leg`, `high pulley`
+/// (D36–D38, 2026-08-12).
+///
+/// User-created, never seeded — a worldwide list of every grip on every machine
+/// is as unknowable as a worldwide list of gyms (D3's reasoning). Records key on
+/// the preset alongside the equipment layers, so two variations of one movement
+/// keep separate PRs.
+@Model
+final class ExercisePreset {
+    var id: UUID = UUID()
+    var name: String = ""
+    /// Scalar ordering within the exercise — never implicit to-many order.
+    var order: Int = 0
+
+    var exercise: Exercise?
+    @Relationship(deleteRule: .nullify, inverse: \ExerciseEntry.preset)
+    var entries: [ExerciseEntry]?
+
+    init(id: UUID = UUID(), name: String, order: Int = 0, exercise: Exercise? = nil) {
+        self.id = id
+        self.name = name
+        self.order = order
+        self.exercise = exercise
     }
 }
 
@@ -125,6 +156,11 @@ final class MachineInstance {
     var id: UUID = UUID()
     var label: String = ""
     var defaultUnit: WeightUnit?
+    /// The preset this machine usually is (D38) — preselected when logging,
+    /// never binding. A scalar id, not a relationship: a deleted preset must
+    /// degrade to "none chosen", not resurrect (same rule as
+    /// `AppPreferences.selectedGymID`).
+    var defaultPresetID: UUID?
     /// Archival replaces deletion so workout history keeps resolving (never delete for archival).
     var archived: Bool = false
 
@@ -137,6 +173,7 @@ final class MachineInstance {
         id: UUID = UUID(),
         label: String,
         defaultUnit: WeightUnit? = nil,
+        defaultPresetID: UUID? = nil,
         archived: Bool = false,
         gym: Gym? = nil,
         model: EquipmentModel? = nil
@@ -144,6 +181,7 @@ final class MachineInstance {
         self.id = id
         self.label = label
         self.defaultUnit = defaultUnit
+        self.defaultPresetID = defaultPresetID
         self.archived = archived
         self.gym = gym
         self.model = model
@@ -271,6 +309,9 @@ final class ExerciseEntry {
     var workout: Workout?
     var exercise: Exercise?
     var machine: MachineInstance?
+    /// The variation performed (D36–D38). Freezes with the rest of the context
+    /// snapshot; switching it on a frozen entry starts a new entry (D19).
+    var preset: ExercisePreset?
     @Relationship(deleteRule: .cascade, inverse: \SetRecord.entry)
     var sets: [SetRecord]?
 
@@ -292,6 +333,11 @@ final class ExerciseEntry {
     var snapshotMachineLabel: String?
     var snapshotModelName: String?
     var snapshotGymName: String?
+    /// Optional so a store written before presets existed migrates
+    /// lightweightly: nil means "nobody recorded which grip this was", which is
+    /// the truth about every set logged before 2026-08-12.
+    var snapshotPresetID: UUID?
+    var snapshotPresetName: String?
 
     init(
         id: UUID = UUID(),
@@ -300,6 +346,7 @@ final class ExerciseEntry {
         workout: Workout? = nil,
         exercise: Exercise? = nil,
         machine: MachineInstance? = nil,
+        preset: ExercisePreset? = nil,
         snapshotCapturedAt: Date? = nil,
         snapshotExerciseID: UUID,
         snapshotMachineID: UUID? = nil,
@@ -310,7 +357,9 @@ final class ExerciseEntry {
         snapshotExerciseName: String,
         snapshotMachineLabel: String? = nil,
         snapshotModelName: String? = nil,
-        snapshotGymName: String? = nil
+        snapshotGymName: String? = nil,
+        snapshotPresetID: UUID? = nil,
+        snapshotPresetName: String? = nil
     ) {
         self.id = id
         self.order = order
@@ -318,6 +367,7 @@ final class ExerciseEntry {
         self.workout = workout
         self.exercise = exercise
         self.machine = machine
+        self.preset = preset
         self.snapshotCapturedAt = snapshotCapturedAt
         self.snapshotExerciseID = snapshotExerciseID
         self.snapshotMachineID = snapshotMachineID
@@ -329,6 +379,8 @@ final class ExerciseEntry {
         self.snapshotMachineLabel = snapshotMachineLabel
         self.snapshotModelName = snapshotModelName
         self.snapshotGymName = snapshotGymName
+        self.snapshotPresetID = snapshotPresetID
+        self.snapshotPresetName = snapshotPresetName
     }
 }
 
@@ -346,6 +398,16 @@ final class SetRecord {
     var normalizedKg: Double?
     /// nil = not completed; only completed sets feed records/volume/prefill.
     var completedAt: Date?
+    /// Set when these values were *inherited* rather than typed — from
+    /// cross-workout prefill or within-session carry-forward — and cleared the
+    /// moment the user edits the row.
+    ///
+    /// It exists so a context change can tell "last session's numbers, sitting
+    /// here as a convenience" from "what the user just typed". When the
+    /// variation or the equipment changes, the former is a false comparison and
+    /// is cleared; the latter is the user's and is never touched (D36).
+    /// Optional, so stores written before it existed migrate lightweightly.
+    var prefilledAt: Date?
 
     var entry: ExerciseEntry?
 
@@ -358,6 +420,7 @@ final class SetRecord {
         weightUnit: WeightUnit = .kg,
         normalizedKg: Double? = nil,
         completedAt: Date? = nil,
+        prefilledAt: Date? = nil,
         entry: ExerciseEntry? = nil
     ) {
         self.id = id
@@ -368,6 +431,7 @@ final class SetRecord {
         self.weightUnit = weightUnit
         self.normalizedKg = normalizedKg
         self.completedAt = completedAt
+        self.prefilledAt = prefilledAt
         self.entry = entry
     }
 }
@@ -552,6 +616,7 @@ enum WorkoutTrackerStore {
     /// Every model in the app schema — keep exhaustive.
     static let modelTypes: [any PersistentModel.Type] = [
         Exercise.self,
+        ExercisePreset.self,
         EquipmentModel.self,
         Gym.self,
         MachineInstance.self,

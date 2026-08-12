@@ -388,6 +388,7 @@ struct MachineEditorSheet: View {
     @State private var label = ""
     @State private var model: EquipmentModel?
     @State private var defaultUnit: WeightUnit?
+    @State private var defaultPresetID: UUID?
     @State private var loaded = false
     /// D3: the label this sheet filled in from a picked model. Only a label
     /// the sheet wrote itself may be overwritten by the next pick — anything
@@ -449,6 +450,24 @@ struct MachineEditorSheet: View {
                         Text("Use “Correct Model…” on the machine to change this — it asks whether to apply the correction to past workouts.")
                     }
                 }
+                if let exercise = servedExercise, !(exercise.presets ?? []).isEmpty {
+                    Section {
+                        Picker("Usually", selection: $defaultPresetID) {
+                            Text("Ask each time").tag(UUID?.none)
+                            ForEach(orderedPresets(of: exercise)) { preset in
+                                Text(preset.name).tag(UUID?.some(preset.id))
+                            }
+                        }
+                        .accessibilityIdentifier("machinePresetPicker")
+                    } header: {
+                        Text("Preset")
+                    } footer: {
+                        // D38: preselected, never binding — the choice that
+                        // matters is the one made at log time.
+                        Text("Preselected when you log on this machine — you can switch in one tap. Records are kept separately for each preset.")
+                    }
+                }
+
                 Section {
                     Picker("Default unit", selection: $defaultUnit) {
                         Text("Gym default").tag(WeightUnit?.none)
@@ -506,16 +525,52 @@ struct MachineEditorSheet: View {
         label = machine.label
         model = machine.model
         defaultUnit = machine.defaultUnit
+        defaultPresetID = machine.defaultPresetID
+    }
+
+    /// The single exercise this machine's model serves, when there is exactly
+    /// one. A cable station serving five movements has no single preset list,
+    /// so it is offered none here; the choice still exists at log time, where
+    /// the exercise is known.
+    private var servedExercise: Exercise? {
+        guard let model, model.exerciseIDs.count == 1,
+              let exerciseID = model.exerciseIDs.first
+        else { return nil }
+        return try? modelContext.fetch(FetchDescriptor<Exercise>(
+            predicate: #Predicate { $0.id == exerciseID })).first
+    }
+
+    private func orderedPresets(of exercise: Exercise) -> [ExercisePreset] {
+        (exercise.presets ?? []).sorted { ($0.order, $0.name) < ($1.order, $1.name) }
     }
 
     /// D3: picking a catalog model supplies the label, so Add is immediately
     /// enabled instead of waiting for a name to be invented. Still editable,
     /// and a machine with no model still needs one typed.
+    ///
+    /// The label is the **movement**, not the hardware: "Leg Press", not
+    /// "Insignia Series Leg Press". The machine row already prints the model's
+    /// full name underneath, so naming the machine after its model said the
+    /// same thing twice and left the row saying nothing about what you do on
+    /// it. Multi-exercise stations (a cable crossover serving five movements)
+    /// have no single answer, so those keep the model name.
     private func applyModelDefaultLabel() {
         guard let model else { return }
         guard trimmedLabel.isEmpty || trimmedLabel == modelDerivedLabel else { return }
-        label = model.modelName
-        modelDerivedLabel = model.modelName
+        // The choice itself lives in `MachineLabelDefaults`; the view only
+        // fetches the names and assigns the result.
+        let derived = MachineLabelDefaults.label(
+            modelName: model.modelName, exerciseNames: exerciseNames(of: model))
+        label = derived
+        modelDerivedLabel = derived
+    }
+
+    private func exerciseNames(of model: EquipmentModel) -> [String] {
+        let ids = model.exerciseIDs
+        guard !ids.isEmpty else { return [] }
+        let matches = (try? modelContext.fetch(FetchDescriptor<Exercise>(
+            predicate: #Predicate { ids.contains($0.id) }))) ?? []
+        return matches.map(\.name)
     }
 
     private func save() {
@@ -523,10 +578,13 @@ struct MachineEditorSheet: View {
             if let machine {
                 try EquipmentLifecycle(context: modelContext).update(
                     machine, label: label, defaultUnit: defaultUnit)
+                machine.defaultPresetID = defaultPresetID
+                try modelContext.save()
             } else {
                 modelContext.insert(MachineInstance(
                     label: trimmedLabel,
                     defaultUnit: defaultUnit,
+                    defaultPresetID: defaultPresetID,
                     gym: gym,
                     model: model))
                 try modelContext.save()

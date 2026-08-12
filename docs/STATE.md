@@ -24,6 +24,13 @@ critical and several high-severity ways to preselect a *wrong* catalog UUID — 
 regression-tested against the shipped 1877-row catalog in `CatalogMatcherAdversarialTests`.
 Suite: **296 unit + 12 UI tests**.
 
+**Exercise presets are built on branch `exercise-presets`** (uncommitted): grips, stances and
+single/double as named variations of an exercise, chosen at log time, that **split records**
+(D36–D38, `.scratch/exercise-presets/`). Also from the same session: a scanned machine is now
+labelled by the *movement* it serves ("Leg Press"), not by its model, since the row already prints
+the model underneath. Codex cross-review done (one critical: the JSON export was not backing up
+preset definitions). Suite: **329 unit + 13 UI tests**.
+
 The app is being **dogfooded in real gym sessions** — that is the current activity. Feedback from
 those sessions outranks new features.
 
@@ -98,6 +105,10 @@ nothing about whether the install worked.
 - **Computer-use cannot drive this app.** Synthetic clicks reach the Simulator's UIKit tab bar but
   **not SwiftUI list buttons**. Use the XCUITest target (`WorkoutTrackerUITests/`) instead — that is
   why it exists.
+- **A store fixture from the installed commit lives in `WorkoutTrackerTests/Fixtures/`.** Any
+  schema change must open it (`LegacyStoreMigrationTests`) before going near the phone — that
+  store is the shape of the user's real data, and "SwiftData infers this migration" is a claim,
+  not evidence. Regenerate the fixture from the *installed* commit whenever the shape changes.
 - **UI tests take ~7 minutes** and occasionally flake under load. A single red run is not
   automatically a real failure; re-run the failing test alone before believing it.
 - **The Simulator has no camera.** Anything camera-driven needs a fixture path to be testable at

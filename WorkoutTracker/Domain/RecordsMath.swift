@@ -27,6 +27,11 @@ struct RecordSetInput: Equatable {
     var machineID: UUID?
     var modelID: UUID?
     var freeWeightTag: EquipmentTag?
+    /// The variation performed (D36). Part of every group key: a narrow-grip
+    /// row PR is not a wide-grip row PR, and pooling them would let one
+    /// variation set a record the other can never beat. nil is its own group —
+    /// sets logged before presets existed, honestly reported as "no preset".
+    var presetID: UUID?
     var setType: SetType
     var reps: Int?
     /// As-entered load; for assisted this is the assistance weight, for
@@ -64,10 +69,10 @@ struct E1RMRecord: Equatable {
 /// Snapshot-derived grouping keys (D23). A machineless entry is keyed by
 /// (exercise, freeWeightTag) so barbell and dumbbell records never merge.
 enum RecordGroupKey: Hashable {
-    case machine(UUID)
-    case model(UUID)
-    case exercise(UUID)
-    case freeWeight(exerciseID: UUID, tag: EquipmentTag?)
+    case machine(UUID, preset: UUID?)
+    case model(UUID, preset: UUID?)
+    case exercise(UUID, preset: UUID?)
+    case freeWeight(exerciseID: UUID, tag: EquipmentTag?, preset: UUID?)
 }
 
 // MARK: - Records math
@@ -238,16 +243,20 @@ enum RecordsMath {
 
     /// Every record group this set belongs to, from snapshot values only:
     /// always the exercise; the machine and model when machined; and for
-    /// machineless entries, (exercise, freeWeightTag).
+    /// machineless entries, (exercise, freeWeightTag). Every key also carries
+    /// the preset (D36) — the variation is part of what makes two sets
+    /// comparable, exactly as the machine is.
     static func groupKeys(for set: RecordSetInput) -> Set<RecordGroupKey> {
-        var keys: Set<RecordGroupKey> = [.exercise(set.exerciseID)]
+        let preset = set.presetID
+        var keys: Set<RecordGroupKey> = [.exercise(set.exerciseID, preset: preset)]
         if let machineID = set.machineID {
-            keys.insert(.machine(machineID))
+            keys.insert(.machine(machineID, preset: preset))
         } else {
-            keys.insert(.freeWeight(exerciseID: set.exerciseID, tag: set.freeWeightTag))
+            keys.insert(.freeWeight(
+                exerciseID: set.exerciseID, tag: set.freeWeightTag, preset: preset))
         }
         if let modelID = set.modelID {
-            keys.insert(.model(modelID))
+            keys.insert(.model(modelID, preset: preset))
         }
         return keys
     }

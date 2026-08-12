@@ -144,24 +144,41 @@ struct PreviousPerformanceSheet: View {
         return "≈\(WeightMath.displayNumber(value)) \(estimate.weightUnit.rawValue)"
     }
 
+    /// The variation every layer is scoped to (D36). Named in each header
+    /// because an empty record table has to say *which* table is empty —
+    /// otherwise a first narrow-grip session looks like lost wide-grip history
+    /// (codex-review, finding 5).
+    private var presetSuffix: String {
+        guard !currentPresetName.isEmpty else { return "" }
+        return " · \(currentPresetName)"
+    }
+
+    private var currentPresetName: String {
+        if entry.snapshotCapturedAt == nil {
+            return entry.preset?.name ?? ((entry.exercise?.presets ?? []).isEmpty ? "" : "No preset")
+        }
+        return entry.snapshotPresetName
+            ?? ((entry.exercise?.presets ?? []).isEmpty ? "" : "No preset")
+    }
+
     @ViewBuilder
     private func header(for kind: PerformanceLayerKind) -> some View {
         switch kind {
         case .thisEquipment:
             Label {
-                Text("This equipment — \(entry.equipmentDisplayLabel)")
+                Text("This equipment — \(entry.equipmentDisplayLabel)\(presetSuffix)")
             } icon: {
                 Image(systemName: "target").foregroundStyle(.green)
             }
         case .sameModelElsewhere:
             Label {
-                Text("Same model elsewhere")
+                Text("Same model elsewhere\(presetSuffix)")
             } icon: {
                 Image(systemName: "gearshape.2").foregroundStyle(.orange)
             }
         case .anyEquipment:
             Label {
-                Text("Any equipment")
+                Text("Any equipment\(presetSuffix)")
             } icon: {
                 Image(systemName: "square.stack.3d.up").foregroundStyle(.secondary)
             }

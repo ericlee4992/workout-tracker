@@ -208,10 +208,14 @@ final class CoreLoopUITests: XCTestCase {
         save.tap()
 
         // D2: the machine's default unit is editable after creation.
-        let machineRow = app.staticTexts["Insignia Series Chest Press"]
+        // The label is the *movement* the model serves, not the model itself
+        // (2026-08-12): the row already prints "Life Fitness Insignia Series
+        // Chest Press" underneath, so naming the machine after its model said
+        // the same thing twice.
+        let machineRow = app.staticTexts["Seated Chest Press"]
         XCTAssertTrue(
             machineRow.waitForExistence(timeout: 5),
-            "The machine should be labelled after the model")
+            "The machine should be labelled after the movement it serves")
         machineRow.press(forDuration: 1.2)
         app.buttons["Edit Machine…"].tap()
         XCTAssertTrue(anyElement("machineUnitPicker").waitForExistence(timeout: 5))
@@ -273,8 +277,9 @@ final class CoreLoopUITests: XCTestCase {
         save.tap()
 
         XCTAssertTrue(
-            app.staticTexts["Iso-Lateral Incline Press"].waitForExistence(timeout: 5),
-            "The machine picked from the filtered catalog should be listed at the gym")
+            app.staticTexts["Incline Chest Press"].waitForExistence(timeout: 5),
+            "The machine picked from the filtered catalog should be listed at the gym, "
+                + "labelled by the movement its model serves")
     }
 
     // MARK: - B1: within-session carry-forward

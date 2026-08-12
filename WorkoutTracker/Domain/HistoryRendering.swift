@@ -36,10 +36,17 @@ extension ExerciseEntry {
     /// so later renames, model corrections, or archival never rewrite what a
     /// finished workout shows.
     var snapshotEquipmentLabel: String {
+        let equipment: String
         if let machineLabel = snapshotMachineLabel {
-            return "\(machineLabel) · \(snapshotModelName ?? "unknown model")"
+            equipment = "\(machineLabel) · \(snapshotModelName ?? "unknown model")"
+        } else {
+            equipment = snapshotFreeWeightTag?.label ?? "No equipment"
         }
-        return snapshotFreeWeightTag?.label ?? "No equipment"
+        // The variation is part of what was performed (D36), and it is
+        // snapshotted like everything else here — renaming a preset later must
+        // not retitle last month's sets.
+        guard let preset = snapshotPresetName, !preset.isEmpty else { return equipment }
+        return "\(equipment) · \(preset)"
     }
 }
 

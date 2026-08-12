@@ -321,26 +321,26 @@ struct RecordsMathTests {
 
         let barbellKeys = RecordsMath.groupKeys(for: barbell)
         let dumbbellKeys = RecordsMath.groupKeys(for: dumbbell)
-        #expect(barbellKeys.contains(.freeWeight(exerciseID: Self.exerciseID, tag: .barbell)))
-        #expect(dumbbellKeys.contains(.freeWeight(exerciseID: Self.exerciseID, tag: .dumbbell)))
+        #expect(barbellKeys.contains(.freeWeight(exerciseID: Self.exerciseID, tag: .barbell, preset: nil)))
+        #expect(dumbbellKeys.contains(.freeWeight(exerciseID: Self.exerciseID, tag: .dumbbell, preset: nil)))
         // Barbell and dumbbell records never merge…
-        #expect(!barbellKeys.contains(.freeWeight(exerciseID: Self.exerciseID, tag: .dumbbell)))
+        #expect(!barbellKeys.contains(.freeWeight(exerciseID: Self.exerciseID, tag: .dumbbell, preset: nil)))
         // …but both roll up into the exercise-wide group.
-        #expect(barbellKeys.contains(.exercise(Self.exerciseID)))
-        #expect(dumbbellKeys.contains(.exercise(Self.exerciseID)))
+        #expect(barbellKeys.contains(.exercise(Self.exerciseID, preset: nil)))
+        #expect(dumbbellKeys.contains(.exercise(Self.exerciseID, preset: nil)))
 
         let groups = RecordsMath.grouped([barbell, dumbbell])
-        #expect(groups[.freeWeight(exerciseID: Self.exerciseID, tag: .barbell)]?.count == 1)
-        #expect(groups[.freeWeight(exerciseID: Self.exerciseID, tag: .dumbbell)]?.count == 1)
-        #expect(groups[.exercise(Self.exerciseID)]?.count == 2)
+        #expect(groups[.freeWeight(exerciseID: Self.exerciseID, tag: .barbell, preset: nil)]?.count == 1)
+        #expect(groups[.freeWeight(exerciseID: Self.exerciseID, tag: .dumbbell, preset: nil)]?.count == 1)
+        #expect(groups[.exercise(Self.exerciseID, preset: nil)]?.count == 2)
     }
 
     @Test func machineEntries_groupByMachineModelAndExercise_notByTag() {
         let set = Self.set(reps: 5, value: 50, machine: Self.machineID, model: Self.modelID)
         let keys = RecordsMath.groupKeys(for: set)
-        #expect(keys.contains(.machine(Self.machineID)))
-        #expect(keys.contains(.model(Self.modelID)))
-        #expect(keys.contains(.exercise(Self.exerciseID)))
+        #expect(keys.contains(.machine(Self.machineID, preset: nil)))
+        #expect(keys.contains(.model(Self.modelID, preset: nil)))
+        #expect(keys.contains(.exercise(Self.exerciseID, preset: nil)))
         #expect(keys.count == 3)
     }
 
@@ -348,8 +348,8 @@ struct RecordsMathTests {
         let set = Self.set(reps: 5, value: 100, tag: .barbell)
         let keys = RecordsMath.groupKeys(for: set)
         #expect(keys.count == 2)
-        #expect(keys.contains(.exercise(Self.exerciseID)))
-        #expect(keys.contains(.freeWeight(exerciseID: Self.exerciseID, tag: .barbell)))
+        #expect(keys.contains(.exercise(Self.exerciseID, preset: nil)))
+        #expect(keys.contains(.freeWeight(exerciseID: Self.exerciseID, tag: .barbell, preset: nil)))
     }
 
     // MARK: - Tie rule & per-row independence

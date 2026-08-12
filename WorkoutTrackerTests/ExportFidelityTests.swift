@@ -313,6 +313,37 @@ struct ExportFidelityTests {
         #expect(abs(kg - 135 * WeightMath.kilogramsPerPound) < 1e-9)
     }
 
+    /// D36 in the export: the variation a set was performed in is part of what
+    /// was performed, so it has to leave the phone with it (D30).
+    @Test func theExportCarriesThePresetASetWasLoggedUnder() throws {
+        let rig = try makeRig()
+        let preset = ExercisePreset(name: "Wide grip", order: 0, exercise: rig.exercise)
+        rig.context.insert(preset)
+        try rig.context.save()
+
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        let workout = try rig.session.startWorkout(at: rig.gym, on: start)
+        let entry = try rig.session.addEntry(
+            for: rig.exercise, to: workout, machine: rig.machine)
+        try rig.session.choosePreset(preset, for: entry)
+        let set = try #require(WorkoutSession.orderedSets(of: entry).first)
+        try rig.session.setType(.working, of: set)
+        try rig.session.commitWeight("70", for: set)
+        try rig.session.commitReps("8", for: set)
+        try rig.session.toggleCompletion(of: set, at: start.addingTimeInterval(60))
+
+        let row = try #require(try exportRows(rig).first)
+        #expect(TestCSV.value("presetID", in: row) == preset.id.uuidString)
+        #expect(TestCSV.value("presetName", in: row) == "Wide grip")
+
+        let snapshot = try rig.collector.snapshot(from: rig.context)
+        let exported = try #require(snapshot.workouts.first?.entries.first)
+        #expect(exported.presetID == preset.id)
+        #expect(exported.presetName == "Wide grip")
+        #expect(snapshot.schemaVersion == 2)
+        #expect(try ExportJSON.decode(try ExportJSON.data(snapshot)) == snapshot)
+    }
+
     // MARK: - Whole-store shape
 
     @Test func exportCoversTemplatesMemoryOverridesAndPreferences() throws {

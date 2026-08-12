@@ -51,6 +51,7 @@ struct ExerciseEntryCard: View {
         VStack(alignment: .leading, spacing: 10) {
             titleRow
             machineRow
+            presetRow
 
             if loadType == .assisted {
                 Label("Assisted: lower weight = harder. Records track least assistance.", systemImage: "arrow.down.right.circle")
@@ -90,6 +91,73 @@ struct ExerciseEntryCard: View {
             if let exercise = entry.exercise {
                 ExerciseRestSettingsSheet(exercise: exercise)
             }
+        }
+    }
+
+    /// D36–D38: the variation performed. Chips rather than a menu because this
+    /// is switched mid-workout with one hand — and because seeing the
+    /// alternatives is the point: the user is choosing which record table this
+    /// set belongs to.
+    @ViewBuilder
+    private var presetRow: some View {
+        let presets = orderedPresets
+        if !presets.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(presets) { preset in
+                        presetChip(preset.name, isSelected: selectedPresetID == preset.id) {
+                            choose(preset)
+                        }
+                        .accessibilityIdentifier("presetChip.\(preset.name)")
+                    }
+                    // Escape hatch: the user did something the presets do not
+                    // describe, and pretending otherwise would file the set
+                    // under a variation they did not perform.
+                    presetChip("None", isSelected: selectedPresetID == nil) {
+                        choose(nil)
+                    }
+                    .accessibilityIdentifier("presetChip.None")
+                }
+                .padding(.vertical, 1)
+            }
+        }
+    }
+
+    private func presetChip(
+        _ title: String, isSelected: Bool, action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.caption.weight(isSelected ? .semibold : .regular))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    isSelected ? Color.accentColor.opacity(0.18) : Color(.tertiarySystemFill),
+                    in: Capsule())
+                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    /// The exercise's presets, in the order the user arranged them.
+    private var orderedPresets: [ExercisePreset] {
+        guard !entry.isDeleted, let exercise = entry.exercise else { return [] }
+        return (exercise.presets ?? []).sorted { ($0.order, $0.name) < ($1.order, $1.name) }
+    }
+
+    /// What is selected right now: the live pick while the entry is a draft,
+    /// the frozen snapshot once a set has completed (D19/D23).
+    private var selectedPresetID: UUID? {
+        entry.snapshotCapturedAt == nil ? entry.preset?.id : entry.snapshotPresetID
+    }
+
+    private func choose(_ preset: ExercisePreset?) {
+        do {
+            // Switching after a set has completed splits the entry rather than
+            // relabelling completed work — the service owns that rule.
+            try session.choosePreset(preset, for: entry)
+        } catch {
+            assertionFailure("Failed to choose preset: \(error)")
         }
     }
 

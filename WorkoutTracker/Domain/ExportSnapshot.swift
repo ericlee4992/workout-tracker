@@ -17,7 +17,10 @@ import Foundation
 struct ExportSnapshot: Codable, Equatable {
     /// Bumped on any breaking shape change. A consumer that does not
     /// recognise the version should refuse the file rather than guess.
-    static let currentSchemaVersion = 1
+    /// 2 — presets (D36) added `presetID`/`presetName` to every entry, and two
+    /// columns to the CSV. Readers of version 1 are not wrong about anything
+    /// they already understood, but the shape did change, so the number moves.
+    static let currentSchemaVersion = 2
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -28,6 +31,11 @@ struct ExportSnapshot: Codable, Equatable {
     var counts: Counts
     var preferences: Preferences?
     var gyms: [Gym] = []
+    /// Every preset the user has defined (D36–D38) — including ones never
+    /// logged against. They are user data, and the JSON is the complete backup
+    /// (D30): "only the presets you happened to use" would restore a
+    /// half-erased list (codex-review, finding 1).
+    var presets: [Preset] = []
     var machines: [Machine] = []
     var exercises: [Exercise] = []
     var equipmentModels: [EquipmentModel] = []
@@ -53,6 +61,7 @@ extension ExportSnapshot {
         var exercises: Int = 0
         var equipmentModels: Int = 0
         var templates: Int = 0
+        var presets: Int = 0
     }
 }
 
@@ -95,7 +104,17 @@ extension ExportSnapshot {
         var gymID: UUID?
         var modelID: UUID?
         var defaultUnit: WeightUnit?
+        /// The preset this machine usually is (D38).
+        var defaultPresetID: UUID?
         var archived: Bool
+    }
+
+    /// A named variation of an exercise (D36–D38).
+    struct Preset: Codable, Equatable {
+        var id: UUID
+        var name: String
+        var order: Int
+        var exerciseID: UUID?
     }
 
     struct Exercise: Codable, Equatable {
@@ -186,6 +205,10 @@ extension ExportSnapshot {
         var modelManufacturer: String?
         var gymID: UUID?
         var gymName: String?
+        /// The variation performed (D36). Absent = none recorded, which is the
+        /// truth about every set logged before presets existed.
+        var presetID: UUID?
+        var presetName: String?
         var sets: [SetRow]
     }
 

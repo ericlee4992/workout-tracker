@@ -176,6 +176,8 @@ struct WorkoutSession {
             workout: workout,
             exercise: exercise,
             machine: machine,
+            // D38: the machine's usual variation is preselected, never binding.
+            preset: usualPreset(of: machine, for: exercise),
             // Provisional values; authoritative capture happens when the
             // first set completes (D23).
             snapshotExerciseID: exercise.id,
@@ -186,6 +188,39 @@ struct WorkoutSession {
         context.insert(set)
         try context.save()
         return entry
+    }
+
+    /// The preset if it belongs to this entry's exercise, otherwise nil.
+    private func validated(_ preset: ExercisePreset?, for entry: ExerciseEntry) -> ExercisePreset? {
+        guard let preset else { return nil }
+        let exerciseID = entry.exercise?.id ?? entry.snapshotExerciseID
+        return preset.exercise?.id == exerciseID ? preset : nil
+    }
+
+    /// Clears weight/reps on draft rows that still hold auto-prefilled values.
+    ///
+    /// Prefill writes into the draft row itself, so changing the variation (or
+    /// the equipment) leaves last session's *other* context sitting in the
+    /// inputs, one tap from being logged as this one. A row the user has
+    /// touched is left alone — `prefilledAt` is set only by the prefill path
+    /// and cleared by any commit.
+    private func clearUntouchedDrafts(of entry: ExerciseEntry) {
+        for set in Self.orderedSets(of: entry)
+        where set.completedAt == nil && set.prefilledAt != nil {
+            set.weightValue = nil
+            set.normalizedKg = nil
+            set.reps = nil
+            set.prefilledAt = nil
+        }
+    }
+
+    /// The machine's usual preset (D38), resolved against the exercise that is
+    /// actually being logged — a stale id pointing at another exercise's preset,
+    /// or at one since deleted, degrades to "none chosen" rather than attaching
+    /// a variation from a different movement.
+    func usualPreset(of machine: MachineInstance?, for exercise: Exercise) -> ExercisePreset? {
+        guard let presetID = machine?.defaultPresetID else { return nil }
+        return (exercise.presets ?? []).first { $0.id == presetID }
     }
 
     /// Machine-first logging (D7): the exercises linked to `machine`'s
@@ -259,17 +294,64 @@ struct WorkoutSession {
             return entry
         }
 
-        // Frozen: split into a new entry ordered right after the old one.
-        guard let workout = entry.workout, let exercise = entry.exercise else {
+        // Frozen: split into a new entry ordered right after the old one. The
+        // variation follows the user across the equipment change; the new
+        // machine's usual preset does not override a deliberate pick.
+        return try split(entry, machine: machine, freeWeightTag: tag, preset: entry.preset)
+    }
+
+    /// Picks the variation performed (D36–D38).
+    ///
+    /// Same freeze rule as equipment (D19), for the same reason: once a set has
+    /// completed, its snapshot says which variation it was, and records key on
+    /// that. Switching afterwards therefore starts a new entry rather than
+    /// relabelling completed work — a wide-grip set must never become a
+    /// narrow-grip set because the user changed handles for their next three.
+    @discardableResult
+    func choosePreset(_ preset: ExercisePreset?, for entry: ExerciseEntry) throws
+        -> ExerciseEntry {
+        // A preset belongs to one exercise (D37). Accepting a foreign one would
+        // snapshot and group a Leg Press variation onto a Seated Row — the
+        // service owns that rule, not whichever view happens to call it
+        // (codex-review, finding 4).
+        let preset = validated(preset, for: entry)
+        guard entry.preset?.id != preset?.id else { return entry }
+        guard entry.snapshotCapturedAt != nil else {
+            entry.preset = preset
+            // Values auto-filled for the previous variation are not evidence
+            // about this one (finding 3).
+            clearUntouchedDrafts(of: entry)
+            try context.save()
             return entry
         }
+
+        return try split(
+            entry, machine: entry.machine, freeWeightTag: entry.freeWeightTag, preset: preset)
+    }
+
+    /// Starts a new entry carrying `machine`/`freeWeightTag`/`preset`, ordered
+    /// right after `entry`, and moves its uncompleted rows across.
+    ///
+    /// One implementation, because there are two ways to change an entry's
+    /// context (equipment, D19; variation, D36) and they must behave
+    /// identically. They did not: the duplicate let the "inherited values do
+    /// not cross a context change" rule be written once and missed once
+    /// (codex-review, standards finding 2).
+    private func split(
+        _ entry: ExerciseEntry,
+        machine: MachineInstance?,
+        freeWeightTag: EquipmentTag?,
+        preset: ExercisePreset?
+    ) throws -> ExerciseEntry {
+        guard let workout = entry.workout, let exercise = entry.exercise else { return entry }
         var entries = Self.orderedEntries(of: workout)
         let newEntry = ExerciseEntry(
             order: 0,
-            freeWeightTag: tag,
+            freeWeightTag: machine == nil ? freeWeightTag : nil,
             workout: workout,
             exercise: exercise,
             machine: machine,
+            preset: validated(preset, for: entry),
             snapshotExerciseID: exercise.id,
             snapshotLoadType: exercise.loadType,
             snapshotExerciseName: exercise.name)
@@ -282,11 +364,19 @@ struct WorkoutSession {
         renumber(entries)
 
         // Draft rows move to the new entry, preserving relative order;
-        // completed sets stay behind.
+        // completed sets stay behind. Values the row *inherited* — cross-workout
+        // prefill or within-session carry-forward — describe the context being
+        // left, so the row moves and the false comparison does not (D36).
         let drafts = Self.orderedSets(of: entry).filter { $0.completedAt == nil }
         for (offset, draft) in drafts.enumerated() {
             draft.entry = newEntry
             draft.order = offset
+            if draft.prefilledAt != nil {
+                draft.weightValue = nil
+                draft.normalizedKg = nil
+                draft.reps = nil
+                draft.prefilledAt = nil
+            }
         }
         renumber(sets: Self.orderedSets(of: entry))
         if drafts.isEmpty {
@@ -326,6 +416,10 @@ struct WorkoutSession {
             weightUnit: unit,
             // Carried from the same source set, so it already matches `unit`.
             normalizedKg: carryForward?.normalizedKg,
+            // Carry-forward is inherited too: it comes from a completed set of
+            // *this* entry, which is exactly the context a preset switch leaves
+            // behind (D36).
+            prefilledAt: carryForward == nil ? nil : .now,
             entry: entry)
         context.insert(set)
         try context.save()
@@ -374,12 +468,15 @@ struct WorkoutSession {
             set.weightValue = nil
             set.normalizedKg = nil
         }
+        // Typed, not inherited — a context change must not clear this.
+        set.prefilledAt = nil
         try context.save()
     }
 
     /// Reps-field commit (end-editing).
     func commitReps(_ text: String, for set: SetRecord) throws {
         set.reps = Self.repsValue(from: text)
+        set.prefilledAt = nil
         try context.save()
     }
 
@@ -517,6 +614,8 @@ struct WorkoutSession {
         entry.snapshotMachineLabel = entry.machine?.label
         entry.snapshotModelName = entry.machine?.model?.displayName
         entry.snapshotGymName = entry.workout?.gym?.name
+        entry.snapshotPresetID = entry.preset?.id
+        entry.snapshotPresetName = entry.preset?.name
     }
 
     /// App-level upsert (no unique constraints under CloudKit): among
