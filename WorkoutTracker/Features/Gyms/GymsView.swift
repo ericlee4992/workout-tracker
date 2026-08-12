@@ -393,6 +393,16 @@ struct MachineEditorSheet: View {
     /// the sheet wrote itself may be overwritten by the next pick — anything
     /// typed is the user's.
     @State private var modelDerivedLabel: String?
+    @State private var showingScanner = false
+    /// A scan that found nothing in the catalog hands its reading here, so the
+    /// New Model sheet opens prefilled with what the plate said (D35).
+    @State private var scanCreatedModel: ScanDraft?
+
+    private struct ScanDraft: Identifiable {
+        let id = UUID()
+        let manufacturer: String
+        let modelName: String
+    }
 
     var body: some View {
         NavigationStack {
@@ -416,8 +426,14 @@ struct MachineEditorSheet: View {
                             }
                         }
                         .accessibilityIdentifier("catalogModel")
+                        Button {
+                            showingScanner = true
+                        } label: {
+                            Label("Scan label…", systemImage: "camera.viewfinder")
+                        }
+                        .accessibilityIdentifier("scanMachineLabel")
                     } footer: {
-                        Text("Optional — picking one names the machine for you. Without a model, logging on this machine opens the full exercise picker.")
+                        Text("Optional — picking one names the machine for you. Without a model, logging on this machine opens the full exercise picker. Scanning photographs the machine's name plate and offers the catalog models it matches.")
                     }
                 } else {
                     Section {
@@ -459,6 +475,23 @@ struct MachineEditorSheet: View {
             }
             .onAppear(perform: load)
             .onChange(of: model?.id) { _, _ in applyModelDefaultLabel() }
+            .sheet(isPresented: $showingScanner) {
+                ScanMachineLabelSheet(
+                    // Accepting a scanned model goes through exactly the same
+                    // state a hand-picked one does, so the label default (D3)
+                    // has one implementation, not two.
+                    onUseModel: { model = $0 },
+                    onCreateNew: { manufacturer, modelName in
+                        scanCreatedModel = ScanDraft(
+                            manufacturer: manufacturer, modelName: modelName)
+                    })
+            }
+            .sheet(item: $scanCreatedModel) { draft in
+                AddModelSheet(
+                    initialManufacturer: draft.manufacturer,
+                    initialModelName: draft.modelName,
+                    onCreate: { model = $0 })
+            }
         }
     }
 
@@ -646,10 +679,10 @@ struct ModelPickerView: View {
         .onChange(of: models.count, initial: true) { _, _ in rebuildIndex() }
         .onCatalogChange { rebuildIndex() }
         .sheet(isPresented: $showingAddModel) {
-            AddModelSheet { newModel in
+            AddModelSheet(onCreate: { newModel in
                 selection = newModel
                 dismiss()
-            }
+            })
         }
     }
 
@@ -781,15 +814,20 @@ struct ModelPickerView: View {
 
 /// Inline user-model creation (D24: user ID space, `isSeeded == false`;
 /// must link at least one exercise).
-private struct AddModelSheet: View {
+struct AddModelSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    /// Prefill from a scanned name plate (D35). Both stay editable: the scan
+    /// proposes a name, the user owns it.
+    var initialManufacturer: String = ""
+    var initialModelName: String = ""
     var onCreate: (EquipmentModel) -> Void
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @State private var manufacturer = ""
     @State private var modelName = ""
     @State private var equipmentType: EquipmentCategory?
     @State private var linkedExerciseIDs: Set<UUID> = []
+    @State private var loadedPrefill = false
 
     var body: some View {
         NavigationStack {
@@ -823,6 +861,7 @@ private struct AddModelSheet: View {
                             }
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("newModelExercise.\(exercise.name)")
                     }
                 } header: {
                     Text("Exercises")
@@ -839,9 +878,20 @@ private struct AddModelSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") { addModel() }
                         .disabled(!isValid)
+                        .accessibilityIdentifier("saveNewModel")
                 }
             }
+            .onAppear(perform: applyPrefill)
         }
+    }
+
+    /// Once only: after this the fields are the user's, even if the view
+    /// re-appears behind another sheet.
+    private func applyPrefill() {
+        guard !loadedPrefill else { return }
+        loadedPrefill = true
+        if manufacturer.isEmpty { manufacturer = initialManufacturer }
+        if modelName.isEmpty { modelName = initialModelName }
     }
 
     private var trimmedManufacturer: String {

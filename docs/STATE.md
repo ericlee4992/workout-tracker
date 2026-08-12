@@ -9,13 +9,20 @@ file that goes stale fastest.
 Milestone 2 (core loop on SwiftData) is **complete and installed on the developer's iPhone**.
 Tickets 01–21 are all resolved (`.scratch/milestone-2-core-loop/issues/`).
 
-**Milestone 3 (CSV/JSON export) is built on branch `milestone-3-export`** — all three tickets
-resolved (`.scratch/milestone-3-export/`), decisions D28–D32 recorded, and the Codex
-cross-review (T6) is done: `.scratch/milestone-3-export/codex-review.md`, three high findings,
-all real, all fixed on the branch (D30/D31 amended rather than reinterpreted). Suite:
-**250 unit + 10 UI tests green**. The change is **uncommitted**, not merged, **and not on the
-phone** — the install still runs `ce32158`, so the user cannot export their real data until a
-reinstall happens.
+**Milestone 3 (CSV/JSON export) is merged to `main`** (`798372c`) — all three tickets resolved
+(`.scratch/milestone-3-export/`), decisions D28–D32 recorded, Codex cross-review (T6) done
+(`codex-review.md`: three high findings, all real, all fixed; D30/D31 amended rather than
+reinterpreted). Suite: **250 unit + 10 UI tests green**. **Not on the phone yet** — the install
+still runs `ce32158`, and the user deliberately deferred reinstalling until more features land,
+so their training data still has no way off the device.
+
+**Machine-label scanning is built on branch `photo-machine-capture`** (uncommitted): photograph a
+machine's name plate when adding a machine, and the app ranks the catalog against what Vision
+reads and offers the matches for confirmation, or prefills a user-space model when nothing fits
+(D33–D35, `.scratch/photo-machine-capture/`). **Two Codex cross-review rounds** (T6) found four
+critical and several high-severity ways to preselect a *wrong* catalog UUID — all fixed, all
+regression-tested against the shipped 1877-row catalog in `CatalogMatcherAdversarialTests`.
+Suite: **296 unit + 12 UI tests**.
 
 The app is being **dogfooded in real gym sessions** — that is the current activity. Feedback from
 those sessions outranks new features.
@@ -39,11 +46,16 @@ the only copy.
 ## What to do next, in priority order
 
 1. **Act on gym feedback.** Anything the user reports from a real session beats the backlog.
-2. **Finish milestone 3**: commit and merge `milestone-3-export` (reviewed, green, awaiting the
-   user's go-ahead), then **reinstall on the phone** — until that happens the export exists only
-   in the repo, and the real training data still has no way off the device. That last step is the
-   whole point of the milestone; do not treat it as done at merge.
-3. Milestones 4–6: progress charts, Strong CSV import, plate calculator.
+2. **Finish machine-label scanning**: Codex cross-review (T6), then commit and merge
+   `photo-machine-capture`. The matcher's thresholds (0.85 confident / 0.35 create-new) are tuned
+   against the shipped catalog and rendered plates — no *photographs* have been through it yet, so
+   expect to retune once the user has scanned a few real machines. Known conservative trade: a
+   plate that does not name its manufacturer never preselects (95% of clean brand+model readings
+   do; 0% of model-name-only readings), because a wrong model UUID splits history (D23).
+3. **Reinstall on the phone** once the next batch of features lands — export is merged but
+   unreachable on the device, so the training data still has no backup. Deferred by the user, not
+   forgotten; the free signing also expires ~17 Aug 2026.
+4. Milestones 4–6: progress charts, Strong CSV import, plate calculator.
 
 ## Decisions the user has NOT made yet
 
@@ -70,6 +82,10 @@ the only copy.
   why it exists.
 - **UI tests take ~7 minutes** and occasionally flake under load. A single red run is not
   automatically a real failure; re-run the failing test alone before believing it.
+- **The Simulator has no camera.** Anything camera-driven needs a fixture path to be testable at
+  all — hence `-uiTestScanFixture`, which renders a name plate in place of the picker. And a
+  missing `INFOPLIST_KEY_NSCameraUsageDescription` is a *crash* on presentation, not a prompt;
+  the project generates its Info.plist, so usage strings live in build settings.
 - **A `.sheet` attached to a `Section` inside a `List` never presents.** No error, no warning —
   the state flips and nothing happens. Hang presentation off a row *inside* the section. Cost an
   export that silently did nothing (milestone 3, ticket 02); caught only by the XCUITest.
