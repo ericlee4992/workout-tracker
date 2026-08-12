@@ -7,8 +7,15 @@ file that goes stale fastest.
 ## Status
 
 Milestone 2 (core loop on SwiftData) is **complete and installed on the developer's iPhone**.
-Tickets 01–21 are all resolved (`.scratch/milestone-2-core-loop/issues/`). Suite: **214 unit +
-9 UI tests green**. Everything is pushed to `github.com/ericlee4992/workout-tracker` (private).
+Tickets 01–21 are all resolved (`.scratch/milestone-2-core-loop/issues/`).
+
+**Milestone 3 (CSV/JSON export) is built on branch `milestone-3-export`** — all three tickets
+resolved (`.scratch/milestone-3-export/`), decisions D28–D32 recorded, and the Codex
+cross-review (T6) is done: `.scratch/milestone-3-export/codex-review.md`, three high findings,
+all real, all fixed on the branch (D30/D31 amended rather than reinterpreted). Suite:
+**250 unit + 10 UI tests green**. The change is **uncommitted**, not merged, **and not on the
+phone** — the install still runs `ce32158`, so the user cannot export their real data until a
+reinstall happens.
 
 The app is being **dogfooded in real gym sessions** — that is the current activity. Feedback from
 those sessions outranks new features.
@@ -26,14 +33,16 @@ those sessions outranks new features.
 
 **Reinstalling** (`./scripts/install-on-device.sh`, or build + `xcrun devicectl device install app`)
 **preserves the user's data** — same bundle ID keeps the container. Say so before an install; the
-user has real training data on that phone and **there is still no export**, so it is the only copy.
+user has real training data on that phone and **the export is not installed yet**, so it is still
+the only copy.
 
 ## What to do next, in priority order
 
 1. **Act on gym feedback.** Anything the user reports from a real session beats the backlog.
-2. **Milestone 3 — export (CSV/JSON).** Now the highest-value unbuilt thing: the only copy of the
-   user's training history lives on one phone with no backup. `docs/SPEC.md` milestone list has the
-   fidelity requirements (as-entered units *and* normalized, full equipment context, stable UUIDs).
+2. **Finish milestone 3**: commit and merge `milestone-3-export` (reviewed, green, awaiting the
+   user's go-ahead), then **reinstall on the phone** — until that happens the export exists only
+   in the repo, and the real training data still has no way off the device. That last step is the
+   whole point of the milestone; do not treat it as done at merge.
 3. Milestones 4–6: progress charts, Strong CSV import, plate calculator.
 
 ## Decisions the user has NOT made yet
@@ -61,6 +70,9 @@ user has real training data on that phone and **there is still no export**, so i
   why it exists.
 - **UI tests take ~7 minutes** and occasionally flake under load. A single red run is not
   automatically a real failure; re-run the failing test alone before believing it.
+- **A `.sheet` attached to a `Section` inside a `List` never presents.** No error, no warning —
+  the state flips and nothing happens. Hang presentation off a row *inside* the section. Cost an
+  export that silently did nothing (milestone 3, ticket 02); caught only by the XCUITest.
 
 ## Working agreements learned the hard way
 
@@ -70,6 +82,8 @@ user has real training data on that phone and **there is still no export**, so i
 - **Cross-review is not optional** (T6). Codex reviews of Claude's work have caught, among others:
   template data loss on an empty templated workout, D23 violations where history read live rows,
   and ten duplicate catalog identities that would have split the user's own history. Reviews live
-  in `.scratch/milestone-2-core-loop/codex-review-*.md`.
+  in `.scratch/milestone-*/codex-review*.md`. Milestone 3's pass caught an export that dropped a
+  draft entry's equipment and a CRLF-quoting bug that would have corrupted the CSV — both invisible
+  to a green suite.
 - **Locked decisions get reopened deliberately** — D26 (drop sets) reopened D12 rather than drifting.
 - The user prefers **seeing the UI** (screenshots from the simulator) over descriptions of it.

@@ -81,6 +81,14 @@ Four levels:
 - All relationships optional with explicit inverses; deliberate delete rules (no `deny` — unsupported by CloudKit); ordering always via scalar fields, never implicit to-many order
 - PRs are derived (computed/cached), never source-of-truth records.
 
+## Export (milestone 3, D28–D32)
+
+Two files, shared from Settings (Gyms screen) through the system share sheet — "Save to Files → iCloud Drive" is the intended backup. Both carry everything the user created; neither carries derived data (PRs, e1RM, volume) or the shipped catalog beyond the rows the user's data references (D28).
+
+- **CSV** — one row per set, 27 columns, fully denormalized: workout, gym, exercise, machine, model display name and manufacturer, set type, reps, `weight` + `unit` + `weightKg`, completion. Context columns come from the entry's D23 snapshot once it has one (a draft entry reports its live equipment), so renaming a gym never rewrites old rows. RFC 4180, CRLF, UTF-8 BOM, user text verbatim (D32). It is a complete ledger of *sets*: an object holding no set at all appears only in the JSON.
+- **JSON** — the object graph and the complete backup: `schemaVersion` 1, sorted keys, nil properties omitted (nil *array positions* stay `null` so set targets keep their index). Written to be re-importable; reading it back is not in v1's export milestone.
+- Timestamps are ISO 8601 with the device's UTC offset and fractional seconds (D31). Draft sets and the in-progress workout export, flagged (D30). Column layout and the JSON shape: `.scratch/milestone-3-export/spec.md`.
+
 ## Strong benchmark facts we build against
 
 - Strong has **no gym/location/machine entity**; equipment is a name suffix ("(Barbell)"). Our thesis is an unserved need.

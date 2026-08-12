@@ -25,6 +25,7 @@ struct GymsView: View {
                 }
 
                 AppSettingsSection()
+                ExportSection()
             }
             .navigationTitle("Gyms")
             .navigationDestination(for: UUID.self) { gymID in

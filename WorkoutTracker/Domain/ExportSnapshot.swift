@@ -1,0 +1,268 @@
+import Foundation
+
+// Milestone 3, ticket 01 — the export's value-type layer. Pure: no UI, no
+// SwiftData. `ExportCollector` builds one of these from a `ModelContext`;
+// `ExportJSON` and `ExportCSV` render it.
+//
+// Everything the user created is in here (D30) — including draft sets and an
+// unfinished workout. What is *not* in here: the shipped seeded catalog beyond
+// the rows the user's data actually references (D28), and anything derived
+// (PRs, e1RM, volume — SPEC: derived, never source-of-truth).
+//
+// Timestamps are already-formatted ISO 8601 strings with a UTC offset (D31),
+// not `Date`s. Formatting once, at collection time, is what makes the two
+// renderers agree to the character and makes a JSON round-trip exact — an
+// ISO 8601 `Date` round-trip silently truncates sub-second precision.
+
+struct ExportSnapshot: Codable, Equatable {
+    /// Bumped on any breaking shape change. A consumer that does not
+    /// recognise the version should refuse the file rather than guess.
+    static let currentSchemaVersion = 1
+
+    var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
+    var exportedAt: String
+    /// Marketing version + build, e.g. `1.0 (3)`. Empty when unavailable.
+    var appVersion: String
+    /// D28: which catalog the omitted seeded rows can be reproduced from.
+    var seededCatalogVersion: Int
+    var counts: Counts
+    var preferences: Preferences?
+    var gyms: [Gym] = []
+    var machines: [Machine] = []
+    var exercises: [Exercise] = []
+    var equipmentModels: [EquipmentModel] = []
+    var templates: [Template] = []
+    var workouts: [Workout] = []
+    var gymExerciseMemory: [GymMemory] = []
+    var exerciseRestOverrides: [RestOverride] = []
+}
+
+// MARK: - Counts
+
+extension ExportSnapshot {
+    /// Header numbers, so a consumer (and the export screen) can see at a
+    /// glance whether the file holds what it should.
+    struct Counts: Codable, Equatable {
+        var workouts: Int = 0
+        var entries: Int = 0
+        var sets: Int = 0
+        /// Sets with a `completedAt` — the ones records and volume count.
+        var completedSets: Int = 0
+        var gyms: Int = 0
+        var machines: Int = 0
+        var exercises: Int = 0
+        var equipmentModels: Int = 0
+        var templates: Int = 0
+    }
+}
+
+// MARK: - Preferences
+
+extension ExportSnapshot {
+    /// The canonical `AppPreferences` row. Catalog browsing state is
+    /// deliberately absent: it is display-only (D23), meaningless outside the
+    /// screen that wrote it, and restoring it would restore nothing the user
+    /// would miss. `seededCatalogFingerprint` is likewise omitted — it is
+    /// derived from the bundled catalog, not user data.
+    struct Preferences: Codable, Equatable {
+        var unitPreference: WeightUnit?
+        var driftPromptSuppressed: Bool
+        var globalWorkingRestSeconds: Int
+        var globalWarmupRestSeconds: Int
+        var seededCatalogVersion: Int
+        var notificationPermissionRequested: Bool
+        var selectedGymID: UUID?
+        var updatedAt: String
+    }
+}
+
+// MARK: - Catalog & places
+
+extension ExportSnapshot {
+    struct Gym: Codable, Equatable {
+        var id: UUID
+        var name: String
+        var city: String?
+        var defaultUnit: WeightUnit?
+        var notes: String
+        /// Archived gyms export too: history still resolves through them.
+        var archived: Bool
+    }
+
+    struct Machine: Codable, Equatable {
+        var id: UUID
+        var label: String
+        var gymID: UUID?
+        var modelID: UUID?
+        var defaultUnit: WeightUnit?
+        var archived: Bool
+    }
+
+    struct Exercise: Codable, Equatable {
+        var id: UUID
+        var name: String
+        var loadType: LoadType
+        var equipmentTypeTags: [EquipmentTag]
+        var muscleGroup: String?
+        /// True for a seeded row the user's data referenced (D28).
+        var isSeeded: Bool
+    }
+
+    struct EquipmentModel: Codable, Equatable {
+        var id: UUID
+        var manufacturer: String
+        var modelName: String
+        var exerciseIDs: [UUID]
+        var equipmentType: EquipmentCategory?
+        var isSeeded: Bool
+    }
+}
+
+// MARK: - Templates
+
+extension ExportSnapshot {
+    struct Template: Codable, Equatable {
+        var id: UUID
+        var name: String
+        var items: [TemplateItem]
+    }
+
+    struct TemplateItem: Codable, Equatable {
+        var id: UUID
+        var order: Int
+        var exerciseID: UUID?
+        /// Resolved at export time for readability; `exerciseID` is the key.
+        var exerciseName: String?
+        var targetSets: Int?
+        var targetReps: Int?
+        var targetRepsBySet: [Int?]
+    }
+}
+
+// MARK: - History
+
+extension ExportSnapshot {
+    struct Workout: Codable, Equatable {
+        var id: UUID
+        var startedAt: String
+        /// Absent while the workout is still running (D30).
+        var finishedAt: String?
+        var notes: String
+        var sourceTemplateID: UUID?
+        var sourceTemplateName: String?
+        var gymID: UUID?
+        var gymName: String?
+        var entries: [Entry]
+    }
+
+    /// One exercise within a workout.
+    ///
+    /// Context for a **frozen** entry (first set completed) is the entry's D23
+    /// snapshot, never a live lookup — renaming a gym must not rewrite an old
+    /// export row. Context for a **draft** entry (`snapshotCapturedAt == nil`)
+    /// is the live relationships, because no snapshot has been captured yet and
+    /// the equipment the user just picked is the only truth there is
+    /// (codex-review, finding 1).
+    ///
+    /// `modelManufacturer` is the one value neither path stores; it is resolved
+    /// from the catalog at export time and absent when the model is gone.
+    struct Entry: Codable, Equatable {
+        var id: UUID
+        var order: Int
+        /// When equipment froze (first set completion). Absent = still a draft,
+        /// and every context field below is live rather than snapshotted.
+        var snapshotCapturedAt: String?
+        var exerciseID: UUID
+        var exerciseName: String
+        var loadType: LoadType
+        var freeWeightTag: EquipmentTag?
+        var machineID: UUID?
+        var machineLabel: String?
+        var modelID: UUID?
+        /// Manufacturer *and* model, as the snapshot stores it
+        /// (`EquipmentModel.displayName`) — hence not `modelName`, which would
+        /// promise a raw name the store never captured (codex-review, finding 5).
+        var modelDisplayName: String?
+        var modelManufacturer: String?
+        var gymID: UUID?
+        var gymName: String?
+        var sets: [SetRow]
+    }
+
+    /// One logged set. `weight`/`unit` are exactly as entered and `weightKg`
+    /// is the stored normalization (D29) — never a converted display value,
+    /// and never rounded.
+    struct SetRow: Codable, Equatable {
+        var id: UUID
+        var order: Int
+        var type: SetType
+        var reps: Int?
+        var weight: Double?
+        var unit: WeightUnit
+        var weightKg: Double?
+        /// Absent = not completed. Present in the export regardless (D30).
+        var completedAt: String?
+    }
+}
+
+// MARK: - Memory & overrides
+
+extension ExportSnapshot {
+    struct GymMemory: Codable, Equatable {
+        var id: UUID
+        var gymID: UUID
+        var exerciseID: UUID
+        var machineID: UUID?
+        var updatedAt: String
+    }
+
+    struct RestOverride: Codable, Equatable {
+        var id: UUID
+        var exerciseID: UUID
+        var workingRestSeconds: Int?
+        var warmupRestSeconds: Int?
+        var updatedAt: String
+    }
+}
+
+// MARK: - Timestamps (D31)
+
+/// ISO 8601 with the exporting device's UTC offset — `2026-08-11T18:30:00+09:00`.
+///
+/// Not bare UTC: a workout log is a record of local time-of-day, and a 6 a.m.
+/// session in Seoul must not read as the previous evening. The offset keeps
+/// both the instant and the wall clock.
+struct ExportDateFormat {
+    private let formatter: ISO8601DateFormatter
+
+    init(timeZone: TimeZone = .current) {
+        let formatter = ISO8601DateFormatter()
+        // Fractional seconds are not decoration: `CanonicalRow` breaks ties
+        // between duplicate preference/memory/override rows by `updatedAt`
+        // before falling back to the id, so two updates inside the same second
+        // must not collapse into one value (codex-review, finding 4).
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        formatter.timeZone = timeZone
+        self.formatter = formatter
+    }
+
+    func string(from date: Date) -> String {
+        formatter.string(from: date)
+    }
+
+    /// Optional passthrough — nil stays nil (an absent timestamp is a fact:
+    /// an unfinished workout, an uncompleted set).
+    func optionalString(from date: Date?) -> String? {
+        guard let date else { return nil }
+        return formatter.string(from: date)
+    }
+
+    /// Filename stamp: `2026-08-11-1830`, local time, sorts chronologically.
+    func fileStamp(from date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = self.formatter.timeZone
+        formatter.dateFormat = "yyyy-MM-dd-HHmm"
+        return formatter.string(from: date)
+    }
+}
