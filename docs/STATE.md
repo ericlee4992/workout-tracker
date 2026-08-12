@@ -16,7 +16,7 @@ reinterpreted). Suite: **250 unit + 10 UI tests green**. **Not on the phone yet*
 still runs `ce32158`, and the user deliberately deferred reinstalling until more features land,
 so their training data still has no way off the device.
 
-**Machine-label scanning is built on branch `photo-machine-capture`** (uncommitted): photograph a
+**Machine-label scanning is merged to `main`** (`64188e2`): photograph a
 machine's name plate when adding a machine, and the app ranks the catalog against what Vision
 reads and offers the matches for confirmation, or prefills a user-space model when nothing fits
 (D33–D35, `.scratch/photo-machine-capture/`). **Two Codex cross-review rounds** (T6) found four
@@ -31,17 +31,34 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | `ce32158` (2026-08-11) |
+| Installed commit | `64188e2` (2026-08-11) — export **and** label scanning are on the phone |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` (already in `project.pbxproj`) |
-| Signing | **Free** Apple account → builds expire **7 days**, so ~**17 Aug 2026** |
+| Signing | **Free** Apple account → builds expire **7 days**, so ~**18 Aug 2026**. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
-**Reinstalling** (`./scripts/install-on-device.sh`, or build + `xcrun devicectl device install app`)
-**preserves the user's data** — same bundle ID keeps the container. Say so before an install; the
-user has real training data on that phone and **the export is not installed yet**, so it is still
-the only copy.
+**Reinstalling** preserves the user's data — same bundle ID keeps the container. Say so before an
+install; that phone holds the only copy of the training history until an export is saved off it.
+
+The wizard (`./scripts/install-on-device.sh`) is interactive and meant for a human. With the
+signing identity and Developer Mode already in place, the direct path is three commands:
+
+```sh
+xcrun devicectl list devices                      # confirm udid 00008130-…, transport, tunnel state
+xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -configuration Debug \
+  -destination 'platform=iOS,id=00008130-001E10C01E62001C' -allowProvisioningUpdates \
+  -derivedDataPath /tmp/wt-device-build build
+xcrun devicectl device install app --device 00008130-001E10C01E62001C \
+  /tmp/wt-device-build/Build/Products/Debug-iphoneos/WorkoutTracker.app
+```
+
+Gotchas seen doing exactly this on 2026-08-11: the phone pairs over **localNetwork**, and its
+tunnel reads `disconnected` until something asks for it — the first install attempt died with
+`NWError 60 - Operation timed out` and the identical retry succeeded. Do not conclude the phone is
+unreachable from one timeout. `devicectl device process launch` additionally needs the phone
+**unlocked**, and fails with `FBSOpenApplicationErrorDomain error 7` when it is not; that says
+nothing about whether the install worked.
 
 ## What to do next, in priority order
 
@@ -52,9 +69,10 @@ the only copy.
    expect to retune once the user has scanned a few real machines. Known conservative trade: a
    plate that does not name its manufacturer never preselects (95% of clean brand+model readings
    do; 0% of model-name-only readings), because a wrong model UUID splits history (D23).
-3. **Reinstall on the phone** once the next batch of features lands — export is merged but
-   unreachable on the device, so the training data still has no backup. Deferred by the user, not
-   forgotten; the free signing also expires ~17 Aug 2026.
+3. **Ask whether the export actually works on real data.** Both features are now on the phone
+   (`64188e2`) but neither has met the user's real gym: the export has never run over their full
+   history, and the scanner has never seen a real name plate. Those two answers should shape what
+   comes next more than the backlog does.
 4. Milestones 4–6: progress charts, Strong CSV import, plate calculator.
 
 ## Decisions the user has NOT made yet
