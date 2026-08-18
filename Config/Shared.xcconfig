@@ -1,0 +1,18 @@
+// Shared build settings — committed.
+//
+// Signing identity is NOT committed. `DEVELOPMENT_TEAM` and the bundle-ID base
+// live in `Config/Local.xcconfig`, which is gitignored, because they are
+// per-developer facts: a second person is not in the first person's Apple team,
+// and a bundle ID registered to one team cannot be registered by another (free
+// provisioning especially). Baking them into `project.pbxproj` meant a
+// collaborator had to dirty a tracked file to build at all.
+//
+// Copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig` and fill it
+// in. Simulator builds and CI need neither value, which is why the include is
+// optional and the defaults below are blank/generic.
+
+WT_DEVELOPMENT_TEAM =
+WT_BUNDLE_ID_BASE = com.example.workouttracker
+
+// Last, so a developer's own values win over the defaults above.
+#include? "Local.xcconfig"

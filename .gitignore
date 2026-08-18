@@ -20,3 +20,6 @@ xcuserdata/
 
 # Python (catalog generator)
 __pycache__/
+
+# Per-developer signing identity (see Config/Local.xcconfig.example)
+Config/Local.xcconfig

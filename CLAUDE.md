@@ -30,6 +30,12 @@ Private iPhone workout tracker (solo developer, working with coding agents). Eve
 
 ## Build & run
 
+**First run on a new machine:** copy `Config/Local.xcconfig.example` to
+`Config/Local.xcconfig` (gitignored) and fill in your own Apple Team ID and bundle-ID prefix.
+Simulator builds and CI need neither — the include is optional — but a device build needs both, and
+they are per-developer: nobody else is in your Apple team, and a bundle ID registered to one team
+cannot be claimed by another.
+
 ```sh
 # Build (simulator SDK, no signing)
 xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
@@ -67,7 +73,10 @@ Apple's system.
 
 ## Workflow
 
-- Short-lived branches off `main`, small changes, **cross-reviewed by a different agent than the one that wrote them** (Claude ↔ Codex). Solo means no second pair of human eyes — the cross-review is the only independent check, so don't skip it on load-bearing work.
+- Short-lived branches off `main`, small changes, **cross-reviewed by a different agent than the one that wrote them** (Claude ↔ Codex).
+- CI (`.github/workflows/tests.yml`) runs the **unit** suite on every PR and push to `main`. The
+  ~9-minute XCUITest suite stays local — macOS runner minutes bill at 10x — so run it yourself
+  before merging anything that touches a screen. Solo means no second pair of human eyes — the cross-review is the only independent check, so don't skip it on load-bearing work.
 - Commits/PRs must not break `xcodebuild build`.
 
 ## Agent skills

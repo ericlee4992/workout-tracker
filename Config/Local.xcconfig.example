@@ -1,0 +1,10 @@
+// Copy to `Config/Local.xcconfig` (gitignored) and fill in your own values.
+//
+// WT_DEVELOPMENT_TEAM — your 10-character Apple Team ID. Xcode → Settings →
+//   Accounts → your Apple ID → the team's ID. Leave blank to build for the
+//   Simulator only; a device build needs it.
+// WT_BUNDLE_ID_BASE  — must be globally unique across Apple's system, so use
+//   your own reverse-domain prefix rather than someone else's.
+
+WT_DEVELOPMENT_TEAM = ABCDE12345
+WT_BUNDLE_ID_BASE = com.yourname.workouttracker

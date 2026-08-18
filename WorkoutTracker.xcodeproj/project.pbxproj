@@ -71,10 +71,25 @@
 		};
 /* End PBXFrameworksBuildPhase section */
 
+/* Begin PBXFileReference section */
+		1A00000000000000000000F1 /* Shared.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = Shared.xcconfig; path = Config/Shared.xcconfig; sourceTree = "<group>"; };
+		1A00000000000000000000F2 /* Local.xcconfig.example */ = {isa = PBXFileReference; lastKnownFileType = text; name = Local.xcconfig.example; path = Config/Local.xcconfig.example; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
 /* Begin PBXGroup section */
+		1A00000000000000000000F0 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				1A00000000000000000000F1 /* Shared.xcconfig */,
+				1A00000000000000000000F2 /* Local.xcconfig.example */,
+			);
+			name = Config;
+			sourceTree = "<group>";
+		};
 		1A0000000000000000000002 = {
 			isa = PBXGroup;
 			children = (
+				1A00000000000000000000F0 /* Config */,
 				1A0000000000000000000005 /* WorkoutTracker */,
 				1A0000000000000000000011 /* WorkoutTrackerTests */,
 				1A0000000000000000000021 /* WorkoutTrackerUITests */,
@@ -271,6 +286,7 @@
 /* Begin XCBuildConfiguration section */
 		1A000000000000000000000C /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A00000000000000000000F1 /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -333,6 +349,7 @@
 		};
 		1A000000000000000000000D /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 1A00000000000000000000F1 /* Shared.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -392,7 +409,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = X68M8SR6NA;
+				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
@@ -408,7 +425,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ericlee4992.workouttracker;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -422,7 +439,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = X68M8SR6NA;
+				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
@@ -438,7 +455,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ericlee4992.workouttracker;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
@@ -455,7 +472,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ericlee4992.workouttracker.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -473,7 +490,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ericlee4992.workouttracker.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).tests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -490,7 +507,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ericlee4992.workouttracker.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).uitests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;
@@ -507,7 +524,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.ericlee4992.workouttracker.uitests;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).uitests";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_VERSION = 5.0;

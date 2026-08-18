@@ -1,0 +1,104 @@
+name: Tests
+
+# Unit tests only, on every PR and every push to main.
+#
+# The XCUITest suite is deliberately NOT here. It takes ~9 minutes, and GitHub
+# bills macOS runners at 10x the minute rate — a handful of PRs a month would
+# swallow a private repo's whole allowance to re-prove what a local run already
+# proves. Run it before merging anything that touches a screen:
+#
+#   xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+#     -sdk iphonesimulator -destination 'platform=iOS Simulator,name=WT-iPhone' \
+#     -only-testing:WorkoutTrackerUITests
+#
+# No signing secrets are needed: simulator builds do not sign, and the team ID
+# lives in Config/Local.xcconfig, which is gitignored and optional (see
+# Config/Shared.xcconfig).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit-tests:
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: xcodebuild -version
+
+      # Pick a simulator by UDID rather than by name. Locally the scheme targets
+      # "WT-iPhone" (CLAUDE.md), which does not exist on a runner; hard-coding
+      # "iPhone 16" instead just moves the breakage to the next image update.
+      # This takes whatever iPhone the newest installed iOS runtime offers.
+      - name: Pick a simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          cat > /tmp/pick-simulator.py <<'PY'
+          import json, subprocess, sys
+
+          data = json.loads(subprocess.run(
+              ["xcrun", "simctl", "list", "devices", "available", "--json"],
+              capture_output=True, text=True, check=True).stdout)["devices"]
+
+          def version(runtime):
+              tail = runtime.rsplit(".", 1)[-1]          # ...SimRuntime.iOS-18-2
+              return tuple(int(p) for p in tail.split("-")[1:] if p.isdigit())
+
+          best = None
+          for runtime, devices in data.items():
+              if "SimRuntime.iOS" not in runtime:
+                  continue
+              for device in devices:
+                  if not device.get("isAvailable") or not device["name"].startswith("iPhone"):
+                      continue
+                  key = (version(runtime), device["name"])
+                  if best is None or key > best[0]:
+                      best = (key, device)
+
+          if best is None:
+              print("no iPhone simulator available on this runner", file=sys.stderr)
+              sys.exit(1)
+          print(f"{best[1]['udid']}\t{best[1]['name']}")
+          PY
+          PICKED=$(python3 /tmp/pick-simulator.py)
+          UDID=${PICKED%%$'\t'*}
+          NAME=${PICKED##*$'\t'}
+          echo "Testing on $NAME ($UDID)"
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+
+      - name: Unit tests
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          xcodebuild test \
+            -project WorkoutTracker.xcodeproj \
+            -scheme WorkoutTracker \
+            -sdk iphonesimulator \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -only-testing:WorkoutTrackerTests \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee xcodebuild.log \
+            `# xcodebuild's exit code decides pass/fail (set -o pipefail); the` \
+            `# grep only decides what is worth printing. A clean simulator logs` \
+            `# CoreData "error:" lines while creating the store on first launch,` \
+            `# which are noise, not failures.` \
+            | grep -E '✘|Test run with|TEST (SUCCEEDED|FAILED)' \
+            || (echo "--- last 100 lines ---"; tail -100 xcodebuild.log; exit 1)
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          if-no-files-found: ignore
