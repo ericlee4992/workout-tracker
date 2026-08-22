@@ -1,13 +1,14 @@
 # Where the project is right now
 
-Updated 2026-08-22. **Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is
-and why; this says what has actually happened and what to do next. Keep it current; it is the one
-file that goes stale fastest.
+Updated 2026-08-22 (second entry that day — barbell bar weight).
+**Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is and why; this says
+what has actually happened and what to do next. Keep it current; it is the one file that goes
+stale fastest.
 
 ## Status
 
-Everything below is merged, pushed, and green: **329 unit + 13 UI tests**. Working tree clean;
-`main == origin/main` on `github.com/ericlee4992/workout-tracker` (private).
+Everything below is merged into local `main` and green: **362 unit + 14 UI tests**.
+`github.com/ericlee4992/workout-tracker` (private).
 
 | Shipped | What it is |
 |---|---|
@@ -16,15 +17,19 @@ Everything below is merged, pushed, and green: **329 unit + 13 UI tests**. Worki
 | Label scanning (`64188e2`, `33be96d`) | Live camera reads a machine's name plate, ranks the 1877-model catalog, user confirms (D33–D35) |
 | Exercise presets (`33be96d`) | Grips / single-double as variations that **split records** (D36–D38) |
 | Collaboration setup (`b5dfac9`) | Signing moved to a gitignored `Config/Local.xcconfig`; CI runs unit tests on every PR |
+| Barbell bar weight (2026-08-22) | Pick the bar, type plates per side, log the total (D39–D40). Half of milestone 6, brought forward |
 
 **Two things are true and easy to miss:**
 
-1. **The build on the phone has expired** (signed 12 Aug, free account = 7 days). The app will not
-   launch until it is reinstalled. Reinstalling preserves the data — see the install section below.
-2. **None of it has met a real gym.** The scanner has never read a real name plate; no export has
-   been taken of the real training history; no preset has been logged against in a session. Every
-   threshold and layout is tuned against fixtures. Those three answers should shape the next
-   session more than the backlog does.
+1. **Bar weight merged without its cross-review** (T6 waived on request — see Reviews in
+   `DECISIONS.md`). The unreviewed surface is the D39 invariant: `weightValue` is the TOTAL,
+   `barWeightValue` is provenance. Invert that anywhere and every barbell PR drops by the weight
+   of a bar with no error raised.
+2. **Almost none of it has met a real gym.** The scanner has never read a real name plate; no
+   preset has been logged against in a session; bar mode has never been used to load a bar. Every
+   threshold and layout is tuned against fixtures. Those answers should shape the next session
+   more than the backlog does. (One item came off this list on 2026-08-22: an export of the real
+   history now exists, in iCloud Drive.)
 
 The app is being **dogfooded in real gym sessions** — that is the current activity. Feedback from
 those sessions outranks new features.
@@ -33,10 +38,13 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
+| Installed commit | The bar-weight merge (2026-08-22, installed 16:31 — the content is what is now on `main`, built from the working tree just before the merge commit existed). Installed before its Codex pass at the user's request, with a backup taken first (below) |
+| Store migration | **Done on the real store, 2026-08-22.** `main` (`a3a6934`) was installed first so an export could be taken, then the branch build; it launched, so `SetRecord.barWeightValue` migrated the user's actual data. `a3a6934` can no longer open that store — the migrated schema is one-way without the export |
+| Backup | CSV + JSON exported to iCloud Drive on 2026-08-22 before the schema change — the first copy of the training history off the device. Re-export after any session worth keeping |
+| Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed 12 Aug, so **expired ~19 Aug 2026**. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **22 Aug 2026**, so expires **~29 Aug 2026**. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
@@ -64,10 +72,14 @@ nothing about whether the install worked.
 
 ## What to do next, in priority order
 
-1. **Reinstall — the current build has expired.** Nothing else can be tested on the phone until
-   this is done, and it takes three commands (see the install section). Ask first: it is the
-   user's phone, and the data on it is the only copy.
-2. **Act on gym feedback.** Three questions are open and no test can answer them:
+1. **Act on gym feedback.** Six questions are open and no test can answer them. The three newest,
+   from the bar mode installed 2026-08-22:
+   - Is **plates per side** what the user thinks in while loading, or total plates?
+   - In bar mode PREVIOUS shows last session's **total** while the field takes **plates**. Does
+     the `= 135 lb` caption reconcile that mid-set, or does it read as two different numbers?
+   - Is a bar the user actually owns missing from `BarbellMath.presets`? Custom covers it, but a
+     weekly bar belongs in the list.
+   And the three still open from before:
    - Does the scanner read a **real** name plate? If it reads it but refuses to preselect, that is
      the D33 gate working, not a bug — a plate that does not name its manufacturer never
      preselects (95% of clean brand+model readings do, 0% of model-name-only ones), because a
@@ -76,9 +88,20 @@ nothing about whether the install worked.
      photographs. Retune only with real misses in hand.
    - Does the **export** look right over the real history in a spreadsheet?
    - Are the **preset chips** reachable one-handed mid-set? Their layout is guesswork.
+2. **A cross-review of bar weight is still owed** (T6, waived at merge on 2026-08-22 — see the
+   Reviews section of `DECISIONS.md`). It is merged and on the phone, so this is no longer a gate
+   on anything; it is a debt. The D39 invariant is the thing to attack.
 3. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
    next unbuilt milestone, and what makes the logged history worth looking at.
-4. Milestones 5–6: Strong CSV import, plate calculator.
+4. Milestone 5: Strong CSV import. Milestone 6 is now **half done** — the bar half shipped
+   2026-08-22; what remains is computing which plates to load for a target weight, and
+   selectorized stack increments.
+
+**Known latent bug, found while building bar mode, deliberately not fixed:** `Format.weight`
+(`Domain/SharedEnums.swift`) renders to one decimal, and the set row's text becomes the stored
+value on completion — so a prefilled 62.25 kg row commits as **62.3**. It only bites weights with
+two decimals, which 2.5 lb/1.25 kg plate math does not produce, but it is a silent rewrite of the
+user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.displayNumber`.
 
 ## Decisions the user has NOT made yet
 

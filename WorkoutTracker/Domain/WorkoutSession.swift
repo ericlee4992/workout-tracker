@@ -204,6 +204,10 @@ struct WorkoutSession {
     /// inputs, one tap from being logged as this one. A row the user has
     /// touched is left alone — `prefilledAt` is set only by the prefill path
     /// and cleared by any commit.
+    ///
+    /// The row's **bar** survives this (D39): a bar is equipment, and changing
+    /// grip does not put a different bar in the user's hands. Clearing it would
+    /// mean re-picking the bar on every preset tap to log the same barbell.
     private func clearUntouchedDrafts(of entry: ExerciseEntry) {
         for set in Self.orderedSets(of: entry)
         where set.completedAt == nil && set.prefilledAt != nil {
@@ -211,6 +215,17 @@ struct WorkoutSession {
             set.normalizedKg = nil
             set.reps = nil
             set.prefilledAt = nil
+        }
+    }
+
+    /// Drops bar mode from an entry's uncompleted rows. Called when the
+    /// *equipment* changes: a bar belongs to the barbell it came from, so
+    /// carrying a 45 lb bar onto a machine — or onto a Smith, whose carriage
+    /// weighs whatever it weighs — would add a bar's weight to sets performed
+    /// without one. Completed rows keep theirs; they record what happened.
+    private func clearBars(of entry: ExerciseEntry) {
+        for set in Self.orderedSets(of: entry) where set.completedAt == nil {
+            set.barWeightValue = nil
         }
     }
 
@@ -290,6 +305,7 @@ struct WorkoutSession {
         guard entry.snapshotCapturedAt != nil else {
             entry.machine = machine
             entry.freeWeightTag = tag
+            clearBars(of: entry)
             try context.save()
             return entry
         }
@@ -344,6 +360,11 @@ struct WorkoutSession {
         preset: ExercisePreset?
     ) throws -> ExerciseEntry {
         guard let workout = entry.workout, let exercise = entry.exercise else { return entry }
+        // A preset change leaves the bar in the user's hands; an equipment
+        // change does not (see `clearBars`). One split serves both, so the
+        // difference has to be read from the arguments rather than assumed.
+        let equipmentChanged =
+            entry.machine?.id != machine?.id || entry.freeWeightTag != freeWeightTag
         var entries = Self.orderedEntries(of: workout)
         let newEntry = ExerciseEntry(
             order: 0,
@@ -371,6 +392,9 @@ struct WorkoutSession {
         for (offset, draft) in drafts.enumerated() {
             draft.entry = newEntry
             draft.order = offset
+            if equipmentChanged {
+                draft.barWeightValue = nil
+            }
             if draft.prefilledAt != nil {
                 draft.weightValue = nil
                 draft.normalizedKg = nil
@@ -408,6 +432,10 @@ struct WorkoutSession {
         let carryForward = existing.last { $0.completedAt != nil }
         let unit = carryForward?.weightUnit ?? existing.last?.weightUnit
             ?? defaultUnit(for: entry)
+        // The bar comes from the same row as the unit, so the two always agree
+        // (D40) — a bar's weight is stated in its own unit, and pairing a 20 kg
+        // bar with an lb row would read as a 20 lb one.
+        let barWeight = carryForward?.barWeightValue ?? existing.last?.barWeightValue
         let set = SetRecord(
             order: (existing.last?.order).map { $0 + 1 } ?? 0,
             type: existing.last?.type ?? .working,
@@ -416,6 +444,7 @@ struct WorkoutSession {
             weightUnit: unit,
             // Carried from the same source set, so it already matches `unit`.
             normalizedKg: carryForward?.normalizedKg,
+            barWeightValue: barWeight,
             // Carry-forward is inherited too: it comes from a completed set of
             // *this* entry, which is exactly the context a preset switch leaves
             // behind (D36).
@@ -482,12 +511,124 @@ struct WorkoutSession {
 
     /// kg/lb toggle: reinterprets the as-entered value in the other unit —
     /// never a silent conversion — recomputing `normalizedKg` (D25).
+    ///
+    /// Refused in bar mode (D40): the row's unit follows its bar, and
+    /// reinterpreting "20" in the other unit would turn a 20 kg bar into a
+    /// 20 lb one — a different piece of equipment, chosen by a stray tap. The
+    /// UI disables the badge, so reaching this is a programming error; the
+    /// service is the honest boundary, not the view.
     func toggleUnit(of set: SetRecord) throws {
+        guard set.barWeightValue == nil else { return }
         set.weightUnit = set.weightUnit.toggled
         if let value = set.weightValue {
             set.normalizedKg = StoredWeight(value: value, unit: set.weightUnit)?.normalizedKg
         }
         try context.save()
+    }
+
+    // MARK: Bar mode (D39–D40)
+
+    /// Whether a bar may be chosen for this entry: barbell and Smith work is
+    /// loaded by hanging plates on a bar of known weight, and nothing else in
+    /// the app is. A bar row on a cable pulldown would be noise.
+    ///
+    /// Two ways to be barbell work, because the app offers two ways to record
+    /// it: the free-weight tag (D7 — barbells are not machines), and a machine
+    /// instance whose catalog model is a rack or Smith (D24's `rackOrSmith`).
+    /// Missing the second would hide the bar exactly where it is least
+    /// guessable — a Smith carriage's weight is not written on it, and a squat
+    /// rack picked from the catalog is a barbell station by any other name.
+    static func offersBar(_ entry: ExerciseEntry) -> Bool {
+        guard !entry.isDeleted else { return false }
+        if let machine = entry.machine {
+            return machine.model?.equipmentType == .rackOrSmith
+        }
+        switch entry.freeWeightTag {
+        case .barbell, .smith: return true
+        default: return false
+        }
+    }
+
+    /// Picks the bar for `entry` (D39), or clears bar mode with nil.
+    ///
+    /// Applies to the entry's **uncompleted** rows only. A completed set keeps
+    /// the bar it was logged under for the same reason it keeps its weight —
+    /// changing history is not what picking up a different bar means.
+    ///
+    /// The stored weight is the total either way, so switching modes never
+    /// rewrites it: clearing a bar leaves the same total sitting in the field,
+    /// and choosing one re-reads that total as bar + plates. The value is
+    /// dropped only when it cannot honestly be re-read — a row entered in the
+    /// other unit (D25 forbids converting it silently, D40 forbids
+    /// reinterpreting it) or a total lighter than the bar itself.
+    func chooseBar(_ bar: BarPreset?, for entry: ExerciseEntry) throws {
+        try chooseBar(
+            weight: bar?.value, unit: bar?.unit ?? .kg, for: entry)
+    }
+
+    /// Custom-bar entry point: any positive weight in either unit.
+    func chooseBar(weight: Double?, unit: WeightUnit, for entry: ExerciseEntry) throws {
+        let barWeight = weight.flatMap { BarbellMath.isValidBarWeight($0) ? $0 : nil }
+        // With every row already logged — the ordinary state after finishing a
+        // set, since rows are only ever added deliberately — the pick has
+        // nothing to land on, and a control that silently does nothing is the
+        // failure mode this codebase keeps rediscovering. Picking a bar is a
+        // statement about the next set, so make one.
+        if Self.orderedSets(of: entry).allSatisfy({ $0.completedAt != nil }) {
+            try addSet(to: entry)
+        }
+        for set in Self.orderedSets(of: entry) where set.completedAt == nil {
+            guard let barWeight else {
+                // Bar cleared: the number in the field was always the total, so
+                // it stays exactly as it is and only its *label* changes.
+                set.barWeightValue = nil
+                continue
+            }
+            if set.weightUnit != unit
+                || (set.weightValue.map { $0 < barWeight } ?? false) {
+                set.weightValue = nil
+                set.normalizedKg = nil
+                set.prefilledAt = nil
+            }
+            set.weightUnit = unit
+            set.barWeightValue = barWeight
+        }
+        try context.save()
+    }
+
+    /// Plates-per-side commit (end-editing) for a bar-mode row. The text is
+    /// what the user hung on **one** end; what gets stored is the total
+    /// (`BarbellMath.total`) — the invariant every record in the app depends on.
+    ///
+    /// A row with no bar has no per-side reading, so the text is its total:
+    /// falling through to `commitWeight` keeps a mode change mid-edit from
+    /// silently doubling the user's number.
+    func commitPerSide(_ text: String, for set: SetRecord) throws {
+        guard let barWeight = set.barWeightValue else {
+            return try commitWeight(text, for: set)
+        }
+        if let perSide = Self.weightValue(from: text),
+           let stored = StoredWeight(
+            value: BarbellMath.total(barWeight: barWeight, platesPerSide: perSide),
+            unit: set.weightUnit) {
+            set.weightValue = stored.value
+            set.normalizedKg = stored.normalizedKg
+        } else {
+            set.weightValue = nil
+            set.normalizedKg = nil
+        }
+        // Typed, not inherited — a context change must not clear this.
+        set.prefilledAt = nil
+        try context.save()
+    }
+
+    /// The plates a bar-mode row is showing, derived from its stored total.
+    /// nil when the row has no bar, no weight yet, or a total lighter than its
+    /// own bar (`BarbellMath.platesPerSide` refuses to invent negative plates).
+    static func platesPerSide(of set: SetRecord) -> Double? {
+        guard !set.isDeleted, let bar = set.barWeightValue, let total = set.weightValue
+        else { return nil }
+        return BarbellMath.platesPerSide(total: total, barWeight: bar)
     }
 
     // MARK: Loggability (A1)

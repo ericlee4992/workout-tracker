@@ -76,6 +76,21 @@ struct LegacyStoreMigrationTests {
         #expect(try context.fetch(FetchDescriptor<ExercisePreset>()).isEmpty)
     }
 
+    /// D39's field must materialise as "this weight was entered as a total",
+    /// which is the truth about every set logged before 2026-08-22. A migration
+    /// that produced 0 instead of nil would render every old set as loaded on a
+    /// zero-weight bar.
+    @Test func theBarWeightArrivesEmptyOnPreBarSets() throws {
+        let (context, directory) = try openedFixture()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let set = try #require(try context.fetch(FetchDescriptor<SetRecord>()).first)
+        #expect(set.barWeightValue == nil)
+        // The weight it was logged with is untouched by the new column.
+        #expect(set.weightValue == 70)
+        #expect(WorkoutSession.platesPerSide(of: set) == nil)
+    }
+
     /// Old sets group together under "no preset" and keep their records — they
     /// do not vanish from a PR table because a new dimension appeared.
     @Test func oldSetsKeepTheirRecordsInTheNoPresetGroup() throws {

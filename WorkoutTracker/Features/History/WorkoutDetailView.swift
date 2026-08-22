@@ -84,10 +84,31 @@ struct WorkoutDetailView: View {
                 // in history means what it meant while logging (D26).
                 .foregroundStyle(set.type.markerColor)
                 .frame(width: 24)
-            Text("\(weightLabel(for: set)) × \(set.reps.map(String.init) ?? "—")")
-                .font(.body)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("\(weightLabel(for: set)) × \(set.reps.map(String.init) ?? "—")")
+                    .font(.body)
+                if let breakdown = barBreakdown(for: set) {
+                    Text(breakdown)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer()
         }
+    }
+
+    /// D39: how a bar-mode set was loaded — `45 + 45 × 2 = 135 lb`. The weight
+    /// above it is the total, and always was; this only says where it came from.
+    ///
+    /// Shown as entered only. Under the convert toggle the numbers above are
+    /// ≈ values (D9/D25), and an ≈ sum of two ≈ parts reads as arithmetic the
+    /// app is claiming rather than reporting.
+    private func barBreakdown(for set: SetRecord) -> String? {
+        guard displayUnit == nil || displayUnit == set.weightUnit,
+              let bar = set.barWeightValue, let total = set.weightValue
+        else { return nil }
+        return BarbellMath.breakdownLabel(
+            barWeight: bar, total: total, unit: set.weightUnit)
     }
 }
 

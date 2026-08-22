@@ -90,6 +90,14 @@ equipment (see the two limits below the table). Empty fields are empty (no `null
 | 25 | `weightKg` | `SetRecord.normalizedKg` | D29 |
 | 26 | `completed` | `completedAt != nil` | `true`/`false` |
 | 27 | `completedAt` | `SetRecord.completedAt` | |
+| 28 | `presetID` | `snapshotPresetID` | D36 — appended by presets (2026-08-12), empty = no variation recorded |
+| 29 | `presetName` | `snapshotPresetName` | |
+| 30 | `barWeight` | `SetRecord.barWeightValue` | D39 — appended 2026-08-22, empty = weight entered as a total |
+| 31 | `barWeightKg` | normalized `barWeightValue` | D29's rule applied to the bar |
+
+Columns 30–31 describe **how** column 23 was arrived at, not a component to add to it: `weight` is
+the total lifted, bar included, in bar mode exactly as in total mode (D39). A consumer that sums
+`weight + barWeight` is counting the bar twice.
 
 Column 17 is the one place the export reads a live row rather than a snapshot: the snapshot
 stores `snapshotModelID` and `snapshotModelName` but no manufacturer, so that one is resolved
@@ -111,7 +119,8 @@ deterministic).
 
 ```jsonc
 {
-  "schemaVersion": 1,             // bumped on any breaking shape change
+  "schemaVersion": 3,             // bumped on any breaking shape change
+                                  // 2: presets (D36). 3: bar weight (D39)
   "exportedAt": "2026-08-11T18:30:00.123+09:00",
   "appVersion": "1.0 (3)",
   "seededCatalogVersion": 4,      // D28: what the omitted catalog rows came from
@@ -132,7 +141,8 @@ deterministic).
 
 Every id is the stable UUID. A nil *object property* is **omitted**; a nil *array position*
 (`targetRepsBySet: [8, null, 10]`) stays `null`, because dropping it would shift every later set
-target. Set weights carry `weight`, `unit`, `weightKg` (D29). Derived data (PRs, volume, e1RM) is **not**
+target. Set weights carry `weight`, `unit`, `weightKg` (D29), plus `barWeight`/`barWeightKg` on a set
+loaded on a bar (D39). Derived data (PRs, volume, e1RM) is **not**
 exported — SPEC: PRs are derived, never source-of-truth.
 
 ## Out of scope

@@ -340,7 +340,59 @@ struct ExportFidelityTests {
         let exported = try #require(snapshot.workouts.first?.entries.first)
         #expect(exported.presetID == preset.id)
         #expect(exported.presetName == "Wide grip")
-        #expect(snapshot.schemaVersion == 2)
+        #expect(snapshot.schemaVersion == 3)
+        #expect(try ExportJSON.decode(try ExportJSON.data(snapshot)) == snapshot)
+    }
+
+    /// D39 in the export: `weight` is the total lifted in bar mode exactly as in
+    /// total mode, and the bar rides alongside as provenance. A consumer that
+    /// adds the two is counting the bar twice — which is why the total-entry set
+    /// in this test has to come back empty rather than zero.
+    @Test func theExportCarriesTheBarWithoutMovingTheWeight() throws {
+        let rig = try makeRig()
+        let start = Date(timeIntervalSince1970: 1_000_000)
+        let workout = try rig.session.startWorkout(at: rig.gym, on: start)
+
+        // Bar mode: 45 lb bar, 45 a side.
+        let barbell = try rig.session.addEntry(
+            for: rig.exercise, to: workout, freeWeightTag: .barbell)
+        try rig.session.chooseBar(
+            BarPreset(id: "olympic-45lb", name: "Olympic barbell", value: 45, unit: .lb),
+            for: barbell)
+        let barSet = try #require(WorkoutSession.orderedSets(of: barbell).first)
+        try rig.session.commitPerSide("45", for: barSet)
+        try rig.session.commitReps("5", for: barSet)
+        try rig.session.toggleCompletion(of: barSet, at: start.addingTimeInterval(60))
+
+        // Total entry on the machine, in the same export.
+        let machineEntry = try rig.session.addEntry(
+            for: rig.exercise, to: workout, machine: rig.machine)
+        let plainSet = try #require(WorkoutSession.orderedSets(of: machineEntry).first)
+        try rig.session.commitWeight("70", for: plainSet)
+        try rig.session.commitReps("8", for: plainSet)
+        try rig.session.toggleCompletion(of: plainSet, at: start.addingTimeInterval(120))
+
+        let rows = try exportRows(rig)
+        let barRow = try #require(rows.first { TestCSV.value("setID", in: $0) == barSet.id.uuidString })
+        #expect(TestCSV.value("weight", in: barRow) == "135.0", "the total, not the plates")
+        #expect(TestCSV.value("unit", in: barRow) == "lb")
+        #expect(TestCSV.value("barWeight", in: barRow) == "45.0")
+        let barKgText = try #require(TestCSV.value("barWeightKg", in: barRow))
+        let barKg = try #require(Double(barKgText))
+        #expect(abs(barKg - 45 * WeightMath.kilogramsPerPound) < 1e-9)
+
+        let plainRow = try #require(
+            rows.first { TestCSV.value("setID", in: $0) == plainSet.id.uuidString })
+        #expect(TestCSV.value("barWeight", in: plainRow) == "")
+        #expect(TestCSV.value("barWeightKg", in: plainRow) == "")
+
+        let snapshot = try rig.collector.snapshot(from: rig.context)
+        let exportedSets = snapshot.workouts.flatMap { $0.entries.flatMap(\.sets) }
+        let exportedBarSet = try #require(exportedSets.first { $0.id == barSet.id })
+        #expect(exportedBarSet.weight == 135)
+        #expect(exportedBarSet.barWeight == 45)
+        let exportedPlain = try #require(exportedSets.first { $0.id == plainSet.id })
+        #expect(exportedPlain.barWeight == nil, "omitted, not zero")
         #expect(try ExportJSON.decode(try ExportJSON.data(snapshot)) == snapshot)
     }
 

@@ -33,6 +33,7 @@ struct ExerciseEntryCard: View {
     var showPerformance: () -> Void
     var completionChanged: (SetRecord, Bool) -> Void
     @State private var showingRestSettings = false
+    @State private var showingBarPicker = false
 
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
 
@@ -51,6 +52,7 @@ struct ExerciseEntryCard: View {
         VStack(alignment: .leading, spacing: 10) {
             titleRow
             machineRow
+            barRow
             presetRow
 
             if loadType == .assisted {
@@ -91,6 +93,73 @@ struct ExerciseEntryCard: View {
             if let exercise = entry.exercise {
                 ExerciseRestSettingsSheet(exercise: exercise)
             }
+        }
+        .sheet(isPresented: $showingBarPicker) {
+            BarPickerSheet(
+                barWeight: currentBar?.weight,
+                unit: currentBar?.unit ?? draftUnit,
+                onSelect: { weight, unit in chooseBar(weight, unit: unit) })
+        }
+    }
+
+    /// D39: the bar this entry's plates go on. Offered wherever the entry is
+    /// barbell work — the barbell/Smith tags, or a rack/Smith catalog machine
+    /// (`WorkoutSession.offersBar`). A bar row on a cable pulldown would be
+    /// noise.
+    @ViewBuilder
+    private var barRow: some View {
+        if WorkoutSession.offersBar(entry) {
+            Button {
+                showingBarPicker = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                        .font(.caption)
+                    Text(barLabel)
+                        .font(.subheadline.weight(.medium))
+                    Image(systemName: "chevron.right")
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                    Spacer()
+                }
+                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .background(Color(.tertiarySystemFill))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("barPicker")
+        }
+    }
+
+    private var barLabel: String {
+        guard let bar = currentBar else { return "No bar — enter total weight" }
+        return "Bar: \(WeightMath.displayNumber(bar.weight)) \(bar.unit.rawValue)"
+    }
+
+    /// The bar the user is typing against: the first row still to be logged,
+    /// falling back to the last row once everything is completed. Completed
+    /// rows keep whatever bar they were logged under, so this describes the
+    /// *input*, which is what the picker and the column header are about.
+    private var currentBar: (weight: Double, unit: WeightUnit)? {
+        guard let set = draftOrLastSet, let weight = set.barWeightValue else { return nil }
+        return (weight, set.weightUnit)
+    }
+
+    private var draftUnit: WeightUnit {
+        draftOrLastSet?.weightUnit ?? session.defaultUnit(for: entry)
+    }
+
+    private var draftOrLastSet: SetRecord? {
+        let sets = orderedSets
+        return sets.first { $0.completedAt == nil } ?? sets.last
+    }
+
+    private func chooseBar(_ weight: Double?, unit: WeightUnit) {
+        do {
+            try session.chooseBar(weight: weight, unit: unit, for: entry)
+        } catch {
+            assertionFailure("Failed to choose bar: \(error)")
         }
     }
 
@@ -213,6 +282,7 @@ struct ExerciseEntryCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("entryEquipment")
     }
 
     private var columnHeaders: some View {
@@ -227,8 +297,12 @@ struct ExerciseEntryCard: View {
         .foregroundStyle(.secondary)
     }
 
+    /// In bar mode the field takes the plates on **one** end, so the header has
+    /// to say so — a column labelled WEIGHT that means half the plates and none
+    /// of the bar is how a 135 lb set gets logged as 45.
     private var weightHeader: String {
-        loadType == .assisted ? "ASSIST" : "WEIGHT"
+        if currentBar != nil { return "PER SIDE" }
+        return loadType == .assisted ? "ASSIST" : "WEIGHT"
     }
 
     /// The number a marker-less row shows. Only warmups sit outside the
@@ -311,11 +385,36 @@ struct SetRowView: View {
         self.loadType = loadType
         self.onCompletionChanged = onCompletionChanged
         self.onDelete = onDelete
-        _weightText = State(initialValue: set.weightValue.map(Format.weight) ?? "")
+        _weightText = State(initialValue: Self.weightFieldText(for: set))
         _repsText = State(initialValue: set.reps.map(String.init) ?? "")
     }
 
     private var isCompleted: Bool { !set.isDeleted && set.completedAt != nil }
+
+    /// The bar this row is loaded on (D39), or nil when its field is the total.
+    private var barWeight: Double? {
+        // `set` first in a computed property's body reads as a setter clause.
+        return self.set.isDeleted ? nil : self.set.barWeightValue
+    }
+
+    /// What the weight field shows for a row: the plates on one end in bar
+    /// mode, the total otherwise. The stored weight is the total either way, so
+    /// bar mode has to divide it back out (`BarbellMath.platesPerSide`).
+    ///
+    /// Formatted through `WeightMath.displayNumber`, not `Format.weight`: the
+    /// latter renders to one decimal, and halving an odd total puts a second
+    /// one there (47.5 → 23.75 a side). Committing "23.8" would log a set the
+    /// user never performed — the field's text becomes the stored value the
+    /// moment they tap the checkmark.
+    private static func weightFieldText(for set: SetRecord) -> String {
+        guard let bar = set.barWeightValue else {
+            return set.weightValue.map(Format.weight) ?? ""
+        }
+        guard let total = set.weightValue,
+              let perSide = BarbellMath.platesPerSide(total: total, barWeight: bar)
+        else { return "" }
+        return WeightMath.displayNumber(perSide)
+    }
 
     /// Deleting a set was already possible from the row's menu, but nobody
     /// finds a menu they don't know is there. The swipe is the discoverable
@@ -343,6 +442,14 @@ struct SetRowView: View {
         }
         .onChange(of: repsText) { _, _ in
             if focusedField == .reps { isDirty = true }
+        }
+        // Picking or clearing a bar changes what the field *means*, so the text
+        // is re-read from the row. `chooseBar` may have kept the total (it can
+        // be re-read as bar + plates) or dropped it (it was in another unit, or
+        // lighter than the bar itself); only the row knows which.
+        .onChange(of: set.barWeightValue) { _, _ in
+            guard !set.isDeleted else { return }
+            weightText = Self.weightFieldText(for: set)
         }
         .task(id: prefillTaskID) {
             loadPreviousAndPrefill()
@@ -408,6 +515,39 @@ struct SetRowView: View {
     }
 
     private var rowContent: some View {
+        VStack(spacing: 2) {
+            fieldsRow
+            // The arithmetic the feature exists to remove, shown rather than
+            // asserted — and shown from the *typed* text, before commit, so the
+            // user can see the total they are about to log while typing it.
+            if let totalCaption {
+                HStack(spacing: 8) {
+                    Color.clear.frame(width: 34)
+                    Spacer(minLength: 0)
+                    Text(totalCaption)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 88)
+                        .accessibilityIdentifier("setRow.total")
+                    Color.clear.frame(width: 48)
+                    Color.clear.frame(width: 30)
+                }
+            }
+        }
+    }
+
+    private var totalCaption: String? {
+        guard let barWeight else { return nil }
+        guard let perSide = WorkoutSession.weightValue(from: weightText) else {
+            // No plates typed yet: say what the bar alone weighs rather than
+            // claiming a total the user has not entered.
+            return "\(WeightMath.displayNumber(barWeight)) \(set.weightUnit.rawValue) bar"
+        }
+        return BarbellMath.totalLabel(
+            barWeight: barWeight, platesPerSide: perSide, unit: set.weightUnit)
+    }
+
+    private var fieldsRow: some View {
         HStack(spacing: 8) {
             setTypeButton
 
@@ -432,9 +572,16 @@ struct SetRowView: View {
                     toggleUnit()
                 } label: {
                     UnitBadge(unit: set.isDeleted ? .kg : set.weightUnit)
+                        .opacity(barWeight == nil ? 1 : 0.5)
                 }
                 .buttonStyle(.plain)
+                // D40: the row's unit follows its bar. Reinterpreting "20" in
+                // the other unit would turn a 20 kg bar into a 20 lb one — a
+                // different piece of equipment, chosen by a stray tap.
+                .disabled(barWeight != nil)
                 .accessibilityIdentifier("setRow.unit")
+                .accessibilityHint(
+                    barWeight == nil ? "" : "The unit follows the bar. Change the bar to log in the other unit.")
             }
             .frame(width: 88)
 
@@ -541,10 +688,14 @@ struct SetRowView: View {
 
     // MARK: Commits
 
+    /// One commit path for the weight field, whatever the field currently
+    /// means. `commitPerSide` computes the total from the row's bar, and falls
+    /// through to `commitWeight` when there is no bar — so a mode change
+    /// mid-edit can never double or halve the user's number.
     private func commitWeight() {
         guard !set.isDeleted else { return }
         do {
-            try session.commitWeight(weightText, for: set)
+            try session.commitPerSide(weightText, for: set)
         } catch {
             assertionFailure("Failed to commit weight: \(error)")
         }
@@ -565,7 +716,7 @@ struct SetRowView: View {
         do {
             // Commit any in-progress weight text first so the toggle applies
             // to what is on screen.
-            try session.commitWeight(weightText, for: set)
+            try session.commitPerSide(weightText, for: set)
             try session.toggleUnit(of: set)
         } catch {
             assertionFailure("Failed to toggle unit: \(error)")
@@ -585,7 +736,7 @@ struct SetRowView: View {
         guard !set.isDeleted, canComplete else { return }
         do {
             // Completion is a commit boundary: on-screen values first.
-            try session.commitWeight(weightText, for: set)
+            try session.commitPerSide(weightText, for: set)
             try session.commitReps(repsText, for: set)
             try session.toggleCompletion(of: set)
         } catch WorkoutSessionError.setNotLoggable {
@@ -617,7 +768,10 @@ struct SetRowView: View {
             guard try history.applyPrefill(candidate, to: set, isDirty: isDirty) else {
                 return
             }
-            weightText = candidate.weightValue.map(Format.weight) ?? ""
+            // Read the field back off the row rather than off the candidate:
+            // the prefill carries the bar too, so in bar mode the field must
+            // show the plates it implies, not last session's total.
+            weightText = Self.weightFieldText(for: set)
             repsText = String(candidate.reps)
         } catch {
             assertionFailure("Failed to load previous performance: \(error)")

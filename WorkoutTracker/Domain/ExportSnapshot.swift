@@ -20,7 +20,10 @@ struct ExportSnapshot: Codable, Equatable {
     /// 2 — presets (D36) added `presetID`/`presetName` to every entry, and two
     /// columns to the CSV. Readers of version 1 are not wrong about anything
     /// they already understood, but the shape did change, so the number moves.
-    static let currentSchemaVersion = 2
+    /// 3 — bar weight (D39) added `barWeight`/`barWeightKg` to every set, and
+    /// two columns to the CSV. Same story: `weight` still means the total
+    /// lifted, so a version-2 reader misunderstands nothing it already read.
+    static let currentSchemaVersion = 3
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -220,9 +223,18 @@ extension ExportSnapshot {
         var order: Int
         var type: SetType
         var reps: Int?
+        /// The TOTAL lifted, in `unit` — bar included on a bar-mode set (D39).
         var weight: Double?
         var unit: WeightUnit
         var weightKg: Double?
+        /// The bar the set was loaded on, as entered (in `unit`) and normalized
+        /// — D29's rule applies to it for the same reason it applies to the
+        /// weight: a consumer must never have to guess a column's unit. Absent
+        /// when the weight was entered as a total, which is every set logged
+        /// before 2026-08-22. Not a component to add to `weight`; `weight`
+        /// already includes it.
+        var barWeight: Double?
+        var barWeightKg: Double?
         /// Absent = not completed. Present in the export regardless (D30).
         var completedAt: String?
     }

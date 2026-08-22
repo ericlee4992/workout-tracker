@@ -342,6 +342,12 @@ struct ExportCollector {
         ExportSnapshot.SetRow(
             id: set.id, order: set.order, type: set.type, reps: set.reps,
             weight: set.weightValue, unit: set.weightUnit, weightKg: set.normalizedKg,
+            barWeight: set.barWeightValue,
+            // The bar is stored in the row's own unit (D40), so it normalizes
+            // through the same conversion the weight does (D25/D29).
+            barWeightKg: set.barWeightValue.map {
+                WeightMath.normalizedKg(value: $0, unit: set.weightUnit)
+            },
             completedAt: dateFormat.optionalString(from: set.completedAt))
     }
 

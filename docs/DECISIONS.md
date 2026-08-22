@@ -44,6 +44,8 @@ Decisions made during product discovery (2026-08-08 interview). Each entry: deci
 | D36 | **A preset splits records.** PRs, e1RM, "previous performance" and prefill key on the preset alongside the equipment layers; the preset is part of the entry's D23 snapshot, and switching it on a frozen entry starts a new entry exactly as switching equipment does (D19). Volume, being a whole-workout number, still counts everything. | The user varies grip and single/double on the same machine (2026-08-12). Pooling them lets one variation set a "record" the other can never beat — the same falseness D1/D8 reject across machines, on the axis the user actually trains. A set already logged must never be relabelled into a variation it was not performed in. |
 | D37 | **Presets belong to the exercise, not the machine.** "Seated Cable Row" offers its grips at every gym and on every machine; a machine may nominate which one it usually is. User-created only — nothing is seeded, though the add sheet suggests common names. | Same argument as D6's generic templates: a grip is a property of the movement and travels with the user, while retyping it per machine per gym is work with no payoff. A worldwide catalog of every grip on every machine is as unknowable as a worldwide gym database (D3). |
 | D38 | **The preset is chosen at log time**, with the machine's usual one preselected and switchable in one tap. A stale machine default (deleted, or belonging to another exercise) degrades to "none chosen". | Grips vary session to session on one machine, so freezing the choice at machine-creation would mean editing the machine to change handles. Preselection removes the tap in the common case without deciding anything the user did not (D33's shape, one feature over). |
+| D39 | **A bar is an input aid whose result is the total.** Wherever an entry is barbell work — the `barbell`/`smith` free-weight tags, or a machine whose catalog model is a rack or Smith — the user may pick a bar (a fixed list of standard bars, plus a custom weight); the weight field then takes the plates on **one** end and the app logs `bar + 2 × plates`. `SetRecord.weightValue` is the TOTAL in bar mode exactly as in total mode; the bar weight is stored alongside as provenance so history can show the breakdown and the next session can prefill plates rather than a total. The bar is **not** part of the D23 snapshot and not part of `RecordGroupKey`: changing bars does not split records the way changing equipment (D19) or variation (D36) does. | Two 135 lb sets are the same lift whether the number was typed or computed, so they must land in the same record table — the bar changes the *input*, not the load. And a stored weight that sometimes excluded the bar would silently drop every barbell PR by the weight of a bar with no error anywhere: `RecordsMath`, volume (D21), e1RM (D20) and the export's `weight` all read `weightValue` and know nothing about bars. The user asked for this on 2026-08-22; it is the first half of milestone 6's plate calculator (D16). |
+| D40 | **A bar carries its own unit, and picking one sets the row's unit.** Bars are listed in kg and lb as *distinct* bars (a 20 kg bar is not a 45 lb bar), picking one never converts anything, and the kg/lb toggle is disabled while a bar is chosen. A row already carrying a total in the bar's own unit keeps it (the total is re-read as bar + plates); a total in the *other* unit is dropped rather than reinterpreted. | D9/D25 forbid silent conversion, and the toggle's own semantics — reinterpret the number in the other unit — would turn a 20 kg bar into a 20 kg-labelled 20 lb one on a stray tap. Switching unit means picking up a different bar, which is what happens in a gym. |
 
 ## Technical
 
@@ -68,6 +70,16 @@ Decisions made during product discovery (2026-08-08 interview). Each entry: deci
 
 ## Reviews
 
+- 2026-08-22 — **Barbell bar weight (D39–D40) merged WITHOUT a cross-review.** T6 was waived by
+  the user, deliberately and on request, after the branch had been installed and used on the
+  phone. Recorded here rather than left silent, because T6 says the cross-review is the only
+  independent check this project has, and a skipped check that nobody wrote down looks
+  indistinguishable from a check that passed. **What is therefore unreviewed:** the D39 invariant
+  (`SetRecord.weightValue` is the total; `barWeightValue` is provenance — invert it anywhere and
+  every barbell PR silently drops by the weight of a bar), the `chooseBar` unit rules (D40), and
+  the schema addition. Mitigations that do exist: 362 unit + 14 UI tests, `LegacyStoreMigration`
+  against the installed-commit fixture, and a real-store migration that launched. If a later
+  session has budget for one review, this is the change to spend it on.
 - 2026-08-12 — Codex cross-review of exercise presets: `.scratch/exercise-presets/codex-review.md`.
   Verdict "do not merge or install over the live store". Critical: the JSON export — the *backup* —
   carried no preset definitions, no ordering or ownership, and no machine defaults, so a restore

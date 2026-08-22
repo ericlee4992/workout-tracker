@@ -398,6 +398,20 @@ final class SetRecord {
     var normalizedKg: Double?
     /// nil = not completed; only completed sets feed records/volume/prefill.
     var completedAt: Date?
+    /// The bar this set was loaded on, in this row's `weightUnit` (D39–D40).
+    /// nil = no bar: the weight was entered as a total, which is every set
+    /// logged before 2026-08-22.
+    ///
+    /// **This is provenance, not a second source of truth.** `weightValue`
+    /// stays the TOTAL lifted, bar included, in bar mode exactly as in total
+    /// mode — records, volume, e1RM and the export's weight columns read it and
+    /// know nothing about bars. Code that subtracts this field from
+    /// `weightValue` to find "the real weight" has misunderstood it; the plates
+    /// the user typed are *derived* for display (`BarbellMath.platesPerSide`).
+    /// If a stored weight ever became plates-only, every barbell PR would drop
+    /// by the weight of a bar and nothing would report an error.
+    /// Optional, so stores written before it existed migrate lightweightly.
+    var barWeightValue: Double?
     /// Set when these values were *inherited* rather than typed — from
     /// cross-workout prefill or within-session carry-forward — and cleared the
     /// moment the user edits the row.
@@ -420,6 +434,7 @@ final class SetRecord {
         weightUnit: WeightUnit = .kg,
         normalizedKg: Double? = nil,
         completedAt: Date? = nil,
+        barWeightValue: Double? = nil,
         prefilledAt: Date? = nil,
         entry: ExerciseEntry? = nil
     ) {
@@ -431,6 +446,7 @@ final class SetRecord {
         self.weightUnit = weightUnit
         self.normalizedKg = normalizedKg
         self.completedAt = completedAt
+        self.barWeightValue = barWeightValue
         self.prefilledAt = prefilledAt
         self.entry = entry
     }

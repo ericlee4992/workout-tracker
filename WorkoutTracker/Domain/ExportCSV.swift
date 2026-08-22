@@ -17,7 +17,7 @@ import Foundation
 
 enum ExportCSV {
 
-    /// The 29 columns, in order. `../spec.md` documents each one's source; the
+    /// The 31 columns, in order. `../spec.md` documents each one's source; the
     /// order is part of the format — appending is safe, reordering is not.
     static let header = [
         "workoutID", "workoutStartedAt", "workoutFinishedAt", "workoutName", "workoutNotes",
@@ -29,6 +29,11 @@ enum ExportCSV {
         // Appended, never inserted: a consumer reading the first 27 columns of
         // a v1 export still reads them correctly here (D30).
         "presetID", "presetName",
+        // v3 (D39): the bar a barbell/Smith set was loaded on, empty when the
+        // weight was entered as a total. `weight` above is the TOTAL in both
+        // cases — these columns say how it was arrived at, and a consumer that
+        // adds them to `weight` is double-counting the bar.
+        "barWeight", "barWeightKg",
     ]
 
     /// RFC 4180 line terminator. Excel on Windows still wants CRLF; every
@@ -99,6 +104,8 @@ enum ExportCSV {
             set.completedAt ?? "",
             entry.presetID?.uuidString ?? "",
             entry.presetName ?? "",
+            set.barWeight.map(WeightMath.storageNumber) ?? "",
+            set.barWeightKg.map(WeightMath.storageNumber) ?? "",
         ]
     }
 

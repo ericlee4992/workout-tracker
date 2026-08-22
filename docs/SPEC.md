@@ -60,7 +60,8 @@ Four levels:
 - Set types: **warmup / working / failure / drop** (D26). Drop sets count toward records and volume like working sets; only warmups are excluded. Completing a drop set does not start the rest timer, since a drop set is performed without rest.
 - Any set can be deleted from its row (swipe, plus a menu action).
 - **Rest timer**: auto-starts on set completion; per-exercise durations (separate warmup vs. working; failure sets use the working duration) with global defaults (2:00 working / 1:00 warmup); local notification on finish.
-- Speed bar (from Strong): set rows arrive prefilled from same-machine history; confirming an untouched row is **one tap**.
+- Speed bar (from Strong): set rows arrive prefilled from same-machine history; confirming an untouched row is **one tap**. Adding a set inherits the last completed row's weight, unit, reps and bar, so a repeat set is one tap once the row exists. **Rows are only ever created deliberately** — completing a set does not append the next one. That was built and tried on 2026-08-22 and rejected in use; see `.scratch/next-set-autofill/`.
+- **Barbell bar weight** (D39–D40): an entry doing barbell work — the barbell/Smith free-weight tags, or a machine whose catalog model is a rack or Smith — can name the bar it is loaded on — a fixed list of standard bars in kg and lb, or a custom weight. The weight field then takes the plates on **one** end and the app logs `bar + 2 × plates`; the row shows the total before it is logged and history shows the breakdown. What is stored is always the **total lifted**, so records, volume and e1RM are untouched by the choice; the bar rides along as provenance and travels with prefill and carry-forward, so it is chosen once per movement. The bar carries its own unit and picking one sets the row's unit — a 20 kg bar is not a 45 lb bar, and the kg/lb toggle is disabled while a bar is chosen. Changing bars never splits an entry the way changing equipment (D19) or variation (D36) does.
 - Active workout **auto-persists every committed change** (set completion, add/delete, equipment choice, unit toggle, field commit on end-editing) — crash/force-quit loses at most in-progress keystrokes in the currently focused field. Non-negotiable.
 
 ## Technical direction
@@ -80,7 +81,7 @@ Four levels:
 - `Workout`: id, gym?, notes, sourceTemplateID?, restEndsAt? (persisted rest-timer end), **lifecycle**: startedAt, finishedAt? (nil = active; cancel deletes; Finish deletes uncompleted draft rows and zero-completed-set entries). At most one active workout — on conflict the newest keeps running and older strays are auto-finished
 - `ExercisePreset`: id, name, scalar `order`, exercise — user-created variations (D36–D38)
 - `ExerciseEntry`: workout, exercise, machine?, preset?, freeWeightTag?, scalar `order`, per-exercise rest overrides live in preferences, **context snapshot** = stable UUIDs (exercise, machine?, model?, gym?) + loadType + freeWeightTag + display strings (D23). Equipment freezes once the first set completes; changing equipment starts a new entry (D19)
-- `SetRecord`: entry, scalar `order`, type, reps?, weightValue? (optional while draft), weightUnit, normalizedKg?, completedAt? (nil = not completed; only completed sets feed records/volume/prefill)
+- `SetRecord`: entry, scalar `order`, type, reps?, weightValue? (optional while draft — the **total** lifted, bar included), weightUnit, normalizedKg?, completedAt? (nil = not completed; only completed sets feed records/volume/prefill), barWeightValue? (D39: the bar this set was loaded on, in the row's own unit; nil = entered as a total. Provenance only — never subtract it from `weightValue`)
 - `GymExerciseMemory`: scalar gymID/exerciseID/machineID + updatedAt; app-level upsert, duplicates resolved by latest updatedAt then id (no unique constraints allowed)
 - App-level preferences: unit preference (default from locale measurement system on first launch), drift-prompt suppression, global + per-exercise rest defaults, seeded-catalog version, notification-permission-requested marker, remembered catalog browsing state (grouping mode + active filters per surface — display only, D23)
 - All relationships optional with explicit inverses; deliberate delete rules (no `deny` — unsupported by CloudKit); ordering always via scalar fields, never implicit to-many order
@@ -90,8 +91,8 @@ Four levels:
 
 Two files, shared from Settings (Gyms screen) through the system share sheet — "Save to Files → iCloud Drive" is the intended backup. Both carry everything the user created; neither carries derived data (PRs, e1RM, volume) or the shipped catalog beyond the rows the user's data references (D28).
 
-- **CSV** — one row per set, 29 columns, fully denormalized: workout, gym, exercise, machine, model display name and manufacturer, set type, reps, `weight` + `unit` + `weightKg`, completion, and the preset performed. Context columns come from the entry's D23 snapshot once it has one (a draft entry reports its live equipment), so renaming a gym never rewrites old rows. RFC 4180, CRLF, UTF-8 BOM, user text verbatim (D32). It is a complete ledger of *sets*: an object holding no set at all appears only in the JSON.
-- **JSON** — the object graph and the complete backup: `schemaVersion` 2 (presets added `presetID`/`presetName` per entry), sorted keys, nil properties omitted (nil *array positions* stay `null` so set targets keep their index). Written to be re-importable; reading it back is not in v1's export milestone.
+- **CSV** — one row per set, 31 columns, fully denormalized: workout, gym, exercise, machine, model display name and manufacturer, set type, reps, `weight` + `unit` + `weightKg`, completion, the preset performed, and `barWeight` + `barWeightKg` (D39 — empty when the weight was entered as a total; `weight` is the total either way, so adding them counts the bar twice). Context columns come from the entry's D23 snapshot once it has one (a draft entry reports its live equipment), so renaming a gym never rewrites old rows. RFC 4180, CRLF, UTF-8 BOM, user text verbatim (D32). It is a complete ledger of *sets*: an object holding no set at all appears only in the JSON.
+- **JSON** — the object graph and the complete backup: `schemaVersion` 3 (2 added `presetID`/`presetName` per entry; 3 added `barWeight`/`barWeightKg` per set), sorted keys, nil properties omitted (nil *array positions* stay `null` so set targets keep their index). Written to be re-importable; reading it back is not in v1's export milestone.
 - Timestamps are ISO 8601 with the device's UTC offset and fractional seconds (D31). Draft sets and the in-progress workout export, flagged (D30). Column layout and the JSON shape: `.scratch/milestone-3-export/spec.md`.
 
 ## Strong benchmark facts we build against
@@ -108,6 +109,6 @@ Two files, shared from Settings (Gyms screen) through the system share sheet —
 3. CSV/JSON export (full fidelity; backup and data ownership — the only copy of your history is on one device until sync exists)
 4. Progress charts (Swift Charts; normalized axes, as-entered tooltips)
 5. Strong CSV import
-6. Plate/stack calculator
+6. Plate/stack calculator — **the bar half shipped early** (D39–D40, 2026-08-22): naming the bar and entering plates per side. What remains is computing *which plates* to load for a target weight, and selectorized stack increments.
 
 Catalog curation runs as a parallel content task, shipped with releases.
