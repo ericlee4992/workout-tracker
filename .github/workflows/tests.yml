@@ -27,7 +27,11 @@ concurrency:
 jobs:
   unit-tests:
     runs-on: macos-15
-    timeout-minutes: 30
+    # 30 killed all three runs this workflow has ever had (2026-08-18, and twice
+    # on 2026-08-22) — always mid-`Unit tests`, never with a diagnosis, because
+    # of the two problems fixed in that step below. 60 is not a claim that the
+    # job needs an hour; it is room to find out what it actually needs.
+    timeout-minutes: 60
 
     steps:
       - uses: actions/checkout@v4
@@ -80,6 +84,23 @@ jobs:
         run: |
           set -euo pipefail
           set -o pipefail
+
+          # Why the heartbeat: the grep below matches only lines xcodebuild
+          # prints at the very END of a run, so while the build works it
+          # correctly prints nothing — and a healthy long build is therefore
+          # indistinguishable from a process hung at minute one. All three
+          # timeouts so far produced 30 minutes of silence and no diagnosis.
+          # This prints where the build actually is, once a minute, without
+          # dumping tens of thousands of lines into the log.
+          touch xcodebuild.log
+          (
+            while sleep 60; do
+              echo "[heartbeat +$((SECONDS / 60))m] $(tail -n 1 xcodebuild.log 2>/dev/null | cut -c1-140)"
+            done
+          ) &
+          heartbeat=$!
+          trap 'kill "$heartbeat" 2>/dev/null || true' EXIT
+
           xcodebuild test \
             -project WorkoutTracker.xcodeproj \
             -scheme WorkoutTracker \
@@ -92,11 +113,14 @@ jobs:
             `# grep only decides what is worth printing. A clean simulator logs` \
             `# CoreData "error:" lines while creating the store on first launch,` \
             `# which are noise, not failures.` \
-            | grep -E '✘|Test run with|TEST (SUCCEEDED|FAILED)' \
+            | grep -E --line-buffered '✘|Test run with|TEST (SUCCEEDED|FAILED)' \
             || (echo "--- last 100 lines ---"; tail -100 xcodebuild.log; exit 1)
 
-      - name: Upload build log on failure
-        if: failure()
+      # `always()`, not `failure()`: a timeout cancels the job rather than
+      # failing it, so `failure()` skipped this step on all three timeouts and
+      # the one artifact that could explain them was discarded with the runner.
+      - name: Upload build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: xcodebuild-log
