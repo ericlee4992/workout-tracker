@@ -1,40 +1,30 @@
 # Where the project is right now
 
-Updated 2026-08-11. **Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is
+Updated 2026-08-22. **Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is
 and why; this says what has actually happened and what to do next. Keep it current; it is the one
 file that goes stale fastest.
 
 ## Status
 
-Milestone 2 (core loop on SwiftData) is **complete and installed on the developer's iPhone**.
-Tickets 01–21 are all resolved (`.scratch/milestone-2-core-loop/issues/`).
+Everything below is merged, pushed, and green: **329 unit + 13 UI tests**. Working tree clean;
+`main == origin/main` on `github.com/ericlee4992/workout-tracker` (private).
 
-**Milestone 3 (CSV/JSON export) is merged to `main`** (`798372c`) — all three tickets resolved
-(`.scratch/milestone-3-export/`), decisions D28–D32 recorded, Codex cross-review (T6) done
-(`codex-review.md`: three high findings, all real, all fixed; D30/D31 amended rather than
-reinterpreted). Suite: **250 unit + 10 UI tests green**. **Not on the phone yet** — the install
-still runs `ce32158`, and the user deliberately deferred reinstalling until more features land,
-so their training data still has no way off the device.
+| Shipped | What it is |
+|---|---|
+| Milestone 2 (`ce32158`) | Core loop on SwiftData — logging, prefill, PRs, snapshots, rest timer |
+| Milestone 3 (`798372c`) | CSV/JSON export, D28–D32 — the only backup that exists |
+| Label scanning (`64188e2`, `33be96d`) | Live camera reads a machine's name plate, ranks the 1877-model catalog, user confirms (D33–D35) |
+| Exercise presets (`33be96d`) | Grips / single-double as variations that **split records** (D36–D38) |
+| Collaboration setup (`b5dfac9`) | Signing moved to a gitignored `Config/Local.xcconfig`; CI runs unit tests on every PR |
 
-**Machine-label scanning is merged to `main`** (`64188e2`): photograph a
-machine's name plate when adding a machine, and the app ranks the catalog against what Vision
-reads and offers the matches for confirmation, or prefills a user-space model when nothing fits
-(D33–D35, `.scratch/photo-machine-capture/`). **Two Codex cross-review rounds** (T6) found four
-critical and several high-severity ways to preselect a *wrong* catalog UUID — all fixed, all
-regression-tested against the shipped 1877-row catalog in `CatalogMatcherAdversarialTests`.
-Suite: **296 unit + 12 UI tests**.
+**Two things are true and easy to miss:**
 
-**Exercise presets are merged and installed** (`33be96d`): grips, stances and single/double as
-named variations of an exercise, chosen at log time, that **split records**
-(D36–D38, `.scratch/exercise-presets/`). Also from the same session: a scanned machine is now
-labelled by the *movement* it serves ("Leg Press"), not by its model, since the row already prints
-the model underneath, and scanning is a **live** camera read rather than take-a-photo. Codex
-cross-review done (one critical: the JSON export was not backing up preset definitions).
-Suite: **329 unit + 13 UI tests**.
-
-**Nothing here has met a real gym yet.** The scanner has never seen a real name plate, no export
-has been taken of the real history, and no preset has been logged against in a real session. Those
-three answers should shape the next session more than the backlog does.
+1. **The build on the phone has expired** (signed 12 Aug, free account = 7 days). The app will not
+   launch until it is reinstalled. Reinstalling preserves the data — see the install section below.
+2. **None of it has met a real gym.** The scanner has never read a real name plate; no export has
+   been taken of the real training history; no preset has been logged against in a session. Every
+   threshold and layout is tuned against fixtures. Those three answers should shape the next
+   session more than the backlog does.
 
 The app is being **dogfooded in real gym sessions** — that is the current activity. Feedback from
 those sessions outranks new features.
@@ -45,9 +35,9 @@ those sessions outranks new features.
 |---|---|
 | Installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
-| Apple Team ID | `X68M8SR6NA` (already in `project.pbxproj`) |
-| Signing | **Free** Apple account → builds expire **7 days**, so ~**19 Aug 2026**. Each reinstall resets the clock |
-| Bundle ID | `com.ericlee4992.workouttracker` |
+| Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed 12 Aug, so **expired ~19 Aug 2026**. Each reinstall resets the clock |
+| Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
 **Reinstalling** preserves the user's data — same bundle ID keeps the container. Say so before an
@@ -74,25 +64,30 @@ nothing about whether the install worked.
 
 ## What to do next, in priority order
 
-1. **Act on gym feedback.** Anything the user reports from a real session beats the backlog. Three
-   questions are open and none of them can be answered by a test:
-   - Does the scanner read a **real** name plate? Every fixture is rendered type. If it reads the
-     plate but refuses to preselect, that is the D33 gate working — a plate that does not name its
-     manufacturer never preselects (95% of clean brand+model readings do, 0% of model-name-only
-     ones), because a wrong model UUID splits history (D23). Thresholds live in `CatalogMatcher`
-     (0.85 preselect / 0.35 create-new / 0.08 margin) and are tuned against the shipped catalog,
-     not photographs. Retune only with real misses in hand.
-   - Does the **export** look right over the real history in a spreadsheet? It has never run on
-     more than test data, and it is the only backup that exists.
+1. **Reinstall — the current build has expired.** Nothing else can be tested on the phone until
+   this is done, and it takes three commands (see the install section). Ask first: it is the
+   user's phone, and the data on it is the only copy.
+2. **Act on gym feedback.** Three questions are open and no test can answer them:
+   - Does the scanner read a **real** name plate? If it reads it but refuses to preselect, that is
+     the D33 gate working, not a bug — a plate that does not name its manufacturer never
+     preselects (95% of clean brand+model readings do, 0% of model-name-only ones), because a
+     wrong model UUID splits history (D23). Thresholds live in `CatalogMatcher` (0.85 preselect /
+     0.35 create-new / 0.08 margin), tuned against the catalog and rendered plates, not
+     photographs. Retune only with real misses in hand.
+   - Does the **export** look right over the real history in a spreadsheet?
    - Are the **preset chips** reachable one-handed mid-set? Their layout is guesswork.
-2. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
-   next unbuilt milestone, and the one that makes the logged history worth something to look at.
-3. Milestones 5–6: Strong CSV import, plate calculator.
-4. **Reinstall before ~19 Aug 2026** or the free signature expires and the app stops launching.
-   Reinstalling preserves the data; the three commands are above.
+3. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
+   next unbuilt milestone, and what makes the logged history worth looking at.
+4. Milestones 5–6: Strong CSV import, plate calculator.
 
 ## Decisions the user has NOT made yet
 
+- **Adding a human collaborator.** The repo was made ready for one on 2026-08-18 (per-developer
+  signing, CI on PRs) and the user was weighing it. If someone joins, **D5 and T6 must be reopened
+  deliberately**: D5 says the audience is the developer alone, and T6 justifies agent cross-review
+  by there being no second pair of human eyes. Does a human PR approval replace the Codex pass or
+  stack with it? Also unresolved: branch protection on `main` may need a paid plan for a private
+  repo.
 - **Apple Developer Program ($99/yr)** — needed for TestFlight, which is the only sane way to get
   the app to other testers and would also end the 7-day expiry. The user asked about it, weighed a
   free 2–3 family-member pilot first (possible, but every phone must be cabled to the Mac weekly).
@@ -136,8 +131,12 @@ nothing about whether the install worked.
 - **Cross-review is not optional** (T6). Codex reviews of Claude's work have caught, among others:
   template data loss on an empty templated workout, D23 violations where history read live rows,
   and ten duplicate catalog identities that would have split the user's own history. Reviews live
-  in `.scratch/milestone-*/codex-review*.md`. Milestone 3's pass caught an export that dropped a
-  draft entry's equipment and a CRLF-quoting bug that would have corrupted the CSV — both invisible
-  to a green suite.
+  in `.scratch/*/codex-review*.md`. Milestone 3's pass caught an export that dropped a draft
+  entry's equipment and a CRLF-quoting bug that would have corrupted the CSV. The scanner needed
+  **two** rounds, and the second round's worst finding was a defect introduced by the first
+  round's fix — budget for a re-review after fixing criticals, not just after writing code.
+- **State the consequence where the decision is made.** Every review that went well did so because
+  a doc comment said what breaks if the rule is broken (usually: "this splits the user's history").
+  Comments that only restate the code have caught nothing.
 - **Locked decisions get reopened deliberately** — D26 (drop sets) reopened D12 rather than drifting.
 - The user prefers **seeing the UI** (screenshots from the simulator) over descriptions of it.
