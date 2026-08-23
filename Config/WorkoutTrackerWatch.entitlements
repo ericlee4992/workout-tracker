@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  codex-review 3.1 (critical): the watch target shipped with Health usage
+  strings but no HealthKit entitlements, so its `HKWorkoutSession` could never
+  open — the companion would have installed, run, and simply never produced a
+  reading. Usage strings are what you say to the user; entitlements are what
+  the system checks.
+-->
+<plist version="1.0">
+<dict>
+    <key>com.apple.developer.healthkit</key>
+    <true/>
+    <key>com.apple.developer.healthkit.access</key>
+    <array/>
+    <key>com.apple.developer.healthkit.background-delivery</key>
+    <true/>
+</dict>
+</plist>

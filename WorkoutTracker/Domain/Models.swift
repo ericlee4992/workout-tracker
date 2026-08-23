@@ -267,6 +267,29 @@ final class Workout {
     /// relaunch. Added by ticket 14 (noted in ticket 02).
     var restStartedBySetID: UUID?
 
+    // MARK: Heart-rate summary (D44), captured at finish.
+    //
+    // Persisted rather than re-queried: History must render from the app's own
+    // store, and asking HealthKit to redraw a six-month-old workout is both
+    // slow and answerable differently later. Same reasoning as D23 — what
+    // History shows must not change because a source changed its mind.
+    //
+    // ALL OPTIONAL, and nil means "no sensor ran", which is a different fact
+    // from zero. A workout logged without heart rate shows no heart-rate rows
+    // at all; `0 BPM` would be a false value rather than a missing one.
+    var averageHeartRate: Int?
+    var maxHeartRate: Int?
+    var activeEnergyKilocalories: Double?
+    /// Seconds per zone, indexed by `HeartRateZone.rawValue` (0…5). Empty when
+    /// no maximum heart rate was resolvable, since without one there are no
+    /// zones to attribute time to (D45). An array rather than a dictionary:
+    /// CloudKit-compatible scalars only (T2).
+    var zoneSeconds: [Int] = []
+    /// D45: whether those zones came from an estimated maximum (220−age) rather
+    /// than a measured one. nil = no zones recorded. Without it, a summary from
+    /// a formula reads as measured fact (codex-review 1.1).
+    var zonesFromEstimatedMax: Bool?
+
     var gym: Gym?
     @Relationship(deleteRule: .cascade, inverse: \ExerciseEntry.workout)
     var entries: [ExerciseEntry]?
@@ -282,6 +305,11 @@ final class Workout {
         restEndsAt: Date? = nil,
         restStartedAt: Date? = nil,
         restStartedBySetID: UUID? = nil,
+        averageHeartRate: Int? = nil,
+        maxHeartRate: Int? = nil,
+        activeEnergyKilocalories: Double? = nil,
+        zoneSeconds: [Int] = [],
+        zonesFromEstimatedMax: Bool? = nil,
         gym: Gym? = nil
     ) {
         self.id = id
@@ -294,6 +322,11 @@ final class Workout {
         self.restEndsAt = restEndsAt
         self.restStartedAt = restStartedAt
         self.restStartedBySetID = restStartedBySetID
+        self.averageHeartRate = averageHeartRate
+        self.maxHeartRate = maxHeartRate
+        self.activeEnergyKilocalories = activeEnergyKilocalories
+        self.zoneSeconds = zoneSeconds
+        self.zonesFromEstimatedMax = zonesFromEstimatedMax
         self.gym = gym
     }
 }
@@ -505,6 +538,13 @@ final class AppPreferences {
     var seededCatalogFingerprint: String?
     /// Whether notification permission has been requested (rest-timer alerts).
     var notificationPermissionRequested: Bool = false
+    /// Measured maximum heart rate, if the user has one (D45). nil = fall back
+    /// to 220−age, **marked as estimated** everywhere it reaches a screen.
+    var measuredMaxHeartRate: Int?
+    /// Used only to estimate a maximum heart rate when none is measured. nil
+    /// means no zones are shown at all — inventing an age to invent a zone
+    /// would be two guesses stacked on each other.
+    var birthDate: Date?
     /// Gym the Start screen is set to, remembered across launches (D1,
     /// ticket 17). nil = "No gym", a real choice rather than a missing one.
     /// Scalar id, never a relationship: an archived or deleted gym must
@@ -534,6 +574,8 @@ final class AppPreferences {
         seededCatalogVersion: Int = 0,
         seededCatalogFingerprint: String? = nil,
         notificationPermissionRequested: Bool = false,
+        measuredMaxHeartRate: Int? = nil,
+        birthDate: Date? = nil,
         selectedGymID: UUID? = nil,
         modelBrowseGrouping: CatalogGrouping? = nil,
         modelBrowseMuscleGroup: String? = nil,
@@ -551,6 +593,8 @@ final class AppPreferences {
         self.seededCatalogVersion = seededCatalogVersion
         self.seededCatalogFingerprint = seededCatalogFingerprint
         self.notificationPermissionRequested = notificationPermissionRequested
+        self.measuredMaxHeartRate = measuredMaxHeartRate
+        self.birthDate = birthDate
         self.selectedGymID = selectedGymID
         self.modelBrowseGrouping = modelBrowseGrouping
         self.modelBrowseMuscleGroup = modelBrowseMuscleGroup
@@ -609,6 +653,16 @@ final class ExerciseRestOverride {
     /// nil = fall through to the global default for that set type.
     var workingRestSeconds: Int?
     var warmupRestSeconds: Int?
+    /// How this exercise rests (D43). nil = `.standard`, which is what every
+    /// exercise logged before 2026-08-22 did. Optional so stores written before
+    /// heart rate existed migrate lightweightly.
+    var restMode: RestMode?
+    /// Heart-rate mode only: rest ends when a reading is strictly below this.
+    var heartRateThresholdBpm: Int?
+    /// Heart-rate mode only: the longest the rest may run before the alarm
+    /// fires anyway. Never nil in practice — the resolver substitutes the
+    /// default — because a threshold with no cap can wait forever (D43).
+    var heartRateCapSeconds: Int?
     var updatedAt: Date = Date()
 
     init(
@@ -616,12 +670,18 @@ final class ExerciseRestOverride {
         exerciseID: UUID,
         workingRestSeconds: Int? = nil,
         warmupRestSeconds: Int? = nil,
+        restMode: RestMode? = nil,
+        heartRateThresholdBpm: Int? = nil,
+        heartRateCapSeconds: Int? = nil,
         updatedAt: Date = Date()
     ) {
         self.id = id
         self.exerciseID = exerciseID
         self.workingRestSeconds = workingRestSeconds
         self.warmupRestSeconds = warmupRestSeconds
+        self.restMode = restMode
+        self.heartRateThresholdBpm = heartRateThresholdBpm
+        self.heartRateCapSeconds = heartRateCapSeconds
         self.updatedAt = updatedAt
     }
 }

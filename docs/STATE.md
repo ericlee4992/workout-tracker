@@ -1,14 +1,15 @@
 # Where the project is right now
 
-Updated 2026-08-22 (second entry that day — barbell bar weight).
+Updated 2026-08-23 — milestone 7 (heart rate) complete, reviewed, installed, uncommitted.
 **Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is and why; this says
 what has actually happened and what to do next. Keep it current; it is the one file that goes
 stale fastest.
 
 ## Status
 
-Everything below is merged into local `main` and green: **362 unit + 14 UI tests**.
-`github.com/ericlee4992/workout-tracker` (private).
+Merged and pushed on `main`: everything in the table up to bar weight (**362 unit + 14 UI**).
+**Milestone 7 (heart rate) is complete and cross-reviewed but UNCOMMITTED**, on branch
+`milestone-7-heart-rate` — see below the table. `github.com/ericlee4992/workout-tracker` (private).
 
 | Shipped | What it is |
 |---|---|
@@ -19,12 +20,43 @@ Everything below is merged into local `main` and green: **362 unit + 14 UI tests
 | Collaboration setup (`b5dfac9`) | Signing moved to a gitignored `Config/Local.xcconfig`; CI runs unit tests on every PR |
 | Barbell bar weight (2026-08-22) | Pick the bar, type plates per side, log the total (D39–D40). Half of milestone 6, brought forward |
 
+**Milestone 7 — heart rate (D41–D45). UNCOMMITTED on branch `milestone-7-heart-rate`.**
+**449 unit + 17 UI tests green.** Live HR on the workout screen from AirPods Pro 3 or an Apple
+Watch, zones, system calories, a heart-rate rest timer, and a finish summary. 8 tickets in
+`.scratch/milestone-7-heart-rate/`, all resolved; two Codex rounds run and every critical fixed
+(`codex-review.md`, `codex-review-2.md`), each with a regression test in
+`CodexReviewRegressionTests`.
+
+**FIRST THING TO KNOW: ~55 files of finished work exist only in the working tree.** Do not
+`git checkout main`, stash, or clean. Committing to the branch is safe and unmerged; the user had
+not asked for it when the session ended.
+
+**Verified once, so nobody re-derives it:** the **free** Apple account provisions all three
+HealthKit entitlements including `background-delivery` — no Developer Program needed. The iPhone
+workout-session API is `ios(26.0)`, hence D42. The Apple Watch is **not** a GATT peripheral to the
+phone, which is the entire reason a watchOS target exists.
+
+**Nothing here has met a real sensor.** Every heart rate ever displayed by this code came from
+`FixtureHeartRateProvider` under `-uiTestHeartRate`. The AirPods path, the watch pairing, the
+`WCSession` streaming and the background rest alarm are all unexercised. It is installed on the
+phone (2026-08-22 23:45) and the user had not yet reported back.
+
+**The installed build is one commit-worth behind the branch:** the watch rest-countdown mirror was
+fixed *after* that install (2026-08-23). It only matters once a Watch is in play, so it can ride
+along with the next install rather than forcing one.
+
+**Worth knowing how that bug was found**, because it is a class the review process missed: the
+watch screen rendered a rest countdown, `WatchLink` carried a `restEndsAt` field — and nothing ever
+sent a non-nil one. Every piece was individually correct; only the *absence of a caller* was wrong,
+and no test asserts that a message is ever sent. Two Codex rounds did not catch it. It surfaced
+while explaining the feature to the user in prose.
+
 **Two things are true and easy to miss:**
 
 1. **Bar weight merged without its cross-review** (T6 waived on request — see Reviews in
    `DECISIONS.md`). The unreviewed surface is the D39 invariant: `weightValue` is the TOTAL,
    `barWeightValue` is provenance. Invert that anywhere and every barbell PR drops by the weight
-   of a bar with no error raised.
+   of a bar with no error raised. Milestone 7, by contrast, got both rounds.
 2. **Almost none of it has met a real gym.** The scanner has never read a real name plate; no
    preset has been logged against in a session; bar mode has never been used to load a bar. Every
    threshold and layout is tuned against fixtures. Those answers should shape the next session
@@ -38,13 +70,14 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | The bar-weight merge (2026-08-22, installed 16:31 — the content is what is now on `main`, built from the working tree just before the merge commit existed). Installed before its Codex pass at the user's request, with a backup taken first (below) |
+| Installed commit | **Milestone 7 (heart rate), uncommitted working tree of `milestone-7-heart-rate`**, installed 2026-08-22 23:45. It launched, so the D44/D43/D45 optional fields migrated the user's real store. The phone is again ahead of every commit — rebuild from that branch, not from `main`. The **watch companion is NOT installed**: no Apple Watch was reachable from this Mac, and it is a separate install by design (ticket 02) |
+| Previously installed | The bar-weight merge (2026-08-22, installed 16:31 — the content is what is now on `main`, built from the working tree just before the merge commit existed). Installed before its Codex pass at the user's request, with a backup taken first (below) |
 | Store migration | **Done on the real store, 2026-08-22.** `main` (`a3a6934`) was installed first so an export could be taken, then the branch build; it launched, so `SetRecord.barWeightValue` migrated the user's actual data. `a3a6934` can no longer open that store — the migrated schema is one-way without the export |
 | Backup | CSV + JSON exported to iCloud Drive on 2026-08-22 before the schema change — the first copy of the training history off the device. Re-export after any session worth keeping |
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed **22 Aug 2026**, so expires **~29 Aug 2026**. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **22 Aug 2026** (23:45), so expires **~29 Aug 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
@@ -88,14 +121,38 @@ nothing about whether the install worked.
      photographs. Retune only with real misses in hand.
    - Does the **export** look right over the real history in a spreadsheet?
    - Are the **preset chips** reachable one-handed mid-set? Their layout is guesswork.
-2. **A cross-review of bar weight is still owed** (T6, waived at merge on 2026-08-22 — see the
+2. **Milestone 7 needs a phone — it is installed and awaiting a verdict.** Code-complete,
+   reviewed twice, entirely unproven against hardware. In rough order of what it would teach:
+   - Does AirPods Pro 3 heart rate actually reach the workout screen? (`HealthKitHeartRateProvider`
+     is written and has never run against a sensor.)
+   - Does the watch companion install, pair, and stream? **No Apple Watch has ever been visible to
+     this Mac** (`devicectl` sees only the iPhone), so nothing on that path is installed. It is a
+     **separate** install by design — embedding it breaks every simulator test run (ticket 02) —
+     and it needs Developer Mode on the watch plus a second bundle id on the same 7-day clock.
+   - **Open question nobody has answered:** can the phone WAKE the watch app? The design has the
+     phone send "workout started" over `WCSession`, but iOS→watchOS messaging does not reliably
+     launch an app that is not running. The likely reality is the user taps the app on their wrist
+     first. Only hardware settles it.
+   - Does the heart-rate rest alarm fire with the screen off? That is what
+     `healthkit.background-delivery` was provisioned for and it has never been observed.
+3. **A cross-review of bar weight is still owed** (T6, waived at merge on 2026-08-22 — see the
    Reviews section of `DECISIONS.md`). It is merged and on the phone, so this is no longer a gate
    on anything; it is a debt. The D39 invariant is the thing to attack.
-3. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
+4. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
    next unbuilt milestone, and what makes the logged history worth looking at.
-4. Milestone 5: Strong CSV import. Milestone 6 is now **half done** — the bar half shipped
+5. Milestone 5: Strong CSV import. Milestone 6 is now **half done** — the bar half shipped
    2026-08-22; what remains is computing which plates to load for a target weight, and
    selectorized stack increments.
+
+**Owed from milestone 7's review, deliberately not fixed:** the migration fixture
+(`WorkoutTrackerTests/Fixtures/LegacyStore.store`) was generated at `5239ef2` and the phone now
+runs the bar-weight build, so the gate opens an older approximation of the real store than it
+claims to. Regenerating needs the phone.
+
+**Test-harness fact worth keeping:** a UI-test run started with `-uiTestReset` but WITHOUT
+`-uiTestHeartRate` gets a `DisabledHeartRateProvider`. Without that, every XCUITest that starts a
+workout summons the HealthKit permission sheet, which covers the screen and turns eight passing
+core-loop tests into "button not hittable" — a failure that reads as a layout bug and is not one.
 
 **Known latent bug, found while building bar mode, deliberately not fixed:** `Format.weight`
 (`Domain/SharedEnums.swift`) renders to one decimal, and the set row's text becomes the stored

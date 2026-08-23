@@ -24,8 +24,30 @@ struct ActiveWorkoutView: View {
     @State private var confirmingCancel = false
     @State private var driftTemplate: WorkoutTemplate?
     @State private var choosingDriftResolution = false
+    /// Owned by `RootView`, not by this screen (codex-review-2 #2): minimise
+    /// dismisses this view while the workout keeps running, so a screen-owned
+    /// session would either be orphaned or silently ended mid-workout.
+    @Environment(WorkoutHeartRateCoordinator.self) private var heartRateCoordinator
+    @State private var showMaxHeartRateSheet = false
+    /// The rest that has already degraded to the standard timer. Once a rest
+    /// falls back, a late sample must not turn it back into a heart-rate rest
+    /// and fire a "recovered" alarm over the fallback one (codex-review-2 #4).
+    @State private var degradedRestSetID: UUID?
+    /// Drives `refreshLiveness`, so a sensor that goes quiet stops being
+    /// reported as live rather than freezing on its last reading.
+    private let livenessTick = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
+
 
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
+
+    /// The live feed for this workout, resolved once in `.task`.
+    ///
+    /// NOT a computed property that asks the coordinator: `monitor(for:)`
+    /// mutates observable state, and doing that during body evaluation loops
+    /// the renderer and freezes every control on the screen. The coordinator
+    /// keeps it across a minimise/resume cycle, so one workout stays one
+    /// session with one continuous set of samples.
+    @State private var heartRate: HeartRateMonitor?
 
     private var entries: [ExerciseEntry] {
         workout.isDeleted ? [] : WorkoutSession.orderedEntries(of: workout)
@@ -41,6 +63,15 @@ struct ActiveWorkoutView: View {
             ScrollView {
                 VStack(spacing: 14) {
                     header
+
+                    // D41: live heart rate, above the exercises because it is
+                    // the one number that changes while you are not touching
+                    // the screen.
+                    if let heartRate {
+                        HeartRateBar(
+                            monitor: heartRate,
+                            editMaxHeartRate: { showMaxHeartRateSheet = true })
+                    }
 
                     ForEach(entries) { entry in
                         ExerciseEntryCard(
@@ -155,9 +186,35 @@ struct ActiveWorkoutView: View {
                 AddByMachineSheet(workout: workout)
                     .presentationDetents([.medium, .large])
             }
+            .sheet(isPresented: $showMaxHeartRateSheet) {
+                MaxHeartRateSheet()
+            }
             .onAppear(perform: refreshRest)
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshRest() }
+            }
+            // The session starts with the workout screen and ends when the
+            // workout does — `finish`/`cancel` both route through `endWorkout`.
+            .task {
+                let monitor = heartRateCoordinator.monitor(
+                    for: workout, maxHeartRate: resolvedMaxHeartRate())
+                // D43 is evaluated on sample arrival, not on a UI tick: samples
+                // keep coming with the screen off, a SwiftUI timer does not
+                // (codex-review 2.2). Re-attached on every appearance, so a
+                // resumed workout keeps evaluating its rests.
+                monitor.onSample = { evaluateHeartRateRest() }
+                heartRate = monitor
+            }
+            // Every path that changes the rest — starting one, +15s, skipping,
+            // recovering, degrading, un-completing — moves `restEnd`. Mirroring
+            // from here rather than from each of them is why the watch cannot
+            // fall out of step with the phone.
+            .onChange(of: restEnd) { _, newValue in
+                heartRateCoordinator.broadcastRest(endsAt: newValue)
+            }
+            .onReceive(livenessTick) { _ in
+                heartRate?.refreshLiveness()
+                evaluateHeartRateRest()
             }
         }
     }
@@ -186,6 +243,8 @@ struct ActiveWorkoutView: View {
     // MARK: Actions
 
     private func minimize() {
+        // Deliberately nothing here: the workout is still running, so its
+        // heart-rate session is too. `RootView` owns it (codex-review-2 #2).
         if let onMinimize {
             onMinimize()
         } else {
@@ -198,6 +257,84 @@ struct ActiveWorkoutView: View {
     /// (C2), where it is offered once the workout is safely stored. The
     /// template-drift prompt (D18) survives, but only for workouts that
     /// actually came from a template.
+    /// Ends the heart-rate session. Called on BOTH ways out of a workout: a
+    /// session left running keeps the sensor powered and the battery draining
+    /// for a workout that is over. The rest timer had this exact bug shape —
+    /// correct only because every call site happened to tear down first.
+    /// Ends the session and banks what it measured. Called on every path that
+    /// ends the workout; minimise deliberately does NOT call it, because the
+    /// workout is still running and so is its heart rate.
+    private func stopHeartRate() {
+        heartRateCoordinator.end(workout)
+    }
+
+    /// D43: while a heart-rate rest is running, the threshold can end it before
+    /// its cap does. The cap itself is the persisted `restEndsAt`, so it still
+    /// fires through the ordinary path — including after a relaunch, and while
+    /// the app is backgrounded. This only ever ends a rest EARLY.
+    private func evaluateHeartRateRest() {
+        guard !workout.isDeleted,
+              let start = workout.restStartedAt,
+              workout.restEndsAt != nil,
+              let setID = workout.restStartedBySetID,
+              let set = restStartingSet(setID),
+              let plan = try? restTimer.restPlan(for: set),
+              let rule = plan.rule,
+              degradedRestSetID != setID
+        else { return }
+
+        guard let heartRate else { return }
+        let state = rule.evaluate(
+            samples: heartRate.samplesFromCurrentSource, start: start, asOf: .now)
+        switch state {
+        case .finished(.recovered(_, let bpm)):
+            do {
+                try restTimer.finishRecovered(workout, bpm: bpm)
+                refreshRest()
+            } catch {
+                assertionFailure("Failed to finish recovered rest: \(error)")
+            }
+        case .degraded:
+            // codex-review 2.1 (critical): this used to do nothing, on the
+            // false claim that the cap WAS the standard timer. The cap is four
+            // minutes; the user's standard rest is one or two.
+            do {
+                degradedRestSetID = setID
+                if let state = try restTimer.degradeToStandard(workout, set: set) {
+                    restEnd = state.end
+                    restTotal = state.total
+                } else {
+                    refreshRest()
+                }
+            } catch {
+                assertionFailure("Failed to degrade rest: \(error)")
+            }
+        case .resting, .finished(.cap):
+            break
+        }
+    }
+
+    private func restStartingSet(_ id: UUID) -> SetRecord? {
+        for entry in entries {
+            if let match = WorkoutSession.orderedSets(of: entry).first(where: { $0.id == id }) {
+                return match
+            }
+        }
+        return nil
+    }
+
+    /// The ceiling zones are computed against (D45): the user's measured
+    /// maximum if they have entered one, otherwise 220−age flagged as an
+    /// estimate, otherwise nothing at all.
+    private func resolvedMaxHeartRate() -> MaxHeartRate? {
+        let rows = (try? modelContext.fetch(FetchDescriptor<AppPreferences>())) ?? []
+        guard let preferences = AppPreferences.canonical(of: rows) else { return nil }
+        return MaxHeartRateResolver.resolve(
+            measured: preferences.measuredMaxHeartRate,
+            birthDate: preferences.birthDate,
+            at: .now)
+    }
+
     private func finishTapped() {
         if workout.sourceTemplateID == nil {
             finishWorkout()
@@ -222,6 +359,7 @@ struct ActiveWorkoutView: View {
     private func finishWorkout() {
         var outcome = WorkoutFinishOutcome.discardedEmpty
         do {
+            stopHeartRate()
             outcome = try session.finish(workout)
         } catch {
             assertionFailure("Failed to finish workout: \(error)")
@@ -232,6 +370,7 @@ struct ActiveWorkoutView: View {
     private func finishTemplatedWorkout(using resolution: TemplateDriftResolution) {
         var outcome = WorkoutFinishOutcome.discardedEmpty
         do {
+            stopHeartRate()
             if let driftTemplate {
                 outcome = try TemplateDriftService(context: modelContext).resolve(
                     resolution, workout: workout, to: driftTemplate)
@@ -259,6 +398,7 @@ struct ActiveWorkoutView: View {
     }
 
     private func cancelWorkout() {
+        stopHeartRate()
         do {
             try session.cancel(workout)
         } catch {
@@ -333,4 +473,5 @@ struct ActiveWorkoutView: View {
     try? WorkoutSession(context: context).addEntry(for: exercise, to: workout)
     return ActiveWorkoutView(workout: workout)
         .modelContainer(container)
+        .environment(WorkoutHeartRateCoordinator())
 }

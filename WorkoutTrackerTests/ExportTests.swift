@@ -153,7 +153,7 @@ struct ExportTests {
     @Test func jsonCarriesVersionAndOmitsNilRatherThanNull() throws {
         let text = try #require(
             String(data: try ExportJSON.data(makeSnapshot()), encoding: .utf8))
-        #expect(text.contains("\"schemaVersion\" : 3"), "the bar (D39) moved the shape to v3")
+        #expect(text.contains("\"schemaVersion\" : 4"), "heart rate (D44) moved the shape to v4")
         #expect(!text.contains("null"), "nil optionals must be omitted, not encoded as null")
         // Sorted keys make the file diffable: `appVersion` precedes `counts`.
         let appVersion = try #require(text.range(of: "\"appVersion\""))
@@ -220,13 +220,16 @@ struct ExportTests {
     @Test func csvHeaderIsTheDocumentedColumnsInOrder() throws {
         let rows = csvRows(makeSnapshot())
         #expect(rows.first == ExportCSV.header)
-        #expect(ExportCSV.header.count == 31)
+        #expect(ExportCSV.header.count == 34)
         #expect(ExportCSV.header.first == "workoutID")
         // Presets (D36) appended two columns and the bar (D39) two more; the
         // first 27 are unchanged, so a reader of a version-1 export still reads
         // them correctly.
         #expect(Array(ExportCSV.header[27...28]) == ["presetID", "presetName"])
-        #expect(Array(ExportCSV.header.suffix(2)) == ["barWeight", "barWeightKg"])
+        #expect(Array(ExportCSV.header[29...30]) == ["barWeight", "barWeightKg"])
+        #expect(
+            Array(ExportCSV.header.suffix(3))
+                == ["workoutAvgHeartRate", "workoutMaxHeartRate", "workoutActiveCalories"])
         #expect(ExportCSV.header[26] == "completedAt")
     }
 

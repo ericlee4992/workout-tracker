@@ -94,6 +94,14 @@ equipment (see the two limits below the table). Empty fields are empty (no `null
 | 29 | `presetName` | `snapshotPresetName` | |
 | 30 | `barWeight` | `SetRecord.barWeightValue` | D39 — appended 2026-08-22, empty = weight entered as a total |
 | 31 | `barWeightKg` | normalized `barWeightValue` | D29's rule applied to the bar |
+| 32 | `workoutAvgHeartRate` | `Workout.averageHeartRate` | D44 — appended 2026-08-22, empty = no sensor ran |
+| 33 | `workoutMaxHeartRate` | `Workout.maxHeartRate` | |
+| 34 | `workoutActiveCalories` | `Workout.activeEnergyKilocalories` | system-generated during the session, never computed by the app |
+
+Columns 32–34 are **workout**-level and repeat on every set row of that workout, the way
+`workoutNotes` already does. Empty means *not measured*, never zero (D44). `zoneSeconds` is
+JSON-only: it is an array, and a flat ledger of sets has nowhere honest to put one — the same
+narrowing D30 makes for objects holding no set.
 
 Columns 30–31 describe **how** column 23 was arrived at, not a component to add to it: `weight` is
 the total lifted, bar included, in bar mode exactly as in total mode (D39). A consumer that sums
@@ -119,8 +127,9 @@ deterministic).
 
 ```jsonc
 {
-  "schemaVersion": 3,             // bumped on any breaking shape change
+  "schemaVersion": 4,             // bumped on any breaking shape change
                                   // 2: presets (D36). 3: bar weight (D39)
+                                  // 4: heart-rate summary per workout (D44)
   "exportedAt": "2026-08-11T18:30:00.123+09:00",
   "appVersion": "1.0 (3)",
   "seededCatalogVersion": 4,      // D28: what the omitted catalog rows came from

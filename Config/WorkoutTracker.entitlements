@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Milestone 7 (D41). Lives in Config/ rather than under WorkoutTracker/,
+  because that folder is a buildable folder (T4) and everything inside it is
+  swept into the target automatically — an entitlements file would be copied in
+  as a resource as well as read as entitlements.
+
+  background-delivery is the one that earns its place: the heart-rate rest timer
+  (D43) has to keep watching the user's heart rate with the screen off and the
+  app backgrounded, which is exactly when a rest happens. Verified 2026-08-22
+  that the free personal team provisions all three.
+-->
+<plist version="1.0">
+<dict>
+    <key>com.apple.developer.healthkit</key>
+    <true/>
+    <key>com.apple.developer.healthkit.access</key>
+    <array/>
+    <key>com.apple.developer.healthkit.background-delivery</key>
+    <true/>
+</dict>
+</plist>

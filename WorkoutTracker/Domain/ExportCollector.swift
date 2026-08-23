@@ -249,7 +249,14 @@ struct ExportCollector {
             // where both are snapshotted together.
             gymID: workout.gym?.id,
             gymName: workout.snapshotGymName,
-            entries: entries)
+            entries: entries,
+            // D44: absent when no sensor ran. Nothing is derived here — these
+            // are the values captured at finish, exactly as History reads them.
+            averageHeartRate: workout.averageHeartRate,
+            maxHeartRate: workout.maxHeartRate,
+            activeEnergyKilocalories: workout.activeEnergyKilocalories,
+            zoneSeconds: workout.zoneSeconds.isEmpty ? nil : workout.zoneSeconds,
+            zonesFromEstimatedMax: workout.zonesFromEstimatedMax)
     }
 
     private func entry(
@@ -360,7 +367,11 @@ struct ExportCollector {
 
     private func restOverride(from override: ExerciseRestOverride) -> ExportSnapshot.RestOverride {
         ExportSnapshot.RestOverride(
-            id: override.id, exerciseID: override.exerciseID,
+            id: override.id,
+            restMode: override.restMode,
+            heartRateThresholdBpm: override.heartRateThresholdBpm,
+            heartRateCapSeconds: override.heartRateCapSeconds,
+            exerciseID: override.exerciseID,
             workingRestSeconds: override.workingRestSeconds,
             warmupRestSeconds: override.warmupRestSeconds,
             updatedAt: dateFormat.string(from: override.updatedAt))
@@ -375,6 +386,8 @@ struct ExportCollector {
             seededCatalogVersion: preferences.seededCatalogVersion,
             notificationPermissionRequested: preferences.notificationPermissionRequested,
             selectedGymID: preferences.selectedGymID,
+            measuredMaxHeartRate: preferences.measuredMaxHeartRate,
+            birthDate: dateFormat.optionalString(from: preferences.birthDate),
             updatedAt: dateFormat.string(from: preferences.updatedAt))
     }
 }

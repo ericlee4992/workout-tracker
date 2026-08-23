@@ -91,6 +91,32 @@ struct LegacyStoreMigrationTests {
         #expect(WorkoutSession.platesPerSide(of: set) == nil)
     }
 
+    /// Milestone 7 added heart-rate fields to `Workout` and rest-mode fields to
+    /// `ExerciseRestOverride`, plus two preferences. Every one must materialise
+    /// as "nobody recorded that" — which is the truth about every workout logged
+    /// before 2026-08-22. A migration that produced 0 instead of nil would
+    /// render old workouts as having a measured heart rate of zero.
+    @Test func heartRateFieldsArriveEmptyOnPreHeartRateData() throws {
+        let (context, directory) = try openedFixture()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let workout = try #require(try context.fetch(FetchDescriptor<Workout>()).first)
+        #expect(workout.averageHeartRate == nil)
+        #expect(workout.maxHeartRate == nil)
+        #expect(workout.activeEnergyKilocalories == nil)
+        #expect(workout.zoneSeconds.isEmpty)
+
+        // And the summary built from it says nothing about the heart at all.
+        let summary = WorkoutSummaryBuilder.summary(for: workout)
+        #expect(!summary.hasHeartRate)
+        #expect(!summary.exercises.isEmpty, "the workout itself still renders")
+
+        let preferences = try #require(
+            AppPreferences.canonical(of: try context.fetch(FetchDescriptor<AppPreferences>())))
+        #expect(preferences.measuredMaxHeartRate == nil)
+        #expect(preferences.birthDate == nil)
+    }
+
     /// Old sets group together under "no preset" and keep their records — they
     /// do not vanish from a PR table because a new dimension appeared.
     @Test func oldSetsKeepTheirRecordsInTheNoPresetGroup() throws {

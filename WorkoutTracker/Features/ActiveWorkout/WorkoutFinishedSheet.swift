@@ -83,7 +83,15 @@ struct WorkoutFinishedSheet: View {
                         }
                     }
                 }
+
+                if let summary {
+                    statsSection(summary)
+                    exercisesSection(summary)
+                }
             }
+            // The summary made this sheet tall; a medium detent hid the
+            // actions and the exercises below the fold.
+            .presentationDetents([.large])
             .navigationTitle(savedWorkout == nil ? "Nothing logged" : "Nice work")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -142,6 +150,120 @@ struct WorkoutFinishedSheet: View {
         formatter.dateStyle = .medium
         let date = savedWorkout?.startedAt ?? .now
         return "Workout \(formatter.string(from: date))"
+    }
+
+    /// D44: the numbers for the workout just finished. Built from the
+    /// workout's own persisted fields, so this screen and History can never
+    /// disagree.
+    private var summary: WorkoutSummary? {
+        savedWorkout.map { WorkoutSummaryBuilder.summary(for: $0) }
+    }
+
+    @ViewBuilder
+    private func statsSection(_ summary: WorkoutSummary) -> some View {
+        Section("Workout details") {
+            statRow("Workout time", Format.duration(seconds: Int(summary.duration)))
+            if summary.totalVolumeKg > 0 {
+                statRow(
+                    "Total volume",
+                    "\(WeightMath.displayNumber(summary.totalVolumeKg)) kg")
+            }
+            // Every heart-rate row is OMITTED, not zeroed, when no sensor ran
+            // (D44). A workout logged without one says nothing about the heart
+            // rather than claiming 0 BPM.
+            if let calories = summary.activeEnergyKilocalories {
+                statRow("Active calories", "\(Int(calories.rounded())) CAL")
+                    .accessibilityIdentifier("summaryCalories")
+            }
+            if let average = summary.averageHeartRate {
+                statRow("Avg. heart rate", "\(average) BPM")
+                    .accessibilityIdentifier("summaryAvgHR")
+            }
+            if let maximum = summary.maxHeartRate {
+                statRow("Max heart rate", "\(maximum) BPM")
+            }
+            if summary.zoneSeconds.contains(where: { $0 > 0 }) {
+                zoneRow(summary.zoneSeconds)
+            }
+        }
+    }
+
+    private func statRow(_ title: String, _ value: String) -> some View {
+        LabeledContent(title) {
+            Text(value).monospacedDigit()
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value)")
+    }
+
+    private var summaryZonesEstimated: Bool {
+        summary?.zonesFromEstimatedMax == true
+    }
+
+    private func zoneRow(_ seconds: [Int]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 4) {
+                Text("Time in zones")
+                    .font(.subheadline)
+                if summaryZonesEstimated {
+                    // D45, on the permanent record rather than only live.
+                    Text("(estimated)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            ForEach(HeartRateZone.allCases, id: \.self) { zone in
+                let value = zone.rawValue < seconds.count ? seconds[zone.rawValue] : 0
+                if value > 0 {
+                    HStack {
+                        Text(zone.label).font(.caption)
+                        Spacer()
+                        Text(Format.duration(seconds: value))
+                            .font(.caption).monospacedDigit()
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 2)
+    }
+
+    /// The half Apple's summary cannot show: what was actually lifted.
+    @ViewBuilder
+    private func exercisesSection(_ summary: WorkoutSummary) -> some View {
+        if !summary.exercises.isEmpty {
+            Section("Exercises") {
+                ForEach(summary.exercises) { line in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(line.name)
+                            .font(.subheadline.weight(.medium))
+                        HStack(spacing: 6) {
+                            if let equipment = line.equipment {
+                                Text(equipment)
+                            }
+                            if let preset = line.preset {
+                                Text("· \(preset)")
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        HStack(spacing: 6) {
+                            Text(HistoryRendering.pluralized(line.setCount, "set", "sets"))
+                            if let best = line.bestSet {
+                                Text("· best \(best)")
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 2)
+                    // Combined for the same reason the heart-rate bar's rows
+                    // are: an identifier on a multi-Text container is not
+                    // queryable, and propagates over its children's.
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("summaryExercise")
+                }
+            }
+        }
     }
 
     private func saveTemplate() {

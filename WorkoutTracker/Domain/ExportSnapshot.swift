@@ -23,7 +23,10 @@ struct ExportSnapshot: Codable, Equatable {
     /// 3 — bar weight (D39) added `barWeight`/`barWeightKg` to every set, and
     /// two columns to the CSV. Same story: `weight` still means the total
     /// lifted, so a version-2 reader misunderstands nothing it already read.
-    static let currentSchemaVersion = 3
+    /// 4 — heart rate (D44) added a per-workout summary: average and maximum
+    /// bpm, active energy, and seconds per zone. Absent, not zero, when no
+    /// sensor ran — a reader must treat missing as "not measured".
+    static let currentSchemaVersion = 4
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -84,6 +87,11 @@ extension ExportSnapshot {
         var seededCatalogVersion: Int
         var notificationPermissionRequested: Bool
         var selectedGymID: UUID?
+        /// D45. The user typed these; restoring a backup without them erases
+        /// their measured maximum and the basis for every zone
+        /// (codex-review 5.1, critical).
+        var measuredMaxHeartRate: Int?
+        var birthDate: String?
         var updatedAt: String
     }
 }
@@ -175,6 +183,18 @@ extension ExportSnapshot {
         var gymID: UUID?
         var gymName: String?
         var entries: [Entry]
+        /// D44, schemaVersion 4. All absent when no sensor ran: a consumer must
+        /// read missing as "not measured", never as zero.
+        var averageHeartRate: Int?
+        var maxHeartRate: Int?
+        var activeEnergyKilocalories: Double?
+        /// Seconds per zone, indexed by zone 0…5. Omitted when empty.
+        var zoneSeconds: [Int]?
+        /// D45: whether those zones came from an estimated maximum. Without it
+        /// a restore turns historically estimated zones into unqualified fact
+        /// (codex-review-2 #3) — the export must carry the qualifier along with
+        /// the number it qualifies.
+        var zonesFromEstimatedMax: Bool?
     }
 
     /// One exercise within a workout.
@@ -253,6 +273,11 @@ extension ExportSnapshot {
 
     struct RestOverride: Codable, Equatable {
         var id: UUID
+        /// D43. Without these a restore turns every heart-rate rest back into a
+        /// plain timer, silently (codex-review 5.1, critical).
+        var restMode: RestMode?
+        var heartRateThresholdBpm: Int?
+        var heartRateCapSeconds: Int?
         var exerciseID: UUID
         var workingRestSeconds: Int?
         var warmupRestSeconds: Int?

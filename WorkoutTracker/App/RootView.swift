@@ -5,6 +5,10 @@ struct RootView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var selection: Tab = .workout
     @State private var activeWorkout: Workout?
+    /// Owns the heart-rate session for whichever workout is running
+    /// (codex-review-2 #2). Lives here, not on the workout screen, because
+    /// minimise dismisses that screen while the workout keeps going.
+    @State private var heartRateCoordinator = WorkoutHeartRateCoordinator()
     /// C2/A2: the finish that just happened, awaiting its confirmation sheet.
     @State private var finishConfirmation: FinishConfirmation?
     /// C2: the workout History should open — selecting the tab is not the
@@ -52,6 +56,7 @@ struct RootView: View {
                     activeWorkout = nil
                     finishConfirmation = FinishConfirmation(workout: finished)
                 })
+            .environment(heartRateCoordinator)
         }
         .sheet(item: $finishConfirmation) { confirmation in
             WorkoutFinishedSheet(
@@ -63,7 +68,9 @@ struct RootView: View {
                     historyTarget = finished
                 },
                 done: { finishConfirmation = nil })
-            .presentationDetents([.medium])
+            // The finish sheet sizes itself (`.large`): the workout summary
+            // does not fit a medium detent, and hiding the actions under it is
+            // how "View in History" became unreachable.
         }
         .onAppear(perform: recoverActiveWorkout)
         .onAppear(perform: applyLaunchOverride)

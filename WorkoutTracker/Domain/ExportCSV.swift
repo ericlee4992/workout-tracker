@@ -17,7 +17,7 @@ import Foundation
 
 enum ExportCSV {
 
-    /// The 31 columns, in order. `../spec.md` documents each one's source; the
+    /// The 34 columns, in order. `../spec.md` documents each one's source; the
     /// order is part of the format — appending is safe, reordering is not.
     static let header = [
         "workoutID", "workoutStartedAt", "workoutFinishedAt", "workoutName", "workoutNotes",
@@ -34,6 +34,13 @@ enum ExportCSV {
         // cases — these columns say how it was arrived at, and a consumer that
         // adds them to `weight` is double-counting the bar.
         "barWeight", "barWeightKg",
+        // v4 (D44): the workout's heart-rate summary, repeated on each of its
+        // set rows the way `workoutNotes` already is. Empty when no sensor ran
+        // — a consumer must read empty as "not measured", never as zero.
+        // `zoneSeconds` is JSON-only: it is an array, and a flat ledger of sets
+        // has nowhere honest to put one (the same narrowing D30 makes for
+        // setless objects).
+        "workoutAvgHeartRate", "workoutMaxHeartRate", "workoutActiveCalories",
     ]
 
     /// RFC 4180 line terminator. Excel on Windows still wants CRLF; every
@@ -106,6 +113,9 @@ enum ExportCSV {
             entry.presetName ?? "",
             set.barWeight.map(WeightMath.storageNumber) ?? "",
             set.barWeightKg.map(WeightMath.storageNumber) ?? "",
+            workout.averageHeartRate.map(String.init) ?? "",
+            workout.maxHeartRate.map(String.init) ?? "",
+            workout.activeEnergyKilocalories.map(WeightMath.storageNumber) ?? "",
         ]
     }
 
