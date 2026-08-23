@@ -27,9 +27,9 @@ Watch, zones, system calories, a heart-rate rest timer, and a finish summary. 8 
 (`codex-review.md`, `codex-review-2.md`), each with a regression test in
 `CodexReviewRegressionTests`.
 
-**FIRST THING TO KNOW: ~55 files of finished work exist only in the working tree.** Do not
-`git checkout main`, stash, or clean. Committing to the branch is safe and unmerged; the user had
-not asked for it when the session ended.
+**Committed as `428ab7a` on `milestone-7-heart-rate`, not merged and not pushed.** `main` is
+untouched at `86f1a20`. Merging is the user's call and the work has had its cross-review, so the
+gate is a real-world verdict rather than another review.
 
 **Verified once, so nobody re-derives it:** the **free** Apple account provisions all three
 HealthKit entitlements including `background-delivery` — no Developer Program needed. The iPhone
