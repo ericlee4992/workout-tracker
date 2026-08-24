@@ -36,10 +36,20 @@ HealthKit entitlements including `background-delivery` — no Developer Program 
 workout-session API is `ios(26.0)`, hence D42. The Apple Watch is **not** a GATT peripheral to the
 phone, which is the entire reason a watchOS target exists.
 
-**Nothing here has met a real sensor.** Every heart rate ever displayed by this code came from
-`FixtureHeartRateProvider` under `-uiTestHeartRate`. The AirPods path, the watch pairing, the
-`WCSession` streaming and the background rest alarm are all unexercised. It is installed on the
-phone (2026-08-22 23:45) and the user had not yet reported back.
+**Partly proven on hardware, 2026-08-23.** The user reported: *"the heart rate correctly measures
+during workout."* That is the first real-sensor evidence this milestone has, and it clears the
+biggest unknown — the permission flow, the phone's `HKWorkoutSession`, the live feed reaching the
+workout screen, and the number itself all work on the device.
+
+Be precise about what that does and does not cover. **Verified:** a live, correct bpm on the
+workout screen during a real workout. **Still unverified:** which source it came from (the watch
+companion is not installed, so it should have been AirPods — if the user was wearing a Watch
+instead, then the phone's own session is picking up Watch data, which contradicts the design
+assumption behind D41's watch target and is worth establishing); zones and the estimated-max
+marking; the calorie figure's plausibility; the heart-rate rest timer (D43); the background alarm
+with the screen off; and the entire `WCSession` path.
+
+Everything still unverified came from `FixtureHeartRateProvider` under `-uiTestHeartRate`.
 
 **The installed build is one commit-worth behind the branch:** the watch rest-countdown mirror was
 fixed *after* that install (2026-08-23). It only matters once a Watch is in play, so it can ride
@@ -121,10 +131,20 @@ nothing about whether the install worked.
      photographs. Retune only with real misses in hand.
    - Does the **export** look right over the real history in a spreadsheet?
    - Are the **preset chips** reachable one-handed mid-set? Their layout is guesswork.
-2. **Milestone 7 needs a phone — it is installed and awaiting a verdict.** Code-complete,
-   reviewed twice, entirely unproven against hardware. In rough order of what it would teach:
-   - Does AirPods Pro 3 heart rate actually reach the workout screen? (`HealthKitHeartRateProvider`
-     is written and has never run against a sensor.)
+2. **Milestone 7 is installed and partly proven.** Live heart rate works on the device
+   (2026-08-23). What remains unanswered, in rough order of what it would teach:
+   - **Which sensor produced it?** The bar names its source. If it said "Apple Watch" with no watch
+     app installed, the phone's session is reading Watch data directly and the watch companion may
+     be unnecessary — a finding that would simplify the whole milestone. If it said "AirPods",
+     the design holds as written.
+   - Do the **zones** look right, and is the estimated-max marking visible until a measured max is
+     entered (D45)?
+   - Is the **calorie** number plausible against Apple's own for the same session? The app reads
+     it from the system and never computes it, so a wrong number means a wrong session setup.
+   - Does the **heart-rate rest timer** (D43) end a rest when the heart rate comes down, and does
+     the alarm say which ended it — recovery or the cap?
+   - Does that alarm fire **with the screen off**? That is what `healthkit.background-delivery`
+     was provisioned for and it has never been observed.
    - Does the watch companion install, pair, and stream? **No Apple Watch has ever been visible to
      this Mac** (`devicectl` sees only the iPhone), so nothing on that path is installed. It is a
      **separate** install by design — embedding it breaks every simulator test run (ticket 02) —
