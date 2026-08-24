@@ -36,6 +36,10 @@ Mac. It is still **not merged**; `main` remains `86f1a20`. Merging is the user's
 is **451 tests across 42 suites**, and the 4 affected UI tests are green (two existing plus two new
 regressions).
 
+**Independently re-run on 2026-08-24 (T6's "verify independently" rule): the COMPLETE suite —
+451 unit + 21 UI — passed, exit 0.** Codex had run only the 4 affected UI classes; this was all
+21, and it confirms nothing elsewhere regressed. This is the number to trust for the branch tip.
+
 **Verified once, so nobody re-derives it:** the **free** Apple account provisions all three
 HealthKit entitlements including `background-delivery` — no Developer Program needed. The iPhone
 workout-session API is `ios(26.0)`, hence D42. The Apple Watch is **not** a GATT peripheral to the
@@ -87,7 +91,7 @@ The user ran a real workout, got live heart rate, and never saw a zone. Two bugs
 
 Fixes: a "· set up zones" prompt in the bar when there is no maximum (`hrZoneSetup`), a **Heart
 rate zones** row in Settings showing the current basis or "Not set", and a re-resolve on the
-sheet's `onDismiss`. Two regression tests in `HeartRateUITests` (`testZonesCanBeSetUpFromTheWorkoutScreenAndApplyImmediately`, `testZonesAreReachableFromSettings`). **449 unit + 19 UI green.**
+sheet's `onDismiss`. Two regression tests in `HeartRateUITests` (`testZonesCanBeSetUpFromTheWorkoutScreenAndApplyImmediately`, `testZonesAreReachableFromSettings`). **449 unit + 19 UI green at the time; the branch tip is now 451 + 21** after Codex's bar-weight fixes added two more UI regressions.
 
 One gap, deliberately: the setup test drives the MEASURED-max field, not the date-of-birth toggle. `app.switches["useBirthDate"].tap()` lands on the row label and does not flip the switch — an XCUITest quirk, not an app defect, but it means the DOB path is untested and it is the path a user without a lab test actually takes. Zones themselves are confirmed working on
 the device (2026-08-24), but the user did not say which basis they entered, so this gap is still
