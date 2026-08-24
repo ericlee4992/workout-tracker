@@ -445,6 +445,11 @@ final class SetRecord {
     /// by the weight of a bar and nothing would report an error.
     /// Optional, so stores written before it existed migrate lightweightly.
     var barWeightValue: Double?
+    /// The same bar normalized to kilograms, persisted atomically with
+    /// `barWeightValue` so stored weights keep the full D25 triple. Optional
+    /// for lightweight migration; pre-review bar rows can derive it once from
+    /// their value and the row's unit.
+    var barNormalizedKg: Double?
     /// Set when these values were *inherited* rather than typed — from
     /// cross-workout prefill or within-session carry-forward — and cleared the
     /// moment the user edits the row.
@@ -468,6 +473,7 @@ final class SetRecord {
         normalizedKg: Double? = nil,
         completedAt: Date? = nil,
         barWeightValue: Double? = nil,
+        barNormalizedKg: Double? = nil,
         prefilledAt: Date? = nil,
         entry: ExerciseEntry? = nil
     ) {
@@ -480,8 +486,19 @@ final class SetRecord {
         self.normalizedKg = normalizedKg
         self.completedAt = completedAt
         self.barWeightValue = barWeightValue
+        self.barNormalizedKg = barNormalizedKg
         self.prefilledAt = prefilledAt
         self.entry = entry
+    }
+}
+
+extension SetRecord {
+    /// Canonical bar value reconstructed from the as-entered value and the
+    /// row's unit. This is also the compatibility path for the brief schema
+    /// that persisted `barWeightValue` before `barNormalizedKg` existed.
+    var resolvedBarWeight: BarWeight? {
+        guard !isDeleted, let barWeightValue else { return nil }
+        return BarWeight(value: barWeightValue, unit: weightUnit)
     }
 }
 

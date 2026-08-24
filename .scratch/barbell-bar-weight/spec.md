@@ -65,8 +65,9 @@ a 20 kg bar and the app never pretends otherwise.
   because the user tapped a badge would silently change a 20 kg bar into a 45 kg one. The picker
   lists bars in both units; switching unit means picking a different bar, which is the truth of
   what happens in a gym.
-- `barWeightValue` is stored in the row's `weightUnit`, so bar + 2 × plates is exact arithmetic
-  in one unit with no rounding step.
+- `barWeightValue` is stored in the row's `weightUnit`, with `barNormalizedKg` persisted beside it
+  through `BarWeight`, so bar + 2 × plates is exact arithmetic in one unit and the stored
+  provenance keeps the same `(value, unit, normalizedKg)` contract as every other weight.
 
 ## Which bars
 
@@ -81,13 +82,15 @@ and remembered through the normal history path.
 | Olympic barbell | 20 kg | 45 lb |
 | Women's Olympic barbell | 15 kg | 35 lb |
 | Technique / training bar | 10 kg | 15 lb |
-| EZ curl bar | 10 kg | 25 lb |
-| Trap / hex bar | 25 kg | 55 lb |
 | Custom… | user value | user value |
 
 The two columns are **separate bars**, not conversions of each other: 20 kg is 44.09 lb, and the
 45 lb bar sold in US gyms is a different object. Listing them side by side and letting the user
 pick the one in their hands is the honest version.
+
+EZ curl bars, trap/hex bars, and Smith carriages vary by maker. They are named in the Custom
+section's guidance but have no selectable guessed weight; the user enters the actual bar once and
+the history path remembers it.
 
 ## Memory between sessions
 
@@ -95,7 +98,8 @@ There is no new preference and no per-exercise bar setting. The bar rides along 
 already carry the numbers:
 
 - **Within a session** — `WorkoutSession.addSet`'s carry-forward (B1) copies the bar with the
-  weight and reps, so sets 2–5 stay in bar mode.
+  weight, unit and reps from the same completed row, so sets 2–5 stay in bar mode without mixing
+  facts from a differently configured draft.
 - **Across sessions** — ticket 11's prefill copies the bar from the matched historical set. That
   match is already keyed by exercise + equipment + preset (D11/D36), so the bar remembered is the
   one used *for this movement on this equipment*, and a different gym's history never supplies it.
@@ -105,7 +109,7 @@ never touches a barbell never sees any of this.
 
 ## What this changes elsewhere
 
-- **Schema** — one optional attribute on `SetRecord`. Lightweight migration, verified against
+- **Schema** — `barWeightValue` plus optional `barNormalizedKg` on `SetRecord`. Lightweight migration, verified against
   `WorkoutTrackerTests/Fixtures/LegacyStore.store` before anything is installed on the phone.
 - **Export** — `barWeight` and `barWeightKg` appended to the CSV (29 → 31 columns) and added to
   each set in the JSON; `schemaVersion` 2 → 3. D29's rule (as entered *and* normalized) applies to

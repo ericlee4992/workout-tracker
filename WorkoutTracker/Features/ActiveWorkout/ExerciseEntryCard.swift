@@ -96,9 +96,9 @@ struct ExerciseEntryCard: View {
         }
         .sheet(isPresented: $showingBarPicker) {
             BarPickerSheet(
-                barWeight: currentBar?.weight,
-                unit: currentBar?.unit ?? draftUnit,
-                onSelect: { weight, unit in chooseBar(weight, unit: unit) })
+                barWeight: currentBar,
+                initialUnit: currentBar?.unit ?? draftUnit,
+                onSelect: chooseBar)
         }
     }
 
@@ -134,16 +134,15 @@ struct ExerciseEntryCard: View {
 
     private var barLabel: String {
         guard let bar = currentBar else { return "No bar — enter total weight" }
-        return "Bar: \(WeightMath.displayNumber(bar.weight)) \(bar.unit.rawValue)"
+        return "Bar: \(WeightMath.displayNumber(bar.value)) \(bar.unit.rawValue)"
     }
 
     /// The bar the user is typing against: the first row still to be logged,
     /// falling back to the last row once everything is completed. Completed
     /// rows keep whatever bar they were logged under, so this describes the
     /// *input*, which is what the picker and the column header are about.
-    private var currentBar: (weight: Double, unit: WeightUnit)? {
-        guard let set = draftOrLastSet, let weight = set.barWeightValue else { return nil }
-        return (weight, set.weightUnit)
+    private var currentBar: BarWeight? {
+        draftOrLastSet?.resolvedBarWeight
     }
 
     private var draftUnit: WeightUnit {
@@ -155,9 +154,13 @@ struct ExerciseEntryCard: View {
         return sets.first { $0.completedAt == nil } ?? sets.last
     }
 
-    private func chooseBar(_ weight: Double?, unit: WeightUnit) {
+    private func chooseBar(_ bar: BarWeight?) {
         do {
-            try session.chooseBar(weight: weight, unit: unit, for: entry)
+            if let bar {
+                try session.chooseBar(bar, for: entry)
+            } else {
+                try session.clearBar(for: entry)
+            }
         } catch {
             assertionFailure("Failed to choose bar: \(error)")
         }
@@ -391,6 +394,20 @@ struct SetRowView: View {
 
     private var isCompleted: Bool { !set.isDeleted && set.completedAt != nil }
 
+    /// The two facts that define what the weight field means. Watching only the
+    /// numeric bar value misses 15 lb → 15 kg, even though that unit change must
+    /// invalidate the old plate input.
+    private struct BarInputContext: Equatable {
+        var weight: Double?
+        var unit: WeightUnit
+    }
+
+    private var barInputContext: BarInputContext {
+        BarInputContext(
+            weight: set.isDeleted ? nil : set.barWeightValue,
+            unit: set.isDeleted ? .kg : set.weightUnit)
+    }
+
     /// The bar this row is loaded on (D39), or nil when its field is the total.
     private var barWeight: Double? {
         // `set` first in a computed property's body reads as a setter clause.
@@ -447,9 +464,17 @@ struct SetRowView: View {
         // is re-read from the row. `chooseBar` may have kept the total (it can
         // be re-read as bar + plates) or dropped it (it was in another unit, or
         // lighter than the bar itself); only the row knows which.
-        .onChange(of: set.barWeightValue) { _, _ in
+        .onChange(of: barInputContext) { _, _ in
             guard !set.isDeleted else { return }
             weightText = Self.weightFieldText(for: set)
+        }
+        // Preset/equipment changes select a different history context. The
+        // session clears untouched inherited values in the model; mirror that
+        // into these local TextField states before stale values can be logged.
+        .onChange(of: prefillTaskID) { _, _ in
+            guard !set.isDeleted, !isDirty else { return }
+            weightText = Self.weightFieldText(for: set)
+            repsText = set.reps.map(String.init) ?? ""
         }
         .task(id: prefillTaskID) {
             loadPreviousAndPrefill()
@@ -778,7 +803,7 @@ struct SetRowView: View {
         }
     }
 
-    /// Changing equipment, set type, or type-relative order selects a new
+    /// Changing equipment, preset, set type, or type-relative order selects a new
     /// candidate. A dirty row still refreshes its PREVIOUS reference label
     /// but `loadPreviousAndPrefill` refuses to overwrite its inputs.
     private var prefillTaskID: String {
@@ -789,6 +814,7 @@ struct SetRowView: View {
             set.type.rawValue,
             entry?.machine?.id.uuidString ?? "no-machine",
             entry?.freeWeightTag?.rawValue ?? "no-tag",
+            entry?.preset?.id.uuidString ?? "no-preset",
         ].joined(separator: "|")
     }
 }

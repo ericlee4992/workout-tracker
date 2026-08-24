@@ -15,7 +15,7 @@ store still opens.
 
 ## What to build
 
-- `SetRecord.barWeightValue: Double?` — the bar's weight **in this row's `weightUnit`**. nil =
+- `SetRecord.barWeightValue: Double?` + `barNormalizedKg: Double?` — the bar's weight **in this row's `weightUnit`** plus its persisted normalization. nil =
   total entry (today's behaviour). Optional so stores written before it existed migrate
   lightweightly. Document at the declaration that `weightValue` remains the total: the field is
   provenance, and a reader that subtracts it from `weightValue` to get "the real weight" has
@@ -28,10 +28,12 @@ store still opens.
     this session's *plates* and would otherwise be read as a per-side number;
   - nil clears bar mode, converting the row back to total entry: the row keeps the total it
     already had, since that number was always the total.
+  - if every row is complete, choosing a bar creates the next draft first; a visible control must
+    not silently do nothing, and the choice is a statement about the next set.
 - `WorkoutSession.commitPerSide(_ text:for:)` — parses like `commitWeight` (D25 decimal comma),
   computes `BarbellMath.total`, and writes `weightValue` + `normalizedKg` atomically through
   `StoredWeight`. Clears `prefilledAt` — typed, not inherited.
-- `addSet` carry-forward (B1) copies `barWeightValue` alongside weight/unit/reps.
+- `addSet` carry-forward (B1) copies the bar alongside weight/unit/reps **from the same source row**.
 - `PerformanceHistory.prefill`/`applyPrefill` carry `barWeightValue` (add it to
   `PreviousSetValue`), so a new session's first row arrives in bar mode with the plates already
   in it.
@@ -56,6 +58,8 @@ store still opens.
       `barWeightValue`.
 - [ ] Carry-forward: complete a bar-mode set, `addSet`, and the new row has the same
       `barWeightValue`, unit, weight and reps, uncompleted.
+- [ ] A completed total-entry kg row plus a differently configured 45 lb draft cannot produce a
+      new row that combines the completed total/unit with the draft's bar.
 - [ ] Cross-session prefill: finish a workout with a bar-mode set, start another, add the same
       exercise with the same free-weight tag — the first row arrives with that bar and that total.
 - [ ] Switching preset or equipment on a draft row clears the inherited bar along with the
@@ -69,7 +73,7 @@ store still opens.
 
 ## Resolution (2026-08-22)
 
-`SetRecord.barWeightValue` (optional, in the row's own `weightUnit`), plus on `WorkoutSession`:
+`SetRecord.barWeightValue` + `barNormalizedKg` (optional, written atomically through `BarWeight`), plus on `WorkoutSession`:
 `offersBar`, `chooseBar(_:for:)` / `chooseBar(weight:unit:for:)`, `commitPerSide`,
 `platesPerSide(of:)`, and a `toggleUnit` guard. `PreviousSetValue` carries the bar so ticket 11's
 prefill brings it across workouts. Tests: `WorkoutTrackerTests/BarbellLoggingTests.swift` (17),
@@ -89,6 +93,8 @@ Three decisions the ticket did not anticipate:
 - **`offersBar` covers rack/Smith *machines*, not just the free-weight tags.** A Smith machine is
   normally a catalog machine (`EquipmentCategory.rackOrSmith`), so a tag-only rule would have
   hidden the bar precisely where its weight is unguessable.
+- **Choosing a bar after every row is logged creates the next draft.** The picker describes the
+  next set; applying it to no row would make a visible control silently do nothing.
 
 ## Notes
 

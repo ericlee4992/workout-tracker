@@ -15,7 +15,8 @@ Pure logic, `Foundation` only — no UI, no SwiftData. This is the file that own
 
 - `struct BarPreset: Identifiable, Equatable` — `id: String` (stable, storage-safe), `name`,
   `value: Double`, `unit: WeightUnit`. `BarbellMath.presets` is the fixed list from `../spec.md`
-  (Olympic, women's, technique, EZ curl, trap — each in kg and lb as **separate** entries).
+  (Olympic, women's, technique — each in kg and lb as **separate** entries). Maker-dependent EZ
+  curl, trap/hex and Smith weights use Custom rather than a guessed preset (D4).
 - `BarbellMath.total(barWeight:platesPerSide:) -> Double` — `bar + 2 × perSide`.
 - `BarbellMath.platesPerSide(total:barWeight:) -> Double?` — `(total − bar) / 2`, and **nil when
   the total is below the bar**: a negative plate stack is not a thing, and returning one would
@@ -44,13 +45,9 @@ Pure logic, `Foundation` only — no UI, no SwiftData. This is the file that own
 ## Resolution (2026-08-22)
 
 `WorkoutTracker/Domain/BarbellMath.swift` + `WorkoutTrackerTests/BarbellMathTests.swift`
-(12 tests). Two departures from the ticket, both deliberate:
+(12 tests). The original review found that warning under a selectable EZ/trap guess did not satisfy
+D4. The fixed list now contains only standard weights; maker-dependent bars use Custom.
 
-- `BarPreset` gained **`isStandard`**. IWF bars (20/15/10 kg, and the 45/35/15 lb bars US gyms
-  stock) have exact published weights; EZ curl and trap bars do not, and D4 says a guess must
-  not be presented as a fact. The picker prints "varies by maker, check yours" under the
-  flagged ones rather than dropping them, since the user still wants them in the list.
-- The catalog is a plain `let` array, not a `@Model`. A bar is not user data — what is stored on
+The catalog is a plain `let` array, not a `@Model`. A bar is not user data — what is stored on
   a set is its *weight*, so a user who logs on a bar the list does not have types the number once
   and history carries it from then on (`Custom…`).
-

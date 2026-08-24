@@ -68,6 +68,37 @@ final class ExercisePresetUITests: XCTestCase {
             "The logged set should say which variation it was performed in")
     }
 
+    func testChangingPresetClearsPrefilledInputsBeforeTheyCanBeLogged() {
+        definePresets()
+        createGym()
+        addMachine()
+
+        startEmptyWorkout()
+        addByMachine()
+        logSet(weight: "70", reps: "8")
+        finishWorkout()
+
+        // The same machine and its usual Wide grip preset should prefill the
+        // previous performance into the next workout.
+        startEmptyWorkout()
+        addByMachine()
+        let weight = app.textFields["setRow.weight"].firstMatch
+        let reps = app.textFields["setRow.reps"].firstMatch
+        XCTAssertTrue(weight.waitForExistence(timeout: 5))
+        XCTAssertEqual(weight.value as? String, "70")
+        XCTAssertEqual(reps.value as? String, "8")
+
+        anyElement("presetChip.Narrow grip").tap()
+
+        XCTAssertTrue(
+            ["", "–"].contains(weight.value as? String ?? "<missing>"),
+            "Wide-grip prefill must leave the field when Narrow grip is chosen")
+        XCTAssertTrue(["", "–"].contains(reps.value as? String ?? "<missing>"))
+        XCTAssertFalse(
+            app.buttons["setRow.complete"].firstMatch.isEnabled,
+            "stale prefill must not remain one tap from being logged under another preset")
+    }
+
     // MARK: - Steps
 
     private func definePresets() {

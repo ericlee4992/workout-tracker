@@ -41,6 +41,7 @@ struct PreviousSetValue: Sendable, Equatable, Identifiable {
     /// arrives in bar mode with the plates in it rather than a total the user
     /// then has to decompose. `weightValue` is the total either way.
     var barWeightValue: Double?
+    var barNormalizedKg: Double?
     var completedAt: Date
 
     var displayLabel: String {
@@ -138,6 +139,7 @@ struct PerformanceHistory {
         // The bar travels with the numbers it explains: without it the row would
         // show last session's *total* in a field the user reads as plates.
         target.barWeightValue = value.barWeightValue
+        target.barNormalizedKg = value.barNormalizedKg
         // Inherited, not typed: a later change of variation or equipment clears
         // these rather than letting last session's other context be logged as
         // this one (D36).
@@ -426,6 +428,7 @@ struct PerformanceHistory {
             weightUnit: set.weightUnit,
             normalizedKg: set.normalizedKg,
             barWeightValue: set.barWeightValue,
+            barNormalizedKg: set.resolvedBarWeight?.normalizedKg,
             completedAt: set.completedAt ?? .distantPast)
     }
 

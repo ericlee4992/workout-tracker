@@ -67,6 +67,7 @@ struct BarbellLoggingTests {
 
         #expect(set.weightValue == 135)
         #expect(set.barWeightValue == 45)
+        #expect(set.barNormalizedKg == 45 * WeightMath.kilogramsPerPound)
         #expect(set.weightUnit == .lb)
         // Normalized from the total, not from the plates (D25).
         let expectedKg = try #require(set.normalizedKg)
@@ -176,6 +177,7 @@ struct BarbellLoggingTests {
         #expect(set.normalizedKg == nil)
         #expect(set.weightUnit == .lb)
         #expect(set.barWeightValue == 45)
+        #expect(set.barNormalizedKg == 45 * WeightMath.kilogramsPerPound)
     }
 
     @Test func chooseBar_totalLighterThanTheBar_dropsTheValue() throws {
@@ -200,6 +202,7 @@ struct BarbellLoggingTests {
         try rig.session.chooseBar(nil, for: entry)
 
         #expect(set.barWeightValue == nil)
+        #expect(set.barNormalizedKg == nil)
         #expect(set.weightValue == 135, "the stored number was always the total")
     }
 
@@ -296,10 +299,36 @@ struct BarbellLoggingTests {
 
         let next = try rig.session.addSet(to: entry)
         #expect(next.barWeightValue == 45)
+        #expect(next.barNormalizedKg == 45 * WeightMath.kilogramsPerPound)
         #expect(next.weightUnit == .lb)
         #expect(next.weightValue == 135)
         #expect(next.reps == 5)
         #expect(next.prefilledAt != nil, "inherited, not typed")
+    }
+
+    @Test func carryForward_takesBarAndUnitFromTheSameCompletedSet() throws {
+        let rig = try makeRig()
+        let (_, entry, completed) = try barbellEntry(rig)
+        try rig.session.commitWeight("60", for: completed)
+        try rig.session.commitReps("8", for: completed)
+        try rig.session.toggleCompletion(of: completed)
+
+        // Configure the existing draft differently without logging it. Add Set
+        // must not splice this draft's 45 lb bar onto the completed kg set's
+        // weight/unit/reps.
+        let differentlyConfiguredDraft = try rig.session.addSet(to: entry)
+        try rig.session.chooseBar(olympicLb, for: entry)
+        #expect(differentlyConfiguredDraft.barWeightValue == 45)
+        #expect(differentlyConfiguredDraft.weightUnit == .lb)
+
+        let next = try rig.session.addSet(to: entry)
+
+        #expect(next.weightValue == 60)
+        #expect(next.weightUnit == .kg)
+        #expect(next.reps == 8)
+        #expect(
+            next.barWeightValue == nil,
+            "bar, unit, total, and reps must come from one carry-forward source")
     }
 
     @Test func prefill_carriesTheBarAcrossWorkouts() throws {
@@ -323,6 +352,7 @@ struct BarbellLoggingTests {
         // Without the bar, the row would show last session's *total* in a field
         // the user reads as plates.
         #expect(row.barWeightValue == 45)
+        #expect(row.barNormalizedKg == 45 * WeightMath.kilogramsPerPound)
         #expect(row.weightValue == 135)
         #expect(WorkoutSession.platesPerSide(of: row) == 45)
     }

@@ -226,6 +226,7 @@ struct WorkoutSession {
     private func clearBars(of entry: ExerciseEntry) {
         for set in Self.orderedSets(of: entry) where set.completedAt == nil {
             set.barWeightValue = nil
+            set.barNormalizedKg = nil
         }
     }
 
@@ -394,6 +395,7 @@ struct WorkoutSession {
             draft.order = offset
             if equipmentChanged {
                 draft.barWeightValue = nil
+                draft.barNormalizedKg = nil
             }
             if draft.prefilledAt != nil {
                 draft.weightValue = nil
@@ -430,12 +432,14 @@ struct WorkoutSession {
     func addSet(to entry: ExerciseEntry) throws -> SetRecord {
         let existing = Self.orderedSets(of: entry)
         let carryForward = existing.last { $0.completedAt != nil }
-        let unit = carryForward?.weightUnit ?? existing.last?.weightUnit
+        // Every inherited field comes from one row. Falling back only the bar
+        // to a differently configured draft can pair 45 lb with a kg total.
+        let source = carryForward ?? existing.last
+        let unit = source?.weightUnit
             ?? defaultUnit(for: entry)
         // The bar comes from the same row as the unit, so the two always agree
         // (D40) — a bar's weight is stated in its own unit, and pairing a 20 kg
         // bar with an lb row would read as a 20 lb one.
-        let barWeight = carryForward?.barWeightValue ?? existing.last?.barWeightValue
         let set = SetRecord(
             order: (existing.last?.order).map { $0 + 1 } ?? 0,
             type: existing.last?.type ?? .working,
@@ -444,7 +448,8 @@ struct WorkoutSession {
             weightUnit: unit,
             // Carried from the same source set, so it already matches `unit`.
             normalizedKg: carryForward?.normalizedKg,
-            barWeightValue: barWeight,
+            barWeightValue: source?.barWeightValue,
+            barNormalizedKg: source?.resolvedBarWeight?.normalizedKg,
             // Carry-forward is inherited too: it comes from a completed set of
             // *this* entry, which is exactly the context a preset switch leaves
             // behind (D36).
@@ -562,13 +567,28 @@ struct WorkoutSession {
     /// other unit (D25 forbids converting it silently, D40 forbids
     /// reinterpreting it) or a total lighter than the bar itself.
     func chooseBar(_ bar: BarPreset?, for entry: ExerciseEntry) throws {
-        try chooseBar(
-            weight: bar?.value, unit: bar?.unit ?? .kg, for: entry)
+        try applyBar(bar?.barWeight, for: entry)
+    }
+
+    /// Picker entry point: a validated bar travels as one domain value rather
+    /// than a loose value/unit pair.
+    func chooseBar(_ bar: BarWeight, for entry: ExerciseEntry) throws {
+        try applyBar(bar, for: entry)
+    }
+
+    func clearBar(for entry: ExerciseEntry) throws {
+        try applyBar(nil, for: entry)
     }
 
     /// Custom-bar entry point: any positive weight in either unit.
     func chooseBar(weight: Double?, unit: WeightUnit, for entry: ExerciseEntry) throws {
-        let barWeight = weight.flatMap { BarbellMath.isValidBarWeight($0) ? $0 : nil }
+        try applyBar(weight.flatMap { BarWeight(value: $0, unit: unit) }, for: entry)
+    }
+
+    /// One storage boundary for preset and custom bars. `BarWeight` keeps the
+    /// entered value, unit, and normalized value together before any row is
+    /// touched, so they are written and carried as one fact.
+    private func applyBar(_ bar: BarWeight?, for entry: ExerciseEntry) throws {
         // With every row already logged — the ordinary state after finishing a
         // set, since rows are only ever added deliberately — the pick has
         // nothing to land on, and a control that silently does nothing is the
@@ -578,20 +598,22 @@ struct WorkoutSession {
             try addSet(to: entry)
         }
         for set in Self.orderedSets(of: entry) where set.completedAt == nil {
-            guard let barWeight else {
+            guard let bar else {
                 // Bar cleared: the number in the field was always the total, so
                 // it stays exactly as it is and only its *label* changes.
                 set.barWeightValue = nil
+                set.barNormalizedKg = nil
                 continue
             }
-            if set.weightUnit != unit
-                || (set.weightValue.map { $0 < barWeight } ?? false) {
+            if set.weightUnit != bar.unit
+                || (set.weightValue.map { $0 < bar.value } ?? false) {
                 set.weightValue = nil
                 set.normalizedKg = nil
                 set.prefilledAt = nil
             }
-            set.weightUnit = unit
-            set.barWeightValue = barWeight
+            set.weightUnit = bar.unit
+            set.barWeightValue = bar.value
+            set.barNormalizedKg = bar.normalizedKg
         }
         try context.save()
     }

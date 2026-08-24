@@ -350,11 +350,10 @@ struct ExportCollector {
             id: set.id, order: set.order, type: set.type, reps: set.reps,
             weight: set.weightValue, unit: set.weightUnit, weightKg: set.normalizedKg,
             barWeight: set.barWeightValue,
-            // The bar is stored in the row's own unit (D40), so it normalizes
-            // through the same conversion the weight does (D25/D29).
-            barWeightKg: set.barWeightValue.map {
-                WeightMath.normalizedKg(value: $0, unit: set.weightUnit)
-            },
+            // New rows persist the full D25 triple. The fallback keeps exports
+            // faithful for the brief pre-review schema, whose bar value shared
+            // the row unit but did not yet persist its normalization.
+            barWeightKg: set.barNormalizedKg ?? set.resolvedBarWeight?.normalizedKg,
             completedAt: dateFormat.optionalString(from: set.completedAt))
     }
 

@@ -92,13 +92,9 @@ struct BarbellMathTests {
         #expect(abs(convertedToLb - olympicLb.value) > 0.5)
     }
 
-    @Test func nonStandardBars_areFlagged() throws {
-        // EZ curl and trap bars vary by maker; D4 says the app must not present
-        // a guess as a fact.
-        let trap = try #require(BarbellMath.presets.first { $0.id == "trap-25kg" })
-        #expect(!trap.isStandard)
-        let olympic = try #require(BarbellMath.presets.first { $0.id == "olympic-20kg" })
-        #expect(olympic.isStandard)
+    @Test func variableWeightBars_areCustomRatherThanGuessed() {
+        #expect(!BarbellMath.presets.contains { $0.name.contains("EZ curl") })
+        #expect(!BarbellMath.presets.contains { $0.name.contains("Trap") })
     }
 
     // MARK: Display

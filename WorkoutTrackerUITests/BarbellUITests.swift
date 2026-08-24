@@ -108,6 +108,31 @@ final class BarbellUITests: XCTestCase {
             "…with the bar it was loaded on")
     }
 
+    func testEqualValuedBarInAnotherUnitClearsTheOldPlateInput() {
+        startEmptyWorkout()
+        addExercise()
+        chooseBarbellEquipment()
+
+        chooseBar(identifier: "barOption.technique-15lb")
+        let weight = app.textFields["setRow.weight"].firstMatch
+        XCTAssertTrue(weight.waitForExistence(timeout: 5))
+        weight.tap()
+        weight.typeText("10")
+        app.buttons["keyboardDone"].tap()
+        XCTAssertEqual(weight.value as? String, "10")
+
+        // Both bars weigh 15 as-entered, so observing barWeightValue alone does
+        // not fire. The unit change is part of the input mode and must clear the
+        // old lb plate text before it can be recommitted as kg.
+        chooseBar(identifier: "barOption.womens-15kg")
+
+        XCTAssertEqual(app.buttons["setRow.unit"].firstMatch.label, "kg")
+        XCTAssertTrue(
+            ["", "–"].contains(weight.value as? String ?? "<missing>"),
+            "lb plates must not survive as kg when equal-valued bars are switched")
+        XCTAssertFalse(app.buttons["setRow.complete"].firstMatch.isEnabled)
+    }
+
     // MARK: - Flow helpers
 
     private func startEmptyWorkout() {
@@ -139,6 +164,16 @@ final class BarbellUITests: XCTestCase {
         let barbell = app.buttons["Barbell"].firstMatch
         XCTAssertTrue(barbell.waitForExistence(timeout: 5))
         barbell.tap()
+    }
+
+    private func chooseBar(identifier: String) {
+        let picker = app.buttons["barPicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.tap()
+        let option = app.descendants(matching: .any)
+            .matching(identifier: identifier).firstMatch
+        XCTAssertTrue(option.waitForExistence(timeout: 5))
+        option.tap()
     }
 
     private func finishWorkout() {

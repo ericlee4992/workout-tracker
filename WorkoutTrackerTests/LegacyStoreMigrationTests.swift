@@ -86,6 +86,7 @@ struct LegacyStoreMigrationTests {
 
         let set = try #require(try context.fetch(FetchDescriptor<SetRecord>()).first)
         #expect(set.barWeightValue == nil)
+        #expect(set.barNormalizedKg == nil)
         // The weight it was logged with is untouched by the new column.
         #expect(set.weightValue == 70)
         #expect(WorkoutSession.platesPerSide(of: set) == nil)

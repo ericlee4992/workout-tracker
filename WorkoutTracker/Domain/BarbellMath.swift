@@ -1,5 +1,23 @@
 import Foundation
 
+/// A validated bar weight with the complete D25 storage triple. Keeping this
+/// concept together prevents a bar value from travelling without its unit or
+/// normalized value, which would make export and carry-forward guess later.
+struct BarWeight: Equatable {
+    let value: Double
+    let unit: WeightUnit
+    let normalizedKg: Double
+
+    init?(value: Double, unit: WeightUnit) {
+        guard BarbellMath.isValidBarWeight(value),
+              let stored = StoredWeight(value: value, unit: unit)
+        else { return nil }
+        self.value = stored.value
+        self.unit = stored.unit
+        self.normalizedKg = stored.normalizedKg
+    }
+}
+
 // Barbell bar weight (D39–D40, 2026-08-22) — the first half of milestone 6's
 // plate calculator: which bar you are on, and what you hung on it. Pure logic:
 // no UI, no SwiftData.
@@ -28,21 +46,10 @@ struct BarPreset: Identifiable, Equatable, Hashable {
     let name: String
     let value: Double
     let unit: WeightUnit
-    /// False for bars whose weight is not standardised across makers. D4's
-    /// rule — a plausible-but-invented number is worse than an absent one — so
-    /// these ship with their weight shown as typical and the picker says to
-    /// check the one in the rack.
-    let isStandard: Bool
 
-    init(
-        id: String, name: String, value: Double, unit: WeightUnit,
-        isStandard: Bool = true
-    ) {
-        self.id = id
-        self.name = name
-        self.value = value
-        self.unit = unit
-        self.isStandard = isStandard
+    var barWeight: BarWeight {
+        // Presets are compile-time constants covered by BarbellMathTests.
+        BarWeight(value: value, unit: unit)!
     }
 
     /// `45 lb`, `20 kg` — the weight as entered, never converted (D25).
@@ -53,30 +60,17 @@ struct BarPreset: Identifiable, Equatable, Hashable {
 
 enum BarbellMath {
 
-    /// The shipped bars. IWF-standard bars (20/15/10 kg and the 45/35/15 lb
-    /// bars US gyms stock) carry exact weights; EZ curl and trap bars vary by
-    /// maker and are flagged `isStandard: false`. Anything else is entered as a
-    /// custom weight — the app never guesses at a number the user can read off
-    /// the bar in front of them (D4).
+    /// The shipped bars: only weights published as standards or stocked as
+    /// fixed US-market counterparts. EZ curl, trap/hex, Smith carriages, and
+    /// every other maker-dependent bar go through Custom — D4 says a plausible
+    /// guess is worse than an absent number.
     static let presets: [BarPreset] = [
         BarPreset(id: "olympic-20kg", name: "Olympic barbell", value: 20, unit: .kg),
         BarPreset(id: "womens-15kg", name: "Women's Olympic barbell", value: 15, unit: .kg),
         BarPreset(id: "technique-10kg", name: "Technique bar", value: 10, unit: .kg),
-        BarPreset(
-            id: "ezcurl-10kg", name: "EZ curl bar", value: 10, unit: .kg,
-            isStandard: false),
-        BarPreset(
-            id: "trap-25kg", name: "Trap / hex bar", value: 25, unit: .kg,
-            isStandard: false),
         BarPreset(id: "olympic-45lb", name: "Olympic barbell", value: 45, unit: .lb),
         BarPreset(id: "womens-35lb", name: "Women's Olympic barbell", value: 35, unit: .lb),
         BarPreset(id: "technique-15lb", name: "Technique bar", value: 15, unit: .lb),
-        BarPreset(
-            id: "ezcurl-25lb", name: "EZ curl bar", value: 25, unit: .lb,
-            isStandard: false),
-        BarPreset(
-            id: "trap-55lb", name: "Trap / hex bar", value: 55, unit: .lb,
-            isStandard: false),
     ]
 
     static func presets(in unit: WeightUnit) -> [BarPreset] {

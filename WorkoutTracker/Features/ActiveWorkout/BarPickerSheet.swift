@@ -13,10 +13,10 @@ struct BarPickerSheet: View {
 
     /// The bar currently on the entry's draft rows, in `unit`. nil = no bar,
     /// the weight field is the total.
-    var barWeight: Double?
-    var unit: WeightUnit
+    var barWeight: BarWeight?
+    var initialUnit: WeightUnit
     /// nil clears bar mode.
-    var onSelect: (Double?, WeightUnit) -> Void
+    var onSelect: (BarWeight?) -> Void
 
     @State private var customValue = ""
     @State private var customUnit: WeightUnit = .kg
@@ -26,7 +26,7 @@ struct BarPickerSheet: View {
             List {
                 Section {
                     Button {
-                        onSelect(nil, unit)
+                        onSelect(nil)
                         dismiss()
                     } label: {
                         row(title: "No bar", detail: "Enter the total weight",
@@ -53,8 +53,8 @@ struct BarPickerSheet: View {
                     }
                     Button("Use this bar") {
                         if let value = WorkoutSession.weightValue(from: customValue),
-                           BarbellMath.isValidBarWeight(value) {
-                            onSelect(value, customUnit)
+                           let bar = BarWeight(value: value, unit: customUnit) {
+                            onSelect(bar)
                             dismiss()
                         }
                     }
@@ -63,7 +63,7 @@ struct BarPickerSheet: View {
                 } header: {
                     Text("Custom bar")
                 } footer: {
-                    Text("A Smith machine's carriage weighs whatever it weighs — anywhere from 6 to 32 lb. Weigh it once and enter it here.")
+                    Text("EZ curl bars, trap/hex bars, and Smith carriages vary by maker. Check the bar you are using and enter its actual weight here.")
                 }
             }
             .navigationTitle("Bar")
@@ -74,11 +74,11 @@ struct BarPickerSheet: View {
                 }
             }
             .onAppear {
-                customUnit = unit
+                customUnit = barWeight?.unit ?? initialUnit
                 if let barWeight, !BarbellMath.presets.contains(where: {
-                    $0.value == barWeight && $0.unit == unit
+                    $0.value == barWeight.value && $0.unit == barWeight.unit
                 }) {
-                    customValue = WeightMath.displayNumber(barWeight)
+                    customValue = WeightMath.displayNumber(barWeight.value)
                 }
             }
         }
@@ -93,7 +93,7 @@ struct BarPickerSheet: View {
             ForEach(BarbellMath.presets(in: listUnit)) { preset in
                 let identifier: String = "barOption." + preset.id
                 Button {
-                    onSelect(preset.value, preset.unit)
+                    onSelect(preset.barWeight)
                     dismiss()
                 } label: {
                     row(
@@ -111,16 +111,12 @@ struct BarPickerSheet: View {
             .map(BarbellMath.isValidBarWeight) ?? false
     }
 
-    /// D4: a bar whose weight is not standardised across makers must not be
-    /// presented as a fact the user can rely on.
     private func detail(for preset: BarPreset) -> String {
-        let label = preset.weightLabel()
-        guard !preset.isStandard else { return label }
-        return "\(label) — varies by maker, check yours"
+        preset.weightLabel()
     }
 
     private func isSelected(_ preset: BarPreset) -> Bool {
-        barWeight == preset.value && unit == preset.unit
+        barWeight?.value == preset.value && barWeight?.unit == preset.unit
     }
 
     private func row(title: String, detail: String, isSelected: Bool) -> some View {
