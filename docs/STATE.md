@@ -1,7 +1,8 @@
 # Where the project is right now
 
-Updated 2026-08-24 — milestone 7 (heart rate) complete, reviewed, installed; live HR confirmed
-from AirPods in a real gym, and the zone bug that session exposed is fixed but not yet installed.
+Updated 2026-08-24 — milestone 7 (heart rate) complete, reviewed, installed; live HR and zones
+confirmed in a real gym; the deferred bar-weight cross-review is complete and its fixes are not
+yet installed.
 **Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is and why; this says
 what has actually happened and what to do next. Keep it current; it is the one file that goes
 stale fastest.
@@ -9,7 +10,7 @@ stale fastest.
 ## Status
 
 Merged and pushed on `main`: everything in the table up to bar weight (**362 unit + 14 UI**).
-**Milestone 7 (heart rate) is complete and cross-reviewed but UNCOMMITTED**, on branch
+**Milestone 7 (heart rate) is complete, committed, and cross-reviewed**, on branch
 `milestone-7-heart-rate` — see below the table. `github.com/ericlee4992/workout-tracker` (private).
 
 | Shipped | What it is |
@@ -21,16 +22,18 @@ Merged and pushed on `main`: everything in the table up to bar weight (**362 uni
 | Collaboration setup (`b5dfac9`) | Signing moved to a gitignored `Config/Local.xcconfig`; CI runs unit tests on every PR |
 | Barbell bar weight (2026-08-22) | Pick the bar, type plates per side, log the total (D39–D40). Half of milestone 6, brought forward |
 
-**Milestone 7 — heart rate (D41–D45). UNCOMMITTED on branch `milestone-7-heart-rate`.**
-**449 unit + 19 UI tests green.** Live HR on the workout screen from AirPods Pro 3 or an Apple
+**Milestone 7 — heart rate (D41–D45), committed on branch `milestone-7-heart-rate`.**
+Live HR on the workout screen from AirPods Pro 3 or an Apple
 Watch, zones, system calories, a heart-rate rest timer, and a finish summary. 8 tickets in
 `.scratch/milestone-7-heart-rate/`, all resolved; two Codex rounds run and every critical fixed
 (`codex-review.md`, `codex-review-2.md`), each with a regression test in
 `CodexReviewRegressionTests`.
 
-**Committed as `428ab7a` on `milestone-7-heart-rate`, not merged and not pushed.** `main` is
-untouched at `86f1a20`. Merging is the user's call and the work has had its cross-review, so the
-gate is a real-world verdict rather than another review.
+The milestone began at `428ab7a`; zone fixes and the completed bar-weight review/fixes are also
+committed on `milestone-7-heart-rate` through `4bbe3e8`. The branch is not merged or pushed;
+`main` remains `86f1a20`. Merging is the user's call. After the bar fixes, the complete unit suite
+is **451 tests across 42 suites**, and the 4 affected UI tests are green (two existing plus two new
+regressions).
 
 **Verified once, so nobody re-derives it:** the **free** Apple account provisions all three
 HealthKit entitlements including `background-delivery` — no Developer Program needed. The iPhone
@@ -109,10 +112,11 @@ while explaining the feature to the user in prose.
 
 **Two things are true and easy to miss:**
 
-1. **Bar weight merged without its cross-review** (T6 waived on request — see Reviews in
-   `DECISIONS.md`). The unreviewed surface is the D39 invariant: `weightValue` is the TOTAL,
-   `barWeightValue` is provenance. Invert that anywhere and every barbell PR drops by the weight
-   of a bar with no error raised. Milestone 7, by contrast, got both rounds.
+1. **Bar weight merged before its cross-review, but that debt is now closed** (see Reviews in
+   `DECISIONS.md` and `.scratch/barbell-bar-weight/codex-review*.md`). The review found and fixed
+   stale cross-unit input, stale preset-prefill UI, mixed-source carry-forward, invented variable
+   bar presets, incomplete bar normalization, and related contract gaps. The D39 invariant remains
+   load-bearing: `weightValue` is the total and bar fields are provenance.
 2. **Almost none of it has met a real gym.** The scanner has never read a real name plate; no
    preset has been logged against in a session; bar mode has never been used to load a bar. Every
    threshold and layout is tuned against fixtures. Those answers should shape the next session
@@ -126,7 +130,7 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`0c9bdeb`** (`milestone-7-heart-rate` — the zone-reachability fix), installed **2026-08-24 00:32**. Install reported success; **NOT launch-verified** — the phone was locked, so `devicectl … process launch` returned `FBSOpenApplicationErrorDomain error 7`, which says nothing about the install. Low risk: this commit adds no SwiftData fields, so nothing needed to migrate. This build also carries the watch rest-countdown mirror fix, which the previous install lacked. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac, and it is a separate install by design (ticket 02) |
+| Installed commit | **`0c9bdeb`** (`milestone-7-heart-rate` — the zone-reachability fix), installed **2026-08-24 00:32**. The later bar-review fixes (`b817db4`, `4bbe3e8`) are **not installed**. Install reported success; **NOT launch-verified** — the phone was locked, so `devicectl … process launch` returned `FBSOpenApplicationErrorDomain error 7`, which says nothing about the install. Low risk: this commit adds no SwiftData fields, so nothing needed to migrate. This build also carries the watch rest-countdown mirror fix, which the previous install lacked. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac, and it is a separate install by design (ticket 02) |
 | Previously installed | Milestone 7's uncommitted working tree, 2026-08-22 23:45. It launched, so the D44/D43/D45 optional fields migrated the user's real store |
 | Previously installed | The bar-weight merge (2026-08-22, installed 16:31 — the content is what is now on `main`, built from the working tree just before the merge commit existed). Installed before its Codex pass at the user's request, with a backup taken first (below) |
 | Store migration | **Done on the real store, 2026-08-22.** `main` (`a3a6934`) was installed first so an export could be taken, then the branch build; it launched, so `SetRecord.barWeightValue` migrated the user's actual data. `a3a6934` can no longer open that store — the migrated schema is one-way without the export |
@@ -202,12 +206,9 @@ nothing about whether the install worked.
      first. Only hardware settles it.
    - Does the heart-rate rest alarm fire with the screen off? That is what
      `healthkit.background-delivery` was provisioned for and it has never been observed.
-3. **A cross-review of bar weight is still owed** (T6, waived at merge on 2026-08-22 — see the
-   Reviews section of `DECISIONS.md`). It is merged and on the phone, so this is no longer a gate
-   on anything; it is a debt. The D39 invariant is the thing to attack.
-4. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
+3. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
    next unbuilt milestone, and what makes the logged history worth looking at.
-5. Milestone 5: Strong CSV import. Milestone 6 is now **half done** — the bar half shipped
+4. Milestone 5: Strong CSV import. Milestone 6 is now **half done** — the bar half shipped
    2026-08-22; what remains is computing which plates to load for a target weight, and
    selectorized stack increments.
 

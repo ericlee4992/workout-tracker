@@ -48,6 +48,6 @@ Independent Standards and Spec agents reviewed the change separately.
 
 - Red phase: all three new integrity regressions failed against the reviewed implementation.
 - Focused domain/migration/export run after fixes: 53 tests passed.
-- Complete unit run: 450 tests across 42 suites passed.
+- Complete unit run after the persisted-backfill follow-up: 451 tests across 42 suites passed.
 - Complete affected UI classes: 4 tests (`BarbellUITests` + `ExercisePresetUITests`) passed.
 - The independent fix re-review is recorded in `codex-review-2.md`.

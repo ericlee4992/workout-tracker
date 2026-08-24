@@ -88,16 +88,19 @@ Decisions made during product discovery (2026-08-08 interview). Each entry: deci
   fixed with a regression test each (`CodexReviewRegressionTests`). Still owed and recorded: the
   monitor is owned by the workout screen, so C1's minimise banks its vitals and ends the session
   rather than continuing it. **The lesson held again: budget for the round that reviews the fixes.**
-- 2026-08-22 — **Barbell bar weight (D39–D40) merged WITHOUT a cross-review.** T6 was waived by
-  the user, deliberately and on request, after the branch had been installed and used on the
-  phone. Recorded here rather than left silent, because T6 says the cross-review is the only
-  independent check this project has, and a skipped check that nobody wrote down looks
-  indistinguishable from a check that passed. **What is therefore unreviewed:** the D39 invariant
-  (`SetRecord.weightValue` is the total; `barWeightValue` is provenance — invert it anywhere and
-  every barbell PR silently drops by the weight of a bar), the `chooseBar` unit rules (D40), and
-  the schema addition. Mitigations that do exist: 362 unit + 14 UI tests, `LegacyStoreMigration`
-  against the installed-commit fixture, and a real-store migration that launched. If a later
-  session has budget for one review, this is the change to spend it on.
+- 2026-08-24 — **Barbell bar weight (D39–D40) review debt closed.** The feature had merged on
+  2026-08-22 with T6 deliberately waived; that historical fact remains, but the independent review
+  is now complete in `.scratch/barbell-bar-weight/codex-review.md` and `codex-review-2.md`. The
+  Spec axis found two critical, two high, and one medium; the Standards axis found one high and
+  one judgement call in each of its first two passes. Fixed: equal-valued unit switches retaining
+  stale plate text; preset changes able
+  to recommit stale prefill; `addSet` mixing fields from different rows; guessed EZ/trap weights;
+  undocumented all-complete picker behavior; missing persisted bar normalization; and parallel
+  primitive bar fields in history transport. Three regressions failed against the old code before
+  passing; a disk-backed reopen test proves normalization repair is persisted and idempotent.
+  Final independent Standards and Spec reports both have zero findings. Complete unit suite: 451
+  tests in 42 suites; affected UI classes: 4/4. Fixes are committed as `b817db4` and `4bbe3e8`, not
+  yet installed, merged, or pushed.
 - 2026-08-12 — Codex cross-review of exercise presets: `.scratch/exercise-presets/codex-review.md`.
   Verdict "do not merge or install over the live store". Critical: the JSON export — the *backup* —
   carried no preset definitions, no ordering or ownership, and no machine defaults, so a restore

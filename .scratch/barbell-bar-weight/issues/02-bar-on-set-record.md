@@ -66,8 +66,8 @@ store still opens.
       new row that combines the completed total/unit with the draft's bar.
 - [ ] Cross-session prefill: finish a workout with a bar-mode set, start another, add the same
       exercise with the same free-weight tag — the first row arrives with that bar and that total.
-- [ ] Switching preset or equipment on a draft row clears the inherited bar along with the
-      inherited numbers (D36's rule, one field wider).
+- [ ] Switching equipment on a draft row clears the inherited bar with the inherited numbers;
+      switching preset clears inherited numbers but keeps the physical bar already selected.
 - [ ] `LegacyStoreMigrationTests` opens `Fixtures/LegacyStore.store` under the new schema, the
       existing workout/entry/set survive unchanged, and the legacy set reads `barWeightValue ==
       nil`. **This gate is why the ticket exists** — that fixture is the shape of the only copy of
