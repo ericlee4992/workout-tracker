@@ -53,8 +53,18 @@ this one.
 Be precise about what the gym session does and does not cover. **Verified:** a live, correct bpm
 from AirPods on the workout screen during a real workout. **Still unverified:** the calorie
 figure's plausibility; the heart-rate rest timer (D43); the background alarm with the screen off;
-and the entire `WCSession` path. Zones are now reachable but have still never been seen against a
-real heartbeat.
+and the entire `WCSession` path.
+
+**Zones are verified on the device (2026-08-24).** After the `0c9bdeb` install the user set a
+maximum and reported: *"The zone feature correctly works."* The user also checked the app's zone
+boundaries against an external reference (50/60/70/80/90/100% of max) and confirmed they match —
+they are identical to D45 as built, so **no change was made**. Two deliberate extensions beyond
+that reference were raised and explicitly left as-is: sub-50% renders "Warm-up" rather than Zone 1,
+and a bpm above the recorded maximum stays Zone 5 rather than erroring.
+
+Not established: whether the user supplied a MEASURED maximum or the date-of-birth estimate, so
+the DOB path (see the test gap below) is still unconfirmed either way. Also still unseen: the
+"(estimated)" marking that D45 requires when the basis is 220−age.
 
 ### Zones were unreachable — fixed and installed 2026-08-24 (`0c9bdeb`)
 
@@ -75,7 +85,10 @@ Fixes: a "· set up zones" prompt in the bar when there is no maximum (`hrZoneSe
 rate zones** row in Settings showing the current basis or "Not set", and a re-resolve on the
 sheet's `onDismiss`. Two regression tests in `HeartRateUITests` (`testZonesCanBeSetUpFromTheWorkoutScreenAndApplyImmediately`, `testZonesAreReachableFromSettings`). **449 unit + 19 UI green.**
 
-One gap, deliberately: the setup test drives the MEASURED-max field, not the date-of-birth toggle. `app.switches["useBirthDate"].tap()` lands on the row label and does not flip the switch — an XCUITest quirk, not an app defect, but it means the DOB path is untested and it is the path a user without a lab test actually takes. Check it by hand on the device.
+One gap, deliberately: the setup test drives the MEASURED-max field, not the date-of-birth toggle. `app.switches["useBirthDate"].tap()` lands on the row label and does not flip the switch — an XCUITest quirk, not an app defect, but it means the DOB path is untested and it is the path a user without a lab test actually takes. Zones themselves are confirmed working on
+the device (2026-08-24), but the user did not say which basis they entered, so this gap is still
+open: if the DOB toggle was never used, neither it nor the "(estimated)" marking has been exercised
+by anything.
 
 **This is the same class as the watch rest-countdown bug below** — every piece individually
 correct, the *absence of a caller* the only defect — and again two Codex rounds did not catch it.
@@ -168,11 +181,11 @@ nothing about whether the install worked.
 2. **Milestone 7 is installed and partly proven.** Live heart rate works on the device
    (2026-08-23). What remains unanswered, in rough order of what it would teach:
    - ~~Which sensor produced it?~~ **Answered 2026-08-24: AirPods.** The design holds as written.
-   - Do the **zones** look right, and is the estimated-max marking visible until a measured max is
-     entered (D45)? **Zones could not be switched on at all until 2026-08-24** (see above) — the
-     fix is **now on the phone** (installed 2026-08-24) and is the first thing to check next session.
-     Set a maximum first: Gyms tab → Settings → **Heart rate zones**, or tap "· set up zones" on
-     the heart-rate bar mid-workout.
+   - ~~Do the **zones** look right?~~ **Answered 2026-08-24: yes**, on the device, after the
+     reachability fix. Boundaries were also cross-checked against an outside reference and match.
+     What is still open is narrower: **is the "(estimated)" marking visible** when the basis is a
+     date of birth rather than a measured maximum (D45)? That is the one part of the zone feature
+     no one has seen work.
    - Is the **calorie** number plausible against Apple's own for the same session? The app reads
      it from the system and never computes it, so a wrong number means a wrong session setup.
    - Does the **heart-rate rest timer** (D43) end a rest when the heart rate comes down, and does
