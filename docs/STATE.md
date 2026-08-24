@@ -56,7 +56,7 @@ figure's plausibility; the heart-rate rest timer (D43); the background alarm wit
 and the entire `WCSession` path. Zones are now reachable but have still never been seen against a
 real heartbeat.
 
-### Zones were unreachable — fixed 2026-08-24, NOT yet on the phone
+### Zones were unreachable — fixed and installed 2026-08-24 (`0c9bdeb`)
 
 The user ran a real workout, got live heart rate, and never saw a zone. Two bugs, compounding:
 
@@ -85,9 +85,8 @@ feature is gated on a setting, assert the setting is reachable**, not just that 
 
 Everything still unverified came from `FixtureHeartRateProvider` under `-uiTestHeartRate`.
 
-**The installed build is one commit-worth behind the branch:** the watch rest-countdown mirror was
-fixed *after* that install (2026-08-23). It only matters once a Watch is in play, so it can ride
-along with the next install rather than forcing one.
+**The phone is now current with the branch** (`0c9bdeb`, installed 2026-08-24) — the watch
+rest-countdown mirror fix rode along with the zone fix.
 
 **Worth knowing how that bug was found**, because it is a class the review process missed: the
 watch screen rendered a rest countdown, `WatchLink` carried a `restEndsAt` field — and nothing ever
@@ -114,14 +113,15 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **Milestone 7 (heart rate), uncommitted working tree of `milestone-7-heart-rate`**, installed 2026-08-22 23:45. It launched, so the D44/D43/D45 optional fields migrated the user's real store. The phone is again ahead of every commit — rebuild from that branch, not from `main`. The **watch companion is NOT installed**: no Apple Watch was reachable from this Mac, and it is a separate install by design (ticket 02) |
+| Installed commit | **`0c9bdeb`** (`milestone-7-heart-rate` — the zone-reachability fix), installed **2026-08-24 00:32**. Install reported success; **NOT launch-verified** — the phone was locked, so `devicectl … process launch` returned `FBSOpenApplicationErrorDomain error 7`, which says nothing about the install. Low risk: this commit adds no SwiftData fields, so nothing needed to migrate. This build also carries the watch rest-countdown mirror fix, which the previous install lacked. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac, and it is a separate install by design (ticket 02) |
+| Previously installed | Milestone 7's uncommitted working tree, 2026-08-22 23:45. It launched, so the D44/D43/D45 optional fields migrated the user's real store |
 | Previously installed | The bar-weight merge (2026-08-22, installed 16:31 — the content is what is now on `main`, built from the working tree just before the merge commit existed). Installed before its Codex pass at the user's request, with a backup taken first (below) |
 | Store migration | **Done on the real store, 2026-08-22.** `main` (`a3a6934`) was installed first so an export could be taken, then the branch build; it launched, so `SetRecord.barWeightValue` migrated the user's actual data. `a3a6934` can no longer open that store — the migrated schema is one-way without the export |
 | Backup | CSV + JSON exported to iCloud Drive on 2026-08-22 before the schema change — the first copy of the training history off the device. Re-export after any session worth keeping |
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed **22 Aug 2026** (23:45), so expires **~29 Aug 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **24 Aug 2026** (00:32), so expires **~31 Aug 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
@@ -170,7 +170,7 @@ nothing about whether the install worked.
    - ~~Which sensor produced it?~~ **Answered 2026-08-24: AirPods.** The design holds as written.
    - Do the **zones** look right, and is the estimated-max marking visible until a measured max is
      entered (D45)? **Zones could not be switched on at all until 2026-08-24** (see above) — the
-     fix is committed but NOT on the phone, so this needs a reinstall before it can be answered.
+     fix is **now on the phone** (installed 2026-08-24) and is the first thing to check next session.
      Set a maximum first: Gyms tab → Settings → **Heart rate zones**, or tap "· set up zones" on
      the heart-rate bar mid-workout.
    - Is the **calorie** number plausible against Apple's own for the same session? The app reads
