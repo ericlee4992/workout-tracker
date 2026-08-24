@@ -8,6 +8,7 @@ import SwiftUI
 struct AppSettingsSection: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allPreferences: [AppPreferences]
+    @State private var showMaxHeartRateSheet = false
 
     var body: some View {
         Section {
@@ -30,11 +31,47 @@ struct AppSettingsSection: View {
             Toggle(
                 "Suppress template update prompts",
                 isOn: driftPromptSuppressedBinding)
+            // The ONLY way into this sheet used to be the "zone estimated"
+            // button on the workout screen's heart-rate bar, which appears only
+            // once a zone already exists — and a zone needs the maximum this
+            // sheet sets (D45). With neither a measured max nor a date of
+            // birth, zones were unreachable forever. It also belongs here on
+            // its own merits: a date of birth is not a thing to enter mid-set.
+            Button {
+                showMaxHeartRateSheet = true
+            } label: {
+                LabeledContent("Heart rate zones") {
+                    Text(maxHeartRateSummary)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityIdentifier("heartRateZonesSettings")
+            .tint(.primary)
+            // Hung off the ROW, not off the Section: a `.sheet` attached to a
+            // `Section` inside a `List` silently never presents (milestone 3,
+            // ticket 02 — cost an export that did nothing).
+            .sheet(isPresented: $showMaxHeartRateSheet) {
+                MaxHeartRateSheet()
+            }
         } header: {
             Text("Settings")
         } footer: {
-            Text("The unit is used when neither machine nor gym sets one. Rest durations are global defaults; each exercise can override them from its workout menu. Suppressed template prompts always keep the original template.")
+            Text("The unit is used when neither machine nor gym sets one. Rest durations are global defaults; each exercise can override them from its workout menu. Suppressed template prompts always keep the original template. Heart-rate zones need a measured maximum or a date of birth; without either, no zones are shown.")
         }
+    }
+
+    /// What the zones would currently be computed against, so the row says
+    /// whether the feature is on before the user taps into it.
+    private var maxHeartRateSummary: String {
+        let preferences = AppPreferences.canonical(of: allPreferences)
+        guard let resolved = MaxHeartRateResolver.resolve(
+            measured: preferences?.measuredMaxHeartRate,
+            birthDate: preferences?.birthDate,
+            at: .now)
+        else { return "Not set" }
+        return resolved.isEstimated
+            ? "\(resolved.bpm) bpm (estimated)"
+            : "\(resolved.bpm) bpm"
     }
 
     /// Binding onto the canonical persisted preference row. The row exists

@@ -129,6 +129,70 @@ final class HeartRateUITests: XCTestCase {
         app.buttons["finishedDone"].tap()
     }
 
+    /// The bug the user hit in a real gym: heart rate worked, no zone ever
+    /// appeared, and there was no way to make one appear.
+    ///
+    /// `MaxHeartRateSheet` sets the maximum that zones need, and its ONLY entry
+    /// point was the "zone estimated" button — which renders only once a zone
+    /// exists. No maximum meant no zone meant no button meant no maximum. This
+    /// asserts the loop is open at both ends: the prompt is reachable from a
+    /// workout with no basis set, and using it makes a zone appear *in the
+    /// workout already running*, without leaving and re-entering the screen.
+    func testZonesCanBeSetUpFromTheWorkoutScreenAndApplyImmediately() {
+        app.tabBars.buttons["Workout"].tap()
+        app.buttons["startEmptyWorkout"].tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any).matching(identifier: "hrBpm").firstMatch
+                .waitForExistence(timeout: 15))
+
+        let setUp = app.buttons["hrZoneSetup"].firstMatch
+        XCTAssertTrue(
+            setUp.waitForExistence(timeout: 5),
+            "with no maximum set there must be a way to set one")
+        setUp.tap()
+
+        // The measured path: a real maximum, so the resulting zone is NOT
+        // marked estimated. The fixture peaks at 153, so 180 puts the series
+        // across several zones rather than pinning it at the top.
+        let field = app.textFields["maxHeartRateField"].firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("180")
+        XCTAssertTrue(
+            app.staticTexts["Zones would use"].firstMatch.waitForExistence(timeout: 5),
+            "the sheet should preview the zones it would produce")
+        app.buttons["saveMaxHeartRate"].tap()
+
+        // The heart of the regression: the monitor's maximum used to be read
+        // only in `.task`, so this stayed absent for the rest of the workout.
+        let zone = app.descendants(matching: .any).matching(identifier: "hrZone").firstMatch
+        XCTAssertTrue(
+            zone.waitForExistence(timeout: 15),
+            "a zone should appear in the running workout as soon as a maximum exists")
+
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "heart-rate-zone"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        app.buttons["Cancel"].firstMatch.tap()
+        app.buttons["Discard Workout"].firstMatch.tap()
+    }
+
+    /// A date of birth is not a thing to enter mid-set, so the same screen is
+    /// reachable from Settings — and independently of whether a zone exists.
+    func testZonesAreReachableFromSettings() {
+        app.tabBars.buttons["Gyms"].tap()
+        let row = app.buttons["heartRateZonesSettings"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        XCTAssertTrue(
+            app.textFields["maxHeartRateField"].firstMatch.waitForExistence(timeout: 5),
+            "the Settings row must actually present the sheet — a `.sheet` on a "
+                + "Section inside a List silently never does")
+        app.buttons["Cancel"].firstMatch.tap()
+    }
+
     private func readingText(_ element: XCUIElement) -> String {
         element.label.isEmpty ? (element.value as? String ?? "") : element.label
     }

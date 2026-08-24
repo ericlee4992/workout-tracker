@@ -187,6 +187,13 @@ struct ActiveWorkoutView: View {
                     .presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $showMaxHeartRateSheet) {
+                // Re-resolve on dismiss. `resolvedMaxHeartRate()` is otherwise
+                // read only in `.task`, which runs once per appearance — so a
+                // maximum entered mid-workout left the monitor's `maxHeartRate`
+                // nil and the zone chip absent for the REST OF THE WORKOUT,
+                // which reads as the setting having done nothing.
+                heartRate?.maxHeartRate = resolvedMaxHeartRate()
+            } content: {
                 MaxHeartRateSheet()
             }
             .onAppear(perform: refreshRest)

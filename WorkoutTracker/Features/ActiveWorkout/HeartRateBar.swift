@@ -91,7 +91,20 @@ struct HeartRateBar: View {
                 // to wait or to reseat an earbud.
                 Text("· \(Int(current.age(asOf: .now)))s ago")
             }
-            if monitor.maxHeartRate?.isEstimated == true, monitor.currentZone != nil {
+            if monitor.maxHeartRate == nil {
+                // No measured max and no date of birth, so D45 forbids showing
+                // a zone at all. Say that, rather than rendering nothing: the
+                // absent chip is indistinguishable from a broken one, and the
+                // screen that fixes it used to be reachable ONLY from the
+                // "zone estimated" button below — which needs a zone to exist.
+                // A user who never set a maximum could therefore never set one.
+                Button(action: editMaxHeartRate) {
+                    Text("· set up zones")
+                        .underline()
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("hrZoneSetup")
+            } else if monitor.maxHeartRate?.isEstimated == true, monitor.currentZone != nil {
                 Button(action: editMaxHeartRate) {
                     // D45: a zone from 220−age is an estimate and says so. The
                     // tap goes straight to the field that fixes it.

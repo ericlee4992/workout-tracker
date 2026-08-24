@@ -1,6 +1,7 @@
 # Where the project is right now
 
-Updated 2026-08-23 — milestone 7 (heart rate) complete, reviewed, installed, uncommitted.
+Updated 2026-08-24 — milestone 7 (heart rate) complete, reviewed, installed; live HR confirmed
+from AirPods in a real gym, and the zone bug that session exposed is fixed but not yet installed.
 **Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is and why; this says
 what has actually happened and what to do next. Keep it current; it is the one file that goes
 stale fastest.
@@ -21,7 +22,7 @@ Merged and pushed on `main`: everything in the table up to bar weight (**362 uni
 | Barbell bar weight (2026-08-22) | Pick the bar, type plates per side, log the total (D39–D40). Half of milestone 6, brought forward |
 
 **Milestone 7 — heart rate (D41–D45). UNCOMMITTED on branch `milestone-7-heart-rate`.**
-**449 unit + 17 UI tests green.** Live HR on the workout screen from AirPods Pro 3 or an Apple
+**449 unit + 19 UI tests green.** Live HR on the workout screen from AirPods Pro 3 or an Apple
 Watch, zones, system calories, a heart-rate rest timer, and a finish summary. 8 tickets in
 `.scratch/milestone-7-heart-rate/`, all resolved; two Codex rounds run and every critical fixed
 (`codex-review.md`, `codex-review-2.md`), each with a regression test in
@@ -41,13 +42,46 @@ during workout."* That is the first real-sensor evidence this milestone has, and
 biggest unknown — the permission flow, the phone's `HKWorkoutSession`, the live feed reaching the
 workout screen, and the number itself all work on the device.
 
-Be precise about what that does and does not cover. **Verified:** a live, correct bpm on the
-workout screen during a real workout. **Still unverified:** which source it came from (the watch
-companion is not installed, so it should have been AirPods — if the user was wearing a Watch
-instead, then the phone's own session is picking up Watch data, which contradicts the design
-assumption behind D41's watch target and is worth establishing); zones and the estimated-max
-marking; the calorie figure's plausibility; the heart-rate rest timer (D43); the background alarm
-with the screen off; and the entire `WCSession` path.
+**The source question is settled (2026-08-24): the bar read "AirPods."** The phone's own
+`HKWorkoutSession` was reading the earbuds, exactly as designed — the Watch was NOT feeding it. So
+D41's watch target is still justified and the milestone's design holds as written. Do not reopen
+this one.
+
+**The same session found a real bug, now fixed (2026-08-24): no zone ever appeared.** See
+"Zones were unreachable" below.
+
+Be precise about what the gym session does and does not cover. **Verified:** a live, correct bpm
+from AirPods on the workout screen during a real workout. **Still unverified:** the calorie
+figure's plausibility; the heart-rate rest timer (D43); the background alarm with the screen off;
+and the entire `WCSession` path. Zones are now reachable but have still never been seen against a
+real heartbeat.
+
+### Zones were unreachable — fixed 2026-08-24, NOT yet on the phone
+
+The user ran a real workout, got live heart rate, and never saw a zone. Two bugs, compounding:
+
+1. **A closed loop.** `MaxHeartRateSheet` is the only place `measuredMaxHeartRate` / `birthDate`
+   can be set, and its only entry point was the "· zone estimated" button in `HeartRateBar` —
+   which renders only when a zone already exists, which needs the maximum that sheet sets. Both
+   fields are nil on a fresh install, so `resolvedMaxHeartRate()` returned nil, no chip rendered,
+   no button rendered, and the feature could never be switched on by anybody. D45 says "with no
+   basis, show no zones", and the code did that faithfully — while offering no way to supply a
+   basis.
+2. **Stale after saving.** `resolvedMaxHeartRate()` was read only inside `.task`, which runs once
+   per appearance, so a maximum entered mid-workout left `monitor.maxHeartRate` nil for the rest
+   of that workout — the setting appearing to do nothing.
+
+Fixes: a "· set up zones" prompt in the bar when there is no maximum (`hrZoneSetup`), a **Heart
+rate zones** row in Settings showing the current basis or "Not set", and a re-resolve on the
+sheet's `onDismiss`. Two regression tests in `HeartRateUITests` (`testZonesCanBeSetUpFromTheWorkoutScreenAndApplyImmediately`, `testZonesAreReachableFromSettings`). **449 unit + 19 UI green.**
+
+One gap, deliberately: the setup test drives the MEASURED-max field, not the date-of-birth toggle. `app.switches["useBirthDate"].tap()` lands on the row label and does not flip the switch — an XCUITest quirk, not an app defect, but it means the DOB path is untested and it is the path a user without a lab test actually takes. Check it by hand on the device.
+
+**This is the same class as the watch rest-countdown bug below** — every piece individually
+correct, the *absence of a caller* the only defect — and again two Codex rounds did not catch it.
+Worth noting the pattern: both were found by a human using the feature, not by review or by tests.
+A test asserting "no zone without a basis" passed happily while the basis was unsettable. **When a
+feature is gated on a setting, assert the setting is reachable**, not just that the gate works.
 
 Everything still unverified came from `FixtureHeartRateProvider` under `-uiTestHeartRate`.
 
@@ -133,12 +167,12 @@ nothing about whether the install worked.
    - Are the **preset chips** reachable one-handed mid-set? Their layout is guesswork.
 2. **Milestone 7 is installed and partly proven.** Live heart rate works on the device
    (2026-08-23). What remains unanswered, in rough order of what it would teach:
-   - **Which sensor produced it?** The bar names its source. If it said "Apple Watch" with no watch
-     app installed, the phone's session is reading Watch data directly and the watch companion may
-     be unnecessary — a finding that would simplify the whole milestone. If it said "AirPods",
-     the design holds as written.
+   - ~~Which sensor produced it?~~ **Answered 2026-08-24: AirPods.** The design holds as written.
    - Do the **zones** look right, and is the estimated-max marking visible until a measured max is
-     entered (D45)?
+     entered (D45)? **Zones could not be switched on at all until 2026-08-24** (see above) — the
+     fix is committed but NOT on the phone, so this needs a reinstall before it can be answered.
+     Set a maximum first: Gyms tab → Settings → **Heart rate zones**, or tap "· set up zones" on
+     the heart-rate bar mid-workout.
    - Is the **calorie** number plausible against Apple's own for the same session? The app reads
      it from the system and never computes it, so a wrong number means a wrong session setup.
    - Does the **heart-rate rest timer** (D43) end a rest when the heart rate comes down, and does
