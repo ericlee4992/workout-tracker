@@ -74,10 +74,22 @@ Apple's system.
 ## Workflow
 
 - Short-lived branches off `main`, small changes, **cross-reviewed by a different agent than the one that wrote them** (Claude ↔ Codex).
-- CI (`.github/workflows/tests.yml`) runs the **unit** suite on every PR and push to `main`. The
-  ~9-minute XCUITest suite stays local — macOS runner minutes bill at 10x — so run it yourself
+- **How work actually reaches `main`, as practised:** branch off `main` → commit on the branch →
+  `git checkout main && git merge <branch>` (always a fast-forward; `main` has **zero** merge
+  commits) → `git push`. **No pull request has ever been opened.** That is a deliberate fit for a
+  solo repo — a PR's purpose is to give another person a review surface, and T6's cross-review
+  happens against the working tree instead.
+- **Push the feature branch too, not just `main`.** Until 2026-08-24 branches lived only on the
+  developer's Mac, so an unmerged milestone existed in exactly one place. Push early; it is free,
+  it does not touch `main`, and it leaves the merge decision open.
+- CI (`.github/workflows/tests.yml`) runs the **unit** suite on `pull_request` and on push to
+  `main`. **Given the no-PR workflow above, only the push trigger has ever fired — so CI runs
+  AFTER a merge, never before one.** It is a smoke alarm, not a gate: if it goes red, `main` is
+  already broken. Treat the local run as the real gate, and if you want CI to block a merge, that
+  means opening PRs.
+- The ~9-minute XCUITest suite stays local — macOS runner minutes bill at 10x — so run it yourself
   before merging anything that touches a screen. Solo means no second pair of human eyes — the cross-review is the only independent check, so don't skip it on load-bearing work.
-- Commits/PRs must not break `xcodebuild build`.
+- Commits must not break `xcodebuild build`.
 
 ## Agent skills
 
