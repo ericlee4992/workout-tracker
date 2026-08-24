@@ -9,6 +9,7 @@ store still opens.
 ## Files
 
 - `WorkoutTracker/Domain/Models.swift` — `SetRecord.barWeightValue: Double?`
+- `WorkoutTracker/Domain/BarWeightStoreRepair.swift` — idempotent normalization backfill
 - `WorkoutTracker/Domain/WorkoutSession.swift` — choose/clear bar, per-side commit, carry-forward
 - `WorkoutTracker/Domain/PreviousPerformance.swift` — prefill carries the bar
 - `WorkoutTrackerTests/BarbellLoggingTests.swift`, `LegacyStoreMigrationTests.swift`
@@ -20,6 +21,9 @@ store still opens.
   lightweightly. Document at the declaration that `weightValue` remains the total: the field is
   provenance, and a reader that subtracts it from `weightValue` to get "the real weight" has
   misunderstood it.
+- On store open, rows written by the short-lived schema that had `barWeightValue` but no
+  `barNormalizedKg` are backfilled and saved. The repair is idempotent; invalid legacy provenance
+  is cleared rather than retained as a partial weight.
 - `WorkoutSession.chooseBar(_ bar: BarPreset?, for entry: ExerciseEntry)`:
   - applies to the entry's **uncompleted** rows only — completed sets keep the bar they were
     logged under, exactly as they keep their weight;
@@ -34,9 +38,9 @@ store still opens.
   computes `BarbellMath.total`, and writes `weightValue` + `normalizedKg` atomically through
   `StoredWeight`. Clears `prefilledAt` — typed, not inherited.
 - `addSet` carry-forward (B1) copies the bar alongside weight/unit/reps **from the same source row**.
-- `PerformanceHistory.prefill`/`applyPrefill` carry `barWeightValue` (add it to
-  `PreviousSetValue`), so a new session's first row arrives in bar mode with the plates already
-  in it.
+- `PerformanceHistory.prefill`/`applyPrefill` carry one validated `BarWeight` in
+  `PreviousSetValue`, so a new session's first row arrives in bar mode with the plates already
+  in it and the provenance triple cannot split while travelling.
 - `chooseEquipment` (D19): a split entry's moved draft rows already clear inherited values;
   clear the inherited bar with them. A bar is only offered on barbell/Smith entries, so a row
   dragged onto a machine must not keep one. **A preset change keeps the bar** — changing grip does
@@ -70,6 +74,8 @@ store still opens.
       the user's training history.
 - [ ] `SchemaTests` still passes (CloudKit rules: no unique constraint, optional attribute with
       no default required).
+- [ ] Opening a store containing a bar value without `barNormalizedKg` persists the derived
+      normalization; a second repair pass changes zero rows.
 
 ## Resolution (2026-08-22)
 
@@ -79,6 +85,11 @@ store still opens.
 prefill brings it across workouts. Tests: `WorkoutTrackerTests/BarbellLoggingTests.swift` (17),
 plus `theBarWeightArrivesEmptyOnPreBarSets` in `LegacyStoreMigrationTests` — the fixture written
 by the installed commit opens under the new schema and its set reads `barWeightValue == nil`.
+
+The cross-review follow-up added `BarWeightStoreRepair` at store open for the brief intermediate
+schema that persisted a bar value without its normalization. `PreviousSetValue` now carries a
+single `BarWeight` rather than parallel primitive fields. The reopen/idempotence regression lives
+in `BarbellLoggingTests`.
 
 Three decisions the ticket did not anticipate:
 

@@ -735,7 +735,9 @@ enum WorkoutTrackerStore {
         } else {
             configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
         }
-        return try ModelContainer(for: schema, configurations: [configuration])
+        let container = try ModelContainer(for: schema, configurations: [configuration])
+        try BarWeightStoreRepair.backfill(in: ModelContext(container))
+        return container
     }
 
     /// Launch argument that makes the app start from an empty store, so

@@ -3,7 +3,7 @@ import Foundation
 /// A validated bar weight with the complete D25 storage triple. Keeping this
 /// concept together prevents a bar value from travelling without its unit or
 /// normalized value, which would make export and carry-forward guess later.
-struct BarWeight: Equatable {
+struct BarWeight: Sendable, Equatable {
     let value: Double
     let unit: WeightUnit
     let normalizedKg: Double

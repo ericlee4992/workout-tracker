@@ -346,7 +346,7 @@ struct BarbellLoggingTests {
         let row = try #require(WorkoutSession.orderedSets(of: todayEntry).first)
         let history = PerformanceHistory(context: rig.context)
         let candidate = try #require(try history.prefill(for: row))
-        #expect(candidate.barWeightValue == 45)
+        #expect(candidate.barWeight?.value == 45)
         #expect(try history.applyPrefill(candidate, to: row, isDirty: false))
 
         // Without the bar, the row would show last session's *total* in a field
@@ -402,5 +402,38 @@ struct BarbellLoggingTests {
         #expect(first.entry?.id == entry.id)
         #expect(first.barWeightValue == 45)
         #expect(first.weightValue == 135)
+    }
+
+    @Test func openingAStoreBackfillsAndPersistsMissingBarNormalization() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "bar-repair-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "WorkoutTracker.store")
+
+        // Reproduce the short-lived installed schema's state: valid bar value
+        // and row unit, but no persisted normalized bar value.
+        do {
+            let schema = WorkoutTrackerStore.schema
+            let container = try ModelContainer(
+                for: schema,
+                configurations: [ModelConfiguration(schema: schema, url: url)])
+            let context = ModelContext(container)
+            context.insert(SetRecord(
+                order: 0, weightUnit: .lb,
+                barWeightValue: 45, barNormalizedKg: nil))
+            try context.save()
+        }
+
+        let reopened = try WorkoutTrackerStore.makeContainer(url: url)
+        let reopenedContext = ModelContext(reopened)
+        let repaired = try #require(
+            try reopenedContext.fetch(FetchDescriptor<SetRecord>()).first)
+        #expect(repaired.barWeightValue == 45)
+        #expect(repaired.weightUnit == .lb)
+        #expect(repaired.barNormalizedKg == 45 * WeightMath.kilogramsPerPound)
+
+        // The repair is persisted, not merely derived by the accessor.
+        #expect(try BarWeightStoreRepair.backfill(in: reopenedContext) == 0)
     }
 }

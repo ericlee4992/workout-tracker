@@ -12,7 +12,13 @@ Independent Standards and Spec agents reviewed the change separately.
      migration coverage, and a compatibility derivation for rows written by the brief old schema.
 2. **Judgement call — bar value and unit travelled as a primitive clump.**
    - Resolution: `BarWeight` now owns value, unit, and normalization; the picker passes that value
-     as one concept rather than a `(Double?, WeightUnit)` callback.
+     as one concept rather than a `(Double?, WeightUnit)` callback. The independent fix review
+     found one remaining transport seam in `PreviousSetValue`; that now carries `BarWeight?` too.
+3. **High on fix re-review — compatibility normalization was derived but not persisted.** Rows
+   written by the brief intermediate schema could keep `barNormalizedKg == nil` indefinitely.
+   - Resolution: store open now runs an idempotent repair that validates the provenance, persists
+     the derived normalization, and clears invalid partial provenance. A disk-backed reopen test
+     proves both persistence and a zero-change second pass.
 
 ## Spec
 
