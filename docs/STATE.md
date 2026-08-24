@@ -1,8 +1,8 @@
 # Where the project is right now
 
 Updated 2026-08-24 — milestone 7 (heart rate) complete, reviewed, installed; live HR and zones
-confirmed in a real gym; the deferred bar-weight cross-review is complete and its fixes are not
-yet installed.
+confirmed in a real gym; the deferred bar-weight cross-review is complete and its fixes are
+installed and launch-verified on the phone (16:37).
 **Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is and why; this says
 what has actually happened and what to do next. Keep it current; it is the one file that goes
 stale fastest.
@@ -131,15 +131,16 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`0c9bdeb`** (`milestone-7-heart-rate` — the zone-reachability fix), installed **2026-08-24 00:32**. The later bar-review fixes (`b817db4`, `4bbe3e8`) are **not installed**. Install reported success; **NOT launch-verified** — the phone was locked, so `devicectl … process launch` returned `FBSOpenApplicationErrorDomain error 7`, which says nothing about the install. Low risk: this commit adds no SwiftData fields, so nothing needed to migrate. This build also carries the watch rest-countdown mirror fix, which the previous install lacked. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac, and it is a separate install by design (ticket 02) |
+| Installed commit | **`a32755b`** — the tip of `milestone-7-heart-rate`, i.e. milestone 7 **plus** Codex's bar-weight review fixes. Installed **2026-08-24 16:37** and **launch-verified**: it opened, so `SetRecord.barNormalizedKg` migrated the user's REAL store and `BarWeightStoreRepair` ran against real rows without crashing. That was the risky part of this install and it is now proven. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac, and it is a separate install by design (ticket 02) |
+| Previously installed | `0c9bdeb` (zone-reachability fix), 2026-08-24 00:32 — never launch-verified, superseded hours later |
 | Previously installed | Milestone 7's uncommitted working tree, 2026-08-22 23:45. It launched, so the D44/D43/D45 optional fields migrated the user's real store |
 | Previously installed | The bar-weight merge (2026-08-22, installed 16:31 — the content is what is now on `main`, built from the working tree just before the merge commit existed). Installed before its Codex pass at the user's request, with a backup taken first (below) |
 | Store migration | **Done on the real store, 2026-08-22.** `main` (`a3a6934`) was installed first so an export could be taken, then the branch build; it launched, so `SetRecord.barWeightValue` migrated the user's actual data. `a3a6934` can no longer open that store — the migrated schema is one-way without the export |
-| Backup | CSV + JSON exported to iCloud Drive on 2026-08-22 before the schema change — the first copy of the training history off the device. Re-export after any session worth keeping |
+| Backup | **Re-exported 2026-08-24 by the user, before the `barNormalizedKg` migration** — the current backup. Previously: CSV + JSON to iCloud Drive on 2026-08-22 before that schema change — the first copy of the training history off the device. Re-export after any session worth keeping |
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed **24 Aug 2026** (00:32), so expires **~31 Aug 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **24 Aug 2026** (16:37), so expires **~31 Aug 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
