@@ -100,6 +100,35 @@ enum RestAlarmTone {
         return out
     }
 
+    /// A silent-to-the-ear buffer, looped for the whole workout to keep the app
+    /// running in the background — the same mechanism a music app relies on.
+    ///
+    /// A merely ACTIVE audio session does not keep an app alive; iOS suspends
+    /// it. Audio that is actually PLAYING does. That is the difference between
+    /// this working and the two builds before it, both of which beeped only
+    /// while the app was on screen.
+    ///
+    /// Amplitude is 1 LSB rather than 0 — roughly −90 dBFS, inaudible on any
+    /// hardware — deliberately: a buffer of pure zeroes can be treated as "no
+    /// audio" and optimised away, which would put us straight back to a
+    /// suspended app.
+    static func keepAliveSamples(
+        seconds: Double = 2, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> [Int16] {
+        let count = Int((seconds * sampleRate).rounded())
+        guard count > 0 else { return [] }
+        // Alternating ±1 rather than a constant: a DC offset is not "signal" to
+        // some encoders, an alternating one always is.
+        return (0..<count).map { $0.isMultiple(of: 2) ? 1 : -1 }
+    }
+
+    static func keepAliveWav(
+        seconds: Double = 2, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> Data {
+        wav(samples: keepAliveSamples(seconds: seconds, sampleRate: sampleRate),
+            sampleRate: sampleRate)
+    }
+
     /// A complete WAV file for a pattern, ready to hand to `AVAudioPlayer`.
     ///
     /// Built by hand because the alternative is shipping two audio files and
@@ -107,7 +136,10 @@ enum RestAlarmTone {
     static func wav(
         for pattern: RestAlarmPattern, sampleRate: Double = RestAlarmTone.sampleRate
     ) -> Data {
-        let pcm = samples(for: pattern, sampleRate: sampleRate)
+        wav(samples: samples(for: pattern, sampleRate: sampleRate), sampleRate: sampleRate)
+    }
+
+    static func wav(samples pcm: [Int16], sampleRate: Double) -> Data {
         let bitsPerSample: UInt16 = 16
         let channels: UInt16 = 1
         let rate = UInt32(sampleRate)

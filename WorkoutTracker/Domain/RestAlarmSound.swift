@@ -43,21 +43,25 @@ final class SystemRestAlarm: RestAlarmSounding {
     private var player: AVAudioPlayer?
     private var cache: [RestAlarmPattern: Data] = [:]
     private var isSessionOpen = false
+    /// Loops inaudible audio for the whole workout. THIS is what keeps the app
+    /// alive in the background — see `beginSession`.
+    private var keepAlive: AVAudioPlayer?
+    private var observers: [NSObjectProtocol] = []
+    private var unduckTask: Task<Void, Never>?
 
     func beginSession() {
         do {
             let session = AVAudioSession.sharedInstance()
             // `.playback` is the category that routes to A2DP headphones —
             // AirPods — which `.ambient` and the notification route do not.
-            //
-            // `.mixWithOthers` and NOT `.duckOthers`: this session stays active
-            // for the whole workout, and a ducking session held open would keep
-            // the user's music quiet for an hour rather than for a beep. The
-            // tone mixes over the music instead.
+            // `.mixWithOthers` so holding it open does not stop the user's
+            // music; ducking is applied around the beep only, in `sound`.
             try session.setCategory(
                 .playback, mode: .default, options: [.mixWithOthers])
             try session.setActive(true)
             isSessionOpen = true
+            startKeepAlive()
+            observeInterruptions()
         } catch {
             // Non-fatal by design. A workout that cannot beep is still a
             // workout, and the local notification remains as the visual
@@ -68,9 +72,74 @@ final class SystemRestAlarm: RestAlarmSounding {
         }
     }
 
+    /// Plays inaudible audio on a loop for the length of the workout.
+    ///
+    /// WHY, because it looks like a hack and is load-bearing: an audio session
+    /// that is merely ACTIVE does not keep an app running — iOS suspends it,
+    /// the workout session stops delivering samples, every timer stops, and the
+    /// rest alarm never fires. Audio that is actually PLAYING keeps the process
+    /// alive, which is exactly how a music app keeps playing with the screen
+    /// off. Two builds shipped before this and beeped only while the app was on
+    /// screen; `workout-processing` alone did not fix it.
+    ///
+    /// The cost is honest: this holds an audio route open for the whole
+    /// workout, which uses battery. It is released in `endSession`, on every
+    /// path that ends a workout.
+    private func startKeepAlive() {
+        do {
+            let player = try AVAudioPlayer(data: RestAlarmTone.keepAliveWav())
+            player.numberOfLoops = -1
+            player.volume = 0.01
+            player.prepareToPlay()
+            player.play()
+            keepAlive = player
+        } catch {
+            print("[RestAlarm] keep-alive failed, background alarm will not fire: \(error)")
+        }
+    }
+
+    /// A phone call or a Siri request deactivates our session and stops the
+    /// keep-alive. Without restarting it the app is suspended for the rest of
+    /// the workout and every later rest is silent.
+    private func observeInterruptions() {
+        guard observers.isEmpty else { return }
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(), queue: .main
+        ) { note in
+            let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            guard let raw, AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+            Task { @MainActor [weak self] in self?.resumeAfterInterruption() }
+        })
+        // Pulling out an AirPod, or the case reconnecting, can also stop
+        // playback without an interruption notification.
+        observers.append(center.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: AVAudioSession.sharedInstance(), queue: .main
+        ) { _ in
+            Task { @MainActor [weak self] in self?.resumeAfterInterruption() }
+        })
+    }
+
+    private func resumeAfterInterruption() {
+        guard isSessionOpen else { return }
+        try? AVAudioSession.sharedInstance().setActive(true)
+        if keepAlive?.isPlaying != true {
+            keepAlive?.play()
+            if keepAlive == nil { startKeepAlive() }
+        }
+    }
+
     func endSession() {
+        unduckTask?.cancel()
+        unduckTask = nil
         player?.stop()
         player = nil
+        keepAlive?.stop()
+        keepAlive = nil
+        observers.forEach(NotificationCenter.default.removeObserver)
+        observers.removeAll()
         guard isSessionOpen else { return }
         isSessionOpen = false
         try? AVAudioSession.sharedInstance()
@@ -83,14 +152,41 @@ final class SystemRestAlarm: RestAlarmSounding {
         // If the session never opened — or was torn down by an interruption
         // such as a phone call — try once more rather than failing silently.
         if !isSessionOpen { beginSession() }
+        // Duck for the beep, then restore. Applied HERE rather than on the
+        // held session because the session stays active for the whole workout,
+        // and a permanently ducking session would keep the user's music quiet
+        // for the entire hour (reported 2026-08-25 — they want the dip back,
+        // not the whole workout dimmed).
+        setDucking(true)
         do {
             let player = try AVAudioPlayer(data: data)
             player.volume = 1
             player.prepareToPlay()
             player.play()
             self.player = player
+            unduckTask?.cancel()
+            let seconds = player.duration + 0.3
+            unduckTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(seconds))
+                guard !Task.isCancelled else { return }
+                self?.setDucking(false)
+            }
         } catch {
             print("[RestAlarm] could not play \(pattern): \(error)")
+            setDucking(false)
+        }
+    }
+
+    /// Toggles `.duckOthers` without deactivating: deactivating would stop the
+    /// keep-alive and let the app be suspended mid-rest.
+    private func setDucking(_ ducking: Bool) {
+        let options: AVAudioSession.CategoryOptions =
+            ducking ? [.mixWithOthers, .duckOthers] : [.mixWithOthers]
+        do {
+            try AVAudioSession.sharedInstance()
+                .setCategory(.playback, mode: .default, options: options)
+        } catch {
+            print("[RestAlarm] could not set ducking=\(ducking): \(error)")
         }
     }
 }

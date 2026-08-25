@@ -55,6 +55,27 @@ struct RestAlarmTests {
         #expect(abs(Int(samples.last ?? 0)) < 1_000, "last sample should end near silence")
     }
 
+    // MARK: - The keep-alive loop
+
+    /// The mechanism the whole background alarm rests on: audio that is
+    /// actually playing keeps the app alive, a merely-active session does not.
+    /// Two shipped builds beeped only while the app was on screen without it.
+    @Test func keepAliveIsInaudibleButNotSilent() {
+        let samples = RestAlarmTone.keepAliveSamples(seconds: 0.5)
+        #expect(!samples.isEmpty)
+        let peak = samples.map { abs(Int($0)) }.max() ?? 0
+        #expect(peak > 0, "pure zeroes can be treated as no audio and optimised away")
+        #expect(peak <= 2, "peak \(peak) would be audible; this must never be heard")
+    }
+
+    @Test func keepAliveIsAWellFormedLoopableFile() {
+        let data = RestAlarmTone.keepAliveWav(seconds: 0.5)
+        #expect(data.prefix(4) == Data("RIFF".utf8))
+        #expect(data.count > 44)
+        let declared = data.dropFirst(40).prefix(4).littleEndianUInt32
+        #expect(Int(declared) == data.count - 44, "a wrong data size loops as a click or not at all")
+    }
+
     // MARK: - The WAV container
 
     @Test func wavIsAWellFormedPCMFile() {
