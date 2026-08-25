@@ -161,7 +161,7 @@ struct HeartRateMonitorTests {
         await monitor.start()
         provider.emit(sample(150, at: .now))
         await settle()
-        #expect(monitor.currentZone == .four, "150/180 = 83%")
+        #expect(monitor.currentZone == .three, "150/180 = 83%, and D45's revised zone 4 starts at 85%")
         #expect(monitor.maxHeartRate?.isEstimated == true, "the UI must be able to mark it")
     }
 

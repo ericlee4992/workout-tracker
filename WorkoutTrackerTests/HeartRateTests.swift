@@ -111,15 +111,25 @@ struct HeartRateTests {
 
     // MARK: - Zones
 
+    /// D45 as revised 2026-08-24: textbook boundaries +5 points, because the
+    /// standard ones read a zone high for this user against a 220−age maximum.
+    /// These numbers are deliberately NOT 50/60/70/80/90 — if a future change
+    /// "fixes" them back, it is undoing a decision, not a typo.
     @Test func zoneBoundariesAreInclusiveLowAndExclusiveHigh() {
-        // Max 180: zone 1 begins at 90 (50%).
-        #expect(HeartRateZones.zone(for: 90, max: 180) == .one)
-        #expect(HeartRateZones.zone(for: 89, max: 180) == .warm)
-        #expect(HeartRateZones.zone(for: 108, max: 180) == .two)   // 60%
-        #expect(HeartRateZones.zone(for: 126, max: 180) == .three) // 70%
-        #expect(HeartRateZones.zone(for: 144, max: 180) == .four)  // 80%
-        #expect(HeartRateZones.zone(for: 162, max: 180) == .five)  // 90%
+        // Max 180: zone 1 begins at 99 (55%).
+        #expect(HeartRateZones.zone(for: 99, max: 180) == .one)
+        #expect(HeartRateZones.zone(for: 98, max: 180) == .warm)
+        #expect(HeartRateZones.zone(for: 117, max: 180) == .two)   // 65%
+        #expect(HeartRateZones.zone(for: 135, max: 180) == .three) // 75%
+        #expect(HeartRateZones.zone(for: 153, max: 180) == .four)  // 85%
+        #expect(HeartRateZones.zone(for: 171, max: 180) == .five)  // 95%
         #expect(HeartRateZones.zone(for: 180, max: 180) == .five)
+    }
+
+    /// The gym report that caused the change: 129 bpm against a 180 max read
+    /// "Zone 3" and felt like a zone too much. It is now Zone 2.
+    @Test func theReadingThatPromptedTheShiftNowReadsOneZoneLower() {
+        #expect(HeartRateZones.zone(for: 129, max: 180) == .two)
     }
 
     /// Above the recorded maximum means the maximum is wrong, not that a sixth
@@ -137,8 +147,8 @@ struct HeartRateTests {
     }
 
     @Test func lowerBoundsRenderTheBoundariesTheZonesUse() {
-        #expect(HeartRateZones.lowerBound(of: .one, max: 180) == 90)
-        #expect(HeartRateZones.lowerBound(of: .five, max: 180) == 162)
+        #expect(HeartRateZones.lowerBound(of: .one, max: 180) == 99)
+        #expect(HeartRateZones.lowerBound(of: .five, max: 180) == 171)
     }
 
     // MARK: - The rest rule (D43)
@@ -234,8 +244,10 @@ struct HeartRateTests {
 
     @Test func timeInZoneIsMeasuredBetweenSamples() throws {
         let ceiling = MaxHeartRate(bpm: 180, isEstimated: false)
-        // 10s at 150 (zone 4), then 10s at 95 (zone 1), then a final sample.
-        let samples = [sample(150, at: 0), sample(95, at: 10), sample(95, at: 20)]
+        // 10s at 160 (89% — zone 4), then 10s at 110 (61% — zone 1), then a
+        // final sample. Values chosen for the revised D45 boundaries; the old
+        // 150/95 pair now lands in zone 3 and warm-up.
+        let samples = [sample(160, at: 0), sample(110, at: 10), sample(110, at: 20)]
         let vitals = WorkoutVitalsMath.vitals(from: samples, zoningAgainst: ceiling)
         #expect(vitals.secondsInZone[HeartRateZone.four.rawValue] == 10)
         #expect(vitals.secondsInZone[HeartRateZone.one.rawValue] == 10)

@@ -67,8 +67,15 @@ enum MaxHeartRateResolver {
 
 /// The five training zones, as percentages of maximum heart rate.
 ///
-/// Zone 0 ("warm") is not padding: below 50% of max is not training, and
+/// Zone 0 ("warm") is not padding: below the zone-1 floor is not training, and
 /// labelling it "Zone 1" would inflate every easy minute into work.
+///
+/// **These boundaries are 5 points ABOVE the textbook 50/60/70/80/90 (D45,
+/// revised 2026-08-24 at the user's request after gym use).** The textbook
+/// figures read one zone high for this user against a 220−age maximum. What
+/// that means, and it matters: this app's "Zone 3" is NOT Polar's or Apple's
+/// Zone 3 — do not compare a zone here against a zone there. The cleaner fix is
+/// a measured maximum, which would let these go back to standard; see D45.
 enum HeartRateZone: Int, CaseIterable, Sendable, Codable {
     case warm = 0
     case one = 1
@@ -77,15 +84,16 @@ enum HeartRateZone: Int, CaseIterable, Sendable, Codable {
     case four = 4
     case five = 5
 
-    /// Lower bound as a fraction of max, inclusive.
+    /// Lower bound as a fraction of max, inclusive. Textbook values +5 points
+    /// — see the type's note before changing these back.
     var lowerFraction: Double {
         switch self {
         case .warm: 0
-        case .one: 0.5
-        case .two: 0.6
-        case .three: 0.7
-        case .four: 0.8
-        case .five: 0.9
+        case .one: 0.55
+        case .two: 0.65
+        case .three: 0.75
+        case .four: 0.85
+        case .five: 0.95
         }
     }
 
@@ -119,8 +127,8 @@ enum HeartRateZones {
     /// The zone a reading falls in, given a maximum.
     ///
     /// Bounds are inclusive-low and exclusive-high, so every bpm lands in
-    /// exactly one zone — except at the top, where anything at or above 90% is
-    /// zone 5. A heart rate *above* the recorded maximum is not zone 6; it
+    /// exactly one zone — except at the top, where anything at or above the
+    /// zone-5 floor is zone 5. A heart rate *above* the recorded maximum is not zone 6; it
     /// means the maximum is wrong, and the honest render is still "Zone 5".
     static func zone(for bpm: Int, max maxBpm: Int) -> HeartRateZone? {
         guard maxBpm > 0, bpm >= 0 else { return nil }

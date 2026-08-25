@@ -175,9 +175,10 @@ struct WorkoutSummaryTests {
         #expect(summary.averageHeartRate == 130)
         #expect(summary.maxHeartRate == 150)
         #expect(summary.activeEnergyKilocalories == 282)
-        // Zone 4 (150) then zone 3 (130), 10 seconds each.
-        #expect(summary.zoneSeconds[HeartRateZone.four.rawValue] == 10)
+        // Against a 180 max under D45's revised boundaries: 150 is 83% (zone 3)
+        // and 130 is 72% (zone 2), 10 seconds each.
         #expect(summary.zoneSeconds[HeartRateZone.three.rawValue] == 10)
+        #expect(summary.zoneSeconds[HeartRateZone.two.rawValue] == 10)
     }
 
     /// The summary is read from the workout's own fields, so History and the
