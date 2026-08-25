@@ -1,0 +1,3458 @@
+Reading additional input from stdin...
+OpenAI Codex v0.149.1
+--------
+workdir: /Users/ericlee06/orca/projects/Health App
+model: gpt-5.6-sol
+provider: openai
+approval: never
+sandbox: read-only
+reasoning effort: high
+reasoning summaries: none
+session id: 01a03761-11c3-7393-89f1-da4e0239eea1
+--------
+user
+# Problem: rest alarm never sounds unless the app is on screen
+
+iOS 17+ iPhone-only SwiftUI workout tracker. Real device: iPhone 15 Pro Max,
+free Apple account, **Debug** configuration installed via `devicectl`.
+
+## Symptom, reported three times by the user after three separate fix attempts
+
+"The alarm only beeps when in the app. It doesn't work with screen off or when
+I'm on another app, home screen, etc."
+
+The beep works perfectly while the app is foregrounded and on screen.
+
+## What the app is trying to do
+
+During a workout the app runs an `HKWorkoutSession` + `HKLiveWorkoutBuilder`
+(iOS, NOT watchOS) to read live heart rate from AirPods. A rest timer runs
+between sets. When a rest ends the app must make an AUDIBLE sound in the user's
+AirPods, including when the screen is off or the user is in another app.
+
+A local notification (`UNTimeIntervalNotificationTrigger`, `sound = .default`)
+already fires reliably in all states, but its sound plays on the phone's alert
+route and the user does NOT hear it in their AirPods. That is why real audio
+playback is required.
+
+## Attempt 1 — play audio at alarm time
+
+`AVAudioSession.setCategory(.playback, options: [.duckOthers, .mixWithOthers])`
++ `setActive(true)` + `AVAudioPlayer` at the moment the rest ends, then
+deactivate. Result: worked in foreground only.
+
+## Attempt 2 — add background modes
+
+Added `UIBackgroundModes = [audio, workout-processing]` via a partial
+`INFOPLIST_FILE` merged with `GENERATE_INFOPLIST_FILE=YES`. VERIFIED present in
+the built app's `Info.plist` with `plutil -p`. Also moved alarm ownership off
+the SwiftUI view (which is dismissed by a "minimise" feature) onto a long-lived
+`@Observable` coordinator owned by the root view. Result: still foreground only.
+
+## Attempt 3 — music-app style keep-alive
+
+Session opened once at workout start and HELD:
+`setCategory(.playback, mode: .default, options: [.mixWithOthers])`,
+`setActive(true)`, plus an `AVAudioPlayer` looping an inaudible buffer
+(`numberOfLoops = -1`, amplitude 1 LSB, `volume = 0.01`) for the whole workout,
+intended to keep the process alive the way a music app does. Ducking applied by
+swapping category options around the beep only. Interruption and route-change
+observers restart the keep-alive. Result: STILL foreground only.
+
+## Evidence gathered
+
+- The app's process is present on device while backgrounded (`devicectl device
+  info processes` shows it), but process presence does not prove execution —
+  a suspended process still appears.
+- The local notification fires with the screen off. This was mistakenly read for
+  two days as proof the app was executing in the background. It is not: the
+  trigger is registered with the system in advance and fires regardless.
+- Live heart rate works correctly in the foreground.
+
+## The specific questions
+
+1. Why would a `.playback` session with an actively looping `AVAudioPlayer` and
+   the `audio` background mode NOT keep an iOS app executing in the background?
+   Is `.mixWithOthers` the problem — does it make the app a "secondary" audio
+   client that iOS declines to grant background execution to?
+2. Does `HKWorkoutSession` on **iOS** (not watchOS) actually grant continuous
+   background runtime with `workout-processing`, and if so, do
+   `HKLiveWorkoutBuilder` delegate callbacks (`workoutBuilder(_:didCollectDataOf:)`)
+   keep firing while backgrounded? If they do not, what is the supported way to
+   receive heart-rate samples in the background — `HKAnchoredObjectQuery` with
+   `enableBackgroundDelivery`? The app HAS the
+   `com.apple.developer.healthkit.background-delivery` entitlement, signed in.
+3. Is a free (non-paid) Apple developer account restricted in a way that denies
+   background audio or background HealthKit delivery on a Debug build installed
+   via `devicectl`? Could Xcode's Debug attach/lifecycle differ from a normally
+   launched app in a way that changes background behaviour?
+4. Given the goal — a sound in Bluetooth headphones at an arbitrary moment while
+   the app is backgrounded — what is the approach that ACTUALLY works on iOS 17+?
+   Consider: a notification with a custom sound file (does that route to AirPods?),
+   a critical alert (needs a special entitlement — is it obtainable on a free
+   account?), scheduling the audio ahead of time since the rest end time is known
+   in advance, or something else.
+
+Answer concretely with the mechanism and its constraints. Prefer a solution that
+does not require a paid developer account. Say plainly if one of the attempts
+above is fundamentally unworkable and why. If the right answer is "schedule it in
+advance because the end time is known", say so — the rest end IS known the moment
+the rest starts, though it can be cut short by heart-rate recovery or extended by
+a +15s button.
+
+Read these files for exact current state:
+- `WorkoutTracker/Domain/RestAlarmSound.swift`
+- `WorkoutTracker/Domain/RestAlarmTone.swift`
+- `WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift`
+- `WorkoutTracker/Domain/HealthKitHeartRateProvider.swift`
+- `WorkoutTracker/Domain/RestTimer.swift`
+- `Config/WorkoutTracker-Info.plist`
+hook: SessionStart
+hook: SessionStart Completed
+hook: UserPromptSubmit
+hook: UserPromptSubmit Completed
+codex
+I’m using the diagnosing-bugs skill because this is a background-execution diagnosis with multiple plausible failure layers. I’ll inspect the exact implementation and project metadata first, then verify the iOS/HealthKit/audio claims against current Apple primary sources.
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,240p' '.agents/skills/diagnosing-bugs/SKILL.md' && for f in WorkoutTracker/Domain/RestAlarmSound.swift WorkoutTracker/Domain/RestAlarmTone.swift WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift WorkoutTracker/Domain/HealthKitHeartRateProvider.swift WorkoutTracker/Domain/RestTimer.swift Config/WorkoutTracker-Info.plist; do echo \"FILE: "'$f"; sed -n '"'1,300p' \""'$f"; done' in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+---
+name: diagnosing-bugs
+description: Diagnosis loop for hard bugs and performance regressions. Use when the user says "diagnose"/"debug this", or reports something broken/throwing/failing/slow.
+---
+
+# Diagnosing Bugs
+
+A discipline for hard bugs. Skip phases only when explicitly justified.
+
+When exploring the codebase, read `CONTEXT.md` (if it exists) to get a clear mental model of the relevant modules, and check ADRs in the area you're touching.
+
+## Redact
+
+This skill has you show commands, outputs and captured artifacts. **Redact every secret first** — write `<REDACTED>` in its place. Build loops against env vars, so the credential stays in the environment rather than in what you show. Captured artifacts carry auth headers: quote only the lines that carry the signal.
+
+If the redacted output is not enough to diagnose the bug, say so and ask the user.
+
+## Phase 1 — Build a feedback loop
+
+**This is the skill.** Everything else is mechanical. If you have a **tight** pass/fail signal for the bug — one that goes red on _this_ bug — you will find the cause; bisection, hypothesis-testing, and instrumentation all just consume it. If you don't have one, no amount of staring at code will save you.
+
+Spend disproportionate effort here. **Be aggressive. Be creative. Refuse to give up.**
+
+### Ways to construct one — try them in roughly this order
+
+1. **Failing test** at whatever seam reaches the bug — unit, integration, e2e.
+2. **Curl / HTTP script** against a running dev server.
+3. **CLI invocation** with a fixture input, diffing stdout against a known-good snapshot.
+4. **Headless browser script** (Playwright / Puppeteer) — drives the UI, asserts on DOM/console/network.
+5. **Replay a captured trace.** Save a real network request / payload / event log to disk; replay it through the code path in isolation.
+6. **Throwaway harness.** Spin up a minimal subset of the system (one service, mocked deps) that exercises the bug code path with a single function call.
+7. **Property / fuzz loop.** If the bug is "sometimes wrong output", run 1000 random inputs and look for the failure mode.
+8. **Bisection harness.** If the bug appeared between two known states (commit, dataset, version), automate "boot at state X, check, repeat" so you can `git bisect run` it.
+9. **Differential loop.** Run the same input through old-version vs new-version (or two configs) and diff outputs.
+10. **HITL bash script.** Last resort. If a human must click, drive _them_ with `scripts/hitl-loop.template.sh` so the loop is still structured. Captured output feeds back to you.
+
+Build the right feedback loop, and the bug is 90% fixed.
+
+### Tighten the loop
+
+Treat the loop as a product. Once you have _a_ loop, **tighten** it:
+
+- Can I make it faster? (Cache setup, skip unrelated init, narrow the test scope.)
+- Can I make the signal sharper? (Assert on the specific symptom, not "didn't crash".)
+- Can I make it more deterministic? (Pin time, seed RNG, isolate filesystem, freeze network.)
+
+A 30-second flaky loop is barely better than no loop; a 2-second deterministic one is tight — a debugging superpower.
+
+### Non-deterministic bugs
+
+The goal is not a clean repro but a **higher reproduction rate**. Loop the trigger 100×, parallelise, add stress, narrow timing windows, inject sleeps. A 50%-flake bug is debuggable; 1% is not — keep raising the rate until it's debuggable.
+
+### When you genuinely cannot build a loop
+
+Stop and say so explicitly. List what you tried. Ask the user for: (a) access to whatever environment reproduces it, (b) a redacted captured artifact (HAR file, log dump, core dump, screen recording with timestamps), or (c) permission to add temporary production instrumentation. Do **not** proceed to hypothesise without a loop.
+
+### Completion criterion — a tight loop that goes red
+
+Phase 1 is done when the loop is **tight** and **red-capable**: you can name **one command** — a script path, a test invocation, a curl — that you have **already run at least once** (show the invocation and its output, redacted), and that is:
+
+- [ ] **Red-capable** — it drives the actual bug code path and asserts the **user's exact symptom**, so it can go red on this bug and green once fixed. Not "runs without erroring" — it must be able to _catch this specific bug_.
+- [ ] **Deterministic** — same verdict every run (flaky bugs: a pinned, high reproduction rate, per above).
+- [ ] **Fast** — seconds, not minutes.
+- [ ] **Agent-runnable** — you can run it unattended; a human in the loop only via `scripts/hitl-loop.template.sh`.
+
+If you catch yourself reading code to build a theory before this command exists, **stop — jumping straight to a hypothesis is the exact failure this skill prevents.** No red-capable command, no Phase 2.
+
+## Phase 2 — Reproduce + minimise
+
+Run the loop. Watch it go red — the bug appears.
+
+Confirm:
+
+- [ ] The loop produces the failure mode the **user** described — not a different failure that happens to be nearby. Wrong bug = wrong fix.
+- [ ] The failure is reproducible across multiple runs (or, for non-deterministic bugs, reproducible at a high enough rate to debug against).
+- [ ] You have captured the exact symptom (error message, wrong output, slow timing) so later phases can verify the fix actually addresses it.
+
+### Minimise
+
+Once it's red, shrink the repro to the **smallest scenario that still goes red**. Cut inputs, callers, config, data, and steps **one at a time**, re-running the loop after each cut — keep only what's load-bearing for the failure.
+
+Why bother: a minimal repro shrinks the hypothesis space in Phase 3 (fewer moving parts left to suspect) and becomes the clean regression test in Phase 5.
+
+Done when **every remaining element is load-bearing** — removing any one of them makes the loop go green.
+
+Do not proceed until you have reproduced **and** minimised.
+
+## Phase 3 — Hypothesise
+
+Generate **3–5 ranked hypotheses** before testing any of them. Single-hypothesis generation anchors on the first plausible idea.
+
+Each hypothesis must be **falsifiable**: state the prediction it makes.
+
+> Format: "If <X> is the cause, then <changing Y> will make the bug disappear / <changing Z> will make it worse."
+
+If you cannot state the prediction, the hypothesis is a vibe — discard or sharpen it.
+
+**Show the ranked list to the user before testing.** They often have domain knowledge that re-ranks instantly ("we just deployed a change to #3"), or know hypotheses they've already ruled out. Cheap checkpoint, big time saver. Don't block on it — proceed with your ranking if the user is AFK.
+
+## Phase 4 — Instrument
+
+Each probe must map to a specific prediction from Phase 3. **Change one variable at a time.**
+
+Tool preference:
+
+1. **Debugger / REPL inspection** if the env supports it. One breakpoint beats ten logs.
+2. **Targeted logs** at the boundaries that distinguish hypotheses.
+3. Never "log everything and grep".
+
+**Tag every debug log** with a unique prefix, e.g. `[DEBUG-a4f2]`. Cleanup at the end becomes a single grep. Untagged logs survive; tagged logs die.
+
+**Perf branch.** For performance regressions, logs are usually wrong. Instead: establish a baseline measurement (timing harness, `performance.now()`, profiler, query plan), then bisect. Measure first, fix second.
+
+## Phase 5 — Fix + regression test
+
+Write the regression test **before the fix** — but only if there is a **correct seam** for it.
+
+A correct seam is one where the test exercises the **real bug pattern** as it occurs at the call site. If the only available seam is too shallow (single-caller test when the bug needs multiple callers, unit test that can't replicate the chain that triggered the bug), a regression test there gives false confidence.
+
+**If no correct seam exists, that itself is the finding.** Note it. The codebase architecture is preventing the bug from being locked down. Flag this for the next phase.
+
+If a correct seam exists:
+
+1. Turn the minimised repro into a failing test at that seam.
+2. Watch it fail.
+3. Apply the fix.
+4. Watch it pass.
+5. Re-run the Phase 1 feedback loop against the original (un-minimised) scenario.
+
+## Phase 6 — Cleanup + post-mortem
+
+Required before declaring done:
+
+- [ ] Original repro no longer reproduces (re-run the Phase 1 loop)
+- [ ] Regression test passes (or absence of seam is documented)
+- [ ] All `[DEBUG-...]` instrumentation removed (`grep` the prefix)
+- [ ] Throwaway prototypes deleted (or moved to a clearly-marked debug location)
+- [ ] The hypothesis that turned out correct is stated in the commit / PR message — so the next debugger learns
+
+**Then ask: what would have prevented this bug?** If the answer involves architectural change (no good test seam, tangled callers, hidden coupling) hand off to the `/improve-codebase-architecture` skill with the specifics. Make the recommendation **after** the fix is in, not before — you have more information now than when you started.
+FILE: WorkoutTracker/Domain/RestAlarmSound.swift
+import AVFoundation
+import Foundation
+
+// Gym feedback, 2026-08-24 — playing the rest alarm where the user can hear it.
+//
+// THE WHOLE POINT, stated where the decision is made: a `UNNotificationSound`
+// does NOT reach connected AirPods. It plays on the phone's alert route. The
+// user confirmed the rest notification arrives correctly, screen off included,
+// and still heard nothing in their ears. So the fix is not "fix the
+// notification" — the notification is fine — it is to play real audio through
+// the shared `AVAudioSession`, which is the only route Bluetooth headphones are
+// on.
+//
+// System framework behind a protocol, injectable, following the shape
+// `RestTimer.swift` set for UserNotifications and `HeartRateMonitor.swift` set
+// for HealthKit: the rules above it stay testable on a machine with no speaker.
+
+@MainActor
+protocol RestAlarmSounding: AnyObject {
+    /// Called when a workout starts. Opens and HOLDS the audio session.
+    ///
+    /// Why hold it rather than activate per beep: activating an audio session
+    /// from a backgrounded app is unreliable, and backgrounded is exactly when
+    /// the alarm matters. Activating while the user is still looking at the
+    /// screen, then keeping it for the workout, is not.
+    func beginSession()
+    /// Called when the workout ends. Holding the session open for a workout
+    /// nobody is doing is the audio equivalent of leaving the sensor powered.
+    func endSession()
+    func sound(_ pattern: RestAlarmPattern)
+}
+
+/// Plays the alarm through the shared audio session, so it lands in whatever
+/// the user is actually listening on.
+@MainActor
+final class SystemRestAlarm: RestAlarmSounding {
+
+    static let shared = SystemRestAlarm()
+
+    /// The player MUST be held. An `AVAudioPlayer` that goes out of scope is
+    /// deallocated mid-buffer and the user hears nothing at all — a silent
+    /// failure that looks exactly like the bug this file exists to fix.
+    private var player: AVAudioPlayer?
+    private var cache: [RestAlarmPattern: Data] = [:]
+    private var isSessionOpen = false
+    /// Loops inaudible audio for the whole workout. THIS is what keeps the app
+    /// alive in the background — see `beginSession`.
+    private var keepAlive: AVAudioPlayer?
+    private var observers: [NSObjectProtocol] = []
+    private var unduckTask: Task<Void, Never>?
+
+    func beginSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            // `.playback` is the category that routes to A2DP headphones —
+            // AirPods — which `.ambient` and the notification route do not.
+            // `.mixWithOthers` so holding it open does not stop the user's
+            // music; ducking is applied around the beep only, in `sound`.
+            try session.setCategory(
+                .playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+            isSessionOpen = true
+            startKeepAlive()
+            observeInterruptions()
+        } catch {
+            // Non-fatal by design. A workout that cannot beep is still a
+            // workout, and the local notification remains as the visual
+            // channel. NOT `assertionFailure`: this app installs as Debug, so
+            // trapping here would turn a missing beep into a crashed workout.
+            print("[RestAlarm] could not open audio session: \(error)")
+            isSessionOpen = false
+        }
+    }
+
+    /// Plays inaudible audio on a loop for the length of the workout.
+    ///
+    /// WHY, because it looks like a hack and is load-bearing: an audio session
+    /// that is merely ACTIVE does not keep an app running — iOS suspends it,
+    /// the workout session stops delivering samples, every timer stops, and the
+    /// rest alarm never fires. Audio that is actually PLAYING keeps the process
+    /// alive, which is exactly how a music app keeps playing with the screen
+    /// off. Two builds shipped before this and beeped only while the app was on
+    /// screen; `workout-processing` alone did not fix it.
+    ///
+    /// The cost is honest: this holds an audio route open for the whole
+    /// workout, which uses battery. It is released in `endSession`, on every
+    /// path that ends a workout.
+    private func startKeepAlive() {
+        do {
+            let player = try AVAudioPlayer(data: RestAlarmTone.keepAliveWav())
+            player.numberOfLoops = -1
+            player.volume = 0.01
+            player.prepareToPlay()
+            player.play()
+            keepAlive = player
+        } catch {
+            print("[RestAlarm] keep-alive failed, background alarm will not fire: \(error)")
+        }
+    }
+
+    /// A phone call or a Siri request deactivates our session and stops the
+    /// keep-alive. Without restarting it the app is suspended for the rest of
+    /// the workout and every later rest is silent.
+    private func observeInterruptions() {
+        guard observers.isEmpty else { return }
+        let center = NotificationCenter.default
+        observers.append(center.addObserver(
+            forName: AVAudioSession.interruptionNotification,
+            object: AVAudioSession.sharedInstance(), queue: .main
+        ) { note in
+            let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+            guard let raw, AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+            Task { @MainActor [weak self] in self?.resumeAfterInterruption() }
+        })
+        // Pulling out an AirPod, or the case reconnecting, can also stop
+        // playback without an interruption notification.
+        observers.append(center.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: AVAudioSession.sharedInstance(), queue: .main
+        ) { _ in
+            Task { @MainActor [weak self] in self?.resumeAfterInterruption() }
+        })
+    }
+
+    private func resumeAfterInterruption() {
+        guard isSessionOpen else { return }
+        try? AVAudioSession.sharedInstance().setActive(true)
+        if keepAlive?.isPlaying != true {
+            keepAlive?.play()
+            if keepAlive == nil { startKeepAlive() }
+        }
+    }
+
+    func endSession() {
+        unduckTask?.cancel()
+        unduckTask = nil
+        player?.stop()
+        player = nil
+        keepAlive?.stop()
+        keepAlive = nil
+        observers.forEach(NotificationCenter.default.removeObserver)
+        observers.removeAll()
+        guard isSessionOpen else { return }
+        isSessionOpen = false
+        try? AVAudioSession.sharedInstance()
+            .setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    func sound(_ pattern: RestAlarmPattern) {
+        let data = cache[pattern] ?? RestAlarmTone.wav(for: pattern)
+        cache[pattern] = data
+        // If the session never opened — or was torn down by an interruption
+        // such as a phone call — try once more rather than failing silently.
+        if !isSessionOpen { beginSession() }
+        // Duck for the beep, then restore. Applied HERE rather than on the
+        // held session because the session stays active for the whole workout,
+        // and a permanently ducking session would keep the user's music quiet
+        // for the entire hour (reported 2026-08-25 — they want the dip back,
+        // not the whole workout dimmed).
+        setDucking(true)
+        do {
+            let player = try AVAudioPlayer(data: data)
+            player.volume = 1
+            player.prepareToPlay()
+            player.play()
+            self.player = player
+            unduckTask?.cancel()
+            let seconds = player.duration + 0.3
+            unduckTask = Task { [weak self] in
+                try? await Task.sleep(for: .seconds(seconds))
+                guard !Task.isCancelled else { return }
+                self?.setDucking(false)
+            }
+        } catch {
+            print("[RestAlarm] could not play \(pattern): \(error)")
+            setDucking(false)
+        }
+    }
+
+    /// Toggles `.duckOthers` without deactivating: deactivating would stop the
+    /// keep-alive and let the app be suspended mid-rest.
+    private func setDucking(_ ducking: Bool) {
+        let options: AVAudioSession.CategoryOptions =
+            ducking ? [.mixWithOthers, .duckOthers] : [.mixWithOthers]
+        do {
+            try AVAudioSession.sharedInstance()
+                .setCategory(.playback, mode: .default, options: options)
+        } catch {
+            print("[RestAlarm] could not set ducking=\(ducking): \(error)")
+        }
+    }
+}
+
+/// Sounds nothing. Used by tests and by UI-test runs, which must not emit audio
+/// on a CI machine.
+@MainActor
+final class SilentRestAlarm: RestAlarmSounding {
+    private(set) var sounded: [RestAlarmPattern] = []
+    private(set) var sessionOpens = 0
+    private(set) var sessionCloses = 0
+    func beginSession() { sessionOpens += 1 }
+    func endSession() { sessionCloses += 1 }
+    func sound(_ pattern: RestAlarmPattern) { sounded.append(pattern) }
+}
+
+enum RestAlarms {
+    @MainActor
+    static func make() -> any RestAlarmSounding {
+        WorkoutTrackerStore.isUITestReset ? SilentRestAlarm() : SystemRestAlarm.shared
+    }
+}
+
+/// Decides whether the rest-end alarm is due, and guarantees it sounds once.
+///
+/// Pure so the once-only rule is testable. It is load-bearing: the cap alarm is
+/// evaluated on every heart-rate sample (roughly once a second) because that is
+/// the only tick that keeps running with the screen off — a SwiftUI `Timer`
+/// does not (codex-review 2.2). Without this gate the user would get a beep
+/// every second until they picked the phone up.
+enum RestAlarmDecision {
+    static func shouldSound(restEndsAt: Date?, lastSounded: Date?, now: Date) -> Bool {
+        guard let restEndsAt else { return false }
+        guard now >= restEndsAt else { return false }
+        return lastSounded != restEndsAt
+    }
+}
+FILE: WorkoutTracker/Domain/RestAlarmTone.swift
+import Foundation
+
+// Gym feedback, 2026-08-24 — the rest alarm was seen and never heard.
+//
+// WHY THIS FILE EXISTS AT ALL: the rest timer already fires a local
+// notification with `UNNotificationSound.default`, and the user confirmed the
+// notification arrives, screen off included. But a notification sound plays on
+// the phone's ALERT route — it does not go to connected AirPods. Wearing
+// earbuds mid-set, you get a silent banner you cannot see because the phone is
+// on the floor.
+//
+// The only way to put a sound in the user's ears is for the app to play real
+// audio through the shared audio session, which means the app needs a waveform.
+// Synthesising it here rather than shipping an .aiff keeps the repo's
+// no-binary-assets habit and — more usefully — makes the tone testable: a
+// silent or malformed buffer is a bug you can catch in CI instead of in a gym.
+
+/// One element of an alarm pattern: a tone, or a gap between tones.
+struct AlarmBeep: Equatable, Sendable {
+    /// Hertz. Zero means silence for `seconds`.
+    let hertz: Double
+    let seconds: Double
+
+    static func tone(_ hertz: Double, _ seconds: Double) -> AlarmBeep {
+        AlarmBeep(hertz: hertz, seconds: seconds)
+    }
+
+    static func gap(_ seconds: Double) -> AlarmBeep {
+        AlarmBeep(hertz: 0, seconds: seconds)
+    }
+}
+
+/// Which alarm this is. The two rest endings sound different on purpose.
+///
+/// D43 lets a rest end two ways — the heart rate came down, or the four-minute
+/// cap ran out — and the difference matters to the lifter: recovered means go,
+/// capped means you did not recover and the app stopped waiting. The
+/// notification text already distinguishes them. Mid-set with the phone on the
+/// floor, the sound is the only channel that reaches you, so it distinguishes
+/// them too.
+enum RestAlarmPattern: Equatable, Sendable, CaseIterable {
+    /// Heart rate recovered: two rising tones. Reads as "ready".
+    case recovered
+    /// The cap expired: three flat tones. Reads as "time".
+    case cap
+
+    var beeps: [AlarmBeep] {
+        switch self {
+        case .recovered:
+            [.tone(880, 0.12), .gap(0.06), .tone(1175, 0.18)]
+        case .cap:
+            [.tone(880, 0.12), .gap(0.08), .tone(880, 0.12), .gap(0.08), .tone(880, 0.2)]
+        }
+    }
+}
+
+enum RestAlarmTone {
+
+    static let sampleRate: Double = 44_100
+    /// Loud enough to hear over gym noise and your own music, short enough not
+    /// to be obnoxious. Full scale would clip against ducked music.
+    static let amplitude: Double = 0.85
+    /// Each tone ramps in and out over this long. Without it every beep starts
+    /// and ends on a discontinuity, which is audible as a click — the sound a
+    /// user reads as "the app is broken".
+    static let fadeSeconds: Double = 0.005
+
+    /// 16-bit mono PCM samples for a pattern.
+    static func samples(
+        for pattern: RestAlarmPattern, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> [Int16] {
+        var out: [Int16] = []
+        for beep in pattern.beeps {
+            let count = Int((beep.seconds * sampleRate).rounded())
+            guard count > 0 else { continue }
+            if beep.hertz <= 0 {
+                out.append(contentsOf: repeatElement(0, count: count))
+                continue
+            }
+            let fade = max(1, Int(fadeSeconds * sampleRate))
+            for index in 0..<count {
+                let time = Double(index) / sampleRate
+                let wave = sin(2 * .pi * beep.hertz * time)
+                // Linear ramp at both ends; `fade` is clamped so a beep shorter
+                // than two fades still tapers instead of inverting.
+                let ramp: Double
+                if count < fade * 2 {
+                    ramp = Double(min(index, count - 1 - index)) / Double(max(1, count / 2))
+                } else if index < fade {
+                    ramp = Double(index) / Double(fade)
+                } else if index >= count - fade {
+                    ramp = Double(count - 1 - index) / Double(fade)
+                } else {
+                    ramp = 1
+                }
+                let value = wave * amplitude * max(0, min(1, ramp))
+                out.append(Int16(clamping: Int(value * Double(Int16.max))))
+            }
+        }
+        return out
+    }
+
+    /// A silent-to-the-ear buffer, looped for the whole workout to keep the app
+    /// running in the background — the same mechanism a music app relies on.
+    ///
+    /// A merely ACTIVE audio session does not keep an app alive; iOS suspends
+    /// it. Audio that is actually PLAYING does. That is the difference between
+    /// this working and the two builds before it, both of which beeped only
+    /// while the app was on screen.
+    ///
+    /// Amplitude is 1 LSB rather than 0 — roughly −90 dBFS, inaudible on any
+    /// hardware — deliberately: a buffer of pure zeroes can be treated as "no
+    /// audio" and optimised away, which would put us straight back to a
+    /// suspended app.
+    static func keepAliveSamples(
+        seconds: Double = 2, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> [Int16] {
+        let count = Int((seconds * sampleRate).rounded())
+        guard count > 0 else { return [] }
+        // Alternating ±1 rather than a constant: a DC offset is not "signal" to
+        // some encoders, an alternating one always is.
+        return (0..<count).map { $0.isMultiple(of: 2) ? 1 : -1 }
+    }
+
+    static func keepAliveWav(
+        seconds: Double = 2, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> Data {
+        wav(samples: keepAliveSamples(seconds: seconds, sampleRate: sampleRate),
+            sampleRate: sampleRate)
+    }
+
+    /// A complete WAV file for a pattern, ready to hand to `AVAudioPlayer`.
+    ///
+    /// Built by hand because the alternative is shipping two audio files and
+    /// trusting they were encoded right. 44-byte canonical PCM header.
+    static func wav(
+        for pattern: RestAlarmPattern, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> Data {
+        wav(samples: samples(for: pattern, sampleRate: sampleRate), sampleRate: sampleRate)
+    }
+
+    static func wav(samples pcm: [Int16], sampleRate: Double) -> Data {
+        let bitsPerSample: UInt16 = 16
+        let channels: UInt16 = 1
+        let rate = UInt32(sampleRate)
+        let byteRate = rate * UInt32(channels) * UInt32(bitsPerSample / 8)
+        let blockAlign = channels * (bitsPerSample / 8)
+        let dataBytes = UInt32(pcm.count * MemoryLayout<Int16>.size)
+
+        var data = Data()
+        data.append(contentsOf: Array("RIFF".utf8))
+        data.append(littleEndian: UInt32(36) + dataBytes)
+        data.append(contentsOf: Array("WAVE".utf8))
+        data.append(contentsOf: Array("fmt ".utf8))
+        data.append(littleEndian: UInt32(16))
+        data.append(littleEndian: UInt16(1))       // PCM, uncompressed
+        data.append(littleEndian: channels)
+        data.append(littleEndian: rate)
+        data.append(littleEndian: byteRate)
+        data.append(littleEndian: blockAlign)
+        data.append(littleEndian: bitsPerSample)
+        data.append(contentsOf: Array("data".utf8))
+        data.append(littleEndian: dataBytes)
+        for sample in pcm { data.append(littleEndian: UInt16(bitPattern: sample)) }
+        return data
+    }
+}
+
+private extension Data {
+    // `Swift.` qualified deliberately: inside a Data extension, a bare
+    // `withUnsafeBytes` resolves to Data's own instance method, not the global
+    // one that takes a value.
+    mutating func append(littleEndian value: UInt16) {
+        append(contentsOf: Swift.withUnsafeBytes(of: value.littleEndian, Array.init))
+    }
+
+    mutating func append(littleEndian value: UInt32) {
+        append(contentsOf: Swift.withUnsafeBytes(of: value.littleEndian, Array.init))
+    }
+}
+FILE: WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift
+import Foundation
+import Observation
+import SwiftData
+
+// codex-review-2 #2 (critical) — who owns the heart-rate session.
+//
+// It used to be the workout SCREEN. That screen is dismissed by C1's minimise
+// while the workout keeps running, so minimising either orphaned a live session
+// (sensor powered, nobody watching) or — after the first patch — quietly ended
+// heart-rate tracking half way through a workout and replaced the banked
+// summary on resume.
+//
+// The session belongs to the WORKOUT, so it is owned at the same level the
+// workout is: `RootView`, which survives minimise. The screen borrows it.
+//
+// The invariant: at most one monitor exists, and it belongs to exactly one
+// workout id. Starting a session for a different workout ends the previous one
+// first — an orphaned session is a sensor running for a workout nobody is doing.
+
+@MainActor
+@Observable
+final class WorkoutHeartRateCoordinator {
+
+    private(set) var workoutID: UUID?
+    private(set) var monitor: HeartRateMonitor?
+
+    // The rest alarm lives HERE, not on the workout screen, for the same reason
+    // the session does (codex-review-2 #2): C1's minimise dismisses that screen
+    // while the workout keeps running. An alarm owned by the screen dies on
+    // minimise — its `@State` goes with it — so the user who backgrounds the app
+    // mid-rest, which is every user, gets silence.
+    private let alarm: any RestAlarmSounding
+    /// The rest end the phone is currently counting down to, mirrored here by
+    /// `broadcastRest` — the screen already tells us on every change.
+    private var restEndsAt: Date?
+    /// The end already announced, so the alarm sounds once per rest rather than
+    /// once per sample.
+    private var lastSoundedRestEnd: Date?
+    /// Forwarded to the screen when it is on screen. Nil after minimise, which
+    /// is fine: the alarm above does not depend on it.
+    var onSample: (() -> Void)?
+
+    init(alarm: (any RestAlarmSounding)? = nil) {
+        self.alarm = alarm ?? RestAlarms.make()
+    }
+
+    /// The monitor for this workout, started if it is not already running.
+    ///
+    /// Idempotent: calling it again for the same workout returns the same
+    /// monitor with its samples intact, which is what makes minimise and resume
+    /// continue one session rather than start a second.
+    @discardableResult
+    func monitor(for workout: Workout, maxHeartRate: MaxHeartRate?) -> HeartRateMonitor {
+        if let monitor, workoutID == workout.id {
+            monitor.maxHeartRate = maxHeartRate
+            return monitor
+        }
+        // A different workout: end the old session before opening a new one.
+        if let existing = monitor {
+            let previous = existing
+            previous.onSample = nil
+            Task { await previous.stop() }
+        }
+        let fresh = HeartRateMonitor(
+            provider: HeartRateProviders.make(workoutID: workout.id.uuidString))
+        fresh.maxHeartRate = maxHeartRate
+        // The sample tick is owned here and forwarded on, rather than being
+        // handed to the screen: this is the only tick that survives both
+        // minimise and the screen going off, so it is the only one the alarm
+        // can hang from.
+        fresh.onSample = { [weak self] in
+            self?.soundRestAlarmIfDue()
+            self?.onSample?()
+        }
+        monitor = fresh
+        workoutID = workout.id
+        // Hold the audio session open for the workout. Activating one from a
+        // suspended background app is unreliable; activating it while the user
+        // is still looking at the screen, and keeping it, is not.
+        alarm.beginSession()
+        Task { await fresh.start() }
+        return fresh
+    }
+
+    /// Banks what the sensor saw onto the workout and ends the session.
+    ///
+    /// Called on every path that ends a workout — finish, templated finish,
+    /// cancel, and the "finish it and start new" recovery in `StartWorkoutView`,
+    /// which previously had no access to the monitor at all and so could neither
+    /// save the vitals nor stop the sensor.
+    func end(_ workout: Workout, capture: Bool = true) {
+        guard workoutID == workout.id, let monitor else { return }
+        if capture, !workout.isDeleted {
+            WorkoutSummaryBuilder.capture(
+                vitals: monitor.vitals,
+                activeEnergyKilocalories: monitor.activeEnergyKilocalories,
+                zonesEstimated: monitor.maxHeartRate?.isEstimated ?? false,
+                onto: workout)
+        }
+        monitor.onSample = nil
+        let ending = monitor
+        Task { await ending.stop() }
+        self.monitor = nil
+        self.workoutID = nil
+        releaseAlarm()
+    }
+
+    /// Test seam: arms a rest without a screen present.
+    func armForTesting(restEndsAt: Date?) {
+        broadcastRest(endsAt: restEndsAt)
+    }
+
+    /// Test seam: runs the alarm check at a chosen instant, as a sample would.
+    func evaluateAlarmForTesting(now: Date) {
+        soundRestAlarmIfDue(now: now)
+    }
+
+    /// Test seam: installs a monitor without opening a real session.
+    func adoptForTesting(monitor: HeartRateMonitor, workoutID: UUID) {
+        self.monitor = monitor
+        self.workoutID = workoutID
+    }
+
+    /// Mirrors the phone's rest timer onto the watch, if one is listening, and
+    /// arms the audible alarm for that rest.
+    func broadcastRest(endsAt: Date?) {
+        (monitor?.provider as? WatchRestBroadcasting)?.sendRest(endsAt: endsAt)
+        restEndsAt = endsAt
+        // A new rest re-arms. Without this the second rest of a workout would be
+        // silent, the gate still holding the first one's end.
+        if let endsAt, endsAt != lastSoundedRestEnd {
+            lastSoundedRestEnd = nil
+        }
+    }
+
+    /// The heart rate came down, so this rest ended early (D43). Sounds the
+    /// "recovered" pattern and disarms, so the cap cannot also fire.
+    func soundRecovered() {
+        alarm.sound(.recovered)
+        restEndsAt = nil
+        lastSoundedRestEnd = nil
+    }
+
+    /// Sounds the cap pattern once, when a rest runs its full length.
+    ///
+    /// Evaluated on every sample — roughly once a second — so the gate is what
+    /// keeps a face-down phone from beeping every second.
+    private func soundRestAlarmIfDue(now: Date = .now) {
+        guard RestAlarmDecision.shouldSound(
+            restEndsAt: restEndsAt, lastSounded: lastSoundedRestEnd, now: now)
+        else { return }
+        lastSoundedRestEnd = restEndsAt
+        alarm.sound(.cap)
+    }
+
+    /// Ends whatever is running, whichever workout it belongs to. Used when the
+    /// app cannot name the workout being replaced.
+    func endAny() {
+        guard let monitor else { return }
+        monitor.onSample = nil
+        let ending = monitor
+        Task { await ending.stop() }
+        self.monitor = nil
+        self.workoutID = nil
+        releaseAlarm()
+    }
+
+    /// Hands the audio session back when the workout ends. Holding it open for
+    /// a workout nobody is doing is the audio equivalent of leaving the sensor
+    /// powered.
+    private func releaseAlarm() {
+        restEndsAt = nil
+        lastSoundedRestEnd = nil
+        onSample = nil
+        alarm.endSession()
+    }
+}
+FILE: WorkoutTracker/Domain/HealthKitHeartRateProvider.swift
+import Foundation
+import HealthKit
+
+// Milestone 7, ticket 03 — the one file in the app that talks to HealthKit
+// (D41). Everything above it sees `HeartRateProviding` and knows nothing about
+// workout sessions, which is what lets every rule in this milestone be tested
+// on a Mac with no sensor.
+//
+// Requires iOS 26 (D42): `HKWorkoutSession(healthStore:configuration:)`,
+// `HKLiveWorkoutBuilder` and `HKLiveWorkoutDataSource` are all
+// API_AVAILABLE(ios(26.0)). The project's deployment target is 26.0, so there
+// is nothing to gate.
+//
+// What starts the sensor is the SESSION, not the app: AirPods Pro 3 measure
+// heart rate because a workout session asked them to. No session, no readings —
+// which is why `start()` and `stop()` are tied to the app's own workout
+// lifecycle and not to a screen appearing.
+
+@MainActor
+final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
+
+    private let store = HKHealthStore()
+    private var session: HKWorkoutSession?
+    private var builder: HKLiveWorkoutBuilder?
+    private var continuation: AsyncStream<HeartRateSample>.Continuation?
+
+    private(set) var activeEnergyKilocalories: Double?
+
+    let stream: AsyncStream<HeartRateSample>
+
+    /// Which sensor the samples are coming from. HealthKit does not hand us a
+    /// device model per sample in a form worth trusting, so this is the honest
+    /// default for a phone-run session: something paired over the heart-rate
+    /// GATT profile. The watch companion (ticket 04) reports `.watch` itself.
+    private let assumedSource: HeartRateSource
+
+    init(assumedSource: HeartRateSource = .airPods) {
+        self.assumedSource = assumedSource
+        var captured: AsyncStream<HeartRateSample>.Continuation!
+        self.stream = AsyncStream { captured = $0 }
+        self.continuation = captured
+        super.init()
+    }
+
+    private var heartRateType: HKQuantityType { .quantityType(forIdentifier: .heartRate)! }
+    private var activeEnergyType: HKQuantityType {
+        .quantityType(forIdentifier: .activeEnergyBurned)!
+    }
+
+    func start() async -> HeartRateFeedState {
+        guard HKHealthStore.isHealthDataAvailable() else { return .unavailable }
+
+        let share: Set<HKSampleType> = [HKObjectType.workoutType()]
+        let read: Set<HKObjectType> = [heartRateType, activeEnergyType]
+        do {
+            // Asked on first use of the feature, not at launch — the same rule
+            // the rest-timer notification permission follows.
+            try await store.requestAuthorization(toShare: share, read: read)
+        } catch {
+            return .denied
+        }
+
+        // Read permission is deliberately NOT probed with
+        // `authorizationStatus(for:)`: HealthKit refuses to disclose read
+        // denial, and treating "not determined" as denial would blank the UI
+        // for a user who actually granted it. The honest signal that reads are
+        // permitted is samples arriving — hence `.waitingForSensor` until one
+        // does.
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .traditionalStrengthTraining
+        configuration.locationType = .indoor
+
+        do {
+            let session = try HKWorkoutSession(
+                healthStore: store, configuration: configuration)
+            let builder = session.associatedWorkoutBuilder()
+            builder.dataSource = HKLiveWorkoutDataSource(
+                healthStore: store, workoutConfiguration: configuration)
+            builder.delegate = self
+            session.delegate = self
+
+            self.session = session
+            self.builder = builder
+
+            // `prepare()` before starting gives the sensor time to spin up —
+            // Apple's own guidance, and the reason their UI shows a countdown.
+            session.prepare()
+            let start = Date()
+            session.startActivity(with: start)
+            try await builder.beginCollection(at: start)
+            return .waitingForSensor
+        } catch {
+            self.session = nil
+            self.builder = nil
+            return .unavailable
+        }
+    }
+
+    func stop() async {
+        guard let session, let builder else { return }
+        let end = Date()
+        session.stopActivity(with: end)
+        session.end()
+        // Ending collection and finishing are best-effort: the workout is the
+        // user's record either way, and a failure here must not prevent the
+        // session from being torn down — a live session left behind keeps the
+        // sensor on.
+        try? await builder.endCollection(at: end)
+        _ = try? await builder.finishWorkout()
+        self.session = nil
+        self.builder = nil
+        continuation?.finish()
+    }
+}
+
+// MARK: - Live data
+
+extension HealthKitHeartRateProvider: HKLiveWorkoutBuilderDelegate {
+
+    nonisolated func workoutBuilder(
+        _ workoutBuilder: HKLiveWorkoutBuilder,
+        didCollectDataOf collectedTypes: Set<HKSampleType>
+    ) {
+        for type in collectedTypes {
+            guard let quantityType = type as? HKQuantityType,
+                  let statistics = workoutBuilder.statistics(for: quantityType)
+            else { continue }
+            let identifier = quantityType.identifier
+            Task { @MainActor [weak self] in
+                self?.apply(statistics: statistics, identifier: identifier)
+            }
+        }
+    }
+
+    nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
+
+    @MainActor
+    private func apply(statistics: HKStatistics, identifier: String) {
+        switch identifier {
+        case HKQuantityTypeIdentifier.heartRate.rawValue:
+            let unit = HKUnit.count().unitDivided(by: .minute())
+            guard let quantity = statistics.mostRecentQuantity() else { return }
+            let bpm = Int(quantity.doubleValue(for: unit).rounded())
+            guard bpm > 0 else { return }
+            // Date from the statistic itself, not `.now`: staleness is measured
+            // against when the heart beat, not when we noticed.
+            let date = statistics.mostRecentQuantityDateInterval()?.end ?? Date()
+            continuation?.yield(
+                HeartRateSample(bpm: bpm, date: date, source: assumedSource))
+        case HKQuantityTypeIdentifier.activeEnergyBurned.rawValue:
+            // The system's own accumulation. We never add these up ourselves.
+            activeEnergyKilocalories = statistics
+                .sumQuantity()?
+                .doubleValue(for: .kilocalorie())
+        default:
+            break
+        }
+    }
+}
+
+// MARK: - Session lifecycle
+
+extension HealthKitHeartRateProvider: HKWorkoutSessionDelegate {
+
+    nonisolated func workoutSession(
+        _ workoutSession: HKWorkoutSession,
+        didChangeTo toState: HKWorkoutSessionState,
+        from fromState: HKWorkoutSessionState,
+        date: Date
+    ) {}
+
+    nonisolated func workoutSession(
+        _ workoutSession: HKWorkoutSession,
+        didFailWithError error: Error
+    ) {
+        // A failed session is a dead session: close the stream so the monitor
+        // stops reporting live and the UI can say the sensor is gone, rather
+        // than freezing on the last number forever.
+        Task { @MainActor [weak self] in
+            self?.continuation?.finish()
+            self?.session = nil
+            self?.builder = nil
+        }
+    }
+}
+FILE: WorkoutTracker/Domain/RestTimer.swift
+import Foundation
+import SwiftData
+import UserNotifications
+
+protocol RestClock {
+    var now: Date { get }
+}
+
+struct SystemRestClock: RestClock {
+    var now: Date { .now }
+}
+
+protocol RestNotificationScheduling: AnyObject {
+    func requestAuthorization()
+    func schedule(at date: Date)
+    /// D43: "your heart rate came down" and "you have been sitting here four
+    /// minutes" are different facts about the set you just did, so the alarm
+    /// says which. Defaulted, so existing implementations (and test doubles)
+    /// that only know the plain form keep working.
+    func schedule(at date: Date, title: String, body: String)
+    func cancel()
+}
+
+extension RestNotificationScheduling {
+    func schedule(at date: Date, title: String, body: String) {
+        schedule(at: date)
+    }
+}
+
+/// Production adapter. One stable identifier guarantees that every start,
+/// +time, or replacement leaves at most one pending rest notification.
+final class UserNotificationScheduler: RestNotificationScheduling {
+    static let shared = UserNotificationScheduler()
+    private let center: UNUserNotificationCenter
+    private let identifier = "workout-rest-timer"
+
+    init(center: UNUserNotificationCenter = .current()) {
+        self.center = center
+    }
+
+    func requestAuthorization() {
+        Task { _ = try? await center.requestAuthorization(options: [.alert, .sound]) }
+    }
+
+    func schedule(at date: Date) {
+        schedule(at: date, title: "Rest complete", body: "Time for your next set.")
+    }
+
+    func schedule(at date: Date, title: String, body: String) {
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        let content = UNMutableNotificationContent()
+        content.title = title
+        content.body = body
+        content.sound = .default
+        let interval = max(1, date.timeIntervalSinceNow)
+        let request = UNNotificationRequest(
+            identifier: identifier,
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(
+                timeInterval: interval, repeats: false))
+        Task { try? await center.add(request) }
+    }
+
+    func cancel() {
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+    }
+}
+
+struct RestTimerState: Equatable {
+    var end: Date
+    var remaining: TimeInterval
+    /// The full duration this rest was started with, including any +15s
+    /// extensions. `remaining / total` is the progress-bar fraction; using
+    /// `remaining` as the denominator would show a restored timer as full.
+    var total: TimeInterval
+}
+
+/// Ticket 14 timer state machine. Absolute time lives on Workout, duration
+/// selection is override → global (failure uses working), and all clock/
+/// notification effects are injected for deterministic tests.
+struct RestTimerService {
+    let context: ModelContext
+    let clock: any RestClock
+    let notifications: any RestNotificationScheduling
+
+    init(
+        context: ModelContext,
+        clock: any RestClock = SystemRestClock(),
+        notifications: any RestNotificationScheduling = UserNotificationScheduler.shared
+    ) {
+        self.context = context
+        self.clock = clock
+        self.notifications = notifications
+    }
+
+    /// D22: warmups get the warmup duration, working and failure sets the
+    /// working one. Drop sets never reach here — `handleCompletionChange`
+    /// starts no timer for them (D26) — so they carry no duration of their own.
+    func durationSeconds(for set: SetRecord) throws -> Int {
+        let preferences = try AppPreferences.canonical(in: context)
+        let isWarmup = set.type == .warmup
+        guard let exerciseID = set.entry?.exercise?.id else {
+            return isWarmup
+                ? preferences.globalWarmupRestSeconds
+                : preferences.globalWorkingRestSeconds
+        }
+        let overrides = try context.fetch(FetchDescriptor<ExerciseRestOverride>(
+            predicate: #Predicate { $0.exerciseID == exerciseID }
+        ))
+        let canonical = overrides.canonical
+        if isWarmup, let seconds = canonical?.warmupRestSeconds { return max(0, seconds) }
+        if !isWarmup, let seconds = canonical?.workingRestSeconds { return max(0, seconds) }
+        return max(0, isWarmup
+            ? preferences.globalWarmupRestSeconds
+            : preferences.globalWorkingRestSeconds)
+    }
+
+    /// Call after WorkoutSession toggles completion. A completion starts or
+    /// replaces the timer. An un-completion only cancels when this exact set
+    /// started the current timer; it never starts a new one.
+    ///
+    /// D26: completing a *drop* set starts nothing — a drop set is performed
+    /// without rest, so a countdown here would only be something to dismiss.
+    /// Any timer already running is left exactly as it is (the rest the user
+    /// is actually taking is not this set's to cancel).
+    @discardableResult
+    func handleCompletionChange(
+        of set: SetRecord,
+        isCompleted: Bool
+    ) throws -> RestTimerState? {
+        guard let workout = set.entry?.workout else { return nil }
+        if !isCompleted {
+            if workout.restStartedBySetID == set.id {
+                clear(workout)
+                try context.save()
+                notifications.cancel()
+            }
+            return try currentState(for: workout)
+        }
+        guard set.type.startsRestTimer else { return try currentState(for: workout) }
+
+        let preferences = try AppPreferences.canonical(in: context)
+        if !preferences.notificationPermissionRequested {
+            preferences.notificationPermissionRequested = true
+            preferences.updatedAt = clock.now
+            notifications.requestAuthorization()
+        }
+
+        // D43: a heart-rate rest runs to its CAP as far as the clock and the
+        // persisted timer are concerned. The threshold can only end it early,
+        // and only while a live reading is arriving — so the cap is what
+        // survives a relaunch, a backgrounded app, or a sensor that dies.
+        let plan = try restPlan(for: set)
+        let seconds = plan.seconds
+        let end = clock.now.addingTimeInterval(TimeInterval(seconds))
+        workout.restEndsAt = end
+        workout.restStartedAt = clock.now
+        workout.restStartedBySetID = set.id
+        try context.save()
+        switch plan.mode {
+        case .standard:
+            notifications.schedule(at: end)
+        case .heartRate:
+            notifications.schedule(
+                at: end,
+                title: "Rest complete",
+                body: "Time is up — your heart rate didn't reach the target.")
+        }
+        return RestTimerState(
+            end: end,
+            remaining: TimeInterval(seconds),
+            total: TimeInterval(seconds))
+    }
+
+    // MARK: - Heart-rate rest (D43)
+
+    /// How a rest for this set should run: standard durations (D22), or a
+    /// heart-rate threshold with its cap.
+    struct RestPlan: Equatable {
+        var mode: RestMode
+        /// The countdown length. In heart-rate mode this is the CAP.
+        var seconds: Int
+        /// nil in standard mode.
+        var rule: HeartRateRestRule?
+    }
+
+    func restPlan(for set: SetRecord) throws -> RestPlan {
+        guard let exerciseID = set.entry?.exercise?.id
+                ?? set.entry?.snapshotExerciseID else {
+            return RestPlan(
+                mode: .standard, seconds: try durationSeconds(for: set), rule: nil)
+        }
+        let rows = try context.fetch(FetchDescriptor<ExerciseRestOverride>(
+            predicate: #Predicate { $0.exerciseID == exerciseID }))
+        let override = rows.canonical
+        guard override?.restMode == .heartRate else {
+            return RestPlan(
+                mode: .standard, seconds: try durationSeconds(for: set), rule: nil)
+        }
+        // A missing threshold or cap resolves to the defaults rather than
+        // disabling the mode: the user asked for a heart-rate rest, and a
+        // silently-standard timer would be the app quietly doing something else.
+        let rule = HeartRateRestRule(
+            thresholdBpm: override?.heartRateThresholdBpm
+                ?? HeartRateRestRule.defaultThresholdBpm,
+            cap: TimeInterval(
+                override?.heartRateCapSeconds ?? Int(HeartRateRestRule.defaultCap)))
+        return RestPlan(mode: .heartRate, seconds: Int(rule.cap), rule: rule)
+    }
+
+    /// codex-review 2.1 (critical) — falls a heart-rate rest back to the
+    /// standard duration when nothing is reading the user.
+    ///
+    /// The original code left the cap running and called that "degrading to the
+    /// standard timer". It is not: the cap is four minutes and the user's
+    /// standard rest is one or two, so a dead sensor silently doubled every
+    /// rest while the settings screen promised a fallback. D43 says the rest
+    /// degrades AND says it degraded.
+    ///
+    /// Returns the new state when it moved the deadline, nil when there was
+    /// nothing to do — so this is safe to call on every tick.
+    @discardableResult
+    func degradeToStandard(_ workout: Workout, set: SetRecord) throws -> RestTimerState? {
+        guard let start = workout.restStartedAt, let end = workout.restEndsAt else {
+            return nil
+        }
+        let seconds = try durationSeconds(for: set)
+        let standardEnd = start.addingTimeInterval(TimeInterval(seconds))
+        // Idempotent in BOTH directions. Round 1 only shortened, so a 5:00
+        // standard rest against a 4:00 cap never degraded at all and kept the
+        // false "didn't reach target" alarm (codex-review-2 #4). Degrading means
+        // "rest the way this exercise normally rests", whether that is shorter
+        // or longer; already being there is the no-op.
+        guard standardEnd != end else { return nil }
+
+        let body = "No heart rate reading — resting by the timer instead."
+        guard standardEnd > clock.now else {
+            // The standard rest already elapsed while we waited on a sensor that
+            // never reported. End it now — and schedule ONCE, not twice as round
+            // 1 did.
+            clear(workout)
+            try context.save()
+            notifications.schedule(
+                at: clock.now.addingTimeInterval(1),
+                title: "Rest complete", body: body)
+            return nil
+        }
+
+        workout.restEndsAt = standardEnd
+        try context.save()
+        notifications.schedule(at: standardEnd, title: "Rest complete", body: body)
+        return RestTimerState(
+            end: standardEnd,
+            remaining: standardEnd.timeIntervalSince(clock.now),
+            total: TimeInterval(seconds))
+    }
+
+    /// Ends a heart-rate rest early because the user's heart rate came down.
+    ///
+    /// Separate from `skip` so the notification can tell the truth: this fires
+    /// an alarm saying the athlete recovered, where `skip` fires none at all.
+    func finishRecovered(_ workout: Workout, bpm: Int) throws {
+        guard workout.restEndsAt != nil else { return }
+        clear(workout)
+        try context.save()
+        // +1s rather than `now`: a UNTimeIntervalNotificationTrigger of zero is
+        // rejected, and the app may well be backgrounded — which is exactly the
+        // case this alarm exists for.
+        notifications.schedule(
+            at: clock.now.addingTimeInterval(1),
+            title: "Rest complete",
+            body: "Heart rate down to \(bpm) bpm — ready for your next set.")
+    }
+
+    /// Reconstruct or expire a persisted timer. Expired timers are cleared so
+    /// returning from suspension never shows stale UI.
+    func currentState(for workout: Workout) throws -> RestTimerState? {
+        guard let end = workout.restEndsAt else { return nil }
+        let remaining = end.timeIntervalSince(clock.now)
+        guard remaining > 0 else {
+            clear(workout)
+            try context.save()
+            notifications.cancel()
+            return nil
+        }
+        return RestTimerState(
+            end: end, remaining: remaining, total: total(of: workout, end: end))
+    }
+
+    @discardableResult
+    func add(seconds: Int, to workout: Workout) throws -> RestTimerState? {
+        guard let state = try currentState(for: workout) else { return nil }
+        let end = state.end.addingTimeInterval(TimeInterval(seconds))
+        workout.restEndsAt = end
+        try context.save()
+        notifications.schedule(at: end)
+        // `restStartedAt` is untouched, so the total grows with the extension
+        // and the bar keeps shrinking from wherever it was.
+        return RestTimerState(
+            end: end,
+FILE: Config/WorkoutTracker-Info.plist
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Partial Info.plist, MERGED with the generated one.
+
+	     GENERATE_INFOPLIST_FILE stays YES: every usage-description string and
+	     the scene manifest still live in build settings, exactly as before.
+	     This file exists for one key that build settings cannot express.
+
+	     Xcode's plist generator only writes an allowlist of INFOPLIST_KEY_*
+	     settings, and array-valued keys are not on it. Setting
+	     INFOPLIST_KEY_UIBackgroundModes = audio is silently accepted, appears
+	     in -showBuildSettings, and never reaches the built plist — verified
+	     2026-08-24 with `plutil -extract` on the built app.
+
+	     Why the app needs it: the rest alarm plays real audio so the sound
+	     reaches AirPods (a UNNotificationSound does not). The moment that
+	     matters most is the screen being off mid-workout, and starting
+	     playback from the background requires this mode. Without it
+	     AVAudioSession activation fails there and the alarm is silent again —
+	     the exact bug it was added to fix. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<!-- Plays the rest alarm while the app is backgrounded. -->
+		<string>audio</string>
+		<!-- Keeps the HKWorkoutSession RUNNING while the app is backgrounded,
+		     which on iOS it does not do without this.
+
+		     Found the hard way, 2026-08-25: with `audio` alone the alarm beeped
+		     only while the app was on screen. iOS suspends the workout session
+		     when the app backgrounds, so no samples arrive, so the sample-driven
+		     alarm never fires — and every SwiftUI timer has stopped too.
+
+		     The local notification kept firing throughout, which is what made
+		     this hard to see: a UNTimeIntervalNotificationTrigger is scheduled
+		     with the system in advance and fires whether or not the app is
+		     running. The notification arriving never proved the app was alive. -->
+		<string>workout-processing</string>
+	</array>
+</dict>
+</plist>
+
+hook: PostToolUse
+hook: PostToolUse Completed
+codex
+There’s no agent-runnable pass/fail loop for the exact symptom in this workspace: the decisive observation is an AirPods audio route plus iOS suspension on a physical phone. I can still separate policy/API guarantees from implementation mistakes, but I’ll label conclusions that need a device log rather than pretending code inspection reproduces it.
+
+The first concrete red flag is that the current comments treat “audio is playing” as sufficient background eligibility. Apple’s rule is narrower: the app must be audibly providing foreground-style audio functionality; an inaudible keep-alive can be suspended or terminated as background-mode misuse. I’m now checking whether the generated buffer is effectively silent and whether the iOS workout assumptions are supported.
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "if [ -f CONTEXT.md ]; then sed -n '1,260p' CONTEXT.md; fi
+rg --files | rg '("'^|/)(ADR|adr|decisions|docs)|'"\\.entitlements"'$|project'"\\.pbxproj"'$'"'
+printf '\\n--- RestAlarmTone ---\\n'
+sed -n '1,320p' WorkoutTracker/Domain/RestAlarmTone.swift
+printf '\\n--- WorkoutHeartRateCoordinator ---\\n'
+sed -n '1,380p' WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift
+printf '\\n--- HealthKitHeartRateProvider ---\\n'
+sed -n '1,420p' WorkoutTracker/Domain/HealthKitHeartRateProvider.swift
+printf '\\n--- RestTimer remainder ---\\n'
+sed -n '220,520p' WorkoutTracker/Domain/RestTimer.swift
+printf '\\n--- relevant project settings ---\\n'
+rg -n \"INFOPLIST|UIBackgroundModes|CODE_SIGN_ENTITLEMENTS|HealthKit|com.apple.developer.healthkit|PRODUCT_BUNDLE_IDENTIFIER|DEVELOPMENT_TEAM\" WorkoutTracker.xcodeproj/project.pbxproj Config WorkoutTracker -g '*.entitlements' -g '*.plist' -g 'project.pbxproj'" in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+docs/DECISIONS.md
+docs/catalog-sources/README.md
+docs/catalog-sources/group3-hoist-arsenal-prime-atlantis-rogue-impulse-legend-sorinex-titan.md
+docs/catalog-sources/group1-lifefitness-hammerstrength-precor-cybex-nautilus-startrac-bodysolid.md
+docs/catalog-sources/group2-technogym-matrix-gym80-panatta-watson-eleiko-bhfitness.md
+docs/SPEC.md
+docs/agents/issue-tracker.md
+docs/agents/triage-labels.md
+docs/agents/domain.md
+docs/STATE.md
+WorkoutTracker.xcodeproj/project.pbxproj
+Config/WorkoutTrackerWatch.entitlements
+Config/WorkoutTracker.entitlements
+agent/skills/domain-modeling/ADR-FORMAT.md
+
+--- RestAlarmTone ---
+import Foundation
+
+// Gym feedback, 2026-08-24 — the rest alarm was seen and never heard.
+//
+// WHY THIS FILE EXISTS AT ALL: the rest timer already fires a local
+// notification with `UNNotificationSound.default`, and the user confirmed the
+// notification arrives, screen off included. But a notification sound plays on
+// the phone's ALERT route — it does not go to connected AirPods. Wearing
+// earbuds mid-set, you get a silent banner you cannot see because the phone is
+// on the floor.
+//
+// The only way to put a sound in the user's ears is for the app to play real
+// audio through the shared audio session, which means the app needs a waveform.
+// Synthesising it here rather than shipping an .aiff keeps the repo's
+// no-binary-assets habit and — more usefully — makes the tone testable: a
+// silent or malformed buffer is a bug you can catch in CI instead of in a gym.
+
+/// One element of an alarm pattern: a tone, or a gap between tones.
+struct AlarmBeep: Equatable, Sendable {
+    /// Hertz. Zero means silence for `seconds`.
+    let hertz: Double
+    let seconds: Double
+
+    static func tone(_ hertz: Double, _ seconds: Double) -> AlarmBeep {
+        AlarmBeep(hertz: hertz, seconds: seconds)
+    }
+
+    static func gap(_ seconds: Double) -> AlarmBeep {
+        AlarmBeep(hertz: 0, seconds: seconds)
+    }
+}
+
+/// Which alarm this is. The two rest endings sound different on purpose.
+///
+/// D43 lets a rest end two ways — the heart rate came down, or the four-minute
+/// cap ran out — and the difference matters to the lifter: recovered means go,
+/// capped means you did not recover and the app stopped waiting. The
+/// notification text already distinguishes them. Mid-set with the phone on the
+/// floor, the sound is the only channel that reaches you, so it distinguishes
+/// them too.
+enum RestAlarmPattern: Equatable, Sendable, CaseIterable {
+    /// Heart rate recovered: two rising tones. Reads as "ready".
+    case recovered
+    /// The cap expired: three flat tones. Reads as "time".
+    case cap
+
+    var beeps: [AlarmBeep] {
+        switch self {
+        case .recovered:
+            [.tone(880, 0.12), .gap(0.06), .tone(1175, 0.18)]
+        case .cap:
+            [.tone(880, 0.12), .gap(0.08), .tone(880, 0.12), .gap(0.08), .tone(880, 0.2)]
+        }
+    }
+}
+
+enum RestAlarmTone {
+
+    static let sampleRate: Double = 44_100
+    /// Loud enough to hear over gym noise and your own music, short enough not
+    /// to be obnoxious. Full scale would clip against ducked music.
+    static let amplitude: Double = 0.85
+    /// Each tone ramps in and out over this long. Without it every beep starts
+    /// and ends on a discontinuity, which is audible as a click — the sound a
+    /// user reads as "the app is broken".
+    static let fadeSeconds: Double = 0.005
+
+    /// 16-bit mono PCM samples for a pattern.
+    static func samples(
+        for pattern: RestAlarmPattern, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> [Int16] {
+        var out: [Int16] = []
+        for beep in pattern.beeps {
+            let count = Int((beep.seconds * sampleRate).rounded())
+            guard count > 0 else { continue }
+            if beep.hertz <= 0 {
+                out.append(contentsOf: repeatElement(0, count: count))
+                continue
+            }
+            let fade = max(1, Int(fadeSeconds * sampleRate))
+            for index in 0..<count {
+                let time = Double(index) / sampleRate
+                let wave = sin(2 * .pi * beep.hertz * time)
+                // Linear ramp at both ends; `fade` is clamped so a beep shorter
+                // than two fades still tapers instead of inverting.
+                let ramp: Double
+                if count < fade * 2 {
+                    ramp = Double(min(index, count - 1 - index)) / Double(max(1, count / 2))
+                } else if index < fade {
+                    ramp = Double(index) / Double(fade)
+                } else if index >= count - fade {
+                    ramp = Double(count - 1 - index) / Double(fade)
+                } else {
+                    ramp = 1
+                }
+                let value = wave * amplitude * max(0, min(1, ramp))
+                out.append(Int16(clamping: Int(value * Double(Int16.max))))
+            }
+        }
+        return out
+    }
+
+    /// A silent-to-the-ear buffer, looped for the whole workout to keep the app
+    /// running in the background — the same mechanism a music app relies on.
+    ///
+    /// A merely ACTIVE audio session does not keep an app alive; iOS suspends
+    /// it. Audio that is actually PLAYING does. That is the difference between
+    /// this working and the two builds before it, both of which beeped only
+    /// while the app was on screen.
+    ///
+    /// Amplitude is 1 LSB rather than 0 — roughly −90 dBFS, inaudible on any
+    /// hardware — deliberately: a buffer of pure zeroes can be treated as "no
+    /// audio" and optimised away, which would put us straight back to a
+    /// suspended app.
+    static func keepAliveSamples(
+        seconds: Double = 2, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> [Int16] {
+        let count = Int((seconds * sampleRate).rounded())
+        guard count > 0 else { return [] }
+        // Alternating ±1 rather than a constant: a DC offset is not "signal" to
+        // some encoders, an alternating one always is.
+        return (0..<count).map { $0.isMultiple(of: 2) ? 1 : -1 }
+    }
+
+    static func keepAliveWav(
+        seconds: Double = 2, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> Data {
+        wav(samples: keepAliveSamples(seconds: seconds, sampleRate: sampleRate),
+            sampleRate: sampleRate)
+    }
+
+    /// A complete WAV file for a pattern, ready to hand to `AVAudioPlayer`.
+    ///
+    /// Built by hand because the alternative is shipping two audio files and
+    /// trusting they were encoded right. 44-byte canonical PCM header.
+    static func wav(
+        for pattern: RestAlarmPattern, sampleRate: Double = RestAlarmTone.sampleRate
+    ) -> Data {
+        wav(samples: samples(for: pattern, sampleRate: sampleRate), sampleRate: sampleRate)
+    }
+
+    static func wav(samples pcm: [Int16], sampleRate: Double) -> Data {
+        let bitsPerSample: UInt16 = 16
+        let channels: UInt16 = 1
+        let rate = UInt32(sampleRate)
+        let byteRate = rate * UInt32(channels) * UInt32(bitsPerSample / 8)
+        let blockAlign = channels * (bitsPerSample / 8)
+        let dataBytes = UInt32(pcm.count * MemoryLayout<Int16>.size)
+
+        var data = Data()
+        data.append(contentsOf: Array("RIFF".utf8))
+        data.append(littleEndian: UInt32(36) + dataBytes)
+        data.append(contentsOf: Array("WAVE".utf8))
+        data.append(contentsOf: Array("fmt ".utf8))
+        data.append(littleEndian: UInt32(16))
+        data.append(littleEndian: UInt16(1))       // PCM, uncompressed
+        data.append(littleEndian: channels)
+        data.append(littleEndian: rate)
+        data.append(littleEndian: byteRate)
+        data.append(littleEndian: blockAlign)
+        data.append(littleEndian: bitsPerSample)
+        data.append(contentsOf: Array("data".utf8))
+        data.append(littleEndian: dataBytes)
+        for sample in pcm { data.append(littleEndian: UInt16(bitPattern: sample)) }
+        return data
+    }
+}
+
+private extension Data {
+    // `Swift.` qualified deliberately: inside a Data extension, a bare
+    // `withUnsafeBytes` resolves to Data's own instance method, not the global
+    // one that takes a value.
+    mutating func append(littleEndian value: UInt16) {
+        append(contentsOf: Swift.withUnsafeBytes(of: value.littleEndian, Array.init))
+    }
+
+    mutating func append(littleEndian value: UInt32) {
+        append(contentsOf: Swift.withUnsafeBytes(of: value.littleEndian, Array.init))
+    }
+}
+
+--- WorkoutHeartRateCoordinator ---
+import Foundation
+import Observation
+import SwiftData
+
+// codex-review-2 #2 (critical) — who owns the heart-rate session.
+//
+// It used to be the workout SCREEN. That screen is dismissed by C1's minimise
+// while the workout keeps running, so minimising either orphaned a live session
+// (sensor powered, nobody watching) or — after the first patch — quietly ended
+// heart-rate tracking half way through a workout and replaced the banked
+// summary on resume.
+//
+// The session belongs to the WORKOUT, so it is owned at the same level the
+// workout is: `RootView`, which survives minimise. The screen borrows it.
+//
+// The invariant: at most one monitor exists, and it belongs to exactly one
+// workout id. Starting a session for a different workout ends the previous one
+// first — an orphaned session is a sensor running for a workout nobody is doing.
+
+@MainActor
+@Observable
+final class WorkoutHeartRateCoordinator {
+
+    private(set) var workoutID: UUID?
+    private(set) var monitor: HeartRateMonitor?
+
+    // The rest alarm lives HERE, not on the workout screen, for the same reason
+    // the session does (codex-review-2 #2): C1's minimise dismisses that screen
+    // while the workout keeps running. An alarm owned by the screen dies on
+    // minimise — its `@State` goes with it — so the user who backgrounds the app
+    // mid-rest, which is every user, gets silence.
+    private let alarm: any RestAlarmSounding
+    /// The rest end the phone is currently counting down to, mirrored here by
+    /// `broadcastRest` — the screen already tells us on every change.
+    private var restEndsAt: Date?
+    /// The end already announced, so the alarm sounds once per rest rather than
+    /// once per sample.
+    private var lastSoundedRestEnd: Date?
+    /// Forwarded to the screen when it is on screen. Nil after minimise, which
+    /// is fine: the alarm above does not depend on it.
+    var onSample: (() -> Void)?
+
+    init(alarm: (any RestAlarmSounding)? = nil) {
+        self.alarm = alarm ?? RestAlarms.make()
+    }
+
+    /// The monitor for this workout, started if it is not already running.
+    ///
+    /// Idempotent: calling it again for the same workout returns the same
+    /// monitor with its samples intact, which is what makes minimise and resume
+    /// continue one session rather than start a second.
+    @discardableResult
+    func monitor(for workout: Workout, maxHeartRate: MaxHeartRate?) -> HeartRateMonitor {
+        if let monitor, workoutID == workout.id {
+            monitor.maxHeartRate = maxHeartRate
+            return monitor
+        }
+        // A different workout: end the old session before opening a new one.
+        if let existing = monitor {
+            let previous = existing
+            previous.onSample = nil
+            Task { await previous.stop() }
+        }
+        let fresh = HeartRateMonitor(
+            provider: HeartRateProviders.make(workoutID: workout.id.uuidString))
+        fresh.maxHeartRate = maxHeartRate
+        // The sample tick is owned here and forwarded on, rather than being
+        // handed to the screen: this is the only tick that survives both
+        // minimise and the screen going off, so it is the only one the alarm
+        // can hang from.
+        fresh.onSample = { [weak self] in
+            self?.soundRestAlarmIfDue()
+            self?.onSample?()
+        }
+        monitor = fresh
+        workoutID = workout.id
+        // Hold the audio session open for the workout. Activating one from a
+        // suspended background app is unreliable; activating it while the user
+        // is still looking at the screen, and keeping it, is not.
+        alarm.beginSession()
+        Task { await fresh.start() }
+        return fresh
+    }
+
+    /// Banks what the sensor saw onto the workout and ends the session.
+    ///
+    /// Called on every path that ends a workout — finish, templated finish,
+    /// cancel, and the "finish it and start new" recovery in `StartWorkoutView`,
+    /// which previously had no access to the monitor at all and so could neither
+    /// save the vitals nor stop the sensor.
+    func end(_ workout: Workout, capture: Bool = true) {
+        guard workoutID == workout.id, let monitor else { return }
+        if capture, !workout.isDeleted {
+            WorkoutSummaryBuilder.capture(
+                vitals: monitor.vitals,
+                activeEnergyKilocalories: monitor.activeEnergyKilocalories,
+                zonesEstimated: monitor.maxHeartRate?.isEstimated ?? false,
+                onto: workout)
+        }
+        monitor.onSample = nil
+        let ending = monitor
+        Task { await ending.stop() }
+        self.monitor = nil
+        self.workoutID = nil
+        releaseAlarm()
+    }
+
+    /// Test seam: arms a rest without a screen present.
+    func armForTesting(restEndsAt: Date?) {
+        broadcastRest(endsAt: restEndsAt)
+    }
+
+    /// Test seam: runs the alarm check at a chosen instant, as a sample would.
+    func evaluateAlarmForTesting(now: Date) {
+        soundRestAlarmIfDue(now: now)
+    }
+
+    /// Test seam: installs a monitor without opening a real session.
+    func adoptForTesting(monitor: HeartRateMonitor, workoutID: UUID) {
+        self.monitor = monitor
+        self.workoutID = workoutID
+    }
+
+    /// Mirrors the phone's rest timer onto the watch, if one is listening, and
+    /// arms the audible alarm for that rest.
+    func broadcastRest(endsAt: Date?) {
+        (monitor?.provider as? WatchRestBroadcasting)?.sendRest(endsAt: endsAt)
+        restEndsAt = endsAt
+        // A new rest re-arms. Without this the second rest of a workout would be
+        // silent, the gate still holding the first one's end.
+        if let endsAt, endsAt != lastSoundedRestEnd {
+            lastSoundedRestEnd = nil
+        }
+    }
+
+    /// The heart rate came down, so this rest ended early (D43). Sounds the
+    /// "recovered" pattern and disarms, so the cap cannot also fire.
+    func soundRecovered() {
+        alarm.sound(.recovered)
+        restEndsAt = nil
+        lastSoundedRestEnd = nil
+    }
+
+    /// Sounds the cap pattern once, when a rest runs its full length.
+    ///
+    /// Evaluated on every sample — roughly once a second — so the gate is what
+    /// keeps a face-down phone from beeping every second.
+    private func soundRestAlarmIfDue(now: Date = .now) {
+        guard RestAlarmDecision.shouldSound(
+            restEndsAt: restEndsAt, lastSounded: lastSoundedRestEnd, now: now)
+        else { return }
+        lastSoundedRestEnd = restEndsAt
+        alarm.sound(.cap)
+    }
+
+    /// Ends whatever is running, whichever workout it belongs to. Used when the
+    /// app cannot name the workout being replaced.
+    func endAny() {
+        guard let monitor else { return }
+        monitor.onSample = nil
+        let ending = monitor
+        Task { await ending.stop() }
+        self.monitor = nil
+        self.workoutID = nil
+        releaseAlarm()
+    }
+
+    /// Hands the audio session back when the workout ends. Holding it open for
+    /// a workout nobody is doing is the audio equivalent of leaving the sensor
+    /// powered.
+    private func releaseAlarm() {
+        restEndsAt = nil
+        lastSoundedRestEnd = nil
+        onSample = nil
+        alarm.endSession()
+    }
+}
+
+--- HealthKitHeartRateProvider ---
+import Foundation
+import HealthKit
+
+// Milestone 7, ticket 03 — the one file in the app that talks to HealthKit
+// (D41). Everything above it sees `HeartRateProviding` and knows nothing about
+// workout sessions, which is what lets every rule in this milestone be tested
+// on a Mac with no sensor.
+//
+// Requires iOS 26 (D42): `HKWorkoutSession(healthStore:configuration:)`,
+// `HKLiveWorkoutBuilder` and `HKLiveWorkoutDataSource` are all
+// API_AVAILABLE(ios(26.0)). The project's deployment target is 26.0, so there
+// is nothing to gate.
+//
+// What starts the sensor is the SESSION, not the app: AirPods Pro 3 measure
+// heart rate because a workout session asked them to. No session, no readings —
+// which is why `start()` and `stop()` are tied to the app's own workout
+// lifecycle and not to a screen appearing.
+
+@MainActor
+final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
+
+    private let store = HKHealthStore()
+    private var session: HKWorkoutSession?
+    private var builder: HKLiveWorkoutBuilder?
+    private var continuation: AsyncStream<HeartRateSample>.Continuation?
+
+    private(set) var activeEnergyKilocalories: Double?
+
+    let stream: AsyncStream<HeartRateSample>
+
+    /// Which sensor the samples are coming from. HealthKit does not hand us a
+    /// device model per sample in a form worth trusting, so this is the honest
+    /// default for a phone-run session: something paired over the heart-rate
+    /// GATT profile. The watch companion (ticket 04) reports `.watch` itself.
+    private let assumedSource: HeartRateSource
+
+    init(assumedSource: HeartRateSource = .airPods) {
+        self.assumedSource = assumedSource
+        var captured: AsyncStream<HeartRateSample>.Continuation!
+        self.stream = AsyncStream { captured = $0 }
+        self.continuation = captured
+        super.init()
+    }
+
+    private var heartRateType: HKQuantityType { .quantityType(forIdentifier: .heartRate)! }
+    private var activeEnergyType: HKQuantityType {
+        .quantityType(forIdentifier: .activeEnergyBurned)!
+    }
+
+    func start() async -> HeartRateFeedState {
+        guard HKHealthStore.isHealthDataAvailable() else { return .unavailable }
+
+        let share: Set<HKSampleType> = [HKObjectType.workoutType()]
+        let read: Set<HKObjectType> = [heartRateType, activeEnergyType]
+        do {
+            // Asked on first use of the feature, not at launch — the same rule
+            // the rest-timer notification permission follows.
+            try await store.requestAuthorization(toShare: share, read: read)
+        } catch {
+            return .denied
+        }
+
+        // Read permission is deliberately NOT probed with
+        // `authorizationStatus(for:)`: HealthKit refuses to disclose read
+        // denial, and treating "not determined" as denial would blank the UI
+        // for a user who actually granted it. The honest signal that reads are
+        // permitted is samples arriving — hence `.waitingForSensor` until one
+        // does.
+        let configuration = HKWorkoutConfiguration()
+        configuration.activityType = .traditionalStrengthTraining
+        configuration.locationType = .indoor
+
+        do {
+            let session = try HKWorkoutSession(
+                healthStore: store, configuration: configuration)
+            let builder = session.associatedWorkoutBuilder()
+            builder.dataSource = HKLiveWorkoutDataSource(
+                healthStore: store, workoutConfiguration: configuration)
+            builder.delegate = self
+            session.delegate = self
+
+            self.session = session
+            self.builder = builder
+
+            // `prepare()` before starting gives the sensor time to spin up —
+            // Apple's own guidance, and the reason their UI shows a countdown.
+            session.prepare()
+            let start = Date()
+            session.startActivity(with: start)
+            try await builder.beginCollection(at: start)
+            return .waitingForSensor
+        } catch {
+            self.session = nil
+            self.builder = nil
+            return .unavailable
+        }
+    }
+
+    func stop() async {
+        guard let session, let builder else { return }
+        let end = Date()
+        session.stopActivity(with: end)
+        session.end()
+        // Ending collection and finishing are best-effort: the workout is the
+        // user's record either way, and a failure here must not prevent the
+        // session from being torn down — a live session left behind keeps the
+        // sensor on.
+        try? await builder.endCollection(at: end)
+        _ = try? await builder.finishWorkout()
+        self.session = nil
+        self.builder = nil
+        continuation?.finish()
+    }
+}
+
+// MARK: - Live data
+
+extension HealthKitHeartRateProvider: HKLiveWorkoutBuilderDelegate {
+
+    nonisolated func workoutBuilder(
+        _ workoutBuilder: HKLiveWorkoutBuilder,
+        didCollectDataOf collectedTypes: Set<HKSampleType>
+    ) {
+        for type in collectedTypes {
+            guard let quantityType = type as? HKQuantityType,
+                  let statistics = workoutBuilder.statistics(for: quantityType)
+            else { continue }
+            let identifier = quantityType.identifier
+            Task { @MainActor [weak self] in
+                self?.apply(statistics: statistics, identifier: identifier)
+            }
+        }
+    }
+
+    nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
+
+    @MainActor
+    private func apply(statistics: HKStatistics, identifier: String) {
+        switch identifier {
+        case HKQuantityTypeIdentifier.heartRate.rawValue:
+            let unit = HKUnit.count().unitDivided(by: .minute())
+            guard let quantity = statistics.mostRecentQuantity() else { return }
+            let bpm = Int(quantity.doubleValue(for: unit).rounded())
+            guard bpm > 0 else { return }
+            // Date from the statistic itself, not `.now`: staleness is measured
+            // against when the heart beat, not when we noticed.
+            let date = statistics.mostRecentQuantityDateInterval()?.end ?? Date()
+            continuation?.yield(
+                HeartRateSample(bpm: bpm, date: date, source: assumedSource))
+        case HKQuantityTypeIdentifier.activeEnergyBurned.rawValue:
+            // The system's own accumulation. We never add these up ourselves.
+            activeEnergyKilocalories = statistics
+                .sumQuantity()?
+                .doubleValue(for: .kilocalorie())
+        default:
+            break
+        }
+    }
+}
+
+// MARK: - Session lifecycle
+
+extension HealthKitHeartRateProvider: HKWorkoutSessionDelegate {
+
+    nonisolated func workoutSession(
+        _ workoutSession: HKWorkoutSession,
+        didChangeTo toState: HKWorkoutSessionState,
+        from fromState: HKWorkoutSessionState,
+        date: Date
+    ) {}
+
+    nonisolated func workoutSession(
+        _ workoutSession: HKWorkoutSession,
+        didFailWithError error: Error
+    ) {
+        // A failed session is a dead session: close the stream so the monitor
+        // stops reporting live and the UI can say the sensor is gone, rather
+        // than freezing on the last number forever.
+        Task { @MainActor [weak self] in
+            self?.continuation?.finish()
+            self?.session = nil
+            self?.builder = nil
+        }
+    }
+}
+
+--- RestTimer remainder ---
+    /// Returns the new state when it moved the deadline, nil when there was
+    /// nothing to do — so this is safe to call on every tick.
+    @discardableResult
+    func degradeToStandard(_ workout: Workout, set: SetRecord) throws -> RestTimerState? {
+        guard let start = workout.restStartedAt, let end = workout.restEndsAt else {
+            return nil
+        }
+        let seconds = try durationSeconds(for: set)
+        let standardEnd = start.addingTimeInterval(TimeInterval(seconds))
+        // Idempotent in BOTH directions. Round 1 only shortened, so a 5:00
+        // standard rest against a 4:00 cap never degraded at all and kept the
+        // false "didn't reach target" alarm (codex-review-2 #4). Degrading means
+        // "rest the way this exercise normally rests", whether that is shorter
+        // or longer; already being there is the no-op.
+        guard standardEnd != end else { return nil }
+
+        let body = "No heart rate reading — resting by the timer instead."
+        guard standardEnd > clock.now else {
+            // The standard rest already elapsed while we waited on a sensor that
+            // never reported. End it now — and schedule ONCE, not twice as round
+            // 1 did.
+            clear(workout)
+            try context.save()
+            notifications.schedule(
+                at: clock.now.addingTimeInterval(1),
+                title: "Rest complete", body: body)
+            return nil
+        }
+
+        workout.restEndsAt = standardEnd
+        try context.save()
+        notifications.schedule(at: standardEnd, title: "Rest complete", body: body)
+        return RestTimerState(
+            end: standardEnd,
+            remaining: standardEnd.timeIntervalSince(clock.now),
+            total: TimeInterval(seconds))
+    }
+
+    /// Ends a heart-rate rest early because the user's heart rate came down.
+    ///
+    /// Separate from `skip` so the notification can tell the truth: this fires
+    /// an alarm saying the athlete recovered, where `skip` fires none at all.
+    func finishRecovered(_ workout: Workout, bpm: Int) throws {
+        guard workout.restEndsAt != nil else { return }
+        clear(workout)
+        try context.save()
+        // +1s rather than `now`: a UNTimeIntervalNotificationTrigger of zero is
+        // rejected, and the app may well be backgrounded — which is exactly the
+        // case this alarm exists for.
+        notifications.schedule(
+            at: clock.now.addingTimeInterval(1),
+            title: "Rest complete",
+            body: "Heart rate down to \(bpm) bpm — ready for your next set.")
+    }
+
+    /// Reconstruct or expire a persisted timer. Expired timers are cleared so
+    /// returning from suspension never shows stale UI.
+    func currentState(for workout: Workout) throws -> RestTimerState? {
+        guard let end = workout.restEndsAt else { return nil }
+        let remaining = end.timeIntervalSince(clock.now)
+        guard remaining > 0 else {
+            clear(workout)
+            try context.save()
+            notifications.cancel()
+            return nil
+        }
+        return RestTimerState(
+            end: end, remaining: remaining, total: total(of: workout, end: end))
+    }
+
+    @discardableResult
+    func add(seconds: Int, to workout: Workout) throws -> RestTimerState? {
+        guard let state = try currentState(for: workout) else { return nil }
+        let end = state.end.addingTimeInterval(TimeInterval(seconds))
+        workout.restEndsAt = end
+        try context.save()
+        notifications.schedule(at: end)
+        // `restStartedAt` is untouched, so the total grows with the extension
+        // and the bar keeps shrinking from wherever it was.
+        return RestTimerState(
+            end: end,
+            remaining: end.timeIntervalSince(clock.now),
+            total: total(of: workout, end: end))
+    }
+
+    /// Total = end − start. Timers persisted before `restStartedAt` existed
+    /// fall back to the remaining time (the old behaviour) rather than zero.
+    private func total(of workout: Workout, end: Date) -> TimeInterval {
+        guard let started = workout.restStartedAt else {
+            return max(0, end.timeIntervalSince(clock.now))
+        }
+        return max(0, end.timeIntervalSince(started))
+    }
+
+    func skip(_ workout: Workout) throws {
+        clear(workout)
+        try context.save()
+        notifications.cancel()
+    }
+
+    /// App-level upsert; duplicate overrides use the same latest-date/id
+    /// canonical rule as preferences and gym memory.
+    func setOverride(
+        for exercise: Exercise,
+        warmupSeconds: Int?,
+        workingSeconds: Int?,
+        restMode: RestMode? = nil,
+        heartRateThresholdBpm: Int? = nil,
+        heartRateCapSeconds: Int? = nil
+    ) throws {
+        let exerciseID = exercise.id
+        let rows = try context.fetch(FetchDescriptor<ExerciseRestOverride>(
+            predicate: #Predicate { $0.exerciseID == exerciseID }
+        ))
+        let row = rows.canonical ?? ExerciseRestOverride(exerciseID: exerciseID)
+        if rows.isEmpty { context.insert(row) }
+        row.warmupRestSeconds = warmupSeconds.map { max(0, $0) }
+        row.workingRestSeconds = workingSeconds.map { max(0, $0) }
+        row.restMode = restMode
+        // Clamped, not trusted: a zero or negative cap would make every
+        // heart-rate rest expire the instant it started, which reads as the
+        // feature being broken rather than misconfigured.
+        row.heartRateThresholdBpm = heartRateThresholdBpm.map { max(30, min(240, $0)) }
+        row.heartRateCapSeconds = heartRateCapSeconds.map { max(15, $0) }
+        row.updatedAt = clock.now
+        try context.save()
+    }
+
+    private func clear(_ workout: Workout) {
+        workout.restEndsAt = nil
+        workout.restStartedAt = nil
+        workout.restStartedBySetID = nil
+    }
+}
+
+--- relevant project settings ---
+Config/WorkoutTracker-Info.plist:7:	     GENERATE_INFOPLIST_FILE stays YES: every usage-description string and
+Config/WorkoutTracker-Info.plist:11:	     Xcode's plist generator only writes an allowlist of INFOPLIST_KEY_*
+Config/WorkoutTracker-Info.plist:13:	     INFOPLIST_KEY_UIBackgroundModes = audio is silently accepted, appears
+Config/WorkoutTracker-Info.plist:23:	<key>UIBackgroundModes</key>
+Config/WorkoutTrackerWatch.entitlements:5:  strings but no HealthKit entitlements, so its `HKWorkoutSession` could never
+Config/WorkoutTrackerWatch.entitlements:12:    <key>com.apple.developer.healthkit</key>
+Config/WorkoutTrackerWatch.entitlements:14:    <key>com.apple.developer.healthkit.access</key>
+Config/WorkoutTrackerWatch.entitlements:16:    <key>com.apple.developer.healthkit.background-delivery</key>
+WorkoutTracker.xcodeproj/project.pbxproj:508:				CODE_SIGN_ENTITLEMENTS = Config/WorkoutTracker.entitlements;
+WorkoutTracker.xcodeproj/project.pbxproj:512:				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
+WorkoutTracker.xcodeproj/project.pbxproj:514:				GENERATE_INFOPLIST_FILE = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:515:				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph a machine's name plate to identify it in the equipment catalog. The photo is read on device and discarded.";
+WorkoutTracker.xcodeproj/project.pbxproj:516:				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate is shown live during a workout and summarised when you finish. It is read on device and never leaves it.";
+WorkoutTracker.xcodeproj/project.pbxproj:517:				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Workouts you log are saved to Health so your rings and history stay accurate.";
+WorkoutTracker.xcodeproj/project.pbxproj:518:				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Read a machine's name plate from a photo you already took. The photo is read on device and discarded.";
+WorkoutTracker.xcodeproj/project.pbxproj:519:				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:520:				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:521:				INFOPLIST_FILE = "Config/WorkoutTracker-Info.plist";
+WorkoutTracker.xcodeproj/project.pbxproj:522:				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:523:				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+WorkoutTracker.xcodeproj/project.pbxproj:529:				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE)";
+WorkoutTracker.xcodeproj/project.pbxproj:542:				CODE_SIGN_ENTITLEMENTS = Config/WorkoutTracker.entitlements;
+WorkoutTracker.xcodeproj/project.pbxproj:546:				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
+WorkoutTracker.xcodeproj/project.pbxproj:548:				GENERATE_INFOPLIST_FILE = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:549:				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph a machine's name plate to identify it in the equipment catalog. The photo is read on device and discarded.";
+WorkoutTracker.xcodeproj/project.pbxproj:550:				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate is shown live during a workout and summarised when you finish. It is read on device and never leaves it.";
+WorkoutTracker.xcodeproj/project.pbxproj:551:				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Workouts you log are saved to Health so your rings and history stay accurate.";
+WorkoutTracker.xcodeproj/project.pbxproj:552:				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Read a machine's name plate from a photo you already took. The photo is read on device and discarded.";
+WorkoutTracker.xcodeproj/project.pbxproj:553:				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:554:				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:555:				INFOPLIST_FILE = "Config/WorkoutTracker-Info.plist";
+WorkoutTracker.xcodeproj/project.pbxproj:556:				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:557:				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+WorkoutTracker.xcodeproj/project.pbxproj:563:				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE)";
+WorkoutTracker.xcodeproj/project.pbxproj:577:				GENERATE_INFOPLIST_FILE = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:580:				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).tests";
+WorkoutTracker.xcodeproj/project.pbxproj:595:				GENERATE_INFOPLIST_FILE = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:598:				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).tests";
+WorkoutTracker.xcodeproj/project.pbxproj:612:				GENERATE_INFOPLIST_FILE = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:615:				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).uitests";
+WorkoutTracker.xcodeproj/project.pbxproj:629:				GENERATE_INFOPLIST_FILE = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:632:				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).uitests";
+WorkoutTracker.xcodeproj/project.pbxproj:646:				CODE_SIGN_ENTITLEMENTS = Config/WorkoutTrackerWatch.entitlements;
+WorkoutTracker.xcodeproj/project.pbxproj:648:				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
+WorkoutTracker.xcodeproj/project.pbxproj:649:				GENERATE_INFOPLIST_FILE = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:650:				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate is measured on your wrist during a workout and sent to your iPhone. It never leaves your devices.";
+WorkoutTracker.xcodeproj/project.pbxproj:651:				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Workouts you log are saved to Health so your rings and history stay accurate.";
+WorkoutTracker.xcodeproj/project.pbxproj:652:				INFOPLIST_KEY_WKApplication = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:653:				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(WT_BUNDLE_ID_BASE)";
+WorkoutTracker.xcodeproj/project.pbxproj:655:				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).watchkitapp";
+WorkoutTracker.xcodeproj/project.pbxproj:670:				CODE_SIGN_ENTITLEMENTS = Config/WorkoutTrackerWatch.entitlements;
+WorkoutTracker.xcodeproj/project.pbxproj:672:				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
+WorkoutTracker.xcodeproj/project.pbxproj:673:				GENERATE_INFOPLIST_FILE = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:674:				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate is measured on your wrist during a workout and sent to your iPhone. It never leaves your devices.";
+WorkoutTracker.xcodeproj/project.pbxproj:675:				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Workouts you log are saved to Health so your rings and history stay accurate.";
+WorkoutTracker.xcodeproj/project.pbxproj:676:				INFOPLIST_KEY_WKApplication = YES;
+WorkoutTracker.xcodeproj/project.pbxproj:677:				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = "$(WT_BUNDLE_ID_BASE)";
+WorkoutTracker.xcodeproj/project.pbxproj:679:				PRODUCT_BUNDLE_IDENTIFIER = "$(WT_BUNDLE_ID_BASE).watchkitapp";
+Config/WorkoutTracker.entitlements:16:    <key>com.apple.developer.healthkit</key>
+Config/WorkoutTracker.entitlements:18:    <key>com.apple.developer.healthkit.access</key>
+Config/WorkoutTracker.entitlements:20:    <key>com.apple.developer.healthkit.background-delivery</key>
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:developer.apple.com/documentation/healthkit HKWorkoutSession iOS background workout-processing HKLiveWorkoutBuilder iPhone ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:developer.apple.com/documentation/healthkit "Building a workout app for iPhone and iPad" background ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: 
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: 
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:developer.apple.com/documentation/healthkit enableBackgroundDelivery heart rate HKObserverQuery background frequency ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:developer.apple.com/documentation/bundleresources/information-property-list/uibackgroundmodes "workout-processing" ...
+hook: PostToolUse
+hook: PostToolUse Completed
+codex
+The HealthKit question is now definitive: `workout-processing` is a watchOS-only background mode. Apple’s Xcode documentation describes it as tracking activity “on Apple Watch,” and the WWDC25 iPhone workout session explicitly describes builder metrics as live “while your app is in the foreground.” On iPhone, the session lets HealthKit continue the workout/sensor collection and permits locked-device data access after consent; it does not grant your process watchOS-style continuous CPU time.
+
+That means the current cap alarm has two unsupported dependencies: a silent-audio runtime hack and a callback from `HKLiveWorkoutBuilder` that is not promised after iOS suspends the app. An observer query plus background delivery is useful for eventual sample ingestion, but it is not a second-by-second alarm clock.
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:developer.apple.com/support/compare-memberships free Apple developer account capabilities HealthKit background modes ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: 
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:developer.apple.com/documentation/avfaudio/avaudioplayer play(atTime:) background scheduled future playback iOS ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:support.apple.com AirPods notification sounds iPhone speaker Announce Notifications local notification ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:support.apple.com/en-us "Announce Notifications" AirPods iPhone app notifications ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:developer.apple.com/documentation/alarmkit AlarmKit custom sound headphones iOS 26 ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+web search: 
+web search: site:developer.apple.com/help/account/capabilities critical alerts entitlement request Apple Developer Program membership ...
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '1,120p' Config/WorkoutTracker.entitlements
+rg -n \"RestAlarm|rest alarm|background|HealthKit|HKWorkoutSession|AirPods|notification\" docs/DECISIONS.md docs/SPEC.md docs/STATE.md docs/agents/domain.md | head -n 240
+rg -n \"broadcastRest\\(|soundRecovered\\(|evaluateAlarmForTesting|onSample\" WorkoutTracker -g '*.swift'" in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Milestone 7 (D41). Lives in Config/ rather than under WorkoutTracker/,
+  because that folder is a buildable folder (T4) and everything inside it is
+  swept into the target automatically — an entitlements file would be copied in
+  as a resource as well as read as entitlements.
+
+  background-delivery is the one that earns its place: the heart-rate rest timer
+  (D43) has to keep watching the user's heart rate with the screen off and the
+  app backgrounded, which is exactly when a rest happens. Verified 2026-08-22
+  that the free personal team provisions all three.
+-->
+<plist version="1.0">
+<dict>
+    <key>com.apple.developer.healthkit</key>
+    <true/>
+    <key>com.apple.developer.healthkit.access</key>
+    <array/>
+    <key>com.apple.developer.healthkit.background-delivery</key>
+    <true/>
+</dict>
+</plist>
+docs/SPEC.md:62:- **Rest timer**: auto-starts on set completion; per-exercise durations (separate warmup vs. working; failure sets use the working duration) with global defaults (2:00 working / 1:00 warmup); local notification on finish. Per exercise the rest may instead be **heart-rate based** (D43): it ends when the heart rate drops below a threshold the user set, or when a max-wait cap expires, and the alarm says which. With no live reading it falls back to the standard duration and says so.
+docs/SPEC.md:72:- No backend, accounts, or third-party runtime dependencies. **HealthKit and a watchOS companion are in scope from 2026-08-22 (D41)**, reopened deliberately for heart rate; everything else in this line still holds, and the app still talks to nothing but the device it is on.
+docs/SPEC.md:86:- App-level preferences: unit preference (default from locale measurement system on first launch), drift-prompt suppression, global + per-exercise rest defaults, measured maximum heart rate? and birth date? (D45 — zones are marked estimated until a measured max exists, and hidden entirely without either), seeded-catalog version, notification-permission-requested marker, remembered catalog browsing state (grouping mode + active filters per surface — display only, D23)
+docs/DECISIONS.md:21:| D13 | Rest timer: auto-start on completion, per-exercise durations (warmup vs. working split), notification | Strong-standard behavior; the split is a verified Strong nicety worth matching. |
+docs/DECISIONS.md:50:| D41 | **HealthKit and a watchOS companion are in scope** (2026-08-22), reopening SPEC's "No backend, accounts, **HealthKit**, **Watch**, or third-party runtime dependencies" at the user's explicit request. The rest of that sentence stands unchanged: no backend, no accounts, no third-party runtime dependencies, still fully offline. Live heart rate reaches the phone two ways — a `HKWorkoutSession` on the phone (AirPods Pro 3 and any heart-rate GATT wearable) and a watchOS companion streaming over `WCSession`, because the Apple Watch is **not** a GATT peripheral to the phone and cannot be read live without an app on the wrist. | The user asked for heart rate as a core feature, and every route to it is HealthKit. Verified before committing to it (2026-08-22): the **free** Apple account provisions `com.apple.developer.healthkit`, `.access` and `.background-delivery`, so this costs no Developer Program membership; the iPhone workout-session API is `ios(26.0)`; and the system, not the app, generates active energy during a session. Surfacing the conflict rather than drifting from it is what the preamble to this file requires. |
+docs/DECISIONS.md:51:| D42 | **Minimum iOS rises from 17.0 to 26.0**, superseding SPEC's "iOS 17+". | `HKWorkoutSession`'s iPhone initialiser, `HKLiveWorkoutBuilder` and `HKLiveWorkoutDataSource` are all `API_AVAILABLE(ios(26.0))` — read from the SDK headers, not assumed. The app has exactly one user, whose phone runs 26.6, so availability-gating every heart-rate path would add branches that no device will ever take. |
+docs/DECISIONS.md:52:| D43 | **A heart-rate rest ends on the threshold OR on a cap, and the alarm says which.** Per exercise the rest timer is standard (D13/D22) or heart-rate: rest ends when HR drops below a user-set bpm, or when a max-wait cap (default 4:00) expires. With no live source it degrades to the standard timer and says it degraded. | The cap is not decoration: one dropped connection, one bad sample, or one genuinely brutal set and a threshold-only rule waits forever — for an alarm whose whole job is to be the thing you do not have to watch. "You recovered" and "time is up" are different facts about the set you just did, so a notification that conflates them is lying about your training. |
+docs/DECISIONS.md:53:| D44 | **The finish summary is HealthKit's numbers beside the app's own**: time, active calories, average and max HR, time in zones — plus total volume, the exercises performed, and their best sets. Heart-rate rows are **omitted, never zeroed**, when no session ran. The summary values are persisted on `Workout` rather than re-queried. | Apple's summary cannot say what you lifted; this app's cannot say what your heart did. The user asked for both on one screen. `0 BPM` for a workout logged without a sensor is not a missing value, it is a false one — the same distinction D30 draws for draft sets. Persisting mirrors D23: what History shows must not change because a source later changed its mind. |
+docs/DECISIONS.md:75:- Post-v1: iCloud sync, duration sets/cardio, RPE/supersets, catalog dedup. (~~drop sets~~ closed by D26; ~~Watch/HealthKit~~ **brought into scope by D41**, 2026-08-22)
+docs/STATE.md:26:Live HR on the workout screen from AirPods Pro 3 or an Apple
+docs/STATE.md:44:HealthKit entitlements including `background-delivery` — no Developer Program needed. The iPhone
+docs/STATE.md:50:biggest unknown — the permission flow, the phone's `HKWorkoutSession`, the live feed reaching the
+docs/STATE.md:53:**The source question is settled (2026-08-24): the bar read "AirPods."** The phone's own
+docs/STATE.md:54:`HKWorkoutSession` was reading the earbuds, exactly as designed — the Watch was NOT feeding it. So
+docs/STATE.md:62:from AirPods on the workout screen during a real workout. **Still unverified:** the calorie
+docs/STATE.md:63:figure's plausibility; the heart-rate rest timer (D43); the background alarm with the screen off;
+docs/STATE.md:145:| Installed commit | **`37c0f2b`** — the background rest alarm. Installed **2026-08-25 00:28** and launch-verified. Clean-built (`rm -rf /tmp/wt-device-build`) and the plist checked BEFORE installing: `UIBackgroundModes` = `[audio, workout-processing]`, both HealthKit strings present. No schema change. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac (ticket 02) |
+docs/STATE.md:156:| Signing | **Free** Apple account → builds expire **7 days**. Last signed **25 Aug 2026** (00:28), so expires **~1 Sep 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
+docs/STATE.md:202:   - ~~Which sensor produced it?~~ **Answered 2026-08-24: AirPods.** The design holds as written.
+docs/STATE.md:225:     **The lesson worth keeping: the local notification firing was NOT evidence the app was
+docs/STATE.md:227:     regardless — it had been read as proof of background execution for two days.
+docs/STATE.md:228:   - **Is the alarm actually audible?** Gym feedback 2026-08-24: the notification fired
+docs/STATE.md:229:     both ways, screen off included, but nothing came through the AirPods — a notification sound
+docs/STATE.md:236:     it needs the new `audio` background mode to play at all.
+docs/STATE.md:245:   - Does the heart-rate rest alarm fire with the screen off? That is what
+docs/STATE.md:246:     `healthkit.background-delivery` was provisioned for and it has never been observed.
+docs/STATE.md:260:workout summons the HealthKit permission sheet, which covers the screen and turns eight passing
+docs/STATE.md:308:  — and a missing HealthKit usage string is a *crash* on the permission request, not a prompt.
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:41:    var onSample: (() -> Void)?
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:61:            previous.onSample = nil
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:71:        fresh.onSample = { [weak self] in
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:77:            self?.onSample?()
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:104:        monitor.onSample = nil
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:114:        broadcastRest(endsAt: restEndsAt)
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:118:    func evaluateAlarmForTesting(now: Date) {
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:130:    func broadcastRest(endsAt: Date?) {
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:142:    func soundRecovered() {
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:165:        monitor.onSample = nil
+WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:179:        onSample = nil
+WorkoutTracker/Domain/HeartRateMonitor.swift:188:        onSample?()
+WorkoutTracker/Domain/HeartRateMonitor.swift:195:    var onSample: (() -> Void)?
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:219:                heartRateCoordinator.onSample = { evaluateHeartRateRest() }
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:229:                heartRateCoordinator.broadcastRest(endsAt: newValue)
+WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift:312:                heartRateCoordinator.soundRecovered()
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "sed -n '35,75p' docs/STATE.md
+sed -n '215,252p' docs/STATE.md
+sed -n '185,245p' WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift
+sed -n '285,325p' WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift
+sed -n '145,215p' WorkoutTracker/Domain/HeartRateMonitor.swift" in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+Mac. It is still **not merged**; `main` remains `86f1a20`. Merging is the user's call. After the bar fixes, the complete unit suite
+is **451 tests across 42 suites**, and the 4 affected UI tests are green (two existing plus two new
+regressions).
+
+**Independently re-run on 2026-08-24 (T6's "verify independently" rule): the COMPLETE suite —
+451 unit + 21 UI — passed, exit 0.** Codex had run only the 4 affected UI classes; this was all
+21, and it confirms nothing elsewhere regressed. This is the number to trust for the branch tip.
+
+**Verified once, so nobody re-derives it:** the **free** Apple account provisions all three
+HealthKit entitlements including `background-delivery` — no Developer Program needed. The iPhone
+workout-session API is `ios(26.0)`, hence D42. The Apple Watch is **not** a GATT peripheral to the
+phone, which is the entire reason a watchOS target exists.
+
+**Partly proven on hardware, 2026-08-23.** The user reported: *"the heart rate correctly measures
+during workout."* That is the first real-sensor evidence this milestone has, and it clears the
+biggest unknown — the permission flow, the phone's `HKWorkoutSession`, the live feed reaching the
+workout screen, and the number itself all work on the device.
+
+**The source question is settled (2026-08-24): the bar read "AirPods."** The phone's own
+`HKWorkoutSession` was reading the earbuds, exactly as designed — the Watch was NOT feeding it. So
+D41's watch target is still justified and the milestone's design holds as written. Do not reopen
+this one.
+
+**The same session found a real bug, now fixed (2026-08-24): no zone ever appeared.** See
+"Zones were unreachable" below.
+
+Be precise about what the gym session does and does not cover. **Verified:** a live, correct bpm
+from AirPods on the workout screen during a real workout. **Still unverified:** the calorie
+figure's plausibility; the heart-rate rest timer (D43); the background alarm with the screen off;
+and the entire `WCSession` path.
+
+**Zone boundaries were revised 2026-08-24 after gym use** — every zone read about one too high, so
+D45's textbook 50/60/70/80/90 became **55/65/75/85/95** (see DECISIONS). The user is on the 220−age
+estimate, which runs low for fit people and inflates every percentage; raising the max was offered
+and declined in favour of shifting the boundaries. **Cost, stated plainly: this app's "Zone 3" is
+no longer Polar's or Apple's Zone 3.** A measured maximum would let them go back to standard.
+The revised numbers are **installed as of 2026-08-25** but have not yet been seen in a gym.
+
+**Zones were verified working on the device (2026-08-24), at the OLD boundaries.** After the `0c9bdeb` install the user set a
+maximum and reported: *"The zone feature correctly works."* The user also checked the app's zone
+boundaries against an external reference (50/60/70/80/90/100% of max) and confirmed they match —
+     stays up between sets), and iOS being generous for strength training generally. **Told the
+     user to check their weight in Health first.**
+   - Does the **heart-rate rest timer** (D43) end a rest when the heart rate comes down, and does
+     the alarm say which ended it — recovery or the cap?
+   - **Does the alarm now fire when the app is not on screen?** Gym report 2026-08-25: the first
+     audible build beeped **only while the app was open** — nothing with the screen off, on another
+     app, or on the home screen. Three causes, all fixed in `37c0f2b`: `UIBackgroundModes` was
+     missing `workout-processing` (so iOS suspended the workout session and no samples arrived at
+     all — the real cause); the alarm lived in the workout SCREEN's state, which C1's minimise
+     dismisses; and an audio failure called `assertionFailure`, which traps in a Debug build.
+     **The lesson worth keeping: the local notification firing was NOT evidence the app was
+     running.** A `UNTimeIntervalNotificationTrigger` is handed to the system in advance and fires
+     regardless — it had been read as proof of background execution for two days.
+   - **Is the alarm actually audible?** Gym feedback 2026-08-24: the notification fired
+     both ways, screen off included, but nothing came through the AirPods — a notification sound
+     plays on the phone's alert route and never reaches Bluetooth headphones. The app now
+     synthesises a tone and plays it through `AVAudioSession` (`.playback` + `.duckOthers`), with
+     recovery and cap sounding different (two rising tones vs three flat). **None of this has been
+     heard by a human.** What to listen for: does it cut through gym noise and your own music, does
+     the music duck and come back, and does the beep fire **with the screen off** — that last one
+     runs off the heart-rate sample tick because a SwiftUI timer stops when the screen sleeps, and
+     it needs the new `audio` background mode to play at all.
+   - Does the watch companion install, pair, and stream? **No Apple Watch has ever been visible to
+     this Mac** (`devicectl` sees only the iPhone), so nothing on that path is installed. It is a
+     **separate** install by design — embedding it breaks every simulator test run (ticket 02) —
+     and it needs Developer Mode on the watch plus a second bundle id on the same 7-day clock.
+   - **Open question nobody has answered:** can the phone WAKE the watch app? The design has the
+     phone send "workout started" over `WCSession`, but iOS→watchOS messaging does not reliably
+     launch an app that is not running. The likely reality is the user taps the app on their wrist
+     first. Only hardware settles it.
+   - Does the heart-rate rest alarm fire with the screen off? That is what
+     `healthkit.background-delivery` was provisioned for and it has never been observed.
+3. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
+   next unbuilt milestone, and what makes the logged history worth looking at.
+4. Milestone 5: Strong CSV import. Milestone 6 is now **half done** — the bar half shipped
+   2026-08-22; what remains is computing which plates to load for a target weight, and
+   selectorized stack increments.
+
+                ExercisePickerSheet { exercise in
+                    addEntry(for: exercise)
+                }
+            }
+            .sheet(isPresented: $showMachinePicker) {
+                AddByMachineSheet(workout: workout)
+                    .presentationDetents([.medium, .large])
+            }
+            .sheet(isPresented: $showMaxHeartRateSheet) {
+                // Re-resolve on dismiss. `resolvedMaxHeartRate()` is otherwise
+                // read only in `.task`, which runs once per appearance — so a
+                // maximum entered mid-workout left the monitor's `maxHeartRate`
+                // nil and the zone chip absent for the REST OF THE WORKOUT,
+                // which reads as the setting having done nothing.
+                heartRate?.maxHeartRate = resolvedMaxHeartRate()
+            } content: {
+                MaxHeartRateSheet()
+            }
+            .onAppear(perform: refreshRest)
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { refreshRest() }
+            }
+            // The session starts with the workout screen and ends when the
+            // workout does — `finish`/`cancel` both route through `endWorkout`.
+            .task {
+                let monitor = heartRateCoordinator.monitor(
+                    for: workout, maxHeartRate: resolvedMaxHeartRate())
+                // D43 is evaluated on sample arrival, not on a UI tick: samples
+                // keep coming with the screen off, a SwiftUI timer does not
+                // (codex-review 2.2). Re-attached on every appearance, so a
+                // resumed workout keeps evaluating its rests.
+                // The coordinator owns the sample tick and forwards it here.
+                // The alarm hangs off its end, not this one, so it survives
+                // this screen being dismissed.
+                heartRateCoordinator.onSample = { evaluateHeartRateRest() }
+                heartRate = monitor
+            }
+            // Every path that changes the rest — starting one, +15s, skipping,
+            // recovering, degrading, un-completing — moves `restEnd`. Mirroring
+            // from here rather than from each of them is why the watch cannot
+            // fall out of step with the phone.
+            .onChange(of: restEnd) { _, newValue in
+                // Also arms the audible alarm for this rest — the coordinator
+                // needs the end date anyway to mirror it to the watch.
+                heartRateCoordinator.broadcastRest(endsAt: newValue)
+            }
+            .onReceive(livenessTick) { _ in
+                heartRate?.refreshLiveness()
+                evaluateHeartRateRest()
+            }
+        }
+    }
+
+    private var header: some View {
+        HStack {
+            Image(systemName: "mappin.and.ellipse")
+                .foregroundStyle(.tint)
+            Text(workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"))
+                .font(.subheadline.weight(.medium))
+            Spacer()
+            TimelineView(.periodic(from: .now, by: 60)) { timeline in
+    }
+
+    /// D43: while a heart-rate rest is running, the threshold can end it before
+    /// its cap does. The cap itself is the persisted `restEndsAt`, so it still
+    /// fires through the ordinary path — including after a relaunch, and while
+    /// the app is backgrounded. This only ever ends a rest EARLY.
+    private func evaluateHeartRateRest() {
+        guard !workout.isDeleted,
+              let start = workout.restStartedAt,
+              workout.restEndsAt != nil,
+              let setID = workout.restStartedBySetID,
+              let set = restStartingSet(setID),
+              let plan = try? restTimer.restPlan(for: set),
+              let rule = plan.rule,
+              degradedRestSetID != setID
+        else { return }
+
+        guard let heartRate else { return }
+        let state = rule.evaluate(
+            samples: heartRate.samplesFromCurrentSource, start: start, asOf: .now)
+        switch state {
+        case .finished(.recovered(_, let bpm)):
+            do {
+                try restTimer.finishRecovered(workout, bpm: bpm)
+                // `finishRecovered` clears `restEndsAt`, so the cap alarm can
+                // no longer fire for this rest — the two endings cannot both
+                // sound.
+                heartRateCoordinator.soundRecovered()
+                refreshRest()
+            } catch {
+                assertionFailure("Failed to finish recovered rest: \(error)")
+            }
+        case .degraded:
+            // codex-review 2.1 (critical): this used to do nothing, on the
+            // false claim that the cap WAS the standard timer. The cap is four
+            // minutes; the user's standard rest is one or two.
+            do {
+                degradedRestSetID = setID
+                if let state = try restTimer.degradeToStandard(workout, set: set) {
+                    restEnd = state.end
+                    restTotal = state.total
+        guard let top = counts.values.max() else { return nil }
+        return counts
+            .filter { $0.value == top }
+            .keys
+            .max { $0.precedence < $1.precedence }
+    }
+
+    var vitals: WorkoutVitals {
+        guard let source = dominantSource else { return .empty }
+        return WorkoutVitalsMath.vitals(
+            from: samples.filter { $0.source == source }, zoningAgainst: maxHeartRate)
+    }
+
+    func start() async {
+        guard !state.isRunning else { return }
+        state = await provider.start()
+        guard state.isRunning else { return }
+        pump?.cancel()
+        pump = Task { [weak self] in
+            guard let stream = self?.provider.stream else { return }
+            for await sample in stream {
+                guard let self else { return }
+                self.ingest(sample)
+            }
+        }
+    }
+
+    func stop() async {
+        pump?.cancel()
+        pump = nil
+        await provider.stop()
+        state = .idle
+    }
+
+    private func ingest(_ sample: HeartRateSample) {
+        samples.append(sample)
+        activeEnergyKilocalories = provider.activeEnergyKilocalories
+        // codex-review 3.3 (high): this used to be `.live(sample.source)` —
+        // whichever sensor happened to report LAST — while the number on screen
+        // came from `current`, chosen by precedence. A Watch reading could
+        // therefore be labelled "AirPods". The label and the number must come
+        // from the same sample.
+        refreshLiveness()
+        onSample?()
+    }
+
+    /// Called after every ingested sample. The rest rule (D43) hangs off this
+    /// rather than off a UI timer: an active workout session keeps the app
+    /// running in the background, so samples keep arriving with the screen off —
+    /// but a SwiftUI `Timer` does not keep firing (codex-review 2.2, high).
+    var onSample: (() -> Void)?
+
+    /// Test seam: feeds a sample as though it had arrived from the provider, so
+    /// ownership and summary behaviour can be exercised without a live stream.
+    func ingestForTesting(_ sample: HeartRateSample) {
+        ingest(sample)
+    }
+
+    /// Called on a timer by the UI so a sensor that goes quiet stops being
+    /// reported as live. Without this the state would say `.live` forever off
+    /// the strength of one sample from ten minutes ago.
+    func refreshLiveness(asOf now: Date = .now) {
+        guard state.isRunning else { return }
+        // codex-review-2 #7: energy used to be copied only while ingesting a
+        // heart-rate sample, so a session that burned calories without ever
+        // reporting a bpm persisted none of them — and one that kept burning
+        // after the last bpm persisted a stale total.
+        activeEnergyKilocalories = provider.activeEnergyKilocalories
+        if let current, !current.isStale(asOf: now) {
+            state = .live(current.source)
+        } else {
+
+hook: PostToolUse
+hook: PostToolUse Completed
+hook: PreToolUse
+hook: PreToolUse Completed
+exec
+/bin/zsh -lc "nl -ba WorkoutTracker/Domain/RestAlarmSound.swift | sed -n '25,210p'
+nl -ba WorkoutTracker/Domain/RestAlarmTone.swift | sed -n '70,150p'
+nl -ba WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift | sed -n '55,165p'
+nl -ba WorkoutTracker/Domain/HealthKitHeartRateProvider.swift | sed -n '45,165p'
+nl -ba WorkoutTracker/Domain/RestTimer.swift | sed -n '25,85p;125,180p;265,345p'
+nl -ba Config/WorkoutTracker-Info.plist | sed -n '1,75p'
+nl -ba docs/DECISIONS.md | sed -n '46,55p'" in /Users/ericlee06/orca/projects/Health App
+ succeeded in 0ms:
+    25	// and still heard nothing in their ears. So the fix is not "fix the
+    26	// notification" — the notification is fine — it is to play real audio through
+    27	// the shared `AVAudioSession`, which is the only route Bluetooth headphones are
+    28	// on.
+    29	//
+    30	// System framework behind a protocol, injectable, following the shape
+    31	// `RestTimer.swift` set for UserNotifications and `HeartRateMonitor.swift` set
+    32	// for HealthKit: the rules above it stay testable on a machine with no speaker.
+    33	
+    34	@MainActor
+    35	protocol RestAlarmSounding: AnyObject {
+    36	    /// Called when a workout starts. Opens and HOLDS the audio session.
+    37	    ///
+    38	    /// Why hold it rather than activate per beep: activating an audio session
+    39	    /// from a backgrounded app is unreliable, and backgrounded is exactly when
+    40	    /// the alarm matters. Activating while the user is still looking at the
+    41	    /// screen, then keeping it for the workout, is not.
+    42	    func beginSession()
+    43	    /// Called when the workout ends. Holding the session open for a workout
+    44	    /// nobody is doing is the audio equivalent of leaving the sensor powered.
+    45	    func endSession()
+    46	    func sound(_ pattern: RestAlarmPattern)
+    47	}
+    48	
+    49	/// Plays the alarm through the shared audio session, so it lands in whatever
+    50	/// the user is actually listening on.
+    51	@MainActor
+    52	final class SystemRestAlarm: RestAlarmSounding {
+    53	
+    54	    static let shared = SystemRestAlarm()
+    55	
+    56	    /// The player MUST be held. An `AVAudioPlayer` that goes out of scope is
+    57	    /// deallocated mid-buffer and the user hears nothing at all — a silent
+    58	    /// failure that looks exactly like the bug this file exists to fix.
+    59	    private var player: AVAudioPlayer?
+    60	    private var cache: [RestAlarmPattern: Data] = [:]
+    61	    private var isSessionOpen = false
+    62	    /// Loops inaudible audio for the whole workout. THIS is what keeps the app
+    63	    /// alive in the background — see `beginSession`.
+    64	    private var keepAlive: AVAudioPlayer?
+    65	    private var observers: [NSObjectProtocol] = []
+    66	    private var unduckTask: Task<Void, Never>?
+    67	
+    68	    func beginSession() {
+    69	        do {
+    70	            let session = AVAudioSession.sharedInstance()
+    71	            // `.playback` is the category that routes to A2DP headphones —
+    72	            // AirPods — which `.ambient` and the notification route do not.
+    73	            // `.mixWithOthers` so holding it open does not stop the user's
+    74	            // music; ducking is applied around the beep only, in `sound`.
+    75	            try session.setCategory(
+    76	                .playback, mode: .default, options: [.mixWithOthers])
+    77	            try session.setActive(true)
+    78	            isSessionOpen = true
+    79	            startKeepAlive()
+    80	            observeInterruptions()
+    81	            restAlarmLog.notice("session opened, category=\(session.category.rawValue, privacy: .public) options=\(session.categoryOptions.rawValue)")
+    82	        } catch {
+    83	            // Non-fatal by design. A workout that cannot beep is still a
+    84	            // workout, and the local notification remains as the visual
+    85	            // channel. NOT `assertionFailure`: this app installs as Debug, so
+    86	            // trapping here would turn a missing beep into a crashed workout.
+    87	            restAlarmLog.error("could not open audio session: \(error.localizedDescription, privacy: .public)")
+    88	            isSessionOpen = false
+    89	        }
+    90	    }
+    91	
+    92	    /// Plays inaudible audio on a loop for the length of the workout.
+    93	    ///
+    94	    /// WHY, because it looks like a hack and is load-bearing: an audio session
+    95	    /// that is merely ACTIVE does not keep an app running — iOS suspends it,
+    96	    /// the workout session stops delivering samples, every timer stops, and the
+    97	    /// rest alarm never fires. Audio that is actually PLAYING keeps the process
+    98	    /// alive, which is exactly how a music app keeps playing with the screen
+    99	    /// off. Two builds shipped before this and beeped only while the app was on
+   100	    /// screen; `workout-processing` alone did not fix it.
+   101	    ///
+   102	    /// The cost is honest: this holds an audio route open for the whole
+   103	    /// workout, which uses battery. It is released in `endSession`, on every
+   104	    /// path that ends a workout.
+   105	    private func startKeepAlive() {
+   106	        do {
+   107	            let player = try AVAudioPlayer(data: RestAlarmTone.keepAliveWav())
+   108	            player.numberOfLoops = -1
+   109	            player.volume = 0.01
+   110	            player.prepareToPlay()
+   111	            player.play()
+   112	            keepAlive = player
+   113	            restAlarmLog.notice("keep-alive playing=\(player.isPlaying)")
+   114	        } catch {
+   115	            restAlarmLog.error("keep-alive failed, background alarm will not fire: \(error.localizedDescription, privacy: .public)")
+   116	        }
+   117	    }
+   118	
+   119	    /// A phone call or a Siri request deactivates our session and stops the
+   120	    /// keep-alive. Without restarting it the app is suspended for the rest of
+   121	    /// the workout and every later rest is silent.
+   122	    private func observeInterruptions() {
+   123	        guard observers.isEmpty else { return }
+   124	        let center = NotificationCenter.default
+   125	        observers.append(center.addObserver(
+   126	            forName: AVAudioSession.interruptionNotification,
+   127	            object: AVAudioSession.sharedInstance(), queue: .main
+   128	        ) { note in
+   129	            let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt
+   130	            guard let raw, AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+   131	            Task { @MainActor [weak self] in self?.resumeAfterInterruption() }
+   132	        })
+   133	        // Pulling out an AirPod, or the case reconnecting, can also stop
+   134	        // playback without an interruption notification.
+   135	        observers.append(center.addObserver(
+   136	            forName: AVAudioSession.routeChangeNotification,
+   137	            object: AVAudioSession.sharedInstance(), queue: .main
+   138	        ) { _ in
+   139	            Task { @MainActor [weak self] in self?.resumeAfterInterruption() }
+   140	        })
+   141	    }
+   142	
+   143	    private func resumeAfterInterruption() {
+   144	        guard isSessionOpen else { return }
+   145	        try? AVAudioSession.sharedInstance().setActive(true)
+   146	        if keepAlive?.isPlaying != true {
+   147	            keepAlive?.play()
+   148	            if keepAlive == nil { startKeepAlive() }
+   149	        }
+   150	    }
+   151	
+   152	    func endSession() {
+   153	        unduckTask?.cancel()
+   154	        unduckTask = nil
+   155	        player?.stop()
+   156	        player = nil
+   157	        keepAlive?.stop()
+   158	        keepAlive = nil
+   159	        observers.forEach(NotificationCenter.default.removeObserver)
+   160	        observers.removeAll()
+   161	        guard isSessionOpen else { return }
+   162	        isSessionOpen = false
+   163	        try? AVAudioSession.sharedInstance()
+   164	            .setActive(false, options: .notifyOthersOnDeactivation)
+   165	    }
+   166	
+   167	    func sound(_ pattern: RestAlarmPattern) {
+   168	        let data = cache[pattern] ?? RestAlarmTone.wav(for: pattern)
+   169	        cache[pattern] = data
+   170	        // If the session never opened — or was torn down by an interruption
+   171	        // such as a phone call — try once more rather than failing silently.
+   172	        if !isSessionOpen { beginSession() }
+   173	        // Duck for the beep, then restore. Applied HERE rather than on the
+   174	        // held session because the session stays active for the whole workout,
+   175	        // and a permanently ducking session would keep the user's music quiet
+   176	        // for the entire hour (reported 2026-08-25 — they want the dip back,
+   177	        // not the whole workout dimmed).
+   178	        setDucking(true)
+   179	        do {
+   180	            let player = try AVAudioPlayer(data: data)
+   181	            player.volume = 1
+   182	            player.prepareToPlay()
+   183	            player.play()
+   184	            self.player = player
+   185	            restAlarmLog.notice("SOUNDED \(String(describing: pattern), privacy: .public) playing=\(player.isPlaying) keepAlive=\(self.keepAlive?.isPlaying == true)")
+   186	            unduckTask?.cancel()
+   187	            let seconds = player.duration + 0.3
+   188	            unduckTask = Task { [weak self] in
+   189	                try? await Task.sleep(for: .seconds(seconds))
+   190	                guard !Task.isCancelled else { return }
+   191	                self?.setDucking(false)
+   192	            }
+   193	        } catch {
+   194	            restAlarmLog.error("could not play: \(error.localizedDescription, privacy: .public)")
+   195	            setDucking(false)
+   196	        }
+   197	    }
+   198	
+   199	    /// Toggles `.duckOthers` without deactivating: deactivating would stop the
+   200	    /// keep-alive and let the app be suspended mid-rest.
+   201	    private func setDucking(_ ducking: Bool) {
+   202	        let options: AVAudioSession.CategoryOptions =
+   203	            ducking ? [.mixWithOthers, .duckOthers] : [.mixWithOthers]
+   204	        do {
+   205	            try AVAudioSession.sharedInstance()
+   206	                .setCategory(.playback, mode: .default, options: options)
+   207	        } catch {
+   208	            restAlarmLog.error("could not set ducking=\(ducking): \(error.localizedDescription, privacy: .public)")
+   209	        }
+   210	    }
+    70	        for pattern: RestAlarmPattern, sampleRate: Double = RestAlarmTone.sampleRate
+    71	    ) -> [Int16] {
+    72	        var out: [Int16] = []
+    73	        for beep in pattern.beeps {
+    74	            let count = Int((beep.seconds * sampleRate).rounded())
+    75	            guard count > 0 else { continue }
+    76	            if beep.hertz <= 0 {
+    77	                out.append(contentsOf: repeatElement(0, count: count))
+    78	                continue
+    79	            }
+    80	            let fade = max(1, Int(fadeSeconds * sampleRate))
+    81	            for index in 0..<count {
+    82	                let time = Double(index) / sampleRate
+    83	                let wave = sin(2 * .pi * beep.hertz * time)
+    84	                // Linear ramp at both ends; `fade` is clamped so a beep shorter
+    85	                // than two fades still tapers instead of inverting.
+    86	                let ramp: Double
+    87	                if count < fade * 2 {
+    88	                    ramp = Double(min(index, count - 1 - index)) / Double(max(1, count / 2))
+    89	                } else if index < fade {
+    90	                    ramp = Double(index) / Double(fade)
+    91	                } else if index >= count - fade {
+    92	                    ramp = Double(count - 1 - index) / Double(fade)
+    93	                } else {
+    94	                    ramp = 1
+    95	                }
+    96	                let value = wave * amplitude * max(0, min(1, ramp))
+    97	                out.append(Int16(clamping: Int(value * Double(Int16.max))))
+    98	            }
+    99	        }
+   100	        return out
+   101	    }
+   102	
+   103	    /// A silent-to-the-ear buffer, looped for the whole workout to keep the app
+   104	    /// running in the background — the same mechanism a music app relies on.
+   105	    ///
+   106	    /// A merely ACTIVE audio session does not keep an app alive; iOS suspends
+   107	    /// it. Audio that is actually PLAYING does. That is the difference between
+   108	    /// this working and the two builds before it, both of which beeped only
+   109	    /// while the app was on screen.
+   110	    ///
+   111	    /// Amplitude is 1 LSB rather than 0 — roughly −90 dBFS, inaudible on any
+   112	    /// hardware — deliberately: a buffer of pure zeroes can be treated as "no
+   113	    /// audio" and optimised away, which would put us straight back to a
+   114	    /// suspended app.
+   115	    static func keepAliveSamples(
+   116	        seconds: Double = 2, sampleRate: Double = RestAlarmTone.sampleRate
+   117	    ) -> [Int16] {
+   118	        let count = Int((seconds * sampleRate).rounded())
+   119	        guard count > 0 else { return [] }
+   120	        // Alternating ±1 rather than a constant: a DC offset is not "signal" to
+   121	        // some encoders, an alternating one always is.
+   122	        return (0..<count).map { $0.isMultiple(of: 2) ? 1 : -1 }
+   123	    }
+   124	
+   125	    static func keepAliveWav(
+   126	        seconds: Double = 2, sampleRate: Double = RestAlarmTone.sampleRate
+   127	    ) -> Data {
+   128	        wav(samples: keepAliveSamples(seconds: seconds, sampleRate: sampleRate),
+   129	            sampleRate: sampleRate)
+   130	    }
+   131	
+   132	    /// A complete WAV file for a pattern, ready to hand to `AVAudioPlayer`.
+   133	    ///
+   134	    /// Built by hand because the alternative is shipping two audio files and
+   135	    /// trusting they were encoded right. 44-byte canonical PCM header.
+   136	    static func wav(
+   137	        for pattern: RestAlarmPattern, sampleRate: Double = RestAlarmTone.sampleRate
+   138	    ) -> Data {
+   139	        wav(samples: samples(for: pattern, sampleRate: sampleRate), sampleRate: sampleRate)
+   140	    }
+   141	
+   142	    static func wav(samples pcm: [Int16], sampleRate: Double) -> Data {
+   143	        let bitsPerSample: UInt16 = 16
+   144	        let channels: UInt16 = 1
+   145	        let rate = UInt32(sampleRate)
+   146	        let byteRate = rate * UInt32(channels) * UInt32(bitsPerSample / 8)
+   147	        let blockAlign = channels * (bitsPerSample / 8)
+   148	        let dataBytes = UInt32(pcm.count * MemoryLayout<Int16>.size)
+   149	
+   150	        var data = Data()
+    55	            monitor.maxHeartRate = maxHeartRate
+    56	            return monitor
+    57	        }
+    58	        // A different workout: end the old session before opening a new one.
+    59	        if let existing = monitor {
+    60	            let previous = existing
+    61	            previous.onSample = nil
+    62	            Task { await previous.stop() }
+    63	        }
+    64	        let fresh = HeartRateMonitor(
+    65	            provider: HeartRateProviders.make(workoutID: workout.id.uuidString))
+    66	        fresh.maxHeartRate = maxHeartRate
+    67	        // The sample tick is owned here and forwarded on, rather than being
+    68	        // handed to the screen: this is the only tick that survives both
+    69	        // minimise and the screen going off, so it is the only one the alarm
+    70	        // can hang from.
+    71	        fresh.onSample = { [weak self] in
+    72	            // The single most diagnostic line in the app: if these stop while
+    73	            // the phone is locked, the process is being suspended and NO
+    74	            // amount of audio work will make the alarm fire.
+    75	            restAlarmLog.debug("sample tick")
+    76	            self?.soundRestAlarmIfDue()
+    77	            self?.onSample?()
+    78	        }
+    79	        monitor = fresh
+    80	        workoutID = workout.id
+    81	        // Hold the audio session open for the workout. Activating one from a
+    82	        // suspended background app is unreliable; activating it while the user
+    83	        // is still looking at the screen, and keeping it, is not.
+    84	        alarm.beginSession()
+    85	        Task { await fresh.start() }
+    86	        return fresh
+    87	    }
+    88	
+    89	    /// Banks what the sensor saw onto the workout and ends the session.
+    90	    ///
+    91	    /// Called on every path that ends a workout — finish, templated finish,
+    92	    /// cancel, and the "finish it and start new" recovery in `StartWorkoutView`,
+    93	    /// which previously had no access to the monitor at all and so could neither
+    94	    /// save the vitals nor stop the sensor.
+    95	    func end(_ workout: Workout, capture: Bool = true) {
+    96	        guard workoutID == workout.id, let monitor else { return }
+    97	        if capture, !workout.isDeleted {
+    98	            WorkoutSummaryBuilder.capture(
+    99	                vitals: monitor.vitals,
+   100	                activeEnergyKilocalories: monitor.activeEnergyKilocalories,
+   101	                zonesEstimated: monitor.maxHeartRate?.isEstimated ?? false,
+   102	                onto: workout)
+   103	        }
+   104	        monitor.onSample = nil
+   105	        let ending = monitor
+   106	        Task { await ending.stop() }
+   107	        self.monitor = nil
+   108	        self.workoutID = nil
+   109	        releaseAlarm()
+   110	    }
+   111	
+   112	    /// Test seam: arms a rest without a screen present.
+   113	    func armForTesting(restEndsAt: Date?) {
+   114	        broadcastRest(endsAt: restEndsAt)
+   115	    }
+   116	
+   117	    /// Test seam: runs the alarm check at a chosen instant, as a sample would.
+   118	    func evaluateAlarmForTesting(now: Date) {
+   119	        soundRestAlarmIfDue(now: now)
+   120	    }
+   121	
+   122	    /// Test seam: installs a monitor without opening a real session.
+   123	    func adoptForTesting(monitor: HeartRateMonitor, workoutID: UUID) {
+   124	        self.monitor = monitor
+   125	        self.workoutID = workoutID
+   126	    }
+   127	
+   128	    /// Mirrors the phone's rest timer onto the watch, if one is listening, and
+   129	    /// arms the audible alarm for that rest.
+   130	    func broadcastRest(endsAt: Date?) {
+   131	        (monitor?.provider as? WatchRestBroadcasting)?.sendRest(endsAt: endsAt)
+   132	        restEndsAt = endsAt
+   133	        // A new rest re-arms. Without this the second rest of a workout would be
+   134	        // silent, the gate still holding the first one's end.
+   135	        if let endsAt, endsAt != lastSoundedRestEnd {
+   136	            lastSoundedRestEnd = nil
+   137	        }
+   138	    }
+   139	
+   140	    /// The heart rate came down, so this rest ended early (D43). Sounds the
+   141	    /// "recovered" pattern and disarms, so the cap cannot also fire.
+   142	    func soundRecovered() {
+   143	        alarm.sound(.recovered)
+   144	        restEndsAt = nil
+   145	        lastSoundedRestEnd = nil
+   146	    }
+   147	
+   148	    /// Sounds the cap pattern once, when a rest runs its full length.
+   149	    ///
+   150	    /// Evaluated on every sample — roughly once a second — so the gate is what
+   151	    /// keeps a face-down phone from beeping every second.
+   152	    private func soundRestAlarmIfDue(now: Date = .now) {
+   153	        guard RestAlarmDecision.shouldSound(
+   154	            restEndsAt: restEndsAt, lastSounded: lastSoundedRestEnd, now: now)
+   155	        else { return }
+   156	        lastSoundedRestEnd = restEndsAt
+   157	        restAlarmLog.notice("cap alarm due, sounding")
+   158	        alarm.sound(.cap)
+   159	    }
+   160	
+   161	    /// Ends whatever is running, whichever workout it belongs to. Used when the
+   162	    /// app cannot name the workout being replaced.
+   163	    func endAny() {
+   164	        guard let monitor else { return }
+   165	        monitor.onSample = nil
+    45	    private var heartRateType: HKQuantityType { .quantityType(forIdentifier: .heartRate)! }
+    46	    private var activeEnergyType: HKQuantityType {
+    47	        .quantityType(forIdentifier: .activeEnergyBurned)!
+    48	    }
+    49	
+    50	    func start() async -> HeartRateFeedState {
+    51	        guard HKHealthStore.isHealthDataAvailable() else { return .unavailable }
+    52	
+    53	        let share: Set<HKSampleType> = [HKObjectType.workoutType()]
+    54	        let read: Set<HKObjectType> = [heartRateType, activeEnergyType]
+    55	        do {
+    56	            // Asked on first use of the feature, not at launch — the same rule
+    57	            // the rest-timer notification permission follows.
+    58	            try await store.requestAuthorization(toShare: share, read: read)
+    59	        } catch {
+    60	            return .denied
+    61	        }
+    62	
+    63	        // Read permission is deliberately NOT probed with
+    64	        // `authorizationStatus(for:)`: HealthKit refuses to disclose read
+    65	        // denial, and treating "not determined" as denial would blank the UI
+    66	        // for a user who actually granted it. The honest signal that reads are
+    67	        // permitted is samples arriving — hence `.waitingForSensor` until one
+    68	        // does.
+    69	        let configuration = HKWorkoutConfiguration()
+    70	        configuration.activityType = .traditionalStrengthTraining
+    71	        configuration.locationType = .indoor
+    72	
+    73	        do {
+    74	            let session = try HKWorkoutSession(
+    75	                healthStore: store, configuration: configuration)
+    76	            let builder = session.associatedWorkoutBuilder()
+    77	            builder.dataSource = HKLiveWorkoutDataSource(
+    78	                healthStore: store, workoutConfiguration: configuration)
+    79	            builder.delegate = self
+    80	            session.delegate = self
+    81	
+    82	            self.session = session
+    83	            self.builder = builder
+    84	
+    85	            // `prepare()` before starting gives the sensor time to spin up —
+    86	            // Apple's own guidance, and the reason their UI shows a countdown.
+    87	            session.prepare()
+    88	            let start = Date()
+    89	            session.startActivity(with: start)
+    90	            try await builder.beginCollection(at: start)
+    91	            return .waitingForSensor
+    92	        } catch {
+    93	            self.session = nil
+    94	            self.builder = nil
+    95	            return .unavailable
+    96	        }
+    97	    }
+    98	
+    99	    func stop() async {
+   100	        guard let session, let builder else { return }
+   101	        let end = Date()
+   102	        session.stopActivity(with: end)
+   103	        session.end()
+   104	        // Ending collection and finishing are best-effort: the workout is the
+   105	        // user's record either way, and a failure here must not prevent the
+   106	        // session from being torn down — a live session left behind keeps the
+   107	        // sensor on.
+   108	        try? await builder.endCollection(at: end)
+   109	        _ = try? await builder.finishWorkout()
+   110	        self.session = nil
+   111	        self.builder = nil
+   112	        continuation?.finish()
+   113	    }
+   114	}
+   115	
+   116	// MARK: - Live data
+   117	
+   118	extension HealthKitHeartRateProvider: HKLiveWorkoutBuilderDelegate {
+   119	
+   120	    nonisolated func workoutBuilder(
+   121	        _ workoutBuilder: HKLiveWorkoutBuilder,
+   122	        didCollectDataOf collectedTypes: Set<HKSampleType>
+   123	    ) {
+   124	        for type in collectedTypes {
+   125	            guard let quantityType = type as? HKQuantityType,
+   126	                  let statistics = workoutBuilder.statistics(for: quantityType)
+   127	            else { continue }
+   128	            let identifier = quantityType.identifier
+   129	            Task { @MainActor [weak self] in
+   130	                self?.apply(statistics: statistics, identifier: identifier)
+   131	            }
+   132	        }
+   133	    }
+   134	
+   135	    nonisolated func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
+   136	
+   137	    @MainActor
+   138	    private func apply(statistics: HKStatistics, identifier: String) {
+   139	        switch identifier {
+   140	        case HKQuantityTypeIdentifier.heartRate.rawValue:
+   141	            let unit = HKUnit.count().unitDivided(by: .minute())
+   142	            guard let quantity = statistics.mostRecentQuantity() else { return }
+   143	            let bpm = Int(quantity.doubleValue(for: unit).rounded())
+   144	            guard bpm > 0 else { return }
+   145	            // Date from the statistic itself, not `.now`: staleness is measured
+   146	            // against when the heart beat, not when we noticed.
+   147	            let date = statistics.mostRecentQuantityDateInterval()?.end ?? Date()
+   148	            continuation?.yield(
+   149	                HeartRateSample(bpm: bpm, date: date, source: assumedSource))
+   150	        case HKQuantityTypeIdentifier.activeEnergyBurned.rawValue:
+   151	            // The system's own accumulation. We never add these up ourselves.
+   152	            activeEnergyKilocalories = statistics
+   153	                .sumQuantity()?
+   154	                .doubleValue(for: .kilocalorie())
+   155	        default:
+   156	            break
+   157	        }
+   158	    }
+   159	}
+   160	
+   161	// MARK: - Session lifecycle
+   162	
+   163	extension HealthKitHeartRateProvider: HKWorkoutSessionDelegate {
+   164	
+   165	    nonisolated func workoutSession(
+    25	    func schedule(at date: Date, title: String, body: String) {
+    26	        schedule(at: date)
+    27	    }
+    28	}
+    29	
+    30	/// Production adapter. One stable identifier guarantees that every start,
+    31	/// +time, or replacement leaves at most one pending rest notification.
+    32	final class UserNotificationScheduler: RestNotificationScheduling {
+    33	    static let shared = UserNotificationScheduler()
+    34	    private let center: UNUserNotificationCenter
+    35	    private let identifier = "workout-rest-timer"
+    36	
+    37	    init(center: UNUserNotificationCenter = .current()) {
+    38	        self.center = center
+    39	    }
+    40	
+    41	    func requestAuthorization() {
+    42	        Task { _ = try? await center.requestAuthorization(options: [.alert, .sound]) }
+    43	    }
+    44	
+    45	    func schedule(at date: Date) {
+    46	        schedule(at: date, title: "Rest complete", body: "Time for your next set.")
+    47	    }
+    48	
+    49	    func schedule(at date: Date, title: String, body: String) {
+    50	        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+    51	        let content = UNMutableNotificationContent()
+    52	        content.title = title
+    53	        content.body = body
+    54	        content.sound = .default
+    55	        let interval = max(1, date.timeIntervalSinceNow)
+    56	        let request = UNNotificationRequest(
+    57	            identifier: identifier,
+    58	            content: content,
+    59	            trigger: UNTimeIntervalNotificationTrigger(
+    60	                timeInterval: interval, repeats: false))
+    61	        Task { try? await center.add(request) }
+    62	    }
+    63	
+    64	    func cancel() {
+    65	        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+    66	    }
+    67	}
+    68	
+    69	struct RestTimerState: Equatable {
+    70	    var end: Date
+    71	    var remaining: TimeInterval
+    72	    /// The full duration this rest was started with, including any +15s
+    73	    /// extensions. `remaining / total` is the progress-bar fraction; using
+    74	    /// `remaining` as the denominator would show a restored timer as full.
+    75	    var total: TimeInterval
+    76	}
+    77	
+    78	/// Ticket 14 timer state machine. Absolute time lives on Workout, duration
+    79	/// selection is override → global (failure uses working), and all clock/
+    80	/// notification effects are injected for deterministic tests.
+    81	struct RestTimerService {
+    82	    let context: ModelContext
+    83	    let clock: any RestClock
+    84	    let notifications: any RestNotificationScheduling
+    85	
+   125	    /// is actually taking is not this set's to cancel).
+   126	    @discardableResult
+   127	    func handleCompletionChange(
+   128	        of set: SetRecord,
+   129	        isCompleted: Bool
+   130	    ) throws -> RestTimerState? {
+   131	        guard let workout = set.entry?.workout else { return nil }
+   132	        if !isCompleted {
+   133	            if workout.restStartedBySetID == set.id {
+   134	                clear(workout)
+   135	                try context.save()
+   136	                notifications.cancel()
+   137	            }
+   138	            return try currentState(for: workout)
+   139	        }
+   140	        guard set.type.startsRestTimer else { return try currentState(for: workout) }
+   141	
+   142	        let preferences = try AppPreferences.canonical(in: context)
+   143	        if !preferences.notificationPermissionRequested {
+   144	            preferences.notificationPermissionRequested = true
+   145	            preferences.updatedAt = clock.now
+   146	            notifications.requestAuthorization()
+   147	        }
+   148	
+   149	        // D43: a heart-rate rest runs to its CAP as far as the clock and the
+   150	        // persisted timer are concerned. The threshold can only end it early,
+   151	        // and only while a live reading is arriving — so the cap is what
+   152	        // survives a relaunch, a backgrounded app, or a sensor that dies.
+   153	        let plan = try restPlan(for: set)
+   154	        let seconds = plan.seconds
+   155	        let end = clock.now.addingTimeInterval(TimeInterval(seconds))
+   156	        workout.restEndsAt = end
+   157	        workout.restStartedAt = clock.now
+   158	        workout.restStartedBySetID = set.id
+   159	        try context.save()
+   160	        switch plan.mode {
+   161	        case .standard:
+   162	            notifications.schedule(at: end)
+   163	        case .heartRate:
+   164	            notifications.schedule(
+   165	                at: end,
+   166	                title: "Rest complete",
+   167	                body: "Time is up — your heart rate didn't reach the target.")
+   168	        }
+   169	        return RestTimerState(
+   170	            end: end,
+   171	            remaining: TimeInterval(seconds),
+   172	            total: TimeInterval(seconds))
+   173	    }
+   174	
+   175	    // MARK: - Heart-rate rest (D43)
+   176	
+   177	    /// How a rest for this set should run: standard durations (D22), or a
+   178	    /// heart-rate threshold with its cap.
+   179	    struct RestPlan: Equatable {
+   180	        var mode: RestMode
+   265	        try context.save()
+   266	        // +1s rather than `now`: a UNTimeIntervalNotificationTrigger of zero is
+   267	        // rejected, and the app may well be backgrounded — which is exactly the
+   268	        // case this alarm exists for.
+   269	        notifications.schedule(
+   270	            at: clock.now.addingTimeInterval(1),
+   271	            title: "Rest complete",
+   272	            body: "Heart rate down to \(bpm) bpm — ready for your next set.")
+   273	    }
+   274	
+   275	    /// Reconstruct or expire a persisted timer. Expired timers are cleared so
+   276	    /// returning from suspension never shows stale UI.
+   277	    func currentState(for workout: Workout) throws -> RestTimerState? {
+   278	        guard let end = workout.restEndsAt else { return nil }
+   279	        let remaining = end.timeIntervalSince(clock.now)
+   280	        guard remaining > 0 else {
+   281	            clear(workout)
+   282	            try context.save()
+   283	            notifications.cancel()
+   284	            return nil
+   285	        }
+   286	        return RestTimerState(
+   287	            end: end, remaining: remaining, total: total(of: workout, end: end))
+   288	    }
+   289	
+   290	    @discardableResult
+   291	    func add(seconds: Int, to workout: Workout) throws -> RestTimerState? {
+   292	        guard let state = try currentState(for: workout) else { return nil }
+   293	        let end = state.end.addingTimeInterval(TimeInterval(seconds))
+   294	        workout.restEndsAt = end
+   295	        try context.save()
+   296	        notifications.schedule(at: end)
+   297	        // `restStartedAt` is untouched, so the total grows with the extension
+   298	        // and the bar keeps shrinking from wherever it was.
+   299	        return RestTimerState(
+   300	            end: end,
+   301	            remaining: end.timeIntervalSince(clock.now),
+   302	            total: total(of: workout, end: end))
+   303	    }
+   304	
+   305	    /// Total = end − start. Timers persisted before `restStartedAt` existed
+   306	    /// fall back to the remaining time (the old behaviour) rather than zero.
+   307	    private func total(of workout: Workout, end: Date) -> TimeInterval {
+   308	        guard let started = workout.restStartedAt else {
+   309	            return max(0, end.timeIntervalSince(clock.now))
+   310	        }
+   311	        return max(0, end.timeIntervalSince(started))
+   312	    }
+   313	
+   314	    func skip(_ workout: Workout) throws {
+   315	        clear(workout)
+   316	        try context.save()
+   317	        notifications.cancel()
+   318	    }
+   319	
+   320	    /// App-level upsert; duplicate overrides use the same latest-date/id
+   321	    /// canonical rule as preferences and gym memory.
+   322	    func setOverride(
+   323	        for exercise: Exercise,
+   324	        warmupSeconds: Int?,
+   325	        workingSeconds: Int?,
+   326	        restMode: RestMode? = nil,
+   327	        heartRateThresholdBpm: Int? = nil,
+   328	        heartRateCapSeconds: Int? = nil
+   329	    ) throws {
+   330	        let exerciseID = exercise.id
+   331	        let rows = try context.fetch(FetchDescriptor<ExerciseRestOverride>(
+   332	            predicate: #Predicate { $0.exerciseID == exerciseID }
+   333	        ))
+   334	        let row = rows.canonical ?? ExerciseRestOverride(exerciseID: exerciseID)
+   335	        if rows.isEmpty { context.insert(row) }
+   336	        row.warmupRestSeconds = warmupSeconds.map { max(0, $0) }
+   337	        row.workingRestSeconds = workingSeconds.map { max(0, $0) }
+   338	        row.restMode = restMode
+   339	        // Clamped, not trusted: a zero or negative cap would make every
+   340	        // heart-rate rest expire the instant it started, which reads as the
+   341	        // feature being broken rather than misconfigured.
+   342	        row.heartRateThresholdBpm = heartRateThresholdBpm.map { max(30, min(240, $0)) }
+   343	        row.heartRateCapSeconds = heartRateCapSeconds.map { max(15, $0) }
+   344	        row.updatedAt = clock.now
+   345	        try context.save()
+     1	<?xml version="1.0" encoding="UTF-8"?>
+     2	<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+     3	<plist version="1.0">
+     4	<dict>
+     5		<!-- Partial Info.plist, MERGED with the generated one.
+     6	
+     7		     GENERATE_INFOPLIST_FILE stays YES: every usage-description string and
+     8		     the scene manifest still live in build settings, exactly as before.
+     9		     This file exists for one key that build settings cannot express.
+    10	
+    11		     Xcode's plist generator only writes an allowlist of INFOPLIST_KEY_*
+    12		     settings, and array-valued keys are not on it. Setting
+    13		     INFOPLIST_KEY_UIBackgroundModes = audio is silently accepted, appears
+    14		     in -showBuildSettings, and never reaches the built plist — verified
+    15		     2026-08-24 with `plutil -extract` on the built app.
+    16	
+    17		     Why the app needs it: the rest alarm plays real audio so the sound
+    18		     reaches AirPods (a UNNotificationSound does not). The moment that
+    19		     matters most is the screen being off mid-workout, and starting
+    20		     playback from the background requires this mode. Without it
+    21		     AVAudioSession activation fails there and the alarm is silent again —
+    22		     the exact bug it was added to fix. -->
+    23		<key>UIBackgroundModes</key>
+    24		<array>
+    25			<!-- Plays the rest alarm while the app is backgrounded. -->
+    26			<string>audio</string>
+    27			<!-- Keeps the HKWorkoutSession RUNNING while the app is backgrounded,
+    28			     which on iOS it does not do without this.
+    29	
+    30			     Found the hard way, 2026-08-25: with `audio` alone the alarm beeped
+    31			     only while the app was on screen. iOS suspends the workout session
+    32			     when the app backgrounds, so no samples arrive, so the sample-driven
+    33			     alarm never fires — and every SwiftUI timer has stopped too.
+    34	
+    35			     The local notification kept firing throughout, which is what made
+    36			     this hard to see: a UNTimeIntervalNotificationTrigger is scheduled
+    37			     with the system in advance and fires whether or not the app is
+    38			     running. The notification arriving never proved the app was alive. -->
+    39			<string>workout-processing</string>
+    40		</array>
+    41	</dict>
+    42	</plist>
+    46	| D38 | **The preset is chosen at log time**, with the machine's usual one preselected and switchable in one tap. A stale machine default (deleted, or belonging to another exercise) degrades to "none chosen". | Grips vary session to session on one machine, so freezing the choice at machine-creation would mean editing the machine to change handles. Preselection removes the tap in the common case without deciding anything the user did not (D33's shape, one feature over). |
+    47	| D39 | **A bar is an input aid whose result is the total.** Wherever an entry is barbell work — the `barbell`/`smith` free-weight tags, or a machine whose catalog model is a rack or Smith — the user may pick a bar (a fixed list of standard bars, plus a custom weight); the weight field then takes the plates on **one** end and the app logs `bar + 2 × plates`. `SetRecord.weightValue` is the TOTAL in bar mode exactly as in total mode; the bar weight is stored alongside as provenance so history can show the breakdown and the next session can prefill plates rather than a total. The bar is **not** part of the D23 snapshot and not part of `RecordGroupKey`: changing bars does not split records the way changing equipment (D19) or variation (D36) does. | Two 135 lb sets are the same lift whether the number was typed or computed, so they must land in the same record table — the bar changes the *input*, not the load. And a stored weight that sometimes excluded the bar would silently drop every barbell PR by the weight of a bar with no error anywhere: `RecordsMath`, volume (D21), e1RM (D20) and the export's `weight` all read `weightValue` and know nothing about bars. The user asked for this on 2026-08-22; it is the first half of milestone 6's plate calculator (D16). |
+    48	| D40 | **A bar carries its own unit, and picking one sets the row's unit.** Bars are listed in kg and lb as *distinct* bars (a 20 kg bar is not a 45 lb bar), picking one never converts anything, and the kg/lb toggle is disabled while a bar is chosen. A row already carrying a total in the bar's own unit keeps it (the total is re-read as bar + plates); a total in the *other* unit is dropped rather than reinterpreted. | D9/D25 forbid silent conversion, and the toggle's own semantics — reinterpret the number in the other unit — would turn a 20 kg bar into a 20 kg-labelled 20 lb one on a stray tap. Switching unit means picking up a different bar, which is what happens in a gym. |
+    49	
+    50	| D41 | **HealthKit and a watchOS companion are in scope** (2026-08-22), reopening SPEC's "No backend, accounts, **HealthKit**, **Watch**, or third-party runtime dependencies" at the user's explicit request. The rest of that sentence stands unchanged: no backend, no accounts, no third-party runtime dependencies, still fully offline. Live heart rate reaches the phone two ways — a `HKWorkoutSession` on the phone (AirPods Pro 3 and any heart-rate GATT wearable) and a watchOS companion streaming over `WCSession`, because the Apple Watch is **not** a GATT peripheral to the phone and cannot be read live without an app on the wrist. | The user asked for heart rate as a core feature, and every route to it is HealthKit. Verified before committing to it (2026-08-22): the **free** Apple account provisions `com.apple.developer.healthkit`, `.access` and `.background-delivery`, so this costs no Developer Program membership; the iPhone workout-session API is `ios(26.0)`; and the system, not the app, generates active energy during a session. Surfacing the conflict rather than drifting from it is what the preamble to this file requires. |
+    51	| D42 | **Minimum iOS rises from 17.0 to 26.0**, superseding SPEC's "iOS 17+". | `HKWorkoutSession`'s iPhone initialiser, `HKLiveWorkoutBuilder` and `HKLiveWorkoutDataSource` are all `API_AVAILABLE(ios(26.0))` — read from the SDK headers, not assumed. The app has exactly one user, whose phone runs 26.6, so availability-gating every heart-rate path would add branches that no device will ever take. |
+    52	| D43 | **A heart-rate rest ends on the threshold OR on a cap, and the alarm says which.** Per exercise the rest timer is standard (D13/D22) or heart-rate: rest ends when HR drops below a user-set bpm, or when a max-wait cap (default 4:00) expires. With no live source it degrades to the standard timer and says it degraded. | The cap is not decoration: one dropped connection, one bad sample, or one genuinely brutal set and a threshold-only rule waits forever — for an alarm whose whole job is to be the thing you do not have to watch. "You recovered" and "time is up" are different facts about the set you just did, so a notification that conflates them is lying about your training. |
+    53	| D44 | **The finish summary is HealthKit's numbers beside the app's own**: time, active calories, average and max HR, time in zones — plus total volume, the exercises performed, and their best sets. Heart-rate rows are **omitted, never zeroed**, when no session ran. The summary values are persisted on `Workout` rather than re-queried. | Apple's summary cannot say what you lifted; this app's cannot say what your heart did. The user asked for both on one screen. `0 BPM` for a workout logged without a sensor is not a missing value, it is a false one — the same distinction D30 draws for draft sets. Persisting mirrors D23: what History shows must not change because a source later changed its mind. |
+    54	| D45 | **An estimated maximum heart rate is marked as estimated wherever it reaches a screen**, until the user supplies a measured one. Zones are **55/65/75/85/95%** of max (revised 2026-08-24 — see below); with neither a measured max nor a birth date, zones are not shown at all. | 220−age carries a standard deviation of ±10–12 bpm, so an unmarked "Zone 4" asserts a precision the number does not have — exactly what D9/D25's `≈` exists to prevent one domain over. Showing no zone is honest; showing a confident wrong one is not. **Corollary, learned 2026-08-24:** a decision to hide a feature until the user supplies a basis is only honest if supplying that basis is REACHABLE. As shipped, the only way in was a button that rendered only once zones already worked, so no user could ever switch them on. Any new "hidden until configured" gate must ship its own way in — Settings, not just a contextual hint. **Boundaries revised 2026-08-24, deliberately reopening the 50/60/70/80/90 half of this decision:** after real gym use the user reported every zone reading about one too high, and chose to shift each boundary up 5 percentage points. Root cause is probably not the boundaries but the basis — they are on the 220−age estimate, which runs low for fit people, and a low max inflates every percentage. Raising the max was offered and declined in favour of the shift. **The cost, which is real: this app's "Zone 3" is no longer Polar's or Apple's Zone 3.** Zone names here are not portable, and a measured maximum would let these go back to standard. |
+    55	
+
+hook: PostToolUse
+hook: PostToolUse Completed
+codex
+The core issue is iOS suspension, not `.mixWithOthers`, signing, SwiftUI ownership, or the notification trigger.
+
+Your present design is fundamentally unreliable: the audible cap alarm is evaluated only when a heart-rate sample reaches [`fresh.onSample`](/Users/ericlee06/orca/projects/Health%20App/WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:71). On iPhone, `HKWorkoutSession` does not grant watchOS-style continuous background execution, and the inaudible audio loop is not a supported way to manufacture that execution.
+
+## 1. Background audio and `.mixWithOthers`
+
+`.mixWithOthers` is not the problem. It only controls whether your playback mixes with other audio; Apple explicitly supports it with `.playback`. It does not classify the app as an ineligible “secondary” client. [Apple’s playback category documentation](https://developer.apple.com/documentation/avfaudio/avaudiosession/category-swift.struct/playback) and [mixWithOthers documentation](https://developer.apple.com/documentation/avfaudio/avaudiosession/categoryoptions-swift.struct/mixwithothers) say exactly that.
+
+The important distinction is:
+
+- An active audio session alone grants no runtime.
+- Legitimate ongoing playback using the `audio` background mode normally continues in the background.
+- An inaudible loop used only to keep the process alive is not a supported use of background audio. Apple restricts background services to their intended purposes under [App Review Guideline 2.5.4](https://developer.apple.com/app-store/review/guidelines/), and iOS makes no guarantee that such a loop will keep receiving CPU indefinitely.
+
+Your loop is effectively digital zero: ±1 in 16-bit PCM, multiplied by `player.volume = 0.01`, is approximately −130 dBFS. [`isPlaying == true`](/Users/ericlee06/orca/projects/Health%20App/WorkoutTracker/Domain/RestAlarmSound.swift:105) only describes player state; it is not evidence that iOS granted useful background runtime.
+
+Even if the keep-alive were running, the beep itself is not pre-scheduled. The app must execute this chain at the deadline:
+
+```text
+HKLiveWorkoutBuilder callback
+→ AsyncStream
+→ HeartRateMonitor.onSample
+→ soundRestAlarmIfDue()
+→ AVAudioPlayer.play()
+```
+
+Breaking any link means no beep. The local notification avoids that entire chain because iOS owns its deadline.
+
+So attempt 3 is fundamentally unsuitable for production. It may sometimes work as a private sideloading hack, but it is neither guaranteed nor App-Store-valid.
+
+## 2. `HKWorkoutSession` background behavior on iPhone
+
+`workout-processing` does not grant background execution on iPhone. Apple documents that mode as watchOS-only: “The app uses a workout session to track a user’s activity on Apple Watch.” See [Configuring background execution modes](https://developer.apple.com/documentation/xcode/configuring-background-execution-modes).
+
+Therefore the claim in [`WorkoutTracker-Info.plist`](/Users/ericlee06/orca/projects/Health%20App/Config/WorkoutTracker-Info.plist:27) is incorrect. On an iOS target, that value does not turn an `HKWorkoutSession` into a continuous-execution assertion.
+
+There is also a version mismatch worth making explicit: this repository already raised its deployment target to iOS 26 because iPhone workout sessions arrived there; see [`D42`](/Users/ericlee06/orca/projects/Health%20App/docs/DECISIONS.md:51). This is not an iOS 17 API path.
+
+For iOS 26:
+
+- HealthKit can continue managing the workout and external sensor collection.
+- With the one-time locked-device consent, workout data may remain accessible while locked.
+- HealthKit supports recovering the session after a crash.
+- None of that promises continuous CPU execution for your app.
+
+Apple’s WWDC25 iPhone workout session presentation specifically describes builder metrics as live “while your app is in the foreground,” recommends the builder delegate for foreground UI updates, and separately discusses locked-device access and session recovery. [WWDC25: Track workouts with HealthKit on iOS and iPadOS](https://developer.apple.com/videos/play/wwdc2025/322/).
+
+Consequently, `HKLiveWorkoutBuilderDelegate` callbacks cannot be used as a guaranteed background clock. If your process is suspended, no Swift delegate callback executes.
+
+For background HealthKit ingestion, the supported pattern is:
+
+1. Install an `HKObserverQuery` at application launch.
+2. Call `enableBackgroundDelivery(for: heartRateType, frequency: .immediate)`.
+3. When HealthKit wakes the app, run an `HKAnchoredObjectQuery` to fetch changes.
+4. Always call the observer completion handler promptly.
+
+The anchored query itself cannot be registered for background delivery; the observer query is the wake mechanism. [Apple’s observer-query guidance](https://developer.apple.com/documentation/healthkit/executing-observer-queries) and [HealthKit query comparison](https://developer.apple.com/documentation/healthkit/reading-data-from-healthkit) make that distinction.
+
+However, “immediate” is a requested maximum frequency, not a real-time deadline guarantee. Delivery is system-controlled and can be deferred. It is appropriate for catching up and opportunistic early-recovery detection, but not for guaranteeing a threshold alarm within one second.
+
+## 3. Free account and Debug installation
+
+There is no special free-account restriction that explains this symptom.
+
+- Background audio is controlled through `UIBackgroundModes`, not a paid managed entitlement.
+- Your HealthKit and background-delivery entitlements are signed into the binary.
+- The repository records that the Personal Team successfully provisioned them.
+- A Personal Team’s material constraint here is that the development profile expires after seven days. [Apple’s membership comparison](https://developer.apple.com/support/compare-memberships/) documents that limitation.
+
+`devicectl` installation and Debug optimization do not inherently change suspension rules. The significant test difference is debugger attachment: an attached debugger can prevent normal suspension and produce misleadingly successful background tests. Apple DTS recommends launching from the Home Screen without the debugger when testing suspension. See [Apple’s background timer discussion](https://developer.apple.com/forums/thread/132078).
+
+In this case the device failure without attachment is the behavior that matters.
+
+Critical alerts are different: they require a special managed entitlement approved by Apple. A free Personal Team cannot simply add it; even paid membership only lets you request approval. A workout rest timer is unlikely to qualify as a critical health/safety alert. [Apple’s Critical Alerts documentation](https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.usernotifications.critical-alerts/).
+
+## 4. What actually works
+
+There is no supported iOS API that guarantees arbitrary app-controlled media playback through AirPods at a future instant after the app has been suspended.
+
+Use this hierarchy:
+
+1. **For the known cap deadline on iOS 26: use AlarmKit.** Schedule it when rest starts; cancel/reschedule it for skip, recovery, and +15 seconds. AlarmKit is system-owned, survives suspension, supports timers and custom sounds, and bypasses Focus and silent mode after user authorization. It does not require paid membership. [AlarmKit scheduling documentation](https://developer.apple.com/documentation/alarmkit/scheduling-an-alarm-with-alarmkit).
+
+2. **For iOS 17–18: keep the local notification.** Schedule at rest start and replace it on +15, exactly as the code already does in [`RestTimer.swift`](/Users/ericlee06/orca/projects/Health%20App/WorkoutTracker/Domain/RestTimer.swift:49).
+
+3. **A custom notification sound does not fix AirPods routing.** It changes the waveform but still uses the system alert facility. The app cannot control whether the Bluetooth audio channel is opened. Apple DTS states there is no supported way to force notification sounds through Bluetooth headphones. [Apple DTS notification routing explanation](https://developer.apple.com/forums/thread/815591).
+
+4. **Critical alerts do not fix routing either.** They bypass mute and Focus and permit a chosen volume, but remain system notification audio.
+
+5. **Offer Announce Notifications as the no-paid AirPods option.** If the user enables Announce Notifications for this app, Siri can announce the notification through worn AirPods while the phone is locked. This is user-controlled and not guaranteed to be enabled, but it is supported. [Apple’s Announce Notifications guidance](https://support.apple.com/en-ca/guide/iphone/iph838fd6fd4/ios).
+
+If media-route delivery is absolutely mandatory, the only supported AVAudioSession solution is for the app to be genuinely playing audible workout audio—music, coaching, a metronome, or similar—throughout the background interval. Then a cue can be scheduled on that already-running audio timeline. `.mixWithOthers` remains valid.
+
+For a private one-user sideload only, you could start one continuous asset containing silence followed by the beep when the rest begins. That avoids needing app code at the deadline and is more likely to work than firing `AVAudioPlayer` later. But it is still silent-background-audio keep-alive behavior, can fail after interruptions or route changes, and does not solve background heart-rate recovery. `AVAudioPlayer.play(atTime:)` is a synchronization API, not a system alarm registration and does not promise to wake a suspended app.
+
+The practical recommendation is therefore:
+
+- Remove the inaudible keep-alive and the iOS `workout-processing` assumption.
+- Schedule AlarmKit at the known cap immediately when rest begins.
+- Cancel/reschedule on every user action.
+- Treat observer-query heart-rate delivery as opportunistic for early recovery.
+- Keep a notification fallback and direct the user to enable Announce Notifications for AirPods.
+
+That is the supported architecture. A guaranteed arbitrary beep over AirPods, with no ongoing legitimate audio and while the iPhone app is suspended, is not an capability iOS exposes.
+hook: Stop
+hook: Stop Completed
+tokens used
+181,296

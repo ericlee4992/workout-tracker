@@ -129,6 +129,36 @@ enum RestAlarmTone {
             sampleRate: sampleRate)
     }
 
+    /// Lower rate for the long pre-rendered tracks. The beeps top out at
+    /// 1175 Hz, so 22.05 kHz is far above Nyquist and halves the memory: a
+    /// four-minute cap track is ~10 MB rather than ~21 MB.
+    static let trackSampleRate: Double = 22_050
+
+    /// **The heart of the background alarm.** One asset: inaudible dither for
+    /// `silenceSeconds`, then the beep.
+    ///
+    /// Why this shape rather than "play a beep when the rest ends": iOS never
+    /// promises a backgrounded app any CPU at a chosen instant, so anything
+    /// that has to EXECUTE at the deadline can be — and was, three times —
+    /// simply never run. Here nothing executes at the deadline. The beep is the
+    /// next part of a buffer the audio pipeline is already playing, and keeping
+    /// that pipeline running is exactly what the `audio` background mode is
+    /// for. The known-in-advance endings (a plain rest, and D43's cap) become
+    /// guaranteed rather than best-effort.
+    ///
+    /// The dither is inaudible but NOT digital silence, so no layer of the
+    /// output chain can treat the track as "no audio" and stop feeding it.
+    static func restTrackWav(
+        silenceSeconds: Double,
+        pattern: RestAlarmPattern,
+        sampleRate: Double = RestAlarmTone.trackSampleRate
+    ) -> Data {
+        var pcm = keepAliveSamples(
+            seconds: max(0, silenceSeconds), sampleRate: sampleRate)
+        pcm.append(contentsOf: samples(for: pattern, sampleRate: sampleRate))
+        return wav(samples: pcm, sampleRate: sampleRate)
+    }
+
     /// A complete WAV file for a pattern, ready to hand to `AVAudioPlayer`.
     ///
     /// Built by hand because the alternative is shipping two audio files and
@@ -161,7 +191,16 @@ enum RestAlarmTone {
         data.append(littleEndian: bitsPerSample)
         data.append(contentsOf: Array("data".utf8))
         data.append(littleEndian: dataBytes)
-        for sample in pcm { data.append(littleEndian: UInt16(bitPattern: sample)) }
+        // Bulk copy, not per-sample appends. A four-minute track is ~5 million
+        // samples; appending them one at a time takes long enough to stall the
+        // tap that starts the rest.
+        pcm.withUnsafeBufferPointer { buffer in
+            buffer.baseAddress.map {
+                data.append(
+                    UnsafeRawPointer($0).assumingMemoryBound(to: UInt8.self),
+                    count: buffer.count * MemoryLayout<Int16>.size)
+            }
+        }
         return data
     }
 }

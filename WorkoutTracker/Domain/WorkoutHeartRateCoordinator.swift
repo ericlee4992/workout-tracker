@@ -69,6 +69,10 @@ final class WorkoutHeartRateCoordinator {
         // minimise and the screen going off, so it is the only one the alarm
         // can hang from.
         fresh.onSample = { [weak self] in
+            // The single most diagnostic line in the app: if these stop while
+            // the phone is locked, the process is being suspended and NO
+            // amount of audio work will make the alarm fire.
+            restAlarmLog.debug("sample tick")
             self?.soundRestAlarmIfDue()
             self?.onSample?()
         }
@@ -131,11 +135,28 @@ final class WorkoutHeartRateCoordinator {
         if let endsAt, endsAt != lastSoundedRestEnd {
             lastSoundedRestEnd = nil
         }
+        // QUEUE THE BEEP NOW, for the deadline we already know.
+        //
+        // This is the fix for three builds' worth of "it only beeps when the
+        // app is on screen". The old design needed the app to be executing at
+        // the instant the rest ended — iOS promises a backgrounded app no such
+        // thing. Handing the audio pipeline a track that plays silence and then
+        // beeps means the deadline needs no code at all.
+        //
+        // Called on every change to the deadline, so +15s re-queues and skip
+        // cancels.
+        if let endsAt {
+            alarm.scheduleBeep(inSeconds: endsAt.timeIntervalSinceNow, pattern: .cap)
+        } else {
+            alarm.cancelScheduledBeep()
+        }
     }
 
     /// The heart rate came down, so this rest ended early (D43). Sounds the
     /// "recovered" pattern and disarms, so the cap cannot also fire.
     func soundRecovered() {
+        // The cap track is queued and would still beep later; this rest is over.
+        alarm.cancelScheduledBeep()
         alarm.sound(.recovered)
         restEndsAt = nil
         lastSoundedRestEnd = nil
@@ -150,6 +171,12 @@ final class WorkoutHeartRateCoordinator {
             restEndsAt: restEndsAt, lastSounded: lastSoundedRestEnd, now: now)
         else { return }
         lastSoundedRestEnd = restEndsAt
+        // The queued track has already beeped by itself if the audio pipeline
+        // survived. This is the belt-and-braces path for the case where it did
+        // not — an interruption, a route change — and it is cheap: at worst the
+        // user hears the same beep twice, which is better than not at all.
+        restAlarmLog.notice("cap deadline reached while executing")
+        guard !alarm.hasQueuedBeep else { return }
         alarm.sound(.cap)
     }
 

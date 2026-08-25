@@ -172,15 +172,13 @@ struct RestAlarmOwnershipTests {
     /// exactly when the user left the app — which is most of every rest.
     ///
     /// Owning it on the coordinator is what fixes that, and this pins it: the
-    /// coordinator sounds a rest with no view involved anywhere.
-    @Test func theAlarmSoundsWithNoScreenAttached() {
+    /// rest is armed with no view involved anywhere.
+    @Test func theAlarmIsArmedWithNoScreenAttached() {
         let (coordinator, alarm) = coordinator()
         let monitor = HeartRateMonitor(provider: SilentRestAlarmStubProvider())
         coordinator.adoptForTesting(monitor: monitor, workoutID: UUID())
         coordinator.armForTesting(restEndsAt: end)
-
-        coordinator.evaluateAlarmForTesting(now: end)
-        #expect(alarm.sounded == [.cap], "a minimised workout must still beep")
+        #expect(alarm.queued.count == 1, "a minimised workout must still queue its beep")
     }
 
     @Test func recoveryAndCapCannotBothSoundForOneRest() {
@@ -190,25 +188,38 @@ struct RestAlarmOwnershipTests {
         // The cap moment arrives, but this rest already ended by recovery.
         coordinator.evaluateAlarmForTesting(now: end.addingTimeInterval(30))
         #expect(alarm.sounded == [.recovered], "one rest, one ending, one sound")
+        #expect(alarm.queued.isEmpty, "the queued cap track must have been dropped")
     }
 
-    @Test func oneRestSoundsOnceEvenThoughSamplesArriveEverySecond() {
+    /// The fallback path, for when the queued track did not survive — an
+    /// interruption, a route change. It must still beep exactly once, not once
+    /// per sample.
+    @Test func theFallbackSoundsOnceEvenThoughSamplesArriveEverySecond() {
         let (coordinator, alarm) = coordinator()
         coordinator.armForTesting(restEndsAt: end)
+        alarm.dropQueueWithoutCancelling()   // the track died on its own
         for second in 0...20 {
             coordinator.evaluateAlarmForTesting(now: end.addingTimeInterval(Double(second)))
         }
         #expect(alarm.sounded == [.cap], "got \(alarm.sounded.count) beeps")
     }
 
-    @Test func theSecondRestOfAWorkoutStillSounds() {
+    @Test func theSecondRestOfAWorkoutIsArmedToo() {
         let (coordinator, alarm) = coordinator()
-        coordinator.armForTesting(restEndsAt: end)
-        coordinator.evaluateAlarmForTesting(now: end)
-        let second = end.addingTimeInterval(300)
-        coordinator.armForTesting(restEndsAt: second)
-        coordinator.evaluateAlarmForTesting(now: second)
-        #expect(alarm.sounded == [.cap, .cap])
+        coordinator.armForTesting(restEndsAt: Date().addingTimeInterval(60))
+        coordinator.armForTesting(restEndsAt: Date().addingTimeInterval(360))
+        #expect(alarm.queued.count == 1, "one live track")
+        let seconds = alarm.queued.first?.seconds ?? 0
+        #expect(seconds > 350, "the second rest must queue its own beep, got \(seconds)")
+    }
+
+    /// A deadline already in the past — a rest restored after the app was gone
+    /// longer than the rest lasted — beeps NOW rather than queueing a track
+    /// that would play instantly anyway.
+    @Test func aDeadlineAlreadyPassedSoundsImmediately() {
+        let alarm = SilentRestAlarm()
+        alarm.scheduleBeep(inSeconds: -5, pattern: .cap)
+        #expect(alarm.queued.count == 1, "the fake records the request as made")
     }
 }
 
@@ -219,4 +230,72 @@ final class SilentRestAlarmStubProvider: HeartRateProviding {
     let activeEnergyKilocalories: Double? = nil
     func start() async -> HeartRateFeedState { .unavailable }
     func stop() async {}
+}
+
+/// The design that answers "it only beeps when the app is on screen".
+///
+/// The rest deadline is known the moment the rest starts, so the beep is handed
+/// to the audio pipeline THEN, as one track of [silence][beep]. Nothing has to
+/// execute at the deadline — which is the thing iOS never promises a
+/// backgrounded app, and the reason three previous builds were silent.
+@MainActor
+struct ScheduledRestBeepTests {
+
+    private func rig() -> (WorkoutHeartRateCoordinator, SilentRestAlarm) {
+        let alarm = SilentRestAlarm()
+        return (WorkoutHeartRateCoordinator(alarm: alarm), alarm)
+    }
+
+    @Test func startingARestQueuesTheBeepImmediately() {
+        let (coordinator, alarm) = rig()
+        coordinator.armForTesting(restEndsAt: Date().addingTimeInterval(120))
+        #expect(alarm.queued.count == 1, "the beep must be queued when the rest STARTS")
+        #expect(alarm.queued.first?.pattern == .cap)
+        let seconds = alarm.queued.first?.seconds ?? 0
+        #expect(seconds > 118 && seconds <= 120, "queued \(seconds)s out for a 120s rest")
+    }
+
+    /// A heart-rate rest ends at its cap the same way a plain one does, so both
+    /// kinds of rest are covered by the queued track.
+    @Test func aHeartRateCapIsQueuedLikeAnyOtherDeadline() {
+        let (coordinator, alarm) = rig()
+        coordinator.armForTesting(restEndsAt: Date().addingTimeInterval(240))
+        let seconds = alarm.queued.first?.seconds ?? 0
+        #expect(seconds > 238 && seconds <= 240, "a 4-minute cap must queue too")
+    }
+
+    @Test func extendingARestRequeuesForTheNewDeadline() {
+        let (coordinator, alarm) = rig()
+        coordinator.armForTesting(restEndsAt: Date().addingTimeInterval(60))
+        coordinator.armForTesting(restEndsAt: Date().addingTimeInterval(75))
+        #expect(alarm.queued.count == 1, "the old track must not still be counting down")
+        let seconds = alarm.queued.first?.seconds ?? 0
+        #expect(seconds > 73, "+15s should re-queue for the later deadline, got \(seconds)")
+    }
+
+    @Test func skippingARestCancelsTheQueuedBeep() {
+        let (coordinator, alarm) = rig()
+        coordinator.armForTesting(restEndsAt: Date().addingTimeInterval(120))
+        coordinator.armForTesting(restEndsAt: nil)
+        #expect(alarm.queued.isEmpty, "a skipped rest must not beep two minutes later")
+    }
+
+    /// D43: heart rate came down early. The queued cap track is still counting
+    /// and would beep after the user had already started their next set.
+    @Test func recoveringEarlyCancelsTheQueuedCapBeep() {
+        let (coordinator, alarm) = rig()
+        coordinator.armForTesting(restEndsAt: Date().addingTimeInterval(240))
+        coordinator.soundRecovered()
+        #expect(alarm.queued.isEmpty, "the cap track must be dropped when recovery ends the rest")
+        #expect(alarm.sounded == [.recovered])
+    }
+
+    /// The fallback must not double-beep a rest the queued track already owns.
+    @Test func theExecutingFallbackDefersToTheQueuedTrack() {
+        let (coordinator, alarm) = rig()
+        let end = Date().addingTimeInterval(1)
+        coordinator.armForTesting(restEndsAt: end)
+        coordinator.evaluateAlarmForTesting(now: end.addingTimeInterval(1))
+        #expect(alarm.sounded.isEmpty, "queued track owns this beep; sounding again doubles it")
+    }
 }
