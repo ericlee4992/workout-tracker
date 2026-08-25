@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Partial Info.plist, MERGED with the generated one.
+
+	     GENERATE_INFOPLIST_FILE stays YES: every usage-description string and
+	     the scene manifest still live in build settings, exactly as before.
+	     This file exists for one key that build settings cannot express.
+
+	     Xcode's plist generator only writes an allowlist of INFOPLIST_KEY_*
+	     settings, and array-valued keys are not on it. Setting
+	     INFOPLIST_KEY_UIBackgroundModes = audio is silently accepted, appears
+	     in -showBuildSettings, and never reaches the built plist — verified
+	     2026-08-24 with `plutil -extract` on the built app.
+
+	     Why the app needs it: the rest alarm plays real audio so the sound
+	     reaches AirPods (a UNNotificationSound does not). The moment that
+	     matters most is the screen being off mid-workout, and starting
+	     playback from the background requires this mode. Without it
+	     AVAudioSession activation fails there and the alarm is silent again —
+	     the exact bug it was added to fix. -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
+</dict>
+</plist>

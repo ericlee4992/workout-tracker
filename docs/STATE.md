@@ -269,6 +269,18 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   not evidence. Regenerate the fixture from the *installed* commit whenever the shape changes.
 - **UI tests take ~7 minutes** and occasionally flake under load. A single red run is not
   automatically a real failure; re-run the failing test alone before believing it.
+- **Changing `INFOPLIST_FILE` needs a CLEAN build, and an incremental one lies.** The app now
+  merges a partial `Config/WorkoutTracker-Info.plist` (for `UIBackgroundModes`, which build
+  settings cannot express) with the generated keys. The first incremental build after that change
+  produced a plist **missing `NSHealthShareUsageDescription` and `NSHealthUpdateUsageDescription`**
+  — and a missing HealthKit usage string is a *crash* on the permission request, not a prompt.
+  `clean build` produced the correct merged plist. Verify with
+  `plutil -p <built app>/Info.plist` after any plist-affecting change; do not trust the build
+  succeeding.
+- **`INFOPLIST_KEY_UIBackgroundModes` is silently ignored.** It is accepted as a build setting and
+  shows up in `-showBuildSettings`, but Xcode's plist generator only writes an allowlist of
+  `INFOPLIST_KEY_*` settings and array-valued keys are not on it. It never reaches the built plist.
+  Hence the partial-plist file above.
 - **The Simulator has no camera.** Anything camera-driven needs a fixture path to be testable at
   all — hence `-uiTestScanFixture`, which renders a name plate in place of the picker. And a
   missing `INFOPLIST_KEY_NSCameraUsageDescription` is a *crash* on presentation, not a prompt;
