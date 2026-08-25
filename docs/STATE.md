@@ -283,8 +283,16 @@ nothing about whether the install worked.
      the music duck and come back, and does the beep fire **with the screen off** — that last one
      runs off the heart-rate sample tick because a SwiftUI timer stops when the screen sleeps, and
      it needs the new `audio` background mode to play at all.
-   - Does the watch companion install, pair, and stream? **No Apple Watch has ever been visible to
-     this Mac** (`devicectl` sees only the iPhone), so nothing on that path is installed. It is a
+   - **THE FREE TEST, worth doing before any watch work: wear the Apple Watch during a workout with
+     NOTHING installed on it, and read the source label on the heart-rate bar.** The user owns an
+     Apple Watch (confirmed 2026-08-25). If the bar says **"Apple Watch"**, the phone's own
+     `HKWorkoutSession` is reading the watch directly, **the whole `WorkoutTrackerWatch` target is
+     unnecessary, and the right move is to DELETE it** — D41's premise would be wrong. If it says
+     "AirPods" or nothing changes, D41 holds and the companion is genuinely needed. This costs
+     nothing: no install, no signing, no Developer Mode on the wrist. It was previously written up
+     as needing an install; it does not.
+   - Does the watch companion install, pair, and stream? Nothing on that path is installed — no
+     Apple Watch has ever been reachable from this Mac (`devicectl` sees only the iPhone). It is a
      **separate** install by design — embedding it breaks every simulator test run (ticket 02) —
      and it needs Developer Mode on the watch plus a second bundle id on the same 7-day clock.
    - **Open question nobody has answered:** can the phone WAKE the watch app? The design has the
@@ -293,6 +301,27 @@ nothing about whether the install worked.
      first. Only hardware settles it.
    - Does the heart-rate rest alarm fire with the screen off? That is what
      `healthkit.background-delivery` was provisioned for and it has never been observed.
+### `WorkoutTrackerWatch/` is a SKETCH, not a feature — do not trust it
+
+**Decided 2026-08-25: build the remaining phone features first, install on the watch later.** That
+is the right order and nothing is blocked by it — charts, CSV import and plate math are all
+phone-side, and the two-source merge the watch would feed (`CompositeHeartRateProvider`, source
+precedence, `dominantSource`) is already built and waiting.
+
+But be clear about what that folder is. `WatchRootView.swift`, `WatchWorkoutModel.swift` and
+`WorkoutTrackerWatchApp.swift` were written during milestone 7 and have **never been compiled onto
+a watch, never run, and never seen a heartbeat.** Code that has not run once is a sketch. Budget
+"write and test", not "install and go", and expect to rewrite parts.
+
+**The specific rot to expect** is the class this project has already been bitten by twice: the
+watch screen rendered a rest countdown and `WatchLink` carried a `restEndsAt` field, and **nothing
+ever sent a non-nil one**. Every piece individually correct, only the *absence of a caller* wrong.
+Two Codex rounds missed it; it surfaced while explaining the feature in prose. Untested mirror code
+accumulates exactly that, and the phone side keeps moving underneath it.
+
+So: no test asserts the watch is ever sent anything. When the watch work starts, **assert the
+message is SENT**, not merely that the receiver handles it.
+
 3. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
    next unbuilt milestone, and what makes the logged history worth looking at.
 4. Milestone 5: Strong CSV import. Milestone 6 is now **half done** — the bar half shipped
