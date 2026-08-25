@@ -142,7 +142,8 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`f5cc50a`** — tip of `milestone-7-heart-rate`: the revised zone boundaries and the audible rest alarm. Installed **2026-08-25 00:06** and **launch-verified**. Built CLEAN deliberately (`rm -rf /tmp/wt-device-build` first) because of the `INFOPLIST_FILE` gotcha below, and the built plist was checked before installing: both HealthKit usage strings present and `UIBackgroundModes: [audio]` in. No schema change in this build, so nothing migrated. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac (ticket 02) |
+| Installed commit | **`37c0f2b`** — the background rest alarm. Installed **2026-08-25 00:28** and launch-verified. Clean-built (`rm -rf /tmp/wt-device-build`) and the plist checked BEFORE installing: `UIBackgroundModes` = `[audio, workout-processing]`, both HealthKit strings present. No schema change. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac (ticket 02) |
+| Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
 | Previously installed | `0c9bdeb` (zone-reachability fix), 2026-08-24 00:32 — never launch-verified, superseded hours later |
 | Previously installed | Milestone 7's uncommitted working tree, 2026-08-22 23:45. It launched, so the D44/D43/D45 optional fields migrated the user's real store |
@@ -152,7 +153,7 @@ those sessions outranks new features.
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed **25 Aug 2026** (00:06), so expires **~1 Sep 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **25 Aug 2026** (00:28), so expires **~1 Sep 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
@@ -215,7 +216,16 @@ nothing about whether the install worked.
      user to check their weight in Health first.**
    - Does the **heart-rate rest timer** (D43) end a rest when the heart rate comes down, and does
      the alarm say which ended it — recovery or the cap?
-   - **Is the new audible alarm actually audible?** Gym feedback 2026-08-24: the notification fired
+   - **Does the alarm now fire when the app is not on screen?** Gym report 2026-08-25: the first
+     audible build beeped **only while the app was open** — nothing with the screen off, on another
+     app, or on the home screen. Three causes, all fixed in `37c0f2b`: `UIBackgroundModes` was
+     missing `workout-processing` (so iOS suspended the workout session and no samples arrived at
+     all — the real cause); the alarm lived in the workout SCREEN's state, which C1's minimise
+     dismisses; and an audio failure called `assertionFailure`, which traps in a Debug build.
+     **The lesson worth keeping: the local notification firing was NOT evidence the app was
+     running.** A `UNTimeIntervalNotificationTrigger` is handed to the system in advance and fires
+     regardless — it had been read as proof of background execution for two days.
+   - **Is the alarm actually audible?** Gym feedback 2026-08-24: the notification fired
      both ways, screen off included, but nothing came through the AirPods — a notification sound
      plays on the phone's alert route and never reaches Bluetooth headphones. The app now
      synthesises a tone and plays it through `AVAudioSession` (`.playback` + `.duckOthers`), with
