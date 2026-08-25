@@ -8,6 +8,11 @@ struct WorkoutDetailView: View {
     /// The set being corrected, if any (milestone 8, ticket 03).
     @State private var editingSet: SetRecord?
     @State private var confirmingDelete = false
+    /// The set a swipe is proposing to delete. codex-review (high): the swipe
+    /// used to delete immediately. This phone holds the only copy of the user's
+    /// training history, and ticket 03 says the destructive paths confirm —
+    /// which was true of the workout and not of the set.
+    @State private var confirmingSetDelete: SetRecord?
     /// Whole-view convert toggle (D9): nil shows every weight as entered;
     /// a unit renders everything in that unit with conversions ≈-marked.
     /// Display-only — storage is never touched.
@@ -38,7 +43,7 @@ struct WorkoutDetailView: View {
                             .onTapGesture { editingSet = pair.element }
                             .swipeActions(edge: .trailing) {
                                 Button(role: .destructive) {
-                                    deleteSet(pair.element)
+                                    confirmingSetDelete = pair.element
                                 } label: { Label("Delete", systemImage: "trash") }
                             }
                     }
@@ -46,7 +51,30 @@ struct WorkoutDetailView: View {
                     // Snapshot display strings ONLY (D23) — never the live
                     // exercise/machine/model relationships.
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(entry.snapshotExerciseName)
+                        HStack {
+                            Text(entry.snapshotExerciseName)
+                            Spacer()
+                            // Repairs a set logged under the wrong load type —
+                            // the case correcting the EXERCISE cannot reach,
+                            // because history is frozen (codex-review).
+                            Menu {
+                                ForEach(LoadType.allCases, id: \.self) { type in
+                                    Button {
+                                        retype(entry, to: type)
+                                    } label: {
+                                        Label(
+                                            type.badge,
+                                            systemImage: entry.snapshotLoadType == type
+                                                ? "checkmark" : "")
+                                    }
+                                }
+                            } label: {
+                                Text(entry.snapshotLoadType.badge)
+                                    .font(.caption2)
+                                    .textCase(nil)
+                            }
+                            .accessibilityIdentifier("historyEntryLoadType")
+                        }
                         Text(entry.snapshotEquipmentLabel)
                             .font(.caption2)
                             .textCase(nil)
@@ -79,6 +107,21 @@ struct WorkoutDetailView: View {
             EditLoggedSetSheet(record: set)
         }
         .confirmationDialog(
+            "Delete this set?",
+            isPresented: Binding(
+                get: { confirmingSetDelete != nil },
+                set: { if !$0 { confirmingSetDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Set", role: .destructive) {
+                if let set = confirmingSetDelete { deleteSet(set) }
+                confirmingSetDelete = nil
+            }
+            Button("Cancel", role: .cancel) { confirmingSetDelete = nil }
+        } message: {
+            Text("This set is removed permanently, and records and volume are recalculated without it.")
+        }
+        .confirmationDialog(
             "Delete this workout?", isPresented: $confirmingDelete, titleVisibility: .visible
         ) {
             Button("Delete Workout", role: .destructive) { deleteWorkout() }
@@ -88,7 +131,9 @@ struct WorkoutDetailView: View {
             // training history, so "are you sure?" about an unknown quantity is
             // not good enough.
             let impact = HistoryEditing.impact(ofDeleting: workout)
-            Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s") will be permanently deleted. Records and volume will be recalculated without them.")
+            // D47 requires the confirmation to NAME what is destroyed, volume
+            // included — it was computed and never shown (codex-review, high).
+            Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s"), \(Format.weight(impact.volumeKg)) kg of volume, permanently deleted. Records are recalculated without them.")
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -110,6 +155,11 @@ struct WorkoutDetailView: View {
                 .accessibilityIdentifier("workoutDetailMenu")
             }
         }
+    }
+
+    private func retype(_ entry: ExerciseEntry, to loadType: LoadType) {
+        guard HistoryEditing.retype(entry, to: loadType) else { return }
+        save()
     }
 
     private func deleteSet(_ set: SetRecord) {

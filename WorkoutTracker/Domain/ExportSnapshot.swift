@@ -136,6 +136,12 @@ extension ExportSnapshot {
         var muscleGroup: String?
         /// True for a seeded row the user's data referenced (D28).
         var isSeeded: Bool
+        /// The user corrected this seeded row's load type by hand (milestone 8
+        /// ticket 02). codex-review (critical): without this in the backup, a
+        /// restore followed by catalog reconciliation silently reverts the
+        /// correction and flips the direction of every future record for that
+        /// movement. Optional so v1 files still decode.
+        var loadTypeUserOverridden: Bool?
     }
 
     struct EquipmentModel: Codable, Equatable {
@@ -178,6 +184,10 @@ extension ExportSnapshot {
         /// Absent while the workout is still running (D30).
         var finishedAt: String?
         var notes: String
+        /// When this workout was edited after being logged (D47). The mark is
+        /// the honesty half of that decision — a backup that drops it restores
+        /// a history claiming to be untouched. Optional so v1 files decode.
+        var historyEditedAt: String?
         var sourceTemplateID: UUID?
         var sourceTemplateName: String?
         var gymID: UUID?

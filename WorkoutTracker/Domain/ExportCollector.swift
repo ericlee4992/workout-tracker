@@ -63,8 +63,16 @@ struct ExportCollector {
             presets: presets, models: models,
             userExerciseIDs: Set(exercises.lazy.filter { !$0.isSeeded }.map(\.id)))
 
+        // A seeded row the user has CORRECTED is user-authored data, not
+        // catalog filler, so it is exported even when nothing references it
+        // (codex-review, critical). Dropping it means a restore reverts the
+        // correction at the next reconciliation with no trace.
         let exportedExercises = exercises
-            .filter { !$0.isSeeded || referenced.exerciseIDs.contains($0.id) }
+            .filter {
+                !$0.isSeeded
+                    || $0.loadTypeUserOverridden == true
+                    || referenced.exerciseIDs.contains($0.id)
+            }
             .sorted { ($0.name, $0.id.uuidString) < ($1.name, $1.id.uuidString) }
             .map(exercise(from:))
         let exportedModels = models
@@ -203,7 +211,8 @@ struct ExportCollector {
         ExportSnapshot.Exercise(
             id: exercise.id, name: exercise.name, loadType: exercise.loadType,
             equipmentTypeTags: exercise.equipmentTypeTags,
-            muscleGroup: exercise.muscleGroup, isSeeded: exercise.isSeeded)
+            muscleGroup: exercise.muscleGroup, isSeeded: exercise.isSeeded,
+            loadTypeUserOverridden: exercise.loadTypeUserOverridden)
     }
 
     private func equipmentModel(from model: EquipmentModel) -> ExportSnapshot.EquipmentModel {
@@ -240,6 +249,7 @@ struct ExportCollector {
             startedAt: dateFormat.string(from: workout.startedAt),
             finishedAt: dateFormat.optionalString(from: workout.finishedAt),
             notes: workout.notes,
+            historyEditedAt: dateFormat.optionalString(from: workout.historyEditedAt),
             sourceTemplateID: workout.sourceTemplateID,
             sourceTemplateName: workout.sourceTemplateName,
             // The workout carries a snapshot *name* but no snapshot gym id

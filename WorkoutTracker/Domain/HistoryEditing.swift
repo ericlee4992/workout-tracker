@@ -50,14 +50,44 @@ enum HistoryEditing {
             reps: edit.reps, weightValue: edit.weightValue, loadType: loadType)
         else { return false }
 
+        // VALIDATE through `StoredWeight`, not by trusting a parsed Double.
+        //
+        // codex-review (critical): the first version asked only whether the
+        // value was non-nil, so a pasted negative, NaN or infinite load was
+        // accepted, normalized and written into finished history — poisoning
+        // records and potentially breaking JSON encoding of the backup.
+        // `StoredWeight` is the type that owns "a weight is valid and its
+        // normalization is derived atomically" (D25); going around it was the
+        // whole bug.
+        var stored: StoredWeight?
+        if let value = edit.weightValue {
+            guard let valid = StoredWeight(value: value, unit: edit.weightUnit) else {
+                return false
+            }
+            stored = valid
+        }
+
+        // BAR PROVENANCE (D39): `weightValue` is the TOTAL and `barWeightValue`
+        // is what the bar contributed. codex-review (high): editing the total
+        // or the unit while leaving the bar fields alone relabels a 45 lb bar
+        // as 45 kg and exports its stale normalization, and can leave a total
+        // below the bar it supposedly includes. An edit that cannot keep the
+        // pair coherent drops the provenance rather than lying about it.
+        if let bar = set.barWeightValue {
+            let unitChanged = edit.weightUnit != set.weightUnit
+            let totalBelowBar = (edit.weightValue ?? 0) < bar
+            if unitChanged || totalBelowBar {
+                set.barWeightValue = nil
+                set.barNormalizedKg = nil
+            }
+        }
+
         set.reps = edit.reps
-        set.weightValue = edit.weightValue
+        set.weightValue = stored?.value
         set.weightUnit = edit.weightUnit
         // Value, unit and normalization move together or the record maths
         // silently disagrees with what the row displays (D25).
-        set.normalizedKg = edit.weightValue.map {
-            WeightMath.normalizedKg(value: $0, unit: edit.weightUnit)
-        }
+        set.normalizedKg = stored?.normalizedKg
         set.type = edit.setType
         markEdited(set.entry?.workout, at: date)
         return true
@@ -87,6 +117,47 @@ enum HistoryEditing {
         return (entry.sets ?? []).filter { !$0.isDeleted }.isEmpty
     }
 
+    /// Re-types ONE historical entry, for the case ticket 02 could not reach.
+    ///
+    /// codex-review (critical): correcting an exercise's load type fixes only
+    /// future sets, because frozen entries keep `snapshotLoadType` (D23/D47).
+    /// That left sets already logged under a wrong type permanently ranked in
+    /// the wrong direction — a supported dip logged as `weighted` stayed
+    /// heaviest-wins forever — which was the user's original complaint.
+    ///
+    /// This is deliberately NARROW, and the narrowness is the decision:
+    ///
+    /// - It changes ONE entry, chosen by the user on that workout's screen. It
+    ///   is not a bulk re-type of every past entry, because a bulk operation
+    ///   over history is the thing D23 exists to prevent.
+    /// - It changes ONLY the load type. Exercise identity, machine, gym and
+    ///   name stay frozen: re-pointing a row at a different exercise would
+    ///   split or merge records silently (D36).
+    /// - It marks the workout as edited, like every other correction.
+    ///
+    /// The set's stored numbers are untouched — what changes is how they are
+    /// RANKED. An assisted 30 kg was always 30 kg of assistance; it was only
+    /// ever the interpretation that was wrong.
+    @discardableResult
+    static func retype(
+        _ entry: ExerciseEntry, to loadType: LoadType, at date: Date = .now
+    ) -> Bool {
+        guard !entry.isDeleted, entry.snapshotLoadType != loadType else { return false }
+        // Refuse a re-type that would strand sets the new type cannot express:
+        // a weighted set with no weight cannot become... it can, but a set with
+        // no reps is not loggable under any type, and re-typing must not create
+        // a row the store would refuse (A1).
+        let sets = (entry.sets ?? []).filter { !$0.isDeleted && $0.completedAt != nil }
+        for set in sets {
+            guard WorkoutSession.isLoggable(
+                reps: set.reps, weightValue: set.weightValue, loadType: loadType)
+            else { return false }
+        }
+        entry.snapshotLoadType = loadType
+        markEdited(entry.workout, at: date)
+        return true
+    }
+
     /// Removes an entry that has been emptied by deletions.
     static func pruneIfEmpty(_ entry: ExerciseEntry, in context: ModelContext) {
         guard isEmpty(entry) else { return }
@@ -106,19 +177,31 @@ enum HistoryEditing {
         guard !workout.isDeleted else { return DeletionImpact(exercises: 0, sets: 0, volumeKg: 0) }
         let entries = (workout.entries ?? []).filter { !$0.isDeleted }
         var sets = 0
-        var volume = 0.0
+        var inputs: [RecordSetInput] = []
         for entry in entries {
             for set in (entry.sets ?? []) where !set.isDeleted && set.completedAt != nil {
                 sets += 1
-                // Warmups are excluded from volume everywhere else (RecordsMath),
-                // so the number quoted here has to match or the confirmation
-                // lies about what is lost.
-                guard set.type != .warmup, let kg = set.normalizedKg, let reps = set.reps
-                else { continue }
-                volume += kg * Double(reps)
+                inputs.append(RecordSetInput(
+                    loadType: entry.snapshotLoadType,
+                    exerciseID: entry.snapshotExerciseID,
+                    gymID: entry.snapshotGymID,
+                    machineID: entry.snapshotMachineID,
+                    modelID: entry.snapshotModelID,
+                    freeWeightTag: entry.snapshotFreeWeightTag,
+                    presetID: entry.snapshotPresetID,
+                    setType: set.type, reps: set.reps,
+                    weightValue: set.weightValue, weightUnit: set.weightUnit,
+                    normalizedKg: set.normalizedKg, completedAt: set.completedAt))
             }
         }
-        return DeletionImpact(exercises: entries.count, sets: sets, volumeKg: volume)
+        // `RecordsMath.totalVolumeKg`, NOT a second implementation.
+        // codex-review (high): the first version summed every load type, so an
+        // assisted set's ASSISTANCE counted as volume — the number quoted to
+        // the user would have been larger than the volume they actually lose,
+        // and would disagree with every other volume figure in the app.
+        return DeletionImpact(
+            exercises: entries.count, sets: sets,
+            volumeKg: RecordsMath.totalVolumeKg(among: inputs))
     }
 
     /// Stamps the workout as edited. Every mutating path above routes through

@@ -87,3 +87,18 @@ every one of them at once.
 
 Left to real gym use, which is what STATE says should drive this. The load-type editor makes it a
 two-tap fix when the user hits one, and creating a custom exercise already offers all four types.
+
+
+## Post-review (2026-08-25)
+
+Codex's cross-review was right on every count worth acting on; its verdict was **do not install
+over the live store**, and this ticket's "resolved" claim was premature.
+
+- The **backup dropped the override flag**, and a corrected seeded exercise referenced by nothing
+  was filtered out of the JSON entirely — so a restore would silently revert the correction at the
+  next catalog version. Both fixed, with tests.
+- **D24 was contradicted, not reopened.** Now amended in `DECISIONS.md`: `loadType` is the one
+  seeded field a user may correct, the override marks it, naming stays reserved.
+- The **catalog audit remains deliberately not done** — see the reasoning above. The ticket
+  overstated itself by listing it as an acceptance criterion; the honest status is "left to real gym
+  use", now that a two-tap fix exists.

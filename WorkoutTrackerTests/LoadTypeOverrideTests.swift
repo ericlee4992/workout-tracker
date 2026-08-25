@@ -153,3 +153,51 @@ struct LoadTypeOverrideTests {
             "more assistance must never outrank less")
     }
 }
+
+/// codex-review (critical): the backup dropped both new user-authored facts.
+/// A restore followed by catalog reconciliation would silently revert a
+/// corrected load type — and a restored history would claim never to have been
+/// edited. The JSON is the ONLY backup that exists (D28–D32).
+@MainActor
+struct ExportCarriesUserAuthoredFactsTests {
+
+    @Test func aCorrectedSeededExerciseIsExportedWithItsOverrideFlag() throws {
+        let container = try ModelContainer(
+            for: Schema(WorkoutTrackerStore.modelTypes),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        // Seeded and referenced by nothing — the case the old filter dropped.
+        let seeded = Exercise(name: "Seated Dip", loadType: .assisted, isSeeded: true)
+        seeded.loadTypeUserOverridden = true
+        context.insert(seeded)
+        try context.save()
+
+        let snapshot = try ExportCollector(appVersion: "test").snapshot(from: context)
+        let exported = snapshot.exercises.first { $0.id == seeded.id }
+        let row = try #require(
+            exported,
+            "a corrected seeded exercise was filtered out of the backup entirely")
+        #expect(
+            row.loadTypeUserOverridden == true,
+            "without the flag, a restore reverts the correction at the next catalog version")
+        #expect(row.loadType == .assisted)
+    }
+
+    @Test func anEditedWorkoutSaysSoInTheBackup() throws {
+        let container = try ModelContainer(
+            for: Schema(WorkoutTrackerStore.modelTypes),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let workout = Workout()
+        workout.finishedAt = .now
+        workout.historyEditedAt = .now
+        context.insert(workout)
+        try context.save()
+
+        let snapshot = try ExportCollector(appVersion: "test").snapshot(from: context)
+        let row = try #require(snapshot.workouts.first { $0.id == workout.id })
+        #expect(
+            row.historyEditedAt != nil,
+            "a backup that drops the edit mark restores a history claiming to be untouched (D47)")
+    }
+}

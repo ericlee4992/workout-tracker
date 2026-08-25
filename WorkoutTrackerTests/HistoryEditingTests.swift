@@ -190,3 +190,217 @@ struct HistoryEditingTests {
         #expect(try rig.context.fetch(FetchDescriptor<ExerciseEntry>()).isEmpty)
     }
 }
+
+/// Regressions for the Codex cross-review of milestone 8 tickets 02 and 03.
+/// Every test here failed against the reviewed implementation.
+@MainActor
+struct HistoryEditingReviewRegressionTests {
+
+    private func makeRig() throws -> (ModelContext, Workout, SetRecord) {
+        let container = try ModelContainer(
+            for: Schema(WorkoutTrackerStore.modelTypes),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let exercise = Exercise(name: "Bench Press", loadType: .weighted)
+        context.insert(exercise)
+        let workout = Workout()
+        workout.finishedAt = .now
+        context.insert(workout)
+        let entry = ExerciseEntry(
+            order: 0, workout: workout, exercise: exercise, snapshotCapturedAt: .now,
+            snapshotExerciseID: exercise.id, snapshotLoadType: .weighted,
+            snapshotExerciseName: "Bench Press")
+        context.insert(entry)
+        let set = SetRecord(order: 0, type: .working, entry: entry)
+        set.reps = 8
+        set.weightValue = 60
+        set.weightUnit = .kg
+        set.normalizedKg = 60
+        set.completedAt = .now
+        context.insert(set)
+        try context.save()
+        return (context, workout, set)
+    }
+
+    /// codex-review Spec/critical: `apply` asked only whether the weight was
+    /// non-nil, so a pasted negative, NaN or infinite load was accepted,
+    /// normalized and written into finished history — poisoning records and
+    /// potentially breaking JSON encoding of the only backup.
+    @Test func invalidWeightsCannotBeWrittenIntoHistory() throws {
+        let (_, workout, set) = try makeRig()
+        for bad in [-50.0, Double.nan, Double.infinity, -0.001] {
+            let ok = HistoryEditing.apply(
+                .init(reps: 8, weightValue: bad, weightUnit: .kg, setType: .working),
+                to: set)
+            #expect(!ok, "\(bad) was accepted into history")
+        }
+        #expect(set.weightValue == 60, "a refused edit must not partially apply")
+        #expect(workout.historyEditedAt == nil, "a refused edit must not mark the workout")
+    }
+
+    /// codex-review Standards/high: editing a bar-mode set's unit relabelled a
+    /// 45 lb bar as 45 kg while keeping its old normalization, and a total
+    /// could be edited below the bar it supposedly includes. D39's invariant is
+    /// that `weightValue` is the TOTAL and `barWeightValue` is provenance.
+    @Test func aUnitChangeDropsBarProvenanceRatherThanMislabellingIt() throws {
+        let (_, _, set) = try makeRig()
+        set.weightValue = 135
+        set.weightUnit = .lb
+        set.normalizedKg = 61.23
+        set.barWeightValue = 45
+        set.barNormalizedKg = 20.41
+
+        HistoryEditing.apply(
+            .init(reps: 5, weightValue: 61, weightUnit: .kg, setType: .working), to: set)
+
+        #expect(
+            set.barWeightValue == nil && set.barNormalizedKg == nil,
+            "a 45 lb bar must not silently become a 45 kg bar")
+    }
+
+    @Test func aTotalBelowTheBarDropsProvenance() throws {
+        let (_, _, set) = try makeRig()
+        set.weightValue = 135
+        set.weightUnit = .lb
+        set.normalizedKg = 61.23
+        set.barWeightValue = 45
+        set.barNormalizedKg = 20.41
+
+        HistoryEditing.apply(
+            .init(reps: 5, weightValue: 30, weightUnit: .lb, setType: .working), to: set)
+
+        #expect(
+            set.barWeightValue == nil,
+            "a 30 lb total cannot contain a 45 lb bar; keeping the provenance would be a lie")
+    }
+
+    @Test func aCoherentBarEditKeepsItsProvenance() throws {
+        let (_, _, set) = try makeRig()
+        set.weightValue = 135
+        set.weightUnit = .lb
+        set.normalizedKg = 61.23
+        set.barWeightValue = 45
+        set.barNormalizedKg = 20.41
+
+        HistoryEditing.apply(
+            .init(reps: 5, weightValue: 145, weightUnit: .lb, setType: .working), to: set)
+
+        #expect(set.barWeightValue == 45, "same unit, total still above the bar — provenance stands")
+    }
+
+    /// codex-review Standards/high: the deletion impact summed EVERY load type,
+    /// so an assisted set's assistance counted as volume — a number larger than
+    /// what is actually lost, disagreeing with every other volume in the app.
+    @Test func deletionVolumeUsesTheSharedRuleNotASecondImplementation() throws {
+        let container = try ModelContainer(
+            for: Schema(WorkoutTrackerStore.modelTypes),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let exercise = Exercise(name: "Assisted Pull-Up", loadType: .assisted)
+        context.insert(exercise)
+        let workout = Workout()
+        workout.finishedAt = .now
+        context.insert(workout)
+        let entry = ExerciseEntry(
+            order: 0, workout: workout, exercise: exercise, snapshotCapturedAt: .now,
+            snapshotExerciseID: exercise.id, snapshotLoadType: .assisted,
+            snapshotExerciseName: "Assisted Pull-Up")
+        context.insert(entry)
+        let set = SetRecord(order: 0, type: .working, entry: entry)
+        set.reps = 8
+        set.weightValue = 30
+        set.weightUnit = .kg
+        set.normalizedKg = 30
+        set.completedAt = .now
+        context.insert(set)
+        try context.save()
+
+        let impact = HistoryEditing.impact(ofDeleting: workout)
+        #expect(impact.sets == 1)
+        #expect(
+            impact.volumeKg == 0,
+            "assistance is not volume lifted — got \(impact.volumeKg)")
+    }
+}
+
+/// The critical Spec finding: neither ticket could repair a set already logged
+/// under the wrong load type. `HistoryEditing.retype` closes it.
+@MainActor
+struct HistoricalRetypeTests {
+
+    private func makeRig(loadType: LoadType) throws -> (ModelContext, Workout, ExerciseEntry) {
+        let container = try ModelContainer(
+            for: Schema(WorkoutTrackerStore.modelTypes),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let exercise = Exercise(name: "Seated Dip", loadType: loadType)
+        context.insert(exercise)
+        let workout = Workout()
+        workout.finishedAt = .now
+        context.insert(workout)
+        let entry = ExerciseEntry(
+            order: 0, workout: workout, exercise: exercise, snapshotCapturedAt: .now,
+            snapshotExerciseID: exercise.id, snapshotLoadType: loadType,
+            snapshotExerciseName: "Seated Dip")
+        context.insert(entry)
+        let set = SetRecord(order: 0, type: .working, entry: entry)
+        set.reps = 8
+        set.weightValue = 30
+        set.weightUnit = .kg
+        set.normalizedKg = 30
+        set.completedAt = .now
+        context.insert(set)
+        try context.save()
+        return (context, workout, entry)
+    }
+
+    /// The user's actual complaint, on data already logged.
+    @Test func aHistoricalEntryCanBeRetypedFromWeightedToAssisted() throws {
+        let (_, workout, entry) = try makeRig(loadType: .weighted)
+        #expect(HistoryEditing.retype(entry, to: .assisted))
+        #expect(entry.snapshotLoadType == .assisted)
+        #expect(workout.historyEditedAt != nil, "a re-type is an edit and must be marked")
+    }
+
+    /// The stored numbers are untouched — only their interpretation changes.
+    @Test func retypingDoesNotTouchTheStoredNumbers() throws {
+        let (_, _, entry) = try makeRig(loadType: .weighted)
+        HistoryEditing.retype(entry, to: .assisted)
+        let set = try #require((entry.sets ?? []).first)
+        #expect(set.weightValue == 30)
+        #expect(set.normalizedKg == 30)
+        #expect(set.reps == 8)
+    }
+
+    /// Identity stays frozen. Re-pointing a row at a different exercise would
+    /// split or merge records silently (D36) — the re-type is narrower than
+    /// that on purpose.
+    @Test func retypingDoesNotRepointTheEntryAtADifferentExercise() throws {
+        let (_, _, entry) = try makeRig(loadType: .weighted)
+        let originalID = entry.snapshotExerciseID
+        let originalName = entry.snapshotExerciseName
+        HistoryEditing.retype(entry, to: .bodyweight)
+        #expect(entry.snapshotExerciseID == originalID)
+        #expect(entry.snapshotExerciseName == originalName)
+    }
+
+    @Test func retypingToTheSameTypeIsANoOp() throws {
+        let (_, workout, entry) = try makeRig(loadType: .assisted)
+        #expect(!HistoryEditing.retype(entry, to: .assisted))
+        #expect(workout.historyEditedAt == nil, "nothing changed, so nothing to mark")
+    }
+
+    /// A1: a re-type must not create a row the store would refuse.
+    @Test func aRetypeThatWouldStrandASetIsRefused() throws {
+        let (context, _, entry) = try makeRig(loadType: .bodyweight)
+        // A bodyweight set logged with reps only cannot become `weighted`.
+        let set = try #require((entry.sets ?? []).first)
+        set.weightValue = nil
+        set.normalizedKg = nil
+        try context.save()
+        #expect(
+            !HistoryEditing.retype(entry, to: .weighted),
+            "a weighted set with no weight is exactly the `— × reps` row A1 forbids")
+        #expect(entry.snapshotLoadType == .bodyweight, "a refused re-type must not partially apply")
+    }
+}

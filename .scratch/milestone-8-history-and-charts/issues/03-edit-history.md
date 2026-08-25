@@ -69,3 +69,31 @@ name and today's load type.
 **Note on the UI tests**: two rounds of "no matches found" were a STALE TEST BINARY, not wrong
 selectors — a hierarchy dump showed both identifiers present all along. Worth remembering before
 chasing a selector that is already correct.
+
+
+## Post-review (2026-08-25)
+
+Codex found five real defects. Every one is fixed with a regression test that failed against the
+reviewed implementation:
+
+1. **Invalid weights could be written into finished history.** `apply` asked only whether the value
+   was non-nil, bypassing `StoredWeight`/`WeightMath.isValidInput` — a pasted `-50`, `NaN` or `inf`
+   was accepted, normalized and stored. The resolution's "refuses an edit that would not be
+   loggable" claim was false.
+2. **Bar provenance was torn apart.** Editing a bar set's unit relabelled a 45 lb bar as 45 kg while
+   exporting its old normalization, and a total could drop below its own bar (D39). An incoherent
+   edit now drops the provenance rather than lying about it.
+3. **The deletion volume was a second implementation** that counted assisted and bodyweight-plus
+   loads as volume. Now `RecordsMath.totalVolumeKg`.
+4. **The volume was computed and never shown** — the absence-of-a-caller class again, in a decision
+   (D47) that requires the confirmation to name what it destroys.
+5. **Swipe-deleting a set did not confirm**, though the ticket's own risk section demanded it.
+6. **`historyEditedAt` was missing from the backup**, so a restored history claimed never to have
+   been edited.
+
+Also added, closing the review's critical Spec finding: `HistoryEditing.retype`. Correcting an
+exercise fixes only future sets, so sets already logged under a wrong type were permanently ranked
+backwards — the user's original complaint. One entry, load type only, identity frozen, marked as an
+edit.
+
+507 unit tests green.
