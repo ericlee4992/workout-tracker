@@ -24,6 +24,26 @@ final class WorkoutHeartRateCoordinator {
     private(set) var workoutID: UUID?
     private(set) var monitor: HeartRateMonitor?
 
+    // The rest alarm lives HERE, not on the workout screen, for the same reason
+    // the session does (codex-review-2 #2): C1's minimise dismisses that screen
+    // while the workout keeps running. An alarm owned by the screen dies on
+    // minimise — its `@State` goes with it — so the user who backgrounds the app
+    // mid-rest, which is every user, gets silence.
+    private let alarm: any RestAlarmSounding
+    /// The rest end the phone is currently counting down to, mirrored here by
+    /// `broadcastRest` — the screen already tells us on every change.
+    private var restEndsAt: Date?
+    /// The end already announced, so the alarm sounds once per rest rather than
+    /// once per sample.
+    private var lastSoundedRestEnd: Date?
+    /// Forwarded to the screen when it is on screen. Nil after minimise, which
+    /// is fine: the alarm above does not depend on it.
+    var onSample: (() -> Void)?
+
+    init(alarm: (any RestAlarmSounding)? = nil) {
+        self.alarm = alarm ?? RestAlarms.make()
+    }
+
     /// The monitor for this workout, started if it is not already running.
     ///
     /// Idempotent: calling it again for the same workout returns the same
@@ -44,8 +64,20 @@ final class WorkoutHeartRateCoordinator {
         let fresh = HeartRateMonitor(
             provider: HeartRateProviders.make(workoutID: workout.id.uuidString))
         fresh.maxHeartRate = maxHeartRate
+        // The sample tick is owned here and forwarded on, rather than being
+        // handed to the screen: this is the only tick that survives both
+        // minimise and the screen going off, so it is the only one the alarm
+        // can hang from.
+        fresh.onSample = { [weak self] in
+            self?.soundRestAlarmIfDue()
+            self?.onSample?()
+        }
         monitor = fresh
         workoutID = workout.id
+        // Hold the audio session open for the workout. Activating one from a
+        // suspended background app is unreliable; activating it while the user
+        // is still looking at the screen, and keeping it, is not.
+        alarm.beginSession()
         Task { await fresh.start() }
         return fresh
     }
@@ -70,6 +102,17 @@ final class WorkoutHeartRateCoordinator {
         Task { await ending.stop() }
         self.monitor = nil
         self.workoutID = nil
+        releaseAlarm()
+    }
+
+    /// Test seam: arms a rest without a screen present.
+    func armForTesting(restEndsAt: Date?) {
+        broadcastRest(endsAt: restEndsAt)
+    }
+
+    /// Test seam: runs the alarm check at a chosen instant, as a sample would.
+    func evaluateAlarmForTesting(now: Date) {
+        soundRestAlarmIfDue(now: now)
     }
 
     /// Test seam: installs a monitor without opening a real session.
@@ -78,9 +121,36 @@ final class WorkoutHeartRateCoordinator {
         self.workoutID = workoutID
     }
 
-    /// Mirrors the phone's rest timer onto the watch, if one is listening.
+    /// Mirrors the phone's rest timer onto the watch, if one is listening, and
+    /// arms the audible alarm for that rest.
     func broadcastRest(endsAt: Date?) {
         (monitor?.provider as? WatchRestBroadcasting)?.sendRest(endsAt: endsAt)
+        restEndsAt = endsAt
+        // A new rest re-arms. Without this the second rest of a workout would be
+        // silent, the gate still holding the first one's end.
+        if let endsAt, endsAt != lastSoundedRestEnd {
+            lastSoundedRestEnd = nil
+        }
+    }
+
+    /// The heart rate came down, so this rest ended early (D43). Sounds the
+    /// "recovered" pattern and disarms, so the cap cannot also fire.
+    func soundRecovered() {
+        alarm.sound(.recovered)
+        restEndsAt = nil
+        lastSoundedRestEnd = nil
+    }
+
+    /// Sounds the cap pattern once, when a rest runs its full length.
+    ///
+    /// Evaluated on every sample — roughly once a second — so the gate is what
+    /// keeps a face-down phone from beeping every second.
+    private func soundRestAlarmIfDue(now: Date = .now) {
+        guard RestAlarmDecision.shouldSound(
+            restEndsAt: restEndsAt, lastSounded: lastSoundedRestEnd, now: now)
+        else { return }
+        lastSoundedRestEnd = restEndsAt
+        alarm.sound(.cap)
     }
 
     /// Ends whatever is running, whichever workout it belongs to. Used when the
@@ -92,5 +162,16 @@ final class WorkoutHeartRateCoordinator {
         Task { await ending.stop() }
         self.monitor = nil
         self.workoutID = nil
+        releaseAlarm()
+    }
+
+    /// Hands the audio session back when the workout ends. Holding it open for
+    /// a workout nobody is doing is the audio equivalent of leaving the sensor
+    /// powered.
+    private func releaseAlarm() {
+        restEndsAt = nil
+        lastSoundedRestEnd = nil
+        onSample = nil
+        alarm.endSession()
     }
 }

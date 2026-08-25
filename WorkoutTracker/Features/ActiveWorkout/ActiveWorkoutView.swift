@@ -36,13 +36,10 @@ struct ActiveWorkoutView: View {
     /// Drives `refreshLiveness`, so a sensor that goes quiet stops being
     /// reported as live rather than freezing on its last reading.
     private let livenessTick = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
-    /// Plays the rest alarm somewhere the user can actually hear it. The local
-    /// notification is the visual channel; this is the audible one, and they
-    /// are not interchangeable — a notification sound never reaches AirPods.
-    @State private var restAlarm: any RestAlarmSounding = RestAlarms.make()
-    /// The rest end already announced, so the cap alarm sounds exactly once
-    /// rather than on every sample until the phone is picked up.
-    @State private var lastSoundedRestEnd: Date?
+    // The rest alarm is deliberately NOT here. It lives on
+    // `WorkoutHeartRateCoordinator`, because C1's minimise dismisses this screen
+    // while the workout keeps running — a screen-owned alarm goes silent the
+    // moment the user leaves the app, which is most of every rest.
 
 
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
@@ -136,13 +133,7 @@ struct ActiveWorkoutView: View {
                         restTotal: restTotal,
                         addFifteen: addFifteen,
                         skip: skipRest,
-                        expired: {
-                            // Foreground countdown hitting zero. The same gate
-                            // guards it, so this and the sample tick cannot
-                            // both beep for one rest.
-                            soundCapAlarmIfDue()
-                            refreshRest()
-                        })
+                        expired: refreshRest)
                 }
             }
             .navigationTitle("Workout")
@@ -222,14 +213,10 @@ struct ActiveWorkoutView: View {
                 // keep coming with the screen off, a SwiftUI timer does not
                 // (codex-review 2.2). Re-attached on every appearance, so a
                 // resumed workout keeps evaluating its rests.
-                monitor.onSample = {
-                    evaluateHeartRateRest()
-                    // Sounded from HERE, not from `RestTimerBar`'s timer: that
-                    // is a SwiftUI `Timer`, which stops firing with the screen
-                    // off, and the screen being off is precisely when a lifter
-                    // needs to be told the rest is over (codex-review 2.2).
-                    soundCapAlarmIfDue()
-                }
+                // The coordinator owns the sample tick and forwards it here.
+                // The alarm hangs off its end, not this one, so it survives
+                // this screen being dismissed.
+                heartRateCoordinator.onSample = { evaluateHeartRateRest() }
                 heartRate = monitor
             }
             // Every path that changes the rest — starting one, +15s, skipping,
@@ -237,21 +224,13 @@ struct ActiveWorkoutView: View {
             // from here rather than from each of them is why the watch cannot
             // fall out of step with the phone.
             .onChange(of: restEnd) { _, newValue in
+                // Also arms the audible alarm for this rest — the coordinator
+                // needs the end date anyway to mirror it to the watch.
                 heartRateCoordinator.broadcastRest(endsAt: newValue)
-                // A fresh rest re-arms the alarm. Without this the gate would
-                // still hold the previous rest's end and the SECOND rest of the
-                // workout would be silent.
-                if let newValue, newValue != lastSoundedRestEnd {
-                    lastSoundedRestEnd = nil
-                }
             }
             .onReceive(livenessTick) { _ in
                 heartRate?.refreshLiveness()
                 evaluateHeartRateRest()
-                // Covers a plain rest with no heart-rate rule, where no samples
-                // are driving anything. Foreground only, which is the same
-                // limitation this tick has always had.
-                soundCapAlarmIfDue()
             }
         }
     }
@@ -330,8 +309,7 @@ struct ActiveWorkoutView: View {
                 // `finishRecovered` clears `restEndsAt`, so the cap alarm can
                 // no longer fire for this rest — the two endings cannot both
                 // sound.
-                restAlarm.sound(.recovered)
-                lastSoundedRestEnd = nil
+                heartRateCoordinator.soundRecovered()
                 refreshRest()
             } catch {
                 assertionFailure("Failed to finish recovered rest: \(error)")
@@ -354,20 +332,6 @@ struct ActiveWorkoutView: View {
         case .resting, .finished(.cap):
             break
         }
-    }
-
-    /// Sounds the cap alarm once, when a rest runs out rather than recovering.
-    ///
-    /// Evaluated on every heart-rate sample (~1/s) and on the liveness tick, so
-    /// `RestAlarmDecision` is what keeps it to a single beep.
-    private func soundCapAlarmIfDue() {
-        guard !workout.isDeleted else { return }
-        let end = workout.restEndsAt
-        guard RestAlarmDecision.shouldSound(
-            restEndsAt: end, lastSounded: lastSoundedRestEnd, now: .now)
-        else { return }
-        lastSoundedRestEnd = end
-        restAlarm.sound(.cap)
     }
 
     private func restStartingSet(_ id: UUID) -> SetRecord? {

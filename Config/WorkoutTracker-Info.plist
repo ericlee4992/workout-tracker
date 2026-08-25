@@ -22,7 +22,21 @@
 	     the exact bug it was added to fix. -->
 	<key>UIBackgroundModes</key>
 	<array>
+		<!-- Plays the rest alarm while the app is backgrounded. -->
 		<string>audio</string>
+		<!-- Keeps the HKWorkoutSession RUNNING while the app is backgrounded,
+		     which on iOS it does not do without this.
+
+		     Found the hard way, 2026-08-25: with `audio` alone the alarm beeped
+		     only while the app was on screen. iOS suspends the workout session
+		     when the app backgrounds, so no samples arrive, so the sample-driven
+		     alarm never fires — and every SwiftUI timer has stopped too.
+
+		     The local notification kept firing throughout, which is what made
+		     this hard to see: a UNTimeIntervalNotificationTrigger is scheduled
+		     with the system in advance and fires whether or not the app is
+		     running. The notification arriving never proved the app was alive. -->
+		<string>workout-processing</string>
 	</array>
 </dict>
 </plist>

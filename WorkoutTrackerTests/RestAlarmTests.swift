@@ -128,3 +128,74 @@ private extension Data {
         }.value
     }
 }
+
+/// The bug the user hit in a real gym, 2026-08-25: "the alarm only beeps when
+/// in the app. It doesn't work with screen off or when I'm on another app."
+///
+/// Three causes, and these cover the two that live in code. The third —
+/// `UIBackgroundModes` missing `workout-processing`, so iOS suspended the
+/// workout session and no samples arrived at all — is a build setting, asserted
+/// against the built app in `BackgroundModesTests`.
+@MainActor
+struct RestAlarmOwnershipTests {
+
+    private func coordinator() -> (WorkoutHeartRateCoordinator, SilentRestAlarm) {
+        let alarm = SilentRestAlarm()
+        return (WorkoutHeartRateCoordinator(alarm: alarm), alarm)
+    }
+
+    private let end = Date(timeIntervalSince1970: 5_000)
+
+    /// The alarm used to live in `ActiveWorkoutView`'s `@State`. C1's minimise
+    /// dismisses that view while the workout keeps running, so the alarm died
+    /// exactly when the user left the app — which is most of every rest.
+    ///
+    /// Owning it on the coordinator is what fixes that, and this pins it: the
+    /// coordinator sounds a rest with no view involved anywhere.
+    @Test func theAlarmSoundsWithNoScreenAttached() {
+        let (coordinator, alarm) = coordinator()
+        let monitor = HeartRateMonitor(provider: SilentRestAlarmStubProvider())
+        coordinator.adoptForTesting(monitor: monitor, workoutID: UUID())
+        coordinator.armForTesting(restEndsAt: end)
+
+        coordinator.evaluateAlarmForTesting(now: end)
+        #expect(alarm.sounded == [.cap], "a minimised workout must still beep")
+    }
+
+    @Test func recoveryAndCapCannotBothSoundForOneRest() {
+        let (coordinator, alarm) = coordinator()
+        coordinator.armForTesting(restEndsAt: end)
+        coordinator.soundRecovered()
+        // The cap moment arrives, but this rest already ended by recovery.
+        coordinator.evaluateAlarmForTesting(now: end.addingTimeInterval(30))
+        #expect(alarm.sounded == [.recovered], "one rest, one ending, one sound")
+    }
+
+    @Test func oneRestSoundsOnceEvenThoughSamplesArriveEverySecond() {
+        let (coordinator, alarm) = coordinator()
+        coordinator.armForTesting(restEndsAt: end)
+        for second in 0...20 {
+            coordinator.evaluateAlarmForTesting(now: end.addingTimeInterval(Double(second)))
+        }
+        #expect(alarm.sounded == [.cap], "got \(alarm.sounded.count) beeps")
+    }
+
+    @Test func theSecondRestOfAWorkoutStillSounds() {
+        let (coordinator, alarm) = coordinator()
+        coordinator.armForTesting(restEndsAt: end)
+        coordinator.evaluateAlarmForTesting(now: end)
+        let second = end.addingTimeInterval(300)
+        coordinator.armForTesting(restEndsAt: second)
+        coordinator.evaluateAlarmForTesting(now: second)
+        #expect(alarm.sounded == [.cap, .cap])
+    }
+}
+
+/// A provider that does nothing, for coordinator tests that never start a feed.
+@MainActor
+final class SilentRestAlarmStubProvider: HeartRateProviding {
+    let stream: AsyncStream<HeartRateSample> = AsyncStream { $0.finish() }
+    let activeEnergyKilocalories: Double? = nil
+    func start() async -> HeartRateFeedState { .unavailable }
+    func stop() async {}
+}

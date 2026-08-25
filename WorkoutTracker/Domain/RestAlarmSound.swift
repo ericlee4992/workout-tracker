@@ -17,6 +17,16 @@ import Foundation
 
 @MainActor
 protocol RestAlarmSounding: AnyObject {
+    /// Called when a workout starts. Opens and HOLDS the audio session.
+    ///
+    /// Why hold it rather than activate per beep: activating an audio session
+    /// from a backgrounded app is unreliable, and backgrounded is exactly when
+    /// the alarm matters. Activating while the user is still looking at the
+    /// screen, then keeping it for the workout, is not.
+    func beginSession()
+    /// Called when the workout ends. Holding the session open for a workout
+    /// nobody is doing is the audio equivalent of leaving the sensor powered.
+    func endSession()
     func sound(_ pattern: RestAlarmPattern)
 }
 
@@ -32,39 +42,55 @@ final class SystemRestAlarm: RestAlarmSounding {
     /// failure that looks exactly like the bug this file exists to fix.
     private var player: AVAudioPlayer?
     private var cache: [RestAlarmPattern: Data] = [:]
+    private var isSessionOpen = false
+
+    func beginSession() {
+        do {
+            let session = AVAudioSession.sharedInstance()
+            // `.playback` is the category that routes to A2DP headphones —
+            // AirPods — which `.ambient` and the notification route do not.
+            //
+            // `.mixWithOthers` and NOT `.duckOthers`: this session stays active
+            // for the whole workout, and a ducking session held open would keep
+            // the user's music quiet for an hour rather than for a beep. The
+            // tone mixes over the music instead.
+            try session.setCategory(
+                .playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+            isSessionOpen = true
+        } catch {
+            // Non-fatal by design. A workout that cannot beep is still a
+            // workout, and the local notification remains as the visual
+            // channel. NOT `assertionFailure`: this app installs as Debug, so
+            // trapping here would turn a missing beep into a crashed workout.
+            print("[RestAlarm] could not open audio session: \(error)")
+            isSessionOpen = false
+        }
+    }
+
+    func endSession() {
+        player?.stop()
+        player = nil
+        guard isSessionOpen else { return }
+        isSessionOpen = false
+        try? AVAudioSession.sharedInstance()
+            .setActive(false, options: .notifyOthersOnDeactivation)
+    }
 
     func sound(_ pattern: RestAlarmPattern) {
         let data = cache[pattern] ?? RestAlarmTone.wav(for: pattern)
         cache[pattern] = data
+        // If the session never opened — or was torn down by an interruption
+        // such as a phone call — try once more rather than failing silently.
+        if !isSessionOpen { beginSession() }
         do {
-            let session = AVAudioSession.sharedInstance()
-            // `.playback` is what routes to A2DP headphones; `.duckOthers` dips
-            // the user's music for the beep instead of stopping it, and
-            // `.mixWithOthers` keeps us from seizing the session outright.
-            // Together they are the difference between "a beep over your music"
-            // and "your music stops".
-            try session.setCategory(
-                .playback, mode: .default, options: [.duckOthers, .mixWithOthers])
-            try session.setActive(true)
             let player = try AVAudioPlayer(data: data)
             player.volume = 1
             player.prepareToPlay()
             player.play()
             self.player = player
-            // Hand the session back once the tone has finished, so ducked music
-            // returns to full volume rather than staying quiet for the rest of
-            // the workout.
-            let seconds = player.duration + 0.25
-            Task { [weak self] in
-                try? await Task.sleep(for: .seconds(seconds))
-                try? AVAudioSession.sharedInstance()
-                    .setActive(false, options: .notifyOthersOnDeactivation)
-                self?.player = nil
-            }
         } catch {
-            // Never fatal. A workout that cannot beep is still a workout, and
-            // the local notification remains as the visual channel.
-            assertionFailure("Rest alarm could not play: \(error)")
+            print("[RestAlarm] could not play \(pattern): \(error)")
         }
     }
 }
@@ -74,6 +100,10 @@ final class SystemRestAlarm: RestAlarmSounding {
 @MainActor
 final class SilentRestAlarm: RestAlarmSounding {
     private(set) var sounded: [RestAlarmPattern] = []
+    private(set) var sessionOpens = 0
+    private(set) var sessionCloses = 0
+    func beginSession() { sessionOpens += 1 }
+    func endSession() { sessionCloses += 1 }
     func sound(_ pattern: RestAlarmPattern) { sounded.append(pattern) }
 }
 
