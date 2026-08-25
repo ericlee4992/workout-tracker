@@ -14,6 +14,7 @@ struct ExercisesView: View {
     @State private var renameText = ""
     @State private var presetsExercise: Exercise?
     @State private var loadTypeExercise: Exercise?
+    @State private var progressExercise: Exercise?
 
     private var preferences: AppPreferences? {
         AppPreferences.canonical(of: allPreferences)
@@ -75,6 +76,9 @@ struct ExercisesView: View {
                             // Presets are the user's own data hanging off the
                             // row, so they are offered on seeded exercises too
                             // — unlike renaming, which D24 reserves.
+                            Button("Progress…", systemImage: "chart.xyaxis.line") {
+                                progressExercise = exercise
+                            }
                             Button("Presets…") { presetsExercise = exercise }
                             // Offered on SEEDED exercises too, unlike renaming.
                             // D24 reserves catalog naming, but a wrong load
@@ -120,6 +124,14 @@ struct ExercisesView: View {
             }
             .sheet(item: $loadTypeExercise) { exercise in
                 EditExerciseLoadTypeSheet(exercise: exercise)
+            }
+            .sheet(item: $progressExercise) { exercise in
+                NavigationStack {
+                    ExerciseProgressView(
+                        exerciseID: exercise.id,
+                        exerciseName: exercise.name,
+                        loadType: exercise.loadType)
+                }
             }
             .alert(
                 "Rename Exercise",
