@@ -334,6 +334,14 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
 
 ## Environment gotchas that cost real time
 
+- **CI needs `macos-26`; `macos-15` cannot build this project at all.** D42 raised
+  `IPHONEOS_DEPLOYMENT_TARGET` to 26.0 for the iPhone `HKWorkoutSession` API, and `macos-15` ships
+  Xcode 16.4 whose newest iOS SDK is 18.5. The job failed in 43 seconds on 2026-08-25 with nothing
+  but a deployment-target *warning* to explain it. Raising the target silently broke CI back in
+  milestone 7 and it merged unnoticed — the no-PR workflow means CI only ever runs after a merge.
+  A guard step now fails immediately with a one-line reason instead. **If CI is red, check the
+  toolchain before the code**: the same commit was green locally on Xcode 26.6 (479 unit + 21 UI).
+
 - **Certificate chain.** Apple issues development certs from the WWDR **G3** intermediate. A Mac
   carrying only the original WWDR intermediate (expired 2023-02-07) reports "0 valid identities"
   and `codesign` fails with `errSecInternalComponent` — which reads as *no certificate* when the

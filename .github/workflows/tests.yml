@@ -26,7 +26,13 @@ concurrency:
 
 jobs:
   unit-tests:
-    runs-on: macos-15
+    # macos-26, NOT macos-15. D42 raised the minimum to iOS 26.0 for the iPhone
+    # HKWorkoutSession API, and macos-15 ships Xcode 16.4, whose newest iOS SDK
+    # is 18.5. That runner cannot build this project at all — it failed in 43
+    # seconds on 2026-08-25 with nothing but a deployment-target warning to say
+    # why. Raising the deployment target silently broke CI; it was merged before
+    # anyone noticed, which is the no-PR workflow working exactly as documented.
+    runs-on: macos-26
     # 30 killed all three runs this workflow has ever had (2026-08-18, and twice
     # on 2026-08-22) — always mid-`Unit tests`, never with a diagnosis, because
     # of the two problems fixed in that step below. 60 is not a claim that the
@@ -38,6 +44,21 @@ jobs:
 
       - name: Show toolchain
         run: xcodebuild -version
+
+      # Fail here, loudly, rather than 40 seconds later inside xcodebuild with a
+      # WARNING as the only clue. A toolchain too old for the deployment target
+      # is an environment problem, not a code problem, and the log should say so
+      # in one line instead of burying it in 2,000 lines of SwiftCompile.
+      - name: Check the toolchain can build this deployment target
+        run: |
+          set -euo pipefail
+          required=$(grep -m1 -oE 'IPHONEOS_DEPLOYMENT_TARGET = [0-9]+'             WorkoutTracker.xcodeproj/project.pbxproj | grep -oE '[0-9]+$')
+          have=$(xcrun --sdk iphonesimulator --show-sdk-version | cut -d. -f1)
+          echo "project needs iOS ${required}; this runner's newest iOS SDK is ${have}"
+          if [ "$have" -lt "$required" ]; then
+            echo "::error::Runner SDK iOS ${have} is older than the project's deployment target iOS ${required} (see D42). This is a RUNNER IMAGE problem, not a code problem — the same commit builds locally on Xcode 26. Bump runs-on to an image with Xcode ${required}."
+            exit 1
+          fi
 
       # Pick a simulator by UDID rather than by name. Locally the scheme targets
       # "WT-iPhone" (CLAUDE.md), which does not exist on a runner; hard-coding
