@@ -68,7 +68,7 @@ D45's textbook 50/60/70/80/90 became **55/65/75/85/95** (see DECISIONS). The use
 estimate, which runs low for fit people and inflates every percentage; raising the max was offered
 and declined in favour of shifting the boundaries. **Cost, stated plainly: this app's "Zone 3" is
 no longer Polar's or Apple's Zone 3.** A measured maximum would let them go back to standard.
-**The revised numbers have not yet been seen on the device.**
+The revised numbers are **installed as of 2026-08-25** but have not yet been seen in a gym.
 
 **Zones were verified working on the device (2026-08-24), at the OLD boundaries.** After the `0c9bdeb` install the user set a
 maximum and reported: *"The zone feature correctly works."* The user also checked the app's zone
@@ -142,7 +142,8 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`a32755b`** — the tip of `milestone-7-heart-rate`, i.e. milestone 7 **plus** Codex's bar-weight review fixes. Installed **2026-08-24 16:37** and **launch-verified**: it opened, so `SetRecord.barNormalizedKg` migrated the user's REAL store and `BarWeightStoreRepair` ran against real rows without crashing. That was the risky part of this install and it is now proven. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac, and it is a separate install by design (ticket 02) |
+| Installed commit | **`f5cc50a`** — tip of `milestone-7-heart-rate`: the revised zone boundaries and the audible rest alarm. Installed **2026-08-25 00:06** and **launch-verified**. Built CLEAN deliberately (`rm -rf /tmp/wt-device-build` first) because of the `INFOPLIST_FILE` gotcha below, and the built plist was checked before installing: both HealthKit usage strings present and `UIBackgroundModes: [audio]` in. No schema change in this build, so nothing migrated. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac (ticket 02) |
+| Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
 | Previously installed | `0c9bdeb` (zone-reachability fix), 2026-08-24 00:32 — never launch-verified, superseded hours later |
 | Previously installed | Milestone 7's uncommitted working tree, 2026-08-22 23:45. It launched, so the D44/D43/D45 optional fields migrated the user's real store |
 | Previously installed | The bar-weight merge (2026-08-22, installed 16:31 — the content is what is now on `main`, built from the working tree just before the merge commit existed). Installed before its Codex pass at the user's request, with a backup taken first (below) |
@@ -151,7 +152,7 @@ those sessions outranks new features.
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed **24 Aug 2026** (16:37), so expires **~31 Aug 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **25 Aug 2026** (00:06), so expires **~1 Sep 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
