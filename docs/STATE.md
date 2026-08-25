@@ -63,7 +63,14 @@ from AirPods on the workout screen during a real workout. **Still unverified:** 
 figure's plausibility; the heart-rate rest timer (D43); the background alarm with the screen off;
 and the entire `WCSession` path.
 
-**Zones are verified on the device (2026-08-24).** After the `0c9bdeb` install the user set a
+**Zone boundaries were revised 2026-08-24 after gym use** — every zone read about one too high, so
+D45's textbook 50/60/70/80/90 became **55/65/75/85/95** (see DECISIONS). The user is on the 220−age
+estimate, which runs low for fit people and inflates every percentage; raising the max was offered
+and declined in favour of shifting the boundaries. **Cost, stated plainly: this app's "Zone 3" is
+no longer Polar's or Apple's Zone 3.** A measured maximum would let them go back to standard.
+**The revised numbers have not yet been seen on the device.**
+
+**Zones were verified working on the device (2026-08-24), at the OLD boundaries.** After the `0c9bdeb` install the user set a
 maximum and reported: *"The zone feature correctly works."* The user also checked the app's zone
 boundaries against an external reference (50/60/70/80/90/100% of max) and confirmed they match —
 they are identical to D45 as built, so **no change was made**. Two deliberate extensions beyond
@@ -196,12 +203,26 @@ nothing about whether the install worked.
      What is still open is narrower: **is the "(estimated)" marking visible** when the basis is a
      date of birth rather than a measured maximum (D45)? That is the one part of the zone feature
      no one has seen work.
-   - Is the **calorie** number plausible against Apple's own for the same session? The app reads
-     it from the system and never computes it, so a wrong number means a wrong session setup.
+   - ~~Is the **calorie** number plausible?~~ **Reported slightly high, 2026-08-24 — no code
+     change made, deliberately.** The app never computes calories: it reads the system's own
+     `activeEnergyBurned` from `HKLiveWorkoutBuilder`, already configured
+     `.traditionalStrengthTraining` / `.indoor`. So the number IS Apple's, and there is no formula
+     here to tune — inventing a correction factor would be the false precision D9/D25 exist to
+     refuse. Likely causes are all outside the app: a stale weight in Health (most common), no
+     Apple Watch so the estimate leans on heart rate alone (which runs high for lifting, since HR
+     stays up between sets), and iOS being generous for strength training generally. **Told the
+     user to check their weight in Health first.**
    - Does the **heart-rate rest timer** (D43) end a rest when the heart rate comes down, and does
      the alarm say which ended it — recovery or the cap?
-   - Does that alarm fire **with the screen off**? That is what `healthkit.background-delivery`
-     was provisioned for and it has never been observed.
+   - **Is the new audible alarm actually audible?** Gym feedback 2026-08-24: the notification fired
+     both ways, screen off included, but nothing came through the AirPods — a notification sound
+     plays on the phone's alert route and never reaches Bluetooth headphones. The app now
+     synthesises a tone and plays it through `AVAudioSession` (`.playback` + `.duckOthers`), with
+     recovery and cap sounding different (two rising tones vs three flat). **None of this has been
+     heard by a human.** What to listen for: does it cut through gym noise and your own music, does
+     the music duck and come back, and does the beep fire **with the screen off** — that last one
+     runs off the heart-rate sample tick because a SwiftUI timer stops when the screen sleeps, and
+     it needs the new `audio` background mode to play at all.
    - Does the watch companion install, pair, and stream? **No Apple Watch has ever been visible to
      this Mac** (`devicectl` sees only the iPhone), so nothing on that path is installed. It is a
      **separate** install by design — embedding it breaks every simulator test run (ticket 02) —
