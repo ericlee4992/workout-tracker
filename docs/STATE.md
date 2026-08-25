@@ -81,6 +81,52 @@ Not established: whether the user supplied a MEASURED maximum or the date-of-bir
 the DOB path (see the test gap below) is still unconfirmed either way. Also still unseen: the
 "(estimated)" marking that D45 requires when the basis is 220−age.
 
+### The background rest alarm — four attempts, and why the first three failed
+
+**Solved 2026-08-25 (`82a1ddb`), confirmed on the device.** Worth reading in full: the same trap is
+waiting for anything else that must happen at a moment in time while the app is not on screen.
+
+**The rule:** iOS promises a backgrounded app NO CPU at a chosen instant. Any feature designed as
+"run code when the deadline arrives" is therefore built on something the platform does not offer.
+The fix is not to fight for background execution — it is to **remove the need to execute at all**.
+
+The rest deadline is known the moment the rest starts, so the beep is handed to the audio pipeline
+THEN, as one asset: `[inaudible dither for N seconds][beep]`. At the deadline nothing runs; the
+beep is the next part of a buffer already playing. `RestAlarmTone.restTrackWav`.
+
+Covers **both** rest kinds — a plain timed rest and D43's cap queue identically. Early heart-rate
+recovery cannot be queued (its moment is unknowable in advance), so it plays live when the app is
+executing, with the queued cap track as the floor.
+
+**Three failed attempts, each fixing a real-but-not-decisive thing:** play at the deadline; add
+background modes and move the alarm off the dismissable view; loop an inaudible keep-alive. All
+three kept the "execute at the deadline" dependency, which was the actual defect.
+
+**What made it take four rounds, and what to do differently:**
+
+1. **A scheduled local notification firing was read as proof the app was running.** It is not. A
+   `UNTimeIntervalNotificationTrigger` is handed to the system in advance and fires whether or not
+   the app is alive. That single wrong inference cost two attempts.
+2. **Assertions were made without checking Apple's documentation.** "`workout-processing` is
+   watchOS-only" was stated as fact and written into the plist as a comment. It is FALSE on iOS 26,
+   which brought workout sessions to iPhone. `.mixWithOthers` was likewise blamed and was innocent.
+3. **A safeguard was defeated in the function next to it.** `keepAliveSamples` dithers at ±1 LSB so
+   output is never digital silence; `startKeepAlive` then set `volume = 0.01`, scaling it to ~3e-7.
+4. **The user was right that it should not be complicated.** Their push — *"I don't think this
+   should be a complicated problem"* — and their reframing (*the notification already fires at the
+   right instant; can it just be audible?*) is what produced the working design. Notification
+   sounds play on the phone's ALERT route and iOS gives apps no way to send them to Bluetooth
+   headphones — but that reframing exposed the real question: **is an audio route to the AirPods
+   open at that moment?**
+5. **Two independent consultations disagreed, and that was the point.** Codex first concluded no
+   supported API could do this and recommended AlarmKit; Fable 5 found that wrong on iOS 26 and
+   validated the pre-rendered design. Re-asked, Codex reversed itself: *"technically narrow but
+   practically wrong for this case."* AlarmKit would ALSO have failed — iPhone alarms deliberately
+   play through the built-in speaker — so building it would have burned a fifth attempt.
+
+**Not verified:** ducking. It is deliberately not applied to the queued beep, because ducking needs
+code at the deadline — the very dependency this removes. The beep mixes over music at full scale.
+
 ### Zones were unreachable — fixed and installed 2026-08-24 (`0c9bdeb`)
 
 The user ran a real workout, got live heart rate, and never saw a zone. Two bugs, compounding:
@@ -216,7 +262,11 @@ nothing about whether the install worked.
      user to check their weight in Health first.**
    - Does the **heart-rate rest timer** (D43) end a rest when the heart rate comes down, and does
      the alarm say which ended it — recovery or the cap?
-   - **Does the alarm now fire when the app is not on screen?** Gym report 2026-08-25: the first
+   - ~~**Does the alarm fire when the app is not on screen?**~~ **SOLVED AND CONFIRMED ON THE
+     DEVICE, 2026-08-25** (`82a1ddb`): *"it worked! the beep now plays with screen off."* See
+     "The background rest alarm" below — it took four attempts and the lesson is worth reading
+     before touching anything time-based again.
+   - Historical, for context on how it was reached: Gym report 2026-08-25: the first
      audible build beeped **only while the app was open** — nothing with the screen off, on another
      app, or on the home screen. Three causes, all fixed in `37c0f2b`: `UIBackgroundModes` was
      missing `workout-processing` (so iOS suspended the workout session and no samples arrived at
