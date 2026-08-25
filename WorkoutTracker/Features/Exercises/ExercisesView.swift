@@ -13,6 +13,7 @@ struct ExercisesView: View {
     @State private var renamingExercise: Exercise?
     @State private var renameText = ""
     @State private var presetsExercise: Exercise?
+    @State private var loadTypeExercise: Exercise?
 
     private var preferences: AppPreferences? {
         AppPreferences.canonical(of: allPreferences)
@@ -75,6 +76,14 @@ struct ExercisesView: View {
                             // row, so they are offered on seeded exercises too
                             // — unlike renaming, which D24 reserves.
                             Button("Presets…") { presetsExercise = exercise }
+                            // Offered on SEEDED exercises too, unlike renaming.
+                            // D24 reserves catalog naming, but a wrong load
+                            // type is not a naming preference — it ranks the
+                            // user's records in the wrong direction, and the
+                            // only other escape (a different exercise) splits
+                            // their history. The override survives
+                            // reconciliation; see `loadTypeUserOverridden`.
+                            Button("Load type…") { loadTypeExercise = exercise }
                             if !exercise.isSeeded {
                                 Button("Rename…") {
                                     renameText = exercise.name
@@ -108,6 +117,9 @@ struct ExercisesView: View {
             }
             .sheet(item: $presetsExercise) { exercise in
                 ExercisePresetsSheet(exercise: exercise)
+            }
+            .sheet(item: $loadTypeExercise) { exercise in
+                EditExerciseLoadTypeSheet(exercise: exercise)
             }
             .alert(
                 "Rename Exercise",

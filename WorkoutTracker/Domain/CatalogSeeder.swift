@@ -107,7 +107,13 @@ enum CatalogSeeder {
                 guard applyUpdates else { continue }
                 // Allowlisted seeded fields only (D24): name + metadata.
                 setIfChanged(&row.name, seed.name)
-                setIfChanged(&row.loadType, seed.loadType)
+                // Load type is the ONE allowlisted field a user can correct
+                // (milestone 8, ticket 02). Overwriting a hand-fixed value here
+                // would silently flip their records back at the next catalog
+                // version, which is worse than never letting them fix it.
+                if row.loadTypeUserOverridden != true {
+                    setIfChanged(&row.loadType, seed.loadType)
+                }
                 setIfChanged(&row.equipmentTypeTags, seed.equipmentTypeTags)
                 setIfChanged(&row.muscleGroup, seed.muscleGroup)
             } else {

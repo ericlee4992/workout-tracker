@@ -26,6 +26,16 @@ final class Exercise {
     var muscleGroup: String?
     /// Seeded catalog rows are reconciled by version (D24) and not user-editable.
     var isSeeded: Bool = false
+    /// The user corrected this exercise's load type by hand, so the catalog
+    /// must stop overwriting it.
+    ///
+    /// What breaks without this: `CatalogSeeder.reconcileExercises` runs
+    /// `setIfChanged(&row.loadType, seed.loadType)` on every seeded row at each
+    /// catalog version bump. A user who fixes "Seated Dip" from weighted to
+    /// assisted would see it work, then silently revert on the next bump — and
+    /// their records for that movement would flip direction again with no
+    /// error. Optional so stores written before this field migrate lightweightly.
+    var loadTypeUserOverridden: Bool?
 
     @Relationship(deleteRule: .nullify, inverse: \ExerciseEntry.exercise)
     var entries: [ExerciseEntry]?
@@ -43,7 +53,8 @@ final class Exercise {
         loadType: LoadType = .weighted,
         equipmentTypeTags: [EquipmentTag] = [],
         muscleGroup: String? = nil,
-        isSeeded: Bool = false
+        isSeeded: Bool = false,
+        loadTypeUserOverridden: Bool? = nil
     ) {
         self.id = id
         self.name = name
@@ -51,6 +62,7 @@ final class Exercise {
         self.equipmentTypeTags = equipmentTypeTags
         self.muscleGroup = muscleGroup
         self.isSeeded = isSeeded
+        self.loadTypeUserOverridden = loadTypeUserOverridden
     }
 }
 
