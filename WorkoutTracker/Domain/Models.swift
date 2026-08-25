@@ -260,6 +260,13 @@ final class Workout {
     var finishedAt: Date?
     var notes: String = ""
     /// Scalar reference to the template this workout was started from, if any.
+    /// When this workout was last edited after being logged (D47, milestone 8
+    /// ticket 03). nil = never edited, which is every workout logged before
+    /// history editing existed. Optional so those stores migrate lightweightly.
+    ///
+    /// Shown in the UI on purpose: a silently altered history claims a
+    /// certainty it does not have, which is the one thing this app refuses.
+    var historyEditedAt: Date?
     var sourceTemplateID: UUID?
     /// D23 history snapshots, captured when the workout starts. History reads
     /// these, never the live `WorkoutTemplate`/`Gym` rows: renaming or

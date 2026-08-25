@@ -2,7 +2,12 @@ import SwiftData
 import SwiftUI
 
 struct WorkoutDetailView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     var workout: Workout
+    /// The set being corrected, if any (milestone 8, ticket 03).
+    @State private var editingSet: SetRecord?
+    @State private var confirmingDelete = false
     /// Whole-view convert toggle (D9): nil shows every weight as entered;
     /// a unit renders everything in that unit with conversions ≈-marked.
     /// Display-only — storage is never touched.
@@ -27,6 +32,15 @@ struct WorkoutDetailView: View {
                         .filter { $0.completedAt != nil }
                     ForEach(Array(sets.enumerated()), id: \.element.id) { pair in
                         setLine(index: pair.offset, set: pair.element)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("historySetLine")
+                            .contentShape(Rectangle())
+                            .onTapGesture { editingSet = pair.element }
+                            .swipeActions(edge: .trailing) {
+                                Button(role: .destructive) {
+                                    deleteSet(pair.element)
+                                } label: { Label("Delete", systemImage: "trash") }
+                            }
                     }
                 } header: {
                     // Snapshot display strings ONLY (D23) — never the live
@@ -41,6 +55,17 @@ struct WorkoutDetailView: View {
                 }
             }
 
+            if let edited = workout.isDeleted ? nil : workout.historyEditedAt {
+                Section {
+                    Label(
+                        "Edited \(edited.formatted(date: .abbreviated, time: .shortened))",
+                        systemImage: "pencil.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("historyEditedMark")
+                }
+            }
+
             Section {
             } footer: {
                 Text(displayUnit == nil
@@ -50,9 +75,29 @@ struct WorkoutDetailView: View {
         }
         .navigationTitle(workout.startedAt.formatted(date: .abbreviated, time: .omitted))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $editingSet) { set in
+            EditLoggedSetSheet(record: set)
+        }
+        .confirmationDialog(
+            "Delete this workout?", isPresented: $confirmingDelete, titleVisibility: .visible
+        ) {
+            Button("Delete Workout", role: .destructive) { deleteWorkout() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            // Names what is lost. This phone holds the only copy of the user's
+            // training history, so "are you sure?" about an unknown quantity is
+            // not good enough.
+            let impact = HistoryEditing.impact(ofDeleting: workout)
+            Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s") will be permanently deleted. Records and volume will be recalculated without them.")
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button("Delete Workout…", systemImage: "trash", role: .destructive) {
+                        confirmingDelete = true
+                    }
+                    .accessibilityIdentifier("deleteWorkout")
+                    Divider()
                     Picker("Units", selection: $displayUnit) {
                         Text("As entered").tag(WeightUnit?.none)
                         ForEach(WeightUnit.allCases) { unit in
@@ -62,8 +107,26 @@ struct WorkoutDetailView: View {
                 } label: {
                     Label(displayUnit?.rawValue ?? "As entered", systemImage: "scalemass")
                 }
+                .accessibilityIdentifier("workoutDetailMenu")
             }
         }
+    }
+
+    private func deleteSet(_ set: SetRecord) {
+        let entry = HistoryEditing.deleteSet(set, in: modelContext)
+        if let entry { HistoryEditing.pruneIfEmpty(entry, in: modelContext) }
+        save()
+    }
+
+    private func deleteWorkout() {
+        modelContext.delete(workout)
+        save()
+        dismiss()
+    }
+
+    private func save() {
+        do { try modelContext.save() }
+        catch { assertionFailure("Failed to save history edit: \(error)") }
     }
 
     /// Weight text for a set under the current toggle: as entered by default,

@@ -47,6 +47,7 @@ struct HistoryView: View {
                                     NavigationLink(value: workout) {
                                         WorkoutSummaryRow(workout: workout)
                                     }
+                                    .accessibilityIdentifier("historyWorkoutRow")
                                 }
                             }
                         }

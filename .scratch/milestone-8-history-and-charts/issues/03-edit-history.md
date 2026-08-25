@@ -1,6 +1,6 @@
 # 03 — Edit and delete workout history
 
-Status: open
+Status: resolved
 Blocked by: 02 (a wrong load type is one of the things the user will want to repair)
 Covers user ask **3**.
 
@@ -43,3 +43,29 @@ Proposed line, to confirm with the user and record as a decision:
 
 **Highest-risk ticket in the milestone.** It can destroy the user's only copy of their training
 history. Take an export before testing on the device, and make the destructive paths confirm.
+
+
+## Resolution (2026-08-25)
+
+**D47 recorded** in `DECISIONS.md`, settling the question this ticket opened rather than leaving it
+implicit: numbers are editable, snapshots are not, and every edit is marked.
+
+`Domain/HistoryEditing.swift` owns the rules — `apply` re-derives `normalizedKg` with the value and
+unit (D25) and refuses an edit that would not be loggable (A1); `deleteSet` + `pruneIfEmpty` avoid
+orphan entries; `impact(ofDeleting:)` counts what a deletion destroys so the confirmation names it
+instead of asking "are you sure?" about an unknown quantity. `Workout.historyEditedAt` (optional,
+lightweight migration) carries the mark.
+
+UI: tap a set in `WorkoutDetailView` to correct it, swipe to delete it, and delete the whole
+workout from the toolbar menu behind a confirmation that quotes sets and exercises.
+
+10 unit tests + 2 XCUITests. 495 unit tests green including the migration fixture.
+
+**The test that matters most** is `editingASetDoesNotRestateWhatEquipmentItWasLoggedOn`: it renames
+and re-types the exercise, then edits a set, and asserts the frozen snapshot is untouched. Without
+that boundary, correcting a weight typo would silently re-label a March set with today's machine
+name and today's load type.
+
+**Note on the UI tests**: two rounds of "no matches found" were a STALE TEST BINARY, not wrong
+selectors — a hierarchy dump showed both identifiers present all along. Worth remembering before
+chasing a selector that is already correct.
