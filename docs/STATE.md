@@ -9,9 +9,10 @@ stale fastest.
 
 ## Status
 
-Merged and pushed on `main`: everything in the table up to bar weight (**362 unit + 14 UI**).
-**Milestone 7 (heart rate) is complete, committed, and cross-reviewed**, on branch
-`milestone-7-heart-rate` — see below the table. `github.com/ericlee4992/workout-tracker` (private).
+Merged and pushed on `main`: **everything, including milestone 7** (`ca67603`, merged 2026-08-25). **479 unit + 21 UI green.**
+**Milestone 7 (heart rate) is MERGED into `main`** (2026-08-25, fast-forward — `main` still has
+zero merge commits). The `milestone-7-heart-rate` branch is now identical to `main` and can be
+deleted whenever convenient. `github.com/ericlee4992/workout-tracker` (private).
 
 | Shipped | What it is |
 |---|---|
@@ -30,9 +31,7 @@ Watch, zones, system calories, a heart-rate rest timer, and a finish summary. 8 
 `CodexReviewRegressionTests`.
 
 The milestone began at `428ab7a`; zone fixes and the completed bar-weight review/fixes are also
-committed on `milestone-7-heart-rate` through `4bbe3e8`. **The branch IS now pushed** — as of
-2026-08-24 `origin/milestone-7-heart-rate` exists, so the milestone is no longer single-copy on one
-Mac. It is still **not merged**; `main` remains `86f1a20`. Merging is the user's call. After the bar fixes, the complete unit suite
+committed on `milestone-7-heart-rate` through `4bbe3e8`. **Merged and pushed 2026-08-25.** `main` is `ca67603`; the branch is no longer ahead of it. Merging is the user's call. After the bar fixes, the complete unit suite
 is **451 tests across 42 suites**, and the 4 affected UI tests are green (two existing plus two new
 regressions).
 
