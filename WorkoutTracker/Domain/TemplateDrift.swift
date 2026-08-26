@@ -4,6 +4,14 @@ import SwiftData
 struct TemplateDriftItem: Equatable {
     var exerciseID: UUID
     var targetRepsBySet: [Int?]
+    /// Whether this item is grouped, and with which of its neighbours (D48).
+    ///
+    /// Compared as a POSITION, not a raw id: ids are remapped on every start
+    /// (so two workouts from one template cannot share a superset identity), so
+    /// comparing them directly would report drift on every single start.
+    /// codex-review 2 (critical): without this field, grouping-only drift never
+    /// prompted and an `updateTemplate` rebuild dropped every group.
+    var supersetPosition: Int?
 }
 
 enum TemplateDriftResolution: CaseIterable, Equatable, Sendable {
@@ -11,6 +19,25 @@ enum TemplateDriftResolution: CaseIterable, Equatable, Sendable {
     case updateValuesOnly
     case updateBoth
     case keepOriginal
+}
+
+
+/// Turns raw group ids into POSITIONS within a list, so grouping can be
+/// compared across a start (which remaps every id) without reporting drift on
+/// every workout.
+///
+/// The first distinct group encountered is 0, the next 1, and so on; ungrouped
+/// items stay nil. Two lists therefore compare equal when the same items are
+/// grouped together, whatever the ids happen to be.
+func supersetPositions(_ ids: [UUID?]) -> [Int?] {
+    var seen: [UUID: Int] = [:]
+    return ids.map { id -> Int? in
+        guard let id else { return nil }
+        if let known = seen[id] { return known }
+        let next = seen.count
+        seen[id] = next
+        return next
+    }
 }
 
 /// Pure D18 comparison and transition rules. Exercise occurrences are
@@ -44,7 +71,10 @@ enum TemplateDrift {
                     exerciseID: item.exerciseID,
                     targetRepsBySet: (0..<item.targetRepsBySet.count).map {
                         oldTargets.indices.contains($0) ? oldTargets[$0] : nil
-                    })
+                    },
+                    // The WORKOUT's grouping wins here: that is what
+                    // `.updateTemplate` means. Dropping it was the data loss.
+                    supersetPosition: item.supersetPosition)
             }
         case .updateValuesOnly:
             var result = template
@@ -186,23 +216,37 @@ struct TemplateDriftService {
     private func snapshotRows(
         _ template: WorkoutTemplate
     ) -> [(item: TemplateItem, snapshot: TemplateDriftItem)] {
-        WorkoutTemplateService.orderedItems(of: template).compactMap { item in
+        let rows = WorkoutTemplateService.orderedItems(of: template).compactMap { item -> (item: TemplateItem, snapshot: TemplateDriftItem)? in
             guard let exerciseID = item.exercise?.id else { return nil }
             return (item, TemplateDriftItem(
                 exerciseID: exerciseID,
                 targetRepsBySet: item.storedTargets.repsBySet))
         }
+        let positions = supersetPositions(rows.map(\.item.supersetGroupID))
+        return rows.enumerated().map { index, pair in
+            (pair.item, TemplateDriftItem(
+                exerciseID: pair.snapshot.exerciseID,
+                targetRepsBySet: pair.snapshot.targetRepsBySet,
+                supersetPosition: positions[index]))
+        }
     }
 
     func workoutSnapshot(_ workout: Workout) -> [TemplateDriftItem] {
-        WorkoutSession.orderedEntries(of: workout).compactMap { entry in
+        let rows = WorkoutSession.orderedEntries(of: workout).compactMap { entry -> (entry: ExerciseEntry, snapshot: TemplateDriftItem)? in
             guard let exerciseID = entry.exercise?.id else { return nil }
             let completed = WorkoutSession.orderedSets(of: entry)
                 .filter { $0.completedAt != nil }
             guard !completed.isEmpty else { return nil }
-            return TemplateDriftItem(
+            return (entry, TemplateDriftItem(
                 exerciseID: exerciseID,
-                targetRepsBySet: completed.map(\.reps))
+                targetRepsBySet: completed.map(\.reps)))
+        }
+        let positions = supersetPositions(rows.map(\.entry.supersetGroupID))
+        return rows.enumerated().map { index, pair in
+            TemplateDriftItem(
+                exerciseID: pair.snapshot.exerciseID,
+                targetRepsBySet: pair.snapshot.targetRepsBySet,
+                supersetPosition: positions[index])
         }
     }
 

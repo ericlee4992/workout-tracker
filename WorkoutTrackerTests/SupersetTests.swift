@@ -267,3 +267,102 @@ struct SupersetTemplateTests {
         #expect(firstID != secondID, "two workouts must not share one superset identity")
     }
 }
+
+/// Regressions for the second Codex cross-review. Each failed against the
+/// reviewed implementation.
+@MainActor
+struct SupersetReviewRegressionTests {
+
+    private func rig(count: Int) throws -> (ModelContext, Workout, [ExerciseEntry]) {
+        let container = try ModelContainer(
+            for: Schema(WorkoutTrackerStore.modelTypes),
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true))
+        let context = ModelContext(container)
+        let workout = Workout()
+        context.insert(workout)
+        var entries: [ExerciseEntry] = []
+        for index in 0..<count {
+            let exercise = Exercise(name: "Exercise \(index)", loadType: .weighted)
+            context.insert(exercise)
+            let entry = ExerciseEntry(
+                order: index, workout: workout, exercise: exercise,
+                snapshotExerciseID: exercise.id, snapshotLoadType: .weighted,
+                snapshotExerciseName: exercise.name)
+            context.insert(entry)
+            entries.append(entry)
+        }
+        try context.save()
+        return (context, workout, entries)
+    }
+
+    /// codex-review 2 (high): `pruneOrphanGroups` existed and NOTHING CALLED
+    /// IT. Deleting a member left a stale group id that export and template
+    /// capture faithfully preserved. Fifth time this repo has shipped the
+    /// absence-of-a-caller shape.
+    @Test func deletingAMemberThroughTheREALPathPrunesTheOrphanGroup() throws {
+        let (context, workout, entries) = try rig(count: 2)
+        Supersets.group(entries)
+        try context.save()
+
+        // The production path, not the helper called by hand.
+        try WorkoutSession(context: context).deleteEntry(entries[1])
+
+        #expect(
+            entries[0].supersetGroupID == nil,
+            "a group left with one member must not keep its id")
+        #expect(!Supersets.isGrouped(entries[0], in: workout))
+    }
+
+    /// codex-review 2 (high): once grouped, the menu replaced "Superset with
+    /// next" with "Break superset", so B could never add C — the resolution's
+    /// three-member claim was false.
+    @Test func aThirdExerciseCanJoinAnExistingSuperset() throws {
+        let (context, workout, entries) = try rig(count: 3)
+        Supersets.group([entries[0], entries[1]])
+        try context.save()
+
+        // What "Superset with next" now does from an already-grouped entry.
+        entries[2].supersetGroupID = entries[1].supersetGroupID
+        try context.save()
+
+        let runs = Supersets.runs(of: workout)
+        #expect(runs.count == 1, "A, B and C should be one superset, got \(runs.count) runs")
+        #expect(runs.first?.count == 3)
+        #expect(Supersets.memberLabel(for: entries[2], in: workout) == "C")
+    }
+}
+
+/// codex-review 2 (critical): grouping was lost through the template editor,
+/// through drift resolution, and out of the backup. The direct save/start path
+/// worked, which is what made the ticket's round-trip claim look true.
+@MainActor
+struct TemplateGroupingSurvivalTests {
+
+    /// Positions, not raw ids: ids are remapped on every start, so comparing
+    /// them directly would report drift on every single workout.
+    @Test func groupingComparesByPositionSoARemappedStartIsNotDrift() {
+        let a = UUID(), b = UUID()
+        #expect(supersetPositions([a, a, nil]) == [0, 0, nil])
+        #expect(
+            supersetPositions([b, b, nil]) == supersetPositions([a, a, nil]),
+            "the same grouping under different ids must compare equal")
+        #expect(
+            supersetPositions([a, nil, a]) != supersetPositions([a, a, nil]),
+            "different groupings must not compare equal")
+    }
+
+    @Test func driftSeesAGroupingChange() {
+        let exercise = UUID()
+        let ungrouped = [
+            TemplateDriftItem(exerciseID: exercise, targetRepsBySet: [8], supersetPosition: nil),
+            TemplateDriftItem(exerciseID: exercise, targetRepsBySet: [8], supersetPosition: nil),
+        ]
+        let grouped = [
+            TemplateDriftItem(exerciseID: exercise, targetRepsBySet: [8], supersetPosition: 0),
+            TemplateDriftItem(exerciseID: exercise, targetRepsBySet: [8], supersetPosition: 0),
+        ]
+        #expect(
+            TemplateDrift.hasDrift(template: ungrouped, workout: grouped),
+            "supersetting two exercises mid-workout is drift the user should be asked about")
+    }
+}

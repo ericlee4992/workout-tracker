@@ -178,6 +178,9 @@ extension ExportSnapshot {
         var targetSets: Int?
         var targetReps: Int?
         var targetRepsBySet: [Int?]
+        /// Superset membership (D48). Omitted at first, so a restored template
+        /// came back silently ungrouped (codex-review 2, critical).
+        var supersetGroupID: UUID?
     }
 }
 

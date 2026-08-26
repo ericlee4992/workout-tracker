@@ -498,6 +498,20 @@ struct ActiveWorkoutView: View {
         // or a mistaken tap would leave a rest running with nothing behind it.
         if isCompleted, let entry = set.entry, !entry.isDeleted,
            !Supersets.shouldRest(afterCompletingSetIn: entry, in: workout) {
+            // SKIP a rest already running, do not merely decline to start one.
+            //
+            // codex-review 2 (high): returning early left an earlier member's
+            // rest scheduled. Complete B1 (rest starts), then A2 before it
+            // expires, and that rest sat there between A2 and B2 — precisely
+            // where D48 says there is none, with its notification still armed.
+            if restEnd != nil {
+                do {
+                    try restTimer.skip(workout)
+                    restEnd = nil
+                } catch {
+                    assertionFailure("Failed to clear rest between superset members: \(error)")
+                }
+            }
             return
         }
         do {

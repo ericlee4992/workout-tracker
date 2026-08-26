@@ -53,3 +53,50 @@ Verdict: **do not merge or install this over the live store.** The superset impl
 - Independent verification used an isolated archive of exact `8e7f438`, avoiding unrelated concurrent worktree changes. `xcodebuild test -only-testing:WorkoutTrackerTests` executed 532 tests in 54 suites and failed the two tests described above. `LegacyStoreMigrationTests` passed, so the bundled old fixture does open; that still does not prove the newer real-phone store. The UI suite was not rerun, so its green claim was not independently verified.
 
 Summary: Standards — 5 findings (worst: the unrecorded D47 contradiction); Spec — 8 findings (worst: wrong historical chart classification and three template-grouping data-loss paths).
+
+---
+
+# Response (2026-08-26)
+
+Verdict accepted. Fixed in this pass:
+
+**Critical**
+- **D47 contradiction** — `retype` mutates a frozen field, and D47 as written forbade it. D47 now
+  AMENDED deliberately, naming `snapshotLoadType` as the single correctable frozen field and stating
+  why the narrowness is the safeguard. `b1019c8` moved the contradiction; this records it.
+- **Charts plotted the wrong history.** The view passed the LIVE load type while sets carry frozen
+  ones, and the series accepted every snapshot type and every preset for an exercise — so `outranks`
+  compared mixed types using each candidate's own direction, and D36's per-preset records were
+  pooled. Series are now scoped like a record group: one load type, one preset, finished workouts
+  only.
+- **Template grouping lost through three paths** — editor load/save, drift resolution, and the JSON
+  backup. All three carry it now. Drift compares grouping by POSITION, not raw id, because ids are
+  remapped on every start.
+
+**High**
+- **A rest survived between superset members.** Completing B1 started a rest; completing A2 before it
+  expired returned early without clearing it, so the rest sat exactly where D48 says there is none.
+  It is now skipped, not merely not-started.
+- **`pruneOrphanGroups` had no caller** — the fifth absence-of-a-caller bug in this repo, in a ticket
+  whose own notes warned about that shape. Now called from `WorkoutSession.deleteEntry`, with a test
+  that drives the PRODUCTION path rather than the helper.
+- **Bodyweight charts** plotted nil under an axis reading "Reps (kg)". D20 says plain bodyweight
+  progression is most reps; it now is.
+- **"B cannot add C"** — the menu hid "Superset with next" once grouped, so the three-member claim
+  was false. Offered from grouped entries too.
+- **"Session" was calendar-day.** Renamed rather than re-specified: day is the right x-axis, the
+  claim was what was wrong.
+
+## Deliberately NOT fixed, and why
+
+- **Multi-point chart tooltips.** Real, and left: Swift Charts selection is a sizeable UI addition
+  and the as-entered value is available on the single-point state today. Logged as follow-up.
+- **Reordering supersets, cycling (`nextMember`), and History grouping display.** `nextMember` has no
+  caller and should either get one or be deleted — it is the same shape as the bug above, and
+  shipping it dead a second time would be worse than the first.
+- **The vacuous invariant test.** The reviewer is right that it evaluates one synthetic array rather
+  than deriving inputs through production code before and after grouping. The invariant does hold by
+  inspection (`RecordGroupKey` ignores `supersetGroupID`), but the test does not pin it.
+- **The catalog audit** (from review 1) stays undone, for the reasons in ticket 02.
+
+These are recorded in STATE rather than left in a review file.

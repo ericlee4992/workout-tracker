@@ -39,8 +39,8 @@ enum ProgressConfidence: Equatable {
     case empty
     /// One session. Render the point, never a line.
     case single
-    /// Enough to draw, with the count so the UI can caveat a short series.
-    case series(sessions: Int)
+    /// Enough to draw, with the count of DAYS so the UI can caveat a short series.
+    case series(days: Int)
 }
 
 struct ProgressSeries: Equatable {
@@ -74,9 +74,30 @@ enum ProgressSeriesMath {
     static func series(
         for sets: [RecordSetInput],
         loadType: LoadType,
+        presetID: UUID? = nil,
         calendar: Calendar = .current
     ) -> ProgressSeries {
-        let eligible = sets.filter { RecordsMath.isEligible($0) }
+        // FILTER TO ONE CLASSIFICATION, then judge within it.
+        //
+        // codex-review 2 (critical): this used to accept whatever it was
+        // handed, so a chart mixed every snapshot load type and every preset
+        // for an exercise, and `outranks` then compared them using each
+        // CANDIDATE's own direction. After a load-type correction, old weighted
+        // sets were ranked as assistance; narrow- and wide-grip bests were
+        // pooled, which D36 exists to prevent because one variation could then
+        // set a record the other can never beat.
+        //
+        // The series is now scoped the way a record group is: one load type,
+        // one preset.
+        let eligible = sets
+            .filter { $0.loadType == loadType }
+            .filter { presetID == nil || $0.presetID == presetID }
+            .filter { RecordsMath.isEligible($0) }
+        // Grouped by calendar DAY, which is not identical to "session": two
+        // workouts in one day collapse to a point, and one workout spanning
+        // midnight becomes two (codex-review 2). Day is still the right x-axis
+        // for a progression chart — the naming is what was wrong, and
+        // `ProgressConfidence` now says "days" rather than claiming sessions.
         let byDay = Dictionary(grouping: eligible) { set -> Date in
             calendar.startOfDay(for: set.completedAt ?? .distantPast)
         }
@@ -85,12 +106,27 @@ enum ProgressSeriesMath {
             guard let daySets = byDay[day], !daySets.isEmpty else { return nil }
             // `outranks` owns the direction, so assisted ranks least-assistance
             // best without this file knowing why.
-            let best = daySets.dropFirst().reduce(daySets[0]) { incumbent, candidate in
-                RecordsMath.outranks(candidate, incumbent) ? candidate : incumbent
+            let best: RecordSetInput
+            if loadType == .bodyweight {
+                // Most reps wins, matching `RecordsMath.mostRepsRecord`.
+                best = daySets.dropFirst().reduce(daySets[0]) { incumbent, candidate in
+                    (candidate.reps ?? 0) > (incumbent.reps ?? 0) ? candidate : incumbent
+                }
+            } else {
+                best = daySets.dropFirst().reduce(daySets[0]) { incumbent, candidate in
+                    RecordsMath.outranks(candidate, incumbent) ? candidate : incumbent
+                }
             }
+            // D20: plain bodyweight has no load, so its progression is MOST
+            // REPS. Plotting `normalizedKg` — nil for bodyweight — drew an
+            // empty chart under an axis labelled "Reps (kg)"
+            // (codex-review 2, high).
+            let plotted: Double? = loadType == .bodyweight
+                ? best.reps.map(Double.init)
+                : best.normalizedKg
             return ProgressPoint(
                 date: day,
-                bestKg: best.normalizedKg,
+                bestKg: plotted,
                 bestReps: best.reps,
                 bestValue: best.weightValue,
                 bestUnit: best.weightUnit,
@@ -101,14 +137,14 @@ enum ProgressSeriesMath {
         return ProgressSeries(
             points: points,
             loadType: loadType,
-            confidence: confidence(sessions: points.count))
+            confidence: confidence(days: points.count))
     }
 
-    static func confidence(sessions: Int) -> ProgressConfidence {
+    static func confidence(days sessions: Int) -> ProgressConfidence {
         switch sessions {
         case 0: .empty
         case 1: .single
-        default: .series(sessions: sessions)
+        default: .series(days: sessions)
         }
     }
 

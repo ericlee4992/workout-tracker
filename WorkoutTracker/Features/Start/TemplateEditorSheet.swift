@@ -15,6 +15,9 @@ struct TemplateEditorSheet: View {
         var exerciseID: UUID
         /// 0 means no target for that slot.
         var repsBySet: [Int]
+        /// Superset membership (D48), carried through the editor so an
+        /// ordinary edit does not silently ungroup the template.
+        var supersetGroupID: UUID?
     }
 
     var body: some View {
@@ -135,7 +138,8 @@ struct TemplateEditorSheet: View {
             // 0 is the editor's "no target" value for a slot.
             return EditorItem(
                 exerciseID: exercise.id,
-                repsBySet: item.editableTargets.repsBySet.map { $0 ?? 0 })
+                repsBySet: item.editableTargets.repsBySet.map { $0 ?? 0 },
+                supersetGroupID: item.supersetGroupID)
         }
     }
 
@@ -146,7 +150,10 @@ struct TemplateEditorSheet: View {
             }
             return TemplateItemDraft(
                 exercise: exercise,
-                targetRepsBySet: item.repsBySet.map { $0 == 0 ? nil : $0 })
+                targetRepsBySet: item.repsBySet.map { $0 == 0 ? nil : $0 },
+                // codex-review 2 (critical): omitted here, so ANY ordinary edit
+                // of a template silently ungrouped its supersets.
+                supersetGroupID: item.supersetGroupID)
         }
         do {
             let service = WorkoutTemplateService(context: modelContext)

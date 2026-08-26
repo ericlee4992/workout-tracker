@@ -233,7 +233,8 @@ struct ExportCollector {
                     exerciseID: item.exercise?.id,
                     exerciseName: item.exercise.map { exerciseNamesByID[$0.id] ?? $0.name },
                     targetSets: item.targetSets, targetReps: item.targetReps,
-                    targetRepsBySet: item.targetRepsBySet)
+                    targetRepsBySet: item.targetRepsBySet,
+                    supersetGroupID: item.supersetGroupID)
             }
         return ExportSnapshot.Template(id: template.id, name: template.name, items: items)
     }

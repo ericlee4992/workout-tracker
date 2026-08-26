@@ -267,9 +267,18 @@ struct WorkoutSession {
         try addEntry(for: exercise, to: workout, machine: machine)
     }
 
+    /// Deletes an entry, then repairs any superset left holding a single
+    /// member.
+    ///
+    /// codex-review 2 (high): `Supersets.pruneOrphanGroups` existed and NOTHING
+    /// CALLED IT — the absence-of-a-caller bug, for the fifth time in this
+    /// repo, in a ticket whose own notes warned about that exact shape. A
+    /// deleted member left a stale group id that export and template capture
+    /// then faithfully preserved.
     func deleteEntry(_ entry: ExerciseEntry) throws {
         let workout = entry.workout
         context.delete(entry)
+        if let workout, !workout.isDeleted { Supersets.pruneOrphanGroups(in: workout) }
         if let workout {
             renumber(Self.orderedEntries(of: workout).filter { $0 !== entry })
         }

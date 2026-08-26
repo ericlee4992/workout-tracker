@@ -251,10 +251,12 @@ struct ExerciseEntryCard: View {
               index + 1 < entries.count
         else { return }
         let next = entries[index + 1]
-        // Joining an existing group rather than starting a rival one, so
-        // A+B then B+C reads as one A/B/C superset.
-        if let existing = next.supersetGroupID {
-            entry.supersetGroupID = existing
+        // Join whichever side already has a group, so A+B then B+C reads as one
+        // A/B/C superset rather than two rival pairs.
+        if let mine = entry.supersetGroupID {
+            next.supersetGroupID = mine
+        } else if let theirs = next.supersetGroupID {
+            entry.supersetGroupID = theirs
         } else {
             Supersets.group([entry, next])
         }
@@ -295,12 +297,14 @@ struct ExerciseEntryCard: View {
                         showingRestSettings = true
                     }
                 }
-                if supersetLabel == nil {
-                    Button("Superset with next", systemImage: "arrow.triangle.merge") {
-                        groupWithNext()
-                    }
-                    .accessibilityIdentifier("supersetWithNext")
-                } else {
+                // Offered whether or not this entry is ALREADY grouped.
+                // codex-review 2 (high): hiding it once grouped meant B could
+                // not add C, so the resolution's three-member claim was false.
+                Button("Superset with next", systemImage: "arrow.triangle.merge") {
+                    groupWithNext()
+                }
+                .accessibilityIdentifier("supersetWithNext")
+                if supersetLabel != nil {
                     Button("Break superset", systemImage: "arrow.triangle.branch") {
                         ungroup()
                     }

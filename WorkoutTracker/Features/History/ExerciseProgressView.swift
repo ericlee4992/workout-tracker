@@ -17,7 +17,13 @@ struct ExerciseProgressView: View {
 
     let exerciseID: UUID
     let exerciseName: String
+    /// The SNAPSHOT load type being charted, not the exercise's current one:
+    /// history keeps what it was logged under (D23/D47).
     let loadType: LoadType
+    /// D36: records are per-preset, so a chart must be too. Pooling narrow- and
+    /// wide-grip bests would let one variation set a record the other can never
+    /// beat. nil charts only sets logged with no preset.
+    var presetID: UUID?
 
     @State private var metric: Metric = .bestSet
 
@@ -46,7 +52,7 @@ struct ExerciseProgressView: View {
                     // Refusing to draw a line is the honest render.
                     Text("One session is a point, not a trend. Log this exercise again and a chart appears.")
                 }
-            case .series(let sessions):
+            case .series(let days):
                 Section {
                     Picker("Metric", selection: $metric) {
                         ForEach(availableMetrics) { Text($0.rawValue).tag($0) }
@@ -56,7 +62,7 @@ struct ExerciseProgressView: View {
                         .frame(height: 240)
                         .accessibilityIdentifier("progressChart")
                 } footer: {
-                    Text(footer(sessions: sessions))
+                    Text(footer(days: days))
                 }
 
                 if let change = ProgressSeriesMath.change(series) {
@@ -99,7 +105,8 @@ struct ExerciseProgressView: View {
 
     private var yLabel: String {
         switch metric {
-        case .bestSet: series.loadAxisLabel + " (kg)"
+        case .bestSet:
+            loadType == .bodyweight ? "Reps" : series.loadAxisLabel + " (kg)"
         case .volume: "Volume (kg)"
         case .e1rm: "Estimated 1RM (kg)"
         }
@@ -134,17 +141,21 @@ struct ExerciseProgressView: View {
     /// D9/D25: show the number the user typed. The chart plots canonical kg so
     /// mixed-unit sessions share an axis, but the text says what was entered.
     private func asEntered(_ point: ProgressPoint) -> String {
+        // Plain bodyweight has no load to show — reps ARE the achievement.
+        if loadType == .bodyweight {
+            return point.bestReps.map { "\($0) reps" } ?? "—"
+        }
         guard let value = point.bestValue, let unit = point.bestUnit else { return "—" }
         let reps = point.bestReps.map { " × \($0)" } ?? ""
         return "\(Format.weight(value)) \(unit.rawValue)\(reps)"
     }
 
-    private func footer(sessions: Int) -> String {
+    private func footer(days: Int) -> String {
         let base = "Plotted in kg so sessions logged in different units share one axis; the values you entered are unchanged."
         // A short series is still a short series. Say so rather than letting
         // three points imply a trajectory.
-        return sessions < 4
-            ? base + " Only \(sessions) sessions so far — read the shape with caution."
+        return days < 4
+            ? base + " Only \(days) days logged so far — read the shape with caution."
             : base
     }
 
@@ -160,8 +171,17 @@ struct ExerciseProgressView: View {
         let descriptor = FetchDescriptor<SetRecord>()
         let sets = (try? modelContext.fetch(descriptor)) ?? []
         let inputs = sets.compactMap { set -> RecordSetInput? in
+            // Snapshot load type, and only entries matching the type being
+            // charted. codex-review 2 (critical): the view passed the LIVE
+            // exercise's load type while the sets carried their frozen ones, so
+            // a correction relabelled old history. Also excludes sets in a
+            // workout that has not finished — an in-progress session is not
+            // history yet.
             guard !set.isDeleted, let entry = set.entry, !entry.isDeleted,
-                  entry.snapshotExerciseID == exerciseID
+                  entry.snapshotExerciseID == exerciseID,
+                  entry.snapshotLoadType == loadType,
+                  let workout = entry.workout, !workout.isDeleted,
+                  workout.finishedAt != nil
             else { return nil }
             return RecordSetInput(
                 loadType: entry.snapshotLoadType,
@@ -175,6 +195,6 @@ struct ExerciseProgressView: View {
                 weightValue: set.weightValue, weightUnit: set.weightUnit,
                 normalizedKg: set.normalizedKg, completedAt: set.completedAt)
         }
-        return ProgressSeriesMath.series(for: inputs, loadType: loadType)
+        return ProgressSeriesMath.series(for: inputs, loadType: loadType, presetID: presetID)
     }
 }
