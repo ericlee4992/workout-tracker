@@ -233,8 +233,59 @@ struct ExerciseEntryCard: View {
         }
     }
 
+    /// A/B/C position when this entry is in a superset of two or more.
+    private var supersetLabel: String? {
+        guard !entry.isDeleted, let workout = entry.workout, !workout.isDeleted
+        else { return nil }
+        return Supersets.memberLabel(for: entry, in: workout)
+    }
+
+    /// Groups this entry with the one after it. "With next" rather than a
+    /// multi-select: the pair is what a superset almost always is, and building
+    /// a selection mode for the rare three-way would cost more screen than it
+    /// earns. A third exercise joins by supersetting the second with it.
+    private func groupWithNext() {
+        guard !entry.isDeleted, let workout = entry.workout, !workout.isDeleted else { return }
+        let entries = WorkoutSession.orderedEntries(of: workout).filter { !$0.isDeleted }
+        guard let index = entries.firstIndex(where: { $0.id == entry.id }),
+              index + 1 < entries.count
+        else { return }
+        let next = entries[index + 1]
+        // Joining an existing group rather than starting a rival one, so
+        // A+B then B+C reads as one A/B/C superset.
+        if let existing = next.supersetGroupID {
+            entry.supersetGroupID = existing
+        } else {
+            Supersets.group([entry, next])
+        }
+        save()
+    }
+
+    private func ungroup() {
+        guard !entry.isDeleted, let workout = entry.workout, !workout.isDeleted else { return }
+        Supersets.ungroup(entry, in: workout)
+        save()
+    }
+
+    private func save() {
+        do { try modelContext.save() }
+        catch { assertionFailure("Failed to save superset change: \(error)") }
+    }
+
     private var titleRow: some View {
         HStack {
+            // D48: the A/B badge is how a superset is legible mid-set. Without
+            // it, two grouped exercises look like two ordinary ones that
+            // mysteriously do not start a rest.
+            if let member = supersetLabel {
+                Text(member)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 20, height: 20)
+                    .background(Color.accentColor, in: Circle())
+                    .accessibilityIdentifier("supersetBadge")
+                    .accessibilityLabel("Superset position \(member)")
+            }
             Text(entry.exercise?.name ?? entry.snapshotExerciseName)
                 .font(.headline)
             Spacer()
@@ -243,6 +294,17 @@ struct ExerciseEntryCard: View {
                     Button("Rest Durations…", systemImage: "timer") {
                         showingRestSettings = true
                     }
+                }
+                if supersetLabel == nil {
+                    Button("Superset with next", systemImage: "arrow.triangle.merge") {
+                        groupWithNext()
+                    }
+                    .accessibilityIdentifier("supersetWithNext")
+                } else {
+                    Button("Break superset", systemImage: "arrow.triangle.branch") {
+                        ungroup()
+                    }
+                    .accessibilityIdentifier("breakSuperset")
                 }
                 Button("Delete Exercise", systemImage: "trash", role: .destructive) {
                     deleteEntry()

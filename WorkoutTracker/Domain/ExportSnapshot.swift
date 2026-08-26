@@ -26,7 +26,13 @@ struct ExportSnapshot: Codable, Equatable {
     /// 4 — heart rate (D44) added a per-workout summary: average and maximum
     /// bpm, active energy, and seconds per zone. Absent, not zero, when no
     /// sensor ran — a reader must treat missing as "not measured".
-    static let currentSchemaVersion = 4
+    /// 5 — milestone 8. Supersets (D48) add `entries[].supersetGroupID`; ticket
+    /// 02 adds `exercises[].loadTypeUserOverridden`, without which a restore
+    /// silently reverts a corrected load type at the next catalog version; and
+    /// D47 adds `workouts[].historyEditedAt`, without which a restored history
+    /// claims never to have been edited. All three are optional, so a v1–v4
+    /// file still decodes.
+    static let currentSchemaVersion = 5
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -228,6 +234,9 @@ extension ExportSnapshot {
         var exerciseName: String
         var loadType: LoadType
         var freeWeightTag: EquipmentTag?
+        /// Superset membership (D48). Entries sharing an id were performed
+        /// alternately. Optional so v1 files still decode.
+        var supersetGroupID: UUID?
         var machineID: UUID?
         var machineLabel: String?
         var modelID: UUID?

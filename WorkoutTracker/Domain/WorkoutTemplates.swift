@@ -4,10 +4,14 @@ import SwiftData
 struct TemplateItemDraft {
     var exercise: Exercise
     var targetRepsBySet: [Int?]
+    /// Superset membership (D48), carried so a template does not silently lose
+    /// its grouping between save and start.
+    var supersetGroupID: UUID?
 
-    init(exercise: Exercise, targetRepsBySet: [Int?]) {
+    init(exercise: Exercise, targetRepsBySet: [Int?], supersetGroupID: UUID? = nil) {
         self.exercise = exercise
         self.targetRepsBySet = targetRepsBySet
+        self.supersetGroupID = supersetGroupID
     }
 }
 
@@ -113,6 +117,7 @@ struct WorkoutTemplateService {
         // template later cannot retitle the workouts it produced.
         workout.sourceTemplateName = template.name
 
+        var restoredGroups: [UUID: UUID] = [:]
         for item in Self.orderedItems(of: template) {
             guard let exercise = item.exercise else { continue }
             let machine: MachineInstance?
@@ -124,6 +129,14 @@ struct WorkoutTemplateService {
             }
             let entry = try session.addEntry(
                 for: exercise, to: workout, machine: machine)
+            // Restore the superset (D48). Ids are remapped per start rather
+            // than reused: two workouts from one template must not share a
+            // group id, or a later query keyed on it would conflate them.
+            if let templateGroup = item.supersetGroupID {
+                let restored = restoredGroups[templateGroup] ?? UUID()
+                restoredGroups[templateGroup] = restored
+                entry.supersetGroupID = restored
+            }
             let count = item.editableTargets.count
             while WorkoutSession.orderedSets(of: entry).count < count {
                 try session.addSet(to: entry)
@@ -162,7 +175,8 @@ struct WorkoutTemplateService {
             guard !completed.isEmpty else { return nil }
             return TemplateItemDraft(
                 exercise: exercise,
-                targetRepsBySet: completed.map(\.reps))
+                targetRepsBySet: completed.map(\.reps),
+                supersetGroupID: entry.supersetGroupID)
         }
     }
 
@@ -183,6 +197,7 @@ struct WorkoutTemplateService {
                 targetSets: reps.count,
                 targetReps: reps.first.flatMap { $0 },
                 targetRepsBySet: reps,
+                supersetGroupID: draft.supersetGroupID,
                 exercise: draft.exercise)
             item.template = template
             context.insert(item)

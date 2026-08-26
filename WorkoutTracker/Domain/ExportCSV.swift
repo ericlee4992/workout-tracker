@@ -41,6 +41,10 @@ enum ExportCSV {
         // has nowhere honest to put one (the same narrowing D30 makes for
         // setless objects).
         "workoutAvgHeartRate", "workoutMaxHeartRate", "workoutActiveCalories",
+        // v5 (D48): entries sharing a superset id were performed alternately,
+        // with rest taken after the last of them. Empty for an ordinary
+        // exercise, which is every row exported before supersets existed.
+        "supersetGroupID",
     ]
 
     /// RFC 4180 line terminator. Excel on Windows still wants CRLF; every
@@ -116,6 +120,7 @@ enum ExportCSV {
             workout.averageHeartRate.map(String.init) ?? "",
             workout.maxHeartRate.map(String.init) ?? "",
             workout.activeEnergyKilocalories.map(WeightMath.storageNumber) ?? "",
+            entry.supersetGroupID?.uuidString ?? "",
         ]
     }
 

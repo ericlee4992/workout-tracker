@@ -284,6 +284,7 @@ struct ExportCollector {
             exerciseName: context.exerciseName,
             loadType: context.loadType,
             freeWeightTag: context.freeWeightTag,
+            supersetGroupID: entry.supersetGroupID,
             machineID: context.machineID,
             machineLabel: context.machineLabel,
             modelID: context.modelID,

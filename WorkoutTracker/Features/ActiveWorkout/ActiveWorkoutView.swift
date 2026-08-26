@@ -443,6 +443,17 @@ struct ActiveWorkoutView: View {
     }
 
     private func updateRest(for set: SetRecord, isCompleted: Bool) {
+        // D48: inside a superset, no rest until the LAST member. Moving
+        // straight from A to B with no rest is the entire point of the
+        // technique, so a timer firing between members would be telling the
+        // user to do the opposite of what they chose.
+        //
+        // Only completion is gated. UN-completing must still reach the timer,
+        // or a mistaken tap would leave a rest running with nothing behind it.
+        if isCompleted, let entry = set.entry, !entry.isDeleted,
+           !Supersets.shouldRest(afterCompletingSetIn: entry, in: workout) {
+            return
+        }
         do {
             showRestTimer(try restTimer.handleCompletionChange(
                 of: set, isCompleted: isCompleted))

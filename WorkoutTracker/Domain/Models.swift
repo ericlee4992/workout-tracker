@@ -226,6 +226,14 @@ final class TemplateItem {
     /// Per-set-slot target reps in scalar set order. Added by ticket 15 so
     /// templates can retain differing rep targets across their set rows.
     var targetRepsBySet: [Int?] = []
+    /// Superset membership carried through the template (D48). Items sharing a
+    /// non-nil id are restored as one superset when the template is started.
+    ///
+    /// Without this a template silently loses its grouping — the class of bug a
+    /// past review already caught once in this file (template data loss on an
+    /// empty templated workout). Optional: every template saved before
+    /// supersets existed has none.
+    var supersetGroupID: UUID?
     // No rest durations in v1 (D22).
 
     var template: WorkoutTemplate?
@@ -237,6 +245,7 @@ final class TemplateItem {
         targetSets: Int? = nil,
         targetReps: Int? = nil,
         targetRepsBySet: [Int?] = [],
+        supersetGroupID: UUID? = nil,
         exercise: Exercise? = nil
     ) {
         self.id = id
@@ -244,6 +253,7 @@ final class TemplateItem {
         self.targetSets = targetSets
         self.targetReps = targetReps
         self.targetRepsBySet = targetRepsBySet
+        self.supersetGroupID = supersetGroupID
         self.exercise = exercise
     }
 }
@@ -357,6 +367,21 @@ final class ExerciseEntry {
     var order: Int = 0
     /// Free-weight equipment choice when no machine is involved (D19).
     var freeWeightTag: EquipmentTag?
+    /// Superset membership (milestone 8, ticket 04). Entries sharing a
+    /// non-nil id are performed alternately — A1/B1, A2/B2 — and rest is taken
+    /// after the LAST of them, not between members.
+    ///
+    /// A scalar UUID rather than a relationship, deliberately: the same reason
+    /// `order` is a scalar. A to-many group entity would need its own ordering,
+    /// its own cascade rules, and would be one more thing that can disagree
+    /// with `order`. nil = an ordinary standalone exercise, which is every
+    /// entry logged before this existed — hence optional, and hence a
+    /// lightweight migration.
+    ///
+    /// Grouping is presentation and rest behaviour ONLY. A set in a superset is
+    /// still a set: records and volume must be identical to the same sets
+    /// logged ungrouped, or grouping would silently become a new kind of load.
+    var supersetGroupID: UUID?
 
     var workout: Workout?
     var exercise: Exercise?
@@ -395,6 +420,7 @@ final class ExerciseEntry {
         id: UUID = UUID(),
         order: Int,
         freeWeightTag: EquipmentTag? = nil,
+        supersetGroupID: UUID? = nil,
         workout: Workout? = nil,
         exercise: Exercise? = nil,
         machine: MachineInstance? = nil,
@@ -416,6 +442,7 @@ final class ExerciseEntry {
         self.id = id
         self.order = order
         self.freeWeightTag = freeWeightTag
+        self.supersetGroupID = supersetGroupID
         self.workout = workout
         self.exercise = exercise
         self.machine = machine
