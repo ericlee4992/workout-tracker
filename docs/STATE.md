@@ -187,7 +187,8 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`37c0f2b`** — the background rest alarm. Installed **2026-08-25 00:28** and launch-verified. Clean-built (`rm -rf /tmp/wt-device-build`) and the plist checked BEFORE installing: `UIBackgroundModes` = `[audio, workout-processing]`, both HealthKit strings present. No schema change. The **watch companion is still NOT installed**: no Apple Watch has ever been reachable from this Mac (ticket 02) |
+| Installed commit | **`3e98e33`** — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
+| Previously installed | `82a1ddb` (the working background rest alarm), 2026-08-25 02:11 |
 | Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
 | Previously installed | `0c9bdeb` (zone-reachability fix), 2026-08-24 00:32 — never launch-verified, superseded hours later |
@@ -198,7 +199,7 @@ those sessions outranks new features.
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed **25 Aug 2026** (00:28), so expires **~1 Sep 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **26 Aug 2026** (02:06), so expires **~2 Sep 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
@@ -242,8 +243,9 @@ not be rediscovered as surprises:
    through production code before and after grouping. The invariant holds by inspection
    (`RecordGroupKey` ignores `supersetGroupID`), but the test does not pin it.
 5. **The catalog audit from ticket 02 stays undone** — see that ticket for the reasoning.
-6. **NOT INSTALLED ON THE PHONE.** Milestone 8 has never run on the device. It changes the schema
-   three ways and touches history editing, so **export first**.
+6. **Installed 2026-08-26 and launch-verified**, so the three-way migration opened the real store.
+   **Nothing in milestone 8 has been used in a gym yet** — and history editing and deletion act on
+   the only copy of the training history, so the first real use is worth doing carefully.
 
 ## What to do next, in priority order
 
