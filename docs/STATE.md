@@ -224,6 +224,27 @@ unreachable from one timeout. `devicectl device process launch` additionally nee
 **unlocked**, and fails with `FBSOpenApplicationErrorDomain error 7` when it is not; that says
 nothing about whether the install worked.
 
+## Milestone 8 — open follow-ups, deliberately deferred
+
+All five tickets are built and both Codex rounds' findings are fixed, but these were left and should
+not be rediscovered as surprises:
+
+1. **`Supersets.nextMember` is DEAD CODE.** It has no caller. Either wire it to a "next exercise"
+   affordance or delete it — shipping it dead a second time is worse than the first. This repo has
+   now shipped the absence-of-a-caller bug **five** times (watch rest countdown, deletion volume,
+   export flags, `enableBackgroundDelivery`, `pruneOrphanGroups`). It is the single most reliable
+   defect shape here, and the reviews catch it, not the tests.
+2. **Multi-point charts have no tooltip.** As-entered values show only on the single-point state.
+   Ticket 01 asked for as-entered tooltips; Swift Charts selection is the missing piece.
+3. **Supersets cannot be reordered, and History does not show grouping.** Both were in ticket 04's
+   acceptance criteria.
+4. **The D48 invariant test is weak.** It evaluates one synthetic array rather than deriving inputs
+   through production code before and after grouping. The invariant holds by inspection
+   (`RecordGroupKey` ignores `supersetGroupID`), but the test does not pin it.
+5. **The catalog audit from ticket 02 stays undone** — see that ticket for the reasoning.
+6. **NOT INSTALLED ON THE PHONE.** Milestone 8 has never run on the device. It changes the schema
+   three ways and touches history editing, so **export first**.
+
 ## What to do next, in priority order
 
 1. **Act on gym feedback.** Six questions are open and no test can answer them. The three newest,
