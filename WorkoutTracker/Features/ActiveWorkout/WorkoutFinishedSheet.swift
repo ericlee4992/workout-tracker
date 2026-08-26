@@ -159,14 +159,35 @@ struct WorkoutFinishedSheet: View {
         savedWorkout.map { WorkoutSummaryBuilder.summary(for: $0) }
     }
 
+    /// The app's default weight unit (D2/T7 precedence, app level).
+    private var displayUnit: WeightUnit {
+        let rows = (try? modelContext.fetch(FetchDescriptor<AppPreferences>())) ?? []
+        return UnitPrecedence.defaultUnit(
+            machineUnit: nil, gymUnit: nil,
+            appPreference: AppPreferences.canonical(of: rows)?.unitPreference)
+    }
+
+    private func volumeLabel(_ kg: Double) -> String {
+        let unit = displayUnit
+        guard unit != .kg else { return "\(WeightMath.displayNumber(kg)) kg" }
+        let converted = WeightMath.convert(kg, from: .kg, to: unit)
+        return "≈\(WeightMath.displayNumber(converted)) \(unit.rawValue)"
+    }
+
     @ViewBuilder
     private func statsSection(_ summary: WorkoutSummary) -> some View {
         Section("Workout details") {
             statRow("Workout time", Format.duration(seconds: Int(summary.duration)))
             if summary.totalVolumeKg > 0 {
-                statRow(
-                    "Total volume",
-                    "\(WeightMath.displayNumber(summary.totalVolumeKg)) kg")
+                // Shown in the app's own unit, not always kg. Reported
+                // 2026-08-26: a user logging in lb saw their volume in kg,
+                // which is a number they cannot sanity-check against anything
+                // they typed.
+                //
+                // Marked `≈` when converted, per D9/D25 — volume is a derived
+                // number and, unlike a single set, the conversion is applied to
+                // a sum, so it is approximate twice over.
+                statRow("Total volume", volumeLabel(summary.totalVolumeKg))
             }
             // Every heart-rate row is OMITTED, not zeroed, when no sensor ran
             // (D44). A workout logged without one says nothing about the heart

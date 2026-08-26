@@ -103,20 +103,46 @@ struct ExerciseProgressView: View {
         }
     }
 
+    /// The app's default weight unit (D2/T7 precedence, app level).
+    ///
+    /// Reported 2026-08-26: a chart of lb-logged sets plotted in kg. The series
+    /// is computed in canonical kg so mixed-unit sessions share one axis (D25),
+    /// but the AXIS should read in the unit the user thinks in.
+    private var displayUnit: WeightUnit {
+        let rows = (try? modelContext.fetch(FetchDescriptor<AppPreferences>())) ?? []
+        return UnitPrecedence.defaultUnit(
+            machineUnit: nil, gymUnit: nil,
+            appPreference: AppPreferences.canonical(of: rows)?.unitPreference)
+    }
+
+    private var unitSuffix: String {
+        // `≈` when converted, per D9/D25: every plotted point is then a derived
+        // number rather than one the user typed.
+        displayUnit == .kg ? " (kg)" : " (≈\(displayUnit.rawValue))"
+    }
+
     private var yLabel: String {
         switch metric {
         case .bestSet:
-            loadType == .bodyweight ? "Reps" : series.loadAxisLabel + " (kg)"
-        case .volume: "Volume (kg)"
-        case .e1rm: "Estimated 1RM (kg)"
+            loadType == .bodyweight ? "Reps" : series.loadAxisLabel + unitSuffix
+        case .volume: "Volume" + unitSuffix
+        case .e1rm: "Estimated 1RM" + unitSuffix
         }
+    }
+
+    /// Converts a canonical-kg value into the display unit. Reps are not a
+    /// weight and are never converted.
+    private func inDisplayUnit(_ kg: Double) -> Double {
+        WeightMath.convert(kg, from: .kg, to: displayUnit)
     }
 
     private func plotted(_ point: ProgressPoint) -> Double? {
         switch metric {
-        case .bestSet: point.bestKg
-        case .volume: point.volumeKg
-        case .e1rm: point.e1rmKg
+        case .bestSet:
+            // Bodyweight plots REPS, which have no unit to convert.
+            loadType == .bodyweight ? point.bestKg : point.bestKg.map(inDisplayUnit)
+        case .volume: inDisplayUnit(point.volumeKg)
+        case .e1rm: point.e1rmKg.map(inDisplayUnit)
         }
     }
 

@@ -68,6 +68,19 @@ struct StartWorkoutView: View {
                                 delete(template)
                             }
                         }
+                        // Swipe to delete as well as the long-press menu
+                        // (requested 2026-08-26). No confirmation here, unlike
+                        // history: deleting a template loses a plan, not a
+                        // record of something that happened — and D23 keeps the
+                        // workouts it produced, since they carry their own
+                        // snapshot of its name.
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                delete(template)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
                     Button("New Template…", systemImage: "plus") {
                         editingTemplate = nil

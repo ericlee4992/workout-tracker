@@ -13,6 +13,17 @@ struct HistoryView: View {
     /// same workout can be opened again later.
     @Binding private var target: Workout?
     @State private var path: [Workout] = []
+    @Environment(\.modelContext) private var modelContext
+    /// The workout a swipe is proposing to delete.
+    @State private var confirmingDelete: Workout?
+
+    private func deleteConfirmedWorkout() {
+        defer { confirmingDelete = nil }
+        guard let workout = confirmingDelete, !workout.isDeleted else { return }
+        modelContext.delete(workout)
+        do { try modelContext.save() }
+        catch { assertionFailure("Failed to delete workout: \(error)") }
+    }
 
     init(target: Binding<Workout?> = .constant(nil)) {
         _target = target
@@ -48,6 +59,17 @@ struct HistoryView: View {
                                         WorkoutSummaryRow(workout: workout)
                                     }
                                     .accessibilityIdentifier("historyWorkoutRow")
+                                    // Swipe to delete, requested 2026-08-26.
+                                    // Still CONFIRMS: this is the only copy of
+                                    // the training history, and a swipe is far
+                                    // easier to do by accident than a menu.
+                                    .swipeActions(edge: .trailing) {
+                                        Button(role: .destructive) {
+                                            confirmingDelete = workout
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -55,6 +77,21 @@ struct HistoryView: View {
                 }
             }
             .navigationTitle("History")
+            .confirmationDialog(
+                "Delete this workout?",
+                isPresented: Binding(
+                    get: { confirmingDelete != nil },
+                    set: { if !$0 { confirmingDelete = nil } }),
+                titleVisibility: .visible
+            ) {
+                Button("Delete Workout", role: .destructive) { deleteConfirmedWorkout() }
+                Button("Cancel", role: .cancel) { confirmingDelete = nil }
+            } message: {
+                if let workout = confirmingDelete, !workout.isDeleted {
+                    let impact = HistoryEditing.impact(ofDeleting: workout)
+                    Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s") will be permanently deleted. Records are recalculated without them.")
+                }
+            }
             .navigationDestination(for: Workout.self) { workout in
                 WorkoutDetailView(workout: workout)
             }
