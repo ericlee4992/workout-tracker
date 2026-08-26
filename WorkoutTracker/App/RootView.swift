@@ -9,6 +9,12 @@ struct RootView: View {
     /// (codex-review-2 #2). Lives here, not on the workout screen, because
     /// minimise dismisses that screen while the workout keeps going.
     @State private var heartRateCoordinator = WorkoutHeartRateCoordinator()
+    /// Owned at the same level as the heart-rate session, and for the same
+    /// reason (codex-review-2 #2): C1's minimise dismisses the workout SCREEN
+    /// while the workout keeps running, so a screen-owned activity would end
+    /// the moment the user left the app — which is exactly when a lock-screen
+    /// card is worth having.
+    @State private var workoutActivity = WorkoutActivityController()
     /// C2/A2: the finish that just happened, awaiting its confirmation sheet.
     @State private var finishConfirmation: FinishConfirmation?
     /// C2: the workout History should open — selecting the tab is not the
@@ -57,6 +63,7 @@ struct RootView: View {
                     finishConfirmation = FinishConfirmation(workout: finished)
                 })
             .environment(heartRateCoordinator)
+                .environment(workoutActivity)
         }
         .sheet(item: $finishConfirmation) { confirmation in
             WorkoutFinishedSheet(

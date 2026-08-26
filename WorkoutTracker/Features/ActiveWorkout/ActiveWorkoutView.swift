@@ -28,6 +28,8 @@ struct ActiveWorkoutView: View {
     /// dismisses this view while the workout keeps running, so a screen-owned
     /// session would either be orphaned or silently ended mid-workout.
     @Environment(WorkoutHeartRateCoordinator.self) private var heartRateCoordinator
+    /// Owned by `RootView` for the same reason the heart-rate session is.
+    @Environment(WorkoutActivityController.self) private var workoutActivity
     @State private var showMaxHeartRateSheet = false
     /// The rest that has already degraded to the standard timer. Once a rest
     /// falls back, a late sample must not turn it back into a heart-rate rest
@@ -217,6 +219,7 @@ struct ActiveWorkoutView: View {
                 // The alarm hangs off its end, not this one, so it survives
                 // this screen being dismissed.
                 heartRateCoordinator.onSample = { evaluateHeartRateRest() }
+                pushActivityState()
                 heartRate = monitor
             }
             // Every path that changes the rest — starting one, +15s, skipping,
@@ -231,7 +234,9 @@ struct ActiveWorkoutView: View {
             .onReceive(livenessTick) { _ in
                 heartRate?.refreshLiveness()
                 evaluateHeartRateRest()
+                pushActivityState()
             }
+            .onChange(of: restEnd) { _, _ in pushActivityState() }
         }
     }
 
@@ -282,6 +287,13 @@ struct ActiveWorkoutView: View {
     /// workout is still running and so is its heart rate.
     private func stopHeartRate() {
         heartRateCoordinator.end(workout)
+        // Ends the lock-screen card on the SAME path the sensor session ends
+        // on. Hanging it here rather than on each finish/cancel/discard call
+        // site is what stops one of them being forgotten — an activity that
+        // outlives its workout shows a heart rate for a session nobody is
+        // doing, the same defect as an orphaned sensor session.
+        if !workout.isDeleted { workoutActivity.end(workoutID: workout.id) }
+        else { workoutActivity.endAny() }
     }
 
     /// D43: while a heart-rate rest is running, the threshold can end it before
@@ -332,6 +344,40 @@ struct ActiveWorkoutView: View {
         case .resting, .finished(.cap):
             break
         }
+    }
+
+    /// Pushes the current state to the lock screen.
+    ///
+    /// D46: the app pushes, the SYSTEM renders and counts down. The rest
+    /// countdown is a `timerInterval` ticked by the system, so a suspended app
+    /// still shows a correct one — the trap that cost four attempts on the rest
+    /// alarm does not apply here as long as nothing tries to tick it.
+    private func pushActivityState() {
+        guard !workout.isDeleted, workout.finishedAt == nil else { return }
+        workoutActivity.show(
+            workoutID: workout.id,
+            startedAt: workout.startedAt,
+            gymName: workout.gym?.name,
+            state: WorkoutActivityAttributes.ContentState(
+                heartRateBpm: heartRate?.isStale == true ? nil : heartRate?.current?.bpm,
+                zoneLabel: heartRate?.currentZone?.label,
+                restEndsAt: restEnd,
+                completedSets: completedSetCount,
+                currentExercise: currentExerciseName))
+    }
+
+    private var completedSetCount: Int {
+        entries.reduce(0) { total, entry in
+            total + WorkoutSession.orderedSets(of: entry)
+                .filter { $0.completedAt != nil }.count
+        }
+    }
+
+    /// The last exercise with a completed set — what the user is working on.
+    private var currentExerciseName: String? {
+        entries.last { entry in
+            WorkoutSession.orderedSets(of: entry).contains { $0.completedAt != nil }
+        }?.snapshotExerciseName ?? entries.last?.exercise?.name
     }
 
     private func restStartingSet(_ id: UUID) -> SetRecord? {

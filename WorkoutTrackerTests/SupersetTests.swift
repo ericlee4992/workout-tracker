@@ -249,12 +249,21 @@ struct SupersetTemplateTests {
 
         let templates = WorkoutTemplateService(context: context)
         let template = try templates.saveAsTemplate(workout, name: "Push")
-        let first = try templates.start(template, at: nil)
-        let second = try templates.start(template, at: nil)
 
+        // The id must be READ BEFORE the next start. `startWorkout`
+        // auto-finishes any active workout, and a templated workout with no
+        // COMPLETED sets is then discarded as empty (A2) — so `first` is a
+        // deleted object by the time the second start returns. That is correct
+        // behaviour; an earlier draft of this test assumed two concurrent
+        // workouts could coexist and failed for that reason, not a real defect.
+        let first = try templates.start(template, at: nil)
         let firstID = Supersets.runs(of: first).first?.first?.supersetGroupID
+
+        let second = try templates.start(template, at: nil)
         let secondID = Supersets.runs(of: second).first?.first?.supersetGroupID
-        #expect(firstID != nil && secondID != nil)
+
+        #expect(firstID != nil, "the first start should have restored a group")
+        #expect(secondID != nil, "the second start should have restored a group")
         #expect(firstID != secondID, "two workouts must not share one superset identity")
     }
 }

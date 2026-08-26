@@ -20,6 +20,11 @@
 	     playback from the background requires this mode. Without it
 	     AVAudioSession activation fails there and the alarm is silent again —
 	     the exact bug it was added to fix. -->
+	<!-- Live Activities (milestone 8, ticket 05). Without this the app can
+	     compile against ActivityKit, request an activity, and silently get
+	     nothing — the same shape as the UIBackgroundModes trap below. -->
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<!-- Plays the rest alarm while the app is backgrounded. -->

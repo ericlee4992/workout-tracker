@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Partial Info.plist for the widget extension, MERGED with the generated
+	     keys (GENERATE_INFOPLIST_FILE stays YES).
+
+	     This file exists for one nested dictionary that build settings cannot
+	     express. `INFOPLIST_KEY_NSExtensionPointIdentifier` is accepted as a
+	     build setting and silently dropped — exactly the same trap as
+	     UIBackgroundModes in the app's plist, and it fails in a way that names
+	     nothing useful:
+
+	       extensionDictionary must be set in placeholder attributes
+	       for an app extension placeholder
+
+	     which surfaces as "Simulator device failed to install the application"
+	     and takes down every XCUITest with it, since the runner cannot install
+	     the host app either. -->
+	<key>NSExtension</key>
+	<dict>
+		<key>NSExtensionPointIdentifier</key>
+		<string>com.apple.widgetkit-extension</string>
+	</dict>
+</dict>
+</plist>

@@ -387,6 +387,18 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   not evidence. Regenerate the fixture from the *installed* commit whenever the shape changes.
 - **UI tests take ~7 minutes** and occasionally flake under load. A single red run is not
   automatically a real failure; re-run the failing test alone before believing it.
+- **An app-extension target needs `NSExtension` and version keys, or the SIMULATOR REFUSES TO
+  INSTALL THE WHOLE APP.** Adding the widget extension (milestone 8, ticket 05) failed with
+  "Simulator device failed to install the application", which takes every XCUITest down with it
+  since the runner cannot install the host either. Two causes, in sequence:
+  `INFOPLIST_KEY_NSExtensionPointIdentifier` is accepted as a build setting and silently dropped
+  (the same trap as `UIBackgroundModes`), so the extension needs its own partial
+  `Config/WorkoutTrackerWidget-Info.plist`; and the target inherits no `MARKETING_VERSION` /
+  `CURRENT_PROJECT_VERSION`, without which the installer says `bundleVersion must be set`. The
+  errors name the extension but present as an app-wide install failure.
+- **A simulator that has failed an install repeatedly needs `xcrun simctl erase`.** After the above
+  was fixed the run still died with `Mach error -308 - (ipc/mig) server died`; erasing `WT-iPhone`
+  cleared it. A stale simulator looks exactly like a broken build.
 - **Changing `INFOPLIST_FILE` needs a CLEAN build, and an incremental one lies.** The app now
   merges a partial `Config/WorkoutTracker-Info.plist` (for `UIBackgroundModes`, which build
   settings cannot express) with the generated keys. The first incremental build after that change
