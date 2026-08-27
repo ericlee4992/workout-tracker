@@ -243,9 +243,12 @@ not be rediscovered as surprises:
    through production code before and after grouping. The invariant holds by inspection
    (`RecordGroupKey` ignores `supersetGroupID`), but the test does not pin it.
 5. **The catalog audit from ticket 02 stays undone** — see that ticket for the reasoning.
-6. **Installed 2026-08-26 and launch-verified**, so the three-way migration opened the real store.
-   **Nothing in milestone 8 has been used in a gym yet** — and history editing and deletion act on
-   the only copy of the training history, so the first real use is worth doing carefully.
+6. **Installed and CONFIRMED WORKING on the device (2026-08-27).** The user verified the two pieces
+   nobody could check from a Mac: *"The lock screen works, and superset also correctly functions."*
+   That closes the Live Activity — a new target, a new framework, and a render no test can inspect —
+   and the D48 rest rule in a real session. The heart-rate rest timer was confirmed the day before.
+   Still unexercised in a gym: history editing/deletion (which act on the only copy of the training
+   history), the progress charts against a long series, and the load-type correction.
 
 ## What to do next, in priority order
 
