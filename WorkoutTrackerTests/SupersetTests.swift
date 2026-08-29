@@ -156,16 +156,6 @@ struct SupersetTests {
         #expect(runs.count == 3, "adjacency decides, got \(runs.count) runs")
     }
 
-    @Test func nextMemberCyclesThroughTheGroup() throws {
-        let rig = try makeRig(entryCount: 2)
-        Supersets.group(rig.entries)
-        try rig.context.save()
-        #expect(Supersets.nextMember(after: rig.entries[0], in: rig.workout)?.id == rig.entries[1].id)
-        #expect(
-            Supersets.nextMember(after: rig.entries[1], in: rig.workout)?.id == rig.entries[0].id,
-            "after the last member the user goes back to the first")
-    }
-
     @Test func pruneRepairsAGroupLeftWithOneMember() throws {
         let rig = try makeRig(entryCount: 2)
         Supersets.group(rig.entries)

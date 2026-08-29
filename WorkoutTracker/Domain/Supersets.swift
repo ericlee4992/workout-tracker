@@ -85,16 +85,6 @@ enum Supersets {
         return run.last?.id == entry.id
     }
 
-    /// The entry the user should move to next after completing a set — the next
-    /// member of the superset, wrapping back to the first.
-    static func nextMember(after entry: ExerciseEntry, in workout: Workout) -> ExerciseEntry? {
-        let run = run(containing: entry, in: workout)
-        guard run.count > 1,
-              let index = run.firstIndex(where: { $0.id == entry.id })
-        else { return nil }
-        return index + 1 < run.count ? run[index + 1] : run.first
-    }
-
     // MARK: - Mutation
 
     /// Groups entries into one superset, in the order given.

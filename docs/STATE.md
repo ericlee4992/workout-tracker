@@ -242,13 +242,13 @@ nothing about whether the install worked.
 All five tickets are built and both Codex rounds' findings are fixed, but these were left and should
 not be rediscovered as surprises:
 
-1. **`Supersets.nextMember` is DEAD CODE.** It has no caller. Either wire it to a "next exercise"
-   affordance or delete it — shipping it dead a second time is worse than the first. This repo has
-   now shipped the absence-of-a-caller bug **six** times (watch rest countdown, deletion volume,
-   export flags, `enableBackgroundDelivery`, `pruneOrphanGroups`, and `WorkoutSession.moveEntry`,
-   which sat uncalled from milestone 2 until 2026-08-29). It is the single most reliable defect
-   shape here, and the reviews catch it, not the tests. **Worth grepping for uncalled internal
-   funcs before closing any milestone.**
+1. ~~`Supersets.nextMember` is dead code.~~ **Deleted 2026-08-29.** It answered "which exercise is
+   next in this superset" for an affordance never built, and the A/B badges already convey the
+   order. Kept as a note because the SHAPE keeps recurring: this repo has shipped the
+   absence-of-a-caller bug **six** times (watch rest countdown, deletion volume, export flags,
+   `enableBackgroundDelivery`, `pruneOrphanGroups`, and `WorkoutSession.moveEntry`, uncalled from
+   milestone 2 until 2026-08-29). It is the single most reliable defect shape here, and the reviews
+   catch it, not the tests. **Grep for uncalled internal funcs before closing any milestone.**
 2. **Multi-point charts have no tooltip.** As-entered values show only on the single-point state.
    Ticket 01 asked for as-entered tooltips; Swift Charts selection is the missing piece.
 3. **Supersets cannot be reordered, and History does not show grouping.** Both were in ticket 04's
