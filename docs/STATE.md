@@ -187,7 +187,7 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`5b962b0`** — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
+| Installed commit | **`4eb5486`** — the chart tooltip. Installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
 | Previously installed | `82a1ddb` (the working background rest alarm), 2026-08-25 02:11 |
 | Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
@@ -449,6 +449,13 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   `Config/WorkoutTrackerWidget-Info.plist`; and the target inherits no `MARKETING_VERSION` /
   `CURRENT_PROJECT_VERSION`, without which the installer says `bundleVersion must be set`. The
   errors name the extension but present as an app-wide install failure.
+- **A device build that TIMES OUT still leaves the previous app in `derivedDataPath`, and
+  `devicectl install` will happily ship it.** On 2026-08-29 `xcodebuild` failed with *"Eric's iPhone
+  may need to be unlocked to recover from previously reported preparation errors"* — and the very
+  next install and launch reported success, having installed a three-hour-old binary. **Nothing in
+  the install output says the code is stale.** Check before trusting an install:
+  `LC_ALL=C grep -ac "<a string from the new code>" …/WorkoutTracker.app/WorkoutTracker.debug.dylib`
+  — note the Swift code lives in `WorkoutTracker.debug.dylib`, not the 92 K launcher stub beside it.
 - **A simulator that has failed an install repeatedly needs `xcrun simctl erase`.** After the above
   was fixed the run still died with `Mach error -308 - (ipc/mig) server died`; erasing `WT-iPhone`
   cleared it. A stale simulator looks exactly like a broken build.
