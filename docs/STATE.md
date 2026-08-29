@@ -227,13 +227,16 @@ nothing about whether the install worked.
 
 ## Milestone 8 — open follow-ups, deliberately deferred
 
-0. **The drag GESTURE is unverified by any test.** The workout screen was converted from a
-   `ScrollView` to a `List` (2026-08-29) so `.onMove` would apply. The reorder maths is unit-tested,
-   but nothing drives an actual drag. An XCUITest was attempted and deleted: it kept failing on its
-   precondition — adding a SECOND exercise through the picker sheet — and **the identical test fails
-   the same way on the previous commit**, so it is the test rather than the conversion. Worth
-   knowing for anyone who tries again: **no existing UI test adds two exercises**, so the green
-   suite says nothing about that path, and taps on a picker row under an open keyboard are
+0. **The drag gesture works, confirmed on the device 2026-08-29** — *"drag works, and screen looks
+   the same."* That settles both risks of converting the workout screen from a `ScrollView` to a
+   `List` (needed because `.onMove` is List-only): the long-press drag does pick a card up without
+   an explicit Edit mode, and the row-stripping preserved the card layout.
+
+   **No automated test drives the drag, though.** One was attempted and deleted: it kept failing on
+   its precondition — adding a SECOND exercise through the picker sheet — and **the identical test
+   fails the same way on the previous commit**, so it was the test rather than the conversion. Two
+   things worth knowing for anyone who tries again: **no existing UI test adds two exercises**, so a
+   green suite says nothing about that path; and taps on a picker row under an open keyboard are
    unreliable in XCUITest.
 
 All five tickets are built and both Codex rounds' findings are fixed, but these were left and should
