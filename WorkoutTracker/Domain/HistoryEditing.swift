@@ -158,6 +158,66 @@ enum HistoryEditing {
         return true
     }
 
+    /// Adds an exercise to a workout that is already finished.
+    ///
+    /// Requested 2026-08-29: "for editing history I should not only be able to
+    /// edit exercises but also be able to add or remove exercises from a
+    /// session." The honest case is forgetting to log something you actually
+    /// did, which the log should be able to describe.
+    ///
+    /// The snapshot is captured IMMEDIATELY, from today's exercise definition.
+    /// That needs saying plainly: a live workout freezes its snapshot when the
+    /// first set completes (D19), but there is no live phase here, so the best
+    /// available answer is what the exercise means now. It is the same
+    /// compromise a user makes by adding the row at all — and the workout is
+    /// marked as edited, so the log never claims this was captured live.
+    ///
+    /// Equipment is deliberately left nil rather than guessed at. The app does
+    /// not know which machine was used weeks ago, and inventing one would be
+    /// the fabricated context D23 exists to prevent.
+    ///
+    /// Returns the entry and its one draft set; the caller must give that set
+    /// real values or delete the pair — an entry with no loggable set would
+    /// show in history as an exercise with nothing under it.
+    static func addEntry(
+        for exercise: Exercise,
+        to workout: Workout,
+        in context: ModelContext,
+        at date: Date = .now
+    ) -> (entry: ExerciseEntry, set: SetRecord)? {
+        guard !workout.isDeleted, !exercise.isDeleted else { return nil }
+        let order = (WorkoutSession.orderedEntries(of: workout).last?.order).map { $0 + 1 } ?? 0
+        let entry = ExerciseEntry(
+            order: order,
+            workout: workout,
+            exercise: exercise,
+            snapshotCapturedAt: date,
+            snapshotExerciseID: exercise.id,
+            snapshotLoadType: exercise.loadType,
+            snapshotExerciseName: exercise.name)
+        context.insert(entry)
+        let set = SetRecord(order: 0, type: .working, entry: entry)
+        set.completedAt = date
+        context.insert(set)
+        markEdited(workout, at: date)
+        return (entry, set)
+    }
+
+    /// Removes a whole exercise, and every set under it, from a past workout.
+    @discardableResult
+    static func deleteEntry(
+        _ entry: ExerciseEntry, in context: ModelContext, at date: Date = .now
+    ) -> Bool {
+        guard !entry.isDeleted else { return false }
+        let workout = entry.workout
+        context.delete(entry)
+        markEdited(workout, at: date)
+        // D48 groups by adjacency, so removing a member can leave a superset
+        // holding one. Same repair the active workout does on delete.
+        if let workout, !workout.isDeleted { Supersets.pruneOrphanGroups(in: workout) }
+        return true
+    }
+
     /// Removes an entry that has been emptied by deletions.
     static func pruneIfEmpty(_ entry: ExerciseEntry, in context: ModelContext) {
         guard isEmpty(entry) else { return }

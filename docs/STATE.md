@@ -232,9 +232,11 @@ not be rediscovered as surprises:
 
 1. **`Supersets.nextMember` is DEAD CODE.** It has no caller. Either wire it to a "next exercise"
    affordance or delete it — shipping it dead a second time is worse than the first. This repo has
-   now shipped the absence-of-a-caller bug **five** times (watch rest countdown, deletion volume,
-   export flags, `enableBackgroundDelivery`, `pruneOrphanGroups`). It is the single most reliable
-   defect shape here, and the reviews catch it, not the tests.
+   now shipped the absence-of-a-caller bug **six** times (watch rest countdown, deletion volume,
+   export flags, `enableBackgroundDelivery`, `pruneOrphanGroups`, and `WorkoutSession.moveEntry`,
+   which sat uncalled from milestone 2 until 2026-08-29). It is the single most reliable defect
+   shape here, and the reviews catch it, not the tests. **Worth grepping for uncalled internal
+   funcs before closing any milestone.**
 2. **Multi-point charts have no tooltip.** As-entered values show only on the single-point state.
    Ticket 01 asked for as-entered tooltips; Swift Charts selection is the missing piece.
 3. **Supersets cannot be reordered, and History does not show grouping.** Both were in ticket 04's

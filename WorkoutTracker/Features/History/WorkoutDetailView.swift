@@ -13,6 +13,14 @@ struct WorkoutDetailView: View {
     /// training history, and ticket 03 says the destructive paths confirm —
     /// which was true of the workout and not of the set.
     @State private var confirmingSetDelete: SetRecord?
+    /// Adding an exercise to a past session (requested 2026-08-29).
+    @State private var showExercisePicker = false
+    /// The entry a delete is proposing to remove, with all its sets.
+    @State private var confirmingEntryDelete: ExerciseEntry?
+    /// A set just created by "Add Exercise". If the user leaves without giving
+    /// it real values, the whole entry is removed — history must never show an
+    /// exercise with nothing under it.
+    @State private var pendingNewSet: SetRecord?
     /// Whole-view convert toggle (D9): nil shows every weight as entered;
     /// a unit renders everything in that unit with conversions ≈-marked.
     /// Display-only — storage is never touched.
@@ -68,6 +76,11 @@ struct WorkoutDetailView: View {
                                                 ? "checkmark" : "")
                                     }
                                 }
+                                Divider()
+                                Button("Remove Exercise", systemImage: "trash", role: .destructive) {
+                                    confirmingEntryDelete = entry
+                                }
+                                .accessibilityIdentifier("removeHistoryExercise")
                             } label: {
                                 Text(entry.snapshotLoadType.badge)
                                     .font(.caption2)
@@ -81,6 +94,15 @@ struct WorkoutDetailView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+            }
+
+            Section {
+                Button("Add Exercise…", systemImage: "plus") {
+                    showExercisePicker = true
+                }
+                .accessibilityIdentifier("addHistoryExercise")
+            } footer: {
+                Text("For something you did but did not log. The exercise is recorded as it is defined today, without equipment — the app cannot know which machine you used.")
             }
 
             if let edited = workout.isDeleted ? nil : workout.historyEditedAt {
@@ -105,6 +127,29 @@ struct WorkoutDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editingSet) { set in
             EditLoggedSetSheet(record: set)
+        }
+        .sheet(isPresented: $showExercisePicker) {
+            ExercisePickerSheet { exercise in
+                addExercise(exercise)
+            }
+        }
+        .sheet(item: $pendingNewSet, onDismiss: discardIncompleteAddition) { set in
+            EditLoggedSetSheet(record: set)
+        }
+        .confirmationDialog(
+            "Remove this exercise?",
+            isPresented: Binding(
+                get: { confirmingEntryDelete != nil },
+                set: { if !$0 { confirmingEntryDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Remove Exercise", role: .destructive) { deleteConfirmedEntry() }
+            Button("Cancel", role: .cancel) { confirmingEntryDelete = nil }
+        } message: {
+            if let entry = confirmingEntryDelete, !entry.isDeleted {
+                let count = (entry.sets ?? []).filter { !$0.isDeleted }.count
+                Text("\(entry.snapshotExerciseName) and its \(count) set\(count == 1 ? "" : "s") will be permanently removed from this workout. Records are recalculated without them.")
+            }
         }
         .confirmationDialog(
             "Delete this set?",
@@ -155,6 +200,36 @@ struct WorkoutDetailView: View {
                 .accessibilityIdentifier("workoutDetailMenu")
             }
         }
+    }
+
+    private func addExercise(_ exercise: Exercise) {
+        guard let pair = HistoryEditing.addEntry(
+            for: exercise, to: workout, in: modelContext)
+        else { return }
+        save()
+        // Straight into the editor: the new set has no values yet, and an
+        // entry whose sets are all unloggable would render as an exercise with
+        // nothing under it.
+        pendingNewSet = pair.set
+    }
+
+    /// Called when the editor for a just-added exercise closes. An addition the
+    /// user abandoned leaves nothing behind.
+    private func discardIncompleteAddition() {
+        defer { pendingNewSet = nil }
+        guard let set = pendingNewSet, !set.isDeleted else { return }
+        guard !WorkoutSession.isLoggable(set) else { return }
+        if let entry = set.entry, !entry.isDeleted {
+            HistoryEditing.deleteEntry(entry, in: modelContext)
+        }
+        save()
+    }
+
+    private func deleteConfirmedEntry() {
+        defer { confirmingEntryDelete = nil }
+        guard let entry = confirmingEntryDelete else { return }
+        HistoryEditing.deleteEntry(entry, in: modelContext)
+        save()
     }
 
     private func retype(_ entry: ExerciseEntry, to loadType: LoadType) {

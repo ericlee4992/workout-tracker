@@ -263,6 +263,39 @@ struct ExerciseEntryCard: View {
         save()
     }
 
+    /// Index of this entry among its workout's ordered entries.
+    private func currentIndex() -> (entries: [ExerciseEntry], index: Int)? {
+        guard !entry.isDeleted, let workout = entry.workout, !workout.isDeleted
+        else { return nil }
+        let entries = WorkoutSession.orderedEntries(of: workout).filter { !$0.isDeleted }
+        guard let index = entries.firstIndex(where: { $0.id == entry.id }) else { return nil }
+        return (entries, index)
+    }
+
+    private func canMove(by offset: Int) -> Bool {
+        guard let (entries, index) = currentIndex() else { return false }
+        let target = index + offset
+        return target >= 0 && target < entries.count
+    }
+
+    private func move(by offset: Int) {
+        guard let (_, index) = currentIndex(), canMove(by: offset),
+              let workout = entry.workout
+        else { return }
+        do {
+            try WorkoutSession(context: modelContext)
+                .moveEntry(entry, toIndex: index + offset)
+            // D48 groups by ADJACENCY, so a move can pull an entry out of a
+            // superset or leave one holding a single member. Repairing here
+            // keeps a badge from surviving on an exercise that is no longer
+            // supersetted.
+            Supersets.pruneOrphanGroups(in: workout)
+            try modelContext.save()
+        } catch {
+            assertionFailure("Failed to move exercise: \(error)")
+        }
+    }
+
     private func ungroup() {
         guard !entry.isDeleted, let workout = entry.workout, !workout.isDeleted else { return }
         Supersets.ungroup(entry, in: workout)
@@ -297,6 +330,17 @@ struct ExerciseEntryCard: View {
                         showingRestSettings = true
                     }
                 }
+                // Reordering, requested 2026-08-29. Menu actions rather than
+                // drag-to-reorder: this screen is a ScrollView, not a List, so
+                // `.onMove` does not apply — and mid-set with one hand, a tap
+                // is easier to hit than a long-press-and-drag anyway.
+                Button("Move Up", systemImage: "arrow.up") { move(by: -1) }
+                    .disabled(!canMove(by: -1))
+                    .accessibilityIdentifier("moveExerciseUp")
+                Button("Move Down", systemImage: "arrow.down") { move(by: 1) }
+                    .disabled(!canMove(by: 1))
+                    .accessibilityIdentifier("moveExerciseDown")
+                Divider()
                 // Offered whether or not this entry is ALREADY grouped.
                 // codex-review 2 (high): hiding it once grouped meant B could
                 // not add C, so the resolution's three-member claim was false.
