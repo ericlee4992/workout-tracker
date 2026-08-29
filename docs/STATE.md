@@ -9,10 +9,10 @@ stale fastest.
 
 ## Status
 
-Merged and pushed on `main`: **everything, including milestone 7** (`ca67603`, merged 2026-08-25). **479 unit + 21 UI green.**
-**Milestone 7 (heart rate) is MERGED into `main`** (2026-08-25, fast-forward — `main` still has
-zero merge commits). The `milestone-7-heart-rate` branch is now identical to `main` and can be
-deleted whenever convenient. `github.com/ericlee4992/workout-tracker` (private).
+Merged and pushed on `main`: **everything, including milestone 8** (`74dbbd9`, merged 2026-08-29 — fast-forward, so `main` still has zero merge commits). **561 unit + 25 UI green.**
+**Milestones 7 and 8 are both MERGED into `main`** (2026-08-25 and 2026-08-29, both fast-forward —
+`main` still has zero merge commits). `milestone-7-heart-rate` and `milestone-8-history-and-charts`
+are identical to `main` and can be deleted whenever convenient. `github.com/ericlee4992/workout-tracker` (private).
 
 | Shipped | What it is |
 |---|---|
