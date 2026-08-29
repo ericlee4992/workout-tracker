@@ -1,8 +1,12 @@
 # Where the project is right now
 
-Updated 2026-08-29 — milestones 7 and 8 are both complete, merged, installed and confirmed on the
-phone. **Every milestone in SPEC's v1 plan is now shipped except the second half of milestone 6**
-(plate math and stack increments); milestone 5 was dropped outright. The day's work: reorder
+Updated 2026-08-29 — milestones 7 and 8 are merged, installed, and their phone-side features are
+confirmed in real use. **Neither is COMPLETE by its own acceptance criteria**, and saying otherwise
+was this file's own error until a cross-review caught it: milestone 7's watch companion has never
+been compiled or run (a sketch — see below), and milestone 8 still owes superset reordering and
+superset grouping in History. Milestone 5 was dropped (**D49**). What remains of the v1 plan is the
+second half of milestone 6 (plate math, stack increments) — plus a **critical charting defect found
+by cross-review on 2026-08-29**: charts pool presets, contradicting D36. See "Milestone 4" below. The day's work: reorder
 exercises, add/remove in history, the chart tooltip, and a reinstall after the signing profile
 expired mid-afternoon.
 **Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is and why; this says
@@ -11,10 +15,15 @@ stale fastest.
 
 ## Status
 
-Merged and pushed on `main`: **everything, including milestone 8** (`74dbbd9`, merged 2026-08-29 — fast-forward, so `main` still has zero merge commits). **561 unit + 25 UI green.**
+Merged and pushed on `main`: **everything, including milestone 8** (`74dbbd9`, merged 2026-08-29 — fast-forward, so `main` still has zero merge commits). **560 unit + 26 UI green** — the figure `4eb5486` itself reported. (This file said "561 unit + 25
+UI" until 2026-08-29; the suite has not been re-run in full since `4eb5486`, so treat even the
+corrected number as last-known, not as freshly observed.)
 **Milestones 7 and 8 are both MERGED into `main`** (2026-08-25 and 2026-08-29, both fast-forward —
 `main` still has zero merge commits). `milestone-7-heart-rate` and `milestone-8-history-and-charts`
-are identical to `main` and can be deleted whenever convenient. `github.com/ericlee4992/workout-tracker` (private).
+are **NOT** identical to `main` — as of 2026-08-29 they sit at `ca67603` (27 commits behind) and
+`74dbbd9` (6 behind). Everything they contain IS in `main`, so they are still safe to delete; they
+are simply stale pointers, not mirrors. **Check `git log --oneline origin/main..main` before
+believing `main` is pushed** — it was one commit ahead on 2026-08-29. `github.com/ericlee4992/workout-tracker` (private).
 
 | Shipped | What it is |
 |---|---|
@@ -201,7 +210,8 @@ those sessions outranks new features.
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed **29 Aug 2026** (13:34), so expires **~5 Sep 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **29 Aug 2026 (17:57)**, so expires **5 Sep 2026 21:57 UTC**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. A **rebuild that re-signs** resets the clock; merely reinstalling an already-signed build does
+NOT — proved on 2026-08-29, when a 17:42 install kept a 17:46:59 expiry and died four minutes later |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
@@ -376,9 +386,27 @@ message is SENT**, not merely that the receiver handles it.
 3. ~~Milestone 4 — progress charts.~~ **DONE — and it is worth being clear about how, because the
    numbering hides it.** Charts were never built as "milestone 4"; they arrived inside milestone 8
    (ticket 01), and the last piece SPEC asked for — *as-entered tooltips* — landed 2026-08-29 in
-   `4eb5486`. Normalized axes (D25) and the as-entered detail row are both in
-   `Features/History/ExerciseProgressView.swift`. **This line previously read "the next unbuilt
-   milestone", which was false for three days.** Nothing in milestone 4 remains.
+   `4eb5486`. All three things SPEC asked for exist: Swift Charts and the as-entered detail row in
+   `WorkoutTracker/Features/History/ExerciseProgressView.swift`, normalization in
+   `WorkoutTracker/Domain/ProgressSeries.swift`.
+
+   **Two corrections this entry earned in cross-review, worth keeping because both are the kind of
+   error that feels safe to write:**
+
+   - It first said the old "next unbuilt milestone" line had been false **for three days**. It had
+     not: the as-entered tooltip is *part of SPEC's milestone 4*, and it landed at 17:40 on
+     2026-08-29 — about **35 minutes** before the correction. Until then the old line was
+     defensible. Do not date a defect from when the FEATURE started; date it from when the last
+     acceptance criterion closed.
+   - It ended "Nothing in milestone 4 remains." **That is false, and the defect is real:**
+     `ExercisesView` opens the chart without a `presetID` (`ExercisesView.swift:130`), and
+     `ProgressSeries` reads nil as *accept every preset* (`ProgressSeries.swift:93`) — while
+     `ExerciseProgressView`'s own doc comment promises nil means *only sets logged with no preset*.
+     So narrow- and wide-grip histories are POOLED into one line, which is exactly what **D36**
+     forbids. The same call passes `exercise.loadType` — the CURRENT type — into a parameter
+     documented as the D23 *snapshot* type, so a future load-type correction (D47) can make old
+     history vanish from the chart. **No chart test uses presets at all.** Contract and caller
+     disagree; this is the repo's recurring shape, caught again by review rather than by tests.
 4. ~~Milestone 5: Strong CSV import.~~ **DROPPED 2026-08-29 at the user's request** — they have no
    Strong history to bring in, so the whole milestone imports nothing. SPEC's analysis of the format
    (no unit column, no workout id, set tags lost, equipment in the name suffix) stays there in case
@@ -481,8 +509,8 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
 - **The app and the widget expire on DIFFERENT days, and only the expired one gets renewed.** Each
   profile is minted when first created and renewed only once it has lapsed, so the clocks drift: after
   the 2026-08-29 renewal the app runs to **2026-09-05** while `WorkoutTrackerWidget.appex` still
-  carries a profile expiring **2026-09-02**. Expect the Live Activity / widget to fail up to three days
-  before the app itself does, which will present as "the lock screen stopped working" with the app
+  carries a profile expiring **2026-09-02**. Expect the Live Activity / widget to fail about **3 days
+  16 hours** before the app itself does, which will present as "the lock screen stopped working" with the app
   apparently fine.
 - **A simulator that has failed an install repeatedly needs `xcrun simctl erase`.** After the above
   was fixed the run still died with `Mach error -308 - (ipc/mig) server died`; erasing `WT-iPhone`
