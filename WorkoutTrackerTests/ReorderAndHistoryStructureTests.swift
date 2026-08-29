@@ -54,23 +54,37 @@ struct ReorderAndHistoryStructureTests {
 
     // MARK: - Reordering during a workout
 
-    /// `WorkoutSession.moveEntry` existed with NO CALLER until now — the sixth
-    /// time this repo has carried a function nothing invoked.
-    @Test func anExerciseCanBeMovedUp() throws {
+    /// SwiftUI's move semantics, which are NOT "insert at this index": when
+    /// dragging down, the destination is the offset in the pre-removal list.
+    /// Taking `IndexSet`/destination straight from the gesture is what keeps
+    /// that off-by-one out of the app.
+    @Test func draggingAnExerciseUpwards() throws {
         let rig = try makeRig(count: 3)
-        try WorkoutSession(context: rig.context).moveEntry(rig.entries[2], toIndex: 1)
+        try WorkoutSession(context: rig.context)
+            .moveEntries(of: rig.workout, fromOffsets: IndexSet(integer: 2), toOffset: 1)
         #expect(names(rig.workout) == ["Exercise 0", "Exercise 2", "Exercise 1"])
     }
 
-    @Test func anExerciseCanBeMovedDown() throws {
+    @Test func draggingAnExerciseDownwards() throws {
         let rig = try makeRig(count: 3)
-        try WorkoutSession(context: rig.context).moveEntry(rig.entries[0], toIndex: 1)
+        // Destination 2 means "before what is currently index 2", so the first
+        // exercise lands in the middle — not at the end.
+        try WorkoutSession(context: rig.context)
+            .moveEntries(of: rig.workout, fromOffsets: IndexSet(integer: 0), toOffset: 2)
         #expect(names(rig.workout) == ["Exercise 1", "Exercise 0", "Exercise 2"])
+    }
+
+    @Test func draggingToTheVeryEnd() throws {
+        let rig = try makeRig(count: 3)
+        try WorkoutSession(context: rig.context)
+            .moveEntries(of: rig.workout, fromOffsets: IndexSet(integer: 0), toOffset: 3)
+        #expect(names(rig.workout) == ["Exercise 1", "Exercise 2", "Exercise 0"])
     }
 
     @Test func orderIsContiguousAfterAMove() throws {
         let rig = try makeRig(count: 4)
-        try WorkoutSession(context: rig.context).moveEntry(rig.entries[3], toIndex: 0)
+        try WorkoutSession(context: rig.context)
+            .moveEntries(of: rig.workout, fromOffsets: IndexSet(integer: 3), toOffset: 0)
         let orders = WorkoutSession.orderedEntries(of: rig.workout).map(\.order)
         #expect(orders == [0, 1, 2, 3], "gaps in order break later moves, got \(orders)")
     }
@@ -83,10 +97,9 @@ struct ReorderAndHistoryStructureTests {
         Supersets.group([rig.entries[0], rig.entries[1]])
         try rig.context.save()
 
-        // C moves between A and B.
-        try WorkoutSession(context: rig.context).moveEntry(rig.entries[2], toIndex: 1)
-        Supersets.pruneOrphanGroups(in: rig.workout)
-        try rig.context.save()
+        // C moves between A and B. The session prunes the split group itself.
+        try WorkoutSession(context: rig.context)
+            .moveEntries(of: rig.workout, fromOffsets: IndexSet(integer: 2), toOffset: 1)
 
         #expect(Supersets.runs(of: rig.workout).allSatisfy { $0.count == 1 })
         for entry in rig.entries {

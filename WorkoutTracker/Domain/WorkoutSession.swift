@@ -286,13 +286,24 @@ struct WorkoutSession {
     }
 
     /// Moves `entry` to `index` within its workout's ordered entries.
-    func moveEntry(_ entry: ExerciseEntry, toIndex index: Int) throws {
-        guard let workout = entry.workout else { return }
-        var entries = Self.orderedEntries(of: workout)
-        guard let from = entries.firstIndex(where: { $0.id == entry.id }) else { return }
-        entries.remove(at: from)
-        entries.insert(entry, at: max(0, min(index, entries.count)))
+    /// Reorders a workout's exercises, taking SwiftUI's own move semantics
+    /// (`IndexSet` + destination) so the drag gesture needs no translation
+    /// layer that could get the off-by-one wrong.
+    ///
+    /// Replaces a `moveEntry(_:toIndex:)` that existed from milestone 2 and was
+    /// never called by anything — dead code kept alive by its own tests. One
+    /// mover, used by the one caller that needs it.
+    func moveEntries(
+        of workout: Workout, fromOffsets source: IndexSet, toOffset destination: Int
+    ) throws {
+        guard !workout.isDeleted else { return }
+        var entries = Self.orderedEntries(of: workout).filter { !$0.isDeleted }
+        entries.move(fromOffsets: source, toOffset: destination)
         renumber(entries)
+        // D48 groups supersets by ADJACENCY, so a move can split a group or
+        // leave one holding a single member. Repairing here keeps a badge from
+        // surviving on an exercise that is no longer supersetted.
+        Supersets.pruneOrphanGroups(in: workout)
         try context.save()
     }
 

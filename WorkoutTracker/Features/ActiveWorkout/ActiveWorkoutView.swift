@@ -66,31 +66,45 @@ struct ActiveWorkoutView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 14) {
-                    header
+            // A List, not a ScrollView, SO THAT EXERCISES CAN BE DRAGGED
+            // (requested 2026-08-29). `.onMove` is List-only; the cards keep
+            // their own background, corner radius and horizontal padding, so
+            // every row is stripped back to nothing and the layout is
+            // unchanged from the ScrollView it replaces.
+            List {
+                header
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 7, trailing: 0))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
 
-                    // D41: live heart rate, above the exercises because it is
-                    // the one number that changes while you are not touching
-                    // the screen.
-                    if let heartRate {
-                        HeartRateBar(
-                            monitor: heartRate,
-                            editMaxHeartRate: { showMaxHeartRateSheet = true })
-                    }
+                // D41: live heart rate, above the exercises because it is
+                // the one number that changes while you are not touching
+                // the screen.
+                if let heartRate {
+                    HeartRateBar(
+                        monitor: heartRate,
+                        editMaxHeartRate: { showMaxHeartRateSheet = true })
+                        .listRowInsets(EdgeInsets(top: 7, leading: 0, bottom: 7, trailing: 0))
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
+                }
 
-                    ForEach(entries) { entry in
-                        ExerciseEntryCard(
-                            entry: entry,
-                            showMachinePicker: { machinePickerEntry = entry },
-                            showPerformance: { performanceEntry = entry },
-                            completionChanged: { set, completed in
-                                updateRest(for: set, isCompleted: completed)
-                            }
-                        )
-                    }
+                ForEach(entries) { entry in
+                    ExerciseEntryCard(
+                        entry: entry,
+                        showMachinePicker: { machinePickerEntry = entry },
+                        showPerformance: { performanceEntry = entry },
+                        completionChanged: { set, completed in
+                            updateRest(for: set, isCompleted: completed)
+                        }
+                    )
+                    .listRowInsets(EdgeInsets(top: 7, leading: 0, bottom: 7, trailing: 0))
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
+                }
+                .onMove(perform: moveEntries)
 
-                    VStack(spacing: 6) {
+                VStack(spacing: 6) {
                         HStack(spacing: 12) {
                             Button {
                                 showExercisePicker = true
@@ -122,11 +136,15 @@ struct ActiveWorkoutView: View {
                                 .accessibilityIdentifier("addByMachineUnavailable")
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom, 24)
-                }
-                .padding(.top, 8)
+                .padding(.horizontal)
+                .padding(.bottom, 24)
+                .listRowInsets(EdgeInsets(top: 7, leading: 0, bottom: 0, trailing: 0))
+                .listRowSeparator(.hidden)
+                .listRowBackground(Color.clear)
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, 0)
             .background(Color(.systemGroupedBackground))
             .safeAreaInset(edge: .bottom) {
                 if let restEnd {
@@ -378,6 +396,19 @@ struct ActiveWorkoutView: View {
         entries.last { entry in
             WorkoutSession.orderedSets(of: entry).contains { $0.completedAt != nil }
         }?.snapshotExerciseName ?? entries.last?.exercise?.name
+    }
+
+    /// Drag-to-reorder. SwiftUI's own `IndexSet`/destination semantics go
+    /// straight to the session, which owns the renumbering and the superset
+    /// repair — translating them here is where an off-by-one would live.
+    private func moveEntries(from source: IndexSet, to destination: Int) {
+        guard !workout.isDeleted else { return }
+        do {
+            try session.moveEntries(
+                of: workout, fromOffsets: source, toOffset: destination)
+        } catch {
+            assertionFailure("Failed to reorder exercises: \(error)")
+        }
     }
 
     private func restStartingSet(_ id: UUID) -> SetRecord? {

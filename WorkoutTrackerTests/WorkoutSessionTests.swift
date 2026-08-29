@@ -109,8 +109,11 @@ struct WorkoutSessionTests {
             // delete entry
             try session.deleteEntry(second)
 
-            // reorder: third moves to the front
-            try session.moveEntry(third, toIndex: 0)
+            // reorder: third moves to the front. `second` is already deleted,
+            // so the live list is [first, third] and third sits at offset 1.
+            try session.moveEntries(
+                of: workout, fromOffsets: IndexSet(integer: 1), toOffset: 0)
+            _ = third
         }()
 
         let container = try WorkoutTrackerStore.makeContainer(url: url)
