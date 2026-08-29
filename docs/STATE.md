@@ -187,7 +187,7 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`4eb5486`** — the chart tooltip. Installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
+| Installed commit | **`4eb5486`** — the chart tooltip. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
 | Previously installed | `82a1ddb` (the working background rest alarm), 2026-08-25 02:11 |
 | Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
@@ -456,6 +456,28 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   the install output says the code is stale.** Check before trusting an install:
   `LC_ALL=C grep -ac "<a string from the new code>" …/WorkoutTracker.app/WorkoutTracker.debug.dylib`
   — note the Swift code lives in `WorkoutTracker.debug.dylib`, not the 92 K launcher stub beside it.
+- **The 7-day free-account expiry bites as "this app is no longer available", and it is silent.**
+  It happened for real on 2026-08-29: a build installed and launch-verified at **17:42** was dead by
+  **17:56**, because its profile expired at **17:46:59** — a four-minute window. The phone does NOT
+  say "Unable to Verify App" as folklore suggests; tapping the icon reports **"no longer available"**,
+  which reads like a deleted App Store app and sends you looking in entirely the wrong place.
+  `devicectl device info apps` still lists the app as installed, so that check misleads too.
+  **The authoritative diagnosis is to launch it:** `xcrun devicectl device process launch --device
+  <UDID> <bundle-id>` names the real reason ("invalid code signature, inadequate entitlements or its
+  profile has not been explicitly trusted"). **To get the date rather than a guess**, decode the
+  profiles — they live in `~/Library/Developer/Xcode/UserData/Provisioning Profiles/`, NOT the old
+  `~/Library/MobileDevice/` path, which does not exist on this machine:
+  `security cms -D -i <uuid>.mobileprovision | plutil -extract ExpirationDate raw -`.
+  **The fix** is a normal device build with `-allowProvisioningUpdates`, which mints a fresh 7-day
+  profile; the interactive wizard is not needed once its setup stages are done. **Verify the built
+  app before installing** — read `WorkoutTracker.app/embedded.mobileprovision`'s expiry and confirm it
+  moved, the same distrust the stale-binary gotcha above earns.
+- **The app and the widget expire on DIFFERENT days, and only the expired one gets renewed.** Each
+  profile is minted when first created and renewed only once it has lapsed, so the clocks drift: after
+  the 2026-08-29 renewal the app runs to **2026-09-05** while `WorkoutTrackerWidget.appex` still
+  carries a profile expiring **2026-09-02**. Expect the Live Activity / widget to fail up to three days
+  before the app itself does, which will present as "the lock screen stopped working" with the app
+  apparently fine.
 - **A simulator that has failed an install repeatedly needs `xcrun simctl erase`.** After the above
   was fixed the run still died with `Mach error -308 - (ipc/mig) server died`; erasing `WT-iPhone`
   cleared it. A stale simulator looks exactly like a broken build.
