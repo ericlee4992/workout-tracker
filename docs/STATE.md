@@ -249,10 +249,19 @@ not be rediscovered as surprises:
    `enableBackgroundDelivery`, `pruneOrphanGroups`, and `WorkoutSession.moveEntry`, uncalled from
    milestone 2 until 2026-08-29). It is the single most reliable defect shape here, and the reviews
    catch it, not the tests. **Grep for uncalled internal funcs before closing any milestone.**
-2. **Multi-point charts have no tooltip.** As-entered values show only on the single-point state.
-   Ticket 01 asked for as-entered tooltips; Swift Charts selection is the missing piece.
+2. ~~Multi-point charts have no tooltip.~~ **Done 2026-08-29.** Touch the chart and a rule marks the
+   day, with its as-entered value in a row beneath. Two things worth keeping:
+   **`chartXSelection` does not fire for a chart inside a `List` row** — the list's scroll gesture
+   wins — so selection uses an explicit `chartOverlay` + `DragGesture(minimumDistance: 0)`. And the
+   detail sits in a row rather than a floating annotation, which would overlap the line it describes
+   on a phone-width chart and is not reliably queryable by a test.
+   Also added: **`-uiTestChartHistory`** (`Domain/ChartFixture.swift`), which seeds four weeks of
+   history for one exercise. The simulator has no PAST, so every workout a UI test logs lands on one
+   day and collapses into the single-point state — the drawn chart could not otherwise be tested or
+   screenshotted. Same reasoning as `-uiTestScanFixture` for the camera.
 3. **Supersets cannot be reordered, and History does not show grouping.** Both were in ticket 04's
-   acceptance criteria.
+   acceptance criteria. (Exercises CAN now be dragged to reorder, 2026-08-29, which moves a superset
+   member as a side effect — but there is no way to reorder WITHIN a group deliberately.)
 4. **The D48 invariant test is weak.** It evaluates one synthetic array rather than deriving inputs
    through production code before and after grouping. The invariant holds by inspection
    (`RecordGroupKey` ignores `supersetGroupID`), but the test does not pin it.
@@ -364,7 +373,11 @@ message is SENT**, not merely that the receiver handles it.
 
 3. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
    next unbuilt milestone, and what makes the logged history worth looking at.
-4. Milestone 5: Strong CSV import. Milestone 6 is now **half done** — the bar half shipped
+4. ~~Milestone 5: Strong CSV import.~~ **DROPPED 2026-08-29 at the user's request** — they have no
+   Strong history to bring in, so the whole milestone imports nothing. SPEC's analysis of the format
+   (no unit column, no workout id, set tags lost, equipment in the name suffix) stays there in case
+   that ever changes; it is the hard part and it is already done.
+   Remaining: Milestone 6 is now **half done** — the bar half shipped
    2026-08-22; what remains is computing which plates to load for a target weight, and
    selectorized stack increments.
 

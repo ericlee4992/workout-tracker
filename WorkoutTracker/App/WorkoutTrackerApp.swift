@@ -25,6 +25,16 @@ struct WorkoutTrackerApp: App {
         } catch {
             assertionFailure("Catalog seeding failed: \(error)")
         }
+        // A few weeks of history for one exercise, under a launch argument.
+        // The simulator has no past, so a progress chart with a real series
+        // cannot otherwise be tested or screenshotted (see ChartFixture).
+        if ChartFixture.isEnabled {
+            do {
+                try ChartFixture.seed(in: modelContainer.mainContext)
+            } catch {
+                assertionFailure("Chart fixture seeding failed: \(error)")
+            }
+        }
         // First-launch unit preference: derive from the locale measurement
         // system (US → lb, else kg). Idempotent; never blocks launch.
         do {

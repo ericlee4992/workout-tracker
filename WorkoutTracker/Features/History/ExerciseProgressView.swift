@@ -26,6 +26,8 @@ struct ExerciseProgressView: View {
     var presetID: UUID?
 
     @State private var metric: Metric = .bestSet
+    /// Raw x position from `chartXSelection`; resolved to the nearest point.
+    @State private var selectedDate: Date?
 
     enum Metric: String, CaseIterable, Identifiable {
         case bestSet = "Best set"
@@ -61,6 +63,7 @@ struct ExerciseProgressView: View {
                     chart
                         .frame(height: 240)
                         .accessibilityIdentifier("progressChart")
+                    selectionRow
                 } footer: {
                     Text(footer(days: days))
                 }
@@ -94,12 +97,106 @@ struct ExerciseProgressView: View {
                     x: .value("Date", point.date),
                     y: .value(yLabel, value))
             }
+            // The selected day is marked IN the chart, but its numbers are
+            // shown in a row beneath it rather than as a floating callout: an
+            // annotation overlaps the very line it describes on a phone-width
+            // chart, and a normal view is also something a test can see.
+            if let selected, selected.date == point.date, let value = plotted(point) {
+                RuleMark(x: .value("Date", selected.date))
+                    .foregroundStyle(.secondary.opacity(0.4))
+                PointMark(
+                    x: .value("Date", selected.date),
+                    y: .value(yLabel, value))
+                    .symbolSize(140)
+            }
         }
         .chartYAxisLabel(yLabel)
         // Assisted improves DOWNWARD. Inverting the axis would hide that; the
         // label says it instead, so the shape of the line stays honest.
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 4))
+        }
+        // An EXPLICIT overlay gesture rather than `.chartXSelection`.
+        //
+        // `chartXSelection` never fired here: this chart lives in a `List` row,
+        // and the list's own scroll gesture wins. A `DragGesture` with
+        // `minimumDistance: 0` claims taps and drags on the plot area itself,
+        // which composes predictably inside a scrolling container.
+        .chartOverlay { proxy in
+            GeometryReader { geometry in
+                Rectangle()
+                    .fill(.clear)
+                    .contentShape(Rectangle())
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                select(at: value.location, proxy: proxy, geometry: geometry)
+                            }
+                    )
+            }
+        }
+    }
+
+    /// Maps a touch to the day under it. Reads the x position through the
+    /// chart proxy, so it stays correct whatever the axis does.
+    private func select(at location: CGPoint, proxy: ChartProxy, geometry: GeometryProxy) {
+        guard let plotFrame = proxy.plotFrame else { return }
+        let origin = geometry[plotFrame].origin
+        let x = location.x - origin.x
+        guard let date: Date = proxy.value(atX: x) else { return }
+        selectedDate = date
+    }
+
+    /// The point nearest the selected x position, or nil when nothing is
+    /// selected. `chartXSelection` reports a raw date between data points, so
+    /// the nearest day is what the user actually meant.
+    private var selected: ProgressPoint? {
+        guard let selectedDate else { return nil }
+        return series.points.min {
+            abs($0.date.timeIntervalSince(selectedDate))
+                < abs($1.date.timeIntervalSince(selectedDate))
+        }
+    }
+
+    /// WHAT THE TOOLTIP IS FOR, and why it is not just the plotted number: the
+    /// chart plots canonical kg converted into the display unit (D25), so the
+    /// value on the axis is a DERIVED number. The as-entered figure — the one
+    /// the user actually typed — only exists here. Ticket 01 asked for
+    /// as-entered tooltips; the single-session state had them and a drawn
+    /// series did not.
+    @ViewBuilder
+    private var selectionRow: some View {
+        // Falls back to the LAST session when nothing is selected, so the row
+        // is never an empty gap and the most recent numbers are always one
+        // glance away.
+        if let point = selected ?? series.points.last {
+            LabeledContent(point.date.formatted(date: .abbreviated, time: .omitted)) {
+                Text(calloutValue(point))
+                    .monospacedDigit()
+            }
+            .accessibilityIdentifier("chartSelection")
+            .accessibilityLabel(
+                "\(point.date.formatted(date: .abbreviated, time: .omitted)), \(calloutValue(point))")
+        }
+    }
+
+    /// The metric being viewed, in the honest form for it.
+    private func calloutValue(_ point: ProgressPoint) -> String {
+        switch metric {
+        case .bestSet:
+            // As entered, with no ≈: this is the number the user typed.
+            return asEntered(point)
+        case .volume:
+            let value = inDisplayUnit(point.volumeKg)
+            // Volume IS derived — a sum, then converted — so it keeps its ≈.
+            return displayUnit == .kg
+                ? "\(WeightMath.displayNumber(value)) kg"
+                : "≈\(WeightMath.displayNumber(value)) \(displayUnit.rawValue)"
+        case .e1rm:
+            guard let kg = point.e1rmKg else { return "—" }
+            let value = inDisplayUnit(kg)
+            // An estimate of a conversion. Never presented as measured.
+            return "≈\(WeightMath.displayNumber(value)) \(displayUnit.rawValue == "kg" ? "kg" : displayUnit.rawValue)"
         }
     }
 
@@ -177,7 +274,13 @@ struct ExerciseProgressView: View {
     }
 
     private func footer(days: Int) -> String {
-        let base = "Plotted in kg so sessions logged in different units share one axis; the values you entered are unchanged."
+        // Says the unit it is ACTUALLY plotted in. This read "Plotted in kg"
+        // even after the axis started converting (2026-08-26), which is
+        // precisely the kind of stale caption D9/D25 exist to prevent —
+        // spotted in the first screenshot of a real series.
+        let base = displayUnit == .kg
+            ? "Plotted in kg. Sessions logged in other units are converted so they share one axis; the values you entered are unchanged."
+            : "Converted to \(displayUnit.rawValue) (≈) so sessions logged in different units share one axis. Tap the chart to see what you actually entered."
         // A short series is still a short series. Say so rather than letting
         // three points imply a trajectory.
         return days < 4
