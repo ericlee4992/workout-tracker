@@ -187,7 +187,7 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`629c925`** — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
+| Installed commit | **`0f164c8`** — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
 | Previously installed | `82a1ddb` (the working background rest alarm), 2026-08-25 02:11 |
 | Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
@@ -199,7 +199,7 @@ those sessions outranks new features.
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed **26 Aug 2026** (02:30), so expires **~2 Sep 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **29 Aug 2026** (13:34), so expires **~5 Sep 2026**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. Each reinstall resets the clock |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
 
