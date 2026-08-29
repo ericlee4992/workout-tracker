@@ -107,8 +107,8 @@ Two files, shared from Settings (Gyms screen) through the system share sheet —
 1. **UI prototype on sample data** — all key screens, no persistence; ends with explicit user review before anything else is built
 2. Core loop on SwiftData — schema, seeding, logging, prefill, PRs, snapshots, rest timer, continuous persistence → dogfooding starts
 3. CSV/JSON export (full fidelity; backup and data ownership — the only copy of your history is on one device until sync exists)
-4. Progress charts (Swift Charts; normalized axes, as-entered tooltips)
-5. Strong CSV import
+4. Progress charts (Swift Charts; normalized axes, as-entered tooltips) — **shipped inside milestone 8** (ticket 01, 2026-08-26); the as-entered tooltip landed 2026-08-29
+5. ~~Strong CSV import~~ — **DROPPED 2026-08-29** at the user's request: there is no Strong history to import. The format analysis above stays for the record
 6. Plate/stack calculator — **the bar half shipped early** (D39–D40, 2026-08-22): naming the bar and entering plates per side. What remains is computing *which plates* to load for a target weight, and selectorized stack increments.
 
 Catalog curation runs as a parallel content task, shipped with releases.

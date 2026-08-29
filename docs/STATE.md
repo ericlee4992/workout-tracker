@@ -1,8 +1,10 @@
 # Where the project is right now
 
-Updated 2026-08-24 — milestone 7 (heart rate) complete, reviewed, installed; live HR and zones
-confirmed in a real gym; the deferred bar-weight cross-review is complete and its fixes are
-installed and launch-verified on the phone (16:37).
+Updated 2026-08-29 — milestones 7 and 8 are both complete, merged, installed and confirmed on the
+phone. **Every milestone in SPEC's v1 plan is now shipped except the second half of milestone 6**
+(plate math and stack increments); milestone 5 was dropped outright. The day's work: reorder
+exercises, add/remove in history, the chart tooltip, and a reinstall after the signing profile
+expired mid-afternoon.
 **Read this after `CLAUDE.md`** — SPEC and DECISIONS say what the product is and why; this says
 what has actually happened and what to do next. Keep it current; it is the one file that goes
 stale fastest.
@@ -371,8 +373,12 @@ accumulates exactly that, and the phone side keeps moving underneath it.
 So: no test asserts the watch is ever sent anything. When the watch work starts, **assert the
 message is SENT**, not merely that the receiver handles it.
 
-3. **Milestone 4 — progress charts** (Swift Charts; normalized axes, as-entered tooltips). The
-   next unbuilt milestone, and what makes the logged history worth looking at.
+3. ~~Milestone 4 — progress charts.~~ **DONE — and it is worth being clear about how, because the
+   numbering hides it.** Charts were never built as "milestone 4"; they arrived inside milestone 8
+   (ticket 01), and the last piece SPEC asked for — *as-entered tooltips* — landed 2026-08-29 in
+   `4eb5486`. Normalized axes (D25) and the as-entered detail row are both in
+   `Features/History/ExerciseProgressView.swift`. **This line previously read "the next unbuilt
+   milestone", which was false for three days.** Nothing in milestone 4 remains.
 4. ~~Milestone 5: Strong CSV import.~~ **DROPPED 2026-08-29 at the user's request** — they have no
    Strong history to bring in, so the whole milestone imports nothing. SPEC's analysis of the format
    (no unit column, no workout id, set tags lost, equipment in the name suffix) stays there in case
