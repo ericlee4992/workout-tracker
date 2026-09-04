@@ -115,3 +115,21 @@ rediscovered as a bug.
   preset-named-like-a-tag case, two same-label machines, and the hopeless case.
 - Codex could not execute tests this round (simulator `-308`, then a stalled runner — the same
   gotcha STATE records). **My runs are the evidence: 579 unit, chart UI 4/4.**
+
+
+## Codex review 01c — response (2026-09-03)
+
+`codex-review-01c.md`: 2 medium, 1 low; the production rank confirmed total. All three acted on.
+
+- **The load-type test could pass by luck.** True: it compared sorted output, which passes through
+  a dictionary. The comparator is now its own function, `ProgressSeriesMath.precedes`, and
+  `precedesIsTotalOverEveryFieldOfTheKey` checks, for pairs differing in exactly one field, that
+  exactly one precedes the other — remove any field from the rank and its pair fails every run.
+- **The ordinal floor could collide with a user-typed name.** Fixed: suffixes are allocated against
+  the complete set of labels as they stand and each assignment joins the set. Tests: a preset
+  literally named "X · Weighted (2)" forces the machine to "(3)"; three same-label same-gym
+  machines get (2) and (3).
+- **Integer stages** → `LabelStage` enum (`terse, equipment, loadType, gym`); the escalation loop
+  is over named stages and re-checks the whole set after every raise.
+
+582 unit green. Codex ran `ChartPresetScopingTests` itself this round (19/19).

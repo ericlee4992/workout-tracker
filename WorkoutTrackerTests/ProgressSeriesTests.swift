@@ -315,11 +315,25 @@ struct ChartPresetScopingTests {
         let ranked = ProgressSeriesMath.rankedVariations(in: sets)
         #expect(ranked.count == 2)
         #expect(Set(ranked.map(\.key.loadType)) == [.weighted, .assisted])
-        // Same days, same equipment, same (nil) preset: the order is by load
-        // type's raw value, and identical on every call.
-        let again = ProgressSeriesMath.rankedVariations(in: sets.reversed())
-        #expect(ranked.map(\.key) == again.map(\.key))
-        #expect(ranked.first?.key.loadType.rawValue ?? "" < ranked.last?.key.loadType.rawValue ?? "")
+    }
+
+    /// codex-review 01c: a test on sorted output can pass by dictionary luck
+    /// with an axis removed. This tests the COMPARATOR: for two keys that
+    /// differ only in one field, exactly one must precede the other. Remove
+    /// any field from the rank and its case here fails every time.
+    @Test func precedesIsTotalOverEveryFieldOfTheKey() {
+        let base = ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.barbell), presetID: nil)
+        var otherType = base; otherType.loadType = .assisted
+        var otherEquipment = base; otherEquipment.equipment = .freeWeight(.dumbbell)
+        var otherPreset = base; otherPreset.presetID = wide
+        var otherPreset2 = base; otherPreset2.presetID = narrow
+        for (a, b) in [(base, otherType), (base, otherEquipment), (base, otherPreset), (otherPreset, otherPreset2)] {
+            let ab = ProgressSeriesMath.precedes((key: a, days: 3), (key: b, days: 3))
+            let ba = ProgressSeriesMath.precedes((key: b, days: 3), (key: a, days: 3))
+            #expect(ab != ba, "distinct keys must be strictly ordered: \(a) vs \(b)")
+        }
+        // And more days always wins, whatever the key.
+        #expect(ProgressSeriesMath.precedes((key: otherType, days: 4), (key: base, days: 3)))
     }
 
     // MARK: - Picker labels never collide (codex-review 01b)
@@ -375,6 +389,33 @@ struct ChartPresetScopingTests {
         ])
         #expect(labels[a] != labels[b])
         #expect(labels[b]?.hasSuffix("(2)") == true)
+    }
+
+    /// codex-review 01c: the ordinal floor must not itself collide with a
+    /// label a user typed — "(2)" is skipped when something is already
+    /// called exactly that.
+    @Test func ordinalSuffixesAvoidLabelsAUserAlreadyTyped() {
+        let a = ProgressVariationKey(loadType: .weighted, equipment: .machine(machineA), presetID: nil)
+        let b = ProgressVariationKey(loadType: .weighted, equipment: .machine(machineB), presetID: nil)
+        let taken = ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: wide)
+        let labels = ProgressSeriesMath.labels(for: [
+            words(a, equipment: "X"),
+            words(b, equipment: "X"),
+            words(taken, preset: "X · Weighted (2)"),
+        ])
+        #expect(Set(labels.values).count == 3, "every label distinct, got \(labels.values.sorted())")
+        #expect(labels[b] == "X · Weighted (3)")
+    }
+
+    @Test func threeWayCollisionsGetDistinctOrdinals() {
+        let c = UUID()
+        let keys = [machineA, machineB, c].map {
+            ProgressVariationKey(loadType: .weighted, equipment: .machine($0), presetID: nil)
+        }
+        let labels = ProgressSeriesMath.labels(for: keys.map { words($0, equipment: "Row", gym: "Same") })
+        #expect(Set(labels.values).count == 3)
+        #expect(labels[keys[1]]?.hasSuffix("(2)") == true)
+        #expect(labels[keys[2]]?.hasSuffix("(3)") == true)
     }
 
     /// The common case stays terse: no collisions, no discriminators.

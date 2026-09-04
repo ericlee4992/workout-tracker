@@ -157,13 +157,22 @@ enum ProgressSeriesMath {
     ) -> [(key: ProgressVariationKey, days: Int)] {
         variations(in: sets, calendar: calendar)
             .map { (key: $0.key, days: $0.value) }
-            .sorted { a, b in
-                let aRank = (-a.days, a.key.presetID == nil ? 0 : 1, a.key.loadType.rawValue,
-                             a.key.equipment.sortKey, a.key.presetID?.uuidString ?? "")
-                let bRank = (-b.days, b.key.presetID == nil ? 0 : 1, b.key.loadType.rawValue,
-                             b.key.equipment.sortKey, b.key.presetID?.uuidString ?? "")
-                return aRank < bRank
-            }
+            .sorted { precedes($0, $1) }
+    }
+
+    /// The one comparator behind `rankedVariations`, exposed so a test can
+    /// prove it is total: for any two DISTINCT keys exactly one precedes the
+    /// other. (codex-review 01c: a test on the sorted output could pass by
+    /// dictionary luck with an axis removed; a test on the comparator cannot.)
+    static func precedes(
+        _ a: (key: ProgressVariationKey, days: Int),
+        _ b: (key: ProgressVariationKey, days: Int)
+    ) -> Bool {
+        let aRank = (-a.days, a.key.presetID == nil ? 0 : 1, a.key.loadType.rawValue,
+                     a.key.equipment.sortKey, a.key.presetID?.uuidString ?? "")
+        let bRank = (-b.days, b.key.presetID == nil ? 0 : 1, b.key.loadType.rawValue,
+                     b.key.equipment.sortKey, b.key.presetID?.uuidString ?? "")
+        return aRank < bRank
     }
 
     /// The variation a chart should open on: the first of `rankedVariations`.
@@ -303,51 +312,76 @@ struct ProgressVariationWords: Equatable, Sendable {
 
 extension ProgressSeriesMath {
 
+    /// How much of a variation's words a label spends. Terse by default; a
+    /// colliding row escalates one stage at a time, in this order.
+    enum LabelStage: Int, CaseIterable, Comparable {
+        case terse, equipment, loadType, gym
+        static func < (l: Self, r: Self) -> Bool { l.rawValue < r.rawValue }
+        var next: LabelStage { LabelStage(rawValue: rawValue + 1) ?? .gym }
+    }
+
     /// One label per variation, and NO two the same.
     ///
     /// codex-review 01b: hiding "No equipment recorded" behind a preset name
     /// let a preset the user had called "Dumbbell" render identically to the
     /// dumbbell tag, and two machines with the same frozen label collided too.
     /// So: start terse, and only where labels collide add discriminators —
-    /// the equipment word, then the load type, then the machine's gym, then
-    /// an ordinal as the floor nothing can defeat.
+    /// the equipment word, then the load type, then the machine's gym. When
+    /// the stages are spent, ordinals — allocated against EVERY label in the
+    /// list, including user-typed names that already look like "X (2)"
+    /// (codex-review 01c), so the floor cannot itself create a duplicate.
     static func labels(
         for rows: [(key: ProgressVariationKey, words: ProgressVariationWords)]
     ) -> [ProgressVariationKey: String] {
-        func render(_ w: ProgressVariationWords, level: Int) -> String {
+        func render(_ w: ProgressVariationWords, at stage: LabelStage) -> String {
             var parts: [String] = []
             switch w.equipment {
             case .unrecorded:
-                // Terse form omits it when a preset names the row.
-                if w.presetName == nil || level >= 1 { parts.append("No equipment recorded") }
+                if w.presetName == nil || stage >= .equipment { parts.append("No equipment recorded") }
             default:
                 parts.append(w.equipmentName ?? "Machine")
             }
             if let preset = w.presetName { parts.append(preset) }
-            if level >= 2 { parts.append(w.loadType.badge) }
-            if level >= 3, case .machine = w.equipment, let gym = w.gymName { parts.append(gym) }
+            if stage >= .loadType { parts.append(w.loadType.badge) }
+            if stage >= .gym, case .machine = w.equipment, let gym = w.gymName { parts.append(gym) }
             return parts.joined(separator: " · ")
         }
-        var levels = [ProgressVariationKey: Int](
-            uniqueKeysWithValues: rows.map { ($0.key, 0) })
-        var out: [ProgressVariationKey: String] = [:]
-        for _ in 0...3 {
-            out = Dictionary(uniqueKeysWithValues: rows.map {
-                ($0.key, render($0.words, level: levels[$0.key] ?? 0))
-            })
-            let counts = Dictionary(grouping: out.values) { $0 }.mapValues(\.count)
-            let colliding = out.filter { (counts[$0.value] ?? 0) > 1 }.keys
-            if colliding.isEmpty { return out }
-            for key in colliding { levels[key, default: 0] += 1 }
+        func collisions(in labels: [ProgressVariationKey: String]) -> Set<ProgressVariationKey> {
+            let counts = Dictionary(grouping: labels.values) { $0 }.mapValues(\.count)
+            return Set(labels.filter { (counts[$0.value] ?? 0) > 1 }.keys)
         }
-        // Still colliding after every discriminator: number them, in the
-        // caller's order, so every row is at least distinguishable.
-        var seen: [String: Int] = [:]
-        for row in rows {
-            let label = out[row.key] ?? ""
-            let n = (seen[label] ?? 0) + 1
-            seen[label] = n
-            if n > 1 { out[row.key] = "\(label) (\(n))" }
+
+        var stage = [ProgressVariationKey: LabelStage](
+            uniqueKeysWithValues: rows.map { ($0.key, .terse) })
+        var out: [ProgressVariationKey: String] = [:]
+        // Escalate colliding rows until nothing collides or every colliding
+        // row is at the last stage. Raising some rows can collide with an
+        // untouched one; the loop re-checks the whole set each pass.
+        while true {
+            out = Dictionary(uniqueKeysWithValues: rows.map {
+                ($0.key, render($0.words, at: stage[$0.key] ?? .terse))
+            })
+            let colliding = collisions(in: out)
+            let raisable = colliding.filter { (stage[$0] ?? .gym) < .gym }
+            if raisable.isEmpty { break }
+            for key in raisable { stage[key] = stage[key]?.next }
+        }
+        // Ordinal floor. Suffixes are chosen against the complete set of
+        // labels as they stand, so "(2)" is skipped when a user already named
+        // something exactly that. Each assignment joins the set before the
+        // next is chosen, so three-way collisions get (2) and (3).
+        var taken = Set(out.values)
+        let stillColliding = collisions(in: out)
+        var kept: Set<String> = []
+        for row in rows where stillColliding.contains(row.key) {
+            guard let label = out[row.key] else { continue }
+            // The first row carrying a colliding label keeps it; the rest move.
+            if kept.insert(label).inserted { continue }
+            var n = 2
+            while taken.contains("\(label) (\(n))") { n += 1 }
+            let fresh = "\(label) (\(n))"
+            out[row.key] = fresh
+            taken.insert(fresh)
         }
         return out
     }
