@@ -1,6 +1,6 @@
 # 04 — Dumbbell movements as their own exercises
 
-Status: resolved — awaiting Codex review
+Status: resolved — Codex clear after 4 rounds (codex-review-04..04d); D51 records the design
 Blocked by: 03
 Covers the catalog half of user ask **4**.
 
