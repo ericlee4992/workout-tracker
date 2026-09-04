@@ -125,6 +125,14 @@ struct WorkoutDetailView: View {
                             .font(.caption2)
                             .textCase(nil)
                             .foregroundStyle(.secondary)
+                        // D51: a reclassified row says what it was, on the row.
+                        if let from = entry.reclassifiedFromExerciseName, let when = entry.reclassifiedAt {
+                            Text("Reclassified from \(from) · \(when.formatted(date: .abbreviated, time: .omitted))")
+                                .font(.caption2)
+                                .textCase(nil)
+                                .foregroundStyle(.secondary)
+                                .accessibilityIdentifier("historyReclassifiedMark")
+                        }
                     }
                 }
             }

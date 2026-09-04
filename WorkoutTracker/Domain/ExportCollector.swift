@@ -299,6 +299,8 @@ struct ExportCollector {
             gymName: context.gymName,
             presetID: context.presetID,
             presetName: context.presetName,
+            reclassifiedAt: dateFormat.optionalString(from: entry.reclassifiedAt),
+            reclassifiedFromExerciseName: entry.reclassifiedFromExerciseName,
             sets: sets)
     }
 
@@ -400,6 +402,9 @@ struct ExportCollector {
             selectedGymID: preferences.selectedGymID,
             measuredMaxHeartRate: preferences.measuredMaxHeartRate,
             birthDate: dateFormat.optionalString(from: preferences.birthDate),
-            updatedAt: dateFormat.string(from: preferences.updatedAt))
+            updatedAt: dateFormat.string(from: preferences.updatedAt),
+            dumbbellHistoryMovedSets: preferences.dumbbellHistoryMovedSets,
+            dumbbellHistoryMovedAt: dateFormat.optionalString(from: preferences.dumbbellHistoryMovedAt),
+            dumbbellHistoryCheckedAt: dateFormat.optionalString(from: preferences.dumbbellHistoryCheckedAt))
     }
 }

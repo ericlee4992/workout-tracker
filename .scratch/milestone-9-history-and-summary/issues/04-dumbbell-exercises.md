@@ -84,3 +84,41 @@ Dumbbell AFTER the move (only reachable by ignoring the counterpart row, e.g. vi
 there. The sheet no longer offers the path, so this should not grow; if it does, the move can be
 re-keyed. **Before installing:** a fresh export of the real history to iCloud Drive — this build
 rewrites snapshots on the phone's only copy.
+
+
+## Codex review 04 — response (2026-09-04)
+
+`codex-review-04.md`: 2 critical, 4 high, 4 medium, 1 low. It was right on every structural
+point; the first cut of the move was wrong in design, not detail. The corrected design is now
+**D51**, and the code follows it:
+
+- **Locked decisions reopened by stealth (critical).** D51 records the reopening of D19/D23/D47 for
+  exactly this reclassification and why it is provenance, not an edit; D19, D23 and D47 carry
+  pointers. My first response's "leave `historyEditedAt` nil and note it in Settings" was the
+  claim without the decision.
+- **Presets stranded (critical/high).** The entry's preset is re-homed: a same-named preset on the
+  counterpart is found or created (case-insensitive), and BOTH the relationship and
+  `snapshotPresetID` move; `snapshotPresetName` is unchanged; the source keeps its own preset for its
+  own history. Two moved entries share one preset; an entry whose preset was since deleted is
+  matched by its snapshot name. Tested. The ticket's "leave presets attached" line was the error —
+  a grip travels by moving WITH the movement, not by staying pinned to the old one.
+- **One-shot gate misses late history (critical).** The move now runs on every launch from catalog
+  5, including the seeder's fast path, gated by one `fetchCount` over entries whose snapshot still
+  names a source. Idempotent because no target is a source. Tested: late-arriving rows move on the
+  next reconcile, on the fast path too, and the record accumulates.
+- **Audit record dropped from the backup (high) / provenance.** Per-row `reclassifiedAt` +
+  `reclassifiedFromExerciseName` on `ExerciseEntry`; exported (JSON schema **7**, CSV column 37
+  `reclassifiedFrom`); shown under the exercise in History detail. Preferences record exported too.
+- **Settings read `first` (high/medium).** Reads the canonical row.
+- **Superset severed by a frozen switch (high).** `split` carries `supersetGroupID` to the new
+  entry (for equipment splits too — the same severing applied there) and prunes orphans. Tested.
+- **Zero-result run indistinguishable from never-ran (medium).** `dumbbellHistoryCheckedAt` is
+  stamped on the first run regardless; `movedSets` is cumulative and nil until something moves.
+- **Missing counterpart row fell back to the tag (medium).** The row is disabled and named from the
+  mapping (`Pair.targetName`); the tag is never offered for a mapped movement.
+- **`switchExercise` overbroad (low).** Now `switchToDumbbellCounterpart(of:)`: resolves the
+  counterpart itself, refuses otherwise, tag is `.dumbbell` by definition. Tested refusal.
+- Added tests for uncaptured, deleted and relationship-less rows. The commit title "no way back" was
+  false as Codex said — the gate was the way back; it no longer exists.
+
+**623 unit green; UI: counterpart (1), history editing (2), export (1) green.**

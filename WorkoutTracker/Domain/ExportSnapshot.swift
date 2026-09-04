@@ -37,7 +37,14 @@ struct ExportSnapshot: Codable, Equatable {
     /// facts. The CSV APPENDS `workoutTypedName` (column 36); column 4
     /// `workoutName` keeps meaning the template, so a v1–v5 consumer reading
     /// provenance there is not lied to.
-    static let currentSchemaVersion = 6
+    /// 7 — milestone 9, ticket 04 (D51). `entries[].reclassifiedAt` and
+    /// `reclassifiedFromExerciseName`: the provenance of the dumbbell
+    /// reclassification, on the row it rewrote; and the preferences record of
+    /// the run (`dumbbellHistoryMovedSets/At`, `dumbbellHistoryCheckedAt`). A
+    /// backup that carried the rewritten identity without the fact of the
+    /// rewrite would be a history claiming to be untouched (codex-review 04).
+    /// CSV appends column 37 `reclassifiedFrom`.
+    static let currentSchemaVersion = 7
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -104,6 +111,11 @@ extension ExportSnapshot {
         var measuredMaxHeartRate: Int?
         var birthDate: String?
         var updatedAt: String
+        /// v7 (D51): the reclassification's record — cumulative sets moved,
+        /// when it last moved any, and when it first ran at all.
+        var dumbbellHistoryMovedSets: Int? = nil
+        var dumbbellHistoryMovedAt: String? = nil
+        var dumbbellHistoryCheckedAt: String? = nil
     }
 }
 
@@ -263,6 +275,11 @@ extension ExportSnapshot {
         /// truth about every set logged before presets existed.
         var presetID: UUID?
         var presetName: String?
+        /// v7 (D51): set when this entry's identity was rewritten by the
+        /// dumbbell reclassification; `reclassifiedFromExerciseName` is what
+        /// the snapshot said before. Absent for every other entry.
+        var reclassifiedAt: String? = nil
+        var reclassifiedFromExerciseName: String? = nil
         var sets: [SetRow]
     }
 

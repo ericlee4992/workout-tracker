@@ -55,8 +55,11 @@ struct AppSettingsSection: View {
             }
             // Milestone 9, ticket 04: the one-time dumbbell history move is a
             // rewrite of snapshots (D23), so it is announced rather than silent.
-            if let moved = allPreferences.first?.dumbbellHistoryMovedSets,
-               let when = allPreferences.first?.dumbbellHistoryMovedAt {
+            // The CANONICAL row — the seeder writes there, and duplicates are
+            // possible under CloudKit (codex-review 04, high).
+            if let preferences = AppPreferences.canonical(of: allPreferences),
+               let moved = preferences.dumbbellHistoryMovedSets, moved > 0,
+               let when = preferences.dumbbellHistoryMovedAt {
                 LabeledContent("History update") {
                     Text("\(moved) set\(moved == 1 ? "" : "s") moved to dumbbell exercises · \(when.formatted(date: .abbreviated, time: .omitted))")
                         .foregroundStyle(.secondary)

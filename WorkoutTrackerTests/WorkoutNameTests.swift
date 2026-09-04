@@ -143,7 +143,7 @@ struct WorkoutNameTests {
         try ctx.save()
 
         var snapshot = try ExportCollector(appVersion: "test").snapshot(from: ctx)
-        #expect(snapshot.schemaVersion == 6)
+        #expect(snapshot.schemaVersion == 7)
         let decoded = try ExportJSON.decode(try ExportJSON.data(snapshot))
         #expect(decoded.workouts.first?.name == "Heavy day")
         #expect(decoded.workouts.first?.sourceTemplateName == "Push Day", "provenance travels beside the name")

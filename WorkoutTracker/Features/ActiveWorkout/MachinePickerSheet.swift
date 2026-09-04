@@ -46,22 +46,27 @@ struct MachinePickerSheet: View {
 
                 Section {
                     ForEach([EquipmentTag.barbell, .dumbbell, .cable, .smith, .bodyweight]) { tag in
-                        if tag == .dumbbell, let counterpart = dumbbellCounterpart {
-                            // Milestone 9, ticket 04: this movement has a
+                        if tag == .dumbbell, let pair = counterpartPair {
+                            // Milestone 9, ticket 04 / D51: this movement has a
                             // dumbbell exercise of its own. Offering the tag
                             // here is how the split re-grows, so offer the
-                            // exercise instead.
+                            // exercise instead — and NEVER fall back to the
+                            // tag, even if the row is momentarily missing
+                            // (codex-review 04): the row is disabled and named
+                            // from the mapping until the seeder heals the store.
+                            let row = counterpartRow
                             Button {
-                                switchToCounterpart(counterpart)
+                                switchToCounterpart()
                             } label: {
                                 HStack {
-                                    Label("Log as \(counterpart.name) instead", systemImage: "dumbbell")
+                                    Label("Log as \(row?.name ?? pair.targetName) instead", systemImage: "dumbbell")
                                     Spacer()
-                                    Image(systemName: "arrow.turn.down.right")
+                                    Image(systemName: row == nil ? "exclamationmark.triangle" : "arrow.turn.down.right")
                                         .foregroundStyle(.secondary)
                                 }
                             }
                             .buttonStyle(.plain)
+                            .disabled(row == nil)
                             .accessibilityIdentifier("logAsCounterpart")
                         } else {
                             Button {
@@ -126,20 +131,23 @@ struct MachinePickerSheet: View {
         entry.machine == nil && entry.freeWeightTag == tag
     }
 
-    /// The dumbbell exercise this entry's movement maps to, if the catalog
-    /// has one and it is present in the store.
-    private var dumbbellCounterpart: Exercise? {
-        guard !entry.isDeleted,
-              let sourceID = entry.exercise?.id,
-              let targetID = DumbbellCounterparts.counterpart(of: sourceID)
-        else { return nil }
+    /// The mapping entry for this movement, if it has a dumbbell counterpart.
+    private var counterpartPair: DumbbellCounterparts.Pair? {
+        guard !entry.isDeleted, let sourceID = entry.exercise?.id else { return nil }
+        return DumbbellCounterparts.pair(forSource: sourceID)
+    }
+
+    /// The counterpart's row in the store — nil only for a partial store the
+    /// next launch's seeder heals.
+    private var counterpartRow: Exercise? {
+        guard let targetID = counterpartPair?.target else { return nil }
         let descriptor = FetchDescriptor<Exercise>(predicate: #Predicate { $0.id == targetID })
         return (try? modelContext.fetch(descriptor))?.first
     }
 
-    private func switchToCounterpart(_ exercise: Exercise) {
+    private func switchToCounterpart() {
         do {
-            try session.switchExercise(of: entry, to: exercise)
+            guard try session.switchToDumbbellCounterpart(of: entry) != nil else { return }
         } catch {
             assertionFailure("Failed to switch exercise: \(error)")
         }

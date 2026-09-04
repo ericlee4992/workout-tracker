@@ -38,6 +38,12 @@ enum CatalogSeeder {
         // lost row missing forever (codex-review-4).
         if !applyUpdates, contentAlreadyApplied,
            try seededIdentitiesMatch(catalog, in: context) {
+            // Still every launch, still before returning: history can arrive
+            // after the version crossing (a merge, a restore), and a one-shot
+            // gate missed it (codex-review 04). The pre-check is one count.
+            if catalog.version >= 5 {
+                try reclassifyDumbbellHistory(preferences: preferences, in: context)
+            }
             if context.hasChanges { try context.save() }
             return
         }
@@ -45,18 +51,12 @@ enum CatalogSeeder {
         try reconcileExercises(catalog.exercises, applyUpdates: applyUpdates, in: context)
         try reconcileEquipmentModels(catalog.equipmentModels, applyUpdates: applyUpdates, in: context)
 
-        // Milestone 9, ticket 04: crossing into catalog version 5 moves
-        // dumbbell-tagged history onto the new dumbbell exercises, ONCE. Keyed
-        // on the stored version, so a store already at 5 never re-runs it, and
-        // a fresh store (0 → 5) runs it over nothing. Recorded so Settings can
-        // say what happened — a silent rewrite of history is the thing this
-        // app refuses (D23).
-        if applyUpdates, previousVersion < 5, catalog.version >= 5 {
-            let moved = try DumbbellHistoryMove.run(in: context)
-            if moved.sets > 0 {
-                preferences.dumbbellHistoryMovedSets = moved.sets
-                preferences.dumbbellHistoryMovedAt = .now
-            }
+        // Milestone 9, ticket 04 / D51: after the dumbbell rows exist (the
+        // exercise pass above inserts them), move dumbbell-tagged history onto
+        // them. Runs whenever the catalog is at 5 or later; cheap when there is
+        // nothing to do, idempotent by construction.
+        if catalog.version >= 5 {
+            try reclassifyDumbbellHistory(preferences: preferences, in: context)
         }
 
         if applyUpdates {
@@ -66,6 +66,27 @@ enum CatalogSeeder {
         }
         if context.hasChanges {
             try context.save()
+        }
+    }
+
+    /// Runs the D51 reclassification and keeps its record honest: the first
+    /// run stamps `checkedAt` even when nothing moved (so "ran, found
+    /// nothing" is not "never ran"), and any run that moves sets adds to the
+    /// cumulative count and refreshes `movedAt`. Nothing is written on a
+    /// no-op run after the first, so an ordinary launch does not dirty the
+    /// preferences row.
+    private static func reclassifyDumbbellHistory(
+        preferences: AppPreferences, in context: ModelContext
+    ) throws {
+        let moved = try DumbbellHistoryMove.run(in: context)
+        let now = Date()
+        if preferences.dumbbellHistoryCheckedAt == nil {
+            preferences.dumbbellHistoryCheckedAt = now
+        }
+        if moved.sets > 0 {
+            preferences.dumbbellHistoryMovedSets = (preferences.dumbbellHistoryMovedSets ?? 0) + moved.sets
+            preferences.dumbbellHistoryMovedAt = now
+            preferences.updatedAt = now
         }
     }
 

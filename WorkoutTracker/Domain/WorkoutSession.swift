@@ -400,10 +400,20 @@ struct WorkoutSession {
     /// is edited in place; a frozen one gets a NEW entry for the counterpart
     /// and its draft rows move over. The preset is dropped either way — a
     /// preset belongs to its exercise (D37).
+    ///
+    /// Deliberately NOT a general "switch exercise": it only accepts an entry
+    /// whose exercise has a mapped counterpart present in the store, and
+    /// returns nil otherwise (codex-review 04). The tag is `.dumbbell` by
+    /// definition of the operation, not guessed from the target's tags.
     @discardableResult
-    func switchExercise(of entry: ExerciseEntry, to exercise: Exercise) throws -> ExerciseEntry {
-        guard !entry.isDeleted, entry.exercise?.id != exercise.id else { return entry }
-        let tag: EquipmentTag? = exercise.equipmentTypeTags.first { $0 != .machine }
+    func switchToDumbbellCounterpart(of entry: ExerciseEntry) throws -> ExerciseEntry? {
+        guard !entry.isDeleted,
+              let sourceID = entry.exercise?.id,
+              let targetID = DumbbellCounterparts.counterpart(of: sourceID)
+        else { return nil }
+        let descriptor = FetchDescriptor<Exercise>(predicate: #Predicate { $0.id == targetID })
+        guard let exercise = try context.fetch(descriptor).first else { return nil }
+        let tag: EquipmentTag? = .dumbbell
         guard entry.snapshotCapturedAt != nil else {
             entry.exercise = exercise
             entry.machine = nil
@@ -430,6 +440,12 @@ struct WorkoutSession {
         exercise newExercise: Exercise? = nil
     ) throws -> ExerciseEntry {
         guard let workout = entry.workout, let exercise = newExercise ?? entry.exercise else { return entry }
+        // The new entry sits right after the old one, so carrying the group id
+        // keeps a superset's adjacency run intact (D48). Without this, a
+        // split inside a superset severed it and changed when rest was taken
+        // (codex-review 04, high). Prune afterwards in case the old entry is
+        // left holding a group alone.
+        let supersetGroupID = entry.supersetGroupID
         // A preset change leaves the bar in the user's hands; an equipment
         // change does not (see `clearBars`). One split serves both, so the
         // difference has to be read from the arguments rather than assumed.
@@ -446,6 +462,7 @@ struct WorkoutSession {
             snapshotExerciseID: exercise.id,
             snapshotLoadType: exercise.loadType,
             snapshotExerciseName: exercise.name)
+        newEntry.supersetGroupID = supersetGroupID
         context.insert(newEntry)
         if let position = entries.firstIndex(where: { $0.id == entry.id }) {
             entries.insert(newEntry, at: position + 1)
@@ -453,6 +470,7 @@ struct WorkoutSession {
             entries.append(newEntry)
         }
         renumber(entries)
+        Supersets.pruneOrphanGroups(in: workout)
 
         // Draft rows move to the new entry, preserving relative order;
         // completed sets stay behind. Values the row *inherited* — cross-workout

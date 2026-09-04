@@ -17,7 +17,7 @@ import Foundation
 
 enum ExportCSV {
 
-    /// The 36 columns, in order. `.scratch/milestone-3-export/spec.md` documents
+    /// The 37 columns, in order. `.scratch/milestone-3-export/spec.md` documents
     /// each one's source; the order is part of the format — appending is safe,
     /// reordering is not, and so is changing what an existing column means
     /// (codex-review 02 caught a first cut that did).
@@ -51,6 +51,10 @@ enum ExportCSV {
         // on each of its rows like `workoutName`. Empty when none was typed;
         // `workoutName` (column 4) keeps meaning the template it came from.
         "workoutTypedName",
+        // v7 (D51): what this row's exercise was called before the dumbbell
+        // reclassification rewrote it; empty for every other row. The
+        // provenance travels with the rows it explains.
+        "reclassifiedFrom",
     ]
 
     /// RFC 4180 line terminator. Excel on Windows still wants CRLF; every
@@ -131,6 +135,7 @@ enum ExportCSV {
             workout.activeEnergyKilocalories.map(WeightMath.storageNumber) ?? "",
             entry.supersetGroupID?.uuidString ?? "",
             workout.name ?? "",
+            entry.reclassifiedFromExerciseName ?? "",
         ]
     }
 

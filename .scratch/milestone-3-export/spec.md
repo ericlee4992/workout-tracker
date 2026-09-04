@@ -99,6 +99,7 @@ equipment (see the two limits below the table). Empty fields are empty (no `null
 | 34 | `workoutActiveCalories` | `Workout.activeEnergyKilocalories` | system-generated during the session, never computed by the app |
 | 35 | `supersetGroupID` | `ExerciseEntry.supersetGroupID` | D48 — appended 2026-08-26, empty = not in a superset |
 | 36 | `workoutTypedName` | `Workout.name` | v6 — appended 2026-09-03 (milestone 9, ticket 02), empty = no name typed |
+| 37 | `reclassifiedFrom` | `ExerciseEntry.reclassifiedFromExerciseName` | v7 — appended 2026-09-04 (D51), empty = never reclassified |
 
 Columns 32–34 are **workout**-level and repeat on every set row of that workout, the way
 `workoutNotes` already does. Empty means *not measured*, never zero (D44). `zoneSeconds` is
@@ -129,11 +130,13 @@ deterministic).
 
 ```jsonc
 {
-  "schemaVersion": 6,             // bumped on any shape change; older files decode
+  "schemaVersion": 7,             // bumped on any shape change; older files decode
                                   // 2: presets (D36). 3: bar weight (D39)
                                   // 4: heart-rate summary per workout (D44)
                                   // 5: supersetGroupID, loadTypeUserOverridden, historyEditedAt (D47/D48)
                                   // 6: workouts[].name, the typed title (D50)
+                                  // 7: entries[].reclassifiedAt/FromExerciseName + the
+                                  //    preferences record of the run (D51)
   "exportedAt": "2026-08-11T18:30:00.123+09:00",
   "appVersion": "1.0 (3)",
   "seededCatalogVersion": 4,      // D28: what the omitted catalog rows came from
@@ -180,3 +183,10 @@ exported — SPEC: PRs are derived, never source-of-truth.
 unchanged and still present — one is intent, the other provenance. The CSV appends column 36,
 `workoutTypedName`; column 4 `workoutName` keeps meaning the template, so a v1–v5 consumer reading
 provenance there is not lied to. (A first cut reused column 4; codex-review 02 caught it.)
+
+### v7 (milestone 9, ticket 04 — D51 reclassification provenance)
+
+`entries[].reclassifiedAt` / `reclassifiedFromExerciseName` (absent unless the dumbbell
+reclassification rewrote that entry), and in `preferences`: `dumbbellHistoryMovedSets`,
+`dumbbellHistoryMovedAt`, `dumbbellHistoryCheckedAt`. CSV appends column 37 `reclassifiedFrom`. The
+rewritten identity without the fact of the rewrite would be a backup claiming an untouched history.

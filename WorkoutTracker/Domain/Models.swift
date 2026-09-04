@@ -432,6 +432,13 @@ final class ExerciseEntry {
     /// the truth about every set logged before 2026-08-12.
     var snapshotPresetID: UUID?
     var snapshotPresetName: String?
+    /// D51: this entry's identity was corrected by the catalog-driven dumbbell
+    /// reclassification (milestone 9, ticket 04) — the ONE sanctioned rewrite
+    /// of a frozen snapshot. Both are the provenance that makes it not silent:
+    /// when, and what the row said before. They export, and History shows
+    /// them. nil for every entry that was never reclassified.
+    var reclassifiedAt: Date?
+    var reclassifiedFromExerciseName: String?
 
     init(
         id: UUID = UUID(),
@@ -621,6 +628,10 @@ final class AppPreferences {
     /// Optional so every earlier store migrates lightweightly.
     var dumbbellHistoryMovedSets: Int?
     var dumbbellHistoryMovedAt: Date?
+    /// When the reclassification first RAN, whether or not it moved anything —
+    /// so "ran and found nothing" is distinguishable from "never ran"
+    /// (codex-review 04). Written once; later runs leave it alone.
+    var dumbbellHistoryCheckedAt: Date?
     /// Whether notification permission has been requested (rest-timer alerts).
     var notificationPermissionRequested: Bool = false
     /// Measured maximum heart rate, if the user has one (D45). nil = fall back

@@ -19,6 +19,10 @@ enum DumbbellCounterparts {
         let source: UUID
         /// The dumbbell exercise it belongs to since catalog version 5.
         let target: UUID
+        /// The target's catalog name, for a sheet that must name the
+        /// counterpart even when the row is momentarily missing from the
+        /// store. The store's row is authoritative when present.
+        let targetName: String
     }
 
     private static func id(_ index: Int) -> UUID {
@@ -31,24 +35,31 @@ enum DumbbellCounterparts {
     /// Romanian deadlift, and guessing would be the fabricated context D23
     /// exists to prevent. Those sets stay where they are, tagged Dumbbell.
     static let pairs: [Pair] = [
-        Pair(source: id(6), target: id(77)),   // Bench Press → Dumbbell Bench Press
-        Pair(source: id(17), target: id(78)),  // Incline Bench Press → Dumbbell Incline Press
-        Pair(source: id(18), target: id(79)),  // Decline Bench Press → Dumbbell Decline Press
-        Pair(source: id(15), target: id(80)),  // Chest Fly (Pec Deck) → Dumbbell Fly
-        Pair(source: id(34), target: id(82)),  // Overhead Press → Dumbbell Shoulder Press
-        Pair(source: id(32), target: id(83)),  // Lateral Raise → Dumbbell Lateral Raise
-        Pair(source: id(26), target: id(84)),  // Bent-Over Row → Dumbbell Row
-        Pair(source: id(27), target: id(85)),  // Shrug → Dumbbell Shrug
-        Pair(source: id(56), target: id(87)),  // Lunge → Dumbbell Lunge
-        Pair(source: id(59), target: id(90)),  // Hip Thrust → Dumbbell Hip Thrust
+        Pair(source: id(6), target: id(77), targetName: "Dumbbell Bench Press"),      // from Bench Press
+        Pair(source: id(17), target: id(78), targetName: "Dumbbell Incline Press"),    // from Incline Bench Press
+        Pair(source: id(18), target: id(79), targetName: "Dumbbell Decline Press"),    // from Decline Bench Press
+        Pair(source: id(15), target: id(80), targetName: "Dumbbell Fly"),              // from Chest Fly (Pec Deck)
+        Pair(source: id(34), target: id(82), targetName: "Dumbbell Shoulder Press"),   // from Overhead Press
+        Pair(source: id(32), target: id(83), targetName: "Dumbbell Lateral Raise"),    // from Lateral Raise
+        Pair(source: id(26), target: id(84), targetName: "Dumbbell Row"),              // from Bent-Over Row
+        Pair(source: id(27), target: id(85), targetName: "Dumbbell Shrug"),            // from Shrug
+        Pair(source: id(56), target: id(87), targetName: "Dumbbell Lunge"),            // from Lunge
+        Pair(source: id(59), target: id(90), targetName: "Dumbbell Hip Thrust"),       // from Hip Thrust
     ]
 
-    private static let targetBySource = Dictionary(
-        uniqueKeysWithValues: pairs.map { ($0.source, $0.target) })
+    private static let pairBySource = Dictionary(
+        uniqueKeysWithValues: pairs.map { ($0.source, $0) })
+
+    /// Every source id — the cheap pre-check the launch-time move uses.
+    static var sourceIDs: Set<UUID> { Set(pairs.map(\.source)) }
 
     /// The dumbbell exercise a dumbbell-tagged set of `exerciseID` belongs
     /// to, or nil when the movement has no counterpart.
     static func counterpart(of exerciseID: UUID) -> UUID? {
-        targetBySource[exerciseID]
+        pairBySource[exerciseID]?.target
+    }
+
+    static func pair(forSource exerciseID: UUID) -> Pair? {
+        pairBySource[exerciseID]
     }
 }

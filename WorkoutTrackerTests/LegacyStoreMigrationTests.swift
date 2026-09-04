@@ -63,6 +63,11 @@ struct LegacyStoreMigrationTests {
         let prefs = try #require(try context.fetch(FetchDescriptor<AppPreferences>()).first)
         #expect(prefs.dumbbellHistoryMovedSets == nil)
         #expect(prefs.dumbbellHistoryMovedAt == nil)
+        #expect(prefs.dumbbellHistoryCheckedAt == nil)
+        // D51 provenance fields on the fixture's one entry: never reclassified.
+        let entry = try #require(try context.fetch(FetchDescriptor<ExerciseEntry>()).first)
+        #expect(entry.reclassifiedAt == nil)
+        #expect(entry.reclassifiedFromExerciseName == nil)
     }
 
     /// Milestone 9, ticket 02: the workout name arrives nil — "no name typed",
