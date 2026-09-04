@@ -172,6 +172,8 @@ struct WorkoutDetailView: View {
                     showExercisePicker = true
                 }
                 .accessibilityIdentifier("addHistoryExercise")
+            } footer: {
+                Text("Recorded as defined today, without equipment.")
             }
 
             if let edited = workout.isDeleted ? nil : workout.historyEditedAt {

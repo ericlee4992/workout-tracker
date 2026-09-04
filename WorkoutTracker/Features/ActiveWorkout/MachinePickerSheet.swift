@@ -80,6 +80,11 @@ struct MachinePickerSheet: View {
                     }
                 } header: {
                     Text("Free weights")
+                } footer: {
+                    // D19, stated where it bites (codex-review 06).
+                    if entry.snapshotCapturedAt != nil {
+                        Text("A completed set locks equipment; a change continues in a new entry.")
+                    }
                 }
             }
             .navigationTitle("Equipment")

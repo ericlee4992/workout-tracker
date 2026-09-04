@@ -37,3 +37,25 @@ paragraphs.
 **Lesson, recorded because it cost a rebuild:** a regex that removes a property "up to the next
 `    }`" ate the whole `body` of `MachinePickerSheet`. Structural deletions get exact-string
 matches or a brace-balanced scan, never a non-greedy multi-line regex.
+
+
+## Codex review 06 — response (2026-09-04)
+
+`codex-review-06.md`: 2 high, 3 medium, 1 low. Codex was right that several cuts were consequences
+wearing tutorial clothes. Each comes back as ONE short line at the action boundary, never a
+paragraph:
+
+- **kg axis could hide converted lb values (high).** `unitSuffix` now shows `(≈kg)` whenever any
+  plotted point was entered in another unit; plain `(kg)` only when nothing was converted.
+- **"Finish It & Start New" lost its warning (high).** Dialog message: "Only its completed sets
+  are kept."
+- **Save as Template said nothing (medium).** The naming alert's message: "Saves exercises, sets and
+  target reps — not weights or rest times." The permanent gray paragraph stays gone.
+- **Safety/provenance lines (medium).** Export: "This phone holds the only copy until you export."
+  Equipment sheet, only once a set is completed: "A completed set locks equipment; a change
+  continues in a new entry." History Add Exercise: "Recorded as defined today, without equipment."
+  Preset rename: "Logged sets keep the old name." Model rename: "History keeps the captured name."
+- **Sparse-series caveat (medium) / unused `days` (low).** When fewer than four days are drawn:
+  "Only N days logged — read the shape with caution." — which is also what `days` is for.
+
+Copy only, again. 643 unit green; UI classes for the touched screens re-run below.

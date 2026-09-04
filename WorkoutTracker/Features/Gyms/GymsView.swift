@@ -186,6 +186,8 @@ struct GymDetailView: View {
             TextField("Model", text: $modelName)
             Button("Save") { rename(model) }
             Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("History keeps the captured name.")
         }
     }
 

@@ -111,6 +111,8 @@ struct WorkoutFinishedSheet: View {
                 Button("Save") { saveTemplate() }
                     .disabled(templateName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Saves exercises, sets and target reps — not weights or rest times.")
             }
             .alert(
                 "Couldn't Save Template",

@@ -67,6 +67,9 @@ struct ExportSection: View {
             }
         } header: {
             Text("Export")
+        } footer: {
+            // The one line this section must keep saying (codex-review 06).
+            Text("This phone holds the only copy until you export.")
         }
     }
 

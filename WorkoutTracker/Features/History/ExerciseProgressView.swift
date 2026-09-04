@@ -80,6 +80,13 @@ struct ExerciseProgressView: View {
                         .frame(height: 240)
                         .accessibilityIdentifier("progressChart")
                     selectionRow
+                } footer: {
+                    // The one caveat that survives the copy cull (ticket 06,
+                    // codex-review 06): two or three days are a drawn line but
+                    // not much of a trend, and the count exists to say so.
+                    if days < 4 {
+                        Text("Only \(days) days logged — read the shape with caution.")
+                    }
                 }
 
                 if let change = ProgressSeriesMath.change(series) {
@@ -264,9 +271,13 @@ struct ExerciseProgressView: View {
     }
 
     private var unitSuffix: String {
-        // `≈` when converted, per D9/D25: every plotted point is then a derived
-        // number rather than one the user typed.
-        displayUnit == .kg ? " (kg)" : " (≈\(displayUnit.rawValue))"
+        // `≈` when ANY plotted point was converted, per D9/D25. A kg axis is
+        // not exempt: a session entered in lb and plotted in kg is a derived
+        // number too, and once the footer that used to say so was removed
+        // (ticket 06) the axis label is the only place left to say it.
+        let converted = displayUnit != .kg
+            || series.points.contains { $0.bestUnit != nil && $0.bestUnit != displayUnit }
+        return converted ? " (≈\(displayUnit.rawValue))" : " (kg)"
     }
 
     private var yLabel: String {

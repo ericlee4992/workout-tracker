@@ -98,6 +98,10 @@ struct StartWorkoutView: View {
                 Button("Resume Workout") { resumeActive() }
                 Button("Finish It & Start New") { finishActiveThenStartTapped() }
                 Button("Cancel", role: .cancel) {}
+            } message: {
+                // A consequence, not a tutorial: finishing discards every
+                // uncompleted set (codex-review 06).
+                Text("Only its completed sets are kept.")
             }
             .templateDriftDialog(
                 isPresented: $showingReplacementDrift,

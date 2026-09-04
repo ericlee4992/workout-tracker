@@ -106,6 +106,8 @@ struct ExercisePresetsSheet: View {
                 TextField("Name", text: $editText)
                 Button("Save") { rename(preset) }
                 Button("Cancel", role: .cancel) {}
+            } message: { _ in
+                Text("Logged sets keep the old name.")
             }
         }
     }
