@@ -33,7 +33,7 @@ gate test, two UI tests.
    template alter sourceTemplateName, template drift detection (D18), or the
    save-as-template flow?
 4. **Migration.** New optional field on Workout. Does the fixture open, and
-   would the real store? Is  reachable from CloudKit-compatibility
+   would the real store? Is `name` acceptable under the CloudKit-compatibility
    constraints (T2)?
 5. **The alert UI.** A SwiftUI alert with a TextField: known quirks with
    stale @State text between presentations, the placeholder not showing when
