@@ -1,6 +1,6 @@
 # 01 — Chart per equipment tag, and a chart button in History
 
-Status: resolved — awaiting Codex review
+Status: resolved — Codex clear after 4 rounds (codex-review-01..01d)
 Covers user asks **3** and the bug half of **4**.
 
 ## What to build
