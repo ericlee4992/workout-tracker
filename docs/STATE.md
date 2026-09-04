@@ -8,9 +8,11 @@ Updated 2026-09-04 (morning, milestone 9 installed on the phone from the branch)
    finish summary with a heart-rate graph (05). **All five are Codex-clear** (4, 4, 3, 4 and 6
    rounds; every round's findings and responses are in the ticket files). A sixth ticket was added
    after the install — **06, remove the explanatory helper copy** (user's ask; scope A: tutorials
-   go, consequences stay as single lines) — copy-only, three Codex rounds so far, the last narrow
-   one in `codex-review-06d.md`. **The phone runs the tip BEFORE ticket 06**, so it still shows
-   the gray paragraphs; installing again is the fix.
+   go, consequences stay as single lines) — copy-only, **Codex-clear after four rounds** (the rounds turned
+   up that several "tutorial" lines were consequences — they came back as single sentences, and
+   the chart's ≈ now follows each metric's real contributors). **The phone runs the tip BEFORE
+   ticket 06**, so it still shows the gray paragraphs; installing again is the fix, and it carries
+   no schema change.
    **Merge = `git checkout main && git merge milestone-9-history-and-summary && git push`**
    (fast-forward; `main` has zero merge commits). Merging is the user's call.
 2. **Before installing this milestone on the phone: EXPORT FIRST.** D51's reclassification REWRITES

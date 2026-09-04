@@ -1,6 +1,6 @@
 # 06 — Remove the explanatory helper copy
 
-Status: resolved — awaiting Codex review
+Status: resolved — Codex clear after 4 rounds (codex-review-06..06d)
 Blocked by: 05
 Added 2026-09-04 after the milestone-9 install: "lets get rid of all those unnecessary placeholder
 texts". Offered three scopes; the user chose **A**.
