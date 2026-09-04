@@ -39,6 +39,37 @@ enum WorkoutVitalsMath {
     /// genuine dropout is never counted as training.
     static let maxAttributedGap: TimeInterval = 60
 
+    /// The readings a summary should be built from when more than one sensor
+    /// reported: every sample from `dominant`, plus the other sensor's samples
+    /// that fall STRICTLY INSIDE a dominant outage — a gap between two
+    /// consecutive dominant samples longer than `maxAttributedGap`, the same
+    /// threshold below which the zone fold already treats a gap as "still
+    /// reporting". So the dominant sensor owns every moment it covered, the
+    /// other fills only genuine silences, and a lone reading before the first
+    /// or after the last dominant sample is not an outage and stays out —
+    /// which is codex-review-2 #6 (one late Watch reading must not own the
+    /// summary), kept intact while codex-review 05's handoff case is honoured.
+    static func summarySamples(
+        from samples: [HeartRateSample],
+        dominant: HeartRateSource,
+        minimumGap: TimeInterval = maxAttributedGap
+    ) -> [HeartRateSample] {
+        let primary = samples.filter { $0.source == dominant }.sorted { $0.date < $1.date }
+        guard !primary.isEmpty else { return samples.sorted { $0.date < $1.date } }
+        let others = samples.filter { $0.source != dominant }
+        guard !others.isEmpty else { return primary }
+        // The outages: (start, end) of every dominant gap longer than the threshold.
+        var outages: [(Date, Date)] = []
+        for (a, b) in zip(primary, primary.dropFirst()) where b.date.timeIntervalSince(a.date) > minimumGap {
+            outages.append((a.date, b.date))
+        }
+        guard !outages.isEmpty else { return primary }
+        let fillers = others.filter { other in
+            outages.contains { other.date > $0.0 && other.date < $0.1 }
+        }
+        return (primary + fillers).sorted { $0.date < $1.date }
+    }
+
     /// Folds a sample stream into the numbers the summary shows.
     ///
     /// `maxBpm` is the maximum *heart rate ceiling* used for zoning (D45), not

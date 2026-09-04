@@ -37,11 +37,15 @@ enum HeartRateSeriesMath {
         let count = min(maxBuckets, Int((span / interval).rounded(.up)))
         guard count > 0 else { return [] }
 
+        // When the cap bites, the series TRUNCATES at the horizon: samples past
+        // it are dropped, not folded into the last bucket (codex-review 05 —
+        // clamping the index averaged a whole tail into one 15 s mean).
+        let horizon = Double(count) * interval
         var sums = [Int](repeating: 0, count: count)
         var counts = [Int](repeating: 0, count: count)
         for sample in samples {
             let offset = sample.date.timeIntervalSince(start)
-            guard offset >= 0, offset <= span, sample.bpm > 0 else { continue }
+            guard offset >= 0, offset <= span, offset <= horizon, sample.bpm > 0 else { continue }
             let index = min(count - 1, Int(offset / interval))
             sums[index] += sample.bpm
             counts[index] += 1
@@ -64,11 +68,4 @@ enum HeartRateSeriesMath {
         }
     }
 
-    /// Total energy is a SUM of two system figures, and only honest when both
-    /// exist: active alone is not "total", and inventing a basal figure would
-    /// be the false precision D9/D25 exist to refuse.
-    static func totalEnergyKilocalories(active: Double?, basal: Double?) -> Double? {
-        guard let active, let basal else { return nil }
-        return active + basal
-    }
 }

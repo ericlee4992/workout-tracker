@@ -11,6 +11,7 @@ final class StubHeartRateProvider: HeartRateProviding {
     private var continuation: AsyncStream<HeartRateSample>.Continuation?
     let stream: AsyncStream<HeartRateSample>
     var activeEnergyKilocalories: Double?
+    var basalEnergyKilocalories: Double?
     var startResult: HeartRateFeedState = .live(.fixture)
     private(set) var startCount = 0
     private(set) var stopCount = 0

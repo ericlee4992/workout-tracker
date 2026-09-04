@@ -52,6 +52,10 @@ struct RootView: View {
                 .tabItem { Label("Exercises", systemImage: "list.bullet.rectangle") }
                 .tag(Tab.exercises)
         }
+        // The coordinator is owned here and read by the Start screen too: it
+        // must bank the active workout's summary before "Finish it and start
+        // new" auto-finishes that workout (codex-review 05).
+        .environment(heartRateCoordinator)
         .fullScreenCover(item: $activeWorkout) { workout in
             ActiveWorkoutView(
                 workout: workout,

@@ -161,6 +161,7 @@ struct WorkoutDetailView: View {
                     HeartRateSummarySection(
                         series: summary.heartRateSeries,
                         intervalSeconds: interval,
+                        durationSeconds: Int(summary.duration.rounded(.up)),
                         averageBpm: summary.averageHeartRate,
                         maxBpm: summary.maxHeartRate)
                 }

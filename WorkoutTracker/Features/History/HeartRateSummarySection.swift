@@ -11,8 +11,13 @@ import SwiftUI
 struct HeartRateSummarySection: View {
     let series: [Int]
     let intervalSeconds: Int
+    /// The workout's real length. The last bucket is usually partial, and a
+    /// 31 s workout must not be drawn or announced as 45 s (codex-review 05).
+    let durationSeconds: Int
     let averageBpm: Int?
     let maxBpm: Int?
+
+    private var xEnd: Int { max(1, min(durationSeconds, series.count * intervalSeconds)) }
 
     private var points: [HeartRateSeriesMath.Point] {
         HeartRateSeriesMath.points(from: series, intervalSeconds: intervalSeconds)
@@ -37,7 +42,7 @@ struct HeartRateSummarySection: View {
                     ForEach(points) { point in
                         RectangleMark(
                             xStart: .value("From", point.elapsedSeconds),
-                            xEnd: .value("To", point.elapsedSeconds + intervalSeconds),
+                            xEnd: .value("To", min(point.elapsedSeconds + intervalSeconds, xEnd)),
                             yStart: .value("Rest", 0),
                             yEnd: .value("BPM", point.bpm))
                         .foregroundStyle(Color.red.gradient)
@@ -55,7 +60,7 @@ struct HeartRateSummarySection: View {
                     }
                 }
                 .chartYScale(domain: 0...yTop)
-                .chartXScale(domain: 0...max(intervalSeconds, series.count * intervalSeconds))
+                .chartXScale(domain: 0...xEnd)
                 .chartXAxis {
                     AxisMarks(values: .automatic(desiredCount: 4)) { value in
                         AxisGridLine()
@@ -81,7 +86,7 @@ struct HeartRateSummarySection: View {
     }
 
     private var accessibilitySummary: String {
-        var parts = ["Heart rate over \(Format.duration(seconds: series.count * intervalSeconds))"]
+        var parts = ["Heart rate over \(Format.duration(seconds: xEnd))"]
         if let averageBpm { parts.append("average \(averageBpm) BPM") }
         if let maxBpm { parts.append("maximum \(maxBpm) BPM") }
         return parts.joined(separator: ", ")

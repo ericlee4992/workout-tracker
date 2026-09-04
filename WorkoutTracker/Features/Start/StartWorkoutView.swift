@@ -3,6 +3,9 @@ import SwiftUI
 
 struct StartWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
+    /// To bank the active workout's heart-rate summary before "Finish it and
+    /// start new" auto-finishes it inside `startWorkout` (codex-review 05).
+    @Environment(WorkoutHeartRateCoordinator.self) private var heartRateCoordinator
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
     private var gyms: [Gym]
     @Query(sort: \WorkoutTemplate.name) private var templates: [WorkoutTemplate]
@@ -161,7 +164,13 @@ struct StartWorkoutView: View {
     private func startNew() {
         do {
             // Any still-active workout is auto-finished by `startWorkout`,
-            // which ends its rest timer and pending notification.
+            // which ends its rest timer and pending notification — but NOT its
+            // heart-rate session, which lives in the coordinator. Bank and end
+            // it here first, or the replaced workout reaches History with no
+            // summary (codex-review 05, critical).
+            if let active = try session.resumableWorkout() {
+                heartRateCoordinator.end(active)
+            }
             let workout: Workout
             if let template = pendingTemplate {
                 workout = try WorkoutTemplateService(context: modelContext)

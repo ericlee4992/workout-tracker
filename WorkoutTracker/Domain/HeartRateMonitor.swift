@@ -159,15 +159,28 @@ final class HeartRateMonitor {
     }
 
     var vitals: WorkoutVitals {
-        WorkoutVitalsMath.vitals(from: dominantSamples, zoningAgainst: maxHeartRate)
+        WorkoutVitalsMath.vitals(from: summarySamples, zoningAgainst: maxHeartRate)
     }
 
-    /// The samples the summary is built from: the dominant sensor's, so the
-    /// series and the aggregates describe the same readings (codex-review-2 #6
-    /// reasoning, applied to the chart as well).
-    var dominantSamples: [HeartRateSample] {
+    /// The samples the summary is built from — aggregates AND series, so they
+    /// describe the same evidence. The dominant sensor's readings, plus the
+    /// other sensor's readings where the dominant one was silent: a handoff
+    /// or an outage is then real data, not a "gap" the chart footer would
+    /// misdescribe (codex-review 05, high). Where both reported, the dominant
+    /// one still wins, so a single stray Watch reading cannot own a summary
+    /// (codex-review-2 #6).
+    var summarySamples: [HeartRateSample] {
         guard let source = dominantSource else { return [] }
-        return samples.filter { $0.source == source }
+        return WorkoutVitalsMath.summarySamples(from: samples, dominant: source)
+    }
+
+    /// Copies the provider's current energy figures — both halves, together.
+    /// Called at the finish boundary so a late update, or a session that
+    /// burned energy without ever reporting a bpm, is not lost
+    /// (codex-review 05, high).
+    func refreshEnergy() {
+        activeEnergyKilocalories = provider.activeEnergyKilocalories
+        basalEnergyKilocalories = provider.basalEnergyKilocalories
     }
 
     func start() async {
@@ -224,8 +237,9 @@ final class HeartRateMonitor {
         // codex-review-2 #7: energy used to be copied only while ingesting a
         // heart-rate sample, so a session that burned calories without ever
         // reporting a bpm persisted none of them — and one that kept burning
-        // after the last bpm persisted a stale total.
-        activeEnergyKilocalories = provider.activeEnergyKilocalories
+        // after the last bpm persisted a stale total. Both halves (codex-review
+        // 05: basal was left out and went stale).
+        refreshEnergy()
         if let current, !current.isStale(asOf: now) {
             state = .live(current.source)
         } else {

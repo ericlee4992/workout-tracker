@@ -23,6 +23,10 @@ final class WorkoutHeartRateCoordinator {
 
     private(set) var workoutID: UUID?
     private(set) var monitor: HeartRateMonitor?
+    /// The workout the running monitor belongs to, so a REPLACEMENT can bank
+    /// its summary before the monitor is thrown away. Weak: the coordinator
+    /// outlives workouts and must not keep a deleted one alive.
+    private weak var currentWorkout: Workout?
 
     // The rest alarm lives HERE, not on the workout screen, for the same reason
     // the session does (codex-review-2 #2): C1's minimise dismisses that screen
@@ -55,11 +59,18 @@ final class WorkoutHeartRateCoordinator {
             monitor.maxHeartRate = maxHeartRate
             return monitor
         }
-        // A different workout: end the old session before opening a new one.
-        if let existing = monitor {
-            let previous = existing
-            previous.onSample = nil
-            Task { await previous.stop() }
+        // A different workout: BANK the old one, then end its session. This
+        // used to stop the old monitor and discard its samples, so "Finish it
+        // and start new" — which auto-finishes the active workout in
+        // WorkoutSession.startWorkout, out of this coordinator's sight — saved
+        // that workout with no heart-rate summary at all (codex-review 05,
+        // critical). Capturing here is the safety net; StartWorkoutView also
+        // calls `end` explicitly before starting the replacement.
+        if let previous = currentWorkout, previous.id == workoutID {
+            end(previous)
+        } else if let existing = monitor {
+            existing.onSample = nil
+            Task { await existing.stop() }
         }
         let fresh = HeartRateMonitor(
             provider: HeartRateProviders.make(workoutID: workout.id.uuidString))
@@ -78,6 +89,7 @@ final class WorkoutHeartRateCoordinator {
         }
         monitor = fresh
         workoutID = workout.id
+        currentWorkout = workout
         // Hold the audio session open for the workout. Activating one from a
         // suspended background app is unreliable; activating it while the user
         // is still looking at the screen, and keeping it, is not.
@@ -89,19 +101,23 @@ final class WorkoutHeartRateCoordinator {
     /// Banks what the sensor saw onto the workout and ends the session.
     ///
     /// Called on every path that ends a workout — finish, templated finish,
-    /// cancel, and the "finish it and start new" recovery in `StartWorkoutView`,
-    /// which previously had no access to the monitor at all and so could neither
-    /// save the vitals nor stop the sensor.
+    /// cancel, and the "finish it and start new" recovery in `StartWorkoutView`
+    /// (explicitly there since codex-review 05, and as a net in `monitor(for:)`
+    /// when a different workout arrives).
     func end(_ workout: Workout, capture: Bool = true) {
         guard workoutID == workout.id, let monitor else { return }
         if capture, !workout.isDeleted {
+            // The finish boundary: take the provider's LATEST energy figures,
+            // both halves together, rather than whatever the last sample tick
+            // happened to copy (codex-review 05, high).
+            monitor.refreshEnergy()
             WorkoutSummaryBuilder.capture(
                 vitals: monitor.vitals,
                 activeEnergyKilocalories: monitor.activeEnergyKilocalories,
                 basalEnergyKilocalories: monitor.basalEnergyKilocalories,
                 // The same readings the aggregates come from, so the chart and
                 // the numbers under it never disagree.
-                samples: monitor.dominantSamples,
+                samples: monitor.summarySamples,
                 zonesEstimated: monitor.maxHeartRate?.isEstimated ?? false,
                 onto: workout)
         }
@@ -110,6 +126,7 @@ final class WorkoutHeartRateCoordinator {
         Task { await ending.stop() }
         self.monitor = nil
         self.workoutID = nil
+        self.currentWorkout = nil
         releaseAlarm()
     }
 

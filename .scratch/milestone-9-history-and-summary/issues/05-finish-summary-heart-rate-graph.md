@@ -73,3 +73,30 @@ fixture → no section, no chart. **637 unit green; UI: summary (2), heart rate 
 
 **Untouched, deliberately:** the Live Activity and the rest alarm — the series is read once at
 finish; nothing runs at a deadline (D46).
+
+
+## Codex review 05 — response (2026-09-04)
+
+`codex-review-05.md`: 1 critical, 4 high, 2 medium, 2 low. All acted on.
+
+- **"Finish it & start new" lost the whole heart-rate summary (critical / high).** True, and older
+  than this ticket — aggregates and calories were already lost on that path; the coordinator's own
+  comment claiming it was covered was false. Two fixes: `StartWorkoutView.startNew` calls
+  `heartRateCoordinator.end(active)` before `startWorkout` auto-finishes it (the coordinator is
+  now in the TabView's environment, not only the workout cover's), and `monitor(for:)` banks the
+  previous workout before discarding its monitor, as a net. Tested through the replacement path.
+- **Basal not refreshed with active (high ×2).** `refreshLiveness` refreshes both; `end` calls a
+  new `refreshEnergy()` at the finish boundary before capture. Test: energy arriving after the last
+  bpm, both halves persisted.
+- **Dominant-source gaps (high).** `summarySamples` — used by BOTH aggregates and series — is the
+  dominant sensor's samples plus the other sensor's samples strictly inside a dominant outage
+  longer than `maxAttributedGap` (60 s). A first cut filled anything >15 s from a dominant sample
+  and broke the codex-review-2 #6 regression (one late Watch reading joined the summary); the
+  outage rule keeps that guarantee and honours the handoff case. Tested both.
+- **Cap folded the tail (medium).** Truncates at the horizon; tested with samples beyond it.
+- **Partial last bucket overstated duration (medium).** The section takes `durationSeconds`; the
+  last rectangle, the x-domain and the accessibility label stop there.
+- **SPEC sketch (low)** updated; **total-energy helper (low)** moved to `WorkoutSummary`.
+
+**640 unit green (+3).** UI: summary (2), heart rate (5), core loop (9) ran green after the
+RootView/Start changes; the later outage-rule change is Domain-only with a single fixture source.

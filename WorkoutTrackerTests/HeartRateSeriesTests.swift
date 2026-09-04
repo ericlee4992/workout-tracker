@@ -57,17 +57,23 @@ struct HeartRateSeriesTests {
         #expect(points.map(\.elapsedSeconds) == [15, 45])
     }
 
-    @Test func theBucketCountIsCapped() {
-        let series = HeartRateSeriesMath.series(from: [], start: start, end: start.addingTimeInterval(10 * 86_400), intervalSeconds: 15)
+    /// codex-review 05: past the cap the series TRUNCATES — samples beyond the
+    /// horizon are dropped, never folded into the last retained bucket.
+    @Test func theBucketCountIsCappedAndTheTailIsDroppedNotFolded() {
+        let horizon = TimeInterval(HeartRateSeriesMath.maxBuckets * 15)
+        let series = HeartRateSeriesMath.series(
+            from: [sample(120, at: horizon - 5), sample(200, at: horizon + 100), sample(200, at: 9 * 86_400)],
+            start: start, end: start.addingTimeInterval(10 * 86_400), intervalSeconds: 15)
         #expect(series.count == HeartRateSeriesMath.maxBuckets)
+        #expect(series.last == 120, "the last retained bucket holds only what fell in it")
     }
 
     // MARK: Total energy
 
     @Test func totalCaloriesNeedsBothHalves() {
-        #expect(HeartRateSeriesMath.totalEnergyKilocalories(active: 300, basal: 80) == 380)
-        #expect(HeartRateSeriesMath.totalEnergyKilocalories(active: 300, basal: nil) == nil, "active alone is not total")
-        #expect(HeartRateSeriesMath.totalEnergyKilocalories(active: nil, basal: 80) == nil)
+        #expect(WorkoutSummary.totalEnergyKilocalories(active: 300, basal: 80) == 380)
+        #expect(WorkoutSummary.totalEnergyKilocalories(active: 300, basal: nil) == nil, "active alone is not total")
+        #expect(WorkoutSummary.totalEnergyKilocalories(active: nil, basal: 80) == nil)
     }
 
     // MARK: The write
@@ -158,5 +164,65 @@ struct HeartRateSeriesTests {
         let old = try ExportJSON.decode(v7)
         #expect(old.workouts.first?.heartRateSeries == nil)
         #expect(old.workouts.first?.averageHeartRate == 130, "the aggregates a v7 file DOES carry still arrive")
+    }
+
+    // MARK: Which samples the summary is built from (codex-review 05)
+
+    @Test func theOtherSensorFillsOnlyAGenuineDominantOutage() {
+        // AirPods report for 0–60 s, go silent for 90 s, and report 150–210 s;
+        // the Watch reports throughout, and once more after the AirPods' last
+        // sample (the codex-review-2 #6 case: a late stray reading).
+        var samples: [HeartRateSample] = []
+        for t in stride(from: 0, through: 60, by: 10) { samples.append(sample(120, at: TimeInterval(t), source: .airPods)) }
+        for t in stride(from: 150, through: 210, by: 10) { samples.append(sample(125, at: TimeInterval(t), source: .airPods)) }
+        for t in stride(from: 0, through: 210, by: 10) { samples.append(sample(140, at: TimeInterval(t) + 1, source: .watch)) }
+        samples.append(sample(60, at: 260, source: .watch))
+        let merged = WorkoutVitalsMath.summarySamples(from: samples, dominant: .airPods)
+        let watchKept = merged.filter { $0.source == .watch }
+        #expect(!watchKept.isEmpty, "the Watch covered the AirPods' outage")
+        #expect(watchKept.allSatisfy { $0.date.timeIntervalSince(start) > 60 && $0.date.timeIntervalSince(start) < 150 },
+                "only readings strictly inside the 90 s outage; none from the overlap, none after the last AirPods sample")
+        #expect(merged.filter { $0.source == .airPods }.count == 14, "every dominant sample is kept")
+        #expect(!merged.contains { $0.bpm == 60 }, "the late stray reading stays out (codex-review-2 #6)")
+        // And the series drawn from them has no false gap across the outage.
+        let series = HeartRateSeriesMath.series(from: merged, start: start, end: start.addingTimeInterval(210))
+        #expect(series.allSatisfy { $0 > 0 }, "a sensor handoff is data, not a gap: \(series)")
+        // A gap of exactly the threshold is not an outage.
+        let tight = [sample(120, at: 0, source: .airPods), sample(120, at: 60, source: .airPods), sample(140, at: 30, source: .watch)]
+        #expect(WorkoutVitalsMath.summarySamples(from: tight, dominant: .airPods).count == 2)
+    }
+
+    @Test @MainActor func aReplacementWorkoutBanksThePreviousOnesSummary() throws {
+        let ctx = try context()
+        let first = Workout(startedAt: Date().addingTimeInterval(-120))
+        let second = Workout(startedAt: .now)
+        ctx.insert(first); ctx.insert(second)
+        let coordinator = WorkoutHeartRateCoordinator()
+        let monitor = coordinator.monitor(for: first, maxHeartRate: nil)
+        for i in 0..<4 {
+            monitor.ingestForTesting(HeartRateSample(bpm: 120 + i, date: first.startedAt.addingTimeInterval(Double(i) * 15 + 1), source: .fixture))
+        }
+        // "Finish it and start new": a different workout asks for a monitor.
+        _ = coordinator.monitor(for: second, maxHeartRate: nil)
+        #expect(first.averageHeartRate != nil, "the replaced workout keeps its aggregates")
+        #expect(!first.heartRateSeries.isEmpty, "and its series")
+        #expect(coordinator.workoutID == second.id)
+    }
+
+    @Test @MainActor func energyIsRefreshedAsAPairAtTheFinishBoundary() throws {
+        let ctx = try context()
+        let workout = Workout(startedAt: Date().addingTimeInterval(-60))
+        ctx.insert(workout)
+        let provider = StubHeartRateProvider()
+        let monitor = HeartRateMonitor(provider: provider)
+        let coordinator = WorkoutHeartRateCoordinator()
+        coordinator.adoptForTesting(monitor: monitor, workoutID: workout.id)
+        // Energy arrives AFTER the last bpm — nothing ever ingests it.
+        provider.activeEnergyKilocalories = 88
+        provider.basalEnergyKilocalories = 30
+        coordinator.end(workout)
+        #expect(workout.activeEnergyKilocalories == 88)
+        #expect(workout.basalEnergyKilocalories == 30, "basal must not be left stale when active is refreshed")
+        #expect(WorkoutSummaryBuilder.summary(for: workout).totalEnergyKilocalories == 118)
     }
 }

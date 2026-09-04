@@ -44,7 +44,15 @@ struct WorkoutSummary: Equatable, Sendable {
 
     /// Active + basal, only when both exist (D9/D25: no invented halves).
     var totalEnergyKilocalories: Double? {
-        HeartRateSeriesMath.totalEnergyKilocalories(active: activeEnergyKilocalories, basal: basalEnergyKilocalories)
+        Self.totalEnergyKilocalories(active: activeEnergyKilocalories, basal: basalEnergyKilocalories)
+    }
+
+    /// Total energy is a SUM of two system figures, and only honest when both
+    /// exist: active alone is not "total", and inventing a basal figure would
+    /// be the false precision D9/D25 exist to refuse.
+    static func totalEnergyKilocalories(active: Double?, basal: Double?) -> Double? {
+        guard let active, let basal else { return nil }
+        return active + basal
     }
 
     var hasHeartRateSeries: Bool {
