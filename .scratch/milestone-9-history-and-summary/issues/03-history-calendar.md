@@ -1,6 +1,6 @@
 # 03 — History calendar
 
-Status: ready-for-agent
+Status: resolved — awaiting Codex review
 Blocked by: 02
 Covers user ask **5**.
 
@@ -8,7 +8,7 @@ Covers user ask **5**.
 
 A **Calendar** toolbar button on the History tab opening a sheet: vertically scrolling month
 grids, most recent at the bottom and scrolled into view, weekday order and first weekday from the
-user's locale. Days with at least one FINISHED workout are marked; today is highlighted; future
+user's locale. Days on which at least one FINISHED workout started are marked; today is highlighted; future
 days are dimmed. Tapping a marked day dismisses the sheet and **pushes that session's detail**; if
 the day has more than one session, push the most recent and say so in the ticket's notes — do not
 build a day-list screen for this milestone.
@@ -18,9 +18,40 @@ across month boundaries, DST changes and a Monday-first locale.
 
 ## Acceptance criteria
 
-- Pure calendar model with tests: grid rows per month, marked-day set derived from `finishedAt`
-  (not `startedAt`) days, locale first-weekday respected.
+- Pure calendar model with tests: grid rows per month, marked-day set derived from `startedAt`
+  days of FINISHED workouts (~~`finishedAt`~~ — changed during the build: the list, its month
+  groups and the detail title all use the start day, and a 23:30 session marked on the next day
+  would open into a screen filed under the previous one), locale first-weekday respected.
 - Sheet renders from an empty store (no crash, no marks) and from `-uiTestChartHistory` (marks on
   the fixture's days).
 - UI test: open the calendar, tap a marked day, assert the pushed detail is that session.
 - Screenshot attached.
+
+
+## Resolution (2026-09-03)
+
+- `Domain/WorkoutCalendar.swift` — pure: `[startedAt]` + today + `Calendar` → months (oldest
+  first, first marked month through today's), each `rows × 7` cells with leading/trailing nils,
+  `Day{date, dayOfMonth, isMarked, isToday, isFuture}`, and `weekdaySymbols` rotated to the
+  locale's `firstWeekday`. Days are built with `date(byAdding: .day)`, never seconds arithmetic
+  (DST). `workoutToOpen(on:among:)` picks the latest-started finished workout on that day.
+- `Features/History/HistoryCalendarSheet.swift` — presentation only: pinned weekday header,
+  `LazyVGrid` months, marked days are buttons (`calendarDay.yyyy-MM-dd`) with a green check, today
+  filled, future dimmed, scrolled to the newest month on appear.
+- `HistoryView` — a Calendar toolbar button (`historyCalendar`); on pick the sheet dismisses and
+  `onDismiss` sets `path = [workout]`. The push is deliberately in `onDismiss`: pushing while the
+  sheet is still up lands under it.
+- **Day rule changed from the ticket text: START day, not finish day.** Found by the UI test at
+  23:30: the fixture's "yesterday" session finished after midnight, so the calendar marked a day
+  the list files under a different date and opened a session titled with the previous day. History
+  groups, rows and the detail title all use `startedAt`; the calendar now agrees with them.
+  Acceptance text above amended and struck.
+- Two sessions on one day: the newest opens (ticket's call); no day-list built.
+
+**Tests.** `WorkoutCalendarTests` (8): whole weeks / day-1 under its weekday (Sunday-first),
+Monday-first shift + heading order, month span first-mark→today, empty store = this month, start-day
+marking across midnight, today/future flags, the LA DST month (30 midnights, mark on the right
+day), and which session opens (latest-started, running excluded, other days nil).
+`HistoryCalendarUITests` (2): tap yesterday → that session's detail (Name row + date title); empty
+store → calendar opens, today shown, no tappable days. **602 unit green; UI: calendar (2), history
+editing (2), chart (4), name (2) green.** Screenshots `history-calendar`, `history-calendar-opened`.

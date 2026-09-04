@@ -16,6 +16,11 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     /// The workout a swipe is proposing to delete.
     @State private var confirmingDelete: Workout?
+    /// Milestone 9, ticket 03: the calendar sheet, and the session it chose.
+    /// The push happens in the sheet's onDismiss, not in the tap — pushing
+    /// while a sheet is still presented lands on the list under the sheet.
+    @State private var showCalendar = false
+    @State private var calendarPick: Workout?
 
     private func deleteConfirmedWorkout() {
         defer { confirmingDelete = nil }
@@ -77,6 +82,26 @@ struct HistoryView: View {
                 }
             }
             .navigationTitle("History")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Calendar", systemImage: "calendar") { showCalendar = true }
+                        .accessibilityIdentifier("historyCalendar")
+                }
+            }
+            .sheet(isPresented: $showCalendar, onDismiss: {
+                if let pick = calendarPick {
+                    calendarPick = nil
+                    path = [pick]
+                }
+            }) {
+                HistoryCalendarSheet(
+                    // `workouts` is already the finished-only query.
+                    calendar: WorkoutCalendar(startedAt: workouts.map(\.startedAt))
+                ) { day in
+                    calendarPick = WorkoutCalendar.workoutToOpen(on: day, among: workouts)
+                    showCalendar = false
+                }
+            }
             .confirmationDialog(
                 "Delete this workout?",
                 isPresented: Binding(
