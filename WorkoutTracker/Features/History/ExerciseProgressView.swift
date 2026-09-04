@@ -187,16 +187,23 @@ struct ExerciseProgressView: View {
     /// variation. D36 forbids pooling them, so the alternative to a picker is
     /// history the user simply cannot reach.
     private var variationPicker: some View {
-        Picker("Variation", selection: variationBinding) {
+        let labels = variationLabels
+        return Picker("Variation", selection: variationBinding) {
             ForEach(availableVariations, id: \.key) { item in
                 Text(item.days == 0
-                    ? "\(variationName(item.key)) · nothing eligible"
-                    : "\(variationName(item.key)) · \(item.days) day\(item.days == 1 ? "" : "s")")
+                    ? "\(labels[item.key] ?? "") · nothing eligible"
+                    : "\(labels[item.key] ?? "") · \(item.days) day\(item.days == 1 ? "" : "s")")
                     .tag(item.key)
             }
         }
         .pickerStyle(.menu)
         .accessibilityIdentifier("chartVariationPicker")
+    }
+
+    /// Distinct labels for every listed variation — the Domain owns the rule
+    /// (`ProgressSeriesMath.labels`); this only supplies the snapshot words.
+    private var variationLabels: [ProgressVariationKey: String] {
+        ProgressSeriesMath.labels(for: availableVariations.map { (key: $0.key, words: words(for: $0.key)) })
     }
 
     /// Names the variation that is empty when others are not, so the state
@@ -396,31 +403,32 @@ struct ExerciseProgressView: View {
         return ranked + [(key: current, days: 0)]
     }
 
-    /// Display name for a variation: the equipment, then the SNAPSHOT preset
-    /// name — both as logged, not as today's rows say (D23). "Dumbbell",
-    /// "Hammer Strength #2 · Wide grip", "Wide grip", "No equipment recorded".
-    ///
-    /// Unrecorded equipment is named only when there is no preset to name the
-    /// row: a machine exercise logged without picking a machine is the COMMON
-    /// case, and prefixing every grip with "No equipment recorded ·" buried
-    /// the part that distinguishes them. So a row with no equipment prefix
-    /// means no equipment was recorded.
-    private func variationName(_ key: ProgressVariationKey) -> String {
-        var parts: [String] = []
+    /// The snapshot words for a variation — as logged, not as today's rows say
+    /// (D23). Naming policy lives in `ProgressSeriesMath.labels`.
+    private func words(for key: ProgressVariationKey) -> ProgressVariationWords {
         let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
+        var equipmentName: String?
+        var gymName: String?
         switch key.equipment {
         case .freeWeight(let tag):
-            parts.append(tag.label)
+            equipmentName = tag.label
         case .machine(let machineID):
-            parts.append(
-                entries.first { $0.snapshotMachineID == machineID }?.snapshotMachineLabel ?? "Machine")
+            let entry = entries.first { $0.snapshotMachineID == machineID }
+            equipmentName = entry?.snapshotMachineLabel ?? "Machine"
+            gymName = entry?.snapshotGymName
         case .unrecorded:
-            if key.presetID == nil { parts.append("No equipment recorded") }
+            break
         }
-        if let presetID = key.presetID {
-            let name = entries.first { $0.snapshotPresetID == presetID }?.snapshotPresetName
-            parts.append(name ?? "Variation")
+        let presetName = key.presetID.map { id in
+            entries.first { $0.snapshotPresetID == id }?.snapshotPresetName ?? "Variation"
         }
-        return parts.joined(separator: " · ")
+        return ProgressVariationWords(
+            loadType: key.loadType, equipment: key.equipment,
+            equipmentName: equipmentName, gymName: gymName, presetName: presetName)
+    }
+
+    /// The label the empty state uses for the variation on screen.
+    private func variationName(_ key: ProgressVariationKey) -> String {
+        variationLabels[key] ?? exerciseName
     }
 }

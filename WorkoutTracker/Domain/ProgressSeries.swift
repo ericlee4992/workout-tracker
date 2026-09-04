@@ -143,21 +143,24 @@ enum ProgressSeriesMath {
     /// Every variation with history, most days first — the order a picker
     /// lists them in and the order `defaultVariation` chooses from.
     ///
-    /// Ties: the plain (no-preset) variation first, then equipment by tag
-    /// name / machine id / unrecorded, then preset id. Fully ordered so the
-    /// chart opens on the same variation every launch rather than dictionary
-    /// order. Lives here, not in the view, because codex-review 01 found the
-    /// view had grown its own copy of this comparator — fallback selection is
-    /// Domain logic (CLAUDE.md) precisely so two copies cannot drift.
+    /// Ties: the plain (no-preset) variation first, then load type, then
+    /// equipment by tag name / machine id / unrecorded, then preset id. Every
+    /// field of the key takes part, so two DISTINCT keys never compare equal
+    /// and the chart opens on the same variation every launch rather than
+    /// dictionary order. (codex-review 01b: the first cut left load type out,
+    /// and D47 is exactly how one exercise ends up with history under two.)
+    /// Lives here, not in the view, because codex-review 01 found the view had
+    /// grown its own copy of this comparator — fallback selection is Domain
+    /// logic (CLAUDE.md) precisely so two copies cannot drift.
     static func rankedVariations(
         in sets: [RecordSetInput], calendar: Calendar = .current
     ) -> [(key: ProgressVariationKey, days: Int)] {
         variations(in: sets, calendar: calendar)
             .map { (key: $0.key, days: $0.value) }
             .sorted { a, b in
-                let aRank = (-a.days, a.key.presetID == nil ? 0 : 1,
+                let aRank = (-a.days, a.key.presetID == nil ? 0 : 1, a.key.loadType.rawValue,
                              a.key.equipment.sortKey, a.key.presetID?.uuidString ?? "")
-                let bRank = (-b.days, b.key.presetID == nil ? 0 : 1,
+                let bRank = (-b.days, b.key.presetID == nil ? 0 : 1, b.key.loadType.rawValue,
                              b.key.equipment.sortKey, b.key.presetID?.uuidString ?? "")
                 return aRank < bRank
             }
@@ -280,5 +283,72 @@ enum ProgressSeriesMath {
         let raw = (last - first) / abs(first)
         // Assisted improves DOWNWARD, so a drop in assistance is progress.
         return series.higherIsBetter ? raw : -raw
+    }
+}
+
+
+/// The words a picker has for one variation, resolved from SNAPSHOTS by the
+/// caller (D23). Pure data so the labelling rule can be tested without a view.
+struct ProgressVariationWords: Equatable, Sendable {
+    var loadType: LoadType
+    var equipment: ProgressEquipment
+    /// "Dumbbell", the frozen machine label, or nil for unrecorded equipment.
+    var equipmentName: String?
+    /// The frozen gym name of a machine, used only to tell two machines with
+    /// the same label apart.
+    var gymName: String?
+    /// The frozen preset name, nil for the plain exercise.
+    var presetName: String?
+}
+
+extension ProgressSeriesMath {
+
+    /// One label per variation, and NO two the same.
+    ///
+    /// codex-review 01b: hiding "No equipment recorded" behind a preset name
+    /// let a preset the user had called "Dumbbell" render identically to the
+    /// dumbbell tag, and two machines with the same frozen label collided too.
+    /// So: start terse, and only where labels collide add discriminators —
+    /// the equipment word, then the load type, then the machine's gym, then
+    /// an ordinal as the floor nothing can defeat.
+    static func labels(
+        for rows: [(key: ProgressVariationKey, words: ProgressVariationWords)]
+    ) -> [ProgressVariationKey: String] {
+        func render(_ w: ProgressVariationWords, level: Int) -> String {
+            var parts: [String] = []
+            switch w.equipment {
+            case .unrecorded:
+                // Terse form omits it when a preset names the row.
+                if w.presetName == nil || level >= 1 { parts.append("No equipment recorded") }
+            default:
+                parts.append(w.equipmentName ?? "Machine")
+            }
+            if let preset = w.presetName { parts.append(preset) }
+            if level >= 2 { parts.append(w.loadType.badge) }
+            if level >= 3, case .machine = w.equipment, let gym = w.gymName { parts.append(gym) }
+            return parts.joined(separator: " · ")
+        }
+        var levels = [ProgressVariationKey: Int](
+            uniqueKeysWithValues: rows.map { ($0.key, 0) })
+        var out: [ProgressVariationKey: String] = [:]
+        for _ in 0...3 {
+            out = Dictionary(uniqueKeysWithValues: rows.map {
+                ($0.key, render($0.words, level: levels[$0.key] ?? 0))
+            })
+            let counts = Dictionary(grouping: out.values) { $0 }.mapValues(\.count)
+            let colliding = out.filter { (counts[$0.value] ?? 0) > 1 }.keys
+            if colliding.isEmpty { return out }
+            for key in colliding { levels[key, default: 0] += 1 }
+        }
+        // Still colliding after every discriminator: number them, in the
+        // caller's order, so every row is at least distinguishable.
+        var seen: [String: Int] = [:]
+        for row in rows {
+            let label = out[row.key] ?? ""
+            let n = (seen[label] ?? 0) + 1
+            seen[label] = n
+            if n > 1 { out[row.key] = "\(label) (\(n))" }
+        }
+        return out
     }
 }

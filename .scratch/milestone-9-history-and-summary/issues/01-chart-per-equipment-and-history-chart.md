@@ -96,3 +96,22 @@ rediscovered as a bug.
   grip names, so unrecorded equipment is named only when no preset names the row.
 
 573 unit green; chart (4) + history-editing (2) UI green. Screenshot `history-chart-sparse`.
+
+
+## Codex review 01b — response (2026-09-03)
+
+`codex-review-01b.md`: both round-1 highs confirmed closed; 3 mediums (two are one defect).
+
+- **Rank omitted `loadType`** — so "fully ordered" was false and the test named "total and
+  stable" could not show it. `loadType.rawValue` is now in the tuple, after preset presence and
+  before equipment; `rankedVariationsSeparatesLoadTypesDeterministically` pins a same-days /
+  same-equipment / same-preset pair under two load types and checks the order is identical when
+  the input is reversed.
+- **Two rows could render the same label.** Naming is no longer a view rule.
+  `ProgressSeriesMath.labels(for:)` takes each variation's snapshot words and returns distinct
+  labels: terse by default; where labels collide it adds, in order, the equipment word (so a preset
+  called "Dumbbell" reads "No equipment recorded · Dumbbell" beside the tag's "Dumbbell"), the load
+  type badge, the machine's gym, and finally an ordinal. Five tests, including the exact
+  preset-named-like-a-tag case, two same-label machines, and the hopeless case.
+- Codex could not execute tests this round (simulator `-308`, then a stalled runner — the same
+  gotcha STATE records). **My runs are the evidence: 579 unit, chart UI 4/4.**

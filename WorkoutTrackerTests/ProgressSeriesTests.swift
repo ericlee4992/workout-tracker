@@ -305,6 +305,91 @@ struct ChartPresetScopingTests {
         #expect(ProgressSeriesMath.defaultVariation(in: sets) == ranked.first?.key)
     }
 
+    /// codex-review 01b: the rank left load type out, so after a D47
+    /// correction two distinct keys could compare equal and fall back to
+    /// dictionary order. Every field of the key now takes part.
+    @Test func rankedVariationsSeparatesLoadTypesDeterministically() {
+        var assisted = tagged(30, day: 1, tag: .barbell)
+        assisted.loadType = .assisted
+        let sets = [tagged(100, day: 2, tag: .barbell), assisted]
+        let ranked = ProgressSeriesMath.rankedVariations(in: sets)
+        #expect(ranked.count == 2)
+        #expect(Set(ranked.map(\.key.loadType)) == [.weighted, .assisted])
+        // Same days, same equipment, same (nil) preset: the order is by load
+        // type's raw value, and identical on every call.
+        let again = ProgressSeriesMath.rankedVariations(in: sets.reversed())
+        #expect(ranked.map(\.key) == again.map(\.key))
+        #expect(ranked.first?.key.loadType.rawValue ?? "" < ranked.last?.key.loadType.rawValue ?? "")
+    }
+
+    // MARK: - Picker labels never collide (codex-review 01b)
+
+    private func words(
+        _ key: ProgressVariationKey, equipment: String? = nil, gym: String? = nil, preset: String? = nil
+    ) -> (key: ProgressVariationKey, words: ProgressVariationWords) {
+        (key, ProgressVariationWords(
+            loadType: key.loadType, equipment: key.equipment,
+            equipmentName: equipment, gymName: gym, presetName: preset))
+    }
+
+    @Test func aPresetNamedLikeATagDoesNotCollideWithThatTag() {
+        let unrecordedPreset = ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: wide)
+        let dumbbell = ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.dumbbell), presetID: nil)
+        let labels = ProgressSeriesMath.labels(for: [
+            words(unrecordedPreset, preset: "Dumbbell"),
+            words(dumbbell, equipment: "Dumbbell"),
+        ])
+        #expect(labels[unrecordedPreset] != labels[dumbbell])
+        #expect(labels[unrecordedPreset] == "No equipment recorded · Dumbbell")
+        #expect(labels[dumbbell] == "Dumbbell")
+    }
+
+    @Test func twoMachinesWithTheSameLabelAreToldApartByGym() {
+        let a = ProgressVariationKey(loadType: .weighted, equipment: .machine(machineA), presetID: nil)
+        let b = ProgressVariationKey(loadType: .weighted, equipment: .machine(machineB), presetID: nil)
+        let labels = ProgressSeriesMath.labels(for: [
+            words(a, equipment: "Chest Press", gym: "Gold's"),
+            words(b, equipment: "Chest Press", gym: "Anytime"),
+        ])
+        #expect(labels[a] != labels[b])
+        #expect(labels[a]?.contains("Gold's") == true)
+        #expect(labels[b]?.contains("Anytime") == true)
+    }
+
+    @Test func sameVariationUnderTwoLoadTypesShowsTheLoadType() {
+        let w = ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.barbell), presetID: nil)
+        let a = ProgressVariationKey(loadType: .assisted, equipment: .freeWeight(.barbell), presetID: nil)
+        let labels = ProgressSeriesMath.labels(for: [words(w, equipment: "Barbell"), words(a, equipment: "Barbell")])
+        #expect(labels[w] != labels[a])
+        #expect(labels[a]?.contains(LoadType.assisted.badge) == true)
+    }
+
+    /// Nothing left to add and still identical: number them rather than
+    /// ship two rows the user cannot tell apart.
+    @Test func hopelessCollisionsAreNumbered() {
+        let a = ProgressVariationKey(loadType: .weighted, equipment: .machine(machineA), presetID: nil)
+        let b = ProgressVariationKey(loadType: .weighted, equipment: .machine(machineB), presetID: nil)
+        let labels = ProgressSeriesMath.labels(for: [
+            words(a, equipment: "Chest Press", gym: "Gold's"),
+            words(b, equipment: "Chest Press", gym: "Gold's"),
+        ])
+        #expect(labels[a] != labels[b])
+        #expect(labels[b]?.hasSuffix("(2)") == true)
+    }
+
+    /// The common case stays terse: no collisions, no discriminators.
+    @Test func labelsStayTerseWhenNothingCollides() {
+        let plain = ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil)
+        let grip = ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: wide)
+        let db = ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.dumbbell), presetID: nil)
+        let labels = ProgressSeriesMath.labels(for: [
+            words(plain), words(grip, preset: "Wide grip"), words(db, equipment: "Dumbbell"),
+        ])
+        #expect(labels[plain] == "No equipment recorded")
+        #expect(labels[grip] == "Wide grip")
+        #expect(labels[db] == "Dumbbell")
+    }
+
     // MARK: - Choosing which variation to open on
 
     @Test func variationsAreCountedInDaysNotSets() {
