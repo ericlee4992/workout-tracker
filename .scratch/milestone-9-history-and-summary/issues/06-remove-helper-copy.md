@@ -68,3 +68,9 @@ and the e1RM can be won by a different one, so a kg axis could still hide an lb 
 `ProgressPoint` now carries `enteredUnits` (every set that day) and `e1rmUnit` (the winning set);
 the axis suffix and the Volume value use the contributor for the metric on show. Unit test builds
 a day whose heaviest set is kg and whose e1RM is won by an lb set. 644 unit green; chart UI 6/6.
+
+
+## Codex review 06c — response (2026-09-04)
+
+Spec clear; one low: the provenance test's lb row carried a stale kg normalization, a tuple D25
+forbids. It now normalizes through `WeightMath.normalizedKg(value:unit:)`.

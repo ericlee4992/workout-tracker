@@ -30,8 +30,12 @@ struct ProgressSeriesTests {
     @Test func eachMetricKnowsWhichUnitsFedIt() {
         var heavyKg = set(100, reps: 2, day: 1)          // best set, kg; e1RM ≈ 105
         heavyKg.weightUnit = .kg
-        var lighterLb = set(90, reps: 10, day: 1)        // 90 kg entered as… lb below; e1RM ≈ 120 wins
+        // Entered as 198.4 lb, normalized the only way the app ever does it
+        // (D25 — a stale kg beside an lb entry is a tuple the store cannot
+        // hold; codex-review 06c). ≈90 kg × 10 reps: the e1RM winner.
+        var lighterLb = set(90, reps: 10, day: 1)
         lighterLb.weightUnit = .lb; lighterLb.weightValue = 198.4
+        lighterLb.normalizedKg = WeightMath.normalizedKg(value: 198.4, unit: .lb)
         let point = ProgressSeriesMath.series(
             for: [heavyKg, lighterLb],
             variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil)
