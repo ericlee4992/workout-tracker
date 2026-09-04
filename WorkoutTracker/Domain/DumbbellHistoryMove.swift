@@ -62,18 +62,34 @@ enum DumbbellHistoryMove {
         guard try context.fetchCount(qualifying) > 0 else { return .nothing }
         qualifying.propertiesToFetch = [\.snapshotFreeWeightTag, \.snapshotExerciseID]
 
+        // Tag FIRST, touching nothing else: every other property on a rejected
+        // row would fault a storage read, and the common case is a store full
+        // of finished barbell rows that fail this one check (codex-review 04c).
+        let candidates = try context.fetch(qualifying)
+            .filter { $0.snapshotFreeWeightTag == .dumbbell }
+        guard !candidates.isEmpty else { return .nothing }
+
         let targetIDs = Set(DumbbellCounterparts.pairs.map(\.target))
         let targets = try context.fetch(FetchDescriptor<Exercise>(
             predicate: #Predicate { targetIDs.contains($0.id) }))
         let targetByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0) })
 
-        let entries = try context.fetch(qualifying)
+        // DETERMINISTIC order (codex-review 04c): the first entry needing a
+        // given grip on a given target decides the created preset's spelling,
+        // so entries with a LIVE preset go first — its current name is the
+        // user's label — then earliest capture, then id. Fetch order is not a
+        // contract, and two identical stores must not end up with two labels.
+        let ordered = candidates.sorted { a, b in
+            let aKey = (a.preset == nil ? 1 : 0, a.snapshotCapturedAt ?? .distantPast, a.id.uuidString)
+            let bKey = (b.preset == nil ? 1 : 0, b.snapshotCapturedAt ?? .distantPast, b.id.uuidString)
+            return aKey < bKey
+        }
+
         var outcome = Outcome.nothing
-        for entry in entries {
+        for entry in ordered {
             guard !entry.isDeleted,
                   let workout = entry.workout, !workout.isDeleted, workout.finishedAt != nil,
                   entry.snapshotCapturedAt != nil,
-                  entry.snapshotFreeWeightTag == .dumbbell,
                   let targetID = DumbbellCounterparts.counterpart(of: entry.snapshotExerciseID),
                   let target = targetByID[targetID]
             else { continue }

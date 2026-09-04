@@ -232,14 +232,13 @@ struct DumbbellExercisesTests {
         let dbBench = try exercise(named: "Dumbbell Bench Press", in: ctx)
         let wide = ExercisePreset(name: "Wide grip", order: 0, exercise: bench)
         ctx.insert(wide)
+        // Adverse order on purpose: the snapshot-only row exists before any
+        // row with a live preset (see below).
+        let orphan = logged(bench, tag: .dumbbell, daysAgo: 20, in: ctx)
+        orphan.snapshotPresetID = UUID(); orphan.snapshotPresetName = "  WIDE   GRIP "
         let first = logged(bench, tag: .dumbbell, in: ctx)
         let second = logged(bench, tag: .dumbbell, daysAgo: 10, in: ctx)
         for e in [first, second] { e.preset = wide; e.snapshotPresetID = wide.id; e.snapshotPresetName = "Wide grip" }
-        // A third whose preset was since DELETED: only the snapshot name remains,
-        // and spelled the way the app's own duplicate rule considers equal —
-        // case, diacritics AND spacing (codex-review 04b).
-        let orphan = logged(bench, tag: .dumbbell, daysAgo: 20, in: ctx)
-        orphan.snapshotPresetID = UUID(); orphan.snapshotPresetName = "  WIDE   GRIP "
         try ctx.save()
 
         try DumbbellHistoryMove.run(in: ctx)
@@ -250,7 +249,7 @@ struct DumbbellExercisesTests {
         #expect(first.snapshotPresetID == homed.id, "records and chart key on the snapshot id (D36)")
         #expect(second.preset?.id == homed.id && second.snapshotPresetID == homed.id, "one shared preset, not one per entry")
         #expect(orphan.snapshotPresetID == homed.id, "matched by the app's own name rule: case, diacritics, spacing")
-        #expect(homed.name == "Wide grip", "created with the cleaned name of the first arrival")
+        #expect(homed.name == "Wide grip", "a LIVE preset's name wins over a snapshot-only spelling, whatever the fetch order")
         #expect(first.snapshotPresetName == "Wide grip", "the name as logged is unchanged")
         #expect((dbBench.presets ?? []).count == 1)
         #expect((bench.presets ?? []).contains { $0.id == wide.id }, "the source keeps its own preset for its own history")
@@ -413,5 +412,30 @@ struct DumbbellExercisesTests {
         let new = try #require(try session.switchToDumbbellCounterpart(of: a))
         #expect(new.supersetGroupID == nil)
         #expect(a.supersetGroupID == nil, "and the stale id is pruned off the source")
+    }
+
+    /// The label choice must not depend on fetch order: run the same logical
+    /// store several times with rows inserted in different orders and demand
+    /// the same created preset name each time (codex-review 04c).
+    @Test @MainActor func theReHomedPresetLabelIsOrderIndependent() throws {
+        for permutation in 0..<4 {
+            let ctx = try context()
+            try CatalogSeeder.reconcile(try SeedCatalog.bundled(), in: ctx)
+            let bench = try exercise(named: "Bench Press", in: ctx)
+            let dbBench = try exercise(named: "Dumbbell Bench Press", in: ctx)
+            let wide = ExercisePreset(name: "Wide grip", order: 0, exercise: bench)
+            ctx.insert(wide)
+            var makers: [() -> Void] = [
+                { let e = self.logged(bench, tag: .dumbbell, daysAgo: 30, in: ctx); e.snapshotPresetID = UUID(); e.snapshotPresetName = "wide   GRIP" },
+                { let e = self.logged(bench, tag: .dumbbell, daysAgo: 3, in: ctx); e.preset = wide; e.snapshotPresetID = wide.id; e.snapshotPresetName = "Wide grip" },
+                { let e = self.logged(bench, tag: .dumbbell, daysAgo: 12, in: ctx); e.snapshotPresetID = UUID(); e.snapshotPresetName = " WIDE GRIP" },
+            ]
+            for _ in 0..<permutation { makers.append(makers.removeFirst()) }
+            makers.forEach { $0() }
+            try ctx.save()
+            try DumbbellHistoryMove.run(in: ctx)
+            let names = (dbBench.presets ?? []).map(\.name)
+            #expect(names == ["Wide grip"], "permutation \(permutation) produced \(names)")
+        }
     }
 }

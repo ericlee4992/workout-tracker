@@ -145,3 +145,21 @@ one defect). All acted on, one only partially and said so.
   an orphaned one-member id on the source yields nil on both entries.
 
 **625 unit green; UI: counterpart (1), barbell (2) green.**
+
+
+## Codex review 04c — response (2026-09-04)
+
+`codex-review-04c.md`: dedupe and both superset cases closed; 1 high (a real, order-dependent
+defect my full-suite run had passed by luck), 2 medium (one defect).
+
+- **Preset label depended on fetch order (high).** True — Codex's focused runs produced
+  "WIDE   GRIP" where mine produced "Wide grip". Candidates are now processed in a total order:
+  entries with a LIVE preset first (its current name is the user's label), then earliest capture,
+  then id. The re-home test inserts the adverse order; a new test runs four insertion permutations
+  and demands one label. Focused suite run three times: 19/19 each.
+- **Projection faulted before the tag check (medium ×2).** The tag is now the first and only thing
+  read on a projected row; only survivors fetch targets and touch `workout` / `snapshotCapturedAt`.
+  Codex verified the platform claim (captured enums refused, optional or not) and that D51's
+  "cheap" wording is met at this ceiling — no amendment needed.
+
+**626 unit green.** Domain-only change; the sheet and split are untouched since the last UI runs.
