@@ -30,11 +30,17 @@ struct WorkoutCalendar: Equatable {
         /// (codex-review 03, medium: the first view branched on `isMarked`
         /// first and a today with a workout lost its highlight, which is the
         /// most common state after finishing a session).
-        enum Emphasis: Equatable { case plain, future, today, marked, markedToday }
+        /// `markedFuture` exists because it is constructible: every start
+        /// time becomes a mark, and a clock-shifted or corrupt timestamp can
+        /// put a finished workout in the future. It stays a real, tappable
+        /// mark — the workout exists — and is dimmed like its neighbours
+        /// (codex-review 03b).
+        enum Emphasis: Equatable { case plain, future, today, marked, markedToday, markedFuture }
         var emphasis: Emphasis {
             switch (isMarked, isToday, isFuture) {
             case (true, true, _): .markedToday
-            case (true, false, _): .marked
+            case (true, false, true): .markedFuture
+            case (true, false, false): .marked
             case (false, true, _): .today
             case (false, false, true): .future
             case (false, false, false): .plain

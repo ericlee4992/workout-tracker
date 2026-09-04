@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 
 @testable import WorkoutTracker
@@ -118,6 +119,29 @@ struct WorkoutCalendarTests {
         #expect(sep.first { $0.dayOfMonth == 4 }?.emphasis == .future)
     }
 
+    /// The sixth combination (codex-review 03b): a finished workout whose
+    /// start time is in the FUTURE (clock shift, corrupt data) is still a
+    /// mark — it exists — and is still dimmed as future. Every reachable
+    /// (marked, today, future) triple maps to its own case.
+    @Test func aMarkedFutureDayIsItsOwnStateAndTheMappingIsTotal() {
+        let c = calendar(firstWeekday: 1)
+        let today = date(2026, 9, 3, in: c)
+        let cal = WorkoutCalendar(startedAt: [date(2026, 9, 10, in: c)], today: today, calendar: c)
+        let sep = cal.months.last!.cells.compactMap { $0 }
+        #expect(sep.first { $0.dayOfMonth == 10 }?.emphasis == .markedFuture)
+        // Total: build every flag triple directly and check none falls through
+        // to a neighbour's case.
+        func day(_ m: Bool, _ t: Bool, _ f: Bool) -> WorkoutCalendar.Day {
+            WorkoutCalendar.Day(date: today, dayOfMonth: 1, isMarked: m, isToday: t, isFuture: f)
+        }
+        #expect(day(false, false, false).emphasis == .plain)
+        #expect(day(false, false, true).emphasis == .future)
+        #expect(day(false, true, false).emphasis == .today)
+        #expect(day(true, false, false).emphasis == .marked)
+        #expect(day(true, true, false).emphasis == .markedToday)
+        #expect(day(true, false, true).emphasis == .markedFuture)
+    }
+
     /// No iteration cap: an ancient (corrupt) timestamp yields a long calendar
     /// that still ENDS on today's month — the cap that used to exist could
     /// stop decades early and open the sheet there (codex-review 03).
@@ -147,14 +171,26 @@ struct WorkoutCalendarTests {
 
     // MARK: What the sheet's dismissal pushes
 
-    @Test @MainActor func aDeletedOrRunningPickIsDroppedAndAPendingTargetWins() {
+    @Test @MainActor func aDeletedOrRunningPickIsDroppedAndAPendingTargetWins() throws {
         let c = calendar(firstWeekday: 1)
+        let schema = WorkoutTrackerStore.schema
+        let container = try ModelContainer(
+            for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        let ctx = ModelContext(container)
         let finished = Workout(startedAt: date(2026, 8, 20, in: c), finishedAt: date(2026, 8, 20, 13, in: c))
         let running = Workout(startedAt: date(2026, 8, 20, in: c))
+        let doomed = Workout(startedAt: date(2026, 8, 19, in: c), finishedAt: date(2026, 8, 19, 13, in: c))
+        for w in [finished, running, doomed] { ctx.insert(w) }
+        try ctx.save()
         #expect(WorkoutCalendar.destinationAfterCalendar(pick: finished, otherNavigationPending: false) === finished)
         #expect(WorkoutCalendar.destinationAfterCalendar(pick: running, otherNavigationPending: false) == nil)
         #expect(WorkoutCalendar.destinationAfterCalendar(pick: nil, otherNavigationPending: false) == nil)
         #expect(WorkoutCalendar.destinationAfterCalendar(pick: finished, otherNavigationPending: true) == nil,
                 "a C2 View-in-History request that arrived while the sheet was up must not be overwritten")
+        // ACTUALLY deleted between the tap and the dismissal (codex-review 03b:
+        // the first version of this test never deleted anything).
+        ctx.delete(doomed)
+        #expect(doomed.isDeleted)
+        #expect(WorkoutCalendar.destinationAfterCalendar(pick: doomed, otherNavigationPending: false) == nil)
     }
 }

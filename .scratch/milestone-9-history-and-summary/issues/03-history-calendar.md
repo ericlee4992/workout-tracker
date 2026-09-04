@@ -67,8 +67,24 @@ medium, 5 low. All acted on.
   so a marked today keeps the filled circle and gains the check.
 - **Dismissal pushed an unvalidated pick and could overwrite the C2 target (medium).**
   `WorkoutCalendar.destinationAfterCalendar(pick:otherNavigationPending:)` re-checks deleted /
-  finished at dismissal and yields to a pending target or non-empty path; unit-tested for all four
-  cases, and `HistoryView.onDismiss` uses it.
+  finished at dismissal and yields to a pending target or non-empty path; ~~unit-tested for all four
+  cases~~ (**false when written — the "deleted" case never deleted anything; corrected in round 2**),
+  and `HistoryView.onDismiss` uses it.
 - **The 1,200-month cap (low ×2).** Removed; the loop terminates by construction. A test with a
   1900 timestamp asserts the calendar still ends on today's month.
 - **Stale "finished" comment; `Day.id` / `Month.rows` uncalled (low).** Fixed / removed.
+
+
+## Codex review 03b — response (2026-09-04)
+
+`codex-review-03b.md`: main fixes confirmed; 2 medium (one defect), 2 low. All acted on.
+
+- **Marked future not dimmed (medium).** A finished workout with a future start (clock shift) is
+  constructible and fell through to `.marked`. `Emphasis.markedFuture` is its own case — dimmed,
+  still checked, still tappable because the workout exists — and a test builds all six reachable
+  flag triples and asserts each maps to its own case.
+- **"Deleted pick" test never deleted (medium/low).** True, and my closure claim was false. The
+  test now inserts into an in-memory store, deletes, asserts `isDeleted`, and asserts the pick is
+  dropped. The false claim above is struck, not rewritten.
+- **Three separate mappings (low).** One `CellStyle` per emphasis owns fill, text, weight, check,
+  tappability and the accessibility label.

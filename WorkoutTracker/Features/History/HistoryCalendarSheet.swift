@@ -82,48 +82,78 @@ struct HistoryCalendarSheet: View {
         }
     }
 
+    /// Everything a cell's look depends on, decided ONCE per combined state.
+    /// codex-review 03b: fill, text and interactivity were three separate
+    /// mappings, and the gap between them is exactly where a marked-future
+    /// day fell through.
+    private struct CellStyle {
+        var fill: Color
+        var text: Color
+        var weight: Font.Weight
+        var showsCheck: Bool
+        var isTappable: Bool
+        var accessibilityLabel: String
+
+        init(_ emphasis: WorkoutCalendar.Day.Emphasis, dayOfMonth: Int) {
+            switch emphasis {
+            case .plain:
+                self.init(fill: .clear, text: .primary, weight: .regular,
+                          check: false, tappable: false, label: "Day \(dayOfMonth)")
+            case .future:
+                self.init(fill: .clear, text: Color.secondary.opacity(0.45), weight: .regular,
+                          check: false, tappable: false, label: "Day \(dayOfMonth)")
+            case .today:
+                self.init(fill: .primary, text: Color(.systemBackground), weight: .semibold,
+                          check: false, tappable: false, label: "Today")
+            case .marked:
+                self.init(fill: Color(.secondarySystemFill), text: .primary, weight: .regular,
+                          check: true, tappable: true, label: "Workout on day \(dayOfMonth)")
+            case .markedToday:
+                self.init(fill: .primary, text: Color(.systemBackground), weight: .semibold,
+                          check: true, tappable: true, label: "Workout today")
+            case .markedFuture:
+                // Dimmed like its neighbours, but it is a real workout: keep
+                // the check and the tap.
+                self.init(fill: Color(.secondarySystemFill).opacity(0.5), text: Color.secondary.opacity(0.45),
+                          weight: .regular, check: true, tappable: true,
+                          label: "Workout on day \(dayOfMonth), dated in the future")
+            }
+        }
+
+        private init(fill: Color, text: Color, weight: Font.Weight, check: Bool, tappable: Bool, label: String) {
+            self.fill = fill; self.text = text; self.weight = weight
+            self.showsCheck = check; self.isTappable = tappable; self.accessibilityLabel = label
+        }
+    }
+
     @ViewBuilder
     private func dayCell(_ day: WorkoutCalendar.Day) -> some View {
-        // One switch over the COMBINED state, so a marked today keeps its
-        // today fill and gains the check rather than losing one to the other.
-        let emphasis = day.emphasis
-        let isToday = emphasis == .today || emphasis == .markedToday
-        let fill: Color = switch emphasis {
-        case .markedToday, .today: Color.primary
-        case .marked: Color(.secondarySystemFill)
-        case .plain, .future: Color.clear
-        }
-        let text: Color = switch emphasis {
-        case .markedToday, .today: Color(.systemBackground)
-        case .future: Color.secondary.opacity(0.45)
-        case .plain, .marked: Color.primary
-        }
+        let style = CellStyle(day.emphasis, dayOfMonth: day.dayOfMonth)
         let label = Text("\(day.dayOfMonth)")
             .font(.body.monospacedDigit())
-            .fontWeight(isToday ? .semibold : .regular)
+            .fontWeight(style.weight)
             .frame(width: 40, height: 40)
-            .background(Circle().fill(fill))
-            .foregroundStyle(text)
-        if day.isMarked {
-            Button {
-                onPick(day.date)
-            } label: {
-                label
-                    .overlay(alignment: .topTrailing) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.caption2)
-                            .symbolRenderingMode(.palette)
-                            .foregroundStyle(.white, .green)
-                            .offset(x: 4, y: -4)
-                    }
+            .background(Circle().fill(style.fill))
+            .foregroundStyle(style.text)
+            .overlay(alignment: .topTrailing) {
+                if style.showsCheck {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption2)
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(.white, .green)
+                        .offset(x: 4, y: -4)
+                }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(isToday ? "Workout today" : "Workout on day \(day.dayOfMonth)")
-            .accessibilityIdentifier("calendarDay.\(Self.key(day.date))")
-            .frame(maxWidth: .infinity)
+        if style.isTappable {
+            Button { onPick(day.date) } label: { label }
+                .buttonStyle(.plain)
+                .accessibilityLabel(style.accessibilityLabel)
+                .accessibilityIdentifier("calendarDay.\(Self.key(day.date))")
+                .frame(maxWidth: .infinity)
         } else {
             label
                 .frame(maxWidth: .infinity)
+                .accessibilityLabel(style.accessibilityLabel)
                 .accessibilityIdentifier("calendarDay.\(Self.key(day.date))")
         }
     }
