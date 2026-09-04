@@ -1,6 +1,6 @@
 # 03 — History calendar
 
-Status: resolved — awaiting Codex review
+Status: resolved — Codex clear after 3 rounds (codex-review-03..03c)
 Blocked by: 02
 Covers user ask **5**.
 
