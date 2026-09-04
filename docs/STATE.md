@@ -1,19 +1,20 @@
 # Where the project is right now
 
-Updated 2026-09-03. **START HERE IF YOU ARE COLD:**
+Updated 2026-09-03 (21:15, after the reinstall). **START HERE IF YOU ARE COLD:**
 
-1. **The signing profile expires 2026-09-05 21:57 UTC** — about two days out. When it lapses the
-   app stops launching on the phone; the fix is a REBUILD that re-signs (see Signing below), not a
-   reinstall of the same binary.
-2. **The phone is one commit behind `main`, and the gap matters.** It runs `4eb5486`; `3ad382d`
-   (charts: one variation per line, D36) is committed and pushed but **NOT installed**, so the
-   charts on the device still pool narrow- and wide-grip history into one line.
+1. **The phone is CURRENT with `main` (`5a860bc`) and freshly signed — installed and
+   launch-verified 2026-09-03 21:09.** Both profiles (app and widget) now expire **2026-09-11
+   01:08 UTC**, and for the first time they expire on the SAME day, so the Live Activity will not
+   die three days before the app does. Nothing needs rebuilding until then.
+2. **The D36 chart fix (`3ad382d`) is now on the device and has never been looked at by a human.**
+   The charts should draw one line per variation, with a **Variation** picker when there is history
+   under more than one. That is the first thing to ask the user about.
 3. **`main` is clean and pushed. 568 unit tests green** as of 2026-09-03. The UI suite was last run
    in full at 26 tests on 2026-08-29; only `ProgressChartTooltipUITests` has been re-run since.
-4. **Likely first actions**, if the user has no other ask: rebuild and install (points 1 and 2 are
-   both solved by one build); then the free Apple Watch experiment below, which costs a single
-   workout and could DELETE the whole `WorkoutTrackerWatch` target. Everything else is in the
-   priority list further down; nothing is blocking.
+4. **Likely first actions**, if the user has no other ask: the free Apple Watch experiment below,
+   which costs a single workout and could DELETE the whole `WorkoutTrackerWatch` target; and asking
+   about the charts (point 2). Everything else is in the priority list further down; nothing is
+   blocking.
 5. **The habit that has paid off most here:** the user tests on the device and reports plainly, and
    Codex cross-reviews catch what the tests do not. **Seven defects so far have been a contract
    with no caller, or a caller contradicting its contract** — the watch rest countdown, deletion
@@ -219,7 +220,7 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`4eb5486`** — one behind `main`. **`3ad382d` (charts: one variation per line, D36) is NOT installed**, so the device still pools variations into a single chart line; it needs a build to reach the phone. `4eb5486` is the chart tooltip. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
+| Installed commit | **`5a860bc`** — **current with `main`**, installed and launch-verified **2026-09-03 21:09**. This build carries `3ad382d`, so the device now draws **one chart line per variation** (D36) with a Variation picker; the binary was checked for `chartVariationPicker` before installing, and no SwiftData model changed between `4eb5486` and here, so there was no migration. Previously `4eb5486` — the chart tooltip, one behind `main`. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
 | Previously installed | `82a1ddb` (the working background rest alarm), 2026-08-25 02:11 |
 | Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
@@ -231,7 +232,7 @@ those sessions outranks new features.
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
-| Signing | **Free** Apple account → builds expire **7 days**. Last signed **29 Aug 2026 (17:57)**, so expires **5 Sep 2026 21:57 UTC**. HealthKit entitlements verified signed INTO the binary, not merely present in the profile. A **rebuild that re-signs** resets the clock; merely reinstalling an already-signed build does
+| Signing | **Free** Apple account → builds expire **7 days**. Last signed **3 Sep 2026 (21:08)**, so **app AND widget both expire 11 Sep 2026 01:08 UTC** — the first build where the two clocks agree (see the forced-renewal gotcha below). HealthKit entitlements verified signed INTO the binary, not merely present in the profile. A **rebuild that re-signs** resets the clock; merely reinstalling an already-signed build does
 NOT — proved on 2026-08-29, when a 17:42 install kept a 17:46:59 expiry and died four minutes later |
 | Bundle ID | `com.ericlee4992.workouttracker` (from `WT_BUNDLE_ID_BASE` in `Config/Local.xcconfig`) |
 | Test simulator | `WT-iPhone` (create per CLAUDE.md if missing) |
@@ -533,12 +534,27 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   profile; the interactive wizard is not needed once its setup stages are done. **Verify the built
   app before installing** — read `WorkoutTracker.app/embedded.mobileprovision`'s expiry and confirm it
   moved, the same distrust the stale-binary gotcha above earns.
+- **`-allowProvisioningUpdates` renews only a LAPSED profile — to get a fresh 7 days, DELETE the
+  profile file first.** This is the fix for the drift below, and it is not obvious: a rebuild two days
+  before expiry re-signs the app but hands it back the SAME nearly-dead profile, so the build looks
+  successful and buys you nothing. Xcode only mints a new one when it cannot find a valid existing
+  one. On 2026-09-03 the app profile (expiring 2026-09-05) was moved aside from
+  `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` and the ordinary device build with
+  `-allowProvisioningUpdates` minted a replacement good to **2026-09-11** — a full week instead of two
+  days. Back the file up before deleting; if minting fails you have removed a working profile.
+  **This also re-syncs the app/widget drift**: both profiles were created in the same build, so both
+  now expire within one second of each other.
+
 - **The app and the widget expire on DIFFERENT days, and only the expired one gets renewed.** Each
   profile is minted when first created and renewed only once it has lapsed, so the clocks drift: after
   the 2026-08-29 renewal the app runs to **2026-09-05** while `WorkoutTrackerWidget.appex` still
-  carries a profile expiring **2026-09-02**. Expect the Live Activity / widget to fail about **3 days
+  carried a profile expiring **2026-09-02**. Expect the Live Activity / widget to fail about **3 days
   16 hours** before the app itself does, which will present as "the lock screen stopped working" with the app
-  apparently fine.
+  apparently fine. **This actually happened**: by 2026-09-03 the widget profile had lapsed and been
+  removed from disk entirely, so the lock-screen Live Activity was dead for roughly a day while the app
+  kept working — nobody reported it, which is worth knowing about how visible that failure really is.
+  The forced-renewal above resolved it, but the drift will return if only one of the two ever lapses
+  again.
 - **A simulator that has failed an install repeatedly needs `xcrun simctl erase`.** After the above
   was fixed the run still died with `Mach error -308 - (ipc/mig) server died`; erasing `WT-iPhone`
   cleared it. A stale simulator looks exactly like a broken build.
