@@ -111,19 +111,23 @@ final class WorkoutHeartRateCoordinator {
             // both halves together, rather than whatever the last sample tick
             // happened to copy (codex-review 05, high).
             monitor.refreshEnergy()
+            // ONE bounded collection for aggregates AND series: the workout's
+            // own span, ending at the recorded finish when there is one (a
+            // replacement banked late) — so a reading that arrived after the
+            // finish can change neither the chart nor the average under it
+            // (codex-review 05c: the series was bounded, the vitals were not).
+            let end = workout.finishedAt ?? Date()
+            let bounded = monitor.summarySamples.filter {
+                $0.date >= workout.startedAt && $0.date <= end
+            }
             WorkoutSummaryBuilder.capture(
-                vitals: monitor.vitals,
+                vitals: WorkoutVitalsMath.vitals(from: bounded, zoningAgainst: monitor.maxHeartRate),
                 activeEnergyKilocalories: monitor.activeEnergyKilocalories,
                 basalEnergyKilocalories: monitor.basalEnergyKilocalories,
-                // The same readings the aggregates come from, so the chart and
-                // the numbers under it never disagree.
-                samples: monitor.summarySamples,
+                samples: bounded,
                 zonesEstimated: monitor.maxHeartRate?.isEstimated ?? false,
                 onto: workout,
-                // If the workout is already finished (a replacement banked
-                // late), the series ends where the workout did, not at the
-                // wall clock (codex-review 05b).
-                now: workout.finishedAt ?? .now)
+                now: end)
         }
         monitor.onSample = nil
         let ending = monitor

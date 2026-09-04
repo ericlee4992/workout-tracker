@@ -68,17 +68,22 @@ enum WorkoutVitalsMath {
             outages.contains { other.date > $0.0 && other.date < $0.1 }
         }
         // Terminal handoffs (codex-review 05b): the dominant sensor stopping
-        // for good, or starting late, while the other kept reporting. A run
-        // OUTSIDE the dominant span counts only if it is SUSTAINED — its own
-        // first-to-last span longer than the threshold — which admits a Watch
-        // that carried the last five minutes and still rejects a single stray
-        // reading after Finish (codex-review-2 #6: one reading has no span).
+        // for good, or starting late, while the other KEPT REPORTING. A run
+        // OUTSIDE the dominant span counts only if it is sustained AND
+        // continuous — first-to-last span longer than the threshold, and no
+        // internal gap longer than it (codex-review 05c: two lone readings 61 s
+        // apart are not a sensor reporting, by this module's own definition
+        // of a gap). That admits a Watch that carried the last five minutes
+        // and still rejects a single stray reading after Finish (codex-review-2
+        // #6: one reading has no span).
         let first = primary.first!.date, last = primary.last!.date
         for run in [others.filter { $0.date < first }, others.filter { $0.date > last }] {
             let sorted = run.sorted { $0.date < $1.date }
-            if let a = sorted.first, let b = sorted.last, b.date.timeIntervalSince(a.date) > minimumGap {
-                fillers += sorted
-            }
+            guard let a = sorted.first, let b = sorted.last,
+                  b.date.timeIntervalSince(a.date) > minimumGap,
+                  zip(sorted, sorted.dropFirst()).allSatisfy({ $1.date.timeIntervalSince($0.date) <= minimumGap })
+            else { continue }
+            fillers += sorted
         }
         guard !fillers.isEmpty else { return primary }
         return (primary + fillers).sorted { $0.date < $1.date }

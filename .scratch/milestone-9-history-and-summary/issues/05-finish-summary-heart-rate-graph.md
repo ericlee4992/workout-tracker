@@ -124,3 +124,17 @@ RootView/Start changes; the later outage-rule change is Domain-only with a singl
 **642 unit green (+2); UI: core loop (9), summary (2), heart rate (5) green.** Durability on the
 drift path: `end` writes onto the model before `resolve`'s own `context.save()`, which persists it —
 the same ordering the ordinary path relies on via `startWorkout`'s save.
+
+
+## Codex review 05c — response (2026-09-04)
+
+`codex-review-05c.md`: 2 high (one defect), 1 medium. All acted on.
+
+- **Aggregates not bounded like the series (high ×2).** True: `finishedAt` bounded the fold but
+  `monitor.vitals` still folded every sample. `end` now builds ONE bounded collection
+  (`[startedAt, finishedAt ?? now]`) and derives both vitals and series from it. The late-bank test
+  now feeds twenty post-finish readings at 190 BPM and asserts max stays 120 and the series stays
+  8 buckets.
+- **"Sustained" was an endpoint check (medium).** A terminal run now also requires continuity — no
+  internal gap longer than the threshold — so two lone readings 61 s apart are out while a
+  continuous 70 s run is in; both cases tested.

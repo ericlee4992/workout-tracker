@@ -246,8 +246,16 @@ struct HeartRateSeriesTests {
 
         // The stray: one Watch reading three minutes after the last AirPods
         // sample (codex-review-2 #6) — no span, not a run, stays out.
-        let stray = samples.filter { $0.source == .airPods } + [sample(60, at: 580, source: .watch)]
+        let airPods = samples.filter { $0.source == .airPods }
+        let stray = airPods + [sample(60, at: 580, source: .watch)]
         #expect(WorkoutVitalsMath.summarySamples(from: stray, dominant: .airPods).allSatisfy { $0.source == .airPods })
+        // Two lone readings 61 s apart span the threshold but are not a sensor
+        // REPORTING — their own gap exceeds it (codex-review 05c). Out.
+        let twoLone = airPods + [sample(60, at: 500, source: .watch), sample(62, at: 561, source: .watch)]
+        #expect(WorkoutVitalsMath.summarySamples(from: twoLone, dominant: .airPods).allSatisfy { $0.source == .airPods })
+        // Whereas the same span with continuous reporting is a run.
+        let continuous = airPods + stride(from: 410, through: 480, by: 10).map { sample(128, at: TimeInterval($0), source: .watch) }
+        #expect(WorkoutVitalsMath.summarySamples(from: continuous, dominant: .airPods).contains { $0.source == .watch })
     }
 
     /// codex-review 05b: a replacement banked AFTER the workout was finished
@@ -263,7 +271,14 @@ struct HeartRateSeriesTests {
         for i in 0..<8 {
             monitor.ingestForTesting(HeartRateSample(bpm: 120, date: started.addingTimeInterval(Double(i) * 15 + 1), source: .fixture))
         }
+        // Readings that arrived AFTER the recorded finish (codex-review 05c):
+        // they must change neither the chart nor the aggregates under it.
+        for i in 0..<20 {
+            monitor.ingestForTesting(HeartRateSample(bpm: 190, date: started.addingTimeInterval(200 + Double(i) * 15), source: .fixture))
+        }
         coordinator.end(workout)
         #expect(workout.heartRateSeries.count == 8, "120 s / 15 s, not an hour of buckets")
+        #expect(workout.maxHeartRate == 120, "a post-finish 190 must not become the workout's maximum")
+        #expect(workout.averageHeartRate == 120)
     }
 }
