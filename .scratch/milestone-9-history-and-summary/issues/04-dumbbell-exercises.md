@@ -122,3 +122,26 @@ point; the first cut of the move was wrong in design, not detail. The corrected 
   false as Codex said — the gate was the way back; it no longer exists.
 
 **623 unit green; UI: counterpart (1), history editing (2), export (1) green.**
+
+
+## Codex review 04b — response (2026-09-04)
+
+`codex-review-04b.md`: round-1 criticals confirmed closed; 2 high (one defect), 3 medium (two are
+one defect). All acted on, one only partially and said so.
+
+- **Preset matching weaker than the app's own rule (high).** True. The move now uses
+  `ExercisePresets.isDuplicate` (case, diacritics AND spacing) and creates with `cleanedName`; the
+  test's orphan is spelled `"  WIDE   GRIP "` and re-homes onto "Wide grip".
+- **Gate not cheap once barbell history exists (medium ×2).** Partially closed, honestly: the
+  persisted predicate now states every qualifier the store can express (source id, frozen,
+  finished workout, not yet reclassified). **The tag cannot be pushed down** — SwiftData refuses a
+  captured `EquipmentTag` in a `#Predicate`, optional or not; the first attempt crashed launch —
+  so finished barbell rows under a source exercise still pass the count and are rejected in Swift,
+  with `propertiesToFetch` limited to the tag and exercise id. That is the honest ceiling without a
+  persisted shadow flag, which would be a schema field existing only to speed a no-op; declined.
+  The test was renamed to say what it proves (moves nothing) rather than what it cannot (gate zero).
+- **Stale singleton group carried through a split (medium).** True, and mine. `split` carries the
+  id only when `Supersets.isGrouped` — a genuine run of two or more — and prunes regardless. Test:
+  an orphaned one-member id on the source yields nil on both entries.
+
+**625 unit green; UI: counterpart (1), barbell (2) green.**

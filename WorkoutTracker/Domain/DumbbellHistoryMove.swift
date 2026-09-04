@@ -43,18 +43,31 @@ enum DumbbellHistoryMove {
     @discardableResult
     static func run(in context: ModelContext, now: Date = .now) throws -> Outcome {
         let sourceIDs = DumbbellCounterparts.sourceIDs
-        // The cheap gate: any entry still filed under a source exercise?
-        let candidates = try context.fetchCount(FetchDescriptor<ExerciseEntry>(
-            predicate: #Predicate { sourceIDs.contains($0.snapshotExerciseID) }))
-        guard candidates > 0 else { return .nothing }
+        // The gate and the candidate set are the SAME persisted predicate, and
+        // it states every qualifier the store can express: filed under a
+        // source, frozen, in a finished workout, not already reclassified. The
+        // tag CANNOT be pushed down — SwiftData rejects a captured enum in a
+        // predicate, optional or not (it crashed launch when tried) — so the
+        // Dumbbell check happens in Swift over rows that already passed the
+        // rest. A user with years of barbell Bench Press history therefore
+        // still materialises those frozen source rows on launch; only the
+        // tag is fetched for them, and nothing is written unless one moves
+        // (codex-review 04b). Deletion state is re-checked in Swift too.
+        var qualifying = FetchDescriptor<ExerciseEntry>(predicate: #Predicate {
+            sourceIDs.contains($0.snapshotExerciseID)
+                && $0.reclassifiedAt == nil
+                && $0.snapshotCapturedAt != nil
+                && $0.workout?.finishedAt != nil
+        })
+        guard try context.fetchCount(qualifying) > 0 else { return .nothing }
+        qualifying.propertiesToFetch = [\.snapshotFreeWeightTag, \.snapshotExerciseID]
 
         let targetIDs = Set(DumbbellCounterparts.pairs.map(\.target))
         let targets = try context.fetch(FetchDescriptor<Exercise>(
             predicate: #Predicate { targetIDs.contains($0.id) }))
         let targetByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0) })
 
-        let entries = try context.fetch(FetchDescriptor<ExerciseEntry>(
-            predicate: #Predicate { sourceIDs.contains($0.snapshotExerciseID) }))
+        let entries = try context.fetch(qualifying)
         var outcome = Outcome.nothing
         for entry in entries {
             guard !entry.isDeleted,
@@ -88,17 +101,20 @@ enum DumbbellHistoryMove {
     /// The target's preset with this name, created if it does not exist yet.
     /// Two moved entries with the same grip share one preset, and a grip the
     /// user later adds under the same name is this very row.
+    ///
+    /// "Same name" is `ExercisePresets`' rule — case, diacritics AND spacing —
+    /// not a second, weaker comparator: the app would refuse to create
+    /// "WIDE   GRIP" beside "Wide grip", so the move must not either
+    /// (codex-review 04b, high). Created presets carry the cleaned name.
     private static func preset(
-        named name: String, on exercise: Exercise, in context: ModelContext
+        named rawName: String, on exercise: Exercise, in context: ModelContext
     ) throws -> ExercisePreset {
         let existing = (exercise.presets ?? []).filter { !$0.isDeleted }
-        if let match = existing.first(where: {
-            $0.name.compare(name, options: [.caseInsensitive, .diacriticInsensitive]) == .orderedSame
-        }) {
+        if let match = existing.first(where: { ExercisePresets.isDuplicate(rawName, among: [$0.name]) }) {
             return match
         }
         let created = ExercisePreset(
-            name: name,
+            name: ExercisePresets.cleanedName(rawName),
             order: ExercisePresets.nextOrder(after: existing.map(\.order)),
             exercise: exercise)
         context.insert(created)

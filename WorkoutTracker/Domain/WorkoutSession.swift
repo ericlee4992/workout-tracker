@@ -443,9 +443,11 @@ struct WorkoutSession {
         // The new entry sits right after the old one, so carrying the group id
         // keeps a superset's adjacency run intact (D48). Without this, a
         // split inside a superset severed it and changed when rest was taken
-        // (codex-review 04, high). Prune afterwards in case the old entry is
-        // left holding a group alone.
-        let supersetGroupID = entry.supersetGroupID
+        // (codex-review 04, high). Carried ONLY when the source is genuinely
+        // grouped: copying a stale one-member group would make the pair a
+        // two-entry "superset" that the prune below then believes
+        // (codex-review 04b). Prune afterwards regardless.
+        let supersetGroupID = Supersets.isGrouped(entry, in: workout) ? entry.supersetGroupID : nil
         // A preset change leaves the bar in the user's hands; an equipment
         // change does not (see `clearBars`). One split serves both, so the
         // difference has to be read from the arguments rather than assumed.

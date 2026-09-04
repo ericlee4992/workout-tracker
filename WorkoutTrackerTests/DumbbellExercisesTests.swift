@@ -235,9 +235,11 @@ struct DumbbellExercisesTests {
         let first = logged(bench, tag: .dumbbell, in: ctx)
         let second = logged(bench, tag: .dumbbell, daysAgo: 10, in: ctx)
         for e in [first, second] { e.preset = wide; e.snapshotPresetID = wide.id; e.snapshotPresetName = "Wide grip" }
-        // A third whose preset was since DELETED: only the snapshot name remains.
+        // A third whose preset was since DELETED: only the snapshot name remains,
+        // and spelled the way the app's own duplicate rule considers equal —
+        // case, diacritics AND spacing (codex-review 04b).
         let orphan = logged(bench, tag: .dumbbell, daysAgo: 20, in: ctx)
-        orphan.snapshotPresetID = UUID(); orphan.snapshotPresetName = "wide grip"
+        orphan.snapshotPresetID = UUID(); orphan.snapshotPresetName = "  WIDE   GRIP "
         try ctx.save()
 
         try DumbbellHistoryMove.run(in: ctx)
@@ -247,7 +249,8 @@ struct DumbbellExercisesTests {
         #expect(homed.id != wide.id)
         #expect(first.snapshotPresetID == homed.id, "records and chart key on the snapshot id (D36)")
         #expect(second.preset?.id == homed.id && second.snapshotPresetID == homed.id, "one shared preset, not one per entry")
-        #expect(orphan.snapshotPresetID == homed.id, "matched by name, case-insensitively")
+        #expect(orphan.snapshotPresetID == homed.id, "matched by the app's own name rule: case, diacritics, spacing")
+        #expect(homed.name == "Wide grip", "created with the cleaned name of the first arrival")
         #expect(first.snapshotPresetName == "Wide grip", "the name as logged is unchanged")
         #expect((dbBench.presets ?? []).count == 1)
         #expect((bench.presets ?? []).contains { $0.id == wide.id }, "the source keeps its own preset for its own history")
@@ -371,5 +374,44 @@ struct DumbbellExercisesTests {
         let entry = try session.addEntry(for: deadlift, to: workout, freeWeightTag: .barbell)
         #expect(try session.switchToDumbbellCounterpart(of: entry) == nil)
         #expect(entry.exercise?.id == deadlift.id)
+    }
+
+    /// codex-review 04b: a store whose only source-exercise rows are ineligible
+    /// — barbell history, a running workout, an uncaptured draft — moves
+    /// nothing and stamps nothing. (The persisted gate excludes the running and
+    /// uncaptured rows outright; the finished barbell rows pass it and are
+    /// rejected on the tag in Swift, because SwiftData cannot compare an enum
+    /// in a predicate.)
+    @Test @MainActor func ineligibleSourceHistoryMovesNothing() throws {
+        let ctx = try context()
+        try CatalogSeeder.reconcile(try SeedCatalog.bundled(), in: ctx)
+        let bench = try exercise(named: "Bench Press", in: ctx)
+        for day in 1...30 { logged(bench, tag: .barbell, daysAgo: day, in: ctx) }
+        logged(bench, tag: .dumbbell, finished: false, in: ctx)
+        let draft = logged(bench, tag: .dumbbell, daysAgo: 40, in: ctx)
+        draft.snapshotCapturedAt = nil
+        try ctx.save()
+        #expect(try DumbbellHistoryMove.run(in: ctx) == .nothing)
+        #expect(try ctx.fetch(FetchDescriptor<ExerciseEntry>()).allSatisfy { $0.reclassifiedAt == nil })
+    }
+
+    /// codex-review 04b: a source entry holding a STALE one-member group id
+    /// must not pass it to the continuation — that would fabricate a
+    /// two-entry superset out of a standalone exercise (D48).
+    @Test @MainActor func aStaleSingletonGroupIsNotCarriedThroughASplit() throws {
+        let ctx = try context()
+        try CatalogSeeder.reconcile(try SeedCatalog.bundled(), in: ctx)
+        let session = WorkoutSession(context: ctx, notifications: SilentNotifications())
+        let bench = try exercise(named: "Bench Press", in: ctx)
+        let workout = try session.startWorkout(at: nil)
+        let a = try session.addEntry(for: bench, to: workout, freeWeightTag: .barbell)
+        a.supersetGroupID = UUID()  // orphaned: no adjacent member
+        let set = try #require(a.sets?.first)
+        try session.commitWeight("60", for: set); try session.commitReps("8", for: set)
+        try session.toggleCompletion(of: set)
+
+        let new = try #require(try session.switchToDumbbellCounterpart(of: a))
+        #expect(new.supersetGroupID == nil)
+        #expect(a.supersetGroupID == nil, "and the stale id is pruned off the source")
     }
 }
