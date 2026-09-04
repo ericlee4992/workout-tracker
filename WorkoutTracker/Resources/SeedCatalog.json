@@ -1,5 +1,5 @@
 {
-  "version": 4,
+  "version": 5,
   "exercises": [
     {"id": "5EED0001-0000-4000-8000-000000000001", "name": "Seated Chest Press", "loadType": "weighted", "equipmentTypeTags": ["machine"], "muscleGroup": "Chest"},
     {"id": "5EED0001-0000-4000-8000-000000000002", "name": "Lat Pulldown", "loadType": "weighted", "equipmentTypeTags": ["machine", "cable"], "muscleGroup": "Back"},
@@ -76,7 +76,21 @@
     {"id": "5EED0001-0000-4000-8000-000000000073", "name": "Jammer Press", "loadType": "weighted", "equipmentTypeTags": ["machine"], "muscleGroup": "Full Body"},
     {"id": "5EED0001-0000-4000-8000-000000000074", "name": "Sled Push", "loadType": "weighted", "equipmentTypeTags": ["machine"], "muscleGroup": "Full Body"},
     {"id": "5EED0001-0000-4000-8000-000000000075", "name": "Bench Crunch", "loadType": "bodyweightPlus", "equipmentTypeTags": ["bodyweight"], "muscleGroup": "Core"},
-    {"id": "5EED0001-0000-4000-8000-000000000076", "name": "Hyperextension", "loadType": "bodyweightPlus", "equipmentTypeTags": ["bodyweight"], "muscleGroup": "Back"}
+    {"id": "5EED0001-0000-4000-8000-000000000076", "name": "Hyperextension", "loadType": "bodyweightPlus", "equipmentTypeTags": ["bodyweight"], "muscleGroup": "Back"},
+    {"id": "5EED0001-0000-4000-8000-000000000077", "name": "Dumbbell Bench Press", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Chest"},
+    {"id": "5EED0001-0000-4000-8000-000000000078", "name": "Dumbbell Incline Press", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Chest"},
+    {"id": "5EED0001-0000-4000-8000-000000000079", "name": "Dumbbell Decline Press", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Chest"},
+    {"id": "5EED0001-0000-4000-8000-000000000080", "name": "Dumbbell Fly", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Chest"},
+    {"id": "5EED0001-0000-4000-8000-000000000081", "name": "Dumbbell Floor Press", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Chest"},
+    {"id": "5EED0001-0000-4000-8000-000000000082", "name": "Dumbbell Shoulder Press", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Shoulders"},
+    {"id": "5EED0001-0000-4000-8000-000000000083", "name": "Dumbbell Lateral Raise", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Shoulders"},
+    {"id": "5EED0001-0000-4000-8000-000000000084", "name": "Dumbbell Row", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Back"},
+    {"id": "5EED0001-0000-4000-8000-000000000085", "name": "Dumbbell Shrug", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Back"},
+    {"id": "5EED0001-0000-4000-8000-000000000086", "name": "Dumbbell Romanian Deadlift", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Hamstrings"},
+    {"id": "5EED0001-0000-4000-8000-000000000087", "name": "Dumbbell Lunge", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Quads"},
+    {"id": "5EED0001-0000-4000-8000-000000000088", "name": "Bulgarian Split Squat", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Quads"},
+    {"id": "5EED0001-0000-4000-8000-000000000089", "name": "Dumbbell Goblet Squat", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Quads"},
+    {"id": "5EED0001-0000-4000-8000-000000000090", "name": "Dumbbell Hip Thrust", "loadType": "weighted", "equipmentTypeTags": ["dumbbell"], "muscleGroup": "Glutes"}
   ],
   "equipmentModels": [
     {"id": "5EED0002-0000-4000-8000-000000000001", "manufacturer": "Life Fitness", "modelName": "Insignia Series Chest Press", "equipmentType": "selectorized", "exerciseIDs": ["5EED0001-0000-4000-8000-000000000001"]},

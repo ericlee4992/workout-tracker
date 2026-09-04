@@ -616,6 +616,11 @@ final class AppPreferences {
     /// simply means "unknown", which costs one full reconcile. Added by
     /// codex-review-4 (noted in ticket 02).
     var seededCatalogFingerprint: String?
+    /// Milestone 9, ticket 04: what the one-time dumbbell history move did,
+    /// so Settings can show it. nil = it moved nothing (or has not run).
+    /// Optional so every earlier store migrates lightweightly.
+    var dumbbellHistoryMovedSets: Int?
+    var dumbbellHistoryMovedAt: Date?
     /// Whether notification permission has been requested (rest-timer alerts).
     var notificationPermissionRequested: Bool = false
     /// Measured maximum heart rate, if the user has one (D45). nil = fall back

@@ -26,8 +26,9 @@ enum CatalogSeeder {
         // the bump (or a rebuilt bundle at the same version) looks identical.
         let contentAlreadyApplied =
             preferences.seededCatalogFingerprint == fingerprint
-        let applyUpdates = catalog.version > preferences.seededCatalogVersion
-            || (catalog.version == preferences.seededCatalogVersion && !contentAlreadyApplied)
+        let previousVersion = preferences.seededCatalogVersion
+        let applyUpdates = catalog.version > previousVersion
+            || (catalog.version == previousVersion && !contentAlreadyApplied)
 
         // Fast path (ticket 20: the catalog is ~1900 rows and this runs on every
         // launch). Skipping the diff is only sound when the store still holds
@@ -43,6 +44,20 @@ enum CatalogSeeder {
 
         try reconcileExercises(catalog.exercises, applyUpdates: applyUpdates, in: context)
         try reconcileEquipmentModels(catalog.equipmentModels, applyUpdates: applyUpdates, in: context)
+
+        // Milestone 9, ticket 04: crossing into catalog version 5 moves
+        // dumbbell-tagged history onto the new dumbbell exercises, ONCE. Keyed
+        // on the stored version, so a store already at 5 never re-runs it, and
+        // a fresh store (0 → 5) runs it over nothing. Recorded so Settings can
+        // say what happened — a silent rewrite of history is the thing this
+        // app refuses (D23).
+        if applyUpdates, previousVersion < 5, catalog.version >= 5 {
+            let moved = try DumbbellHistoryMove.run(in: context)
+            if moved.sets > 0 {
+                preferences.dumbbellHistoryMovedSets = moved.sets
+                preferences.dumbbellHistoryMovedAt = .now
+            }
+        }
 
         if applyUpdates {
             preferences.seededCatalogVersion = catalog.version

@@ -46,19 +46,38 @@ struct MachinePickerSheet: View {
 
                 Section {
                     ForEach([EquipmentTag.barbell, .dumbbell, .cable, .smith, .bodyweight]) { tag in
-                        Button {
-                            select(freeWeight: tag)
-                        } label: {
-                            HStack {
-                                Label(tag.label, systemImage: "dumbbell")
-                                Spacer()
-                                if isSelected(freeWeight: tag) {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(.tint)
+                        if tag == .dumbbell, let counterpart = dumbbellCounterpart {
+                            // Milestone 9, ticket 04: this movement has a
+                            // dumbbell exercise of its own. Offering the tag
+                            // here is how the split re-grows, so offer the
+                            // exercise instead.
+                            Button {
+                                switchToCounterpart(counterpart)
+                            } label: {
+                                HStack {
+                                    Label("Log as \(counterpart.name) instead", systemImage: "dumbbell")
+                                    Spacer()
+                                    Image(systemName: "arrow.turn.down.right")
+                                        .foregroundStyle(.secondary)
                                 }
                             }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("logAsCounterpart")
+                        } else {
+                            Button {
+                                select(freeWeight: tag)
+                            } label: {
+                                HStack {
+                                    Label(tag.label, systemImage: "dumbbell")
+                                    Spacer()
+                                    if isSelected(freeWeight: tag) {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(.tint)
+                                    }
+                                }
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 } header: {
                     Text("Free weights")
@@ -105,6 +124,26 @@ struct MachinePickerSheet: View {
 
     private func isSelected(freeWeight tag: EquipmentTag) -> Bool {
         entry.machine == nil && entry.freeWeightTag == tag
+    }
+
+    /// The dumbbell exercise this entry's movement maps to, if the catalog
+    /// has one and it is present in the store.
+    private var dumbbellCounterpart: Exercise? {
+        guard !entry.isDeleted,
+              let sourceID = entry.exercise?.id,
+              let targetID = DumbbellCounterparts.counterpart(of: sourceID)
+        else { return nil }
+        let descriptor = FetchDescriptor<Exercise>(predicate: #Predicate { $0.id == targetID })
+        return (try? modelContext.fetch(descriptor))?.first
+    }
+
+    private func switchToCounterpart(_ exercise: Exercise) {
+        do {
+            try session.switchExercise(of: entry, to: exercise)
+        } catch {
+            assertionFailure("Failed to switch exercise: \(error)")
+        }
+        dismiss()
     }
 
     /// Equipment choice boundary: the service edits the draft entry in place,

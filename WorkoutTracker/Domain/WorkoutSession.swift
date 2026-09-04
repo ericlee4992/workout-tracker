@@ -392,13 +392,44 @@ struct WorkoutSession {
     /// identically. They did not: the duplicate let the "inherited values do
     /// not cross a context change" rule be written once and missed once
     /// (codex-review, standards finding 2).
+    /// Re-files a draft-or-running entry under its dumbbell counterpart
+    /// (milestone 9, ticket 04): the equipment sheet offers "Log as Dumbbell
+    /// Bench Press instead" where it used to offer the Dumbbell tag, so the
+    /// old split — dumbbell sets under a barbell-named exercise — cannot
+    /// re-grow. Same lifecycle rule as `chooseEquipment` (D19): a draft entry
+    /// is edited in place; a frozen one gets a NEW entry for the counterpart
+    /// and its draft rows move over. The preset is dropped either way — a
+    /// preset belongs to its exercise (D37).
+    @discardableResult
+    func switchExercise(of entry: ExerciseEntry, to exercise: Exercise) throws -> ExerciseEntry {
+        guard !entry.isDeleted, entry.exercise?.id != exercise.id else { return entry }
+        let tag: EquipmentTag? = exercise.equipmentTypeTags.first { $0 != .machine }
+        guard entry.snapshotCapturedAt != nil else {
+            entry.exercise = exercise
+            entry.machine = nil
+            entry.freeWeightTag = tag
+            entry.preset = nil
+            // Provisional snapshot, exactly as `addEntry` sets it; the
+            // authoritative capture still happens at first completion (D23).
+            entry.snapshotExerciseID = exercise.id
+            entry.snapshotLoadType = exercise.loadType
+            entry.snapshotExerciseName = exercise.name
+            clearBars(of: entry)
+            clearUntouchedDrafts(of: entry)
+            try context.save()
+            return entry
+        }
+        return try split(entry, machine: nil, freeWeightTag: tag, preset: nil, exercise: exercise)
+    }
+
     private func split(
         _ entry: ExerciseEntry,
         machine: MachineInstance?,
         freeWeightTag: EquipmentTag?,
-        preset: ExercisePreset?
+        preset: ExercisePreset?,
+        exercise newExercise: Exercise? = nil
     ) throws -> ExerciseEntry {
-        guard let workout = entry.workout, let exercise = entry.exercise else { return entry }
+        guard let workout = entry.workout, let exercise = newExercise ?? entry.exercise else { return entry }
         // A preset change leaves the bar in the user's hands; an equipment
         // change does not (see `clearBars`). One split serves both, so the
         // difference has to be read from the arguments rather than assumed.

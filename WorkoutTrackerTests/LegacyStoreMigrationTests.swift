@@ -54,6 +54,17 @@ struct LegacyStoreMigrationTests {
         #expect(set.completedAt != nil)
     }
 
+    /// Milestone 9, ticket 04: the move-record fields arrive nil — nothing was
+    /// moved on this store yet — and opening the fixture does not run the move
+    /// (that needs the seeder crossing into catalog version 5).
+    @Test func dumbbellMoveRecordArrivesNil() throws {
+        let (context, directory) = try openedFixture()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let prefs = try #require(try context.fetch(FetchDescriptor<AppPreferences>()).first)
+        #expect(prefs.dumbbellHistoryMovedSets == nil)
+        #expect(prefs.dumbbellHistoryMovedAt == nil)
+    }
+
     /// Milestone 9, ticket 02: the workout name arrives nil — "no name typed",
     /// which is the truth about every workout logged before names existed —
     /// and the title still derives exactly as it did.

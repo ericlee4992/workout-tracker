@@ -53,6 +53,17 @@ struct AppSettingsSection: View {
             .sheet(isPresented: $showMaxHeartRateSheet) {
                 MaxHeartRateSheet()
             }
+            // Milestone 9, ticket 04: the one-time dumbbell history move is a
+            // rewrite of snapshots (D23), so it is announced rather than silent.
+            if let moved = allPreferences.first?.dumbbellHistoryMovedSets,
+               let when = allPreferences.first?.dumbbellHistoryMovedAt {
+                LabeledContent("History update") {
+                    Text("\(moved) set\(moved == 1 ? "" : "s") moved to dumbbell exercises · \(when.formatted(date: .abbreviated, time: .omitted))")
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
+                .accessibilityIdentifier("dumbbellMoveNote")
+            }
         } header: {
             Text("Settings")
         } footer: {

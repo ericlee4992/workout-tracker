@@ -1,6 +1,6 @@
 # 04 — Dumbbell movements as their own exercises
 
-Status: ready-for-agent
+Status: resolved — awaiting Codex review
 Blocked by: 03
 Covers the catalog half of user ask **4**.
 
@@ -37,3 +37,50 @@ exists, and instead offer "Log as Dumbbell Bench Press instead" — otherwise th
 - The mapping table (barbell exercise → dumbbell exercise) is data in `Domain/`, unit-tested for
   no duplicate targets.
 - **Before installing:** a fresh export of the real history is on iCloud Drive.
+
+
+## Resolution (2026-09-04)
+
+**A. Catalog v5** — 14 dumbbell rows added in `scripts/generate_seed_catalog.py` (ids 77–90,
+allocated by the generator; `--check` passes). 90 exercises, 15 tagged dumbbell.
+
+**B. The move** — `Domain/DumbbellCounterparts.swift` is the mapping, by catalog UUID (names are
+mutable seeded fields): Bench Press, Incline/Decline Bench Press, Chest Fly (Pec Deck), Overhead
+Press, Lateral Raise, Bent-Over Row, Shrug, Lunge, Hip Thrust → their dumbbell rows. **Deadlift,
+Squat and Preacher Curl are deliberately unmapped**: a dumbbell-tagged Deadlift is not necessarily a
+Romanian deadlift, and guessing is the fabricated context D23 forbids; those sets stay where they
+are, still tagged Dumbbell. `Domain/DumbbellHistoryMove.swift` rewrites the relationship AND the
+snapshot identity on qualifying entries — finished workouts, frozen snapshot, snapshot tag
+Dumbbell, mapped source — and nothing else (numbers, tag, preset + its snapshot, `historyEditedAt`
+untouched). Idempotent by construction. `CatalogSeeder.reconcile` runs it once when the stored
+version crosses below 5 → ≥5, and records sets/date on `AppPreferences`
+(`dumbbellHistoryMovedSets/At`); `AppSettingsSection` shows "History update: N sets moved to
+dumbbell exercises · date". The ticket's "migration log line" became this record — a log nobody
+reads is not visibility.
+
+**C. The equipment sheet** — for an exercise with a counterpart, the Dumbbell row becomes "Log as
+Dumbbell Bench Press instead" (`logAsCounterpart`), calling `WorkoutSession.switchExercise`: a
+draft entry is re-filed in place (preset dropped, D37); a frozen one splits into a new entry for the
+counterpart with the draft rows, like `chooseEquipment` (D19).
+
+**Tests.** `DumbbellExercisesTests` (10): every pair points at real catalog rows with the right
+tags and equal load types; no duplicate sources/targets and no chaining; catalog is v5 with the
+rows; the move moves only the dumbbell-tagged mapped finished entry (barbell, machined, running,
+unmapped untouched; `historyEditedAt` nil); second run moves nothing; records and chart follow
+(group keys under the new id, none under the old); the seeder crossing v4→v5 moves once and records
+it, and a re-run at 5 leaves the record alone and does not move later dumbbell-tagged sets; a fresh
+store records nothing; draft switch in place; frozen switch splits. `LegacyStoreMigrationTests`
+gains the nil-record gate. `DumbbellCounterpartUITests` (1): Bench Press offers the counterpart and
+not the tag; tapping it re-files the entry. **617 unit green; UI: counterpart (1), barbell (2),
+core loop (9), presets (2) green.** Screenshot `equipment-counterpart`.
+
+**XCUITest note worth keeping:** tapping the identified picker ROW for "Bench Press" did not
+register with the keyboard up (the picker stayed open; diagnosed by screenshot) while tapping the
+row's static text did. STATE already records this quirk for a second exercise; it bites the first
+one too when the search has several matches.
+
+**Not done, deliberately:** "log later dumbbell-tagged sets" — a set logged under Bench Press +
+Dumbbell AFTER the move (only reachable by ignoring the counterpart row, e.g. via a template) stays
+there. The sheet no longer offers the path, so this should not grow; if it does, the move can be
+re-keyed. **Before installing:** a fresh export of the real history to iCloud Drive — this build
+rewrites snapshots on the phone's only copy.

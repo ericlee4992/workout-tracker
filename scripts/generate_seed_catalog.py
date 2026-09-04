@@ -71,7 +71,12 @@ OUTPUT = REPO / "WorkoutTracker" / "Resources" / "SeedCatalog.json"
 # 4 (codex-review-4): ten duplicate identities merged onto their older id, the
 # survivors renamed to the researched name, and the bodyweight ab/back benches
 # relinked off the weighted machine exercises.
-CATALOG_VERSION = 4
+# 5 (milestone 9, ticket 04): fourteen dumbbell movements as exercises of their
+# own. Until now the catalog had ONE dumbbell exercise, so a dumbbell bench was
+# logged as "Bench Press" with the Dumbbell tag; the user asked for separate
+# exercises. The bump also triggers a one-time move of dumbbell-tagged history
+# onto the new rows (Domain/DumbbellHistoryMove.swift).
+CATALOG_VERSION = 5
 
 EXERCISE_NS = "5EED0001-0000-4000-8000-{:012d}"
 MODEL_NS = "5EED0002-0000-4000-8000-{:012d}"
@@ -181,6 +186,23 @@ EXERCISES = [
     # a movement that has no external load unless you hold a plate.
     ("benchCrunch", "Bench Crunch", "bodyweightPlus", [BW], "Core"),
     ("hyperextension", "Hyperextension", "bodyweightPlus", [BW], "Back"),
+    # -- new in version 5 (milestone 9, ticket 04): dumbbell movements --------
+    # Named "Dumbbell X" so they sort and search together, and so the barbell/
+    # machine row of the same movement keeps its established name.
+    ("dbBenchPress", "Dumbbell Bench Press", "weighted", [DB], "Chest"),
+    ("dbInclinePress", "Dumbbell Incline Press", "weighted", [DB], "Chest"),
+    ("dbDeclinePress", "Dumbbell Decline Press", "weighted", [DB], "Chest"),
+    ("dbFly", "Dumbbell Fly", "weighted", [DB], "Chest"),
+    ("dbFloorPress", "Dumbbell Floor Press", "weighted", [DB], "Chest"),
+    ("dbShoulderPress", "Dumbbell Shoulder Press", "weighted", [DB], "Shoulders"),
+    ("dbLateralRaise", "Dumbbell Lateral Raise", "weighted", [DB], "Shoulders"),
+    ("dbRow", "Dumbbell Row", "weighted", [DB], "Back"),
+    ("dbShrug", "Dumbbell Shrug", "weighted", [DB], "Back"),
+    ("dbRomanianDeadlift", "Dumbbell Romanian Deadlift", "weighted", [DB], "Hamstrings"),
+    ("dbLunge", "Dumbbell Lunge", "weighted", [DB], "Quads"),
+    ("bulgarianSplitSquat", "Bulgarian Split Squat", "weighted", [DB], "Quads"),
+    ("dbGobletSquat", "Dumbbell Goblet Squat", "weighted", [DB], "Quads"),
+    ("dbHipThrust", "Dumbbell Hip Thrust", "weighted", [DB], "Glutes"),
 ]
 
 MUSCLE_GROUPS = {
