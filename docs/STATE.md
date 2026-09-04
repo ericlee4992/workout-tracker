@@ -2,8 +2,9 @@
 
 Updated 2026-09-03 (21:15, after the reinstall). **START HERE IF YOU ARE COLD:**
 
-1. **The phone is CURRENT with `main` (`5a860bc`) and freshly signed — installed and
-   launch-verified 2026-09-03 21:09.** Both profiles (app and widget) now expire **2026-09-11
+1. **The phone runs `5a860bc`, freshly signed — installed and launch-verified 2026-09-03 21:09.**
+   `main` is two commits past it (`5e78197`, `225b3e6`) but **nothing user-facing changed in
+   them** — docs, a flag-gated test fixture, and a UI test — so there is NO reason to rebuild. Both profiles (app and widget) now expire **2026-09-11
    01:08 UTC**, and for the first time they expire on the SAME day, so the Live Activity will not
    die three days before the app does. Nothing needs rebuilding until then.
 2. **The D36 chart fix (`3ad382d`) is on the device and now VERIFIED on screen** — in the
