@@ -20,9 +20,12 @@ Updated 2026-09-04 (morning, milestone 9 Codex-clear). **START HERE IF YOU ARE C
 3. **The phone still runs `5a860bc`** (installed 2026-09-03 21:09; both profiles expire
    **2026-09-11 01:08 UTC**). Everything in milestone 9 is unseen on the device. Nothing needs
    rebuilding for signing until the 11th; installing milestone 9 re-signs anyway.
-4. **Suites on the branch tip: 642 unit green (run in full); 36 UI tests exist**, every class
-   touched by a ticket run green after its last change, but the WHOLE UI suite has not been run
-   in one go since 2026-09-03 (27 tests then). Run it in full before merging: ~20 minutes now.
+4. **Suites on the branch tip: 643 unit green (run in full) and all 36 UI tests green** — run
+   2026-09-04 morning as the merge gate, in three pieces on the same commit (a single full run was
+   killed twice at the harness's 10-minute foreground limit; the pieces were CoreLoop+Barbell+
+   Dumbbell+Presets, then Presets+Export+HeartRate+Summary+Scan, then Calendar+HistoryEditing+
+   Charts+Name). Whole-suite time is now ~22 minutes; run it in chunks under ten if the harness
+   caps foreground commands.
 5. **Two new locked decisions: D50** (a workout's name is editable in History as a marked edit,
    reopening D47) and **D51** (the one catalog-driven reclassification of frozen snapshots,
    reopening D19/D23/D47 narrowly, with per-row provenance). Both were reopened deliberately only
