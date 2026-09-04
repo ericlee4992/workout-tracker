@@ -7,6 +7,18 @@ import Testing
 // right now", including the cases where the honest answer is "nothing".
 
 @MainActor
+/// Test-only: the whole-history fold, for tests written against the monitor's
+/// old unbounded `vitals`. Production has no such accessor on purpose
+/// (codex-review 05e) — the persisted summary is bounded to the workout first.
+extension HeartRateMonitor {
+    var liveVitals: WorkoutVitals {
+        guard let source = dominantSource else { return .empty }
+        return WorkoutVitalsMath.vitals(
+            from: WorkoutVitalsMath.summarySamples(from: samples, dominant: source),
+            zoningAgainst: maxHeartRate)
+    }
+}
+
 final class StubHeartRateProvider: HeartRateProviding {
     private var continuation: AsyncStream<HeartRateSample>.Continuation?
     let stream: AsyncStream<HeartRateSample>

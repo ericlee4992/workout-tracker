@@ -152,16 +152,12 @@ final class HeartRateMonitor {
         WorkoutVitalsMath.dominantSource(among: samples)
     }
 
-    /// Everything seen so far, unbounded — for the LIVE screen while the
-    /// workout runs and for tests. NEVER for the persisted summary: that goes
-    /// through `summarySamples(from:to:)`, which bounds the raw samples to the
-    /// workout BEFORE choosing a source (codex-review 05d).
-    var liveVitals: WorkoutVitals {
-        guard let source = dominantSource else { return .empty }
-        return WorkoutVitalsMath.vitals(
-            from: WorkoutVitalsMath.summarySamples(from: samples, dominant: source),
-            zoningAgainst: maxHeartRate)
-    }
+    // There is deliberately NO unbounded "vitals so far" accessor here. The
+    // persisted summary goes through `summarySamples(from:to:)`, which bounds
+    // the raw samples to the workout BEFORE choosing a source (codex-review
+    // 05d); an unbounded twin beside it is how that defect comes back
+    // (codex-review 05e). Tests that want the whole-history fold compose the
+    // pure math themselves.
 
     /// The samples the persisted summary is built from — aggregates AND series,
     /// so they describe the same evidence. Bounded to the workout FIRST, then

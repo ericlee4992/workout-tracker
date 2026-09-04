@@ -155,3 +155,10 @@ the same ordering the ordinary path relies on via `startWorkout`'s save.
   for the live screen and tests only, never the persisted summary; the 18 test references updated.
 
 **643 unit green (+1).**
+
+
+## Codex review 05e — response (2026-09-04)
+
+Spec clear; one low: `liveVitals` had no production caller and its "live screen" claim was false.
+Removed from production; the tests that used it get a test-target extension composing the pure
+math. A comment in the monitor says why there is deliberately no unbounded accessor.
