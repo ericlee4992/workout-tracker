@@ -17,13 +17,11 @@ struct ExerciseProgressView: View {
 
     let exerciseID: UUID
     let exerciseName: String
-    /// The SNAPSHOT load type being charted, not the exercise's current one:
-    /// history keeps what it was logged under (D23/D47).
-    let loadType: LoadType
-    /// D36: records are per-preset, so a chart must be too. Pooling narrow- and
-    /// wide-grip bests would let one variation set a record the other can never
-    /// beat. nil charts only sets logged with no preset.
-    var presetID: UUID?
+
+    /// Which variation is on screen. Resolved from HISTORY, never from the live
+    /// exercise: the caller used to pass `exercise.loadType`, so a D47
+    /// correction made old history vanish from its own chart.
+    @State private var variation: ProgressVariationKey?
 
     @State private var metric: Metric = .bestSet
     /// Raw x position from `chartXSelection`; resolved to the nearest point.
@@ -64,6 +62,7 @@ struct ExerciseProgressView: View {
                         .frame(height: 240)
                         .accessibilityIdentifier("progressChart")
                     selectionRow
+                    variationPicker
                 } footer: {
                     Text(footer(days: days))
                 }
@@ -164,6 +163,30 @@ struct ExerciseProgressView: View {
     /// the user actually typed — only exists here. Ticket 01 asked for
     /// as-entered tooltips; the single-session state had them and a drawn
     /// series did not.
+    /// Offered only when this exercise has history under more than one
+    /// variation. D36 forbids pooling them, so the alternative to a picker is
+    /// history the user simply cannot reach.
+    @ViewBuilder
+    private var variationPicker: some View {
+        let available = availableVariations
+        if available.count > 1 {
+            Picker("Variation", selection: variationBinding) {
+                ForEach(available, id: \.key) { item in
+                    Text("\(variationName(item.key)) · \(item.days) day\(item.days == 1 ? "" : "s")")
+                        .tag(item.key)
+                }
+            }
+            .pickerStyle(.menu)
+            .accessibilityIdentifier("chartVariationPicker")
+        }
+    }
+
+    private var variationBinding: Binding<ProgressVariationKey> {
+        Binding(
+            get: { resolvedVariation },
+            set: { variation = $0 })
+    }
+
     @ViewBuilder
     private var selectionRow: some View {
         // Falls back to the LAST session when nothing is selected, so the row
@@ -221,7 +244,7 @@ struct ExerciseProgressView: View {
     private var yLabel: String {
         switch metric {
         case .bestSet:
-            loadType == .bodyweight ? "Reps" : series.loadAxisLabel + unitSuffix
+            resolvedVariation.loadType == .bodyweight ? "Reps" : series.loadAxisLabel + unitSuffix
         case .volume: "Volume" + unitSuffix
         case .e1rm: "Estimated 1RM" + unitSuffix
         }
@@ -237,7 +260,7 @@ struct ExerciseProgressView: View {
         switch metric {
         case .bestSet:
             // Bodyweight plots REPS, which have no unit to convert.
-            loadType == .bodyweight ? point.bestKg : point.bestKg.map(inDisplayUnit)
+            resolvedVariation.loadType == .bodyweight ? point.bestKg : point.bestKg.map(inDisplayUnit)
         case .volume: inDisplayUnit(point.volumeKg)
         case .e1rm: point.e1rmKg.map(inDisplayUnit)
         }
@@ -247,7 +270,7 @@ struct ExerciseProgressView: View {
     /// them for an assisted movement would draw a flat zero line and invite the
     /// user to read meaning into it.
     private var availableMetrics: [Metric] {
-        loadType == .weighted ? Metric.allCases : [.bestSet]
+        resolvedVariation.loadType == .weighted ? Metric.allCases : [.bestSet]
     }
 
     @ViewBuilder
@@ -265,7 +288,7 @@ struct ExerciseProgressView: View {
     /// mixed-unit sessions share an axis, but the text says what was entered.
     private func asEntered(_ point: ProgressPoint) -> String {
         // Plain bodyweight has no load to show — reps ARE the achievement.
-        if loadType == .bodyweight {
+        if resolvedVariation.loadType == .bodyweight {
             return point.bestReps.map { "\($0) reps" } ?? "—"
         }
         guard let value = point.bestValue, let unit = point.bestUnit else { return "—" }
@@ -297,18 +320,21 @@ struct ExerciseProgressView: View {
     /// Built from frozen snapshots (D23), never the live exercise row, so the
     /// chart shows what was actually logged.
     private var series: ProgressSeries {
-        let descriptor = FetchDescriptor<SetRecord>()
-        let sets = (try? modelContext.fetch(descriptor)) ?? []
-        let inputs = sets.compactMap { set -> RecordSetInput? in
-            // Snapshot load type, and only entries matching the type being
-            // charted. codex-review 2 (critical): the view passed the LIVE
-            // exercise's load type while the sets carried their frozen ones, so
-            // a correction relabelled old history. Also excludes sets in a
-            // workout that has not finished — an in-progress session is not
-            // history yet.
+        ProgressSeriesMath.series(
+            for: history,
+            loadType: resolvedVariation.loadType,
+            presetID: resolvedVariation.presetID)
+    }
+
+    /// Every finished set logged against this exercise, in SNAPSHOT terms
+    /// (D23), across all variations. Scoping happens in `series`.
+    private var history: [RecordSetInput] {
+        let sets = (try? modelContext.fetch(FetchDescriptor<SetRecord>())) ?? []
+        return sets.compactMap { set -> RecordSetInput? in
+            // Snapshot values only, and finished workouts only — an
+            // in-progress session is not history yet.
             guard !set.isDeleted, let entry = set.entry, !entry.isDeleted,
                   entry.snapshotExerciseID == exerciseID,
-                  entry.snapshotLoadType == loadType,
                   let workout = entry.workout, !workout.isDeleted,
                   workout.finishedAt != nil
             else { return nil }
@@ -324,6 +350,30 @@ struct ExerciseProgressView: View {
                 weightValue: set.weightValue, weightUnit: set.weightUnit,
                 normalizedKg: set.normalizedKg, completedAt: set.completedAt)
         }
-        return ProgressSeriesMath.series(for: inputs, loadType: loadType, presetID: presetID)
+    }
+
+    /// The variation on screen, defaulting to the one with the most history.
+    private var resolvedVariation: ProgressVariationKey {
+        variation
+            ?? ProgressSeriesMath.defaultVariation(in: history)
+            ?? ProgressVariationKey(loadType: .weighted, presetID: nil)
+    }
+
+    /// The variations this exercise actually has history for, ordered by how
+    /// much — so the picker lists what the user has trained, not every preset
+    /// that happens to exist.
+    private var availableVariations: [(key: ProgressVariationKey, days: Int)] {
+        ProgressSeriesMath.variations(in: history)
+            .sorted { ($0.value, $0.key.presetID == nil ? 1 : 0) > ($1.value, $1.key.presetID == nil ? 1 : 0) }
+            .map { (key: $0.key, days: $0.value) }
+    }
+
+    /// Display name for a variation, from the SNAPSHOT preset name — the name
+    /// it was logged under, not today's (D23).
+    private func variationName(_ key: ProgressVariationKey) -> String {
+        guard let presetID = key.presetID else { return "No variation" }
+        let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
+        let name = entries.first { $0.snapshotPresetID == presetID }?.snapshotPresetName
+        return name ?? "Variation"
     }
 }

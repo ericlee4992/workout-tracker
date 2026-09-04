@@ -126,11 +126,14 @@ struct ExercisesView: View {
                 EditExerciseLoadTypeSheet(exercise: exercise)
             }
             .sheet(item: $progressExercise) { exercise in
+                // No load type and no preset passed. Both used to be handed in
+                // from the LIVE exercise, which pooled every variation into one
+                // line (D36) and let a D47 correction hide old history. The
+                // chart resolves them from what was actually logged.
                 NavigationStack {
                     ExerciseProgressView(
                         exerciseID: exercise.id,
-                        exerciseName: exercise.name,
-                        loadType: exercise.loadType)
+                        exerciseName: exercise.name)
                 }
             }
             .alert(

@@ -65,7 +65,50 @@ struct ProgressSeries: Equatable {
     }
 }
 
+/// One chartable variation of an exercise: a snapshot load type plus a preset.
+///
+/// D36 keeps records per variation, so a chart must be per variation too —
+/// pooling narrow- and wide-grip lets one set a record the other can never
+/// beat, and draws a line describing neither. The load type is part of the key
+/// for the same reason: after a D47 correction an exercise can hold history
+/// under two different types, and they rank in opposite directions.
+struct ProgressVariationKey: Hashable, Sendable {
+    var loadType: LoadType
+    var presetID: UUID?
+}
+
 enum ProgressSeriesMath {
+
+    /// The variations present in history, with how many DAYS each has.
+    ///
+    /// The count drives which one a chart opens on: the variation the user has
+    /// actually trained, rather than whichever the live exercise happens to
+    /// name today.
+    static func variations(
+        in sets: [RecordSetInput], calendar: Calendar = .current
+    ) -> [ProgressVariationKey: Int] {
+        var days: [ProgressVariationKey: Set<Date>] = [:]
+        for set in sets where RecordsMath.isEligible(set) {
+            guard let completedAt = set.completedAt else { continue }
+            let key = ProgressVariationKey(loadType: set.loadType, presetID: set.presetID)
+            days[key, default: []].insert(calendar.startOfDay(for: completedAt))
+        }
+        return days.mapValues(\.count)
+    }
+
+    /// The variation a chart should open on: most days, ties broken by the one
+    /// with no preset so a plain exercise is not shadowed by a variation with
+    /// equal history.
+    static func defaultVariation(
+        in sets: [RecordSetInput], calendar: Calendar = .current
+    ) -> ProgressVariationKey? {
+        let counts = variations(in: sets, calendar: calendar)
+        guard let most = counts.values.max() else { return nil }
+        let tied = counts.filter { $0.value == most }.keys
+        return tied.first { $0.presetID == nil } ?? tied.sorted {
+            ($0.presetID?.uuidString ?? "") < ($1.presetID?.uuidString ?? "")
+        }.first
+    }
 
     /// Builds a per-exercise series from logged sets.
     ///
@@ -74,7 +117,9 @@ enum ProgressSeriesMath {
     static func series(
         for sets: [RecordSetInput],
         loadType: LoadType,
-        presetID: UUID? = nil,
+        /// The variation to chart. nil charts sets logged with no preset,
+        /// which is a real group, not "all of them" (D36).
+        presetID: UUID?,
         calendar: Calendar = .current
     ) -> ProgressSeries {
         // FILTER TO ONE CLASSIFICATION, then judge within it.
@@ -89,9 +134,17 @@ enum ProgressSeriesMath {
         //
         // The series is now scoped the way a record group is: one load type,
         // one preset.
+        // `presetID` nil means "sets logged with NO preset" — its own group,
+        // exactly as `RecordsMath.groupKeys` treats it. It is NOT a wildcard.
+        //
+        // It was written as one (`presetID == nil || …`), so a chart opened
+        // without a preset pooled narrow- and wide-grip history into a single
+        // line — the pooling D36 exists to forbid, and the opposite of what
+        // this function's own caller documented. Contract and caller
+        // disagreed; the caller won, silently.
         let eligible = sets
             .filter { $0.loadType == loadType }
-            .filter { presetID == nil || $0.presetID == presetID }
+            .filter { $0.presetID == presetID }
             .filter { RecordsMath.isEligible($0) }
         // Grouped by calendar DAY, which is not identical to "session": two
         // workouts in one day collapse to a point, and one workout spanning

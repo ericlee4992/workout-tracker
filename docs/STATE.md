@@ -398,15 +398,21 @@ message is SENT**, not merely that the receiver handles it.
      2026-08-29 — about **35 minutes** before the correction. Until then the old line was
      defensible. Do not date a defect from when the FEATURE started; date it from when the last
      acceptance criterion closed.
-   - It ended "Nothing in milestone 4 remains." **That is false, and the defect is real:**
-     `ExercisesView` opens the chart without a `presetID` (`ExercisesView.swift:130`), and
-     `ProgressSeries` reads nil as *accept every preset* (`ProgressSeries.swift:93`) — while
-     `ExerciseProgressView`'s own doc comment promises nil means *only sets logged with no preset*.
-     So narrow- and wide-grip histories are POOLED into one line, which is exactly what **D36**
-     forbids. The same call passes `exercise.loadType` — the CURRENT type — into a parameter
-     documented as the D23 *snapshot* type, so a future load-type correction (D47) can make old
-     history vanish from the chart. **No chart test uses presets at all.** Contract and caller
-     disagree; this is the repo's recurring shape, caught again by review rather than by tests.
+   - It ended "Nothing in milestone 4 remains." That was false, and the defect was real —
+     **FIXED 2026-09-03.** `ProgressSeries` read a nil `presetID` as *accept every preset* while
+     `ExerciseProgressView` documented nil as *only sets logged with no preset*, and `ExercisesView`
+     passed nothing — so narrow- and wide-grip histories were POOLED into one line, which **D36**
+     forbids. The same call passed `exercise.loadType`, the CURRENT type, into a parameter
+     documented as the D23 *snapshot* type, so a D47 correction could make old history vanish from
+     its own chart.
+
+     The fix removes the ambiguity rather than patching the caller: nil now means the no-preset
+     group, as `RecordsMath.groupKeys` has always treated it, and **the chart resolves its variation
+     from HISTORY** instead of being handed one by the live exercise. A `ProgressVariationKey`
+     (snapshot load type + preset) is the unit; the chart opens on whichever the user has trained
+     most, ties going to the plain exercise, and offers a picker when there is history under more
+     than one. 8 tests in `ChartPresetScopingTests` — **there were none using presets at all**,
+     which is why a caller could contradict its own contract in silence.
 4. ~~Milestone 5: Strong CSV import.~~ **DROPPED 2026-08-29 at the user's request** — they have no
    Strong history to bring in, so the whole milestone imports nothing. SPEC's analysis of the format
    (no unit column, no workout id, set tags lost, equipment in the name suffix) stays there in case
