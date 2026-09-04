@@ -59,3 +59,12 @@ paragraph:
   "Only N days logged — read the shape with caution." — which is also what `days` is for.
 
 Copy only, again. 643 unit green; UI classes for the touched screens re-run below.
+
+
+## Codex review 06b — response (2026-09-04)
+
+Standards clear; one high left: `bestUnit` is the heaviest set's unit, but Volume sums every set
+and the e1RM can be won by a different one, so a kg axis could still hide an lb contributor.
+`ProgressPoint` now carries `enteredUnits` (every set that day) and `e1rmUnit` (the winning set);
+the axis suffix and the Volume value use the contributor for the metric on show. Unit test builds
+a day whose heaviest set is kg and whose e1RM is won by an lb set. 644 unit green; chart UI 6/6.

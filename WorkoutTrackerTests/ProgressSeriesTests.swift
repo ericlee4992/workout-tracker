@@ -22,6 +22,25 @@ struct ProgressSeriesTests {
             completedAt: Date(timeIntervalSince1970: Double(day) * 86_400 + 43_200))
     }
 
+    // MARK: - Unit provenance per metric (D9/D25, codex-review 06b)
+
+    /// The heaviest set decides `bestUnit`; volume sums every set and the e1RM
+    /// can be won by a lighter set with more reps — so each metric carries
+    /// the units that actually fed it.
+    @Test func eachMetricKnowsWhichUnitsFedIt() {
+        var heavyKg = set(100, reps: 2, day: 1)          // best set, kg; e1RM ≈ 105
+        heavyKg.weightUnit = .kg
+        var lighterLb = set(90, reps: 10, day: 1)        // 90 kg entered as… lb below; e1RM ≈ 120 wins
+        lighterLb.weightUnit = .lb; lighterLb.weightValue = 198.4
+        let point = ProgressSeriesMath.series(
+            for: [heavyKg, lighterLb],
+            variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil)
+        ).points[0]
+        #expect(point.bestUnit == .kg, "the heaviest set was entered in kg")
+        #expect(point.enteredUnits == [.kg, .lb], "volume summed a kg set and an lb set")
+        #expect(point.e1rmUnit == .lb, "the e1RM was won by the lb set")
+    }
+
     // MARK: - Direction, which is the thing a chart can get catastrophically wrong
 
     /// The user's own complaint, one domain over: assisted means LESS is

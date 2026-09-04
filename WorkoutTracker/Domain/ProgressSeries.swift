@@ -28,6 +28,14 @@ struct ProgressPoint: Equatable, Identifiable {
     let volumeKg: Double
     /// Best Brzycki estimate that day, weighted only (D20). nil elsewhere.
     let e1rmKg: Double?
+    /// Unit provenance per METRIC (D9/D25, codex-review 06b): the best set's
+    /// unit is `bestUnit`, but volume sums every set that day and the e1RM can
+    /// be won by a different set — so a kg axis is only honestly unmarked when
+    /// no contributor to the metric on show was entered in another unit.
+    /// Every eligible set's unit that day.
+    let enteredUnits: Set<WeightUnit>
+    /// The unit of the set that produced `e1rmKg`. nil when there is none.
+    let e1rmUnit: WeightUnit?
 }
 
 /// What a chart is allowed to claim about a series.
@@ -254,6 +262,7 @@ enum ProgressSeriesMath {
             let plotted: Double? = loadType == .bodyweight
                 ? best.reps.map(Double.init)
                 : best.normalizedKg
+            let e1rm = RecordsMath.bestE1RM(among: daySets)
             return ProgressPoint(
                 date: day,
                 bestKg: plotted,
@@ -261,7 +270,9 @@ enum ProgressSeriesMath {
                 bestValue: best.weightValue,
                 bestUnit: best.weightUnit,
                 volumeKg: RecordsMath.totalVolumeKg(among: daySets),
-                e1rmKg: RecordsMath.bestE1RM(among: daySets)?.e1RMKg)
+                e1rmKg: e1rm?.e1RMKg,
+                enteredUnits: Set(daySets.map(\.weightUnit)),
+                e1rmUnit: e1rm?.weightUnit)
         }
 
         return ProgressSeries(

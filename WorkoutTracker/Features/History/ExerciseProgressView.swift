@@ -246,10 +246,13 @@ struct ExerciseProgressView: View {
             return asEntered(point)
         case .volume:
             let value = inDisplayUnit(point.volumeKg)
-            // Volume IS derived — a sum, then converted — so it keeps its ≈.
-            return displayUnit == .kg
-                ? "\(WeightMath.displayNumber(value)) kg"
-                : "≈\(WeightMath.displayNumber(value)) \(displayUnit.rawValue)"
+            // ≈ whenever any set in the sum was entered in another unit — the
+            // sum itself is exact, the conversion is not (D9/D25). A kg
+            // display is not exempt (codex-review 06b).
+            let converted = point.enteredUnits.contains { $0 != displayUnit }
+            return converted
+                ? "≈\(WeightMath.displayNumber(value)) \(displayUnit.rawValue)"
+                : "\(WeightMath.displayNumber(value)) \(displayUnit.rawValue)"
         case .e1rm:
             guard let kg = point.e1rmKg else { return "—" }
             let value = inDisplayUnit(kg)
@@ -271,13 +274,20 @@ struct ExerciseProgressView: View {
     }
 
     private var unitSuffix: String {
-        // `≈` when ANY plotted point was converted, per D9/D25. A kg axis is
-        // not exempt: a session entered in lb and plotted in kg is a derived
-        // number too, and once the footer that used to say so was removed
-        // (ticket 06) the axis label is the only place left to say it.
-        let converted = displayUnit != .kg
-            || series.points.contains { $0.bestUnit != nil && $0.bestUnit != displayUnit }
-        return converted ? " (≈\(displayUnit.rawValue))" : " (kg)"
+        // `≈` when ANY point's contributor to THIS metric was converted, per
+        // D9/D25. A kg axis is not exempt, and the contributor differs by
+        // metric: the best set for Best set, every set for Volume, the winning
+        // set for Est. 1RM (codex-review 06b). Once the footer that used to
+        // say so was removed (ticket 06), the axis label is the only place
+        // left to say it.
+        let converted = series.points.contains { point in
+            switch metric {
+            case .bestSet: point.bestUnit != nil && point.bestUnit != displayUnit
+            case .volume: point.enteredUnits.contains { $0 != displayUnit }
+            case .e1rm: point.e1rmUnit != nil && point.e1rmUnit != displayUnit
+            }
+        }
+        return converted ? " (≈\(displayUnit.rawValue))" : " (\(displayUnit.rawValue))"
     }
 
     private var yLabel: String {
