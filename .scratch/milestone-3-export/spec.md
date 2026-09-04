@@ -129,9 +129,11 @@ deterministic).
 
 ```jsonc
 {
-  "schemaVersion": 4,             // bumped on any breaking shape change
+  "schemaVersion": 6,             // bumped on any shape change; older files decode
                                   // 2: presets (D36). 3: bar weight (D39)
                                   // 4: heart-rate summary per workout (D44)
+                                  // 5: supersetGroupID, loadTypeUserOverridden, historyEditedAt (D47/D48)
+                                  // 6: workouts[].name, the typed title (D50)
   "exportedAt": "2026-08-11T18:30:00.123+09:00",
   "appVersion": "1.0 (3)",
   "seededCatalogVersion": 4,      // D28: what the omitted catalog rows came from

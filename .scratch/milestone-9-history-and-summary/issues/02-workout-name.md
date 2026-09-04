@@ -50,7 +50,8 @@ Covers user ask **1**.
 
 **Tests.** `WorkoutNameTests` (7): precedence, blank fall-through, logged rename marks / same-name
 does not / clearing restores derived and still marks, live naming does not mark, export carries the
-name and CSV prefers it. `LegacyStoreMigrationTests` gains `workoutNameArrivesNilAndTheTitleStillDerives`
+name in JSON and as its own CSV column (~~"CSV prefers it"~~ — corrected by codex-review 02; column 4
+is unchanged). `LegacyStoreMigrationTests` gains `workoutNameArrivesNilAndTheTitleStillDerives`
 — the fixture opens. Schema-version assertions moved to 6. `WorkoutNameUITests` (2): name mid-workout →
 History lists it, unmarked; rename from History → edited mark. **590 unit green; UI: name (2),
 core loop (9), history editing (2), export (1) green.** Screenshots `workout-named-live`,
@@ -95,3 +96,11 @@ this ticket's own first resolution), 1 low.
   renamed and points to History. Coverage is by inspection — the refusal itself is unit-tested, and
   the racing state (a finished workout still presented) cannot be produced by an XCUITest without
   a hook that would exist only for the test.
+
+
+## Codex review 02c — response (2026-09-03)
+
+Two stale statements I had missed: the milestone-3 spec's JSON example still read `schemaVersion: 4`
+(it now lists 5 and 6), and this ticket's own test record still said "CSV prefers it" (struck and
+corrected). My round-2b claim that "every current statement agrees" was false; it was two short.
+Refusal-alert condition and the test rename confirmed correct by Codex.
