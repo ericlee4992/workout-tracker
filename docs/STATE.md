@@ -22,9 +22,9 @@ Updated 2026-09-04 (morning, milestone 9 installed on the phone from the branch)
    The user exported first (CSV+JSON to iCloud Drive, 2026-09-04) — that export is the backup that
    predates D51's reclassification. The launch opened the real store through four optional-field
    additions (`Workout.name`, entry provenance, `heartRateSeries`/basal, the preferences record) and
-   catalog v5, and ran the reclassification. **Ask the user what Settings' "History update" row
-   says** (N sets moved) and whether a moved session shows "Reclassified from …" — nobody has seen
-   the real count. Profiles still expire **2026-09-11 01:08 UTC** (this build reused the same
+   catalog v5, and ran the reclassification. **Settings' "History update" row on the real store says 18 sets moved**
+   (user report, 2026-09-04) — so the reclassification found real dumbbell-tagged history and the
+   export taken just before it is the record of what those 18 sets said before. Profiles still expire **2026-09-11 01:08 UTC** (this build reused the same
    profile; the clock did not move).
 4. **Suites on the branch tip: 643 unit green (run in full) and all 36 UI tests green** — run
    2026-09-04 morning as the merge gate, in three pieces on the same commit (a single full run was
