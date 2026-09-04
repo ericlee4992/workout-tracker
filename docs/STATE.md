@@ -6,21 +6,35 @@ Updated 2026-09-03 (21:15, after the reinstall). **START HERE IF YOU ARE COLD:**
    launch-verified 2026-09-03 21:09.** Both profiles (app and widget) now expire **2026-09-11
    01:08 UTC**, and for the first time they expire on the SAME day, so the Live Activity will not
    die three days before the app does. Nothing needs rebuilding until then.
-2. **The D36 chart fix (`3ad382d`) is now on the device and has never been looked at by a human.**
-   The charts should draw one line per variation, with a **Variation** picker when there is history
-   under more than one. That is the first thing to ask the user about.
-3. **`main` is clean and pushed. 568 unit tests green** as of 2026-09-03. The UI suite was last run
-   in full at 26 tests on 2026-08-29; only `ProgressChartTooltipUITests` has been re-run since.
+2. **The D36 chart fix (`3ad382d`) is on the device and now VERIFIED on screen** — in the
+   simulator, 2026-09-03, not yet by a human on the phone. The picker reads "No variation · 9 days"
+   and switching to a grip redraws the line from that grip's history alone (3 points ending at
+   95 lb, axis rescaled) instead of pooling. Screenshots are attachments on
+   `ProgressChartTooltipUITests`. **Still worth asking the user** whether it reads right against
+   their REAL history, which has variations the fixture cannot guess.
+3. **`main` is clean and pushed. 568 unit + 27 UI green, BOTH run in full on 2026-09-03** (the UI
+   suite took 17 minutes, longer than the ~9 this file used to claim). The 27th is
+   `testEachVariationChartsOnItsOwn`, described in point 5.
 4. **Likely first actions**, if the user has no other ask: the free Apple Watch experiment below,
    which costs a single workout and could DELETE the whole `WorkoutTrackerWatch` target; and asking
    about the charts (point 2). Everything else is in the priority list further down; nothing is
    blocking.
 5. **The habit that has paid off most here:** the user tests on the device and reports plainly, and
-   Codex cross-reviews catch what the tests do not. **Seven defects so far have been a contract
+   Codex cross-reviews catch what the tests do not. **EIGHT defects so far have been a contract
    with no caller, or a caller contradicting its contract** — the watch rest countdown, deletion
-   volume, export flags, `enableBackgroundDelivery`, `pruneOrphanGroups`, `moveEntry`, and the
-   chart preset pooling. Grep for uncalled internal funcs and re-read doc comments against their
-   callers before closing anything.
+   volume, export flags, `enableBackgroundDelivery`, `pruneOrphanGroups`, `moveEntry`, the chart
+   preset pooling, and now `chartVariationPicker` (below). Grep for uncalled internal funcs and
+   re-read doc comments against their callers before closing anything.
+
+   **The newest one has a twist worth internalising: the fix for #7 shipped with #8 inside it.**
+   `3ad382d` fixed the chart pooling and added a `chartVariationPicker` identifier — and **no test
+   ever named that identifier**, because the picker renders only when history exists under more
+   than one variation and `ChartFixture` seeded exactly one. So the only VISIBLE surface of the
+   D36 fix was unreachable by any test or screenshot, while 8 new unit tests on
+   `ProgressSeriesMath` made the area look well covered. **A green suite around a fix is not
+   evidence the fix is visible.** Closed 2026-09-03: the fixture now seeds three variations and
+   `testEachVariationChartsOnItsOwn` drives the picker, asserting the grip's line ends on the
+   grip's own number and not the plain exercise's.
 
 Milestones 7 and 8 are merged, installed, and their phone-side features are
 confirmed in real use. **Neither is COMPLETE by its own acceptance criteria**, and saying otherwise
@@ -37,9 +51,10 @@ stale fastest.
 
 ## Status
 
-Merged and pushed on `main`: **everything, including milestone 8** (`74dbbd9`, merged 2026-08-29 — fast-forward, so `main` still has zero merge commits). **568 unit green (2026-09-03, freshly observed)**; the UI suite is **26, last-known** — run in full
-on 2026-08-29 at `4eb5486`, with only `ProgressChartTooltipUITests` re-run since. The unit figure
-rose from 560 with the eight `ChartPresetScopingTests` added by `3ad382d`.
+Merged and pushed on `main`: **everything, including milestone 8** (`74dbbd9`, merged 2026-08-29 — fast-forward, so `main` still has zero merge commits). **568 unit + 27 UI green, both run in
+full on 2026-09-03** — the first complete UI run since 2026-08-29. The unit figure rose from 560 with
+the eight `ChartPresetScopingTests` added by `3ad382d`; the UI figure rose from 26 with the
+variation-picker test added the same day.
 **Milestones 7 and 8 are both MERGED into `main`** (2026-08-25 and 2026-08-29, both fast-forward —
 `main` still has zero merge commits). `milestone-7-heart-rate` and `milestone-8-history-and-charts`
 are **NOT** identical to `main` — as of 2026-08-29 they sit at `ca67603` (27 commits behind) and
@@ -292,7 +307,11 @@ not be rediscovered as surprises:
    Also added: **`-uiTestChartHistory`** (`Domain/ChartFixture.swift`), which seeds four weeks of
    history for one exercise. The simulator has no PAST, so every workout a UI test logs lands on one
    day and collapses into the single-point state — the drawn chart could not otherwise be tested or
-   screenshotted. Same reasoning as `-uiTestScanFixture` for the camera.
+   screenshotted. Same reasoning as `-uiTestScanFixture` for the camera. **Extended 2026-09-03 to
+   seed THREE variations** (plain, Narrow grip, Wide grip) so the D36 variation picker renders at
+   all. The plain series deliberately keeps the most days, because `defaultVariation` opens the
+   chart on whichever has the most — that keeps the drawn series identical to what the tooltip test
+   already drags across, so the extension is additive rather than a rewrite of that test.
 3. **Supersets cannot be reordered, and History does not show grouping.** Both were in ticket 04's
    acceptance criteria. (Exercises CAN now be dragged to reorder, 2026-08-29, which moves a superset
    member as a side effect — but there is no way to reorder WITHIN a group deliberately.)
@@ -500,7 +519,7 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   schema change must open it (`LegacyStoreMigrationTests`) before going near the phone — that
   store is the shape of the user's real data, and "SwiftData infers this migration" is a claim,
   not evidence. Regenerate the fixture from the *installed* commit whenever the shape changes.
-- **UI tests take ~7 minutes** and occasionally flake under load. A single red run is not
+- **UI tests take ~17 minutes now** (27 tests, 2026-09-03 — it was ~7 at 21) and occasionally flake under load. A single red run is not
   automatically a real failure; re-run the failing test alone before believing it.
 - **An app-extension target needs `NSExtension` and version keys, or the SIMULATOR REFUSES TO
   INSTALL THE WHOLE APP.** Adding the widget extension (milestone 8, ticket 05) failed with

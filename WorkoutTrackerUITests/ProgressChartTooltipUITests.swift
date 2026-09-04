@@ -58,6 +58,62 @@ final class ProgressChartTooltipUITests: XCTestCase {
             "the row should show the as-entered value, got '\(row.label)'")
     }
 
+    /// D36's rule is that two variations of one movement never share a line.
+    /// The PICKER is the only place that rule is visible, and it renders only
+    /// when history exists under more than one variation — so before the
+    /// fixture seeded grips, nothing could reach this at all. The identifier
+    /// `chartVariationPicker` shipped with no test naming it, which is the
+    /// absence-of-a-caller shape this repo keeps hitting.
+    func testEachVariationChartsOnItsOwn() {
+        openProgress(for: "Seated Chest Press")
+
+        let picker = app.descendants(matching: .any)
+            .matching(identifier: "chartVariationPicker").firstMatch
+        XCTAssertTrue(
+            picker.waitForExistence(timeout: 15),
+            "history under three variations should offer a picker")
+
+        let row = app.descendants(matching: .any)
+            .matching(identifier: "chartSelection").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+
+        // The chart opens on the variation with the most days -- the plain
+        // exercise -- whose newest session is yesterday at 120 lb.
+        XCTAssertTrue(
+            row.label.contains("120"),
+            "should open on the plain exercise's newest session, got '\(row.label)'")
+
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "chart-variation-picker"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        picker.tap()
+        let narrow = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Narrow grip")).firstMatch
+        XCTAssertTrue(narrow.waitForExistence(timeout: 5), "the menu should list the grips")
+        narrow.tap()
+
+        // THE POINT OF THIS TEST. Narrow grip's newest session is 12 days ago
+        // at 95 lb; the plain exercise's is yesterday at 120 lb. Pooled -- the
+        // exact defect 3ad382d fixed -- the row would still read 120, because
+        // the series would still end on the plain exercise's last point.
+        let scoped = app.descendants(matching: .any)
+            .matching(identifier: "chartSelection").firstMatch
+        XCTAssertTrue(scoped.waitForExistence(timeout: 10))
+        XCTAssertTrue(
+            scoped.label.contains("95"),
+            "the chart should now show only narrow-grip history, got '\(scoped.label)'")
+        XCTAssertFalse(
+            scoped.label.contains("120"),
+            "the plain exercise's history is pooled into the grip's line, which D36 forbids")
+
+        let after = XCTAttachment(screenshot: app.screenshot())
+        after.name = "chart-narrow-grip"
+        after.lifetime = .keepAlways
+        add(after)
+    }
+
     /// The fixture's most recent session is yesterday.
     private var newestSessionDay: String {
         let yesterday = Date().addingTimeInterval(-86_400)
