@@ -1,41 +1,58 @@
 # Where the project is right now
 
-Updated 2026-09-03 (21:15, after the reinstall). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-04 (early morning, end of the milestone-9 build). **START HERE IF YOU ARE COLD:**
 
-1. **The phone runs `5a860bc`, freshly signed — installed and launch-verified 2026-09-03 21:09.**
-   `main` is two commits past it (`5e78197`, `225b3e6`) but **nothing user-facing changed in
-   them** — docs, a flag-gated test fixture, and a UI test — so there is NO reason to rebuild. Both profiles (app and widget) now expire **2026-09-11
-   01:08 UTC**, and for the first time they expire on the SAME day, so the Live Activity will not
-   die three days before the app does. Nothing needs rebuilding until then.
-2. **The D36 chart fix (`3ad382d`) is on the device and now VERIFIED on screen** — in the
-   simulator, 2026-09-03, not yet by a human on the phone. The picker reads "No variation · 9 days"
-   and switching to a grip redraws the line from that grip's history alone (3 points ending at
-   95 lb, axis rescaled) instead of pooling. Screenshots are attachments on
-   `ProgressChartTooltipUITests`. **Still worth asking the user** whether it reads right against
-   their REAL history, which has variations the fixture cannot guess.
-3. **`main` is clean and pushed. 568 unit + 27 UI green, BOTH run in full on 2026-09-03** (the UI
-   suite took 17 minutes, longer than the ~9 this file used to claim). The 27th is
-   `testEachVariationChartsOnItsOwn`, described in point 5.
-4. **Likely first actions**, if the user has no other ask: the free Apple Watch experiment below,
-   which costs a single workout and could DELETE the whole `WorkoutTrackerWatch` target; and asking
-   about the charts (point 2). Everything else is in the priority list further down; nothing is
-   blocking.
-5. **The habit that has paid off most here:** the user tests on the device and reports plainly, and
-   Codex cross-reviews catch what the tests do not. **EIGHT defects so far have been a contract
-   with no caller, or a caller contradicting its contract** — the watch rest countdown, deletion
-   volume, export flags, `enableBackgroundDelivery`, `pruneOrphanGroups`, `moveEntry`, the chart
-   preset pooling, and now `chartVariationPicker` (below). Grep for uncalled internal funcs and
-   re-read doc comments against their callers before closing anything.
-
-   **The newest one has a twist worth internalising: the fix for #7 shipped with #8 inside it.**
-   `3ad382d` fixed the chart pooling and added a `chartVariationPicker` identifier — and **no test
-   ever named that identifier**, because the picker renders only when history exists under more
-   than one variation and `ChartFixture` seeded exactly one. So the only VISIBLE surface of the
-   D36 fix was unreachable by any test or screenshot, while 8 new unit tests on
-   `ProgressSeriesMath` made the area look well covered. **A green suite around a fix is not
-   evidence the fix is visible.** Closed 2026-09-03: the fixture now seeds three variations and
-   `testEachVariationChartsOnItsOwn` drives the picker, asserting the grip's line ends on the
-   grip's own number and not the plain exercise's.
+1. **Milestone 9 is BUILT on branch `milestone-9-history-and-summary` (pushed) and NOT merged, NOT
+   installed.** Five tickets: chart per equipment + History chart button (01), workout name (02),
+   History calendar (03), dumbbell exercises with a one-time history reclassification (04), and the
+   finish summary with a heart-rate graph (05). Tickets 01–04 are Codex-clear (4, 4, 3, 4 rounds);
+   05 has had two rounds and a third narrow check is in `codex-review-05c.md` (read it — if it says
+   "clear", the milestone is ready to merge; if not, its findings are the next work).
+   **Merge = `git checkout main && git merge milestone-9-history-and-summary && git push`**
+   (fast-forward; `main` has zero merge commits).
+2. **Before installing this milestone on the phone: EXPORT FIRST.** D51's reclassification REWRITES
+   snapshots on the user's only copy of their history (dumbbell-tagged sets of Bench Press etc.
+   become Dumbbell Bench Press etc., with per-row provenance). Take a fresh CSV+JSON export to iCloud
+   Drive, then install. Two schema additions ride along (`Workout.name`, `ExerciseEntry`
+   provenance fields, `Workout.heartRateSeries`/basal, `AppPreferences` move record) — all optional,
+   `LegacyStoreMigrationTests` opens the fixture, and the catalog moves to **version 5** (90
+   exercises). Export schema is now **8**; CSV has **37** columns.
+3. **The phone still runs `5a860bc`** (installed 2026-09-03 21:09; both profiles expire
+   **2026-09-11 01:08 UTC**). Everything in milestone 9 is unseen on the device. Nothing needs
+   rebuilding for signing until the 11th; installing milestone 9 re-signs anyway.
+4. **Suites on the branch tip: 642 unit green (run in full); 36 UI tests exist**, every class
+   touched by a ticket run green after its last change, but the WHOLE UI suite has not been run
+   in one go since 2026-09-03 (27 tests then). Run it in full before merging: ~20 minutes now.
+5. **Two new locked decisions: D50** (a workout's name is editable in History as a marked edit,
+   reopening D47) and **D51** (the one catalog-driven reclassification of frozen snapshots,
+   reopening D19/D23/D47 narrowly, with per-row provenance). Both were reopened deliberately only
+   after Codex caught the first cuts drifting from the locked decisions — the lesson is in point 7.
+6. **The habit that has paid off most here:** the user tests on the device and reports plainly, and
+   Codex cross-reviews catch what the tests do not. **The absence-of-a-caller / contract-vs-caller
+   family is now NINE deep**: the watch rest countdown, deletion volume, export flags,
+   `enableBackgroundDelivery`, `pruneOrphanGroups`, `moveEntry`, the chart preset pooling,
+   `chartVariationPicker` (an identifier no test named), and — found by Codex in ticket 05 — the
+   coordinator's own comment claiming "Finish it and start new" banked the heart-rate summary
+   when that path never reached it, so every replaced workout had lost its aggregates since
+   milestone 7. Grep for uncalled funcs and re-read doc comments against callers before closing.
+7. **What milestone 9's seventeen Codex rounds taught, in one line each** (details in each
+   ticket's "response" sections under `.scratch/milestone-9-history-and-summary/issues/`):
+   - A green suite around a fix is not evidence the fix is visible (01).
+   - Reusing an existing export column for a new meaning is a silent format change; append (02).
+   - "Only its numbers" in D47 is a boundary, not a suggestion — reopen, don't drift (02, 04).
+   - A test that passes in the full suite can be order-dependent; Codex's focused runs caught two
+     (04: preset label chose by fetch order; 05: none, but the lesson stands).
+   - SwiftData refuses a captured enum in a `#Predicate`, optional or not, and the failure is a
+     LAUNCH crash when the predicate runs at launch (04).
+   - A one-shot version gate for a data migration misses history that arrives later; run it every
+     launch behind a cheap count, idempotent by construction (04).
+   - `BarMark` on a quantitative x-axis draws no bars; only the screenshot caught it (05).
+   - Merging two sensors' samples needs a rule that admits a real handoff and rejects a stray;
+     "within 15 s" broke an older regression, "inside a >60 s outage or a sustained run" holds (05).
+   - XCUITest: tapping an identified picker row under the keyboard can silently do nothing;
+     tapping the row's text works (04). STATE already said this for a second exercise; it bites
+     the first when the search has several matches.
+   - Unquoted shell heredocs eat backticks in review prompts; quote them (`<<'EOF'`) (03).
 
 Milestones 7 and 8 are merged, installed, and their phone-side features are
 confirmed in real use. **Neither is COMPLETE by its own acceptance criteria**, and saying otherwise
