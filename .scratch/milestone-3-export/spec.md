@@ -130,13 +130,14 @@ deterministic).
 
 ```jsonc
 {
-  "schemaVersion": 7,             // bumped on any shape change; older files decode
+  "schemaVersion": 8,             // bumped on any shape change; older files decode
                                   // 2: presets (D36). 3: bar weight (D39)
                                   // 4: heart-rate summary per workout (D44)
                                   // 5: supersetGroupID, loadTypeUserOverridden, historyEditedAt (D47/D48)
                                   // 6: workouts[].name, the typed title (D50)
                                   // 7: entries[].reclassifiedAt/FromExerciseName + the
                                   //    preferences record of the run (D51)
+                                  // 8: workouts[].heartRateSeries (+ interval), basalEnergyKilocalories
   "exportedAt": "2026-08-11T18:30:00.123+09:00",
   "appVersion": "1.0 (3)",
   "seededCatalogVersion": 4,      // D28: what the omitted catalog rows came from
@@ -190,3 +191,10 @@ provenance there is not lied to. (A first cut reused column 4; codex-review 02 c
 reclassification rewrote that entry), and in `preferences`: `dumbbellHistoryMovedSets`,
 `dumbbellHistoryMovedAt`, `dumbbellHistoryCheckedAt`. CSV appends column 37 `reclassifiedFrom`. The
 rewritten identity without the fact of the rewrite would be a backup claiming an untouched history.
+
+### v8 (milestone 9, ticket 05 — heart-rate series)
+
+`workouts[].heartRateSeries` (`[Int]`, bpm per bucket from `startedAt`, 0 = no sample = a gap),
+`heartRateSeriesIntervalSeconds` (the bucket width it was folded at) and `basalEnergyKilocalories`.
+All absent when no sensor ran. JSON only — arrays have no honest place in the set ledger, exactly as
+`zoneSeconds` (v4). No CSV change.

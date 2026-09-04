@@ -137,6 +137,35 @@ struct WorkoutDetailView: View {
                 }
             }
 
+            // Milestone 9, ticket 05: what the sensor saw, for any workout that
+            // has it. Aggregates for every workout that recorded them; the
+            // graph only when a series exists — older workouts never show an
+            // empty chart.
+            if !workout.isDeleted, let summary = heartRateSummary, summary.hasHeartRate {
+                Section("Heart rate") {
+                    if let average = summary.averageHeartRate {
+                        LabeledContent("Average") { Text("\(average) BPM").monospacedDigit() }
+                    }
+                    if let maximum = summary.maxHeartRate {
+                        LabeledContent("Maximum") { Text("\(maximum) BPM").monospacedDigit() }
+                    }
+                    if let calories = summary.activeEnergyKilocalories {
+                        LabeledContent("Active calories") { Text("\(Int(calories.rounded())) CAL").monospacedDigit() }
+                    }
+                    if let total = summary.totalEnergyKilocalories {
+                        LabeledContent("Total calories") { Text("\(Int(total.rounded())) CAL").monospacedDigit() }
+                    }
+                }
+                .accessibilityIdentifier("historyHeartRateSection")
+                if summary.hasHeartRateSeries, let interval = summary.heartRateSeriesIntervalSeconds {
+                    HeartRateSummarySection(
+                        series: summary.heartRateSeries,
+                        intervalSeconds: interval,
+                        averageBpm: summary.averageHeartRate,
+                        maxBpm: summary.maxHeartRate)
+                }
+            }
+
             Section {
                 Button("Add Exercise…", systemImage: "plus") {
                     showExercisePicker = true
@@ -324,6 +353,12 @@ struct WorkoutDetailView: View {
     private func save() {
         do { try modelContext.save() }
         catch { assertionFailure("Failed to save history edit: \(error)") }
+    }
+
+    /// The same summary the finish sheet showed, rebuilt from the stored
+    /// workout — so History and the receipt cannot disagree.
+    private var heartRateSummary: WorkoutSummary? {
+        workout.isDeleted ? nil : WorkoutSummaryBuilder.summary(for: workout)
     }
 
     /// Weight text for a set under the current toggle: as entered by default,

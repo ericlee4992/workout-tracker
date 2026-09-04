@@ -1,0 +1,76 @@
+import XCTest
+
+/// Milestone 9, ticket 05 — the heart-rate graph on the finish sheet and in
+/// History, and its ABSENCE for a workout that has no series.
+final class HeartRateSummaryUITests: XCTestCase {
+
+    /// Under the scripted sensor: finish → the receipt has the chart and the
+    /// total-calories tile → View in History → the detail has the chart too.
+    func testFinishShowsTheChartAndHistoryShowsItAgain() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTestReset", "-uiTestHeartRate"]
+        app.launch()
+
+        app.tabBars.buttons["Workout"].tap()
+        app.buttons["startEmptyWorkout"].tap()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "hrBpm").firstMatch
+            .waitForExistence(timeout: 15))
+
+        app.buttons["addExercise"].tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText("Seated Chest")
+        let option = app.descendants(matching: .any)
+            .matching(identifier: "exerciseOption.Seated Chest Press").firstMatch
+        XCTAssertTrue(option.waitForExistence(timeout: 10))
+        option.tap()
+        let weight = app.textFields["setRow.weight"].firstMatch
+        XCTAssertTrue(weight.waitForExistence(timeout: 5))
+        weight.tap(); weight.typeText("60")
+        let reps = app.textFields["setRow.reps"].firstMatch
+        reps.tap(); reps.typeText("10")
+        app.buttons["setRow.complete"].firstMatch.tap()
+        // Let the fixture run long enough for more than one 15 s bucket.
+        sleep(20)
+        app.buttons["finishWorkout"].tap()
+
+        let chart = app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
+        XCTAssertTrue(chart.waitForExistence(timeout: 15), "the receipt should draw the heart-rate series")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "summaryTotalCalories").firstMatch.exists,
+                      "the fixture supplies basal energy, so Total calories shows")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "summaryAvgHR").firstMatch.exists)
+
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "finish-heart-rate"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        app.buttons["View in History"].firstMatch.tap()
+        let section = app.descendants(matching: .any).matching(identifier: "historyHeartRateSection").firstMatch
+        XCTAssertTrue(section.waitForExistence(timeout: 15), "History detail should show the heart-rate section")
+        app.swipeUp()
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
+            .waitForExistence(timeout: 10), "and the same chart")
+
+        let after = XCTAttachment(screenshot: app.screenshot())
+        after.name = "history-heart-rate"
+        after.lifetime = .keepAlways
+        add(after)
+    }
+
+    /// A workout with no sensor data — every session in the chart fixture —
+    /// shows neither the section nor an empty chart.
+    func testAWorkoutWithoutASeriesShowsNoChart() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTestReset", "-uiTestChartHistory"]
+        app.launch()
+        app.tabBars.buttons["History"].tap()
+        let row = app.descendants(matching: .any).matching(identifier: "historyWorkoutRow").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        XCTAssertTrue(app.buttons["historyWorkoutName"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "historyHeartRateSection").firstMatch.exists)
+        XCTAssertFalse(app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch.exists)
+    }
+}

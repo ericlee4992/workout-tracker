@@ -86,6 +86,14 @@ struct WorkoutFinishedSheet: View {
 
                 if let summary {
                     statsSection(summary)
+                    // Milestone 9, ticket 05: the graph, when a series exists.
+                    if summary.hasHeartRateSeries, let interval = summary.heartRateSeriesIntervalSeconds {
+                        HeartRateSummarySection(
+                            series: summary.heartRateSeries,
+                            intervalSeconds: interval,
+                            averageBpm: summary.averageHeartRate,
+                            maxBpm: summary.maxHeartRate)
+                    }
                     exercisesSection(summary)
                 }
             }
@@ -177,7 +185,11 @@ struct WorkoutFinishedSheet: View {
     @ViewBuilder
     private func statsSection(_ summary: WorkoutSummary) -> some View {
         Section("Workout details") {
-            statRow("Workout time", Format.duration(seconds: Int(summary.duration)))
+            // Milestone 9, ticket 05: the headline figures as a 2×2 block, the
+            // way the user's reference (Apple Fitness) lays them out. Every
+            // tile is still OMITTED, not zeroed, when its fact is missing (D44)
+            // — a block with a hole is honest; a block with a 0 is not.
+            statGrid(summary)
             if summary.totalVolumeKg > 0 {
                 // Shown in the app's own unit, not always kg. Reported
                 // 2026-08-26: a user logging in lb saw their volume in kg,
@@ -189,17 +201,6 @@ struct WorkoutFinishedSheet: View {
                 // a sum, so it is approximate twice over.
                 statRow("Total volume", volumeLabel(summary.totalVolumeKg))
             }
-            // Every heart-rate row is OMITTED, not zeroed, when no sensor ran
-            // (D44). A workout logged without one says nothing about the heart
-            // rather than claiming 0 BPM.
-            if let calories = summary.activeEnergyKilocalories {
-                statRow("Active calories", "\(Int(calories.rounded())) CAL")
-                    .accessibilityIdentifier("summaryCalories")
-            }
-            if let average = summary.averageHeartRate {
-                statRow("Avg. heart rate", "\(average) BPM")
-                    .accessibilityIdentifier("summaryAvgHR")
-            }
             if let maximum = summary.maxHeartRate {
                 statRow("Max heart rate", "\(maximum) BPM")
             }
@@ -207,6 +208,45 @@ struct WorkoutFinishedSheet: View {
                 zoneRow(summary.zoneSeconds)
             }
         }
+    }
+
+    /// Workout time · Active calories / Total calories · Avg. heart rate.
+    private func statGrid(_ summary: WorkoutSummary) -> some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 14) {
+            statTile("Workout time", Format.duration(seconds: Int(summary.duration)), tint: .yellow, id: "summaryTime")
+            if let calories = summary.activeEnergyKilocalories {
+                statTile("Active calories", "\(Int(calories.rounded()))", unit: "CAL", tint: .pink, id: "summaryCalories")
+            }
+            // Total = active + basal, only when the system gave both (D9/D25).
+            if let total = summary.totalEnergyKilocalories {
+                statTile("Total calories", "\(Int(total.rounded()))", unit: "CAL", tint: .pink, id: "summaryTotalCalories")
+            }
+            if let average = summary.averageHeartRate {
+                statTile("Avg. heart rate", "\(average)", unit: "BPM", tint: .red, id: "summaryAvgHR")
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func statTile(_ title: String, _ value: String, unit: String? = nil, tint: Color, id: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            HStack(alignment: .firstTextBaseline, spacing: 2) {
+                Text(value)
+                    .font(.title2.weight(.semibold).monospacedDigit())
+                    .foregroundStyle(tint)
+                if let unit {
+                    Text(unit)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(tint)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title), \(value) \(unit ?? "")")
+        .accessibilityIdentifier(id)
     }
 
     private func statRow(_ title: String, _ value: String) -> some View {

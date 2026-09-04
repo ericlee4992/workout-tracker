@@ -33,9 +33,22 @@ struct WorkoutSummary: Equatable, Sendable {
     /// D45: whether `zoneSeconds` was computed against an estimated maximum.
     /// nil when there are no zones at all.
     var zonesFromEstimatedMax: Bool?
+    /// Milestone 9, ticket 05. nil basal = total not shown; empty series = no chart.
+    var basalEnergyKilocalories: Double? = nil
+    var heartRateSeries: [Int] = []
+    var heartRateSeriesIntervalSeconds: Int? = nil
 
     var hasHeartRate: Bool {
         averageHeartRate != nil || maxHeartRate != nil || activeEnergyKilocalories != nil
+    }
+
+    /// Active + basal, only when both exist (D9/D25: no invented halves).
+    var totalEnergyKilocalories: Double? {
+        HeartRateSeriesMath.totalEnergyKilocalories(active: activeEnergyKilocalories, basal: basalEnergyKilocalories)
+    }
+
+    var hasHeartRateSeries: Bool {
+        heartRateSeriesIntervalSeconds != nil && heartRateSeries.contains { $0 > 0 }
     }
 
     /// One exercise as the summary lists it: what it was, on what, how much.
@@ -111,7 +124,10 @@ enum WorkoutSummaryBuilder {
             maxHeartRate: workout.maxHeartRate,
             activeEnergyKilocalories: workout.activeEnergyKilocalories,
             zoneSeconds: workout.zoneSeconds,
-            zonesFromEstimatedMax: workout.zonesFromEstimatedMax)
+            zonesFromEstimatedMax: workout.zonesFromEstimatedMax,
+            basalEnergyKilocalories: workout.basalEnergyKilocalories,
+            heartRateSeries: workout.heartRateSeries,
+            heartRateSeriesIntervalSeconds: workout.heartRateSeriesIntervalSeconds)
     }
 
     /// The heaviest completed set, as entered. Warmups are excluded exactly as
@@ -142,14 +158,26 @@ enum WorkoutSummaryBuilder {
     static func capture(
         vitals: WorkoutVitals,
         activeEnergyKilocalories: Double?,
+        basalEnergyKilocalories: Double? = nil,
+        samples: [HeartRateSample] = [],
         zonesEstimated: Bool = false,
-        onto workout: Workout
+        onto workout: Workout,
+        now: Date = .now
     ) {
         // Calories are a separate fact from heart rate: the system accumulates
         // active energy whether or not a single bpm arrived, and dropping it
         // because no sample came showed calories all workout then omitted them
         // from the summary (codex-review 1.2).
         workout.activeEnergyKilocalories = activeEnergyKilocalories
+        workout.basalEnergyKilocalories = basalEnergyKilocalories
+        // Milestone 9, ticket 05: the series, folded here — the one moment the
+        // samples exist. `finishedAt` is not set yet on this path, so the end
+        // is `now`. Empty samples leave the series empty and the interval nil.
+        let series = HeartRateSeriesMath.series(from: samples, start: workout.startedAt, end: now)
+        if series.contains(where: { $0 > 0 }) {
+            workout.heartRateSeries = series
+            workout.heartRateSeriesIntervalSeconds = HeartRateSeriesMath.defaultIntervalSeconds
+        }
         guard !vitals.isEmpty else { return }
         workout.averageHeartRate = vitals.averageBpm
         workout.maxHeartRate = vitals.maxBpm

@@ -54,6 +54,18 @@ struct LegacyStoreMigrationTests {
         #expect(set.completedAt != nil)
     }
 
+    /// Milestone 9, ticket 05: the series fields arrive empty/nil — no sensor
+    /// ran on the fixture's workout — and the summary shows aggregates only.
+    @Test func heartRateSeriesArrivesEmptyAndNoChartIsClaimed() throws {
+        let (context, directory) = try openedFixture()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let workout = try #require(try context.fetch(FetchDescriptor<Workout>()).first)
+        #expect(workout.heartRateSeries.isEmpty)
+        #expect(workout.heartRateSeriesIntervalSeconds == nil)
+        #expect(workout.basalEnergyKilocalories == nil)
+        #expect(!WorkoutSummaryBuilder.summary(for: workout).hasHeartRateSeries)
+    }
+
     /// Milestone 9, ticket 04: the move-record fields arrive nil — nothing was
     /// moved on this store yet — and opening the fixture does not run the move
     /// (that needs the seeder crossing into catalog version 5).

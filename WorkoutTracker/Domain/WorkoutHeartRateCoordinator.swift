@@ -98,6 +98,10 @@ final class WorkoutHeartRateCoordinator {
             WorkoutSummaryBuilder.capture(
                 vitals: monitor.vitals,
                 activeEnergyKilocalories: monitor.activeEnergyKilocalories,
+                basalEnergyKilocalories: monitor.basalEnergyKilocalories,
+                // The same readings the aggregates come from, so the chart and
+                // the numbers under it never disagree.
+                samples: monitor.dominantSamples,
                 zonesEstimated: monitor.maxHeartRate?.isEstimated ?? false,
                 onto: workout)
         }

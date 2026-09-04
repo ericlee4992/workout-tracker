@@ -25,6 +25,7 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
     private var continuation: AsyncStream<HeartRateSample>.Continuation?
 
     private(set) var activeEnergyKilocalories: Double?
+    private(set) var basalEnergyKilocalories: Double?
 
     let stream: AsyncStream<HeartRateSample>
 
@@ -46,12 +47,15 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
     private var activeEnergyType: HKQuantityType {
         .quantityType(forIdentifier: .activeEnergyBurned)!
     }
+    private var basalEnergyType: HKQuantityType {
+        .quantityType(forIdentifier: .basalEnergyBurned)!
+    }
 
     func start() async -> HeartRateFeedState {
         guard HKHealthStore.isHealthDataAvailable() else { return .unavailable }
 
         let share: Set<HKSampleType> = [HKObjectType.workoutType()]
-        let read: Set<HKObjectType> = [heartRateType, activeEnergyType]
+        let read: Set<HKObjectType> = [heartRateType, activeEnergyType, basalEnergyType]
         do {
             // Asked on first use of the feature, not at launch — the same rule
             // the rest-timer notification permission follows.
@@ -150,6 +154,12 @@ extension HealthKitHeartRateProvider: HKLiveWorkoutBuilderDelegate {
         case HKQuantityTypeIdentifier.activeEnergyBurned.rawValue:
             // The system's own accumulation. We never add these up ourselves.
             activeEnergyKilocalories = statistics
+                .sumQuantity()?
+                .doubleValue(for: .kilocalorie())
+        case HKQuantityTypeIdentifier.basalEnergyBurned.rawValue:
+            // Same rule: the system's figure, for TOTAL = active + basal
+            // (milestone 9, ticket 05). Absent means total is not shown.
+            basalEnergyKilocalories = statistics
                 .sumQuantity()?
                 .doubleValue(for: .kilocalorie())
         default:

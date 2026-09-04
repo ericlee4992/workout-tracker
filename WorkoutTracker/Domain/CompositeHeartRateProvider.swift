@@ -23,6 +23,10 @@ final class CompositeHeartRateProvider: HeartRateProviding, WatchRestBroadcastin
     /// *same* workout, so adding them would double-count the calories. Not the
     /// first either — a source that starts late reports a smaller number, and
     /// the total shown to the user must never go backwards mid-workout.
+    var basalEnergyKilocalories: Double? {
+        providers.compactMap(\.basalEnergyKilocalories).max()
+    }
+
     var activeEnergyKilocalories: Double? {
         providers.compactMap(\.activeEnergyKilocalories).max()
     }

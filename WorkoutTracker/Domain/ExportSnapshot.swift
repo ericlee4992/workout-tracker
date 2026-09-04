@@ -44,7 +44,11 @@ struct ExportSnapshot: Codable, Equatable {
     /// backup that carried the rewritten identity without the fact of the
     /// rewrite would be a history claiming to be untouched (codex-review 04).
     /// CSV appends column 37 `reclassifiedFrom`.
-    static let currentSchemaVersion = 7
+    /// 8 — milestone 9, ticket 05. `workouts[].heartRateSeries` (+ its bucket
+    /// width) and `basalEnergyKilocalories`. JSON only: an array has no honest
+    /// place in a flat ledger of sets, exactly as `zoneSeconds` (v4). Absent
+    /// when no sensor ran — missing is not zero.
+    static let currentSchemaVersion = 8
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -235,6 +239,11 @@ extension ExportSnapshot {
         /// (codex-review-2 #3) — the export must carry the qualifier along with
         /// the number it qualifies.
         var zonesFromEstimatedMax: Bool?
+        /// v8: bpm per bucket from `startedAt`, 0 = gap; omitted when empty.
+        var heartRateSeries: [Int]? = nil
+        var heartRateSeriesIntervalSeconds: Int? = nil
+        /// v8: the system's resting-energy figure; absent when not provided.
+        var basalEnergyKilocalories: Double? = nil
     }
 
     /// One exercise within a workout.

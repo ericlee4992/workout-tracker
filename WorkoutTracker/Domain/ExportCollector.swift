@@ -268,7 +268,10 @@ struct ExportCollector {
             maxHeartRate: workout.maxHeartRate,
             activeEnergyKilocalories: workout.activeEnergyKilocalories,
             zoneSeconds: workout.zoneSeconds.isEmpty ? nil : workout.zoneSeconds,
-            zonesFromEstimatedMax: workout.zonesFromEstimatedMax)
+            zonesFromEstimatedMax: workout.zonesFromEstimatedMax,
+            heartRateSeries: workout.heartRateSeries.isEmpty ? nil : workout.heartRateSeries,
+            heartRateSeriesIntervalSeconds: workout.heartRateSeries.isEmpty ? nil : workout.heartRateSeriesIntervalSeconds,
+            basalEnergyKilocalories: workout.basalEnergyKilocalories)
     }
 
     private func entry(

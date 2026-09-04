@@ -333,6 +333,20 @@ final class Workout {
     /// than a measured one. nil = no zones recorded. Without it, a summary from
     /// a formula reads as measured fact (codex-review 1.1).
     var zonesFromEstimatedMax: Bool?
+    /// Milestone 9, ticket 05: bpm per `heartRateSeriesIntervalSeconds`-wide
+    /// bucket from `startedAt`, 0 = no sample in that bucket (a GAP, never
+    /// 0 BPM). Empty when no sensor ran, and for every workout logged before
+    /// this existed — those show their aggregates and no chart. Scalars only
+    /// (T2), like `zoneSeconds`.
+    var heartRateSeries: [Int] = []
+    /// The bucket width the series was folded at. nil whenever the series is
+    /// empty; stored rather than assumed so the constant can change later
+    /// without misreading old rows.
+    var heartRateSeriesIntervalSeconds: Int?
+    /// The system's resting-energy accumulation over the session, so TOTAL
+    /// calories (active + basal) can be shown as Apple does. nil when the
+    /// builder did not provide it — never derived.
+    var basalEnergyKilocalories: Double?
 
     var gym: Gym?
     @Relationship(deleteRule: .cascade, inverse: \ExerciseEntry.workout)
@@ -355,6 +369,9 @@ final class Workout {
         activeEnergyKilocalories: Double? = nil,
         zoneSeconds: [Int] = [],
         zonesFromEstimatedMax: Bool? = nil,
+        heartRateSeries: [Int] = [],
+        heartRateSeriesIntervalSeconds: Int? = nil,
+        basalEnergyKilocalories: Double? = nil,
         gym: Gym? = nil
     ) {
         self.id = id
@@ -373,6 +390,9 @@ final class Workout {
         self.activeEnergyKilocalories = activeEnergyKilocalories
         self.zoneSeconds = zoneSeconds
         self.zonesFromEstimatedMax = zonesFromEstimatedMax
+        self.heartRateSeries = heartRateSeries
+        self.heartRateSeriesIntervalSeconds = heartRateSeriesIntervalSeconds
+        self.basalEnergyKilocalories = basalEnergyKilocalories
         self.gym = gym
     }
 }

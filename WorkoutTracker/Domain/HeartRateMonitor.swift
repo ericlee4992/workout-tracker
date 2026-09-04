@@ -58,6 +58,14 @@ protocol HeartRateProviding: AnyObject {
     /// figure we invented would be exactly the false precision the app exists
     /// to refuse.
     var activeEnergyKilocalories: Double? { get }
+    /// Resting energy over the session, likewise the system's own figure.
+    /// Defaulted to nil: most providers (a watch link, a test double) have no
+    /// energy at all, and total calories is simply not shown without it.
+    var basalEnergyKilocalories: Double? { get }
+}
+
+extension HeartRateProviding {
+    var basalEnergyKilocalories: Double? { nil }
 }
 
 /// The app-facing feed. Views observe this; nothing above it knows whether the
@@ -71,6 +79,7 @@ final class HeartRateMonitor {
     /// `sampleLimit`.
     private(set) var samples: [HeartRateSample] = []
     private(set) var activeEnergyKilocalories: Double?
+    private(set) var basalEnergyKilocalories: Double?
     /// The ceiling zones are computed against (D45). nil = show no zones.
     var maxHeartRate: MaxHeartRate?
 
@@ -150,9 +159,15 @@ final class HeartRateMonitor {
     }
 
     var vitals: WorkoutVitals {
-        guard let source = dominantSource else { return .empty }
-        return WorkoutVitalsMath.vitals(
-            from: samples.filter { $0.source == source }, zoningAgainst: maxHeartRate)
+        WorkoutVitalsMath.vitals(from: dominantSamples, zoningAgainst: maxHeartRate)
+    }
+
+    /// The samples the summary is built from: the dominant sensor's, so the
+    /// series and the aggregates describe the same readings (codex-review-2 #6
+    /// reasoning, applied to the chart as well).
+    var dominantSamples: [HeartRateSample] {
+        guard let source = dominantSource else { return [] }
+        return samples.filter { $0.source == source }
     }
 
     func start() async {
@@ -179,6 +194,7 @@ final class HeartRateMonitor {
     private func ingest(_ sample: HeartRateSample) {
         samples.append(sample)
         activeEnergyKilocalories = provider.activeEnergyKilocalories
+        basalEnergyKilocalories = provider.basalEnergyKilocalories
         // codex-review 3.3 (high): this used to be `.live(sample.source)` —
         // whichever sensor happened to report LAST — while the number on screen
         // came from `current`, chosen by precedence. A Watch reading could
@@ -277,6 +293,7 @@ final class FixtureHeartRateProvider: HeartRateProviding {
     private var continuation: AsyncStream<HeartRateSample>.Continuation?
     private var task: Task<Void, Never>?
     private(set) var activeEnergyKilocalories: Double?
+    private(set) var basalEnergyKilocalories: Double?
     private(set) var isRunning = false
 
     let stream: AsyncStream<HeartRateSample>
@@ -299,6 +316,7 @@ final class FixtureHeartRateProvider: HeartRateProviding {
     func start() async -> HeartRateFeedState {
         isRunning = true
         activeEnergyKilocalories = 0
+        basalEnergyKilocalories = 0
         task?.cancel()
         task = Task { [weak self] in
             guard let self else { return }
@@ -310,6 +328,11 @@ final class FixtureHeartRateProvider: HeartRateProviding {
                 // Roughly a kcal every few seconds under load — enough for the
                 // number on screen to move, and labelled fixture data.
                 self.activeEnergyKilocalories = (self.activeEnergyKilocalories ?? 0) + 0.35
+                // Resting burn runs regardless of effort. Deliberately higher
+                // than a real ~1.2 kcal/min so a short test workout shows a
+                // TOTAL that visibly differs from ACTIVE; it is labelled fixture
+                // data and never reaches a real store.
+                self.basalEnergyKilocalories = (self.basalEnergyKilocalories ?? 0) + 0.1
                 index += 1
                 try? await Task.sleep(for: .seconds(self.interval))
             }
