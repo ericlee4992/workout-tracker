@@ -1,6 +1,6 @@
 # 02 — Workout name, during and after
 
-Status: resolved — awaiting Codex review
+Status: resolved — Codex clear after 4 rounds (codex-review-02..02d)
 Blocked by: 01
 Covers user ask **1**.
 
