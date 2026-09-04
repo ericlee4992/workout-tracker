@@ -22,6 +22,9 @@ struct WorkoutDetailView: View {
     /// — rather than the most-trained one, because that is what the user is
     /// looking at.
     @State private var chartingEntry: ExerciseEntry?
+    /// Renaming a logged workout (milestone 9, ticket 02) — a marked edit (D47).
+    @State private var renamingWorkout = false
+    @State private var renameText = ""
     /// A set just created by "Add Exercise". If the user leaves without giving
     /// it real values, the whole entry is removed — history must never show an
     /// exercise with nothing under it.
@@ -34,6 +37,22 @@ struct WorkoutDetailView: View {
     var body: some View {
         List {
             Section {
+                Button {
+                    renameText = workout.isDeleted ? "" : (workout.name ?? "")
+                    renamingWorkout = true
+                } label: {
+                    LabeledContent("Name") {
+                        HStack(spacing: 4) {
+                            Text(workout.isDeleted ? "" : workout.historyTitle)
+                                .lineLimit(1)
+                            Image(systemName: "pencil")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("historyWorkoutName")
                 HStack {
                     Label(workout.historyGymName ?? "No gym", systemImage: "mappin.and.ellipse")
                     Spacer()
@@ -141,6 +160,19 @@ struct WorkoutDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editingSet) { set in
             EditLoggedSetSheet(record: set)
+        }
+        .alert("Workout Name", isPresented: $renamingWorkout) {
+            TextField(workout.isDeleted ? "" : workout.derivedTitle, text: $renameText)
+                .accessibilityIdentifier("workoutNameField")
+            Button("Save") {
+                // Marked as an edit: a logged workout that changes what it is
+                // called is history changing, and says so (D47).
+                HistoryEditing.rename(workout, to: renameText)
+            }
+            .accessibilityIdentifier("saveWorkoutName")
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Leave it empty to use the template or exercise name. Renaming marks the workout as edited.")
         }
         // On the List, not the Section: a `.sheet` on a Section inside a List
         // never presents (STATE gotcha, milestone 3).

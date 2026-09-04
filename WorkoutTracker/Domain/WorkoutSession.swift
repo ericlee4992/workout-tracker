@@ -114,6 +114,18 @@ struct WorkoutSession {
 
     /// Cancel: deletes the workout and its whole graph (entries cascade to
     /// sets). The UI confirms before calling this.
+    /// Names (or un-names, with blank) a workout that is still running. NOT
+    /// a history edit: the workout has not been logged yet, so nothing is
+    /// marked — `HistoryEditing.rename` is the after-the-fact path (D47).
+    func rename(_ workout: Workout, to name: String) throws {
+        guard !workout.isDeleted else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let next: String? = trimmed.isEmpty ? nil : trimmed
+        guard next != workout.name else { return }
+        workout.name = next
+        try context.save()
+    }
+
     func cancel(_ workout: Workout) throws {
         try restTimer.skip(workout)
         context.delete(workout)

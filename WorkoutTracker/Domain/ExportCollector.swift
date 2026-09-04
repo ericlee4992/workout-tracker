@@ -253,6 +253,7 @@ struct ExportCollector {
             historyEditedAt: dateFormat.optionalString(from: workout.historyEditedAt),
             sourceTemplateID: workout.sourceTemplateID,
             sourceTemplateName: workout.sourceTemplateName,
+            name: workout.name,
             // The workout carries a snapshot *name* but no snapshot gym id
             // (D23 puts the ids on the entry). So the id is the live link —
             // nil once the gym is deleted — while the name is what the workout

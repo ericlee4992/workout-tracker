@@ -269,6 +269,13 @@ final class Workout {
     var startedAt: Date = Date()
     var finishedAt: Date?
     var notes: String = ""
+    /// A name the user typed for this workout (milestone 9, ticket 02). nil
+    /// means none was typed and the title is DERIVED — from the template
+    /// snapshot, else the exercises (`HistoryRendering.title`). Optional so
+    /// every store logged before names existed migrates lightweightly, and
+    /// distinct from `sourceTemplateName`, which records where the workout
+    /// came from rather than what the user chose to call it.
+    var name: String?
     /// Scalar reference to the template this workout was started from, if any.
     /// When this workout was last edited after being logged (D47, milestone 8
     /// ticket 03). nil = never edited, which is every workout logged before
@@ -328,6 +335,7 @@ final class Workout {
         startedAt: Date = Date(),
         finishedAt: Date? = nil,
         notes: String = "",
+        name: String? = nil,
         sourceTemplateID: UUID? = nil,
         sourceTemplateName: String? = nil,
         snapshotGymName: String? = nil,
@@ -345,6 +353,7 @@ final class Workout {
         self.startedAt = startedAt
         self.finishedAt = finishedAt
         self.notes = notes
+        self.name = name
         self.sourceTemplateID = sourceTemplateID
         self.sourceTemplateName = sourceTemplateName
         self.snapshotGymName = snapshotGymName

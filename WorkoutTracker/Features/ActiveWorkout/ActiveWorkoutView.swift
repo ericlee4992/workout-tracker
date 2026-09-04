@@ -22,6 +22,9 @@ struct ActiveWorkoutView: View {
     @State private var showExercisePicker = false
     @State private var showMachinePicker = false
     @State private var confirmingCancel = false
+    /// Naming the workout mid-session (milestone 9, ticket 02).
+    @State private var renamingWorkout = false
+    @State private var renameText = ""
     @State private var driftTemplate: WorkoutTemplate?
     @State private var choosingDriftResolution = false
     /// Owned by `RootView`, not by this screen (codex-review-2 #2): minimise
@@ -156,9 +159,32 @@ struct ActiveWorkoutView: View {
                         expired: refreshRest)
                 }
             }
-            .navigationTitle("Workout")
+            .navigationTitle(workout.isDeleted ? "Workout" : workout.historyTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // The title is the name, and tapping it edits the name. A
+                // principal item replaces the bar's own title; the pencil says
+                // it is tappable, because an inline title never looks like a
+                // control on its own.
+                ToolbarItem(placement: .principal) {
+                    Button {
+                        renameText = workout.isDeleted ? "" : (workout.name ?? "")
+                        renamingWorkout = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(workout.isDeleted ? "Workout" : workout.historyTitle)
+                                .font(.headline)
+                                .lineLimit(1)
+                            Image(systemName: "pencil")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("workoutTitle")
+                    // The visible title IS the label; the hint says it edits.
+                    .accessibilityHint("Edits the workout name")
+                }
                 // C1: leaving an active workout no longer means finishing or
                 // discarding it — minimise keeps it running behind the tabs.
                 ToolbarItem(placement: .topBarLeading) {
@@ -177,6 +203,19 @@ struct ActiveWorkoutView: View {
                         .font(.headline)
                         .accessibilityIdentifier("finishWorkout")
                 }
+            }
+            .alert("Workout Name", isPresented: $renamingWorkout) {
+                TextField(workout.isDeleted ? "Workout" : workout.derivedTitle, text: $renameText)
+                    .accessibilityIdentifier("workoutNameField")
+                Button("Save") {
+                    do { try session.rename(workout, to: renameText) } catch {
+                        assertionFailure("Failed to rename workout: \(error)")
+                    }
+                }
+                .accessibilityIdentifier("saveWorkoutName")
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Leave it empty to use the template or exercise name.")
             }
             .confirmationDialog(
                 "Cancel this workout?",

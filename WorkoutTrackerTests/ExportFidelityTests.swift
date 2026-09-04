@@ -340,7 +340,7 @@ struct ExportFidelityTests {
         let exported = try #require(snapshot.workouts.first?.entries.first)
         #expect(exported.presetID == preset.id)
         #expect(exported.presetName == "Wide grip")
-        #expect(snapshot.schemaVersion == 5)
+        #expect(snapshot.schemaVersion == 6)
         #expect(try ExportJSON.decode(try ExportJSON.data(snapshot)) == snapshot)
     }
 

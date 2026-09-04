@@ -54,6 +54,17 @@ struct LegacyStoreMigrationTests {
         #expect(set.completedAt != nil)
     }
 
+    /// Milestone 9, ticket 02: the workout name arrives nil — "no name typed",
+    /// which is the truth about every workout logged before names existed —
+    /// and the title still derives exactly as it did.
+    @Test func workoutNameArrivesNilAndTheTitleStillDerives() throws {
+        let (context, directory) = try openedFixture()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let workout = try #require(try context.fetch(FetchDescriptor<Workout>()).first)
+        #expect(workout.name == nil)
+        #expect(workout.historyTitle == "Seated Row")
+    }
+
     /// Every field presets added must materialise as "nobody recorded that",
     /// which is the truth about work logged before presets existed.
     @Test func presetFieldsArriveEmptyRatherThanBroken() throws {

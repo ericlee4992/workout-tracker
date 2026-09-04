@@ -82,7 +82,16 @@ enum HistoryRendering {
     /// a later rename, deletion, or model correction cannot retitle a finished
     /// workout. Repeats are collapsed by snapshot exercise ID, never by
     /// display name — two distinct exercises may legitimately share one.
-    static func title(templateName: String?, exercises: [HistoryExercise]) -> String {
+    ///
+    /// `name` is what the user typed (milestone 9, ticket 02) and wins when it
+    /// is non-blank; it is stored on the workout itself, so it is already frozen.
+    static func title(
+        name: String? = nil, templateName: String?, exercises: [HistoryExercise]
+    ) -> String {
+        if let name {
+            let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty { return trimmed }
+        }
         if let templateName {
             let trimmed = templateName.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
@@ -156,7 +165,14 @@ extension Workout {
     /// library.
     var historyTitle: String {
         HistoryRendering.title(
-            templateName: sourceTemplateName, exercises: snapshotExercises)
+            name: name, templateName: sourceTemplateName, exercises: snapshotExercises)
+    }
+
+    /// The title this workout would have with NO typed name — what the name
+    /// field shows as its placeholder, so an empty field never reads as blank.
+    var derivedTitle: String {
+        HistoryRendering.title(
+            name: nil, templateName: sourceTemplateName, exercises: snapshotExercises)
     }
 
     /// Gym label for history: the name captured at log time (D23) — the

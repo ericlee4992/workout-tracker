@@ -86,7 +86,10 @@ enum ExportCSV {
             workout.id.uuidString,
             workout.startedAt,
             workout.finishedAt ?? "",
-            workout.sourceTemplateName ?? "",
+            // v6: the typed name when there is one, else the template name —
+            // the column's meaning ("what this workout is called") is
+            // unchanged; the user can now be its author.
+            workout.name ?? workout.sourceTemplateName ?? "",
             workout.notes,
             entry.gymID?.uuidString ?? "",
             entry.gymName ?? "",

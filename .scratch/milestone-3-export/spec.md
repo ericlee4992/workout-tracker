@@ -66,7 +66,7 @@ equipment (see the two limits below the table). Empty fields are empty (no `null
 | 1 | `workoutID` | `Workout.id` | groups rows into a session |
 | 2 | `workoutStartedAt` | `Workout.startedAt` | D31 |
 | 3 | `workoutFinishedAt` | `Workout.finishedAt` | empty = still active (D30) |
-| 4 | `workoutName` | `Workout.sourceTemplateName` | empty when not from a template |
+| 4 | `workoutName` | `Workout.name`, else `Workout.sourceTemplateName` | v6: the user's typed name when there is one; empty when neither exists |
 | 5 | `workoutNotes` | `Workout.notes` | |
 | 6 | `gymID` | `ExerciseEntry.snapshotGymID` | empty = no gym |
 | 7 | `gymName` | `ExerciseEntry.snapshotGymName` | |
@@ -168,3 +168,10 @@ exported — SPEC: PRs are derived, never source-of-truth.
 └── 02 export-ui — Settings section, share sheet, file naming, counts summary
     └── 03 export-verification — fidelity tests over a realistic store + UI test
 ```
+
+
+### v6 (milestone 9, ticket 02 — workout name)
+
+`workouts[].name` in JSON: the title the user typed, absent when none was. `sourceTemplateName` is
+unchanged and still present — one is intent, the other provenance. The CSV gains no column; its
+`workoutName` now carries the typed name when present, else the template name as before.
