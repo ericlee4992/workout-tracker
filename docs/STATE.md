@@ -1,6 +1,27 @@
 # Where the project is right now
 
-Updated 2026-08-29 — milestones 7 and 8 are merged, installed, and their phone-side features are
+Updated 2026-09-03. **START HERE IF YOU ARE COLD:**
+
+1. **The signing profile expires 2026-09-05 21:57 UTC** — about two days out. When it lapses the
+   app stops launching on the phone; the fix is a REBUILD that re-signs (see Signing below), not a
+   reinstall of the same binary.
+2. **The phone is one commit behind `main`, and the gap matters.** It runs `4eb5486`; `3ad382d`
+   (charts: one variation per line, D36) is committed and pushed but **NOT installed**, so the
+   charts on the device still pool narrow- and wide-grip history into one line.
+3. **`main` is clean and pushed. 568 unit tests green** as of 2026-09-03. The UI suite was last run
+   in full at 26 tests on 2026-08-29; only `ProgressChartTooltipUITests` has been re-run since.
+4. **Likely first actions**, if the user has no other ask: rebuild and install (points 1 and 2 are
+   both solved by one build); then the free Apple Watch experiment below, which costs a single
+   workout and could DELETE the whole `WorkoutTrackerWatch` target. Everything else is in the
+   priority list further down; nothing is blocking.
+5. **The habit that has paid off most here:** the user tests on the device and reports plainly, and
+   Codex cross-reviews catch what the tests do not. **Seven defects so far have been a contract
+   with no caller, or a caller contradicting its contract** — the watch rest countdown, deletion
+   volume, export flags, `enableBackgroundDelivery`, `pruneOrphanGroups`, `moveEntry`, and the
+   chart preset pooling. Grep for uncalled internal funcs and re-read doc comments against their
+   callers before closing anything.
+
+Milestones 7 and 8 are merged, installed, and their phone-side features are
 confirmed in real use. **Neither is COMPLETE by its own acceptance criteria**, and saying otherwise
 was this file's own error until a cross-review caught it: milestone 7's watch companion has never
 been compiled or run (a sketch — see below), and milestone 8 still owes superset reordering and
@@ -15,9 +36,9 @@ stale fastest.
 
 ## Status
 
-Merged and pushed on `main`: **everything, including milestone 8** (`74dbbd9`, merged 2026-08-29 — fast-forward, so `main` still has zero merge commits). **560 unit + 26 UI green** — the figure `4eb5486` itself reported. (This file said "561 unit + 25
-UI" until 2026-08-29; the suite has not been re-run in full since `4eb5486`, so treat even the
-corrected number as last-known, not as freshly observed.)
+Merged and pushed on `main`: **everything, including milestone 8** (`74dbbd9`, merged 2026-08-29 — fast-forward, so `main` still has zero merge commits). **568 unit green (2026-09-03, freshly observed)**; the UI suite is **26, last-known** — run in full
+on 2026-08-29 at `4eb5486`, with only `ProgressChartTooltipUITests` re-run since. The unit figure
+rose from 560 with the eight `ChartPresetScopingTests` added by `3ad382d`.
 **Milestones 7 and 8 are both MERGED into `main`** (2026-08-25 and 2026-08-29, both fast-forward —
 `main` still has zero merge commits). `milestone-7-heart-rate` and `milestone-8-history-and-charts`
 are **NOT** identical to `main` — as of 2026-08-29 they sit at `ca67603` (27 commits behind) and
@@ -198,7 +219,7 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`4eb5486`** — the chart tooltip. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
+| Installed commit | **`4eb5486`** — one behind `main`. **`3ad382d` (charts: one variation per line, D36) is NOT installed**, so the device still pools variations into a single chart line; it needs a build to reach the phone. `4eb5486` is the chart tooltip. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
 | Previously installed | `82a1ddb` (the working background rest alarm), 2026-08-25 02:11 |
 | Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
