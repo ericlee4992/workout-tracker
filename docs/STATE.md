@@ -1,15 +1,15 @@
 # Where the project is right now
 
-Updated 2026-09-04 (early morning, end of the milestone-9 build). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-04 (morning, milestone 9 Codex-clear). **START HERE IF YOU ARE COLD:**
 
 1. **Milestone 9 is BUILT on branch `milestone-9-history-and-summary` (pushed) and NOT merged, NOT
    installed.** Five tickets: chart per equipment + History chart button (01), workout name (02),
    History calendar (03), dumbbell exercises with a one-time history reclassification (04), and the
-   finish summary with a heart-rate graph (05). Tickets 01–04 are Codex-clear (4, 4, 3, 4 rounds);
-   05 has had two rounds and a third narrow check is in `codex-review-05c.md` (read it — if it says
-   "clear", the milestone is ready to merge; if not, its findings are the next work).
+   finish summary with a heart-rate graph (05). **All five are Codex-clear** (4, 4, 3, 4 and 6
+   rounds — 21 in total; every round's findings and responses are in the ticket files). The
+   milestone is ready to merge once the full UI suite is green (point 4).
    **Merge = `git checkout main && git merge milestone-9-history-and-summary && git push`**
-   (fast-forward; `main` has zero merge commits).
+   (fast-forward; `main` has zero merge commits). Merging is the user's call.
 2. **Before installing this milestone on the phone: EXPORT FIRST.** D51's reclassification REWRITES
    snapshots on the user's only copy of their history (dumbbell-tagged sets of Bench Press etc.
    become Dumbbell Bench Press etc., with per-row provenance). Take a fresh CSV+JSON export to iCloud

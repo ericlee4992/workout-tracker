@@ -1,6 +1,6 @@
 # 05 — Finish summary with a heart-rate graph, in History too
 
-Status: resolved — awaiting Codex review
+Status: resolved — Codex clear after 6 rounds (codex-review-05..05f)
 Blocked by: 04
 Covers user ask **6**.
 
