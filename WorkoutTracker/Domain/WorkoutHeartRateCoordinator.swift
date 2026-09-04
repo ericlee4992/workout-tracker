@@ -119,7 +119,11 @@ final class WorkoutHeartRateCoordinator {
                 // the numbers under it never disagree.
                 samples: monitor.summarySamples,
                 zonesEstimated: monitor.maxHeartRate?.isEstimated ?? false,
-                onto: workout)
+                onto: workout,
+                // If the workout is already finished (a replacement banked
+                // late), the series ends where the workout did, not at the
+                // wall clock (codex-review 05b).
+                now: workout.finishedAt ?? .now)
         }
         monitor.onSample = nil
         let ending = monitor

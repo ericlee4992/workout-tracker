@@ -100,3 +100,27 @@ finish; nothing runs at a deadline (D46).
 
 **640 unit green (+3).** UI: summary (2), heart rate (5), core loop (9) ran green after the
 RootView/Start changes; the later outage-rule change is Domain-only with a single fixture source.
+
+
+## Codex review 05b — response (2026-09-04)
+
+`codex-review-05b.md`: 1 critical, 3 high, 1 medium, 1 low. All acted on.
+
+- **Drift-resolution replacement still lost the summary (critical/high).** True: `resolve` finishes
+  and saves the workout, so by the time `startNew` ran there was nothing resumable to end.
+  `resolveReplacementDrift` now calls `heartRateCoordinator.end(workout)` BEFORE `resolve`, while
+  the view still holds the workout strongly and it is still active. And `end` now uses
+  `workout.finishedAt ?? .now` as the series' end instant, so a late bank never extends the series
+  past the recorded finish (tested: a 120 s finished workout yields 8 buckets, not an hour's worth).
+- **Terminal handoffs rendered as gaps (high ×2).** `summarySamples` now also admits a SUSTAINED
+  leading or trailing run of the other sensor — its own first-to-last span longer than 60 s — so a
+  Watch that carried the last five minutes counts, while a single stray reading (no span) still
+  cannot own the summary; codex-review-2 #6's test still passes by construction. Tested both ends
+  and the stray.
+- **Cap boundary equality (medium).** The horizon is exclusive when it is the artificial cap and
+  inclusive when it is the workout's real end; the equality case is in the test.
+- **Preview missing the coordinator (low).** Added.
+
+**642 unit green (+2); UI: core loop (9), summary (2), heart rate (5) green.** Durability on the
+drift path: `end` writes onto the model before `resolve`'s own `context.save()`, which persists it —
+the same ordering the ordinary path relies on via `startWorkout`'s save.

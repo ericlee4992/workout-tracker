@@ -39,13 +39,18 @@ enum HeartRateSeriesMath {
 
         // When the cap bites, the series TRUNCATES at the horizon: samples past
         // it are dropped, not folded into the last bucket (codex-review 05 —
-        // clamping the index averaged a whole tail into one 15 s mean).
+        // clamping the index averaged a whole tail into one 15 s mean). The
+        // horizon is EXCLUSIVE when it is the artificial cap (a sample exactly
+        // on it belongs to the first omitted bucket) and inclusive when it is
+        // the workout's real end (codex-review 05b).
+        let capped = Double(count) * interval < span
         let horizon = Double(count) * interval
         var sums = [Int](repeating: 0, count: count)
         var counts = [Int](repeating: 0, count: count)
         for sample in samples {
             let offset = sample.date.timeIntervalSince(start)
-            guard offset >= 0, offset <= span, offset <= horizon, sample.bpm > 0 else { continue }
+            guard offset >= 0, offset <= span, sample.bpm > 0 else { continue }
+            if capped ? offset >= horizon : false { continue }
             let index = min(count - 1, Int(offset / interval))
             sums[index] += sample.bpm
             counts[index] += 1

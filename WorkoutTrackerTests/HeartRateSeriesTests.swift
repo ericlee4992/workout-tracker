@@ -62,10 +62,10 @@ struct HeartRateSeriesTests {
     @Test func theBucketCountIsCappedAndTheTailIsDroppedNotFolded() {
         let horizon = TimeInterval(HeartRateSeriesMath.maxBuckets * 15)
         let series = HeartRateSeriesMath.series(
-            from: [sample(120, at: horizon - 5), sample(200, at: horizon + 100), sample(200, at: 9 * 86_400)],
+            from: [sample(120, at: horizon - 5), sample(200, at: horizon), sample(200, at: horizon + 100), sample(200, at: 9 * 86_400)],
             start: start, end: start.addingTimeInterval(10 * 86_400), intervalSeconds: 15)
         #expect(series.count == HeartRateSeriesMath.maxBuckets)
-        #expect(series.last == 120, "the last retained bucket holds only what fell in it")
+        #expect(series.last == 120, "the last retained bucket holds only what fell in it; a sample exactly ON the cap horizon belongs to the first omitted bucket")
     }
 
     // MARK: Total energy
@@ -224,5 +224,46 @@ struct HeartRateSeriesTests {
         #expect(workout.activeEnergyKilocalories == 88)
         #expect(workout.basalEnergyKilocalories == 30, "basal must not be left stale when active is refreshed")
         #expect(WorkoutSummaryBuilder.summary(for: workout).totalEnergyKilocalories == 118)
+    }
+
+    /// codex-review 05b: a SUSTAINED terminal handoff counts — the Watch
+    /// carrying the last minutes after the AirPods die, or the first minutes
+    /// before they connect — while one stray reading still does not.
+    @Test func sustainedTerminalHandoffsCountButAStrayDoesNot() {
+        var samples: [HeartRateSample] = []
+        for t in stride(from: 100, through: 400, by: 10) { samples.append(sample(120, at: TimeInterval(t), source: .airPods)) }
+        // Leading: the Watch alone for 0–95 s (95 s span → sustained).
+        for t in stride(from: 0, through: 95, by: 5) { samples.append(sample(135, at: TimeInterval(t), source: .watch)) }
+        // Trailing: the Watch alone for 410–700 s (290 s span → sustained).
+        for t in stride(from: 410, through: 700, by: 10) { samples.append(sample(128, at: TimeInterval(t), source: .watch)) }
+        let merged = WorkoutVitalsMath.summarySamples(from: samples, dominant: .airPods)
+        let watch = merged.filter { $0.source == .watch }
+        #expect(watch.contains { $0.date.timeIntervalSince(start) == 0 }, "the leading run is kept")
+        #expect(watch.contains { $0.date.timeIntervalSince(start) == 700 }, "the trailing run is kept")
+        #expect(watch.count == 20 + 30)
+        let series = HeartRateSeriesMath.series(from: merged, start: start, end: start.addingTimeInterval(700))
+        #expect(series.allSatisfy { $0 > 0 }, "no false gap at either end: \(series)")
+
+        // The stray: one Watch reading three minutes after the last AirPods
+        // sample (codex-review-2 #6) — no span, not a run, stays out.
+        let stray = samples.filter { $0.source == .airPods } + [sample(60, at: 580, source: .watch)]
+        #expect(WorkoutVitalsMath.summarySamples(from: stray, dominant: .airPods).allSatisfy { $0.source == .airPods })
+    }
+
+    /// codex-review 05b: a replacement banked AFTER the workout was finished
+    /// (the drift-resolution order) ends its series where the workout did,
+    /// not at the wall clock.
+    @Test @MainActor func aLateBankUsesTheRecordedFinishAsTheSeriesEnd() throws {
+        let ctx = try context()
+        let started = Date().addingTimeInterval(-3_600)
+        let workout = Workout(startedAt: started, finishedAt: started.addingTimeInterval(120))
+        ctx.insert(workout)
+        let coordinator = WorkoutHeartRateCoordinator()
+        let monitor = coordinator.monitor(for: workout, maxHeartRate: nil)
+        for i in 0..<8 {
+            monitor.ingestForTesting(HeartRateSample(bpm: 120, date: started.addingTimeInterval(Double(i) * 15 + 1), source: .fixture))
+        }
+        coordinator.end(workout)
+        #expect(workout.heartRateSeries.count == 8, "120 s / 15 s, not an hour of buckets")
     }
 }

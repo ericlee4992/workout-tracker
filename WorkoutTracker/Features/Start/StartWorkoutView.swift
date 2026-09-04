@@ -209,6 +209,11 @@ struct StartWorkoutView: View {
         do {
             if let workout = replacementWorkout,
                let template = replacementSourceTemplate {
+                // BEFORE resolve, which finishes and saves the workout: after
+                // that it is no longer resumable, `startNew` would find nothing
+                // to end, and the summary would be lost (codex-review 05b,
+                // critical). Banked here while this view still holds it.
+                heartRateCoordinator.end(workout)
                 try TemplateDriftService(context: modelContext).resolve(
                     resolution, workout: workout, to: template)
             }
@@ -359,4 +364,5 @@ struct UnitBadge: View {
     container.mainContext.insert(Gym(name: "Gold's Gym Gangnam", city: "Seoul", defaultUnit: .kg))
     return StartWorkoutView(onWorkoutStarted: { _ in })
         .modelContainer(container)
+        .environment(WorkoutHeartRateCoordinator())
 }
