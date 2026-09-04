@@ -104,6 +104,32 @@ struct WorkoutCalendarTests {
         #expect(nov.first { $0.dayOfMonth == 8 }?.isMarked == false)
     }
 
+    /// codex-review 03: a marked today must be BOTH — the first view branched
+    /// on marked first and today lost its highlight the moment a workout was
+    /// logged, which is the most common state after finishing one.
+    @Test func aMarkedTodayIsBothMarkedAndToday() {
+        let c = calendar(firstWeekday: 1)
+        let today = date(2026, 9, 3, in: c)
+        let cal = WorkoutCalendar(startedAt: [date(2026, 9, 3, 7, in: c), date(2026, 9, 1, in: c)], today: today, calendar: c)
+        let sep = cal.months.last!.cells.compactMap { $0 }
+        #expect(sep.first { $0.dayOfMonth == 3 }?.emphasis == .markedToday)
+        #expect(sep.first { $0.dayOfMonth == 1 }?.emphasis == .marked)
+        #expect(sep.first { $0.dayOfMonth == 2 }?.emphasis == .plain)
+        #expect(sep.first { $0.dayOfMonth == 4 }?.emphasis == .future)
+    }
+
+    /// No iteration cap: an ancient (corrupt) timestamp yields a long calendar
+    /// that still ENDS on today's month — the cap that used to exist could
+    /// stop decades early and open the sheet there (codex-review 03).
+    @Test func anAncientMarkStillReachesTodaysMonth() {
+        let c = calendar(firstWeekday: 1)
+        let today = date(2026, 9, 3, in: c)
+        let cal = WorkoutCalendar(startedAt: [date(1900, 1, 15, in: c)], today: today, calendar: c)
+        #expect(cal.months.count == (2026 - 1900) * 12 + 9)
+        #expect(cal.months.last?.title == "Sep 2026")
+        #expect(cal.months.first?.title == "Jan 1900")
+    }
+
     // MARK: Which session opens
 
     @Test @MainActor func theLatestSessionStartedOnADayOpensAndOtherDaysDoNot() {
@@ -117,5 +143,18 @@ struct WorkoutCalendarTests {
             on: date(2026, 8, 20, 0, in: c), among: [morning, other, running, late], calendar: c)
         #expect(picked === late)
         #expect(WorkoutCalendar.workoutToOpen(on: date(2026, 8, 22, in: c), among: [morning, late], calendar: c) == nil)
+    }
+
+    // MARK: What the sheet's dismissal pushes
+
+    @Test @MainActor func aDeletedOrRunningPickIsDroppedAndAPendingTargetWins() {
+        let c = calendar(firstWeekday: 1)
+        let finished = Workout(startedAt: date(2026, 8, 20, in: c), finishedAt: date(2026, 8, 20, 13, in: c))
+        let running = Workout(startedAt: date(2026, 8, 20, in: c))
+        #expect(WorkoutCalendar.destinationAfterCalendar(pick: finished, otherNavigationPending: false) === finished)
+        #expect(WorkoutCalendar.destinationAfterCalendar(pick: running, otherNavigationPending: false) == nil)
+        #expect(WorkoutCalendar.destinationAfterCalendar(pick: nil, otherNavigationPending: false) == nil)
+        #expect(WorkoutCalendar.destinationAfterCalendar(pick: finished, otherNavigationPending: true) == nil,
+                "a C2 View-in-History request that arrived while the sheet was up must not be overwritten")
     }
 }

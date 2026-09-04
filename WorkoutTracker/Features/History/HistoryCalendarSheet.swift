@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// Milestone 9, ticket 03 — when did I train? Month grids, a mark on every
-/// day a workout finished, tap a marked day to open that session.
+/// day a finished workout STARTED (the day the rest of History files it
+/// under), tap a marked day to open that session.
 ///
 /// Presentation only: `WorkoutCalendar` decides what the cells are.
 struct HistoryCalendarSheet: View {
@@ -83,15 +84,31 @@ struct HistoryCalendarSheet: View {
 
     @ViewBuilder
     private func dayCell(_ day: WorkoutCalendar.Day) -> some View {
+        // One switch over the COMBINED state, so a marked today keeps its
+        // today fill and gains the check rather than losing one to the other.
+        let emphasis = day.emphasis
+        let isToday = emphasis == .today || emphasis == .markedToday
+        let fill: Color = switch emphasis {
+        case .markedToday, .today: Color.primary
+        case .marked: Color(.secondarySystemFill)
+        case .plain, .future: Color.clear
+        }
+        let text: Color = switch emphasis {
+        case .markedToday, .today: Color(.systemBackground)
+        case .future: Color.secondary.opacity(0.45)
+        case .plain, .marked: Color.primary
+        }
         let label = Text("\(day.dayOfMonth)")
             .font(.body.monospacedDigit())
+            .fontWeight(isToday ? .semibold : .regular)
             .frame(width: 40, height: 40)
+            .background(Circle().fill(fill))
+            .foregroundStyle(text)
         if day.isMarked {
             Button {
                 onPick(day.date)
             } label: {
                 label
-                    .background(Circle().fill(Color(.secondarySystemFill)))
                     .overlay(alignment: .topTrailing) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.caption2)
@@ -101,16 +118,11 @@ struct HistoryCalendarSheet: View {
                     }
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Workout on day \(day.dayOfMonth)")
+            .accessibilityLabel(isToday ? "Workout today" : "Workout on day \(day.dayOfMonth)")
             .accessibilityIdentifier("calendarDay.\(Self.key(day.date))")
             .frame(maxWidth: .infinity)
         } else {
-            let text: Color = day.isToday
-                ? Color(.systemBackground)
-                : (day.isFuture ? Color.secondary.opacity(0.45) : Color.primary)
             label
-                .background(Circle().fill(day.isToday ? Color.primary : Color.clear))
-                .foregroundStyle(text)
                 .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("calendarDay.\(Self.key(day.date))")
         }

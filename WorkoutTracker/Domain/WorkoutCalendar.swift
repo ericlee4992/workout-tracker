@@ -10,8 +10,7 @@ import Foundation
 
 struct WorkoutCalendar: Equatable {
 
-    struct Day: Equatable, Identifiable {
-        var id: Date { date }
+    struct Day: Equatable {
         /// Start of the day in the calendar used to build the grid.
         let date: Date
         let dayOfMonth: Int
@@ -25,6 +24,22 @@ struct WorkoutCalendar: Equatable {
         let isToday: Bool
         /// Dimmed: nothing can be marked here yet.
         let isFuture: Bool
+
+        /// How a cell should look, with the two axes COMBINED: a marked today
+        /// is both — the check and the today fill — not one or the other
+        /// (codex-review 03, medium: the first view branched on `isMarked`
+        /// first and a today with a workout lost its highlight, which is the
+        /// most common state after finishing a session).
+        enum Emphasis: Equatable { case plain, future, today, marked, markedToday }
+        var emphasis: Emphasis {
+            switch (isMarked, isToday, isFuture) {
+            case (true, true, _): .markedToday
+            case (true, false, _): .marked
+            case (false, true, _): .today
+            case (false, false, true): .future
+            case (false, false, false): .plain
+            }
+        }
     }
 
     struct Month: Equatable, Identifiable {
@@ -33,10 +48,9 @@ struct WorkoutCalendar: Equatable {
         let start: Date
         /// "Aug 2026" in the calendar's locale.
         let title: String
-        /// Cells in weekday order, exactly `rows × 7`, with nil for the
-        /// leading and trailing padding so every week is a full row.
+        /// Cells in weekday order, a multiple of 7, with nil for the leading
+        /// and trailing padding so every week is a full row.
         let cells: [Day?]
-        var rows: Int { cells.count / 7 }
     }
 
     /// Weekday symbols starting at the calendar's `firstWeekday` — the column
@@ -60,9 +74,12 @@ struct WorkoutCalendar: Equatable {
 
         var months: [Month] = []
         var cursor = firstMonth
-        // Bounded by the span between the first mark and today; the guard
-        // exists only so a pathological future `finishedAt` cannot loop.
-        while cursor <= lastMonth, months.count < 1_200 {
+        // Terminates because `date(byAdding: .month, 1)` strictly advances (or
+        // returns nil and breaks); future marks were clamped to today above.
+        // No iteration cap: one existed and could stop BEFORE today's month
+        // for an ancient timestamp, which is worse than a long list
+        // (codex-review 03).
+        while cursor <= lastMonth {
             months.append(Self.month(
                 starting: cursor, markedDays: markedDays,
                 today: todayStart, calendar: calendar))
@@ -117,6 +134,20 @@ struct WorkoutCalendar: Equatable {
     }
 
     // MARK: - Picking a session
+
+    /// What History should push when the calendar sheet closes. The pick is
+    /// re-validated at DISMISSAL, not at the tap: the workout can be deleted
+    /// in between, and a stale model must not be pushed. And a pending C2
+    /// "View in History" request wins — it was asked for explicitly and set
+    /// `path` already; the calendar's pick must not overwrite it
+    /// (codex-review 03, medium).
+    static func destinationAfterCalendar(
+        pick: Workout?, otherNavigationPending: Bool
+    ) -> Workout? {
+        guard !otherNavigationPending, let pick,
+              !pick.isDeleted, pick.finishedAt != nil else { return nil }
+        return pick
+    }
 
     /// The workout to open for a tapped day: the LATEST-started finished
     /// workout that began on that day — the same day rule as the marks. Two

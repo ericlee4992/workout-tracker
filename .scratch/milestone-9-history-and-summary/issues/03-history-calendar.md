@@ -55,3 +55,20 @@ day), and which session opens (latest-started, running excluded, other days nil)
 `HistoryCalendarUITests` (2): tap yesterday → that session's detail (Name row + date title); empty
 store → calendar opens, today shown, no tappable days. **602 unit green; UI: calendar (2), history
 editing (2), chart (4), name (2) green.** Screenshots `history-calendar`, `history-calendar-opened`.
+
+
+## Codex review 03 — response (2026-09-04)
+
+`codex-review-03.md`: arithmetic confirmed (weekdays 1–7, leap February, DST both directions); 2
+medium, 5 low. All acted on.
+
+- **A marked today lost its highlight (medium).** True, and it is the commonest state. `Day.emphasis`
+  combines the axes in the Domain (`markedToday` is its own case, tested); the view switches on it,
+  so a marked today keeps the filled circle and gains the check.
+- **Dismissal pushed an unvalidated pick and could overwrite the C2 target (medium).**
+  `WorkoutCalendar.destinationAfterCalendar(pick:otherNavigationPending:)` re-checks deleted /
+  finished at dismissal and yields to a pending target or non-empty path; unit-tested for all four
+  cases, and `HistoryView.onDismiss` uses it.
+- **The 1,200-month cap (low ×2).** Removed; the loop terminates by construction. A test with a
+  1900 timestamp asserts the calendar still ends on today's month.
+- **Stale "finished" comment; `Day.id` / `Month.rows` uncalled (low).** Fixed / removed.

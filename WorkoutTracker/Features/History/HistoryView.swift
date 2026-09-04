@@ -89,9 +89,13 @@ struct HistoryView: View {
                 }
             }
             .sheet(isPresented: $showCalendar, onDismiss: {
-                if let pick = calendarPick {
-                    calendarPick = nil
-                    path = [pick]
+                // Re-validated here, not at the tap, and the C2 target wins
+                // if one arrived while the sheet was up (codex-review 03).
+                let pick = calendarPick
+                calendarPick = nil
+                if let destination = WorkoutCalendar.destinationAfterCalendar(
+                    pick: pick, otherNavigationPending: target != nil || !path.isEmpty) {
+                    path = [destination]
                 }
             }) {
                 HistoryCalendarSheet(
