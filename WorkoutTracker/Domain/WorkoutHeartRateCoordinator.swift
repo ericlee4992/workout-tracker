@@ -117,9 +117,7 @@ final class WorkoutHeartRateCoordinator {
             // finish can change neither the chart nor the average under it
             // (codex-review 05c: the series was bounded, the vitals were not).
             let end = workout.finishedAt ?? Date()
-            let bounded = monitor.summarySamples.filter {
-                $0.date >= workout.startedAt && $0.date <= end
-            }
+            let bounded = monitor.summarySamples(from: workout.startedAt, to: end)
             WorkoutSummaryBuilder.capture(
                 vitals: WorkoutVitalsMath.vitals(from: bounded, zoningAgainst: monitor.maxHeartRate),
                 activeEnergyKilocalories: monitor.activeEnergyKilocalories,

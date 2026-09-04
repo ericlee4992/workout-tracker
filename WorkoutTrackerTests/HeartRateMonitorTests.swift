@@ -178,16 +178,16 @@ struct HeartRateMonitorTests {
             provider.emit(sample(bpm, at: base.addingTimeInterval(Double(index) * 10)))
         }
         await settle()
-        #expect(monitor.vitals.averageBpm == 120)
-        #expect(monitor.vitals.maxBpm == 140)
-        #expect(monitor.vitals.sampleCount == 3)
+        #expect(monitor.liveVitals.averageBpm == 120)
+        #expect(monitor.liveVitals.maxBpm == 140)
+        #expect(monitor.liveVitals.sampleCount == 3)
     }
 
     @Test func anEmptyFeedYieldsEmptyVitals_notZeroes() {
         let provider = StubHeartRateProvider()
         let monitor = HeartRateMonitor(provider: provider)
-        #expect(monitor.vitals.isEmpty)
-        #expect(monitor.vitals.averageBpm == nil)
+        #expect(monitor.liveVitals.isEmpty)
+        #expect(monitor.liveVitals.averageBpm == nil)
     }
 
     // MARK: The fixture provider

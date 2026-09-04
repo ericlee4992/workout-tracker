@@ -281,4 +281,28 @@ struct HeartRateSeriesTests {
         #expect(workout.maxHeartRate == 120, "a post-finish 190 must not become the workout's maximum")
         #expect(workout.averageHeartRate == 120)
     }
+
+    /// codex-review 05d: on a late bank, a flood of post-finish readings from
+    /// the OTHER sensor must not make it dominant and throw the real in-workout
+    /// data away. Bound first, then choose.
+    @Test @MainActor func postFinishReadingsCannotChangeWhichSensorRecordedTheWorkout() throws {
+        let ctx = try context()
+        let started = Date().addingTimeInterval(-3_600)
+        let workout = Workout(startedAt: started, finishedAt: started.addingTimeInterval(50))
+        ctx.insert(workout)
+        let coordinator = WorkoutHeartRateCoordinator()
+        let monitor = coordinator.monitor(for: workout, maxHeartRate: nil)
+        for i in 0..<6 {
+            monitor.ingestForTesting(HeartRateSample(bpm: 130, date: started.addingTimeInterval(Double(i) * 8 + 1), source: .airPods))
+        }
+        for i in 0..<200 {
+            monitor.ingestForTesting(HeartRateSample(bpm: 70, date: started.addingTimeInterval(60 + Double(i) * 5), source: .watch))
+        }
+        #expect(monitor.dominantSource == .watch, "over the whole history the Watch dominates — which is exactly the trap")
+        coordinator.end(workout)
+        #expect(workout.averageHeartRate == 130, "the workout was recorded on AirPods; the summary must say so")
+        #expect(workout.maxHeartRate == 130)
+        #expect(workout.heartRateSeries.count == 4)
+        #expect(workout.heartRateSeries.allSatisfy { $0 == 0 || $0 == 130 })
+    }
 }

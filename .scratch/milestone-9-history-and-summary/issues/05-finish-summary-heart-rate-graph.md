@@ -138,3 +138,20 @@ the same ordering the ordinary path relies on via `startWorkout`'s save.
 - **"Sustained" was an endpoint check (medium).** A terminal run now also requires continuity — no
   internal gap longer than the threshold — so two lone readings 61 s apart are out while a
   continuous 70 s run is in; both cases tested.
+
+
+## Codex review 05d — response (2026-09-04)
+
+`codex-review-05d.md`: 2 high (one defect), 1 low. All acted on.
+
+- **Source chosen before the bound (high ×2).** True and subtle: the final array was bounded, but
+  `summarySamples` had already picked the dominant sensor and judged handoffs over the whole
+  history, so a flood of post-finish Watch readings could make Watch dominant and discard the real
+  in-workout AirPods data. `HeartRateMonitor.summarySamples(from:to:)` now bounds the RAW samples
+  first, chooses the dominant source among what remains (`WorkoutVitalsMath.dominantSource(among:)`,
+  the same tie-break, now pure), then merges handoffs. The coordinator uses it. Test: six in-workout
+  AirPods readings, two hundred post-finish Watch readings → the summary says 130 BPM on AirPods.
+- **Unbounded `vitals` left beside the bounded path (low).** Renamed `liveVitals`, documented as
+  for the live screen and tests only, never the persisted summary; the 18 test references updated.
+
+**643 unit green (+1).**

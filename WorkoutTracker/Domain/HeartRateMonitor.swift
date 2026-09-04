@@ -149,29 +149,31 @@ final class HeartRateMonitor {
     /// one-sample average, and sixteen seconds later it flipped back. A
     /// workout's summary must not depend on the instant it was asked for.
     var dominantSource: HeartRateSource? {
-        var counts: [HeartRateSource: Int] = [:]
-        for sample in samples { counts[sample.source, default: 0] += 1 }
-        guard let top = counts.values.max() else { return nil }
-        return counts
-            .filter { $0.value == top }
-            .keys
-            .max { $0.precedence < $1.precedence }
+        WorkoutVitalsMath.dominantSource(among: samples)
     }
 
-    var vitals: WorkoutVitals {
-        WorkoutVitalsMath.vitals(from: summarySamples, zoningAgainst: maxHeartRate)
+    /// Everything seen so far, unbounded — for the LIVE screen while the
+    /// workout runs and for tests. NEVER for the persisted summary: that goes
+    /// through `summarySamples(from:to:)`, which bounds the raw samples to the
+    /// workout BEFORE choosing a source (codex-review 05d).
+    var liveVitals: WorkoutVitals {
+        guard let source = dominantSource else { return .empty }
+        return WorkoutVitalsMath.vitals(
+            from: WorkoutVitalsMath.summarySamples(from: samples, dominant: source),
+            zoningAgainst: maxHeartRate)
     }
 
-    /// The samples the summary is built from — aggregates AND series, so they
-    /// describe the same evidence. The dominant sensor's readings, plus the
-    /// other sensor's readings where the dominant one was silent: a handoff
-    /// or an outage is then real data, not a "gap" the chart footer would
-    /// misdescribe (codex-review 05, high). Where both reported, the dominant
-    /// one still wins, so a single stray Watch reading cannot own a summary
-    /// (codex-review-2 #6).
-    var summarySamples: [HeartRateSample] {
-        guard let source = dominantSource else { return [] }
-        return WorkoutVitalsMath.summarySamples(from: samples, dominant: source)
+    /// The samples the persisted summary is built from — aggregates AND series,
+    /// so they describe the same evidence. Bounded to the workout FIRST, then
+    /// the dominant sensor is chosen among what remains, then the other
+    /// sensor's readings fill its silences (`WorkoutVitalsMath.summarySamples`).
+    /// Order matters: choosing the source from the unbounded history let a
+    /// flood of post-finish readings from the other sensor make it dominant on
+    /// a late bank and discard the real in-workout data (codex-review 05d).
+    func summarySamples(from start: Date, to end: Date) -> [HeartRateSample] {
+        let bounded = samples.filter { $0.date >= start && $0.date <= end }
+        guard let source = WorkoutVitalsMath.dominantSource(among: bounded) else { return [] }
+        return WorkoutVitalsMath.summarySamples(from: bounded, dominant: source)
     }
 
     /// Copies the provider's current energy figures — both halves, together.

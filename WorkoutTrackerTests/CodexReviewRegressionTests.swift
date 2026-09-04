@@ -156,9 +156,9 @@ struct CodexReviewRegressionTests {
         #expect(monitor.currentSource == .watch, "the live reading is the Watch's")
         #expect(monitor.dominantSource == .airPods, "but the workout was recorded on AirPods")
         #expect(
-            monitor.vitals.averageBpm == 120,
+            monitor.liveVitals.averageBpm == 120,
             "a one-sample average of 60 would be the summary depending on the instant it was taken")
-        #expect(monitor.vitals.sampleCount == 40)
+        #expect(monitor.liveVitals.sampleCount == 40)
     }
 
     // MARK: 3.2 (high) — one series means ONE sensor's series
@@ -177,7 +177,7 @@ struct CodexReviewRegressionTests {
         #expect(monitor.samples.count == 2, "both are kept…")
         #expect(monitor.samplesFromCurrentSource.count == 1, "…but only one feeds the rest rule")
         #expect(
-            monitor.vitals.averageBpm == 150,
+            monitor.liveVitals.averageBpm == 150,
             "an average of 125 would be a blend of two devices")
     }
 
@@ -295,7 +295,7 @@ struct CodexReviewRegressionTests {
         }
 
         #expect(monitor.samples.count == 6_000, "the old cap dropped the oldest 1,000")
-        #expect(monitor.vitals.sampleCount == 6_000)
+        #expect(monitor.liveVitals.sampleCount == 6_000)
     }
 
     // MARK: 5.1 (critical) — the backup carries the user's heart-rate config

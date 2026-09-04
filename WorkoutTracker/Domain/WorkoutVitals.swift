@@ -39,6 +39,17 @@ enum WorkoutVitalsMath {
     /// genuine dropout is never counted as training.
     static let maxAttributedGap: TimeInterval = 60
 
+    /// The sensor that actually recorded these samples: the one that produced
+    /// the most, ties going to the higher-precedence device (codex-review-2
+    /// #6). Pure, so it can be asked of a BOUNDED collection as well as the
+    /// whole session.
+    static func dominantSource(among samples: [HeartRateSample]) -> HeartRateSource? {
+        var counts: [HeartRateSource: Int] = [:]
+        for sample in samples { counts[sample.source, default: 0] += 1 }
+        guard let top = counts.values.max() else { return nil }
+        return counts.filter { $0.value == top }.keys.max { $0.precedence < $1.precedence }
+    }
+
     /// The readings a summary should be built from when more than one sensor
     /// reported: every sample from `dominant`, plus the other sensor's samples
     /// that fall STRICTLY INSIDE a dominant outage — a gap between two
