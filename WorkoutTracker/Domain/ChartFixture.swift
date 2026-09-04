@@ -48,12 +48,17 @@ enum ChartFixture {
     /// A grip is lighter than the plain press on purpose. Pooled, the three
     /// series would look like violent week-to-week swings — which is precisely
     /// the false record D36 exists to prevent.
-    static let script: [(daysAgo: Int, weightLb: Double, reps: Int, preset: String?)] = [
-        (28, 95, 8, nil), (25, 100, 8, nil), (21, 105, 8, nil),
-        (18, 105, 6, nil), (14, 110, 8, nil), (11, 110, 10, nil),
-        (7, 115, 8, nil), (4, 112.5, 8, nil), (1, 120, 8, nil),
-        (26, 85, 10, "Narrow grip"), (19, 90, 10, "Narrow grip"), (12, 95, 10, "Narrow grip"),
-        (23, 75, 12, "Wide grip"), (16, 80, 12, "Wide grip"),
+    ///
+    /// The last two rows are DUMBBELL sessions with no preset (milestone 9,
+    /// ticket 01): the free-weight tag is a variation axis of its own, and
+    /// without a tagged row the picker could never show one.
+    static let script: [(daysAgo: Int, weightLb: Double, reps: Int, preset: String?, tag: EquipmentTag?)] = [
+        (28, 95, 8, nil, nil), (25, 100, 8, nil, nil), (21, 105, 8, nil, nil),
+        (18, 105, 6, nil, nil), (14, 110, 8, nil, nil), (11, 110, 10, nil, nil),
+        (7, 115, 8, nil, nil), (4, 112.5, 8, nil, nil), (1, 120, 8, nil, nil),
+        (26, 85, 10, "Narrow grip", nil), (19, 90, 10, "Narrow grip", nil), (12, 95, 10, "Narrow grip", nil),
+        (23, 75, 12, "Wide grip", nil), (16, 80, 12, "Wide grip", nil),
+        (24, 40, 10, nil, .dumbbell), (10, 45, 10, nil, .dumbbell),
     ]
 
     /// Seeds the history. Idempotent by exercise: a second call does nothing,
@@ -74,7 +79,7 @@ enum ChartFixture {
             presets[name] = preset
         }
 
-        for (daysAgo, weightLb, reps, presetName) in script {
+        for (daysAgo, weightLb, reps, presetName, tag) in script {
             let date = now.addingTimeInterval(-Double(daysAgo) * 86_400)
             let workout = Workout(startedAt: date)
             workout.finishedAt = date.addingTimeInterval(45 * 60)
@@ -83,12 +88,14 @@ enum ChartFixture {
             let preset = presetName.flatMap { presets[$0] }
             let entry = ExerciseEntry(
                 order: 0,
+                freeWeightTag: tag,
                 workout: workout,
                 exercise: exercise,
                 preset: preset,
                 snapshotCapturedAt: date,
                 snapshotExerciseID: exercise.id,
                 snapshotLoadType: exercise.loadType,
+                snapshotFreeWeightTag: tag,
                 snapshotExerciseName: exercise.name,
                 // D23: the chart names a variation from the SNAPSHOT, so a
                 // fixture that set only the relationship would leave the picker

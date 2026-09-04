@@ -17,6 +17,11 @@ struct WorkoutDetailView: View {
     @State private var showExercisePicker = false
     /// The entry a delete is proposing to remove, with all its sets.
     @State private var confirmingEntryDelete: ExerciseEntry?
+    /// The entry whose progress chart is open (milestone 9, ticket 01). The
+    /// chart opens on THIS session's variation — snapshot type, tag and preset
+    /// — rather than the most-trained one, because that is what the user is
+    /// looking at.
+    @State private var chartingEntry: ExerciseEntry?
     /// A set just created by "Add Exercise". If the user leaves without giving
     /// it real values, the whole entry is removed — history must never show an
     /// exercise with nothing under it.
@@ -62,6 +67,15 @@ struct WorkoutDetailView: View {
                         HStack {
                             Text(entry.snapshotExerciseName)
                             Spacer()
+                            Button {
+                                chartingEntry = entry
+                            } label: {
+                                Image(systemName: "chart.xyaxis.line")
+                                    .font(.caption)
+                            }
+                            .buttonStyle(.borderless)
+                            .accessibilityLabel("Progress chart")
+                            .accessibilityIdentifier("historyEntryChart")
                             // Repairs a set logged under the wrong load type —
                             // the case correcting the EXERCISE cannot reach,
                             // because history is frozen (codex-review).
@@ -127,6 +141,19 @@ struct WorkoutDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editingSet) { set in
             EditLoggedSetSheet(record: set)
+        }
+        // On the List, not the Section: a `.sheet` on a Section inside a List
+        // never presents (STATE gotcha, milestone 3).
+        .sheet(item: $chartingEntry) { entry in
+            NavigationStack {
+                ExerciseProgressView(
+                    exerciseID: entry.snapshotExerciseID,
+                    exerciseName: entry.snapshotExerciseName,
+                    initialVariation: ProgressVariationKey(
+                        loadType: entry.snapshotLoadType,
+                        freeWeightTag: entry.snapshotFreeWeightTag,
+                        presetID: entry.snapshotPresetID))
+            }
         }
         .sheet(isPresented: $showExercisePicker) {
             ExercisePickerSheet { exercise in

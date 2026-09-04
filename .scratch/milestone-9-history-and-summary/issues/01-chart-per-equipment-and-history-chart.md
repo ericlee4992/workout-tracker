@@ -1,6 +1,6 @@
 # 01 — Chart per equipment tag, and a chart button in History
 
-Status: ready-for-agent
+Status: resolved — awaiting Codex review
 Covers user asks **3** and the bug half of **4**.
 
 ## What to build
@@ -37,3 +37,32 @@ variation on the chart view.
 Change the `series(for:loadType:presetID:)` signature to take the key rather than adding a
 defaulted parameter. A default `freeWeightTag: nil` is exactly how the D36 pooling happened: a
 caller silently getting a group it did not ask for.
+
+
+## Resolution (2026-09-03)
+
+**A.** `ProgressVariationKey` is now `(loadType, freeWeightTag, presetID)`, every field required.
+`ProgressSeriesMath.series` takes the key (`series(for:variation:)`) — the old
+`loadType:presetID:` signature is gone rather than defaulted, per the note above. `variations`
+and `defaultVariation` carry the tag; the tie-break is now fully ordered (plain first, then tag
+name, then preset id) so the chart opens on the same variation every launch instead of dictionary
+order. The picker names a variation "Dumbbell", "Barbell · Wide grip", or "No variation", from
+snapshot values.
+
+**B.** `WorkoutDetailView` has a chart button in each exercise header (`historyEntryChart`) that
+presents `ExerciseProgressView` with a new optional `initialVariation`, built from the entry's
+snapshot type, tag and preset. The sheet hangs off the List, not the Section.
+
+**Tests.** 4 new in `ChartPresetScopingTests` (dumbbell never in the barbell line; nil tag is its
+own group; one preset under two tags is two variations; tie-break is stable). All 19 existing
+chart call sites updated mechanically — none weakened, and the one mis-rewrite the compiler caught
+was fixed by hand. `ChartFixture` seeds two dumbbell sessions. New UI test
+`testHistoryOpensTheChartOnThatSessionsVariation` opens the 4th History row (the dumbbell day) and
+asserts the picker says Dumbbell.
+
+**572 unit green; chart (3) + history-editing (2) UI tests green.** Screenshot:
+`history-chart-dumbbell` attachment on the chart test — chart opens on "Dumbbell · 2 days".
+
+**Not done, deliberately:** the machine is still not a chart axis (two machines for one exercise
+chart together, as records' exercise-wide group does). Not asked for; noted so it is not
+rediscovered as a bug.

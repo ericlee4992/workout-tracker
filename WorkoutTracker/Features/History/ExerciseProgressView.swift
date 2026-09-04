@@ -23,6 +23,16 @@ struct ExerciseProgressView: View {
     /// correction made old history vanish from its own chart.
     @State private var variation: ProgressVariationKey?
 
+    /// - Parameter initialVariation: the variation to open on, when the caller
+    ///   is looking at one — History opens the chart on the variation THAT
+    ///   session used (its snapshot type, tag and preset), not on whichever the
+    ///   user has trained most. nil defers to history.
+    init(exerciseID: UUID, exerciseName: String, initialVariation: ProgressVariationKey? = nil) {
+        self.exerciseID = exerciseID
+        self.exerciseName = exerciseName
+        _variation = State(initialValue: initialVariation)
+    }
+
     @State private var metric: Metric = .bestSet
     /// Raw x position from `chartXSelection`; resolved to the nearest point.
     @State private var selectedDate: Date?
@@ -320,10 +330,7 @@ struct ExerciseProgressView: View {
     /// Built from frozen snapshots (D23), never the live exercise row, so the
     /// chart shows what was actually logged.
     private var series: ProgressSeries {
-        ProgressSeriesMath.series(
-            for: history,
-            loadType: resolvedVariation.loadType,
-            presetID: resolvedVariation.presetID)
+        ProgressSeriesMath.series(for: history, variation: resolvedVariation)
     }
 
     /// Every finished set logged against this exercise, in SNAPSHOT terms
@@ -356,7 +363,7 @@ struct ExerciseProgressView: View {
     private var resolvedVariation: ProgressVariationKey {
         variation
             ?? ProgressSeriesMath.defaultVariation(in: history)
-            ?? ProgressVariationKey(loadType: .weighted, presetID: nil)
+            ?? ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil)
     }
 
     /// The variations this exercise actually has history for, ordered by how
@@ -364,16 +371,29 @@ struct ExerciseProgressView: View {
     /// that happens to exist.
     private var availableVariations: [(key: ProgressVariationKey, days: Int)] {
         ProgressSeriesMath.variations(in: history)
-            .sorted { ($0.value, $0.key.presetID == nil ? 1 : 0) > ($1.value, $1.key.presetID == nil ? 1 : 0) }
+            .sorted { a, b in
+                // Most days first; then the plain variation; then a stable
+                // name order so the menu does not reshuffle between opens.
+                let aRank = (-a.value, a.key.presetID == nil ? 0 : 1,
+                             a.key.freeWeightTag?.rawValue ?? "", a.key.presetID?.uuidString ?? "")
+                let bRank = (-b.value, b.key.presetID == nil ? 0 : 1,
+                             b.key.freeWeightTag?.rawValue ?? "", b.key.presetID?.uuidString ?? "")
+                return aRank < bRank
+            }
             .map { (key: $0.key, days: $0.value) }
     }
 
-    /// Display name for a variation, from the SNAPSHOT preset name — the name
-    /// it was logged under, not today's (D23).
+    /// Display name for a variation: the free-weight tag, then the SNAPSHOT
+    /// preset name — the name it was logged under, not today's (D23). Both nil
+    /// is the plain exercise. "Barbell · Wide grip", "Dumbbell", "Wide grip".
     private func variationName(_ key: ProgressVariationKey) -> String {
-        guard let presetID = key.presetID else { return "No variation" }
-        let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
-        let name = entries.first { $0.snapshotPresetID == presetID }?.snapshotPresetName
-        return name ?? "Variation"
+        var parts: [String] = []
+        if let tag = key.freeWeightTag { parts.append(tag.label) }
+        if let presetID = key.presetID {
+            let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
+            let name = entries.first { $0.snapshotPresetID == presetID }?.snapshotPresetName
+            parts.append(name ?? "Variation")
+        }
+        return parts.isEmpty ? "No variation" : parts.joined(separator: " · ")
     }
 }

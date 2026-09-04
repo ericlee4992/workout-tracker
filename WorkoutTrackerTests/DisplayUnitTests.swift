@@ -65,7 +65,7 @@ struct DisplayUnitTests {
                     reps: 20, weightValue: nil, weightUnit: .kg,
                     normalizedKg: nil, completedAt: Date(timeIntervalSince1970: 86_400)),
             ],
-            loadType: .bodyweight, presetID: nil)
+            variation: ProgressVariationKey(loadType: .bodyweight, freeWeightTag: nil, presetID: nil))
         #expect(
             series.points.first?.bestKg == 20,
             "a bodyweight point carries reps, and 20 reps is 20 reps in any unit")

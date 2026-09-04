@@ -114,6 +114,35 @@ final class ProgressChartTooltipUITests: XCTestCase {
         add(after)
     }
 
+    /// Milestone 9, ticket 01: from a History session, the chart opens on the
+    /// variation THAT session used. The fixture's sessions, newest first, are
+    /// plain (1 day ago), plain (4), plain (7), DUMBBELL (10) — so the fourth
+    /// row is the one that proves the point: opened from there, the chart must
+    /// say Dumbbell, not the most-trained plain variation.
+    func testHistoryOpensTheChartOnThatSessionsVariation() {
+        app.tabBars.buttons["History"].tap()
+        let rows = app.descendants(matching: .any).matching(identifier: "historyWorkoutRow")
+        XCTAssertTrue(rows.firstMatch.waitForExistence(timeout: 10))
+        XCTAssertGreaterThan(rows.count, 3, "the fixture seeds more than four sessions")
+        rows.element(boundBy: 3).tap()
+
+        let chartButton = app.buttons["historyEntryChart"].firstMatch
+        XCTAssertTrue(chartButton.waitForExistence(timeout: 10), "each exercise should offer its chart")
+        chartButton.tap()
+
+        let picker = app.descendants(matching: .any)
+            .matching(identifier: "chartVariationPicker").firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 15))
+        XCTAssertTrue(
+            picker.label.contains("Dumbbell"),
+            "opened from a dumbbell session the chart must start on Dumbbell, got '\(picker.label)'")
+
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "history-chart-dumbbell"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
     /// The fixture's most recent session is yesterday.
     private var newestSessionDay: String {
         let yesterday = Date().addingTimeInterval(-86_400)
