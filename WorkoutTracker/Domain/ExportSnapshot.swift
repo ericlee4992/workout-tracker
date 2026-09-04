@@ -32,10 +32,11 @@ struct ExportSnapshot: Codable, Equatable {
     /// D47 adds `workouts[].historyEditedAt`, without which a restored history
     /// claims never to have been edited. All three are optional, so a v1–v4
     /// file still decodes.
-    /// 6 — milestone 9, ticket 02. `workouts[].name`, the title the user typed.
-    /// The CSV's `workoutName` column now carries it when present, else the
-    /// template name as before — the column has always meant "the workout's
-    /// name", and this is the first time the user can say what that is.
+    /// 6 — milestone 9, ticket 02 (D50). `workouts[].name`, the title the user
+    /// typed, beside `sourceTemplateName` — intent and provenance are different
+    /// facts. The CSV APPENDS `workoutTypedName` (column 36); column 4
+    /// `workoutName` keeps meaning the template, so a v1–v5 consumer reading
+    /// provenance there is not lied to.
     static let currentSchemaVersion = 6
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion

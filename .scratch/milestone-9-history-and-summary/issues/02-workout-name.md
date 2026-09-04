@@ -41,8 +41,10 @@ Covers user ask **1**.
 - **History detail:** a "Name" row at the top (`historyWorkoutName`) with the same alert; the
   message says renaming marks the workout as edited.
 - **Export:** schema v6. JSON gains `workouts[].name` beside `sourceTemplateName` (intent vs
-  provenance). CSV gains no column — `workoutName` (column 4) now carries the typed name when
-  present, else the template name as before. `.scratch/milestone-3-export/spec.md` updated.
+  provenance). ~~CSV gains no column — `workoutName` (column 4) now carries the typed name when
+  present, else the template name as before.~~ **SUPERSEDED by codex-review 02:** that reused a
+  column and dropped provenance. The CSV appends column 36 `workoutTypedName`; column 4 is
+  unchanged. `.scratch/milestone-3-export/spec.md` updated.
 - Template-started workouts: the name starts empty with the template name as placeholder;
   `sourceTemplateName` untouched.
 
@@ -77,3 +79,19 @@ template name before, so nothing regressed; noted so it is a choice, not an over
 - **Duplicated normalization (low).** `Workout.normalizedName` is the one definition.
 - **JSON only partially proved (low).** A named workout round-trips; a v5-shaped payload with no
   `name` key decodes with nil.
+
+
+## Codex review 02b — response (2026-09-03)
+
+`codex-review-02b.md`: runtime fixes confirmed closed; 2 medium (one defect: stale export
+statements in `docs/SPEC.md`, `ExportCSV.header`'s comment, `ExportSnapshot`'s version note, and
+this ticket's own first resolution), 1 low.
+
+- Every current-contract statement now says 36 columns / v6 / column 4 unchanged; the first
+  resolution above is struck through and marked superseded rather than rewritten. The test whose
+  name still said "prefers" is renamed to what it proves.
+- **The live alert swallowed a refused rename (low).** `ActiveWorkoutView` now consumes the result:
+  if the Domain refused because the workout had finished under the screen, an alert says it was not
+  renamed and points to History. Coverage is by inspection — the refusal itself is unit-tested, and
+  the racing state (a finished workout still presented) cannot be produced by an XCUITest without
+  a hook that would exist only for the test.

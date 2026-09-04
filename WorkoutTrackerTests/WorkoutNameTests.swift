@@ -95,7 +95,7 @@ struct WorkoutNameTests {
 
     // MARK: Export
 
-    @Test @MainActor func theExportCarriesTheNameAndTheCSVPrefersItToTheTemplate() throws {
+    @Test @MainActor func theExportCarriesTheNameBesideTheTemplateInJSONAndAsItsOwnCSVColumn() throws {
         let ctx = try context()
         let named = Workout(startedAt: Date(timeIntervalSince1970: 100), finishedAt: Date(timeIntervalSince1970: 200),
                             name: "Heavy day", sourceTemplateName: "Push Day")

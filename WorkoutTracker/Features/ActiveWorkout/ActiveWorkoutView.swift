@@ -25,6 +25,10 @@ struct ActiveWorkoutView: View {
     /// Naming the workout mid-session (milestone 9, ticket 02).
     @State private var renamingWorkout = false
     @State private var renameText = ""
+    /// The live rename was refused because the workout had already finished
+    /// under this screen (a stale or racing view). Say so rather than closing
+    /// the alert as if the name had been saved (codex-review 02b).
+    @State private var renameRefused = false
     @State private var driftTemplate: WorkoutTemplate?
     @State private var choosingDriftResolution = false
     /// Owned by `RootView`, not by this screen (codex-review-2 #2): minimise
@@ -208,7 +212,15 @@ struct ActiveWorkoutView: View {
                 TextField(workout.isDeleted ? "Workout" : workout.derivedTitle, text: $renameText)
                     .accessibilityIdentifier("workoutNameField")
                 Button("Save") {
-                    do { try session.rename(workout, to: renameText) } catch {
+                    do {
+                        // false means the Domain refused: the workout is no
+                        // longer running, so the live path must not name it.
+                        if try !session.rename(workout, to: renameText),
+                           !workout.isDeleted, workout.finishedAt != nil,
+                           Workout.normalizedName(renameText) != workout.name {
+                            renameRefused = true
+                        }
+                    } catch {
                         assertionFailure("Failed to rename workout: \(error)")
                     }
                 }
@@ -216,6 +228,11 @@ struct ActiveWorkoutView: View {
                 Button("Cancel", role: .cancel) {}
             } message: {
                 Text("Leave it empty to use the template or exercise name.")
+            }
+            .alert("This workout has finished", isPresented: $renameRefused) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("It was not renamed. Rename it from History, where the change is recorded as an edit.")
             }
             .confirmationDialog(
                 "Cancel this workout?",

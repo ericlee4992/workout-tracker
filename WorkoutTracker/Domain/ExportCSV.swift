@@ -17,8 +17,10 @@ import Foundation
 
 enum ExportCSV {
 
-    /// The 34 columns, in order. `../spec.md` documents each one's source; the
-    /// order is part of the format — appending is safe, reordering is not.
+    /// The 36 columns, in order. `.scratch/milestone-3-export/spec.md` documents
+    /// each one's source; the order is part of the format — appending is safe,
+    /// reordering is not, and so is changing what an existing column means
+    /// (codex-review 02 caught a first cut that did).
     static let header = [
         "workoutID", "workoutStartedAt", "workoutFinishedAt", "workoutName", "workoutNotes",
         "gymID", "gymName",
