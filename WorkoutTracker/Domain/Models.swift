@@ -276,6 +276,14 @@ final class Workout {
     /// distinct from `sourceTemplateName`, which records where the workout
     /// came from rather than what the user chose to call it.
     var name: String?
+
+    /// What a stored name IS: trimmed, and blank means none. One definition,
+    /// used by both rename paths, so "no name" cannot mean two different
+    /// things (codex-review 02, low).
+    static func normalizedName(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
     /// Scalar reference to the template this workout was started from, if any.
     /// When this workout was last edited after being logged (D47, milestone 8
     /// ticket 03). nil = never edited, which is every workout logged before

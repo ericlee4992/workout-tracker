@@ -220,7 +220,7 @@ struct ExportTests {
     @Test func csvHeaderIsTheDocumentedColumnsInOrder() throws {
         let rows = csvRows(makeSnapshot())
         #expect(rows.first == ExportCSV.header)
-        #expect(ExportCSV.header.count == 35)
+        #expect(ExportCSV.header.count == 36)
         #expect(ExportCSV.header.first == "workoutID")
         // Presets (D36) appended two columns and the bar (D39) two more; the
         // first 27 are unchanged, so a reader of a version-1 export still reads
@@ -232,7 +232,11 @@ struct ExportTests {
                 == ["workoutAvgHeartRate", "workoutMaxHeartRate", "workoutActiveCalories"])
         // v5 (D48). Appended, never inserted — the first 34 columns are
         // untouched, so a reader of any earlier export still reads them.
-        #expect(ExportCSV.header.last == "supersetGroupID")
+        #expect(ExportCSV.header[34] == "supersetGroupID")
+        // v6 (milestone 9): the typed name is appended; column 4 still means
+        // the template, so a v1–v5 reader of provenance is not lied to.
+        #expect(ExportCSV.header.last == "workoutTypedName")
+        #expect(ExportCSV.header[3] == "workoutName")
         #expect(ExportCSV.header[26] == "completedAt")
     }
 

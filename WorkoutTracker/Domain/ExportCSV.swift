@@ -45,6 +45,10 @@ enum ExportCSV {
         // with rest taken after the last of them. Empty for an ordinary
         // exercise, which is every row exported before supersets existed.
         "supersetGroupID",
+        // v6 (milestone 9): the name the user typed for the workout, repeated
+        // on each of its rows like `workoutName`. Empty when none was typed;
+        // `workoutName` (column 4) keeps meaning the template it came from.
+        "workoutTypedName",
     ]
 
     /// RFC 4180 line terminator. Excel on Windows still wants CRLF; every
@@ -86,10 +90,10 @@ enum ExportCSV {
             workout.id.uuidString,
             workout.startedAt,
             workout.finishedAt ?? "",
-            // v6: the typed name when there is one, else the template name —
-            // the column's meaning ("what this workout is called") is
-            // unchanged; the user can now be its author.
-            workout.name ?? workout.sourceTemplateName ?? "",
+            // Column 4 is, and stays, the TEMPLATE name: a v1–v5 consumer reads
+            // provenance here and must keep reading it. The typed name is a
+            // new column at the end (codex-review 02, high).
+            workout.sourceTemplateName ?? "",
             workout.notes,
             entry.gymID?.uuidString ?? "",
             entry.gymName ?? "",
@@ -124,6 +128,7 @@ enum ExportCSV {
             workout.maxHeartRate.map(String.init) ?? "",
             workout.activeEnergyKilocalories.map(WeightMath.storageNumber) ?? "",
             entry.supersetGroupID?.uuidString ?? "",
+            workout.name ?? "",
         ]
     }
 

@@ -56,3 +56,24 @@ core loop (9), history editing (2), export (1) green.** Screenshots `workout-nam
 
 **Not done:** the finish sheet and Live Activity do not show the name — neither showed the
 template name before, so nothing regressed; noted so it is a choice, not an oversight.
+
+
+## Codex review 02 — response (2026-09-03)
+
+`codex-review-02.md`: 3 high, 2 medium, 2 low. All acted on; two of the highs were real defects.
+
+- **History rename never saved (high).** True — every neighbouring edit calls the view's `save()`
+  and this one relied on autosave. Fixed; `aHistoryRenameIsOnDiskAfterSave` reopens the store from
+  disk in a fresh container and finds both the name and the mark.
+- **CSV column 4 silently changed meaning and dropped provenance (high).** True, and my source
+  comment claiming the meaning was "unchanged" was false. Column 4 is `sourceTemplateName` again;
+  the typed name is the appended column 36 `workoutTypedName`. Header test, spec table (which had
+  also been missing column 35) and the v6 note corrected.
+- **D47 drifted from rather than reopened (high).** Correct. **D50** now records the reopening and
+  the reasoning — a name is authored, not captured; nothing downstream reads it — and D47 carries
+  a pointer.
+- **Lifecycle not enforced (medium ×2).** `WorkoutSession.rename` refuses a finished workout;
+  `HistoryEditing.rename` refuses a running one. Both refusals tested.
+- **Duplicated normalization (low).** `Workout.normalizedName` is the one definition.
+- **JSON only partially proved (low).** A named workout round-trips; a v5-shaped payload with no
+  `name` key decodes with nil.

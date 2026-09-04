@@ -166,8 +166,11 @@ struct WorkoutDetailView: View {
                 .accessibilityIdentifier("workoutNameField")
             Button("Save") {
                 // Marked as an edit: a logged workout that changes what it is
-                // called is history changing, and says so (D47).
-                HistoryEditing.rename(workout, to: renameText)
+                // called is history changing, and says so (D50). Saved
+                // explicitly like every other edit on this screen — relying on
+                // autosave here could lose both the name and the mark
+                // (codex-review 02, high).
+                if HistoryEditing.rename(workout, to: renameText) { save() }
             }
             .accessibilityIdentifier("saveWorkoutName")
             Button("Cancel", role: .cancel) {}

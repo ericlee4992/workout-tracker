@@ -119,8 +119,94 @@ struct WorkoutNameTests {
         #expect(byName["Pull Day"] == .some(nil), "no typed name is absent, not empty")
 
         let rows = ExportCSV.render(snapshot).split(separator: "\r\n").map { $0.split(separator: ",", omittingEmptySubsequences: false) }
-        let nameColumn = try #require(ExportCSV.header.firstIndex(of: "workoutName"))
-        let names = Set(rows.dropFirst().map { String($0[nameColumn]) })
-        #expect(names == ["Heavy day", "Pull Day"], "typed name when present, else the template, got \(names)")
+        let templateColumn = try #require(ExportCSV.header.firstIndex(of: "workoutName"))
+        let typedColumn = try #require(ExportCSV.header.firstIndex(of: "workoutTypedName"))
+        // Column 4 keeps meaning the template (provenance); the typed name is
+        // its own, appended column (codex-review 02).
+        #expect(Set(rows.dropFirst().map { String($0[templateColumn]) }) == ["Push Day", "Pull Day"])
+        #expect(Set(rows.dropFirst().map { String($0[typedColumn]) }) == ["Heavy day", ""])
+    }
+
+    @Test @MainActor func aNamedWorkoutSurvivesTheJSONRoundTripAndAV5FileStillDecodes() throws {
+        let ctx = try context()
+        let named = Workout(startedAt: Date(timeIntervalSince1970: 100), finishedAt: Date(timeIntervalSince1970: 200),
+                            name: "Heavy day", sourceTemplateName: "Push Day")
+        ctx.insert(named)
+        let entry = ExerciseEntry(
+            order: 0, workout: named, snapshotCapturedAt: named.startedAt,
+            snapshotExerciseID: UUID(), snapshotLoadType: .weighted, snapshotExerciseName: "Row")
+        ctx.insert(entry)
+        let set = SetRecord(order: 0, type: .working, entry: entry)
+        set.reps = 5; set.weightValue = 50; set.weightUnit = .kg; set.normalizedKg = 50
+        set.completedAt = named.startedAt.addingTimeInterval(60)
+        ctx.insert(set)
+        try ctx.save()
+
+        var snapshot = try ExportCollector(appVersion: "test").snapshot(from: ctx)
+        #expect(snapshot.schemaVersion == 6)
+        let decoded = try ExportJSON.decode(try ExportJSON.data(snapshot))
+        #expect(decoded.workouts.first?.name == "Heavy day")
+        #expect(decoded.workouts.first?.sourceTemplateName == "Push Day", "provenance travels beside the name")
+
+        // A v5 file has no `name` key at all. Encoding nil omits the key, so
+        // this IS the v5 shape for that object; it must decode with name nil.
+        snapshot.schemaVersion = 5
+        snapshot.workouts[0].name = nil
+        let v5 = try ExportJSON.data(snapshot)
+        #expect(String(decoding: v5, as: UTF8.self).contains("\"name\"") == false)
+        let old = try ExportJSON.decode(v5)
+        #expect(old.workouts.first?.name == nil)
+        #expect(old.workouts.first?.sourceTemplateName == "Push Day")
+    }
+
+    // MARK: Lifecycle guards (codex-review 02)
+
+    /// The live path must not be able to rename LOGGED history unmarked.
+    @Test @MainActor func theLivePathRefusesAFinishedWorkout() throws {
+        let ctx = try context()
+        let session = WorkoutSession(context: ctx, notifications: SilentNotifications())
+        let workout = Workout(startedAt: .now, finishedAt: .now, name: "Logged")
+        ctx.insert(workout)
+        #expect(try session.rename(workout, to: "Sneaky") == false)
+        #expect(workout.name == "Logged")
+        #expect(workout.historyEditedAt == nil)
+    }
+
+    /// The history path must not stamp a RUNNING workout as edited history.
+    @Test @MainActor func theHistoryPathRefusesARunningWorkout() throws {
+        let ctx = try context()
+        let workout = Workout(startedAt: .now)
+        ctx.insert(workout)
+        #expect(HistoryEditing.rename(workout, to: "Too early") == false)
+        #expect(workout.name == nil)
+        #expect(workout.historyEditedAt == nil)
+    }
+
+    // MARK: Persistence (codex-review 02, high)
+
+    /// The History alert saves explicitly. This proves the saved shape: rename,
+    /// save, open the SAME store from disk in a new container, and both the
+    /// name and the mark are there.
+    @Test @MainActor func aHistoryRenameIsOnDiskAfterSave() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "rename-\(UUID().uuidString)", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appending(path: "Store.store")
+        let id: UUID
+        do {
+            let ctx = ModelContext(try WorkoutTrackerStore.makeContainer(url: url))
+            let workout = Workout(startedAt: .now, finishedAt: .now)
+            id = workout.id
+            ctx.insert(workout)
+            try ctx.save()
+            #expect(HistoryEditing.rename(workout, to: "Persisted"))
+            try ctx.save()
+        }
+        let reopened = ModelContext(try WorkoutTrackerStore.makeContainer(url: url))
+        let workouts = try reopened.fetch(FetchDescriptor<Workout>())
+        let again = try #require(workouts.first { $0.id == id })
+        #expect(again.name == "Persisted")
+        #expect(again.historyEditedAt != nil)
     }
 }

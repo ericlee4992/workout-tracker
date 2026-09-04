@@ -66,7 +66,7 @@ equipment (see the two limits below the table). Empty fields are empty (no `null
 | 1 | `workoutID` | `Workout.id` | groups rows into a session |
 | 2 | `workoutStartedAt` | `Workout.startedAt` | D31 |
 | 3 | `workoutFinishedAt` | `Workout.finishedAt` | empty = still active (D30) |
-| 4 | `workoutName` | `Workout.name`, else `Workout.sourceTemplateName` | v6: the user's typed name when there is one; empty when neither exists |
+| 4 | `workoutName` | `Workout.sourceTemplateName` | empty when not from a template. Unchanged in v6 — the typed name is column 36 |
 | 5 | `workoutNotes` | `Workout.notes` | |
 | 6 | `gymID` | `ExerciseEntry.snapshotGymID` | empty = no gym |
 | 7 | `gymName` | `ExerciseEntry.snapshotGymName` | |
@@ -97,6 +97,8 @@ equipment (see the two limits below the table). Empty fields are empty (no `null
 | 32 | `workoutAvgHeartRate` | `Workout.averageHeartRate` | D44 — appended 2026-08-22, empty = no sensor ran |
 | 33 | `workoutMaxHeartRate` | `Workout.maxHeartRate` | |
 | 34 | `workoutActiveCalories` | `Workout.activeEnergyKilocalories` | system-generated during the session, never computed by the app |
+| 35 | `supersetGroupID` | `ExerciseEntry.supersetGroupID` | D48 — appended 2026-08-26, empty = not in a superset |
+| 36 | `workoutTypedName` | `Workout.name` | v6 — appended 2026-09-03 (milestone 9, ticket 02), empty = no name typed |
 
 Columns 32–34 are **workout**-level and repeat on every set row of that workout, the way
 `workoutNotes` already does. Empty means *not measured*, never zero (D44). `zoneSeconds` is
@@ -173,5 +175,6 @@ exported — SPEC: PRs are derived, never source-of-truth.
 ### v6 (milestone 9, ticket 02 — workout name)
 
 `workouts[].name` in JSON: the title the user typed, absent when none was. `sourceTemplateName` is
-unchanged and still present — one is intent, the other provenance. The CSV gains no column; its
-`workoutName` now carries the typed name when present, else the template name as before.
+unchanged and still present — one is intent, the other provenance. The CSV appends column 36,
+`workoutTypedName`; column 4 `workoutName` keeps meaning the template, so a v1–v5 consumer reading
+provenance there is not lied to. (A first cut reused column 4; codex-review 02 caught it.)

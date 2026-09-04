@@ -116,14 +116,20 @@ struct WorkoutSession {
     /// sets). The UI confirms before calling this.
     /// Names (or un-names, with blank) a workout that is still running. NOT
     /// a history edit: the workout has not been logged yet, so nothing is
-    /// marked — `HistoryEditing.rename` is the after-the-fact path (D47).
-    func rename(_ workout: Workout, to name: String) throws {
-        guard !workout.isDeleted else { return }
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let next: String? = trimmed.isEmpty ? nil : trimmed
-        guard next != workout.name else { return }
+    /// marked — `HistoryEditing.rename` is the after-the-fact path (D50).
+    ///
+    /// Refuses a FINISHED workout (returns false, changes nothing): renaming
+    /// logged history without the edit mark is the dishonest case, and the
+    /// guard belongs here, not in whichever screen happened to call
+    /// (codex-review 02, medium).
+    @discardableResult
+    func rename(_ workout: Workout, to name: String) throws -> Bool {
+        guard !workout.isDeleted, workout.finishedAt == nil else { return false }
+        let next = Workout.normalizedName(name)
+        guard next != workout.name else { return false }
         workout.name = next
         try context.save()
+        return true
     }
 
     func cancel(_ workout: Workout) throws {

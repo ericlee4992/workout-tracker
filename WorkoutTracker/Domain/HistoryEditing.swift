@@ -264,16 +264,21 @@ enum HistoryEditing {
             volumeKg: RecordsMath.totalVolumeKg(among: inputs))
     }
 
-    /// Renames a LOGGED workout (milestone 9, ticket 02). Blank clears the
-    /// name, returning the title to its derived form. A rename is an edit to
-    /// history like any other and is marked (D47) — a workout that quietly
-    /// changed what it was called claims a certainty it does not have. Returns
-    /// false, and marks nothing, when the stored value would not change.
+    /// Renames a LOGGED workout (D50, reopening D47's "only its numbers" for
+    /// this one field). Blank clears the name, returning the title to its
+    /// derived form. A rename is an edit to history like any other and is
+    /// marked — a workout that quietly changed what it was called claims a
+    /// certainty it does not have. Returns false, and marks nothing, when the
+    /// stored value would not change.
+    ///
+    /// Refuses a workout that is still RUNNING: that is not history yet, and
+    /// stamping it "edited" would be false. `WorkoutSession.rename` is the
+    /// live path (codex-review 02, medium). The caller saves, as every other
+    /// mutation in this file expects.
     @discardableResult
     static func rename(_ workout: Workout, to name: String, at date: Date = .now) -> Bool {
-        guard !workout.isDeleted else { return false }
-        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let next: String? = trimmed.isEmpty ? nil : trimmed
+        guard !workout.isDeleted, workout.finishedAt != nil else { return false }
+        let next = Workout.normalizedName(name)
         guard next != workout.name else { return false }
         workout.name = next
         markEdited(workout, at: date)
