@@ -34,7 +34,7 @@ struct ProgressSeriesTests {
                 set(30, day: 8, loadType: .assisted),
                 set(20, day: 15, loadType: .assisted),
             ],
-            variation: ProgressVariationKey(loadType: .assisted, freeWeightTag: nil, presetID: nil))
+            variation: ProgressVariationKey(loadType: .assisted, equipment: .unrecorded, presetID: nil))
 
         #expect(!series.higherIsBetter)
         let change = try? #require(ProgressSeriesMath.change(series))
@@ -44,7 +44,7 @@ struct ProgressSeriesTests {
 
     @Test func weightedProgressCountsUpwardAsImprovement() {
         let series = ProgressSeriesMath.series(
-            for: [set(60, day: 1), set(70, day: 8)], variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
+            for: [set(60, day: 1), set(70, day: 8)], variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
         #expect(series.higherIsBetter)
         let change = try? #require(ProgressSeriesMath.change(series))
         #expect((change ?? 0) > 0)
@@ -59,7 +59,7 @@ struct ProgressSeriesTests {
                 set(25, day: 1, loadType: .assisted),
                 set(35, day: 1, loadType: .assisted),
             ],
-            variation: ProgressVariationKey(loadType: .assisted, freeWeightTag: nil, presetID: nil))
+            variation: ProgressVariationKey(loadType: .assisted, equipment: .unrecorded, presetID: nil))
         #expect(series.points.count == 1)
         #expect(series.points.first?.bestKg == 25, "least assistance is the day's best set")
     }
@@ -72,7 +72,7 @@ struct ProgressSeriesTests {
                 set(100, day: 1, type: .warmup),
                 set(60, day: 1, type: .working),
             ],
-            variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
+            variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
         #expect(series.points.first?.bestKg == 60, "a warmup must not become the day's best set")
         #expect(series.points.first?.volumeKg == 480, "warmup volume must not be counted")
     }
@@ -82,7 +82,7 @@ struct ProgressSeriesTests {
     /// figure in the app.
     @Test func volumeIsWeightedOnly() {
         let series = ProgressSeriesMath.series(
-            for: [set(30, day: 1, loadType: .assisted)], variation: ProgressVariationKey(loadType: .assisted, freeWeightTag: nil, presetID: nil))
+            for: [set(30, day: 1, loadType: .assisted)], variation: ProgressVariationKey(loadType: .assisted, equipment: .unrecorded, presetID: nil))
         #expect(series.points.first?.volumeKg == 0)
     }
 
@@ -91,7 +91,7 @@ struct ProgressSeriesTests {
     @Test func setsAreGroupedByDayAndOrderedOldestFirst() {
         let series = ProgressSeriesMath.series(
             for: [set(70, day: 8), set(60, day: 1), set(65, day: 1)],
-            variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
+            variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
         #expect(series.points.count == 2)
         #expect(series.points[0].bestKg == 65, "same-day sets collapse to their best")
         #expect(series.points[0].date < series.points[1].date, "a chart reads left to right")
@@ -103,7 +103,7 @@ struct ProgressSeriesTests {
             loadType: .weighted, exerciseID: exerciseID, setType: .working,
             reps: 5, weightValue: 135, weightUnit: .lb, normalizedKg: 61.23,
             completedAt: Date(timeIntervalSince1970: 86_400))
-        let series = ProgressSeriesMath.series(for: [lb], variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
+        let series = ProgressSeriesMath.series(for: [lb], variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
         #expect(series.points.first?.bestValue == 135)
         #expect(series.points.first?.bestUnit == .lb)
     }
@@ -111,7 +111,7 @@ struct ProgressSeriesTests {
     // MARK: - Not claiming more than the data supports
 
     @Test func noSessionsIsEmptyRatherThanAZeroLine() {
-        let series = ProgressSeriesMath.series(for: [], variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
+        let series = ProgressSeriesMath.series(for: [], variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
         #expect(series.confidence == .empty)
         #expect(series.points.isEmpty)
         #expect(ProgressSeriesMath.change(series) == nil)
@@ -120,7 +120,7 @@ struct ProgressSeriesTests {
     /// One point is not a trend, and two dots joined by a line invite the eye
     /// to read a slope that is not evidence.
     @Test func oneSessionIsMarkedAsASinglePointWithNoTrend() {
-        let series = ProgressSeriesMath.series(for: [set(60, day: 1)], variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
+        let series = ProgressSeriesMath.series(for: [set(60, day: 1)], variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
         #expect(series.confidence == .single)
         #expect(ProgressSeriesMath.change(series) == nil, "one point has no direction")
     }
@@ -131,7 +131,7 @@ struct ProgressSeriesTests {
                 set(0, day: 1, loadType: .bodyweightPlus),
                 set(10, day: 8, loadType: .bodyweightPlus),
             ],
-            variation: ProgressVariationKey(loadType: .bodyweightPlus, freeWeightTag: nil, presetID: nil))
+            variation: ProgressVariationKey(loadType: .bodyweightPlus, equipment: .unrecorded, presetID: nil))
         #expect(
             ProgressSeriesMath.change(series) == nil,
             "a percentage over a zero baseline is a division the app would be inventing")
@@ -139,11 +139,11 @@ struct ProgressSeriesTests {
 
     @Test func e1rmIsWeightedOnly() {
         let weighted = ProgressSeriesMath.series(
-            for: [set(100, reps: 5, day: 1)], variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
+            for: [set(100, reps: 5, day: 1)], variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
         #expect(weighted.points.first?.e1rmKg != nil)
 
         let assisted = ProgressSeriesMath.series(
-            for: [set(30, reps: 5, day: 1, loadType: .assisted)], variation: ProgressVariationKey(loadType: .assisted, freeWeightTag: nil, presetID: nil))
+            for: [set(30, reps: 5, day: 1, loadType: .assisted)], variation: ProgressVariationKey(loadType: .assisted, equipment: .unrecorded, presetID: nil))
         #expect(assisted.points.first?.e1rmKg == nil, "D20: no e1RM outside weighted")
     }
 }
@@ -183,7 +183,7 @@ struct ChartPresetScopingTests {
     /// THE DEFECT. A chart of one variation must contain only that variation.
     @Test func aVariationsChartExcludesEveryOtherVariation() {
         let series = ProgressSeriesMath.series(
-            for: mixed, variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: narrow))
+            for: mixed, variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: narrow))
         #expect(series.points.count == 2, "narrow grip has two days, got \(series.points.count)")
         #expect(series.points.allSatisfy { ($0.bestKg ?? 0) >= 100 },
                 "a wide-grip set leaked into the narrow-grip chart")
@@ -193,23 +193,26 @@ struct ChartPresetScopingTests {
     /// Reading it as a wildcard is exactly how the pooling happened.
     @Test func nilPresetMeansNoVariationRatherThanEveryVariation() {
         let series = ProgressSeriesMath.series(
-            for: mixed, variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
+            for: mixed, variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
         #expect(series.points.count == 1, "only the one no-preset day, got \(series.points.count)")
         #expect(series.points.first?.bestKg == 80)
     }
 
     @Test func eachVariationKeepsItsOwnBest() {
         let narrowSeries = ProgressSeriesMath.series(
-            for: mixed, variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: narrow))
+            for: mixed, variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: narrow))
         let wideSeries = ProgressSeriesMath.series(
-            for: mixed, variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: wide))
+            for: mixed, variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: wide))
         #expect(narrowSeries.points.last?.bestKg == 105)
         #expect(
             wideSeries.points.last?.bestKg == 65,
             "wide grip's best must not be narrow grip's 105")
     }
 
-    // MARK: - The free-weight tag (milestone 9, ticket 01)
+    // MARK: - Equipment as an axis (milestone 9, ticket 01)
+
+    private let machineA = UUID()
+    private let machineB = UUID()
 
     private func tagged(
         _ kg: Double, day: Int, tag: EquipmentTag?, preset: UUID? = nil
@@ -219,11 +222,18 @@ struct ChartPresetScopingTests {
         return s
     }
 
+    private func machined(_ kg: Double, day: Int, machine: UUID) -> RecordSetInput {
+        var s = set(kg, day: day, preset: nil)
+        s.machineID = machine
+        return s
+    }
+
     private var barbellAndDumbbell: [RecordSetInput] {
         [
             tagged(100, day: 1, tag: .barbell), tagged(105, day: 8, tag: .barbell),
             tagged(40, day: 2, tag: .dumbbell), tagged(42.5, day: 9, tag: .dumbbell),
-            tagged(90, day: 3, tag: nil),  // a machined set: the machine clears the tag
+            machined(90, day: 3, machine: machineA),
+            tagged(70, day: 4, tag: nil),  // no machine, no tag: added from History
         ]
     }
 
@@ -233,20 +243,35 @@ struct ChartPresetScopingTests {
     @Test func aDumbbellSetNeverAppearsInTheBarbellLine() {
         let barbell = ProgressSeriesMath.series(
             for: barbellAndDumbbell,
-            variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: .barbell, presetID: nil))
+            variation: ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.barbell), presetID: nil))
         #expect(barbell.points.count == 2, "barbell has two days, got \(barbell.points.count)")
         #expect(barbell.points.allSatisfy { ($0.bestKg ?? 0) >= 100 },
                 "a dumbbell set leaked into the barbell chart")
     }
 
-    /// A nil tag is the machined / untagged group, not a wildcard — the same
-    /// rule as a nil preset, and the same way it would go wrong.
-    @Test func nilTagIsItsOwnGroupNotEveryTag() {
-        let untagged = ProgressSeriesMath.series(
+    /// codex-review 01 (high): the first cut keyed on the tag alone, so a
+    /// machined set and a set with NO equipment recorded — genuinely different
+    /// provenance under D23 — were one group. They are two.
+    @Test func aMachinedSetAndAnUnrecordedSetAreDifferentGroups() {
+        let machine = ProgressSeriesMath.series(
             for: barbellAndDumbbell,
-            variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
-        #expect(untagged.points.count == 1)
-        #expect(untagged.points.first?.bestKg == 90)
+            variation: ProgressVariationKey(loadType: .weighted, equipment: .machine(machineA), presetID: nil))
+        let unrecorded = ProgressSeriesMath.series(
+            for: barbellAndDumbbell,
+            variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
+        #expect(machine.points.map(\.bestKg) == [90])
+        #expect(unrecorded.points.map(\.bestKg) == [70])
+    }
+
+    /// D1/D8: a weight on one machine is not a weight on another. The chart
+    /// keys on the exact machine, as layer one of prefill and `.machine`
+    /// records do — not on "some machine".
+    @Test func twoMachinesAreTwoVariations() {
+        let sets = [machined(100, day: 1, machine: machineA), machined(110, day: 2, machine: machineB)]
+        let counts = ProgressSeriesMath.variations(in: sets)
+        #expect(counts.count == 2)
+        #expect(counts[ProgressVariationKey(loadType: .weighted, equipment: .machine(machineA), presetID: nil)] == 1)
+        #expect(counts[ProgressVariationKey(loadType: .weighted, equipment: .machine(machineB), presetID: nil)] == 1)
     }
 
     @Test func sameGripUnderTwoTagsIsTwoVariations() {
@@ -256,20 +281,28 @@ struct ChartPresetScopingTests {
         ]
         let counts = ProgressSeriesMath.variations(in: sets)
         #expect(counts.count == 2, "one preset under two tags must be two lines, got \(counts.count)")
-        #expect(counts[ProgressVariationKey(loadType: .weighted, freeWeightTag: .barbell, presetID: wide)] == 1)
-        #expect(counts[ProgressVariationKey(loadType: .weighted, freeWeightTag: .dumbbell, presetID: wide)] == 1)
+        #expect(counts[ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.barbell), presetID: wide)] == 1)
+        #expect(counts[ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.dumbbell), presetID: wide)] == 1)
     }
 
-    /// Equal days: the untagged, no-preset variation opens first; among tagged
-    /// ones the order is stable by tag name, not dictionary order.
-    @Test func defaultVariationTieBreakIsStable() {
+    /// The ranking is one function, in the Domain, and it is total: days
+    /// first, then plain before preset, then equipment by name, so the picker
+    /// and the default agree and neither reshuffles between launches.
+    @Test func rankedVariationsIsTotalAndStable() {
         let sets = [
             tagged(100, day: 1, tag: .dumbbell),
             tagged(100, day: 2, tag: .barbell),
+            machined(90, day: 3, machine: machineA), machined(95, day: 10, machine: machineA),
+            tagged(80, day: 4, tag: .barbell, preset: wide),
         ]
-        #expect(ProgressSeriesMath.defaultVariation(in: sets)?.freeWeightTag == .barbell)
-        let withPlain = sets + [tagged(90, day: 3, tag: nil)]
-        #expect(ProgressSeriesMath.defaultVariation(in: withPlain)?.freeWeightTag == nil)
+        let ranked = ProgressSeriesMath.rankedVariations(in: sets)
+        #expect(ranked.map(\.days) == [2, 1, 1, 1])
+        #expect(ranked.first?.key.equipment == .machine(machineA), "most days opens first")
+        // Among the one-day ties: plain before preset, then barbell before dumbbell.
+        #expect(ranked[1].key == ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.barbell), presetID: nil))
+        #expect(ranked[2].key == ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.dumbbell), presetID: nil))
+        #expect(ranked[3].key.presetID == wide)
+        #expect(ProgressSeriesMath.defaultVariation(in: sets) == ranked.first?.key)
     }
 
     // MARK: - Choosing which variation to open on
@@ -281,8 +314,8 @@ struct ChartPresetScopingTests {
             set(60, day: 2, preset: wide),
         ]
         let counts = ProgressSeriesMath.variations(in: sets)
-        #expect(counts[ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: narrow)] == 1)
-        #expect(counts[ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: wide)] == 1)
+        #expect(counts[ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: narrow)] == 1)
+        #expect(counts[ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: wide)] == 1)
     }
 
     /// The chart opens on what the user has actually trained, rather than
@@ -320,7 +353,7 @@ struct ChartPresetScopingTests {
         #expect(counts.count == 2, "a weighted and an assisted history are not one line")
 
         let weighted = ProgressSeriesMath.series(
-            for: sets, variation: ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil))
+            for: sets, variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
         #expect(weighted.points.count == 1)
         #expect(weighted.points.first?.bestKg == 100)
     }

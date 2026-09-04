@@ -151,7 +151,9 @@ struct WorkoutDetailView: View {
                     exerciseName: entry.snapshotExerciseName,
                     initialVariation: ProgressVariationKey(
                         loadType: entry.snapshotLoadType,
-                        freeWeightTag: entry.snapshotFreeWeightTag,
+                        equipment: ProgressEquipment(
+                            machineID: entry.snapshotMachineID,
+                            freeWeightTag: entry.snapshotFreeWeightTag),
                         presetID: entry.snapshotPresetID))
             }
         }

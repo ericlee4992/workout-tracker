@@ -61,6 +61,14 @@ enum ChartFixture {
         (24, 40, 10, nil, .dumbbell), (10, 45, 10, nil, .dumbbell),
     ]
 
+    /// One BARBELL session two days ago holding only a warmup. Records exclude
+    /// warmups, so this variation has history in the list and nothing eligible
+    /// to chart — the sparse case codex-review 01 found could strand the user
+    /// in an empty state with no picker. From History it must open on Barbell,
+    /// say so, and still offer the other variations.
+    static let warmupOnlySession: (daysAgo: Int, weightLb: Double, reps: Int, tag: EquipmentTag) =
+        (2, 45, 5, .barbell)
+
     /// Seeds the history. Idempotent by exercise: a second call does nothing,
     /// so a relaunch inside one test run cannot double the series.
     static func seed(in context: ModelContext, now: Date = .now) throws {
@@ -79,7 +87,10 @@ enum ChartFixture {
             presets[name] = preset
         }
 
-        for (daysAgo, weightLb, reps, presetName, tag) in script {
+        let rows = script.map { ($0.daysAgo, $0.weightLb, $0.reps, $0.preset, $0.tag, SetType.working) }
+            + [(warmupOnlySession.daysAgo, warmupOnlySession.weightLb, warmupOnlySession.reps,
+                nil, warmupOnlySession.tag, SetType.warmup)]
+        for (daysAgo, weightLb, reps, presetName, tag, setType) in rows {
             let date = now.addingTimeInterval(-Double(daysAgo) * 86_400)
             let workout = Workout(startedAt: date)
             workout.finishedAt = date.addingTimeInterval(45 * 60)
@@ -104,7 +115,7 @@ enum ChartFixture {
                 snapshotPresetName: preset?.name)
             context.insert(entry)
 
-            let set = SetRecord(order: 0, type: .working, entry: entry)
+            let set = SetRecord(order: 0, type: setType, entry: entry)
             set.reps = reps
             set.weightValue = weightLb
             set.weightUnit = .lb

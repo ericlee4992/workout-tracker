@@ -116,15 +116,16 @@ final class ProgressChartTooltipUITests: XCTestCase {
 
     /// Milestone 9, ticket 01: from a History session, the chart opens on the
     /// variation THAT session used. The fixture's sessions, newest first, are
-    /// plain (1 day ago), plain (4), plain (7), DUMBBELL (10) — so the fourth
-    /// row is the one that proves the point: opened from there, the chart must
-    /// say Dumbbell, not the most-trained plain variation.
+    /// plain (1 day ago), barbell warmup-only (2), plain (4), plain (7),
+    /// DUMBBELL (10) — so the fifth row is the one that proves the point:
+    /// opened from there, the chart must say Dumbbell, not the most-trained
+    /// plain variation.
     func testHistoryOpensTheChartOnThatSessionsVariation() {
         app.tabBars.buttons["History"].tap()
         let rows = app.descendants(matching: .any).matching(identifier: "historyWorkoutRow")
         XCTAssertTrue(rows.firstMatch.waitForExistence(timeout: 10))
-        XCTAssertGreaterThan(rows.count, 3, "the fixture seeds more than four sessions")
-        rows.element(boundBy: 3).tap()
+        XCTAssertGreaterThan(rows.count, 4, "the fixture seeds more than five sessions")
+        rows.element(boundBy: 4).tap()
 
         let chartButton = app.buttons["historyEntryChart"].firstMatch
         XCTAssertTrue(chartButton.waitForExistence(timeout: 10), "each exercise should offer its chart")
@@ -139,6 +140,37 @@ final class ProgressChartTooltipUITests: XCTestCase {
 
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "history-chart-dumbbell"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
+    /// codex-review 01 (high): a session whose variation has NOTHING eligible
+    /// (the fixture's barbell day is a lone warmup) used to open an empty
+    /// state with no picker — a dead end with the rest of the history one
+    /// unreachable tap away. It must name the empty variation and still offer
+    /// the others.
+    func testHistoryOpensASparseVariationWithAWayOut() {
+        app.tabBars.buttons["History"].tap()
+        let rows = app.descendants(matching: .any).matching(identifier: "historyWorkoutRow")
+        XCTAssertTrue(rows.firstMatch.waitForExistence(timeout: 10))
+        rows.element(boundBy: 1).tap()
+
+        let chartButton = app.buttons["historyEntryChart"].firstMatch
+        XCTAssertTrue(chartButton.waitForExistence(timeout: 10))
+        chartButton.tap()
+
+        let empty = app.descendants(matching: .any)
+            .matching(identifier: "progressEmpty").firstMatch
+        XCTAssertTrue(empty.waitForExistence(timeout: 15), "a warmup-only variation has nothing to chart")
+        let picker = app.descendants(matching: .any)
+            .matching(identifier: "chartVariationPicker").firstMatch
+        XCTAssertTrue(picker.exists, "the empty state must still offer the other variations")
+        XCTAssertTrue(
+            picker.label.contains("Barbell"),
+            "it must open on the session's own variation, got '\(picker.label)'")
+
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "history-chart-sparse"
         shot.lifetime = .keepAlways
         add(shot)
     }

@@ -66,3 +66,33 @@ asserts the picker says Dumbbell.
 **Not done, deliberately:** the machine is still not a chart axis (two machines for one exercise
 chart together, as records' exercise-wide group does). Not asked for; noted so it is not
 rediscovered as a bug.
+
+
+## Codex review 01 — response (2026-09-03)
+
+`codex-review-01.md`: verdict "do not merge yet", 2 high, 2 medium. All four acted on.
+
+- **High — nil tag pooled machined sets with unrecorded-equipment sets.** Correct, and the
+  "machined" test row never had a `machineID`, so it proved nothing. Fixed by making equipment an
+  explicit axis: `ProgressEquipment` = `.machine(UUID)` / `.freeWeight(tag)` / `.unrecorded`,
+  built from the snapshot's `(machineID, freeWeightTag)` and mirroring `RecordGroupKey`. This also
+  resolves the medium "hybrid group matching none of RecordsMath": the chart now keys on the EXACT
+  machine, as layer one of prefill and `.machine` records do, so Machine A and Machine B are two
+  lines (D1/D8). New tests: machined vs unrecorded are different groups; two machines are two
+  variations. **The ticket's original claim — "records already group this way, the chart was the
+  one surface pooling" — was wrong as written**: records group by exact machine / model / tag /
+  exercise-wide, and my first key matched none of them. Corrected here rather than rewritten
+  above, so the error stays visible.
+- **High — History could dead-end.** The picker rendered only under a drawn series. Now it sits
+  above the state switch whenever more than one variation exists, and the variation on screen is
+  always IN the list — a warmup-only variation shows as "Barbell · nothing eligible" with the empty
+  state naming it ("Nothing to chart here … Pick another variation above"). Fixture gained a
+  warmup-only barbell session; `testHistoryOpensASparseVariationWithAWayOut` opens it from History
+  and asserts both the empty state and the picker, on Barbell.
+- **Medium — ranking duplicated in the view.** `ProgressSeriesMath.rankedVariations(in:)` is the
+  one comparator; `defaultVariation` is its first element and the view lists it verbatim.
+  `rankedVariationsIsTotalAndStable` pins the order.
+- Naming learned the hard way: prefixing "No equipment recorded ·" onto every preset row buried the
+  grip names, so unrecorded equipment is named only when no preset names the row.
+
+573 unit green; chart (4) + history-editing (2) UI green. Screenshot `history-chart-sparse`.

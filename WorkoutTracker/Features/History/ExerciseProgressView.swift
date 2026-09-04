@@ -46,12 +46,23 @@ struct ExerciseProgressView: View {
 
     var body: some View {
         List {
+            // Above the state switch on purpose: the picker must exist in the
+            // empty and single-session states too. codex-review 01 (high):
+            // History could open the chart on a session whose variation has
+            // one day, or only warmups, and the picker — rendered only under a
+            // drawn series — vanished, stranding the user in a false empty
+            // state with the rest of their history unreachable.
+            if availableVariations.count > 1 {
+                Section {
+                    variationPicker
+                }
+            }
             switch series.confidence {
             case .empty:
                 ContentUnavailableView(
-                    "No sets logged yet",
+                    availableVariations.count > 1 ? "Nothing to chart here" : "No sets logged yet",
                     systemImage: "chart.xyaxis.line",
-                    description: Text("Log \(exerciseName) in a workout and its progress appears here."))
+                    description: Text(emptyDescription))
                     .accessibilityIdentifier("progressEmpty")
             case .single:
                 Section {
@@ -72,7 +83,6 @@ struct ExerciseProgressView: View {
                         .frame(height: 240)
                         .accessibilityIdentifier("progressChart")
                     selectionRow
-                    variationPicker
                 } footer: {
                     Text(footer(days: days))
                 }
@@ -176,19 +186,25 @@ struct ExerciseProgressView: View {
     /// Offered only when this exercise has history under more than one
     /// variation. D36 forbids pooling them, so the alternative to a picker is
     /// history the user simply cannot reach.
-    @ViewBuilder
     private var variationPicker: some View {
-        let available = availableVariations
-        if available.count > 1 {
-            Picker("Variation", selection: variationBinding) {
-                ForEach(available, id: \.key) { item in
-                    Text("\(variationName(item.key)) · \(item.days) day\(item.days == 1 ? "" : "s")")
-                        .tag(item.key)
-                }
+        Picker("Variation", selection: variationBinding) {
+            ForEach(availableVariations, id: \.key) { item in
+                Text(item.days == 0
+                    ? "\(variationName(item.key)) · nothing eligible"
+                    : "\(variationName(item.key)) · \(item.days) day\(item.days == 1 ? "" : "s")")
+                    .tag(item.key)
             }
-            .pickerStyle(.menu)
-            .accessibilityIdentifier("chartVariationPicker")
         }
+        .pickerStyle(.menu)
+        .accessibilityIdentifier("chartVariationPicker")
+    }
+
+    /// Names the variation that is empty when others are not, so the state
+    /// reads as "nothing HERE" rather than "nothing at all".
+    private var emptyDescription: String {
+        availableVariations.count > 1
+            ? "No eligible sets under \(variationName(resolvedVariation)). Warmups do not count. Pick another variation above."
+            : "Log \(exerciseName) in a workout and its progress appears here."
     }
 
     private var variationBinding: Binding<ProgressVariationKey> {
@@ -363,37 +379,48 @@ struct ExerciseProgressView: View {
     private var resolvedVariation: ProgressVariationKey {
         variation
             ?? ProgressSeriesMath.defaultVariation(in: history)
-            ?? ProgressVariationKey(loadType: .weighted, freeWeightTag: nil, presetID: nil)
+            ?? ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil)
     }
 
-    /// The variations this exercise actually has history for, ordered by how
-    /// much — so the picker lists what the user has trained, not every preset
+    /// The variations this exercise actually has history for, in the Domain's
+    /// order — the picker lists what the user has trained, not every preset
     /// that happens to exist.
     private var availableVariations: [(key: ProgressVariationKey, days: Int)] {
-        ProgressSeriesMath.variations(in: history)
-            .sorted { a, b in
-                // Most days first; then the plain variation; then a stable
-                // name order so the menu does not reshuffle between opens.
-                let aRank = (-a.value, a.key.presetID == nil ? 0 : 1,
-                             a.key.freeWeightTag?.rawValue ?? "", a.key.presetID?.uuidString ?? "")
-                let bRank = (-b.value, b.key.presetID == nil ? 0 : 1,
-                             b.key.freeWeightTag?.rawValue ?? "", b.key.presetID?.uuidString ?? "")
-                return aRank < bRank
-            }
-            .map { (key: $0.key, days: $0.value) }
+        let ranked = ProgressSeriesMath.rankedVariations(in: history)
+        // The variation on screen must be IN the list even when it has nothing
+        // eligible to chart (a warmup-only session opened from History): a
+        // Picker whose selection matches no row shows its title instead, and
+        // the user cannot see what they are looking at, let alone leave it.
+        let current = resolvedVariation
+        guard !ranked.contains(where: { $0.key == current }) else { return ranked }
+        return ranked + [(key: current, days: 0)]
     }
 
-    /// Display name for a variation: the free-weight tag, then the SNAPSHOT
-    /// preset name — the name it was logged under, not today's (D23). Both nil
-    /// is the plain exercise. "Barbell · Wide grip", "Dumbbell", "Wide grip".
+    /// Display name for a variation: the equipment, then the SNAPSHOT preset
+    /// name — both as logged, not as today's rows say (D23). "Dumbbell",
+    /// "Hammer Strength #2 · Wide grip", "Wide grip", "No equipment recorded".
+    ///
+    /// Unrecorded equipment is named only when there is no preset to name the
+    /// row: a machine exercise logged without picking a machine is the COMMON
+    /// case, and prefixing every grip with "No equipment recorded ·" buried
+    /// the part that distinguishes them. So a row with no equipment prefix
+    /// means no equipment was recorded.
     private func variationName(_ key: ProgressVariationKey) -> String {
         var parts: [String] = []
-        if let tag = key.freeWeightTag { parts.append(tag.label) }
+        let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
+        switch key.equipment {
+        case .freeWeight(let tag):
+            parts.append(tag.label)
+        case .machine(let machineID):
+            parts.append(
+                entries.first { $0.snapshotMachineID == machineID }?.snapshotMachineLabel ?? "Machine")
+        case .unrecorded:
+            if key.presetID == nil { parts.append("No equipment recorded") }
+        }
         if let presetID = key.presetID {
-            let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
             let name = entries.first { $0.snapshotPresetID == presetID }?.snapshotPresetName
             parts.append(name ?? "Variation")
         }
-        return parts.isEmpty ? "No variation" : parts.joined(separator: " · ")
+        return parts.joined(separator: " · ")
     }
 }
