@@ -1,6 +1,6 @@
 # Where the project is right now
 
-Updated 2026-09-04 (morning, milestone 9 Codex-clear). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-04 (morning, milestone 9 installed on the phone from the branch). **START HERE IF YOU ARE COLD:**
 
 1. **Milestone 9 is BUILT on branch `milestone-9-history-and-summary` (pushed) and NOT merged, NOT
    installed.** Five tickets: chart per equipment + History chart button (01), workout name (02),
@@ -17,9 +17,15 @@ Updated 2026-09-04 (morning, milestone 9 Codex-clear). **START HERE IF YOU ARE C
    provenance fields, `Workout.heartRateSeries`/basal, `AppPreferences` move record) — all optional,
    `LegacyStoreMigrationTests` opens the fixture, and the catalog moves to **version 5** (90
    exercises). Export schema is now **8**; CSV has **37** columns.
-3. **The phone still runs `5a860bc`** (installed 2026-09-03 21:09; both profiles expire
-   **2026-09-11 01:08 UTC**). Everything in milestone 9 is unseen on the device. Nothing needs
-   rebuilding for signing until the 11th; installing milestone 9 re-signs anyway.
+3. **The phone now runs milestone 9 — branch tip `66bc7d4`, installed and launch-verified
+   2026-09-04 (morning), from an UNMERGED branch, exactly as the bar-weight build was in August.**
+   The user exported first (CSV+JSON to iCloud Drive, 2026-09-04) — that export is the backup that
+   predates D51's reclassification. The launch opened the real store through four optional-field
+   additions (`Workout.name`, entry provenance, `heartRateSeries`/basal, the preferences record) and
+   catalog v5, and ran the reclassification. **Ask the user what Settings' "History update" row
+   says** (N sets moved) and whether a moved session shows "Reclassified from …" — nobody has seen
+   the real count. Profiles still expire **2026-09-11 01:08 UTC** (this build reused the same
+   profile; the clock did not move).
 4. **Suites on the branch tip: 643 unit green (run in full) and all 36 UI tests green** — run
    2026-09-04 morning as the merge gate, in three pieces on the same commit (a single full run was
    killed twice at the harness's 10-minute foreground limit; the pieces were CoreLoop+Barbell+
