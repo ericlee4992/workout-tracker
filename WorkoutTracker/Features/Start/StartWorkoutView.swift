@@ -44,8 +44,6 @@ struct StartWorkoutView: View {
 
                 Section {
                     gymPicker
-                } footer: {
-                    Text("Sets default to \(currentUnit.rawValue) here. You can switch units on any set.")
                 }
 
                 Section {
@@ -100,8 +98,6 @@ struct StartWorkoutView: View {
                 Button("Resume Workout") { resumeActive() }
                 Button("Finish It & Start New") { finishActiveThenStartTapped() }
                 Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Resume it, or finish it and start a new one — only its completed sets are kept.")
             }
             .templateDriftDialog(
                 isPresented: $showingReplacementDrift,

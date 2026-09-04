@@ -25,8 +25,6 @@ struct MaxHeartRateSheet: View {
                         .accessibilityIdentifier("maxHeartRateField")
                 } header: {
                     Text("Measured maximum")
-                } footer: {
-                    Text("The highest heart rate you have actually seen — from a hard effort, a lab test, or a max-effort session. Leaving this empty falls back to an estimate from your age.")
                 }
 
                 Section {
@@ -39,9 +37,6 @@ struct MaxHeartRateSheet: View {
                     }
                 } header: {
                     Text("Estimate")
-                } footer: {
-                    // The honesty this whole feature turns on (D45).
-                    Text("220 − age is a population average and is typically wrong by 10–12 bpm for any one person. Zones based on it are marked as estimated. With neither a measured maximum nor a date of birth, no zones are shown at all.")
                 }
 
                 if let preview = resolvedPreview {

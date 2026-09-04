@@ -53,8 +53,6 @@ struct AddByMachineSheet: View {
                     if let gym {
                         Text("Machines at \(gym.name)")
                     }
-                } footer: {
-                    Text("Pick the machine and the exercise fills itself in — stations that serve several exercises ask which one.")
                 }
             }
             .navigationTitle("Add by Machine")
@@ -170,12 +168,6 @@ private struct MachineExerciseList: View {
                     creating = request(named: trimmedSearch)
                 }
                 .accessibilityIdentifier("newExercise")
-            } footer: {
-                if let model {
-                    Text("A new exercise is linked to \(model.displayName), so this station offers it next time.")
-                } else {
-                    Text("This machine has no catalog model, so a new exercise is simply added to your catalog.")
-                }
             }
         }
         .modifier(FullCatalogSearch(enabled: choice.linked == nil, text: $searchText))

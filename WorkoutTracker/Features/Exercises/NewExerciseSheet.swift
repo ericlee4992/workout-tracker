@@ -40,10 +40,6 @@ struct NewExerciseSheet: View {
                 Section {
                     TextField("Name", text: $name)
                         .accessibilityIdentifier("newExerciseName")
-                } footer: {
-                    if let linkTo {
-                        Text("Will be linked to \(linkTo.displayName), so this station offers it next time.")
-                    }
                 }
                 Section {
                     Picker("Load type", selection: $loadType) {

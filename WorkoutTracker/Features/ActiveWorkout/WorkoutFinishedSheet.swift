@@ -77,10 +77,6 @@ struct WorkoutFinishedSheet: View {
                             }
                             .accessibilityIdentifier("saveAsTemplate")
                         }
-                    } footer: {
-                        if savedTemplateName == nil, canSaveAsTemplate {
-                            Text("Completed sets become target set and rep slots. Weights and rest times are not saved.")
-                        }
                     }
                 }
 
@@ -115,8 +111,6 @@ struct WorkoutFinishedSheet: View {
                 Button("Save") { saveTemplate() }
                     .disabled(templateName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Completed sets become target set and rep slots. Weights and rest times are not saved.")
             }
             .alert(
                 "Couldn't Save Template",

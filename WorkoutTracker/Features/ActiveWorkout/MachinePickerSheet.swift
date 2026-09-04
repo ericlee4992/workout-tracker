@@ -13,10 +13,6 @@ struct MachinePickerSheet: View {
 
     private var machines: [MachineInstance] { gym?.activeMachines ?? [] }
 
-    /// After one completed set the entry's equipment is frozen (D19) —
-    /// picking different equipment starts a new entry.
-    private var isFrozen: Bool { entry.snapshotCapturedAt != nil }
-
     var body: some View {
         NavigationStack {
             List {
@@ -39,8 +35,6 @@ struct MachinePickerSheet: View {
                         }
                     } header: {
                         Text("Machines at \(gym.name)")
-                    } footer: {
-                        Text("History and records attach to the machine you pick — numbers on a different model aren't treated as comparable.")
                     }
                 }
 
@@ -86,10 +80,6 @@ struct MachinePickerSheet: View {
                     }
                 } header: {
                     Text("Free weights")
-                } footer: {
-                    if isFrozen {
-                        Text("This exercise already has a completed set, so its equipment is locked in — picking something else continues in a new entry.")
-                    }
                 }
             }
             .navigationTitle("Equipment")

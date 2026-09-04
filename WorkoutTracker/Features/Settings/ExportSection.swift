@@ -67,8 +67,6 @@ struct ExportSection: View {
             }
         } header: {
             Text("Export")
-        } footer: {
-            Text("Everything you have logged, including sets still in progress. CSV is one row per set, for spreadsheets; JSON keeps the whole structure with stable IDs. Your training history exists only on this iPhone — until you save an export somewhere else, there is no backup.")
         }
     }
 

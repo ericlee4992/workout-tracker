@@ -104,8 +104,6 @@ struct ExercisesView: View {
                     Button("Add Exercise…", systemImage: "plus") {
                         showingAddExercise = true
                     }
-                } footer: {
-                    Text("Picking a machine during a workout selects its exercise automatically — this list is for browsing and free-weight logging. Long-press an exercise to give it presets (grips, single/double); records are kept per preset.")
                 }
             }
             .searchable(text: $searchText, prompt: "Search exercises")
@@ -147,8 +145,6 @@ struct ExercisesView: View {
                 TextField("Name", text: $renameText)
                 Button("Save") { rename(exercise) }
                 Button("Cancel", role: .cancel) {}
-            } message: { _ in
-                Text("Only your own exercises can be renamed — the built-in catalog is read-only.")
             }
         }
     }

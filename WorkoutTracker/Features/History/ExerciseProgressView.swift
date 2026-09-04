@@ -69,9 +69,6 @@ struct ExerciseProgressView: View {
                     singlePoint
                 } header: {
                     Text("One session")
-                } footer: {
-                    // Refusing to draw a line is the honest render.
-                    Text("One session is a point, not a trend. Log this exercise again and a chart appears.")
                 }
             case .series(let days):
                 Section {
@@ -83,8 +80,6 @@ struct ExerciseProgressView: View {
                         .frame(height: 240)
                         .accessibilityIdentifier("progressChart")
                     selectionRow
-                } footer: {
-                    Text(footer(days: days))
                 }
 
                 if let change = ProgressSeriesMath.change(series) {
@@ -327,21 +322,6 @@ struct ExerciseProgressView: View {
         guard let value = point.bestValue, let unit = point.bestUnit else { return "—" }
         let reps = point.bestReps.map { " × \($0)" } ?? ""
         return "\(Format.weight(value)) \(unit.rawValue)\(reps)"
-    }
-
-    private func footer(days: Int) -> String {
-        // Says the unit it is ACTUALLY plotted in. This read "Plotted in kg"
-        // even after the axis started converting (2026-08-26), which is
-        // precisely the kind of stale caption D9/D25 exist to prevent —
-        // spotted in the first screenshot of a real series.
-        let base = displayUnit == .kg
-            ? "Plotted in kg. Sessions logged in other units are converted so they share one axis; the values you entered are unchanged."
-            : "Converted to \(displayUnit.rawValue) (≈) so sessions logged in different units share one axis. Tap the chart to see what you actually entered."
-        // A short series is still a short series. Say so rather than letting
-        // three points imply a trajectory.
-        return days < 4
-            ? base + " Only \(days) days logged so far — read the shape with caution."
-            : base
     }
 
     private func percent(_ fraction: Double) -> String {

@@ -226,8 +226,6 @@ struct ActiveWorkoutView: View {
                 }
                 .accessibilityIdentifier("saveWorkoutName")
                 Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Leave it empty to use the template or exercise name.")
             }
             .alert("This workout has finished", isPresented: $renameRefused) {
                 Button("OK", role: .cancel) {}

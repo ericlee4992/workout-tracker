@@ -172,8 +172,6 @@ struct WorkoutDetailView: View {
                     showExercisePicker = true
                 }
                 .accessibilityIdentifier("addHistoryExercise")
-            } footer: {
-                Text("For something you did but did not log. The exercise is recorded as it is defined today, without equipment — the app cannot know which machine you used.")
             }
 
             if let edited = workout.isDeleted ? nil : workout.historyEditedAt {
@@ -187,12 +185,6 @@ struct WorkoutDetailView: View {
                 }
             }
 
-            Section {
-            } footer: {
-                Text(displayUnit == nil
-                    ? "Equipment shown as it was when this workout was logged. Weights display in the unit you entered."
-                    : "Converted values are approximate (≈). Your sets stay stored exactly as entered.")
-            }
         }
         .navigationTitle(workout.startedAt.formatted(date: .abbreviated, time: .omitted))
         .navigationBarTitleDisplayMode(.inline)
@@ -212,8 +204,6 @@ struct WorkoutDetailView: View {
             }
             .accessibilityIdentifier("saveWorkoutName")
             Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Leave it empty to use the template or exercise name. Renaming marks the workout as edited.")
         }
         // On the List, not the Section: a `.sheet` on a Section inside a List
         // never presents (STATE gotcha, milestone 3).

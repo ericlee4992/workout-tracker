@@ -79,8 +79,6 @@ struct HeartRateSummarySection: View {
                 .accessibilityLabel(accessibilitySummary)
             } header: {
                 Text("Heart rate")
-            } footer: {
-                Text("Bars are \(Format.duration(seconds: intervalSeconds)) averages; a missing bar means the sensor reported nothing then.")
             }
         }
     }

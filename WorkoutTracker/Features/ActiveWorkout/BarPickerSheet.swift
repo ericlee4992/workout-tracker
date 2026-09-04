@@ -62,8 +62,6 @@ struct BarPickerSheet: View {
                     .accessibilityIdentifier("barCustomApply")
                 } header: {
                     Text("Custom bar")
-                } footer: {
-                    Text("EZ curl bars, trap/hex bars, and Smith carriages vary by maker. Check the bar you are using and enter its actual weight here.")
                 }
             }
             .navigationTitle("Bar")

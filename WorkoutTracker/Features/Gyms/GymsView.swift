@@ -20,8 +20,6 @@ struct GymsView: View {
                         showingAddGym = true
                     }
                     .accessibilityIdentifier("addGym")
-                } footer: {
-                    Text("A gym's unit is the default for sets logged there — machines can override it, and so can you on any set.")
                 }
 
                 AppSettingsSection()
@@ -188,8 +186,6 @@ struct GymDetailView: View {
             TextField("Model", text: $modelName)
             Button("Save") { rename(model) }
             Button("Cancel", role: .cancel) {}
-        } message: { _ in
-            Text("Only custom models can be renamed. Existing history keeps its captured model name.")
         }
     }
 
@@ -306,10 +302,6 @@ private struct GymEditorSheet: View {
                     TextField("Name", text: $name)
                         .accessibilityIdentifier("gymName")
                     TextField("City (optional)", text: $city)
-                } footer: {
-                    if gym != nil {
-                        Text("Existing workout history keeps the name captured when each workout was logged.")
-                    }
                 }
                 Section {
                     Picker("Default unit", selection: $defaultUnit) {
@@ -411,8 +403,6 @@ struct MachineEditorSheet: View {
                 Section {
                     TextField("Label (e.g. “Chest press by the window”)", text: $label)
                         .accessibilityIdentifier("machineLabel")
-                } footer: {
-                    Text("How you'll recognize this machine at \(gym.name).")
                 }
                 if machine == nil {
                     Section {
@@ -433,8 +423,6 @@ struct MachineEditorSheet: View {
                             Label("Scan label…", systemImage: "camera.viewfinder")
                         }
                         .accessibilityIdentifier("scanMachineLabel")
-                    } footer: {
-                        Text("Optional — picking one names the machine for you. Without a model, logging on this machine opens the full exercise picker. Scanning photographs the machine's name plate and offers the catalog models it matches.")
                     }
                 } else {
                     Section {
@@ -476,8 +464,6 @@ struct MachineEditorSheet: View {
                         }
                     }
                     .accessibilityIdentifier("machineUnitPicker")
-                } footer: {
-                    Text("Leave on Gym default to fall through to the gym's unit (then the app preference).")
                 }
             }
             .navigationTitle(machine == nil ? "New Machine" : "Edit Machine")

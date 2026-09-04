@@ -69,8 +69,6 @@ struct AppSettingsSection: View {
             }
         } header: {
             Text("Settings")
-        } footer: {
-            Text("The unit is used when neither machine nor gym sets one. Rest durations are global defaults; each exercise can override them from its workout menu. Suppressed template prompts always keep the original template. Heart-rate zones need a measured maximum or a date of birth; without either, no zones are shown.")
         }
     }
 

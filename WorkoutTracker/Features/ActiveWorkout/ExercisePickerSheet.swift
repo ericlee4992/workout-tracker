@@ -54,8 +54,6 @@ struct ExercisePickerSheet: View {
                         creating = NewExerciseRequest(name: trimmedSearch)
                     }
                     .accessibilityIdentifier("newExercise")
-                } footer: {
-                    Text("Creating one here adds it to your Exercises tab and selects it for this entry straight away.")
                 }
             }
             .searchable(text: $searchText, prompt: "Search exercises")

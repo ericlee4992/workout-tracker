@@ -55,9 +55,6 @@ struct ExercisePresetsSheet: View {
                     .onDelete(perform: deleteAt)
                 } header: {
                     Text("Presets")
-                } footer: {
-                    // The consequence, said where the decision is made.
-                    Text("Records, previous performance and prefill are kept separately for each preset — a narrow-grip best is not a wide-grip best. Renaming one keeps its history; deleting one leaves already-logged sets naming it.")
                 }
 
                 Section {
@@ -86,8 +83,6 @@ struct ExercisePresetsSheet: View {
                         }
                     } header: {
                         Text("Common")
-                    } footer: {
-                        Text("Suggestions only — nothing is added until you tap one.")
                     }
                 }
             }
@@ -111,8 +106,6 @@ struct ExercisePresetsSheet: View {
                 TextField("Name", text: $editText)
                 Button("Save") { rename(preset) }
                 Button("Cancel", role: .cancel) {}
-            } message: { _ in
-                Text("Sets already logged under the old name keep it — history records what you did, not what you call it now (D23).")
             }
         }
     }
