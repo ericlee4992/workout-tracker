@@ -36,7 +36,10 @@ struct HeartRateSummarySection: View {
     let averageBpm: Int?
     let maxBpm: Int?
 
-    private var xEnd: Int { max(1, min(durationSeconds, series.count * intervalSeconds)) }
+    private var xEnd: Int {
+        HeartRateSeriesMath.plotExtentSeconds(
+            durationSeconds: durationSeconds, bucketCount: series.count, intervalSeconds: intervalSeconds)
+    }
 
     private var slots: [HeartRateSeriesMath.DisplaySlot] {
         HeartRateSeriesMath.displaySlots(

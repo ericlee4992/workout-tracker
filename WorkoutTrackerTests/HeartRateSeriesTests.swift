@@ -176,6 +176,9 @@ struct HeartRateSeriesTests {
         // The older chart fixture had the identical hole.
         #expect(!ChartFixture.isEnabled(arguments: [ChartFixture.launchArgument]))
         #expect(ChartFixture.isEnabled(arguments: ["-uiTestReset", ChartFixture.launchArgument]))
+        // One owner for the rule (codex-review 01b).
+        #expect(!WorkoutTrackerStore.fixtureIsEnabled("-anyFixture", in: ["-anyFixture"]))
+        #expect(WorkoutTrackerStore.fixtureIsEnabled("-anyFixture", in: ["-anyFixture", WorkoutTrackerStore.uiTestResetArgument]))
     }
 
     /// A slot that starts at or past a (corrupt) duration is dropped, and
@@ -191,6 +194,40 @@ struct HeartRateSeriesTests {
         let unclipped = HeartRateSeriesMath.displaySlots(
             mean: [120, 190], low: [], high: [], intervalSeconds: 15, durationSeconds: 0)
         #expect(unclipped.map(\.endSeconds) == [15, 30])
+    }
+
+    /// codex-review 01b: the horizon must apply BEFORE merging. A corrupt
+    /// 111-bucket series (perSlot 2 at the default cap) with a 10 s duration
+    /// is ONE real bucket: it must come back alone, bucket-for-bucket, with
+    /// the post-duration neighbour reaching neither its range nor the axis.
+    @Test func postDurationBucketsNeitherMergeIntoNorRangeTheRealOnes() {
+        var mean = [Int](repeating: 190, count: 111); mean[0] = 120
+        var low = [Int](repeating: 185, count: 111); low[0] = 118
+        var high = [Int](repeating: 195, count: 111); high[0] = 125
+        let slots = HeartRateSeriesMath.displaySlots(
+            mean: mean, low: low, high: high, intervalSeconds: 15, durationSeconds: 10)
+        #expect(slots.count == 1)
+        #expect(slots.first?.low == 118 && slots.first?.high == 125, "bucket 1 is past the end and cannot colour bucket 0's slot")
+        #expect(slots.first?.endSeconds == 10)
+        // And a real 31 s workout with a 111-bucket tail is three buckets, unmerged.
+        let three = HeartRateSeriesMath.displaySlots(
+            mean: mean, low: low, high: high, intervalSeconds: 15, durationSeconds: 31)
+        #expect(three.map(\.startSeconds) == [0, 15, 30])
+        #expect(three.last?.endSeconds == 31)
+    }
+
+    /// codex-review 01b: the view used to turn a non-positive duration into
+    /// a one-second horizon. The extent it hands the slots and the x-scale
+    /// is the series' own when the duration is unknown.
+    @Test func thePlotExtentFallsBackToTheSeriesWhenTheDurationIsNotPositive() {
+        #expect(HeartRateSeriesMath.plotExtentSeconds(durationSeconds: 0, bucketCount: 2, intervalSeconds: 15) == 30)
+        #expect(HeartRateSeriesMath.plotExtentSeconds(durationSeconds: -5, bucketCount: 2, intervalSeconds: 15) == 30)
+        #expect(HeartRateSeriesMath.plotExtentSeconds(durationSeconds: 31, bucketCount: 3, intervalSeconds: 15) == 31)
+        #expect(HeartRateSeriesMath.plotExtentSeconds(durationSeconds: 3_600, bucketCount: 3, intervalSeconds: 15) == 45, "never past the series")
+        #expect(HeartRateSeriesMath.plotExtentSeconds(durationSeconds: 0, bucketCount: 0, intervalSeconds: 15) == 1)
+        // The extent then draws every slot of a duration-less series.
+        let extent = HeartRateSeriesMath.plotExtentSeconds(durationSeconds: 0, bucketCount: 2, intervalSeconds: 15)
+        #expect(HeartRateSeriesMath.displaySlots(mean: [120, 130], low: [], high: [], intervalSeconds: 15, durationSeconds: extent).count == 2)
     }
 
     /// The export carries the range pair only beside a mean of the same

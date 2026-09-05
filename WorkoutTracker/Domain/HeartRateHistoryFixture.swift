@@ -26,9 +26,10 @@ enum HeartRateHistoryFixture {
     }
 
     /// True only when the fixture is asked for AND the store is the wiped
-    /// UI-test one. Pure, so the guard is testable without relaunching.
+    /// UI-test one (`WorkoutTrackerStore.fixtureIsEnabled`). Pure, so the
+    /// guard is testable without relaunching.
     static func isEnabled(arguments: [String]) -> Bool {
-        arguments.contains(launchArgument) && arguments.contains(WorkoutTrackerStore.uiTestResetArgument)
+        WorkoutTrackerStore.fixtureIsEnabled(launchArgument, in: arguments)
     }
 
     static let durationMinutes = 60

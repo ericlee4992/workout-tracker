@@ -139,21 +139,30 @@ enum HeartRateSeriesMath {
     /// and an unmerged one is a flat tick at the mean. They are ignored, not
     /// trusted, when their length disagrees with `mean`.
     ///
-    /// `durationSeconds` is the horizon when positive: a slot starting at or
-    /// past it is not returned at all, and every returned slot ends no later
-    /// than it, so a 31 s workout is not drawn as 45 s (codex-review 05) and
-    /// a corrupt duration shorter than its own series cannot put an invisible
-    /// slot beyond the plot that still sets the axis (codex-review 01). A
-    /// non-positive duration means no horizon is known and nothing is clipped.
+    /// `durationSeconds` is the horizon when positive: only buckets that
+    /// START inside it exist at all — they are counted, merged and ranged as
+    /// the series — and the last slot ends no later than it, so a 31 s
+    /// workout is not drawn as 45 s (codex-review 05) and a corrupt duration
+    /// shorter than its own series can neither put an invisible slot beyond
+    /// the plot nor let a post-duration bucket reach a slot's range or force
+    /// the real buckets to merge (codex-review 01, 01b). A non-positive
+    /// duration means no horizon is known and nothing is clipped.
     static func displaySlots(
         mean: [Int], low: [Int], high: [Int],
         intervalSeconds: Int, durationSeconds: Int,
         maxSlots: Int = defaultMaxSlots
     ) -> [DisplaySlot] {
-        let count = mean.count
-        guard count > 0, maxSlots > 0 else { return [] }
+        guard !mean.isEmpty, maxSlots > 0 else { return [] }
         let interval = max(1, intervalSeconds)
-        let hasRange = low.count == count && high.count == count
+        // The horizon is applied FIRST: only the buckets that start inside
+        // the workout exist for merging, so a corrupt tail can neither force
+        // merging of the real buckets nor reach a slot's range
+        // (codex-review 01b — the first cut clamped only the slot's end).
+        let count = durationSeconds > 0
+            ? min(mean.count, Int((Double(durationSeconds) / Double(interval)).rounded(.up)))
+            : mean.count
+        guard count > 0 else { return [] }
+        let hasRange = low.count == mean.count && high.count == mean.count
         let perSlot = Int((Double(count) / Double(maxSlots)).rounded(.up))
         let slotCount = Int((Double(count) / Double(perSlot)).rounded(.up))
         var slots: [DisplaySlot] = []
@@ -172,13 +181,22 @@ enum HeartRateSeriesMath {
             guard lowest != Int.max else { continue }
             let start = first * interval
             let end = last * interval
-            if durationSeconds > 0, start >= durationSeconds { break }
             let clampedEnd = durationSeconds > 0 ? min(end, durationSeconds) : end
             slots.append(DisplaySlot(
                 index: slot, startSeconds: start, endSeconds: clampedEnd,
                 low: lowest, high: max(lowest, highest)))
         }
         return slots
+    }
+
+    /// The x-extent a chart draws: the workout's duration when it is known
+    /// and positive, capped at the series' own extent; the series' extent
+    /// alone when the duration is not positive. Never below 1 s. The view
+    /// used to turn a non-positive duration into a ONE-SECOND horizon and
+    /// clip everything but the first slot (codex-review 01b).
+    static func plotExtentSeconds(durationSeconds: Int, bucketCount: Int, intervalSeconds: Int) -> Int {
+        let extent = bucketCount * max(1, intervalSeconds)
+        return max(1, durationSeconds > 0 ? min(durationSeconds, extent) : extent)
     }
 
     /// The range pair as a backup may carry it: both arrays, each the mean's

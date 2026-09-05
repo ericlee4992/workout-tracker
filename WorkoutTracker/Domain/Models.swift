@@ -859,6 +859,16 @@ enum WorkoutTrackerStore {
         ProcessInfo.processInfo.arguments.contains(uiTestResetArgument)
     }
 
+    /// The one rule every seeded fixture obeys: its flag enables it ONLY
+    /// beside `-uiTestReset`, because that flag alone selects the wiped
+    /// UI-test container. A fixture flag on its own never did, so a fixture
+    /// checking only itself would seed fake history into a real, empty store
+    /// (codex-review 01 of the finish graph — both fixtures had that hole).
+    /// One owner for the invariant, so the next fixture cannot copy it wrong.
+    static func fixtureIsEnabled(_ flag: String, in arguments: [String] = ProcessInfo.processInfo.arguments) -> Bool {
+        arguments.contains(flag) && arguments.contains(uiTestResetArgument)
+    }
+
     /// Throwaway UI-test store: a dedicated on-disk location wiped on every
     /// launch. On-disk (not in-memory) so the app exercises the real
     /// SwiftData persistence path the tests are meant to drive.

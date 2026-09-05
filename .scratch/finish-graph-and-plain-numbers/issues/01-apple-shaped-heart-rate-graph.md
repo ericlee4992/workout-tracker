@@ -109,3 +109,22 @@ HistoryEditing (2) — **19/19 green**, run 2026-09-04 in two pieces.
 **652 unit green** (+3 regressions). UI: HeartRateSummary + ProgressChart + ProgressChartTooltip
 (the fixture-driven classes, 9 tests) re-run green; HistoryCalendar (the fourth class on the chart
 fixture) run separately, see below.
+
+
+## Codex review 01b — response (2026-09-05)
+
+`codex-review-01b.md`: three of four round-1 findings closed exactly; the duration fix was only
+half a fix — 2 medium, 2 low. All fixed:
+
+- **Horizon applied after merging (medium).** With 111 buckets `perSlot` was 2, so a 10 s
+  duration still let bucket 1 colour bucket 0's slot and force merging. The horizon now decides the
+  bucket COUNT first; only buckets starting inside the workout are counted, merged and ranged.
+  Test: 111 buckets, duration 10 → one slot, `118…125`, end 10; duration 31 → three unmerged.
+- **The view made a non-positive duration a 1 s horizon (medium).** `plotExtentSeconds` (Domain,
+  tested): the duration when positive, capped at the series' extent, else the series' extent, never
+  below 1. The view's `xEnd` uses it for both the slots and the x-scale.
+- **Contradictory `ChartFixture` header (low).** Rewritten: the pair keeps it out of a real store.
+- **Duplicated guard (low).** `WorkoutTrackerStore.fixtureIsEnabled(_:in:)` owns the rule; both
+  fixtures call it. Tested directly.
+
+**654 unit green** (+2). HeartRateSummary UI class re-run green (3/3).

@@ -12,9 +12,9 @@ import SwiftData
 // So the chart with a real series could not be seen by any test, or screenshot
 // for the user, without a way to manufacture a history. This is that.
 //
-// The data is tagged as fixture data by being seeded only under the argument;
-// it can never reach a real store, because the argument also selects the
-// throwaway UI-test container.
+// The data is tagged as fixture data by being seeded only under the argument
+// AND `-uiTestReset` (see `isEnabled`): only the latter selects the throwaway
+// UI-test container, so the pair is what keeps it out of a real store.
 
 enum ChartFixture {
 
@@ -24,12 +24,12 @@ enum ChartFixture {
         isEnabled(arguments: ProcessInfo.processInfo.arguments)
     }
 
-    /// The same guard `HeartRateHistoryFixture` has (codex-review 01 of the
-    /// finish graph): the argument alone never selected the throwaway store,
-    /// so without `-uiTestReset` this would have seeded four weeks of fake
-    /// history into a real one. Requires both.
+    /// `WorkoutTrackerStore.fixtureIsEnabled`: the argument alone never
+    /// selected the throwaway store, so without `-uiTestReset` this would have
+    /// seeded four weeks of fake history into a real one (codex-review 01 of
+    /// the finish graph). Requires both.
     static func isEnabled(arguments: [String]) -> Bool {
-        arguments.contains(launchArgument) && arguments.contains(WorkoutTrackerStore.uiTestResetArgument)
+        WorkoutTrackerStore.fixtureIsEnabled(launchArgument, in: arguments)
     }
 
     /// The exercise the fixture logs against — a seeded catalog row, so the
