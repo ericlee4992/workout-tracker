@@ -70,9 +70,10 @@ matcher ran on the main thread per frame. The user's own words: it "sometimes fe
   `scan-viewfinder`.
 - Burst voting deferred to ticket 04 (needs the frame loop this removes).
 
-Tests: `LabelFramingBoxTests` (3), `MachineLabelOCRTests` +2 (region reads only the middle band;
-same on a sideways-tagged photo). **670 unit green** (the harness reports unchanged: 8/5/0/28);
-**ScanMachineLabel UI 2/2** — both from the log's `** TEST SUCCEEDED **`.
+Tests (as of the round-1 fixes): `LabelFramingBoxTests` (5), `MachineLabelOCRTests` +2 (region
+reads only the middle band; same on a sideways-tagged photo). **672 unit green** (the harness
+reports unchanged: 8/5/0/28); **ScanMachineLabel UI 2/2** — both from the log's
+`** TEST SUCCEEDED **`. (The first commit had 3 box tests and 670 unit; superseded.)
 
 **Only the gym can verify**: that the box → region mapping lands on the plate through the real
 preview layer, focus at arm's length, and whether it feels faster. The Simulator has no camera.
@@ -111,3 +112,18 @@ preview layer, focus at arm's length, and whether it feels faster. The Simulator
 chunks plus the scan class — CoreLoop+Barbell+Dumbbell+ExercisePreset 14/14, Export+HeartRate+
 HeartRateSummary+HistoryCalendar+HistoryEditing 13/13, ProgressChart+Tooltip+WorkoutName 8/8,
 ScanMachineLabel 2/2 — each from its log's `** TEST SUCCEEDED **`.
+
+
+## Codex review 03b — response (2026-09-05)
+
+`codex-review-03b.md`: standards clear; spec 2 medium, 1 low. All closed:
+- **Focus poll could fire before the lens started, and outlive dismissal (medium).** A 150 ms
+  settle before polling (`isAdjustingFocus` is current state, not a promise); the continuation
+  re-checks `session.isRunning` and a `generation` that `stop()` bumps, so a dismissed sheet never
+  takes a photo; the sheet cancels its 8 s timeout `onDisappear`.
+- **"First wins" was false for failures (medium).** Callbacks now carry the request identity
+  (`CapturedLabel.requestID`, `onFailure(request?, message)`); `captureFinished(request)` ends a
+  capture only for the request in flight, so a late photo or failure for an older tap is ignored;
+  a nil request (camera configuration failure) still lands unconditionally. The controller drops
+  a photo that arrives with no pending request (stopped or superseded).
+- **Stale counts (low).** Corrected in the resolution.

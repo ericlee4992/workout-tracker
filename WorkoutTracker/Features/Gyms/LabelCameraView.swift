@@ -6,6 +6,9 @@ import UIKit
 /// it. One value, because the rectangle is meaningless for any other image
 /// (codex-review-03: the pair travelled as two loose arguments).
 struct CapturedLabel {
+    /// The shutter tap this still answers, so a late arrival cannot be
+    /// mistaken for a newer request's (codex-review-03b).
+    let requestID: UUID
     let image: UIImage
     /// `MachineLabelOCR`'s `regionOfInterest` — normalised, bottom-left
     /// origin, in the upright photo.
@@ -28,7 +31,9 @@ struct LabelCameraView: UIViewControllerRepresentable {
     /// after "Scan again" never replays an old tap (codex-review-03).
     let captureRequest: UUID?
     let onPhoto: (CapturedLabel) -> Void
-    let onFailure: (String) -> Void
+    /// The request that failed, or nil for a failure of the camera itself
+    /// (configuration), which is not tied to any tap.
+    let onFailure: (UUID?, String) -> Void
     let torchOn: Bool
 
     func makeCoordinator() -> Coordinator { Coordinator(honoured: captureRequest) }
@@ -46,7 +51,7 @@ struct LabelCameraView: UIViewControllerRepresentable {
         controller.setTorch(torchOn)
         if let request = captureRequest, request != context.coordinator.honoured {
             context.coordinator.honoured = request
-            controller.capture()
+            controller.capture(request)
         }
     }
 
@@ -63,18 +68,25 @@ struct LabelCameraView: UIViewControllerRepresentable {
 /// Owns the capture session, the preview and the photo output.
 final class LabelCameraController: UIViewController {
     var onPhoto: ((CapturedLabel) -> Void)?
-    var onFailure: ((String) -> Void)?
+    var onFailure: ((UUID?, String) -> Void)?
 
     private let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "machine-label-scan.session")
     private let photoOutput = AVCapturePhotoOutput()
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var device: AVCaptureDevice?
-    /// The view's size and box at the shutter, for the region once the photo
-    /// (and so its size) is known. Read on the main queue only.
-    private var pendingFrame: (viewSize: CGSize, box: CGRect)?
-    /// How long a one-shot focus may hunt before the photo is taken anyway.
+    /// The request in flight, and the view's size and box at its shutter,
+    /// for the region once the photo (and so its size) is known. Main queue.
+    private var pending: (request: UUID, viewSize: CGSize, box: CGRect)?
+    /// How long a one-shot focus may hunt before the photo is taken anyway,
+    /// and how long the lens is given to START adjusting first —
+    /// `isAdjustingFocus` is current state, not a promise, and reads false
+    /// in the instant before the one-shot focus begins (codex-review-03b).
     private let focusBudget: TimeInterval = 1.0
+    private let focusSettle: TimeInterval = 0.15
+    /// Bumped by `stop()`; a focus wait from an earlier generation does
+    /// nothing when it wakes, so a dismissed sheet never takes a photo.
+    private var generation = 0
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -96,7 +108,7 @@ final class LabelCameraController: UIViewController {
 
     private func configureSession() {
         guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-            onFailure?("This device has no usable camera.")
+            onFailure?(nil, "This device has no usable camera.")
             return
         }
         self.device = device
@@ -120,7 +132,7 @@ final class LabelCameraController: UIViewController {
             } catch {
                 session.commitConfiguration()
                 DispatchQueue.main.async {
-                    self.onFailure?("Could not open the camera: \(error.localizedDescription)")
+                    self.onFailure?(nil, "Could not open the camera: \(error.localizedDescription)")
                 }
                 return
             }
@@ -145,25 +157,31 @@ final class LabelCameraController: UIViewController {
     /// The shutter: a one-shot focus and exposure on the box, then one still.
     /// The box's position is captured NOW, from the preview the user is
     /// looking at, and turned into the region once the photo's size is known.
-    func capture() {
+    func capture(_ request: UUID) {
         guard view.bounds.width > 0, let previewLayer else {
-            onFailure?("The camera is not ready yet.")
+            onFailure?(request, "The camera is not ready yet.")
             return
         }
         let box = LabelFramingBox.rect(in: view.bounds.size)
-        pendingFrame = (view.bounds.size, box)
+        pending = (request, view.bounds.size, box)
         let point = previewLayer.captureDevicePointConverted(fromLayerPoint: CGPoint(x: box.midX, y: box.midY))
         let settings = AVCapturePhotoSettings()
         settings.flashMode = .off  // the torch is the only light in a gym
+        let generation = self.generation
         sessionQueue.async { [weak self] in
             guard let self, session.isRunning, session.outputs.contains(photoOutput) else {
-                DispatchQueue.main.async { self?.onFailure?("The camera is not running.") }
+                DispatchQueue.main.async { self?.onFailure?(request, "The camera is not running.") }
                 return
             }
             focusOnce(at: point)
-            waitForFocus(deadline: Date().addingTimeInterval(focusBudget)) { [weak self] in
-                guard let self else { return }
-                photoOutput.capturePhoto(with: settings, delegate: self)
+            let deadline = Date().addingTimeInterval(focusBudget)
+            sessionQueue.asyncAfter(deadline: .now() + focusSettle) { [weak self] in
+                self?.waitForFocus(deadline: deadline) { [weak self] in
+                    // Re-checked at the last moment: the sheet may have been
+                    // dismissed (and the session stopped) while the lens moved.
+                    guard let self, self.generation == generation, session.isRunning else { return }
+                    photoOutput.capturePhoto(with: settings, delegate: self)
+                }
             }
         }
     }
@@ -199,6 +217,7 @@ final class LabelCameraController: UIViewController {
     }
 
     func stop() {
+        generation += 1
         setTorch(false)
         sessionQueue.async { [session] in
             if session.isRunning { session.stopRunning() }
@@ -218,26 +237,23 @@ final class LabelCameraController: UIViewController {
 extension LabelCameraController: AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         resumeContinuousFocus()
-        if let error {
-            DispatchQueue.main.async { self.onFailure?("Could not take the photo: \(error.localizedDescription)") }
-            return
-        }
         // The encoded representation carries the orientation the photo was
         // taken at; `UIImage(data:)` keeps it and `MachineLabelOCR` hands it
         // to Vision, whose region is then in the upright image's coordinates.
-        guard let data = photo.fileDataRepresentation(), let image = UIImage(data: data) else {
-            DispatchQueue.main.async { self.onFailure?("The photo could not be read.") }
-            return
-        }
+        let decoded = error == nil ? photo.fileDataRepresentation().flatMap(UIImage.init(data:)) : nil
+        let failure = error.map { "Could not take the photo: \($0.localizedDescription)" }
+            ?? (decoded == nil ? "The photo could not be read." : nil)
         DispatchQueue.main.async {
-            guard let frame = self.pendingFrame else {
-                self.onFailure?("The photo arrived without its frame.")
+            guard let pending = self.pending else { return }  // stopped or superseded: nothing to report
+            self.pending = nil
+            if let failure {
+                self.onFailure?(pending.request, failure)
                 return
             }
-            self.pendingFrame = nil
+            guard let image = decoded else { return }
             // `image.size` is the UPRIGHT size (orientation applied).
-            let region = LabelFramingBox.visionRegion(box: frame.box, viewSize: frame.viewSize, imageSize: image.size)
-            self.onPhoto?(CapturedLabel(image: image, region: region))
+            let region = LabelFramingBox.visionRegion(box: pending.box, viewSize: pending.viewSize, imageSize: image.size)
+            self.onPhoto?(CapturedLabel(requestID: pending.request, image: image, region: region))
         }
     }
 }

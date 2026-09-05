@@ -105,6 +105,8 @@ struct ScanMachineLabelSheet: View {
                     .ignoresSafeArea()
                 }
                 .onAppear(perform: start)
+                // The 8 s capture timeout must not outlive the sheet.
+                .onDisappear(perform: abandonCapture)
         }
     }
 
@@ -201,11 +203,14 @@ struct ScanMachineLabelSheet: View {
             LabelCameraView(
                 captureRequest: captureRequest,
                 onPhoto: { captured in
-                    guard captureFinished() else { return }
+                    guard captureFinished(captured.requestID) else { return }
                     read(captured.image, regionOfInterest: captured.region)
                 },
-                onFailure: { message in
-                    _ = captureFinished()
+                onFailure: { request, message in
+                    // A failure of the camera itself is not tied to a tap and
+                    // always lands; a capture's failure lands only if that
+                    // exact request is the one in flight (codex-review-03b).
+                    if let request { guard captureFinished(request) else { return } }
                     phase = .failed(message)
                 },
                 torchOn: torchOn)
@@ -222,19 +227,21 @@ struct ScanMachineLabelSheet: View {
             read(ScanFixture.image())
             return
         }
-        captureRequest = UUID()
+        let request = UUID()
+        captureRequest = request
         captureTimeout?.cancel()
         captureTimeout = Task {
             try? await Task.sleep(for: .seconds(8))
-            guard !Task.isCancelled, captureFinished() else { return }
+            guard !Task.isCancelled, captureFinished(request) else { return }
             phase = .failed("The camera did not respond. Try again, or choose a photo.")
         }
     }
 
-    /// Ends the in-flight capture exactly once: the first of the photo, a
-    /// failure or the timeout wins and the others are ignored.
-    private func captureFinished() -> Bool {
-        guard capturing else { return false }
+    /// Ends the in-flight capture exactly once, and only for the request that
+    /// is actually in flight: the first of its photo, its failure or its
+    /// timeout wins; anything for an older request is ignored.
+    private func captureFinished(_ request: UUID) -> Bool {
+        guard capturing, captureRequest == request else { return false }
         capturing = false
         captureRequest = nil
         captureTimeout?.cancel()
@@ -415,9 +422,18 @@ struct ScanMachineLabelSheet: View {
     }
 
     private func restartScanning() {
-        _ = captureFinished()
+        abandonCapture()
         selectedID = nil
         phase = .scanning
+    }
+
+    /// Drops whatever capture is in flight without reporting it — a rescan
+    /// or the sheet going away.
+    private func abandonCapture() {
+        capturing = false
+        captureRequest = nil
+        captureTimeout?.cancel()
+        captureTimeout = nil
     }
 
     /// The picker closed with no photo. Re-resolve, because the reason may have
