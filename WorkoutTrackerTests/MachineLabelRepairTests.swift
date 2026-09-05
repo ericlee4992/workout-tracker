@@ -73,6 +73,14 @@ struct MachineLabelRepairTests {
         #expect(try repairedLines(["HOISTS"]) == [["hoists"]])
         // Only a LEADING stray character is stripped.
         #expect(try repairedLines(["CYBEXS"]) == [["cybexs"]])
+        // A digit makes it a code, not a logo (codex-review-02b #2).
+        for code in ["CYB3X", "PR1ME", "PREC0R", "HAMNER1", "MATR1X"] {
+            #expect(try repairedLines([code]) == [[code.lowercased()]], Comment(rawValue: code))
+        }
+        // (A lone HAMNER is not repaired either: Hammer Strength is two words, and a
+        // single-word line can only be a single-word brand.)
+        #expect(try repairedLines(["HAMNER"]) == [["hamner"]])
+        #expect(try repairedLines(["HAMNER STRENGTH"]) == [["hammer", "strength"]], "the same misread without a digit, with its brand line, is repaired")
     }
 
     @Test func refusals() throws {
@@ -107,7 +115,7 @@ struct MachineLabelRepairTests {
         // codex-review-02 #3: 350 dictionary words split into two catalog
         // words under the first cut. No separator, or halves that never share
         // a row's name, means no split.
-        for word in ["AIRLIFT", "ARMCHAIR", "BACKGROUND", "COUNTERWEIGHT", "CROSSBAR", "FACEPLATE", "HANDGRIP", "LIGHTWEIGHT", "OVERRIDE", "PROFIT", "TRIPOD", "WITHSTAND", "DIPCHIN"] {
+        for word in ["AIRLIFT", "ARMCHAIR", "BACKGROUND", "COUNTERWEIGHT", "CROSSBAR", "FACEPLATE", "HANDGRIP", "LIGHTWEIGHT", "OVERRIDE", "PROFIT", "TRIPOD", "WITHSTAND", "DIPCHIN", "MIDLAND", "ROWLAND"] {
             #expect(try repairedLines([word]) == [[word.lowercased()]], Comment(rawValue: word))
         }
     }
@@ -116,7 +124,8 @@ struct MachineLabelRepairTests {
         let known: Set<String> = ["dip", "chin", "leg", "press", "ext", "air", "lift"]
         let repair = MachineLabelRepair(
             manufacturers: [], isKnown: { known.contains($0) },
-            shareARow: { a, b in Set([a, b]) == ["dip", "chin"] || Set([a, b]) == ["leg", "press"] })
+            shareARow: { a, b in Set([a, b]) == ["dip", "chin"] || Set([a, b]) == ["leg", "press"] },
+            isDictionaryWord: { _ in false })
         #expect(repair.split("dipichin") == ["dip", "chin"])
         #expect(repair.split("diplchin") == ["dip", "chin"], "l is a slash too")
         #expect(repair.split("dipchin") == nil, "no separator character")
@@ -140,6 +149,9 @@ struct MachineLabelRepairTests {
         #expect(repair.repairedText("Assist DIPICHIN") == "Assist DIP CHIN")
         #expect(repair.repairedText("HOISI") == "HOIST")
         #expect(repair.repairedText("HOISI-RS-2403") == "HOISI-RS-2403", "a line with a code is not a brand line; nothing changes")
+        // The two-line brand pass splices too (codex-review-02b #5).
+        let lines = try index().repaired(LabelReading.lines(["HAMMER-", "(STRENCTH)"])).lines.map(\.text)
+        #expect(lines == ["HAMMER-", "(STRENGTH)"])
     }
 
     // MARK: Invariants

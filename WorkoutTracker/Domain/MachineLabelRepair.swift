@@ -30,14 +30,14 @@ import Foundation
 //  - a glued split needs the separator character a slash becomes AND both
 //    halves in ONE catalog row's name (`dip` + `chin` ← Select Assist Dip
 //    Chin), never two catalog words that merely exist (`airlift`,
-//    `counterweight`, `faceplate` all split into real catalog words).
+//    `counterweight`, `faceplate` all split into real catalog words), and
+//    never a real word (`midland`);
+//  - a token with a digit in it is a code, never a misread logo (`CYB3X`).
 
 struct MachineLabelRepair {
 
-    /// A multi-word brand's tokens, in order, for the line-level match.
+    /// Each brand's tokens, in order, for the line-level match.
     private let brandTokenSequences: [[String]]
-    /// Every brand token of ≥ `minimumBrandTokenLength` characters.
-    private let brandTokens: Set<String>
     /// Glued forms of multi-word brands (`lifefitness`) → their tokens.
     private let gluedForms: [(glued: String, tokens: [String])]
     private let isKnown: (String) -> Bool
@@ -68,7 +68,6 @@ struct MachineLabelRepair {
     ) {
         let sequences = manufacturers.map(MachineLabelText.tokens).filter { !$0.isEmpty }
         self.brandTokenSequences = sequences
-        self.brandTokens = Set(sequences.flatMap { $0 }.filter { $0.count >= Self.minimumBrandTokenLength })
         self.gluedForms = sequences.filter { $0.count > 1 }
             .map { ($0.joined(), $0) }
             .sorted { $0.glued < $1.glued }
@@ -88,9 +87,10 @@ struct MachineLabelRepair {
             repairedLine.text = repairedText(line.text)
             return repairedLine
         }
-        // A multi-word brand set over two lines — `LAMMED` above `STRENGTH`,
-        // `HAMMER` above `STRENCTH` — is one brand line broken in two. Tried
-        // only where the single-line pass changed nothing on either line.
+        // A multi-word brand set over two lines — `HAMMER` above `STRENCTH` —
+        // is one brand line broken in two. Tried only where the single-line
+        // pass changed nothing on either line, and spliced run-by-run like a
+        // single line so punctuation and spacing survive (codex-review-02b #5).
         var index = 0
         while index + 1 < copy.lines.count {
             let upper = copy.lines[index], lower = copy.lines[index + 1]
@@ -99,10 +99,8 @@ struct MachineLabelRepair {
             if upper.text == reading.lines[index].text, lower.text == reading.lines[index + 1].text,
                !upperTokens.isEmpty, !lowerTokens.isEmpty,
                let repairedPair = repairedBrandLine(upperTokens + lowerTokens) {
-                let upperWords = Array(repairedPair[..<upperTokens.count]).flatMap { $0 }
-                let lowerWords = Array(repairedPair[upperTokens.count...]).flatMap { $0 }
-                copy.lines[index].text = upperWords.map { Self.styled($0, like: upper.text) }.joined(separator: " ")
-                copy.lines[index + 1].text = lowerWords.map { Self.styled($0, like: lower.text) }.joined(separator: " ")
+                copy.lines[index].text = Self.spliced(upper.text, replacements: Array(repairedPair[..<upperTokens.count]))
+                copy.lines[index + 1].text = Self.spliced(lower.text, replacements: Array(repairedPair[upperTokens.count...]))
                 index += 2
             } else {
                 index += 1
@@ -119,21 +117,24 @@ struct MachineLabelRepair {
     /// `HOISI-RS-2403` as `HOIST RS 2403`). A repaired word takes the case
     /// style of the run it replaces (`SCYBEX` → `CYBEX`).
     func repairedText(_ text: String) -> String {
-        let runs = Self.alphanumericRuns(in: text)
-        let tokens = runs.map { MachineLabelText.normalized(String(text[$0])) }
-        let replacements = repairedTokens(tokens)
-        let untouched = tokens.map { [$0] }
-        guard replacements != untouched else { return text }
+        let tokens = Self.alphanumericRuns(in: text).map { MachineLabelText.normalized(String(text[$0])) }
+        return Self.spliced(text, replacements: repairedTokens(tokens))
+    }
+
+    /// `text` with each alphanumeric run replaced by its repair (styled like
+    /// the run) and every other character copied through verbatim.
+    static func spliced(_ text: String, replacements: [[String]]) -> String {
+        let runs = alphanumericRuns(in: text)
+        guard runs.count == replacements.count else { return text }
         var result = ""
         var cursor = text.startIndex
         for (run, replacement) in zip(runs, replacements) {
             result += text[cursor..<run.lowerBound]
             let original = String(text[run])
-            let token = MachineLabelText.normalized(original)
-            if replacement == [token] {
+            if replacement == [MachineLabelText.normalized(original)] {
                 result += original
             } else {
-                result += replacement.map { Self.styled($0, like: original) }.joined(separator: " ")
+                result += replacement.map { styled($0, like: original) }.joined(separator: " ")
             }
             cursor = run.upperBound
         }
@@ -172,9 +173,13 @@ struct MachineLabelRepair {
                 guard !isKnown(token), let distance = repairDistance(token, to: brandToken) else { ok = false; break }
                 // An edit repair of a real English word is a different word,
                 // not a misread (`PRICE`, `MOIST`, `START`). No dictionary,
-                // no edit repairs.
+                // no edit repairs. And a token carrying a digit is a CODE —
+                // `PR1ME`, `CYB3X`, `PREC0R` are how a serial reads, not how a
+                // logo does (codex-review-02b #2) — unless the brand itself has
+                // digits (Gym80).
                 if distance > 0 {
                     guard let isDictionaryWord, !isDictionaryWord(token) else { ok = false; break }
+                    guard brandToken.contains(where: \.isNumber) || !token.contains(where: \.isNumber) else { ok = false; break }
                 }
                 distances.append(distance)
             }
@@ -234,6 +239,9 @@ struct MachineLabelRepair {
     /// word that happens to be two catalog words (`airlift`, `faceplate`).
     func split(_ token: String) -> [String]? {
         guard !isKnown(token) else { return nil }
+        // A real word is a real word, not two glued ones (`MIDLAND` is not
+        // `mid and`; codex-review-02b #4). No dictionary, no splits.
+        guard let isDictionaryWord, !isDictionaryWord(token) else { return nil }
         let characters = Array(token)
         let minimum = Self.minimumSplitHalfLength
         guard characters.count >= minimum * 2 + 1 else { return nil }

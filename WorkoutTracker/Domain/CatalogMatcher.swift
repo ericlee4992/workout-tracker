@@ -37,15 +37,6 @@ struct CatalogMatch: Equatable {
     /// explains little of what the plate says is a poor answer even when every
     /// word of its own name was found.
     let explanation: Double
-    /// The row's model-name tokens; whether every one of them was read
-    /// EXACTLY on the plate (no fuzzy claim); and which of the plate's tokens
-    /// sit on a line made ONLY of this row's own words (brand or name) — a
-    /// name line, as opposed to an instruction, a URL or a rating that
-    /// happens to contain one of them. Together they let `preselection` tell
-    /// a prefix sibling from an ambiguity (scanner accuracy, ticket 02).
-    let nameTokens: Set<String>
-    let exactlyCovered: Bool
-    let nameLineTokens: Set<String>
 
     var displayName: String { "\(manufacturer) \(modelName)" }
 }
@@ -224,13 +215,12 @@ enum CatalogMatcher {
         // (codex-review, finding 7).
         let evidenceWeight = evidence.sorted().reduce(0.0) { $0 + index.weight($1) }
         let namedManufacturers = index.manufacturersNamed(in: allTokens)
-        let lineTokenSets = reading.lines.map { Set(MachineLabelText.readingTokens($0.text)) }.filter { !$0.isEmpty }
 
         var matches: [CatalogMatch] = []
         for entry in index.entries where entry.nameWeight > 0 {
             guard let match = score(
                 entry, allTokens: allTokens, evidence: evidence,
-                evidenceWeight: evidenceWeight, lineTokenSets: lineTokenSets,
+                evidenceWeight: evidenceWeight,
                 namedManufacturers: namedManufacturers, index: index)
             else { continue }
             matches.append(match)
@@ -253,38 +243,19 @@ enum CatalogMatcher {
     static func preselection(from matches: [CatalogMatch]) -> CatalogMatch? {
         guard let best = matches.first, best.score >= confidentScore else { return nil }
         guard best.manufacturerMatched, !best.manufacturerConflicts else { return nil }
-        if matches.count > 1, best.score - matches[1].score < preselectionMargin,
-           !isPrefixSibling(matches[1], of: best) {
-            return nil
-        }
+        if matches.count > 1, best.score - matches[1].score < preselectionMargin { return nil }
         return best
     }
 
-    /// A runner-up whose name is a strict subset of the best row's — plain
-    /// `Iso-Lateral Row` under a plate that read `ISO-LATERAL LOW ROW` — is not
-    /// an ambiguity, it is the generic version of the same maker's machine,
-    /// and it ties only because the matcher cannot penalise it for the word it
-    /// lacks. The margin exists for two DIFFERENT rows within a few points of
-    /// each other; it must not stop the specific row when every word of its
-    /// name was read exactly (scanner corpus: Low Row at 100%, never
-    /// preselected). Kept strict: same manufacturer, strict subset, exact
-    /// coverage — a fuzzily-matched extra word is still a guess — every word
-    /// that distinguishes the specific row is a real word of at least three
-    /// characters (`Rack & A Half` differs from `Half Rack` by `a`, and a stray
-    /// one-letter token is precisely what a logo reads as), AND every
-    /// distinguishing word was read on a NAME LINE: a line made only of this
-    /// row's own words. Without that last clause an instruction saying
-    /// "seated" turned an `Insignia Series Leg Curl` plate into the Seated
-    /// Leg Curl, preselected (codex-review-02 #2) — the word was on the plate,
-    /// but not as part of the name.
-    static func isPrefixSibling(_ runnerUp: CatalogMatch, of best: CatalogMatch) -> Bool {
-        guard best.exactlyCovered,
-              runnerUp.manufacturer == best.manufacturer,
-              runnerUp.nameTokens.isStrictSubset(of: best.nameTokens)
-        else { return false }
-        let distinguishing = best.nameTokens.subtracting(runnerUp.nameTokens)
-        return distinguishing.allSatisfy { $0.count >= 3 && best.nameLineTokens.contains($0) }
-    }
+    // A "prefix sibling" exception to the margin was tried here (scanner
+    // accuracy, ticket 02): a plate reading `ISO-LATERAL LOW ROW` perfectly
+    // ties plain `Iso-Lateral Row` inside the margin, and the specific row is
+    // plainly right. Two cuts of the exception were cross-reviewed and both
+    // leaked: any test of "the distinguishing word is part of the name"
+    // built on line layout let a stray `FIXED PULL` or `SEATED LEG` on the
+    // plate preselect the longer sibling of a machine that never said it
+    // (codex-review-02, 02b). It bought one preselection on the corpus. D33
+    // is the rule: a near-tie is an ambiguity, and the user's tap resolves it.
 
     /// Whether the sheet should lead with creating a model instead.
     ///
@@ -318,7 +289,6 @@ enum CatalogMatcher {
         allTokens: Set<String>,
         evidence: Set<String>,
         evidenceWeight: Double,
-        lineTokenSets: [Set<String>],
         namedManufacturers: Set<String>,
         index: CatalogMatchIndex
     ) -> CatalogMatch? {
@@ -330,7 +300,6 @@ enum CatalogMatcher {
         var covered = 0.0
         var explained = 0.0
         var unmatched: [String] = []
-        var exactNameTokens = 0
 
         // Exact matches first, across *all* of the row's tokens, before any
         // fuzzy claim is staked. Interleaving the two let a high-weight token
@@ -343,7 +312,7 @@ enum CatalogMatcher {
             }
             consumed.insert(token)
             let weight = index.weight(token)
-            if entry.nameTokens.contains(token) { covered += weight; exactNameTokens += 1 }
+            if entry.nameTokens.contains(token) { covered += weight }
             if evidence.contains(token) { explained += weight }
         }
 
@@ -389,16 +358,7 @@ enum CatalogMatcher {
             modelName: entry.modelName, score: score,
             manufacturerMatched: manufacturerMatched,
             manufacturerConflicts: conflicts,
-            explanation: explanation,
-            nameTokens: entry.nameTokens,
-            exactlyCovered: exactNameTokens == entry.nameTokens.count,
-            // A name line: made only of this row's own words AND carrying at
-            // least two of its name words. A lone `FIXED` or `FITNESS` on its
-            // own line is a badge or a stray, not the name (codex-review-02 #2).
-            nameLineTokens: Set(lineTokenSets
-                .filter { $0.isSubset(of: Set(entry.tokens)) && $0.intersection(entry.nameTokens).count >= 2 }
-                .flatMap { $0 })
-                .intersection(entry.nameTokens))
+            explanation: explanation)
     }
 
     // MARK: - Fuzzy token matching

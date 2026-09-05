@@ -15,17 +15,19 @@ A pure **reading repair** step, owned by the catalog index because it is the ind
 vocabulary, applied inside `CatalogMatcher.rank` (so every caller benefits) and exposed for the
 create-new brand guess:
 
-- **Brand repair.** A reading token the catalog does not know is compared against every
-  manufacturer token of ≥ 4 characters and against each multi-word brand's glued form
-  (`lifefitness`, `hammerstrength`): a single stray leading/trailing character is stripped when
-  the rest is exactly a brand token (`scybex` → `cybex`); otherwise edit distance ≤ 1 for 4–5
-  letters and ≤ 2 for ≥ 6 (`hoisi` → `hoist`, `lammed` → `hammer`, `rength` → `strength`); a glued
-  form is split back into its words (`liefitness` → `life fitness`). Refused when the token is a
-  known catalog word (`row` is never a brand misread), when it is shorter than 4, or when two
-  different brands are equally near (ambiguity is left alone).
-- **Slash/glue repair.** An unknown token that splits, at an interior `i`/`l`/`1` or with no
-  separator at all, into two known catalog words of ≥ 3 characters becomes those two words
-  (`dipichin` → `dip chin`).
+- **Brand repair** *(amended after codex-review-02/02b — the first wording let prose manufacture
+  brands)*. Only a line that is nothing but one brand, tokens in order — or the same brand over
+  two consecutive lines — is repaired: a stray LEADING character before an exact brand token is
+  stripped (`scybex` → `cybex`); otherwise an edit repair of one letter, or two for a token of
+  ≥ 7 letters or one corroborated by the brand's other word (`hoisi` → `hoist`, `strencth` →
+  `strength`); a glued script logo is split back (`liefitness` → `life fitness`). Refused when
+  the token is a known catalog word, shorter than 4, an ENGLISH WORD (spell checker; without a
+  dictionary no edit repair at all), carries a digit, is longer than the brand token, or when two
+  brands fit. Accepted cost: `LAMMED`, `YAMMER` (words) and trailing junk (`CYBEXS`) stay as read.
+- **Slash repair** *(amended)*. An unknown, non-word token that splits at an interior `i`/`l`/`1`
+  into two known words that sit together in ONE catalog row's name becomes those words
+  (`dipichin` → `dip chin`). No separator-less split (`dipchin` stays).
+- **No prefix-sibling exception** to the D33 margin: tried twice, leaked twice, removed.
 - The sheet's echoed text stays the RAW reading; repair changes what is matched, not what the
   user is shown as read.
 
@@ -37,8 +39,8 @@ the corpus says so, and record the numbers either way.
 ## Acceptance criteria
 
 - Unit tests with the exact corruptions above as inputs, plus refusals (a known word, a short
-  token, an ambiguous one) and a full-catalog check that repair never changes a token of any
-  catalog row's own name (the self-recognition invariant stays intact).
+  token, an ambiguous one, an English word, a digit-bearing code, prose, wrong order, real
+  compounds) and a full-catalog check that repair never changes any catalog row's own line.
 - The harness on the same 41 photos: preselected-right up from 3, wrong preselections still 0,
   create-new agreement not worse than 28/29. Numbers copied here, before and after.
 - Existing `CatalogMatcherTests` / OCR tests green; full unit suite green.
@@ -155,3 +157,31 @@ the shorter plate plus a stray word, which the clause closes.
 corroborated split), preselected right **6**/12, wrong preselections **0**, create-new 28/29.
 **674 unit green** (harness included; 15 repair tests, 3 sibling tests), ScanMachineLabel UI 2/2
 — all read from the log's `** TEST SUCCEEDED **`.
+
+
+## Codex review 02b — response (2026-09-05)
+
+`codex-review-02b.md`: **not clear** — 1 high, 4 medium, 1 low (spec); 1 medium, 1 low
+(standards). All addressed:
+
+- **The prefix-sibling exception (high) is REMOVED.** Codex's second-round constructions
+  (`FIXED PULL`, `SEATED LEG`, `FITNESS RACK` as a stray second line) beat the name-line rule, and
+  a genuine `SEATED` on its own line was wrongly blocked. Layout is not provenance; two cuts leaked
+  two ways. D33's rule stands — a near-tie is an ambiguity the user's tap resolves — and the
+  matcher comment says why. Cost: preselected-right **6 → 5** (the Low Row tie). The three tests
+  are replaced by one pinning the tie as unpreselected and Codex's constructions as unpreselected.
+  This also removes the per-entry `Set(entry.tokens)` allocation in the hot path (standards medium).
+- **Digit-bearing tokens (medium).** A token with a digit is a code, never a misread logo:
+  `CYB3X`, `PR1ME`, `PREC0R`, `MATR1X` stay as read (Gym80's own digits excepted). Tests.
+- **Ticket not amended (medium).** "What to build" and the acceptance criteria now state the
+  rules as built, including the accepted costs (`LAMMED`/`YAMMER` are words; trailing junk stays).
+- **Split still mangled `MIDLAND`/`ROWLAND` (medium).** The dictionary refusal applies to splits
+  too. Tests.
+- **Two-line pass lost punctuation (medium).** Both lines now go through the same run-splicing
+  as a single line: `HAMMER-` / `(STRENCTH)` → `HAMMER-` / `(STRENGTH)`. Test.
+- **Ticket-03 draft in the repair commit (low).** Acknowledged; it stays where it is (docs only)
+  and future ticket drafts go in their own commits.
+- **Dead `brandTokens` (standards low).** Removed.
+
+Final on the corpus (`reports/after-ticket-02c-2026-09-05.md`): **top-1 8/12, preselected right
+5/12 (from 3), wrong preselections 0, create-new 28/29.**

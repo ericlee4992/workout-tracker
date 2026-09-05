@@ -353,62 +353,29 @@ struct CatalogMatcherAdversarialTests {
 
     // MARK: Prefix siblings (scanner accuracy, ticket 02)
 
-    /// `ISO-LATERAL LOW ROW` read perfectly scored 100% and was never
-    /// preselected: plain `Iso-Lateral Row` tied it within the margin. The
-    /// generic row is the specific row's prefix, not a different machine.
-    @Test func aPerfectlyReadSpecificRowIsNotBlockedByItsGenericPrefix() throws {
+    /// A plate that reads `ISO-LATERAL LOW ROW` perfectly ties plain
+    /// `Iso-Lateral Row` inside the margin, and is NOT preselected. That is
+    /// D33 working: two cuts of an exception for this case were cross-reviewed
+    /// and both let a stray `FIXED PULL` / `SEATED LEG` on the plate preselect
+    /// the longer sibling of a machine that never said it (codex-review-02,
+    /// 02b). The specific row still ranks first; the user's tap resolves it.
+    @Test func aPrefixSiblingTieIsAnAmbiguityNotAPreselection() throws {
         let index = try realIndex()
-        let matches = CatalogMatcher.rank(
-            LabelReading.lines(["HAMMER", "STRENGTH", "ISO-LATERAL", "LOW ROW", "Start 8 lbs./3.6Kg."]),
-            in: index)
-        #expect(matches.first?.modelName == "Iso-Lateral Low Row")
-        #expect(matches.dropFirst().first?.modelName == "Iso-Lateral Row", "the prefix sibling is the runner-up")
-        let chosen = try #require(CatalogMatcher.preselection(from: matches))
-        #expect(chosen.modelName == "Iso-Lateral Low Row")
+        let lowRow = CatalogMatcher.rank(
+            LabelReading.lines(["HAMMER", "STRENGTH", "ISO-LATERAL", "LOW ROW", "Start 8 lbs./3.6Kg."]), in: index)
+        #expect(lowRow.first?.modelName == "Iso-Lateral Low Row")
+        #expect(lowRow.dropFirst().first?.modelName == "Iso-Lateral Row")
+        #expect(CatalogMatcher.preselection(from: lowRow) == nil)
 
-        // A one-letter distinguisher does not unlock it: the Sorinex case in
-        // `oneLetterComponentsOfRealNamesSurvive` stays unpreselected.
-        let sorinex = CatalogMatcher.rank(LabelReading.lines(["SORINEX", "BASE CAMP RACK & A HALF"]), in: index)
-        #expect(CatalogMatcher.preselection(from: sorinex) == nil)
-
-        // The other way round is unchanged: a plate that says only ROW
-        // preselects the plain row, and the longer sibling is not "near".
-        let plain = CatalogMatcher.rank(
-            LabelReading.lines(["HAMMER", "STRENGTH", "ISO-LATERAL", "ROW"]), in: index)
-        #expect(CatalogMatcher.preselection(from: plain)?.modelName == "Iso-Lateral Row")
-    }
-
-    /// codex-review-02 #2: the distinguishing word must be read on a NAME
-    /// LINE. A furniture word elsewhere on the plate — an instruction, a
-    /// badge — must not unlock the longer sibling.
-    @Test func aFurnitureWordElsewhereDoesNotUnlockTheLongerSibling() throws {
-        let index = try realIndex()
+        // And the constructions that would have gone wrong under the exception
+        // stay unpreselected too.
         for (lines, wrong) in [
-            (["NAUTILUS", "IMPACT LAT PULL DOWN", "FIXED"], "Impact Fixed Lat Pull Down"),
-            (["LIFE FITNESS", "INSIGNIA SERIES LEG CURL", "Adjust the seat to the seated position"], "Insignia Series Seated Leg Curl"),
-            (["ELEIKO", "PRESTERA HALF RACK", "FITNESS"], "Prestera Fitness Half Rack"),
+            (["NAUTILUS", "IMPACT LAT PULL DOWN", "FIXED PULL"], "Impact Fixed Lat Pull Down"),
+            (["LIFE FITNESS", "INSIGNIA SERIES LEG CURL", "SEATED LEG"], "Insignia Series Seated Leg Curl"),
+            (["ELEIKO", "PRESTERA HALF RACK", "FITNESS RACK"], "Prestera Fitness Half Rack"),
         ] {
-            let matches = CatalogMatcher.rank(LabelReading.lines(lines), in: index)
-            let chosen = CatalogMatcher.preselection(from: matches)
+            let chosen = CatalogMatcher.preselection(from: CatalogMatcher.rank(LabelReading.lines(lines), in: index))
             #expect(chosen?.modelName != wrong, "\(lines): preselected \(chosen?.displayName ?? "nothing")")
-        }
-        // Whereas the word ON the name line still counts.
-        let seated = CatalogMatcher.rank(LabelReading.lines(["LIFE FITNESS", "INSIGNIA SERIES SEATED LEG CURL"]), in: index)
-        #expect(CatalogMatcher.preselection(from: seated)?.modelName == "Insignia Series Seated Leg Curl")
-    }
-
-    /// The exception is only for a name read EXACTLY. A fuzzily-matched extra
-    /// word is a guess, and a guess must not switch the margin off.
-    @Test func aFuzzilyCoveredSpecificRowStillRespectsTheMargin() throws {
-        let index = try realIndex()
-        let matches = CatalogMatcher.rank(
-            LabelReading.lines(["HAMMER", "STRENGTH", "ISO-LATERAL", "LOV ROW"]), in: index)
-        guard let best = matches.first, best.modelName == "Iso-Lateral Low Row" else {
-            return  // LOV did not even reach Low Row: nothing to protect against
-        }
-        #expect(!best.exactlyCovered)
-        if matches.count > 1, best.score - matches[1].score < CatalogMatcher.preselectionMargin {
-            #expect(CatalogMatcher.preselection(from: matches) == nil)
         }
     }
 }
