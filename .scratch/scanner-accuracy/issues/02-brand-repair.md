@@ -1,6 +1,6 @@
 # 02 — Repair what the camera did to the brand (and the slash)
 
-Status: built — awaiting Codex review
+Status: resolved — Codex clear after 4 rounds (codex-review-02..02d)
 Blocked by: 01
 
 The baseline's dominant failure, in the user's words the misreads they get at the gym: a brand
@@ -212,3 +212,8 @@ applied in `CatalogMatcher.rank`; the sheet's create-new guesses read the repair
 echoed text stays raw. No prefix-sibling exception; no vocabulary hook. Tests: 15 repair, 1
 sibling-tie pin, corpus harness. **Corpus: top-1 8/12, preselected right 5/12 (from 3), wrong
 preselections 0, create-new 28/29.**
+
+
+## Codex review 02d (2026-09-05)
+
+`codex-review-02d.md`: **clear.**

@@ -1,8 +1,31 @@
 # Where the project is right now
 
-Updated 2026-09-05 (early morning — the finish-graph work is MERGED into `main`, Codex-clear, and
-INSTALLED on the phone). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-05 (afternoon — scanner-accuracy ticket 02 merged; the finish-graph work is on the
+phone). **START HERE IF YOU ARE COLD:**
 
+00. **Scanner accuracy — in progress on branch `scanner-accuracy`, tickets in
+   `.scratch/scanner-accuracy/`.** The user's complaint: the scanner reads logos as text and
+   misreads the brand. Built and measured, not guessed:
+   - **01 — corpus + harness (on `main`, `419a04a`).** 41 real name-plate photos (gitignored;
+     manifest committed) and `WorkoutTrackerTests/ScannerCorpusHarness.swift`, which runs the
+     app's own OCR + matcher over them and writes `reports/latest.md`. Baseline: top-1 7/12,
+     preselected 3/12, wrong 0. The rows showed the cause: logos read as corrupted brand tokens
+     (`SCYBEX`, `HOISI`, `LieFitness`) that the matcher counts as no brand.
+   - **02 — reading repair (merged to `main` 2026-09-05), Codex clear after FOUR rounds.** Brand
+     repair only on a line that is nothing but the brand, dictionary- and digit-refused; slash
+     split corroborated by one row's name. Result: preselected 3 → 5, top-1 7 → 8, wrong 0.
+     **Read the four reviews before touching the matcher again**: rounds 1–2 each found the
+     repair manufacturing brands from prose or letting a stray word preselect a sibling; a
+     "prefix sibling" exception was tried twice and REMOVED — D33's margin stands.
+   - **Next: 03 capture-first** (drafted in `issues/03-capture-first.md`): keep the preview and
+     torch, drop the live loop, one-tap shutter, framing box as region of interest, read once
+     off-main. Then 04 read quality (junk filter), 05 brand-as-logo (gym prior + brand chip).
+   - **Not installed.** The phone runs `3d01052`. Ticket 02 changes only the matcher; no schema
+     change, no export change.
+   - Lesson (memory too): a backgrounded `xcodebuild … | grep` reports grep's exit 0 even when
+     tests failed — read `** TEST SUCCEEDED **` in the log before claiming green. And Orca can
+     block `terminal send` to a terminal (`agent_prompt_blocked`); start a new Codex terminal
+     with the prompt on its command line.
 0. **The finish-graph work — branch `finish-graph-and-plain-numbers`, MERGED into `main` 2026-09-05
    (fast-forward; `main` still has zero merge commits) — two tickets in
    `.scratch/finish-graph-and-plain-numbers/`, from the user's first real workout on the
