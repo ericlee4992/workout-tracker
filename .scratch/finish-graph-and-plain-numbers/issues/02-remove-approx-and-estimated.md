@@ -1,6 +1,6 @@
 # 02 — Remove ≈ and "estimated" from every screen
 
-Status: built — awaiting Codex review
+Status: resolved — Codex clear after 3 rounds (codex-review-02..02c)
 Blocked by: 01
 Added 2026-09-04: "Don't use that; just show number. … get rid of any of those."
 
@@ -91,4 +91,19 @@ in the file" and `CodexReviewRegressionTests` 1.1 (the data flag) untouched. **6
 
 **655 unit green** (+1). UI: ProgressChart (2), ProgressChartTooltip (4), HeartRateSummary (3) re-run
 green. (A `PresetsUITests` filter in that run matched nothing — the class is `ExercisePresetUITests`;
-run separately afterwards, see below.)
+run separately afterwards: one red run — the app went unresponsive right after Done on the finish
+sheet, no crash report, nothing Codex was running on the simulator — then **2/2 green re-run alone**,
+the STATE rule for a single red UI run.)
+
+
+## Codex review 02b — response (2026-09-05)
+
+`codex-review-02b.md`: code and decision text clear; 1 medium + 1 low, both STATE: an older
+paragraph still called the milestone-9 branch "safe to delete" and said "nothing is in flight", and
+the head asserted a terminal was live. Fixed in `dcd1d89` (head, point 1, and the Status section now
+agree; the terminal is "last titled", to be checked, not assumed).
+
+
+## Codex review 02c (2026-09-05)
+
+`codex-review-02c.md`: **clear** — both STATE findings closed, no new defect.

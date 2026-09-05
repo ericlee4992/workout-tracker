@@ -1,9 +1,10 @@
 # Where the project is right now
 
-Updated 2026-09-05 (early morning — the finish-graph branch is built and Codex-reviewed, NOT yet
-merged or installed). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-05 (early morning — the finish-graph work is MERGED into `main`, Codex-clear, NOT yet
+installed on the phone). **START HERE IF YOU ARE COLD:**
 
-0. **Branch `finish-graph-and-plain-numbers` (off `main` = `af0a52a`), two tickets in
+0. **The finish-graph work — branch `finish-graph-and-plain-numbers`, MERGED into `main` 2026-09-05
+   (fast-forward; `main` still has zero merge commits) — two tickets in
    `.scratch/finish-graph-and-plain-numbers/`, from the user's first real workout on the
    milestone-9 build (66:51, avg 122, max 141):**
    - **01 — the heart-rate graph redrawn in Apple Fitness's shape.** Thin floating range bars
@@ -18,13 +19,15 @@ merged or installed). **START HERE IF YOU ARE COLD:**
      `zonesFromEstimatedMax`, `ProgressPoint`'s per-contributor units, the export). D9/D25/D45
      rows annotated. Codex round 1 (`codex-review-02.md`) found "Est. 1RM" surviving in the chart's
      metric picker, four stale STATE lines, a D45 row that contradicted itself and a D52 clause
-     that overstated "no conversion is stored" — all fixed in the round-2 commit; **round 2 in
-     progress or done: read `codex-review-02b.md` if it exists.**
-   - **Not merged, not installed.** Merging is a fast-forward (`git checkout main && git merge
-     finish-graph-and-plain-numbers && git push`); the branch is pushed. **Installing needs an export
-     first** — 01 adds two optional arrays to `Workout` (lightweight migration, gate green on the
-     phone-shaped fixture) — then the three-command device install below. The phone still runs
-     `97b656b`; its profile expires **2026-09-11 01:08 UTC**.
+     that overstated "no conversion is stored" — fixed; round 2 found two more stale STATE lines;
+     **Codex clear after 3 rounds** (02, 02b, 02c).
+   - **Merged and pushed; NOT installed.** The branch pointer is now stale (identical to `main`,
+     safe to delete). **Installing needs an export first** — 01 adds two optional arrays to
+     `Workout` (lightweight migration, gate green on the phone-shaped fixture) — then the
+     three-command device install below. The phone still runs `97b656b`; its profile expires
+     **2026-09-11 01:08 UTC**. **Next session's first action: ask whether the user exported, then
+     install, then ask what the real graph looks like** — the fixture is synthetic; only a real
+     hour with AirPods shows whether the slot density and the y-range read right.
    - Housekeeping from the last handoff is DONE (2026-09-04): the three stale milestone branches
      are deleted locally and on GitHub; the old "Codex review 01" terminal is closed. The reviews
      for this branch ran in an Orca terminal last titled "Codex review — finish graph"; whether it
@@ -68,9 +71,12 @@ merged or installed). **START HERE IF YOU ARE COLD:**
    (user report, 2026-09-04) — so the reclassification found real dumbbell-tagged history and the
    export taken just before it is the record of what those 18 sets said before. Profiles still expire **2026-09-11 01:08 UTC** (this build reused the same
    profile; the clock did not move).
-4. **Suites: `main` 644 unit + 36 UI green (2026-09-04); the finish-graph branch 655 unit green in full,
-   and the six UI classes its screens touch (25 tests) green — the whole UI suite (now 37) has NOT
-   been run on the branch.** On `main`, the full UI
+4. **Suites on the merged tip: 655 unit green in full; all 37 UI tests green on the branch** — 21 on
+   the final tip (ProgressChart, Tooltip, HeartRateSummary, ExercisePreset, Barbell, Dumbbell,
+   Export, Calendar, Scan, WorkoutName) and 16 (HeartRate, CoreLoop, HistoryEditing) on `2262b0f`,
+   after which only STATE, a metric label and the shared weight-label helper changed. One preset
+   test went red once (app unresponsive after Done, no crash report) and passed alone. Before that,
+   on `main` at `97b656b`: 644 unit + 36 UI. The full UI
    suite ran on the pre-06 tip as the merge gate, and every class ticket 06 touched (23 tests)
    re-ran green on the final tip; run 2026-09-04 in three pieces (a single full run was
    killed twice at the harness's 10-minute foreground limit; the pieces were CoreLoop+Barbell+
