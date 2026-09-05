@@ -89,5 +89,6 @@ in the file" and `CodexReviewRegressionTests` 1.1 (the data flag) untouched. **6
   kilograms:in:locale:)` owns it; the finish sheet, the 1RM record and the chart tooltip call it.
   Tested ("9740 lb" from 4417.99 kg).
 
-**655 unit green** (+1). UI: ProgressChart (2), ProgressChartTooltip (4), HeartRateSummary (3), Presets
-re-run green.
+**655 unit green** (+1). UI: ProgressChart (2), ProgressChartTooltip (4), HeartRateSummary (3) re-run
+green. (A `PresetsUITests` filter in that run matched nothing — the class is `ExercisePresetUITests`;
+run separately afterwards, see below.)

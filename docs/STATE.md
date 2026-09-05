@@ -26,8 +26,9 @@ merged or installed). **START HERE IF YOU ARE COLD:**
      phone-shaped fixture) — then the three-command device install below. The phone still runs
      `97b656b`; its profile expires **2026-09-11 01:08 UTC**.
    - Housekeeping from the last handoff is DONE (2026-09-04): the three stale milestone branches
-     are deleted locally and on GitHub; the old "Codex review 01" terminal is closed. The live Codex
-     terminal is "Codex review — finish graph".
+     are deleted locally and on GitHub; the old "Codex review 01" terminal is closed. The reviews
+     for this branch ran in an Orca terminal last titled "Codex review — finish graph"; whether it
+     is still open depends on whether Orca is — check `orca terminal list`, do not assume.
    - **Lesson (memory too):** detect a finished Codex review by the report FILE's mtime, never by
      `orca terminal wait --for tui-idle` — it never fires while Codex sits at "Worked for …", and the
      user had to relay three results before that was noticed.
@@ -41,9 +42,9 @@ merged or installed). **START HERE IF YOU ARE COLD:**
    go, consequences stay as single lines) — copy-only, **Codex-clear after four rounds** (the rounds turned
    up that several "tutorial" lines were consequences — they came back as single sentences, and
    the chart's ≈ followed each metric's real contributors — until D52 removed every ≈ the next day). Ticket 06 is on the phone too (second
-   install of the day, no schema change). The branch `milestone-9-history-and-summary` is identical
-   to `main` and safe to delete; it is a stale pointer, like the milestone-7/8 branches.
-2. **Nothing is in flight. Next session's likely first actions, in order:**
+   install of the day, no schema change). (The milestone-7/8/9 branch pointers were deleted on
+   2026-09-04 — point 0.)
+2. **In flight: the finish-graph branch in point 0.** After it, the likely next actions, in order:
    - **Ask the user what the phone shows now.** Unseen by anyone but them: the charts against real
      history (variation picker naming their actual grips/equipment), a moved session's
      "Reclassified from …" line, the finish sheet's tiles and heart-rate graph after a REAL
@@ -126,10 +127,8 @@ Merged and pushed on `main`: **everything, including milestone 9** (`97b656b`, m
 fast-forward, so `main` still has zero merge commits). **644 unit + 36 UI green on 2026-09-04.**
 Milestone 9 added 76 unit tests and 9 UI tests across its six tickets (`.scratch/milestone-9-history-and-summary/`).
 **Milestones 7 and 8 are both MERGED into `main`** (2026-08-25 and 2026-08-29, both fast-forward —
-`main` still has zero merge commits). `milestone-7-heart-rate` and `milestone-8-history-and-charts`
-are **NOT** identical to `main` — as of 2026-08-29 they sit at `ca67603` (27 commits behind) and
-`74dbbd9` (6 behind). Everything they contain IS in `main`, so they are still safe to delete; they
-are simply stale pointers, not mirrors. **Check `git log --oneline origin/main..main` before
+`main` still has zero merge commits). Their branch pointers, and milestone 9's, were deleted locally
+and on GitHub on 2026-09-04; everything they contained is in `main`. **Check `git log --oneline origin/main..main` before
 believing `main` is pushed** — it was one commit ahead on 2026-08-29. `github.com/ericlee4992/workout-tracker` (private).
 
 | Shipped | What it is |
