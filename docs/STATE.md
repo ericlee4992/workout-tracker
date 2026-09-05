@@ -528,6 +528,16 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
 
 ## Environment gotchas that cost real time
 
+- **CI on `main` has been hanging in the "Unit tests" step since at least 2026-09-04 01:35 UTC —
+  BEFORE milestone 9's code merged.** That run (docs commit `0207a96`) hit the workflow's 60-minute
+  timeout; the run for the milestone-9 merge was superseded by `cancel-in-progress` when the docs
+  commit landed, and that run was still in "Unit tests" after 20 minutes at the time of writing
+  (locally the suite takes 18 s). Every earlier step passes (toolchain check, simulator pick), so
+  it is the hosted `macos-26` image or a stuck simulator there, not the code — the same commits are
+  green locally (644 unit, 36 UI). CI is a smoke alarm here, not a gate (CLAUDE.md); the local run is
+  the gate. Open item: read the uploaded `xcodebuild.log` artifact from a timed-out run to see where
+  it stalls, and consider a per-step timeout well under 60 minutes so a stuck runner fails fast.
+
 - **CI needs `macos-26`; `macos-15` cannot build this project at all.** D42 raised
   `IPHONEOS_DEPLOYMENT_TARGET` to 26.0 for the iPhone `HKWorkoutSession` API, and `macos-15` ships
   Xcode 16.4 whose newest iOS SDK is 18.5. The job failed in 43 seconds on 2026-08-25 with nothing
