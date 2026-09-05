@@ -12,10 +12,15 @@ import UIKit
 /// away — because D23 keys history, prefill and PRs on the model UUID, so a
 /// wrong model silently accepted splits the user's own history.
 ///
-/// Capture is a **live** camera read (ticket 02 revision, 2026-08-11, at the
-/// user's request): scanning starts the moment the sheet opens and settles by
-/// itself. Taking a photograph, reviewing it and tapping "Use Photo" was three
-/// taps of ceremony before the app had read a single word.
+/// Capture is **one deliberate frame** (scanner accuracy, ticket 03, at the
+/// user's request): the camera opens as a viewfinder with a plate-shaped
+/// framing box, nothing is read until the shutter, and then one still at the
+/// camera's photo resolution is read once, inside the box only. The live
+/// read-every-frame loop it replaces (ticket 02 revision, 2026-08-11) settled
+/// on half-read plates while the camera was still moving and picked up the
+/// neighbouring machine's plate; the user called it slow and inaccurate. The
+/// system photo picker's shutter → review → "Use Photo" ceremony is still
+/// avoided: the shutter here is one tap and there is nothing to review.
 struct ScanMachineLabelSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -31,8 +36,10 @@ struct ScanMachineLabelSheet: View {
     /// Why the camera is not being used, when it is not. Shown, never silent.
     @State private var captureNotice: String?
     @State private var torchOn = false
-    @State private var liveText = ""
-    @State private var stabilizer = LiveScanStabilizer()
+    /// Incremented per shutter tap; the camera view captures when it changes.
+    @State private var captureCount = 0
+    /// The shutter has been tapped and the photo is on its way.
+    @State private var capturing = false
     @State private var index: CatalogMatchIndex?
 
     private enum Phase {
@@ -123,50 +130,94 @@ struct ScanMachineLabelSheet: View {
         }
     }
 
-    // MARK: - Live scanning
+    // MARK: - Viewfinder
 
     private var scanningContent: some View {
         ZStack(alignment: .bottom) {
-            LiveLabelScannerView(
-                onReading: consider,
-                onFailure: { phase = .failed($0) },
-                torchOn: torchOn)
-            .ignoresSafeArea(edges: .bottom)
+            viewfinder
+                .ignoresSafeArea(edges: .bottom)
+                // The box the user frames the plate in: the SAME geometry the
+                // camera turns into Vision's region of interest, so what is
+                // drawn is what is read (LabelFramingBox).
+                .overlay {
+                    GeometryReader { geometry in
+                        let box = LabelFramingBox.rect(in: geometry.size)
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(.white.opacity(0.9), lineWidth: 2)
+                            .frame(width: box.width, height: box.height)
+                            .position(x: box.midX, y: box.midY)
+                            .accessibilityIdentifier("scanFramingBox")
+                    }
+                    .allowsHitTesting(false)
+                }
 
-            VStack(spacing: 12) {
-                Text(liveText.isEmpty ? "Point at the machine's name plate" : liveText)
-                    .font(liveText.isEmpty ? .callout : .callout.monospaced())
-                    .multilineTextAlignment(.center)
+            VStack(spacing: 14) {
+                Text(capturing ? "Reading…" : "Fit the name plate in the box")
+                    .font(.callout)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 10)
+                    .padding(.vertical, 8)
                     .background(.black.opacity(0.55), in: .rect(cornerRadius: 12))
-                    .accessibilityIdentifier("scanLiveText")
+                    .accessibilityIdentifier("scanStatus")
+
+                Button(action: shutter) {
+                    ZStack {
+                        Circle().stroke(.white, lineWidth: 4).frame(width: 74, height: 74)
+                        Circle().fill(.white).frame(width: 60, height: 60)
+                        if capturing { ProgressView().tint(.black) }
+                    }
+                }
+                .buttonStyle(.plain)
+                .disabled(capturing)
+                .accessibilityLabel("Take photo")
+                .accessibilityIdentifier("scanShutter")
 
                 Button("Choose a photo instead") {
                     pickerRequest = PickerRequest(source: .photoLibrary)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.bordered)
+                .tint(.white)
                 .accessibilityIdentifier("scanChoosePhoto")
             }
-            .padding(.bottom, 28)
+            .padding(.bottom, 24)
         }
     }
 
-    /// One live reading. Scanning stops as soon as consecutive frames agree on
-    /// the same answer, so the user never has to decide when it has "got it".
-    private func consider(_ reading: LabelReading) {
-        guard case .scanning = phase else { return }
-        liveText = reading.text
-        guard let index = catalogIndexIfLoaded() else { return }
-        let matches = CatalogMatcher.rank(reading, in: index)
-        // Settle on the *decision*, not on identical pixels: two frames that
-        // read slightly differently but point at the same catalog row are
-        // agreement, and two frames that read the same unlisted plate are too.
-        let key = matches.first?.modelID.uuidString
-            ?? MachineLabelText.normalized(reading.text)
-        guard let settled = stabilizer.observe(reading, key: key) else { return }
-        present(settled, in: index)
+    /// The camera, or — under `-uiTestScanFixture`, where the Simulator has no
+    /// camera — a stand-in so the shutter and the box are still driven by the
+    /// UI tests.
+    @ViewBuilder
+    private var viewfinder: some View {
+        if ScanFixture.isEnabled {
+            Rectangle().fill(.black)
+                .overlay { Text("Fixture plate").foregroundStyle(.gray) }
+                .accessibilityIdentifier("scanFixtureViewfinder")
+        } else {
+            LabelCameraView(
+                captureCount: captureCount,
+                onPhoto: { image, region in
+                    capturing = false
+                    read(image, regionOfInterest: region)
+                },
+                onFailure: { message in
+                    capturing = false
+                    phase = .failed(message)
+                },
+                torchOn: torchOn)
+        }
+    }
+
+    /// The shutter: one still, read once, inside the box. Under the fixture
+    /// the rendered plate is read whole — it IS the plate.
+    private func shutter() {
+        guard case .scanning = phase, !capturing else { return }
+        capturing = true
+        if ScanFixture.isEnabled {
+            capturing = false
+            read(ScanFixture.image())
+            return
+        }
+        captureCount += 1
     }
 
     // MARK: - Content
@@ -322,7 +373,9 @@ struct ScanMachineLabelSheet: View {
     private func start() {
         guard case .idle = phase else { return }
         if ScanFixture.isEnabled {
-            read(ScanFixture.image())
+            // The fixture stands in for the camera, not for the shutter: the
+            // viewfinder shows and the test taps `scanShutter` like a user.
+            restartScanning()
             return
         }
         let availability = CaptureAvailability.resolve()
@@ -340,8 +393,7 @@ struct ScanMachineLabelSheet: View {
     }
 
     private func restartScanning() {
-        stabilizer.reset()
-        liveText = ""
+        capturing = false
         selectedID = nil
         phase = .scanning
     }
@@ -359,8 +411,10 @@ struct ScanMachineLabelSheet: View {
         }
     }
 
-    /// A still photograph — the library fallback, and the test fixture.
-    private func read(_ image: UIImage) {
+    /// A still photograph — the shutter's, the library fallback, or the test
+    /// fixture. `regionOfInterest` is the framing box for the shutter's photo;
+    /// a library photo or the fixture is read whole.
+    private func read(_ image: UIImage, regionOfInterest: CGRect? = nil) {
         phase = .reading
         selectedID = nil
         Task {
@@ -368,7 +422,7 @@ struct ScanMachineLabelSheet: View {
                 // Vision runs off the main actor and reads the photo in the
                 // orientation it was taken; the image is not retained past this
                 // call (D34).
-                let reading = try await MachineLabelOCR.read(image)
+                let reading = try await MachineLabelOCR.read(image, regionOfInterest: regionOfInterest)
                 guard let index = catalogIndexIfLoaded() else {
                     phase = .failed("Could not read the equipment catalog.")
                     return
@@ -398,9 +452,7 @@ struct ScanMachineLabelSheet: View {
         selectedID = CatalogMatcher.preselection(from: matches)?.modelID
     }
 
-    /// Built once per sheet and cached: live scanning ranks several times a
-    /// second, and rebuilding a 1877-row index per frame would be the one
-    /// expensive thing in the loop.
+    /// Built once per sheet and cached across rescans.
     private func catalogIndexIfLoaded() -> CatalogMatchIndex? {
         if let index { return index }
         guard let rows = try? modelContext.fetch(FetchDescriptor<EquipmentModel>()) else {

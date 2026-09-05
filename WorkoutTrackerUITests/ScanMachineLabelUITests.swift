@@ -27,8 +27,9 @@ final class ScanMachineLabelUITests: XCTestCase {
         createGym()
         openNewMachineSheet()
 
-        // --- Scan: the fixture plate resolves to its catalog row -----------
+        // --- Scan: the viewfinder, the box, the shutter -------------------
         app.buttons["scanMachineLabel"].tap()
+        tapShutter(screenshotNamed: "scan-viewfinder")
 
         let candidate = app.descendants(matching: .any)
             .matching(identifier: "scanCandidate.\(expectedModel)").firstMatch
@@ -86,6 +87,7 @@ final class ScanMachineLabelUITests: XCTestCase {
         openNewMachineSheet()
 
         app.buttons["scanMachineLabel"].tap()
+        tapShutter(screenshotNamed: nil)
         let createNew = app.buttons["scanCreateNew"]
         XCTAssertTrue(
             createNew.waitForExistence(timeout: 20),
@@ -134,6 +136,23 @@ final class ScanMachineLabelUITests: XCTestCase {
     }
 
     // MARK: - Helpers
+
+    /// Scanner accuracy, ticket 03: nothing is read until the shutter. The
+    /// fixture stands in for the camera; the box and the shutter are real.
+    private func tapShutter(screenshotNamed name: String?) {
+        let shutter = app.buttons["scanShutter"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10), "the viewfinder should show a shutter")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "scanFramingBox").firstMatch.exists,
+                      "and the framing box")
+        XCTAssertFalse(app.staticTexts["scanReadingText"].exists, "nothing is read before the shutter")
+        if let name {
+            let shot = XCTAttachment(screenshot: app.screenshot())
+            shot.name = name
+            shot.lifetime = .keepAlways
+            add(shot)
+        }
+        shutter.tap()
+    }
 
     private func createGym() {
         app.tabBars.buttons["Gyms"].tap()

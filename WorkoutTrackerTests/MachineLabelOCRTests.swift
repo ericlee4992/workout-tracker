@@ -104,6 +104,37 @@ struct MachineLabelOCRTests {
         #expect(modelLine.heightFraction > brandLine.heightFraction)
     }
 
+    /// Scanner accuracy, ticket 03: only text inside the region is read. The
+    /// rendered plate has the brand at the top, the model in the middle and a
+    /// rating at the bottom; a band around the middle reads the model alone.
+    @Test func onlyTextInsideTheRegionOfInterestIsRead() throws {
+        let image = renderLabel(
+            brand: "LIFE FITNESS", model: "Insignia Series Chest Press",
+            extras: ["MAX 300 LB"])
+        // 620 px tall: model at y 200–~310 from the top → Vision y ≈ 0.50–0.68.
+        let middle = CGRect(x: 0, y: 0.42, width: 1, height: 0.33)
+        let reading = try MachineLabelOCR.perform(image, regionOfInterest: middle)
+        let text = MachineLabelText.normalized(reading.text)
+        #expect(text.contains("chest press"), "read: \(reading.text)")
+        #expect(!text.contains("life fitness"), "the brand line is above the box: \(reading.text)")
+        #expect(!text.contains("300"), "the rating is below the box: \(reading.text)")
+        // The whole image still reads everything.
+        let whole = MachineLabelText.normalized(try MachineLabelOCR.perform(image).text)
+        #expect(whole.contains("life fitness") && whole.contains("300"))
+    }
+
+    /// The region is expressed in the UPRIGHT image's coordinates: a photo
+    /// taken sideways, tagged with its orientation, reads the same band.
+    @Test func theRegionOfInterestFollowsTheOrientation() async throws {
+        let upright = renderLabel(brand: "LIFE FITNESS", model: "Insignia Series Chest Press", extras: ["MAX 300 LB"])
+        let rotated = UIImage(cgImage: rotatedClockwise(upright), scale: 1, orientation: .left)
+        let middle = CGRect(x: 0, y: 0.42, width: 1, height: 0.33)
+        let reading = try await MachineLabelOCR.read(rotated, regionOfInterest: middle)
+        let text = MachineLabelText.normalized(reading.text)
+        #expect(text.contains("chest press"), "read: \(reading.text)")
+        #expect(!text.contains("life fitness") && !text.contains("300"), "read: \(reading.text)")
+    }
+
     @Test func aPhotographedPlateFindsItsCatalogRow() throws {
         let image = renderLabel(
             brand: "LIFE FITNESS", model: "Insignia Series Chest Press",

@@ -42,16 +42,19 @@ enum MachineLabelOCR {
     /// upright text, and this app orders lines by their vertical position to
     /// decide which one is the brand. A camera image is almost never `.up`
     /// (codex-review, finding 5).
-    static func read(_ image: UIImage) async throws -> LabelReading {
+    /// `regionOfInterest` — Vision's normalised rectangle (origin bottom-left,
+    /// in the UPRIGHT image's coordinates) outside which nothing is read: the
+    /// framing box (scanner accuracy, ticket 03). nil reads the whole image.
+    static func read(_ image: UIImage, regionOfInterest: CGRect? = nil) async throws -> LabelReading {
         guard let cgImage = cgImage(from: image) else { throw Failure.unreadableImage }
-        return try await read(cgImage, orientation: orientation(of: image))
+        return try await read(cgImage, orientation: orientation(of: image), regionOfInterest: regionOfInterest)
     }
 
     static func read(
-        _ image: CGImage, orientation: CGImagePropertyOrientation = .up
+        _ image: CGImage, orientation: CGImagePropertyOrientation = .up, regionOfInterest: CGRect? = nil
     ) async throws -> LabelReading {
         let reading = try await Task.detached(priority: .userInitiated) {
-            try perform(image, orientation: orientation)
+            try perform(image, orientation: orientation, regionOfInterest: regionOfInterest)
         }.value
         guard !reading.isEmpty else { throw Failure.noTextFound }
         return reading
@@ -60,10 +63,13 @@ enum MachineLabelOCR {
     /// Synchronous recognition. Separated so tests can call it directly on a
     /// rendered fixture without an async hop.
     static func perform(
-        _ image: CGImage, orientation: CGImagePropertyOrientation = .up
+        _ image: CGImage, orientation: CGImagePropertyOrientation = .up, regionOfInterest: CGRect? = nil
     ) throws -> LabelReading {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
+        if let regionOfInterest {
+            request.regionOfInterest = regionOfInterest
+        }
         // Off deliberately: "Insignia", "Cybex", "Hammer Strength" and
         // "VSL019BP" are not dictionary words, and correction rewrites exactly
         // the distinctive tokens the matcher depends on. Re-measured on the
