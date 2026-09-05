@@ -78,14 +78,19 @@ final class LabelCameraController: UIViewController {
     /// The request in flight, and the view's size and box at its shutter,
     /// for the region once the photo (and so its size) is known. Main queue.
     private var pending: (request: UUID, viewSize: CGSize, box: CGRect)?
-    /// How long a one-shot focus may hunt before the photo is taken anyway,
-    /// and how long the lens is given to START adjusting first —
-    /// `isAdjustingFocus` is current state, not a promise, and reads false
-    /// in the instant before the one-shot focus begins (codex-review-03b).
+    /// The one-shot focus is observed as a STARTED-then-SETTLED transition:
+    /// `isAdjustingFocus` / `isAdjustingExposure` are current state, not a
+    /// promise, and read false in the instant before the cycle begins
+    /// (codex-review-03b, 03c). Up to `focusStartBudget` is allowed for the
+    /// cycle to start (a lens already on target may never adjust), and up to
+    /// `focusBudget` in total for it to settle; then the photo is taken anyway.
+    private let focusStartBudget: TimeInterval = 0.3
     private let focusBudget: TimeInterval = 1.0
-    private let focusSettle: TimeInterval = 0.15
-    /// Bumped by `stop()`; a focus wait from an earlier generation does
-    /// nothing when it wakes, so a dismissed sheet never takes a photo.
+    private let focusPoll: TimeInterval = 0.03
+    /// Bumped by `stop()` ON THE SESSION QUEUE, and only ever read there, so a
+    /// focus wait from an earlier generation does nothing when it wakes and a
+    /// dismissed sheet never takes a photo (codex-review-03c: the first cut
+    /// bumped it on main and raced the read).
     private var generation = 0
 
     override func viewDidLoad() {
@@ -167,21 +172,22 @@ final class LabelCameraController: UIViewController {
         let point = previewLayer.captureDevicePointConverted(fromLayerPoint: CGPoint(x: box.midX, y: box.midY))
         let settings = AVCapturePhotoSettings()
         settings.flashMode = .off  // the torch is the only light in a gym
-        let generation = self.generation
         sessionQueue.async { [weak self] in
             guard let self, session.isRunning, session.outputs.contains(photoOutput) else {
                 DispatchQueue.main.async { self?.onFailure?(request, "The camera is not running.") }
                 return
             }
+            let generation = self.generation
             focusOnce(at: point)
-            let deadline = Date().addingTimeInterval(focusBudget)
-            sessionQueue.asyncAfter(deadline: .now() + focusSettle) { [weak self] in
-                self?.waitForFocus(deadline: deadline) { [weak self] in
-                    // Re-checked at the last moment: the sheet may have been
-                    // dismissed (and the session stopped) while the lens moved.
-                    guard let self, self.generation == generation, session.isRunning else { return }
-                    photoOutput.capturePhoto(with: settings, delegate: self)
-                }
+            let started = Date()
+            waitForFocus(
+                started: started, sawAdjusting: false
+            ) { [weak self] in
+                // Re-checked at the last moment, on the session queue: the
+                // sheet may have been dismissed (and the session stopped)
+                // while the lens moved.
+                guard let self, self.generation == generation, session.isRunning else { return }
+                photoOutput.capturePhoto(with: settings, delegate: self)
             }
         }
     }
@@ -197,15 +203,20 @@ final class LabelCameraController: UIViewController {
         device.unlockForConfiguration()
     }
 
-    /// Polls on the session queue until the lens stops hunting or the budget
-    /// runs out, then runs `then` on the session queue.
-    private func waitForFocus(deadline: Date, then: @escaping () -> Void) {
-        guard let device, device.isAdjustingFocus || device.isAdjustingExposure, Date() < deadline else {
-            then()
-            return
-        }
-        sessionQueue.asyncAfter(deadline: .now() + 0.05) { [weak self] in
-            self?.waitForFocus(deadline: deadline, then: then)
+    /// Polls on the session queue for the one-shot cycle to START and then
+    /// SETTLE, then runs `then` on the session queue. Falls through when the
+    /// cycle never starts within `focusStartBudget` (the lens was already on
+    /// target) or has not settled by `focusBudget`.
+    private func waitForFocus(started: Date, sawAdjusting: Bool, then: @escaping () -> Void) {
+        guard let device else { then(); return }
+        let adjusting = device.isAdjustingFocus || device.isAdjustingExposure
+        let elapsed = Date().timeIntervalSince(started)
+        let seen = sawAdjusting || adjusting
+        if seen, !adjusting { then(); return }           // started, then settled
+        if !seen, elapsed >= focusStartBudget { then(); return }  // never started
+        if elapsed >= focusBudget { then(); return }     // still hunting: take it anyway
+        sessionQueue.asyncAfter(deadline: .now() + focusPoll) { [weak self] in
+            self?.waitForFocus(started: started, sawAdjusting: seen, then: then)
         }
     }
 
@@ -217,9 +228,10 @@ final class LabelCameraController: UIViewController {
     }
 
     func stop() {
-        generation += 1
         setTorch(false)
-        sessionQueue.async { [session] in
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            generation += 1
             if session.isRunning { session.stopRunning() }
         }
     }

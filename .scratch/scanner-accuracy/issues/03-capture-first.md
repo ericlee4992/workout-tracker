@@ -127,3 +127,24 @@ ScanMachineLabel 2/2 — each from its log's `** TEST SUCCEEDED **`.
   a nil request (camera configuration failure) still lands unconditionally. The controller drops
   a photo that arrives with no pending request (stopped or superseded).
 - **Stale counts (low).** Corrected in the resolution.
+
+
+## Codex review 03c — response (2026-09-05)
+
+`codex-review-03c.md`: standards 1 medium (gate at head), 1 low; spec 2 medium. All closed:
+- **Focus still guessed (medium).** `waitForFocus` now observes a STARTED-then-SETTLED transition
+  (30 ms polls on the session queue): it waits up to 300 ms for the cycle to begin — a lens already
+  on target may never adjust — then until both flags are false, with the 1 s budget as the
+  fallback. No fixed sleep.
+- **Generation raced across queues (medium).** `generation` is now written by `stop()` ON the
+  session queue and read there (the snapshot is taken inside the queued capture block), so the
+  guard is serialised with the session work.
+- **Duplicated teardown (low).** `captureFinished` validates then calls `abandonCapture`.
+- **Gate at head (medium).** Full unit and the full UI suite re-run at the final head; recorded
+  below.
+
+**Gate at the round-3 head (the code that goes to review round 4 / merge): 672/672 unit** (after
+the Mac's load spike passed; two earlier full runs under load 76 each failed one heart-rate
+timing test, green alone and green here) **and 37/37 UI** — CoreLoop 9, Barbell+Dumbbell+
+ExercisePreset+Scan 7, Export+HeartRate+HeartRateSummary+HistoryCalendar+HistoryEditing 13,
+ProgressChart+Tooltip+WorkoutName 8 — every figure from its log's `** TEST SUCCEEDED **`.

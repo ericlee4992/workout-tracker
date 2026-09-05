@@ -242,10 +242,7 @@ struct ScanMachineLabelSheet: View {
     /// timeout wins; anything for an older request is ignored.
     private func captureFinished(_ request: UUID) -> Bool {
         guard capturing, captureRequest == request else { return false }
-        capturing = false
-        captureRequest = nil
-        captureTimeout?.cancel()
-        captureTimeout = nil
+        abandonCapture()
         return true
     }
 
