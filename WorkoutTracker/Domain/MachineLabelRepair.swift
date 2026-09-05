@@ -5,8 +5,8 @@ import Foundation
 //
 // The corpus (`.scratch/scanner-accuracy/reports/`) showed one dominant
 // failure: a brand printed as a logo comes back as a corrupted token —
-// `SCYBEX` (the swoosh read as a letter), `LAMMED STRENGTH`, `YAMMER RENGTH`,
-// `LieFitness`, `HOISI` — and `manufacturerMatched` needs the exact token, so a
+// `SCYBEX` (the swoosh read as a letter), `HAMMER STRENCTH`, `LieFitness`,
+// `HOISI` — and `manufacturerMatched` needs the exact token, so a
 // plate whose model name read perfectly could still never preselect. Second:
 // a slash reads as the letter I, gluing two known words into one unknown one
 // (`DIP/CHIN` → `DIPICHIN`).
@@ -24,15 +24,21 @@ import Foundation
 //    was a lone token on its own line) and never how prose reads;
 //  - only a LEADING stray character is stripped (the swoosh precedes the
 //    word); a trailing letter is a plural or a code, never a smudge;
-//  - an edit repair may not shorten the token (`START` is not `star`,
+//  - an edit repair is refused for an English word (`PRICE`, `MOIST` — and
+//    `LAMMED`, `YAMMER`, which the spell checker accepts; those two corpus
+//    badges stay as read), may not shorten the token (`START` is not `star`,
 //    `HAMMERS` is not `hammer`), and two edits are allowed only for a long
-//    token or one corroborated by the brand's other word read exactly;
+//    token or one corroborated by the brand's other word;
+//  - a token with a digit in it is a code and is never repaired into a
+//    brand by ANY path — not stripped (`1CYBEX`), not edited (`CYB3X`), not
+//    split as a glued logo (`LIFEFITN3SS`), Gym80 included (`GYM8O`);
+//  - without a dictionary there is no edit repair, no glued-brand repair and
+//    no split at all; only the leading-character strip remains;
 //  - a glued split needs the separator character a slash becomes AND both
 //    halves in ONE catalog row's name (`dip` + `chin` ← Select Assist Dip
 //    Chin), never two catalog words that merely exist (`airlift`,
 //    `counterweight`, `faceplate` all split into real catalog words), and
-//    never a real word (`midland`);
-//  - a token with a digit in it is a code, never a misread logo (`CYB3X`).
+//    never a real word (`midland`).
 
 struct MachineLabelRepair {
 
@@ -44,12 +50,13 @@ struct MachineLabelRepair {
     /// Whether two tokens sit together in one catalog row's model name.
     private let shareARow: (String, String) -> Bool
     /// Whether a token is an ordinary English word. An EDIT repair (one or
-    /// two letters changed) is refused for a real word: `PRICE` is not a
-    /// misread `PRIME`, `MOIST` is not `HOIST`, `START TRACK` is not Star
-    /// Trac (codex-review-02 #1). The camera's corruptions — `HOISI`,
-    /// `LAMMED`, `STRENCTH`, `LieFitness` — are not words. nil means no
-    /// dictionary is available, and then NO edit repair is made at all; only
-    /// the stray-leading-character strip and the glued split remain.
+    /// two letters changed), a glued-brand repair and a split are all refused
+    /// for a real word: `PRICE` is not a misread `PRIME`, `MOIST` is not
+    /// `HOIST`, `START TRACK` is not Star Trac, `MIDLAND` is not `mid and`
+    /// (codex-review-02 #1, 02b #4). The camera's corruptions — `HOISI`,
+    /// `STRENCTH`, `LieFitness` — are not words. nil means no dictionary is
+    /// available, and then none of those repairs is made; only the
+    /// stray-leading-character strip remains.
     private let isDictionaryWord: ((String) -> Bool)?
 
     /// Tokens shorter than this are never repaired: too many real words are
@@ -152,7 +159,7 @@ struct MachineLabelRepair {
     // MARK: Brand lines
 
     /// A line that is one brand and nothing else, with a corrupted word
-    /// repaired: `["scybex"]` → `[["cybex"]]`, `["lammed", "strength"]` →
+    /// repaired: `["scybex"]` → `[["cybex"]]`, `["hammer", "strencth"]` →
     /// `[["hammer"], ["strength"]]`, `["liefitness"]` → `[["life", "fitness"]]`.
     /// nil when the line is anything else — prose, a model name, a brand plus
     /// other words, or a line that already reads exactly as the brand.
@@ -160,6 +167,10 @@ struct MachineLabelRepair {
         // Something on the line must be unknown; a line of known words is
         // either the brand read exactly or not a brand line at all.
         guard tokens.contains(where: { !isKnown($0) }) else { return nil }
+        // A digit anywhere in an unknown token makes the line a code line —
+        // `1CYBEX`, `CYB3X`, `LIFEFITN3SS`, `GYM8O` — and no path below may
+        // turn a code into a brand (codex-review-02b #2, 02c #1).
+        guard !tokens.contains(where: { !isKnown($0) && $0.contains(where: \.isNumber) }) else { return nil }
         // A glued script logo: one token, one brand.
         if tokens.count == 1, let words = repairedGluedBrand(tokens[0]) { return [words] }
 
@@ -173,20 +184,16 @@ struct MachineLabelRepair {
                 guard !isKnown(token), let distance = repairDistance(token, to: brandToken) else { ok = false; break }
                 // An edit repair of a real English word is a different word,
                 // not a misread (`PRICE`, `MOIST`, `START`). No dictionary,
-                // no edit repairs. And a token carrying a digit is a CODE —
-                // `PR1ME`, `CYB3X`, `PREC0R` are how a serial reads, not how a
-                // logo does (codex-review-02b #2) — unless the brand itself has
-                // digits (Gym80).
+                // no edit repairs.
                 if distance > 0 {
                     guard let isDictionaryWord, !isDictionaryWord(token) else { ok = false; break }
-                    guard brandToken.contains(where: \.isNumber) || !token.contains(where: \.isNumber) else { ok = false; break }
                 }
                 distances.append(distance)
             }
             guard ok else { continue }
             // Two edits in one word only when the token is long, or another
             // word of the same brand corroborates it (exact, stripped or one
-            // edit): `RENGTH` beside `YAMMER`, never `RECORD` alone as Precor.
+            // edit): `STRENCTH` beside `HAMMER`, never `RECORD` alone as Precor.
             let corroborated = zip(tokens, distances).contains { $0.1 <= 1 }
                 && zip(distances, tokens).filter { $0.0 == 2 }.count < distances.count
             for (token, distance) in zip(tokens, distances) where distance == 2 {

@@ -74,7 +74,7 @@ struct MachineLabelRepairTests {
         // Only a LEADING stray character is stripped.
         #expect(try repairedLines(["CYBEXS"]) == [["cybexs"]])
         // A digit makes it a code, not a logo (codex-review-02b #2).
-        for code in ["CYB3X", "PR1ME", "PREC0R", "HAMNER1", "MATR1X"] {
+        for code in ["CYB3X", "PR1ME", "PREC0R", "HAMNER1", "MATR1X", "1CYBEX", "LIFEFITN3SS", "GYM8O", "0CYBEX"] {
             #expect(try repairedLines([code]) == [[code.lowercased()]], Comment(rawValue: code))
         }
         // (A lone HAMNER is not repaired either: Hammer Strength is two words, and a

@@ -22,8 +22,10 @@ create-new brand guess:
   ≥ 7 letters or one corroborated by the brand's other word (`hoisi` → `hoist`, `strencth` →
   `strength`); a glued script logo is split back (`liefitness` → `life fitness`). Refused when
   the token is a known catalog word, shorter than 4, an ENGLISH WORD (spell checker; without a
-  dictionary no edit repair at all), carries a digit, is longer than the brand token, or when two
-  brands fit. Accepted cost: `LAMMED`, `YAMMER` (words) and trailing junk (`CYBEXS`) stay as read.
+  dictionary no edit repair, glued repair or split at all), is longer than the brand token, or when
+  two brands fit; and a line with a digit in any unknown token is a code line that NO path — strip,
+  edit, glued — turns into a brand, Gym80 included. Accepted cost: `LAMMED`, `YAMMER` (words to the
+  checker), trailing junk (`CYBEXS`) and digit misreads (`CYB3X`, `GYM8O`) stay as read.
 - **Slash repair** *(amended)*. An unknown, non-word token that splits at an interior `i`/`l`/`1`
   into two known words that sit together in ONE catalog row's name becomes those words
   (`dipichin` → `dip chin`). No separator-less split (`dipchin` stays).
@@ -85,7 +87,7 @@ Half` vs `Half Rack` differ by the token `a`, and a stray one-letter token is ex
 logo reads as, so the first cut of the rule preselected the wrong Sorinex rack. Two tests added;
 the Sorinex case is asserted in both.
 
-## Resolution (2026-09-05)
+## Resolution (2026-09-05) — SUPERSEDED by the rebuild below; kept as the record of the first cut
 
 `Domain/MachineLabelRepair.swift` (brand-token repair, glued-brand split, slash/glue split;
 every rule refuses known words, short tokens and ambiguity), built once per `CatalogMatchIndex`
@@ -185,3 +187,28 @@ corroborated split), preselected right **6**/12, wrong preselections **0**, crea
 
 Final on the corpus (`reports/after-ticket-02c-2026-09-05.md`): **top-1 8/12, preselected right
 5/12 (from 3), wrong preselections 0, create-new 28/29.**
+
+
+## Codex review 02c — response (2026-09-05)
+
+`codex-review-02c.md`: 1 medium, 2 low. All closed:
+- **Digit refusal bypassed by the strip and glued paths; Gym80 exempt (medium).** The rule now
+  sits at the top of `repairedBrandLine`: a digit in any unknown token makes the line a code line
+  and no path repairs it — `1CYBEX`, `0CYBEX`, `LIFEFITN3SS`, `GYM8O` added to the test, all stay.
+  The ticket's wording drops the Gym80 exception.
+- **Source comments described rejected rules (low).** Header, `isDictionaryWord` doc and the
+  inline examples now cite `HAMMER STRENCTH`, name `LAMMED`/`YAMMER` as accepted costs, and say
+  that without a dictionary only the strip remains.
+- **Stale Resolution (low).** Marked SUPERSEDED; the current result is this section:
+
+### Resolution, current (2026-09-05, after three Codex rounds)
+
+`Domain/MachineLabelRepair.swift`: brand-line-only repair (single line, or the same brand over
+two consecutive lines), leading-character strip, dictionary- and digit-refused edit repairs,
+glued-brand split, corroborated slash split; only repaired runs are rewritten. Built once per
+`CatalogMatchIndex` with `isDictionaryWord` (UIKit's checker via `Features/Gyms/
+MachineLabelDictionary.swift`; the sheet, the harness and the repair tests all supply it);
+applied in `CatalogMatcher.rank`; the sheet's create-new guesses read the repaired plate, the
+echoed text stays raw. No prefix-sibling exception; no vocabulary hook. Tests: 15 repair, 1
+sibling-tie pin, corpus harness. **Corpus: top-1 8/12, preselected right 5/12 (from 3), wrong
+preselections 0, create-new 28/29.**
