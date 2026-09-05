@@ -106,3 +106,8 @@ preview layer, focus at arm's length, and whether it feels faster. The Simulator
   chunks before merge — recorded below when done.
 - **UI test coverage (low).** Results screenshot added; header comment corrected (viewfinder
   stand-in, reads whole); "Scan again" exercised.
+
+**Full UI suite on `e7dcf9b` (the screen-change gate): 37/37 green**, run 2026-09-05 in three
+chunks plus the scan class — CoreLoop+Barbell+Dumbbell+ExercisePreset 14/14, Export+HeartRate+
+HeartRateSummary+HistoryCalendar+HistoryEditing 13/13, ProgressChart+Tooltip+WorkoutName 8/8,
+ScanMachineLabel 2/2 — each from its log's `** TEST SUCCEEDED **`.
