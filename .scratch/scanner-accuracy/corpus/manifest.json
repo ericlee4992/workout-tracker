@@ -1,0 +1,330 @@
+[
+ {
+  "file": "g010.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/07/Cybex-Advanced-Plate-Loaded-Incline-Press-2.jpg",
+  "brand": "Cybex",
+  "model": "Plate Loaded Advanced Pulldown",
+  "catalogModel": null,
+  "notes": "placard small in a whole-machine shot; model not in catalog"
+ },
+ {
+  "file": "g018.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/04/Cybex-Converging-Plate-Loaded-Overhead-Press-black-10.jpg",
+  "brand": "Cybex",
+  "model": "5222-90",
+  "catalogModel": null,
+  "notes": "serial plate: brand + model NUMBER only, dense small text"
+ },
+ {
+  "file": "g022.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/04/Cybex-Converging-Plate-Loaded-Overhead-Press-black-5.jpg",
+  "brand": "Cybex",
+  "model": "Converging Plate Loaded Overhead Press",
+  "catalogModel": null,
+  "notes": "placard, brand as small logo; model not in catalog"
+ },
+ {
+  "file": "g035.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/04/Cybex-EAGLE-Chest-Press-2-16.jpg",
+  "brand": "Cybex",
+  "model": "11000-90",
+  "catalogModel": null,
+  "notes": "serial plate beside a PATENT PENDING sticker; model number only"
+ },
+ {
+  "file": "g045.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2024/12/Cybex-Plate-Loaded-Advanced-Pulldown-6.jpg",
+  "brand": "Cybex",
+  "model": "Plate Loaded Advanced Pulldown",
+  "catalogModel": null,
+  "notes": "placard close-up with warning stickers; model not in catalog"
+ },
+ {
+  "file": "g058.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/08/Cybex-Plate-Loaded-Squat-Press-red-12.jpg",
+  "brand": "Cybex International",
+  "model": "(serial label)",
+  "catalogModel": null,
+  "notes": "red frame, tiny dense serial label; nothing names a model"
+ },
+ {
+  "file": "g068.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/07/Cybex-Plate-Loaded-Squat-Press-5.jpg",
+  "brand": "Cybex",
+  "model": "Plate Loaded Squat Press",
+  "catalogModel": null,
+  "notes": "clean placard, brand as small logo; model not in catalog"
+ },
+ {
+  "file": "g069.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/07/Cybex-Plate-Loaded-Squat-Press-6.jpg",
+  "brand": "Cybex",
+  "model": "",
+  "catalogModel": null,
+  "notes": "LOGO ONLY on the frame"
+ },
+ {
+  "file": "g072.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/07/Cybex-Plate-Loaded-T-Bar-Row-10.jpg",
+  "brand": "Cybex",
+  "model": "",
+  "catalogModel": null,
+  "notes": "LOGO ONLY on the frame (T-bar row)"
+ },
+ {
+  "file": "g077.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/07/Cybex-Plate-Loaded-T-Bar-Row-6.jpg",
+  "brand": "Cybex",
+  "model": "",
+  "catalogModel": null,
+  "notes": "LOGO ONLY on the frame"
+ },
+ {
+  "file": "g094.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/04/Cybex-VR3-Leg-Extension-2-11.jpg",
+  "brand": "Cybex",
+  "model": "Benspark (VR3 Leg Extension)",
+  "catalogModel": "VR3 Leg Extension (12050)",
+  "notes": "Swedish placard: BENSPARK; brand logo; expect a miss — the English name is not on the plate"
+ },
+ {
+  "file": "h013.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/05/Hammer-Strength-Ground-Base-Combo-Incline-12.jpg",
+  "brand": "Hammer Strength",
+  "model": "",
+  "catalogModel": null,
+  "notes": "badge: brand text only"
+ },
+ {
+  "file": "h014.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/05/Hammer-Strength-Ground-Base-Combo-Incline-13.jpg",
+  "brand": "Hammer Strength",
+  "model": "Ground Base Combo Incline",
+  "catalogModel": null,
+  "notes": "clean vertical placard; model not in catalog (Combo Twist is)"
+ },
+ {
+  "file": "h031.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/03/Hammer-Strength-ISO-Lateral-Bench-Press-5.jpg",
+  "brand": "Hammer Strength",
+  "model": "Iso-Lateral Bench Press",
+  "catalogModel": "Iso-Lateral Bench Press",
+  "notes": "vertical placard with pictograms"
+ },
+ {
+  "file": "h032.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/03/Hammer-Strength-ISO-Lateral-Bench-Press-6.jpg",
+  "brand": "Hammer Strength",
+  "model": "",
+  "catalogModel": null,
+  "notes": "badge: brand text only, angled"
+ },
+ {
+  "file": "h044.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/02/Hammer-Strength-ISO-Lateral-Front-Lat-Pulldown-3.jpg",
+  "brand": "Hammer Strength",
+  "model": "Iso-Lateral Front Lat Pulldown",
+  "catalogModel": "Iso-Lateral Front Lat Pulldown",
+  "notes": "placard at a steep angle, small in frame"
+ },
+ {
+  "file": "h045.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/02/Hammer-Strength-ISO-Lateral-Front-Lat-Pulldown-4.jpg",
+  "brand": "Hammer Strength",
+  "model": "",
+  "catalogModel": null,
+  "notes": "badge: brand text only"
+ },
+ {
+  "file": "h056.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/02/Hammer-Strength-ISO-Lateral-Low-Row-5.jpg",
+  "brand": "Hammer Strength",
+  "model": "Iso-Lateral Low Row",
+  "catalogModel": "Iso-Lateral Low Row",
+  "notes": "vertical placard, tilted"
+ },
+ {
+  "file": "h057.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/02/Hammer-Strength-ISO-Lateral-Low-Row-6.jpg",
+  "brand": "Hammer Strength",
+  "model": "",
+  "catalogModel": null,
+  "notes": "badge: brand text only, with a warning sticker"
+ },
+ {
+  "file": "h063.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/02/Hammer-Strength-ISO-Lateral-Row-5.jpg",
+  "brand": "Hammer Strength",
+  "model": "Iso-Lateral Row",
+  "catalogModel": "Iso-Lateral Row",
+  "notes": "vertical placard, straight on"
+ },
+ {
+  "file": "h064.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/02/Hammer-Strength-ISO-Lateral-Row-6.jpg",
+  "brand": "Hammer Strength",
+  "model": "",
+  "catalogModel": null,
+  "notes": "embossed metal logo plate on the floor tube"
+ },
+ {
+  "file": "h072.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/03/Hammer-Strength-ISO-Lateral-Wide-Pulldown-6.jpg",
+  "brand": "Hammer Strength",
+  "model": "Iso-Lateral Wide Pulldown",
+  "catalogModel": "Iso-Lateral Wide Pulldown",
+  "notes": "placard at ~45°, text rotated"
+ },
+ {
+  "file": "h083.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/03/Hammer-Strength-Select-Assist-Dip-Chin-10.jpg",
+  "brand": "Hammer Strength",
+  "model": "",
+  "catalogModel": null,
+  "notes": "etched brand on a frosted shroud, low contrast"
+ },
+ {
+  "file": "h087.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/03/Hammer-Strength-Select-Assist-Dip-Chin-5.jpg",
+  "brand": "Hammer Strength",
+  "model": "Assist Dip/Chin",
+  "catalogModel": "Select Assist Dip Chin",
+  "notes": "instruction placard: brand small, ASSIST DIP/CHIN large"
+ },
+ {
+  "file": "h088.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/03/Hammer-Strength-Select-Assist-Dip-Chin-6.jpg",
+  "brand": "Hammer Strength",
+  "model": "Assist Dip/Chin",
+  "catalogModel": "Select Assist Dip Chin",
+  "notes": "clean nameplate: brand + name"
+ },
+ {
+  "file": "h107.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/09/HOIST-Hack-Squat-Dead-Lift-Shrug-RPL-5356-1.jpg",
+  "brand": "Hoist",
+  "model": "Hack Squat RPL-5356",
+  "catalogModel": "Hack Squat/Dead Lift/Shrug RPL-5356",
+  "notes": "HOIST logo + HACK SQUAT instruction sticker with model code"
+ },
+ {
+  "file": "h108.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/09/HOIST-Hack-Squat-Dead-Lift-Shrug-RPL-5356-2.jpg",
+  "brand": "Hoist (ROC-IT)",
+  "model": "Hack Squat/Dead Lift",
+  "catalogModel": "Hack Squat/Dead Lift/Shrug RPL-5356",
+  "notes": "ROC-IT sub-brand sticker, no HOIST text, curved"
+ },
+ {
+  "file": "h124.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/01/Hoist-Olympic-Incline-Bench-6-e1746100628337.jpg",
+  "brand": "Hoist",
+  "model": "",
+  "catalogModel": null,
+  "notes": "LOGO ONLY (bench)"
+ },
+ {
+  "file": "h132.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/01/Life-Fitness-PRO-Dual-Pulley-Row-4.jpg",
+  "brand": "Life Fitness",
+  "model": "Dual Pulley Row",
+  "catalogModel": null,
+  "notes": "Pro-series placard; model not in catalog"
+ },
+ {
+  "file": "h133.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/01/Life-Fitness-PRO-Dual-Pulley-Row-5.jpg",
+  "brand": "Life Fitness",
+  "model": "",
+  "catalogModel": null,
+  "notes": "LOGO ONLY, script logo"
+ },
+ {
+  "file": "h144.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2026/01/Life-Fitness-PRO2-Assisted-Dip-Chin-3-5.jpg",
+  "brand": "Life Fitness",
+  "model": "Assisted Dip/Chin",
+  "catalogModel": null,
+  "notes": "Pro2 nameplate; nearest catalog row is Insignia Series Assist Dip Chin"
+ },
+ {
+  "file": "q1_03.jpg",
+  "source": "https://www.gymsolutions.com.au/wp-content/uploads/2023/07/IMG_5607-rotated.jpg",
+  "brand": "Life Fitness",
+  "model": "Triceps Press",
+  "catalogModel": null,
+  "notes": "Pro-series placard; nearest row Insignia Series Triceps Press"
+ },
+ {
+  "file": "q1_05.jpg",
+  "source": "https://www.gymsolutions.com.au/wp-content/uploads/2023/07/IMG_5615-rotated.jpg",
+  "brand": "Life Fitness",
+  "model": "Seated Leg Press",
+  "catalogModel": null,
+  "notes": "Pro-series placard; nearest row Insignia Series Seated Leg Press"
+ },
+ {
+  "file": "q1_09.jpg",
+  "source": "https://www.fitnessequipmentempire.com/wp-content/uploads/2023/08/4aee8e9d-1d02-400f-a081-87e44f143d91-768x1024.jpg",
+  "brand": "Cybex",
+  "model": "",
+  "catalogModel": null,
+  "notes": "LOGO ONLY on a yellow frame, dealer signage behind"
+ },
+ {
+  "file": "q1_10.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2024/12/Cybex-Plate-Loaded-Advanced-Pulldown-6-1024x1024.jpg",
+  "brand": "Cybex",
+  "model": "Plate Loaded Advanced Pulldown",
+  "catalogModel": null,
+  "notes": "placard mid-distance; model not in catalog"
+ },
+ {
+  "file": "q1_11.jpg",
+  "source": "https://www.gymequip.eu/wp-content/uploads/2025/07/Cybex-Plate-Loaded-Squat-Press-6-1024x1024.jpg",
+  "brand": "Cybex",
+  "model": "",
+  "catalogModel": null,
+  "notes": "LOGO ONLY, large"
+ },
+ {
+  "file": "q1_12.jpg",
+  "source": "https://www.fitnessrepairparts.com/product_files/label-serial-number-224412-3016678_sm.jpg",
+  "brand": "Hammer Strength",
+  "model": "PLSM",
+  "catalogModel": null,
+  "notes": "parts-store serial label, model CODE only, watermarked"
+ },
+ {
+  "file": "q1_13.jpg",
+  "source": "https://www.fullcirclepadding.com/assets/1/26/DimThumbnail/Model-Serial-Code-Examples.jpg",
+  "brand": "Precor",
+  "model": "Vitality Leg Extension",
+  "catalogModel": "Vitality Leg Extension (VSL005BP)",
+  "notes": "support-page photo with red annotations over the label"
+ },
+ {
+  "file": "q1_15.jpg",
+  "source": "https://wfitnessmexico.com/wp-content/uploads/2023/06/8-2-600x800.jpeg",
+  "brand": "Hammer Strength",
+  "model": "",
+  "catalogModel": null,
+  "notes": "badge, out of focus"
+ },
+ {
+  "file": "q1_16.webp",
+  "source": "https://fitnesssanity.com/wp-content/uploads/2025/product/809-hammer-strength-plate-loaded-tibia-dorsi-flexion-17.webp",
+  "brand": "Hammer Strength",
+  "model": "Tibia",
+  "catalogModel": "Plate Loaded Tibia Dorsi-Flexion",
+  "notes": "plate says TIBIA only; scuffed metal"
+ },
+ {
+  "file": "q1_19.png",
+  "source": "https://support.lifefitness.com/hc/article_attachments/33979480626967",
+  "brand": "Life Fitness",
+  "model": "LCM-CC",
+  "catalogModel": null,
+  "notes": "serial label, model code only (not a strength machine)"
+ }
+]

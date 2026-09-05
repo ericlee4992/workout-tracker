@@ -23,3 +23,8 @@ __pycache__/
 
 # Per-developer signing identity (see Config/Local.xcconfig.example)
 Config/Local.xcconfig
+
+# Scanner accuracy corpus: photos of real name plates stay local (D34 spirit);
+# only the manifest (URLs + labels) and reports are committed.
+.scratch/scanner-accuracy/corpus/*
+!.scratch/scanner-accuracy/corpus/manifest.json
