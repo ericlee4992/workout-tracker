@@ -53,17 +53,17 @@ enum WeightMath {
         return formatter.string(from: value as NSNumber) ?? "\(value)"
     }
 
-    /// Label for a stored weight shown in `displayUnit`. Same unit renders the
-    /// as-entered value plainly (`60 kg`); a converted value is explicitly
-    /// approximate (`≈132.28 lb`).
+    /// Label for a stored weight shown in `displayUnit`: the as-entered value
+    /// in its own unit (`60 kg`), or the converted number plain (`132.28 lb`).
+    /// D52 dropped the ≈ prefix a converted value used to carry; the stored
+    /// `(value, unit)` is untouched either way (D25).
     static func displayLabel(
         for weight: StoredWeight, in displayUnit: WeightUnit,
         locale: Locale = .current
     ) -> String {
         let converted = convert(weight.value, from: weight.unit, to: displayUnit)
         let number = displayNumber(converted, locale: locale)
-        let prefix = displayUnit == weight.unit ? "" : "≈"
-        return "\(prefix)\(number) \(displayUnit.rawValue)"
+        return "\(number) \(displayUnit.rawValue)"
     }
 
     /// Locale-independent, full-precision serialization (export/debug). Always

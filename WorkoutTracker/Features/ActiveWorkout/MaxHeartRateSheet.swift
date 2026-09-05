@@ -1,12 +1,12 @@
 import SwiftData
 import SwiftUI
 
-// Milestone 7, ticket 05 — where an estimated maximum heart rate becomes a
+// Milestone 7, ticket 05 — where a 220−age maximum heart rate becomes a
 // measured one (D45).
 //
-// The screen exists because the app marks estimated zones as estimated, and a
-// mark the user cannot act on is just nagging. Tapping "zone estimated" on the
-// heart-rate bar lands here.
+// Reached from "· edit zones" / "· set up zones" on the heart-rate bar and
+// from Settings. The screen no longer labels the formula's number
+// "(estimated)" (D52); the measured field is still what replaces it.
 
 struct MaxHeartRateSheet: View {
     @Environment(\.modelContext) private var modelContext
@@ -36,13 +36,13 @@ struct MaxHeartRateSheet: View {
                             displayedComponents: .date)
                     }
                 } header: {
-                    Text("Estimate")
+                    Text("Date of birth")
                 }
 
                 if let preview = resolvedPreview {
                     Section("Zones would use") {
                         LabeledContent("Maximum") {
-                            Text("\(preview.bpm) bpm\(preview.isEstimated ? " (estimated)" : "")")
+                            Text("\(preview.bpm) bpm")
                         }
                         ForEach([HeartRateZone.one, .two, .three, .four, .five], id: \.self) { zone in
                             LabeledContent(zone.label) {

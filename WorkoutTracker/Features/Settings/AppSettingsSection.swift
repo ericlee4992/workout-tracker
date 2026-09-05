@@ -81,9 +81,9 @@ struct AppSettingsSection: View {
             birthDate: preferences?.birthDate,
             at: .now)
         else { return "Not set" }
-        return resolved.isEstimated
-            ? "\(resolved.bpm) bpm (estimated)"
-            : "\(resolved.bpm) bpm"
+        // The basis (measured or 220−age) is still resolved and still
+        // decides the zones; the row no longer names it (D52).
+        return "\(resolved.bpm) bpm"
     }
 
     /// Binding onto the canonical persisted preference row. The row exists

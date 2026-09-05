@@ -179,7 +179,7 @@ struct WorkoutFinishedSheet: View {
         let unit = displayUnit
         guard unit != .kg else { return "\(WeightMath.displayNumber(kg)) kg" }
         let converted = WeightMath.convert(kg, from: .kg, to: unit)
-        return "≈\(WeightMath.displayNumber(converted)) \(unit.rawValue)"
+        return "\(WeightMath.displayNumber(converted)) \(unit.rawValue)"
     }
 
     @ViewBuilder
@@ -194,11 +194,7 @@ struct WorkoutFinishedSheet: View {
                 // Shown in the app's own unit, not always kg. Reported
                 // 2026-08-26: a user logging in lb saw their volume in kg,
                 // which is a number they cannot sanity-check against anything
-                // they typed.
-                //
-                // Marked `≈` when converted, per D9/D25 — volume is a derived
-                // number and, unlike a single set, the conversion is applied to
-                // a sum, so it is approximate twice over.
+                // they typed. Plain, no ≈ (D52).
                 statRow("Total volume", volumeLabel(summary.totalVolumeKg))
             }
             if let maximum = summary.maxHeartRate {
@@ -257,22 +253,12 @@ struct WorkoutFinishedSheet: View {
         .accessibilityLabel("\(title), \(value)")
     }
 
-    private var summaryZonesEstimated: Bool {
-        summary?.zonesFromEstimatedMax == true
-    }
-
     private func zoneRow(_ seconds: [Int]) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 4) {
-                Text("Time in zones")
-                    .font(.subheadline)
-                if summaryZonesEstimated {
-                    // D45, on the permanent record rather than only live.
-                    Text("(estimated)")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
+            // The record still knows whether these came from 220−age
+            // (`zonesFromEstimatedMax`); the screen no longer says so (D52).
+            Text("Time in zones")
+                .font(.subheadline)
             ForEach(HeartRateZone.allCases, id: \.self) { zone in
                 let value = zone.rawValue < seconds.count ? seconds[zone.rawValue] : 0
                 if value > 0 {

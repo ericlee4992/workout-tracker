@@ -307,12 +307,12 @@ struct HistoryRenderingTests {
         #expect(WeightMath.displayLabel(for: lb, in: .lb, locale: enUS) == "135 lb")
     }
 
-    @Test func convertedValuesAreApproximateMarked() throws {
+    @Test func convertedValuesArePlain() throws {
         let kg = try #require(StoredWeight(value: 60, unit: .kg))
         let lb = try #require(StoredWeight(value: 135, unit: .lb))
-        // 60 / 0.45359237 = 132.277… → ≈132.28 lb (2 decimals, half-up)
-        #expect(WeightMath.displayLabel(for: kg, in: .lb, locale: enUS) == "≈132.28 lb")
-        // 135 × 0.45359237 = 61.2349… → ≈61.23 kg
-        #expect(WeightMath.displayLabel(for: lb, in: .kg, locale: enUS) == "≈61.23 kg")
+        // 60 / 0.45359237 = 132.277… → 132.28 lb (2 decimals, half-up), no ≈ (D52)
+        #expect(WeightMath.displayLabel(for: kg, in: .lb, locale: enUS) == "132.28 lb")
+        // 135 × 0.45359237 = 61.2349… → 61.23 kg
+        #expect(WeightMath.displayLabel(for: lb, in: .kg, locale: enUS) == "61.23 kg")
     }
 }

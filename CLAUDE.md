@@ -24,7 +24,7 @@ Private iPhone workout tracker (solo developer, working with coding agents). Eve
 
 - Swift 5 / SwiftUI, iOS 17+, iPhone-only, portrait. No third-party runtime dependencies.
 - SwiftData models: CloudKit-compatible — UUID ids, optional relationships, **no** `@Attribute(.unique)`.
-- Units: never convert silently. Stored weights keep `(value, unit)` as entered plus `normalizedKg`. Converted display values are marked (≈).
+- Units: never convert silently. Stored weights keep `(value, unit)` as entered plus `normalizedKg`. Converted display values are shown plain (D52); what is stored is always what was entered.
 - PR/volume logic must respect exercise `loadType` (assisted: lower is better) and exclude warmups.
 - Pure logic (unit math, PR computation, fallback selection) lives in `Domain/` free of UI imports, unit-tested.
 

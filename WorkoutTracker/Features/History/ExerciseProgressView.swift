@@ -238,26 +238,18 @@ struct ExerciseProgressView: View {
         }
     }
 
-    /// The metric being viewed, in the honest form for it.
+    /// The metric being viewed. Best set is the number the user typed;
+    /// volume and 1RM are in the display unit, plain (D52 — the point still
+    /// records which units its contributors were entered in).
     private func calloutValue(_ point: ProgressPoint) -> String {
         switch metric {
         case .bestSet:
-            // As entered, with no ≈: this is the number the user typed.
             return asEntered(point)
         case .volume:
-            let value = inDisplayUnit(point.volumeKg)
-            // ≈ whenever any set in the sum was entered in another unit — the
-            // sum itself is exact, the conversion is not (D9/D25). A kg
-            // display is not exempt (codex-review 06b).
-            let converted = point.enteredUnits.contains { $0 != displayUnit }
-            return converted
-                ? "≈\(WeightMath.displayNumber(value)) \(displayUnit.rawValue)"
-                : "\(WeightMath.displayNumber(value)) \(displayUnit.rawValue)"
+            return "\(WeightMath.displayNumber(inDisplayUnit(point.volumeKg))) \(displayUnit.rawValue)"
         case .e1rm:
             guard let kg = point.e1rmKg else { return "—" }
-            let value = inDisplayUnit(kg)
-            // An estimate of a conversion. Never presented as measured.
-            return "≈\(WeightMath.displayNumber(value)) \(displayUnit.rawValue == "kg" ? "kg" : displayUnit.rawValue)"
+            return "\(WeightMath.displayNumber(inDisplayUnit(kg))) \(displayUnit.rawValue)"
         }
     }
 
@@ -273,21 +265,12 @@ struct ExerciseProgressView: View {
             appPreference: AppPreferences.canonical(of: rows)?.unitPreference)
     }
 
+    /// The axis unit, plain. It used to carry ≈ when any contributor to the
+    /// metric was entered in the other unit (codex-review 06b); D52 dropped
+    /// the mark, and `ProgressPoint` keeps the per-contributor units so it
+    /// could come back without guessing.
     private var unitSuffix: String {
-        // `≈` when ANY point's contributor to THIS metric was converted, per
-        // D9/D25. A kg axis is not exempt, and the contributor differs by
-        // metric: the best set for Best set, every set for Volume, the winning
-        // set for Est. 1RM (codex-review 06b). Once the footer that used to
-        // say so was removed (ticket 06), the axis label is the only place
-        // left to say it.
-        let converted = series.points.contains { point in
-            switch metric {
-            case .bestSet: point.bestUnit != nil && point.bestUnit != displayUnit
-            case .volume: point.enteredUnits.contains { $0 != displayUnit }
-            case .e1rm: point.e1rmUnit != nil && point.e1rmUnit != displayUnit
-            }
-        }
-        return converted ? " (≈\(displayUnit.rawValue))" : " (\(displayUnit.rawValue))"
+        " (\(displayUnit.rawValue))"
     }
 
     private var yLabel: String {
@@ -295,7 +278,7 @@ struct ExerciseProgressView: View {
         case .bestSet:
             resolvedVariation.loadType == .bodyweight ? "Reps" : series.loadAxisLabel + unitSuffix
         case .volume: "Volume" + unitSuffix
-        case .e1rm: "Estimated 1RM" + unitSuffix
+        case .e1rm: "1RM" + unitSuffix
         }
     }
 

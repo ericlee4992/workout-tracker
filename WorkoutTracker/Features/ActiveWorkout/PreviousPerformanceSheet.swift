@@ -96,7 +96,7 @@ struct PreviousPerformanceSheet: View {
 
                 if let estimate = summary.estimatedOneRepMax {
                     recordRow(
-                        label: "e1RM (Brzycki, est.)",
+                        label: "1RM (Brzycki)",
                         value: estimateLabel(estimate))
                     Text("From \(Format.weight(estimate.weightValue)) \(estimate.weightUnit.rawValue) × \(estimate.reps)")
                         .font(.caption2)
@@ -141,7 +141,7 @@ struct PreviousPerformanceSheet: View {
     private func estimateLabel(_ estimate: E1RMRecord) -> String {
         let value = WeightMath.convert(
             estimate.e1RMKg, from: .kg, to: estimate.weightUnit)
-        return "≈\(WeightMath.displayNumber(value)) \(estimate.weightUnit.rawValue)"
+        return "\(WeightMath.displayNumber(value)) \(estimate.weightUnit.rawValue)"
     }
 
     /// The variation every layer is scoped to (D36). Named in each header

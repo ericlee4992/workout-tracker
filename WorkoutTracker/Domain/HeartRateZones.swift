@@ -2,21 +2,20 @@ import Foundation
 
 // Milestone 7, ticket 01 — maximum heart rate and the five zones (D45).
 //
-// THE HONESTY RULE THIS FILE OWNS: a zone computed from an *estimated* maximum
-// is marked as estimated everywhere it reaches a screen, and with no basis at
-// all no zone is shown.
+// THE RULE THIS FILE OWNS: with no basis at all no zone is shown, and a zone
+// computed from a 220−age maximum CARRIES that fact (`isEstimated`,
+// `zonesFromEstimatedMax`) wherever the data goes — store, summary, export.
 //
-// What breaks if that is dropped: 220−age carries a standard deviation of about
-// ±10–12 bpm, so an unmarked "Zone 4" tells the user they trained near their
-// limit when they may have been two zones below it. That is the same falseness
-// D9/D25 refuse when they mark a converted weight with ≈ — one domain over,
-// and with a number the user cannot sanity-check by looking at a dumbbell.
+// Until D52 (2026-09-04) every screen also SAID it ("(estimated)"); the user
+// chose plain numbers, so screens no longer do. The flag stays because 220−age
+// carries a standard deviation of about ±10–12 bpm, and a future screen that
+// wants the mark back must be able to show it without guessing.
 
 /// A maximum heart rate and whether it was measured or guessed at.
 struct MaxHeartRate: Equatable, Sendable {
     let bpm: Int
     /// True when this came from the age formula rather than from the user.
-    /// Every surface that renders a zone must carry this through.
+    /// Carried through to the summary and the export; not shown (D52).
     let isEstimated: Bool
 }
 

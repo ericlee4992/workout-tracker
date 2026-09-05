@@ -1,6 +1,6 @@
 # 02 — Remove ≈ and "estimated" from every screen
 
-Status: in progress (2026-09-05)
+Status: built — awaiting Codex review
 Blocked by: 01
 Added 2026-09-04: "Don't use that; just show number. … get rid of any of those."
 
@@ -38,3 +38,34 @@ convention line; STATE.
 - Unit suite green in full; UI classes HeartRate, HeartRateSummary, Charts (tooltip + progress),
   HistoryEditing, CoreLoop green.
 - Codex clear.
+
+
+## Resolution (2026-09-05)
+
+Every on-screen mark is gone; `grep -rn "≈" WorkoutTracker/` finds comments only, and no string
+literal under `Features/` says "estimated", "(estimated)", "est." or "Estimate":
+
+- `WeightMath.displayLabel` — no prefix (History's convert toggle, set rows, everything that used it).
+- `WorkoutFinishedSheet` — volume plain ("9740 lb"); "Time in zones" without "(estimated)";
+  `summaryZonesEstimated` deleted.
+- `PreviousPerformanceSheet` — "1RM (Brzycki)", value plain.
+- `ExerciseProgressView` — tooltip volume/1RM plain, axis always "(unit)", metric "1RM"; the
+  contributor-unit scan in `unitSuffix` and `calloutValue` deleted (`ProgressPoint` keeps the fields).
+- `AppSettingsSection` — "184 bpm".
+- `HeartRateBar` — "· edit zones" (`hrZoneEdit`) keeps the mid-workout way to the measured field.
+- `MaxHeartRateSheet` — preview plain; section header "Date of birth".
+- Comments updated where they described the old screens: `WeightMath`, `HeartRateZones`, `Models`
+  (`measuredMaxHeartRate`), `WorkoutDetailView` (3), `WorkoutFinishedSheet`, `HeartRateBar`,
+  `MaxHeartRateSheet`.
+
+Data untouched: `MaxHeartRate.isEstimated`, `Workout.zonesFromEstimatedMax`, the export fields,
+`ProgressPoint.enteredUnits/bestUnit/e1rmUnit`. No model or file-format change.
+
+Docs: **D52** written; D9, D25 and D45 rows annotated as reopened by it (struck text, not deleted);
+SPEC lines 55/71/93; the CLAUDE.md convention line.
+
+Tests inverted, not deleted: `WeightMathTests` (3 assertions), `HistoryRenderingTests`
+(`convertedValuesArePlain`), `DisplayUnitTests` (`aConvertedDisplayIsPlain`). `ExportTests`' "no ≈
+in the file" and `CodexReviewRegressionTests` 1.1 (the data flag) untouched. **654 unit green.** UI: HeartRate (5) + HeartRateSummary (3) + ProgressChart (2) + ProgressChartTooltip
+(4) + CoreLoop (9) + HistoryEditing (2) — **25/25 green**, 2026-09-05, two chunks. Screenshot
+`workout-summary`: "Total volume 600 lb".

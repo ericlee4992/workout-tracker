@@ -96,7 +96,7 @@ struct HeartRateBar: View {
                 // a zone at all. Say that, rather than rendering nothing: the
                 // absent chip is indistinguishable from a broken one, and the
                 // screen that fixes it used to be reachable ONLY from the
-                // "zone estimated" button below — which needs a zone to exist.
+                // "edit zones" button below — which needs a zone to exist.
                 // A user who never set a maximum could therefore never set one.
                 Button(action: editMaxHeartRate) {
                     Text("· set up zones")
@@ -106,13 +106,15 @@ struct HeartRateBar: View {
                 .accessibilityIdentifier("hrZoneSetup")
             } else if monitor.maxHeartRate?.isEstimated == true, monitor.currentZone != nil {
                 Button(action: editMaxHeartRate) {
-                    // D45: a zone from 220−age is an estimate and says so. The
-                    // tap goes straight to the field that fixes it.
-                    Text("· zone estimated")
+                    // The zone is from 220−age; the tap goes straight to the
+                    // field that replaces the formula with a measured maximum.
+                    // It used to say "· zone estimated" — D52 keeps the way in
+                    // and drops the word.
+                    Text("· edit zones")
                         .underline()
                 }
                 .buttonStyle(.plain)
-                .accessibilityIdentifier("hrZoneEstimated")
+                .accessibilityIdentifier("hrZoneEdit")
             }
         }
         .font(.caption2)

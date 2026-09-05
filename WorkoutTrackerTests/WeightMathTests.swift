@@ -96,11 +96,13 @@ struct WeightMathTests {
         #expect(WeightMath.displayNumber(59.999, locale: posix) == "60")
     }
 
-    @Test func conversionDisplay_isMarkedApproximate() throws {
-        // 60 kg shown in lb = ≈132.28 lb (ticket verbatim).
+    @Test func conversionDisplay_isPlain() throws {
+        // 60 kg shown in lb = 132.28 lb. Used to be "≈132.28 lb"; D52
+        // dropped the mark at the user's request.
         let weight = try #require(StoredWeight(value: 60, unit: .kg))
         let label = WeightMath.displayLabel(for: weight, in: .lb, locale: posix)
-        #expect(label == "≈132.28 lb")
+        #expect(label == "132.28 lb")
+        #expect(!label.contains("≈"))
     }
 
     @Test func sameUnitDisplay_isNotMarked() throws {
@@ -116,7 +118,7 @@ struct WeightMathTests {
         #expect(WeightMath.displayNumber(62.5, locale: german) == "62,5")
 
         let weight = try #require(StoredWeight(value: 60, unit: .kg))
-        #expect(WeightMath.displayLabel(for: weight, in: .lb, locale: german) == "≈132,28 lb")
+        #expect(WeightMath.displayLabel(for: weight, in: .lb, locale: german) == "132,28 lb")
     }
 
     @Test func storage_isLocaleIndependent() throws {
@@ -135,7 +137,7 @@ struct WeightMathTests {
         // 60 kg → display in lb → storage is still exactly 60 kg.
         let weight = try #require(StoredWeight(value: 60, unit: .kg))
         let displayed = WeightMath.displayLabel(for: weight, in: .lb, locale: posix)
-        #expect(displayed == "≈132.28 lb")
+        #expect(displayed == "132.28 lb")
         #expect(weight.value == 60)
         #expect(weight.unit == .kg)
         #expect(weight.normalizedKg == 60)

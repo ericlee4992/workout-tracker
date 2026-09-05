@@ -30,8 +30,8 @@ struct WorkoutDetailView: View {
     /// exercise with nothing under it.
     @State private var pendingNewSet: SetRecord?
     /// Whole-view convert toggle (D9): nil shows every weight as entered;
-    /// a unit renders everything in that unit with conversions ≈-marked.
-    /// Display-only — storage is never touched.
+    /// a unit renders everything in that unit, plain (D52). Display-only —
+    /// storage is never touched.
     @State private var displayUnit: WeightUnit?
 
     var body: some View {
@@ -358,7 +358,7 @@ struct WorkoutDetailView: View {
     }
 
     /// Weight text for a set under the current toggle: as entered by default,
-    /// ≈-marked when rendered in the other unit (WeightMath, D25).
+    /// converted plain when rendered in the other unit (WeightMath, D25/D52).
     private func weightLabel(for set: SetRecord) -> String {
         guard let value = set.weightValue,
               let stored = StoredWeight(value: value, unit: set.weightUnit) else {
@@ -392,8 +392,8 @@ struct WorkoutDetailView: View {
     /// above it is the total, and always was; this only says where it came from.
     ///
     /// Shown as entered only. Under the convert toggle the numbers above are
-    /// ≈ values (D9/D25), and an ≈ sum of two ≈ parts reads as arithmetic the
-    /// app is claiming rather than reporting.
+    /// converted values (D9/D25), and a converted sum of two converted parts
+    /// reads as arithmetic the app is claiming rather than reporting.
     private func barBreakdown(for set: SetRecord) -> String? {
         guard displayUnit == nil || displayUnit == set.weightUnit,
               let bar = set.barWeightValue, let total = set.weightValue

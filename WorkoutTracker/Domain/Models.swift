@@ -667,7 +667,7 @@ final class AppPreferences {
     /// Whether notification permission has been requested (rest-timer alerts).
     var notificationPermissionRequested: Bool = false
     /// Measured maximum heart rate, if the user has one (D45). nil = fall back
-    /// to 220−age, **marked as estimated** everywhere it reaches a screen.
+    /// to 220−age, recorded as estimated in the data (not on screen, D52).
     var measuredMaxHeartRate: Int?
     /// Used only to estimate a maximum heart rate when none is measured. nil
     /// means no zones are shown at all — inventing an age to invent a zone

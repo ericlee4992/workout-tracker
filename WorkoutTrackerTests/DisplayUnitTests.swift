@@ -24,14 +24,16 @@ struct DisplayUnitTests {
         #expect(WeightMath.convert(135, from: .lb, to: .lb) == 135)
     }
 
-    /// D9/D25: a converted number is approximate and must say so. A volume is
-    /// approximate twice over — it is a sum, then converted.
-    @Test func aConvertedDisplayIsMarkedApproximate() {
+    /// D52: a converted number is shown plain — the ≈ that D9/D25 used to put
+    /// on it is gone at the user's request. The stored value is still the
+    /// as-entered one.
+    @Test func aConvertedDisplayIsPlain() {
         let stored = StoredWeight(value: 60, unit: .kg)!
         let sameUnit = WeightMath.displayLabel(for: stored, in: .kg)
         let converted = WeightMath.displayLabel(for: stored, in: .lb)
         #expect(!sameUnit.contains("≈"), "an as-entered value is exact")
-        #expect(converted.contains("≈"), "a converted value must be marked")
+        #expect(!converted.contains("≈"), "a converted value is plain (D52)")
+        #expect(converted.hasSuffix(" lb") && sameUnit == "60 kg")
     }
 
     /// The app-level default is what these surfaces follow: no machine and no
