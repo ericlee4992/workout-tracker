@@ -73,3 +73,9 @@ the first.
 Each ticket is built on this branch, then **Codex cross-reviews it (T6) before the next ticket
 starts**. Reviews go in `codex-review-NN.md` beside this file; every critical is fixed and
 regression-tested before moving on.
+
+## Shipped
+
+Merged to `main` 2026-09-04 (`97b656b`, fast-forward) and installed the same day. Six tickets, all
+Codex-clear (01: 4 rounds, 02: 4, 03: 3, 04: 4, 05: 6, 06: 4). The reclassification moved **18 sets**
+on the real store; the export taken just before it is in iCloud Drive.

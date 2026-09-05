@@ -1,20 +1,18 @@
 # Where the project is right now
 
-Updated 2026-09-04 (morning, milestone 9 installed on the phone from the branch). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-04 (evening — milestone 9 MERGED and on the phone). **START HERE IF YOU ARE COLD:**
 
-1. **Milestone 9 is BUILT on branch `milestone-9-history-and-summary` (pushed) and NOT merged, NOT
-   installed.** Five tickets: chart per equipment + History chart button (01), workout name (02),
+1. **Milestone 9 is MERGED into `main` (`97b656b`, 2026-09-04, fast-forward — `main` still has zero
+   merge commits) and INSTALLED on the phone.** Five tickets: chart per equipment + History chart button (01), workout name (02),
    History calendar (03), dumbbell exercises with a one-time history reclassification (04), and the
    finish summary with a heart-rate graph (05). **All five are Codex-clear** (4, 4, 3, 4 and 6
    rounds; every round's findings and responses are in the ticket files). A sixth ticket was added
    after the install — **06, remove the explanatory helper copy** (user's ask; scope A: tutorials
    go, consequences stay as single lines) — copy-only, **Codex-clear after four rounds** (the rounds turned
    up that several "tutorial" lines were consequences — they came back as single sentences, and
-   the chart's ≈ now follows each metric's real contributors). **The phone runs the tip BEFORE
-   ticket 06**, so it still shows the gray paragraphs; installing again is the fix, and it carries
-   no schema change.
-   **Merge = `git checkout main && git merge milestone-9-history-and-summary && git push`**
-   (fast-forward; `main` has zero merge commits). Merging is the user's call.
+   the chart's ≈ now follows each metric's real contributors). Ticket 06 is on the phone too (second
+   install of the day, no schema change). The branch `milestone-9-history-and-summary` is identical
+   to `main` and safe to delete; it is a stale pointer, like the milestone-7/8 branches.
 2. **Before installing this milestone on the phone: EXPORT FIRST.** D51's reclassification REWRITES
    snapshots on the user's only copy of their history (dumbbell-tagged sets of Bench Press etc.
    become Dumbbell Bench Press etc., with per-row provenance). Take a fresh CSV+JSON export to iCloud
@@ -22,8 +20,8 @@ Updated 2026-09-04 (morning, milestone 9 installed on the phone from the branch)
    provenance fields, `Workout.heartRateSeries`/basal, `AppPreferences` move record) — all optional,
    `LegacyStoreMigrationTests` opens the fixture, and the catalog moves to **version 5** (90
    exercises). Export schema is now **8**; CSV has **37** columns.
-3. **The phone now runs milestone 9 — branch tip `66bc7d4`, installed and launch-verified
-   2026-09-04 (morning), from an UNMERGED branch, exactly as the bar-weight build was in August.**
+3. **The phone runs `97b656b` = `main` — installed and launch-verified 2026-09-04 (evening),
+   after an earlier install of `66bc7d4` that morning (the milestone before ticket 06).**
    The user exported first (CSV+JSON to iCloud Drive, 2026-09-04) — that export is the backup that
    predates D51's reclassification. The launch opened the real store through four optional-field
    additions (`Workout.name`, entry provenance, `heartRateSeries`/basal, the preferences record) and
@@ -31,8 +29,9 @@ Updated 2026-09-04 (morning, milestone 9 installed on the phone from the branch)
    (user report, 2026-09-04) — so the reclassification found real dumbbell-tagged history and the
    export taken just before it is the record of what those 18 sets said before. Profiles still expire **2026-09-11 01:08 UTC** (this build reused the same
    profile; the clock did not move).
-4. **Suites on the branch tip: 643 unit green (run in full) and all 36 UI tests green** — run
-   2026-09-04 morning as the merge gate, in three pieces on the same commit (a single full run was
+4. **Suites on `main`: 644 unit green (run in full) and all 36 UI tests green** — the full UI
+   suite ran on the pre-06 tip as the merge gate, and every class ticket 06 touched (23 tests)
+   re-ran green on the final tip; run 2026-09-04 in three pieces (a single full run was
    killed twice at the harness's 10-minute foreground limit; the pieces were CoreLoop+Barbell+
    Dumbbell+Presets, then Presets+Export+HeartRate+Summary+Scan, then Calendar+HistoryEditing+
    Charts+Name). Whole-suite time is now ~22 minutes; run it in chunks under ten if the harness
@@ -83,10 +82,9 @@ stale fastest.
 
 ## Status
 
-Merged and pushed on `main`: **everything, including milestone 8** (`74dbbd9`, merged 2026-08-29 — fast-forward, so `main` still has zero merge commits). **568 unit + 27 UI green, both run in
-full on 2026-09-03** — the first complete UI run since 2026-08-29. The unit figure rose from 560 with
-the eight `ChartPresetScopingTests` added by `3ad382d`; the UI figure rose from 26 with the
-variation-picker test added the same day.
+Merged and pushed on `main`: **everything, including milestone 9** (`97b656b`, merged 2026-09-04 —
+fast-forward, so `main` still has zero merge commits). **644 unit + 36 UI green on 2026-09-04.**
+Milestone 9 added 76 unit tests and 9 UI tests across its six tickets (`.scratch/milestone-9-history-and-summary/`).
 **Milestones 7 and 8 are both MERGED into `main`** (2026-08-25 and 2026-08-29, both fast-forward —
 `main` still has zero merge commits). `milestone-7-heart-rate` and `milestone-8-history-and-charts`
 are **NOT** identical to `main` — as of 2026-08-29 they sit at `ca67603` (27 commits behind) and
@@ -102,6 +100,7 @@ believing `main` is pushed** — it was one commit ahead on 2026-08-29. `github.
 | Exercise presets (`33be96d`) | Grips / single-double as variations that **split records** (D36–D38) |
 | Collaboration setup (`b5dfac9`) | Signing moved to a gitignored `Config/Local.xcconfig`; CI runs unit tests on every PR |
 | Barbell bar weight (2026-08-22) | Pick the bar, type plates per side, log the total (D39–D40). Half of milestone 6, brought forward |
+| Milestone 9 (`97b656b`, 2026-09-04) | Chart per equipment + History chart button; workout name (D50); History calendar; 14 dumbbell exercises with the one-time reclassification of dumbbell-tagged history (D51, 18 sets moved on the real store); finish summary with total calories and a heart-rate graph, also in History; explanatory copy removed. Export schema 8, CSV 37 columns, catalog v5. 21+4 Codex rounds |
 
 **Milestone 7 — heart rate (D41–D45), committed on branch `milestone-7-heart-rate`.**
 Live HR on the workout screen from AirPods Pro 3 or an Apple
@@ -267,7 +266,7 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`5a860bc`** — **current with `main`**, installed and launch-verified **2026-09-03 21:09**. This build carries `3ad382d`, so the device now draws **one chart line per variation** (D36) with a Variation picker; the binary was checked for `chartVariationPicker` before installing, and no SwiftData model changed between `4eb5486` and here, so there was no migration. Previously `4eb5486` — the chart tooltip, one behind `main`. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
+| Installed commit | **`97b656b`** — **current with `main`**, installed and launch-verified **2026-09-04 (evening)**; the same day's morning install of `66bc7d4` (milestone 9 before ticket 06) ran the D51 reclassification on the real store — **18 sets moved** — with a CSV+JSON export taken to iCloud Drive immediately before it. Previously **`5a860bc`**, installed and launch-verified **2026-09-03 21:09**. This build carries `3ad382d`, so the device now draws **one chart line per variation** (D36) with a Variation picker; the binary was checked for `chartVariationPicker` before installing, and no SwiftData model changed between `4eb5486` and here, so there was no migration. Previously `4eb5486` — the chart tooltip, one behind `main`. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
 | Previously installed | `82a1ddb` (the working background rest alarm), 2026-08-25 02:11 |
 | Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
@@ -275,7 +274,7 @@ those sessions outranks new features.
 | Previously installed | Milestone 7's uncommitted working tree, 2026-08-22 23:45. It launched, so the D44/D43/D45 optional fields migrated the user's real store |
 | Previously installed | The bar-weight merge (2026-08-22, installed 16:31 — the content is what is now on `main`, built from the working tree just before the merge commit existed). Installed before its Codex pass at the user's request, with a backup taken first (below) |
 | Store migration | **Done on the real store, 2026-08-22.** `main` (`a3a6934`) was installed first so an export could be taken, then the branch build; it launched, so `SetRecord.barWeightValue` migrated the user's actual data. `a3a6934` can no longer open that store — the migrated schema is one-way without the export |
-| Backup | **Re-exported 2026-08-24 by the user, before the `barNormalizedKg` migration** — the current backup. Previously: CSV + JSON to iCloud Drive on 2026-08-22 before that schema change — the first copy of the training history off the device. Re-export after any session worth keeping |
+| Backup | **Re-exported 2026-09-04 by the user, immediately before the milestone-9 install and its D51 reclassification** — the current backup, and the record of what the 18 moved sets said before. Previously 2026-08-24, before the `barNormalizedKg` migration. Previously: CSV + JSON to iCloud Drive on 2026-08-22 before that schema change — the first copy of the training history off the device. Re-export after any session worth keeping |
 | Previous installed commit | `33be96d` (2026-08-12) — export, live label scanning, movement labels, presets |
 | iPhone UDID | `00008130-001E10C01E62001C` |
 | Apple Team ID | `X68M8SR6NA` — now in `Config/Local.xcconfig` (gitignored), **not** in `project.pbxproj` |
