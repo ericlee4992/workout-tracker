@@ -166,7 +166,7 @@ believing `main` is pushed** — it was one commit ahead on 2026-08-29. `github.
 |---|---|
 | Milestone 2 (`ce32158`) | Core loop on SwiftData — logging, prefill, PRs, snapshots, rest timer |
 | Milestone 3 (`798372c`) | CSV/JSON export, D28–D32 — the only backup that exists |
-| Label scanning (`64188e2`, `33be96d`) | Live camera reads a machine's name plate, ranks the 1877-model catalog, user confirms (D33–D35) |
+| Label scanning (`64188e2`, `33be96d`; capture-first + reading repair 2026-09-05) | Viewfinder with a framing box and a shutter reads one still of a machine's name plate inside the box, repairs logo misreads, ranks the 1877-model catalog, user confirms (D33–D35) |
 | Exercise presets (`33be96d`) | Grips / single-double as variations that **split records** (D36–D38) |
 | Collaboration setup (`b5dfac9`) | Signing moved to a gitignored `Config/Local.xcconfig`; CI runs unit tests on every PR |
 | Barbell bar weight (2026-08-22) | Pick the bar, type plates per side, log the total (D39–D40). Half of milestone 6, brought forward |
