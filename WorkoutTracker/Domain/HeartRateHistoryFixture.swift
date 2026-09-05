@@ -12,15 +12,23 @@ import SwiftData
 // series. This is that, and it is what the History screenshot compares
 // against the Apple Fitness reference.
 //
-// Tagged as fixture data by being seeded only under the argument, which also
-// selects the throwaway UI-test container; it can never reach a real store.
+// Fixture data must never reach a real store. The argument does NOT itself
+// select the throwaway container — only `-uiTestReset` does — so enablement
+// requires BOTH (codex-review 01, high: the flag alone would have seeded a
+// fake workout into the user's own history on a phone with none).
 
 enum HeartRateHistoryFixture {
 
     static let launchArgument = "-uiTestHeartRateHistory"
 
     static var isEnabled: Bool {
-        ProcessInfo.processInfo.arguments.contains(launchArgument)
+        isEnabled(arguments: ProcessInfo.processInfo.arguments)
+    }
+
+    /// True only when the fixture is asked for AND the store is the wiped
+    /// UI-test one. Pure, so the guard is testable without relaunching.
+    static func isEnabled(arguments: [String]) -> Bool {
+        arguments.contains(launchArgument) && arguments.contains(WorkoutTrackerStore.uiTestResetArgument)
     }
 
     static let durationMinutes = 60

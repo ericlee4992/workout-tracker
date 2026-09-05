@@ -245,6 +245,8 @@ struct ExportCollector {
         let entries = (workout.entries ?? [])
             .sorted { ($0.order, $0.id.uuidString) < ($1.order, $1.id.uuidString) }
             .map { entry(from: $0, modelsByID: modelsByID) }
+        let range = HeartRateSeriesMath.exportableRange(
+            mean: workout.heartRateSeries, low: workout.heartRateSeriesLow, high: workout.heartRateSeriesHigh)
         return ExportSnapshot.Workout(
             id: workout.id,
             startedAt: dateFormat.string(from: workout.startedAt),
@@ -271,8 +273,12 @@ struct ExportCollector {
             zonesFromEstimatedMax: workout.zonesFromEstimatedMax,
             heartRateSeries: workout.heartRateSeries.isEmpty ? nil : workout.heartRateSeries,
             heartRateSeriesIntervalSeconds: workout.heartRateSeries.isEmpty ? nil : workout.heartRateSeriesIntervalSeconds,
-            heartRateSeriesLow: workout.heartRateSeriesLow.isEmpty ? nil : workout.heartRateSeriesLow,
-            heartRateSeriesHigh: workout.heartRateSeriesHigh.isEmpty ? nil : workout.heartRateSeriesHigh,
+            // v9: the range pair is only meaningful beside the mean it
+            // brackets, so it travels as a pair matching the mean's length or
+            // not at all (codex-review 01). A lone or mismatched array in a
+            // backup would be a range of nothing.
+            heartRateSeriesLow: range?.low,
+            heartRateSeriesHigh: range?.high,
             basalEnergyKilocalories: workout.basalEnergyKilocalories)
     }
 

@@ -21,7 +21,15 @@ enum ChartFixture {
     static let launchArgument = "-uiTestChartHistory"
 
     static var isEnabled: Bool {
-        ProcessInfo.processInfo.arguments.contains(launchArgument)
+        isEnabled(arguments: ProcessInfo.processInfo.arguments)
+    }
+
+    /// The same guard `HeartRateHistoryFixture` has (codex-review 01 of the
+    /// finish graph): the argument alone never selected the throwaway store,
+    /// so without `-uiTestReset` this would have seeded four weeks of fake
+    /// history into a real one. Requires both.
+    static func isEnabled(arguments: [String]) -> Bool {
+        arguments.contains(launchArgument) && arguments.contains(WorkoutTrackerStore.uiTestResetArgument)
     }
 
     /// The exercise the fixture logs against — a seeded catalog row, so the

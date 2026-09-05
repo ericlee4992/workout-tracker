@@ -110,7 +110,7 @@ believing `main` is pushed** — it was one commit ahead on 2026-08-29. `github.
 | Exercise presets (`33be96d`) | Grips / single-double as variations that **split records** (D36–D38) |
 | Collaboration setup (`b5dfac9`) | Signing moved to a gitignored `Config/Local.xcconfig`; CI runs unit tests on every PR |
 | Barbell bar weight (2026-08-22) | Pick the bar, type plates per side, log the total (D39–D40). Half of milestone 6, brought forward |
-| Milestone 9 (`97b656b`, 2026-09-04) | Chart per equipment + History chart button; workout name (D50); History calendar; 14 dumbbell exercises with the one-time reclassification of dumbbell-tagged history (D51, 18 sets moved on the real store); finish summary with total calories and a heart-rate graph, also in History; explanatory copy removed. Export schema 8, CSV 37 columns, catalog v5. 21+4 Codex rounds |
+| Milestone 9 (`97b656b`, 2026-09-04) | Chart per equipment + History chart button; workout name (D50); History calendar; 14 dumbbell exercises with the one-time reclassification of dumbbell-tagged history (D51, 18 sets moved on the real store); finish summary with total calories and a heart-rate graph, also in History; explanatory copy removed. Export schema 8 (9 since the finish-graph work, 2026-09-04), CSV 37 columns, catalog v5. 21+4 Codex rounds |
 
 **Milestone 7 — heart rate (D41–D45), committed on branch `milestone-7-heart-rate`.**
 Live HR on the workout screen from AirPods Pro 3 or an Apple

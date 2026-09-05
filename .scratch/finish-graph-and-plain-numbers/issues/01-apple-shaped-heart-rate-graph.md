@@ -87,3 +87,25 @@ means stand in, mismatched range ignored; the fixture is well-formed, determinis
 plus the capture and export tests extended and the three `schemaVersion == 8` assertions moved to
 9. **649 unit green.** UI: HeartRateSummary (3, one new) + HeartRate (5) + CoreLoop (9) +
 HistoryEditing (2) — **19/19 green**, run 2026-09-04 in two pieces.
+
+
+## Codex review 01 — response (2026-09-04)
+
+`codex-review-01.md`: 1 high, 2 medium (spec), 1 medium (standards). All four real, all fixed:
+
+- **Fixture flag alone seeded a real store (high).** True: only `-uiTestReset` selects the
+  throwaway container, and `isEnabled` checked its own flag only. Now `isEnabled(arguments:)`
+  requires both, pure and tested — and **`ChartFixture` had the identical hole since milestone 8**,
+  fixed the same way in the same commit (outside the boundary, but the same defect one file over).
+- **Export could carry a lone or mismatched range (medium).** `HeartRateSeriesMath.exportableRange`
+  returns the pair only when both arrays match the mean's length; `ExportCollector` writes both or
+  neither. Test: a `[95]` low beside a two-bucket mean exports no range at all.
+- **Corrupt duration left a slot past the plot that still set the axis (medium).** A positive
+  `durationSeconds` is now a horizon: slots starting at or past it are dropped, every kept slot ends
+  within it; non-positive means no horizon. Test: `[120, 190]` with duration 10 draws one slot and
+  the axis tops at 125.
+- **STATE and SPEC still said schema 8 (medium, standards).** Both now say 9 and what 9 adds.
+
+**652 unit green** (+3 regressions). UI: HeartRateSummary + ProgressChart + ProgressChartTooltip
+(the fixture-driven classes, 9 tests) re-run green; HistoryCalendar (the fourth class on the chart
+fixture) run separately, see below.

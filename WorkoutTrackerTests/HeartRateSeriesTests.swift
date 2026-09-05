@@ -164,6 +164,54 @@ struct HeartRateSeriesTests {
         ).count <= HeartRateSeriesMath.defaultMaxSlots)
     }
 
+    // MARK: codex-review 01 of the finish graph
+
+    /// The screenshot fixtures may only ever seed the wiped UI-test store.
+    /// The flag alone never selected it (high): without `-uiTestReset` it
+    /// would have written a fake workout into a real, empty history.
+    @Test func aFixtureFlagWithoutTheResetFlagSeedsNothing() {
+        #expect(!HeartRateHistoryFixture.isEnabled(arguments: [HeartRateHistoryFixture.launchArgument]))
+        #expect(HeartRateHistoryFixture.isEnabled(arguments: ["-uiTestReset", HeartRateHistoryFixture.launchArgument]))
+        #expect(!HeartRateHistoryFixture.isEnabled(arguments: ["-uiTestReset"]))
+        // The older chart fixture had the identical hole.
+        #expect(!ChartFixture.isEnabled(arguments: [ChartFixture.launchArgument]))
+        #expect(ChartFixture.isEnabled(arguments: ["-uiTestReset", ChartFixture.launchArgument]))
+    }
+
+    /// A slot that starts at or past a (corrupt) duration is dropped, and
+    /// every kept slot ends within it — an invisible slot beyond the plot
+    /// must not set the visible axis (medium).
+    @Test func slotsBeyondTheWorkoutsDurationAreDroppedNotDrawnOffPlot() {
+        let slots = HeartRateSeriesMath.displaySlots(
+            mean: [120, 190], low: [118, 185], high: [125, 195], intervalSeconds: 15, durationSeconds: 10)
+        #expect(slots.count == 1)
+        #expect(slots.first?.endSeconds == 10)
+        #expect(HeartRateSeriesMath.range(of: slots) == 118...125, "the 190 bucket past the end cannot reach the axis")
+        // No horizon known: nothing is clipped.
+        let unclipped = HeartRateSeriesMath.displaySlots(
+            mean: [120, 190], low: [], high: [], intervalSeconds: 15, durationSeconds: 0)
+        #expect(unclipped.map(\.endSeconds) == [15, 30])
+    }
+
+    /// The export carries the range pair only beside a mean of the same
+    /// length — both arrays or neither (medium).
+    @Test @MainActor func theExportOmitsALoneOrMismatchedRangeAsAPair() throws {
+        #expect(HeartRateSeriesMath.exportableRange(mean: [1, 2], low: [1, 2], high: [1, 2]) != nil)
+        #expect(HeartRateSeriesMath.exportableRange(mean: [1, 2], low: [1], high: [1, 2]) == nil)
+        #expect(HeartRateSeriesMath.exportableRange(mean: [1, 2], low: [1, 2], high: []) == nil)
+        #expect(HeartRateSeriesMath.exportableRange(mean: [], low: [1], high: [1]) == nil, "a range with no mean")
+
+        let ctx = try context()
+        let workout = Workout(startedAt: start, finishedAt: start.addingTimeInterval(60),
+                              averageHeartRate: 130, heartRateSeries: [100, 140], heartRateSeriesIntervalSeconds: 15,
+                              heartRateSeriesLow: [95], heartRateSeriesHigh: [104, 146])
+        ctx.insert(workout)
+        try ctx.save()
+        let exported = try #require(try ExportCollector(appVersion: "test").snapshot(from: ctx).workouts.first)
+        #expect(exported.heartRateSeries == [100, 140], "the mean still travels")
+        #expect(exported.heartRateSeriesLow == nil && exported.heartRateSeriesHigh == nil, "a mismatched pair is dropped whole")
+    }
+
     // MARK: Total energy
 
     @Test func totalCaloriesNeedsBothHalves() {

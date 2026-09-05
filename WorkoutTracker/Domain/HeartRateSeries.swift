@@ -139,8 +139,12 @@ enum HeartRateSeriesMath {
     /// and an unmerged one is a flat tick at the mean. They are ignored, not
     /// trusted, when their length disagrees with `mean`.
     ///
-    /// The last slot ends at `durationSeconds` when the workout ended inside
-    /// it, so a 31 s workout is not drawn as 45 s (codex-review 05).
+    /// `durationSeconds` is the horizon when positive: a slot starting at or
+    /// past it is not returned at all, and every returned slot ends no later
+    /// than it, so a 31 s workout is not drawn as 45 s (codex-review 05) and
+    /// a corrupt duration shorter than its own series cannot put an invisible
+    /// slot beyond the plot that still sets the axis (codex-review 01). A
+    /// non-positive duration means no horizon is known and nothing is clipped.
     static func displaySlots(
         mean: [Int], low: [Int], high: [Int],
         intervalSeconds: Int, durationSeconds: Int,
@@ -168,12 +172,22 @@ enum HeartRateSeriesMath {
             guard lowest != Int.max else { continue }
             let start = first * interval
             let end = last * interval
-            let clampedEnd = durationSeconds > start ? min(end, durationSeconds) : end
+            if durationSeconds > 0, start >= durationSeconds { break }
+            let clampedEnd = durationSeconds > 0 ? min(end, durationSeconds) : end
             slots.append(DisplaySlot(
                 index: slot, startSeconds: start, endSeconds: clampedEnd,
                 low: lowest, high: max(lowest, highest)))
         }
         return slots
+    }
+
+    /// The range pair as a backup may carry it: both arrays, each the mean's
+    /// length, or neither. nil for a mean-only workout AND for any workout
+    /// whose arrays disagree — a lone or mismatched range is not evidence of
+    /// anything and must not be written as if it were (codex-review 01).
+    static func exportableRange(mean: [Int], low: [Int], high: [Int]) -> (low: [Int], high: [Int])? {
+        guard !mean.isEmpty, low.count == mean.count, high.count == mean.count else { return nil }
+        return (low, high)
     }
 
     /// The bpm the drawn slots actually span — the chart's own axis, not
