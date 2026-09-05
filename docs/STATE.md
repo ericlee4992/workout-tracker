@@ -1,6 +1,6 @@
 # Where the project is right now
 
-Updated 2026-09-04 (evening — milestone 9 MERGED and on the phone). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-04 (end of day — milestone 9 MERGED, on the phone, session handed off). **START HERE IF YOU ARE COLD:**
 
 1. **Milestone 9 is MERGED into `main` (`97b656b`, 2026-09-04, fast-forward — `main` still has zero
    merge commits) and INSTALLED on the phone.** Five tickets: chart per equipment + History chart button (01), workout name (02),
@@ -13,13 +13,23 @@ Updated 2026-09-04 (evening — milestone 9 MERGED and on the phone). **START HE
    the chart's ≈ now follows each metric's real contributors). Ticket 06 is on the phone too (second
    install of the day, no schema change). The branch `milestone-9-history-and-summary` is identical
    to `main` and safe to delete; it is a stale pointer, like the milestone-7/8 branches.
-2. **Before installing this milestone on the phone: EXPORT FIRST.** D51's reclassification REWRITES
-   snapshots on the user's only copy of their history (dumbbell-tagged sets of Bench Press etc.
-   become Dumbbell Bench Press etc., with per-row provenance). Take a fresh CSV+JSON export to iCloud
-   Drive, then install. Two schema additions ride along (`Workout.name`, `ExerciseEntry`
-   provenance fields, `Workout.heartRateSeries`/basal, `AppPreferences` move record) — all optional,
-   `LegacyStoreMigrationTests` opens the fixture, and the catalog moves to **version 5** (90
-   exercises). Export schema is now **8**; CSV has **37** columns.
+2. **Nothing is in flight. Next session's likely first actions, in order:**
+   - **Ask the user what the phone shows now.** Unseen by anyone but them: the charts against real
+     history (variation picker naming their actual grips/equipment), a moved session's
+     "Reclassified from …" line, the finish sheet's tiles and heart-rate graph after a REAL
+     workout (the fixture drew 3 bars; a real hour is ~240), the calendar, naming a workout.
+   - **The free Apple Watch experiment** (further down): one workout wearing the watch with nothing
+     installed on it, read the source label. Still the single cheapest, highest-value unknown; it
+     decides whether `WorkoutTrackerWatch/` is deleted.
+   - Then the backlog: milestone 6's second half (plate math, stack increments), the milestone-8
+     leftovers (superset reorder, superset grouping in History), the deferred watch companion.
+   - **CI: the user said to leave the hanging runner alone (2026-09-04).** Do not spend time on it
+     unless asked; the local suites are the gate (CLAUDE.md). The note under Environment gotchas
+     stays so nobody rediscovers it.
+   - **Housekeeping the user may want:** delete the three stale branch pointers
+     (`milestone-7-heart-rate`, `milestone-8-history-and-charts`, `milestone-9-history-and-summary`
+     — all fully contained in `main`); close the Orca terminal "Codex review 01", which is still
+     open with the whole review history in it.
 3. **The phone runs `97b656b` = `main` — installed and launch-verified 2026-09-04 (evening),
    after an earlier install of `66bc7d4` that morning (the milestone before ticket 06).**
    The user exported first (CSV+JSON to iCloud Drive, 2026-09-04) — that export is the backup that
@@ -535,8 +545,8 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   (locally the suite takes 18 s). Every earlier step passes (toolchain check, simulator pick), so
   it is the hosted `macos-26` image or a stuck simulator there, not the code — the same commits are
   green locally (644 unit, 36 UI). CI is a smoke alarm here, not a gate (CLAUDE.md); the local run is
-  the gate. Open item: read the uploaded `xcodebuild.log` artifact from a timed-out run to see where
-  it stalls, and consider a per-step timeout well under 60 minutes so a stuck runner fails fast.
+  the gate. **The user chose not to chase this (2026-09-04).** If it is ever picked up: read the uploaded
+  `xcodebuild.log` artifact from a timed-out run, and add a per-step timeout well under 60 minutes.
 
 - **CI needs `macos-26`; `macos-15` cannot build this project at all.** D42 raised
   `IPHONEOS_DEPLOYMENT_TARGET` to 26.0 for the iPhone `HKWorkoutSession` API, and `macos-15` ships
