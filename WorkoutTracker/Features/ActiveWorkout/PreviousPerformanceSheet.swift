@@ -139,9 +139,7 @@ struct PreviousPerformanceSheet: View {
     }
 
     private func estimateLabel(_ estimate: E1RMRecord) -> String {
-        let value = WeightMath.convert(
-            estimate.e1RMKg, from: .kg, to: estimate.weightUnit)
-        return "\(WeightMath.displayNumber(value)) \(estimate.weightUnit.rawValue)"
+        WeightMath.displayLabel(kilograms: estimate.e1RMKg, in: estimate.weightUnit)
     }
 
     /// The variation every layer is scoped to (D36). Named in each header

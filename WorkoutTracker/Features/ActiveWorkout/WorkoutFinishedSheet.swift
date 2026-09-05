@@ -176,10 +176,7 @@ struct WorkoutFinishedSheet: View {
     }
 
     private func volumeLabel(_ kg: Double) -> String {
-        let unit = displayUnit
-        guard unit != .kg else { return "\(WeightMath.displayNumber(kg)) kg" }
-        let converted = WeightMath.convert(kg, from: .kg, to: unit)
-        return "\(WeightMath.displayNumber(converted)) \(unit.rawValue)"
+        WeightMath.displayLabel(kilograms: kg, in: displayUnit)
     }
 
     @ViewBuilder

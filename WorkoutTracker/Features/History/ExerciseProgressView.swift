@@ -40,7 +40,7 @@ struct ExerciseProgressView: View {
     enum Metric: String, CaseIterable, Identifiable {
         case bestSet = "Best set"
         case volume = "Volume"
-        case e1rm = "Est. 1RM"
+        case e1rm = "1RM"
         var id: String { rawValue }
     }
 
@@ -246,10 +246,10 @@ struct ExerciseProgressView: View {
         case .bestSet:
             return asEntered(point)
         case .volume:
-            return "\(WeightMath.displayNumber(inDisplayUnit(point.volumeKg))) \(displayUnit.rawValue)"
+            return WeightMath.displayLabel(kilograms: point.volumeKg, in: displayUnit)
         case .e1rm:
             guard let kg = point.e1rmKg else { return "—" }
-            return "\(WeightMath.displayNumber(inDisplayUnit(kg))) \(displayUnit.rawValue)"
+            return WeightMath.displayLabel(kilograms: kg, in: displayUnit)
         }
     }
 

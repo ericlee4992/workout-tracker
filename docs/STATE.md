@@ -1,6 +1,36 @@
 # Where the project is right now
 
-Updated 2026-09-04 (end of day — milestone 9 MERGED, on the phone, session handed off). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-05 (early morning — the finish-graph branch is built and Codex-reviewed, NOT yet
+merged or installed). **START HERE IF YOU ARE COLD:**
+
+0. **Branch `finish-graph-and-plain-numbers` (off `main` = `af0a52a`), two tickets in
+   `.scratch/finish-graph-and-plain-numbers/`, from the user's first real workout on the
+   milestone-9 build (66:51, avg 122, max 141):**
+   - **01 — the heart-rate graph redrawn in Apple Fitness's shape.** Thin floating range bars
+     (per-bucket LOW/HIGH beside the mean — two new `[Int]` on `Workout`, **export schema 9**),
+     merged to at most 110 slots, the axis labelled only at the drawn low/high, clock times, the
+     average under the plot. `-uiTestHeartRateHistory` seeds a 60-minute series for the
+     screenshot (`history-heart-rate-hour`). **Codex clear after 3 rounds** (01, 01b, 01c); round 1
+     found that a fixture flag ALONE never selected the throwaway store — `-uiTestChartHistory`
+     had the same hole since milestone 8 — now one guard, `WorkoutTrackerStore.fixtureIsEnabled`.
+   - **02 — plain numbers: every on-screen ≈ and "(estimated)" removed, D52.** The user's call,
+     twice ("just show number"). Data provenance untouched (`isEstimated`,
+     `zonesFromEstimatedMax`, `ProgressPoint`'s per-contributor units, the export). D9/D25/D45
+     rows annotated. Codex round 1 (`codex-review-02.md`) found "Est. 1RM" surviving in the chart's
+     metric picker, four stale STATE lines, a D45 row that contradicted itself and a D52 clause
+     that overstated "no conversion is stored" — all fixed in the round-2 commit; **round 2 in
+     progress or done: read `codex-review-02b.md` if it exists.**
+   - **Not merged, not installed.** Merging is a fast-forward (`git checkout main && git merge
+     finish-graph-and-plain-numbers && git push`); the branch is pushed. **Installing needs an export
+     first** — 01 adds two optional arrays to `Workout` (lightweight migration, gate green on the
+     phone-shaped fixture) — then the three-command device install below. The phone still runs
+     `97b656b`; its profile expires **2026-09-11 01:08 UTC**.
+   - Housekeeping from the last handoff is DONE (2026-09-04): the three stale milestone branches
+     are deleted locally and on GitHub; the old "Codex review 01" terminal is closed. The live Codex
+     terminal is "Codex review — finish graph".
+   - **Lesson (memory too):** detect a finished Codex review by the report FILE's mtime, never by
+     `orca terminal wait --for tui-idle` — it never fires while Codex sits at "Worked for …", and the
+     user had to relay three results before that was noticed.
 
 1. **Milestone 9 is MERGED into `main` (`97b656b`, 2026-09-04, fast-forward — `main` still has zero
    merge commits) and INSTALLED on the phone.** Five tickets: chart per equipment + History chart button (01), workout name (02),
@@ -10,7 +40,7 @@ Updated 2026-09-04 (end of day — milestone 9 MERGED, on the phone, session han
    after the install — **06, remove the explanatory helper copy** (user's ask; scope A: tutorials
    go, consequences stay as single lines) — copy-only, **Codex-clear after four rounds** (the rounds turned
    up that several "tutorial" lines were consequences — they came back as single sentences, and
-   the chart's ≈ now follows each metric's real contributors). Ticket 06 is on the phone too (second
+   the chart's ≈ followed each metric's real contributors — until D52 removed every ≈ the next day). Ticket 06 is on the phone too (second
    install of the day, no schema change). The branch `milestone-9-history-and-summary` is identical
    to `main` and safe to delete; it is a stale pointer, like the milestone-7/8 branches.
 2. **Nothing is in flight. Next session's likely first actions, in order:**
@@ -26,10 +56,8 @@ Updated 2026-09-04 (end of day — milestone 9 MERGED, on the phone, session han
    - **CI: the user said to leave the hanging runner alone (2026-09-04).** Do not spend time on it
      unless asked; the local suites are the gate (CLAUDE.md). The note under Environment gotchas
      stays so nobody rediscovers it.
-   - **Housekeeping the user may want:** delete the three stale branch pointers
-     (`milestone-7-heart-rate`, `milestone-8-history-and-charts`, `milestone-9-history-and-summary`
-     — all fully contained in `main`); close the Orca terminal "Codex review 01", which is still
-     open with the whole review history in it.
+   - ~~Housekeeping: delete the three stale branch pointers; close the "Codex review 01" terminal.~~
+     **Done 2026-09-04** (point 0).
 3. **The phone runs `97b656b` = `main` — installed and launch-verified 2026-09-04 (evening),
    after an earlier install of `66bc7d4` that morning (the milestone before ticket 06).**
    The user exported first (CSV+JSON to iCloud Drive, 2026-09-04) — that export is the backup that
@@ -39,7 +67,9 @@ Updated 2026-09-04 (end of day — milestone 9 MERGED, on the phone, session han
    (user report, 2026-09-04) — so the reclassification found real dumbbell-tagged history and the
    export taken just before it is the record of what those 18 sets said before. Profiles still expire **2026-09-11 01:08 UTC** (this build reused the same
    profile; the clock did not move).
-4. **Suites on `main`: 644 unit green (run in full) and all 36 UI tests green** — the full UI
+4. **Suites: `main` 644 unit + 36 UI green (2026-09-04); the finish-graph branch 655 unit green in full,
+   and the six UI classes its screens touch (25 tests) green — the whole UI suite (now 37) has NOT
+   been run on the branch.** On `main`, the full UI
    suite ran on the pre-06 tip as the merge gate, and every class ticket 06 touched (23 tests)
    re-ran green on the final tip; run 2026-09-04 in three pieces (a single full run was
    killed twice at the harness's 10-minute foreground limit; the pieces were CoreLoop+Barbell+
@@ -166,8 +196,8 @@ that reference were raised and explicitly left as-is: sub-50% renders "Warm-up" 
 and a bpm above the recorded maximum stays Zone 5 rather than erroring.
 
 Not established: whether the user supplied a MEASURED maximum or the date-of-birth estimate, so
-the DOB path (see the test gap below) is still unconfirmed either way. Also still unseen: the
-"(estimated)" marking that D45 requires when the basis is 220−age.
+the DOB path (see the test gap below) is still unconfirmed either way. (The "(estimated)" marking
+D45 used to require on screen was removed by D52 on 2026-09-05 — nothing left to see there.)
 
 ### The background rest alarm — four attempts, and why the first three failed
 
@@ -236,8 +266,8 @@ sheet's `onDismiss`. Two regression tests in `HeartRateUITests` (`testZonesCanBe
 
 One gap, deliberately: the setup test drives the MEASURED-max field, not the date-of-birth toggle. `app.switches["useBirthDate"].tap()` lands on the row label and does not flip the switch — an XCUITest quirk, not an app defect, but it means the DOB path is untested and it is the path a user without a lab test actually takes. Zones themselves are confirmed working on
 the device (2026-08-24), but the user did not say which basis they entered, so this gap is still
-open: if the DOB toggle was never used, neither it nor the "(estimated)" marking has been exercised
-by anything.
+open: if the DOB toggle was never used, it has not been exercised by anything (the on-screen
+"(estimated)" marking it used to drive is gone since D52).
 
 **This is the same class as the watch rest-countdown bug below** — every piece individually
 correct, the *absence of a caller* the only defect — and again two Codex rounds did not catch it.
@@ -390,9 +420,8 @@ not be rediscovered as surprises:
    - ~~Which sensor produced it?~~ **Answered 2026-08-24: AirPods.** The design holds as written.
    - ~~Do the **zones** look right?~~ **Answered 2026-08-24: yes**, on the device, after the
      reachability fix. Boundaries were also cross-checked against an outside reference and match.
-     What is still open is narrower: **is the "(estimated)" marking visible** when the basis is a
-     date of birth rather than a measured maximum (D45)? That is the one part of the zone feature
-     no one has seen work.
+     What was still open — whether the "(estimated)" marking showed for a date-of-birth basis —
+     is moot since D52 (2026-09-05) removed the marking; the DOB toggle itself is still unexercised.
    - ~~Is the **calorie** number plausible?~~ **Reported slightly high, 2026-08-24 — no code
      change made, deliberately.** The app never computes calories: it reads the system's own
      `activeEnergyBurned` from `HKLiveWorkoutBuilder`, already configured

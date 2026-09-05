@@ -105,6 +105,14 @@ struct WeightMathTests {
         #expect(!label.contains("≈"))
     }
 
+    /// The one renderer for derived kg figures (volume, 1RM) — codex-review 02
+    /// of the finish graph: three screens had their own copy of this line.
+    @Test func canonicalKilogramsRenderPlainInTheDisplayUnit() {
+        #expect(WeightMath.displayLabel(kilograms: 4_417.99, in: .lb, locale: posix) == "9740 lb")
+        #expect(WeightMath.displayLabel(kilograms: 60, in: .kg, locale: posix) == "60 kg")
+        #expect(!WeightMath.displayLabel(kilograms: 60, in: .lb, locale: posix).contains("≈"))
+    }
+
     @Test func sameUnitDisplay_isNotMarked() throws {
         let weight = try #require(StoredWeight(value: 60, unit: .kg))
         #expect(WeightMath.displayLabel(for: weight, in: .kg, locale: posix) == "60 kg")

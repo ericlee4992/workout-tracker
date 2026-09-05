@@ -69,3 +69,25 @@ Tests inverted, not deleted: `WeightMathTests` (3 assertions), `HistoryRendering
 in the file" and `CodexReviewRegressionTests` 1.1 (the data flag) untouched. **654 unit green.** UI: HeartRate (5) + HeartRateSummary (3) + ProgressChart (2) + ProgressChartTooltip
 (4) + CoreLoop (9) + HistoryEditing (2) — **25/25 green**, 2026-09-05, two chunks. Screenshot
 `workout-summary`: "Total volume 600 lb".
+
+
+## Codex review 02 — response (2026-09-05)
+
+`codex-review-02.md`: 2 medium, 5 low. All seven real, all fixed:
+
+- **"Est. 1RM" survived in the chart's metric picker (medium).** The `Metric` enum's raw value,
+  rendered by the segmented picker. Now "1RM". The resolution's "every mark is gone" was false by
+  one string; the grep in the acceptance criteria only looked for "estimated", not "est.".
+- **STATE stale (medium + low).** Four lines still promised ≈-per-contributor or "(estimated)";
+  rewritten as history, and STATE's head now describes this branch.
+- **WeightMath header (low).** Says plain now.
+- **D45 contradicted itself; D52 overstated "no conversion is ever stored" (low).** D45 opens on the
+  DATA rule and says the screen rule was dropped; D52 says a converted DISPLAY value never replaces
+  the stored pair, with `normalizedKg` named as the canonical derivation D25 defines.
+- **CLAUDE.md said D1–D51 (low).** D1–D52.
+- **Three copies of "convert kg, round, suffix" (low, judgment).** `WeightMath.displayLabel(
+  kilograms:in:locale:)` owns it; the finish sheet, the 1RM record and the chart tooltip call it.
+  Tested ("9740 lb" from 4417.99 kg).
+
+**655 unit green** (+1). UI: ProgressChart (2), ProgressChartTooltip (4), HeartRateSummary (3), Presets
+re-run green.

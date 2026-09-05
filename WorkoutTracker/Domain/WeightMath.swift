@@ -2,7 +2,8 @@ import Foundation
 
 // Ticket 03 — unit conversion domain core (D25). Pure logic: no UI, no
 // SwiftData. Storage keeps full precision as entered; all rounding is
-// display-only; converted display values are marked with ≈.
+// display-only; converted display values are shown plain (D52 — they carried
+// a ≈ prefix until 2026-09-04).
 
 // MARK: - Conversion, validation, formatting
 
@@ -64,6 +65,18 @@ enum WeightMath {
         let converted = convert(weight.value, from: weight.unit, to: displayUnit)
         let number = displayNumber(converted, locale: locale)
         return "\(number) \(displayUnit.rawValue)"
+    }
+
+    /// Label for a canonical-kg figure (a volume, a 1RM — derived numbers
+    /// that have no as-entered unit of their own) rendered in `displayUnit`,
+    /// plain (D52). One place for the conversion + rounding + suffix, so a
+    /// display-policy change is one edit rather than one per screen
+    /// (codex-review 02 of the finish graph).
+    static func displayLabel(
+        kilograms: Double, in displayUnit: WeightUnit, locale: Locale = .current
+    ) -> String {
+        let converted = convert(kilograms, from: .kg, to: displayUnit)
+        return "\(displayNumber(converted, locale: locale)) \(displayUnit.rawValue)"
     }
 
     /// Locale-independent, full-precision serialization (export/debug). Always
