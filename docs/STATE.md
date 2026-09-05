@@ -17,9 +17,14 @@ phone). **START HERE IF YOU ARE COLD:**
      **Read the four reviews before touching the matcher again**: rounds 1–2 each found the
      repair manufacturing brands from prose or letting a stray word preselect a sibling; a
      "prefix sibling" exception was tried twice and REMOVED — D33's margin stands.
-   - **Next: 03 capture-first** (drafted in `issues/03-capture-first.md`): keep the preview and
-     torch, drop the live loop, one-tap shutter, framing box as region of interest, read once
-     off-main. Then 04 read quality (junk filter), 05 brand-as-logo (gym prior + brand chip).
+   - **03 capture-first — BUILT on the branch, in Codex review** (`issues/03-capture-first.md`):
+     the viewfinder keeps the preview and torch, a plate-shaped framing box, a one-tap shutter,
+     one still read once inside the box; the live loop and `LiveScanStabilizer` are deleted.
+     Round 1 found the box mapped through AVFoundation's UNROTATED metadata space (a wide box
+     became a tall strip) — replaced by pure aspect-fill geometry on the upright photo, pinned
+     with numbers — and a rebuilt camera replaying the previous shutter tap. **Only the gym can
+     verify the box lands on the plate** (the Simulator has no camera). Then 04 read quality
+     (junk filter, burst voting), 05 brand-as-logo (gym prior + brand chip).
    - **Not installed.** The phone runs `3d01052`. Ticket 02 changes only the matcher; no schema
      change, no export change.
    - Lesson (memory too): a backgrounded `xcodebuild … | grep` reports grep's exit 0 even when

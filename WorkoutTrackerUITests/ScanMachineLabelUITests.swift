@@ -3,9 +3,11 @@ import XCTest
 /// Photo machine capture, ticket 03 — the scan flow end to end.
 ///
 /// The Simulator has no camera, so the app is launched with
-/// `-uiTestScanFixture`, which substitutes a rendered name plate for the
-/// camera roll. Everything after that point — Vision, the matcher, the
-/// candidate list, accepting a model — is the real code path.
+/// `-uiTestScanFixture`: the viewfinder is a stand-in and the shutter reads a
+/// rendered name plate WHOLE (the real shutter reads inside the framing box —
+/// only the gym can verify that mapping). Everything after that point —
+/// Vision, the matcher, the candidate list, accepting a model — is the real
+/// code path.
 final class ScanMachineLabelUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -42,6 +44,18 @@ final class ScanMachineLabelUITests: XCTestCase {
         XCTAssertTrue(
             readingText.label.uppercased().contains("LIFE FITNESS"),
             "Expected the plate's text, got: \(readingText.label)")
+
+        let results = XCTAttachment(screenshot: app.screenshot())
+        results.name = "scan-results"
+        results.lifetime = .keepAlways
+        add(results)
+
+        // Scanner accuracy, ticket 03: "Scan again" returns to the viewfinder
+        // and nothing is read until the shutter is tapped AGAIN — a rebuilt
+        // camera must not replay the previous tap (codex-review-03).
+        app.buttons["Scan again"].firstMatch.tap()
+        tapShutter(screenshotNamed: nil)
+        XCTAssertTrue(candidate.waitForExistence(timeout: 20), "the second scan offers the model again")
 
         // D33: a confident match is *preselected*, so accepting is one tap —
         // but it is still a tap.
@@ -144,6 +158,9 @@ final class ScanMachineLabelUITests: XCTestCase {
         XCTAssertTrue(shutter.waitForExistence(timeout: 10), "the viewfinder should show a shutter")
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "scanFramingBox").firstMatch.exists,
                       "and the framing box")
+        // Held for a moment: a replayed capture would leave the viewfinder on its own.
+        sleep(2)
+        XCTAssertTrue(shutter.exists, "still on the viewfinder — nothing was read without a tap")
         XCTAssertFalse(app.staticTexts["scanReadingText"].exists, "nothing is read before the shutter")
         if let name {
             let shot = XCTAttachment(screenshot: app.screenshot())

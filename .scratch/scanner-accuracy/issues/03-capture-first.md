@@ -76,3 +76,33 @@ same on a sideways-tagged photo). **670 unit green** (the harness reports unchan
 
 **Only the gym can verify**: that the box → region mapping lands on the plate through the real
 preview layer, focus at arm's length, and whether it feels faster. The Simulator has no camera.
+
+
+## Codex review 03 — response (2026-09-05)
+
+`codex-review-03.md`: standards 1 high, 2 medium, 1 low; spec 2 high, 3 medium, 1 low. All real:
+
+- **Box mapped in the unrotated sensor space (spec high).** `metadataOutputRectConverted`
+  returns metadata coordinates — the UNROTATED picture — so on a portrait phone the wide box
+  became a tall strip. Replaced outright: `LabelFramingBox.visionRegion(box:viewSize:imageSize:)`
+  maps the box into the UPRIGHT photo (`UIImage.size` is the oriented size) by the same
+  aspect-fill arithmetic the preview layer uses to show it; nothing from AVFoundation's
+  coordinate conversions is used. Pinned with numeric tests for both overflow directions, and a
+  "wide box stays wide" assertion. Still only verifiable at the gym that the preview's field
+  equals the photo's (the `.photo` preset's contract), which is stated in the resolution.
+- **"Scan again" replayed the last tap (spec high / standards high).** The counter is now a
+  `captureRequest: UUID?`, nil when nothing is pending; the camera's coordinator adopts the
+  CURRENT value on creation, and `restartScanning` clears it. The UI test now taps "Scan again",
+  holds two seconds on the viewfinder asserting nothing was read, then taps the shutter again.
+- **Focus not triggered at the tap (medium).** `capture()` does a one-shot `.autoFocus` /
+  `.autoExpose` at the box centre, waits (polling on the session queue, ≤ 1 s) until the lens
+  stops adjusting, takes the still, then resumes continuous modes.
+- **Output-add failure silent; `capturing` could strand (medium ×2).** `canAddOutput` false now
+  fails through `onFailure`; `capture()` checks the output is attached; the sheet has an 8 s
+  timeout that fails the capture; `captureFinished()` ends the in-flight capture exactly once
+  (photo, failure or timeout — first wins). "Choose a photo instead" is disabled while capturing.
+- **Data clump (standards low).** `CapturedLabel { image, region }`.
+- **STATE stale (standards medium).** Head updated. **Full UI suite (standards medium):** run in
+  chunks before merge — recorded below when done.
+- **UI test coverage (low).** Results screenshot added; header comment corrected (viewfinder
+  stand-in, reads whole); "Scan again" exercised.

@@ -36,10 +36,14 @@ struct ScanMachineLabelSheet: View {
     /// Why the camera is not being used, when it is not. Shown, never silent.
     @State private var captureNotice: String?
     @State private var torchOn = false
-    /// Incremented per shutter tap; the camera view captures when it changes.
-    @State private var captureCount = 0
-    /// The shutter has been tapped and the photo is on its way.
+    /// The shutter tap the camera should honour; a new id per tap, nil when
+    /// none is pending (so a rebuilt camera never replays one).
+    @State private var captureRequest: UUID?
+    /// The shutter has been tapped and the photo is on its way. Gates the
+    /// shutter AND the library fallback: one still, read once.
     @State private var capturing = false
+    /// Fails the capture if the camera never calls back (codex-review-03).
+    @State private var captureTimeout: Task<Void, Never>?
     @State private var index: CatalogMatchIndex?
 
     private enum Phase {
@@ -177,6 +181,7 @@ struct ScanMachineLabelSheet: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(.white)
+                .disabled(capturing)
                 .accessibilityIdentifier("scanChoosePhoto")
             }
             .padding(.bottom, 24)
@@ -194,13 +199,13 @@ struct ScanMachineLabelSheet: View {
                 .accessibilityIdentifier("scanFixtureViewfinder")
         } else {
             LabelCameraView(
-                captureCount: captureCount,
-                onPhoto: { image, region in
-                    capturing = false
-                    read(image, regionOfInterest: region)
+                captureRequest: captureRequest,
+                onPhoto: { captured in
+                    guard captureFinished() else { return }
+                    read(captured.image, regionOfInterest: captured.region)
                 },
                 onFailure: { message in
-                    capturing = false
+                    _ = captureFinished()
                     phase = .failed(message)
                 },
                 torchOn: torchOn)
@@ -217,7 +222,24 @@ struct ScanMachineLabelSheet: View {
             read(ScanFixture.image())
             return
         }
-        captureCount += 1
+        captureRequest = UUID()
+        captureTimeout?.cancel()
+        captureTimeout = Task {
+            try? await Task.sleep(for: .seconds(8))
+            guard !Task.isCancelled, captureFinished() else { return }
+            phase = .failed("The camera did not respond. Try again, or choose a photo.")
+        }
+    }
+
+    /// Ends the in-flight capture exactly once: the first of the photo, a
+    /// failure or the timeout wins and the others are ignored.
+    private func captureFinished() -> Bool {
+        guard capturing else { return false }
+        capturing = false
+        captureRequest = nil
+        captureTimeout?.cancel()
+        captureTimeout = nil
+        return true
     }
 
     // MARK: - Content
@@ -393,7 +415,7 @@ struct ScanMachineLabelSheet: View {
     }
 
     private func restartScanning() {
-        capturing = false
+        _ = captureFinished()
         selectedID = nil
         phase = .scanning
     }

@@ -6,7 +6,16 @@ import CoreGraphics
 /// The box is the whole reason the neighbouring machine's plate, the frame
 /// badge and the wall signage stop entering the reading: only text inside it
 /// is recognised. Pure geometry, so the overlay the user sees and the region
-/// the camera reads are computed by the same function and cannot disagree.
+/// the camera reads are computed by the same functions and cannot disagree.
+///
+/// The mapping from the box to the photo deliberately uses NOTHING from
+/// AVFoundation's coordinate conversions. The first cut used
+/// `metadataOutputRectConverted`, whose result is in the UNROTATED sensor
+/// space — on a portrait phone the wide box became a tall strip
+/// (codex-review-03). Instead: the photo is taken as the user saw it, the
+/// preview fills the view with the photo's field (`resizeAspectFill`), so the
+/// box maps into the UPRIGHT photo by aspect-fill arithmetic alone, which a
+/// unit test can pin with numbers.
 enum LabelFramingBox {
 
     /// Share of the view's width the box spans.
@@ -28,15 +37,29 @@ enum LabelFramingBox {
         return CGRect(x: (size.width - width) / 2, y: y, width: width, height: height)
     }
 
-    /// A metadata-output rectangle (normalised, top-left origin, as
-    /// `AVCaptureVideoPreviewLayer.metadataOutputRectConverted` returns) as
-    /// Vision's `regionOfInterest` (normalised, BOTTOM-left origin), clamped
-    /// to the image.
-    static func visionRegion(fromMetadataRect rect: CGRect) -> CGRect {
-        let clamped = rect.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
-        guard !clamped.isNull, clamped.width > 0, clamped.height > 0 else {
-            return CGRect(x: 0, y: 0, width: 1, height: 1)
+    /// Vision's `regionOfInterest` (normalised, BOTTOM-left origin, in the
+    /// upright photo) for `box` drawn on a view of `viewSize` that shows the
+    /// upright photo of `imageSize` aspect-filled and centred — exactly what
+    /// `AVCaptureVideoPreviewLayer` with `.resizeAspectFill` displays. Clamped
+    /// to the photo; a degenerate input reads the whole photo rather than
+    /// nothing.
+    static func visionRegion(box: CGRect, viewSize: CGSize, imageSize: CGSize) -> CGRect {
+        let whole = CGRect(x: 0, y: 0, width: 1, height: 1)
+        guard viewSize.width > 0, viewSize.height > 0, imageSize.width > 0, imageSize.height > 0 else {
+            return whole
         }
+        // Aspect fill: the larger scale, then centred, so one axis overflows.
+        let scale = max(viewSize.width / imageSize.width, viewSize.height / imageSize.height)
+        let shown = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+        let offset = CGPoint(x: (viewSize.width - shown.width) / 2, y: (viewSize.height - shown.height) / 2)
+        // Box → upright photo, normalised, top-left origin.
+        let topLeft = CGRect(
+            x: (box.minX - offset.x) / shown.width,
+            y: (box.minY - offset.y) / shown.height,
+            width: box.width / shown.width,
+            height: box.height / shown.height)
+        let clamped = topLeft.intersection(whole)
+        guard !clamped.isNull, clamped.width > 0, clamped.height > 0 else { return whole }
         return CGRect(x: clamped.minX, y: 1 - clamped.maxY, width: clamped.width, height: clamped.height)
     }
 }
