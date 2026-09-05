@@ -1,7 +1,7 @@
 # Where the project is right now
 
-Updated 2026-09-05 (early morning — the finish-graph work is MERGED into `main`, Codex-clear, NOT yet
-installed on the phone). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-05 (early morning — the finish-graph work is MERGED into `main`, Codex-clear, and
+INSTALLED on the phone). **START HERE IF YOU ARE COLD:**
 
 0. **The finish-graph work — branch `finish-graph-and-plain-numbers`, MERGED into `main` 2026-09-05
    (fast-forward; `main` still has zero merge commits) — two tickets in
@@ -21,13 +21,15 @@ installed on the phone). **START HERE IF YOU ARE COLD:**
      metric picker, four stale STATE lines, a D45 row that contradicted itself and a D52 clause
      that overstated "no conversion is stored" — fixed; round 2 found two more stale STATE lines;
      **Codex clear after 3 rounds** (02, 02b, 02c).
-   - **Merged and pushed; NOT installed.** The branch pointer is now stale (identical to `main`,
-     safe to delete). **Installing needs an export first** — 01 adds two optional arrays to
-     `Workout` (lightweight migration, gate green on the phone-shaped fixture) — then the
-     three-command device install below. The phone still runs `97b656b`; its profile expires
-     **2026-09-11 01:08 UTC**. **Next session's first action: ask whether the user exported, then
-     install, then ask what the real graph looks like** — the fixture is synthetic; only a real
-     hour with AirPods shows whether the slot density and the y-range read right.
+   - **Merged, pushed, and INSTALLED 2026-09-05 (`3d01052` = `main`), launched OK** — so the two new
+     optional arrays on `Workout` migrated the real store. The user said "install" without
+     confirming a fresh export; the last export is the 2026-09-04 one taken before the D51
+     reclassification. The build reused the existing profiles (app and widget both expire
+     **2026-09-11 01:08 UTC** — a rebuild does NOT extend them; delete the profile file first, see
+     the gotcha below). The branch pointer `finish-graph-and-plain-numbers` is stale (identical to
+     `main`, safe to delete). **Next session's first action: ask what the real graph looks like**
+     after a real workout — the fixture is synthetic; only a real hour with AirPods shows whether
+     the slot density and the y-range read right. Old workouts draw from means (ticket 01).
    - Housekeeping from the last handoff is DONE (2026-09-04): the three stale milestone branches
      are deleted locally and on GitHub; the old "Codex review 01" terminal is closed. The reviews
      for this branch ran in an Orca terminal last titled "Codex review — finish graph"; whether it
@@ -311,7 +313,7 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`97b656b`** — **current with `main`**, installed and launch-verified **2026-09-04 (evening)**; the same day's morning install of `66bc7d4` (milestone 9 before ticket 06) ran the D51 reclassification on the real store — **18 sets moved** — with a CSV+JSON export taken to iCloud Drive immediately before it. Previously **`5a860bc`**, installed and launch-verified **2026-09-03 21:09**. This build carries `3ad382d`, so the device now draws **one chart line per variation** (D36) with a Variation picker; the binary was checked for `chartVariationPicker` before installing, and no SwiftData model changed between `4eb5486` and here, so there was no migration. Previously `4eb5486` — the chart tooltip, one behind `main`. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
+| Installed commit | **`3d01052`** — **current with `main`**, installed and launch-verified **2026-09-05 (early morning)**: the finish-graph work (Apple-shaped heart-rate chart with per-bucket low/high — a two-array lightweight migration on `Workout` — and D52's plain numbers). Previously **`97b656b`**, installed and launch-verified **2026-09-04 (evening)**; the same day's morning install of `66bc7d4` (milestone 9 before ticket 06) ran the D51 reclassification on the real store — **18 sets moved** — with a CSV+JSON export taken to iCloud Drive immediately before it. Previously **`5a860bc`**, installed and launch-verified **2026-09-03 21:09**. This build carries `3ad382d`, so the device now draws **one chart line per variation** (D36) with a Variation picker; the binary was checked for `chartVariationPicker` before installing, and no SwiftData model changed between `4eb5486` and here, so there was no migration. Previously `4eb5486` — the chart tooltip, one behind `main`. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
 | Previously installed | `82a1ddb` (the working background rest alarm), 2026-08-25 02:11 |
 | Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
