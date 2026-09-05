@@ -1,6 +1,6 @@
 # 01 — Apple-shaped heart-rate graph
 
-Status: built — awaiting Codex review
+Status: resolved — Codex clear after 3 rounds (codex-review-01..01c)
 Added 2026-09-04 from the user's screenshot pair (see spec.md).
 
 ## What to build
@@ -128,3 +128,9 @@ half a fix — 2 medium, 2 low. All fixed:
   fixtures call it. Tested directly.
 
 **654 unit green** (+2). HeartRateSummary UI class re-run green (3/3).
+
+
+## Codex review 01c (2026-09-05)
+
+`codex-review-01c.md`: **clear.** Both mediums and both lows closed, no new defect; the two new
+regressions would fail on the old code; focused `HeartRateSeriesTests` 26/26.

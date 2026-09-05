@@ -1,6 +1,6 @@
 # 02 — Remove ≈ and "estimated" from every screen
 
-Status: ready-for-agent
+Status: in progress (2026-09-05)
 Blocked by: 01
 Added 2026-09-04: "Don't use that; just show number. … get rid of any of those."
 
