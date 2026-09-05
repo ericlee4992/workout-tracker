@@ -17,7 +17,8 @@ phone). **START HERE IF YOU ARE COLD:**
      **Read the four reviews before touching the matcher again**: rounds 1–2 each found the
      repair manufacturing brands from prose or letting a stray word preselect a sibling; a
      "prefix sibling" exception was tried twice and REMOVED — D33's margin stands.
-   - **03 capture-first — BUILT on the branch, in Codex review** (`issues/03-capture-first.md`):
+   - **03 capture-first — MERGED to `main` 2026-09-05, Codex clear after FOUR rounds**
+     (`issues/03-capture-first.md`):
      the viewfinder keeps the preview and torch, a plate-shaped framing box, a one-tap shutter,
      one still read once inside the box; the live loop and `LiveScanStabilizer` are deleted.
      Round 1 found the box mapped through AVFoundation's UNROTATED metadata space (a wide box

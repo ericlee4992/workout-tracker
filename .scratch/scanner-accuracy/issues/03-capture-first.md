@@ -1,6 +1,6 @@
 # 03 — Capture first: one deliberate frame, inside a box, read once
 
-Status: built — awaiting Codex review
+Status: resolved — Codex clear after 4 rounds (codex-review-03..03d)
 Blocked by: 02
 
 ## Why
@@ -148,3 +148,8 @@ the Mac's load spike passed; two earlier full runs under load 76 each failed one
 timing test, green alone and green here) **and 37/37 UI** — CoreLoop 9, Barbell+Dumbbell+
 ExercisePreset+Scan 7, Export+HeartRate+HeartRateSummary+HistoryCalendar+HistoryEditing 13,
 ProgressChart+Tooltip+WorkoutName 8 — every figure from its log's `** TEST SUCCEEDED **`.
+
+
+## Codex review 03d (2026-09-05)
+
+`codex-review-03d.md`: **clear.**
