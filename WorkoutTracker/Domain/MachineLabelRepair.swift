@@ -71,12 +71,30 @@ struct MachineLabelRepair {
         return copy
     }
 
-    /// One line's tokens, repaired and rejoined with single spaces. A line
-    /// with nothing to repair comes back normalised but otherwise unchanged.
+    /// One line's text with ONLY the repaired words rewritten. Every other
+    /// word keeps its case and punctuation exactly as read — the create-new
+    /// sheet prefills the model name from this, and `Insignia Series Chest
+    /// Press` must not arrive as `insignia series chest press` because a
+    /// different word on the plate was repaired (ScanMachineLabelUITests
+    /// caught the first cut doing exactly that). A repaired word takes the
+    /// case style of the word it replaces (`SCYBEX` → `CYBEX`,
+    /// `LieFitness` → `Life Fitness`).
     func repairedText(_ text: String) -> String {
-        MachineLabelText.readingTokens(text)
-            .flatMap { repair($0) }
-            .joined(separator: " ")
+        text.split(whereSeparator: \.isWhitespace).map { word -> String in
+            let original = String(word)
+            let tokens = MachineLabelText.readingTokens(original)
+            let repaired = tokens.flatMap { repair($0) }
+            guard repaired != tokens else { return original }
+            return repaired.map { Self.styled($0, like: original) }.joined(separator: " ")
+        }.joined(separator: " ")
+    }
+
+    /// `token` in the case style of `sample`: all caps, Capitalised, or as is.
+    static func styled(_ token: String, like sample: String) -> String {
+        let letters = sample.filter(\.isLetter)
+        if !letters.isEmpty, letters.allSatisfy(\.isUppercase) { return token.uppercased() }
+        if letters.first?.isUppercase == true { return token.prefix(1).uppercased() + token.dropFirst() }
+        return token
     }
 
     /// One token → the tokens it should have been. Known words pass through

@@ -100,3 +100,12 @@ preselections 0, create-new 28/29.** Reports: `baseline-2026-09-05.md`,
 `after-repair-2026-09-05.md`, `after-ticket-02-2026-09-05.md`. What remains is not a brand
 problem: rotated text losing a word (ticket 03), model codes too small to read, a Swedish plate,
 and a plate that only says TIBIA.
+
+**Defect caught by the UI suite after the first commit (`197ba91`), whose message wrongly says
+the scan class was green — it was red and I read the notification before the log.**
+`testCreateNewFromAScanPrefillsTheModelSheet`: the create-new prefill came from the repaired
+reading, which was fully normalised, so "Insignia Series Chest Press" arrived as "insignia
+series chest press". `repairedText` now rewrites ONLY the words it repaired, each in the case
+style of the word it replaces, and leaves every other word exactly as read. Test added
+(`untouchedWordsKeepTheirCaseAndPunctuation`). Lesson for the record: a background test run's
+"completed (exit code 0)" is the SHELL's exit code, not the test's — read the log's last line.

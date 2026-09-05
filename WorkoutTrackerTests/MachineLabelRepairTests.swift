@@ -76,6 +76,20 @@ struct MachineLabelRepairTests {
         #expect(repair.split("ab") == nil)
     }
 
+    // MARK: What the user sees prefilled
+
+    /// Only the repaired words change; everything else keeps its case and
+    /// punctuation, because the create-new sheet prefills from this.
+    @Test func untouchedWordsKeepTheirCaseAndPunctuation() throws {
+        let repair = try index().repair
+        #expect(repair.repairedText("Insignia Series Chest Press") == "Insignia Series Chest Press")
+        #expect(repair.repairedText("Iso-Lateral Row & Half") == "Iso-Lateral Row & Half")
+        #expect(repair.repairedText("SCYBEX") == "CYBEX", "a repaired word takes the case of the word it replaces")
+        #expect(repair.repairedText("LieFitness") == "Life Fitness")
+        #expect(repair.repairedText("Assist DIPICHIN") == "Assist DIP CHIN")
+        #expect(repair.repairedText("lammed strength") == "hammer strength")
+    }
+
     // MARK: Invariants
 
     /// Repair must never touch a token of any catalog row's own name — the
