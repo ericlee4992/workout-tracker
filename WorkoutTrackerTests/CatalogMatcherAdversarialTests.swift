@@ -378,6 +378,25 @@ struct CatalogMatcherAdversarialTests {
         #expect(CatalogMatcher.preselection(from: plain)?.modelName == "Iso-Lateral Row")
     }
 
+    /// codex-review-02 #2: the distinguishing word must be read on a NAME
+    /// LINE. A furniture word elsewhere on the plate — an instruction, a
+    /// badge — must not unlock the longer sibling.
+    @Test func aFurnitureWordElsewhereDoesNotUnlockTheLongerSibling() throws {
+        let index = try realIndex()
+        for (lines, wrong) in [
+            (["NAUTILUS", "IMPACT LAT PULL DOWN", "FIXED"], "Impact Fixed Lat Pull Down"),
+            (["LIFE FITNESS", "INSIGNIA SERIES LEG CURL", "Adjust the seat to the seated position"], "Insignia Series Seated Leg Curl"),
+            (["ELEIKO", "PRESTERA HALF RACK", "FITNESS"], "Prestera Fitness Half Rack"),
+        ] {
+            let matches = CatalogMatcher.rank(LabelReading.lines(lines), in: index)
+            let chosen = CatalogMatcher.preselection(from: matches)
+            #expect(chosen?.modelName != wrong, "\(lines): preselected \(chosen?.displayName ?? "nothing")")
+        }
+        // Whereas the word ON the name line still counts.
+        let seated = CatalogMatcher.rank(LabelReading.lines(["LIFE FITNESS", "INSIGNIA SERIES SEATED LEG CURL"]), in: index)
+        #expect(CatalogMatcher.preselection(from: seated)?.modelName == "Insignia Series Seated Leg Curl")
+    }
+
     /// The exception is only for a name read EXACTLY. A fuzzily-matched extra
     /// word is a guess, and a guess must not switch the margin off.
     @Test func aFuzzilyCoveredSpecificRowStillRespectsTheMargin() throws {

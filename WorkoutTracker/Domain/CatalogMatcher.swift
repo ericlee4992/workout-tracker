@@ -37,12 +37,15 @@ struct CatalogMatch: Equatable {
     /// explains little of what the plate says is a poor answer even when every
     /// word of its own name was found.
     let explanation: Double
-    /// The row's model-name tokens, and whether every one of them was read
-    /// EXACTLY on the plate (no fuzzy claim). Together they let
-    /// `preselection` tell a prefix sibling from an ambiguity (ticket 02 of
-    /// the scanner-accuracy work).
+    /// The row's model-name tokens; whether every one of them was read
+    /// EXACTLY on the plate (no fuzzy claim); and which of the plate's tokens
+    /// sit on a line made ONLY of this row's own words (brand or name) — a
+    /// name line, as opposed to an instruction, a URL or a rating that
+    /// happens to contain one of them. Together they let `preselection` tell
+    /// a prefix sibling from an ambiguity (scanner accuracy, ticket 02).
     let nameTokens: Set<String>
     let exactlyCovered: Bool
+    let nameLineTokens: Set<String>
 
     var displayName: String { "\(manufacturer) \(modelName)" }
 }
@@ -90,7 +93,13 @@ struct CatalogMatchIndex {
     /// words, built once with this catalog's vocabulary.
     private(set) var repair: MachineLabelRepair
 
-    init(models: [(id: UUID, manufacturer: String, modelName: String)]) {
+    /// `isDictionaryWord` — an ordinary-English-word test (the app supplies
+    /// UIKit's spell checker via `MachineLabelDictionary`). Without one the
+    /// repair makes no edit-based brand repairs (`MachineLabelRepair`).
+    init(
+        models: [(id: UUID, manufacturer: String, modelName: String)],
+        isDictionaryWord: ((String) -> Bool)? = nil
+    ) {
         var documentFrequency: [String: Int] = [:]
         var tokenised: [(id: UUID, manufacturer: String, modelName: String,
                          tokens: [String], manufacturerTokens: [String],
@@ -137,7 +146,18 @@ struct CatalogMatchIndex {
             let tokens = Set(MachineLabelText.readingTokens(name))
             return tokens.isEmpty ? nil : (name, tokens)
         }
-        repair = MachineLabelRepair(manufacturers: manufacturers, isKnown: { weightTable[$0] != nil })
+        // Which pairs of words sit together in one row's name — the split
+        // repair's corroboration (`dip` + `chin` ← Select Assist Dip Chin).
+        var pairs: Set<String> = []
+        for row in tokenised {
+            let names = row.nameTokens
+            for a in names { for b in names where a < b { pairs.insert(a + " " + b) } }
+        }
+        repair = MachineLabelRepair(
+            manufacturers: manufacturers,
+            isKnown: { weightTable[$0] != nil },
+            shareARow: { a, b in pairs.contains(a < b ? a + " " + b : b + " " + a) },
+            isDictionaryWord: isDictionaryWord)
     }
 
     /// The reading with corrupted brand tokens and glued words repaired
@@ -204,12 +224,13 @@ enum CatalogMatcher {
         // (codex-review, finding 7).
         let evidenceWeight = evidence.sorted().reduce(0.0) { $0 + index.weight($1) }
         let namedManufacturers = index.manufacturersNamed(in: allTokens)
+        let lineTokenSets = reading.lines.map { Set(MachineLabelText.readingTokens($0.text)) }.filter { !$0.isEmpty }
 
         var matches: [CatalogMatch] = []
         for entry in index.entries where entry.nameWeight > 0 {
             guard let match = score(
                 entry, allTokens: allTokens, evidence: evidence,
-                evidenceWeight: evidenceWeight,
+                evidenceWeight: evidenceWeight, lineTokenSets: lineTokenSets,
                 namedManufacturers: namedManufacturers, index: index)
             else { continue }
             matches.append(match)
@@ -247,19 +268,22 @@ enum CatalogMatcher {
     /// each other; it must not stop the specific row when every word of its
     /// name was read exactly (scanner corpus: Low Row at 100%, never
     /// preselected). Kept strict: same manufacturer, strict subset, exact
-    /// coverage — a fuzzily-matched extra word is still a guess — and every
-    /// word that distinguishes the specific row must be a real word of at
-    /// least three characters. `Rack & A Half` differs from `Half Rack` by the
-    /// token `a`, and a stray one-letter token is precisely what a logo or a
-    /// scratch reads as, so it must not unlock a preselection
-    /// (`oneLetterComponentsOfRealNamesSurvive`).
+    /// coverage — a fuzzily-matched extra word is still a guess — every word
+    /// that distinguishes the specific row is a real word of at least three
+    /// characters (`Rack & A Half` differs from `Half Rack` by `a`, and a stray
+    /// one-letter token is precisely what a logo reads as), AND every
+    /// distinguishing word was read on a NAME LINE: a line made only of this
+    /// row's own words. Without that last clause an instruction saying
+    /// "seated" turned an `Insignia Series Leg Curl` plate into the Seated
+    /// Leg Curl, preselected (codex-review-02 #2) — the word was on the plate,
+    /// but not as part of the name.
     static func isPrefixSibling(_ runnerUp: CatalogMatch, of best: CatalogMatch) -> Bool {
         guard best.exactlyCovered,
               runnerUp.manufacturer == best.manufacturer,
               runnerUp.nameTokens.isStrictSubset(of: best.nameTokens)
         else { return false }
         let distinguishing = best.nameTokens.subtracting(runnerUp.nameTokens)
-        return distinguishing.allSatisfy { $0.count >= 3 }
+        return distinguishing.allSatisfy { $0.count >= 3 && best.nameLineTokens.contains($0) }
     }
 
     /// Whether the sheet should lead with creating a model instead.
@@ -294,6 +318,7 @@ enum CatalogMatcher {
         allTokens: Set<String>,
         evidence: Set<String>,
         evidenceWeight: Double,
+        lineTokenSets: [Set<String>],
         namedManufacturers: Set<String>,
         index: CatalogMatchIndex
     ) -> CatalogMatch? {
@@ -366,7 +391,14 @@ enum CatalogMatcher {
             manufacturerConflicts: conflicts,
             explanation: explanation,
             nameTokens: entry.nameTokens,
-            exactlyCovered: exactNameTokens == entry.nameTokens.count)
+            exactlyCovered: exactNameTokens == entry.nameTokens.count,
+            // A name line: made only of this row's own words AND carrying at
+            // least two of its name words. A lone `FIXED` or `FITNESS` on its
+            // own line is a badge or a stray, not the name (codex-review-02 #2).
+            nameLineTokens: Set(lineTokenSets
+                .filter { $0.isSubset(of: Set(entry.tokens)) && $0.intersection(entry.nameTokens).count >= 2 }
+                .flatMap { $0 })
+                .intersection(entry.nameTokens))
     }
 
     // MARK: - Fuzzy token matching

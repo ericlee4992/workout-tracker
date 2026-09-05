@@ -109,3 +109,49 @@ series chest press". `repairedText` now rewrites ONLY the words it repaired, eac
 style of the word it replaces, and leaves every other word exactly as read. Test added
 (`untouchedWordsKeepTheirCaseAndPunctuation`). Lesson for the record: a background test run's
 "completed (exit code 0)" is the SHELL's exit code, not the test's — read the log's last line.
+
+
+## Codex review 02 — response (2026-09-05)
+
+`codex-review-02.md`: **not clear** — 1 critical, 2 high, 2 medium, 1 low (spec), 2 standards.
+All real; the critical and both highs were design holes, not slips, so the repair was rebuilt:
+
+- **Brand repair manufactured brands from prose (critical).** `MOIST CHEST PRESS RS-2301` became a
+  Hoist plate and preselected; `PRICE FITNESS` → PRIME Fitness; `START TRACK` → Star Trac;
+  `RECORD` → Precor. Three rules now, each closing one of those: (1) a brand is repaired ONLY on a
+  line that is nothing but that brand, tokens in order — a logo reads as a lone word on its own
+  line, prose never does (`MOIST CHEST PRESS` untouched); (2) an edit repair is refused when the
+  misread token is an English word — UIKit's spell checker injected into Domain as a closure
+  (`MachineLabelDictionary`), and with NO dictionary no edit repair is made at all (`PRICE`,
+  `MOIST`, `START`, `RECORD`, `METRIC` untouched); (3) a token is never shortened to a brand
+  (`START` ≠ `star`, `HAMMERS` ≠ `hammer`), only a LEADING stray character is stripped, and two
+  edits need a long token or a corroborating second word of the same brand. Cost, measured and
+  accepted: `LAMMED` and `YAMMER` are English words to the checker, so those two badges stay as
+  read; both are brand-only photos with nothing to preselect.
+- **Furniture words unlocked the prefix sibling (high).** `Impact Lat Pull Down` + a lone `FIXED`
+  preselected the Fixed row; an instruction saying "seated" preselected Seated Leg Curl. A
+  distinguishing word must now be read on a NAME LINE: a line made only of the row's own words
+  AND carrying at least two of its name words (`CatalogMatch.nameLineTokens`). Test with Codex's
+  three constructions (Nautilus, Life Fitness, Eleiko) plus the positive case.
+- **Separator-less split mangled compounds (high).** `AIRLIFT`, `FACEPLATE`, `COUNTERWEIGHT`… A
+  split now needs the slash-confusion character AND both halves in ONE catalog row's name
+  (`CatalogMatchIndex` precomputes the pairs). Test: Codex's 13 compounds all untouched.
+- **Vocabulary hook (medium ×2).** Deleted from production and the harness; the result stays
+  recorded here and in the OCR comment. The `SCANNER_VOCAB` env-name mismatch dies with it.
+- **Punctuation inside a repaired word (medium).** Repair now works on alphanumeric runs and
+  copies every other character through verbatim, so double spaces, tabs, hyphens and slashes
+  survive; `HOISI-RS-2403` is a code line, not a brand line, and is left alone. Test.
+- **Stale counts (low), dead `Brand.name`/`brands`/`Equatable` (standards low).** Removed with the
+  rewrite; counts below are from the tip.
+- Also from the rewrite: a multi-word brand set over two consecutive lines (`HAMMER` / `STRENCTH`)
+  is repaired as one brand line — the corpus's actual shape.
+
+Codex's other numbers: it enumerated 130 same-maker strict-subset pairs passing the ≥3-char rule
+and 62 that tie inside the margin under an exact reading. With the name-line clause, an exact
+reading of the LONGER row's name is exactly the case that should preselect it; the exposure was
+the shorter plate plus a stray word, which the clause closes.
+
+**After the rebuild** (`reports/after-ticket-02b-2026-09-05.md`): top-1 **8**/12 (up one — the
+corroborated split), preselected right **6**/12, wrong preselections **0**, create-new 28/29.
+**674 unit green** (harness included; 15 repair tests, 3 sibling tests), ScanMachineLabel UI 2/2
+— all read from the log's `** TEST SUCCEEDED **`.

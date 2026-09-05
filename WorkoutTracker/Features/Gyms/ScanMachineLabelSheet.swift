@@ -406,9 +406,10 @@ struct ScanMachineLabelSheet: View {
         guard let rows = try? modelContext.fetch(FetchDescriptor<EquipmentModel>()) else {
             return nil
         }
-        let built = CatalogMatchIndex(models: rows.map {
-            (id: $0.id, manufacturer: $0.manufacturer, modelName: $0.modelName)
-        })
+        let built = CatalogMatchIndex(
+            models: rows.map { (id: $0.id, manufacturer: $0.manufacturer, modelName: $0.modelName) },
+            // The reading repair's English-word test (scanner accuracy, ticket 02).
+            isDictionaryWord: MachineLabelDictionary.closure)
         index = built
         return built
     }

@@ -57,11 +57,6 @@ enum MachineLabelOCR {
         return reading
     }
 
-    /// Words to bias recognition toward, with language correction switched
-    /// on. nil (the default) leaves correction off. Set only by the corpus
-    /// harness while the effect is being measured.
-    nonisolated(unsafe) static var vocabulary: [String]?
-
     /// Synchronous recognition. Separated so tests can call it directly on a
     /// rendered fixture without an async hop.
     static func perform(
@@ -71,16 +66,13 @@ enum MachineLabelOCR {
         request.recognitionLevel = .accurate
         // Off deliberately: "Insignia", "Cybex", "Hammer Strength" and
         // "VSL019BP" are not dictionary words, and correction rewrites exactly
-        // the distinctive tokens the matcher depends on.
+        // the distinctive tokens the matcher depends on. Re-measured on the
+        // plate corpus with the catalog as `customWords` (scanner accuracy,
+        // ticket 02): no metric moved, and correction rewrote junk into
+        // dictionary words — the behaviour that would eat a user's own model
+        // code. Stays off.
         request.usesLanguageCorrection = false
         request.recognitionLanguages = ["en-US"]
-        if let vocabulary {
-            // Scanner accuracy, ticket 02 — the vocabulary EXPERIMENT: Vision
-            // only consults `customWords` when correction is on. Measured by
-            // the corpus harness; nil in the app unless the corpus said yes.
-            request.usesLanguageCorrection = true
-            request.customWords = vocabulary
-        }
 
         let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         do {

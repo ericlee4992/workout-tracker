@@ -32,12 +32,13 @@ live loop was never cross-reviewed.
    label) and the reports are committed. The harness runs the app's own OCR and matcher over every
    photo and reports per photo: what was read, the top candidate, whether it would preselect, and
    whether that is right. **That number gates every later change.**
-2. Capture-first (ticket 02): keep the live preview and torch for framing, add a one-tap shutter,
+2. **Brand repair (ticket 02, built 2026-09-05)**: reading repair before ranking — see the ticket.
+3. Capture-first (ticket 03): keep the live preview and torch for framing, add a one-tap shutter,
    read one still at full photo resolution inside a framing box (region of interest), once, off
    the main thread; drop the live reading loop. Retake is one tap.
-3. Read quality (ticket 03): confidence floor, symbol/junk token filtering, minimum text height,
+4. Read quality (ticket 04): confidence floor, symbol/junk token filtering, minimum text height,
    catalog vocabulary as Vision custom words, burst voting across a few frames on the shutter tap.
-4. Brand as a logo (ticket 04): a prior for manufacturers already at this gym, and a brand chip row
+5. Brand as a logo (ticket 05): a prior for manufacturers already at this gym, and a brand chip row
    on the results screen so a plate that names no brand is one tap from preselection.
 
 "Very accurate" means: the right machine is top of the list nearly always, preselected most of the
