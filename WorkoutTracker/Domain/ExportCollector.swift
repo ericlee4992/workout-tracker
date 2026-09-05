@@ -271,6 +271,8 @@ struct ExportCollector {
             zonesFromEstimatedMax: workout.zonesFromEstimatedMax,
             heartRateSeries: workout.heartRateSeries.isEmpty ? nil : workout.heartRateSeries,
             heartRateSeriesIntervalSeconds: workout.heartRateSeries.isEmpty ? nil : workout.heartRateSeriesIntervalSeconds,
+            heartRateSeriesLow: workout.heartRateSeriesLow.isEmpty ? nil : workout.heartRateSeriesLow,
+            heartRateSeriesHigh: workout.heartRateSeriesHigh.isEmpty ? nil : workout.heartRateSeriesHigh,
             basalEnergyKilocalories: workout.basalEnergyKilocalories)
     }
 

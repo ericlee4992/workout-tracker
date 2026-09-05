@@ -59,6 +59,31 @@ final class HeartRateSummaryUITests: XCTestCase {
         add(after)
     }
 
+    /// Finish-graph ticket 01: the chart at REAL density. The scripted sensor
+    /// gives two buckets in a 20 s test; the seeded hour-long workout is the
+    /// screenshot to hold against the Apple Fitness reference.
+    func testAnHourLongWorkoutDrawsTheAppleShapedChartInHistory() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-uiTestReset", "-uiTestHeartRateHistory"]
+        app.launch()
+        app.tabBars.buttons["History"].tap()
+        let row = app.descendants(matching: .any).matching(identifier: "historyWorkoutRow").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        let section = app.descendants(matching: .any).matching(identifier: "historyHeartRateSection").firstMatch
+        XCTAssertTrue(section.waitForExistence(timeout: 15))
+        app.swipeUp()
+        let chart = app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
+        XCTAssertTrue(chart.waitForExistence(timeout: 10), "the seeded series must draw")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "heartRateAverageCaption").firstMatch.exists,
+                      "the average sits under the plot, as the reference draws it")
+
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "history-heart-rate-hour"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
     /// A workout with no sensor data — every session in the chart fixture —
     /// shows neither the section nor an empty chart.
     func testAWorkoutWithoutASeriesShowsNoChart() {

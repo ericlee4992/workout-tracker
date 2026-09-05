@@ -35,6 +35,15 @@ struct WorkoutTrackerApp: App {
                 assertionFailure("Chart fixture seeding failed: \(error)")
             }
         }
+        // One hour-long workout with a heart-rate series, for the same reason
+        // (see HeartRateHistoryFixture).
+        if HeartRateHistoryFixture.isEnabled {
+            do {
+                try HeartRateHistoryFixture.seed(in: modelContainer.mainContext)
+            } catch {
+                assertionFailure("Heart-rate history fixture seeding failed: \(error)")
+            }
+        }
         // First-launch unit preference: derive from the locale measurement
         // system (US → lb, else kg). Idempotent; never blocks launch.
         do {

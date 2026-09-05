@@ -68,6 +68,102 @@ struct HeartRateSeriesTests {
         #expect(series.last == 120, "the last retained bucket holds only what fell in it; a sample exactly ON the cap horizon belongs to the first omitted bucket")
     }
 
+    // MARK: Low and high beside the mean (finish-graph ticket 01)
+
+    @Test func theFoldKeepsEachBucketsLowAndHighAndGapsAreZeroInAllThree() {
+        let folded = HeartRateSeriesMath.fold(
+            from: [sample(100, at: 1), sample(110, at: 5), sample(140, at: 31), sample(141, at: 44)],
+            start: start, end: start.addingTimeInterval(60), intervalSeconds: 15)
+        #expect(folded.mean == [105, 0, 141, 0], "the mean is what `series` always returned")
+        #expect(folded.low == [100, 0, 140, 0])
+        #expect(folded.high == [110, 0, 141, 0])
+        #expect(folded.hasSamples)
+        for index in folded.mean.indices where folded.mean[index] > 0 {
+            #expect(folded.low[index] <= folded.mean[index] && folded.mean[index] <= folded.high[index])
+        }
+        #expect(HeartRateSeriesMath.fold(from: [], start: start, end: start) == .empty)
+        #expect(!HeartRateSeriesMath.fold(from: [], start: start, end: start.addingTimeInterval(30)).hasSamples)
+    }
+
+    @Test func displaySlotsMergeToTheCapKeepGapsAndUseTheRealRange() {
+        // 8 buckets, cap 4 → 2 buckets per slot. Slot 1 (buckets 2–3) is all
+        // gap and must not be drawn; slot 2 has one gap bucket that must not
+        // drag its low to 0.
+        let mean = [100, 110, 0, 0, 120, 0, 130, 140]
+        let low = [95, 105, 0, 0, 118, 0, 125, 136]
+        let high = [104, 116, 0, 0, 124, 0, 133, 145]
+        let slots = HeartRateSeriesMath.displaySlots(
+            mean: mean, low: low, high: high, intervalSeconds: 15, durationSeconds: 120, maxSlots: 4)
+        #expect(slots.map(\.index) == [0, 2, 3], "the all-gap slot is a hole, not a bar")
+        #expect(slots.map(\.low) == [95, 118, 125])
+        #expect(slots.map(\.high) == [116, 124, 145])
+        #expect(slots.map(\.startSeconds) == [0, 60, 90])
+        #expect(slots.map(\.endSeconds) == [30, 90, 120])
+        #expect(slots.count <= 4)
+        #expect(HeartRateSeriesMath.range(of: slots) == 95...145)
+        #expect(HeartRateSeriesMath.range(of: []) == nil)
+    }
+
+    @Test func aShortSeriesPassesThroughBucketForBucketAndEndsAtTheWorkoutsEnd() {
+        let slots = HeartRateSeriesMath.displaySlots(
+            mean: [120, 0, 135], low: [118, 0, 130], high: [125, 0, 138],
+            intervalSeconds: 15, durationSeconds: 31)
+        #expect(slots.map(\.index) == [0, 2])
+        #expect(slots.map(\.startSeconds) == [0, 30])
+        #expect(slots.map(\.endSeconds) == [15, 31], "the last bucket ends where the workout did, not at 45 s")
+        #expect(slots.last?.low == 130 && slots.last?.high == 138)
+    }
+
+    /// A workout folded before low/high existed has only its means: a merged
+    /// slot spans the range of the means inside it (real numbers, narrower
+    /// than the samples), and an unmerged one is a flat tick at the mean.
+    @Test func withoutARangeTheMeansStandInAndAMismatchedRangeIsIgnored() {
+        let meansOnly = HeartRateSeriesMath.displaySlots(
+            mean: [100, 110, 120, 130], low: [], high: [], intervalSeconds: 15, durationSeconds: 60, maxSlots: 2)
+        #expect(meansOnly.map(\.low) == [100, 120])
+        #expect(meansOnly.map(\.high) == [110, 130])
+        let flat = HeartRateSeriesMath.displaySlots(
+            mean: [100, 110], low: [], high: [], intervalSeconds: 15, durationSeconds: 30)
+        #expect(flat.map { $0.low == $0.high } == [true, true], "unmerged and rangeless: a tick at the mean")
+        // A range of the wrong length is not trusted: it is some other series.
+        let mismatched = HeartRateSeriesMath.displaySlots(
+            mean: [100, 110], low: [50], high: [200], intervalSeconds: 15, durationSeconds: 30)
+        #expect(mismatched.map(\.low) == [100, 110] && mismatched.map(\.high) == [100, 110])
+    }
+
+    /// The screenshot fixture is data the user compares against Apple's own
+    /// chart, so it has to obey the fold's invariants exactly.
+    @Test @MainActor func theHourLongFixtureIsAWellFormedSeriesAndSeedsOnce() throws {
+        let folded = HeartRateHistoryFixture.folded()
+        #expect(folded.mean.count == 240, "60 min at 15 s")
+        #expect(folded.low.count == 240 && folded.high.count == 240)
+        #expect(folded.mean.contains(0), "it has a gap to draw")
+        for index in folded.mean.indices {
+            if folded.mean[index] == 0 {
+                #expect(folded.low[index] == 0 && folded.high[index] == 0)
+            } else {
+                #expect(folded.low[index] <= folded.mean[index] && folded.mean[index] <= folded.high[index])
+                #expect(folded.low[index] > 60 && folded.high[index] < 190, "a plausible strength session")
+            }
+        }
+        #expect(HeartRateHistoryFixture.folded() == folded, "deterministic — the screenshot must not drift")
+
+        let ctx = try context()
+        try CatalogSeeder.reconcile(try SeedCatalog.bundled(), in: ctx)
+        try HeartRateHistoryFixture.seed(in: ctx)
+        try HeartRateHistoryFixture.seed(in: ctx)
+        let workouts = try ctx.fetch(FetchDescriptor<Workout>())
+        #expect(workouts.count == 1, "idempotent")
+        let workout = try #require(workouts.first)
+        let summary = WorkoutSummaryBuilder.summary(for: workout)
+        #expect(summary.hasHeartRateSeries)
+        #expect(summary.heartRateSeriesLow == folded.low)
+        #expect(summary.averageHeartRate != nil && summary.maxHeartRate == folded.high.max())
+        #expect(HeartRateSeriesMath.displaySlots(
+            mean: folded.mean, low: folded.low, high: folded.high, intervalSeconds: 15, durationSeconds: 3_600
+        ).count <= HeartRateSeriesMath.defaultMaxSlots)
+    }
+
     // MARK: Total energy
 
     @Test func totalCaloriesNeedsBothHalves() {
@@ -88,6 +184,8 @@ struct HeartRateSeriesTests {
             vitals: vitals, activeEnergyKilocalories: 120, basalEnergyKilocalories: 40,
             samples: samples, onto: workout, now: start.addingTimeInterval(50))
         #expect(workout.heartRateSeries == [100, 130, 150, 0])
+        #expect(workout.heartRateSeriesLow == [100, 130, 150, 0], "one sample per bucket: low is the sample")
+        #expect(workout.heartRateSeriesHigh == [100, 130, 150, 0])
         #expect(workout.heartRateSeriesIntervalSeconds == 15)
         #expect(workout.basalEnergyKilocalories == 40)
         let summary = WorkoutSummaryBuilder.summary(for: workout)
@@ -135,6 +233,7 @@ struct HeartRateSeriesTests {
         let workout = Workout(startedAt: start, finishedAt: start.addingTimeInterval(60),
                               averageHeartRate: 130, maxHeartRate: 150, activeEnergyKilocalories: 100,
                               heartRateSeries: [100, 0, 140, 150], heartRateSeriesIntervalSeconds: 15,
+                              heartRateSeriesLow: [95, 0, 135, 148], heartRateSeriesHigh: [104, 0, 146, 152],
                               basalEnergyKilocalories: 30)
         ctx.insert(workout)
         let entry = ExerciseEntry(order: 0, workout: workout, snapshotCapturedAt: start,
@@ -146,12 +245,25 @@ struct HeartRateSeriesTests {
         try ctx.save()
 
         var snapshot = try ExportCollector(appVersion: "test").snapshot(from: ctx)
-        #expect(snapshot.schemaVersion == 8)
+        #expect(snapshot.schemaVersion == 9)
         let decoded = try ExportJSON.decode(try ExportJSON.data(snapshot))
         #expect(decoded.workouts.first?.heartRateSeries == [100, 0, 140, 150])
         #expect(decoded.workouts.first?.heartRateSeriesIntervalSeconds == 15)
+        #expect(decoded.workouts.first?.heartRateSeriesLow == [95, 0, 135, 148])
+        #expect(decoded.workouts.first?.heartRateSeriesHigh == [104, 0, 146, 152])
         #expect(decoded.workouts.first?.basalEnergyKilocalories == 30)
         #expect(decoded == snapshot)
+
+        // A v8 file carries the mean and no range: it must decode with the
+        // range absent, and a workout restored from it draws from its means.
+        snapshot.schemaVersion = 8
+        snapshot.workouts[0].heartRateSeriesLow = nil
+        snapshot.workouts[0].heartRateSeriesHigh = nil
+        let v8 = try ExportJSON.data(snapshot)
+        #expect(!String(decoding: v8, as: UTF8.self).contains("heartRateSeriesLow"))
+        let fromV8 = try ExportJSON.decode(v8)
+        #expect(fromV8.workouts.first?.heartRateSeriesLow == nil)
+        #expect(fromV8.workouts.first?.heartRateSeries == [100, 0, 140, 150])
 
         // A v7 file has none of these keys; encoding nil omits them, so this IS
         // that shape, and it must decode with the fields absent.

@@ -63,6 +63,9 @@ struct LegacyStoreMigrationTests {
         #expect(workout.heartRateSeries.isEmpty)
         #expect(workout.heartRateSeriesIntervalSeconds == nil)
         #expect(workout.basalEnergyKilocalories == nil)
+        // Finish-graph ticket 01: the range arrays, added after the series.
+        #expect(workout.heartRateSeriesLow.isEmpty)
+        #expect(workout.heartRateSeriesHigh.isEmpty)
         #expect(!WorkoutSummaryBuilder.summary(for: workout).hasHeartRateSeries)
     }
 

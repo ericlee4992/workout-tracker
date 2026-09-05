@@ -48,7 +48,11 @@ struct ExportSnapshot: Codable, Equatable {
     /// width) and `basalEnergyKilocalories`. JSON only: an array has no honest
     /// place in a flat ledger of sets, exactly as `zoneSeconds` (v4). Absent
     /// when no sensor ran — missing is not zero.
-    static let currentSchemaVersion = 8
+    /// 9 — finish-graph ticket 01. `workouts[].heartRateSeriesLow` / `High`,
+    /// the per-bucket range beside the mean, so a restore draws the chart the
+    /// phone drew. Omitted when empty — a v8 workout restored has means only
+    /// and draws from them. JSON only, like the mean; CSV unchanged.
+    static let currentSchemaVersion = 9
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -242,6 +246,10 @@ extension ExportSnapshot {
         /// v8: bpm per bucket from `startedAt`, 0 = gap; omitted when empty.
         var heartRateSeries: [Int]? = nil
         var heartRateSeriesIntervalSeconds: Int? = nil
+        /// v9: the lowest/highest sample per bucket; omitted when the
+        /// workout predates them. Same length as `heartRateSeries` when present.
+        var heartRateSeriesLow: [Int]? = nil
+        var heartRateSeriesHigh: [Int]? = nil
         /// v8: the system's resting-energy figure; absent when not provided.
         var basalEnergyKilocalories: Double? = nil
     }

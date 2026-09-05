@@ -86,8 +86,11 @@ struct WorkoutFinishedSheet: View {
                     if summary.hasHeartRateSeries, let interval = summary.heartRateSeriesIntervalSeconds {
                         HeartRateSummarySection(
                             series: summary.heartRateSeries,
+                            low: summary.heartRateSeriesLow,
+                            high: summary.heartRateSeriesHigh,
                             intervalSeconds: interval,
                             durationSeconds: Int(summary.duration.rounded(.up)),
+                            startedAt: summary.date,
                             averageBpm: summary.averageHeartRate,
                             maxBpm: summary.maxHeartRate)
                     }

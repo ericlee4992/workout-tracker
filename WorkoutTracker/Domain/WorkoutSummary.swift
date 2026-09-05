@@ -37,6 +37,10 @@ struct WorkoutSummary: Equatable, Sendable {
     var basalEnergyKilocalories: Double? = nil
     var heartRateSeries: [Int] = []
     var heartRateSeriesIntervalSeconds: Int? = nil
+    /// Finish-graph ticket 01: per-bucket low/high beside the mean; empty on
+    /// a workout folded before they existed (the chart then draws from means).
+    var heartRateSeriesLow: [Int] = []
+    var heartRateSeriesHigh: [Int] = []
 
     var hasHeartRate: Bool {
         averageHeartRate != nil || maxHeartRate != nil || activeEnergyKilocalories != nil
@@ -135,7 +139,9 @@ enum WorkoutSummaryBuilder {
             zonesFromEstimatedMax: workout.zonesFromEstimatedMax,
             basalEnergyKilocalories: workout.basalEnergyKilocalories,
             heartRateSeries: workout.heartRateSeries,
-            heartRateSeriesIntervalSeconds: workout.heartRateSeriesIntervalSeconds)
+            heartRateSeriesIntervalSeconds: workout.heartRateSeriesIntervalSeconds,
+            heartRateSeriesLow: workout.heartRateSeriesLow,
+            heartRateSeriesHigh: workout.heartRateSeriesHigh)
     }
 
     /// The heaviest completed set, as entered. Warmups are excluded exactly as
@@ -181,9 +187,13 @@ enum WorkoutSummaryBuilder {
         // Milestone 9, ticket 05: the series, folded here — the one moment the
         // samples exist. `finishedAt` is not set yet on this path, so the end
         // is `now`. Empty samples leave the series empty and the interval nil.
-        let series = HeartRateSeriesMath.series(from: samples, start: workout.startedAt, end: now)
-        if series.contains(where: { $0 > 0 }) {
-            workout.heartRateSeries = series
+        // One fold writes all three arrays (ticket 01 of the finish graph):
+        // a mean without its low/high would draw as a flat tick forever.
+        let folded = HeartRateSeriesMath.fold(from: samples, start: workout.startedAt, end: now)
+        if folded.hasSamples {
+            workout.heartRateSeries = folded.mean
+            workout.heartRateSeriesLow = folded.low
+            workout.heartRateSeriesHigh = folded.high
             workout.heartRateSeriesIntervalSeconds = HeartRateSeriesMath.defaultIntervalSeconds
         }
         guard !vitals.isEmpty else { return }

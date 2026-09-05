@@ -343,6 +343,14 @@ final class Workout {
     /// empty; stored rather than assumed so the constant can change later
     /// without misreading old rows.
     var heartRateSeriesIntervalSeconds: Int?
+    /// Finish-graph ticket 01: the lowest and highest sample in each of the
+    /// same buckets, so the chart can draw the span the heart covered inside
+    /// an interval (Apple's shape) rather than a bar to the mean. Same
+    /// length as `heartRateSeries` when present, 0 where it is 0. EMPTY for
+    /// every workout folded before this existed — those draw from the means
+    /// (`HeartRateSeriesMath.displaySlots`), never from an invented range.
+    var heartRateSeriesLow: [Int] = []
+    var heartRateSeriesHigh: [Int] = []
     /// The system's resting-energy accumulation over the session, so TOTAL
     /// calories (active + basal) can be shown as Apple does. nil when the
     /// builder did not provide it — never derived.
@@ -371,6 +379,8 @@ final class Workout {
         zonesFromEstimatedMax: Bool? = nil,
         heartRateSeries: [Int] = [],
         heartRateSeriesIntervalSeconds: Int? = nil,
+        heartRateSeriesLow: [Int] = [],
+        heartRateSeriesHigh: [Int] = [],
         basalEnergyKilocalories: Double? = nil,
         gym: Gym? = nil
     ) {
@@ -392,6 +402,8 @@ final class Workout {
         self.zonesFromEstimatedMax = zonesFromEstimatedMax
         self.heartRateSeries = heartRateSeries
         self.heartRateSeriesIntervalSeconds = heartRateSeriesIntervalSeconds
+        self.heartRateSeriesLow = heartRateSeriesLow
+        self.heartRateSeriesHigh = heartRateSeriesHigh
         self.basalEnergyKilocalories = basalEnergyKilocalories
         self.gym = gym
     }
