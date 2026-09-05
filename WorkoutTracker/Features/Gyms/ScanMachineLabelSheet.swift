@@ -382,14 +382,18 @@ struct ScanMachineLabelSheet: View {
 
     private func present(_ reading: LabelReading, in index: CatalogMatchIndex) {
         let matches = CatalogMatcher.rank(reading, in: index)
+        // The create-new guesses read the REPAIRED plate — `SCYBEX` proposes
+        // `Cybex` — while `Results.reading`, what the sheet echoes back as
+        // read, stays the raw reading (scanner accuracy, ticket 02).
+        let repaired = index.repaired(reading)
         let manufacturer = MachineLabelText.guessManufacturer(
-            in: reading, knownManufacturers: index.manufacturers) ?? ""
+            in: repaired, knownManufacturers: index.manufacturers) ?? ""
         phase = .results(Results(
             reading: reading,
             matches: matches,
             manufacturerGuess: manufacturer,
             modelNameGuess: MachineLabelText.guessModelName(
-                in: reading, manufacturer: manufacturer)))
+                in: repaired, manufacturer: manufacturer)))
         // Preselected, never applied on its own (D33).
         selectedID = CatalogMatcher.preselection(from: matches)?.modelID
     }

@@ -1,11 +1,11 @@
-# Scanner corpus report — Sep 5, 2026 at 3:52 PM
+# Scanner corpus report — Sep 5, 2026 at 3:45 PM
 
 Photos measured: 41 (12 with a catalog row, 29 without). Pipeline: `MachineLabelOCR.read` + `CatalogMatcher.rank` on the shipped catalog.
 
 | Metric | Value |
 |---|---|
 | Top-1 right (of 12 in catalog) | 7 |
-| Preselected right | 6 |
+| Preselected right | 5 |
 | **Wrong preselections** | **0** |
 | Create-new suggested when the row is absent (of 29) | 28 |
 | Nothing read at all | 1 |
@@ -29,7 +29,7 @@ Photos measured: 41 (12 with a catalog row, 29 without). Pipeline: `MachineLabel
 | h032.jpg | — (not in catalog) | LAMMED / STRENGTH | — |  | new ✓ | badge: brand text only, angled |
 | h044.jpg | Hammer Strength Iso-Lateral Front Lat Pulldown | HAMMER / STRENGTH / ISO-LATERAL / FRONT LAT / PULLDOWN / Start 1 lb./1.5Kg. / EQ | Hammer Strength Iso-Lateral Front Lat Pulldown (93%) | yes | ✓ | placard at a steep angle, small in frame |
 | h045.jpg | — (not in catalog) | WUH / STRENCTH | — |  | new ✓ | badge: brand text only |
-| h056.jpg | Hammer Strength Iso-Lateral Low Row | HAMMER / STRENGTH / ISO-LATERAL / LOW ROW / Start 8 Ibs./3.6Kg. / erstrength.com | Hammer Strength Iso-Lateral Low Row (100%) | yes | ✓ | vertical placard, tilted |
+| h056.jpg | Hammer Strength Iso-Lateral Low Row | HAMMER / STRENGTH / ISO-LATERAL / LOW ROW / Start 8 Ibs./3.6Kg. / erstrength.com | Hammer Strength Iso-Lateral Low Row (100%) |  | ✓ | vertical placard, tilted |
 | h057.jpg | — (not in catalog) | HAMMER / STRENGTH | — |  | new ✓ | badge: brand text only, with a warning sticker |
 | h063.jpg | Hammer Strength Iso-Lateral Row | HAMMER / STRENGTH / ISO-LATERAL / ROW / Start 12 lbs./5.4Kg. | Hammer Strength Iso-Lateral Row (100%) | yes | ✓ | vertical placard, straight on |
 | h064.jpg | — (not in catalog) | YAMMER / RENGTH | — |  | new ✓ | embossed metal logo plate on the floor tube |

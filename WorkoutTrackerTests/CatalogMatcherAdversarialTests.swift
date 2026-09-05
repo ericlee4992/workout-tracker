@@ -350,4 +350,46 @@ struct CatalogMatcherAdversarialTests {
         #expect(forward.map(\.modelID) == reversed.map(\.modelID))
         #expect(forward.map(\.score) == reversed.map(\.score))
     }
+
+    // MARK: Prefix siblings (scanner accuracy, ticket 02)
+
+    /// `ISO-LATERAL LOW ROW` read perfectly scored 100% and was never
+    /// preselected: plain `Iso-Lateral Row` tied it within the margin. The
+    /// generic row is the specific row's prefix, not a different machine.
+    @Test func aPerfectlyReadSpecificRowIsNotBlockedByItsGenericPrefix() throws {
+        let index = try realIndex()
+        let matches = CatalogMatcher.rank(
+            LabelReading.lines(["HAMMER", "STRENGTH", "ISO-LATERAL", "LOW ROW", "Start 8 lbs./3.6Kg."]),
+            in: index)
+        #expect(matches.first?.modelName == "Iso-Lateral Low Row")
+        #expect(matches.dropFirst().first?.modelName == "Iso-Lateral Row", "the prefix sibling is the runner-up")
+        let chosen = try #require(CatalogMatcher.preselection(from: matches))
+        #expect(chosen.modelName == "Iso-Lateral Low Row")
+
+        // A one-letter distinguisher does not unlock it: the Sorinex case in
+        // `oneLetterComponentsOfRealNamesSurvive` stays unpreselected.
+        let sorinex = CatalogMatcher.rank(LabelReading.lines(["SORINEX", "BASE CAMP RACK & A HALF"]), in: index)
+        #expect(CatalogMatcher.preselection(from: sorinex) == nil)
+
+        // The other way round is unchanged: a plate that says only ROW
+        // preselects the plain row, and the longer sibling is not "near".
+        let plain = CatalogMatcher.rank(
+            LabelReading.lines(["HAMMER", "STRENGTH", "ISO-LATERAL", "ROW"]), in: index)
+        #expect(CatalogMatcher.preselection(from: plain)?.modelName == "Iso-Lateral Row")
+    }
+
+    /// The exception is only for a name read EXACTLY. A fuzzily-matched extra
+    /// word is a guess, and a guess must not switch the margin off.
+    @Test func aFuzzilyCoveredSpecificRowStillRespectsTheMargin() throws {
+        let index = try realIndex()
+        let matches = CatalogMatcher.rank(
+            LabelReading.lines(["HAMMER", "STRENGTH", "ISO-LATERAL", "LOV ROW"]), in: index)
+        guard let best = matches.first, best.modelName == "Iso-Lateral Low Row" else {
+            return  // LOV did not even reach Low Row: nothing to protect against
+        }
+        #expect(!best.exactlyCovered)
+        if matches.count > 1, best.score - matches[1].score < CatalogMatcher.preselectionMargin {
+            #expect(CatalogMatcher.preselection(from: matches) == nil)
+        }
+    }
 }

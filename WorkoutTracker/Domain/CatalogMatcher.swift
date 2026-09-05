@@ -37,6 +37,12 @@ struct CatalogMatch: Equatable {
     /// explains little of what the plate says is a poor answer even when every
     /// word of its own name was found.
     let explanation: Double
+    /// The row's model-name tokens, and whether every one of them was read
+    /// EXACTLY on the plate (no fuzzy claim). Together they let
+    /// `preselection` tell a prefix sibling from an ambiguity (ticket 02 of
+    /// the scanner-accuracy work).
+    let nameTokens: Set<String>
+    let exactlyCovered: Bool
 
     var displayName: String { "\(manufacturer) \(modelName)" }
 }
@@ -80,6 +86,9 @@ struct CatalogMatchIndex {
     private(set) var manufacturers: [String] = []
     /// Token sets of every known manufacturer, for conflict detection.
     private(set) var manufacturerTokenSets: [(name: String, tokens: Set<String>)] = []
+    /// Scanner accuracy, ticket 02: the repair of what the camera did to the
+    /// words, built once with this catalog's vocabulary.
+    private(set) var repair: MachineLabelRepair
 
     init(models: [(id: UUID, manufacturer: String, modelName: String)]) {
         var documentFrequency: [String: Int] = [:]
@@ -128,6 +137,15 @@ struct CatalogMatchIndex {
             let tokens = Set(MachineLabelText.readingTokens(name))
             return tokens.isEmpty ? nil : (name, tokens)
         }
+        repair = MachineLabelRepair(manufacturers: manufacturers, isKnown: { weightTable[$0] != nil })
+    }
+
+    /// The reading with corrupted brand tokens and glued words repaired
+    /// (`MachineLabelRepair`). `rank` applies this itself; the sheet uses it
+    /// for the create-new guesses so a plate read as `SCYBEX` proposes
+    /// `Cybex`. The text the user is shown as read stays the raw reading.
+    func repaired(_ reading: LabelReading) -> LabelReading {
+        repair.repaired(reading)
     }
 
     /// IDF weight, with unseen words treated as maximally distinctive.
@@ -165,8 +183,11 @@ enum CatalogMatcher {
     /// Candidates for `reading`, best first. Deterministic: ties break by score,
     /// then display name, then id, so the same photo always ranks the same way.
     static func rank(
-        _ reading: LabelReading, in index: CatalogMatchIndex, limit: Int = 5
+        _ rawReading: LabelReading, in index: CatalogMatchIndex, limit: Int = 5
     ) -> [CatalogMatch] {
+        // Ticket 02 of the scanner-accuracy work: the camera's `SCYBEX` and
+        // `DIPICHIN` become `cybex` and `dip chin` before anything is scored.
+        let reading = index.repaired(rawReading)
         // Matching sees the whole plate — a code in a line that reads as
         // furniture ("VSL019BP") is still evidence. *Explanation* is measured
         // only over the lines that claim to name the machine, so warnings and
@@ -211,8 +232,34 @@ enum CatalogMatcher {
     static func preselection(from matches: [CatalogMatch]) -> CatalogMatch? {
         guard let best = matches.first, best.score >= confidentScore else { return nil }
         guard best.manufacturerMatched, !best.manufacturerConflicts else { return nil }
-        if matches.count > 1, best.score - matches[1].score < preselectionMargin { return nil }
+        if matches.count > 1, best.score - matches[1].score < preselectionMargin,
+           !isPrefixSibling(matches[1], of: best) {
+            return nil
+        }
         return best
+    }
+
+    /// A runner-up whose name is a strict subset of the best row's — plain
+    /// `Iso-Lateral Row` under a plate that read `ISO-LATERAL LOW ROW` — is not
+    /// an ambiguity, it is the generic version of the same maker's machine,
+    /// and it ties only because the matcher cannot penalise it for the word it
+    /// lacks. The margin exists for two DIFFERENT rows within a few points of
+    /// each other; it must not stop the specific row when every word of its
+    /// name was read exactly (scanner corpus: Low Row at 100%, never
+    /// preselected). Kept strict: same manufacturer, strict subset, exact
+    /// coverage — a fuzzily-matched extra word is still a guess — and every
+    /// word that distinguishes the specific row must be a real word of at
+    /// least three characters. `Rack & A Half` differs from `Half Rack` by the
+    /// token `a`, and a stray one-letter token is precisely what a logo or a
+    /// scratch reads as, so it must not unlock a preselection
+    /// (`oneLetterComponentsOfRealNamesSurvive`).
+    static func isPrefixSibling(_ runnerUp: CatalogMatch, of best: CatalogMatch) -> Bool {
+        guard best.exactlyCovered,
+              runnerUp.manufacturer == best.manufacturer,
+              runnerUp.nameTokens.isStrictSubset(of: best.nameTokens)
+        else { return false }
+        let distinguishing = best.nameTokens.subtracting(runnerUp.nameTokens)
+        return distinguishing.allSatisfy { $0.count >= 3 }
     }
 
     /// Whether the sheet should lead with creating a model instead.
@@ -258,6 +305,7 @@ enum CatalogMatcher {
         var covered = 0.0
         var explained = 0.0
         var unmatched: [String] = []
+        var exactNameTokens = 0
 
         // Exact matches first, across *all* of the row's tokens, before any
         // fuzzy claim is staked. Interleaving the two let a high-weight token
@@ -270,7 +318,7 @@ enum CatalogMatcher {
             }
             consumed.insert(token)
             let weight = index.weight(token)
-            if entry.nameTokens.contains(token) { covered += weight }
+            if entry.nameTokens.contains(token) { covered += weight; exactNameTokens += 1 }
             if evidence.contains(token) { explained += weight }
         }
 
@@ -316,7 +364,9 @@ enum CatalogMatcher {
             modelName: entry.modelName, score: score,
             manufacturerMatched: manufacturerMatched,
             manufacturerConflicts: conflicts,
-            explanation: explanation)
+            explanation: explanation,
+            nameTokens: entry.nameTokens,
+            exactlyCovered: exactNameTokens == entry.nameTokens.count)
     }
 
     // MARK: - Fuzzy token matching

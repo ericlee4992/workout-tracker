@@ -77,6 +77,15 @@ struct ScannerCorpusHarness {
         let index = CatalogMatchIndex(models: catalog.equipmentModels.map {
             (id: $0.id, manufacturer: $0.manufacturer, modelName: $0.modelName)
         })
+        // TEST_RUNNER_SCANNER_VOCAB=1 on the xcodebuild command line runs the
+        // vocabulary experiment (ticket 02): the catalog's words as Vision
+        // custom words with language correction on.
+        let useVocabulary = ProcessInfo.processInfo.environment["SCANNER_VOCAB"] == "1"
+        MachineLabelOCR.vocabulary = useVocabulary
+            ? Array(Set(catalog.equipmentModels.flatMap { MachineLabelText.tokens($0.manufacturer + " " + $0.modelName) })
+                .filter { $0.count >= 3 }).sorted()
+            : nil
+        defer { MachineLabelOCR.vocabulary = nil }
 
         var rows: [Row] = []
         for entry in present {
@@ -120,7 +129,7 @@ struct ScannerCorpusHarness {
         let newAgreed = notInCatalog.filter(\.suggestsNew).count
         let unread = rows.filter { $0.read.isEmpty }.count
 
-        var report = "# Scanner corpus report — \(Date().formatted(date: .abbreviated, time: .shortened))\n\n"
+        var report = "# Scanner corpus report — \(Date().formatted(date: .abbreviated, time: .shortened))\(useVocabulary ? " — VOCABULARY EXPERIMENT" : "")\n\n"
         report += "Photos measured: \(rows.count) (\(inCatalog.count) with a catalog row, \(notInCatalog.count) without). "
         report += "Pipeline: `MachineLabelOCR.read` + `CatalogMatcher.rank` on the shipped catalog.\n\n"
         report += "| Metric | Value |\n|---|---|\n"
