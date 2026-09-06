@@ -72,6 +72,15 @@ problem (an API key cannot ship inside the app — a proxy is a prerequisite for
 developer), and D34 (recognition stays on the phone; a photo of the gym would leave it). Those are
 product decisions — see ticket 05.
 
+## Re-read with the production contract (2026-09-06, after codex-review-05)
+
+`llm_reader.py` now mirrors `PlateTranscriptionAPI.prompt` / `.schema` exactly (no
+`brand_from_logo_only`). Re-run with `SCANNER_LLM_REDO=1`: `reports/llm-sonnet-2026-09-06b.md` —
+**identical totals** (top-1 10, preselected 6, wrong 0, create-new 24, nothing-read 1); the only
+row differences are capitalisation and line order in the transcriptions (e.g. `HAMMER STRENGTH /
+GROUND BASE COMBO INCLINE`), which the matcher normalises. 116,316 input / 2,341 output tokens,
+≈ $0.26. This is the baseline any future prompt or schema change must hold.
+
 ## Environment note
 
 `llm_reader.py` sends `Accept-Encoding: identity`: anaconda's `brotli` 1.0.9 lacks the
