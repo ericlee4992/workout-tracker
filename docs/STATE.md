@@ -1,13 +1,17 @@
 # Where the project is right now
 
-Updated 2026-09-06 (Ask AI tickets 05 + 06 merged to `main`, Codex clear after four rounds; not installed). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-06 (Ask AI tickets 05 + 06 merged and installed; Xcode has no Apple ID — profiles expire 09-11). **START HERE IF YOU ARE COLD:**
 
 000. **Ask AI (tickets 05 + 06) MERGED to `main` 2026-09-06 — Codex clear after FOUR rounds
-   (`codex-review-05..05d`). NOT yet installed on the phone.** The user's decisions: button first
+   (`codex-review-05..05d`) — and INSTALLED, launch-verified 2026-09-06 12:59 (`3b3c22c` =
+   `main`; no schema change).** The user's decisions: button first
    (no automatic send), developer-only keychain key now, other users later — so the client is
    proxy-shaped (`AnthropicMessagesClient.Credential` .apiKey | .bearer, endpoint a parameter).
-   **Next: install, then the user pastes their key under Settings → "Ask AI about plates" and
-   tries it at the gym on a plate that fails on-device; report the bigger box too.**
+   **Next: the user pastes their key under Settings → "Ask AI about plates" (the app has NO key
+   until then — the button never appears) and tries it at the gym on a plate that fails on-device;
+   report the bigger box too. ALSO before 2026-09-11: sign the Apple ID back into Xcode
+   (Settings → Accounts) — see the gotcha; the install reused the profiles expiring 09-11 01:08 UTC
+   because Xcode had no account to mint fresh ones.**
    - **What is on the branch**: the framing box enlarged (94 % width, 2:1 — user's gym photo
      showed it small); **05** `Domain/PlateTranscription.swift` + `LabelCrop.swift` (pure),
      `Features/Gyms/AskAI.swift` (transport + who answers), `AskAIKeyStore.swift` (keychain),
@@ -389,7 +393,7 @@ those sessions outranks new features.
 
 | Thing | Value |
 |---|---|
-| Installed commit | **`1fd8cbf`** — **current with `main`**, installed **2026-09-05 (evening)**, launch NOT verified (phone locked; `FBSOpenApplicationServiceErrorDomain error 1`): the scanner's reading repair and capture-first viewfinder (tickets 02–03 of the scanner-accuracy work). Previously **`3d01052`**, installed and launch-verified **2026-09-05 (early morning)**: the finish-graph work (Apple-shaped heart-rate chart with per-bucket low/high — a two-array lightweight migration on `Workout` — and D52's plain numbers). Previously **`97b656b`**, installed and launch-verified **2026-09-04 (evening)**; the same day's morning install of `66bc7d4` (milestone 9 before ticket 06) ran the D51 reclassification on the real store — **18 sets moved** — with a CSV+JSON export taken to iCloud Drive immediately before it. Previously **`5a860bc`**, installed and launch-verified **2026-09-03 21:09**. This build carries `3ad382d`, so the device now draws **one chart line per variation** (D36) with a Variation picker; the binary was checked for `chartVariationPicker` before installing, and no SwiftData model changed between `4eb5486` and here, so there was no migration. Previously `4eb5486` — the chart tooltip, one behind `main`. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
+| Installed commit | **`3b3c22c`** — **current with `main`**, installed and **launch-verified 2026-09-06 12:59**: Ask AI (tickets 05–06), the bigger framing box; no schema change. The binary was checked for `scanAskAI` / `newModelSuggestExercises` before installing. Profiles NOT renewed (see the Xcode-account gotcha): still **2026-09-11 01:08 UTC**. Previously **`1fd8cbf`**, installed 2026-09-05 (evening), launch not verified then (phone locked): the scanner's reading repair and capture-first viewfinder (tickets 02–03 of the scanner-accuracy work). Previously **`3d01052`**, installed and launch-verified **2026-09-05 (early morning)**: the finish-graph work (Apple-shaped heart-rate chart with per-bucket low/high — a two-array lightweight migration on `Workout` — and D52's plain numbers). Previously **`97b656b`**, installed and launch-verified **2026-09-04 (evening)**; the same day's morning install of `66bc7d4` (milestone 9 before ticket 06) ran the D51 reclassification on the real store — **18 sets moved** — with a CSV+JSON export taken to iCloud Drive immediately before it. Previously **`5a860bc`**, installed and launch-verified **2026-09-03 21:09**. This build carries `3ad382d`, so the device now draws **one chart line per variation** (D36) with a Variation picker; the binary was checked for `chartVariationPicker` before installing, and no SwiftData model changed between `4eb5486` and here, so there was no migration. Previously `4eb5486` — the chart tooltip, one behind `main`. **REINSTALLED 2026-08-29 17:57** after its provisioning profile expired (see the expiry gotcha below); same code, fresh signature, profile now good to **2026-09-05 21:57 UTC**. Originally installed **2026-08-29 17:42**, launch-verified, and the binary checked for the new code before installing (see the device-build gotcha below). Previously `5b962b0` — drag-to-reorder exercises (the workout screen is now a List), plus add/remove exercises in history. Installed **2026-08-29 14:41**, launch-verified. Previously `0f164c8` — reorder exercises mid-workout, add/remove exercises in history. Installed **2026-08-29 13:34**, launch-verified. Previously `629c925` — milestone 8 plus the 2026-08-26 gym fixes (weights shown in the app's own unit; swipe-to-delete). Installed **02:30**, launch-verified. Previously `3e98e33` — all of milestone 8: load-type correction, history editing, progress charts, supersets, and the lock-screen Live Activity. Installed **2026-08-26 02:06** and **launch-verified**, so the THREE-WAY schema migration (`Exercise.loadTypeUserOverridden`, `Workout.historyEditedAt`, `ExerciseEntry.supersetGroupID` + `TemplateItem.supersetGroupID`) opened the user's real store and the app stayed up. Clean-built, and the plists checked before installing: HealthKit strings, `NSSupportsLiveActivities`, `UIBackgroundModes`, and the embedded widget's `NSExtension`. **This build carries the first new TARGET since the watch app** — `WorkoutTrackerWidget`. The **watch companion is still NOT installed** (ticket 02) |
 | Previously installed | `82a1ddb` (the working background rest alarm), 2026-08-25 02:11 |
 | Previously installed | `f5cc50a` (revised zones + first audible alarm), 2026-08-25 00:06 — the alarm in that build only sounded while the app was on screen |
 | Previously installed | `a32755b` (milestone 7 + bar-weight review fixes), 2026-08-24 16:37 — launch-verified; this is the build that migrated `barNormalizedKg` onto the real store |
@@ -649,6 +653,16 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   — the most commercially significant gap). See `docs/catalog-sources/README.md`.
 
 ## Environment gotchas that cost real time
+
+- **Xcode 26.6 has NO Apple ID signed in (2026-09-06) — a device build cannot mint profiles.**
+  Moving the profiles aside (the fresh-7-days trick below) made the build fail with "No Accounts:
+  Add a new account in Accounts settings" for both targets; `defaults read com.apple.dt.Xcode
+  DVTDeveloperAccountManagerAppleIDLists` shows an empty list, though the team
+  (`Eric Lee (Personal Team)`) is still remembered. The profiles were restored from the backup
+  (`~/Desktop/wt-profile-backup-2026-09-06/`) and the build signed with them. **Before 2026-09-11
+  01:08 UTC the user must sign the Apple ID into Xcode → Settings → Accounts** (password + 2FA —
+  not an agent step), then delete the two profile files and rebuild to get a fresh week. Otherwise
+  the app dies as "no longer available" on the 11th.
 
 - **`HeartRateMonitorTests.samplesArriveAndBecomeTheCurrentReading` (and once
   `CodexReviewRegressionTests.theFeedStateNamesTheSourceOfTheReadingShown`) fail in a FULL unit
