@@ -73,6 +73,17 @@ struct ScannerCorpusHarness {
             return
         }
 
+        // TEST_RUNNER_SCANNER_LLM=1: use the transcriptions Claude produced
+        // (`tools/llm_reader.py` → corpus/llm-readings.json) in place of Vision,
+        // through the same matcher — the LLM-as-plate-reader experiment.
+        let useLLM = ProcessInfo.processInfo.environment["SCANNER_LLM"] == "1"
+        var llmReadings: [String: [String]] = [:]
+        if useLLM {
+            let url = Self.corpusURL.appending(path: "llm-readings.json")
+            let raw = try JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: [String: Any]] ?? [:]
+            for (file, value) in raw { llmReadings[file] = value["lines"] as? [String] ?? [] }
+        }
+
         let catalog = try SeedCatalog.bundled()
         let index = CatalogMatchIndex(
             models: catalog.equipmentModels.map { (id: $0.id, manufacturer: $0.manufacturer, modelName: $0.modelName) },
@@ -86,10 +97,14 @@ struct ScannerCorpusHarness {
                 continue
             }
             let reading: LabelReading
-            do {
-                reading = try await MachineLabelOCR.read(image)
-            } catch {
-                reading = LabelReading()
+            if useLLM {
+                reading = LabelReading.lines(llmReadings[entry.file] ?? [])
+            } else {
+                do {
+                    reading = try await MachineLabelOCR.read(image)
+                } catch {
+                    reading = LabelReading()
+                }
             }
             let matches = CatalogMatcher.rank(reading, in: index)
             let top = matches.first
@@ -120,9 +135,11 @@ struct ScannerCorpusHarness {
         let newAgreed = notInCatalog.filter(\.suggestsNew).count
         let unread = rows.filter { $0.read.isEmpty }.count
 
-        var report = "# Scanner corpus report — \(Date().formatted(date: .abbreviated, time: .shortened))\n\n"
+        var report = "# Scanner corpus report — \(Date().formatted(date: .abbreviated, time: .shortened))\(useLLM ? " — LLM READINGS (Claude) through the app's matcher" : "")\n\n"
         report += "Photos measured: \(rows.count) (\(inCatalog.count) with a catalog row, \(notInCatalog.count) without). "
-        report += "Pipeline: `MachineLabelOCR.read` + `CatalogMatcher.rank` on the shipped catalog.\n\n"
+        report += useLLM
+            ? "Pipeline: Claude transcription (corpus/llm-readings.json) + `CatalogMatcher.rank` on the shipped catalog.\n\n"
+            : "Pipeline: `MachineLabelOCR.read` + `CatalogMatcher.rank` on the shipped catalog.\n\n"
         report += "| Metric | Value |\n|---|---|\n"
         report += "| Top-1 right (of \(inCatalog.count) in catalog) | \(topRight) |\n"
         report += "| Preselected right | \(preRight) |\n"

@@ -28,3 +28,7 @@ Config/Local.xcconfig
 # only the manifest (URLs + labels) and reports are committed.
 .scratch/scanner-accuracy/corpus/*
 !.scratch/scanner-accuracy/corpus/manifest.json
+
+# Anthropic API key for the scanner LLM experiment (read by
+# .scratch/scanner-accuracy/tools/llm_reader.py); never committed.
+Config/anthropic.key
