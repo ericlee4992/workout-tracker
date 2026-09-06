@@ -1,6 +1,6 @@
 # 05 — "Ask AI": escalate a plate to Claude when the phone cannot place it
 
-Status: built 2026-09-06 — Codex rounds 1–2 answered, awaiting round 3 (reviewed with ticket 06)
+Status: built 2026-09-06 — Codex rounds 1–3 answered, awaiting round 4 (reviewed with ticket 06)
 Blocked by: —
 
 Decisions (user, 2026-09-06): **button first** (no automatic send); **developer-only keychain key now**, other users planned later — so the client is proxy-shaped from day one (endpoint + header on `PlateTranscriptionAPI`), D53.
@@ -167,3 +167,22 @@ FULL UI suite ran once on `6242324` (before these fixes): 43 tests, 42 passed, t
 cold-first-launch flake in the Ask AI happy path's gym-creation helper (the typed name never
 became a row; passes on every focused run) — the helper now waits for the keyboard and verifies
 the field before saving.
+
+## Codex review 05c — response (2026-09-06)
+
+`codex-review-05c.md`: do not merge yet — two mediums, one low.
+
+- **Medium, the frame guard closed equality only** (a box leaving one pixel column passed). Now a
+  crop may cover at most 90 % of the photo's AREA (`LabelCrop.maximumAreaShare`) — a tenth of the
+  photo must stay out. The real box on a portrait phone spans well under half the photo; the fixture
+  plate is ≈ 67 % with its margin. Pinned: the one-column case, a 90 %-before-margin box (nil), the
+  wide box and the fixture box (crops).
+- **Medium, the disclosures were not exact.** SPEC, D53, the scan sheet's footer, the Settings
+  sheet and the New Model footer now say what leaves: the box plus an 8 % margin and at most nine
+  tenths of the photo; and for 06 the manufacturer and model as typed, the plate's lines, and the
+  exercise list (ids, names, muscle groups).
+- **Low, the STATE placeholder.** Gone; STATE names every round's verdict.
+
+Verification after round 3: the FULL UI suite on `e5ef77c` — **44 tests, 0 failures** (24 min);
+at this head `AskAIUITests` 7/7 and the unit suite green (the two heart-rate timing tests fail
+only under load, straight after a UI run, and pass alone every time).

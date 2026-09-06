@@ -326,7 +326,7 @@ struct ScanMachineLabelSheet: View {
                     Text(note)
                         .accessibilityIdentifier("scanAskAINote")
                 } else {
-                    Text("Sends only the plate inside the box to Claude, with your key, and ranks what it reads here.")
+                    Text("Sends the plate inside the box (plus a small margin around it) to Claude, with your key, and ranks what it reads here.")
                 }
             }
         }

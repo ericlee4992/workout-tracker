@@ -21,7 +21,7 @@ struct AskAISettingsSheet: View {
                     }
                     .accessibilityIdentifier("askAIStatus")
                 } footer: {
-                    Text("When a scan cannot place a plate, the results screen offers Ask AI. Tapping it sends the plate inside the box — not the whole photo — to Claude with this key, and the app ranks what it reads. Nothing is sent otherwise, and nothing is stored.")
+                    Text("When a scan cannot place a plate, the results screen offers Ask AI. Tapping it sends the plate inside the box, with a small margin around it — never the whole photo — to Claude with this key, and the app ranks what it reads. On a new model, “Suggest exercises with AI” sends the manufacturer and model you typed, the plate's text and the app's exercise list. Nothing is sent otherwise, and nothing is stored.")
                 }
 
                 Section {

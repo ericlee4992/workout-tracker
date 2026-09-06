@@ -2,8 +2,8 @@
 
 Updated 2026-09-06 (Ask AI tickets 05 + 06 built on `ask-ai`; Codex rounds in progress). **START HERE IF YOU ARE COLD:**
 
-000. **Ask AI (tickets 05 + 06) BUILT on branch `ask-ai`, 2026-09-06 — Codex round 2 verdict:
-   CODEX-VERDICT-PLACEHOLDER. Not merged, not installed.** The user's decisions: button first
+000. **Ask AI (tickets 05 + 06) BUILT on branch `ask-ai`, 2026-09-06 — Codex rounds 1–3 each said
+   "do not merge yet" and each was answered (see below); round 4 pending. Not merged, not installed.** The user's decisions: button first
    (no automatic send), developer-only keychain key now, other users later — so the client is
    proxy-shaped (`AnthropicMessagesClient.Credential` .apiKey | .bearer, endpoint a parameter).
    - **What is on the branch**: the framing box enlarged (94 % width, 2:1 — user's gym photo
@@ -29,6 +29,10 @@ Updated 2026-09-06 (Ask AI tickets 05 + 06 built on `ask-ai`; Codex rounds in pr
      its box is a box), the proposal request outliving Cancel/Add (now a cancelled task), SPEC still
      saying "nothing leaves the phone" (SPEC + D53 now name both opt-in sends) — plus the counting
      client (`AskAIFixtureLedger`, "AI calls: N" under the fixture) and a timeout test.
+   - **Codex round 3** (`codex-review-05c.md`): the frame guard was equality-only (now: a crop may
+     cover at most 90 % of the photo's area, `LabelCrop.maximumAreaShare`); SPEC/D53/the sheets now
+     say EXACTLY what leaves (box + 8 % margin; brand, model, lines + exercise list); the STATE
+     placeholder Codex caught is gone. Round 4 reviews those three.
    - **Verification after round 2**: 697/697 unit; `AskAIUITests` 7/7 + `ScanMachineLabelUITests`
      2/2. The FULL UI suite ran on `6242324`: 43 tests, 42 passed, one cold-launch flake in the Ask
      AI happy path's gym helper (hardened since). Re-run the full suite on the final head before

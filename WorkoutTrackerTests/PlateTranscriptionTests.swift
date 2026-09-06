@@ -147,7 +147,10 @@ struct PlateTranscriptionTests {
         #expect(LabelCrop.pixelRect(region: CGRect(x: 0.1, y: 0.1, width: 0.5, height: 0.2), imageSize: .zero) == nil)
         #expect(LabelCrop.pixelRect(region: CGRect(x: 2, y: 2, width: 0.5, height: 0.2), imageSize: size) == nil, "a box entirely outside the photo")
         #expect(LabelCrop.pixelRect(region: CGRect(x: 0.02, y: 0.04, width: 0.96, height: 0.92), imageSize: CGSize(width: 1_600, height: 500)) == nil, "a near-frame box whose margin reaches every edge")
+        #expect(LabelCrop.pixelRect(region: CGRect(x: 0.0725, y: 0.04, width: 0.9, height: 0.92), imageSize: CGSize(width: 2_000, height: 800)) == nil, "all but one pixel column is the frame (codex-review-05c)")
+        #expect(LabelCrop.pixelRect(region: CGRect(x: 0.05, y: 0.05, width: 0.9, height: 0.9), imageSize: size) == nil, "a box covering nine tenths of the photo before its margin")
         #expect(LabelCrop.pixelRect(region: CGRect(x: 0.02, y: 0.3, width: 0.96, height: 0.4), imageSize: size) != nil, "a wide box that keeps top and bottom out is still a box")
+        #expect(LabelCrop.pixelRect(region: ScanFixture.plateRegion, imageSize: CGSize(width: 2_000, height: 800)) != nil, "the fixture plate (≈ 67 % with its margin) is a box")
     }
 
     @Test func theCropIsResizedToTheExperimentsLongSideAndNeverUpscaled() {

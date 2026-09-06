@@ -65,7 +65,7 @@ struct LabelCropRenderingTests {
             UIColor.green.setFill()
             context.fill(CGRect(origin: .zero, size: size))
         }
-        let jpeg = try #require(LabelCrop.jpeg(big, region: CGRect(x: 0.05, y: 0.1, width: 0.9, height: 0.8)))
+        let jpeg = try #require(LabelCrop.jpeg(big, region: CGRect(x: 0.2, y: 0.2, width: 0.6, height: 0.6)))
         let result = try decoded(jpeg)
         #expect(result.size.width <= LabelCrop.maxSide && result.size.height <= LabelCrop.maxSide)
         #expect(result.size.width > LabelCrop.maxSide - 2, "the long side is brought to maxSide, got \(result.size)")

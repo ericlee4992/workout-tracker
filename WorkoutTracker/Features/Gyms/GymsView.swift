@@ -927,7 +927,7 @@ struct AddModelSheet: View {
                             Text(proposalNote)
                                 .accessibilityIdentifier("newModelSuggestNote")
                         } else {
-                            Text("Sends the plate's text and this exercise list to Claude, with your key; it picks from the list and you keep the final say.")
+                            Text("Sends the manufacturer and model above, the plate's text and this exercise list (names and muscle groups) to Claude, with your key; it picks from the list and you keep the final say.")
                         }
                     }
                 }

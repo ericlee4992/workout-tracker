@@ -18,5 +18,9 @@ Scope: are the round-2 findings closed exactly —
 5. The gym-creation helper hardening in `AskAIUITests` (keyboard wait + value check) — harmless?
 And whether the fixes introduced anything new.
 
+Do NOT run xcodebuild or simctl: the full XCUITest suite is running on the WT-iPhone simulator
+right now and a second test run would corrupt both. Review by inspection; the verification record
+(697/697 unit, AskAIUITests 7/7, ScanMachineLabelUITests 2/2 at this head) is in the ticket.
+
 If closed, say "clear" in one paragraph. Otherwise report by severity with file:line. Do not
 modify source files. Write to .scratch/scanner-accuracy/codex-review-05c.md

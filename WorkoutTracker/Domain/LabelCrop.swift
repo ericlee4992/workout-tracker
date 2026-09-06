@@ -17,6 +17,12 @@ enum LabelCrop {
     /// The experiment resized to 1568 px on the long side (≈ 2,900 input
     /// tokens a plate); the app sends the same.
     static let maxSide: CGFloat = 1568
+    /// A crop may cover at most this share of the photo's area: a "box" that
+    /// keeps less than a tenth of the photo out is the frame for practical
+    /// purposes (codex-review-05c). The real box is far below this — on a
+    /// portrait phone it spans well under half the photo — and the fixture
+    /// plate is ~67 % of its canvas with the margin.
+    static let maximumAreaShare: CGFloat = 0.9
 
     static func pixelRect(region: CGRect, imageSize: CGSize) -> CGRect? {
         let whole = CGRect(origin: .zero, size: imageSize)
@@ -36,10 +42,9 @@ enum LabelCrop {
             height: height + 2 * inset.height)
         let clamped = box.intersection(whole).integral
         guard !clamped.isNull, clamped.width >= 1, clamped.height >= 1,
-              // A box that the margin turns INTO the frame is the frame
-              // (codex-review-05b): something of the photo must stay out.
-              clamped.minX > 0 || clamped.minY > 0
-                || clamped.maxX < imageSize.width || clamped.maxY < imageSize.height
+              // A box that the margin turns into (nearly) the frame is the
+              // frame (codex-review-05b/05c): a tenth of the photo must stay out.
+              clamped.width * clamped.height <= imageSize.width * imageSize.height * maximumAreaShare
         else { return nil }
         return clamped
     }

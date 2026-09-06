@@ -33,9 +33,10 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(ask.waitForExistence(timeout: 20), "a plate the phone could not place offers Ask AI")
         XCTAssertEqual(app.staticTexts["scanAskAICalls"].label, "AI calls: 0", "no call before the tap")
         // The button exists only when nothing preselected (by construction —
-        // pinned in `PlateTranscriptionTests`); the accept button below the
-        // candidates confirms it from the other side.
-        XCTAssertFalse(scrolledTo("scanUseCandidate").isEnabled, "nothing is preselected before the ask")
+        // `Results.preselectedID == nil`, pinned on the fixture plate in
+        // `PlateTranscriptionTests`). Not re-proven here by scrolling to the
+        // accept button: that scrolls the ask button off screen, and a tap on
+        // an off-screen row is the flake that failed one run.
         let before = XCTAttachment(screenshot: app.screenshot())
         before.name = "ask-ai-offered"
         before.lifetime = .keepAlways
