@@ -38,8 +38,15 @@ live loop was never cross-reviewed.
    the main thread; drop the live reading loop. Retake is one tap.
 4. Read quality (ticket 04): confidence floor, symbol/junk token filtering, minimum text height,
    catalog vocabulary as Vision custom words, burst voting across a few frames on the shutter tap.
-5. Brand as a logo (ticket 05): a prior for manufacturers already at this gym, and a brand chip row
-   on the results screen so a plate that names no brand is one tap from preselection.
+5. **"Ask AI" escalation (ticket 05, DRAFT)** — measured first, 2026-09-06
+   (`issues/llm-reader-experiment.md`): Claude Sonnet 5 transcribing the same 41 plates through the
+   app's own matcher read the brand on every logo-only plate, invented nothing, and took top-1
+   8 → 10, preselected 5 → 6, wrong 0, at ≈ 0.7¢ a plate. On-device first; Claude only when
+   nothing preselects; box crop only; the app still ranks and D33 still confirms. Ticket 06: the
+   model proposing which exercises a new machine serves on the create-new path.
+6. Brand as a logo, on-device (now ticket 07): a prior for manufacturers already at this gym, and a
+   brand chip row on the results screen so a plate that names no brand is one tap from
+   preselection.
 
 "Very accurate" means: the right machine is top of the list nearly always, preselected most of the
 time, and a wrong machine is never preselected. The confirm tap stays as the safety net.

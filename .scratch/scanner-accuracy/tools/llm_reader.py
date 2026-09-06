@@ -58,7 +58,10 @@ PROMPT = (
 
 def main():
     import anthropic
-    client = anthropic.Anthropic(api_key=api_key())
+    # Accept-Encoding: identity — anaconda's brotli 1.0.9 lacks the output_buffer_limit kwarg the
+    # SDK's bundled httpx2 passes, so a brotli-compressed response dies with
+    # "process() takes no keyword arguments" inside APIConnectionError. Responses are tiny.
+    client = anthropic.Anthropic(api_key=api_key(), default_headers={"Accept-Encoding": "identity"})
     manifest = json.loads((CORPUS / "manifest.json").read_text())
     readings = json.loads(OUT.read_text()) if OUT.exists() else {}
     total_in = total_out = 0

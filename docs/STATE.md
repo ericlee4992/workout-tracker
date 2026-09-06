@@ -1,36 +1,33 @@
 # Where the project is right now
 
-Updated 2026-09-06 (session handed off mid-experiment). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-06 (LLM plate-reader experiment run; ticket 05 drafted). **START HERE IF YOU ARE COLD:**
 
-000. **NEXT SESSION'S FIRST ACTION — run the LLM-as-plate-reader experiment, nothing else first.**
-   Context: the user asked whether attaching Claude to the scanner would help (read logos, reason
-   about exercises). Agreed plan: MEASURE before building — Claude (Sonnet, the user's choice for
-   cost) transcribes every corpus plate, and the harness runs those transcriptions through the
-   app's own matcher so the numbers sit beside the Vision baseline on identical photos. Everything
-   is built and committed (`0d969fe`); the user added the key and asked to run it in a fresh session:
-   1. Confirm the key file exists without printing it: `Config/anthropic.key` (gitignored, 115
-      bytes, `sk-ant-…`, no trailing newline). Never cat it.
-   2. `python3 .scratch/scanner-accuracy/tools/llm_reader.py` — writes
-      `.scratch/scanner-accuracy/corpus/llm-readings.json` (41 calls to `claude-sonnet-5`,
-      structured output, effort low, images resized to 1568 px; ~a cent each). Needs the `anthropic`
-      Python SDK (installed, 1.4.0) and PIL (anaconda). Idempotent: re-runs skip files already read;
-      `SCANNER_LLM_REDO=1` forces.
-   3. `TEST_RUNNER_SCANNER_LLM=1 xcodebuild test … -only-testing:WorkoutTrackerTests/ScannerCorpusHarness`
-      → `reports/latest.md` titled "LLM READINGS"; copy it to `reports/llm-sonnet-<date>.md`, then run
-      the harness once more WITHOUT the env var so `latest.md` is the Vision report again.
-   4. Compare against `reports/after-ticket-02c-2026-09-05.md` (Vision: top-1 8/12, preselected
-      5/12, wrong 0, create-new 28/29). Per-row: which brands the model read that Vision could not
-      (the logo-only rows), whether it invented any model name (the prompt forbids guessing), and
-      whether any wrong preselection appears. Report the numbers to the user with the cost.
-   5. If it clearly wins: draft ticket 05 as an ESCALATION path (on-device first; "Ask AI" only
-      when nothing preselects; sends the box crop, not the frame; reopens D34 deliberately;
-      constrained output — candidate N / new model / unsure; D33's confirm tap stays; the key
-      cannot ship in the app → a proxy is a prerequisite for anyone but the developer). The
-      user's second idea — the model proposing which EXERCISES a new machine serves on the
-      create-new path — is a separate, genuinely useful ticket; the catalog already lists
-      exercises per row for known machines.
-   Also open from the last install: the user has not yet reported what the capture-first
-   viewfinder does at the gym (does the box land on the plate, focus, speed) — ask.
+000. **The LLM-as-plate-reader experiment RAN 2026-09-06 — Claude wins on identical photos.**
+   The user asked whether attaching Claude to the scanner would help; the agreed plan was to
+   measure first. `tools/llm_reader.py` (Sonnet 5, structured transcription, effort low) read all
+   41 corpus plates and the harness ran the readings through the app's own matcher
+   (`TEST_RUNNER_SCANNER_LLM=1`). Full record with the per-row diff:
+   `.scratch/scanner-accuracy/issues/llm-reader-experiment.md`; report
+   `reports/llm-sonnet-2026-09-06.md` beside Vision's `after-ticket-02c-2026-09-05.md`.
+   - Vision → Claude: top-1 8 → **10** of 12, preselected 5 → **6**, wrong preselections **0 → 0**,
+     create-new 28 → 24 (cleaner text scores higher against sibling rows — the matcher's threshold,
+     not the reader), nothing-read 1 → 1. Every logo-only plate (11) came back as the clean brand;
+     zero junk lines; **no invented model names** (TIBIA stayed TIBIA, BENSPARK stayed Swedish).
+     Cost ≈ $0.27 for 41 photos, ≈ 0.7¢ a plate, ~2–3 s a call.
+   - `brand_from_logo_only` was false on every row — a wordmark reads as text to the model; the
+     flag is useless, drop it.
+   - **Drafted, NOT started: ticket 05 "Ask AI" escalation** (on-device first; Claude only when
+     nothing preselects; box crop only; the app still ranks, D33 still confirms; fail closed;
+     D34 reopened deliberately; developer-only keychain key now, proxy before anyone else) and
+     **ticket 06** (the model proposing exercises for a new machine, text-only). The on-device
+     brand prior + chip moved to ticket 07 in `spec.md`. Ticket 04 (read quality) is unchanged.
+   - **Next: the user decides** the two questions at the top of ticket 05 (button-only vs
+     automatic; developer-only key vs proxy first) — and reports what the capture-first
+     viewfinder did at the gym (does the box land on the plate, focus, speed). Nothing in this
+     experiment is on the phone; the phone still runs `1fd8cbf`.
+   - Re-running: the key is `Config/anthropic.key` (gitignored, 108 bytes, no newline — never cat
+     it); the reader is idempotent (`SCANNER_LLM_REDO=1` forces); the harness must be run once
+     more WITHOUT the env var afterwards so `latest.md` is the Vision report again (done).
 
 
 00. **Scanner accuracy — in progress on branch `scanner-accuracy`, tickets in
@@ -636,6 +633,13 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   — the most commercially significant gap). See `docs/catalog-sources/README.md`.
 
 ## Environment gotchas that cost real time
+
+- **The `anthropic` Python SDK (1.4.0) under anaconda dies on every response with
+  `APIConnectionError` … `TypeError: process() takes no keyword arguments`.** Anaconda's `brotli`
+  1.0.9 predates the `output_buffer_limit` keyword the SDK's bundled `httpx2` passes to the brotli
+  decoder. `llm_reader.py` sends `Accept-Encoding: identity` on the client
+  (`default_headers`), which sidesteps it without touching the global environment. Any other
+  script that talks to the API from this Mac needs the same header or a newer `brotli`.
 
 - **CI on `main` has been hanging in the "Unit tests" step since at least 2026-09-04 01:35 UTC —
   BEFORE milestone 9's code merged.** That run (docs commit `0207a96`) hit the workflow's 60-minute
