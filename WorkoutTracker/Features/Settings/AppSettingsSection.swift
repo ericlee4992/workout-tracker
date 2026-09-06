@@ -9,6 +9,9 @@ struct AppSettingsSection: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var allPreferences: [AppPreferences]
     @State private var showMaxHeartRateSheet = false
+    @State private var showAskAISheet = false
+    /// Re-read when the Ask AI sheet closes; the keychain is not observable.
+    @State private var askAIOn = AskAIKeyStore.read() != nil
 
     var body: some View {
         Section {
@@ -52,6 +55,21 @@ struct AppSettingsSection: View {
             // ticket 02 — cost an export that did nothing).
             .sheet(isPresented: $showMaxHeartRateSheet) {
                 MaxHeartRateSheet()
+            }
+            // Scanner accuracy, ticket 05 (D53): the developer's key for
+            // "Ask AI" on the scan sheet. Off until a key is saved.
+            Button {
+                showAskAISheet = true
+            } label: {
+                LabeledContent("Ask AI about plates") {
+                    Text(askAIOn ? "On" : "Off")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .accessibilityIdentifier("askAISettings")
+            .tint(.primary)
+            .sheet(isPresented: $showAskAISheet, onDismiss: { askAIOn = AskAIKeyStore.read() != nil }) {
+                AskAISettingsSheet()
             }
             // Milestone 9, ticket 04: the one-time dumbbell history move is a
             // rewrite of snapshots (D23), so it is announced rather than silent.
