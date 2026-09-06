@@ -19,10 +19,10 @@ import CoreGraphics
 enum LabelFramingBox {
 
     /// Share of the view's width the box spans.
-    static let widthFraction: CGFloat = 0.88
+    static let widthFraction: CGFloat = 0.94
     /// Plates are wide and short; ~2.6:1 fits a Hammer Strength placard, a
     /// Cybex serial plate and a Life Fitness nameplate without clipping.
-    static let aspectRatio: CGFloat = 2.6
+    static let aspectRatio: CGFloat = 2.0
     /// The box sits a little above centre: the thumb is at the bottom on the
     /// shutter, and a plate is usually at chest height while the phone tilts.
     static let verticalCentre: CGFloat = 0.42
