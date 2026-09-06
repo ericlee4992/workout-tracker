@@ -111,6 +111,7 @@ enum AskAI {
     /// With the fixture: the ask fails as if offline / as a refusal.
     static let offlineArgument = "-uiTestAskAIOffline"
     static let refusedArgument = "-uiTestAskAIRefused"
+    static let timeoutArgument = "-uiTestAskAITimeout"
     /// With the fixture: the ask takes a few seconds, so a rescan or a
     /// dismissal can be driven while it is in flight.
     static let slowArgument = "-uiTestAskAISlow"
@@ -139,15 +140,25 @@ enum AskAI {
     private static var stubFailure: PlateTranscriptionError? {
         let arguments = ProcessInfo.processInfo.arguments
         return arguments.contains(offlineArgument) ? .offline
-            : arguments.contains(refusedArgument) ? .refused : nil
+            : arguments.contains(refusedArgument) ? .refused
+            : arguments.contains(timeoutArgument) ? .timedOut : nil
     }
 
     /// The stubs' latency: long enough under `-uiTestAskAISlow` to rescan
     /// through it. Throws on cancellation, as the real request does.
     static func stubDelay() async throws {
+        await MainActor.run { AskAIFixtureLedger.calls += 1 }
         let slow = ProcessInfo.processInfo.arguments.contains(slowArgument)
         try await Task.sleep(for: .milliseconds(slow ? 4_000 : 300))
     }
+}
+
+/// Under `-uiTestAskAI`: how many calls the stubs have taken — the
+/// "counting client" that proves no call happens before the on-device read
+/// failed to place the plate, and one tap is one call.
+@MainActor
+enum AskAIFixtureLedger {
+    static var calls = 0
 }
 
 /// The fixture's answer: what the experiment's stub-worthy plate came back

@@ -1,33 +1,43 @@
 # Where the project is right now
 
-Updated 2026-09-06 (LLM plate-reader experiment run; ticket 05 drafted). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-06 (Ask AI tickets 05 + 06 built on `ask-ai`; Codex rounds in progress). **START HERE IF YOU ARE COLD:**
 
-000. **The LLM-as-plate-reader experiment RAN 2026-09-06 — Claude wins on identical photos.**
-   The user asked whether attaching Claude to the scanner would help; the agreed plan was to
-   measure first. `tools/llm_reader.py` (Sonnet 5, structured transcription, effort low) read all
-   41 corpus plates and the harness ran the readings through the app's own matcher
-   (`TEST_RUNNER_SCANNER_LLM=1`). Full record with the per-row diff:
-   `.scratch/scanner-accuracy/issues/llm-reader-experiment.md`; report
-   `reports/llm-sonnet-2026-09-06.md` beside Vision's `after-ticket-02c-2026-09-05.md`.
-   - Vision → Claude: top-1 8 → **10** of 12, preselected 5 → **6**, wrong preselections **0 → 0**,
-     create-new 28 → 24 (cleaner text scores higher against sibling rows — the matcher's threshold,
-     not the reader), nothing-read 1 → 1. Every logo-only plate (11) came back as the clean brand;
-     zero junk lines; **no invented model names** (TIBIA stayed TIBIA, BENSPARK stayed Swedish).
-     Cost ≈ $0.27 for 41 photos, ≈ 0.7¢ a plate, ~2–3 s a call.
-   - `brand_from_logo_only` was false on every row — a wordmark reads as text to the model; the
-     flag is useless, drop it.
-   - **Drafted, NOT started: ticket 05 "Ask AI" escalation** (on-device first; Claude only when
-     nothing preselects; box crop only; the app still ranks, D33 still confirms; fail closed;
-     D34 reopened deliberately; developer-only keychain key now, proxy before anyone else) and
-     **ticket 06** (the model proposing exercises for a new machine, text-only). The on-device
-     brand prior + chip moved to ticket 07 in `spec.md`. Ticket 04 (read quality) is unchanged.
-   - **Next: the user decides** the two questions at the top of ticket 05 (button-only vs
-     automatic; developer-only key vs proxy first) — and reports what the capture-first
-     viewfinder did at the gym (does the box land on the plate, focus, speed). Nothing in this
-     experiment is on the phone; the phone still runs `1fd8cbf`.
-   - Re-running: the key is `Config/anthropic.key` (gitignored, 108 bytes, no newline — never cat
-     it); the reader is idempotent (`SCANNER_LLM_REDO=1` forces); the harness must be run once
-     more WITHOUT the env var afterwards so `latest.md` is the Vision report again (done).
+000. **Ask AI (tickets 05 + 06) BUILT on branch `ask-ai`, 2026-09-06 — Codex round 2 verdict:
+   CODEX-VERDICT-PLACEHOLDER. Not merged, not installed.** The user's decisions: button first
+   (no automatic send), developer-only keychain key now, other users later — so the client is
+   proxy-shaped (`AnthropicMessagesClient.Credential` .apiKey | .bearer, endpoint a parameter).
+   - **What is on the branch**: the framing box enlarged (94 % width, 2:1 — user's gym photo
+     showed it small); **05** `Domain/PlateTranscription.swift` + `LabelCrop.swift` (pure),
+     `Features/Gyms/AskAI.swift` (transport + who answers), `AskAIKeyStore.swift` (keychain),
+     `LabelCropRendering.swift`, `Settings/AskAISettingsSheet.swift`, the scan sheet's Ask AI
+     section; **06** `Domain/ExerciseProposal.swift`, the New Model sheet's "Suggest exercises with
+     AI". D53 added, D34 amended, CLAUDE.md → D53. Tickets: `.scratch/scanner-accuracy/issues/05-…`,
+     `06-…` (each with a Resolution and, for 05, the Codex round-1 response).
+   - **The experiment that justified it** (`issues/llm-reader-experiment.md`): on the same 41
+     plates Claude Sonnet 5 → top-1 10/12 (Vision 8), preselected 6 (5), wrong 0 (0), every
+     logo-only brand read, nothing invented, ≈ 0.7¢ a plate. Re-measured with the production
+     prompt after Codex round 1: identical (`reports/llm-sonnet-2026-09-06b.md`). `Config/anthropic.key`
+     (gitignored) is the developer's key for the tooling; the APP takes its key from the keychain
+     via Settings → "Ask AI about plates" — the user has NOT entered it on the phone yet.
+   - **Codex round 1** (`codex-review-05.md`) found two highs, both real and fixed in `8fb8b80`:
+     the library photo would have left the phone whole (now: no box → no crop → no Ask AI, fail
+     closed) and an ask could outlive a rescan (now a cancellable task keyed by identity). Plus:
+     bearer credential, `ScanFixture` gated by `fixtureIsEnabled`, pixel-level crop tests, the
+     experiment script mirrored to the production prompt.
+   - **Codex round 2** (`codex-review-05b.md`, with ticket 06): three mediums, all fixed — a
+     near-frame box whose margin became the frame (now nil; the fixture plate sits on a canvas so
+     its box is a box), the proposal request outliving Cancel/Add (now a cancelled task), SPEC still
+     saying "nothing leaves the phone" (SPEC + D53 now name both opt-in sends) — plus the counting
+     client (`AskAIFixtureLedger`, "AI calls: N" under the fixture) and a timeout test.
+   - **Verification after round 2**: 697/697 unit; `AskAIUITests` 7/7 + `ScanMachineLabelUITests`
+     2/2. The FULL UI suite ran on `6242324`: 43 tests, 42 passed, one cold-launch flake in the Ask
+     AI happy path's gym helper (hardened since). Re-run the full suite on the final head before
+     merging — it takes ~24 min here, so give xcodebuild 30.
+   - **Next**: (1) read the round-2 verdict, close any findings; (2) full UI suite; (3) merge
+     ff into `main`, push both; (4) install, then the user pastes the key in Settings and tries
+     Ask AI at the gym on the plates that failed on-device — and reports the bigger box.
+     Then: ROC-IT → Hoist alias and a floor so one generic word cannot reach 44 % (matcher
+     tickets), ticket 07 (on-device brand prior + chip), ticket 04 (read quality).
 
 
 00. **Scanner accuracy — in progress on branch `scanner-accuracy`, tickets in
@@ -52,7 +62,7 @@ Updated 2026-09-06 (LLM plate-reader experiment run; ticket 05 drafted). **START
      became a tall strip) — replaced by pure aspect-fill geometry on the upright photo, pinned
      with numbers — and a rebuilt camera replaying the previous shutter tap. **Only the gym can
      verify the box lands on the plate** (the Simulator has no camera). Then 04 read quality
-     (junk filter, burst voting), 05 brand-as-logo (gym prior + brand chip).
+     (junk filter, burst voting), 07 brand-as-logo (gym prior + brand chip; was 05 until Ask AI took the number).
    - **INSTALLED 2026-09-05 (evening): `1fd8cbf` = `main`**, tickets 02 + 03. The install succeeded
      (`devicectl` lists 0.1.0) but the remote LAUNCH was refused twice with
      `FBSOpenApplicationServiceErrorDomain error 1` — the phone was locked; the user was asked to

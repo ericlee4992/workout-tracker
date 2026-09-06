@@ -73,5 +73,9 @@ struct LabelCropRenderingTests {
 
     @Test func theFrameItselfIsNeverEncoded() {
         #expect(LabelCrop.jpeg(orientedPhoto(), region: CGRect(x: 0, y: 0, width: 1, height: 1)) == nil)
+        // A box the margin turns into the frame is the frame (codex-review-05b).
+        #expect(LabelCrop.jpeg(orientedPhoto(), region: CGRect(x: 0.02, y: 0.04, width: 0.96, height: 0.92)) == nil)
+        // The fixture's own box survives its margin — it is a box.
+        #expect(LabelCrop.jpeg(ScanFixture.image(), region: ScanFixture.plateRegion) != nil)
     }
 }

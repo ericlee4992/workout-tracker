@@ -35,7 +35,12 @@ enum LabelCrop {
             width: width + 2 * inset.width,
             height: height + 2 * inset.height)
         let clamped = box.intersection(whole).integral
-        guard !clamped.isNull, clamped.width >= 1, clamped.height >= 1 else { return nil }
+        guard !clamped.isNull, clamped.width >= 1, clamped.height >= 1,
+              // A box that the margin turns INTO the frame is the frame
+              // (codex-review-05b): something of the photo must stay out.
+              clamped.minX > 0 || clamped.minY > 0
+                || clamped.maxX < imageSize.width || clamped.maxY < imageSize.height
+        else { return nil }
         return clamped
     }
 

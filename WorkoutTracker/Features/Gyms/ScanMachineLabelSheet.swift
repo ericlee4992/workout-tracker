@@ -295,6 +295,14 @@ struct ScanMachineLabelSheet: View {
                 .accessibilityIdentifier("scanReadingText")
         } header: {
             Text(results.source == .ai ? "What AI read" : "What the camera read")
+        } footer: {
+            // The counting client the ticket asks for: under the fixture the
+            // stubs count every call and the sheet shows the tally, so a UI
+            // test can assert "none" or "one" (codex-review-05b).
+            if AskAI.fixtureIsEnabled {
+                Text("AI calls: \(AskAIFixtureLedger.calls)")
+                    .accessibilityIdentifier("scanAskAICalls")
+            }
         }
 
         // Ticket 05 (D53): only when the phone could not place the plate,
@@ -664,23 +672,28 @@ enum ScanFixture {
     }
 
     /// The rendered plate's own edges as a framing box (Vision region,
-    /// bottom-left origin) — inset a little so it is a box, not the frame.
-    static let plateRegion = CGRect(x: 0.02, y: 0.04, width: 0.96, height: 0.92)
+    /// bottom-left origin): `plate` above, normalised on the canvas.
+    static let plateRegion = CGRect(x: 0.1, y: 0.1875, width: 0.8, height: 0.625)
 
-    /// A rendered name plate for a model the seeded catalog really contains.
+    /// A rendered name plate for a model the seeded catalog really contains,
+    /// on a dark canvas around it — so the plate's box is a BOX: inset enough
+    /// that the crop's margin still leaves canvas out (codex-review-05b).
     static func image() -> UIImage {
-        let size = CGSize(width: 1_600, height: 500)
-        return UIGraphicsImageRenderer(size: size).image { context in
+        let canvas = CGSize(width: 2_000, height: 800)
+        let plate = CGRect(x: 200, y: 150, width: 1_600, height: 500)
+        return UIGraphicsImageRenderer(size: canvas).image { context in
+            UIColor.darkGray.setFill()
+            context.fill(CGRect(origin: .zero, size: canvas))
             UIColor.white.setFill()
-            context.fill(CGRect(origin: .zero, size: size))
+            context.fill(plate)
             if plateNamesNoBrand {
-                draw("CONVERGING PLATE LOADED", in: size, y: 80, fontSize: 80)
-                draw("OVERHEAD PRESS", in: size, y: 230, fontSize: 88)
-                draw("MAX 300 LB", in: size, y: 380, fontSize: 40)
+                draw("CONVERGING PLATE LOADED", in: canvas, y: plate.minY + 80, fontSize: 80)
+                draw("OVERHEAD PRESS", in: canvas, y: plate.minY + 230, fontSize: 88)
+                draw("MAX 300 LB", in: canvas, y: plate.minY + 380, fontSize: 40)
             } else {
-                draw("LIFE FITNESS", in: size, y: 60, fontSize: 64)
-                draw("Insignia Series Chest Press", in: size, y: 200, fontSize: 88)
-                draw("MAX 300 LB", in: size, y: 380, fontSize: 40)
+                draw("LIFE FITNESS", in: canvas, y: plate.minY + 60, fontSize: 64)
+                draw("Insignia Series Chest Press", in: canvas, y: plate.minY + 200, fontSize: 88)
+                draw("MAX 300 LB", in: canvas, y: plate.minY + 380, fontSize: 40)
             }
         }
     }

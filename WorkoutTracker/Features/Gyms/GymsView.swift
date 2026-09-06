@@ -885,6 +885,10 @@ struct AddModelSheet: View {
     @State private var proposalReasons: [UUID: String] = [:]
     @State private var proposing = false
     @State private var proposalNote: String?
+    /// The proposal in flight, so Cancel, Add and the sheet going away
+    /// CANCEL the paid request rather than let it land on dead state
+    /// (codex-review-05b).
+    @State private var proposalTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -963,7 +967,10 @@ struct AddModelSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
+                    Button("Cancel") {
+                        abandonProposal()
+                        dismiss()
+                    }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") { addModel() }
@@ -972,6 +979,7 @@ struct AddModelSheet: View {
                 }
             }
             .onAppear(perform: applyPrefill)
+            .onDisappear(perform: abandonProposal)
         }
     }
 
@@ -1016,26 +1024,41 @@ struct AddModelSheet: View {
         let plate = PlateDescription(
             brand: trimmedManufacturer, model: trimmedModelName, lines: plateLines)
         proposing = true
-        Task {
-            defer { proposing = false }
+        proposalTask = Task {
+            let outcome: Result<[ExerciseProposal], Error>
             do {
-                let proposals = try await proposer.propose(plate: plate, candidates: candidates)
-                guard !proposals.isEmpty else {
-                    proposalNote = "AI could not tell which exercises this machine serves."
-                    return
-                }
+                outcome = .success(try await proposer.propose(plate: plate, candidates: candidates))
+            } catch {
+                outcome = .failure(error)
+            }
+            // Cancelled (Cancel, Add, dismissal): the sheet is gone or
+            // done; nothing here may touch it.
+            guard !Task.isCancelled else { return }
+            proposalTask = nil
+            proposing = false
+            switch outcome {
+            case .success(let proposals) where proposals.isEmpty:
+                proposalNote = "AI could not tell which exercises this machine serves."
+            case .success(let proposals):
                 for proposal in proposals {
                     linkedExerciseIDs.insert(proposal.id)
                     proposalReasons[proposal.id] = proposal.reason
                 }
                 proposalNote = nil
-            } catch {
+            case .failure(let error):
                 proposalNote = error.localizedDescription
             }
         }
     }
 
+    private func abandonProposal() {
+        proposalTask?.cancel()
+        proposalTask = nil
+        proposing = false
+    }
+
     private func addModel() {
+        abandonProposal()
         // Preserve the catalog's display order in the stored link list.
         let orderedIDs = exercises.map(\.id).filter(linkedExerciseIDs.contains)
         let model = EquipmentModel(

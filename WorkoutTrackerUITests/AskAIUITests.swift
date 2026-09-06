@@ -31,6 +31,7 @@ final class AskAIUITests: XCTestCase {
 
         let ask = app.buttons["scanAskAI"]
         XCTAssertTrue(ask.waitForExistence(timeout: 20), "a plate the phone could not place offers Ask AI")
+        XCTAssertEqual(app.staticTexts["scanAskAICalls"].label, "AI calls: 0", "no call before the tap")
         // The button exists only when nothing preselected (by construction —
         // pinned in `PlateTranscriptionTests`); the accept button below the
         // candidates confirms it from the other side.
@@ -48,6 +49,7 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(reading.label.contains("Cybex"), "the sheet echoes what AI read, got: \(reading.label)")
         XCTAssertTrue(app.staticTexts["What AI read"].exists, "and says who read it")
         XCTAssertFalse(ask.exists, "an AI reading is not asked about again")
+        XCTAssertEqual(app.staticTexts["scanAskAICalls"].label, "AI calls: 1", "one tap, one call")
         let use = scrolledTo("scanUseCandidate")
         XCTAssertTrue(use.isEnabled, "the AI reading preselected (D33) — still a tap, never applied on its own")
         let after = XCTAttachment(screenshot: app.screenshot())
@@ -99,6 +101,23 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(use.waitForExistence(timeout: 20))
         XCTAssertTrue(use.isEnabled, "the fixture plate preselects on device")
         XCTAssertFalse(app.buttons["scanAskAI"].exists, "so Ask AI is never offered")
+        XCTAssertEqual(app.staticTexts["scanAskAICalls"].label, "AI calls: 0", "and no call was made")
+    }
+
+    /// Fail closed, the third way: the request timed out.
+    func testATimedOutAskIsSaidPlainly() {
+        launch(["-uiTestScanFixtureNoBrand", "-uiTestAskAITimeout"])
+        createGym()
+        openNewMachineSheet()
+        app.buttons["scanMachineLabel"].tap()
+        tapShutter()
+        let ask = app.buttons["scanAskAI"]
+        XCTAssertTrue(ask.waitForExistence(timeout: 20))
+        ask.tap()
+        let note = app.staticTexts["scanAskAINote"]
+        XCTAssertTrue(note.waitForExistence(timeout: 10))
+        XCTAssertTrue(note.label.lowercased().contains("too long"), "got: \(note.label)")
+        XCTAssertTrue(ask.exists, "the button stays for a manual retry")
     }
 
     /// Ticket 06: from a scan that matched nothing, create-new carries the
@@ -227,10 +246,15 @@ final class AskAIUITests: XCTestCase {
         let name = app.textFields["gymName"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
         name.tap()
+        // On the suite's cold first launch the keyboard can lag the tap and
+        // swallow the first characters, so the row never gets its name
+        // (seen once in a full-suite run): wait for it, then verify.
+        _ = app.keyboards.firstMatch.waitForExistence(timeout: 3)
         name.typeText(gymName)
+        XCTAssertEqual(name.value as? String, gymName, "the whole name was typed")
         app.buttons["saveGym"].tap()
         XCTAssertTrue(app.descendants(matching: .any)
-            .matching(identifier: "gymRow.\(gymName)").firstMatch.waitForExistence(timeout: 5))
+            .matching(identifier: "gymRow.\(gymName)").firstMatch.waitForExistence(timeout: 10))
     }
 
     private func openNewMachineSheet() {

@@ -146,6 +146,8 @@ struct PlateTranscriptionTests {
         #expect(LabelCrop.pixelRect(region: CGRect(x: 0, y: 0, width: 1, height: 1), imageSize: size) == nil)
         #expect(LabelCrop.pixelRect(region: CGRect(x: 0.1, y: 0.1, width: 0.5, height: 0.2), imageSize: .zero) == nil)
         #expect(LabelCrop.pixelRect(region: CGRect(x: 2, y: 2, width: 0.5, height: 0.2), imageSize: size) == nil, "a box entirely outside the photo")
+        #expect(LabelCrop.pixelRect(region: CGRect(x: 0.02, y: 0.04, width: 0.96, height: 0.92), imageSize: CGSize(width: 1_600, height: 500)) == nil, "a near-frame box whose margin reaches every edge")
+        #expect(LabelCrop.pixelRect(region: CGRect(x: 0.02, y: 0.3, width: 0.96, height: 0.4), imageSize: size) != nil, "a wide box that keeps top and bottom out is still a box")
     }
 
     @Test func theCropIsResizedToTheExperimentsLongSideAndNeverUpscaled() {

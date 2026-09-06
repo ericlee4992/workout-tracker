@@ -1,6 +1,6 @@
 # 05 — "Ask AI": escalate a plate to Claude when the phone cannot place it
 
-Status: built 2026-09-06 — Codex round 1 answered, awaiting round 2 (reviewed with ticket 06)
+Status: built 2026-09-06 — Codex rounds 1–2 answered, awaiting round 3 (reviewed with ticket 06)
 Blocked by: —
 
 Decisions (user, 2026-09-06): **button first** (no automatic send); **developer-only keychain key now**, other users planned later — so the client is proxy-shaped from day one (endpoint + header on `PlateTranscriptionAPI`), D53.
@@ -137,3 +137,33 @@ Verification at `ba130b6`: 684/684 unit; `AskAIUITests` 3/3 and `ScanMachineLabe
 - **Low, duplicated `trimmed`; divergent change in `AskAI.swift`.** One private helper remains
   (Domain); the keychain moved to `AskAIKeyStore.swift`, the UIKit crop to
   `LabelCropRendering.swift`; `AskAI.swift` is transport + who-answers.
+
+## Codex review 05b — response (2026-09-06)
+
+`codex-review-05b.md` (05 round 2 + 06 round 1): do not merge yet — three mediums, one low.
+
+- **Medium, the margin could turn a near-frame box into the frame.** `pixelRect` now also returns
+  nil when the clamped crop touches all four edges — something of the photo must stay out. The
+  fixture that proved the hole is changed: the plate is now drawn on a 2000 × 800 canvas
+  (`plateRegion` = the plate's edges, 0.1/0.1875/0.8/0.625), so its box survives the margin and the
+  crop path runs on a real box. Pinned: `theFrameItselfIsNeverEncoded` (the near-frame case and the
+  fixture's own box), `noBoxMeansNothingToSend` (near-frame nil; a wide box that keeps top and
+  bottom out is still a box).
+- **Medium, the proposal request could outlive Cancel/Add.** `AddModelSheet` retains
+  `proposalTask`; Cancel, Add and `onDisappear` call `abandonProposal()` (cancel + release); the
+  task touches nothing once cancelled.
+- **Medium, SPEC/DECISIONS still said "nothing leaves the phone".** SPEC's scan bullet now states
+  the two opt-in sends (box crop; plate text + exercise list), "Technical direction" reads "offline
+  for everything except the opt-in Ask AI taps (D53)" and "talks to nothing but the device … except
+  the opt-in Ask AI taps"; D53 now records ticket 06's disclosure too.
+- **Low, the counting client and a timeout test.** Under `-uiTestAskAI` the stubs count every call
+  (`AskAIFixtureLedger`) and the results sheet shows "AI calls: N" (`scanAskAICalls`);
+  `testAPreselectedPlateNeverOffersAskAI` asserts 0 after a preselected read, the happy path asserts
+  0 before the tap and 1 after — a counting client, as specified. `-uiTestAskAITimeout` +
+  `testATimedOutAskIsSaidPlainly` cover the third failure mode.
+
+Verification at this head: 697/697 unit; `AskAIUITests` 7/7 + `ScanMachineLabelUITests` 2/2. The
+FULL UI suite ran once on `6242324` (before these fixes): 43 tests, 42 passed, the one failure a
+cold-first-launch flake in the Ask AI happy path's gym-creation helper (the typed name never
+became a row; passes on every focused run) — the helper now waits for the keyboard and verifies
+the field before saving.
