@@ -397,6 +397,8 @@ struct MachineEditorSheet: View {
         let id = UUID()
         let manufacturer: String
         let modelName: String
+        /// The plate as read, for the exercise proposal (ticket 06).
+        let plateLines: [String]
     }
 
     var body: some View {
@@ -488,15 +490,16 @@ struct MachineEditorSheet: View {
                     // state a hand-picked one does, so the label default (D3)
                     // has one implementation, not two.
                     onUseModel: { model = $0 },
-                    onCreateNew: { manufacturer, modelName in
+                    onCreateNew: { manufacturer, modelName, plateLines in
                         scanCreatedModel = ScanDraft(
-                            manufacturer: manufacturer, modelName: modelName)
+                            manufacturer: manufacturer, modelName: modelName, plateLines: plateLines)
                     })
             }
             .sheet(item: $scanCreatedModel) { draft in
                 AddModelSheet(
                     initialManufacturer: draft.manufacturer,
                     initialModelName: draft.modelName,
+                    plateLines: draft.plateLines,
                     onCreate: { model = $0 })
             }
         }
@@ -867,6 +870,10 @@ struct AddModelSheet: View {
     /// proposes a name, the user owns it.
     var initialManufacturer: String = ""
     var initialModelName: String = ""
+    /// The plate as the scanner read it (ticket 06): with a reading and Ask
+    /// AI available, the Exercises section offers "Suggest with AI". Empty
+    /// for a hand-entered model, and then nothing is offered.
+    var plateLines: [String] = []
     var onCreate: (EquipmentModel) -> Void
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @State private var manufacturer = ""
@@ -874,6 +881,10 @@ struct AddModelSheet: View {
     @State private var equipmentType: EquipmentCategory?
     @State private var linkedExerciseIDs: Set<UUID> = []
     @State private var loadedPrefill = false
+    /// Why AI ticked a row, shown under it until the user unticks it.
+    @State private var proposalReasons: [UUID: String] = [:]
+    @State private var proposing = false
+    @State private var proposalNote: String?
 
     var body: some View {
         NavigationStack {
@@ -892,13 +903,46 @@ struct AddModelSheet: View {
                     }
                     .accessibilityIdentifier("newModelEquipmentType")
                 }
+                // Ticket 06 (D53's rules): one tap, one call, the app's own
+                // exercise list in and ids from it out; the ticks stay the
+                // user's to change, and nothing is saved until Add.
+                if !plateLines.isEmpty, AskAI.isAvailable {
+                    Section {
+                        if proposing {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                Text("Asking AI…")
+                            }
+                            .accessibilityIdentifier("newModelSuggestStatus")
+                        } else {
+                            Button("Suggest exercises with AI") { suggestExercises() }
+                                .accessibilityIdentifier("newModelSuggestExercises")
+                        }
+                    } footer: {
+                        if let proposalNote {
+                            Text(proposalNote)
+                                .accessibilityIdentifier("newModelSuggestNote")
+                        } else {
+                            Text("Sends the plate's text and this exercise list to Claude, with your key; it picks from the list and you keep the final say.")
+                        }
+                    }
+                }
                 Section {
                     ForEach(exercises) { exercise in
                         Button {
                             toggle(exercise.id)
                         } label: {
                             HStack {
-                                Text(exercise.name)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(exercise.name)
+                                    if linkedExerciseIDs.contains(exercise.id),
+                                       let reason = proposalReasons[exercise.id], !reason.isEmpty {
+                                        Text(reason)
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                            .accessibilityIdentifier("newModelExerciseReason.\(exercise.name)")
+                                    }
+                                }
                                 Spacer()
                                 if linkedExerciseIDs.contains(exercise.id) {
                                     Image(systemName: "checkmark")
@@ -956,8 +1000,38 @@ struct AddModelSheet: View {
     private func toggle(_ id: UUID) {
         if linkedExerciseIDs.contains(id) {
             linkedExerciseIDs.remove(id)
+            proposalReasons[id] = nil
         } else {
             linkedExerciseIDs.insert(id)
+        }
+    }
+
+    /// Ticket 06: ask once, tick what comes back, say why. Any failure
+    /// leaves the sheet exactly as it was, with a note under the button.
+    private func suggestExercises() {
+        guard !proposing, let proposer = AskAI.proposer else { return }
+        let candidates = exercises.map {
+            ExerciseCandidate(id: $0.id, name: $0.name, muscleGroup: $0.muscleGroup)
+        }
+        let plate = PlateDescription(
+            brand: trimmedManufacturer, model: trimmedModelName, lines: plateLines)
+        proposing = true
+        Task {
+            defer { proposing = false }
+            do {
+                let proposals = try await proposer.propose(plate: plate, candidates: candidates)
+                guard !proposals.isEmpty else {
+                    proposalNote = "AI could not tell which exercises this machine serves."
+                    return
+                }
+                for proposal in proposals {
+                    linkedExerciseIDs.insert(proposal.id)
+                    proposalReasons[proposal.id] = proposal.reason
+                }
+                proposalNote = nil
+            } catch {
+                proposalNote = error.localizedDescription
+            }
         }
     }
 

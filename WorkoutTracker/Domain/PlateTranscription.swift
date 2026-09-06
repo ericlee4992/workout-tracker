@@ -80,6 +80,30 @@ enum PlateTranscriptionError: Error, Equatable, LocalizedError {
     }
 }
 
+/// A Messages API reply, reduced to the one text block a structured-output
+/// request produces. Shared by every Ask AI call (tickets 05 and 06): an
+/// error object, a refusal and a missing block map to the same errors
+/// whatever was asked.
+enum MessagesReply {
+    static func text(from data: Data) throws -> String {
+        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            throw PlateTranscriptionError.malformed
+        }
+        if object["type"] as? String == "error" {
+            throw PlateTranscriptionAPI.error(status: 0, body: data)
+        }
+        if object["stop_reason"] as? String == "refusal" {
+            throw PlateTranscriptionError.refused
+        }
+        guard let content = object["content"] as? [[String: Any]],
+              let text = content.first(where: { $0["type"] as? String == "text" })?["text"] as? String
+        else {
+            throw PlateTranscriptionError.malformed
+        }
+        return text
+    }
+}
+
 /// The Anthropic Messages API request and response for one plate, as pure
 /// data: the network layer (`AnthropicPlateTranscriber`) only moves bytes,
 /// so the shape can be unit-tested without a key.
@@ -148,18 +172,8 @@ enum PlateTranscriptionAPI {
     /// A 2xx body → the transcription. A refusal, an error object or an
     /// unexpected shape each become the matching `PlateTranscriptionError`.
     static func parse(_ data: Data) throws -> PlateTranscription {
-        guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw PlateTranscriptionError.malformed
-        }
-        if object["type"] as? String == "error" {
-            throw error(status: 0, body: data)
-        }
-        if object["stop_reason"] as? String == "refusal" {
-            throw PlateTranscriptionError.refused
-        }
-        guard let content = object["content"] as? [[String: Any]],
-              let text = content.first(where: { $0["type"] as? String == "text" })?["text"] as? String,
-              let json = text.data(using: .utf8),
+        let text = try MessagesReply.text(from: data)
+        guard let json = text.data(using: .utf8),
               let transcription = try? JSONDecoder().decode(PlateTranscription.self, from: json)
         else {
             throw PlateTranscriptionError.malformed

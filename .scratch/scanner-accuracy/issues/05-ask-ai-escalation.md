@@ -1,6 +1,6 @@
 # 05 — "Ask AI": escalate a plate to Claude when the phone cannot place it
 
-Status: built 2026-09-06 — awaiting Codex round 1
+Status: built 2026-09-06 — Codex round 1 answered, awaiting round 2 (reviewed with ticket 06)
 Blocked by: —
 
 Decisions (user, 2026-09-06): **button first** (no automatic send); **developer-only keychain key now**, other users planned later — so the client is proxy-shaped from day one (endpoint + header on `PlateTranscriptionAPI`), D53.
@@ -97,4 +97,43 @@ text, brands misread — is exactly the part Claude fixes.
   shows the model), offline fails closed (note, button stays, camera results untouched, create-new
   reachable), and a preselected plate never offers the button (+ the Settings row reads On).
 
-Verification at this head: 684/684 unit; `AskAIUITests` 3/3 and `ScanMachineLabelUITests` 2/2.
+Verification at `ba130b6`: 684/684 unit; `AskAIUITests` 3/3 and `ScanMachineLabelUITests` 2/2.
+
+## Codex review 05 — response (2026-09-06)
+
+`codex-review-05.md`: do not merge yet — two highs, both real.
+
+- **High, the library photo left the phone whole.** `LabelCrop.pixelRect(nil, …)` returned the
+  whole image and the picker path has no box. Fixed by failing CLOSED: `pixelRect(region:imageSize:)`
+  now takes a real region and returns nil for no box, a degenerate box or a box that IS the frame;
+  `LabelCrop.jpeg` returns nil then; the sheet computes a crop only when the read had a region — so
+  the library path and any degenerate geometry get NO Ask AI at all. The whole photo now never leaves
+  the phone, matching D34/D53 and the Settings text. The fixture's shutter passes the rendered
+  plate's own edges as its region (inset, a box not the frame), so the crop path runs for real in the
+  UI tests. Pinned: `noBoxMeansNothingToSend`, `theFrameItselfIsNeverEncoded`.
+- **High, an ask outlived a rescan/dismissal; `Data` equality as identity.** The ask is now a
+  retained `Task` with a `UUID`; `restartScanning`, a new `read` and `onDisappear` cancel it
+  (`URLSession` honours cancellation; the stub throws on it); only the request whose id is still in
+  flight may touch the sheet, and only it releases `asking`. Pinned by the new UI test
+  `testARescanDropsTheAskInFlight` (`-uiTestAskAISlow`: a 4 s stub, rescan through it, the old reply
+  never lands and the button is offered anew).
+- **Medium, not proxy-shaped.** `AnthropicMessagesClient.Credential` — `.apiKey` (x-api-key) or
+  `.bearer` (Authorization) — plus the endpoint; `request(for:)` is pure and pinned by
+  `theWireRequestCarriesTheCredentialTheProxyShapeNeeds` (a proxy sees a bearer and never an
+  Anthropic key header).
+- **Medium, tests did not pin the safety claims.** Added: the wire request; the pixels
+  (`LabelCropRenderingTests`: a sensor image tagged `.right`, the top box comes back red and the
+  bottom box blue — orientation applied — plus the resize and the never-the-frame rule); UI tests
+  for refusal and for the rescan-cancels-the-ask rule. The "counting client" criterion is met by
+  construction plus the rescan test: the only call site is the button action, the button exists only
+  for a camera reading with no preselection, and one task at a time is enforced by identity. Timeout
+  and 401 share the offline/refusal path (`PlateTranscriptionError` → note), unit-tested at the
+  parser; not repeated as UI tests.
+- **Medium, `ScanFixture.isEnabled` ungated.** Now `WorkoutTrackerStore.fixtureIsEnabled`, and
+  `plateNamesNoBrand` requires it too.
+- **Low, prompt/schema drift.** `llm_reader.py` now mirrors `PlateTranscriptionAPI` (comment in
+  both places), the Swift test pins the whole prompt and the absence of `brand_from_logo_only`, and
+  the corpus was re-read with the production contract — see `llm-sonnet-2026-09-06b.md` below.
+- **Low, duplicated `trimmed`; divergent change in `AskAI.swift`.** One private helper remains
+  (Domain); the keychain moved to `AskAIKeyStore.swift`, the UIKit crop to
+  `LabelCropRendering.swift`; `AskAI.swift` is transport + who-answers.

@@ -31,7 +31,31 @@ struct PlateTranscriptionTests {
         #expect(source["media_type"] as? String == "image/jpeg")
         #expect(source["data"] as? String == jpeg.base64EncodedString())
         let text = try #require(content.first { $0["type"] as? String == "text" }?["text"] as? String)
-        #expect(text.contains("Do not guess a model that is not printed"))
+        // The production contract, pinned whole: `tools/llm_reader.py` mirrors
+        // it, and the LLM report is only a measurement of the app if the two
+        // agree (codex-review-05).
+        #expect(text == "This is a photo of a gym strength machine's name plate or badge. Transcribe only what identifies the machine: the manufacturer (brand) and the model or machine name, exactly as printed. If the brand appears only as a logo you recognise, give the brand name. Ignore usage instructions, warnings, serial numbers, part numbers, URLs, phone numbers and load ratings. If there is no plate or nothing identifying, return nulls and an empty list. Do not guess a model that is not printed.")
+        #expect(schema["properties"].map { ($0 as? [String: Any])?.keys.contains("brand_from_logo_only") } == false)
+    }
+
+    @Test func theWireRequestCarriesTheCredentialTheProxyShapeNeeds() throws {
+        let body = Data("{}".utf8)
+        let direct = AnthropicMessagesClient(credential: .apiKey("sk-ant-test")).request(for: body)
+        #expect(direct.url == PlateTranscriptionAPI.defaultEndpoint)
+        #expect(direct.httpMethod == "POST")
+        #expect(direct.value(forHTTPHeaderField: "x-api-key") == "sk-ant-test")
+        #expect(direct.value(forHTTPHeaderField: "Authorization") == nil)
+        #expect(direct.value(forHTTPHeaderField: "anthropic-version") == "2023-06-01")
+        #expect(direct.value(forHTTPHeaderField: "Content-Type") == "application/json")
+        #expect(direct.timeoutInterval == AnthropicMessagesClient.timeout)
+        #expect(direct.httpBody == body)
+
+        let proxy = AnthropicMessagesClient(
+            credential: .bearer("device-token"), endpoint: URL(string: "https://proxy.example/v1/messages")!
+        ).request(for: body)
+        #expect(proxy.url?.host == "proxy.example")
+        #expect(proxy.value(forHTTPHeaderField: "Authorization") == "Bearer device-token")
+        #expect(proxy.value(forHTTPHeaderField: "x-api-key") == nil, "the proxy never sees an Anthropic key header")
     }
 
     // MARK: - Reply
@@ -108,12 +132,20 @@ struct PlateTranscriptionTests {
         #expect(rect == CGRect(x: 60, y: 1_060, width: 580, height: 580))
     }
 
-    @Test func theCropNeverLeavesThePhotoAndNoBoxMeansTheWholePhoto() {
+    @Test func theCropIsClampedToThePhoto() throws {
         let size = CGSize(width: 1_000, height: 2_000)
-        let edge = LabelCrop.pixelRect(region: CGRect(x: 0, y: 0.9, width: 1, height: 0.1), imageSize: size)
+        let edge = try #require(LabelCrop.pixelRect(region: CGRect(x: 0, y: 0.9, width: 1, height: 0.1), imageSize: size))
         #expect(edge.minX == 0 && edge.minY == 0 && edge.maxX == 1_000)
-        #expect(LabelCrop.pixelRect(region: nil, imageSize: size) == CGRect(origin: .zero, size: size))
-        #expect(LabelCrop.pixelRect(region: .zero, imageSize: size) == CGRect(origin: .zero, size: size))
+    }
+
+    /// The whole photo never leaves the phone: no box, a degenerate box, or
+    /// a box that IS the frame yield nothing to send (codex-review-05, high).
+    @Test func noBoxMeansNothingToSend() {
+        let size = CGSize(width: 1_000, height: 2_000)
+        #expect(LabelCrop.pixelRect(region: .zero, imageSize: size) == nil)
+        #expect(LabelCrop.pixelRect(region: CGRect(x: 0, y: 0, width: 1, height: 1), imageSize: size) == nil)
+        #expect(LabelCrop.pixelRect(region: CGRect(x: 0.1, y: 0.1, width: 0.5, height: 0.2), imageSize: .zero) == nil)
+        #expect(LabelCrop.pixelRect(region: CGRect(x: 2, y: 2, width: 0.5, height: 0.2), imageSize: size) == nil, "a box entirely outside the photo")
     }
 
     @Test func theCropIsResizedToTheExperimentsLongSideAndNeverUpscaled() {

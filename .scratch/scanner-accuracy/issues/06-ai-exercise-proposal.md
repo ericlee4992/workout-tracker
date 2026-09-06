@@ -27,3 +27,27 @@ free text.
 - Output validated against the sent id list; an id not in the list is dropped, not shown.
 - The create-new sheet works identically with the feature off, offline, or on a refusal.
 - Unit test on the validation; UI test with a stubbed client; Codex clear.
+
+## Resolution (2026-09-06)
+
+- **`Domain/ExerciseProposal.swift`** — `ExerciseCandidate` (id, name, muscle group),
+  `PlateDescription`, `ExerciseProposal`; `ExerciseProposalAPI`: the text-only request (prompt +
+  plate + the app's exercise list as `id | name | muscle group` lines; structured output whose
+  `exercise_id` is an `enum` of exactly the ids sent) and the parser (ids validated against the
+  list, repeats keep their first place, capped at six, order is the model's). `MessagesReply.text`
+  (in `PlateTranscription.swift`) is the shared reply reducer for both features.
+- **`AskAI.swift`** — `AnthropicMessagesClient` (one POST; credential + endpoint) now serves
+  `AnthropicPlateTranscriber` and `AnthropicExerciseProposer`; `AskAI.proposer`;
+  `StubExerciseProposer` picks "Machine Shoulder Press" FROM THE LIST IT WAS SENT (never an
+  invented id).
+- **The reading travels**: `ScanMachineLabelSheet.onCreateNew` carries the plate lines; `ScanDraft`
+  and `AddModelSheet` take `plateLines`. Hand-entered models have none and see no button.
+- **`AddModelSheet`** — "Suggest exercises with AI" section above the exercise list (only with
+  lines + Ask AI available); one tap ticks the proposals and shows each reason under its row;
+  unticking a row clears its reason; a failure or an empty answer is one line under the button and
+  nothing else changes; nothing is saved until Add.
+- **Tests** — `ExerciseProposalTests` (7): request carries plate + list and constrains ids;
+  parse order/reasons; unknown ids dropped and repeats collapsed; empty is empty; the cap; refusal
+  and malformed; the stub answers only from its list and no key → no proposer. UI:
+  `testSuggestExercisesTicksWhatThePlateSaysAndTheUserKeepsTheFinalSay` — scan → create-new →
+  Suggest → the reason under Machine Shoulder Press → Add enabled → untick → Add disabled.

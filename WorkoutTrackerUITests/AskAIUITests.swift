@@ -101,7 +101,108 @@ final class AskAIUITests: XCTestCase {
         XCTAssertFalse(app.buttons["scanAskAI"].exists, "so Ask AI is never offered")
     }
 
+    /// Ticket 06: from a scan that matched nothing, create-new carries the
+    /// plate into the New Model sheet, and one tap ticks the exercise AI
+    /// picked from the app's own list — with its reason — so Add is enabled.
+    func testSuggestExercisesTicksWhatThePlateSaysAndTheUserKeepsTheFinalSay() {
+        launch(["-uiTestScanFixtureNoBrand"])
+        createGym()
+        openNewMachineSheet()
+        app.buttons["scanMachineLabel"].tap()
+        tapShutter()
+        XCTAssertTrue(app.buttons["scanAskAI"].waitForExistence(timeout: 20))
+        scrolledTo("scanCreateNew").tap()
+
+        let manufacturer = app.textFields["Manufacturer"]
+        XCTAssertTrue(manufacturer.waitForExistence(timeout: 5), "the New Model sheet opens")
+        let suggest = app.buttons["newModelSuggestExercises"]
+        XCTAssertTrue(suggest.exists, "a scanned plate with Ask AI on offers a suggestion")
+        let save = app.buttons["saveNewModel"]
+        XCTAssertFalse(save.isEnabled, "nothing linked yet")
+
+        // The plate named no brand, so the manufacturer is the user's to type
+        // (done first: swiping back up a sheet can dismiss it). With the
+        // names in, the tick AI makes is what enables Add.
+        manufacturer.tap()
+        manufacturer.typeText("Cybex")
+        let model = app.textFields["Model"]
+        if (model.value as? String ?? "").isEmpty || model.value as? String == "Model" {
+            model.tap()
+            model.typeText("Overhead Press")
+        }
+        XCTAssertFalse(save.isEnabled, "names alone do not satisfy 'link at least one'")
+        suggest.tap()
+
+        let reason = app.staticTexts["newModelExerciseReason.Machine Shoulder Press"]
+        XCTAssertTrue(waitScrolling(for: reason), "the picked exercise shows AI's reason under it")
+        XCTAssertFalse(app.staticTexts["newModelSuggestNote"].exists, "no failure note")
+        XCTAssertTrue(save.isEnabled, "the AI-ticked exercise satisfies 'link at least one'")
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "suggest-exercises"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        // The user keeps the final say: untick it and Add goes away again.
+        let row = app.descendants(matching: .any).matching(identifier: "newModelExercise.Machine Shoulder Press").firstMatch
+        XCTAssertTrue(waitScrolling(for: row))
+        row.tap()
+        XCTAssertFalse(save.isEnabled, "unticking the proposal is one tap")
+    }
+
+    /// Fail closed, the other way: the model declined. Same shape as offline.
+    func testARefusedAskIsSaidPlainly() {
+        launch(["-uiTestScanFixtureNoBrand", "-uiTestAskAIRefused"])
+        createGym()
+        openNewMachineSheet()
+        app.buttons["scanMachineLabel"].tap()
+        tapShutter()
+        let ask = app.buttons["scanAskAI"]
+        XCTAssertTrue(ask.waitForExistence(timeout: 20))
+        ask.tap()
+        let note = app.staticTexts["scanAskAINote"]
+        XCTAssertTrue(note.waitForExistence(timeout: 10))
+        XCTAssertTrue(note.label.lowercased().contains("declined"), "got: \(note.label)")
+        XCTAssertTrue(app.staticTexts["What the camera read"].exists, "the camera's results are untouched")
+    }
+
+    /// One tap, one call, and a rescan CANCELS it: the reply from before the
+    /// rescan never lands on the new results (codex-review-05, high).
+    func testARescanDropsTheAskInFlight() {
+        launch(["-uiTestScanFixtureNoBrand", "-uiTestAskAISlow"])
+        createGym()
+        openNewMachineSheet()
+        app.buttons["scanMachineLabel"].tap()
+        tapShutter()
+        let ask = app.buttons["scanAskAI"]
+        XCTAssertTrue(ask.waitForExistence(timeout: 20))
+        ask.tap()
+        XCTAssertTrue(app.staticTexts["scanAskAIStatus"].waitForExistence(timeout: 3), "the ask is in flight")
+
+        // Rescan through it: back to the viewfinder, shutter again.
+        let again = scrolledTo("Scan again")
+        XCTAssertTrue(again.exists)
+        again.tap()
+        tapShutter()
+        XCTAssertTrue(ask.waitForExistence(timeout: 20), "fresh camera results, the button offered anew")
+        // Longer than the slow stub's 4 s: had the old reply survived the
+        // rescan it would have landed by now.
+        sleep(6)
+        XCTAssertTrue(app.staticTexts["What the camera read"].exists, "still the camera's reading")
+        XCTAssertFalse(app.staticTexts["What AI read"].exists, "the cancelled ask's reply never landed")
+        XCTAssertFalse(app.staticTexts["scanAskAINote"].exists, "and left no note either")
+        XCTAssertTrue(ask.exists, "one tap, one call — the button is back for a NEW tap")
+    }
+
     // MARK: - Helpers
+
+    /// Swipes up until `element` exists (a lazy List row below the fold).
+    private func waitScrolling(for element: XCUIElement) -> Bool {
+        for _ in 0..<12 {
+            if element.waitForExistence(timeout: 1) { return true }
+            app.swipeUp()
+        }
+        return element.exists
+    }
 
     /// A `List` is lazy: a row below the fold is not in the hierarchy until
     /// it scrolls into view. Swipes until `identifier` exists (or gives up

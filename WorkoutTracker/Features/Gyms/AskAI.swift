@@ -1,6 +1,4 @@
 import Foundation
-import Security
-import UIKit
 
 /// Scanner accuracy, ticket 05 — "Ask AI": the plate goes to Claude only
 /// when the phone could not place it, and only when the user taps (D53).
@@ -20,28 +18,51 @@ protocol PlateTranscriber: Sendable {
     func transcribe(jpeg: Data) async throws -> PlateTranscription
 }
 
-/// The Messages API over `URLSession`. Bytes only; the request and the
-/// response shapes are `PlateTranscriptionAPI`, unit-tested without a key.
-struct AnthropicPlateTranscriber: PlateTranscriber {
-    let key: String
+/// Ticket 06: which of the app's exercises a new machine serves.
+protocol ExerciseProposer: Sendable {
+    func propose(plate: PlateDescription, candidates: [ExerciseCandidate]) async throws -> [ExerciseProposal]
+}
+
+/// The Messages API over `URLSession`: one POST, bytes in, bytes out. Every
+/// Ask AI feature shares it; the request and reply shapes are the pure
+/// `…API` enums, unit-tested without a key. The endpoint is a parameter so
+/// a proxy is a configuration, not a rewrite.
+struct AnthropicMessagesClient: Sendable {
+    /// How the caller is identified: Anthropic's own header for the
+    /// developer's key, or a bearer token for a proxy in front of the API
+    /// (codex-review-05: "a proxy is a config change" has to include the
+    /// header, not just the URL).
+    enum Credential: Sendable, Equatable {
+        case apiKey(String)
+        case bearer(String)
+    }
+
+    let credential: Credential
     var endpoint: URL = PlateTranscriptionAPI.defaultEndpoint
-    var model: String = PlateTranscriptionAPI.defaultModel
     /// The experiment's calls took 2–3 s; a gym's signal is worse than a desk's.
     static let timeout: TimeInterval = 8
 
-    func transcribe(jpeg: Data) async throws -> PlateTranscription {
+    /// The request as it goes on the wire — pure, so the headers are pinned
+    /// by a unit test.
+    func request(for body: Data) -> URLRequest {
         var request = URLRequest(url: endpoint)
         request.httpMethod = "POST"
         request.timeoutInterval = Self.timeout
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(key, forHTTPHeaderField: "x-api-key")
         request.setValue(PlateTranscriptionAPI.apiVersion, forHTTPHeaderField: "anthropic-version")
-        request.httpBody = try PlateTranscriptionAPI.requestBody(jpeg: jpeg, model: model)
+        switch credential {
+        case .apiKey(let key): request.setValue(key, forHTTPHeaderField: "x-api-key")
+        case .bearer(let token): request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+        request.httpBody = body
+        return request
+    }
 
+    func send(_ body: Data) async throws -> Data {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await URLSession.shared.data(for: request)
+            (data, response) = try await URLSession.shared.data(for: request(for: body))
         } catch let error as URLError {
             switch error.code {
             case .notConnectedToInternet, .networkConnectionLost, .dnsLookupFailed,
@@ -56,7 +77,28 @@ struct AnthropicPlateTranscriber: PlateTranscriber {
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
             throw PlateTranscriptionAPI.error(status: http.statusCode, body: data)
         }
-        return try PlateTranscriptionAPI.parse(data)
+        return data
+    }
+}
+
+struct AnthropicPlateTranscriber: PlateTranscriber {
+    let client: AnthropicMessagesClient
+    var model: String = PlateTranscriptionAPI.defaultModel
+
+    func transcribe(jpeg: Data) async throws -> PlateTranscription {
+        try PlateTranscriptionAPI.parse(
+            await client.send(PlateTranscriptionAPI.requestBody(jpeg: jpeg, model: model)))
+    }
+}
+
+struct AnthropicExerciseProposer: ExerciseProposer {
+    let client: AnthropicMessagesClient
+    var model: String = PlateTranscriptionAPI.defaultModel
+
+    func propose(plate: PlateDescription, candidates: [ExerciseCandidate]) async throws -> [ExerciseProposal] {
+        try ExerciseProposalAPI.parse(
+            await client.send(ExerciseProposalAPI.requestBody(plate: plate, candidates: candidates, model: model)),
+            candidates: candidates)
     }
 }
 
@@ -69,6 +111,9 @@ enum AskAI {
     /// With the fixture: the ask fails as if offline / as a refusal.
     static let offlineArgument = "-uiTestAskAIOffline"
     static let refusedArgument = "-uiTestAskAIRefused"
+    /// With the fixture: the ask takes a few seconds, so a rescan or a
+    /// dismissal can be driven while it is in flight.
+    static let slowArgument = "-uiTestAskAISlow"
 
     static var fixtureIsEnabled: Bool {
         WorkoutTrackerStore.fixtureIsEnabled(fixtureArgument)
@@ -79,68 +124,29 @@ enum AskAI {
     static var isAvailable: Bool { transcriber != nil }
 
     static var transcriber: PlateTranscriber? {
-        if fixtureIsEnabled {
-            let arguments = ProcessInfo.processInfo.arguments
-            return StubPlateTranscriber(
-                failure: arguments.contains(offlineArgument) ? .offline
-                    : arguments.contains(refusedArgument) ? .refused : nil)
-        }
+        if fixtureIsEnabled { return StubPlateTranscriber(failure: stubFailure) }
         guard let key = AskAIKeyStore.read() else { return nil }
-        return AnthropicPlateTranscriber(key: key)
-    }
-}
-
-/// The developer's API key, in the keychain (this device only, available
-/// after first unlock — a gym scan happens with the phone unlocked). Under
-/// `-uiTestReset` an in-memory slot stands in, so no UI test ever touches
-/// the Simulator's keychain; the Ask AI fixture pre-fills it.
-enum AskAIKeyStore {
-    private static let service = (Bundle.main.bundleIdentifier ?? "workouttracker") + ".askai"
-    private static let account = "anthropic-api-key"
-    private static var memory: String? = AskAI.fixtureIsEnabled ? "uitest-key" : nil
-
-    static func read() -> String? {
-        if WorkoutTrackerStore.isUITestReset { return memory }
-        var query = baseQuery
-        query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        var item: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
-              let data = item as? Data,
-              let key = String(data: data, encoding: .utf8)?.trimmed, !key.isEmpty
-        else { return nil }
-        return key
+        return AnthropicPlateTranscriber(client: AnthropicMessagesClient(credential: .apiKey(key)))
     }
 
-    /// Replaces whatever is stored. An empty key deletes.
-    static func write(_ key: String) throws {
-        let trimmed = key.trimmed
-        guard !trimmed.isEmpty else { delete(); return }
-        if WorkoutTrackerStore.isUITestReset { memory = trimmed; return }
-        delete()
-        var attributes = baseQuery
-        attributes[kSecValueData as String] = Data(trimmed.utf8)
-        attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        let status = SecItemAdd(attributes as CFDictionary, nil)
-        guard status == errSecSuccess else { throw KeychainError(status: status) }
+    /// Ticket 06: the create-new sheet's "Suggest exercises with AI".
+    static var proposer: ExerciseProposer? {
+        if fixtureIsEnabled { return StubExerciseProposer(failure: stubFailure) }
+        guard let key = AskAIKeyStore.read() else { return nil }
+        return AnthropicExerciseProposer(client: AnthropicMessagesClient(credential: .apiKey(key)))
     }
 
-    static func delete() {
-        if WorkoutTrackerStore.isUITestReset { memory = nil; return }
-        SecItemDelete(baseQuery as CFDictionary)
+    private static var stubFailure: PlateTranscriptionError? {
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains(offlineArgument) ? .offline
+            : arguments.contains(refusedArgument) ? .refused : nil
     }
 
-    private static var baseQuery: [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: service,
-         kSecAttrAccount as String: account]
-    }
-
-    struct KeychainError: Error, LocalizedError {
-        let status: OSStatus
-        var errorDescription: String? {
-            "Could not save the key to the keychain (\(status))."
-        }
+    /// The stubs' latency: long enough under `-uiTestAskAISlow` to rescan
+    /// through it. Throws on cancellation, as the real request does.
+    static func stubDelay() async throws {
+        let slow = ProcessInfo.processInfo.arguments.contains(slowArgument)
+        try await Task.sleep(for: .milliseconds(slow ? 4_000 : 300))
     }
 }
 
@@ -151,7 +157,7 @@ struct StubPlateTranscriber: PlateTranscriber {
     let failure: PlateTranscriptionError?
 
     func transcribe(jpeg: Data) async throws -> PlateTranscription {
-        try? await Task.sleep(for: .milliseconds(300))
+        try await AskAI.stubDelay()
         if let failure { throw failure }
         return PlateTranscription(
             brand: "Cybex", model: "Eagle NX Overhead Press",
@@ -159,42 +165,16 @@ struct StubPlateTranscriber: PlateTranscriber {
     }
 }
 
-extension LabelCrop {
-    /// The bytes an ask sends: the box (plus `margin`) cut from the upright
-    /// photo, no longer than `maxSide`, JPEG. nil region = the whole photo
-    /// (the library path). Runs wherever it is called; nothing is written
-    /// anywhere.
-    static func jpeg(_ image: UIImage, region: CGRect?) -> Data? {
-        guard let upright = uprightCGImage(image) else { return nil }
-        let size = CGSize(width: upright.width, height: upright.height)
-        guard let cropped = upright.cropping(to: pixelRect(region: region, imageSize: size)) else { return nil }
-        let cropSize = CGSize(width: cropped.width, height: cropped.height)
-        let factor = scale(for: cropSize)
-        let target = CGSize(
-            width: max(1, (cropSize.width * factor).rounded()),
-            height: max(1, (cropSize.height * factor).rounded()))
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = 1
-        let rendered = UIGraphicsImageRenderer(size: target, format: format).image { _ in
-            UIImage(cgImage: cropped).draw(in: CGRect(origin: .zero, size: target))
-        }
-        return rendered.jpegData(compressionQuality: 0.85)
-    }
+/// The fixture's proposal: the seeded exercise the fixture machine really
+/// serves (Machine Shoulder Press for an overhead press), picked from the
+/// list it was SENT — so the stub can only ever answer with a real id.
+struct StubExerciseProposer: ExerciseProposer {
+    let failure: PlateTranscriptionError?
 
-    /// Pixels with the orientation tag applied, so the region — which is in
-    /// the UPRIGHT photo's coordinates — indexes the right pixels.
-    private static func uprightCGImage(_ image: UIImage) -> CGImage? {
-        if image.imageOrientation == .up, image.scale == 1, let cgImage = image.cgImage {
-            return cgImage
-        }
-        let format = UIGraphicsImageRendererFormat.default()
-        format.scale = 1
-        return UIGraphicsImageRenderer(size: image.size, format: format).image { _ in
-            image.draw(in: CGRect(origin: .zero, size: image.size))
-        }.cgImage
+    func propose(plate: PlateDescription, candidates: [ExerciseCandidate]) async throws -> [ExerciseProposal] {
+        try await AskAI.stubDelay()
+        if let failure { throw failure }
+        let pick = candidates.first { $0.name == "Machine Shoulder Press" } ?? candidates.first
+        return pick.map { [ExerciseProposal(id: $0.id, reason: "The plate says OVERHEAD PRESS.")] } ?? []
     }
-}
-
-private extension String {
-    var trimmed: String { trimmingCharacters(in: .whitespacesAndNewlines) }
 }

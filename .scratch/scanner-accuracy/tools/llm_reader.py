@@ -38,22 +38,24 @@ SCHEMA = {
     "type": "object",
     "properties": {
         "brand": {"type": ["string", "null"], "description": "Manufacturer as printed, or as recognised from its logo; null if none is visible."},
-        "brand_from_logo_only": {"type": "boolean", "description": "True when the brand is visible only as a logo, not as printed text."},
         "model": {"type": ["string", "null"], "description": "The machine's model/name as printed on the plate; null if none."},
         "lines": {"type": "array", "items": {"type": "string"}, "description": "The plate's identifying text, top of plate first: brand line, model line, model code if printed. No instructions, warnings, serial numbers, URLs or load ratings."},
         "confidence": {"type": "string", "enum": ["high", "medium", "low"]},
     },
-    "required": ["brand", "brand_from_logo_only", "model", "lines", "confidence"],
+    "required": ["brand", "model", "lines", "confidence"],
     "additionalProperties": False,
 }
 
+# MIRRORS `PlateTranscriptionAPI.prompt` / `.schema` in WorkoutTracker/Domain/PlateTranscription.swift
+# — the production contract. Change both together and re-run (SCANNER_LLM_REDO=1) so the LLM
+# report measures what the app actually sends (codex-review-05).
 PROMPT = (
     "This is a photo of a gym strength machine's name plate or badge. Transcribe only what "
     "identifies the machine: the manufacturer (brand) and the model or machine name, exactly as "
-    "printed. If the brand appears only as a logo you recognise, give the brand name and set "
-    "brand_from_logo_only. Ignore usage instructions, warnings, serial numbers, part numbers, "
-    "URLs, phone numbers and load ratings. If there is no plate or nothing identifying, return "
-    "nulls and an empty list. Do not guess a model that is not printed."
+    "printed. If the brand appears only as a logo you recognise, give the brand name. Ignore "
+    "usage instructions, warnings, serial numbers, part numbers, URLs, phone numbers and load "
+    "ratings. If there is no plate or nothing identifying, return nulls and an empty list. "
+    "Do not guess a model that is not printed."
 )
 
 def main():

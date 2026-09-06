@@ -7,8 +7,10 @@ import CoreGraphics
 /// Vision's region (normalised, bottom-left origin, in the upright photo) →
 /// a pixel rectangle (top-left origin) in that photo, with a small margin
 /// so a plate whose edge sits on the box line is not sliced, clamped to the
-/// photo. The whole photo only when there was no box — the library path,
-/// where the user chose the photo themselves.
+/// photo. **Fails closed**: no box, or a degenerate one, is `nil` — and then
+/// there is nothing to send and no Ask AI. The whole photo never leaves the
+/// phone, not from the shutter and not from the library, where there is no
+/// box at all (codex-review-05, high).
 enum LabelCrop {
     /// Margin added on each side, as a fraction of the box's own size.
     static let margin: CGFloat = 0.08
@@ -16,11 +18,14 @@ enum LabelCrop {
     /// tokens a plate); the app sends the same.
     static let maxSide: CGFloat = 1568
 
-    static func pixelRect(region: CGRect?, imageSize: CGSize) -> CGRect {
+    static func pixelRect(region: CGRect, imageSize: CGSize) -> CGRect? {
         let whole = CGRect(origin: .zero, size: imageSize)
-        guard let region, imageSize.width > 0, imageSize.height > 0,
-              region.width > 0, region.height > 0
-        else { return whole }
+        guard imageSize.width > 0, imageSize.height > 0,
+              region.width > 0, region.height > 0,
+              // The whole photo is not a box (a `visionRegion` fallback for
+              // a degenerate view reads everything; it must not SEND everything).
+              !(region.minX <= 0 && region.minY <= 0 && region.maxX >= 1 && region.maxY >= 1)
+        else { return nil }
         let width = region.width * imageSize.width
         let height = region.height * imageSize.height
         let inset = CGSize(width: width * margin, height: height * margin)
@@ -30,7 +35,7 @@ enum LabelCrop {
             width: width + 2 * inset.width,
             height: height + 2 * inset.height)
         let clamped = box.intersection(whole).integral
-        guard !clamped.isNull, clamped.width >= 1, clamped.height >= 1 else { return whole }
+        guard !clamped.isNull, clamped.width >= 1, clamped.height >= 1 else { return nil }
         return clamped
     }
 
