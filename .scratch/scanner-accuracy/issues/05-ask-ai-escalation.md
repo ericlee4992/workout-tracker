@@ -1,6 +1,6 @@
 # 05 — "Ask AI": escalate a plate to Claude when the phone cannot place it
 
-Status: built 2026-09-06 — Codex rounds 1–3 answered, awaiting round 4 (reviewed with ticket 06)
+Status: resolved — Codex clear after 4 rounds (codex-review-05..05d), merged to `main` 2026-09-06
 Blocked by: —
 
 Decisions (user, 2026-09-06): **button first** (no automatic send); **developer-only keychain key now**, other users planned later — so the client is proxy-shaped from day one (endpoint + header on `PlateTranscriptionAPI`), D53.
@@ -186,3 +186,5 @@ the field before saving.
 Verification after round 3: the FULL UI suite on `e5ef77c` — **44 tests, 0 failures** (24 min);
 at this head `AskAIUITests` 7/7 and the unit suite green (the two heart-rate timing tests fail
 only under load, straight after a UI run, and pass alone every time).
+
+**Codex round 4 (`codex-review-05d.md`): clear.** The 90 % ceiling is shown to sit safely above the real box (≤ 40.9 % of the photo on a portrait phone); the fixture crops at 67 %.

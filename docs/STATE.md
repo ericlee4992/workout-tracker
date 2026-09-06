@@ -1,11 +1,13 @@
 # Where the project is right now
 
-Updated 2026-09-06 (Ask AI tickets 05 + 06 built on `ask-ai`; Codex rounds in progress). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-06 (Ask AI tickets 05 + 06 merged to `main`, Codex clear after four rounds; not installed). **START HERE IF YOU ARE COLD:**
 
-000. **Ask AI (tickets 05 + 06) BUILT on branch `ask-ai`, 2026-09-06 — Codex rounds 1–3 each said
-   "do not merge yet" and each was answered (see below); round 4 pending. Not merged, not installed.** The user's decisions: button first
+000. **Ask AI (tickets 05 + 06) MERGED to `main` 2026-09-06 — Codex clear after FOUR rounds
+   (`codex-review-05..05d`). NOT yet installed on the phone.** The user's decisions: button first
    (no automatic send), developer-only keychain key now, other users later — so the client is
    proxy-shaped (`AnthropicMessagesClient.Credential` .apiKey | .bearer, endpoint a parameter).
+   **Next: install, then the user pastes their key under Settings → "Ask AI about plates" and
+   tries it at the gym on a plate that fails on-device; report the bigger box too.**
    - **What is on the branch**: the framing box enlarged (94 % width, 2:1 — user's gym photo
      showed it small); **05** `Domain/PlateTranscription.swift` + `LabelCrop.swift` (pure),
      `Features/Gyms/AskAI.swift` (transport + who answers), `AskAIKeyStore.swift` (keychain),
@@ -32,15 +34,15 @@ Updated 2026-09-06 (Ask AI tickets 05 + 06 built on `ask-ai`; Codex rounds in pr
    - **Codex round 3** (`codex-review-05c.md`): the frame guard was equality-only (now: a crop may
      cover at most 90 % of the photo's area, `LabelCrop.maximumAreaShare`); SPEC/D53/the sheets now
      say EXACTLY what leaves (box + 8 % margin; brand, model, lines + exercise list); the STATE
-     placeholder Codex caught is gone. Round 4 reviews those three.
+     placeholder Codex caught is gone. **Round 4: clear** — the ceiling sits above any real box
+     (≤ 40.9 % of the photo on a portrait phone).
    - **Verification after round 2**: 697/697 unit; `AskAIUITests` 7/7 + `ScanMachineLabelUITests`
      2/2. The FULL UI suite ran on `6242324`: 43 tests, 42 passed, one cold-launch flake in the Ask
-     AI happy path's gym helper (hardened since). Re-run the full suite on the final head before
-     merging — it takes ~24 min here, so give xcodebuild 30.
-   - **Next**: (1) read the round-2 verdict, close any findings; (2) full UI suite; (3) merge
-     ff into `main`, push both; (4) install, then the user pastes the key in Settings and tries
-     Ask AI at the gym on the plates that failed on-device — and reports the bigger box.
-     Then: ROC-IT → Hoist alias and a floor so one generic word cannot reach 44 % (matcher
+     AI happy path's gym helper (hardened since); after round 2 the full suite ran again on
+     `e5ef77c`: **44/44**. Round 3's changes were a crop threshold, wording and a test — covered by
+     the unit suite and `AskAIUITests` 7/7 at `9d5e79d`. The full suite takes ~24 min here; run it
+     detached (`nohup … &`) and watch the log — a tool timeout killed one run at teardown.
+   - **Then**: ROC-IT → Hoist alias and a floor so one generic word cannot reach 44 % (matcher
      tickets), ticket 07 (on-device brand prior + chip), ticket 04 (read quality).
 
 
@@ -647,6 +649,13 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   — the most commercially significant gap). See `docs/catalog-sources/README.md`.
 
 ## Environment gotchas that cost real time
+
+- **`HeartRateMonitorTests.samplesArriveAndBecomeTheCurrentReading` (and once
+  `CodexReviewRegressionTests.theFeedStateNamesTheSourceOfTheReadingShown`) fail in a FULL unit
+  run on a busy Mac — right after a UI suite, or with Codex reviewing alongside — and pass alone
+  every time (13/13 in 0.015 s).** Seen four times on 2026-09-06; untouched since milestone 9.
+  They are wall-clock staleness checks. Re-run the suite alone before believing a red; if it keeps
+  happening, give the test a fake clock rather than a longer window.
 
 - **The `anthropic` Python SDK (1.4.0) under anaconda dies on every response with
   `APIConnectionError` … `TypeError: process() takes no keyword arguments`.** Anaconda's `brotli`
