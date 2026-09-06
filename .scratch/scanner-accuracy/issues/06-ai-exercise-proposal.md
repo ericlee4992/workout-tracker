@@ -22,6 +22,25 @@ free text.
 - Same opt-in, key handling, timeout and fail-closed rules as 05. Text only — no image needed
   once the reading exists — so D34 is untouched by this ticket.
 
+## Design (2026-09-06, before building)
+
+- **Button, not automatic** — the same rule the user chose for 05: a "Suggest exercises with AI"
+  button in the New Model sheet's Exercises section, shown only when a plate reading exists and
+  Ask AI is available. One tap, one call.
+- **Text only.** `ExerciseProposalAPI` (Domain, pure) builds a Messages request from the brand,
+  model and plate lines plus the app's OWN exercise list — `(id, name, muscle group)` for every
+  exercise — and asks for ids from that list, most likely first, with a one-line reason each.
+  Structured output; the `exercise_id` field is constrained to the sent ids by a JSON-schema
+  `enum`, and the parser drops anything not in the list anyway (belt and braces).
+- **Shared transport.** `AnthropicMessagesClient` (one URLSession call, the 05 error mapping)
+  serves both `AnthropicPlateTranscriber` and `AnthropicExerciseProposer`; `AskAI` vends both, the
+  stub answers both under `-uiTestAskAI`.
+- **The reading travels to the sheet**: `ScanDraft` / `AddModelSheet` gain `plateLines`, set by
+  the scan sheet's create-new (the raw camera or AI reading). Empty for a hand-entered model, and
+  then no button.
+- Proposals arrive as pre-ticked rows the user can untick; the reason shows under the row; nothing
+  is saved until Add. A failure shows one line under the button and leaves the sheet as it was.
+
 ## Acceptance criteria
 
 - Output validated against the sent id list; an id not in the list is dropped, not shown.
