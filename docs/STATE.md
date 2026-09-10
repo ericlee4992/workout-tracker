@@ -1,6 +1,25 @@
 # Where the project is right now
 
-Updated 2026-09-06 (Ask AI tickets 05 + 06 merged and installed; Xcode has no Apple ID — profiles expire 09-11). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-10 (machine deletion merged, not installed; Ask AI installed 09-06; Xcode has no Apple ID — profiles expire 09-11). **START HERE IF YOU ARE COLD:**
+
+0000. **Machine deletion (`.scratch/machine-deletion/issues/01-delete-machines.md`) MERGED to
+   `main` 2026-09-10 — Codex clear after TWO rounds. NOT installed.** The user's ask: "delete added
+   machines from gym (whether mid workout, or just at gym tab)". Built: a trailing swipe "Delete"
+   (no full swipe) and a "Delete Machine…" context-menu item on the machine rows of BOTH the
+   Gyms tab and the mid-workout Add-by-Machine sheet, one shared alert ("Delete <label>?" /
+   Delete Machine / Cancel), archival underneath (D10 unchanged — history keeps resolving), and a
+   "Deleted machines (N)" row per gym → Restore (`EquipmentLifecycle.restore`, the SAME machine
+   comes back). Shared component `Features/Gyms/MachineDeletion.swift`. Lesson: on iOS 26 a
+   `confirmationDialog` rendered as a centred sheet with NO Cancel (seen in the UI test's
+   accessibility tree) — the component uses `.alert`, which always shows both.
+   - **Open question found on the way**: tapping a MODEL-LESS machine on the Add-by-Machine
+     sheet did nothing in the Simulator (no exercise picker pushed); the one-exercise-model path
+     works. The user's machines are scanned, so all have models — verify on the phone before
+     chasing; if real, it is its own ticket.
+   - Verification: 698/698 unit; `MachineDeletionUITests` 2/2; full UI suite 46/46 on `d35e725`.
+   - **Next: install** — but see the Xcode-account gotcha: the profiles on the phone expire
+     **2026-09-11 01:08 UTC**, and a build can only mint fresh ones once the Apple ID is signed
+     back into Xcode.
 
 000. **Ask AI (tickets 05 + 06) MERGED to `main` 2026-09-06 — Codex clear after FOUR rounds
    (`codex-review-05..05d`) — and INSTALLED, launch-verified 2026-09-06 12:59 (`3b3c22c` =

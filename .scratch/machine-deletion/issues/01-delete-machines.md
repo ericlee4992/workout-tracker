@@ -1,6 +1,6 @@
 # 01 — Delete a machine from a gym: on the Gyms tab and mid-workout
 
-Status: built 2026-09-10 — Codex round 1 answered, awaiting round 2
+Status: resolved — Codex clear after 2 rounds (codex-review-01, 01b); merged to `main` 2026-09-10
 
 User, 2026-09-10: "I also want to add a feature to delete added machines from gym (whether mid
 workout, or just at gym tab)."
