@@ -156,6 +156,29 @@ struct EquipmentLifecycleTests {
         #expect(f.otherMachine.archived == false)
     }
 
+    /// Machine deletion (2026-09-10): "Delete" is archival (D10), and the
+    /// gym's deleted list restores the SAME machine — id, model, label and the
+    /// snapshots that reference it are all untouched either way.
+    @Test func deletingIsArchivalAndRestoreBringsTheSameMachineBack() throws {
+        let f = try makeFixture()
+        let id = f.machine.id
+        let snapshotID = f.entry.snapshotMachineID
+        #expect(f.gym.archivedMachines.isEmpty)
+
+        try f.lifecycle.archive(f.machine)
+        #expect(f.gym.activeMachines.map(\.label) == ["Machine Two"])
+        #expect(f.gym.archivedMachines.map(\.label) == ["Machine One"])
+        #expect(f.entry.snapshotMachineID == snapshotID, "history keeps the deleted machine")
+
+        try f.lifecycle.restore(f.machine)
+        #expect(f.machine.archived == false)
+        #expect(f.machine.id == id)
+        #expect(f.machine.model === f.oldModel)
+        #expect(f.gym.activeMachines.map(\.label) == ["Machine One", "Machine Two"])
+        #expect(f.gym.archivedMachines.isEmpty)
+        #expect(f.entry.machine === f.machine, "the live relationship survived the round trip")
+    }
+
     @Test func futureOnlyCorrectionKeepsHistoricalModelLayer() throws {
         let f = try makeFixture()
         let oldID = f.oldModel.id

@@ -14,6 +14,10 @@ struct AddByMachineSheet: View {
     var workout: Workout
     @State private var chooser: ExerciseChoice?
     @State private var showingAddMachine = false
+    /// Deleting a machine mid-workout (2026-09-10): the same swipe, menu and
+    /// dialog as the Gyms tab, archival underneath (D10). An entry already
+    /// logged on it this workout keeps its snapshot.
+    @State private var deletingMachine: MachineInstance?
 
     /// Push target after picking a machine whose exercise isn't determined:
     /// `linked` restricts the list to the model's exercises; nil means
@@ -41,6 +45,12 @@ struct AddByMachineSheet: View {
                         }
                         .buttonStyle(.plain)
                         .accessibilityIdentifier("machineOption.\(machine.label)")
+                        .machineDeleteActions(machine) { deletingMachine = $0 }
+                        .contextMenu {
+                            Button("Delete Machine…", role: .destructive) {
+                                deletingMachine = machine
+                            }
+                        }
                     }
                     if machines.isEmpty {
                         Text("No machines yet")
@@ -57,6 +67,10 @@ struct AddByMachineSheet: View {
             }
             .navigationTitle("Add by Machine")
             .navigationBarTitleDisplayMode(.inline)
+            .deleteMachineConfirmation($deletingMachine) { machine in
+                do { try EquipmentLifecycle(context: modelContext).archive(machine) }
+                catch { assertionFailure("Failed to delete machine: \(error)") }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }

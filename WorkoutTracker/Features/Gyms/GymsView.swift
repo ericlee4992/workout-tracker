@@ -75,6 +75,8 @@ struct GymDetailView: View {
     @State private var editingGym = false
     @State private var editingMachine: MachineInstance?
     @State private var correctingMachine: MachineInstance?
+    /// The machine a swipe or long-press asked to delete; the dialog decides.
+    @State private var deletingMachine: MachineInstance?
     @State private var renamingModel: EquipmentModel?
     @State private var modelManufacturer = ""
     @State private var modelName = ""
@@ -131,6 +133,15 @@ struct GymDetailView: View {
                     showingAddMachine = true
                 }
                 .accessibilityIdentifier("addMachine")
+                // Deleted = archived (D10): one tap from coming back.
+                if !gym.archivedMachines.isEmpty {
+                    NavigationLink {
+                        DeletedMachinesView(gym: gym)
+                    } label: {
+                        Label("Deleted machines (\(gym.archivedMachines.count))", systemImage: "trash")
+                    }
+                    .accessibilityIdentifier("deletedMachines")
+                }
             } footer: {
                 // Model-less machines are allowed: when logging machine-first
                 // they open the full exercise picker instead of auto-filling.
@@ -162,6 +173,7 @@ struct GymDetailView: View {
                 .accessibilityIdentifier("gymMenu")
             }
         }
+        .deleteMachineConfirmation($deletingMachine) { archive($0) }
         .sheet(isPresented: $showingAddMachine) {
             MachineEditorSheet(gym: gym)
         }
@@ -235,6 +247,8 @@ struct GymDetailView: View {
             }
         }
         .padding(.vertical, 2)
+        .accessibilityIdentifier("machineRow.\(machine.label)")
+        .machineDeleteActions(machine) { deletingMachine = $0 }
         .contextMenu {
             // D2: label *and* default unit, not rename alone.
             Button("Edit Machine…") {
@@ -250,8 +264,9 @@ struct GymDetailView: View {
                     renamingModel = model
                 }
             }
-            Button("Archive Machine", role: .destructive) {
-                archive(machine)
+            // The user's word (2026-09-10); archival underneath, D10.
+            Button("Delete Machine…", role: .destructive) {
+                deletingMachine = machine
             }
         }
     }

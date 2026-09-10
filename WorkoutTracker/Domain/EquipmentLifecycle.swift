@@ -28,6 +28,14 @@ extension Gym {
             .filter { !$0.archived }
             .sorted { $0.label < $1.label }
     }
+
+    /// The machines the user "deleted" (D10: archived), label-sorted — what
+    /// the gym's "Deleted machines" list offers to restore.
+    var archivedMachines: [MachineInstance] {
+        (machines ?? [])
+            .filter(\.archived)
+            .sorted { $0.label < $1.label }
+    }
 }
 
 /// Ticket 10's persistence boundary for rename, archive, and model-correction
@@ -131,6 +139,13 @@ struct EquipmentLifecycle {
 
     func archive(_ machine: MachineInstance) throws {
         machine.archived = true
+        try context.save()
+    }
+
+    /// The other half of D10's "archive instead of delete": a deleted machine
+    /// comes back exactly as it was — same id, model, label and history.
+    func restore(_ machine: MachineInstance) throws {
+        machine.archived = false
         try context.save()
     }
 
