@@ -606,7 +606,7 @@ struct SetRowView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
                 .frame(width: Self.swipeDeleteWidth - 10, height: 34)
-                .background(Color.red, in: RoundedRectangle(cornerRadius: Theme.Radius.field))
+                .background(Theme.danger, in: RoundedRectangle(cornerRadius: Theme.Radius.field))
         }
         .buttonStyle(.plain)
         .allowsHitTesting(isSwipeOpen)

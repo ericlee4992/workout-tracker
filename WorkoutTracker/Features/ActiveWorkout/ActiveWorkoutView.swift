@@ -348,15 +348,17 @@ struct ActiveWorkoutView: View {
             let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
             let completed = sets.filter { $0.completedAt != nil }.count
             if !keyboardVisible {
-                ZStack {
-                    ProgressRing(progress: sets.isEmpty ? 0 : Double(completed) / Double(sets.count), lineWidth: 6)
-                    Image(systemName: "checkmark").font(.title2.weight(.bold))
-                        .foregroundStyle(Theme.accent)
-                }
-                .frame(width: 68, height: 68)
-                .overlay(alignment: .bottom) {
+                // The count sits UNDER the ring, not over its rim: overlaid
+                // with an offset it collided with the tick (seen in the
+                // design-board capture, 2026-09-10).
+                VStack(spacing: 6) {
+                    ZStack {
+                        ProgressRing(progress: sets.isEmpty ? 0 : Double(completed) / Double(sets.count), lineWidth: 6)
+                        Image(systemName: "checkmark").font(.title2.weight(.bold))
+                            .foregroundStyle(Theme.accent)
+                    }
+                    .frame(width: 56, height: 56)
                     Chip(tint: Theme.accent) { Text("\(completed)/\(sets.count)").monospacedDigit() }
-                        .offset(y: 14)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("\(completed) completed sets, \(sets.count) total")

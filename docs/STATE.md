@@ -1,6 +1,35 @@
 # Where the project is right now
 
-Updated 2026-09-10 (machine deletion merged and installed with fresh profiles to 09-17; launch not verified — phone locked). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-10 (UI redesign: Codex's Ink/Amber chosen, on `ui-redesign` awaiting the full suite + merge; machine deletion installed; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+
+00000. **UI REDESIGN — the user chose Codex's "Ink / Amber" (2026-09-10); branch `ui-redesign`
+   carries it, NOT yet merged or installed.** The user: "the app seems a bit boring, with mostly
+   texts and it essentially doesn't have a clean UI design." Plan (approved, in
+   `.scratch/ui-redesign/spec.md`): bold, dark, card-based; dark only; ONE warm accent; muscle-group
+   colours + icons; stat tiles + rings; motion + haptics; SF-Symbol empty states; whole app screen
+   by screen with screenshots, workout screen first; Settings gets its own screen behind a gear on
+   the Workout tab (ticket 05); a generated app icon (ticket 09). **D54** records the visual
+   system (amber `#FFB45E`); CLAUDE.md says iOS 26 (was a stale "17+").
+   - **How it was chosen**: the same brief went to Claude and to Codex (an Orca worktree, its own
+     simulator `WT-iPhone-Codex`); both built tickets 01 + 02 (design system + active workout;
+     Codex also took Start); a side-by-side board of all 15 screens × before/Claude/Codex was
+     published — https://claude.ai/code/artifact/8d3aa889-2a2b-44ae-8d37-7620377bd3f9 — and the
+     user picked Codex's. Record: `.scratch/ui-redesign/issues/01-design-system.md` ("Outcome"),
+     `codex-design-report.md` (Codex's own report), `screenshots/{before,claude,codex}`.
+   - **Branch `ui-redesign`** = Codex's `b008e5c` + the docs + `RedesignScreenshotUITests` (the
+     15-screen review surface, run it for every later ticket) + Claude's review fixes (the header
+     ring's count chip no longer overlaps the tick; swipe-delete uses `Theme.danger`). Claude's
+     retired branch `ui-redesign-01` is deleted; its screenshots stay in `screenshots/claude`.
+     Codex's Orca worktree `~/orca/workspaces/Health App/ui-redesign-codex` (branch
+     `ericlee4992/ui-redesign-codex`) can be removed after the merge (`orca worktree rm`).
+   - **Verification**: Codex's own run — 699 unit, the 21 gate UI tests, 3 screenshot tests, all
+     green. On `ui-redesign` after the fixes: build green; the FULL UI suite was running at
+     handoff (`scratchpad/ui-full-4.log`) — its result decides the merge.
+   - **Next**: merge `ui-redesign` ff into `main` once the full suite is green, push, install; then
+     tickets 03 (finish summary), 04 (Start — mostly done by Codex; finish the gear button),
+     05 (Settings screen), 06 History, 07 Gyms, 08 Exercises, 09 empty states + app icon +
+     Live Activity, each with screenshots via `RedesignScreenshotUITests` and a Codex review
+     (Claude builds, Codex reviews — or the reverse, never the author).
 
 0000. **Machine deletion (`.scratch/machine-deletion/issues/01-delete-machines.md`) MERGED to
    `main` 2026-09-10 — Codex clear after TWO rounds — and INSTALLED 2026-09-10 15:40 EDT
