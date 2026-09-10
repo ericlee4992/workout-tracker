@@ -32,3 +32,8 @@ Config/Local.xcconfig
 # Anthropic API key for the scanner LLM experiment (read by
 # .scratch/scanner-accuracy/tools/llm_reader.py); never committed.
 Config/anthropic.key
+
+# Local redesign build and raw test artifacts
+.scratch/ui-redesign/results/
+.scratch/ui-redesign/screenshots/codex-raw/
+.scratch/ui-redesign/screenshots/codex-before-raw/
