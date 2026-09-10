@@ -56,6 +56,7 @@ struct WorkoutTrackerApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
+                .preferredColorScheme(.dark)
         }
         .modelContainer(modelContainer)
     }
