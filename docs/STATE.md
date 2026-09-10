@@ -1,9 +1,9 @@
 # Where the project is right now
 
-Updated 2026-09-10 (UI redesign: Codex's Ink/Amber chosen, on `ui-redesign` awaiting the full suite + merge; machine deletion installed; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-10 (UI redesign: Codex's Ink/Amber chosen and merged — tickets 01+02; not installed; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-00000. **UI REDESIGN — the user chose Codex's "Ink / Amber" (2026-09-10); branch `ui-redesign`
-   carries it, NOT yet merged or installed.** The user: "the app seems a bit boring, with mostly
+00000. **UI REDESIGN — the user chose Codex's "Ink / Amber" (2026-09-10); MERGED to `main`
+   the same day (tickets 01 + 02 + Start-lite). NOT yet installed.** The user: "the app seems a bit boring, with mostly
    texts and it essentially doesn't have a clean UI design." Plan (approved, in
    `.scratch/ui-redesign/spec.md`): bold, dark, card-based; dark only; ONE warm accent; muscle-group
    colours + icons; stat tiles + rings; motion + haptics; SF-Symbol empty states; whole app screen
@@ -23,9 +23,9 @@ Updated 2026-09-10 (UI redesign: Codex's Ink/Amber chosen, on `ui-redesign` awai
      Codex's Orca worktree `~/orca/workspaces/Health App/ui-redesign-codex` (branch
      `ericlee4992/ui-redesign-codex`) can be removed after the merge (`orca worktree rm`).
    - **Verification**: Codex's own run — 699 unit, the 21 gate UI tests, 3 screenshot tests, all
-     green. On `ui-redesign` after the fixes: build green; the FULL UI suite was running at
-     handoff (`scratchpad/ui-full-4.log`) — its result decides the merge.
-   - **Next**: merge `ui-redesign` ff into `main` once the full suite is green, push, install; then
+     green. On `ui-redesign` after the fixes: the FULL UI suite — **55 tests, 0 failures** (46 +
+     Codex's 3 screenshot tests + the 6 `RedesignScreenshotUITests`).
+   - **Next**: install (the user has not seen it on the phone); then
      tickets 03 (finish summary), 04 (Start — mostly done by Codex; finish the gear button),
      05 (Settings screen), 06 History, 07 Gyms, 08 Exercises, 09 empty states + app icon +
      Live Activity, each with screenshots via `RedesignScreenshotUITests` and a Codex review
