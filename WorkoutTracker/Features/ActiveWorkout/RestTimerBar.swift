@@ -13,28 +13,26 @@ struct RestTimerBar: View {
     var body: some View {
         let remaining = max(0, restEnd.timeIntervalSince(now))
 
-        VStack(spacing: 8) {
-            HStack {
-                Label("Rest", systemImage: "hourglass")
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text(Format.duration(seconds: Int(remaining.rounded())))
-                    .font(.title3.weight(.bold))
-                    .monospacedDigit()
-                Spacer()
-                Button("+15s", action: addFifteen)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                Button("Skip", action: skip)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
+        HStack(spacing: 12) {
+            ZStack {
+                ProgressRing(progress: restTotal > 0 ? remaining / restTotal : 0)
+                Image(systemName: "hourglass").foregroundStyle(Theme.accent)
             }
-            ProgressView(value: restTotal > 0 ? remaining / restTotal : 0)
-                .progressViewStyle(.linear)
+            .frame(width: 44, height: 44)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Rest").font(.caption).foregroundStyle(Theme.secondary)
+                Text(Format.duration(seconds: Int(remaining.rounded())))
+                    .font(Theme.stat)
+                    .monospacedDigit()
+            }
+            Spacer(minLength: 0)
+            Button("+15s", action: addFifteen).buttonStyle(.secondary)
+            Button("Skip", action: skip).buttonStyle(.primary)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(.thinMaterial)
+        .padding(16)
+        .card(.elevated)
+        .padding(.horizontal, 16)
+        .padding(.bottom, 8)
         .onReceive(tick) { date in
             now = date
             if restEnd <= date { expired() }

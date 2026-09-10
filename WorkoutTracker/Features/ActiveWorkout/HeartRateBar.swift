@@ -43,8 +43,7 @@ struct HeartRateBar: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .card()
         .padding(.horizontal)
         // NO identifier on this container. In SwiftUI an accessibility
         // identifier applied to a container propagates to every descendant and
@@ -63,7 +62,7 @@ struct HeartRateBar: View {
                 // Not animated when stale: a pulsing heart beside a number that
                 // stopped updating is the app performing liveness it does not
                 // have.
-                .foregroundStyle(monitor.isStale ? Color.secondary : Color.red)
+                .foregroundStyle(monitor.isStale ? Color.secondary : Theme.danger)
                 .symbolEffect(.pulse, isActive: !monitor.isStale && monitor.current != nil)
 
             bpmText
@@ -126,11 +125,11 @@ struct HeartRateBar: View {
             if let current = monitor.current {
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text("\(current.bpm)")
-                        .font(.title2.weight(.semibold))
+                        .font(Theme.stat)
                         .monospacedDigit()
                     Text("bpm").font(.caption)
                 }
-                .foregroundStyle(monitor.isStale ? Color.secondary : Color.primary)
+                .foregroundStyle(monitor.isStale ? Color.secondary : Theme.danger)
             } else {
                 Text("Looking for a sensor…")
                     .font(.subheadline)
@@ -155,21 +154,18 @@ struct HeartRateBar: View {
     /// Zone as a label *and* a meter. Colour alone would fail for a colour-blind
     /// user and in bright gym light, so the number and the word carry it too.
     private func zoneChip(_ zone: HeartRateZone) -> some View {
-        HStack(spacing: 5) {
-            Text(zone.label)
-                .font(.caption.weight(.semibold))
-            HStack(spacing: 2) {
-                ForEach(1...5, id: \.self) { step in
-                    Capsule()
-                        .fill(step <= zone.rawValue ? zoneColor(zone) : Color(.quaternaryLabel))
-                        .frame(width: 4, height: step <= zone.rawValue ? 11 : 7)
+        Chip(tint: zoneColor(zone)) {
+            HStack(spacing: 5) {
+                Text(zone.label)
+                HStack(spacing: 2) {
+                    ForEach(1...5, id: \.self) { step in
+                        Capsule()
+                            .fill(step <= zone.rawValue ? zoneColor(zone) : Theme.fill)
+                            .frame(width: 4, height: step <= zone.rawValue ? 11 : 7)
+                    }
                 }
             }
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
-        .background(zoneColor(zone).opacity(0.15), in: Capsule())
-        .foregroundStyle(zoneColor(zone))
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("hrZone")
         .accessibilityLabel("\(zone.label), \(zone.descriptionText)")

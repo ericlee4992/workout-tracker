@@ -16,7 +16,15 @@ final class CodexScreenshotUITests: XCTestCase {
         if name.contains("Accessibility") {
             app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
         }
+        addUIInterruptionMonitor(withDescription: "Simulator permissions") { alert in
+            if alert.buttons["Allow"].exists {
+                alert.buttons["Allow"].tap()
+                return true
+            }
+            return false
+        }
         app.launch()
+        XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 15))
     }
 
     func testWorkoutScreens() {
@@ -26,11 +34,14 @@ final class CodexScreenshotUITests: XCTestCase {
         tab("Workout").tap()
         anyElement("gymPicker").tap()
         tapOption(gymName)
+        createTemplate()
         capture("codex-04-start")
         startEmptyWorkout()
+        setUpZones()
         addByMachine()
         enterSet(weight: "60", reps: "10")
         app.buttons["addSet"].firstMatch.tap()
+        enterSet(weight: "65", reps: "8", index: 1)
         capture("codex-02-active-workout")
         app.buttons["setRow.complete"].firstMatch.tap()
         XCTAssertTrue(app.buttons["Skip"].waitForExistence(timeout: 5))
@@ -52,26 +63,54 @@ final class CodexScreenshotUITests: XCTestCase {
     }
 
     func testAccessibilityWorkout() {
-        tab("Workout").tap()
+        XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 5))
         app.buttons["startEmptyWorkout"].tap()
         app.buttons["addExercise"].tap()
         typeInSearchField("Seated Chest")
         anyElement("exerciseOption.\(exerciseName)").tap()
+        app.swipeUp()
         capture("codex-02-accessibility")
     }
 
-    private func enterSet(weight: String, reps: String) {
-        let field = app.textFields["setRow.weight"].firstMatch
+    private func setUpZones() {
+        let setup = app.buttons["hrZoneSetup"]
+        XCTAssertTrue(setup.waitForExistence(timeout: 10))
+        setup.tap()
+        let field = app.textFields["maxHeartRateField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("180")
+        app.buttons["saveMaxHeartRate"].tap()
+        XCTAssertTrue(anyElement("hrZone").waitForExistence(timeout: 10))
+    }
+
+    private func createTemplate() {
+        app.buttons["New Template…"].tap()
+        let field = app.textFields["Template name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("Core Session")
+        app.buttons["Abdominal Crunch"].firstMatch.tap()
+        app.buttons["Save"].tap()
+        XCTAssertTrue(app.staticTexts["Core Session"].waitForExistence(timeout: 5))
+    }
+
+    private func enterSet(weight: String, reps: String, index: Int = 0) {
+        let field = app.textFields.matching(identifier: "setRow.weight").element(boundBy: index)
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         field.typeText(weight)
-        let repsField = app.textFields["setRow.reps"].firstMatch
+        let repsField = app.textFields.matching(identifier: "setRow.reps").element(boundBy: index)
         repsField.tap()
         repsField.typeText(reps)
         app.buttons["keyboardDone"].tap()
     }
 
     private func capture(_ name: String) {
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        if springboard.alerts.buttons["Allow"].waitForExistence(timeout: 1) {
+            springboard.alerts.buttons["Allow"].tap()
+        }
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
@@ -139,20 +178,6 @@ final class CodexScreenshotUITests: XCTestCase {
         machine.tap()
     }
 
-    private func finishWorkout() {
-        app.buttons["finishWorkout"].tap()
-        // B2/C2 (ticket 17): Finish finishes on the first tap; what follows
-        // is a confirmation of what was saved, not a question blocking it.
-        let done = app.buttons["finishedDone"]
-        XCTAssertTrue(
-            done.waitForExistence(timeout: 5),
-            "Finishing should confirm what was saved")
-        done.tap()
-        XCTAssertTrue(
-            tab("History").waitForExistence(timeout: 5),
-            "Finishing should return to the tab bar")
-    }
-
     // MARK: - Element helpers
 
     private func tab(_ name: String) -> XCUIElement {
@@ -184,15 +209,6 @@ final class CodexScreenshotUITests: XCTestCase {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 
-    /// Taps a menu entry by label. Menus nest (a submenu button and the
-    /// picker inside it can share a label), so this deliberately takes the
-    /// first match rather than requiring a unique one.
-    private func tapMenuItem(_ label: String) {
-        let item = app.buttons[label].firstMatch
-        XCTAssertTrue(item.waitForExistence(timeout: 5), "No menu item labelled \(label)")
-        item.tap()
-    }
-
     /// Taps an option by its visible label, whether it renders as a menu
     /// item, a pushed list row, or a plain cell.
     private func tapOption(_ label: String) {
@@ -206,11 +222,4 @@ final class CodexScreenshotUITests: XCTestCase {
         text.tap()
     }
 
-    private func value(of element: XCUIElement) -> String? {
-        element.value as? String
-    }
-
-    private func completeValue(of element: XCUIElement) -> String? {
-        value(of: element)
-    }
 }

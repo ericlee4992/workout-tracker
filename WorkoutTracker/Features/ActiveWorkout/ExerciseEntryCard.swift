@@ -13,15 +13,13 @@ extension ExerciseEntry {
 extension SetType {
     /// The marker's tint, shared by the active workout and history detail so
     /// a `D` never means one thing on one screen and another elsewhere.
-    /// W orange, F red, D purple: three hues that stay legible on both the
-    /// light and dark card backgrounds, and none of them the green the
-    /// completion tick owns.
+    /// Set types retain their own meaning; completed work uses the accent.
     var markerColor: Color {
         switch self {
-        case .warmup: .orange
-        case .working: .primary
-        case .failure: .red
-        case .drop: .purple
+        case .warmup: Theme.warmup
+        case .working: Theme.text
+        case .failure: Theme.danger
+        case .drop: Theme.drop
         }
     }
 }
@@ -32,6 +30,7 @@ struct ExerciseEntryCard: View {
     var showMachinePicker: () -> Void
     var showPerformance: () -> Void
     var completionChanged: (SetRecord, Bool) -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var showingRestSettings = false
     @State private var showingBarPicker = false
 
@@ -53,7 +52,6 @@ struct ExerciseEntryCard: View {
             titleRow
             machineRow
             barRow
-            presetRow
 
             if loadType == .assisted {
                 Label("Assisted: lower weight = harder. Records track least assistance.", systemImage: "arrow.down.right.circle")
@@ -61,7 +59,7 @@ struct ExerciseEntryCard: View {
                     .foregroundStyle(.secondary)
             }
 
-            columnHeaders
+            if !dynamicTypeSize.isAccessibilitySize { columnHeaders }
 
             ForEach(orderedSets) { set in
                 SetRowView(
@@ -74,6 +72,8 @@ struct ExerciseEntryCard: View {
                     onDelete: { deleteSet(set) })
             }
 
+            presetRow
+
             Button {
                 addSet()
             } label: {
@@ -81,13 +81,12 @@ struct ExerciseEntryCard: View {
                     .font(.subheadline)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderless)
+            .buttonStyle(.secondary)
             .accessibilityIdentifier("addSet")
             .padding(.top, 2)
         }
-        .padding(14)
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(Theme.Space.inset)
+        .card()
         .padding(.horizontal)
         .sheet(isPresented: $showingRestSettings) {
             if let exercise = entry.exercise {
@@ -124,8 +123,8 @@ struct ExerciseEntryCard: View {
                 }
                 .padding(.vertical, 6)
                 .padding(.horizontal, 10)
-                .background(Color(.tertiarySystemFill))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .background(Theme.fill)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.field))
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("barPicker")
@@ -199,14 +198,10 @@ struct ExerciseEntryCard: View {
         _ title: String, isSelected: Bool, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.caption.weight(isSelected ? .semibold : .regular))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(
-                    isSelected ? Color.accentColor.opacity(0.18) : Color(.tertiarySystemFill),
-                    in: Capsule())
-                .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+            Chip(tint: Theme.secondary, selected: isSelected) {
+                Text(title)
+            }
+            .frame(minHeight: 44)
         }
         .buttonStyle(.plain)
     }
@@ -275,26 +270,30 @@ struct ExerciseEntryCard: View {
     }
 
     private var titleRow: some View {
-        HStack {
-            // D48: the A/B badge is how a superset is legible mid-set. Without
-            // it, two grouped exercises look like two ordinary ones that
-            // mysteriously do not start a rest.
-            if let member = supersetLabel {
-                Text(member)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 20, height: 20)
-                    .background(Color.accentColor, in: Circle())
-                    .accessibilityIdentifier("supersetBadge")
-                    .accessibilityLabel("Superset position \(member)")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 10) {
+                MuscleIcon(group: entry.exercise?.muscleGroup)
+                if let member = supersetLabel {
+                    Chip(tint: Theme.accent, selected: true) { Text(member) }
+                        .accessibilityIdentifier("supersetBadge")
+                        .accessibilityLabel("Superset position \(member)")
+                }
+                Text(entry.exercise?.name ?? entry.snapshotExerciseName)
+                    .font(Theme.cardTitle)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier(
+                        "entryTitle.\(entry.exercise?.name ?? entry.snapshotExerciseName)")
+                Spacer()
+                if !dynamicTypeSize.isAccessibilitySize { titleActions }
             }
-            Text(entry.exercise?.name ?? entry.snapshotExerciseName)
-                .font(.headline)
-                // Identified so a test can target the CARD's title rather than
-                // the same name inside the exercise picker's list.
-                .accessibilityIdentifier(
-                    "entryTitle.\(entry.exercise?.name ?? entry.snapshotExerciseName)")
-            Spacer()
+            if dynamicTypeSize.isAccessibilitySize {
+                HStack { Spacer(); titleActions }
+            }
+        }
+    }
+
+    private var titleActions: some View {
+        HStack(spacing: 12) {
             Menu {
                 if entry.exercise != nil {
                     Button("Rest Durations…", systemImage: "timer") {
@@ -351,8 +350,8 @@ struct ExerciseEntryCard: View {
             }
             .padding(.vertical, 6)
             .padding(.horizontal, 10)
-            .background(Color(.tertiarySystemFill))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .background(Theme.fill)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.field))
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("entryEquipment")
@@ -367,7 +366,8 @@ struct ExerciseEntryCard: View {
             Color.clear.frame(width: 30)
         }
         .font(.caption2.weight(.semibold))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Theme.tertiary)
+        .padding(.top, 8)
     }
 
     /// In bar mode the field takes the plates on **one** end, so the header has
@@ -441,6 +441,9 @@ struct SetRowView: View {
     @State private var swipeOffset: CGFloat = 0
     @State private var isSwipeOpen = false
     @FocusState private var focusedField: Field?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @ScaledMetric(relativeTo: .subheadline) private var markerSize = 34.0
 
     private static let swipeDeleteWidth: CGFloat = 88
 
@@ -512,7 +515,9 @@ struct SetRowView: View {
             rowContent
                 // Opaque, so the delete button stays hidden behind the row
                 // until the swipe pulls it out from under.
-                .background(Color(.secondarySystemGroupedBackground))
+                .background(isCompleted ? Theme.accent.opacity(0.08) : Color.clear)
+                .background(Theme.card)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.field))
                 .offset(x: swipeOffset)
                 .gesture(swipeToDelete)
         }
@@ -601,7 +606,7 @@ struct SetRowView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.white)
                 .frame(width: Self.swipeDeleteWidth - 10, height: 34)
-                .background(Color.red, in: RoundedRectangle(cornerRadius: 8))
+                .background(Color.red, in: RoundedRectangle(cornerRadius: Theme.Radius.field))
         }
         .buttonStyle(.plain)
         .allowsHitTesting(isSwipeOpen)
@@ -610,25 +615,10 @@ struct SetRowView: View {
     }
 
     private var rowContent: some View {
-        VStack(spacing: 2) {
-            fieldsRow
-            // The arithmetic the feature exists to remove, shown rather than
-            // asserted — and shown from the *typed* text, before commit, so the
-            // user can see the total they are about to log while typing it.
-            if let totalCaption {
-                HStack(spacing: 8) {
-                    Color.clear.frame(width: 34)
-                    Spacer(minLength: 0)
-                    Text(totalCaption)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 88)
-                        .accessibilityIdentifier("setRow.total")
-                    Color.clear.frame(width: 48)
-                    Color.clear.frame(width: 30)
-                }
-            }
-        }
+        fieldsRow
+            .padding(.vertical, 5)
+            .sensoryFeedback(.setComplete, trigger: isCompleted) { _, completed in completed }
+            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.65), value: isCompleted)
     }
 
     private var totalCaption: String? {
@@ -642,64 +632,99 @@ struct SetRowView: View {
             barWeight: barWeight, platesPerSide: perSide, unit: set.weightUnit)
     }
 
+    private var previousText: some View {
+        Text(previousLabel)
+            .font(.footnote)
+            .foregroundStyle(Theme.tertiary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("setRow.previous")
+    }
+
     private var fieldsRow: some View {
-        HStack(spacing: 8) {
-            setTypeButton
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 12) {
+                        setTypeButton
+                        previousText
+                        completeButton
+                    }
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(barWeight != nil ? "PER SIDE" : (loadType == .assisted ? "ASSIST" : "WEIGHT"))
+                                .font(Theme.label)
+                                .foregroundStyle(Theme.secondary)
+                            weightInput
+                        }
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("REPS").font(Theme.label).foregroundStyle(Theme.secondary)
+                            repsInput
+                        }
+                        .frame(maxWidth: 100)
+                    }
+                }
+            } else {
+                HStack(spacing: 8) {
+                    setTypeButton
+                    previousText
+                    weightInput
+                    repsInput
+                    completeButton.frame(width: 30)
+                }
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .monospacedDigit()
+        .contextMenu {
+            Button("Delete Set", systemImage: "trash", role: .destructive) { onDelete() }
+        }
+    }
 
-            Text(previousLabel)
-                .font(.footnote)
-                .foregroundStyle(previousLabel == "—" ? .tertiary : .secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityIdentifier("setRow.previous")
-
-            HStack(spacing: 4) {
+    private var weightInput: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 0) {
                 TextField("–", text: $weightText)
                     .keyboardType(.decimalPad)
                     .focused($focusedField, equals: .weight)
                     .multilineTextAlignment(.center)
-                    .frame(width: 48)
-                    .padding(.vertical, 5)
-                    .background(Color(.tertiarySystemFill))
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .frame(minWidth: 0, maxWidth: .infinity)
+                    .padding(.vertical, 10)
                     .accessibilityIdentifier("setRow.weight")
 
                 Button {
                     toggleUnit()
                 } label: {
                     UnitBadge(unit: set.isDeleted ? .kg : set.weightUnit)
-                        .opacity(barWeight == nil ? 1 : 0.5)
                 }
                 .buttonStyle(.plain)
-                // D40: the row's unit follows its bar. Reinterpreting "20" in
-                // the other unit would turn a 20 kg bar into a 20 lb one — a
-                // different piece of equipment, chosen by a stray tap.
+                // The unit follows the selected bar; input remains plates per side.
                 .disabled(barWeight != nil)
                 .accessibilityIdentifier("setRow.unit")
                 .accessibilityHint(
                     barWeight == nil ? "" : "The unit follows the bar. Change the bar to log in the other unit.")
             }
-            .frame(width: 88)
-
-            TextField("–", text: $repsText)
-                .keyboardType(.numberPad)
-                .focused($focusedField, equals: .reps)
-                .multilineTextAlignment(.center)
-                .frame(width: 48)
-                .padding(.vertical, 5)
-                .background(Color(.tertiarySystemFill))
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-                .accessibilityIdentifier("setRow.reps")
-
-            completeButton
-                .frame(width: 30)
-        }
-        .font(.subheadline)
-        .opacity(isCompleted ? 0.75 : 1)
-        .contextMenu {
-            Button("Delete Set", systemImage: "trash", role: .destructive) {
-                onDelete()
+            if let totalCaption {
+                Text(totalCaption)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .padding(.bottom, 7)
+                    .accessibilityIdentifier("setRow.total")
             }
         }
+        .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 88)
+        .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.field))
+    }
+
+    private var repsInput: some View {
+        TextField("–", text: $repsText)
+            .keyboardType(.numberPad)
+            .focused($focusedField, equals: .reps)
+            .multilineTextAlignment(.center)
+            .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 48)
+            .padding(.vertical, 10)
+            .background(Theme.fill)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.field))
+            .accessibilityIdentifier("setRow.reps")
     }
 
     /// E5: the marker is a menu of named set types — the old control cycled
@@ -723,14 +748,13 @@ struct SetRowView: View {
             HStack(spacing: 1) {
                 Text(set.isDeleted ? "" : (set.type.marker ?? "\(index)"))
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(markerColor)
+                    .foregroundStyle(isCompleted ? Theme.onAccent : markerColor)
                 Image(systemName: "chevron.down")
-                    .font(.system(size: 7, weight: .bold))
+                    .font(.caption2.weight(.bold))
                     .foregroundStyle(.tertiary)
             }
-            .frame(width: 34, height: 28)
-            .background(Color(.tertiarySystemFill))
-            .clipShape(RoundedRectangle(cornerRadius: 6))
+            .frame(width: markerSize, height: markerSize)
+            .background(isCompleted ? Theme.accent : Theme.fill, in: Circle())
         }
         .accessibilityIdentifier("setRow.setType")
         .accessibilityLabel(
@@ -759,8 +783,9 @@ struct SetRowView: View {
             toggleCompletion()
         } label: {
             Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-                .font(.title3)
+                .font(.title2)
                 .foregroundStyle(completeTint)
+                .scaleEffect(isCompleted ? 1 : 0.88)
         }
         .buttonStyle(.plain)
         .disabled(!canComplete)
@@ -771,7 +796,7 @@ struct SetRowView: View {
     }
 
     private var completeTint: Color {
-        if isCompleted { return .green }
+        if isCompleted { return Theme.accent }
         return canComplete ? .secondary : Color(.quaternaryLabel)
     }
 

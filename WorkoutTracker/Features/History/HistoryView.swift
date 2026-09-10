@@ -192,13 +192,7 @@ struct WorkoutUnitBadgeView: View {
         case .single(let unit):
             UnitBadge(unit: unit)
         case .mixed:
-            Text(badge.label)
-                .font(.caption.weight(.semibold))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 3)
-                .background(Color.purple.opacity(0.15))
-                .foregroundStyle(Color.purple)
-                .clipShape(Capsule())
+            Chip(tint: Theme.unitMixed) { Text(badge.label) }
         }
     }
 }

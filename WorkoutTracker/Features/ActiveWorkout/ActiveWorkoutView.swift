@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import UIKit
 
 struct ActiveWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
@@ -17,6 +18,8 @@ struct ActiveWorkoutView: View {
 
     @State private var restEnd: Date?
     @State private var restTotal: Double = 120
+    @State private var restExpiryCount = 0
+    @State private var keyboardVisible = false
     @State private var machinePickerEntry: ExerciseEntry?
     @State private var performanceEntry: ExerciseEntry?
     @State private var showExercisePicker = false
@@ -119,6 +122,7 @@ struct ActiveWorkoutView: View {
                                 Label("Add Exercise", systemImage: "plus")
                                     .frame(maxWidth: .infinity)
                             }
+                            .buttonStyle(.primary)
                             .accessibilityIdentifier("addExercise")
                             // Machine-first path (D7). D1 (ticket 17): a no-gym
                             // workout has no machines to list, but hiding the
@@ -131,10 +135,10 @@ struct ActiveWorkoutView: View {
                                 Label("Add by Machine", systemImage: "figure.strengthtraining.traditional")
                                     .frame(maxWidth: .infinity)
                             }
+                            .buttonStyle(.secondary)
                             .disabled(!hasGym)
                             .accessibilityIdentifier("addByMachine")
                         }
-                        .buttonStyle(.bordered)
                         if !hasGym {
                             Text("Pick a gym to log by machine")
                                 .font(.caption)
@@ -152,7 +156,7 @@ struct ActiveWorkoutView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .environment(\.defaultMinListRowHeight, 0)
-            .background(Color(.systemGroupedBackground))
+            .background(Theme.background)
             .safeAreaInset(edge: .bottom) {
                 if let restEnd {
                     RestTimerBar(
@@ -160,9 +164,13 @@ struct ActiveWorkoutView: View {
                         restTotal: restTotal,
                         addFifteen: addFifteen,
                         skip: skipRest,
-                        expired: refreshRest)
+                        expired: {
+                            restExpiryCount += 1
+                            refreshRest()
+                        })
                 }
             }
+            .sensoryFeedback(.restDone, trigger: restExpiryCount)
             .navigationTitle(workout.isDeleted ? "Workout" : workout.historyTitle)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -274,6 +282,12 @@ struct ActiveWorkoutView: View {
             } content: {
                 MaxHeartRateSheet()
             }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                keyboardVisible = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                keyboardVisible = false
+            }
             .onAppear(perform: refreshRest)
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshRest() }
@@ -313,19 +327,44 @@ struct ActiveWorkoutView: View {
     }
 
     private var header: some View {
-        HStack {
-            Image(systemName: "mappin.and.ellipse")
-                .foregroundStyle(.tint)
-            Text(workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"))
-                .font(.subheadline.weight(.medium))
-            Spacer()
-            TimelineView(.periodic(from: .now, by: 60)) { timeline in
-                Label("\(elapsedMinutes(at: timeline.date)) min", systemImage: "timer")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 16) {
+            // Keep the active fields above the keyboard accessory, including
+            // the extra total line in bar mode. The full hero returns on Done.
+            VStack(alignment: .leading, spacing: keyboardVisible ? 4 : 12) {
+                if !keyboardVisible {
+                    Chip(tint: Theme.secondary) {
+                        Label(workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"),
+                              systemImage: "mappin.and.ellipse")
+                    }
+                }
+                TimelineView(.periodic(from: .now, by: 60)) { timeline in
+                    Text("\(elapsedMinutes(at: timeline.date)) min")
+                        .font(keyboardVisible ? Theme.stat : Theme.hero)
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.text)
+                }
+            }
+            Spacer(minLength: 0)
+            let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
+            let completed = sets.filter { $0.completedAt != nil }.count
+            if !keyboardVisible {
+                ZStack {
+                    ProgressRing(progress: sets.isEmpty ? 0 : Double(completed) / Double(sets.count), lineWidth: 6)
+                    Image(systemName: "checkmark").font(.title2.weight(.bold))
+                        .foregroundStyle(Theme.accent)
+                }
+                .frame(width: 68, height: 68)
+                .overlay(alignment: .bottom) {
+                    Chip(tint: Theme.accent) { Text("\(completed)/\(sets.count)").monospacedDigit() }
+                        .offset(y: 14)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(completed) completed sets, \(sets.count) total")
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 24)
+        .padding(.top, keyboardVisible ? 0 : 8)
+        .padding(.bottom, keyboardVisible ? 0 : 16)
     }
 
     private func elapsedMinutes(at date: Date) -> Int {

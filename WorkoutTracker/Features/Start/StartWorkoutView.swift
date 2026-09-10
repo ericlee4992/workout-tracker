@@ -39,18 +39,37 @@ struct StartWorkoutView: View {
                 if let active = activeWorkouts.first, !active.isDeleted {
                     Section {
                         resumeRow(active)
+                            .padding(16)
+                            .card()
+                            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).strokeBorder(Theme.accent.opacity(0.5)))
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets())
                     }
                 }
 
                 Section {
                     gymPicker
+                        .padding(20)
+                        .card()
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
                 }
 
                 Section {
                     Button { startTapped(template: nil) } label: {
-                        Label("Start Empty Workout", systemImage: "plus.circle.fill")
-                            .font(.headline)
+                        HStack {
+                            Text("Start Empty Workout").font(Theme.stat)
+                            Spacer()
+                            Image(systemName: "arrow.up.right")
+                                .font(.title2.weight(.bold))
+                        }
+                        .padding(.vertical, 24)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .buttonStyle(.primary)
+                    .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
                     .accessibilityIdentifier("startEmptyWorkout")
                 }
 
@@ -60,6 +79,10 @@ struct StartWorkoutView: View {
                             template: template,
                             gymName: selectedGym?.name ?? "your gym",
                             start: { startTapped(template: template) })
+                        .padding(16)
+                        .card()
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                         .contextMenu {
                             Button("Edit…") {
                                 editingTemplate = template
@@ -87,8 +110,14 @@ struct StartWorkoutView: View {
                         editingTemplate = nil
                         showingTemplateEditor = true
                     }
+                    .buttonStyle(.secondary)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 }
             }
+            .scrollContentBackground(.hidden)
+            .listRowSeparator(.hidden)
+            .background(Theme.background)
             .navigationTitle("Workout")
             .confirmationDialog(
                 "A workout is already in progress",
@@ -293,7 +322,10 @@ struct StartWorkoutView: View {
         } label: {
             HStack {
                 Image(systemName: "mappin.and.ellipse")
-                    .foregroundStyle(.tint)
+                    .font(.title2)
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 44, height: 44)
+                    .background(Theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
                 VStack(alignment: .leading, spacing: 2) {
                     Text(selectedGym?.name ?? "No gym")
                         .font(.headline)
@@ -320,7 +352,12 @@ private struct TemplateRow: View {
 
     var body: some View {
         HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 6) {
+                    ForEach(Array(WorkoutTemplateService.orderedItems(of: template).prefix(5))) { item in
+                        MuscleIcon(group: item.exercise?.muscleGroup)
+                    }
+                }
                 Text(template.name)
                     .font(.headline)
                 Text(WorkoutTemplateService.orderedItems(of: template)
@@ -335,9 +372,7 @@ private struct TemplateRow: View {
             }
             Spacer()
             Button("Start", action: start)
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.capsule)
-                .controlSize(.small)
+                .buttonStyle(.primary)
         }
         .padding(.vertical, 4)
     }
@@ -347,13 +382,7 @@ struct UnitBadge: View {
     var unit: WeightUnit
 
     var body: some View {
-        Text(unit.rawValue)
-            .font(.caption.weight(.semibold))
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(unit == .kg ? Color.blue.opacity(0.15) : Color.orange.opacity(0.18))
-            .foregroundStyle(unit == .kg ? Color.blue : Color.orange)
-            .clipShape(Capsule())
+        UnitChip(unit: unit)
     }
 }
 
