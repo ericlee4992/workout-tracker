@@ -265,9 +265,7 @@ struct GymDetailView: View {
                 }
             }
             // The user's word (2026-09-10); archival underneath, D10.
-            Button("Delete Machine…", role: .destructive) {
-                deletingMachine = machine
-            }
+            DeleteMachineMenuItem(machine: machine) { deletingMachine = $0 }
         }
     }
 

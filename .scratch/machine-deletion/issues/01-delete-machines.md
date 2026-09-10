@@ -1,6 +1,6 @@
 # 01 — Delete a machine from a gym: on the Gyms tab and mid-workout
 
-Status: built 2026-09-10 — awaiting Codex round 1
+Status: built 2026-09-10 — Codex round 1 answered, awaiting round 2
 
 User, 2026-09-10: "I also want to add a feature to delete added machines from gym (whether mid
 workout, or just at gym tab)."
@@ -60,3 +60,29 @@ workout, or just at gym tab)."
   mid-workout swipe → Delete → "No machines yet" → minimize → the Gyms tab shows the deleted list.
 
 Verification: 698/698 unit; `MachineDeletionUITests` 2/2; `CoreLoopUITests` 9/9.
+
+## Codex review 01 — response (2026-09-10)
+
+`codex-review-01.md`: standards clear; one P3 and two coverage gaps; no user-facing defect.
+
+- **P3, the menu item was not shared.** `DeleteMachineMenuItem` in `MachineDeletion.swift`, used by
+  both context menus; the component now carries the swipe, the menu item and the alert, as the
+  ticket said.
+- **Coverage, the current-workout claim.** The mid-workout UI test now logs a set (80 × 8) on the
+  machine first, deletes the machine from the Add-by-Machine sheet, asserts the entry is still on
+  the workout screen with its numbers, finishes, and finds the exercise in History — then checks
+  the Gyms tab shows the deleted list. (No minimize needed: finishing returns to the tabs.)
+- **Coverage, the round trip.** The restore unit test sets `defaultUnit` and `defaultPresetID`
+  before archiving and asserts both, the label, the model, the live relationship and the entry's
+  `snapshotMachineID` / `snapshotEquipmentLabel` / `snapshotModelID` after restoring.
+- The Gyms-tab test's Cancel is scoped to `app.alerts`.
+
+Verification after round 1: 698/698 unit; `MachineDeletionUITests` 2/2 (the machine now sits on a
+real catalog model, as the user's do — see the note); the FULL UI suite on `d35e725`: **46 tests,
+0 failures**.
+
+**Open question found on the way (NOT this ticket):** tapping a MODEL-LESS machine on the
+Add-by-Machine sheet mid-workout did nothing in the Simulator — the sheet stayed on its list and
+no exercise picker was pushed (accessibility tree captured in the test log, 2026-09-10). The
+one-exercise-model path works (core loop). The user's machines are scanned, so all have models;
+verify on the phone before chasing.

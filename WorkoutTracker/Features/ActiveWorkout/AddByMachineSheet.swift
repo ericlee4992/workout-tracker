@@ -47,9 +47,7 @@ struct AddByMachineSheet: View {
                         .accessibilityIdentifier("machineOption.\(machine.label)")
                         .machineDeleteActions(machine) { deletingMachine = $0 }
                         .contextMenu {
-                            Button("Delete Machine…", role: .destructive) {
-                                deletingMachine = machine
-                            }
+                            DeleteMachineMenuItem(machine: machine) { deletingMachine = $0 }
                         }
                     }
                     if machines.isEmpty {

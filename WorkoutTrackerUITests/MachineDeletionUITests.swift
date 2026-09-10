@@ -7,6 +7,10 @@ final class MachineDeletionUITests: XCTestCase {
     private var app: XCUIApplication!
     private let gymName = "Delete Test Gym"
     private let machineLabel = "Old Leg Press"
+    /// The machine's catalog model and the one exercise it serves, so tapping
+    /// the machine mid-workout logs directly (D7).
+    private let modelName = "Life Fitness Insignia Series Chest Press"
+    private let exerciseName = "Seated Chest Press"
 
     override func setUp() {
         super.setUp()
@@ -30,7 +34,7 @@ final class MachineDeletionUITests: XCTestCase {
 
         // Cancel first: the dialog is the safety net, and it must change nothing.
         XCTAssertTrue(app.buttons["Delete Machine"].waitForExistence(timeout: 5), "a confirmation (with Cancel) stands between the swipe and the deletion")
-        app.buttons["Cancel"].firstMatch.tap()
+        app.alerts.buttons["Cancel"].firstMatch.tap()
         XCTAssertTrue(waitForAbsence(of: app.buttons["Delete Machine"]), "the alert is dismissed")
         XCTAssertTrue(row.waitForExistence(timeout: 5), "Cancel leaves the machine where it was")
         XCTAssertFalse(anyElement("deletedMachines").exists)
@@ -60,16 +64,34 @@ final class MachineDeletionUITests: XCTestCase {
         XCTAssertFalse(anyElement("deletedMachines").exists, "and the deleted list is gone")
     }
 
-    /// Mid-workout: the same swipe on the Add-by-Machine sheet; the gym agrees afterwards.
-    func testDeleteMidWorkoutFromTheAddByMachineSheet() {
+    /// Mid-workout: a set already logged on the machine, then the same swipe
+    /// on the Add-by-Machine sheet. The entry stays on the workout screen with
+    /// its numbers, reaches History, and the gym agrees the machine is gone
+    /// (codex-review-01: the current-workout claim, pinned).
+    func testDeleteMidWorkoutKeepsTheLoggedEntryAndTheGymAgrees() {
         createGym()
         addMachine()
         startEmptyWorkout()
 
+        // Log one set on the machine.
         let addByMachine = app.buttons["addByMachine"]
         XCTAssertTrue(addByMachine.waitForExistence(timeout: 5))
         addByMachine.tap()
         let option = anyElement("machineOption.\(machineLabel)")
+        XCTAssertTrue(option.waitForExistence(timeout: 5))
+        option.tap()
+        XCTAssertTrue(app.staticTexts[exerciseName].waitForExistence(timeout: 5), "a one-exercise model logs its exercise on the tap")
+        let weight = app.textFields["setRow.weight"].firstMatch
+        XCTAssertTrue(weight.waitForExistence(timeout: 5))
+        weight.tap()
+        weight.typeText("80")
+        let reps = app.textFields["setRow.reps"].firstMatch
+        reps.tap()
+        reps.typeText("8")
+        app.buttons["setRow.complete"].firstMatch.tap()
+
+        // Now delete the machine from the same sheet.
+        addByMachine.tap()
         XCTAssertTrue(option.waitForExistence(timeout: 5))
         option.swipeLeft()
         let delete = app.buttons["deleteMachine.\(machineLabel)"]
@@ -81,11 +103,20 @@ final class MachineDeletionUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["No machines yet"].waitForExistence(timeout: 5))
         app.buttons["Cancel"].firstMatch.tap()
 
-        // The Gyms tab agrees: gone from the list, one deleted machine to
-        // restore. The active workout covers the tabs; minimize it first.
-        let minimize = app.buttons["minimizeWorkout"]
-        XCTAssertTrue(minimize.waitForExistence(timeout: 5))
-        minimize.tap()
+        // The entry logged on it is untouched: still here, still 80 × 8.
+        XCTAssertTrue(app.staticTexts[exerciseName].waitForExistence(timeout: 5), "the entry stays on the workout screen")
+        XCTAssertEqual(app.textFields["setRow.weight"].firstMatch.value as? String, "80")
+        XCTAssertEqual(app.textFields["setRow.reps"].firstMatch.value as? String, "8")
+
+        // Finish: History shows the workout with that exercise.
+        app.buttons["finishWorkout"].tap()
+        let done = app.buttons["finishedDone"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        done.tap()
+        tab("History").tap()
+        XCTAssertTrue(app.staticTexts[exerciseName].waitForExistence(timeout: 5), "the workout reached History with the deleted machine's entry")
+
+        // The Gyms tab agrees: gone from the list, one deleted machine to restore.
         tab("Gyms").tap()
         // The tab is still on the gym's detail page from earlier; if it shows
         // the list instead, open the gym.
@@ -123,8 +154,7 @@ final class MachineDeletionUITests: XCTestCase {
         XCTAssertTrue(anyElement("gymRow.\(gymName)").waitForExistence(timeout: 5))
     }
 
-    /// A model-less machine: the model is optional, and this test is about
-    /// the machine's presence, not its model.
+    /// A machine on a real catalog model (one exercise), as the user's are.
     private func addMachine() {
         anyElement("gymRow.\(gymName)").tap()
         let add = app.buttons["addMachine"]
@@ -135,6 +165,15 @@ final class MachineDeletionUITests: XCTestCase {
         label.tap()
         _ = app.keyboards.firstMatch.waitForExistence(timeout: 3)
         label.typeText(machineLabel)
+        anyElement("catalogModel").tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText("Insignia Series Chest Press")
+        let modelRow = anyElement("modelOption.\(modelName)")
+        XCTAssertTrue(modelRow.waitForExistence(timeout: 5), "the catalog model is listed")
+        modelRow.tap()
+        XCTAssertTrue(app.textFields["machineLabel"].waitForExistence(timeout: 5))
         app.buttons["saveMachine"].tap()
         XCTAssertTrue(anyElement("machineRow.\(machineLabel)").waitForExistence(timeout: 5), "the new machine is listed at the gym")
     }

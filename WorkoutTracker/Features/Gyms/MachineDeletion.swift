@@ -47,6 +47,16 @@ extension View {
     }
 }
 
+/// The context-menu item, the same on both screens (codex-review-01).
+struct DeleteMachineMenuItem: View {
+    let machine: MachineInstance
+    let ask: (MachineInstance) -> Void
+
+    var body: some View {
+        Button("Delete Machine…", role: .destructive) { ask(machine) }
+    }
+}
+
 /// The gym's deleted machines, each one tap from coming back.
 struct DeletedMachinesView: View {
     @Environment(\.modelContext) private var modelContext

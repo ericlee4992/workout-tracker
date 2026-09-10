@@ -162,7 +162,13 @@ struct EquipmentLifecycleTests {
     @Test func deletingIsArchivalAndRestoreBringsTheSameMachineBack() throws {
         let f = try makeFixture()
         let id = f.machine.id
+        let presetID = UUID()
+        f.machine.defaultUnit = .lb
+        f.machine.defaultPresetID = presetID
+        try f.context.save()
         let snapshotID = f.entry.snapshotMachineID
+        let snapshotLabel = f.entry.snapshotEquipmentLabel
+        let snapshotModelID = f.entry.snapshotModelID
         #expect(f.gym.archivedMachines.isEmpty)
 
         try f.lifecycle.archive(f.machine)
@@ -174,9 +180,15 @@ struct EquipmentLifecycleTests {
         #expect(f.machine.archived == false)
         #expect(f.machine.id == id)
         #expect(f.machine.model === f.oldModel)
+        #expect(f.machine.label == "Machine One")
+        #expect(f.machine.defaultUnit == .lb, "the machine's own unit survives")
+        #expect(f.machine.defaultPresetID == presetID, "and its usual preset (D38)")
         #expect(f.gym.activeMachines.map(\.label) == ["Machine One", "Machine Two"])
         #expect(f.gym.archivedMachines.isEmpty)
         #expect(f.entry.machine === f.machine, "the live relationship survived the round trip")
+        #expect(f.entry.snapshotMachineID == snapshotID)
+        #expect(f.entry.snapshotEquipmentLabel == snapshotLabel)
+        #expect(f.entry.snapshotModelID == snapshotModelID, "no snapshot field moved either way (D23)")
     }
 
     @Test func futureOnlyCorrectionKeepsHistoricalModelLayer() throws {
