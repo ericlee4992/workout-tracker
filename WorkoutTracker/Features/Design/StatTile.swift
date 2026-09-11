@@ -15,7 +15,7 @@ struct StatTile: View {
         VStack(alignment: .leading, spacing: Theme.Space.xs) {
             HStack(spacing: 6) {
                 Image(systemName: symbol).font(.caption.weight(.semibold)).foregroundStyle(tint)
-                Text(label).font(.caption).foregroundStyle(Theme.secondary).lineLimit(1).minimumScaleFactor(0.85)
+                Text(label).font(.caption).foregroundStyle(Theme.secondary).lineLimit(2).minimumScaleFactor(0.85)
             }
             Text(value).font(Theme.stat).monospacedDigit().lineLimit(1).minimumScaleFactor(0.8)
         }

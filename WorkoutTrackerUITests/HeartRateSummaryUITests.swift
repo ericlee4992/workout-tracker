@@ -39,18 +39,29 @@ final class HeartRateSummaryUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "summaryTotalCalories").firstMatch.waitForExistence(timeout: 5),
                       "the fixture supplies basal energy, so Total calories shows")
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "summaryAvgHR").firstMatch.exists)
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "summaryMaxHR").firstMatch.exists,
+                      "the fixture's series has a maximum")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "summaryVolume").firstMatch.exists,
+                      "60 × 10 is a volume")
         // The chart sits under the tiles (D54 ticket 03); a lazy List only
-        // materialises it once scrolled into view.
+        // materialises it once scrolled into view. Scroll until the caption
+        // UNDER the chart is on screen, so the screenshot holds the whole chart.
         let chart = app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
-        for _ in 0..<6 where !chart.exists { app.swipeUp() }
+        let caption = app.descendants(matching: .any).matching(identifier: "heartRateAverageCaption").firstMatch
+        for _ in 0..<6 where !(chart.exists && caption.exists && caption.isHittable) { app.swipeUp() }
         XCTAssertTrue(chart.waitForExistence(timeout: 5), "the receipt should draw the heart-rate series")
+        XCTAssertTrue(caption.isHittable, "the whole chart, caption included, is in view")
 
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "finish-heart-rate"
         shot.lifetime = .keepAlways
         add(shot)
 
-        app.buttons["View in History"].firstMatch.tap()
+        // Back up to the actions: the chart scroll left them above the fold.
+        let viewInHistory = app.buttons["viewFinishedWorkout"].firstMatch
+        for _ in 0..<6 where !(viewInHistory.exists && viewInHistory.isHittable) { app.swipeDown() }
+        XCTAssertTrue(viewInHistory.isHittable, "View in History is reachable after the chart scroll")
+        viewInHistory.tap()
         let section = app.descendants(matching: .any).matching(identifier: "historyHeartRateSection").firstMatch
         XCTAssertTrue(section.waitForExistence(timeout: 15), "History detail should show the heart-rate section")
         app.swipeUp()

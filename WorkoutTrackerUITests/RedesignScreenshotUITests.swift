@@ -57,6 +57,27 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-03-finish-summary")
     }
 
+    /// The receipt at the largest non-accessibility-menu text size the plan
+    /// promised per ticket (AXL): tiles must wrap, never truncate.
+    func test03_finishSummaryLargeText() {
+        app.launchArguments = ["-uiTestReset", "-uiTestHeartRate",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        createGym()
+        addMachine()
+        startEmptyWorkout()
+        let addByMachine = app.buttons["addByMachine"]
+        XCTAssertTrue(addByMachine.waitForExistence(timeout: 10))
+        addByMachine.tap()
+        let option = anyElement("machineOption.\(machineLabel)")
+        XCTAssertTrue(option.waitForExistence(timeout: 5))
+        option.tap()
+        logSet(weight: "60", reps: "10")
+        app.buttons["finishWorkout"].tap()
+        XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
+        shoot("redesign-03-finish-summary-axl")
+    }
+
     /// The Start tab with a gym chosen and a workout in progress (resume banner).
     func test04_start() {
         launch()

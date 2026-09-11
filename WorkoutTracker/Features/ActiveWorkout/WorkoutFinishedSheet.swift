@@ -282,7 +282,6 @@ struct WorkoutFinishedSheet: View {
     /// these came from 220−age (`zonesFromEstimatedMax`); the screen no longer
     /// says so (D52).
     private func zoneCard(_ seconds: [Int]) -> some View {
-        let total = max(1, seconds.reduce(0, +))
         let present = HeartRateZone.allCases.filter { zone in
             zone.rawValue < seconds.count && seconds[zone.rawValue] > 0
         }
@@ -290,11 +289,13 @@ struct WorkoutFinishedSheet: View {
             Text("Time in zones")
                 .font(Theme.cardTitle)
             GeometryReader { geometry in
+                let widths = ZoneBarLayout.widths(
+                    values: present.map { seconds[$0.rawValue] }, width: geometry.size.width, gap: 2)
                 HStack(spacing: 2) {
-                    ForEach(present, id: \.self) { zone in
+                    ForEach(Array(present.enumerated()), id: \.element) { index, zone in
                         RoundedRectangle(cornerRadius: 3)
                             .fill(zone.color)
-                            .frame(width: max(4, geometry.size.width * CGFloat(seconds[zone.rawValue]) / CGFloat(total) - 2))
+                            .frame(width: widths[index])
                     }
                 }
             }
