@@ -1,6 +1,6 @@
 # 03 — Finish summary: status ring, tiles, zone bar, chart card
 
-Status: built 2026-09-10 on `ui-redesign-03` — Codex rounds 1–2 answered, awaiting round 3
+Status: built 2026-09-10 on `ui-redesign-03` — Codex rounds 1–3 answered, awaiting round 4
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 03, on the chosen Ink / Amber system.
 
@@ -69,3 +69,14 @@ in the first screen. Screenshots: `screenshots/03/` — sent to the user.
 - **P3, the AXL capture showed only the first tile row.** `test03_finishSummaryLargeText` now
   scrolls (bounded) until `summaryVolume` — the last tile — is hittable and captures again
   (`03-finish-summary-axl-2.png`): all six tiles at AccessibilityL, the BPM values included.
+
+## Codex review 03c — response (2026-09-10)
+
+`codex-review-03c.md`: the round-2 P2 closed (Codex re-ran the helper on the sweep's 2,000
+cases); one P3 — the AXL values still truncated ("126 B…").
+
+- **P3, BPM values truncated at AccessibilityL.** The tile grid is now ONE column at
+  accessibility sizes (`dynamicTypeSize.isAccessibilitySize`), two otherwise; the recapture
+  (`03-finish-summary-axl-2.png`) shows "126 BPM" and "151 BPM" whole. While there: the chart's
+  three clock labels collided at that size, so only the first is labelled at accessibility
+  sizes (the separators stay). Both flows re-run green.

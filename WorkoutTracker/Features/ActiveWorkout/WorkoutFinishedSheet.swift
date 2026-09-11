@@ -19,6 +19,7 @@ struct WorkoutFinishedSheet: View {
     var viewInHistory: () -> Void
     var done: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var namingTemplate = false
     @State private var templateName = ""
     @State private var templateFailure: String?
@@ -220,7 +221,10 @@ struct WorkoutFinishedSheet: View {
             // out — now every figure is a tile (D54). Every tile is still
             // OMITTED, not zeroed, when its fact is missing (D44) — a block
             // with a hole is honest; a block with a 0 is not.
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: Theme.Space.small) {
+            // One column at accessibility sizes: two columns truncated the
+            // BPM values ("126 B…") at AccessibilityL (codex-review-03b).
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2),
+                      spacing: Theme.Space.small) {
                 tile("Workout time", Format.duration(seconds: Int(summary.duration)), symbol: "timer",
                      tint: Theme.accent, id: "summaryTime")
                 if let calories = summary.activeEnergyKilocalories {

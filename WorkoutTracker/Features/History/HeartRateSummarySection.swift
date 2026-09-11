@@ -35,6 +35,7 @@ struct HeartRateSummarySection: View {
     let startedAt: Date
     let averageBpm: Int?
     let maxBpm: Int?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     private var xEnd: Int {
         HeartRateSeriesMath.plotExtentSeconds(
@@ -62,6 +63,12 @@ struct HeartRateSummarySection: View {
     /// plot's right edge.
     private var timeTicks: [Double] {
         [0, Double(xEnd) / 3, Double(xEnd) * 2 / 3]
+    }
+
+    /// At accessibility text sizes three clock labels collide; the separators
+    /// stay, only the first is labelled.
+    private var labelledTicks: Set<Double> {
+        dynamicTypeSize.isAccessibilitySize ? [0] : Set(timeTicks)
     }
 
     var body: some View {
@@ -120,7 +127,7 @@ struct HeartRateSummarySection: View {
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 1))
                     .foregroundStyle(Theme.hairline)
                 AxisValueLabel(anchor: .topLeading) {
-                    if let seconds = value.as(Double.self) {
+                    if let seconds = value.as(Double.self), labelledTicks.contains(seconds) {
                         Text(clockLabel(elapsed: seconds))
                             .font(.caption2)
                             .foregroundStyle(.secondary)
