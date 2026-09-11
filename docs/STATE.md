@@ -14,7 +14,7 @@ Updated 2026-09-10 night (UI redesign: 01+02 installed; 03 + 04/05 merged, not i
      two tests left + `ScanMachineLabelUITests` 2/2 separately, same commit). Screenshots
      `screenshots/05/` SENT to the user 21:37 EDT — **no reaction yet.** Ticket:
      `issues/04-05-start-and-settings.md`.
-   - **`main` = `0bf1e38`, pushed. The phone still runs `84610c9` (tickets 01 + 02).** Install
+   - **`main` = `3f7e0bb` (= `0bf1e38` + the docs), pushed. The phone still runs `84610c9` (tickets 01 + 02).** Install
      when the user says so (`./scripts/install-on-device.sh`; profiles good to 09-17).
    - **Flake to know**: `HeartRateMonitorTests.samplesArriveAndBecomeTheCurrentReading` checks
      wall-clock staleness; it failed once (18 s) with Codex and a UI build running alongside, and
