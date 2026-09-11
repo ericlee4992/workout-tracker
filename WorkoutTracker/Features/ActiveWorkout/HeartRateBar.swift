@@ -171,16 +171,7 @@ struct HeartRateBar: View {
         .accessibilityLabel("\(zone.label), \(zone.descriptionText)")
     }
 
-    private func zoneColor(_ zone: HeartRateZone) -> Color {
-        switch zone {
-        case .warm: .secondary
-        case .one: .blue
-        case .two: .teal
-        case .three: .green
-        case .four: .orange
-        case .five: .red
-        }
-    }
+    private func zoneColor(_ zone: HeartRateZone) -> Color { zone.color }
 
     /// The source of the number actually on screen — read from `current`, not
     /// from the feed state, so the label can never name a different sensor than

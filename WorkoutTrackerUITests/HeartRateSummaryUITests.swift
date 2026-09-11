@@ -35,11 +35,15 @@ final class HeartRateSummaryUITests: XCTestCase {
         sleep(20)
         app.buttons["finishWorkout"].tap()
 
-        let chart = app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
-        XCTAssertTrue(chart.waitForExistence(timeout: 15), "the receipt should draw the heart-rate series")
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "summaryTotalCalories").firstMatch.exists,
+        XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 15), "the receipt opens")
+        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "summaryTotalCalories").firstMatch.waitForExistence(timeout: 5),
                       "the fixture supplies basal energy, so Total calories shows")
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "summaryAvgHR").firstMatch.exists)
+        // The chart sits under the tiles (D54 ticket 03); a lazy List only
+        // materialises it once scrolled into view.
+        let chart = app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
+        for _ in 0..<6 where !chart.exists { app.swipeUp() }
+        XCTAssertTrue(chart.waitForExistence(timeout: 5), "the receipt should draw the heart-rate series")
 
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "finish-heart-rate"

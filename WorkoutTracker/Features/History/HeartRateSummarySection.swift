@@ -75,12 +75,18 @@ struct HeartRateSummarySection: View {
                     if let averageBpm {
                         Text("\(averageBpm) BPM AVG")
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.red)
+                            .foregroundStyle(Theme.danger)
                             .monospacedDigit()
                             .accessibilityIdentifier("heartRateAverageCaption")
                     }
                 }
-                .padding(.vertical, 4)
+                // A card of its own (D54) — in the finish sheet's cleared
+                // list and in History's grouped one alike.
+                .padding(Theme.Space.inset)
+                .card()
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                .listRowSeparator(.hidden)
             } header: {
                 Text("Heart rate")
             }
@@ -102,7 +108,8 @@ struct HeartRateSummarySection: View {
                     xEnd: .value("To", Double(slot.endSeconds) - inset),
                     yStart: .value("Low", Double(slot.low) - 0.5),
                     yEnd: .value("High", Double(slot.high) + 0.5))
-                .foregroundStyle(Color.red)
+                .foregroundStyle(
+                    LinearGradient(colors: [Theme.accent, Theme.danger], startPoint: .bottom, endPoint: .top))
                 .cornerRadius(1)
             }
         }
@@ -111,7 +118,7 @@ struct HeartRateSummarySection: View {
         .chartXAxis {
             AxisMarks(values: timeTicks) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 1))
-                    .foregroundStyle(.quaternary)
+                    .foregroundStyle(Theme.hairline)
                 AxisValueLabel(anchor: .topLeading) {
                     if let seconds = value.as(Double.self) {
                         Text(clockLabel(elapsed: seconds))
