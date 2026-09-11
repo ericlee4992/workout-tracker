@@ -1,31 +1,45 @@
 # Where the project is right now
 
-Updated 2026-09-10 night (UI redesign: 01+02 installed; 03 + 04/05 merged, not installed; next 06 History; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-11 small hours (UI redesign: 01+02 installed; 03, 04/05, 06 merged, not installed; next 07 Gyms; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-000000. **HANDOFF 2026-09-10 (night) — tickets 03, 04, 05 MERGED to `main`; NOT installed.**
-   - **Ticket 03 (finish summary)** merged 21:10 EDT (`f80b00a`): Codex clear after four rounds;
-     unit 707/707; full UI suite 56/56.
-   - **Tickets 04 + 05 (gear + Settings screen)** merged as ONE commit (`0bf1e38`; branch
-     `ui-redesign-05`, pushed): `Features/Settings/SettingsView.swift` behind `openSettings` on the
-     Workout tab, the sections gone from Gyms, the resume banner's pulsing dot (off under Reduce
-     Motion), the doubled "Settings" header dropped, SPEC/comments updated. Codex clear after two
-     rounds (`codex-review-0405.md`, `0405b.md`; the round-1 P3s were a commit split — hence the
-     squash — and a stale comment). Unit 707/707; UI 56/56 (54 in a run stopped from outside with
-     two tests left + `ScanMachineLabelUITests` 2/2 separately, same commit). Screenshots
-     `screenshots/05/` SENT to the user 21:37 EDT — **no reaction yet.** Ticket:
-     `issues/04-05-start-and-settings.md`.
-   - **`main` = `3f7e0bb` (= `0bf1e38` + the docs), pushed. The phone still runs `84610c9` (tickets 01 + 02).** Install
-     when the user says so (`./scripts/install-on-device.sh`; profiles good to 09-17).
-   - **Flake to know**: `HeartRateMonitorTests.samplesArriveAndBecomeTheCurrentReading` checks
-     wall-clock staleness; it failed once (18 s) with Codex and a UI build running alongside, and
-     passed alone. Do not run the unit suite while a UI build is compiling.
-   - **Codex reviews: reuse ONE terminal per ticket.** `orca terminal send --terminal <id> --text
-     "$(cat prompt.md)" --enter --wait-submit 20` reaches an IDLE Codex terminal; then watch the
-     report file, never the TUI. The ticket-03/05 terminal is closed; open a fresh one for 06.
-   - **Next: ticket 06 (History)**, then 07 (Gyms), 08 (Exercises), 09 (empty states + app icon +
-     Live Activity), per `spec.md`, each: ticket file → build → `RedesignScreenshotUITests` →
-     shots to the user → Codex (Claude builds, Codex reviews) → full suite → merge → install when
-     the user says so.
+000000. **HANDOFF 2026-09-11 (small hours) — tickets 03, 04/05, 06 MERGED to `main`; NOT
+   installed. Next: ticket 07 (Gyms).**
+   - **`main` = ticket 06 (`ui-redesign-06`, pushed). The phone still runs `84610c9` (tickets
+     01 + 02).** Install when the user says so (`./scripts/install-on-device.sh`; profiles good
+     to 09-17). The user approved the 04/05 screenshots ("looks good"); the 06 shots were sent
+     twice (after build, after Codex round 1) — **no reaction yet.**
+   - **Ticket 06 (History)**: `issues/06-history.md`. Cards led by a day tile (a `Button` +
+     `path`, not a `NavigationLink`, so the card owns its row); calendar months as cards, workout
+     day = accent disc, today = ring INSIDE the cell (the disc insets under a ring), future
+     workout = hollow accent ring; detail rows on `Theme.card`, entry header = `MuscleIcon` (LIVE
+     exercise's group — decoration, accessibility-hidden) + name + equipment + load-type `Chip`;
+     heart-rate aggregates as the receipt's `StatTile`s (ids `historyAverageHR`, `historyMaxHR`,
+     `historyActiveCalories`, `historyTotalCalories`), no header of their own; chart = accent
+     **monotone** line (NOT the plan's catmullRom — it invents extrema; recorded in the ticket)
+     over an accent→clear area, hairline grid. New capture `test05_historyLargeText` (AXL) —
+     it caught a truncated title and mid-word breaks; layouts stack at accessibility sizes.
+     Codex: 3 rounds (`codex-review-06`, `06b`, `06c`) — P2 catmullRom, P2 contrast of the
+     dimmed future day / the ring on amber, P3 first card colour, P3 ring overlap on 375 pt;
+     all closed. Unit 707/707; full UI suite **58/58** (55 + the 03 AXL + 05 settings + 06 AXL).
+   - **Two lessons from tonight**: (1) a backgrounded `xcodebuild` in this harness can be
+     stopped from outside mid-run — launch the ~35-min full suite DETACHED
+     (`python3 subprocess.Popen(..., start_new_session=True)`; macOS has no `setsid`) and
+     poll the status file; (2) do not run the unit suite while Codex and a UI build compete for
+     the machine — `HeartRateMonitorTests.samplesArriveAndBecomeTheCurrentReading` checks
+     wall-clock staleness and flaked once under that load (passed alone).
+   - **Codex reviews: ONE terminal per ticket** — `orca terminal create --worktree active
+     --command codex --title "…" --json`, then `orca terminal send --terminal <handle> --text
+     "$(cat prompt.md)" --enter --wait-submit 20`, then watch the report file (never the TUI);
+     `orca terminal close --terminal <handle>` when the ticket merges. The 06 terminal is closed.
+   - **Next: ticket 07 (Gyms)** — `spec.md` ticket 07: gym rows → cards with a machine-count
+     chip; `GymDetailView` machine rows → cards with the model as a chip; Add Machine `.primary`;
+     "Deleted machines (N)" stays a `NavigationLink`; "No machines yet" → `EmptyState`;
+     pickers/editors chips + button styles only; the scan sheet tokens only (strings and ids
+     untouched). Gates: MachineDeletion, ScanMachineLabel, AskAI, DumbbellCounterpart;
+     captures `test06_gymsAndExercises`, `test08_emptyStates`. Then 08 (Exercises + sheets),
+     09 (empty states + app icon + Live Activity). Each: ticket file → build → captures → shots
+     to the user → Codex (fresh terminal) → full suite detached → merge → install when the user
+     says so.
 
 00000. **UI REDESIGN — the user chose Codex's "Ink / Amber" (2026-09-10); MERGED to `main`
    the same day (tickets 01 + 02 + Start-lite) and INSTALLED, launch-verified 2026-09-10 evening

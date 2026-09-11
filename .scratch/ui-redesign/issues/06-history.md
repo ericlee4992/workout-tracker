@@ -1,6 +1,6 @@
 # 06 — History: cards, the calendar, the detail, the progress chart
 
-Status: Codex clear after 3 rounds (codex-review-06, 06b, 06c); unit 707/707 on the final tree; full UI suite before merge (result in STATE)
+Status: resolved — Codex clear after 3 rounds (codex-review-06, 06b, 06c); unit 707/707; full UI suite 58/58 on `0d3614a`; merged to main 2026-09-11
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 06, on the chosen Ink / Amber system.
 
