@@ -1,6 +1,6 @@
 # 11 — Exercise icons off the rows; muscle-family icons on the template tile; a template detail
 
-Status: resolved pending Codex round 3 (11c) — unit 718/718; full UI suite 65/65 on `d9fd491`; the row caption "N sets · r, r, r reps" is OPEN for the user
+Status: resolved — Codex clear after 3 rounds (codex-review-11, 11b, 11c); unit 718/718; full UI suite 65/65 on `d9fd491`; merged to main 2026-09-11; the row caption "N sets · r, r, r reps" is OPEN for the user
 
 Skill: `.claude/skills/ios-design/`. The user, 2026-09-12, after ticket 10 on the phone:
 "Currently there is an icon next to every exercise, but I want them gone. In workout too. They
