@@ -101,6 +101,12 @@ Local markdown under `.scratch/` — remote: github.com/ericlee4992/workout-trac
 
 Default five canonical roles (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`), unchanged. See `docs/agents/triage-labels.md`.
 
+### Screen design
+
+Before designing, restyling or reviewing any screen: the `ios-design` skill
+(`.claude/skills/ios-design/`) — the brief, the process, the rules, Apple's numbers in
+`REFERENCE.md`, and `REVIEW.md` for the cross-reviewer to grade against.
+
 ### Domain docs
 
 Single-context — `CONTEXT.md` and `docs/adr/` at the repo root (created lazily by `/domain-modeling` as terms/decisions resolve). See `docs/agents/domain.md`.
