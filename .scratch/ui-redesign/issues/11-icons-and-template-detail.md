@@ -1,6 +1,6 @@
 # 11 — Exercise icons off the rows; muscle-family icons on the template tile; a template detail
 
-Status: in progress (branch `ui-redesign-11-icons-and-template-detail`)
+Status: resolved pending Codex round 3 (11c) — unit 718/718; full UI suite 65/65 on `d9fd491`; the row caption "N sets · r, r, r reps" is OPEN for the user
 
 Skill: `.claude/skills/ios-design/`. The user, 2026-09-12, after ticket 10 on the phone:
 "Currently there is an icon next to every exercise, but I want them gone. In workout too. They
@@ -149,3 +149,18 @@ both paths; the two modifier instances cannot both fire for one tap); the family
   before the commit (the identifier hid `startTemplate`; the inset already clears the capsule) —
   the prompt described the working tree before those fixes.
 - Judgement noted, not changed: the strip-to-list gap at the default size.
+
+## Codex review 11b — response (2026-09-11)
+
+`codex-review-11b.md`: items 9 (template detail, History, Exercises), 11 and the fixture guard
+pass; one P2 left — the active workout's AXL capture came from a different fixture
+(`CodexScreenshotUITests/testAccessibilityWorkout`: no gym, no set) than the default one. Added
+`test02_activeWorkoutLargeText`: `test02_activeWorkoutAndFinish`'s exact steps at AccessibilityL
+(Iron Temple, the Chest Press machine, 60 × 10 completed, a second set, the rest bar) —
+`02-active-workout-axl` + `-axl-2` (scrolled to the entry card), 1/1. Pair:
+`02-active-workout` ↔ `02-active-workout-axl(-2)`. Observed there, pre-existing and outside this
+ticket: the rest bar's "Skip" and "+15s" break mid-word at AXL (ticket 02's bar, unchanged here).
+
+Counts: unit **718/718** (715 + `TemplateFixtureTests` 3); the full UI suite on `d9fd491`:
+**65 tests, 0 failures** (63 + the two fixture captures; the active-workout AXL capture test
+was added after, 1/1 — the app is unchanged since `d9fd491`, only the test file and captures).

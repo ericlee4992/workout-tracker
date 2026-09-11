@@ -57,6 +57,34 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-03-finish-summary")
     }
 
+    /// Ticket 11 (codex-review-11b): the same fixture and state as
+    /// `test02_activeWorkoutAndFinish` at AccessibilityL — the entry card
+    /// without its muscle icon, the rest bar showing.
+    func test02_activeWorkoutLargeText() {
+        app.launchArguments = ["-uiTestReset", "-uiTestHeartRate",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        createGym()
+        addMachine()
+        startEmptyWorkout()
+        let addByMachine = app.buttons["addByMachine"]
+        XCTAssertTrue(addByMachine.waitForExistence(timeout: 10))
+        addByMachine.tap()
+        let option = anyElement("machineOption.\(machineLabel)")
+        XCTAssertTrue(option.waitForExistence(timeout: 5))
+        option.tap()
+        XCTAssertTrue(app.staticTexts[exerciseName].waitForExistence(timeout: 5))
+        logSet(weight: "60", reps: "10")
+        app.buttons["addSet"].firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["Rest"].waitForExistence(timeout: 5) || app.buttons["Skip"].waitForExistence(timeout: 5))
+        shoot("redesign-02-active-workout-axl")
+        // The entry card is below the fold at this size: scroll it into view.
+        let title = anyElement("entryTitle.\(exerciseName)")
+        for _ in 0..<4 where !(title.exists && title.isHittable) { app.swipeUp() }
+        XCTAssertTrue(title.exists, "the entry card reachable at AccessibilityL")
+        shoot("redesign-02-active-workout-axl-2")
+    }
+
     /// The receipt at the largest non-accessibility-menu text size the plan
     /// promised per ticket (AXL): tiles must wrap, never truncate.
     func test03_finishSummaryLargeText() {
