@@ -58,12 +58,17 @@ struct BarPickerSheet: View {
                             dismiss()
                         }
                     }
+                    .buttonStyle(.primary)
                     .disabled(!isCustomValid)
                     .accessibilityIdentifier("barCustomApply")
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 } header: {
                     Text("Custom bar")
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Bar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -193,6 +193,17 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-06-gyms-axl")
     }
 
+    /// The Exercises tab and the mid-workout exercise picker at AccessibilityL
+    /// (ticket 08): icon, name, body area and tag chips must wrap, not clip.
+    func test07_exercisesLargeText() {
+        app.launchArguments = ["-uiTestReset",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        app.tabBars.buttons["Exercises"].tap()
+        XCTAssertTrue(app.searchFields.firstMatch.waitForExistence(timeout: 10))
+        shoot("redesign-07-exercises-axl")
+    }
+
     /// Empty states: History and Gyms on a fresh store.
     func test08_emptyStates() {
         launch()

@@ -54,13 +54,14 @@ struct ExercisesView: View {
                         HStack {
                             Label(filterSummary, systemImage: "line.3.horizontal.decrease.circle.fill")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.accent)
                             Spacer()
                             Button("Clear") { clearFilters() }
                                 .font(.caption.weight(.semibold))
                                 .accessibilityIdentifier("clearExerciseFilters")
                         }
                     }
+                    .listRowBackground(Theme.card)
                 }
                 Section {
                     ForEach(filtered) { exercise in
@@ -68,8 +69,8 @@ struct ExercisesView: View {
                             ExerciseRow(exercise: exercise)
                             if !exercise.isSeeded {
                                 Text("Custom")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
+                                    .font(Theme.label)
+                                    .foregroundStyle(Theme.tertiary)
                             }
                         }
                         .contextMenu {
@@ -98,14 +99,21 @@ struct ExercisesView: View {
                     }
                     if filtered.isEmpty {
                         Text("No exercises match")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondary)
                             .accessibilityIdentifier("noExercisesMatch")
                     }
                     Button("Add Exercise…", systemImage: "plus") {
                         showingAddExercise = true
                     }
+                    .buttonStyle(.secondary)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 }
+                .listRowBackground(Theme.card)
+                .listRowSeparatorTint(Theme.hairline)
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .searchable(text: $searchText, prompt: "Search exercises")
             .navigationTitle("Exercises")
             .toolbar {

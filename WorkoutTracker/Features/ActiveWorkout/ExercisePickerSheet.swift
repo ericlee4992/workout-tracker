@@ -49,13 +49,19 @@ struct ExercisePickerSheet: View {
                         .accessibilityIdentifier("createExerciseFromSearch")
                     }
                 }
+                .listRowBackground(Theme.card)
                 Section {
                     Button("New Exercise…", systemImage: "plus") {
                         creating = NewExerciseRequest(name: trimmedSearch)
                     }
+                    .buttonStyle(.secondary)
                     .accessibilityIdentifier("newExercise")
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .searchable(text: $searchText, prompt: "Search exercises")
             .navigationTitle("Add Exercise")
             .navigationBarTitleDisplayMode(.inline)
@@ -102,29 +108,44 @@ struct ExerciseRow: View {
             tags: exercise.equipmentTypeTags, bodyArea: exercise.muscleGroup)
     }
 
-    private var subtitle: String {
-        ([bodyArea].compactMap { $0 } + tags.map(\.label)).joined(separator: " · ")
-    }
+    /// UI redesign ticket 08: the body area as a `MuscleIcon` (its glyph and
+    /// colour) beside the name, the equipment tags as chips, the load type as
+    /// a chip when it is not the default. The body area is still SAID in the
+    /// caption — the icon is accessibility-hidden — so a filtered list keeps
+    /// explaining itself to VoiceOver as it did. At accessibility sizes the
+    /// chips stack under the name (a chip never breaks mid-word) and the
+    /// load-type chip joins that column instead of squeezing the row.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let chips = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
+            : AnyLayout(HStackLayout(spacing: 6))
+        HStack(spacing: Theme.Space.medium) {
+            MuscleIcon(group: bodyArea)
+            VStack(alignment: .leading, spacing: 4) {
                 Text(name)
-                    .font(.body.weight(.medium))
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Theme.cardTitle)
+                chips {
+                    if let bodyArea {
+                        Text(bodyArea)
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondary)
+                    }
+                    ForEach(tags) { tag in
+                        Chip { Text(tag.label).fixedSize() }
+                    }
+                    if stacked, loadType != .weighted {
+                        Chip(tint: Theme.accent) { Text(loadType.badge).fixedSize() }
+                    }
+                }
             }
-            Spacer()
-            if loadType != .weighted {
-                Text(loadType.badge)
-                    .font(.caption2.weight(.semibold))
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(Color(.tertiarySystemFill))
-                    .clipShape(Capsule())
-                    .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+            if !stacked, loadType != .weighted {
+                Chip(tint: Theme.accent) { Text(loadType.badge).fixedSize() }
             }
         }
+        .padding(.vertical, 2)
     }
 }

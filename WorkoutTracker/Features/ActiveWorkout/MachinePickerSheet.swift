@@ -28,14 +28,18 @@ struct MachinePickerSheet: View {
                         }
                         if machines.isEmpty {
                             Text("No machines yet")
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.secondary)
                         }
                         Button("Add Machine…", systemImage: "plus") {
                             showingAddMachine = true
                         }
+                        .buttonStyle(.secondary)
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                     } header: {
                         Text("Machines at \(gym.name)")
                     }
+                    .listRowBackground(Theme.card)
                 }
 
                 Section {
@@ -86,7 +90,10 @@ struct MachinePickerSheet: View {
                         Text("A completed set locks equipment; a change continues in a new entry.")
                     }
                 }
+                .listRowBackground(Theme.card)
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Equipment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

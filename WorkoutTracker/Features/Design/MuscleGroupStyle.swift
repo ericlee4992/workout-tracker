@@ -29,13 +29,17 @@ struct MuscleGroupStyle {
 
 struct MuscleIcon: View {
     var group: String?
+    /// The tile grows with the glyph (`.title3` scales with Dynamic Type) —
+    /// at AccessibilityL a fixed 40 pt tile was smaller than its symbol
+    /// (UI redesign ticket 08).
+    @ScaledMetric(relativeTo: .title3) private var side: CGFloat = 40
 
     var body: some View {
         let style = MuscleGroupStyle.resolve(group)
         Image(systemName: style.symbol)
             .font(.title3.weight(.semibold))
             .foregroundStyle(style.color)
-            .frame(width: 40, height: 40)
+            .frame(width: side, height: side)
             .background(style.color.opacity(0.14),
                         in: RoundedRectangle(cornerRadius: 14))
             .accessibilityHidden(true)

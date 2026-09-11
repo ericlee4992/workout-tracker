@@ -52,17 +52,23 @@ struct AddByMachineSheet: View {
                     }
                     if machines.isEmpty {
                         Text("No machines yet")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.secondary)
                     }
                     Button("Add Machine…", systemImage: "plus") {
                         showingAddMachine = true
                     }
+                    .buttonStyle(.secondary)
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 } header: {
                     if let gym {
                         Text("Machines at \(gym.name)")
                     }
                 }
+                .listRowBackground(Theme.card)
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Add by Machine")
             .navigationBarTitleDisplayMode(.inline)
             .deleteMachineConfirmation($deletingMachine) { machine in
@@ -175,13 +181,19 @@ private struct MachineExerciseList: View {
                     .accessibilityIdentifier("createExerciseFromSearch")
                 }
             }
+            .listRowBackground(Theme.card)
             Section {
                 Button("New Exercise…", systemImage: "plus") {
                     creating = request(named: trimmedSearch)
                 }
+                .buttonStyle(.secondary)
                 .accessibilityIdentifier("newExercise")
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .modifier(FullCatalogSearch(enabled: choice.linked == nil, text: $searchText))
         .navigationTitle(choice.linked == nil ? "Pick Exercise" : choice.machine.label)
         .navigationBarTitleDisplayMode(.inline)
