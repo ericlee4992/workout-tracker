@@ -20,9 +20,10 @@ re-derive them.
 | Caption 1 | Regular | 12 | 16 | Semibold |
 | Caption 2 | Regular | 11 | 13 | Semibold |
 
-Default body 17 pt; minimum 11 pt. Avoid Ultralight, Thin and Light. Test the largest
-accessibility size (AXL and up): stack horizontally adjacent items, scale meaningful icons, keep
-the hierarchy's order.
+Default body 17 pt; minimum 11 pt. Avoid Ultralight, Thin and Light. Accessibility sizes run
+AX1 (AccessibilityL) to AX5; this project gates at AccessibilityL and does not claim the
+maximum. At those sizes: stack horizontally adjacent items, scale meaningful icons, keep the
+hierarchy's order.
 
 ## Layout
 
@@ -33,7 +34,8 @@ the hierarchy's order.
   once.
 - Respect the safe area; controls float on Liquid Glass above content on iOS 26 — do not paint a
   solid bar under them.
-- Hit region 44 × 44 pt minimum. Buttons near each other: distinguish by style, not size.
+- Hit region 44 × 44 pt minimum (the app's `.primary` style is 52 pt tall). Buttons near each
+  other: distinguish by style, not size.
 - Size classes, not device type, decide layout.
 
 ## Buttons
@@ -58,14 +60,28 @@ the hierarchy's order.
 
 ## Sheets
 
-- One task; one sheet at a time; Cancel pairs with Done; Back for a multi-step flow; never all
-  three. Long or multi-step tasks: a full-screen cover or pushed screens.
+- One task; one sheet at a time. Cancel dismisses without saving; Done (or the commit verb)
+  confirms; Back moves within a multi-step flow; never all three. Consider a full-screen cover
+  or pushed screens for prolonged flows.
 
 ## Colour and dark appearance
 
-- Semantic colours adapt; custom colours need both variants even in a dark-only app (Liquid
-  Glass adaptivity). This app is dark only by decision (D54); the window forces `.dark`.
-- Contrast: 4.5:1 minimum; 7:1 for custom foreground/background pairs and small text.
+- Apple asks for light and dark variants of every custom colour even in a single-appearance
+  app (Liquid Glass adaptivity). **D54 is the recorded exception**: this app ships one
+  appearance, `Any` only, and the window forces `.dark`; adding light variants means reopening
+  D54 deliberately, not drifting.
+- Contrast: 4.5:1 is the minimum; 7:1 is the target Apple asks you to strive for on custom
+  pairs and small text. Measured pairs (sRGB asset values, WCAG relative luminance):
+
+  | Text | on Background | on Card | on Elevated | on Fill |
+  |---|---|---|---|---|
+  | `TextPrimary` | 17.6:1 | 15.6:1 | 13.4:1 | 11.7:1 |
+  | `TextSecondary` | 9.9:1 | 8.8:1 | 7.5:1 | 6.6:1 |
+  | `TextTertiary` | 5.4:1 | 4.8:1 | 4.1:1 | 3.6:1 |
+  | `OnAccent` on accent | 10.7:1 | | | |
+
+  So `TextTertiary` meets the minimum only on Background and Card; it carries no essential text
+  on Elevated or Fill. Small = Caption/Footnote sizes.
 - Dark Mode backgrounds are base and elevated: sheets and modals sit on the elevated one.
 - SF Symbols wherever possible; separate light/dark artwork only when an asset fails in one.
 - Same colour, same meaning, everywhere.
@@ -78,26 +94,33 @@ the hierarchy's order.
 | `SurfaceCard` | `#171B21` | a card, a grouped row |
 | `SurfaceElevated` | `#222831` | a sheet, a menu |
 | `SurfaceFill` | `#2B323C` | secondary buttons, the day tile |
-| `Hairline` | white 7 % | separators only |
+| `Hairline` | white 7 % | separators and the `.card()` border; never the only line that draws a shape |
 | accent | `#FFB45E` | the one action / the live thing; `OnAccent` `#15110B` text on it |
 | `Warmup` | `#E9D875` | warmup sets |
 | `Danger` | `#FF6B76` | heart rate, destructive |
-| `UnitKg` / `UnitLb` / `UnitMixed` | | unit chips |
+| `UnitKg` / `UnitLb` / `UnitMixed` | `#97C7EE` / `#A8CDBF` / `#B8A1EE` | unit chips |
+| `Drop` | `#B8A1EE` | drop sets |
 | `TextPrimary` / `TextSecondary` / `TextTertiary` | `#F6F3EC` / `#B5B9C2` / `#7F8793` | text on ink |
 | Radius | card 24, inner 16, field 10 | |
 | Space | 4 / 8 / 12 / 16 / 24 | |
 | `hero` | largeTitle rounded black | one number or title per screen |
 | `stat` | title2 rounded bold | a figure |
 | `cardTitle` | headline bold | a row or card title |
-| `label` | caption2 semibold | a small label (sentence case unless it is a unit) |
+| `label` | caption2 semibold | a small label |
 
-Components: `.card(.standard | .elevated)`, `Chip(tint:selected:)`, `UnitChip`, `StatTile`,
+`Theme.swift` is the full inventory; this table is the part the rules name.
+
+Components: `.card(.standard | .elevated)`, `Chip(tint:selected:) { content }`, `UnitChip`, `StatTile`,
 `ProgressRing`, `EmptyState(title:symbol:)`, `MuscleIcon(group:)`, `WrapLayout`,
 `.buttonStyle(.primary | .secondary)`; haptics `.setComplete`, `.restDone`, `.workoutStart`
 (`Haptics.swift`).
 
 ## Captures
 
-`WorkoutTrackerUITests/RedesignScreenshotUITests.swift` — one test per screen, default size and
-AccessibilityL; export with `.scratch/ui-redesign/export-shots.py`; the record lives in
-`.scratch/ui-redesign/screenshots/<ticket>/`.
+`WorkoutTrackerUITests/RedesignScreenshotUITests.swift`; export with
+`.scratch/ui-redesign/export-shots.py`; the record lives in `.scratch/ui-redesign/screenshots/<ticket>/`.
+Coverage as of 2026-09-11 — default AND AccessibilityL with the same fixture: active workout,
+finish receipt, Exercises, Gyms + detail. Default and AXL with DIFFERENT states: Start (resume
+banner vs a template), History + detail (the AXL run is the chart fixture, the default run too —
+same). Default only: Settings, calendar, chart, the pickers and sheets. Touching a screen means
+completing its pair.
