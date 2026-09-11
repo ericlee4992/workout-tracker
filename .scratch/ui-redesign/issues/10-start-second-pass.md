@@ -1,6 +1,6 @@
 # 10 — Start screen, second pass
 
-Status: in review — built, gates green, screenshots sent; Codex round 1 and the full suite pending
+Status: Codex clear after 2 rounds (codex-review-10, 10b); gates green; full UI suite before merge (result in STATE)
 
 Skill: `.claude/skills/ios-design/`. The user, after the first pass on the phone: "it's ok, but I
 still feel like the design is not there", the Start screen "seems a bit off".
@@ -151,3 +151,8 @@ Gates after the round-1 fixes: `CoreLoopUITests` 9/9, `HeartRateUITests` 5/5,
 captures — 25/25; then the three touched captures again after the dot/scroll fix, 3/3.
 Screenshots `screenshots/10/`: 04-start (live, default), 04-start-templates (idle, default),
 04-start-axl + 04-start-axl-2 (idle, AXL, scrolled), 04-start-live-axl.
+
+## Codex review 10b — response (2026-09-11)
+
+`codex-review-10b.md`: **clear** — items 1, 6, 9 and 12 pass on the new captures (the gym
+subtitle remeasured at 8.8:1); counts reconciled (21 gate tests + 4 capture tests = 25).
