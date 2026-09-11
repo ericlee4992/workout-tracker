@@ -2,9 +2,24 @@
 
 Updated 2026-09-11 mid-morning (UI redesign COMPLETE on main AND on the phone, tickets 01–09; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-000000. **HANDOFF 2026-09-11 (mid-morning) — THE UI REDESIGN IS COMPLETE ON `main` (tickets
-   01–09) AND INSTALLED (`2ce4579`, 10:24 EDT, launched remotely). Next: the user's reaction on
-   the phone; the follow-ups below.**
+000000. **HANDOFF 2026-09-11 (midday) — the redesign is on the phone; the user's verdict: "it's
+   ok, but I still feel like the design is not there", the Start screen "seems a bit off". A
+   SECOND PASS starts, driven by the new `ios-design` skill. Next: the Start screen.**
+   - **`.claude/skills/ios-design/`** (`SKILL.md` process + rules + tells, `REFERENCE.md` HIG
+     numbers + tokens + measured contrast pairs + capture coverage, `REVIEW.md` the checklist the
+     cross-reviewer grades against). Codex-reviewed to clear in three rounds
+     (`.scratch/ui-redesign/codex-review-skill*.md`); CLAUDE.md points at it. Written because the
+     first pass STYLED every screen with one card/chip/label kit; the skill makes the next pass
+     COMPOSE: one dominant treatment per screen state, reading order, cards only for groups,
+     numbers big and labels small, system type, one meaning per colour, Dynamic Type as layout.
+     Public design skills were evaluated (Anthropic `frontend-design`, Vercel
+     `web-design-guidelines`, Leonxlnx `taste-skill`) and NOT installed: web-first; their
+     anti-pattern lists are folded into the skill's "Tells".
+   - **Next: the Start screen, by the skill's process** — job/state sentences and three ASCII
+     wireframes in a ticket (`.scratch/ui-redesign/issues/10-start-second-pass.md`), canvas
+     mockups sent to the user (the `design` skill; fallback `#Preview` shots), the user picks,
+     build, captures at default + AXL in the SAME state, Codex against `REVIEW.md`, full suite,
+     merge, install. Then whichever screen the user names next.
    - **`main` = ticket 09 (`ui-redesign-09`, pushed; every redesign branch is pushed and
      fast-forward-merged, zero merge commits) = the phone.** Installed on the user's word
      ("install") with `./scripts/install-on-device.sh`; profiles reused, good to 09-17 — **sign
