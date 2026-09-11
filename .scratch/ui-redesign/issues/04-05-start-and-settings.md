@@ -37,7 +37,7 @@ accent-bordered resume card. Left over from the spec: the gear button and the pu
 ## Acceptance criteria
 
 - Screenshots `04-start` (gym chosen, workout minimised — banner with the dot) and
-  `05-settings` reviewed by the user.
+  `05-settings` reviewed by the user — **"looks good" (2026-09-10 night)**.
 - Gates green: `CoreLoopUITests` (setup), `HeartRateUITests`, `MachineDeletionUITests`,
   `AskAIUITests`, `ExportUITests`, `RedesignScreenshotUITests`; unit suite; full UI suite before
   merge; Codex clear.
