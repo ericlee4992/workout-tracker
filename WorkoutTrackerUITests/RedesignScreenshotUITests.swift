@@ -116,6 +116,11 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.buttons["Save"].tap()
         XCTAssertTrue(anyElement("templateTile.Full Session").waitForExistence(timeout: 5))
         shoot("redesign-04-start-templates")
+        // Ticket 11: the tile opens the template — its exercises, then Start.
+        anyElement("templateTile.Full Session").tap()
+        XCTAssertTrue(anyElement("startTemplate").waitForExistence(timeout: 5))
+        XCTAssertTrue(anyElement("templateExercise.Belt Squat").exists)
+        shoot("redesign-04-template-detail")
     }
 
     /// The Start tab at AccessibilityL with a five-exercise template
@@ -150,6 +155,18 @@ final class RedesignScreenshotUITests: XCTestCase {
         for _ in 0..<4 where !(line.exists && line.isHittable) { app.swipeUp() }
         XCTAssertTrue(line.exists, "the machines line reachable at AccessibilityL")
         shoot("redesign-04-start-axl-2")
+        // Ticket 11: the same template opened, at AccessibilityL.
+        for _ in 0..<4 where !app.buttons["templateTile.Full Session"].isHittable { app.swipeDown() }
+        anyElement("templateTile.Full Session").tap()
+        XCTAssertTrue(anyElement("startTemplate").waitForExistence(timeout: 5))
+        shoot("redesign-04-template-detail-axl")
+        // A row half under the capsule counts as hittable (ticket 10's
+        // lesson), so scroll unconditionally: the list's end clears the
+        // pinned capsule.
+        app.swipeUp()
+        app.swipeUp()
+        XCTAssertTrue(anyElement("templateExercise.Belt Squat").exists, "the last exercise reachable at AccessibilityL")
+        shoot("redesign-04-template-detail-axl-2")
     }
 
     /// The live state at AccessibilityL — the same fixture as `test04_start`:

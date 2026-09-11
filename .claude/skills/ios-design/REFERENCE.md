@@ -111,7 +111,7 @@ hierarchy's order.
 `Theme.swift` is the full inventory; this table is the part the rules name.
 
 Components: `.card(.standard | .elevated)`, `Chip(tint:selected:) { content }`, `UnitChip`, `StatTile`,
-`ProgressRing`, `EmptyState(title:symbol:)`, `MuscleIcon(group:)`, `WrapLayout`,
+`ProgressRing`, `EmptyState(title:symbol:)`, `MuscleIcon(family:)` / `MuscleFamilyStrip`, `WrapLayout`,
 `.buttonStyle(.primary | .secondary)`; haptics `.setComplete`, `.restDone`, `.workoutStart`
 (`Haptics.swift`).
 

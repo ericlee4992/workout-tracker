@@ -47,6 +47,18 @@ struct TemplateTargets: Equatable {
     init(repsBySet: [Int?]) {
         self.repsBySet = repsBySet
     }
+
+    /// The template detail's caption (UI redesign ticket 11): "3 sets · 10,
+    /// 10, 8 reps" — a frozen stat line in the app's middle-dot pattern. A
+    /// slot with no target reads "—"; with no target anywhere, the set count
+    /// alone; no slots at all, "No sets".
+    var summary: String {
+        guard count > 0 else { return "No sets" }
+        let sets = "\(count) \(count == 1 ? "set" : "sets")"
+        guard repsBySet.contains(where: { $0 != nil }) else { return sets }
+        let reps = repsBySet.map { $0.map(String.init) ?? "—" }.joined(separator: ", ")
+        return "\(sets) · \(reps) reps"
+    }
 }
 
 extension TemplateItem {

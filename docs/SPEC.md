@@ -78,8 +78,11 @@ are built from cards (`.card()`), chips (`Chip`, `UnitChip`), stat tiles, progre
 `EmptyState` illustrations and two button styles (`.primary` amber, `.secondary` fill); the
 editors and the Presets and Previous Performance sheets are native Forms and keep the system
 look. The accent is amber `#FFB45E` with near-black text on it, warmup is yellow so it never reads
-as the accent, heart rate is red, and every muscle group has a fixed colour and SF Symbol
-(`MuscleGroupStyle`) shown wherever exercises are listed. Motion and haptics mark the moments that
+as the accent, heart rate is red, and the five muscle FAMILIES — chest, back, shoulders, arms,
+legs (`MuscleFamily`, the seeded groups mapped) — have a fixed colour and SF Symbol
+(`MuscleGroupStyle`), shown only on a template (its tile and its detail) for the families its
+exercises train; an exercise row wears no icon (UI redesign ticket 11). A template tile opens the
+template — its exercises as a list — and Start lives there. Motion and haptics mark the moments that
 matter (a set completed, a workout started, the rest timer). The design adds shape, colour and
 motion, never words: the copy policy and D52's plain numbers stand, and every visible string and
 accessibility identifier the UI tests read is unchanged. Layouts adapt to Dynamic Type (chips

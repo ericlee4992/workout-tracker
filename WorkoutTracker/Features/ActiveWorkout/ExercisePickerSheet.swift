@@ -108,20 +108,19 @@ struct ExerciseRow: View {
             tags: exercise.equipmentTypeTags, bodyArea: exercise.muscleGroup)
     }
 
-    /// UI redesign ticket 08: the body area as a `MuscleIcon` (its glyph and
-    /// colour) beside the name, the equipment tags as chips, the load type as
-    /// a chip when it is not the default. The body area is still SAID in the
-    /// caption — the icon is accessibility-hidden — so a filtered list keeps
-    /// explaining itself to VoiceOver as it did. The chips flow in a
-    /// `WrapLayout`: a four-tag row wraps instead of clipping at any size
-    /// (codex-review-08), a chip never breaks mid-word. At accessibility
-    /// sizes the load-type chip joins that flow instead of squeezing the row.
+    /// UI redesign ticket 08: the body area as a caption beside the name, the
+    /// equipment tags as chips, the load type as a chip when it is not the
+    /// default. The chips flow in a `WrapLayout`: a four-tag row wraps instead
+    /// of clipping at any size (codex-review-08), a chip never breaks
+    /// mid-word. At accessibility sizes the load-type chip joins that flow
+    /// instead of squeezing the row. Ticket 11 removed the muscle icon the row
+    /// wore beside the name — the user: "I want them gone … they don't match";
+    /// the caption still says the body area, so a filtered list explains itself.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
         HStack(spacing: Theme.Space.medium) {
-            MuscleIcon(group: bodyArea)
             VStack(alignment: .leading, spacing: 4) {
                 Text(name)
                     .font(Theme.cardTitle)

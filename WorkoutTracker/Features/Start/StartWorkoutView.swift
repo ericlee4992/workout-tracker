@@ -3,9 +3,6 @@ import SwiftUI
 
 struct StartWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
-    /// To bank the active workout's heart-rate summary before "Finish it and
-    /// start new" auto-finishes it inside `startWorkout` (codex-review 05).
-    @Environment(WorkoutHeartRateCoordinator.self) private var heartRateCoordinator
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
     private var gyms: [Gym]
     @Query(sort: \WorkoutTemplate.name) private var templates: [WorkoutTemplate]
@@ -17,8 +14,8 @@ struct StartWorkoutView: View {
         filter: #Predicate<Workout> { $0.finishedAt == nil },
         sort: [SortDescriptor(\Workout.startedAt, order: .reverse)])
     private var activeWorkouts: [Workout]
-    /// One template column at accessibility sizes: two tiles of five icons,
-    /// a name and two lines do not share 390 pt at AccessibilityL.
+    /// One template column at accessibility sizes: two tiles of icons, a
+    /// name and the exercise line do not share 390 pt at AccessibilityL.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The pin tile grows with its glyph (`.title2`).
     @ScaledMetric(relativeTo: .title2) private var pinTile: CGFloat = 44
@@ -26,13 +23,13 @@ struct StartWorkoutView: View {
     /// D1: the stored pick is read once per screen lifetime — re-reading it
     /// would fight the user's in-session choice.
     @State private var restoredSelectedGym = false
-    @State private var showingResumeDialog = false
-    @State private var pendingTemplate: WorkoutTemplate?
+    /// The start flow's trigger (`WorkoutStartFlow`, ticket 11).
+    @State private var startRequest: WorkoutStartRequest?
+    /// The template whose detail is pushed (ticket 11: a tile opens the
+    /// template; Start lives on the detail).
+    @State private var viewingTemplate: WorkoutTemplate?
     @State private var editingTemplate: WorkoutTemplate?
     @State private var showingTemplateEditor = false
-    @State private var replacementWorkout: Workout?
-    @State private var replacementSourceTemplate: WorkoutTemplate?
-    @State private var showingReplacementDrift = false
     /// Called with the workout to present — freshly started or resumed.
     var onWorkoutStarted: (Workout) -> Void
 
@@ -62,14 +59,16 @@ struct StartWorkoutView: View {
 
                 Section("Templates") {
                     // Ticket 10: a two-column grid of tiles (the user chose
-                    // direction C's templates). The tile IS the start button;
-                    // Edit/Delete live on the long-press menu — a grid has no
-                    // swipe, and deleting a plan is not a record lost (D23).
+                    // direction C's templates). Ticket 11: the tile OPENS the
+                    // template (its exercises, then Start) — the user asked to
+                    // see the list before starting. Edit/Delete live on the
+                    // long-press menu — a grid has no swipe, and deleting a
+                    // plan is not a record lost (D23).
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10),
                                              count: dynamicTypeSize.isAccessibilitySize ? 1 : 2),
                               spacing: 10) {
                         ForEach(templates) { template in
-                            Button { startTapped(template: template) } label: {
+                            Button { viewingTemplate = template } label: {
                                 TemplateTile(template: template)
                             }
                             .buttonStyle(.plain)
@@ -126,24 +125,15 @@ struct StartWorkoutView: View {
                     .accessibilityIdentifier("openSettings")
                 }
             }
-            .confirmationDialog(
-                "A workout is already in progress",
-                isPresented: $showingResumeDialog,
-                titleVisibility: .visible
-            ) {
-                Button("Resume Workout") { resumeActive() }
-                Button("Finish It & Start New") { finishActiveThenStartTapped() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                // A consequence, not a tutorial: finishing discards every
-                // uncompleted set (codex-review 06).
-                Text("Only its completed sets are kept.")
+            .workoutStartFlow(request: $startRequest, gym: selectedGym, onWorkoutStarted: onWorkoutStarted)
+            .navigationDestination(item: $viewingTemplate) { template in
+                // The detail runs the same flow with its own dialogs; a
+                // started workout pops it, so minimising lands on Start.
+                TemplateDetailView(template: template, gym: selectedGym) { workout in
+                    viewingTemplate = nil
+                    onWorkoutStarted(workout)
+                }
             }
-            .templateDriftDialog(
-                isPresented: $showingReplacementDrift,
-                message: "The active workout differs from the template it started from. Choose how to save that template before starting the next workout.",
-                cancelLabel: "Keep Current Workout",
-                resolve: resolveReplacementDrift)
             .sheet(isPresented: $showingTemplateEditor) {
                 TemplateEditorSheet(template: editingTemplate)
             }
@@ -165,7 +155,7 @@ struct StartWorkoutView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("resumeWorkout")
         } else {
-            Button { startTapped(template: nil) } label: {
+            Button { startRequest = WorkoutStartRequest(template: nil) } label: {
                 HeroCapsuleLabel(title: "Start Empty Workout", subtitle: nil,
                                  symbol: "figure.strengthtraining.traditional", trailing: "arrow.up.right",
                                  live: false)
@@ -183,84 +173,9 @@ struct StartWorkoutView: View {
         return "\(gymName) · \(exercises)"
     }
 
-    // MARK: Start flow
-
-    /// Start-while-active offers Resume or Finish-and-start-new.
-    private func startTapped(template: WorkoutTemplate?) {
-        pendingTemplate = template
-        if (try? session.resumableWorkout()) != nil {
-            showingResumeDialog = true
-        } else {
-            startNew()
-        }
-    }
-
-    private func startNew() {
-        do {
-            // Any still-active workout is auto-finished by `startWorkout`,
-            // which ends its rest timer and pending notification — but NOT its
-            // heart-rate session, which lives in the coordinator. Bank and end
-            // it here first, or the replaced workout reaches History with no
-            // summary (codex-review 05, critical).
-            if let active = try session.resumableWorkout() {
-                heartRateCoordinator.end(active)
-            }
-            let workout: Workout
-            if let template = pendingTemplate {
-                workout = try WorkoutTemplateService(context: modelContext)
-                    .start(template, at: selectedGym)
-            } else {
-                workout = try session.startWorkout(at: selectedGym)
-            }
-            pendingTemplate = nil
-            onWorkoutStarted(workout)
-        } catch {
-            assertionFailure("Failed to start workout: \(error)")
-        }
-    }
-
-    private func finishActiveThenStartTapped() {
-        do {
-            guard let active = try session.resumableWorkout() else {
-                startNew()
-                return
-            }
-            let drift = TemplateDriftService(context: modelContext)
-            if let template = try drift.sourceTemplate(for: active),
-               try drift.shouldPrompt(for: active, template: template) {
-                replacementWorkout = active
-                replacementSourceTemplate = template
-                showingReplacementDrift = true
-            } else {
-                startNew()
-            }
-        } catch {
-            assertionFailure("Failed to inspect active workout drift: \(error)")
-        }
-    }
-
-    private func resolveReplacementDrift(_ resolution: TemplateDriftResolution) {
-        do {
-            if let workout = replacementWorkout,
-               let template = replacementSourceTemplate {
-                // BEFORE resolve, which finishes and saves the workout: after
-                // that it is no longer resumable, `startNew` would find nothing
-                // to end, and the summary would be lost (codex-review 05b,
-                // critical). Banked here while this view still holds it.
-                heartRateCoordinator.end(workout)
-                try TemplateDriftService(context: modelContext).resolve(
-                    resolution, workout: workout, to: template)
-            }
-            replacementWorkout = nil
-            replacementSourceTemplate = nil
-            startNew()
-        } catch {
-            assertionFailure("Failed to resolve template before starting: \(error)")
-        }
-    }
+    // MARK: Start flow — `WorkoutStartFlow` (ticket 11); Resume needs no dialog.
 
     private func resumeActive() {
-        pendingTemplate = nil
         if let workout = try? session.resumableWorkout() {
             onWorkoutStarted(workout)
         }
@@ -364,8 +279,9 @@ struct StartWorkoutView: View {
 
 /// Ticket 10: the amber capsule — the figure in an ink disc, one or two
 /// lines, a trailing symbol. Hugging, not a slab: the user found the
-/// full-width hero "too big and too mundane".
-private struct HeroCapsuleLabel: View {
+/// full-width hero "too big and too mundane". Ticket 11: the template
+/// detail's Start wears it too.
+struct HeroCapsuleLabel: View {
     var title: String
     var subtitle: String?
     var symbol: String
@@ -419,17 +335,18 @@ private struct HeroCapsuleLabel: View {
 }
 
 /// Ticket 10: a template as a tile — its muscle icons, its name, its
-/// exercises on two lines. The whole tile starts the template.
+/// exercises. The whole tile opens the template (ticket 11). The icons are
+/// the FAMILIES the template trains (chest, back, shoulders, arms, legs),
+/// each once, head to toe — not one per exercise (ticket 11, the user).
 private struct TemplateTile: View {
     var template: WorkoutTemplate
 
     var body: some View {
         let items = WorkoutTemplateService.orderedItems(of: template)
+        let families = MuscleFamily.families(of: items.map { $0.exercise?.muscleGroup })
         VStack(alignment: .leading, spacing: Theme.Space.small) {
-            WrapLayout {
-                ForEach(Array(items.prefix(5))) { item in
-                    MuscleIcon(group: item.exercise?.muscleGroup, size: 24)
-                }
+            if !families.isEmpty {
+                MuscleFamilyStrip(families: families, size: 24)
             }
             Text(template.name)
                 .font(Theme.cardTitle)

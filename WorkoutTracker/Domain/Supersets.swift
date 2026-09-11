@@ -66,8 +66,32 @@ enum Supersets {
         guard run.count > 1,
               let index = run.firstIndex(where: { $0.id == entry.id })
         else { return nil }
-        // A, B, C… beyond Z falls back to a number rather than wrapping to a
-        // second alphabet, which would repeat labels within one workout.
+        return letter(at: index)
+    }
+
+    /// The same labels for any ordered sequence of group ids — a template's
+    /// items (UI redesign ticket 11: the template detail shows its supersets
+    /// with the workout's chip). Same adjacency rule as `runs(of:)`: a group
+    /// interrupted by an unrelated item is two runs; a run of one is standalone.
+    static func memberLabels(groupIDs: [UUID?]) -> [String?] {
+        var labels: [String?] = Array(repeating: nil, count: groupIDs.count)
+        var start = 0
+        while start < groupIDs.count {
+            var end = start + 1
+            if let groupID = groupIDs[start] {
+                while end < groupIDs.count, groupIDs[end] == groupID { end += 1 }
+            }
+            if end - start > 1 {
+                for index in start..<end { labels[index] = letter(at: index - start) }
+            }
+            start = end
+        }
+        return labels
+    }
+
+    /// A, B, C… beyond Z falls back to a number rather than wrapping to a
+    /// second alphabet, which would repeat labels within one workout.
+    private static func letter(at index: Int) -> String {
         let letters = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
         return index < letters.count ? String(letters[index]) : "\(index + 1)"
     }

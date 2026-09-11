@@ -271,8 +271,10 @@ struct ExerciseEntryCard: View {
 
     private var titleRow: some View {
         VStack(alignment: .leading, spacing: 8) {
+            // No muscle icon beside the name (ticket 11 — the user: "In
+            // workout too. They don't match"); the superset chip leads when
+            // there is one.
             HStack(spacing: 10) {
-                MuscleIcon(group: entry.exercise?.muscleGroup)
                 if let member = supersetLabel {
                     Chip(tint: Theme.accent, selected: true) { Text(member) }
                         .accessibilityIdentifier("supersetBadge")

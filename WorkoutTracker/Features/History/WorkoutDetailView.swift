@@ -87,13 +87,11 @@ struct WorkoutDetailView: View {
                     }
                 } header: {
                     // Snapshot display strings ONLY (D23) — never the live
-                    // exercise/machine/model relationships. The muscle icon is
-                    // the one exception, and it is decoration (accessibility-
-                    // hidden): its glyph AND colour follow the LIVE exercise's
-                    // group, the neutral icon when the exercise is gone
-                    // (UI redesign ticket 06).
+                    // exercise/machine/model relationships. (Ticket 06's muscle
+                    // icon, the one exception, went with ticket 11 — no icon
+                    // beside an exercise anywhere; History no longer reads the
+                    // live exercise at all.)
                     HStack(alignment: .top, spacing: Theme.Space.medium) {
-                        MuscleIcon(group: entry.exercise?.muscleGroup)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(entry.snapshotExerciseName)
                                 .font(Theme.cardTitle)
