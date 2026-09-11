@@ -1,4 +1,14 @@
 {
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Start"
+    },
+    {
+      "id": "page-2",
+      "name": "Directions (round 1)"
+    }
+  ],
   "artboards": [
     {
       "file": "Main.dc.html",
@@ -6,58 +16,84 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "Leading candidate (A)"
+      "title": "Start \u00b7 capsule button",
+      "page": "page-1"
     },
     {
-      "file": "DirectionA.dc.html",
+      "file": "StartAsCard.dc.html",
       "x": 520,
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "A \u00b7 Hero at the thumb"
+      "title": "Start \u00b7 button as a card",
+      "page": "page-1"
+    },
+    {
+      "file": "MainLive.dc.html",
+      "x": 1040,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Start \u00b7 live workout",
+      "page": "page-1"
+    },
+    {
+      "file": "DirectionA.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "A \u00b7 Hero at the thumb",
+      "page": "page-2"
     },
     {
       "file": "DirectionALive.dc.html",
-      "x": 1000,
+      "x": 520,
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "A \u00b7 live workout"
+      "title": "A \u00b7 live workout",
+      "page": "page-2"
     },
     {
       "file": "DirectionB.dc.html",
-      "x": 1480,
+      "x": 1040,
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "B \u00b7 Today at the eye"
+      "title": "B \u00b7 Today at the eye",
+      "page": "page-2"
     },
     {
       "file": "DirectionC.dc.html",
-      "x": 1960,
+      "x": 1560,
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "C \u00b7 Hero at the eye"
+      "title": "C \u00b7 Hero at the eye",
+      "page": "page-2"
     }
   ],
   "annotations": [
     {
-      "id": "how-to-read",
-      "x": 520,
-      "y": -170,
-      "w": 420,
-      "text": "Three structures, same tokens. Pick one, or point at what to mix.\nA: the action sits where the thumb is; templates are a list; the gym is a quiet row.\nB: a week strip and last workout first \u2014 needs two NEW strings (\"3 workouts \u00b7 last Tue\"), your call.\nC: action first at the top; templates as a grid; the gym moves into the nav bar."
+      "id": "round-2",
+      "x": 0,
+      "y": -150,
+      "w": 460,
+      "page": "page-1",
+      "text": "Your format, kept: gear, title, gym card, then the action, then templates as C's grid.\nTwo treatments of the Start button, both smaller than before: a compact amber capsule with the figure in an ink disc (left), or an ink card where only the disc is amber (middle). Pick one.\nThe tab bar keeps the app's real icons; the ones drawn here are stand-ins."
     },
     {
-      "id": "live-state",
-      "x": 1000,
+      "id": "live-2",
+      "x": 1040,
       "y": -110,
       "w": 360,
-      "text": "Live workout: Resume takes the amber; Start Empty Workout steps down to a grey button. Same rule in B and C."
+      "page": "page-1",
+      "text": "Live workout: Resume takes the amber capsule; Start Empty Workout steps down to a grey button."
     }
   ],
   "launch": {
-    "view": "canvas"
+    "view": "canvas",
+    "page": "page-1"
   }
 }

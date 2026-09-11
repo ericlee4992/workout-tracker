@@ -62,3 +62,12 @@ smaller.
 Canvas: three direction artboards + the live-workout state for A. Static, in the app's tokens.
 Canvas: https://claude.ai/code/artifact/bb03a175-d794-4824-8164-944181e30797 (working files in
 `.scratch/ui-redesign/canvas/start/`; re-seed from them for any change).
+
+## Round 2 — the user's pick (2026-09-11)
+
+"I like the current format, but the Start Empty Workout button is too big and looks too mundane.
+Keep the tab-bar icons as they are. For templates I like C's design." → Main = the current
+structure (gear, title, gym card, action, templates) with the templates as C's two-column grid
+(New Template… as a tile) and a smaller, sharper Start button — two treatments on the canvas:
+an amber capsule with the figure in an ink disc, or an ink card whose only amber is the disc.
+Live state: Resume takes the capsule; Start Empty Workout steps down to a grey button.
