@@ -112,9 +112,42 @@ while one is live; a template start while live still meets the "already in progr
 ## Verification (2026-09-11)
 
 Built: `HeroCapsuleLabel` + `TemplateTile` + the grid in `StartWorkoutView.swift`; `MuscleIcon`
-gains `size:` (24 in a tile). Gates on `ui-redesign-10-start`: `CoreLoopUITests` 9/9,
-`HeartRateUITests` 5/5, `ExercisePresetUITests` 3/3, `BarbellUITests` 2/2,
-`CodexScreenshotUITests` 3/3, captures test04_start + test04_startTemplates (new) +
-test04_startLargeText — 23/23 across two runs (the first template capture failed on the
+gains `size:` (24 in a tile). Gates on `ui-redesign-10-start` (first run, before the Codex
+fixes): `CoreLoopUITests` 9/9, `HeartRateUITests` 5/5, `ExercisePresetUITests` 2/2,
+`BarbellUITests` 2/2, `CodexScreenshotUITests` 3/3, captures test04_start +
+test04_startTemplates (new) + test04_startLargeText — 24 tests, 23 passed in the first run (the first template capture failed on the
 editor's lazy list with the keyboard up; the test now presses Return and scrolls until an option
 exists). Screenshots `screenshots/10/` — sent to the user. Full suite: see STATE.
+
+## Codex review 10 — response (2026-09-11)
+
+`codex-review-10.md`: four P2s, one P3; the composition accepted ("keep the chosen composition
+and fix the specific hierarchy, legibility and scaling failures").
+
+- **P2, the gym picker's title stayed amber and its subtitle measured 3.4:1.** A `Menu` tints its
+  label with the accent; the texts now carry `Theme.text` / `Theme.secondary` explicitly. The
+  pin tile is the picker's context mark (Codex accepts it); it now scales with its glyph
+  (`@ScaledMetric` 44 relative to `.title2`). At accessibility sizes the unit badge and chevrons
+  stack under the text.
+- **P2, the tile's exercise line truncated** ("Assisted P…", "Back…"). The two-line limit is
+  gone; a tile grows with its exercises and the grid row takes the tallest tile.
+- **P2, the scaled small muscle tile switched text style at AXL and its glyph outgrew the
+  background; the capsule's ink disc was fixed at 40.** `MuscleIcon` picks the glyph's text style
+  from the BASE size (`small`), never the scaled side; the capsule's disc is a `@ScaledMetric`
+  relative to `.body`; the pulse dot is `.caption2`, not a point size (Codex item 5).
+- **P2, the capture record**: `test04_startTemplates` no longer creates a gym, so it shows the
+  same state as the AXL capture; the AXL test scrolls to New Template for a second shot
+  (`04-start-axl-2`); new `test04_startLiveLargeText` captures the live state at AXL with
+  `test04_start`'s fixture (`04-start-live-axl`).
+- **P3, the counts** — corrected above (ExercisePreset has 2 tests; 24 in the set).
+- Not changed: template Edit/Delete on the long-press menu (accepted); the grid (accepted);
+  `.plain` buttons' press state (native).
+- Also after round 1: the pulse dot is a `Circle` scaled with the disc, breathing by opacity
+  unless Reduce Motion (no symbol point size); the AXL scroll capture scrolls unconditionally
+  (a tile half under the tab bar counted as hittable).
+
+Gates after the round-1 fixes: `CoreLoopUITests` 9/9, `HeartRateUITests` 5/5,
+`ExercisePresetUITests` 2/2, `BarbellUITests` 2/2, `CodexScreenshotUITests` 3/3, the five
+captures — 25/25; then the three touched captures again after the dot/scroll fix, 3/3.
+Screenshots `screenshots/10/`: 04-start (live, default), 04-start-templates (idle, default),
+04-start-axl + 04-start-axl-2 (idle, AXL, scrolled), 04-start-live-axl.

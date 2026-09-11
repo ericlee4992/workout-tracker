@@ -34,20 +34,25 @@ struct MuscleIcon: View {
     /// (UI redesign ticket 08). `size` picks the base: 40 for a row, 24 for
     /// a strip inside a tile (ticket 10).
     @ScaledMetric(relativeTo: .title3) private var side: CGFloat = 40
+    /// The base picks the glyph's text style; the scaled side never does
+    /// (codex-review-10: a 24 pt tile crossed a threshold at AXL and its
+    /// glyph jumped to Title 3, out of its background).
+    private let small: Bool
 
     init(group: String?, size: CGFloat = 40) {
         self.group = group
+        self.small = size < 32
         _side = ScaledMetric(wrappedValue: size, relativeTo: .title3)
     }
 
     var body: some View {
         let style = MuscleGroupStyle.resolve(group)
         Image(systemName: style.symbol)
-            .font(side < 32 ? .caption.weight(.semibold) : .title3.weight(.semibold))
+            .font(small ? .caption.weight(.semibold) : .title3.weight(.semibold))
             .foregroundStyle(style.color)
             .frame(width: side, height: side)
             .background(style.color.opacity(0.14),
-                        in: RoundedRectangle(cornerRadius: side < 32 ? 8 : 14))
+                        in: RoundedRectangle(cornerRadius: small ? 8 : 14))
             .accessibilityHidden(true)
     }
 }

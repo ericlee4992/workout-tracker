@@ -20,6 +20,8 @@ struct StartWorkoutView: View {
     /// One template column at accessibility sizes: two tiles of five icons,
     /// a name and two lines do not share 390 pt at AccessibilityL.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// The pin tile grows with its glyph (`.title2`).
+    @ScaledMetric(relativeTo: .title2) private var pinTile: CGFloat = 44
     @State private var selectedGym: Gym?
     /// D1: the stored pick is read once per screen lifetime — re-reading it
     /// would fight the user's in-session choice.
@@ -323,25 +325,37 @@ struct StartWorkoutView: View {
                 }
             }
         } label: {
-            HStack {
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.title2)
-                    .foregroundStyle(Theme.accent)
-                    .frame(width: 44, height: 44)
-                    .background(Theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(selectedGym?.name ?? "No gym")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    Text(selectedGym.map { $0.city ?? "" } ?? "Home / no location")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+            // Neutral text — a Menu tints its label with the accent, and the
+            // gym is a VALUE, not a command (codex-review-10). Accessories
+            // stack under the text at accessibility sizes.
+            let stacked = dynamicTypeSize.isAccessibilitySize
+            let layout = stacked
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Space.small))
+                : AnyLayout(HStackLayout(spacing: Theme.Space.medium))
+            layout {
+                HStack(spacing: Theme.Space.medium) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.title2)
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: pinTile, height: pinTile)
+                        .background(Theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(selectedGym?.name ?? "No gym")
+                            .font(.headline)
+                            .foregroundStyle(Theme.text)
+                        Text(selectedGym.map { $0.city ?? "" } ?? "Home / no location")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.secondary)
+                    }
+                    if !stacked { Spacer(minLength: 0) }
                 }
-                Spacer()
-                UnitBadge(unit: currentUnit)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack(spacing: Theme.Space.small) {
+                    if stacked { Spacer(minLength: 0) }
+                    UnitBadge(unit: currentUnit)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption)
+                        .foregroundStyle(Theme.secondary)
+                }
             }
         }
         .accessibilityIdentifier("gymPicker")
@@ -358,6 +372,11 @@ private struct HeroCapsuleLabel: View {
     var trailing: String
     var live: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// The ink disc grows with its glyph (`.body`) — codex-review-10 saw the
+    /// figure flush with a fixed 40 pt disc at AXL.
+    @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var dot: CGFloat = 9
+    @State private var breathing = false
 
     var body: some View {
         HStack(spacing: Theme.Space.medium) {
@@ -365,16 +384,19 @@ private struct HeroCapsuleLabel: View {
                 Image(systemName: symbol)
                     .font(.body.weight(.semibold))
                     .foregroundStyle(Theme.accent)
-                    .frame(width: 40, height: 40)
+                    .frame(width: disc, height: disc)
                     .background(Theme.onAccent, in: Circle())
                 if live {
                     // Inside the ink disc — amber on ink; at its edge the dot
-                    // sat amber on the amber capsule and vanished.
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 9))
-                        .foregroundStyle(Theme.accent)
-                        .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
-                        .offset(x: -5, y: 5)
+                    // sat amber on the amber capsule and vanished. Geometry,
+                    // scaled with the disc; it breathes unless Reduce Motion.
+                    Circle()
+                        .fill(Theme.accent)
+                        .frame(width: dot, height: dot)
+                        .opacity(breathing || reduceMotion ? 1 : 0.35)
+                        .animation(reduceMotion ? nil : .easeInOut(duration: 1).repeatForever(autoreverses: true), value: breathing)
+                        .onAppear { breathing = true }
+                        .offset(x: -dot * 0.55, y: dot * 0.55)
                         .accessibilityHidden(true)
                 }
             }
@@ -411,10 +433,11 @@ private struct TemplateTile: View {
             }
             Text(template.name)
                 .font(Theme.cardTitle)
+            // Whole, never truncated: the tile grows with its exercises
+            // (codex-review-10); the grid row takes the tallest tile.
             Text(items.compactMap { $0.exercise?.name }.joined(separator: " · "))
                 .font(.caption)
                 .foregroundStyle(Theme.secondary)
-                .lineLimit(2)
         }
         .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
         .padding(Theme.Space.medium)

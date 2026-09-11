@@ -95,11 +95,11 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-04-start")
     }
 
-    /// The Start tab at the default size with a five-exercise template and a
-    /// gym chosen (ticket 10): the capsule, the gym card, the template grid.
+    /// The Start tab at the default size with a five-exercise template, no
+    /// gym (ticket 10): the capsule, the gym card, the template grid — the
+    /// same state `test04_startLargeText` captures at AccessibilityL.
     func test04_startTemplates() {
         launch()
-        createGym()
         app.tabBars.buttons["Workout"].tap()
         let newTemplate = app.buttons["New Template…"]
         XCTAssertTrue(newTemplate.waitForExistence(timeout: 10))
@@ -141,6 +141,29 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.buttons["Save"].tap()
         XCTAssertTrue(anyElement("templateTile.Full Session").waitForExistence(timeout: 5))
         shoot("redesign-04-start-axl")
+        // The blocks under the fold — New Template and the machines line —
+        // on record too (ios-design step 6).
+        // A tile half under the tab bar still counts as hittable, so scroll
+        // unconditionally, then make sure the machines line is on screen.
+        app.swipeUp()
+        let line = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Machines resolve'")).firstMatch
+        for _ in 0..<4 where !(line.exists && line.isHittable) { app.swipeUp() }
+        XCTAssertTrue(line.exists, "the machines line reachable at AccessibilityL")
+        shoot("redesign-04-start-axl-2")
+    }
+
+    /// The live state at AccessibilityL — the same fixture as `test04_start`:
+    /// the two-line Resume capsule must hold.
+    func test04_startLiveLargeText() {
+        app.launchArguments = ["-uiTestReset",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        createGym()
+        startEmptyWorkout()
+        XCTAssertTrue(app.buttons["minimizeWorkout"].waitForExistence(timeout: 10))
+        app.buttons["minimizeWorkout"].tap()
+        XCTAssertTrue(anyElement("resumeWorkout").waitForExistence(timeout: 5))
+        shoot("redesign-04-start-live-axl")
     }
 
     /// Settings behind the gear on the Workout tab (ticket 05).
