@@ -29,7 +29,8 @@ Spec: `.scratch/ui-redesign/spec.md` ticket 07, on the chosen Ink / Amber system
   40 pt tile — and `MachineDeletionUITests`' swipe on that tile was too short to reveal Delete
   (the first gate run failed exactly there). The children stay reachable, so
   `staticTexts["Life Fitness…"]` still resolves for the scan test.
-- No new copy.
+- No new visible copy (the machine-count chip's accessibility label "N machines" names what the
+  number and symbol show).
 
 ## Acceptance criteria
 
@@ -45,3 +46,19 @@ Gates on `ui-redesign-07`: `AskAIUITests` 7/7, `ScanMachineLabelUITests` 2/2,
 the MachineDeletion swipe, see above); after the container fix `MachineDeletionUITests` 2/2,
 `DumbbellCounterpartUITests` 1/1, test06 recaptured — 4/4. Screenshots `screenshots/07/` — sent
 to the user. Full suite: see STATE.
+
+## Codex review 07 — response (2026-09-11)
+
+`codex-review-07.md`: standards clear; one P2 on spec.
+
+- **P2, the model chip truncates long names at accessibility sizes** (`lineLimit(1)` where the
+  old caption wrapped). Now: the chip at standard sizes, a wrapping `caption` at accessibility
+  sizes (`dynamicTypeSize.isAccessibilitySize`) — the exception to "the model as a chip"
+  recorded here. New capture `test06_gymsLargeText` (`06-gym-detail-axl`, `06-gyms-axl`):
+  "Life Fitness Insignia Series Chest Press" whole on two lines; the gym card's chips intact.
+- Noted, not changed: `activeMachines.count` filters and sorts the relationship per row —
+  fine for a personal gym list, a domain count without the sort if it ever shows; Add Gym
+  `.primary` only when empty accepted; "No new copy" reworded above; the prompt's claim that
+  DumbbellCounterpart reads `machineRow.` was wrong (it reads the exercise picker).
+- Gates after the fix: `ScanMachineLabelUITests` 2/2 (reads the model as a staticText — still
+  found under `.contain`), test06 recaptured, test06_gymsLargeText — 4/4.

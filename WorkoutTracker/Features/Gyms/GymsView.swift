@@ -126,6 +126,10 @@ struct GymDetailView: View {
     @State private var renamingModel: EquipmentModel?
     @State private var modelManufacturer = ""
     @State private var modelName = ""
+    /// The model is a chip at standard sizes and a wrapping caption at
+    /// accessibility sizes: a one-line chip would truncate the suffix that
+    /// tells two models apart (codex-review-07).
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         List {
@@ -310,7 +314,13 @@ struct GymDetailView: View {
                 Text(machine.label)
                     .font(Theme.cardTitle)
                 if let model = machine.model {
-                    Chip { Text(model.displayName).lineLimit(1).minimumScaleFactor(0.85) }
+                    if dynamicTypeSize.isAccessibilitySize {
+                        Text(model.displayName)
+                            .font(.caption)
+                            .foregroundStyle(Theme.secondary)
+                    } else {
+                        Chip { Text(model.displayName).lineLimit(1).minimumScaleFactor(0.85) }
+                    }
                 } else {
                     Text("No model")
                         .font(.caption)

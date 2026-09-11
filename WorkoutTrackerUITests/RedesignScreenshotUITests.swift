@@ -177,6 +177,22 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-07-exercises")
     }
 
+    /// A gym's detail and the Gyms list at AccessibilityL (ticket 07,
+    /// codex-review-07): the machine's model must stay whole — a caption
+    /// there, not the chip — and the gym card's chips must not clip.
+    func test06_gymsLargeText() {
+        app.launchArguments = ["-uiTestReset",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        createGym()
+        addMachine()
+        XCTAssertTrue(anyElement("machineRow.\(machineLabel)").waitForExistence(timeout: 10))
+        shoot("redesign-06-gym-detail-axl")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(anyElement("gymRow.\(gymName)").waitForExistence(timeout: 5))
+        shoot("redesign-06-gyms-axl")
+    }
+
     /// Empty states: History and Gyms on a fresh store.
     func test08_emptyStates() {
         launch()
