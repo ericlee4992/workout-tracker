@@ -98,3 +98,54 @@ Unit: `MuscleFamilyTests` (new). UI: `CoreLoopUITests`, `HeartRateUITests`,
 `04-template-detail`), `test04_startLargeText` (the same at AXL: `04-start-axl`,
 `04-template-detail-axl`), `test02_activeWorkoutAndFinish` (the entry card without its icon),
 `test05_history`, `test06_gymsAndExercises` (the rows without theirs). Then the full suite.
+
+## Verification (2026-09-11 evening)
+
+Built on `ui-redesign-11-icons-and-template-detail` (`6abc9e2`): `Domain/MuscleFamily.swift`,
+`Supersets.memberLabels(groupIDs:)`, `TemplateTargets.summary`, `MuscleGroupStyle` keyed by
+family + `MuscleFamilyStrip`, `Features/Start/WorkoutStartFlow.swift` (the start flow as a
+modifier, so the pushed detail presents its own dialogs), `Features/Start/TemplateDetailView.swift`,
+the tile and the three rows. Unit **715/715** (707 + 8 new: `MuscleFamilyTests` 6,
+`TemplateTargetsSummaryTests` 1, `ThemeTests` rewritten to 2).
+
+Gate run: `CoreLoopUITests` 9/9, `HeartRateUITests` 5/5, `ExercisePresetUITests` 2/2,
+`BarbellUITests` 2/2, `CodexScreenshotUITests` 3/3, captures 5 — 26 tests, 24 passed; the two
+new detail captures failed on `startTemplate`: an `accessibilityIdentifier` on the whole detail
+screen was inherited by the capsule in the safe-area inset and replaced its own. Removed; both
+captures then passed (2/2). Two more fixes from looking at the AXL capture: the rows showed
+through the pinned capsule (a background-to-clear gradient behind the inset now), and the scrolled
+capture had not scrolled (a row half under the capsule counts as hittable — scroll
+unconditionally, ticket 10's lesson). Retaken: `04-template-detail`, `04-template-detail-axl`,
+`04-template-detail-axl-2` (1/1, 1/1).
+
+Screenshots `screenshots/11/`: 04-start-templates (tile: chest, back, legs for the five-exercise
+fixture — Abdominal Crunch is Core, no family), 04-template-detail (default), 04-start-axl +
+04-start-axl-2, 04-template-detail-axl + -axl-2 (scrolled, the list end clear of the capsule),
+02-active-workout, 05-detail, 07-exercises (rows without icons).
+
+## Codex review 11 — response (2026-09-11)
+
+`codex-review-11.md`: two P2s, both review-gate findings; "no demonstrated functional regression".
+Items 1–8 and 10 pass; the start-flow refactor verified (heart-rate banking before finish on
+both paths; the two modifier instances cannot both fire for one tap); the family tiles measured
+6.1:1–9.6:1; "Start" proven existing copy (`e608fa6^`, the template rows' button).
+
+- **P2, the row caption needs the user's recorded decision (item 11).** OPEN — the user's call,
+  reported with the ticket: "N sets · r, r, r reps" (a slot with no target reads "—"; with no
+  targets, "N sets"; no slots, "No sets"). The alternative if declined: the set count alone
+  ("3 sets", an existing editor string).
+- **P2, the AXL evidence did not exercise the chip stack or the strip wrap, and the changed rows
+  had no AXL pairs (items 9/12).** The editor cannot build a superset and five families need six
+  exercises, so a launch-argument fixture now seeds one (`Domain/TemplateFixture.swift`,
+  `-uiTestTemplate` + `-uiTestReset`; guarded like `ChartFixture`, unit-tested in
+  `TemplateFixtureTests` — every name seeded, all five families, A/B on the first two,
+  idempotent, never without the throwaway store). New captures `test04_templateFixture` +
+  `test04_templateFixtureLargeText`: `04-start-fixture(-axl)`, `04-template-detail-fixture`,
+  `-fixture-axl` (the strip wraps 4 + 1, the chip stacks over the name, the capsule holds),
+  `-fixture-axl-2` (scrolled). AXL pairs for the rows: `codex-02-accessibility` (the workout
+  card, `CodexScreenshotUITests/testAccessibilityWorkout`), `05-detail-axl` + `05-history-axl`
+  (`test05_historyLargeText`), `07-exercises-axl` (`test07_exercisesLargeText`) — 5/5.
+- Prompt discrepancies Codex caught: `templateDetail` and the spacer section were removed
+  before the commit (the identifier hid `startTemplate`; the inset already clears the capsule) —
+  the prompt described the working tree before those fixes.
+- Judgement noted, not changed: the strip-to-list gap at the default size.

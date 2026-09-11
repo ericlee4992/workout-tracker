@@ -35,6 +35,15 @@ struct WorkoutTrackerApp: App {
                 assertionFailure("Chart fixture seeding failed: \(error)")
             }
         }
+        // One six-exercise template with a superset, for the template detail's
+        // captures (see TemplateFixture).
+        if TemplateFixture.isEnabled {
+            do {
+                try TemplateFixture.seed(in: modelContainer.mainContext)
+            } catch {
+                assertionFailure("Template fixture seeding failed: \(error)")
+            }
+        }
         // One hour-long workout with a heart-rate series, for the same reason
         // (see HeartRateHistoryFixture).
         if HeartRateHistoryFixture.isEnabled {

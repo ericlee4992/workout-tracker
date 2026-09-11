@@ -169,6 +169,40 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-04-template-detail-axl-2")
     }
 
+    /// Ticket 11 (codex-review-11): the seeded six-exercise template — five
+    /// families and a superset pair — as a tile and opened, at the default
+    /// size; `test04_templateFixtureLargeText` is the same at AccessibilityL.
+    func test04_templateFixture() {
+        launch(["-uiTestTemplate"])
+        app.tabBars.buttons["Workout"].tap()
+        let tile = anyElement("templateTile.Whole Body")
+        XCTAssertTrue(tile.waitForExistence(timeout: 10))
+        shoot("redesign-04-start-fixture")
+        tile.tap()
+        XCTAssertTrue(anyElement("startTemplate").waitForExistence(timeout: 5))
+        XCTAssertTrue(anyElement("templateExercise.Abdominal Crunch").exists)
+        shoot("redesign-04-template-detail-fixture")
+    }
+
+    func test04_templateFixtureLargeText() {
+        app.launchArguments = ["-uiTestReset", "-uiTestTemplate",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        app.tabBars.buttons["Workout"].tap()
+        let tile = anyElement("templateTile.Whole Body")
+        XCTAssertTrue(tile.waitForExistence(timeout: 10))
+        // The tile sits under the capsule at this size: scroll it up first.
+        for _ in 0..<4 where !tile.isHittable { app.swipeUp() }
+        shoot("redesign-04-start-fixture-axl")
+        tile.tap()
+        XCTAssertTrue(anyElement("startTemplate").waitForExistence(timeout: 5))
+        shoot("redesign-04-template-detail-fixture-axl")
+        app.swipeUp()
+        app.swipeUp()
+        XCTAssertTrue(anyElement("templateExercise.Abdominal Crunch").exists, "the last exercise reachable at AccessibilityL")
+        shoot("redesign-04-template-detail-fixture-axl-2")
+    }
+
     /// The live state at AccessibilityL — the same fixture as `test04_start`:
     /// the two-line Resume capsule must hold.
     func test04_startLiveLargeText() {
