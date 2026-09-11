@@ -1,34 +1,31 @@
 # Where the project is right now
 
-Updated 2026-09-10 night (UI redesign: 01+02 installed; 03 merged; 04/05 gates green, Codex + full suite in flight; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-10 night (UI redesign: 01+02 installed; 03 + 04/05 merged, not installed; next 06 History; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-000000. **HANDOFF 2026-09-10 (night) — ticket 03 MERGED; tickets 04/05 in Codex review + full
-   suite.**
-   - **Ticket 03 (finish summary) MERGED to `main` 2026-09-10 21:10 EDT (`f80b00a` = `main`,
-     pushed)**: Codex clear after four rounds; unit 707/707; the full UI suite 56/56 (55 + the
-     new AXL capture). NOT installed on the phone yet — install when the user says so.
-   - **Tickets 04 + 05 on `ui-redesign-05` (`7eec2dc`+, pushed; contains `main`)**: Settings as
-     its own screen (`Features/Settings/SettingsView.swift`) behind a gear on the Workout tab
-     (`openSettings`); the two sections gone from Gyms; the resume banner's pulsing dot (the last
-     ticket-04 spec item); the doubled "Settings" header dropped; stale "on the Gyms screen"
-     comments + SPEC.md line fixed. Ticket: `issues/04-05-start-and-settings.md`. **Gates 26/26**
-     (AskAI, CoreLoop, HeartRate, MachineDeletion, Export, screenshot test04/test05); screenshots
-     `screenshots/05/` SENT to the user (no reaction yet).
-   - **In flight at handoff**: (a) Codex round 1 in terminal
-     `term_0133c89e-6361-4499-ae93-975c106c9fce` (prompt `codex-review-0405-prompt.md`, report
-     to `codex-review-0405.md` — if the file is missing, the round did not finish: resend the
-     prompt); (b) the full suites, logs `unit-full-05.log` + `ui-full-05.log`, status
-     `full-05-status.log` in this session's scratchpad
-     (`/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/3d750195-aac1-4875-9bb9-9b871ab474dc/scratchpad`).
-     If both green and Codex clear: respond in the ticket file, `git checkout main && git merge
-     --ff-only ui-redesign-05 && git push origin main`. If Codex reports: fix → re-run the
-     touched gates → next round in the SAME terminal → full suite → merge.
+000000. **HANDOFF 2026-09-10 (night) — tickets 03, 04, 05 MERGED to `main`; NOT installed.**
+   - **Ticket 03 (finish summary)** merged 21:10 EDT (`f80b00a`): Codex clear after four rounds;
+     unit 707/707; full UI suite 56/56.
+   - **Tickets 04 + 05 (gear + Settings screen)** merged as ONE commit (`0bf1e38`; branch
+     `ui-redesign-05`, pushed): `Features/Settings/SettingsView.swift` behind `openSettings` on the
+     Workout tab, the sections gone from Gyms, the resume banner's pulsing dot (off under Reduce
+     Motion), the doubled "Settings" header dropped, SPEC/comments updated. Codex clear after two
+     rounds (`codex-review-0405.md`, `0405b.md`; the round-1 P3s were a commit split — hence the
+     squash — and a stale comment). Unit 707/707; UI 56/56 (54 in a run stopped from outside with
+     two tests left + `ScanMachineLabelUITests` 2/2 separately, same commit). Screenshots
+     `screenshots/05/` SENT to the user 21:37 EDT — **no reaction yet.** Ticket:
+     `issues/04-05-start-and-settings.md`.
+   - **`main` = `0bf1e38`, pushed. The phone still runs `84610c9` (tickets 01 + 02).** Install
+     when the user says so (`./scripts/install-on-device.sh`; profiles good to 09-17).
+   - **Flake to know**: `HeartRateMonitorTests.samplesArriveAndBecomeTheCurrentReading` checks
+     wall-clock staleness; it failed once (18 s) with Codex and a UI build running alongside, and
+     passed alone. Do not run the unit suite while a UI build is compiling.
    - **Codex reviews: reuse ONE terminal per ticket.** `orca terminal send --terminal <id> --text
      "$(cat prompt.md)" --enter --wait-submit 20` reaches an IDLE Codex terminal; then watch the
-     report file (mtime), never the TUI. Close finished review terminals.
-   - Then tickets 06 (History), 07 (Gyms), 08 (Exercises), 09 (empty states + app icon + Live
-     Activity), per `spec.md`, each: build → `RedesignScreenshotUITests` → shots to the user →
-     Codex → full suite → merge → install when the user says so.
+     report file, never the TUI. The ticket-03/05 terminal is closed; open a fresh one for 06.
+   - **Next: ticket 06 (History)**, then 07 (Gyms), 08 (Exercises), 09 (empty states + app icon +
+     Live Activity), per `spec.md`, each: ticket file → build → `RedesignScreenshotUITests` →
+     shots to the user → Codex (Claude builds, Codex reviews) → full suite → merge → install when
+     the user says so.
 
 00000. **UI REDESIGN — the user chose Codex's "Ink / Amber" (2026-09-10); MERGED to `main`
    the same day (tickets 01 + 02 + Start-lite) and INSTALLED, launch-verified 2026-09-10 evening

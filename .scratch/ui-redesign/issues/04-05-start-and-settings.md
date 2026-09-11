@@ -1,6 +1,6 @@
 # 04 + 05 — Start (gear button, resume banner) and the Settings screen
 
-Status: in review — gates green, screenshots sent; Codex round 1 and the full suite pending
+Status: resolved — Codex clear after 2 rounds (codex-review-0405, 0405b); unit 707/707; full UI suite 56/56 on `0bf1e38`
 
 Spec: `.scratch/ui-redesign/spec.md` tickets 04 and 05, on the chosen Ink / Amber system.
 Two tickets in one branch because the gear button (04) is meaningless without the screen it
@@ -63,4 +63,12 @@ pulse "unverified".
   `symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)` with
   `@Environment(\.accessibilityReduceMotion)`, the same pattern `ProgressRing` and the button
   styles use.
-- Full suite on the squashed commit: see the verification below / STATE.
+- Full suite on the squashed commit `0bf1e38`: unit 707/707 (the HeartRateMonitor staleness test
+  that failed once under load — Codex + a UI build running alongside — passed); UI 56/56 (54 in
+  one run that was stopped from outside with two tests left, `ScanMachineLabelUITests` 2/2 run
+  separately on the same commit).
+
+## Codex review 0405b — response (2026-09-10)
+
+`codex-review-0405b.md`: **clear** — both P3s closed, the `isActive` overload confirmed against
+Apple's symbol-effects session, the squashed tree checked against the previously reviewed one.
