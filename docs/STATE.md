@@ -1,6 +1,44 @@
 # Where the project is right now
 
-Updated 2026-09-11 evening (second design pass under the ios-design skill: 10 Start merged AND on the phone; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-11 night (ticket 11 — icons off the rows, family icons on templates, a template detail — merged AND on the phone; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+
+0000000. **HANDOFF 2026-09-11 (night) — ticket 11 MERGED to `main` (`c1ee95b`) AND INSTALLED
+   (19:35 EDT; the remote launch was refused — phone locked — the user opens it). Next: the
+   user's reaction, ONE open copy decision, then the next screen.**
+   - **The user's ask (2026-09-11 evening)**: "there is an icon next to every exercise, but I want
+     them gone. In workout too. They don't match. But in template it should show an icon but only
+     for muscle group (either chest, back, arm, shoulder or leg), based on the exercises in the
+     template. And also, when users click template they should be able to view the list of
+     exercises in the template." Ticket `issues/11-icons-and-template-detail.md` (branch
+     `ui-redesign-11-icons-and-template-detail`, pushed): no `MuscleIcon` beside an exercise
+     anywhere (`ExerciseRow`, `ExerciseEntryCard`, History's `WorkoutDetailView`);
+     `Domain/MuscleFamily.swift` maps the 14 seeded groups to five families (Core, Neck, Full Body →
+     none — the user named five; a sixth is one line if wanted); `MuscleGroupStyle` keyed by
+     family, `MuscleFamilyStrip`; the template tile's strip is families, each once, head to toe;
+     tapping a tile PUSHES `TemplateDetailView` (family strip, the exercises as a list with
+     "N sets · r, r, r reps" and the workout's superset chip, an amber Start capsule pinned at the
+     thumb over a fade, Edit in the toolbar); the start flow is `Features/Start/WorkoutStartFlow.swift`
+     (a ViewModifier — a dialog on the Start List never presents while a pushed screen covers it,
+     so each screen wears the flow and its own dialogs). `TemplateFixture` (`-uiTestTemplate` +
+     `-uiTestReset`) seeds a six-exercise, five-family template with a superset for the captures.
+     Codex 3 rounds (`codex-review-11`, `11b`, `11c`): no functional finding; evidence only
+     (fixture/state pairs at AXL). Unit **718/718**; full UI suite **65/65** on `d9fd491`; the
+     later commits touch tests/docs only. SPEC's visual-system paragraph and D54 amended.
+   - **OPEN — the user decides**: the detail row's caption "N sets · r, r, r reps" (a slot with no
+     target "—"; no targets "N sets"; no slots "No sets") is NEW copy shipped for reaction; the
+     fallback if declined is the set count alone. Codex would not clear item 11 without the decision
+     recorded — record it in the ticket and DECISIONS when the user answers.
+   - **Seen, not touched (pre-existing, ticket 02's rest bar)**: at AccessibilityL "Skip" and
+     "+15s" break mid-word (`screenshots/11/02-active-workout-axl-2.png`). A one-line fix for the
+     active-workout pass.
+   - **Lessons**: an `accessibilityIdentifier` on a whole screen is inherited by a button in its
+     `safeAreaInset` and REPLACES that button's own (the detail's `startTemplate` vanished until
+     the screen-level id went); a `safeAreaInset` already insets a List's scroll end — no spacer
+     row; rows scrolling under a pinned capsule need a background-to-clear fade behind it; the
+     editor cannot build a superset, so a template with one needs a launch-argument fixture.
+   - **Next**: the user's reaction on the phone (the tile, the detail, the rows without icons);
+     the caption decision; then whichever screen the user names (active workout — the rest bar
+     wrap goes with it — finish summary, History). Re-sign before **2026-09-17 20:14 UTC**.
 
 000000. **HANDOFF 2026-09-11 (evening) — the second design pass has begun under the `ios-design`
    skill: ticket 10 (Start) is MERGED to `main` AND INSTALLED (`21cb4cf`, 17:43 EDT, launched
