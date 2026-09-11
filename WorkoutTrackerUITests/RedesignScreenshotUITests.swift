@@ -76,6 +76,12 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
         shoot("redesign-03-finish-summary-axl")
+        // The grid runs past one screen at this size: scroll until the last
+        // tile is in view and capture again, so every tile is on record.
+        let volume = anyElement("summaryVolume")
+        for _ in 0..<6 where !(volume.exists && volume.isHittable) { app.swipeUp() }
+        XCTAssertTrue(volume.isHittable, "all six tiles reachable at AccessibilityL")
+        shoot("redesign-03-finish-summary-axl-2")
     }
 
     /// The Start tab with a gym chosen and a workout in progress (resume banner).

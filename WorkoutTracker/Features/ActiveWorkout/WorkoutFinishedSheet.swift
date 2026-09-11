@@ -295,7 +295,9 @@ struct WorkoutFinishedSheet: View {
                     ForEach(Array(present.enumerated()), id: \.element) { index, zone in
                         RoundedRectangle(cornerRadius: 3)
                             .fill(zone.color)
-                            .frame(width: widths[index])
+                            // One width per zone by contract; the guard is
+                            // belt and braces against a trap during layout.
+                            .frame(width: index < widths.count ? widths[index] : 0)
                     }
                 }
             }

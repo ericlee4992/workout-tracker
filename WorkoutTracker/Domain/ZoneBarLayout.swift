@@ -8,12 +8,17 @@ import CoreGraphics
 /// (codex-review-03, P2).
 enum ZoneBarLayout {
     /// Widths for `values` (positive durations, in display order) laid out in
-    /// `width` with `gap` between neighbours. Empty in → empty out.
+    /// `width` with `gap` between neighbours. ALWAYS one width per value —
+    /// zeros when there is no width (a zero-size geometry during layout), so
+    /// a caller may index the result by position (codex-review-03b, P2).
+    /// Widths sum to `width − gaps` whenever the gaps fit; when they do not,
+    /// every width is zero.
     static func widths(
         values: [Int], width: CGFloat, gap: CGFloat = 2, minimum: CGFloat = 4
     ) -> [CGFloat] {
         let positive = values.map { CGFloat(max(0, $0)) }
-        guard !positive.isEmpty, width > 0 else { return [] }
+        guard !positive.isEmpty else { return [] }
+        guard width > 0 else { return positive.map { _ in 0 } }
         let available = max(0, width - gap * CGFloat(positive.count - 1))
         let total = positive.reduce(0, +)
         guard total > 0 else { return positive.map { _ in available / CGFloat(positive.count) } }

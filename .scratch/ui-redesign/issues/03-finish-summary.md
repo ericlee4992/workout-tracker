@@ -1,6 +1,6 @@
 # 03 — Finish summary: status ring, tiles, zone bar, chart card
 
-Status: built 2026-09-10 on `ui-redesign-03` — Codex round 1 answered, awaiting round 2
+Status: built 2026-09-10 on `ui-redesign-03` — Codex rounds 1–2 answered, awaiting round 3
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 03, on the chosen Ink / Amber system.
 
@@ -55,3 +55,17 @@ in the first screen. Screenshots: `screenshots/03/` — sent to the user.
   `UICTContentSizeCategoryAccessibilityL` (`redesign-03-finish-summary-axl`).
 - Noted for ticket 06: the chart card's 16 pt inset differs from History's stock grouped rows
   until History is restyled.
+
+## Codex review 03b — response (2026-09-10)
+
+`codex-review-03b.md`: one P2, one P3; the round-1 chart finding closed.
+
+- **P2, zero width returned an empty array and the card's subscript would trap.**
+  `ZoneBarLayout.widths` now returns one width per value ALWAYS — zeros when width ≤ 0, zeros when
+  the gaps alone exceed the width — and the card guards the subscript anyway
+  (`index < widths.count ? widths[index] : 0`). Tests: `[10]` at 0 → `[0]`, negative width, six
+  zones at width 5 → six zeros, and a 2,000-case sweep pinning cardinality and `0 ≤ w ≤ width`.
+  The unaffordable-minimum test's diagnostic now says what it means (4 shared four ways).
+- **P3, the AXL capture showed only the first tile row.** `test03_finishSummaryLargeText` now
+  scrolls (bounded) until `summaryVolume` — the last tile — is hittable and captures again
+  (`03-finish-summary-axl-2.png`): all six tiles at AccessibilityL, the BPM values included.
