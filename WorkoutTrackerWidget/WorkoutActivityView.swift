@@ -9,6 +9,14 @@ import WidgetKit
 // this extension never reads the store, because a widget extension is a
 // separate process with no access to the app's SwiftData container.
 
+/// The app's tokens as literals (D54): the widget target has no asset
+/// catalog of its own. Ink `#0B0D10` = `SurfaceBackground`, amber `#FFB45E`
+/// = the accent (UI redesign ticket 09).
+private enum ActivityTheme {
+    static let background = Color(red: 0x0B / 255, green: 0x0D / 255, blue: 0x10 / 255)
+    static let accent = Color(red: 0xFF / 255, green: 0xB4 / 255, blue: 0x5E / 255)
+}
+
 struct WorkoutActivityView: View {
     let state: WorkoutActivityAttributes.ContentState
     let attributes: WorkoutActivityAttributes
@@ -18,6 +26,7 @@ struct WorkoutActivityView: View {
             HStack {
                 Label(attributes.gymName ?? "Workout", systemImage: "figure.strengthtraining.traditional")
                     .font(.caption.weight(.semibold))
+                    .foregroundStyle(ActivityTheme.accent)
                 Spacer()
                 // System-ticked, not app-ticked (D46).
                 Text(attributes.startedAt, style: .timer)
@@ -72,7 +81,8 @@ struct WorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
             WorkoutActivityView(state: context.state, attributes: context.attributes)
-                .activityBackgroundTint(Color.black.opacity(0.35))
+                .activityBackgroundTint(ActivityTheme.background)
+                .activitySystemActionForegroundColor(ActivityTheme.accent)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
@@ -95,6 +105,7 @@ struct WorkoutLiveActivity: Widget {
                 }
             } compactLeading: {
                 Image(systemName: "figure.strengthtraining.traditional")
+                    .foregroundStyle(ActivityTheme.accent)
             } compactTrailing: {
                 if let bpm = context.state.heartRateBpm {
                     Text("\(bpm)").monospacedDigit()
@@ -105,6 +116,7 @@ struct WorkoutLiveActivity: Widget {
                 }
             } minimal: {
                 Image(systemName: "figure.strengthtraining.traditional")
+                    .foregroundStyle(ActivityTheme.accent)
             }
         }
     }

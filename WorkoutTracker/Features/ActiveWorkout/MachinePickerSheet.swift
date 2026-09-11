@@ -27,8 +27,10 @@ struct MachinePickerSheet: View {
                             .buttonStyle(.plain)
                         }
                         if machines.isEmpty {
-                            Text("No machines yet")
-                                .foregroundStyle(Theme.secondary)
+                            // UI redesign ticket 09: the illustration; same string.
+                            EmptyState(title: "No machines yet", symbol: "dumbbell")
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
                         }
                         Button("Add Machine…", systemImage: "plus") {
                             showingAddMachine = true

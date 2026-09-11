@@ -87,9 +87,10 @@ struct DeletedMachinesView: View {
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 }
                 if gym.archivedMachines.isEmpty {
-                    Text("Nothing deleted")
-                        .foregroundStyle(Theme.secondary)
+                    // UI redesign ticket 09: the illustration; same string.
+                    EmptyState(title: "Nothing deleted", symbol: "trash")
                         .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
             } footer: {
                 Text("A restored machine returns to the pickers as it was. Your history never left.")

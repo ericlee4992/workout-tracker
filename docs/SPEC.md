@@ -71,6 +71,21 @@ Four levels:
 - **Copy policy** (milestone 9, ticket 06): no explanatory paragraphs. A screen may carry one short line where an action has a non-obvious CONSEQUENCE — what a delete destroys, what a template omits, "only completed sets are kept" — and nothing that merely explains the screen.
 - Active workout **auto-persists every committed change** (set completion, add/delete, equipment choice, unit toggle, field commit on end-editing) — crash/force-quit loses at most in-progress keystrokes in the currently focused field. Non-negotiable.
 
+## Visual design (D54)
+
+One system, dark only, one warm accent. Every screen sits on ink (`SurfaceBackground`) and is
+built from cards (`.card()`), chips (`Chip`, `UnitChip`), stat tiles, progress rings, `EmptyState`
+illustrations and two button styles (`.primary` amber, `.secondary` fill); the accent is amber
+`#FFB45E` with near-black text on it, warmup is yellow so it never reads as the accent, heart rate
+is red, and every muscle group has a fixed colour and SF Symbol (`MuscleGroupStyle`) that appears
+wherever an exercise is named. Motion and haptics mark the moments that matter (a set completed,
+a workout started, the rest timer). The design adds shape, colour and motion, never words: the
+copy policy and D52's plain numbers stand, and every visible string and accessibility identifier
+the UI tests read is unchanged. Layouts adapt to Dynamic Type (chips wrap, rows stack at
+accessibility sizes, tiles scale with their glyphs); each screen has an AccessibilityL capture in
+`.scratch/ui-redesign/screenshots/`. The app icon is an amber dumbbell on ink, rendered by
+`scripts/render-app-icon.py`; the Live Activity carries the same two colours as literals.
+
 ## Technical direction
 
 - Swift + SwiftUI, **iOS 26+** (D42 — the iPhone workout-session API requires it), iPhone **plus a watchOS companion** (D41), local-first, offline for everything except the opt-in Ask AI taps (D53).
