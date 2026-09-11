@@ -1,6 +1,6 @@
 # 07 — Gyms: gym cards, machine cards, deleted machines
 
-Status: in review — gates green, screenshots sent; Codex round 1 and the full suite pending
+Status: Codex clear after 2 rounds (codex-review-07, 07b); gates green; full UI suite before merge (result in STATE)
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 07, on the chosen Ink / Amber system.
 
@@ -62,3 +62,7 @@ to the user. Full suite: see STATE.
   DumbbellCounterpart reads `machineRow.` was wrong (it reads the exercise picker).
 - Gates after the fix: `ScanMachineLabelUITests` 2/2 (reads the model as a staticText — still
   found under `.contain`), test06 recaptured, test06_gymsLargeText — 4/4.
+
+## Codex review 07b — response (2026-09-11)
+
+`codex-review-07b.md`: **clear** — the P2 closed, the chip exception recorded, nothing new.
