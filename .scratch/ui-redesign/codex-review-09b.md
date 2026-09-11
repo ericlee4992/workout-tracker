@@ -1,0 +1,9 @@
+# Ticket 09 — Codex round 2 (T6)
+
+Reviewed `59fd54a..fad29e1` on `ui-redesign-09`, including the round-1 response. Inspection only; no source modifications, `xcodebuild`, or `simctl`.
+
+- **P3 — Round-1 finding 5 is only partially closed: `docs/DECISIONS.md:63`.** D54 fixes reviewer attribution, but still says **“Final … shipped … tickets 01–09 … each cross-reviewed to clear”**. `docs/STATE.md:7` explicitly records ticket 09's round 2 and full suite as pending, so the completion claim remains premature. Record 01–08 as cleared and 09 as in review, then finalize after its remaining gates. This is the unresolved portion of the existing finding, not a new requirement.
+
+The other four findings are closed. `onInk()` sets the environment on `WorkoutActivityView` and its descendants, so adaptive primary/secondary foregrounds resolve for dark appearance on the fixed ink background; the outer tint modifiers do not undo that override, and the separate Dynamic Island closure is unchanged. This is the appropriate local scope: Apple documents that setting `colorScheme` directly affects the modified view and its children, without changing ancestors. [Apple: colorScheme](https://developer.apple.com/documentation/swiftui/environmentvalues/colorscheme?changes=_5_9). Presets uses `EmptyState` with byte-identical full copy and `noPresets`; the recorded passing identifier gate supports the change. The explicit Previous Performance exception is acceptable for repeated per-layer messages. The shaft now extends beneath every plate, and the regenerated PNG visibly joins them, remains recognizable at 60 px, and is still opaque 1024×1024 RGB (PNG color type 2, no transparency chunk). SPEC's native-sheet caveat and named AXL captures close its prior overclaims; STATE's opening now records the correct pending status. No new implementation findings or documented-standard violations found.
+
+Standards: clear. Spec/status: one remaining P3. Not clear yet.

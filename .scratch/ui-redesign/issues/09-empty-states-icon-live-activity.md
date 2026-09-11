@@ -61,3 +61,9 @@ PNG sent to the user. Full suite: see STATE.
   03–09 the reverse); STATE says 09 is in review, and is finalised only after the gates.
 - Gates after the fixes: `MachineDeletionUITests` 2/2, `ExercisePresetUITests` 3/3 (reads
   `noPresets`) — 5/5.
+
+## Codex review 09b — response (2026-09-11)
+
+`codex-review-09b.md`: four of five closed; the P3 on D54 remained — it still said 01–09
+"each cross-reviewed to clear" while 09 was in review. D54 now records 01–08 as cleared and 09
+as in review on its branch; the row is finalised (one sentence) when 09 merges.
