@@ -58,10 +58,11 @@ decides what is there, in what order, and which one thing the eye lands on.
 
 ## Rules
 
-- **One dominant treatment per screen state.** The bold element gets the accent as a fill or the
-  largest type; nothing else does. Amber keeps its other jobs — the selected tab, a selected chip,
-  a completed set — because those are states, not calls to action; but a second filled amber
-  control or a second accent title on the same screen competes, and one of them steps down.
+- **One dominant treatment per screen state.** The bold element is the only CALL TO ACTION or
+  figure with an accent fill or the largest content type. Excluded from that count: the
+  navigation title (chrome), and amber as a state — the selected tab, a selected chip, a
+  completed set — because a state is not a call to action. A second accent-filled command or a
+  second accent-coloured content title on the same screen competes, and one steps down.
 - **Cards group.** A card contains a group, or one item with internal structure (a template with
   its exercises, a stat with its label). A card around a single line of text is a box around a
   sentence: remove it. A set of like items is a list. Never a card in a card. Peer cards share a
@@ -82,12 +83,14 @@ decides what is there, in what order, and which one thing the eye lands on.
   card; it is never the only thing that draws a shape.
 - **Controls: 44 pt hit region minimum; prominence by style, not size.** One, at most two,
   prominent buttons per view. Equal options get equal size. The primary role never destroys.
-  A picker or menu shows its current value and a disclosure indicator, and reads as subordinate
-  to the primary command; it never wears the primary style.
+  A collapsed selection control (a `Menu` standing in for a picker) shows its current value and
+  a disclosure indicator and never wears the primary style; a segmented picker shows its
+  options; a command menu (ellipsis) shows its symbol — each keeps its native affordance.
 - **Lists are lists.** More than three like items: a list (rows, hairline separators, one
   container) rather than a stack of cards; swipe actions and context menus stay on rows.
-- **Sheets do one task and keep their commit semantics.** A sheet that edits offers Cancel and
-  its commit verb (Save, Add, Done); a sheet that only shows offers Close or Done; Back only in a
+- **Sheets do one task and keep their commit semantics.** A sheet with STAGED edits offers
+  Cancel and its commit verb (Save, Add); a sheet whose edits apply immediately (presets, the
+  deleted-machines list) and a sheet that only shows offer Close or Done; Back only in a
   multi-step flow; never all three. Prolonged flows are pushed screens or a full-screen cover.
 - **The tab bar navigates; it never acts.** Up to five tabs, filled symbols, one-word labels;
   actions live in toolbars or on the screen.
@@ -95,7 +98,8 @@ decides what is there, in what order, and which one thing the eye lands on.
   at accessibility sizes; chips wrap (`WrapLayout`); tiles scale (`@ScaledMetric`); the order
   of the hierarchy is kept; nothing the user needs truncates.
 - **Motion answers the user.** A completed set, a started workout, a finished timer, plus the
-  pulse that means "live". Reduce Motion is honoured.
+  pulse that means "live". Under Reduce Motion each animation is suppressed or replaced by a
+  crossfade — reading the setting is not honouring it.
 - **Empty is an invitation.** `EmptyState` with the existing string and one action under it.
 
 ## Tells

@@ -119,8 +119,9 @@ Components: `.card(.standard | .elevated)`, `Chip(tint:selected:) { content }`, 
 
 `WorkoutTrackerUITests/RedesignScreenshotUITests.swift`; export with
 `.scratch/ui-redesign/export-shots.py`; the record lives in `.scratch/ui-redesign/screenshots/<ticket>/`.
-Coverage as of 2026-09-11 — default AND AccessibilityL with the same fixture: active workout,
-finish receipt, Exercises, Gyms + detail. Default and AXL with DIFFERENT states: Start (resume
-banner vs a template), History + detail (the AXL run is the chart fixture, the default run too —
-same). Default only: Settings, calendar, chart, the pickers and sheets. Touching a screen means
+Coverage as of 2026-09-11 — default AND AccessibilityL with the same fixture and state: finish
+receipt, Exercises, Gyms + detail, History + detail (both on `-uiTestChartHistory`). Default and
+AXL in DIFFERENT states: Start (resume banner vs a template); active workout (the default
+capture has a gym, sets and rest; the AXL one in `CodexScreenshotUITests` has none of them).
+Default only: Settings, calendar, chart, the pickers and sheets. Touching a screen means
 completing its pair.
