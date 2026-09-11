@@ -1,0 +1,63 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Leading candidate (A)"
+    },
+    {
+      "file": "DirectionA.dc.html",
+      "x": 520,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "A \u00b7 Hero at the thumb"
+    },
+    {
+      "file": "DirectionALive.dc.html",
+      "x": 1000,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "A \u00b7 live workout"
+    },
+    {
+      "file": "DirectionB.dc.html",
+      "x": 1480,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Today at the eye"
+    },
+    {
+      "file": "DirectionC.dc.html",
+      "x": 1960,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "C \u00b7 Hero at the eye"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "how-to-read",
+      "x": 520,
+      "y": -170,
+      "w": 420,
+      "text": "Three structures, same tokens. Pick one, or point at what to mix.\nA: the action sits where the thumb is; templates are a list; the gym is a quiet row.\nB: a week strip and last workout first \u2014 needs two NEW strings (\"3 workouts \u00b7 last Tue\"), your call.\nC: action first at the top; templates as a grid; the gym moves into the nav bar."
+    },
+    {
+      "id": "live-state",
+      "x": 1000,
+      "y": -110,
+      "w": 360,
+      "text": "Live workout: Resume takes the amber; Start Empty Workout steps down to a grey button. Same rule in B and C."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}
