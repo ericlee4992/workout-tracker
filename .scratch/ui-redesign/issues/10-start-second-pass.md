@@ -1,6 +1,6 @@
 # 10 — Start screen, second pass
 
-Status: Codex clear after 2 rounds (codex-review-10, 10b); gates green; full UI suite before merge (result in STATE)
+Status: resolved — Codex clear after 2 rounds (codex-review-10, 10b); unit 707/707; full UI suite 63/63 on `fa7c5f2`; merged to main 2026-09-11; NOT installed yet
 
 Skill: `.claude/skills/ios-design/`. The user, after the first pass on the phone: "it's ok, but I
 still feel like the design is not there", the Start screen "seems a bit off".

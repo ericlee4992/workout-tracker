@@ -1,60 +1,46 @@
 # Where the project is right now
 
-Updated 2026-09-11 mid-morning (UI redesign COMPLETE on main AND on the phone, tickets 01–09; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-11 evening (first design pass 01–09 on the phone; second pass under the ios-design skill: 10 Start merged, not installed; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-000000. **HANDOFF 2026-09-11 (midday) — the redesign is on the phone; the user's verdict: "it's
-   ok, but I still feel like the design is not there", the Start screen "seems a bit off". A
-   SECOND PASS starts, driven by the new `ios-design` skill. Next: the Start screen.**
-   - **`.claude/skills/ios-design/`** (`SKILL.md` process + rules + tells, `REFERENCE.md` HIG
-     numbers + tokens + measured contrast pairs + capture coverage, `REVIEW.md` the checklist the
-     cross-reviewer grades against). Codex-reviewed to clear in three rounds
-     (`.scratch/ui-redesign/codex-review-skill*.md`); CLAUDE.md points at it. Written because the
-     first pass STYLED every screen with one card/chip/label kit; the skill makes the next pass
-     COMPOSE: one dominant treatment per screen state, reading order, cards only for groups,
-     numbers big and labels small, system type, one meaning per colour, Dynamic Type as layout.
-     Public design skills were evaluated (Anthropic `frontend-design`, Vercel
-     `web-design-guidelines`, Leonxlnx `taste-skill`) and NOT installed: web-first; their
-     anti-pattern lists are folded into the skill's "Tells".
-   - **Next: the Start screen, by the skill's process** — job/state sentences and three ASCII
-     wireframes in a ticket (`.scratch/ui-redesign/issues/10-start-second-pass.md`), canvas
-     mockups sent to the user (the `design` skill; fallback `#Preview` shots), the user picks,
-     build, captures at default + AXL in the SAME state, Codex against `REVIEW.md`, full suite,
-     merge, install. Then whichever screen the user names next.
-   - **`main` = ticket 09 (`ui-redesign-09`, pushed; every redesign branch is pushed and
-     fast-forward-merged, zero merge commits) = the phone.** Installed on the user's word
-     ("install") with `./scripts/install-on-device.sh`; profiles reused, good to 09-17 — **sign
-     again before 2026-09-17** or the app stops launching. Screenshots for 06, 07, 08 and 09
-     and the icon were sent; the user has said "looks good" (04/05) and "keep going" — ask for
-     a reaction to the whole redesign on the phone.
-   - **Ticket 09 (the last)**: `issues/09-empty-states-icon-live-activity.md` — the last plain
-     "No … yet" texts → `EmptyState` (Previous Performance's per-layer messages are the recorded
-     exception); `scripts/render-app-icon.py` → `AppIcon.png` (amber dumbbell on ink; run the
-     script to regenerate); the Live Activity in the app's two colours as literals, its Lock
-     Screen content forced to the dark scheme; SPEC "Visual design (D54)" paragraph; D54 final.
-     Codex 3 rounds; unit 707/707; full UI suite **61/61**.
-   - **The whole redesign, for the record**: 01 design system + 02 active workout (Codex built,
-     Claude reviewed, chosen from a side-by-side board), 03 finish summary, 04/05 gear + Settings
-     screen, 06 History, 07 Gyms, 08 Exercises + pickers, 09 the rest — each with a ticket file,
-     screenshots (`screenshots/<ticket>/`, AccessibilityL captures per screen), Codex reviews
-     (`codex-review-<ticket>*.md`) and the full suite before merge. Departures from the plan, all
-     recorded: monotone chart; amber (not coral) icon and Live Activity; the model as a caption
-     at accessibility sizes; today's calendar ring in `Theme.secondary`.
-   - **Follow-ups the reviews surfaced, none blocking**: the empty Gyms tab has no illustration
-     (adding a string is new copy — ask the user); `Gym.activeMachines.count` sorts per row (fine
-     for a personal list); no four-tag exercise exists to capture `WrapLayout` at width; the
-     Live Activity's Lock Screen rendering on wallpaper is unverified by capture. Codex's Orca
-     worktree from the design bake-off (`~/orca/workspaces/Health App/ui-redesign-codex`) can be
-     removed (`orca worktree rm`).
+000000. **HANDOFF 2026-09-11 (evening) — the second design pass has begun under the `ios-design`
+   skill: ticket 10 (Start) is MERGED to `main`; NOT installed. Next: install when the user says
+   so; then whichever screen the user names.**
+   - **`main` = ticket 10 (`ui-redesign-10-start`, pushed). The phone runs `2ce4579` (tickets
+     01–09).** The user's verdict on the first pass, on the phone: "it's ok, but I still feel like
+     the design is not there", the Start screen "seems a bit off".
+   - **Ticket 10 (Start, second pass)**: `issues/10-start-second-pass.md` — the skill's process
+     end to end: job/state sentences, three ASCII wireframes, canvas mockups the user chose from
+     (https://claude.ai/code/artifact/bb03a175-d794-4824-8164-944181e30797; working files in
+     `.scratch/ui-redesign/canvas/start/`), the tells answered, Codex against `REVIEW.md`. The
+     user's picks: keep the structure (gear, title, gym card, action, templates), the Start button
+     "too big and too mundane" → ONE amber capsule (`HeroCapsuleLabel`: figure in an ink disc,
+     hugging) that reads Start Empty Workout, or Resume workout + "<gym> · N exercises" with a
+     breathing dot when a workout is live (the separate resume card is gone; no Start while
+     live); templates as a two-column grid of tiles (`TemplateTile`; one column at accessibility
+     sizes; Edit/Delete on the long-press menu — no swipe in a grid); the gym picker in neutral
+     text (a `Menu` tints its label amber — set the colours explicitly). Codex 2 rounds
+     (`codex-review-10`, `10b`): the amber picker title, truncated summaries, scaled icons
+     outgrowing their tiles, missing AXL captures — all fixed. Unit 707/707; full UI **63/63**.
+     Captures: default + AXL in the same state, a scrolled AXL, a live AXL.
+   - **The `ios-design` skill** (`.claude/skills/ios-design/`, merged 2026-09-11, Codex-reviewed
+     in three rounds): read it before touching any screen. Lessons it now carries from ticket 10:
+     a `Menu`'s label inherits the accent; `@ScaledMetric` tiles must pick their glyph's text
+     style from the BASE size; a lazy List's off-screen rows are not in the test hierarchy
+     (press Return to drop the keyboard, scroll until the option exists); a tile half under the
+     tab bar counts as hittable.
    - **Running xcodebuild from this harness**: launch every test run DETACHED (a script +
      `python3 -c "subprocess.Popen([script], start_new_session=True, ...)"`; macOS has no
      `setsid`; the script appends `… DONE <code>` to a status file) and poll that file in ≤ 5-min
-     foreground waits — background tasks get stopped from outside. Do not run the unit suite
-     while Codex and a UI build compete for the machine (the HeartRateMonitor tests are
-     wall-clock and flaked twice tonight; always green alone).
+     foreground waits. Do not run the unit suite while Codex and a UI build compete for the
+     machine (the HeartRateMonitor tests are wall-clock).
    - **Codex reviews: ONE terminal per ticket** — `orca terminal create --worktree active
      --command codex --title "…" --json` → `orca terminal send --terminal <handle> --text
      "$(cat prompt.md)" --enter --wait-submit 20` → poll the report file → `orca terminal close`.
      All closed.
+   - **Next**: install (`./scripts/install-on-device.sh`; profiles good to 09-17 — re-sign
+     before then). Then the user names the next screen; each goes through the skill's seven
+     steps with a ticket file `issues/1N-<screen>-second-pass.md`, canvas mockups, captures at
+     both sizes in the same state, Codex against `REVIEW.md`, the full suite, merge.
 
 00000. **UI REDESIGN — the user chose Codex's "Ink / Amber" (2026-09-10); MERGED to `main`
    the same day (tickets 01 + 02 + Start-lite) and INSTALLED, launch-verified 2026-09-10 evening
