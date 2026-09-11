@@ -29,19 +29,25 @@ struct MuscleGroupStyle {
 
 struct MuscleIcon: View {
     var group: String?
-    /// The tile grows with the glyph (`.title3` scales with Dynamic Type) —
+    /// The tile grows with the glyph (the font scales with Dynamic Type) —
     /// at AccessibilityL a fixed 40 pt tile was smaller than its symbol
-    /// (UI redesign ticket 08).
+    /// (UI redesign ticket 08). `size` picks the base: 40 for a row, 24 for
+    /// a strip inside a tile (ticket 10).
     @ScaledMetric(relativeTo: .title3) private var side: CGFloat = 40
+
+    init(group: String?, size: CGFloat = 40) {
+        self.group = group
+        _side = ScaledMetric(wrappedValue: size, relativeTo: .title3)
+    }
 
     var body: some View {
         let style = MuscleGroupStyle.resolve(group)
         Image(systemName: style.symbol)
-            .font(.title3.weight(.semibold))
+            .font(side < 32 ? .caption.weight(.semibold) : .title3.weight(.semibold))
             .foregroundStyle(style.color)
             .frame(width: side, height: side)
             .background(style.color.opacity(0.14),
-                        in: RoundedRectangle(cornerRadius: 14))
+                        in: RoundedRectangle(cornerRadius: side < 32 ? 8 : 14))
             .accessibilityHidden(true)
     }
 }

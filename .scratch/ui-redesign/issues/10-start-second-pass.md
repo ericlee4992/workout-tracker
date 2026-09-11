@@ -1,6 +1,6 @@
 # 10 — Start screen, second pass
 
-Status: in design — three directions mocked for the user; nothing built
+Status: in review — built, gates green, screenshots sent; Codex round 1 and the full suite pending
 
 Skill: `.claude/skills/ios-design/`. The user, after the first pass on the phone: "it's ok, but I
 still feel like the design is not there", the Start screen "seems a bit off".
@@ -71,3 +71,50 @@ structure (gear, title, gym card, action, templates) with the templates as C's t
 (New Template… as a tile) and a smaller, sharper Start button — two treatments on the canvas:
 an amber capsule with the figure in an ink disc, or an ink card whose only amber is the disc.
 Live state: Resume takes the capsule; Start Empty Workout steps down to a grey button.
+
+## Round 3 — the user's pick: the capsule (2026-09-11)
+
+"I like the start button of the third artboard. Use that, and when in workout the Start Empty
+Workout button should just switch to Resume workout." → ONE capsule (`HeroCapsuleLabel`): the
+figure in an ink disc, the title, a trailing symbol; hugging, 56 pt. Idle: "Start Empty Workout"
+(`startEmptyWorkout`, arrow). Live: "Resume workout" over the existing subtitle
+("<gym> · N exercises"), a pulsing dot on the disc, a chevron (`resumeWorkout`). The separate
+resume card is gone; Start does not appear while a workout is live (no test starts a workout
+while one is live; a template start while live still meets the "already in progress" dialog).
+
+## Step 1 — final
+
+- Idle: the eye lands on the capsule, top-leading under the gym card; the gym card is a picker
+  (value + disclosure, no accent title).
+- Live: the same capsule reads Resume; nothing else is amber.
+
+## Step 4 — tells
+
+- Same container on everything: **absent** — the gym card (a picker with a value), the capsule
+  (a command), the template tiles (a group: icons + name + exercises) and the New Template tile
+  (fill, no border) are four roles with four treatments.
+- A chip where a caption would do: **deliberate** — the one chip is the unit badge (`UnitChip`,
+  its meaning everywhere).
+- All-caps label: **absent** — "Templates" is the List's own section header.
+- Middle dots: **deliberate** — the template's exercise line and the resume subtitle are the
+  frozen strings.
+- Accent on too many things: **absent** — the capsule only; the gym pin tile is amber-tinted at
+  10 % as it was (a state of the picker, not a command) — reviewer to confirm.
+- Equal blocks, none leading: **absent** — the capsule hugs; the gym card is full width but grey.
+- Phone-sized website / dead space: **absent** — the grid fills the viewport; with no templates
+  the New Template tile alone remains.
+- Too much above the fold: **absent** — title, gym, action, templates.
+- A control dressed as the command: **absent** — the gym picker keeps its chevrons, no accent.
+- Survives only the default size: **absent** — `04-start-axl.png`: the capsule wraps to two lines
+  inside its shape, the grid drops to one column, every string whole (the exercise line keeps
+  its two-line limit).
+
+## Verification (2026-09-11)
+
+Built: `HeroCapsuleLabel` + `TemplateTile` + the grid in `StartWorkoutView.swift`; `MuscleIcon`
+gains `size:` (24 in a tile). Gates on `ui-redesign-10-start`: `CoreLoopUITests` 9/9,
+`HeartRateUITests` 5/5, `ExercisePresetUITests` 3/3, `BarbellUITests` 2/2,
+`CodexScreenshotUITests` 3/3, captures test04_start + test04_startTemplates (new) +
+test04_startLargeText — 23/23 across two runs (the first template capture failed on the
+editor's lazy list with the keyboard up; the test now presses Return and scrolls until an option
+exists). Screenshots `screenshots/10/` — sent to the user. Full suite: see STATE.

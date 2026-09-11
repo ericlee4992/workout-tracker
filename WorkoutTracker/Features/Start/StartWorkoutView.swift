@@ -17,7 +17,9 @@ struct StartWorkoutView: View {
         filter: #Predicate<Workout> { $0.finishedAt == nil },
         sort: [SortDescriptor(\Workout.startedAt, order: .reverse)])
     private var activeWorkouts: [Workout]
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// One template column at accessibility sizes: two tiles of five icons,
+    /// a name and two lines do not share 390 pt at AccessibilityL.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selectedGym: Gym?
     /// D1: the stored pick is read once per screen lifetime — re-reading it
     /// would fight the user's in-session choice.
@@ -37,17 +39,6 @@ struct StartWorkoutView: View {
     var body: some View {
         NavigationStack {
             List {
-                if let active = activeWorkouts.first, !active.isDeleted {
-                    Section {
-                        resumeRow(active)
-                            .padding(16)
-                            .card()
-                            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.card).strokeBorder(Theme.accent.opacity(0.5)))
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(EdgeInsets())
-                    }
-                }
-
                 Section {
                     gymPicker
                         .padding(20)
@@ -56,64 +47,64 @@ struct StartWorkoutView: View {
                         .listRowInsets(EdgeInsets())
                 }
 
+                // Ticket 10: ONE action, one capsule. With a workout live it
+                // reads Resume (the user's choice, 2026-09-11): the way back
+                // in is the same button as the way in, never two amber
+                // commands. Starting a template while live still goes
+                // through the "already in progress" dialog.
                 Section {
-                    Button { startTapped(template: nil) } label: {
-                        HStack {
-                            Text("Start Empty Workout").font(Theme.stat)
-                            Spacer()
-                            Image(systemName: "arrow.up.right")
-                                .font(.title2.weight(.bold))
-                        }
-                        .padding(.vertical, 24)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .buttonStyle(.primary)
-                    .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                    .accessibilityIdentifier("startEmptyWorkout")
+                    heroCapsule
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 }
 
                 Section("Templates") {
-                    ForEach(templates) { template in
-                        TemplateRow(
-                            template: template,
-                            gymName: selectedGym?.name ?? "your gym",
-                            start: { startTapped(template: template) })
-                        .padding(16)
-                        .card()
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                        .contextMenu {
-                            Button("Edit…") {
-                                editingTemplate = template
-                                showingTemplateEditor = true
+                    // Ticket 10: a two-column grid of tiles (the user chose
+                    // direction C's templates). The tile IS the start button;
+                    // Edit/Delete live on the long-press menu — a grid has no
+                    // swipe, and deleting a plan is not a record lost (D23).
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10),
+                                             count: dynamicTypeSize.isAccessibilitySize ? 1 : 2),
+                              spacing: 10) {
+                        ForEach(templates) { template in
+                            Button { startTapped(template: template) } label: {
+                                TemplateTile(template: template)
                             }
-                            Button("Delete", role: .destructive) {
-                                delete(template)
-                            }
-                        }
-                        // Swipe to delete as well as the long-press menu
-                        // (requested 2026-08-26). No confirmation here, unlike
-                        // history: deleting a template loses a plan, not a
-                        // record of something that happened — and D23 keeps the
-                        // workouts it produced, since they carry their own
-                        // snapshot of its name.
-                        .swipeActions(edge: .trailing) {
-                            Button(role: .destructive) {
-                                delete(template)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("templateTile.\(template.name)")
+                            .contextMenu {
+                                Button("Edit…") {
+                                    editingTemplate = template
+                                    showingTemplateEditor = true
+                                }
+                                Button("Delete", role: .destructive) {
+                                    delete(template)
+                                }
                             }
                         }
+                        Button {
+                            editingTemplate = nil
+                            showingTemplateEditor = true
+                        } label: {
+                            VStack(spacing: Theme.Space.small) {
+                                Image(systemName: "plus").font(.title3.weight(.semibold))
+                                Text("New Template…").font(.subheadline.weight(.semibold))
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 118)
+                            .padding(Theme.Space.medium)
+                            .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
+                        }
+                        .buttonStyle(.plain)
                     }
-                    Button("New Template…", systemImage: "plus") {
-                        editingTemplate = nil
-                        showingTemplateEditor = true
-                    }
-                    .buttonStyle(.secondary)
                     .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                    Text("Machines resolve to your last-used at \(selectedGym?.name ?? "your gym")")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.tertiary)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 8, trailing: 0))
                 }
             }
             .scrollContentBackground(.hidden)
@@ -158,46 +149,29 @@ struct StartWorkoutView: View {
         }
     }
 
-    /// The way back into a minimised workout (C1). Resuming re-presents the
-    /// newest active workout, auto-finishing older strays exactly as the
-    /// relaunch recovery does.
-    private func resumeRow(_ workout: Workout) -> some View {
-        Button {
-            resumeActive()
-        } label: {
-            HStack {
-                // Ticket 04: a live workout gets a pulsing accent dot beside
-                // the figure — the banner is the one thing on the screen that
-                // is happening right now.
-                ZStack(alignment: .topTrailing) {
-                    Image(systemName: "figure.strengthtraining.traditional")
-                        .font(.title2)
-                        .foregroundStyle(Theme.accent)
-                        .frame(width: 44, height: 44)
-                        .background(Theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
-                    Image(systemName: "circle.fill")
-                        .font(.system(size: 10))
-                        .foregroundStyle(Theme.accent)
-                        // Explicitly still under Reduce Motion (codex-review-0405).
-                        .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
-                        .offset(x: 2, y: -2)
-                        .accessibilityHidden(true)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Resume workout")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                    Text(resumeSubtitle(workout))
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+    /// The screen's one action: Start Empty Workout, or — the moment a
+    /// workout is live — Resume workout with where it stands (C1: the way
+    /// back into a minimised workout). Same capsule, same place.
+    @ViewBuilder
+    private var heroCapsule: some View {
+        if let active = activeWorkouts.first, !active.isDeleted {
+            Button { resumeActive() } label: {
+                HeroCapsuleLabel(title: "Resume workout", subtitle: resumeSubtitle(active),
+                                 symbol: "figure.strengthtraining.traditional", trailing: "chevron.right",
+                                 live: true)
             }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("resumeWorkout")
+        } else {
+            Button { startTapped(template: nil) } label: {
+                HeroCapsuleLabel(title: "Start Empty Workout", subtitle: nil,
+                                 symbol: "figure.strengthtraining.traditional", trailing: "arrow.up.right",
+                                 live: false)
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
+            .accessibilityIdentifier("startEmptyWorkout")
         }
-        .accessibilityIdentifier("resumeWorkout")
     }
 
     private func resumeSubtitle(_ workout: Workout) -> String {
@@ -374,44 +348,79 @@ struct StartWorkoutView: View {
     }
 }
 
-private struct TemplateRow: View {
-    var template: WorkoutTemplate
-    var gymName: String
-    var start: () -> Void
-    /// At accessibility sizes the Start button sits UNDER the text instead of
-    /// beside it, and the icon strip wraps — five scaled tiles no longer fit
-    /// one line (UI redesign ticket 08, codex-review-08).
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+/// Ticket 10: the amber capsule — the figure in an ink disc, one or two
+/// lines, a trailing symbol. Hugging, not a slab: the user found the
+/// full-width hero "too big and too mundane".
+private struct HeroCapsuleLabel: View {
+    var title: String
+    var subtitle: String?
+    var symbol: String
+    var trailing: String
+    var live: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let stacked = dynamicTypeSize.isAccessibilitySize
-        let layout = stacked
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Space.medium))
-            : AnyLayout(HStackLayout(alignment: .center))
-        layout {
-            VStack(alignment: .leading, spacing: 12) {
-                WrapLayout {
-                    ForEach(Array(WorkoutTemplateService.orderedItems(of: template).prefix(5))) { item in
-                        MuscleIcon(group: item.exercise?.muscleGroup)
-                    }
+        HStack(spacing: Theme.Space.medium) {
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: symbol)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(Theme.accent)
+                    .frame(width: 40, height: 40)
+                    .background(Theme.onAccent, in: Circle())
+                if live {
+                    // Inside the ink disc — amber on ink; at its edge the dot
+                    // sat amber on the amber capsule and vanished.
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Theme.accent)
+                        .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
+                        .offset(x: -5, y: 5)
+                        .accessibilityHidden(true)
                 }
-                Text(template.name)
-                    .font(.headline)
-                Text(WorkoutTemplateService.orderedItems(of: template)
-                    .compactMap { $0.exercise?.name }
-                    .joined(separator: " · "))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                Text("Machines resolve to your last-used at \(gymName)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
             }
-            if !stacked { Spacer() }
-            Button("Start", action: start)
-                .buttonStyle(.primary)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).font(.body.weight(.bold))
+                if let subtitle {
+                    Text(subtitle).font(.caption.weight(.medium)).opacity(0.8)
+                }
+            }
+            Image(systemName: trailing)
+                .font(.body.weight(.bold))
         }
-        .padding(.vertical, 4)
+        .foregroundStyle(Theme.onAccent)
+        .padding(.leading, 8)
+        .padding(.trailing, 20)
+        .frame(minHeight: 56)
+        .background(Theme.accent, in: Capsule())
+        .accessibilityElement(children: .combine)
+    }
+}
+
+/// Ticket 10: a template as a tile — its muscle icons, its name, its
+/// exercises on two lines. The whole tile starts the template.
+private struct TemplateTile: View {
+    var template: WorkoutTemplate
+
+    var body: some View {
+        let items = WorkoutTemplateService.orderedItems(of: template)
+        VStack(alignment: .leading, spacing: Theme.Space.small) {
+            WrapLayout {
+                ForEach(Array(items.prefix(5))) { item in
+                    MuscleIcon(group: item.exercise?.muscleGroup, size: 24)
+                }
+            }
+            Text(template.name)
+                .font(Theme.cardTitle)
+            Text(items.compactMap { $0.exercise?.name }.joined(separator: " · "))
+                .font(.caption)
+                .foregroundStyle(Theme.secondary)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
+        .padding(Theme.Space.medium)
+        .card()
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .accessibilityElement(children: .contain)
     }
 }
 

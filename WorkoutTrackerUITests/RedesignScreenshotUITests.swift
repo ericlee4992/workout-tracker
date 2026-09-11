@@ -95,6 +95,29 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-04-start")
     }
 
+    /// The Start tab at the default size with a five-exercise template and a
+    /// gym chosen (ticket 10): the capsule, the gym card, the template grid.
+    func test04_startTemplates() {
+        launch()
+        createGym()
+        app.tabBars.buttons["Workout"].tap()
+        let newTemplate = app.buttons["New Template…"]
+        XCTAssertTrue(newTemplate.waitForExistence(timeout: 10))
+        newTemplate.tap()
+        let field = app.textFields["Template name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        // Return dismisses the keyboard: with it up, the swipes that bring
+        // the lower options into the lazy List land on the keys.
+        field.typeText("Full Session\n")
+        for name in ["Abdominal Crunch", "Assisted Dip", "Assisted Pull-Up", "Back Extension", "Belt Squat"] {
+            tapScrolling(app.buttons[name].firstMatch, name)
+        }
+        app.buttons["Save"].tap()
+        XCTAssertTrue(anyElement("templateTile.Full Session").waitForExistence(timeout: 5))
+        shoot("redesign-04-start-templates")
+    }
+
     /// The Start tab at AccessibilityL with a five-exercise template
     /// (ticket 08, codex-review-08): the icon strip wraps, Start sits under
     /// the text, nothing leaves the card.
@@ -109,15 +132,14 @@ final class RedesignScreenshotUITests: XCTestCase {
         let field = app.textFields["Template name"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
-        field.typeText("Full Session")
+        // Return dismisses the keyboard: with it up, the swipes that bring
+        // the lower options into the lazy List land on the keys.
+        field.typeText("Full Session\n")
         for name in ["Abdominal Crunch", "Assisted Dip", "Assisted Pull-Up", "Back Extension", "Belt Squat"] {
-            let option = app.buttons[name].firstMatch
-            XCTAssertTrue(option.waitForExistence(timeout: 5), name)
-            if !option.isHittable { app.swipeUp() }
-            option.tap()
+            tapScrolling(app.buttons[name].firstMatch, name)
         }
         app.buttons["Save"].tap()
-        XCTAssertTrue(app.staticTexts["Full Session"].waitForExistence(timeout: 5))
+        XCTAssertTrue(anyElement("templateTile.Full Session").waitForExistence(timeout: 5))
         shoot("redesign-04-start-axl")
     }
 
@@ -245,6 +267,15 @@ final class RedesignScreenshotUITests: XCTestCase {
     }
 
     // MARK: - Helpers (mirroring CoreLoopUITests)
+
+    /// A lazy List materialises rows near the viewport only: an option below
+    /// the fold is not in the hierarchy until the list scrolls. Scroll
+    /// (bounded) until it exists and is hittable, then tap.
+    private func tapScrolling(_ element: XCUIElement, _ name: String) {
+        for _ in 0..<8 where !(element.exists && element.isHittable) { app.swipeUp() }
+        XCTAssertTrue(element.exists && element.isHittable, "\(name) reachable in the editor")
+        element.tap()
+    }
 
     private func anyElement(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
