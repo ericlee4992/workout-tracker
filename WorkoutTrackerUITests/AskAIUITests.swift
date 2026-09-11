@@ -89,7 +89,8 @@ final class AskAIUITests: XCTestCase {
     /// button — so no ask can happen — and Settings shows the feature on.
     func testAPreselectedPlateNeverOffersAskAI() {
         launch([])
-        app.tabBars.buttons["Gyms"].tap()
+        app.tabBars.buttons["Workout"].tap()
+        app.buttons["openSettings"].tap()
         let settings = app.descendants(matching: .any).matching(identifier: "askAISettings").firstMatch
         XCTAssertTrue(settings.waitForExistence(timeout: 5), "the Ask AI row is in Settings")
         XCTAssertTrue(settings.label.contains("On"), "a saved key shows as On, got: \(settings.label)")

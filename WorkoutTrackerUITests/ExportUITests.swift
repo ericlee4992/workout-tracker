@@ -19,12 +19,14 @@ final class ExportUITests: XCTestCase {
     }
 
     func testExportSectionProducesAShareableFile() {
-        app.tabBars.buttons["Gyms"].tap()
+        // Ticket 05: Settings (with Export) is behind the gear on the Workout tab.
+        app.tabBars.buttons["Workout"].tap()
+        app.buttons["openSettings"].tap()
 
         let summary = app.staticTexts["exportSummary"]
         XCTAssertTrue(
             summary.waitForExistence(timeout: 5),
-            "The Gyms screen should carry the export section")
+            "The Settings screen should carry the export section")
         XCTAssertEqual(
             summary.label, "0 workouts · 0 sets",
             "An empty store should say so rather than showing nothing")

@@ -95,6 +95,17 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-04-start")
     }
 
+    /// Settings behind the gear on the Workout tab (ticket 05).
+    func test05_settings() {
+        launch()
+        app.tabBars.buttons["Workout"].tap()
+        let gear = app.buttons["openSettings"]
+        XCTAssertTrue(gear.waitForExistence(timeout: 10))
+        gear.tap()
+        XCTAssertTrue(anyElement("heartRateZonesSettings").waitForExistence(timeout: 5))
+        shoot("redesign-05-settings")
+    }
+
     /// History list, the calendar, a workout's detail and the progress chart,
     /// all from the chart fixture (four weeks of one exercise).
     func test05_history() {
@@ -136,7 +147,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-05-detail-heart-rate")
     }
 
-    /// The Gyms tab (with Settings below), a gym's detail, and the Exercises tab.
+    /// The Gyms tab, a gym's detail, and the Exercises tab (Settings left the Gyms list in ticket 05).
     func test06_gymsAndExercises() {
         launch()
         createGym()

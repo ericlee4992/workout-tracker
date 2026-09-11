@@ -1,9 +1,9 @@
 import SwiftData
 import SwiftUI
 
-/// Milestone 3, ticket 02 — the export block, rendered as one `Section` on the
-/// Gyms screen beside `AppSettingsSection` (where app-level settings already
-/// live). Tapping a format builds the file on the spot and hands it to the
+/// Milestone 3, ticket 02 — the export block, rendered as one `Section` of
+/// `SettingsView` beside `AppSettingsSection` (it sat at the foot of the Gyms
+/// list until UI-redesign ticket 05, 2026-09-10). Tapping a format builds the file on the spot and hands it to the
 /// system share sheet; "Save to Files → iCloud Drive" is the backup this
 /// milestone exists for.
 struct ExportSection: View {
@@ -98,8 +98,8 @@ struct ExportSection: View {
     }
 
     /// Counts straight from the store — cheaper than materialising every set
-    /// row into a `@Query` on a screen that is mostly about gyms. Re-runs each
-    /// time the Gyms tab is selected (SwiftUI restarts `.task` on reappearance)
+    /// row into a `@Query` for one footnote. Re-runs each time Settings is
+    /// pushed (the screen is built afresh on every push, so `.task` restarts)
     /// and again after an export, which is every moment the number is looked at;
     /// logging happens in a full-screen cover, so it cannot go stale on screen.
     private func refreshSummary() {

@@ -17,6 +17,7 @@ struct StartWorkoutView: View {
         filter: #Predicate<Workout> { $0.finishedAt == nil },
         sort: [SortDescriptor(\Workout.startedAt, order: .reverse)])
     private var activeWorkouts: [Workout]
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedGym: Gym?
     /// D1: the stored pick is read once per screen lifetime — re-reading it
     /// would fight the user's in-session choice.
@@ -119,6 +120,19 @@ struct StartWorkoutView: View {
             .listRowSeparator(.hidden)
             .background(Theme.background)
             .navigationTitle("Workout")
+            // Ticket 05: Settings behind a gear here, not at the foot of the
+            // Gyms list (the user's choice, 2026-09-10).
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink {
+                        SettingsView()
+                    } label: {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityLabel("Settings")
+                    .accessibilityIdentifier("openSettings")
+                }
+            }
             .confirmationDialog(
                 "A workout is already in progress",
                 isPresented: $showingResumeDialog,
@@ -152,8 +166,23 @@ struct StartWorkoutView: View {
             resumeActive()
         } label: {
             HStack {
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .foregroundStyle(.tint)
+                // Ticket 04: a live workout gets a pulsing accent dot beside
+                // the figure — the banner is the one thing on the screen that
+                // is happening right now.
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "figure.strengthtraining.traditional")
+                        .font(.title2)
+                        .foregroundStyle(Theme.accent)
+                        .frame(width: 44, height: 44)
+                        .background(Theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(Theme.accent)
+                        // Explicitly still under Reduce Motion (codex-review-0405).
+                        .symbolEffect(.pulse, options: .repeating, isActive: !reduceMotion)
+                        .offset(x: 2, y: -2)
+                        .accessibilityHidden(true)
+                }
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Resume workout")
                         .font(.headline)

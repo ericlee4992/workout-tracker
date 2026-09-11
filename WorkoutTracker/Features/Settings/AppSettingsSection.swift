@@ -2,8 +2,9 @@ import SwiftData
 import SwiftUI
 
 /// The app-wide preference block (unit default, global rest durations, drift
-/// prompt suppression) rendered as one `Section` — it lives on the Gyms
-/// screen, but nothing in it is about a gym. Every control writes through the
+/// prompt suppression) rendered as one `Section` of `SettingsView` (behind
+/// the gear on the Workout tab since UI-redesign ticket 05; before that it sat
+/// at the foot of the Gyms list, where nothing was about a gym). Every control writes through the
 /// canonical `AppPreferences` row (duplicates resolved by `CanonicalRow`).
 struct AppSettingsSection: View {
     @Environment(\.modelContext) private var modelContext
@@ -85,9 +86,9 @@ struct AppSettingsSection: View {
                 }
                 .accessibilityIdentifier("dumbbellMoveNote")
             }
-        } header: {
-            Text("Settings")
         }
+        // No header: the screen's title already says "Settings" (ticket 05);
+        // the header only earned its place at the foot of the Gyms list.
     }
 
     /// What the zones would currently be computed against, so the row says

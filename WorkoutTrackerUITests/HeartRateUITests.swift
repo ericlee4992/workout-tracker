@@ -182,7 +182,8 @@ final class HeartRateUITests: XCTestCase {
     /// A date of birth is not a thing to enter mid-set, so the same screen is
     /// reachable from Settings — and independently of whether a zone exists.
     func testZonesAreReachableFromSettings() {
-        app.tabBars.buttons["Gyms"].tap()
+        app.tabBars.buttons["Workout"].tap()
+        app.buttons["openSettings"].tap()
         let row = app.buttons["heartRateZonesSettings"].firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
