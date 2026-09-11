@@ -1,6 +1,6 @@
 # 06 — History: cards, the calendar, the detail, the progress chart
 
-Status: in review — gates green, screenshots sent; Codex round 1 and the full suite pending
+Status: Codex clear after 3 rounds (codex-review-06, 06b, 06c); unit 707/707 on the final tree; full UI suite before merge (result in STATE)
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 06, on the chosen Ink / Amber system.
 
@@ -92,3 +92,11 @@ future-day numerals 15.6:1, accent ring 9.8:1, grey rings 8.8:1); one new P3.
   the 40 pt cell (`strokeBorder`, no negative padding); under a ring the disc is inset 4 pt, so
   the 2 pt gap of card between amber and ring is kept and nothing is painted beyond the cell.
   `HistoryCalendarUITests` 2/2 + the calendar capture re-run.
+
+## Codex review 06c — response (2026-09-11)
+
+`codex-review-06c.md`: **clear** — the ring is confined to the cell (≈ 4.4 pt between
+neighbours at 375 pt), the inset disc keeps its 2 pt card gap and the verified contrast. Codex
+notes a marked-today AccessibilityL capture would be the only way to PROVE two-digit numerals fit
+the 32 pt inset disc; the text frame is unchanged from before the redesign, and no fixture puts
+a workout on today — left as noted, not built.
