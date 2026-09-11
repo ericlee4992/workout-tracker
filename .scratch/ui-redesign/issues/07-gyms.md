@@ -1,6 +1,6 @@
 # 07 — Gyms: gym cards, machine cards, deleted machines
 
-Status: Codex clear after 2 rounds (codex-review-07, 07b); gates green; full UI suite before merge (result in STATE)
+Status: resolved — Codex clear after 2 rounds (codex-review-07, 07b); unit 707/707; full UI suite 59/59 on `0915643`; merged to main 2026-09-11
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 07, on the chosen Ink / Amber system.
 
