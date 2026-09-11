@@ -14,10 +14,10 @@ def main(out):
     s = SIZE * scale
     img = Image.new("RGB", (s, s), INK)
     d = ImageDraw.Draw(img)
-    # The dumbbell: a bar, two inner plates, two outer plates, per side.
+    # The dumbbell: a bar running under every plate, two plates a side.
     cy = s // 2
     bar_h = int(s * 0.085)
-    d.rounded_rectangle([int(s * 0.25), cy - bar_h // 2, int(s * 0.75), cy + bar_h // 2],
+    d.rounded_rectangle([int(s * 0.12), cy - bar_h // 2, int(s * 0.88), cy + bar_h // 2],
                         radius=bar_h // 2, fill=AMBER_DEEP)
     plate_w = int(s * 0.085)
     inner_h = int(s * 0.44)

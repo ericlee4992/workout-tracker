@@ -36,9 +36,12 @@ struct ExercisePresetsSheet: View {
             List {
                 Section {
                     if presets.isEmpty {
-                        Text("No presets yet. Without any, this exercise is logged as one thing.")
-                            .foregroundStyle(.secondary)
+                        // UI redesign ticket 09: the illustration; same string, same id.
+                        EmptyState(title: "No presets yet. Without any, this exercise is logged as one thing.",
+                                   symbol: "slider.horizontal.3")
                             .accessibilityIdentifier("noPresets")
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
                     }
                     ForEach(presets) { preset in
                         Text(preset.name)

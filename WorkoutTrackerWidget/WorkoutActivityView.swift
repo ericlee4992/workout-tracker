@@ -17,6 +17,14 @@ private enum ActivityTheme {
     static let accent = Color(red: 0xFF / 255, green: 0xB4 / 255, blue: 0x5E / 255)
 }
 
+extension View {
+    /// The Lock Screen content sits on a FIXED ink background, so its text
+    /// must not follow the host's appearance — in a light Lock Screen
+    /// appearance `.primary` would turn dark on near-black (codex-review-09).
+    /// Forcing the dark scheme resolves `.primary` / `.secondary` to light.
+    func onInk() -> some View { environment(\.colorScheme, .dark) }
+}
+
 struct WorkoutActivityView: View {
     let state: WorkoutActivityAttributes.ContentState
     let attributes: WorkoutActivityAttributes
@@ -81,6 +89,7 @@ struct WorkoutLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
             WorkoutActivityView(state: context.state, attributes: context.attributes)
+                .onInk()
                 .activityBackgroundTint(ActivityTheme.background)
                 .activitySystemActionForegroundColor(ActivityTheme.accent)
         } dynamicIsland: { context in

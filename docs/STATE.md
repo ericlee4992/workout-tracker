@@ -1,9 +1,11 @@
 # Where the project is right now
 
-Updated 2026-09-11 morning (UI redesign: 01+02 installed; 03–08 merged, not installed; next 09, the last; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-11 morning (UI redesign: 01+02 installed; 03–08 merged, not installed; 09 built and in Codex review on `ui-redesign-09`; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-000000. **HANDOFF 2026-09-11 (morning) — tickets 03–08 MERGED to `main`; NOT installed. Next:
-   ticket 09 (empty states, app icon, Live Activity tint, docs) — the last redesign ticket.**
+000000. **HANDOFF 2026-09-11 (morning) — tickets 03–08 MERGED to `main`; NOT installed. Ticket
+   09 (empty states, app icon, Live Activity tint, docs) — the last — is BUILT on
+   `ui-redesign-09`, gates 12/12, Codex round 1 answered (`issues/09-…md`); round 2 + the full
+   suite pending, then merge.**
    - **`main` = ticket 08 (`ui-redesign-08`, pushed). The phone still runs `84610c9` (tickets
      01 + 02).** Install when the user says so (`./scripts/install-on-device.sh`; profiles good
      to 09-17). The user approved the 04/05 shots; 06, 07 and 08 shots were sent — no reaction

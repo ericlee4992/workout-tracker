@@ -73,18 +73,21 @@ Four levels:
 
 ## Visual design (D54)
 
-One system, dark only, one warm accent. Every screen sits on ink (`SurfaceBackground`) and is
-built from cards (`.card()`), chips (`Chip`, `UnitChip`), stat tiles, progress rings, `EmptyState`
-illustrations and two button styles (`.primary` amber, `.secondary` fill); the accent is amber
-`#FFB45E` with near-black text on it, warmup is yellow so it never reads as the accent, heart rate
-is red, and every muscle group has a fixed colour and SF Symbol (`MuscleGroupStyle`) that appears
-wherever an exercise is named. Motion and haptics mark the moments that matter (a set completed,
-a workout started, the rest timer). The design adds shape, colour and motion, never words: the
-copy policy and D52's plain numbers stand, and every visible string and accessibility identifier
-the UI tests read is unchanged. Layouts adapt to Dynamic Type (chips wrap, rows stack at
-accessibility sizes, tiles scale with their glyphs); each screen has an AccessibilityL capture in
-`.scratch/ui-redesign/screenshots/`. The app icon is an amber dumbbell on ink, rendered by
-`scripts/render-app-icon.py`; the Live Activity carries the same two colours as literals.
+One system, dark only, one warm accent. The app's screens sit on ink (`SurfaceBackground`) and
+are built from cards (`.card()`), chips (`Chip`, `UnitChip`), stat tiles, progress rings,
+`EmptyState` illustrations and two button styles (`.primary` amber, `.secondary` fill); the
+editors and the Presets and Previous Performance sheets are native Forms and keep the system
+look. The accent is amber `#FFB45E` with near-black text on it, warmup is yellow so it never reads
+as the accent, heart rate is red, and every muscle group has a fixed colour and SF Symbol
+(`MuscleGroupStyle`) shown wherever exercises are listed. Motion and haptics mark the moments that
+matter (a set completed, a workout started, the rest timer). The design adds shape, colour and
+motion, never words: the copy policy and D52's plain numbers stand, and every visible string and
+accessibility identifier the UI tests read is unchanged. Layouts adapt to Dynamic Type (chips
+wrap, rows stack at accessibility sizes, tiles scale with their glyphs); the active workout, the
+finish receipt, Start, History and its detail, Gyms and its detail, and Exercises have
+AccessibilityL captures in `.scratch/ui-redesign/screenshots/`. The app icon is an amber dumbbell
+on ink, rendered by `scripts/render-app-icon.py`; the Live Activity carries the same two colours
+as literals.
 
 ## Technical direction
 

@@ -10,9 +10,14 @@ redesign ticket.
 - **Empty states**: the three remaining plain texts → `EmptyState`, byte-identical strings:
   "No machines yet" in `AddByMachineSheet` and `MachinePickerSheet` (dumbbell), "Nothing
   deleted" in `DeletedMachinesView` (trash). `MachineDeletionUITests` reads both as staticTexts
-  — `EmptyState` renders its title as `Text`. No `ContentUnavailableView` remains in the app
-  (History, Gyms and the chart went in 06/07). The empty Gyms tab has never had a string; giving
-  it one would be new copy, so it keeps its single "Add Gym…" hero.
+  — `EmptyState` renders its title as `Text`. Also "No presets yet. Without any, this exercise
+  is logged as one thing." in `ExercisePresetsSheet` (same string, `noPresets` kept). No
+  `ContentUnavailableView` remains in the app (History, Gyms and the chart went in 06/07).
+  **Exception, recorded here**: `PreviousPerformanceSheet`'s five per-layer messages ("No
+  completed sets on this machine yet." …) stay plain text — they repeat once per layer inside a
+  native sheet, and five illustrations stacked would drown the one snapshot the sheet is for.
+  The empty Gyms tab has never had a string; giving it one would be new copy, so it keeps its
+  single "Add Gym…" hero.
 - **App icon**: `scripts/render-app-icon.py` (PIL) draws a 1024² ink `#0A0A0C` tile with an
   amber dumbbell (a bar in the deeper amber, two plates a side) → committed as
   `Assets.xcassets/AppIcon.appiconset/AppIcon.png` with `"filename"` in `Contents.json`; run the
@@ -37,3 +42,22 @@ redesign ticket.
 Gates on `ui-redesign-09`: `MachineDeletionUITests` 2/2 (both empty texts read),
 `CoreLoopUITests` 9/9, `test08_emptyStates` — 12/12. Screenshots `screenshots/09/`; the icon
 PNG sent to the user. Full suite: see STATE.
+
+## Codex review 09 — response (2026-09-11)
+
+`codex-review-09.md`: standards clear; two P2s, three P3s.
+
+- **P2, the Live Activity's text followed the host appearance on a fixed ink background.**
+  The Lock Screen content now runs `.environment(\.colorScheme, .dark)` (`onInk()`), so
+  `.primary` / `.secondary` resolve light whatever the Lock Screen appearance.
+- **P2, the sweep missed "No presets yet…"** — now an `EmptyState` (same string, `noPresets`
+  kept; `ExercisePresetUITests` reads it). The Previous Performance layer messages are the
+  documented exception above.
+- **P3, the icon's shaft stopped short of the outer plates** — it runs under every plate now;
+  regenerated.
+- **P3, SPEC overclaims** — narrowed: the native Forms keep the system look, symbols appear
+  "wherever exercises are listed", the AccessibilityL captures are named screen by screen.
+- **P3, D54 / STATE** — D54 now says who reviewed what (01/02 Codex-built, Claude-reviewed;
+  03–09 the reverse); STATE says 09 is in review, and is finalised only after the gates.
+- Gates after the fixes: `MachineDeletionUITests` 2/2, `ExercisePresetUITests` 3/3 (reads
+  `noPresets`) — 5/5.
