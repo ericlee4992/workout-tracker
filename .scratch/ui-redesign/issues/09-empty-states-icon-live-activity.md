@@ -1,6 +1,6 @@
 # 09 — Empty states, app icon, Live Activity tint, docs
 
-Status: in review — gates green; Codex round 1 and the full suite pending
+Status: resolved — Codex clear after 3 rounds (codex-review-09, 09b, 09c); unit 707/707; full UI suite 61/61 on `dcb8c8b`; merged to main 2026-09-11
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 09, on the chosen Ink / Amber system. The last
 redesign ticket.
@@ -67,3 +67,7 @@ PNG sent to the user. Full suite: see STATE.
 `codex-review-09b.md`: four of five closed; the P3 on D54 remained — it still said 01–09
 "each cross-reviewed to clear" while 09 was in review. D54 now records 01–08 as cleared and 09
 as in review on its branch; the row is finalised (one sentence) when 09 merges.
+
+## Codex review 09c — response (2026-09-11)
+
+`codex-review-09c.md`: **clear**. D54 finalised in the merge commit.

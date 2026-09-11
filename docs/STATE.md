@@ -1,47 +1,44 @@
 # Where the project is right now
 
-Updated 2026-09-11 morning (UI redesign: 01+02 installed; 03–08 merged, not installed; 09 built and in Codex review on `ui-redesign-09`; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-11 mid-morning (UI redesign COMPLETE on main, tickets 01–09; the phone still runs 01+02 — install when the user says so; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-000000. **HANDOFF 2026-09-11 (morning) — tickets 03–08 MERGED to `main`; NOT installed. Ticket
-   09 (empty states, app icon, Live Activity tint, docs) — the last — is BUILT on
-   `ui-redesign-09`, gates 12/12, Codex round 1 answered (`issues/09-…md`); round 2 + the full
-   suite pending, then merge.**
-   - **`main` = ticket 08 (`ui-redesign-08`, pushed). The phone still runs `84610c9` (tickets
-     01 + 02).** Install when the user says so (`./scripts/install-on-device.sh`; profiles good
-     to 09-17). The user approved the 04/05 shots; 06, 07 and 08 shots were sent — no reaction
-     yet beyond "everything going well?".
-   - **Ticket 08 (Exercises + pickers)**: `issues/08-exercises-and-sheets.md`. `ExerciseRow`
-     = `MuscleIcon` + name + body-area caption + equipment `Chip`s (+ an accent load-type chip
-     when not weighted), flowing in the new `Features/Design/WrapLayout.swift` (a `Layout` that
-     wraps); themed picker lists; "Use this bar" `.primary`; `MuscleIcon`'s tile is a
-     `@ScaledMetric` (it was smaller than its glyph at AXL); `TemplateRow` wraps its icon strip
-     and stacks Start at accessibility sizes. Captures `test07_exercisesLargeText`,
-     `test04_startLargeText`. Codex 2 rounds (`codex-review-08`, `08b`). Full UI **61/61**.
-   - **Ticket 07 (Gyms)** and **06 (History)** merged earlier tonight — see their ticket files;
-     lessons: a card carrying an id needs `.accessibilityElement(children: .contain)`; the chart
-     is monotone; calendar rings stay inside the cell.
-   - **Running xcodebuild from this harness**: background tasks get stopped from outside —
-     launch every test run DETACHED (a script + `python3 -c "subprocess.Popen([script],
-     start_new_session=True, ...)"`; macOS has no `setsid`; the script appends `… DONE <code>`
-     to a status file) and poll that file in ≤ 5-min foreground waits. Do not run the unit suite
-     while Codex and a UI build compete for the machine: the HeartRateMonitor tests are
-     wall-clock (46 s under load) and flaked TWICE tonight — always green alone.
+000000. **HANDOFF 2026-09-11 (mid-morning) — THE UI REDESIGN IS COMPLETE ON `main` (tickets
+   01–09); NOT installed. Next: install when the user says so, then the user's reaction.**
+   - **`main` = ticket 09 (`ui-redesign-09`, pushed; every redesign branch is pushed and
+     fast-forward-merged, zero merge commits).** The phone still runs `84610c9` (tickets 01 + 02).
+     Install with `./scripts/install-on-device.sh` when the user says so (profiles good to
+     09-17; the app icon changes, so the home screen will show the amber dumbbell). Screenshots
+     for 06, 07, 08 and 09 and the icon were sent; the user has only said "keep going" — ask for
+     a reaction on the phone.
+   - **Ticket 09 (the last)**: `issues/09-empty-states-icon-live-activity.md` — the last plain
+     "No … yet" texts → `EmptyState` (Previous Performance's per-layer messages are the recorded
+     exception); `scripts/render-app-icon.py` → `AppIcon.png` (amber dumbbell on ink; run the
+     script to regenerate); the Live Activity in the app's two colours as literals, its Lock
+     Screen content forced to the dark scheme; SPEC "Visual design (D54)" paragraph; D54 final.
+     Codex 3 rounds; unit 707/707; full UI suite **61/61**.
+   - **The whole redesign, for the record**: 01 design system + 02 active workout (Codex built,
+     Claude reviewed, chosen from a side-by-side board), 03 finish summary, 04/05 gear + Settings
+     screen, 06 History, 07 Gyms, 08 Exercises + pickers, 09 the rest — each with a ticket file,
+     screenshots (`screenshots/<ticket>/`, AccessibilityL captures per screen), Codex reviews
+     (`codex-review-<ticket>*.md`) and the full suite before merge. Departures from the plan, all
+     recorded: monotone chart; amber (not coral) icon and Live Activity; the model as a caption
+     at accessibility sizes; today's calendar ring in `Theme.secondary`.
+   - **Follow-ups the reviews surfaced, none blocking**: the empty Gyms tab has no illustration
+     (adding a string is new copy — ask the user); `Gym.activeMachines.count` sorts per row (fine
+     for a personal list); no four-tag exercise exists to capture `WrapLayout` at width; the
+     Live Activity's Lock Screen rendering on wallpaper is unverified by capture. Codex's Orca
+     worktree from the design bake-off (`~/orca/workspaces/Health App/ui-redesign-codex`) can be
+     removed (`orca worktree rm`).
+   - **Running xcodebuild from this harness**: launch every test run DETACHED (a script +
+     `python3 -c "subprocess.Popen([script], start_new_session=True, ...)"`; macOS has no
+     `setsid`; the script appends `… DONE <code>` to a status file) and poll that file in ≤ 5-min
+     foreground waits — background tasks get stopped from outside. Do not run the unit suite
+     while Codex and a UI build compete for the machine (the HeartRateMonitor tests are
+     wall-clock and flaked twice tonight; always green alone).
    - **Codex reviews: ONE terminal per ticket** — `orca terminal create --worktree active
      --command codex --title "…" --json` → `orca terminal send --terminal <handle> --text
-     "$(cat prompt.md)" --enter --wait-submit 20` → poll the report file (never the TUI) →
-     `orca terminal close --terminal <handle>` when the ticket merges. All closed.
-   - **Next: ticket 09** — `spec.md` ticket 09. (a) Empty states: the remaining plain
-     "No machines yet" texts in `AddByMachineSheet` + `MachinePickerSheet` → `EmptyState`
-     (byte-identical strings; `MachineDeletionUITests` reads the staticText); "Nothing deleted"
-     in `DeletedMachinesView`; the empty Gyms tab has NO string today — adding one is new copy,
-     so leave it or ask. (b) App icon: a renderer is drafted in this session's scratchpad
-     (`render-app-icon.py`: 1024² ink `#0A0A0C` tile, amber dumbbell — the plan said coral; D54
-     is amber) → commit as `scripts/render-app-icon.py` + `Assets.xcassets/AppIcon.appiconset/
-     AppIcon.png` + `"filename"` in its Contents.json. (c) Live Activity
-     (`WorkoutTrackerWidget/WorkoutActivityView.swift`): background = SurfaceBackground
-     (`#0B0D10`) and accent `#FFB45E` as hex literals (the widget target has no asset catalog);
-     the red heart → accent or keep red (Danger). (d) SPEC "Visual design" paragraph, D54
-     finalised, STATE. Gates: MachineDeletion + the full suite; captures `test08_emptyStates`.
+     "$(cat prompt.md)" --enter --wait-submit 20` → poll the report file → `orca terminal close`.
+     All closed.
 
 00000. **UI REDESIGN — the user chose Codex's "Ink / Amber" (2026-09-10); MERGED to `main`
    the same day (tickets 01 + 02 + Start-lite) and INSTALLED, launch-verified 2026-09-10 evening
