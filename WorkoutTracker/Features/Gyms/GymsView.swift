@@ -5,23 +5,36 @@ struct GymsView: View {
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
     private var gyms: [Gym]
     @State private var showingAddGym = false
+    /// UI redesign ticket 07: the rows are Buttons that push through this
+    /// path (a List draws a NavigationLink's chevron outside its label, so a
+    /// link could not be a whole card); the destination is unchanged.
+    @State private var path: [UUID] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             List {
                 Section {
                     ForEach(gyms) { gym in
-                        NavigationLink(value: gym.id) {
+                        Button {
+                            path.append(gym.id)
+                        } label: {
                             GymRow(gym: gym)
                         }
+                        .buttonStyle(.plain)
                         .accessibilityIdentifier("gymRow.\(gym.name)")
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                     }
-                    Button("Add Gym…", systemImage: "plus") {
-                        showingAddGym = true
-                    }
-                    .accessibilityIdentifier("addGym")
+                    addGymButton
+                        .accessibilityIdentifier("addGym")
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("Gyms")
             .navigationDestination(for: UUID.self) { gymID in
                 if let gym = gyms.first(where: { $0.id == gymID }) {
@@ -33,32 +46,68 @@ struct GymsView: View {
             }
         }
     }
+
+    /// The one action on an empty Gyms screen is the hero; beside gyms it
+    /// steps back.
+    @ViewBuilder
+    private var addGymButton: some View {
+        let button = Button("Add Gym…", systemImage: "plus") { showingAddGym = true }
+        if gyms.isEmpty {
+            button.buttonStyle(.primary)
+        } else {
+            button.buttonStyle(.secondary)
+        }
+    }
 }
 
+/// UI redesign ticket 07: a card — the pin tile the Start screen uses for
+/// the chosen gym, name, city, a machine-count chip, the unit badge.
 private struct GymRow: View {
     var gym: Gym
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
+        let machines = gym.activeMachines.count
+        HStack(spacing: Theme.Space.medium) {
+            Image(systemName: "mappin.and.ellipse")
+                .font(.title2)
+                .foregroundStyle(Theme.accent)
+                .frame(width: 44, height: 44)
+                .background(Theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 4) {
                 Text(gym.name)
-                    .font(.headline)
+                    .font(Theme.cardTitle)
                 if let city = gym.city {
                     Text(city)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondary)
+                }
+                HStack(spacing: 6) {
+                    Chip {
+                        HStack(spacing: 4) {
+                            Image(systemName: "dumbbell.fill")
+                            Text("\(machines)").monospacedDigit()
+                        }
+                    }
+                    .accessibilityLabel("\(machines) machine\(machines == 1 ? "" : "s")")
+                    if let unit = gym.defaultUnit {
+                        UnitBadge(unit: unit)
+                    } else {
+                        Text("app default")
+                            .font(.caption)
+                            .foregroundStyle(Theme.tertiary)
+                    }
                 }
             }
-            Spacer()
-            if let unit = gym.defaultUnit {
-                UnitBadge(unit: unit)
-            } else {
-                Text("app default")
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-            }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.tertiary)
         }
-        .padding(.vertical, 2)
+        .padding(Theme.Space.inset)
+        .card()
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .accessibilityElement(children: .contain)
     }
 }
 
@@ -105,6 +154,8 @@ struct GymDetailView: View {
                 }
                 .accessibilityIdentifier("editGym")
             }
+            .listRowBackground(Theme.card)
+            .listRowSeparatorTint(Theme.hairline)
 
             // Ticket 21: a 30-machine gym is only scannable grouped, and a
             // 3-machine gym does not want headers at all — hence A–Z as a
@@ -114,22 +165,35 @@ struct GymDetailView: View {
                     ForEach(section.rows) { row in
                         if let machine = machinesByID[row.id] {
                             machineRow(machine)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                         }
                     }
                 } header: {
                     Text(section.title ?? "Machines")
+                        .font(Theme.label)
+                        .foregroundStyle(Theme.secondary)
+                        .textCase(.uppercase)
                 }
             }
 
             Section {
                 if gym.activeMachines.isEmpty {
-                    Text("No machines yet")
-                        .foregroundStyle(.secondary)
+                    // UI redesign ticket 07: the symbol illustration; the
+                    // string is the one this screen always had.
+                    EmptyState(title: "No machines yet", symbol: "dumbbell")
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
                 Button("Add Machine…", systemImage: "plus") {
                     showingAddMachine = true
                 }
+                .buttonStyle(.primary)
                 .accessibilityIdentifier("addMachine")
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 // Deleted = archived (D10): one tap from coming back.
                 if !gym.archivedMachines.isEmpty {
                     NavigationLink {
@@ -138,6 +202,7 @@ struct GymDetailView: View {
                         Label("Deleted machines (\(gym.archivedMachines.count))", systemImage: "trash")
                     }
                     .accessibilityIdentifier("deletedMachines")
+                    .listRowBackground(Theme.card)
                 }
             } footer: {
                 // Model-less machines are allowed: when logging machine-first
@@ -145,6 +210,8 @@ struct GymDetailView: View {
                 Text("The model is optional — a machine without one asks for the exercise when you log with it.")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle(gym.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -229,21 +296,40 @@ struct GymDetailView: View {
         }
     }
 
+    /// UI redesign ticket 07: a card — label, the model as a chip (or the
+    /// "No model" caption), the unit badge. Strings and ids unchanged.
     private func machineRow(_ machine: MachineInstance) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
+        HStack(spacing: Theme.Space.medium) {
+            Image(systemName: "dumbbell.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 40, height: 40)
+                .background(Theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 6) {
                 Text(machine.label)
-                    .font(.body.weight(.medium))
-                Text(machine.model?.displayName ?? "No model")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(Theme.cardTitle)
+                if let model = machine.model {
+                    Chip { Text(model.displayName).lineLimit(1).minimumScaleFactor(0.85) }
+                } else {
+                    Text("No model")
+                        .font(.caption)
+                        .foregroundStyle(Theme.tertiary)
+                }
             }
-            Spacer()
+            Spacer(minLength: 0)
             if let unit = machine.defaultUnit {
                 UnitBadge(unit: unit)
             }
         }
-        .padding(.vertical, 2)
+        .padding(Theme.Space.inset)
+        .card()
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        // The card is the element that carries the id (its children stay
+        // reachable): on a bare container the id propagates to the FIRST
+        // child — the 40 pt tile — and a test's swipe on it is too short to
+        // reveal Delete (MachineDeletionUITests, seen 2026-09-11).
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("machineRow.\(machine.label)")
         .machineDeleteActions(machine) { deletingMachine = $0 }
         .contextMenu {
@@ -721,6 +807,9 @@ struct ModelPickerView: View {
                 Button("New Model…", systemImage: "plus") {
                     showingAddModel = true
                 }
+                .buttonStyle(.secondary)
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
             } footer: {
                 Text("Can't find the machine's model? Add it — your models live alongside the catalog.")
             }

@@ -65,29 +65,38 @@ struct DeletedMachinesView: View {
     var body: some View {
         List {
             Section {
+                // UI redesign ticket 07: cards; strings and ids unchanged.
                 ForEach(gym.archivedMachines) { machine in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: Theme.Space.medium) {
+                        VStack(alignment: .leading, spacing: 4) {
                             Text(machine.label)
-                                .font(.body.weight(.medium))
+                                .font(Theme.cardTitle)
                             Text(machine.model?.displayName ?? "No model")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(Theme.secondary)
                         }
-                        Spacer()
+                        Spacer(minLength: 0)
                         Button("Restore") { restore(machine) }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.secondary)
                             .accessibilityIdentifier("restoreMachine.\(machine.label)")
                     }
+                    .padding(Theme.Space.inset)
+                    .card()
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 }
                 if gym.archivedMachines.isEmpty {
                     Text("Nothing deleted")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondary)
+                        .listRowBackground(Color.clear)
                 }
             } footer: {
                 Text("A restored machine returns to the pickers as it was. Your history never left.")
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle("Deleted Machines")
         .navigationBarTitleDisplayMode(.inline)
     }
