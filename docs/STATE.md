@@ -1,44 +1,45 @@
 # Where the project is right now
 
-Updated 2026-09-11 early morning (UI redesign: 01+02 installed; 03, 04/05, 06, 07 merged, not installed; next 08 Exercises; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-11 morning (UI redesign: 01+02 installed; 03–08 merged, not installed; next 09, the last; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-000000. **HANDOFF 2026-09-11 (early morning) — tickets 03, 04/05, 06, 07 MERGED to `main`;
-   NOT installed. Next: ticket 08 (Exercises + sheets), then 09.**
-   - **`main` = ticket 07 (`ui-redesign-07`, pushed). The phone still runs `84610c9` (tickets
+000000. **HANDOFF 2026-09-11 (morning) — tickets 03–08 MERGED to `main`; NOT installed. Next:
+   ticket 09 (empty states, app icon, Live Activity tint, docs) — the last redesign ticket.**
+   - **`main` = ticket 08 (`ui-redesign-08`, pushed). The phone still runs `84610c9` (tickets
      01 + 02).** Install when the user says so (`./scripts/install-on-device.sh`; profiles good
-     to 09-17). The user approved the 04/05 shots ("looks good"); the 06 and 07 shots were
-     sent — **no reaction yet.**
-   - **Ticket 07 (Gyms)**: `issues/07-gyms.md`. Gym cards (pin tile, machine-count chip, unit
-     badge; `Button` + `path`), machine cards (dumbbell tile, the model as a `Chip` at standard
-     sizes and a wrapping caption at accessibility sizes — Codex's P2), `EmptyState` for "No
-     machines yet", `.primary` Add Machine (Add Gym `.primary` only when empty), deleted-machines
-     cards. **Lesson**: a card that carries an id must be `.accessibilityElement(children:
-     .contain)` — on a bare container the id propagates to the FIRST child (the 40 pt tile) and
-     a test's swipe on it is too short to reveal Delete (MachineDeletionUITests failed exactly
-     so). New capture `test06_gymsLargeText`. Codex: 2 rounds (`codex-review-07`, `07b`).
-     Unit 707/707; full UI suite **59/59**.
-   - **Ticket 06 (History)** merged earlier tonight: `issues/06-history.md`; Codex 3 rounds;
-     the chart is **monotone**, not the plan's catmullRom (it invents extrema); rings inside
-     the calendar cell; `test05_historyLargeText`. Full UI suite 58/58.
+     to 09-17). The user approved the 04/05 shots; 06, 07 and 08 shots were sent — no reaction
+     yet beyond "everything going well?".
+   - **Ticket 08 (Exercises + pickers)**: `issues/08-exercises-and-sheets.md`. `ExerciseRow`
+     = `MuscleIcon` + name + body-area caption + equipment `Chip`s (+ an accent load-type chip
+     when not weighted), flowing in the new `Features/Design/WrapLayout.swift` (a `Layout` that
+     wraps); themed picker lists; "Use this bar" `.primary`; `MuscleIcon`'s tile is a
+     `@ScaledMetric` (it was smaller than its glyph at AXL); `TemplateRow` wraps its icon strip
+     and stacks Start at accessibility sizes. Captures `test07_exercisesLargeText`,
+     `test04_startLargeText`. Codex 2 rounds (`codex-review-08`, `08b`). Full UI **61/61**.
+   - **Ticket 07 (Gyms)** and **06 (History)** merged earlier tonight — see their ticket files;
+     lessons: a card carrying an id needs `.accessibilityElement(children: .contain)`; the chart
+     is monotone; calendar rings stay inside the cell.
    - **Running xcodebuild from this harness**: background tasks get stopped from outside —
-     launch every test run DETACHED (`python3 -c "subprocess.Popen([script],
-     start_new_session=True, ...)"`; macOS has no `setsid`; write a `… DONE <code>` line to a
-     status file at the end) and poll the status file in ≤ 5-min foreground waits. Do not run
-     the unit suite while Codex and a UI build compete for the machine
-     (`HeartRateMonitorTests.samplesArriveAndBecomeTheCurrentReading` is wall-clock).
+     launch every test run DETACHED (a script + `python3 -c "subprocess.Popen([script],
+     start_new_session=True, ...)"`; macOS has no `setsid`; the script appends `… DONE <code>`
+     to a status file) and poll that file in ≤ 5-min foreground waits. Do not run the unit suite
+     while Codex and a UI build compete for the machine: the HeartRateMonitor tests are
+     wall-clock (46 s under load) and flaked TWICE tonight — always green alone.
    - **Codex reviews: ONE terminal per ticket** — `orca terminal create --worktree active
      --command codex --title "…" --json` → `orca terminal send --terminal <handle> --text
      "$(cat prompt.md)" --enter --wait-submit 20` → poll the report file (never the TUI) →
      `orca terminal close --terminal <handle>` when the ticket merges. All closed.
-   - **Next: ticket 08** — `spec.md` ticket 08: `MuscleIcon` + equipment-tag chips on every
-     exercise row (`ExerciseRow` in `Features/ActiveWorkout/ExercisePickerSheet.swift`, shared
-     by the Exercises tab, the exercise picker and the machine's exercise list); filter ids and
-     the "Search exercises" prompt stay; sheets' primary actions `.primary` (most are TOOLBAR
-     Save/Add/Done — leave those; in-list ones: BarPicker "Use this bar", the tab's "Add
-     Exercise…", pickers' "New Exercise…" / "Add Machine…" `.secondary`). Gates: ExercisePreset,
-     DumbbellCounterpart, CoreLoop; captures `test06_gymsAndExercises` (`07-exercises`) + an AXL
-     one. Then 09: remaining `ContentUnavailableView` / "No … yet" → `EmptyState` (byte-identical
-     strings), the app icon script, Live Activity tint, SPEC "Visual design", D54 final.
+   - **Next: ticket 09** — `spec.md` ticket 09. (a) Empty states: the remaining plain
+     "No machines yet" texts in `AddByMachineSheet` + `MachinePickerSheet` → `EmptyState`
+     (byte-identical strings; `MachineDeletionUITests` reads the staticText); "Nothing deleted"
+     in `DeletedMachinesView`; the empty Gyms tab has NO string today — adding one is new copy,
+     so leave it or ask. (b) App icon: a renderer is drafted in this session's scratchpad
+     (`render-app-icon.py`: 1024² ink `#0A0A0C` tile, amber dumbbell — the plan said coral; D54
+     is amber) → commit as `scripts/render-app-icon.py` + `Assets.xcassets/AppIcon.appiconset/
+     AppIcon.png` + `"filename"` in its Contents.json. (c) Live Activity
+     (`WorkoutTrackerWidget/WorkoutActivityView.swift`): background = SurfaceBackground
+     (`#0B0D10`) and accent `#FFB45E` as hex literals (the widget target has no asset catalog);
+     the red heart → accent or keep red (Danger). (d) SPEC "Visual design" paragraph, D54
+     finalised, STATE. Gates: MachineDeletion + the full suite; captures `test08_emptyStates`.
 
 00000. **UI REDESIGN — the user chose Codex's "Ink / Amber" (2026-09-10); MERGED to `main`
    the same day (tickets 01 + 02 + Start-lite) and INSTALLED, launch-verified 2026-09-10 evening

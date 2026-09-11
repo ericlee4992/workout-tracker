@@ -1,6 +1,6 @@
 # 08 — Exercises tab and the pickers/sheets
 
-Status: Codex clear after 2 rounds (codex-review-08, 08b); gates green; full UI suite before merge (result in STATE)
+Status: resolved — Codex clear after 2 rounds (codex-review-08, 08b); unit 707/707 (alone; the heart-rate timing tests flaked once under Codex + a UI build); full UI suite 61/61 on `e2c87bd`; merged to main 2026-09-11
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 08, on the chosen Ink / Amber system.
 
