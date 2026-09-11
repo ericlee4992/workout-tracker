@@ -1,6 +1,6 @@
 # 08 — Exercises tab and the pickers/sheets
 
-Status: in review — gates green, screenshots sent; Codex round 1 and the full suite pending
+Status: Codex clear after 2 rounds (codex-review-08, 08b); gates green; full UI suite before merge (result in STATE)
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 08, on the chosen Ink / Amber system.
 
@@ -65,3 +65,9 @@ the two captures + `test05_historyLargeText` (MuscleIcon host) — 6/6. Screensh
 - Gates re-run after both: `ExercisePresetUITests` 3/3, `DumbbellCounterpartUITests` 1/1,
   `CoreLoopUITests` 9/9, test04 + test04_startLargeText + test06 + test07_exercisesLargeText —
   16/16. `04-start-axl.png`: the strip wraps 4 + 1, Start under the text.
+
+## Codex review 08b — response (2026-09-11)
+
+`codex-review-08b.md`: **clear** — `WrapLayout`'s arithmetic checked case by case, both P2s
+closed, nothing new. (No four-tag exercise exists in the catalog to capture; the layout is the
+proof.)
