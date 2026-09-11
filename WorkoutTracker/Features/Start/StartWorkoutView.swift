@@ -378,11 +378,19 @@ private struct TemplateRow: View {
     var template: WorkoutTemplate
     var gymName: String
     var start: () -> Void
+    /// At accessibility sizes the Start button sits UNDER the text instead of
+    /// beside it, and the icon strip wraps — five scaled tiles no longer fit
+    /// one line (UI redesign ticket 08, codex-review-08).
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
-        HStack(alignment: .center) {
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Space.medium))
+            : AnyLayout(HStackLayout(alignment: .center))
+        layout {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 6) {
+                WrapLayout {
                     ForEach(Array(WorkoutTemplateService.orderedItems(of: template).prefix(5))) { item in
                         MuscleIcon(group: item.exercise?.muscleGroup)
                     }
@@ -399,7 +407,7 @@ private struct TemplateRow: View {
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
             }
-            Spacer()
+            if !stacked { Spacer() }
             Button("Start", action: start)
                 .buttonStyle(.primary)
         }

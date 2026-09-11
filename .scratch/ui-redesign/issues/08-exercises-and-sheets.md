@@ -47,3 +47,21 @@ Gates on `ui-redesign-08`: `ExercisePresetUITests` 3/3, `DumbbellCounterpartUITe
 16/16; after the AXL fixes (chip stacking, scaled tile): DumbbellCounterpart, ExercisePreset,
 the two captures + `test05_historyLargeText` (MuscleIcon host) — 6/6. Screenshots
 `screenshots/08/` — sent to the user. Full suite: see STATE.
+
+## Codex review 08 — response (2026-09-11)
+
+`codex-review-08.md`: two P2s (layout), everything else clear.
+
+- **P2, a four-tag row cannot fit one line at ordinary sizes** (the chips did not wrap or
+  compress). New `Features/Design/WrapLayout.swift` — a `Layout` that flows its children left to
+  right and wraps when the next would not fit, children at their ideal size. The row's caption +
+  chips use it at every size; the AXL-only VStack is gone (the load-type chip still joins the
+  flow at accessibility sizes, sits at the trailing edge otherwise).
+- **P2, the scaled `MuscleIcon` overflows Start's five-icon template strip at AccessibilityL**
+  (five ≈ 70 pt tiles ≈ 374 pt). `TemplateRow`'s strip is a `WrapLayout` too, and at
+  accessibility sizes the Start button sits under the text (`AnyLayout`). New capture
+  `test04_startLargeText` builds a five-exercise template through the editor at AccessibilityL
+  (`04-start-axl`).
+- Gates re-run after both: `ExercisePresetUITests` 3/3, `DumbbellCounterpartUITests` 1/1,
+  `CoreLoopUITests` 9/9, test04 + test04_startLargeText + test06 + test07_exercisesLargeText —
+  16/16. `04-start-axl.png`: the strip wraps 4 + 1, Start under the text.

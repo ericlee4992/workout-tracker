@@ -112,22 +112,20 @@ struct ExerciseRow: View {
     /// colour) beside the name, the equipment tags as chips, the load type as
     /// a chip when it is not the default. The body area is still SAID in the
     /// caption — the icon is accessibility-hidden — so a filtered list keeps
-    /// explaining itself to VoiceOver as it did. At accessibility sizes the
-    /// chips stack under the name (a chip never breaks mid-word) and the
-    /// load-type chip joins that column instead of squeezing the row.
+    /// explaining itself to VoiceOver as it did. The chips flow in a
+    /// `WrapLayout`: a four-tag row wraps instead of clipping at any size
+    /// (codex-review-08), a chip never breaks mid-word. At accessibility
+    /// sizes the load-type chip joins that flow instead of squeezing the row.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
-        let chips = stacked
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6))
-            : AnyLayout(HStackLayout(spacing: 6))
         HStack(spacing: Theme.Space.medium) {
             MuscleIcon(group: bodyArea)
             VStack(alignment: .leading, spacing: 4) {
                 Text(name)
                     .font(Theme.cardTitle)
-                chips {
+                WrapLayout {
                     if let bodyArea {
                         Text(bodyArea)
                             .font(.caption)

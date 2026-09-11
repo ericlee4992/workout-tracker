@@ -95,6 +95,32 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-04-start")
     }
 
+    /// The Start tab at AccessibilityL with a five-exercise template
+    /// (ticket 08, codex-review-08): the icon strip wraps, Start sits under
+    /// the text, nothing leaves the card.
+    func test04_startLargeText() {
+        app.launchArguments = ["-uiTestReset",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        app.tabBars.buttons["Workout"].tap()
+        let newTemplate = app.buttons["New Template…"]
+        XCTAssertTrue(newTemplate.waitForExistence(timeout: 10))
+        newTemplate.tap()
+        let field = app.textFields["Template name"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("Full Session")
+        for name in ["Abdominal Crunch", "Assisted Dip", "Assisted Pull-Up", "Back Extension", "Belt Squat"] {
+            let option = app.buttons[name].firstMatch
+            XCTAssertTrue(option.waitForExistence(timeout: 5), name)
+            if !option.isHittable { app.swipeUp() }
+            option.tap()
+        }
+        app.buttons["Save"].tap()
+        XCTAssertTrue(app.staticTexts["Full Session"].waitForExistence(timeout: 5))
+        shoot("redesign-04-start-axl")
+    }
+
     /// Settings behind the gear on the Workout tab (ticket 05).
     func test05_settings() {
         launch()
