@@ -81,3 +81,14 @@ Full suite: see STATE.
   Recaptured: every string whole.
 - Also: the icon comment says glyph AND colour follow the live exercise; the gate counts above
   corrected to what the result bundle says (16 tests: 2+2+4+2+3+3).
+
+## Codex review 06b — response (2026-09-11)
+
+`codex-review-06b.md`: the round-1 P2s and P3 closed (contrast re-derived from the assets:
+future-day numerals 15.6:1, accent ring 9.8:1, grey rings 8.8:1); one new P3.
+
+- **P3, a ring painted 2 pt outside the cell overlaps its neighbour on a 375 pt phone** (the
+  seven columns have no horizontal spacing: 44.4 pt each, a 48 pt ring). Rings are back INSIDE
+  the 40 pt cell (`strokeBorder`, no negative padding); under a ring the disc is inset 4 pt, so
+  the 2 pt gap of card between amber and ring is kept and nothing is painted beyond the cell.
+  `HistoryCalendarUITests` 2/2 + the calendar capture re-run.

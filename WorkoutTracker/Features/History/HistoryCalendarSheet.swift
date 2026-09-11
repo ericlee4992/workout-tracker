@@ -90,10 +90,13 @@ struct HistoryCalendarSheet: View {
     /// codex-review 03b: fill, text and interactivity were three separate
     /// mappings, and the gap between them is exactly where a marked-future
     /// day fell through. UI redesign ticket 06: a workout day is an accent
-    /// disc (the fill IS the mark — no check any more); today a ring OUTSIDE
-    /// the disc, so it reads against the card and never against amber; a
+    /// disc (the fill IS the mark — no check any more); today a ring; a
     /// workout dated in the future a hollow accent ring with full-contrast
     /// numerals (codex-review-06: a dimmed disc was 2:1 against the card).
+    /// A ring stays INSIDE the 40 pt cell — the columns have no horizontal
+    /// spacing, so anything painted outside would overlap its neighbour on a
+    /// 375 pt phone (codex-review-06b); under a ring the disc is inset so the
+    /// ring meets the card, never amber.
     private struct CellStyle {
         var fill: Color
         var ring: Color?
@@ -141,12 +144,15 @@ struct HistoryCalendarSheet: View {
             .font(.body.monospacedDigit())
             .fontWeight(style.weight)
             .frame(width: 40, height: 40)
-            .background(Circle().fill(style.fill))
+            .background {
+                // Under a ring the disc gives up 4 pt all round: a 2 pt gap
+                // of card between amber and ring, and nothing painted beyond
+                // the cell.
+                Circle().fill(style.fill).padding(style.ring == nil ? 0 : 4)
+            }
             .overlay {
                 if let ring = style.ring {
-                    // 2 pt outside the disc: the ring's neighbours are the
-                    // card and a gap, never the amber it would vanish against.
-                    Circle().strokeBorder(ring, lineWidth: 2).padding(-4)
+                    Circle().strokeBorder(ring, lineWidth: 2)
                 }
             }
             .foregroundStyle(style.text)
