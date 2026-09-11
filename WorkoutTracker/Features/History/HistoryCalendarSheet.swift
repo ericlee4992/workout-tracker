@@ -90,7 +90,10 @@ struct HistoryCalendarSheet: View {
     /// codex-review 03b: fill, text and interactivity were three separate
     /// mappings, and the gap between them is exactly where a marked-future
     /// day fell through. UI redesign ticket 06: a workout day is an accent
-    /// disc (the fill IS the mark — no check any more), today a ring.
+    /// disc (the fill IS the mark — no check any more); today a ring OUTSIDE
+    /// the disc, so it reads against the card and never against amber; a
+    /// workout dated in the future a hollow accent ring with full-contrast
+    /// numerals (codex-review-06: a dimmed disc was 2:1 against the card).
     private struct CellStyle {
         var fill: Color
         var ring: Color?
@@ -114,12 +117,12 @@ struct HistoryCalendarSheet: View {
                 self.init(fill: Theme.accent, ring: nil, text: Theme.onAccent, weight: .semibold,
                           tappable: true, label: "Workout on day \(dayOfMonth)")
             case .markedToday:
-                self.init(fill: Theme.accent, ring: Theme.text, text: Theme.onAccent, weight: .bold,
+                self.init(fill: Theme.accent, ring: Theme.secondary, text: Theme.onAccent, weight: .bold,
                           tappable: true, label: "Workout today")
             case .markedFuture:
-                // Dimmed like its neighbours, but it is a real workout: keep
-                // the mark and the tap.
-                self.init(fill: Theme.accent.opacity(0.35), ring: nil, text: Theme.tertiary,
+                // A real workout, so it keeps the mark and the tap — hollow,
+                // so it is not mistaken for a day that has happened.
+                self.init(fill: .clear, ring: Theme.accent, text: Theme.text,
                           weight: .semibold, tappable: true,
                           label: "Workout on day \(dayOfMonth), dated in the future")
             }
@@ -141,7 +144,9 @@ struct HistoryCalendarSheet: View {
             .background(Circle().fill(style.fill))
             .overlay {
                 if let ring = style.ring {
-                    Circle().strokeBorder(ring, lineWidth: 2)
+                    // 2 pt outside the disc: the ring's neighbours are the
+                    // card and a gap, never the amber it would vanish against.
+                    Circle().strokeBorder(ring, lineWidth: 2).padding(-4)
                 }
             }
             .foregroundStyle(style.text)

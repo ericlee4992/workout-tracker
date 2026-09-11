@@ -31,7 +31,7 @@ Spec: `.scratch/ui-redesign/spec.md` ticket 06, on the chosen Ink / Amber system
   before), and the receipt lays its tiles out headerless too; the chart card was restyled in
   ticket 03. The load-type chip sits beside the equipment line, under the name, so the name
   keeps one line. "Add Exercise…" `.secondary`; the edited mark on the background.
-- `ExerciseProgressView.swift`: accent `LineMark` (catmullRom) over an accent→clear
+- `ExerciseProgressView.swift`: accent `LineMark` (**monotone**, see the Codex response) over an accent→clear
   `AreaMark` under the same points, accent `PointMark`s, `Hairline` grid, `secondary` axis
   labels; the manual `chartOverlay` drag and the row insets untouched (the tooltip test's
   normalized drag); rows on `Theme.card`; "Since first session" in `stat`, accent when ≥ 0;
@@ -48,8 +48,36 @@ Spec: `.scratch/ui-redesign/spec.md` ticket 06, on the chosen Ink / Amber system
 
 ## Verification (2026-09-10)
 
-Gates on `ui-redesign-06`: `HistoryCalendarUITests` 3/3, `ProgressChartUITests` 2/2,
-`ProgressChartTooltipUITests` 2/2, `HistoryEditingUITests` 4/4, `HeartRateSummaryUITests` 2/2,
+Gates on `ui-redesign-06`: `HistoryCalendarUITests` 2/2, `ProgressChartUITests` 2/2,
+`ProgressChartTooltipUITests` 4/4, `HistoryEditingUITests` 2/2, `HeartRateSummaryUITests` 3/3,
 `RedesignScreenshotUITests` test05_history + test05_historyHeartRate + test08_emptyStates — 16/16;
 HistoryEditing + HeartRateSummary + the two history captures re-run after the header/chip
-tidy-up, 7/7. Screenshots `screenshots/06/` — sent to the user. Full suite: see STATE.
+tidy-up, 7/7. After the Codex round-1 fixes: HistoryCalendar, ProgressChart, Tooltip,
+HistoryEditing + test05_history + test05_historyLargeText 12/12; after the AXL layout fix:
+HistoryEditing + the two captures 4/4. Screenshots `screenshots/06/` — sent to the user.
+Full suite: see STATE.
+
+## Codex review 06 — response (2026-09-10)
+
+`codex-review-06.md`: two P2s, one P3, one verification ask; everything else clear.
+
+- **P2, Catmull-Rom can invent extrema** (a hump between equal neighbours; on an assisted
+  series that reads as an improvement nobody logged). Both marks are back on `.monotone` — a
+  documented deviation from the plan's "catmullRom": the chart must never be more confident than
+  the data (D9/D25).
+- **P2, the future-workout day was 2:1 against the card; the marked-today ring 1.6:1 against
+  amber.** A future workout day is now a hollow accent ring with full-contrast numerals
+  (`Theme.text`), distinct from a past workout (filled disc) and from today (grey ring). Every
+  ring is now drawn 2 pt OUTSIDE the disc, so its neighbours are the card and a gap, never the
+  amber interior; the marked-today ring is `Theme.secondary` like the plain today ring.
+- **P3, the name/gym/duration section was not on `Theme.card`** — the modifier had not landed
+  (an unasserted replace); it is there now, with the hairline separator.
+- **Verification ask, AccessibilityL**: `test05_historyLargeText` captures the list and a
+  detail at AccessibilityL (`05-history-axl`, `05-detail-axl`). The first capture showed exactly
+  the risk: "Seated Che…" in the row, "equip-ment" / "Weight ed" in the header. Now, at
+  accessibility sizes, the day tile sits ABOVE the row's text (`AnyLayout`, title may wrap to
+  three lines) and the equipment line and chip stack; the chip never breaks mid-word
+  (`fixedSize`). The day tile is minimum-sized, not fixed, so it grows with its text.
+  Recaptured: every string whole.
+- Also: the icon comment says glyph AND colour follow the live exercise; the gate counts above
+  corrected to what the result bundle says (16 tests: 2+2+4+2+3+3).

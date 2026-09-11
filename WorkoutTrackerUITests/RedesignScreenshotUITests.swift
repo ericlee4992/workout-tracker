@@ -136,6 +136,22 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-05-chart")
     }
 
+    /// The History list and a workout's detail at AccessibilityL (ticket 06,
+    /// codex-review-06): the day tile must grow with its text, the entry
+    /// header wrap rather than clip. The chart fixture has a two-digit day
+    /// (Aug 31) in its second month.
+    func test05_historyLargeText() {
+        app.launchArguments = ["-uiTestReset", "-uiTestChartHistory",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        app.tabBars.buttons["History"].tap()
+        XCTAssertTrue(anyElement("historyWorkoutRow").waitForExistence(timeout: 10))
+        shoot("redesign-05-history-axl")
+        anyElement("historyWorkoutRow").tap()
+        XCTAssertTrue(anyElement("historySetLine").waitForExistence(timeout: 5))
+        shoot("redesign-05-detail-axl")
+    }
+
     /// A finished hour with a full heart-rate series, in History.
     func test05_historyHeartRate() {
         launch(["-uiTestHeartRateHistory"])

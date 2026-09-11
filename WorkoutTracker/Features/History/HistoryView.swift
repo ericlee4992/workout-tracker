@@ -176,10 +176,19 @@ struct HistoryView: View {
 /// header), the same strings as before.
 private struct WorkoutSummaryRow: View {
     var workout: Workout
+    /// At accessibility sizes the day tile sits ABOVE the text instead of
+    /// beside it, and the title may wrap: side by side, "Seated Chest Press"
+    /// truncated to "Seated Che…" at AccessibilityL (codex-review-06).
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         let completedSets = workout.completedSets
+        let stacked = dynamicTypeSize.isAccessibilitySize
+        let layout = stacked
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Space.medium))
+            : AnyLayout(HStackLayout(spacing: Theme.Space.medium))
         HStack(spacing: Theme.Space.medium) {
+            layout {
             VStack(spacing: 0) {
                 Text(workout.startedAt, format: .dateTime.day())
                     .font(Theme.stat)
@@ -189,12 +198,16 @@ private struct WorkoutSummaryRow: View {
                     .foregroundStyle(Theme.secondary)
                     .textCase(.uppercase)
             }
-            .frame(width: 52, height: 56)
+            // Minimums, not a fixed frame: the day and weekday scale with
+            // Dynamic Type and the tile grows with them (codex-review-06).
+            .padding(.horizontal, Theme.Space.small)
+            .padding(.vertical, Theme.Space.xs)
+            .frame(minWidth: 52, minHeight: 56)
             .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.inner))
             VStack(alignment: .leading, spacing: 4) {
                 Text(workout.historyTitle)
                     .font(Theme.cardTitle)
-                    .lineLimit(1)
+                    .lineLimit(stacked ? 3 : 1)
                 Label(workout.historyGymName ?? "No gym", systemImage: "mappin.and.ellipse")
                     .font(.caption)
                     .foregroundStyle(Theme.secondary)
@@ -211,6 +224,7 @@ private struct WorkoutSummaryRow: View {
                         WorkoutUnitBadgeView(badge: badge)
                     }
                 }
+            }
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")

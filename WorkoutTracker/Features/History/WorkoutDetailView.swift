@@ -33,6 +33,10 @@ struct WorkoutDetailView: View {
     /// a unit renders everything in that unit, plain (D52). Display-only —
     /// storage is never touched.
     @State private var displayUnit: WeightUnit?
+    /// At accessibility sizes the equipment line and the load-type chip
+    /// stack instead of sharing a row — side by side they broke mid-word
+    /// ("equip-ment", "Weight ed") at AccessibilityL (codex-review-06).
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         List {
@@ -62,6 +66,8 @@ struct WorkoutDetailView: View {
                 }
                 .font(.subheadline)
             }
+            .listRowBackground(Theme.card)
+            .listRowSeparatorTint(Theme.hairline)
 
             ForEach(WorkoutSession.orderedEntries(of: workout)) { entry in
                 Section {
@@ -81,9 +87,10 @@ struct WorkoutDetailView: View {
                     }
                 } header: {
                     // Snapshot display strings ONLY (D23) — never the live
-                    // exercise/machine/model relationships. The muscle icon's
-                    // colour is the one exception, and it is decoration: the
-                    // live exercise's group, the neutral icon when it is gone
+                    // exercise/machine/model relationships. The muscle icon is
+                    // the one exception, and it is decoration (accessibility-
+                    // hidden): its glyph AND colour follow the LIVE exercise's
+                    // group, the neutral icon when the exercise is gone
                     // (UI redesign ticket 06).
                     HStack(alignment: .top, spacing: Theme.Space.medium) {
                         MuscleIcon(group: entry.exercise?.muscleGroup)
@@ -92,7 +99,10 @@ struct WorkoutDetailView: View {
                                 .font(Theme.cardTitle)
                                 .foregroundStyle(Theme.text)
                                 .textCase(nil)
-                            HStack(spacing: Theme.Space.small) {
+                            let subtitle = dynamicTypeSize.isAccessibilitySize
+                                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Space.small))
+                                : AnyLayout(HStackLayout(spacing: Theme.Space.small))
+                            subtitle {
                                 Text(entry.snapshotEquipmentLabel)
                                     .font(.caption)
                                     .textCase(nil)
@@ -117,7 +127,7 @@ struct WorkoutDetailView: View {
                                     }
                                     .accessibilityIdentifier("removeHistoryExercise")
                                 } label: {
-                                    Chip { Text(entry.snapshotLoadType.badge).textCase(nil) }
+                                    Chip { Text(entry.snapshotLoadType.badge).textCase(nil).lineLimit(1).fixedSize() }
                                 }
                                 .accessibilityIdentifier("historyEntryLoadType")
                             }

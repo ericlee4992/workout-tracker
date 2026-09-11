@@ -130,12 +130,15 @@ struct ExerciseProgressView: View {
         Chart(series.points) { point in
             if let value = plotted(point) {
                 // UI redesign ticket 06: the accent line over its own fading
-                // area; catmullRom as the plan says. The area is a fill under
-                // the SAME points — it draws nothing the line does not.
+                // area. The area is a fill under the SAME points — it draws
+                // nothing the line does not. MONOTONE, not the plan's
+                // catmullRom (codex-review-06): Catmull-Rom can overshoot
+                // between equal neighbours and draw a hump or dip no session
+                // produced; monotone never crosses the observations.
                 AreaMark(
                     x: .value("Date", point.date),
                     y: .value(yLabel, value))
-                    .interpolationMethod(.catmullRom)
+                    .interpolationMethod(.monotone)
                     .foregroundStyle(
                         LinearGradient(
                             colors: [Theme.accent.opacity(0.35), Theme.accent.opacity(0)],
@@ -143,7 +146,7 @@ struct ExerciseProgressView: View {
                 LineMark(
                     x: .value("Date", point.date),
                     y: .value(yLabel, value))
-                    .interpolationMethod(.catmullRom)
+                    .interpolationMethod(.monotone)
                     .foregroundStyle(Theme.accent)
                     .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 PointMark(
