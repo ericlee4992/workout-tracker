@@ -1,6 +1,6 @@
 # 03 — Finish summary: status ring, tiles, zone bar, chart card
 
-Status: built 2026-09-10 on `ui-redesign-03` — Codex rounds 1–3 answered, awaiting round 4
+Status: resolved — Codex clear after 4 rounds (codex-review-03..03d); unit 707/707; full UI suite before merge (result in STATE)
 
 Spec: `.scratch/ui-redesign/spec.md` ticket 03, on the chosen Ink / Amber system.
 
