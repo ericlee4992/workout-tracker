@@ -27,6 +27,7 @@ struct HistoryCalendarSheet: View {
                     .padding(.horizontal)
                     .padding(.bottom, 24)
                 }
+                .background(Theme.background)
                 .onAppear {
                     // Most recent at the bottom, and that is where the user
                     // starts — the calendar is for "when did I last…", not
@@ -38,7 +39,7 @@ struct HistoryCalendarSheet: View {
             }
             .safeAreaInset(edge: .top, spacing: 0) {
                 weekdayHeader
-                    .background(.bar)
+                    .background(Theme.background)
             }
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.inline)
@@ -56,8 +57,8 @@ struct HistoryCalendarSheet: View {
         LazyVGrid(columns: columns, spacing: 0) {
             ForEach(Array(calendar.weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
                 Text(symbol)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .font(Theme.label)
+                    .foregroundStyle(Theme.secondary)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
             }
@@ -66,9 +67,10 @@ struct HistoryCalendarSheet: View {
     }
 
     private func monthView(_ month: WorkoutCalendar.Month) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        // UI redesign ticket 06: one card per month.
+        VStack(alignment: .leading, spacing: Theme.Space.medium) {
             Text(month.title)
-                .font(.title3.weight(.semibold))
+                .font(Theme.cardTitle)
                 .accessibilityIdentifier("calendarMonth")
             LazyVGrid(columns: columns, spacing: 8) {
                 ForEach(Array(month.cells.enumerated()), id: \.offset) { _, cell in
@@ -80,49 +82,52 @@ struct HistoryCalendarSheet: View {
                 }
             }
         }
+        .padding(Theme.Space.inset)
+        .card()
     }
 
     /// Everything a cell's look depends on, decided ONCE per combined state.
     /// codex-review 03b: fill, text and interactivity were three separate
     /// mappings, and the gap between them is exactly where a marked-future
-    /// day fell through.
+    /// day fell through. UI redesign ticket 06: a workout day is an accent
+    /// disc (the fill IS the mark — no check any more), today a ring.
     private struct CellStyle {
         var fill: Color
+        var ring: Color?
         var text: Color
         var weight: Font.Weight
-        var showsCheck: Bool
         var isTappable: Bool
         var accessibilityLabel: String
 
         init(_ emphasis: WorkoutCalendar.Day.Emphasis, dayOfMonth: Int) {
             switch emphasis {
             case .plain:
-                self.init(fill: .clear, text: .primary, weight: .regular,
-                          check: false, tappable: false, label: "Day \(dayOfMonth)")
+                self.init(fill: .clear, ring: nil, text: Theme.text, weight: .regular,
+                          tappable: false, label: "Day \(dayOfMonth)")
             case .future:
-                self.init(fill: .clear, text: Color.secondary.opacity(0.45), weight: .regular,
-                          check: false, tappable: false, label: "Day \(dayOfMonth)")
+                self.init(fill: .clear, ring: nil, text: Theme.tertiary, weight: .regular,
+                          tappable: false, label: "Day \(dayOfMonth)")
             case .today:
-                self.init(fill: .primary, text: Color(.systemBackground), weight: .semibold,
-                          check: false, tappable: false, label: "Today")
+                self.init(fill: .clear, ring: Theme.secondary, text: Theme.text, weight: .semibold,
+                          tappable: false, label: "Today")
             case .marked:
-                self.init(fill: Color(.secondarySystemFill), text: .primary, weight: .regular,
-                          check: true, tappable: true, label: "Workout on day \(dayOfMonth)")
+                self.init(fill: Theme.accent, ring: nil, text: Theme.onAccent, weight: .semibold,
+                          tappable: true, label: "Workout on day \(dayOfMonth)")
             case .markedToday:
-                self.init(fill: .primary, text: Color(.systemBackground), weight: .semibold,
-                          check: true, tappable: true, label: "Workout today")
+                self.init(fill: Theme.accent, ring: Theme.text, text: Theme.onAccent, weight: .bold,
+                          tappable: true, label: "Workout today")
             case .markedFuture:
                 // Dimmed like its neighbours, but it is a real workout: keep
-                // the check and the tap.
-                self.init(fill: Color(.secondarySystemFill).opacity(0.5), text: Color.secondary.opacity(0.45),
-                          weight: .regular, check: true, tappable: true,
+                // the mark and the tap.
+                self.init(fill: Theme.accent.opacity(0.35), ring: nil, text: Theme.tertiary,
+                          weight: .semibold, tappable: true,
                           label: "Workout on day \(dayOfMonth), dated in the future")
             }
         }
 
-        private init(fill: Color, text: Color, weight: Font.Weight, check: Bool, tappable: Bool, label: String) {
-            self.fill = fill; self.text = text; self.weight = weight
-            self.showsCheck = check; self.isTappable = tappable; self.accessibilityLabel = label
+        private init(fill: Color, ring: Color?, text: Color, weight: Font.Weight, tappable: Bool, label: String) {
+            self.fill = fill; self.ring = ring; self.text = text; self.weight = weight
+            self.isTappable = tappable; self.accessibilityLabel = label
         }
     }
 
@@ -134,16 +139,12 @@ struct HistoryCalendarSheet: View {
             .fontWeight(style.weight)
             .frame(width: 40, height: 40)
             .background(Circle().fill(style.fill))
-            .foregroundStyle(style.text)
-            .overlay(alignment: .topTrailing) {
-                if style.showsCheck {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.caption2)
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(.white, .green)
-                        .offset(x: 4, y: -4)
+            .overlay {
+                if let ring = style.ring {
+                    Circle().strokeBorder(ring, lineWidth: 2)
                 }
             }
+            .foregroundStyle(style.text)
         if style.isTappable {
             Button { onPick(day.date) } label: { label }
                 .buttonStyle(.plain)

@@ -81,60 +81,73 @@ struct WorkoutDetailView: View {
                     }
                 } header: {
                     // Snapshot display strings ONLY (D23) — never the live
-                    // exercise/machine/model relationships.
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack {
+                    // exercise/machine/model relationships. The muscle icon's
+                    // colour is the one exception, and it is decoration: the
+                    // live exercise's group, the neutral icon when it is gone
+                    // (UI redesign ticket 06).
+                    HStack(alignment: .top, spacing: Theme.Space.medium) {
+                        MuscleIcon(group: entry.exercise?.muscleGroup)
+                        VStack(alignment: .leading, spacing: 4) {
                             Text(entry.snapshotExerciseName)
-                            Spacer()
-                            Button {
-                                chartingEntry = entry
-                            } label: {
-                                Image(systemName: "chart.xyaxis.line")
+                                .font(Theme.cardTitle)
+                                .foregroundStyle(Theme.text)
+                                .textCase(nil)
+                            HStack(spacing: Theme.Space.small) {
+                                Text(entry.snapshotEquipmentLabel)
                                     .font(.caption)
-                            }
-                            .buttonStyle(.borderless)
-                            .accessibilityLabel("Progress chart")
-                            .accessibilityIdentifier("historyEntryChart")
-                            // Repairs a set logged under the wrong load type —
-                            // the case correcting the EXERCISE cannot reach,
-                            // because history is frozen (codex-review).
-                            Menu {
-                                ForEach(LoadType.allCases, id: \.self) { type in
-                                    Button {
-                                        retype(entry, to: type)
-                                    } label: {
-                                        Label(
-                                            type.badge,
-                                            systemImage: entry.snapshotLoadType == type
-                                                ? "checkmark" : "")
+                                    .textCase(nil)
+                                    .foregroundStyle(Theme.secondary)
+                                // Repairs a set logged under the wrong load type —
+                                // the case correcting the EXERCISE cannot reach,
+                                // because history is frozen (codex-review).
+                                Menu {
+                                    ForEach(LoadType.allCases, id: \.self) { type in
+                                        Button {
+                                            retype(entry, to: type)
+                                        } label: {
+                                            Label(
+                                                type.badge,
+                                                systemImage: entry.snapshotLoadType == type
+                                                    ? "checkmark" : "")
+                                        }
                                     }
+                                    Divider()
+                                    Button("Remove Exercise", systemImage: "trash", role: .destructive) {
+                                        confirmingEntryDelete = entry
+                                    }
+                                    .accessibilityIdentifier("removeHistoryExercise")
+                                } label: {
+                                    Chip { Text(entry.snapshotLoadType.badge).textCase(nil) }
                                 }
-                                Divider()
-                                Button("Remove Exercise", systemImage: "trash", role: .destructive) {
-                                    confirmingEntryDelete = entry
-                                }
-                                .accessibilityIdentifier("removeHistoryExercise")
-                            } label: {
-                                Text(entry.snapshotLoadType.badge)
+                                .accessibilityIdentifier("historyEntryLoadType")
+                            }
+                            // D51: a reclassified row says what it was, on the row.
+                            if let from = entry.reclassifiedFromExerciseName, let when = entry.reclassifiedAt {
+                                Text("Reclassified from \(from) · \(when.formatted(date: .abbreviated, time: .omitted))")
                                     .font(.caption2)
                                     .textCase(nil)
+                                    .foregroundStyle(Theme.secondary)
+                                    .accessibilityIdentifier("historyReclassifiedMark")
                             }
-                            .accessibilityIdentifier("historyEntryLoadType")
                         }
-                        Text(entry.snapshotEquipmentLabel)
-                            .font(.caption2)
-                            .textCase(nil)
-                            .foregroundStyle(.secondary)
-                        // D51: a reclassified row says what it was, on the row.
-                        if let from = entry.reclassifiedFromExerciseName, let when = entry.reclassifiedAt {
-                            Text("Reclassified from \(from) · \(when.formatted(date: .abbreviated, time: .omitted))")
-                                .font(.caption2)
-                                .textCase(nil)
-                                .foregroundStyle(.secondary)
-                                .accessibilityIdentifier("historyReclassifiedMark")
+                        Spacer(minLength: 0)
+                        Button {
+                            chartingEntry = entry
+                        } label: {
+                            Image(systemName: "chart.xyaxis.line")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.accent)
+                                .frame(width: 32, height: 32)
+                                .background(Theme.accent.opacity(0.12), in: Circle())
                         }
+                        .buttonStyle(.borderless)
+                        .accessibilityLabel("Progress chart")
+                        .accessibilityIdentifier("historyEntryChart")
                     }
+                    .padding(.bottom, Theme.Space.xs)
                 }
+                .listRowBackground(Theme.card)
+                .listRowSeparatorTint(Theme.hairline)
             }
 
             // Milestone 9, ticket 05: what the sensor saw, for any workout that
@@ -142,19 +155,41 @@ struct WorkoutDetailView: View {
             // graph only when a series exists — older workouts never show an
             // empty chart.
             if !workout.isDeleted, let summary = heartRateSummary, summary.hasHeartRate {
-                Section("Heart rate") {
-                    if let average = summary.averageHeartRate {
-                        LabeledContent("Average") { Text("\(average) BPM").monospacedDigit() }
+                // No header of its own: the chart card under it is titled
+                // "Heart rate", and the receipt lays its tiles out the same way.
+                Section {
+                    // The same tiles as the receipt (ticket 03), so History
+                    // and the finish sheet read alike. Each figure only when
+                    // its fact exists (D44); plain numbers (D52).
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: Theme.Space.small),
+                                        GridItem(.flexible(), spacing: Theme.Space.small)],
+                              spacing: Theme.Space.small) {
+                        if let average = summary.averageHeartRate {
+                            StatTile(value: "\(average) BPM", label: "Average", symbol: "heart.fill",
+                                     tint: Theme.danger, identifier: "historyAverageHR",
+                                     accessibilityText: "Average, \(average) BPM")
+                        }
+                        if let maximum = summary.maxHeartRate {
+                            StatTile(value: "\(maximum) BPM", label: "Maximum", symbol: "bolt.heart.fill",
+                                     tint: Theme.danger, identifier: "historyMaxHR",
+                                     accessibilityText: "Maximum, \(maximum) BPM")
+                        }
+                        if let calories = summary.activeEnergyKilocalories {
+                            StatTile(value: "\(Int(calories.rounded())) CAL", label: "Active calories",
+                                     symbol: "flame.fill", tint: Color(rgb: 0xFF5E7A),
+                                     identifier: "historyActiveCalories",
+                                     accessibilityText: "Active calories, \(Int(calories.rounded())) CAL")
+                        }
+                        if let total = summary.totalEnergyKilocalories {
+                            StatTile(value: "\(Int(total.rounded())) CAL", label: "Total calories",
+                                     symbol: "flame", tint: Color(rgb: 0xFF5E7A),
+                                     identifier: "historyTotalCalories",
+                                     accessibilityText: "Total calories, \(Int(total.rounded())) CAL")
+                        }
                     }
-                    if let maximum = summary.maxHeartRate {
-                        LabeledContent("Maximum") { Text("\(maximum) BPM").monospacedDigit() }
-                    }
-                    if let calories = summary.activeEnergyKilocalories {
-                        LabeledContent("Active calories") { Text("\(Int(calories.rounded())) CAL").monospacedDigit() }
-                    }
-                    if let total = summary.totalEnergyKilocalories {
-                        LabeledContent("Total calories") { Text("\(Int(total.rounded())) CAL").monospacedDigit() }
-                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(EdgeInsets())
+                    .listRowSeparator(.hidden)
                 }
                 .accessibilityIdentifier("historyHeartRateSection")
                 if summary.hasHeartRateSeries, let interval = summary.heartRateSeriesIntervalSeconds {
@@ -174,7 +209,11 @@ struct WorkoutDetailView: View {
                 Button("Add Exercise…", systemImage: "plus") {
                     showExercisePicker = true
                 }
+                .buttonStyle(.secondary)
                 .accessibilityIdentifier("addHistoryExercise")
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                .listRowSeparator(.hidden)
             } footer: {
                 Text("Recorded as defined today, without equipment.")
             }
@@ -185,12 +224,15 @@ struct WorkoutDetailView: View {
                         "Edited \(edited.formatted(date: .abbreviated, time: .shortened))",
                         systemImage: "pencil.circle")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.secondary)
                         .accessibilityIdentifier("historyEditedMark")
+                        .listRowBackground(Color.clear)
                 }
             }
 
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle(workout.startedAt.formatted(date: .abbreviated, time: .omitted))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editingSet) { set in
@@ -370,14 +412,17 @@ struct WorkoutDetailView: View {
     private func setLine(index: Int, set: SetRecord) -> some View {
         HStack(spacing: 10) {
             Text(set.type.marker ?? "\(index + 1)")
-                .font(.subheadline.weight(.semibold))
+                .font(Theme.label)
+                .monospacedDigit()
                 // Same marker tints as the active workout (W/F/D), so a `D`
                 // in history means what it meant while logging (D26).
                 .foregroundStyle(set.type.markerColor)
-                .frame(width: 24)
+                .frame(width: 28, height: 28)
+                .background(Theme.fill, in: Circle())
             VStack(alignment: .leading, spacing: 1) {
                 Text("\(weightLabel(for: set)) × \(set.reps.map(String.init) ?? "—")")
-                    .font(.body)
+                    .font(.body.weight(.semibold))
+                    .monospacedDigit()
                 if let breakdown = barBreakdown(for: set) {
                     Text(breakdown)
                         .font(.caption2)

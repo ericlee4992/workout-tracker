@@ -56,20 +56,33 @@ struct ExerciseProgressView: View {
                 Section {
                     variationPicker
                 }
+                .listRowBackground(Theme.card)
             }
             switch series.confidence {
             case .empty:
-                ContentUnavailableView(
-                    availableVariations.count > 1 ? "Nothing to chart here" : "No sets logged yet",
-                    systemImage: "chart.xyaxis.line",
-                    description: Text(emptyDescription))
-                    .accessibilityIdentifier("progressEmpty")
+                // UI redesign ticket 06: the symbol illustration; both
+                // strings unchanged.
+                VStack(spacing: 0) {
+                    EmptyState(
+                        title: availableVariations.count > 1 ? "Nothing to chart here" : "No sets logged yet",
+                        symbol: "chart.xyaxis.line")
+                    Text(emptyDescription)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, Theme.Space.large)
+                }
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .accessibilityIdentifier("progressEmpty")
             case .single:
                 Section {
                     singlePoint
                 } header: {
                     Text("One session")
                 }
+                .listRowBackground(Theme.card)
             case .series(let days):
                 Section {
                     Picker("Metric", selection: $metric) {
@@ -88,18 +101,24 @@ struct ExerciseProgressView: View {
                         Text("Only \(days) days logged — read the shape with caution.")
                     }
                 }
+                .listRowBackground(Theme.card)
+                .listRowSeparatorTint(Theme.hairline)
 
                 if let change = ProgressSeriesMath.change(series) {
                     Section("Change") {
                         LabeledContent("Since first session") {
                             Text(change >= 0 ? "+\(percent(change))" : percent(change))
-                                .foregroundStyle(change >= 0 ? .green : .secondary)
+                                .font(Theme.stat)
+                                .foregroundStyle(change >= 0 ? Theme.accent : Theme.secondary)
                                 .monospacedDigit()
                         }
                     }
+                    .listRowBackground(Theme.card)
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle(exerciseName)
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -110,13 +129,27 @@ struct ExerciseProgressView: View {
     private var chart: some View {
         Chart(series.points) { point in
             if let value = plotted(point) {
+                // UI redesign ticket 06: the accent line over its own fading
+                // area; catmullRom as the plan says. The area is a fill under
+                // the SAME points — it draws nothing the line does not.
+                AreaMark(
+                    x: .value("Date", point.date),
+                    y: .value(yLabel, value))
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Theme.accent.opacity(0.35), Theme.accent.opacity(0)],
+                            startPoint: .top, endPoint: .bottom))
                 LineMark(
                     x: .value("Date", point.date),
                     y: .value(yLabel, value))
-                    .interpolationMethod(.monotone)
+                    .interpolationMethod(.catmullRom)
+                    .foregroundStyle(Theme.accent)
+                    .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 PointMark(
                     x: .value("Date", point.date),
                     y: .value(yLabel, value))
+                    .foregroundStyle(Theme.accent)
             }
             // The selected day is marked IN the chart, but its numbers are
             // shown in a row beneath it rather than as a floating callout: an
@@ -124,10 +157,11 @@ struct ExerciseProgressView: View {
             // chart, and a normal view is also something a test can see.
             if let selected, selected.date == point.date, let value = plotted(point) {
                 RuleMark(x: .value("Date", selected.date))
-                    .foregroundStyle(.secondary.opacity(0.4))
+                    .foregroundStyle(Theme.secondary.opacity(0.5))
                 PointMark(
                     x: .value("Date", selected.date),
                     y: .value(yLabel, value))
+                    .foregroundStyle(Theme.accent)
                     .symbolSize(140)
             }
         }
@@ -135,7 +169,17 @@ struct ExerciseProgressView: View {
         // Assisted improves DOWNWARD. Inverting the axis would hide that; the
         // label says it instead, so the shape of the line stays honest.
         .chartXAxis {
-            AxisMarks(values: .automatic(desiredCount: 4))
+            AxisMarks(values: .automatic(desiredCount: 4)) {
+                AxisGridLine().foregroundStyle(Theme.hairline)
+                AxisTick().foregroundStyle(Theme.hairline)
+                AxisValueLabel().foregroundStyle(Theme.secondary)
+            }
+        }
+        .chartYAxis {
+            AxisMarks {
+                AxisGridLine().foregroundStyle(Theme.hairline)
+                AxisValueLabel().foregroundStyle(Theme.secondary)
+            }
         }
         // An EXPLICIT overlay gesture rather than `.chartXSelection`.
         //

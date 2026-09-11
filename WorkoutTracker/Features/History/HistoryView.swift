@@ -51,19 +51,37 @@ struct HistoryView: View {
         NavigationStack(path: $path) {
             Group {
                 if workouts.isEmpty {
-                    ContentUnavailableView(
-                        "No workouts yet",
-                        systemImage: "clock.arrow.circlepath",
-                        description: Text("Finished workouts show up here."))
+                    // UI redesign ticket 06: the symbol illustration; the two
+                    // strings are the ones this screen always had.
+                    VStack(spacing: 0) {
+                        EmptyState(title: "No workouts yet", symbol: "clock.arrow.circlepath")
+                        Text("Finished workouts show up here.")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Theme.background)
                 } else {
                     List {
                         ForEach(byMonth, id: \.month) { group in
-                            Section(group.month) {
+                            Section {
                                 ForEach(group.workouts) { workout in
-                                    NavigationLink(value: workout) {
+                                    // A Button rather than a NavigationLink so
+                                    // the card owns its whole row (a List draws
+                                    // a link's chevron outside the label);
+                                    // the push goes through the same path the
+                                    // calendar and the receipt use.
+                                    Button {
+                                        path.append(workout)
+                                    } label: {
                                         WorkoutSummaryRow(workout: workout)
                                     }
+                                    .buttonStyle(.plain)
                                     .accessibilityIdentifier("historyWorkoutRow")
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                                     // Swipe to delete, requested 2026-08-26.
                                     // Still CONFIRMS: this is the only copy of
                                     // the training history, and a swipe is far
@@ -74,11 +92,19 @@ struct HistoryView: View {
                                         } label: {
                                             Label("Delete", systemImage: "trash")
                                         }
+                                        .tint(Theme.danger)
                                     }
                                 }
+                            } header: {
+                                Text(group.month)
+                                    .font(Theme.label)
+                                    .foregroundStyle(Theme.secondary)
+                                    .textCase(.uppercase)
                             }
                         }
                     }
+                    .scrollContentBackground(.hidden)
+                    .background(Theme.background)
                 }
             }
             .navigationTitle("History")
@@ -146,40 +172,54 @@ struct HistoryView: View {
 /// E1–E4 (ticket 17): titled by what was actually done, with the gym demoted
 /// to a subtitle and the unit badge sitting inline with the stats it
 /// qualifies — so every row has the same left edge whether or not it has one.
+/// UI redesign ticket 06: a card led by the day (the month is the section
+/// header), the same strings as before.
 private struct WorkoutSummaryRow: View {
     var workout: Workout
 
     var body: some View {
         let completedSets = workout.completedSets
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(alignment: .firstTextBaseline) {
+        HStack(spacing: Theme.Space.medium) {
+            VStack(spacing: 0) {
+                Text(workout.startedAt, format: .dateTime.day())
+                    .font(Theme.stat)
+                    .monospacedDigit()
+                Text(workout.startedAt, format: .dateTime.weekday(.abbreviated))
+                    .font(Theme.label)
+                    .foregroundStyle(Theme.secondary)
+                    .textCase(.uppercase)
+            }
+            .frame(width: 52, height: 56)
+            .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.inner))
+            VStack(alignment: .leading, spacing: 4) {
                 Text(workout.historyTitle)
-                    .font(.headline)
+                    .font(Theme.cardTitle)
                     .lineLimit(1)
-                Spacer(minLength: 8)
-                Text(workout.startedAt, format: .dateTime.weekday(.abbreviated).day().month(.abbreviated))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            Label(workout.historyGymName ?? "No gym", systemImage: "mappin.and.ellipse")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            HStack(spacing: 6) {
-                Text(HistoryRendering.statsLine(
-                    exerciseCount: workout.entries?.count ?? 0,
-                    setCount: completedSets.count,
-                    duration: workout.duration))
+                Label(workout.historyGymName ?? "No gym", systemImage: "mappin.and.ellipse")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
-                // Derived from the actual logged sets — never just the gym
-                // default (SPEC "Units").
-                if let badge = WorkoutUnitBadge.derive(fromCompleted: completedSets) {
-                    WorkoutUnitBadgeView(badge: badge)
+                    .foregroundStyle(Theme.secondary)
+                HStack(spacing: 6) {
+                    Text(HistoryRendering.statsLine(
+                        exerciseCount: workout.entries?.count ?? 0,
+                        setCount: completedSets.count,
+                        duration: workout.duration))
+                        .font(.caption)
+                        .foregroundStyle(Theme.tertiary)
+                    // Derived from the actual logged sets — never just the gym
+                    // default (SPEC "Units").
+                    if let badge = WorkoutUnitBadge.derive(fromCompleted: completedSets) {
+                        WorkoutUnitBadgeView(badge: badge)
+                    }
                 }
-                Spacer(minLength: 0)
             }
+            Spacer(minLength: 0)
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.tertiary)
         }
-        .padding(.vertical, 2)
+        .padding(Theme.Space.inset)
+        .card()
+        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
     }
 }
 
