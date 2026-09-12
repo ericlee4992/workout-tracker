@@ -235,7 +235,7 @@ struct WorkoutFinishedSheet: View {
             .listRowSeparator(.hidden)
 
             if summary.zoneSeconds.contains(where: { $0 > 0 }) {
-                zoneCard(summary.zoneSeconds)
+                ZoneTimeCard(seconds: summary.zoneSeconds)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
                     .listRowSeparator(.hidden)
@@ -256,49 +256,6 @@ struct WorkoutFinishedSheet: View {
             tint: tint,
             identifier: id,
             accessibilityText: "\(title), \(value) \(unit ?? "")")
-    }
-
-    /// Time in zones as one stacked bar — each zone's share of the workout in
-    /// its colour — with the durations beneath. The record still knows whether
-    /// these came from 220−age (`zonesFromEstimatedMax`); the screen no longer
-    /// says so (D52).
-    private func zoneCard(_ seconds: [Int]) -> some View {
-        let present = HeartRateZone.allCases.filter { zone in
-            zone.rawValue < seconds.count && seconds[zone.rawValue] > 0
-        }
-        return VStack(alignment: .leading, spacing: Theme.Space.medium) {
-            Text("Time in zones")
-                .font(Theme.cardTitle)
-            GeometryReader { geometry in
-                let widths = ZoneBarLayout.widths(
-                    values: present.map { seconds[$0.rawValue] }, width: geometry.size.width, gap: 2)
-                HStack(spacing: 2) {
-                    ForEach(Array(present.enumerated()), id: \.element) { index, zone in
-                        RoundedRectangle(cornerRadius: 3)
-                            .fill(zone.color)
-                            // One width per zone by contract; the guard is
-                            // belt and braces against a trap during layout.
-                            .frame(width: index < widths.count ? widths[index] : 0)
-                    }
-                }
-            }
-            .frame(height: 12)
-            .accessibilityHidden(true)
-            VStack(spacing: 6) {
-                ForEach(present, id: \.self) { zone in
-                    HStack(spacing: 8) {
-                        Circle().fill(zone.color).frame(width: 8, height: 8)
-                        Text(zone.label).font(.caption)
-                        Spacer()
-                        Text(Format.duration(seconds: seconds[zone.rawValue]))
-                            .font(.caption.weight(.semibold)).monospacedDigit()
-                    }
-                }
-            }
-        }
-        .padding(Theme.Space.inset)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .card()
     }
 
     /// The half Apple's summary cannot show: what was actually lifted.

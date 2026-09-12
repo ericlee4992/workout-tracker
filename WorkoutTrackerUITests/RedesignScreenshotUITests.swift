@@ -311,6 +311,34 @@ final class RedesignScreenshotUITests: XCTestCase {
         row.tap()
         XCTAssertTrue(anyElement("heartRateChart").waitForExistence(timeout: 10))
         shoot("redesign-05-detail-heart-rate")
+        // Ticket 14: the zones card under the graph.
+        app.swipeUp()
+        XCTAssertTrue(anyElement("historyZoneCard").waitForExistence(timeout: 5))
+        shoot("redesign-05-detail-heart-rate-zones")
+    }
+
+    /// The same fixture at AccessibilityL: the graph, then the zones card.
+    func test05_historyHeartRateLargeText() {
+        app.launchArguments = ["-uiTestReset", "-uiTestHeartRateHistory",
+                               "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
+        app.launch()
+        app.tabBars.buttons["History"].tap()
+        let row = anyElement("historyWorkoutRow")
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        XCTAssertTrue(anyElement("historyHeartRateSection").waitForExistence(timeout: 10))
+        app.swipeUp()
+        XCTAssertTrue(anyElement("heartRateChart").waitForExistence(timeout: 10))
+        shoot("redesign-05-detail-heart-rate-axl")
+        let zones = anyElement("historyZoneCard")
+        for _ in 0..<4 where !zones.exists { app.swipeUp() }
+        XCTAssertTrue(zones.exists, "the zones card reachable at AccessibilityL")
+        // A card half under the tab bar counts as hittable (ticket 10's
+        // lesson): scroll until its last row is on screen.
+        let lastRow = app.staticTexts["Zone 3"]
+        for _ in 0..<4 where !(lastRow.exists && lastRow.isHittable) { app.swipeUp() }
+        XCTAssertTrue(lastRow.exists, "every zone row on record at AccessibilityL")
+        shoot("redesign-05-detail-heart-rate-zones-axl")
     }
 
     /// The Gyms tab, a gym's detail, and the Exercises tab (Settings left the Gyms list in ticket 05).

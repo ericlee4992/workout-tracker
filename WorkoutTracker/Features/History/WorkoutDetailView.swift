@@ -222,6 +222,17 @@ struct WorkoutDetailView: View {
                         averageBpm: summary.averageHeartRate,
                         maxBpm: summary.maxHeartRate)
                 }
+                // Ticket 14: time in zones under the graph — the finish sheet's
+                // card, so History and the receipt read alike.
+                if summary.zoneSeconds.contains(where: { $0 > 0 }) {
+                    Section {
+                        ZoneTimeCard(seconds: summary.zoneSeconds)
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                            .listRowSeparator(.hidden)
+                            .accessibilityIdentifier("historyZoneCard")
+                    }
+                }
             }
 
             Section {

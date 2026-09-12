@@ -92,6 +92,12 @@ final class HeartRateSummaryUITests: XCTestCase {
         XCTAssertTrue(chart.waitForExistence(timeout: 10), "the seeded series must draw")
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "heartRateAverageCaption").firstMatch.exists,
                       "the average sits under the plot, as the reference draws it")
+        // Ticket 14: time in zones under the graph, from the workout's own zoneSeconds.
+        app.swipeUp()
+        let zones = app.descendants(matching: .any).matching(identifier: "historyZoneCard").firstMatch
+        XCTAssertTrue(zones.waitForExistence(timeout: 5), "time in zones sits under the graph")
+        XCTAssertTrue(app.staticTexts["Time in zones"].exists)
+        XCTAssertTrue(app.staticTexts["Zone 2"].exists, "the seeded hour spends time in zone 2")
 
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "history-heart-rate-hour"

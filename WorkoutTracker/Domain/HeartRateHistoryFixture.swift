@@ -73,6 +73,21 @@ enum HeartRateHistoryFixture {
         return HeartRateSeriesMath.Folded(mean: mean, low: low, high: high)
     }
 
+    static let assumedMaxBpm = 185
+
+    /// Seconds per zone (index = `HeartRateZone.rawValue`), each bucket of
+    /// the mean series classified against `assumedMaxBpm`; a gap (0) counts
+    /// for nothing. Pure, so the seeded card is exactly what the numbers say.
+    static func zoneSeconds(of mean: [Int], intervalSeconds: Int) -> [Int] {
+        var seconds = Array(repeating: 0, count: HeartRateZone.allCases.count)
+        for bpm in mean where bpm > 0 {
+            if let zone = HeartRateZones.zone(for: bpm, max: assumedMaxBpm) {
+                seconds[zone.rawValue] += intervalSeconds
+            }
+        }
+        return seconds
+    }
+
     /// Seeds the workout two days ago. Idempotent: a store that already has a
     /// workout is left alone, so a relaunch cannot double it.
     static func seed(in context: ModelContext, now: Date = .now) throws {
@@ -90,7 +105,10 @@ enum HeartRateHistoryFixture {
             averageHeartRate: present.isEmpty ? nil : present.reduce(0, +) / present.count,
             maxHeartRate: series.high.max(),
             activeEnergyKilocalories: 282,
-            zoneSeconds: [],
+            // Ticket 14: History shows time in zones, so the fixture has them —
+            // each 15 s bucket classified against a 185 max (the series peaks
+            // in the high 170s, so zones 1–5 all get time).
+            zoneSeconds: zoneSeconds(of: series.mean, intervalSeconds: HeartRateSeriesMath.defaultIntervalSeconds),
             heartRateSeries: series.mean,
             heartRateSeriesIntervalSeconds: HeartRateSeriesMath.defaultIntervalSeconds,
             heartRateSeriesLow: series.low,
