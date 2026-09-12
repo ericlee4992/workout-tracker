@@ -1,6 +1,34 @@
 # Where the project is right now
 
-Updated 2026-09-11 late (ticket 12 — muscle-map icons — MERGED and INSTALLED, launched remotely 22:49 EDT; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-12 01:15 (History tickets 13 + 14 — Save as Template from History; time in zones under the History graph — MERGED and INSTALLED, launched remotely; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+
+000000000. **HANDOFF 2026-09-12 (01:15) — History tickets 13 + 14 MERGED to `main` (`e211a07`)
+   AND INSTALLED (launched remotely 01:14 EDT; the binary is `fa54d37`'s — the later commit is
+   docs only). Next: the user's reaction (Save as Template from a History workout; time in
+   zones under the History graph), then the next screen of the second design pass.**
+   - **The ask (2026-09-11 night)**: "I want to have an option to save as template from history.
+     In history I also want to be able to see time spent in hr zone, either when you click the
+     graph or just below the graph." Folder `.scratch/history-templates-and-zones/` (issues 13,
+     14; Codex reviews 13, 14, 14b; screenshots).
+   - **13**: `Features/Templates/SaveAsTemplateFlow.swift` — the finish sheet's naming + failure
+     alerts as ONE modifier, shared; `WorkoutDetailView`'s menu gains "Save as Template…"
+     (gated on `canSaveAsTemplate`) and a "Saved as template “…”" row in the name section.
+     `HistoryTemplateUITests` 3 (History path at default + AXL with captures; the finish sheet's
+     own save, which no test had exercised before).
+   - **14**: `Features/Design/ZoneTimeCard.swift` — the finish sheet's zone card lifted out;
+     History shows it under the graph (`historyZoneCard`) when any zone has time;
+     `HeartRateHistoryFixture` now seeds `zoneSeconds` (mean per bucket vs a 185 max → zones
+     1–3: 32:30 / 15:30 / 10:45). Captures at both sizes.
+   - Codex: 13 two rounds (P3s: design record + the missing finish-sheet test), 14 two rounds
+     (P3: assert the scroll loop's condition). Full UI suite **70/70** on `c18538f`; SPEC updated.
+   - **Lessons**: XCUITest — an alert text field's tap puts the cursor where it hits (append at
+     the far end via `coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5))`); an
+     `accessibilityIdentifier` on a `Label` in a List row lands on the cell (label "Selected") —
+     query the static text by predicate; a half-hidden card is "hittable" (assert the frame is
+     above the tab bar). Harness — `sed` on a test script can silently drop a `\` continuation
+     and turn a one-test run into the whole suite with no log: rewrite scripts whole; and
+     `pkill -f "xcodebuild test"` also kills a run you just launched.
+   - **Still open**: the rest bar's "Skip"/"+15s" mid-word wrap at AXL (ticket 02's bar).
 
 00000000. **HANDOFF 2026-09-11 (late) — ticket 12 (muscle-map icons) MERGED to `main` (`4dd2757`)
    AND INSTALLED, launched remotely at 22:49 EDT (the phone was `unavailable` at 21:59 — off the
