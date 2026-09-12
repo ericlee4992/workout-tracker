@@ -49,3 +49,19 @@ Symbols (`figure.strengthtraining.traditional`, `figure.rower`, `figure.arms.ope
 - Not a build: nothing in the app changed. The user picks a set (or elements of each), then
   ticket 12 turns the chosen five into template-image assets (single-colour masks) and the
   colour table in `MuscleGroupStyle`.
+
+## Round 2 — muscle maps (2026-09-11 night)
+
+The user, with two references (`ref/muscle-map-lines.png`, `ref/muscle-map-flat.png`): "how
+about making it more realistic like this and highlighting the muscle, like these. I think it
+will be easier to see this way." → each icon is a neutral body (`#5B6472`) with the family's
+muscle filled in the family colour: chest = pecs on a front torso; back = lats + traps on a back
+torso; shoulders = deltoid caps; arms = the bicep on a flexed arm; legs = the quads on a pair of
+legs. Two-layer assets (body mask + muscle mask) so the app tints each layer.
+- Claude: `icons/claude2/*.svg` (two paths per icon, `BODY`/`MUSCLE` fill tokens; `build.py`
+  regenerates + a sheet). Flat, simplified anatomy; reads at 24 pt.
+- Codex: `icons/codex2/*.png` (grey body + red muscle on black, from its image model; README,
+  validation.json). Split by colour into `canvas/icons/codex2-<family>-{body,muscle}.png`
+  (`build-board2.py`). More detailed — segmented muscles like the flat reference.
+- Board: canvas artboard "Round 2 · muscle maps" (round 1 kept as the second artboard);
+  `muscle-maps-board.png` via headless Chrome (`board2.html`, masks inlined). Same canvas URL.

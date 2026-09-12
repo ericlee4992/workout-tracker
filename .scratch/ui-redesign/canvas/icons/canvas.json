@@ -1,6 +1,7 @@
 {
   "artboards": [
-    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1180, "h": 1500, "title": "Icon comparison" }
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1180, "h": 760, "title": "Round 2 · muscle maps" },
+    { "file": "Round1.dc.html", "x": 0, "y": 900, "w": 1180, "h": 1420, "title": "Round 1 · silhouettes" }
   ],
   "launch": { "view": "focused", "file": "Main.dc.html" }
 }
