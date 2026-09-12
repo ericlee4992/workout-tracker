@@ -337,7 +337,10 @@ final class RedesignScreenshotUITests: XCTestCase {
         // lesson): scroll until its last row is on screen.
         let lastRow = app.staticTexts["Zone 3"]
         for _ in 0..<4 where !(lastRow.exists && lastRow.isHittable) { app.swipeUp() }
-        XCTAssertTrue(lastRow.exists, "every zone row on record at AccessibilityL")
+        // The condition the loop was after, asserted (codex-review-14): the
+        // last row hittable AND clear of the tab bar, so the capture is whole.
+        XCTAssertTrue(lastRow.exists && lastRow.isHittable, "the last zone row visible at AccessibilityL")
+        XCTAssertLessThan(lastRow.frame.maxY, app.tabBars.firstMatch.frame.minY, "the last zone row clear of the tab bar")
         shoot("redesign-05-detail-heart-rate-zones-axl")
     }
 

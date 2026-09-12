@@ -106,8 +106,10 @@ enum HeartRateHistoryFixture {
             maxHeartRate: series.high.max(),
             activeEnergyKilocalories: 282,
             // Ticket 14: History shows time in zones, so the fixture has them —
-            // each 15 s bucket classified against a 185 max (the series peaks
-            // in the high 170s, so zones 1–5 all get time).
+            // each 15 s bucket's mean classified against a 185 max: the series
+            // runs 102–150, so zones 1–3 get time (32:30 / 15:30 / 10:45) and
+            // the 75 s gap counts for nothing. A display fixture, not the
+            // production fold (`WorkoutVitalsMath` attributes real sample gaps).
             zoneSeconds: zoneSeconds(of: series.mean, intervalSeconds: HeartRateSeriesMath.defaultIntervalSeconds),
             heartRateSeries: series.mean,
             heartRateSeriesIntervalSeconds: HeartRateSeriesMath.defaultIntervalSeconds,

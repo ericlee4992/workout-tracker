@@ -52,3 +52,13 @@ stopped with the card half under the tab bar (a half-hidden card is "hittable" �
 lesson, again); the test now scrolls until "Zone 3" is on screen, 1/1. Captures
 `screenshots/14-05-detail-heart-rate(-zones)(-axl).png`: the card whole at both sizes, three
 zones for the seeded hour (32:30 / 15:30 / 10:45 against a 185 max).
+
+## Codex review 14 — response (2026-09-12)
+
+`codex-review-14.md`: ticket 13 round 2 **clear**; ticket 14 clear on items 1, 3, 6, 9, 11, 12
+(two peer cards in the List; zone colours mean zones; `ZoneTimeCard` identical to the old card
+but for the combined rows; History reads persisted `zoneSeconds`). One P3: the AXL capture test
+looped for hittability and then asserted only existence — it now asserts the last row hittable
+and clear of the tab bar (a frame check). The fixture's comment claimed five zones; corrected to
+the three the series reaches (Codex recomputed the generator: 32:30 / 15:30 / 10:45). Rerun of
+`test05_historyHeartRateLargeText`: see below.
