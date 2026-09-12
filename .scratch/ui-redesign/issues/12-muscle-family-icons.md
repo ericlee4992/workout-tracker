@@ -1,6 +1,6 @@
 # 12 — Muscle-family icons as muscle maps
 
-Status: in progress (branch `ui-redesign-12-muscle-maps`)
+Status: resolved — Codex clear after 2 rounds (codex-review-12, 12b); unit 11/11 gates (718-suite unchanged); full UI suite **66/66** on `efdaaef`; merged to main 2026-09-11
 
 Skill: `.claude/skills/ios-design/`. The user, after ticket 11 on the phone: "The family icons
 look inaccurate and mild. Can you design it better to actually reflect the families? Ask Codex
@@ -68,7 +68,7 @@ captures 4/4: `test04_templateFixture` → `screenshots/12/04-start-fixture.png`
 `04-template-detail-fixture.png`; `test04_templateFixtureLargeText` → `04-start-fixture-axl.png`,
 `04-template-detail-fixture-axl.png`, `-axl-2.png`; `test04_startTemplates` →
 `04-start-templates.png`, `04-template-detail.png`; `test04_startLargeText` → `04-start-axl.png`,
-`-axl-2.png`, `04-template-detail-axl.png`, `-axl-2.png`. Full UI suite: see below.
+`-axl-2.png`, `04-template-detail-axl.png`, `-axl-2.png`. Full UI suite on `efdaaef`: **66 tests, 0 failures** (65 + `test02_activeWorkoutLargeText`).
 
 ## Codex review 12 — response (2026-09-11)
 
