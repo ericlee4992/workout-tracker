@@ -1,6 +1,6 @@
 # 14 — Time in heart-rate zones in History
 
-Status: in progress (branch `history-14-zone-times`, off ticket 13)
+Status: resolved — Codex clear after 2 rounds (codex-review-14, 14b); gates 51 unit + 10 UI; full UI suite **70/70** on `c18538f` (fa54d37 changed a test and a comment; the test rerun 1/1); merged to main 2026-09-12
 
 The user (2026-09-11): "In history I also want to be able to see time spent in hr zone, either
 when you click the graph or just below the graph." → **just below the graph** — a glance, no
@@ -61,4 +61,4 @@ but for the combined rows; History reads persisted `zoneSeconds`). One P3: the A
 looped for hittability and then asserted only existence — it now asserts the last row hittable
 and clear of the tab bar (a frame check). The fixture's comment claimed five zones; corrected to
 the three the series reaches (Codex recomputed the generator: 32:30 / 15:30 / 10:45). Rerun of
-`test05_historyHeartRateLargeText`: see below.
+`test05_historyHeartRateLargeText` with the final assertion: 1/1. Full UI suite on `c18538f`: **70 tests, 0 failures** (66 + `HistoryTemplateUITests` 3 + `test05_historyHeartRateLargeText`).

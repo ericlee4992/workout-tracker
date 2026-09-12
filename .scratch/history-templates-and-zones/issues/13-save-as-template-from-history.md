@@ -1,6 +1,6 @@
 # 13 — Save as Template from History
 
-Status: in progress (branch `history-13-save-as-template`)
+Status: resolved — Codex clear after 2 rounds (codex-review-13, 14 §A); `HistoryTemplateUITests` 3/3; full UI suite **70/70** on `c18538f`; merged to main 2026-09-12
 
 The user (2026-09-11): "I want to have an option to save as template from history."
 
