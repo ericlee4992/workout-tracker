@@ -1,6 +1,37 @@
 # Where the project is right now
 
-Updated 2026-09-11 night (ticket 11 — icons off the rows, family icons on templates, a template detail — merged AND on the phone; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-11 late (ticket 12 — muscle-map icons — MERGED, install PENDING: the phone went unavailable; ticket 11 is on the phone; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+
+00000000. **HANDOFF 2026-09-11 (late) — ticket 12 (muscle-map icons) MERGED to `main` (`4dd2757`),
+   NOT installed: the phone showed `unavailable` to devicectl at 21:59 EDT (off the local network
+   or asleep) — the device build is ready at `/tmp/wt-device-build/Build/Products/Debug-iphoneos/
+   WorkoutTracker.app` (signed 21:40 EDT, profiles to 09-17). Next: install it (the three devicectl
+   commands in "Running on a real iPhone" below; rebuild first if `/tmp` was cleared), then the
+   user's reaction, the caption decision, the next screen.**
+   - **The ask**: after ticket 11 on the phone the user found the family icons "inaccurate and
+     mild", asked for a design from Claude AND from Codex ("with its new Image 2.5"), then gave a
+     direction with two references (a body with the working muscle highlighted), then "Let's stick
+     with codex's." Record: `.scratch/ui-redesign/icons/brief.md` (both rounds, both designers'
+     files), canvas https://claude.ai/code/artifact/0abc8068-6d95-497e-8cb8-1907790411b5, ticket
+     `issues/12-muscle-family-icons.md` (branch `ui-redesign-12-muscle-maps`, pushed).
+   - **Built**: `Assets.xcassets/MuscleMaps/<family>-{body,muscle}` — 512 px single-scale template
+     PNGs from Codex's grey-body/red-muscle renders via `.scratch/ui-redesign/icons/
+     make-muscle-map-assets.py` (reproduces the PNGs byte for byte); `Colors/MuscleBody` #5B6472
+     + `Theme.muscleBody`; `MuscleGroupStyle` now colour + map per family (Codex's colours:
+     chest #FF70B6, back #4EB9FF, shoulders #4DE0D4, arms #B891FF, legs #84D65A); `MuscleIcon`
+     stacks the two tinted layers at 86 % of a 16 %-tint tile. Codex 2 rounds
+     (`codex-review-12`, `12b`): no defect; two P3s on the record, fixed. Unit gates 11/11; full
+     UI suite **66/66** on `efdaaef`. D54 and SPEC amended.
+   - **How Codex made images**: in the Orca terminal, `codex` has a built-in image-generation
+     tool (it does not name the model). Transparent output had halos — ask for white-on-black (or
+     grey/red on black) and split by luminance/hue yourself. Its renders are 1254 px.
+   - **Lessons**: the design canvas's artboards do NOT render when the seeded HTML is opened
+     from a local http server (a known-good canvas was blank too) — publish and trust, and make a
+     plain `board.html` + headless Chrome (`--headless=new --screenshot`) for the PNG the user
+     sees; `file://` blocks CSS mask images (inline them as data URIs). zsh does not word-split
+     `$VAR` — use an array for a built argument list.
+   - **Still open**: the template row caption ("N sets · r, r, r reps") is the user's decision;
+     the rest bar's "Skip"/"+15s" mid-word wrap at AXL (ticket 02's bar).
 
 0000000. **HANDOFF 2026-09-11 (night) — ticket 11 MERGED to `main` (`c1ee95b`) AND INSTALLED
    (19:35 EDT; the remote launch was refused — phone locked — the user opens it). Next: the
