@@ -18,6 +18,8 @@ enum Theme {
     static let unitKg = Color("UnitKg")
     static let unitLb = Color("UnitLb")
     static let unitMixed = Color("UnitMixed")
+    /// The neutral body of a muscle-map icon (ticket 12) — the muscle wears the family colour.
+    static let muscleBody = Color("MuscleBody")
 
     enum Radius {
         static let card: CGFloat = 24

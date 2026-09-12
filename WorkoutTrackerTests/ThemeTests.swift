@@ -3,14 +3,18 @@ import UIKit
 @testable import WorkoutTracker
 
 struct ThemeTests {
-    /// Every family has a style whose symbol exists (ticket 11: five
-    /// families, not the 14 seeded groups — the mapping is `MuscleFamily`).
-    @Test @MainActor func everyMuscleFamilyHasAResolvableSymbol() throws {
+    /// Every family has a style whose two map layers are in the asset
+    /// catalog (ticket 12: muscle maps, body + muscle, template images).
+    @Test @MainActor func everyMuscleFamilyHasBothMapLayers() throws {
+        let bundle = Bundle(for: AppPreferences.self)
         for family in MuscleFamily.allCases {
             let style = try #require(MuscleGroupStyle.styles[family], "Missing muscle style: \(family)")
-            #expect(UIImage(systemName: style.symbol) != nil, "Missing symbol: \(style.symbol)")
+            for name in [style.bodyImage, style.muscleImage] {
+                let image = try #require(UIImage(named: name, in: bundle, with: nil), "Missing asset: \(name)")
+                #expect(image.renderingMode == .alwaysTemplate, "\(name) must be a template image")
+            }
         }
-        #expect(UIImage(systemName: MuscleGroupStyle.fallback.symbol) != nil)
+        #expect(UIColor(named: "MuscleBody", in: bundle, compatibleWith: nil) != nil)
     }
 
     /// The seeded vocabulary is still 14 groups; each is a family or one of

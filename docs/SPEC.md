@@ -79,8 +79,10 @@ are built from cards (`.card()`), chips (`Chip`, `UnitChip`), stat tiles, progre
 editors and the Presets and Previous Performance sheets are native Forms and keep the system
 look. The accent is amber `#FFB45E` with near-black text on it, warmup is yellow so it never reads
 as the accent, heart rate is red, and the five muscle FAMILIES — chest, back, shoulders, arms,
-legs (`MuscleFamily`, the seeded groups mapped) — have a fixed colour and SF Symbol
-(`MuscleGroupStyle`), shown only on a template (its tile and its detail) for the families its
+legs (`MuscleFamily`, the seeded groups mapped) — have a fixed colour and a muscle map
+(`MuscleGroupStyle`, `Assets.xcassets/MuscleMaps/`: a neutral body with the family's muscle
+highlighted — pecs, lats + traps, deltoids, the bicep, the quads — two template images tinted
+separately), shown only on a template (its tile and its detail) for the families its
 exercises train; an exercise row wears no icon (UI redesign ticket 11). A template tile opens the
 template — its exercises as a list — and Start lives there. Motion and haptics mark the moments that
 matter (a set completed, a workout started, the rest timer). The design adds shape, colour and
