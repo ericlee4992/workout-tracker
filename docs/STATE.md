@@ -1,13 +1,11 @@
 # Where the project is right now
 
-Updated 2026-09-11 late (ticket 12 — muscle-map icons — MERGED, install PENDING: the phone went unavailable; ticket 11 is on the phone; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-11 late (ticket 12 — muscle-map icons — MERGED and INSTALLED, launched remotely 22:49 EDT; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-00000000. **HANDOFF 2026-09-11 (late) — ticket 12 (muscle-map icons) MERGED to `main` (`4dd2757`),
-   NOT installed: the phone showed `unavailable` to devicectl at 21:59 EDT (off the local network
-   or asleep) — the device build is ready at `/tmp/wt-device-build/Build/Products/Debug-iphoneos/
-   WorkoutTracker.app` (signed 21:40 EDT, profiles to 09-17). Next: install it (the three devicectl
-   commands in "Running on a real iPhone" below; rebuild first if `/tmp` was cleared), then the
-   user's reaction, the caption decision, the next screen.**
+00000000. **HANDOFF 2026-09-11 (late) — ticket 12 (muscle-map icons) MERGED to `main` (`4dd2757`)
+   AND INSTALLED, launched remotely at 22:49 EDT (the phone was `unavailable` at 21:59 — off the
+   local network; back 50 minutes later; the same signed build installed first try). Next: the
+   user's reaction, the caption decision, the next screen. Profiles to 09-17.**
    - **The ask**: after ticket 11 on the phone the user found the family icons "inaccurate and
      mild", asked for a design from Claude AND from Codex ("with its new Image 2.5"), then gave a
      direction with two references (a body with the working muscle highlighted), then "Let's stick
