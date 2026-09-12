@@ -25,8 +25,10 @@ which families a template trains; they are not the bold element on either screen
 
 ## Step 2 — composition
 
-Unchanged: the tile's strip at 24 pt, the detail's strip at 40 pt, each icon a rounded tile of
-the family colour at 16 % with the map filling 86 % of it (the proportion on the board).
+Unchanged — ticket 10's Start wireframe (direction C's grid) and ticket 11's detail wireframe
+are inherited as they stand: the tile's strip at 24 pt, the detail's strip at 40 pt, each icon
+a rounded tile of the family colour at 16 % with the map filling 86 % of it (the proportion on
+the board).
 
 ## Step 3 — mockups
 
@@ -40,21 +42,39 @@ chose. (Round 1: hand-drawn silhouettes vs image-model silhouettes; round 2: mus
   "the rest of the body"; no amber.
 - The accent on too many things: **absent**.
 - Same container on everything: **absent** — the icon tile is the one shape the map sits in.
-- Survives only the default size: `@ScaledMetric` tiles as before; captures at AXL.
+- Survives only the default size: **absent** — `@ScaledMetric` tiles as before;
+  `04-template-detail-fixture-axl.png` wraps the strip 4 + 1 with the maps whole.
+- Every other tell (containers, chips, all-caps, middle dots, equal blocks, dead space, above the
+  fold, a control dressed as the command): **inherited unchanged from tickets 10 and 11** — this
+  ticket changes the glyph inside the icon tile and nothing else on either screen.
 
 ## Build
 
 - `Assets.xcassets/MuscleMaps/` (namespaced): `<family>-body` and `<family>-muscle` image sets,
   512 px single-scale PNG **template** images made from Codex's grey-body/red-muscle renders
-  (`.scratch/ui-redesign/icons/codex2/*.png`) by a soft luminance / redness split, each cropped
-  to its body's bounding box and padded to a square (8 % margin) so the five share a scale.
+  (`.scratch/ui-redesign/icons/codex2/*.png`) by `.scratch/ui-redesign/icons/make-muscle-map-assets.py`
+  (codex-review-12: the recipe is the script — body alpha from luminance 18→70, muscle alpha
+  from redness 25→90 inside the body, crop to the body's bbox at alpha > 0.5, square, 8 %
+  margin, LANCZOS to 512; re-running it reproduces the committed PNGs byte for byte).
 - `Colors/MuscleBody` `#5B6472`; `Theme.muscleBody`.
 - `MuscleGroupStyle` keeps one colour per family and names the two layers; `MuscleIcon`
   stacks them, tinted, in the tile.
 - `ThemeTests`: both layers of every family exist and are template images; the body colour exists.
 
-## Gate tests
+## Gate tests — results (2026-09-11)
 
-Unit: `ThemeTests`, `MuscleFamilyTests`, `TemplateFixtureTests`. UI: the captures
-`test04_templateFixture` + `test04_templateFixtureLargeText` (the tile and the detail at both
-sizes, five families), `test04_startTemplates`, `test04_startLargeText`; then the full suite.
+Unit: `ThemeTests` 2/2, `MuscleFamilyTests` 6/6, `TemplateFixtureTests` 3/3 — **11/11**. UI
+captures 4/4: `test04_templateFixture` → `screenshots/12/04-start-fixture.png`,
+`04-template-detail-fixture.png`; `test04_templateFixtureLargeText` → `04-start-fixture-axl.png`,
+`04-template-detail-fixture-axl.png`, `-axl-2.png`; `test04_startTemplates` →
+`04-start-templates.png`, `04-template-detail.png`; `test04_startLargeText` → `04-start-axl.png`,
+`-axl-2.png`, `04-template-detail-axl.png`, `-axl-2.png`. Full UI suite: see below.
+
+## Codex review 12 — response (2026-09-11)
+
+`codex-review-12.md`: "no source or rendered-asset defect found"; items 1, 5, 9, 11 pass; the ten
+muscle-on-tile pairs measured 5.3:1–8.8:1 at the 16 % tint; the body grey is decoration and needs
+no floor (recorded as such — it is `accessibilityHidden` and the strip carries the family names);
+single-scale 512 px template PNGs accepted; the flexed arm's lighter optical weight is the pose,
+accepted. Two P3s, both record: the mask recipe is now the committed script above; the counts,
+captures and inherited wireframes/tells are recorded above.
