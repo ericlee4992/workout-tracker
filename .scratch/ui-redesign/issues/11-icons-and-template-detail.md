@@ -1,6 +1,6 @@
 # 11 — Exercise icons off the rows; muscle-family icons on the template tile; a template detail
 
-Status: resolved — Codex clear after 3 rounds (codex-review-11, 11b, 11c); unit 718/718; full UI suite 65/65 on `d9fd491`; merged to main 2026-09-11; the row caption "N sets · r, r, r reps" is OPEN for the user
+Status: resolved — Codex clear after 3 rounds (codex-review-11, 11b, 11c); unit 718/718; full UI suite 65/65 on `d9fd491`; merged to main 2026-09-11; the row caption "N sets · r, r, r reps" KEPT — the user, 2026-09-11: "keep it"
 
 Skill: `.claude/skills/ios-design/`. The user, 2026-09-12, after ticket 10 on the phone:
 "Currently there is an icon next to every exercise, but I want them gone. In workout too. They
@@ -130,7 +130,8 @@ Items 1–8 and 10 pass; the start-flow refactor verified (heart-rate banking be
 both paths; the two modifier instances cannot both fire for one tap); the family tiles measured
 6.1:1–9.6:1; "Start" proven existing copy (`e608fa6^`, the template rows' button).
 
-- **P2, the row caption needs the user's recorded decision (item 11).** OPEN — the user's call,
+- **P2, the row caption needs the user's recorded decision (item 11).** DECIDED 2026-09-11 — the
+  user: "keep it" (asked what it was, then kept it). Was OPEN — the user's call,
   reported with the ticket: "N sets · r, r, r reps" (a slot with no target reads "—"; with no
   targets, "N sets"; no slots, "No sets"). The alternative if declined: the set count alone
   ("3 sets", an existing editor string).

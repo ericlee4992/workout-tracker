@@ -28,8 +28,13 @@ Updated 2026-09-11 late (ticket 12 — muscle-map icons — MERGED and INSTALLED
      plain `board.html` + headless Chrome (`--headless=new --screenshot`) for the PNG the user
      sees; `file://` blocks CSS mask images (inline them as data URIs). zsh does not word-split
      `$VAR` — use an array for a built argument list.
-   - **Still open**: the template row caption ("N sets · r, r, r reps") is the user's decision;
-     the rest bar's "Skip"/"+15s" mid-word wrap at AXL (ticket 02's bar).
+   - **Caption decided** (2026-09-11 22:55): "keep it" — recorded in ticket 11 and D54. **Still
+     open**: the rest bar's "Skip"/"+15s" mid-word wrap at AXL (ticket 02's bar).
+   - **Install gotcha (2026-09-11)**: a device `xcodebuild … build` run in the BACKGROUND while
+     the UI suite held the simulator reported exit 0 but left the OLD product in
+     `/tmp/wt-device-build` (Assets.car from the previous ticket) — the user saw no new icons.
+     Always check the product's `Assets.car` mtime / `assetutil --info | grep <new asset>` before
+     installing; the foreground rebuild fixed it.
 
 0000000. **HANDOFF 2026-09-11 (night) — ticket 11 MERGED to `main` (`c1ee95b`) AND INSTALLED
    (19:35 EDT; the remote launch was refused — phone locked — the user opens it). Next: the
