@@ -1,4 +1,4 @@
-# Scanner corpus report — Sep 11, 2026 at 6:52 PM
+# Scanner corpus report — Sep 12, 2026 at 12:07 AM
 
 Photos measured: 41 (12 with a catalog row, 29 without). Pipeline: `MachineLabelOCR.read` + `CatalogMatcher.rank` on the shipped catalog.
 

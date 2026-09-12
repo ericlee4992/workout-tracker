@@ -25,6 +25,9 @@ struct WorkoutDetailView: View {
     /// Renaming a logged workout (milestone 9, ticket 02) — a marked edit (D47).
     @State private var renamingWorkout = false
     @State private var renameText = ""
+    /// Ticket 13: "Save as Template…" from History, the finish sheet's flow.
+    @State private var namingTemplate = false
+    @State private var savedTemplateName: String?
     /// A set just created by "Add Exercise". If the user leaves without giving
     /// it real values, the whole entry is removed — history must never show an
     /// exercise with nothing under it.
@@ -65,6 +68,14 @@ struct WorkoutDetailView: View {
                         .foregroundStyle(.secondary)
                 }
                 .font(.subheadline)
+                if let savedTemplateName {
+                    // The finish sheet's confirmation line, here as a row of the
+                    // same section (ticket 13).
+                    Label("Saved as template “\(savedTemplateName)”", systemImage: "checkmark")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.secondary)
+                        .accessibilityIdentifier("savedTemplateConfirmation")
+                }
             }
             .listRowBackground(Theme.card)
             .listRowSeparatorTint(Theme.hairline)
@@ -327,9 +338,22 @@ struct WorkoutDetailView: View {
             // included — it was computed and never shown (codex-review, high).
             Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s"), \(Format.weight(impact.volumeKg)) kg of volume, permanently deleted. Records are recalculated without them.")
         }
+        .saveAsTemplateFlow(workout: workout, isPresented: $namingTemplate) {
+            savedTemplateName = $0
+        }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    // Ticket 13: the user asked to save a template from History.
+                    // Offered only when it can succeed (completed sets with a live
+                    // exercise), as the finish sheet does.
+                    if !workout.isDeleted, WorkoutTemplateService.canSaveAsTemplate(workout) {
+                        Button("Save as Template…", systemImage: "square.on.square") {
+                            namingTemplate = true
+                        }
+                        .accessibilityIdentifier("saveAsTemplate")
+                        Divider()
+                    }
                     Button("Delete Workout…", systemImage: "trash", role: .destructive) {
                         confirmingDelete = true
                     }

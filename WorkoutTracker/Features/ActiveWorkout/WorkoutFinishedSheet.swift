@@ -21,8 +21,6 @@ struct WorkoutFinishedSheet: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var namingTemplate = false
-    @State private var templateName = ""
-    @State private var templateFailure: String?
     @State private var savedTemplateName: String?
 
     /// The workout only when it really reached history — a deleted or
@@ -96,7 +94,6 @@ struct WorkoutFinishedSheet: View {
                                     .frame(maxWidth: .infinity, minHeight: 44)
                             } else if canSaveAsTemplate {
                                 Button {
-                                    templateName = defaultTemplateName
                                     namingTemplate = true
                                 } label: {
                                     Label("Save as Template", systemImage: "square.on.square")
@@ -143,23 +140,10 @@ struct WorkoutFinishedSheet: View {
                         .accessibilityIdentifier("finishedDone")
                 }
             }
-            .alert("Save as Template", isPresented: $namingTemplate) {
-                TextField("Template name", text: $templateName)
-                Button("Save") { saveTemplate() }
-                    .disabled(templateName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Saves exercises, sets and target reps — not weights or rest times.")
-            }
-            .alert(
-                "Couldn't Save Template",
-                isPresented: Binding(
-                    get: { templateFailure != nil },
-                    set: { if !$0 { templateFailure = nil } })
-            ) {
-                Button("OK", role: .cancel) { templateFailure = nil }
-            } message: {
-                Text(templateFailure ?? "")
+            // Ticket 13: the naming flow is `SaveAsTemplateFlow`, shared with
+            // History's workout detail.
+            .saveAsTemplateFlow(workout: savedWorkout, isPresented: $namingTemplate) {
+                savedTemplateName = $0
             }
         }
     }
@@ -185,13 +169,6 @@ struct WorkoutFinishedSheet: View {
     /// `noExercises` otherwise.
     private var canSaveAsTemplate: Bool {
         savedWorkout.map(WorkoutTemplateService.canSaveAsTemplate) ?? false
-    }
-
-    private var defaultTemplateName: String {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        let date = savedWorkout?.startedAt ?? .now
-        return "Workout \(formatter.string(from: date))"
     }
 
     /// D44: the numbers for the workout just finished. Built from the
@@ -369,27 +346,6 @@ struct WorkoutFinishedSheet: View {
         }
     }
 
-    private func saveTemplate() {
-        guard let saved = savedWorkout else { return }
-        do {
-            let template = try WorkoutTemplateService(context: modelContext)
-                .saveAsTemplate(saved, name: templateName)
-            savedTemplateName = template.name
-        } catch {
-            templateFailure = Self.templateFailureMessage(error)
-        }
-    }
-
-    private static func templateFailureMessage(_ error: Error) -> String {
-        switch error as? WorkoutTemplateError {
-        case .emptyName:
-            return "Give the template a name and try again."
-        case .noExercises:
-            return "This workout has no completed sets, so there is nothing to save as a template."
-        case nil:
-            return "The template could not be saved: \(error.localizedDescription)"
-        }
-    }
 }
 
 #Preview {
