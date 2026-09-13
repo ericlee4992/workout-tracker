@@ -1,6 +1,6 @@
 # 15 — Delete a template from its detail (the tile's long-press menu deleted the wrong one)
 
-Status: in progress (branch `templates-15-delete-in-detail`)
+Status: resolved — Codex clear after 2 rounds (codex-review-15, 15b); full UI suite **72/72** on `b324a4d`; on `af7a2b7` (the hardening) `WorkoutTemplateTests` 7/7 + `TemplateDetailUITests` 2/2 + the four template captures 4/4; merged to main 2026-09-13
 
 The user (2026-09-12, on the phone): "when deleting template it doesnt work propery. when i press
 and hold a template and click delete it deletes the other template. just have delete button
@@ -85,4 +85,4 @@ clear (`sourceTemplate` returns nil, both drift paths continue); design and copy
 History menu item and this row are consistent enough; the consequence line earns its place
 under the copy policy). Two P3s, both record: the cause is now labelled suspected (above and
 in the code comment); the job/state, wireframe and tells are recorded above. Advisory taken:
-the view-owned `deleted` flag. Rerun after the change: see below.
+the view-owned `deleted` flag. Rerun on `af7a2b7`: `WorkoutTemplateTests` 7/7, `TemplateDetailUITests` 2/2, the four template captures 4/4. Full UI suite on `b324a4d` (the commit before the hardening): **72 tests, 0 failures**.

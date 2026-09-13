@@ -84,7 +84,8 @@ legs (`MuscleFamily`, the seeded groups mapped) — have a fixed colour and a mu
 highlighted — pecs, lats + traps, deltoids, the bicep, the quads — two template images tinted
 separately), shown only on a template (its tile and its detail) for the families its
 exercises train; an exercise row wears no icon (UI redesign ticket 11). A template tile opens the
-template — its exercises as a list — and Start lives there. Motion and haptics mark the moments that
+template — its exercises as a list — and Start, Edit and Delete (confirmed; logged workouts are
+kept) live there; a tile has no long-press menu (ticket 15: on the phone it deleted the wrong template). Motion and haptics mark the moments that
 matter (a set completed, a workout started, the rest timer). The design adds shape, colour and
 motion, never words: the copy policy and D52's plain numbers stand, and every visible string and
 accessibility identifier the UI tests read is unchanged. Layouts adapt to Dynamic Type (chips
