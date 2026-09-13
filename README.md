@@ -74,4 +74,5 @@ different one (Claude and Codex) until it is clear; screens go through a written
 process with captures at the default and accessibility text sizes; and nothing merges without
 the full test suite. The decision log and the work record are the paper trail.
 
-Private project, single user, no App Store release planned.
+Private project, single user, App Store release planned in the future.
+
