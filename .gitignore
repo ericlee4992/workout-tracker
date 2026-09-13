@@ -34,3 +34,13 @@ Config/Local.xcconfig
 Config/anthropic.key
 # UI redesign: xcresult bundles are large and reproducible; the PNGs are committed
 .scratch/ui-redesign/results/
+
+# Agent work record (.scratch/): the tickets, reviews and screenshots are committed; raw
+# terminal dumps, terminal handles and the seeded design-canvas pages (regenerable from the
+# .dc.html working files with the design skill's helper) are not.
+.scratch/**/*.err
+.scratch/**/*.out
+.scratch/**/*-terminal.txt
+.scratch/ui-redesign/canvas/*/muscle-family-icons.html
+.scratch/ui-redesign/canvas/*/start-screen-directions.html
+.scratch/ui-redesign/canvas/*/board*.html

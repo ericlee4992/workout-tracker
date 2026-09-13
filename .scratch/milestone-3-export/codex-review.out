@@ -1,9 +1,0 @@
-Created [codex-review.md](</Users/ericlee06/orca/projects/Health App/.scratch/milestone-3-export/codex-review.md>).
-
-Verdict: **do not merge or install yet**. The three high-severity defects are:
-
-- Draft entries lose selected equipment context.
-- D28 can omit a user-authored exercise-to-seeded-model link.
-- Embedded CRLF text can corrupt the CSV structure.
-
-The review includes the full schema audit, D28 edge cases, test gaps, UI/staging assessment, and smallest fixes. No product code was changed. Tests/builds could not be independently run because the sandbox cannot access CoreSimulatorService.
