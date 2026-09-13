@@ -61,9 +61,8 @@ struct StartWorkoutView: View {
                     // Ticket 10: a two-column grid of tiles (the user chose
                     // direction C's templates). Ticket 11: the tile OPENS the
                     // template (its exercises, then Start) — the user asked to
-                    // see the list before starting. Edit/Delete live on the
-                    // long-press menu — a grid has no swipe, and deleting a
-                    // plan is not a record lost (D23).
+                    // see the list before starting. Ticket 15: Edit and Delete
+                    // are on the opened template, nowhere else.
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10),
                                              count: dynamicTypeSize.isAccessibilitySize ? 1 : 2),
                               spacing: 10) {
@@ -73,15 +72,11 @@ struct StartWorkoutView: View {
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("templateTile.\(template.name)")
-                            .contextMenu {
-                                Button("Edit…") {
-                                    editingTemplate = template
-                                    showingTemplateEditor = true
-                                }
-                                Button("Delete", role: .destructive) {
-                                    delete(template)
-                                }
-                            }
+                            // Ticket 15: no long-press menu. On the phone the
+                            // tile's context menu deleted the OTHER template
+                            // (the grid is one List row; the List attributes
+                            // the press per row, not per tile). Edit and Delete
+                            // live on the opened template.
                         }
                         Button {
                             editingTemplate = nil
@@ -179,11 +174,6 @@ struct StartWorkoutView: View {
         if let workout = try? session.resumableWorkout() {
             onWorkoutStarted(workout)
         }
-    }
-
-    private func delete(_ template: WorkoutTemplate) {
-        do { try WorkoutTemplateService(context: modelContext).delete(template) }
-        catch { assertionFailure("Failed to delete template: \(error)") }
     }
 
     // MARK: Gym & units

@@ -16,7 +16,12 @@ struct TemplateDetailView: View {
 
     @State private var request: WorkoutStartRequest?
     @State private var showingEditor = false
+    /// Ticket 15: Delete lives here, confirmed — the tile's long-press menu
+    /// deleted the wrong template on the phone and is gone.
+    @State private var confirmingDelete = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         // A deleted template (the tile's long-press menu, while this screen
@@ -41,6 +46,25 @@ struct TemplateDetailView: View {
             }
             .listRowBackground(Theme.card)
             .listRowSeparatorTint(Theme.hairline)
+            // The destructive command last, never primary (ios-design): a red
+            // text button after the content, above the pinned Start.
+            Section {
+                Button("Delete Template…", systemImage: "trash", role: .destructive) {
+                    confirmingDelete = true
+                }
+                .foregroundStyle(Theme.danger)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .accessibilityIdentifier("deleteTemplate")
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+        }
+        .alert("Delete Template", isPresented: $confirmingDelete) {
+            Button("Delete", role: .destructive, action: deleteTemplate)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            // The consequence, in one line: the plan goes, the record stays (D23).
+            Text("Workouts already logged from it are kept.")
         }
         .scrollContentBackground(.hidden)
         .background(Theme.background)
@@ -102,6 +126,16 @@ struct TemplateDetailView: View {
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("templateExercise.\(item.exercise?.name ?? "")")
+    }
+
+    private func deleteTemplate() {
+        guard !template.isDeleted else { return }
+        do {
+            try WorkoutTemplateService(context: modelContext).delete(template)
+            dismiss()
+        } catch {
+            assertionFailure("Failed to delete template: \(error)")
+        }
     }
 
     /// The resume capsule's pattern: "<gym> · N exercises".
