@@ -1,6 +1,27 @@
 # Where the project is right now
 
-Updated 2026-09-12 01:15 (History tickets 13 + 14 — Save as Template from History; time in zones under the History graph — MERGED and INSTALLED, launched remotely; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-13 00:40 (ticket 15 — template delete moved into the opened template — MERGED, install PENDING: the phone's developer disk image would not mount; 13 + 14 are on the phone; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+
+0000000000. **HANDOFF 2026-09-13 (00:40) — ticket 15 MERGED to `main` (`b306b29`), NOT installed:
+   `devicectl` sees the phone as available but "The developer disk image could not be mounted"
+   (error 12040) at 00:37 — the phone is probably locked after a restart (the DDI needs one
+   unlock) or its iOS moved past this Xcode's DDIs. The signed build is at
+   `/tmp/wt-device-build/Build/Products/Debug-iphoneos/WorkoutTracker.app` (23:57, `af7a2b7`'s
+   source = `main`'s). Next: install when the phone cooperates, then the user's reaction.**
+   - **The bug (2026-09-12, on the phone)**: "when i press and hold a template and click delete it
+     deletes the other template. just have delete button appear when you open the template."
+     Ticket `.scratch/ui-redesign/issues/15-delete-template-in-detail.md` (branch
+     `templates-15-delete-in-detail`, pushed). The tile's `.contextMenu` is GONE (suspected
+     cause: several context menus in one List row — the grid — with the press attributed to the
+     wrong one; not proven, not reproduced in the Simulator); the opened template has a red
+     "Delete Template…" row last (`deleteTemplate`), alert "Delete Template" / Delete / Cancel,
+     "Workouts already logged from it are kept."; a view-owned `deleted` flag set before the
+     model delete (codex-review-15: `isDeleted` flips back to false once saved). Codex 2 rounds.
+     `TemplateDetailUITests` 2; full UI suite **72/72** on `b324a4d`; gates rerun on `af7a2b7`.
+   - **Harness**: build for the phone with `-destination 'generic/platform=iOS'` — it needs no
+     phone attached and no DDI, so a sleeping phone cannot hang the build (the id-destination
+     build timed out for 22 hours while the Mac slept on 09-12). Install still needs the phone.
+   - **Still open**: the rest bar's "Skip"/"+15s" mid-word wrap at AXL (ticket 02's bar).
 
 000000000. **HANDOFF 2026-09-12 (01:15) — History tickets 13 + 14 MERGED to `main` (`e211a07`)
    AND INSTALLED (launched remotely 01:14 EDT; the binary is `fa54d37`'s — the later commit is
