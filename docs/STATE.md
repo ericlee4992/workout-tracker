@@ -1,13 +1,14 @@
 # Where the project is right now
 
-Updated 2026-09-13 00:40 (ticket 15 — template delete moved into the opened template — MERGED, install PENDING: the phone's developer disk image would not mount; 13 + 14 are on the phone; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened template — MERGED and INSTALLED, launched remotely; profiles to 09-17). **START HERE IF YOU ARE COLD:**
 
-0000000000. **HANDOFF 2026-09-13 (00:40) — ticket 15 MERGED to `main` (`b306b29`), NOT installed:
-   `devicectl` sees the phone as available but "The developer disk image could not be mounted"
-   (error 12040) at 00:37 — the phone is probably locked after a restart (the DDI needs one
-   unlock) or its iOS moved past this Xcode's DDIs. The signed build is at
-   `/tmp/wt-device-build/Build/Products/Debug-iphoneos/WorkoutTracker.app` (23:57, `af7a2b7`'s
-   source = `main`'s). Next: install when the phone cooperates, then the user's reaction.**
+0000000000. **HANDOFF 2026-09-13 (01:10) — ticket 15 MERGED to `main` (`b306b29`) AND INSTALLED,
+   launched remotely 01:09 EDT. Next: the user's reaction, then the next screen.**
+   - **Install gotcha, resolved**: "The developer disk image could not be mounted" (error 12040)
+     with the tunnel connected = the phone is LOCKED (`devicectl device info lockState` →
+     `passcodeRequired: true`); mounting the DDI needs the phone unlocked once per boot. Yesterday's
+     installs worked while locked only because the image was already mounted. Fix: the user
+     unlocks; a 15 s retry loop installs on the next attempt.
    - **The bug (2026-09-12, on the phone)**: "when i press and hold a template and click delete it
      deletes the other template. just have delete button appear when you open the template."
      Ticket `.scratch/ui-redesign/issues/15-delete-template-in-detail.md` (branch
