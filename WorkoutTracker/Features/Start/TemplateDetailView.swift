@@ -19,6 +19,10 @@ struct TemplateDetailView: View {
     /// Ticket 15: Delete lives here, confirmed — the tile's long-press menu
     /// deleted the wrong template on the phone and is gone.
     @State private var confirmingDelete = false
+    /// View-owned: set BEFORE the model is deleted, so a re-evaluation after
+    /// the save never renders a deleted model (`isDeleted` flips back to false
+    /// once saved — codex-review-15). The screen goes blank and pops.
+    @State private var deleted = false
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -26,7 +30,7 @@ struct TemplateDetailView: View {
     var body: some View {
         // A deleted template (the tile's long-press menu, while this screen
         // is on the stack) renders empty rather than faulting.
-        let items = template.isDeleted ? [] : WorkoutTemplateService.orderedItems(of: template)
+        let items = (deleted || template.isDeleted) ? [] : WorkoutTemplateService.orderedItems(of: template)
         let labels = Supersets.memberLabels(groupIDs: items.map(\.supersetGroupID))
         let families = MuscleFamily.families(of: items.map { $0.exercise?.muscleGroup })
         List {
@@ -68,7 +72,7 @@ struct TemplateDetailView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Theme.background)
-        .navigationTitle(template.isDeleted ? "" : template.name)
+        .navigationTitle((deleted || template.isDeleted) ? "" : template.name)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Edit") { showingEditor = true }
@@ -129,7 +133,8 @@ struct TemplateDetailView: View {
     }
 
     private func deleteTemplate() {
-        guard !template.isDeleted else { return }
+        guard !deleted, !template.isDeleted else { return }
+        deleted = true
         do {
             try WorkoutTemplateService(context: modelContext).delete(template)
             dismiss()

@@ -73,10 +73,11 @@ struct StartWorkoutView: View {
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("templateTile.\(template.name)")
                             // Ticket 15: no long-press menu. On the phone the
-                            // tile's context menu deleted the OTHER template
-                            // (the grid is one List row; the List attributes
-                            // the press per row, not per tile). Edit and Delete
-                            // live on the opened template.
+                            // tile's context menu deleted the OTHER template.
+                            // Suspected cause, not proven (codex-review-15): the
+                            // grid is one List row holding several context menus,
+                            // and the press was attributed to the wrong one. Edit
+                            // and Delete live on the opened template instead.
                         }
                         Button {
                             editingTemplate = nil

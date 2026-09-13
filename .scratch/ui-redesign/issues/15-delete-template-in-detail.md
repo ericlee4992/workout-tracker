@@ -13,7 +13,39 @@ a `contextMenu` inside a List row is presented by the List, which attributes the
 row — and with several context menus in one row, the one that fires is not reliably the tile
 under the finger. Not reproduced in the Simulator (no UI test long-pressed a tile — the
 ticket-10 review noted only that Edit/Delete "stay on the long-press menu"); the user saw it on
-the phone with two templates. Cause not chased further: the user asked for the menu to go.
+the phone with two templates. **Suspected** cause, not proven (codex-review-15: Apple documents the modifier as attaching a
+menu to a view, not how several inside one List row are arbitrated; the ForEach uses model
+identity and each closure captures its own `template`, so the alternatives have no evidence).
+Not chased further: the user asked for the menu to go, and removing it removes the interaction
+whatever the mechanism.
+
+## Step 1 — job, state, bold element
+
+The template detail (ticket 11) exists so the user can see what the template holds and start
+it in one tap; the eye lands on the exercise list, the bold element is the pinned Start at the
+thumb. Ticket 15 adds a last row — the destructive command — and a confirmation state (the
+alert). Start stays the only accent; the red row is the list's tail, below the fold when the
+list is long, which is where a destructive command belongs.
+
+## Step 2 — wireframe
+
+Ticket 11's, with one row appended:
+
+```
+│ │ Abdominal Crunch       │ │
+│ │ 3 sets · 10, 10, 10 …  │ │
+│ └────────────────────────┘ │
+│   🗑 Delete Template…      │  red text, 44 pt, last
+│                            │
+│   (● Start  ↗)             │  H, pinned
+```
+
+## Step 4 — tells
+
+Inherited from ticket 11 unchanged. Added: the primary never destroys — **absent** (a red text
+row, not a filled button); a control dressed as the command — **absent**; two prominent
+buttons — **absent** (Start alone is prominent). Survives only the default size:
+`screenshots/15/04-template-detail-fixture-axl-2.png` — the row whole at AXL after a scroll.
 
 ## Built
 
@@ -25,6 +57,9 @@ the phone with two templates. Cause not chased further: the user asked for the m
   "Workouts already logged from it are kept." (D23: a plan is not a record). On Delete the
   detail pops. **New copy** — "Delete Template…" and the consequence line — by the user's
   request ("have delete button appear when you open the template").
+- Hardening (codex-review-15): a view-owned `deleted` flag set before the model is deleted —
+  `isDeleted` flips back to false once the delete is saved, so the old guards were not a proof;
+  the body renders nothing model-backed after the flag.
 - `TemplateDetailUITests` (new, 2): with the seeded "Whole Body" and a second template, a long
   press offers nothing; deleting "Second" from its detail removes Second and keeps Whole Body;
   Cancel keeps the template.
@@ -42,3 +77,12 @@ UI: `TemplateDetailUITests` 2, `RedesignScreenshotUITests` `test04_templateFixtu
 row last, above the pinned Start, at both sizes — with six exercises it is below the fold until
 the list scrolls); `TemplateDetailUITests` 2/2 after one test fix (a long press on the tile is
 now just a tap — it opens the template — so the probe no longer taps the tile again).
+
+## Codex review 15 — response (2026-09-12)
+
+`codex-review-15.md`: "no demonstrated functional regression"; live-workout source deletion
+clear (`sourceTemplate` returns nil, both drift paths continue); design and copy clear (the
+History menu item and this row are consistent enough; the consequence line earns its place
+under the copy policy). Two P3s, both record: the cause is now labelled suspected (above and
+in the code comment); the job/state, wireframe and tells are recorded above. Advisory taken:
+the view-owned `deleted` flag. Rerun after the change: see below.
