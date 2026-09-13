@@ -5,7 +5,7 @@ import Testing
 
 /// Scanner accuracy, ticket 02 — the repair of corrupted brand tokens and
 /// glued words. Every positive input below is a real misread from the plate
-/// corpus (`.scratch/scanner-accuracy/reports/`), which is also the misread
+/// corpus (`work-record/scanner-accuracy/reports/`), which is also the misread
 /// the user reported from the gym. Every NEGATIVE input is a way the first
 /// cut manufactured a brand or mangled a word (codex-review-02).
 @MainActor

@@ -26,21 +26,21 @@ Config/Local.xcconfig
 
 # Scanner accuracy corpus: photos of real name plates stay local (D34 spirit);
 # only the manifest (URLs + labels) and reports are committed.
-.scratch/scanner-accuracy/corpus/*
-!.scratch/scanner-accuracy/corpus/manifest.json
+work-record/scanner-accuracy/corpus/*
+!work-record/scanner-accuracy/corpus/manifest.json
 
 # Anthropic API key for the scanner LLM experiment (read by
-# .scratch/scanner-accuracy/tools/llm_reader.py); never committed.
+# work-record/scanner-accuracy/tools/llm_reader.py); never committed.
 Config/anthropic.key
 # UI redesign: xcresult bundles are large and reproducible; the PNGs are committed
-.scratch/ui-redesign/results/
+work-record/ui-redesign/results/
 
-# Agent work record (.scratch/): the tickets, reviews and screenshots are committed; raw
+# Agent work record (work-record/): the tickets, reviews and screenshots are committed; raw
 # terminal dumps, terminal handles and the seeded design-canvas pages (regenerable from the
 # .dc.html working files with the design skill's helper) are not.
-.scratch/**/*.err
-.scratch/**/*.out
-.scratch/**/*-terminal.txt
-.scratch/ui-redesign/canvas/*/muscle-family-icons.html
-.scratch/ui-redesign/canvas/*/start-screen-directions.html
-.scratch/ui-redesign/canvas/*/board*.html
+work-record/**/*.err
+work-record/**/*.out
+work-record/**/*-terminal.txt
+work-record/ui-redesign/canvas/*/muscle-family-icons.html
+work-record/ui-redesign/canvas/*/start-screen-directions.html
+work-record/ui-redesign/canvas/*/board*.html

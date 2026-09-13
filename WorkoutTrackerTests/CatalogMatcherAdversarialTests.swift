@@ -7,7 +7,7 @@ import Testing
 // 1877-row catalog rather than a six-row fixture.
 //
 // Every case here was found by the first Codex cross-review
-// (`.scratch/photo-machine-capture/codex-review.md`), and every one of them
+// (`work-record/photo-machine-capture/codex-review.md`), and every one of them
 // preselected a confidently wrong catalog UUID before the fixes: a plate saying
 // NEWCO matched Nautilus at 0.97, `NAUTILUS 5 STATION` tied 4/5/9 Station at
 // 1.00, and a photo of a Hip Abduction machine also scored Hip Adduction at

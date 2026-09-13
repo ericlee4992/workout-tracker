@@ -1,0 +1,200 @@
+{
+  "date": "2026-09-10",
+  "intro": "Same brief, two agents, two branches: the design system plus the active workout screen (tickets 01 and 02 of the approved plan), captured with the same test flows on each build. Left is the app as it shipped this morning. The first four rows are the designed screens; the rows after them are screens neither take has restyled yet \u2014 they show only the new colours on the old layouts, which is what tickets 03 to 09 will redo on whichever design wins. Every identifier and visible string the tests read is unchanged in both.",
+  "footer": "Screenshots: WT-iPhone simulator, -uiTestReset fixtures. Claude: branch ui-redesign-01 (1db593c). Codex: branch ericlee4992/ui-redesign-codex. Baseline: main at 011d5b2.",
+  "columns": [
+    {
+      "id": "before",
+      "label": "Before",
+      "dir": "work-record/ui-redesign/screenshots/before",
+      "prefix": "redesign-"
+    },
+    {
+      "id": "claude",
+      "label": "Claude \u00b7 Coral",
+      "dir": "work-record/ui-redesign/screenshots/claude",
+      "prefix": "redesign-"
+    },
+    {
+      "id": "codex",
+      "label": "Codex \u00b7 Ink / Amber",
+      "dir": "work-record/ui-redesign/screenshots/codex",
+      "prefix": "codex-"
+    }
+  ],
+  "screens": [
+    {
+      "key": "02-active-workout",
+      "title": "Active workout",
+      "note": "The screen you live in: a set logged, live heart rate. Both takes move the variation chips under the thumb and make the completed set the accent. Codex adds a sets-done ring in the header (note the 1/2 label overlapping the tick in this capture); Claude keeps the header to chips and the minute count."
+    },
+    {
+      "key": "02-active-workout-rest",
+      "title": "Active workout, rest running",
+      "note": "Two bottom bars for the same moment: Claude's ring in an edge-to-edge bar, Codex's floating dock."
+    },
+    {
+      "key": "02-bar-mode",
+      "title": "Bar mode",
+      "note": "Plates on one side in, the total out \u2014 the row the old layout showed as two unrelated numbers. Both group the field, the unit and the total; both captures show the keyboard's Done pill over the footer, a pre-existing quirk."
+    },
+    {
+      "key": "04-start",
+      "title": "Start",
+      "note": "Optional in the brief. Codex restyled it (hero button, gym card); Claude's is the old layout under the new colours until ticket 04."
+    },
+    {
+      "key": "03-finish-summary",
+      "title": "Finish summary",
+      "note": "Ticket 03. Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "05-history",
+      "title": "History",
+      "note": "Ticket 06. Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "05-calendar",
+      "title": "Calendar",
+      "note": "Ticket 06. Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "05-detail",
+      "title": "Workout detail",
+      "note": "Ticket 06. Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "05-detail-heart-rate",
+      "title": "Workout detail, heart rate",
+      "note": "Ticket 06 (the graph keeps its Apple-Fitness shape). Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "05-chart",
+      "title": "Progress chart",
+      "note": "Ticket 06. Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "06-gyms",
+      "title": "Gyms, with Settings below",
+      "note": "Ticket 07; Settings moves behind a gear on the Workout tab in ticket 05. Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "06-gym-detail",
+      "title": "Gym detail",
+      "note": "Ticket 07. Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "07-exercises",
+      "title": "Exercises",
+      "note": "Ticket 08. Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "08-empty-history",
+      "title": "Empty History",
+      "note": "Ticket 09 gives every empty list its symbol. Not yet restyled on either side: colours only, layout as before."
+    },
+    {
+      "key": "01-root",
+      "title": "Workout tab, fresh store",
+      "note": "The first screen on an empty store."
+    }
+  ],
+  "palettes": {
+    "Claude \u00b7 Coral": [
+      [
+        "Accent",
+        "#FF7A3D"
+      ],
+      [
+        "On accent",
+        "#0A0A0C"
+      ],
+      [
+        "Background",
+        "#0A0A0C"
+      ],
+      [
+        "Card",
+        "#1A1A1E"
+      ],
+      [
+        "Elevated",
+        "#26262B"
+      ],
+      [
+        "Fill",
+        "#303036"
+      ],
+      [
+        "Danger",
+        "#FF453A"
+      ],
+      [
+        "Warmup",
+        "#FFD60A"
+      ],
+      [
+        "Drop",
+        "#BF5AF2"
+      ],
+      [
+        "kg",
+        "#5AC8FA"
+      ],
+      [
+        "lb",
+        "#63E6BE"
+      ]
+    ],
+    "Codex \u00b7 Ink / Amber": [
+      [
+        "Accent",
+        "#FFB45E"
+      ],
+      [
+        "On accent",
+        "#15110B"
+      ],
+      [
+        "Background",
+        "#0B0D10"
+      ],
+      [
+        "Card",
+        "#171B21"
+      ],
+      [
+        "Elevated",
+        "#222831"
+      ],
+      [
+        "Fill",
+        "#2B323C"
+      ],
+      [
+        "Danger",
+        "#FF6B76"
+      ],
+      [
+        "Warmup",
+        "#E9D875"
+      ],
+      [
+        "Drop",
+        "#B8A1EE"
+      ],
+      [
+        "kg",
+        "#97C7EE"
+      ],
+      [
+        "lb",
+        "#A8CDBF"
+      ]
+    ]
+  },
+  "notes": {
+    "Claude \u00b7 Coral": "Neutral near-black greys, a hot coral accent, rounded numerals for the big figures. Radii 20 / 12 / 10. Warmup pushed to yellow so nothing but the accent is orange.",
+    "Codex \u00b7 Ink / Amber": "Blue-leaning graphite surfaces with a softer amber accent and warm white text. Radii 24 / 16 / 10. Adds a completed-sets ring in the header and a keyboard-aware compact header."
+  }
+}

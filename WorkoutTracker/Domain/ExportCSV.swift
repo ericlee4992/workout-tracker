@@ -17,7 +17,7 @@ import Foundation
 
 enum ExportCSV {
 
-    /// The 37 columns, in order. `.scratch/milestone-3-export/spec.md` documents
+    /// The 37 columns, in order. `work-record/milestone-3-export/spec.md` documents
     /// each one's source; the order is part of the format — appending is safe,
     /// reordering is not, and so is changing what an existing column means
     /// (codex-review 02 caught a first cut that did).

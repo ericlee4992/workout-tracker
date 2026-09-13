@@ -11,7 +11,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
      unlocks; a 15 s retry loop installs on the next attempt.
    - **The bug (2026-09-12, on the phone)**: "when i press and hold a template and click delete it
      deletes the other template. just have delete button appear when you open the template."
-     Ticket `.scratch/ui-redesign/issues/15-delete-template-in-detail.md` (branch
+     Ticket `work-record/ui-redesign/issues/15-delete-template-in-detail.md` (branch
      `templates-15-delete-in-detail`, pushed). The tile's `.contextMenu` is GONE (suspected
      cause: several context menus in one List row — the grid — with the press attributed to the
      wrong one; not proven, not reproduced in the Simulator); the opened template has a red
@@ -30,7 +30,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
    zones under the History graph), then the next screen of the second design pass.**
    - **The ask (2026-09-11 night)**: "I want to have an option to save as template from history.
      In history I also want to be able to see time spent in hr zone, either when you click the
-     graph or just below the graph." Folder `.scratch/history-templates-and-zones/` (issues 13,
+     graph or just below the graph." Folder `work-record/history-templates-and-zones/` (issues 13,
      14; Codex reviews 13, 14, 14b; screenshots).
    - **13**: `Features/Templates/SaveAsTemplateFlow.swift` — the finish sheet's naming + failure
      alerts as ONE modifier, shared; `WorkoutDetailView`'s menu gains "Save as Template…"
@@ -59,11 +59,11 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
    - **The ask**: after ticket 11 on the phone the user found the family icons "inaccurate and
      mild", asked for a design from Claude AND from Codex ("with its new Image 2.5"), then gave a
      direction with two references (a body with the working muscle highlighted), then "Let's stick
-     with codex's." Record: `.scratch/ui-redesign/icons/brief.md` (both rounds, both designers'
+     with codex's." Record: `work-record/ui-redesign/icons/brief.md` (both rounds, both designers'
      files), canvas https://claude.ai/code/artifact/0abc8068-6d95-497e-8cb8-1907790411b5, ticket
      `issues/12-muscle-family-icons.md` (branch `ui-redesign-12-muscle-maps`, pushed).
    - **Built**: `Assets.xcassets/MuscleMaps/<family>-{body,muscle}` — 512 px single-scale template
-     PNGs from Codex's grey-body/red-muscle renders via `.scratch/ui-redesign/icons/
+     PNGs from Codex's grey-body/red-muscle renders via `work-record/ui-redesign/icons/
      make-muscle-map-assets.py` (reproduces the PNGs byte for byte); `Colors/MuscleBody` #5B6472
      + `Theme.muscleBody`; `MuscleGroupStyle` now colour + map per family (Codex's colours:
      chest #FF70B6, back #4EB9FF, shoulders #4DE0D4, arms #B891FF, legs #84D65A); `MuscleIcon`
@@ -133,7 +133,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
    - **Ticket 10 (Start, second pass)**: `issues/10-start-second-pass.md` — the skill's process
      end to end: job/state sentences, three ASCII wireframes, canvas mockups the user chose from
      (https://claude.ai/code/artifact/bb03a175-d794-4824-8164-944181e30797; working files in
-     `.scratch/ui-redesign/canvas/start/`), the tells answered, Codex against `REVIEW.md`. The
+     `work-record/ui-redesign/canvas/start/`), the tells answered, Codex against `REVIEW.md`. The
      user's picks: keep the structure (gear, title, gym card, action, templates), the Start button
      "too big and too mundane" → ONE amber capsule (`HeroCapsuleLabel`: figure in an ink disc,
      hugging) that reads Start Empty Workout, or Resume workout + "<gym> · N exercises" with a
@@ -168,7 +168,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
    the same day (tickets 01 + 02 + Start-lite) and INSTALLED, launch-verified 2026-09-10 evening
    (`84610c9` = `main`; no schema change; profiles unchanged, 09-17).** The user: "the app seems a bit boring, with mostly
    texts and it essentially doesn't have a clean UI design." Plan (approved, in
-   `.scratch/ui-redesign/spec.md`): bold, dark, card-based; dark only; ONE warm accent; muscle-group
+   `work-record/ui-redesign/spec.md`): bold, dark, card-based; dark only; ONE warm accent; muscle-group
    colours + icons; stat tiles + rings; motion + haptics; SF-Symbol empty states; whole app screen
    by screen with screenshots, workout screen first; Settings gets its own screen behind a gear on
    the Workout tab (ticket 05); a generated app icon (ticket 09). **D54** records the visual
@@ -177,7 +177,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
      simulator `WT-iPhone-Codex`); both built tickets 01 + 02 (design system + active workout;
      Codex also took Start); a side-by-side board of all 15 screens × before/Claude/Codex was
      published — https://claude.ai/code/artifact/8d3aa889-2a2b-44ae-8d37-7620377bd3f9 — and the
-     user picked Codex's. Record: `.scratch/ui-redesign/issues/01-design-system.md` ("Outcome"),
+     user picked Codex's. Record: `work-record/ui-redesign/issues/01-design-system.md` ("Outcome"),
      `codex-design-report.md` (Codex's own report), `screenshots/{before,claude,codex}`.
    - **Branch `ui-redesign`** = Codex's `b008e5c` + the docs + `RedesignScreenshotUITests` (the
      15-screen review surface, run it for every later ticket) + Claude's review fixes (the header
@@ -194,7 +194,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
      Live Activity, each with screenshots via `RedesignScreenshotUITests` and a Codex review
      (Claude builds, Codex reviews — or the reverse, never the author).
 
-0000. **Machine deletion (`.scratch/machine-deletion/issues/01-delete-machines.md`) MERGED to
+0000. **Machine deletion (`work-record/machine-deletion/issues/01-delete-machines.md`) MERGED to
    `main` 2026-09-10 — Codex clear after TWO rounds — and INSTALLED 2026-09-10 15:40 EDT
    (`c8843ce` = `main`; no schema change), with FRESH profiles: app and widget both expire
    **2026-09-17 20:14 UTC**. The remote launch was refused (phone locked) — the user opens it.** The user's ask: "delete added
@@ -229,7 +229,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
      `Features/Gyms/AskAI.swift` (transport + who answers), `AskAIKeyStore.swift` (keychain),
      `LabelCropRendering.swift`, `Settings/AskAISettingsSheet.swift`, the scan sheet's Ask AI
      section; **06** `Domain/ExerciseProposal.swift`, the New Model sheet's "Suggest exercises with
-     AI". D53 added, D34 amended, CLAUDE.md → D53. Tickets: `.scratch/scanner-accuracy/issues/05-…`,
+     AI". D53 added, D34 amended, CLAUDE.md → D53. Tickets: `work-record/scanner-accuracy/issues/05-…`,
      `06-…` (each with a Resolution and, for 05, the Codex round-1 response).
    - **The experiment that justified it** (`issues/llm-reader-experiment.md`): on the same 41
      plates Claude Sonnet 5 → top-1 10/12 (Vision 8), preselected 6 (5), wrong 0 (0), every
@@ -263,7 +263,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
 
 
 00. **Scanner accuracy — in progress on branch `scanner-accuracy`, tickets in
-   `.scratch/scanner-accuracy/`.** The user's complaint: the scanner reads logos as text and
+   `work-record/scanner-accuracy/`.** The user's complaint: the scanner reads logos as text and
    misreads the brand. Built and measured, not guessed:
    - **01 — corpus + harness (on `main`, `419a04a`).** 41 real name-plate photos (gitignored;
      manifest committed) and `WorkoutTrackerTests/ScannerCorpusHarness.swift`, which runs the
@@ -297,7 +297,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
      with the prompt on its command line.
 0. **The finish-graph work — branch `finish-graph-and-plain-numbers`, MERGED into `main` 2026-09-05
    (fast-forward; `main` still has zero merge commits) — two tickets in
-   `.scratch/finish-graph-and-plain-numbers/`, from the user's first real workout on the
+   `work-record/finish-graph-and-plain-numbers/`, from the user's first real workout on the
    milestone-9 build (66:51, avg 122, max 141):**
    - **01 — the heart-rate graph redrawn in Apple Fitness's shape.** Thin floating range bars
      (per-bucket LOW/HIGH beside the mean — two new `[Int]` on `Workout`, **export schema 9**),
@@ -390,7 +390,7 @@ Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened te
    when that path never reached it, so every replaced workout had lost its aggregates since
    milestone 7. Grep for uncalled funcs and re-read doc comments against callers before closing.
 7. **What milestone 9's seventeen Codex rounds taught, in one line each** (details in each
-   ticket's "response" sections under `.scratch/milestone-9-history-and-summary/issues/`):
+   ticket's "response" sections under `work-record/milestone-9-history-and-summary/issues/`):
    - A green suite around a fix is not evidence the fix is visible (01).
    - Reusing an existing export column for a new meaning is a silent format change; append (02).
    - "Only its numbers" in D47 is a boundary, not a suggestion — reopen, don't drift (02, 04).
@@ -425,7 +425,7 @@ stale fastest.
 
 Merged and pushed on `main`: **everything, including milestone 9** (`97b656b`, merged 2026-09-04 —
 fast-forward, so `main` still has zero merge commits). **644 unit + 36 UI green on 2026-09-04.**
-Milestone 9 added 76 unit tests and 9 UI tests across its six tickets (`.scratch/milestone-9-history-and-summary/`).
+Milestone 9 added 76 unit tests and 9 UI tests across its six tickets (`work-record/milestone-9-history-and-summary/`).
 **Milestones 7 and 8 are both MERGED into `main`** (2026-08-25 and 2026-08-29, both fast-forward —
 `main` still has zero merge commits). Their branch pointers, and milestone 9's, were deleted locally
 and on GitHub on 2026-09-04; everything they contained is in `main`. **Check `git log --oneline origin/main..main` before
@@ -444,7 +444,7 @@ believing `main` is pushed** — it was one commit ahead on 2026-08-29. `github.
 **Milestone 7 — heart rate (D41–D45), committed on branch `milestone-7-heart-rate`.**
 Live HR on the workout screen from AirPods Pro 3 or an Apple
 Watch, zones, system calories, a heart-rate rest timer, and a finish summary. 8 tickets in
-`.scratch/milestone-7-heart-rate/`, all resolved; two Codex rounds run and every critical fixed
+`work-record/milestone-7-heart-rate/`, all resolved; two Codex rounds run and every critical fixed
 (`codex-review.md`, `codex-review-2.md`), each with a regression test in
 `CodexReviewRegressionTests`.
 
@@ -588,7 +588,7 @@ while explaining the feature to the user in prose.
 **Two things are true and easy to miss:**
 
 1. **Bar weight merged before its cross-review, but that debt is now closed** (see Reviews in
-   `DECISIONS.md` and `.scratch/barbell-bar-weight/codex-review*.md`). The review found and fixed
+   `DECISIONS.md` and `work-record/barbell-bar-weight/codex-review*.md`). The review found and fixed
    stale cross-unit input, stale preset-prefill UI, mixed-source carry-forward, invented variable
    bar presets, incomplete bar normalization, and related contract gaps. The D39 invariant remains
    load-bearing: `weightValue` is the total and bar fields are provenance.
@@ -1015,7 +1015,7 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
 - **Cross-review is not optional** (T6). Codex reviews of Claude's work have caught, among others:
   template data loss on an empty templated workout, D23 violations where history read live rows,
   and ten duplicate catalog identities that would have split the user's own history. Reviews live
-  in `.scratch/*/codex-review*.md`. Milestone 3's pass caught an export that dropped a draft
+  in `work-record/*/codex-review*.md`. Milestone 3's pass caught an export that dropped a draft
   entry's equipment and a CRLF-quoting bug that would have corrupted the CSV. The scanner needed
   **two** rounds, and the second round's worst finding was a defect introduced by the first
   round's fix — budget for a re-review after fixing criticals, not just after writing code.

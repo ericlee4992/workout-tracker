@@ -3,7 +3,7 @@ import Foundation
 // Scanner accuracy, ticket 02 — repairing what the camera did to the words
 // BEFORE the catalog is ranked against them. Pure: no UI, no Vision.
 //
-// The corpus (`.scratch/scanner-accuracy/reports/`) showed one dominant
+// The corpus (`work-record/scanner-accuracy/reports/`) showed one dominant
 // failure: a brand printed as a logo comes back as a corrupted token —
 // `SCYBEX` (the swoosh read as a letter), `HAMMER STRENCTH`, `LieFitness`,
 // `HOISI` — and `manufacturerMatched` needs the exact token, so a

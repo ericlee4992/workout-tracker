@@ -4,7 +4,7 @@ import Testing
 @testable import WorkoutTracker
 
 // Milestone 7, ticket 08 — one test per defect the Codex cross-review found
-// (`.scratch/milestone-7-heart-rate/codex-review.md`).
+// (`work-record/milestone-7-heart-rate/codex-review.md`).
 //
 // Kept as a named suite rather than scattered, because the review's own lesson
 // from the scanner rounds is that the worst finding of round 2 is usually a

@@ -9,7 +9,7 @@ import Foundation
 // catalog identities did (codex-review-4). Hence D33: this file proposes, the
 // user confirms, and a weak or ambiguous best answer is reported as such.
 //
-// The first cross-review of this file (`.scratch/photo-machine-capture/
+// The first cross-review of this file (`work-record/photo-machine-capture/
 // codex-review.md`) found four ways to score a *confident wrong row*, and the
 // shape below is what closes them:
 //

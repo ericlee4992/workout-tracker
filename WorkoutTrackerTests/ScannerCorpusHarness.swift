@@ -13,7 +13,7 @@ import UIKit
 // per-photo report. The number it prints is the gate for every change to the
 // scanner from here on.
 //
-// The photos are gitignored (`.scratch/scanner-accuracy/corpus/*`); only the
+// The photos are gitignored (`work-record/scanner-accuracy/corpus/*`); only the
 // manifest (source URL + ground-truth label) and the reports are committed.
 // With no photos present — CI, a fresh clone — this passes and writes nothing,
 // so the unit suite's meaning does not depend on files outside the repo.
@@ -47,11 +47,11 @@ struct ScannerCorpusHarness {
     }
 
     private static var corpusURL: URL {
-        repoRoot.appending(path: ".scratch/scanner-accuracy/corpus", directoryHint: .isDirectory)
+        repoRoot.appending(path: "work-record/scanner-accuracy/corpus", directoryHint: .isDirectory)
     }
 
     private static var reportURL: URL {
-        repoRoot.appending(path: ".scratch/scanner-accuracy/reports/latest.md")
+        repoRoot.appending(path: "work-record/scanner-accuracy/reports/latest.md")
     }
 
     private static func expectedDisplayName(_ entry: Entry) -> String? {

@@ -118,7 +118,7 @@ Components: `.card(.standard | .elevated)`, `Chip(tint:selected:) { content }`, 
 ## Captures
 
 `WorkoutTrackerUITests/RedesignScreenshotUITests.swift`; export with
-`.scratch/ui-redesign/export-shots.py`; the record lives in `.scratch/ui-redesign/screenshots/<ticket>/`.
+`work-record/ui-redesign/export-shots.py`; the record lives in `work-record/ui-redesign/screenshots/<ticket>/`.
 Coverage as of 2026-09-11 — default AND AccessibilityL with the same fixture and state: finish
 receipt, Exercises, Gyms + detail, History + detail (both on `-uiTestChartHistory`). Default and
 AXL in DIFFERENT states: Start (resume banner vs a template); active workout (the default

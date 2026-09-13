@@ -5,7 +5,7 @@ Private iPhone workout tracker (solo developer, working with coding agents). Eve
 1. **`docs/STATE.md` — read this first.** Where the project actually is right now, what to do next, the live install's details, and environment gotchas that cost hours to rediscover.
 2. **`docs/SPEC.md`** — what the product is. Read before any product-behavior change.
 3. **`docs/DECISIONS.md`** — why it is that way (D1–D54, T1–T7). Record decision changes here; reopen a locked decision deliberately rather than drifting from it.
-4. **`.scratch/milestone-<n>-<name>/issues/`** — the work record: every ticket with its acceptance criteria and resolution notes, plus the Codex cross-reviews (`codex-review*.md`). Milestones 2, 3, 7, 8 and 9 have folders (`milestone-2-core-loop`, `milestone-3-export`, `milestone-7-heart-rate`, `milestone-8-history-and-charts`, `milestone-9-history-and-summary`), alongside single-feature folders.
+4. **`work-record/milestone-<n>-<name>/issues/`** — the work record: every ticket with its acceptance criteria and resolution notes, plus the Codex cross-reviews (`codex-review*.md`). Milestones 2, 3, 7, 8 and 9 have folders (`milestone-2-core-loop`, `milestone-3-export`, `milestone-7-heart-rate`, `milestone-8-history-and-charts`, `milestone-9-history-and-summary`), alongside single-feature folders.
 
 ## Project layout
 
@@ -95,7 +95,7 @@ Apple's system.
 
 ### Issue tracker
 
-Local markdown under `.scratch/` — remote: github.com/ericlee4992/workout-tracker (private). See `docs/agents/issue-tracker.md`.
+Local markdown under `work-record/` — remote: github.com/ericlee4992/workout-tracker (private). See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
