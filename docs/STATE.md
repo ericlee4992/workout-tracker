@@ -11,9 +11,16 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   archive, link, and configuration checks passed. Personal settings use an 872K context window,
   780K compaction threshold, and context-usage footer, verified in a fresh Codex session.
   Restart existing Codex sessions to load these defaults.
-- **Next product action:** get the user's reaction to ticket 16 on the phone. Then choose the
-  finish summary or History for the second design pass, or App Store groundwork. No next
-  screen has been chosen; gym feedback takes priority over the backlog.
+- **Active: ticket 17, finish-summary metric order.** The user kept the shipped design and
+  requested time/volume, active/total calories, average/max HR. Accessibility stays one column.
+  [Ticket and running verification](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
+  Implementation branch `ericlee4992/finish-summary-order`, base `c7ef99b`, worktree
+  `/Users/ericlee06/orca/workspaces/Health App/finish-summary-order`.
+  Implemented; build, focused captures, full UI suite and independent Claude review pending.
+  Runner PID/log/result paths are in the ticket. Next: inspect results and captures, review,
+  then merge/push only when clear. No phone install requested; installed source stays `0b6515f`.
+- Rejected design previews remain on `ericlee4992/finish-summary-second-pass` at `5a4c1b2`.
+  Gym feedback on ticket 16 remains outstanding.
 
 ## Latest shipped work and verification
 

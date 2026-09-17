@@ -198,12 +198,22 @@ struct WorkoutFinishedSheet: View {
             // out — now every figure is a tile (D54). Every tile is still
             // OMITTED, not zeroed, when its fact is missing (D44) — a block
             // with a hole is honest; a block with a 0 is not.
+            // Ticket 17: time/volume, active/total calories, average/max HR.
+            // Missing facts still omit their tiles and let the grid compact.
             // One column at accessibility sizes: two columns truncated the
             // BPM values ("126 B…") at AccessibilityL (codex-review-03b).
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2),
                       spacing: Theme.Space.small) {
                 tile("Workout time", Format.duration(seconds: Int(summary.duration)), symbol: "timer",
                      tint: Theme.accent, id: "summaryTime")
+                if summary.totalVolumeKg > 0 {
+                    // Shown in the app's own unit, not always kg. Reported
+                    // 2026-08-26: a user logging in lb saw their volume in kg,
+                    // which is a number they cannot sanity-check against
+                    // anything they typed. Plain, no ≈ (D52).
+                    tile("Total volume", volumeLabel(summary.totalVolumeKg), symbol: "scalemass.fill",
+                         tint: Theme.text, id: "summaryVolume")
+                }
                 if let calories = summary.activeEnergyKilocalories {
                     tile("Active calories", "\(Int(calories.rounded()))", unit: "CAL", symbol: "flame.fill",
                          tint: Self.calorieTint, id: "summaryCalories")
@@ -220,14 +230,6 @@ struct WorkoutFinishedSheet: View {
                 if let maximum = summary.maxHeartRate {
                     tile("Max heart rate", "\(maximum)", unit: "BPM", symbol: "arrow.up.heart.fill",
                          tint: Theme.danger, id: "summaryMaxHR")
-                }
-                if summary.totalVolumeKg > 0 {
-                    // Shown in the app's own unit, not always kg. Reported
-                    // 2026-08-26: a user logging in lb saw their volume in kg,
-                    // which is a number they cannot sanity-check against
-                    // anything they typed. Plain, no ≈ (D52).
-                    tile("Total volume", volumeLabel(summary.totalVolumeKg), symbol: "scalemass.fill",
-                         tint: Theme.text, id: "summaryVolume")
                 }
             }
             .listRowBackground(Color.clear)

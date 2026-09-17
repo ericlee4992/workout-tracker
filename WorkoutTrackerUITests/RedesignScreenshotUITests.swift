@@ -55,6 +55,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
         shoot("redesign-03-finish-summary")
+        captureFinishSummaryRemainder(prefix: "redesign-03-finish-summary")
     }
 
     /// Ticket 11 (codex-review-11b): the same fixture and state as
@@ -94,8 +95,8 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-02-active-workout-axl-3")
     }
 
-    /// The receipt at the largest non-accessibility-menu text size the plan
-    /// promised per ticket (AXL): tiles must wrap, never truncate.
+    /// The same receipt fixture at AccessibilityL (the first accessibility
+    /// size): capture the entire summary, including all six reordered tiles.
     func test03_finishSummaryLargeText() {
         app.launchArguments = ["-uiTestReset", "-uiTestHeartRate",
                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
@@ -113,12 +114,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
         shoot("redesign-03-finish-summary-axl")
-        // The grid runs past one screen at this size: scroll until the last
-        // tile is in view and capture again, so every tile is on record.
-        let volume = anyElement("summaryVolume")
-        for _ in 0..<6 where !(volume.exists && volume.isHittable) { app.swipeUp() }
-        XCTAssertTrue(volume.isHittable, "all six tiles reachable at AccessibilityL")
-        shoot("redesign-03-finish-summary-axl-2")
+        captureFinishSummaryRemainder(prefix: "redesign-03-finish-summary-axl")
     }
 
     /// The Start tab with a gym chosen and a workout in progress (resume banner).
@@ -409,6 +405,23 @@ final class RedesignScreenshotUITests: XCTestCase {
     }
 
     // MARK: - Helpers (mirroring CoreLoopUITests)
+
+    /// Record each viewport so a jump to the last tile cannot skip the
+    /// middle tiles. The last tile is now max HR, not volume (ticket 17).
+    private func captureFinishSummaryRemainder(prefix: String) {
+        let maximum = anyElement("summaryMaxHR")
+        let exercise = anyElement("summaryExercise")
+        var sawMaximum = maximum.exists && maximum.isHittable
+        for index in 1...10 {
+            if exercise.exists && exercise.isHittable && exercise.frame.maxY < app.frame.maxY - 40 { break }
+            app.swipeUp()
+            sawMaximum = sawMaximum || (maximum.exists && maximum.isHittable)
+            shoot("\(prefix)-scroll-\(index)")
+        }
+        XCTAssertTrue(sawMaximum, "the final metric is reachable")
+        XCTAssertTrue(exercise.exists && exercise.isHittable, "exercise summary is reachable")
+        XCTAssertLessThan(exercise.frame.maxY, app.frame.maxY - 40, "the exercise summary is fully in view")
+    }
 
     /// A lazy List materialises rows near the viewport only: an option below
     /// the fold is not in the hierarchy until the list scrolls. Scroll
