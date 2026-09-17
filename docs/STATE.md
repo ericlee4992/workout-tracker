@@ -1,6 +1,35 @@
 # Where the project is right now
 
-Updated 2026-09-13 01:10 (ticket 15 — template delete moved into the opened template — MERGED and INSTALLED, launched remotely; profiles to 09-17). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-17 03:25 (ticket 16 — the active workout's header — Codex clear, INSTALLED on the phone with a fresh profile to 09-24, MERGE PENDING the full UI suite that was running when the session ended). **START HERE IF YOU ARE COLD:**
+
+00000000000. **HANDOFF 2026-09-17 (03:25) — ticket 16 (active workout, second pass) is on branch
+   `ui-redesign-16-active-workout` (pushed; the app source is `0b6515f`, the later commits are
+   STATE), Codex CLEAR after 2 rounds (`codex-review-16`, `16b`), gates 27 UI + unit green,
+   INSTALLED and launched on the phone at 03:17 with a FRESH profile (expires
+   **2026-09-24 07:16 UTC**). NOT yet merged: the full UI suite was started on `0b6515f` at
+   ~03:10 and was still running when the user ended the session. FIRST THING: read its result —
+   `/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/status.txt` (a `FULLUI DONE <code>` line) and
+   `/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/fullui.log` (`Executed N tests, with M failures`; 73 expected).
+   If 0 failures: `git checkout main && git merge --ff-only ui-redesign-16-active-workout &&
+   git push`, record the count in the ticket's status line, write the handoff. If it never
+   finished (the Mac slept) or failed: rerun the UI suite on the branch (detached, ~40 min)
+   before merging.**
+   - **What ticket 16 is** (four rounds; `work-record/ui-redesign/issues/16-active-workout-second-pass.md`;
+     canvas https://claude.ai/code/artifact/83323a4b-0e91-4830-9b2a-125d9ca3642b): Claude's three
+     directions and Codex's two were all set aside — the user: "lets just keep the current
+     design. but just move the current timer next to gym name (and also have timer include
+     seconds), and make the total sets completed icon like the one in Codex A." Built: a one-line
+     header (gym chip, `Format.elapsed` with seconds in `stat`, a 22 pt neutral ring + "N/M
+     sets"); the Large Title hero and the amber count chip gone; `RestTimerBar` stacks "+15s" and
+     "Skip" under the timer at accessibility sizes (the ticket-02 wrap bug, fixed);
+     `Format.spokenElapsed` for VoiceOver. The user on the capture: "looks good." Accepted
+     exception recorded in the ticket: Add Exercise (logging) and Skip (resting) stay amber
+     filled commands — the user's choice.
+   - **Environment this session**: Xcode 27.0 (updated 09-15) — the stale CoreSimulator service
+     and the signed-out Apple ID both bit (see the gotcha below); the user signed in at ~03:15.
+   - **Next after the merge**: the user's reaction on the phone; then the finish summary or
+     History for the second pass; the App Store groundwork (privacy policy, usage strings, a paid
+     developer account — the user's README now says a release is planned).
 
 0000000000. **HANDOFF 2026-09-13 (01:10) — ticket 15 MERGED to `main` (`b306b29`) AND INSTALLED,
    launched remotely 01:09 EDT. Next: the user's reaction, then the next screen.**
