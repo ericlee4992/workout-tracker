@@ -1,6 +1,6 @@
 # 16 — Active workout, second pass
 
-Status: in progress — directions on the canvas, awaiting the user's pick
+Status: resolved — the user kept the current design with a new header (round 4); Codex clear after 2 rounds (codex-review-16, 16b); gates 27 UI + unit; full UI suite **72/72** on `0b6515f`; installed on the phone 2026-09-17 03:17 (profile to 09-24); merged to main 2026-09-17
 
 Skill: `.claude/skills/ios-design/`. The user chose this screen next (2026-09-17). The first pass
 (ticket 02, Codex's design) is what is on the phone. Known bug carried in: the rest bar's "Skip"

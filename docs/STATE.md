@@ -1,19 +1,13 @@
 # Where the project is right now
 
-Updated 2026-09-17 03:25 (ticket 16 — the active workout's header — Codex clear, INSTALLED on the phone with a fresh profile to 09-24, MERGE PENDING the full UI suite that was running when the session ended). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-17 04:00 (ticket 16 — the active workout's header — MERGED to `main` and INSTALLED on the phone with a fresh profile to 09-24). **START HERE IF YOU ARE COLD:**
 
-00000000000. **HANDOFF 2026-09-17 (03:25) — ticket 16 (active workout, second pass) is on branch
-   `ui-redesign-16-active-workout` (pushed; the app source is `0b6515f`, the later commits are
-   STATE), Codex CLEAR after 2 rounds (`codex-review-16`, `16b`), gates 27 UI + unit green,
-   INSTALLED and launched on the phone at 03:17 with a FRESH profile (expires
-   **2026-09-24 07:16 UTC**). NOT yet merged: the full UI suite was started on `0b6515f` at
-   ~03:10 and was still running when the user ended the session. FIRST THING: read its result —
-   `/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/status.txt` (a `FULLUI DONE <code>` line) and
-   `/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/fullui.log` (`Executed N tests, with M failures`; 73 expected).
-   If 0 failures: `git checkout main && git merge --ff-only ui-redesign-16-active-workout &&
-   git push`, record the count in the ticket's status line, write the handoff. If it never
-   finished (the Mac slept) or failed: rerun the UI suite on the branch (detached, ~40 min)
-   before merging.**
+00000000000. **HANDOFF 2026-09-17 (04:00) — ticket 16 (active workout, second pass) MERGED to
+   `main` AND INSTALLED on the phone (03:17, a FRESH profile expiring **2026-09-24 07:16 UTC**).
+   Codex CLEAR after 2 rounds (`codex-review-16`, `16b`); gates 27 UI + unit; full UI suite
+   **72/72** on `0b6515f` (finished 03:52, after the user had ended the session — merged from
+   it). Next: the user's reaction on the phone; then the next screen or the App Store
+   groundwork.**
    - **What ticket 16 is** (four rounds; `work-record/ui-redesign/issues/16-active-workout-second-pass.md`;
      canvas https://claude.ai/code/artifact/83323a4b-0e91-4830-9b2a-125d9ca3642b): Claude's three
      directions and Codex's two were all set aside — the user: "lets just keep the current
