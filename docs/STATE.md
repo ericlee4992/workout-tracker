@@ -11,22 +11,28 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   archive, link, and configuration checks passed. Personal settings use an 872K context window,
   780K compaction threshold, and context-usage footer, verified in a fresh Codex session.
   Restart existing Codex sessions to load these defaults.
-- **Active: ticket 17, finish-summary metric order.** The user kept the shipped design and
-  requested time/volume, active/total calories, average/max HR. Accessibility stays one column.
-  [Ticket and running verification](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
-  Implementation branch `ericlee4992/finish-summary-order`, source `4d70d7d` (base `c7ef99b`), worktree
-  `/Users/ericlee06/orca/workspaces/Health App/finish-summary-order`.
-  Build and 8 summary unit tests passed. Default capture passed; AXL setup lost keyboard
-  focus once, then passed unchanged in isolation. Both real captures inspected. Full UI suite
-  is running; Claude code and default/AccessibilityL visual reviews are clear, conditional
-  on the full suite passing.
-  Runner PID/log/result paths are in the ticket. Next: inspect results and captures, review,
-  then merge/push only when clear. No phone install requested; installed source stays `0b6515f`.
-- Rejected design previews remain on `ericlee4992/finish-summary-second-pass` at `5a4c1b2`.
-  Gym feedback on ticket 16 remains outstanding.
+- **Ticket 17 is complete:** the user kept the shipped finish-summary design and changed
+  Workout details to time/volume, active/total calories, average/max HR. Accessibility keeps
+  one column. [Ticket and verification](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
+  App source `4d70d7d`, from `ericlee4992/finish-summary-order` (base `c7ef99b`); subsequent
+  commits contain evidence/closure only. Debug build and 8 summary unit tests passed. Full UI
+  suite **72 passed, 0 failed, 0 skipped**, exit 0, finished 2026-09-17 18:48 EDT. Claude's
+  independent code, default/AccessibilityL visual and final gate reviews are clear.
+- **Phone remains on `0b6515f`.** Ticket 17 has not been installed; no install was requested.
+  The actual before/after captures are available in the ticket and the Orca browser comparison.
+- **Next product action:** no further screen selected. Get the user's gym feedback on ticket
+  16, then choose History's second pass or App Store groundwork. Gym feedback takes priority.
+- Rejected design previews remain on `ericlee4992/finish-summary-second-pass` (`5a4c1b2`,
+  outcome recorded at `dea20f4`); they were not selected or brought into the product branch.
 
 ## Latest shipped work and verification
 
+- Ticket 17's only product change is the finish-summary metric order, source `4d70d7d`. The
+  original focused AXL capture failed once on keyboard focus in unchanged setup, then passed
+  unchanged in isolation and again in the full suite. All 72 declared methods passed in the
+  full run. The bundle has 22 non-failing invalid-frame warnings, the same type/count as the
+  previous suite; origin remains uninvestigated. Logs/results and all three reviews are in
+  [ticket 17](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
 - [Ticket 16: active workout](../work-record/ui-redesign/issues/16-active-workout-second-pass.md)
   is merged and pushed. App source is `0b6515f`; main reached `9b9feef` with documentation only
   afterward. Gym and clock (including seconds) share the header; the sets indicator is a small
@@ -48,7 +54,7 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 | Fact | Last verified value |
 |---|---|
-| Installed source | `0b6515f`, installed 2026-09-17 03:17 EDT; launch reported in the prior handoff (`a49c8d1:docs/STATE.md`); no reinstall needed for these documentation changes |
+| Installed source | `0b6515f`, installed 2026-09-17 03:17 EDT; launch reported in the prior handoff (`a49c8d1:docs/STATE.md`); ticket 17 is verified in the simulator but has not been installed |
 | Provisioning | Fresh profile recorded through **2026-09-24 07:16 UTC**; check app and widget separately before the next install |
 | Store | Export schema 9; no schema change in ticket 16. History snapshots and the user's actual training data are on the phone |
 | Last reported backup | User's CSV + JSON export to iCloud Drive, 2026-09-04, immediately before D51 reclassification; 18 sets moved on the real store |

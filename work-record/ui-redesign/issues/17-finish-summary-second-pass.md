@@ -1,6 +1,6 @@
 # 17 — Finish summary: pair related workout metrics
 
-Status: claimed — selected design implemented; verification and independent review running
+Status: resolved — source `4d70d7d`; build, focused checks, full UI 72/72 and independent Claude clearance
 
 ## User decision and acceptance
 
@@ -107,12 +107,12 @@ HistoryTemplate 3 (including finish save-as-template), and the changed screensho
 Independent Claude review receives this ticket, diff, relevant decisions, ios-design/REVIEW.md,
 captures and actual evidence. Fix and re-review any findings before merge.
 
-## Next action
+## Completion
 
-Inspect build/focused results, export/open the real captures, show the selected screen in
-Orca's browser, and obtain Claude's independent clearance while the full UI suite runs.
-Then commit/push, fast-forward/push main only after all gates are clear. Phone installation
-is not part of this request; live build remains `0b6515f`.
+The selected reorder is complete. All implementation, local verification and independent review
+are clear. This closure record lands with the fast-forward of `ericlee4992/finish-summary-order`
+to main; its landing commit is discoverable with `git log -- work-record/ui-redesign/issues/17-finish-summary-second-pass.md`.
+No phone install was requested; installed source remains `0b6515f`.
 
 ## Verification checkpoint — source `4d70d7d`
 
@@ -143,3 +143,29 @@ evidence on source `4d70d7d`; [follow-up report](../claude-review-17-final.md), 
 clearance is conditional on the still-running full UI suite. All five captures are listed
 with hashes in the follow-up. The original focus failure is resolved by one unchanged retry,
 not erased. No further product or test edits after the verified source.
+
+## Full local UI suite — verified result
+
+Source `4d70d7d`; later `2633b1d` changes documentation/captures only. Finished 2026-09-17
+18:48:35 EDT: **72 passed, 0 failed, 0 skipped**, actual exit **0**, log
+`** TEST EXECUTE SUCCEEDED **`. Independently read `full-ui.xcresult` via
+`xcrun xcresulttool get test-results summary`, and compared the 72 declared UI methods against
+the 72 distinct passed method names in `full-ui.log`: no missing or unexpected tests. The AXL
+finish capture passed in the full suite too; the original setup failure did not recur.
+
+[Raw result summary](../full-ui-summary-17.json). Bundle contains **22 non-failing runtime
+warnings**, all “Invalid frame dimension (negative or non-finite).” This is the same warning
+type/count recorded for ticket 16; origin remains uninvestigated, not attributed to this change.
+Runner PID 15547 completed; no verification process remains active. Detailed scripts, logs and
+result paths are preserved above. No further app or test change was made after the tested source.
+
+Verification scope: Debug simulator build; WorkoutSummaryTests 8/8; two real finish capture
+methods green using the original pass + one unchanged isolated retry; full local UI suite72/72;
+independent Claude code and default/AXL visual review. Phone was not built/installed/launched.
+
+## Independent gate clearance
+
+Claude read the actual statuses, log, xcresult summary, source diff and binary timestamps, and
+reconciled all 72 declared methods with the passed log entries. [Gate addendum](../claude-review-17-gates.md):
+**CLEAR to merge source `4d70d7d`; no open findings.** Final record changes are docs/captures
+only. App/test source remains exactly the reviewed and tested source. No install claimed.
