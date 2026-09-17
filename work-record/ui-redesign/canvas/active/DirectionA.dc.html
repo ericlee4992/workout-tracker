@@ -1,0 +1,100 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+body { margin: 0; font-family: -apple-system, "SF Pro Text", "SF Pro Display", system-ui, sans-serif; background: #0B0D10; color: #F6F3EC; -webkit-font-smoothing: antialiased; }
+a { color: #FFB45E; } a:hover { color: #E0933D; }
+.phone { width: 390px; height: 844px; background: #0B0D10; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.top { padding: 64px 20px 0 20px; display: flex; flex-direction: column; gap: 12px; }
+.navrow { display: flex; justify-content: flex-end; align-items: center; height: 44px; }
+.gear { width: 44px; height: 44px; border-radius: 22px; background: #171B21; display: flex; align-items: center; justify-content: center; }
+.title { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: 0.2px; margin: 0; }
+.row { display: flex; align-items: center; gap: 12px; min-height: 44px; }
+.card { background: #171B21; border: 1px solid rgba(255,255,255,0.07); border-radius: 24px; }
+.primary { display: flex; align-items: center; justify-content: space-between; min-height: 52px; padding: 0 20px; border-radius: 16px; background: #FFB45E; color: #15110B; font-size: 17px; font-weight: 700; }
+.primary.hero { min-height: 72px; font-size: 22px; font-weight: 700; }
+.secondary { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; white-space: nowrap; border-radius: 16px; background: #2B323C; color: #F6F3EC; font-size: 15px; font-weight: 600; }
+.label { font-size: 12px; line-height: 16px; font-weight: 600; color: #B5B9C2; }
+.caption { font-size: 12px; line-height: 16px; color: #B5B9C2; }
+.tertiary { font-size: 12px; line-height: 16px; color: #7F8793; }
+.headline { font-size: 17px; line-height: 22px; font-weight: 700; }
+.body { font-size: 17px; line-height: 22px; }
+.chip { display: inline-flex; align-items: center; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.chip.lb { color: #A8CDBF; background: rgba(168,205,191,0.12); }
+.icons { display: flex; gap: 6px; }
+.mi { width: 28px; height: 28px; border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+.list { display: flex; flex-direction: column; }
+.list .item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.07); }
+.list .item:first-child { border-top: none; }
+.tabbar { position: absolute; left: 20px; right: 20px; bottom: 24px; height: 64px; border-radius: 32px; background: rgba(34,40,49,0.92); border: 1px solid rgba(255,255,255,0.07); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: center; }
+.tab { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #F6F3EC; }
+.tab.on { color: #FFB45E; }
+.thumb { position: absolute; left: 20px; right: 20px; bottom: 104px; }
+
+.phone { padding-top:54px; box-sizing:border-box; }
+.nav { display:flex; align-items:center; justify-content:space-between; padding:0 16px; height:44px; }
+.navl { display:flex; align-items:center; gap:14px; }
+.pill { display:inline-flex; align-items:center; gap:6px; padding:0 12px; height:36px; border-radius:18px; background:#171B21; font-size:15px; font-weight:600; }
+.danger { color:#FF5E7A; }
+.amber { color:#FFB45E; }
+.status { display:flex; align-items:center; justify-content:space-between; padding:6px 20px 0; }
+.ring { width:32px; height:32px; border-radius:16px; border:4px solid #2B323C; border-top-color:#FFB45E; border-right-color:#FFB45E; box-sizing:border-box; }
+.hr { display:flex; align-items:center; gap:10px; padding:10px 16px; margin:0 16px; }
+.xcard { margin:0 16px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+.machine { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:16px; background:#2B323C; }
+.cols { display:grid; grid-template-columns:34px 1fr 118px 60px 34px; gap:8px; align-items:center; }
+.colh { font-size:11px; letter-spacing:.6px; font-weight:600; color:#B5B9C2; text-transform:uppercase; }
+.num { width:30px; height:30px; border-radius:15px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; background:#2B323C; color:#F6F3EC; }
+.num.done { background:rgba(255,180,94,0.18); color:#FFB45E; }
+.field { height:40px; border-radius:10px; background:#222832; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; }
+.field.unit { justify-content:space-between; padding:0 6px 0 12px; }
+.ok { width:34px; height:34px; border-radius:17px; display:flex; align-items:center; justify-content:center; }
+.ok.go { background:#FFB45E; color:#15110B; }
+.ok.done { color:#FFB45E; }
+.ok.todo { border:2px solid #3A4250; box-sizing:border-box; }
+.dim { opacity:.55; }
+.addset { display:flex; align-items:center; justify-content:center; gap:8px; height:44px; border-radius:14px; background:#222832; font-size:15px; font-weight:600; }
+.footer { display:flex; gap:10px; padding:0 16px; }
+.footer .secondary { flex:1; justify-content:center; }
+.rest { position:absolute; left:16px; right:16px; bottom:34px; }
+.capsule { display:flex; align-items:center; gap:12px; height:60px; padding:0 8px 0 8px; border-radius:30px; background:#FFB45E; color:#15110B; }
+.disc { width:44px; height:44px; border-radius:22px; background:#15110B; color:#FFB45E; display:flex; align-items:center; justify-content:center; }
+.capsule .t { display:flex; flex-direction:column; gap:1px; flex:1; }
+.capsule .t b { font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; line-height:22px; }
+.capsule .t span { font-size:12px; font-weight:600; opacity:.8; }
+.cbtn { height:40px; padding:0 14px; border-radius:20px; display:flex; align-items:center; font-size:15px; font-weight:700; white-space:nowrap; }
+.cbtn.ghost { border:2px solid #15110B; box-sizing:border-box; }
+.cbtn.solid { background:#15110B; color:#FFB45E; margin-right:2px; }
+.band { display:flex; align-items:center; gap:10px; padding:8px 10px 8px 12px; border-radius:14px; background:#FFB45E; color:#15110B; }
+.band b { font-size:17px; font-weight:800; font-variant-numeric:tabular-nums; }
+.strip { display:flex; gap:8px; padding:0 16px; overflow:hidden; }
+.tag { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:17px; background:#171B21; font-size:13px; font-weight:600; white-space:nowrap; border:1px solid rgba(255,255,255,0.07); }
+.tag.on { border-color:#FFB45E; color:#FFB45E; }
+.h2 { font-size:22px; line-height:28px; font-weight:800; }
+.sect { padding:12px 20px 4px; }
+.line { display:flex; align-items:center; gap:12px; padding:9px 20px; }
+.line .n { width:26px; height:26px; border-radius:13px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; background:#2B323C; }
+.line .n.done { background:rgba(255,180,94,0.18); color:#FFB45E; }
+.line .v { flex:1; font-size:17px; font-variant-numeric:tabular-nums; }
+.line.cur { padding:8px 16px; margin:0 8px; border-radius:16px; background:#171B21; border:1px solid rgba(255,255,255,0.07); }
+
+  </style>
+</helmet>
+<div class="phone"><div class="nav"><div class="navl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F6F3EC" stroke-width="2.4" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg><span class="danger body">Cancel</span></div><span class="headline">Seated Chest… <span class="tertiary">✎</span></span><span class="amber headline">Finish</span></div><div class="status"><span class="caption" style="display:flex;gap:6px;align-items:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B5B9C2" stroke-width="2.2"><circle cx="12" cy="9" r="3"/><path d="M12 12v6M6 20c0-2 12-2 12 0"/></svg> Iron Temple · 12 min</span><span style="display:flex;align-items:center;gap:8px"><span class="caption amber" style="font-weight:700">3/8 sets</span><div class="ring"></div></span></div><div style="height:10px"></div><div class="hr card"><span style="display:flex;align-items:center;gap:6px"><svg width="16" height="16" viewBox="0 0 24 24" fill="#FF5E7A"><path d="M12 21s-7.5-4.6-9.5-9.2C1 7.8 3.6 4 7.3 4c2 0 3.5 1 4.7 2.6C13.2 5 14.7 4 16.7 4c3.7 0 6.3 3.8 4.8 7.8C19.5 16.4 12 21 12 21z"/></svg><b style="font-size:20px;font-variant-numeric:tabular-nums">128</b><span class="caption">bpm</span></span><span class="chip" style="background:rgba(165,207,154,0.14);color:#A5CF9A">Zone 3</span><span class="caption" style="margin-left:auto">142 cal</span></div><div style="height:12px"></div>
+<div class="xcard card"><div style="display:flex;align-items:center;justify-content:space-between"><span class="headline">Seated Chest Press</span><span class="tertiary" style="font-size:18px">⋯</span></div>
+<div class="machine"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B5B9C2" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><div style="display:flex;flex-direction:column"><span class="body" style="font-weight:600;font-size:15px">Chest Press</span><span class="caption">Life Fitness Insignia Series</span></div><span class="tertiary" style="margin-left:auto">›</span></div>
+<div class="cols"><span class="colh">Set</span><span class="colh">Previous</span><span class="colh">Weight</span><span class="colh">Reps</span><span></span></div><div class="cols dim"><div class="num done">1</div><span class="caption">60 lb × 10</span><div class="field unit"><span>60</span><span class="chip lb">lb</span></div><div class="field">10</div><div class="ok done"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 5"/></svg></div></div><div class="cols"><div class="num" style="background:#FFB45E;color:#15110B">2</div><span class="caption">60 lb × 10</span><div class="field unit" style="background:#2B323C"><span>60</span><span class="chip lb">lb</span></div><div class="field" style="background:#2B323C">10</div><div class="ok go"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3.2L13 5"/></svg></div></div><div class="cols dim"><div class="num">3</div><span class="caption">—</span><div class="field unit"><span>60</span><span class="chip lb">lb</span></div><div class="field">10</div><div class="ok todo"></div></div><div class="addset">+ Add Set</div></div><div style="height:12px"></div>
+<div class="xcard card"><div style="display:flex;align-items:center;justify-content:space-between"><span class="headline">Lat Pulldown</span><span class="tertiary" style="font-size:18px">⋯</span></div>
+<div class="machine"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B5B9C2" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg><div style="display:flex;flex-direction:column"><span class="body" style="font-weight:600;font-size:15px">Lat Pulldown</span><span class="caption">Hammer Strength</span></div><span class="tertiary" style="margin-left:auto">›</span></div>
+</div><div style="height:12px"></div>
+<div class="footer"><span class="secondary">+ Add Exercise</span><span class="secondary">Add by Machine</span></div><div style="height:96px"></div>
+<div class="rest"><div class="capsule"><div class="disc"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/></svg></div><div class="t"><b>1:58</b><span>Rest</span></div><div class="cbtn ghost">+15s</div><div class="cbtn solid">Skip</div></div></div></div>
+</x-dc>
+</body>
+</html>
