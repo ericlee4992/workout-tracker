@@ -8,6 +8,20 @@ Updated 2026-09-17 04:00 (ticket 16 — the active workout's header — MERGED t
    **72/72** on `0b6515f` (finished 03:52, after the user had ended the session — merged from
    it). Next: the user's reaction on the phone; then the next screen or the App Store
    groundwork.**
+   - **The pending test gate is closed.** The original detached run was still alive when Codex
+     resumed; it finished at 03:53 without a restart. `status.txt` says `FULLUI DONE 0`,
+     `fullui.log` says `** TEST SUCCEEDED **`, and `fullui.xcresult` independently reports
+     72 passed / 0 failed / 0 skipped. All three are under
+     `/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/`.
+     The earlier expectation of 73 was wrong: all 72 declared UI test methods appear as passed
+     in the log. No app or test source changed in this follow-up.
+   - **Current workflow discussion (proposal only):** the user expects to use Codex for primary
+     implementation and asked about setup and long-session accuracy. Recommended: shared rules
+     in `AGENTS.md`, a short `CLAUDE.md` pointer, current-only `STATE.md`, preserved old handoffs
+     under `docs/archive/`, troubleshooting in `docs/DEVELOPMENT.md`, existing decisions and
+     ticket records retained, and Claude as independent reviewer. None of that restructuring
+     or any context-limit configuration has been applied. The user specifically wants prior
+     decisions and progress preserved when STATE is shortened.
    - **What ticket 16 is** (four rounds; `work-record/ui-redesign/issues/16-active-workout-second-pass.md`;
      canvas https://claude.ai/code/artifact/83323a4b-0e91-4830-9b2a-125d9ca3642b): Claude's three
      directions and Codex's two were all set aside — the user: "lets just keep the current
