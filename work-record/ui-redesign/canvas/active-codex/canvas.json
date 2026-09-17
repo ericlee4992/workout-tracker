@@ -1,0 +1,31 @@
+{
+  "artboards": [
+    {
+      "file": "CodexA.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Codex A \u00b7 Familiar, quieter"
+    },
+    {
+      "file": "CodexB.dc.html",
+      "x": 430,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Codex B \u00b7 The working row"
+    },
+    {
+      "file": "CodexARest.dc.html",
+      "x": 860,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Codex A \u00b7 Resting"
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

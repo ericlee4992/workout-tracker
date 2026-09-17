@@ -62,3 +62,16 @@ inline rest moves with the scroll and the columns header goes.
 ## Step 3 — mockups
 
 Canvas: https://claude.ai/code/artifact/83323a4b-0e91-4830-9b2a-125d9ca3642b — working files in `work-record/ui-redesign/canvas/active/` (`build.py` → A, A without rest, B, C; `active-workout-directions.png` is the board). The user picks.
+
+## Round 2 — the user's reaction, and Codex's directions (2026-09-17)
+
+"Out of those, I just like current design the most. Can you also have Codex design as well, just
+so I can compare?" → Codex designed two (`work-record/ui-redesign/canvas/active-codex/`, its
+README with the trade-offs; prompt `codex-design-16-prompt.md`): **Codex A — familiar, quieter**
+(the current cards and table; the elapsed hero becomes a caption, the ring a small neutral
+indicator, Add Exercise/Add by Machine neutral; the current set's completion is the one amber
+command; resting: the countdown at the thumb is the hero, Skip and +15s neutral in the timer
+group — two rows at accessibility sizes, so no mid-word wrap) and **Codex B — the working row**
+(no card walls; one enlarged current row in a continuous ledger). The canvas now has two pages
+(Codex, Claude); the board `canvas/active/active-workout-comparison.png` puts the current screen
+beside Codex A (logging, resting), Codex B and Claude A. Awaiting the pick.

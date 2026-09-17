@@ -1,12 +1,40 @@
 {
   "artboards": [
     {
+      "file": "CodexA.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Codex A \u00b7 familiar, quieter (logging)",
+      "page": "page-1"
+    },
+    {
+      "file": "CodexARest.dc.html",
+      "x": 520,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Codex A \u00b7 resting",
+      "page": "page-1"
+    },
+    {
+      "file": "CodexB.dc.html",
+      "x": 1040,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Codex B \u00b7 the working row",
+      "page": "page-1"
+    },
+    {
       "file": "Main.dc.html",
       "x": 0,
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "A \u00b7 The set is the hero (resting)"
+      "title": "A \u00b7 The set is the hero (resting)",
+      "page": "page-2"
     },
     {
       "file": "DirectionAIdle.dc.html",
@@ -14,7 +42,8 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "A \u00b7 logging, no rest"
+      "title": "A \u00b7 logging, no rest",
+      "page": "page-2"
     },
     {
       "file": "DirectionB.dc.html",
@@ -22,7 +51,8 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "B \u00b7 One exercise at a time"
+      "title": "B \u00b7 One exercise at a time",
+      "page": "page-2"
     },
     {
       "file": "DirectionC.dc.html",
@@ -30,7 +60,8 @@
       "y": 0,
       "w": 390,
       "h": 844,
-      "title": "C \u00b7 Timeline"
+      "title": "C \u00b7 Timeline",
+      "page": "page-2"
     },
     {
       "file": "DirectionA.dc.html",
@@ -38,19 +69,40 @@
       "y": 1000,
       "w": 390,
       "h": 844,
-      "title": "A \u00b7 (same as Main, kept for the record)"
+      "title": "A \u00b7 (same as Main, kept for the record)",
+      "page": "page-2"
     }
   ],
   "annotations": [
+    {
+      "id": "codex-brief",
+      "x": 0,
+      "y": -150,
+      "w": 520,
+      "page": "page-1",
+      "text": "Codex's directions for the same moment. A keeps the cards and table and spends the amber on the set being logged (resting: on the countdown). B removes the card walls and enlarges only the working row. Claude's three are on the other page; the user liked the current screen more than those."
+    },
     {
       "id": "brief",
       "x": 0,
       "y": -170,
       "w": 520,
-      "text": "Active workout, second pass. Three structures, same fixture: 12 min in, set 2 of Seated Chest Press is next, a 1:58 rest running, heart rate 128 in zone 3.\nA keeps today's structure and fixes the hierarchy: the big elapsed number, the amber Add Exercise and the amber ring all step down; the current set's tick and the rest capsule are the only amber things. The rest is the Start screen's capsule shape, so Skip and +15s cannot wrap.\nB shows one exercise at a time with bigger rows and an exercise strip on top.\nC collapses done sets to one line and puts the rest right under the set you just finished.\nTab bar, nav bar and icons are stand-ins; the real ones stay."
+      "text": "Active workout, second pass. Three structures, same fixture: 12 min in, set 2 of Seated Chest Press is next, a 1:58 rest running, heart rate 128 in zone 3.\nA keeps today's structure and fixes the hierarchy: the big elapsed number, the amber Add Exercise and the amber ring all step down; the current set's tick and the rest capsule are the only amber things. The rest is the Start screen's capsule shape, so Skip and +15s cannot wrap.\nB shows one exercise at a time with bigger rows and an exercise strip on top.\nC collapses done sets to one line and puts the rest right under the set you just finished.\nTab bar, nav bar and icons are stand-ins; the real ones stay.",
+      "page": "page-2"
     }
   ],
   "launch": {
-    "view": "canvas"
-  }
+    "view": "canvas",
+    "page": "page-1"
+  },
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Codex"
+    },
+    {
+      "id": "page-2",
+      "name": "Claude"
+    }
+  ]
 }

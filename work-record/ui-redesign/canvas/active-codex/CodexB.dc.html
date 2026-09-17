@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+body { margin: 0; font-family: -apple-system, "SF Pro Text", "SF Pro Display", system-ui, sans-serif; background: #0B0D10; color: #F6F3EC; -webkit-font-smoothing: antialiased; }
+.phone { width: 390px; height: 844px; background: #0B0D10; position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.card { background: #171B21; border: 1px solid rgba(255,255,255,0.07); border-radius: 24px; }
+.caption { font-size: 12px; line-height: 16px; color: #B5B9C2; }
+.headline { font-size: 17px; line-height: 22px; font-weight: 700; }
+.body { font-size: 17px; line-height: 22px; }
+* { box-sizing:border-box; }
+button,input { font:inherit; color:inherit; }
+button { border:0; padding:0; background:none; cursor:pointer; min-height:44px; }
+button:active { filter:brightness(.8); }
+button:focus-visible,input:focus-visible { outline:2px solid #FFB45E; outline-offset:2px; }
+svg { flex-shrink:0; vertical-align:middle; }
+.phone { padding-top:54px; font-size:17px; line-height:22px; }
+.viewport { flex:1; min-height:0; overflow-y:auto; scrollbar-width:none; padding:0 16px 16px; }
+.nav { display:flex; align-items:center; gap:0; padding:0 12px; min-height:52px; flex-shrink:0; }
+.minimize { width:44px; flex-shrink:0; }
+.cancel { color:#FF5E7A; font-size:17px; padding-right:10px; }
+.rename { flex:1; display:flex; gap:4px; align-items:center; justify-content:center; font-size:17px; line-height:20px; font-weight:600; }
+.rename span { max-width:130px; }
+.rename svg { color:#B5B9C2; }
+.finish { width:64px; margin-left:6px; background:#171B21; border-radius:24px; font-weight:600; }
+.status { display:flex; align-items:center; min-height:44px; gap:8px; color:#B5B9C2; font-size:13px; }
+.gym { display:flex; align-items:center; gap:6px; }
+.elapsed { margin-left:auto; font-variant-numeric:tabular-nums; }
+.progress { display:flex; align-items:center; gap:4px; margin-left:8px; font-size:12px; }
+.hr { min-height:68px; padding:8px 14px 4px; margin-bottom:12px; }
+.hr-main { display:flex; align-items:center; gap:8px; min-height:26px; }
+.bpm { display:flex; align-items:baseline; gap:3px; color:#FF5E7A; font-size:17px; font-weight:600; }
+.bpm small { color:#B5B9C2; font-size:12px; font-weight:400; }
+.zone { display:flex; gap:5px; align-items:center; color:#A5CF9A; font-size:12px; }
+.zone-meter { display:flex; align-items:flex-end; gap:2px; height:12px; }
+.zone-meter i { display:block; width:3px; height:10px; background:#A5CF9A; border-radius:2px; }
+.zone-meter i:nth-child(n+4) { height:6px; background:#2B323C; }
+.cal { margin-left:auto; color:#B5B9C2; font-size:13px; }
+.source { display:flex; align-items:center; color:#B5B9C2; font-size:11px; line-height:13px; margin-top:-4px; }
+.source button { font-size:11px; min-height:44px; text-decoration:underline; padding:0 4px; }
+.exercise { padding:8px 12px 10px; margin-bottom:12px; }
+.exercise-title { display:flex; align-items:center; gap:0; min-height:44px; }
+.exercise-title h2 { margin:0; flex:1; font-size:17px; line-height:22px; font-weight:700; }
+.icon-button { width:44px; flex-shrink:0; color:#B5B9C2; }
+.machine { display:flex; align-items:center; gap:8px; width:100%; text-align:left; padding:6px 8px; border-radius:10px; background:#222832; min-height:50px; margin:2px 0 10px; }
+.machine-text { flex:1; min-width:0; display:flex; flex-direction:column; font-size:15px; line-height:20px; }
+.machine-text small { color:#B5B9C2; font-size:12px; line-height:16px; }
+.cols { display:grid; grid-template-columns:44px minmax(0,1fr) 88px 48px 44px; gap:4px; align-items:center; }
+.columns { color:#B5B9C2; font-size:11px; line-height:16px; font-weight:600; min-height:24px; }
+.columns span:nth-child(n+3) { text-align:center; }
+.columns span:first-child { text-align:center; }
+.set { min-height:48px; border-radius:10px; }
+.set + .set { margin-top:4px; }
+.set.current { background:#222832; }
+.marker { display:flex; align-items:center; justify-content:center; gap:2px; font-size:15px; font-weight:600; width:44px; }
+.marker svg { width:10px; height:10px; color:#B5B9C2; }
+.previous { color:#B5B9C2; font-size:12px; line-height:16px; }
+.field { display:flex; align-items:center; border-radius:10px; background:#2B323C; min-height:44px; min-width:0; }
+.field input { min-height:44px; border:0; padding:0; min-width:0; width:100%; background:none; text-align:center; font-size:17px; font-weight:600; font-variant-numeric:tabular-nums; outline-offset:0; }
+.unit { display:flex; justify-content:center; align-items:center; min-width:44px; width:44px; font-size:12px; color:#B5B9C2; }
+.unit span { border-radius:16px; padding:3px 6px; background:#222832; }
+.complete { width:44px; height:44px; display:flex; align-items:center; justify-content:center; border-radius:22px; color:#B5B9C2; }
+.complete svg { width:22px; height:22px; }
+.done .complete { color:#FFB45E; }
+.done .field,.planned .field { background:transparent; }
+.done .field input,.planned .field input { color:#B5B9C2; font-weight:400; }
+.done .unit span,.planned .unit span { background:#222832; }
+.current .complete { background:#FFB45E; color:#15110B; }
+.current .field input { font-size:22px; }
+.addset { width:100%; display:flex; align-items:center; justify-content:center; gap:8px; color:#B5B9C2; margin-top:6px; font-size:15px; }
+.dock { flex-shrink:0; margin:0 16px 34px; display:flex; flex-direction:column; gap:12px; }
+.footer { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding-top:8px; }
+.footer button { background:#222832; border-radius:16px; min-height:52px; font-size:15px; font-weight:600; display:flex; align-items:center; justify-content:center; gap:6px; }
+.rest { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:12px; align-items:center; background:#222832; border:1px solid rgba(255,255,255,.07); border-radius:24px; padding:12px 14px; }
+.countdown { display:flex; align-items:center; gap:10px; }
+.countdown > svg { color:#FFB45E; }
+.clock-label { font-size:12px; color:#B5B9C2; line-height:16px; }
+.time { font-size:34px; line-height:41px; font-weight:900; color:#FFB45E; font-family:ui-rounded,-apple-system,system-ui,sans-serif; font-variant-numeric:tabular-nums; }
+.rest-actions { display:flex; gap:8px; }
+.rest-actions button { min-height:44px; min-width:60px; border-radius:16px; background:#2B323C; font-weight:600; font-size:17px; padding:0 10px; white-space:nowrap; word-break:normal; overflow-wrap:normal; flex-shrink:0; }
+.rest-actions .skip { color:#F6F3EC; font-weight:700; }
+.resting .current { background:transparent; }
+.resting .current .complete { background:none; color:#B5B9C2; }
+.resting .current .field { background:#222832; }
+.resting .current .field input { font-size:17px; font-weight:400; color:#B5B9C2; }
+/* B: one continuous ledger with a taller current row, no pager or hidden history. */
+.direction-b .hr { background:none; border:0; padding-left:0; padding-right:0; border-radius:0; margin-bottom:8px; }
+.direction-b .exercise { background:none; border:0; border-radius:0; padding:0 0 10px; }
+.direction-b .exercise + .exercise { border-top:1px solid rgba(255,255,255,.07); padding-top:12px; }
+.direction-b .machine { background:none; padding-left:0; margin-bottom:12px; }
+.direction-b .set { min-height:56px; }
+.direction-b .set.current { min-height:96px; margin:8px -8px; padding:12px 8px; box-sizing:content-box; background:#171B21; border-radius:16px; }
+.direction-b .current .field { height:64px; background:#222832; }
+.direction-b .current .field input { font-size:34px; font-weight:900; font-family:ui-rounded,-apple-system,system-ui,sans-serif; }
+.direction-b .current .field.reps input { font-size:22px; font-weight:700; }
+.direction-b .cols { grid-template-columns:44px minmax(0,1fr) 104px 64px 44px; }
+.direction-b .current .unit { min-width:44px; width:44px; }
+.direction-b .current .complete { height:64px; border-radius:16px; }
+.direction-b .current .marker { font-size:22px; }
+.direction-b .columns { margin-top:0; }
+/* Explicit accessibility composition: content reflows; commands never split. */
+.axl .nav { flex-wrap:wrap; padding-bottom:8px; }
+.axl .cancel,.axl .finish { font-size:23px; }
+.axl .rename { order:4; flex-basis:100%; font-size:23px; min-height:52px; }
+.axl .rename span { max-width:none; }
+.axl .finish { margin-left:auto; width:90px; }
+.axl .status { flex-wrap:wrap; font-size:18px; padding:8px 0; }
+.axl .progress { font-size:17px; }
+.axl .hr-main { flex-wrap:wrap; gap:8px 12px; }
+.axl .bpm { font-size:28px; line-height:34px; }
+.axl .zone,.axl .cal,.axl .bpm small { font-size:17px; }
+.axl .source,.axl .source button { font-size:16px; line-height:22px; }
+.axl .exercise-title { flex-wrap:wrap; }
+.axl .exercise-title h2 { flex-basis:100%; font-size:23px; line-height:29px; }
+.axl .exercise-title .icon-button { margin-left:auto; }
+.axl .exercise-title .icon-button + .icon-button { margin-left:0; }
+.axl .machine-text { font-size:23px; line-height:29px; }
+.axl .machine-text small { font-size:17px; line-height:23px; }
+.axl .columns { display:none; }
+.axl .set { grid-template-columns:1fr 1fr 44px; gap:8px; padding:8px 0; }
+.axl .marker { grid-column:1; grid-row:1; font-size:23px; }
+.axl .previous { grid-column:2; grid-row:1; font-size:17px; line-height:22px; }
+.axl .complete { grid-column:3; grid-row:1; }
+.axl .field { grid-row:2; min-height:84px; padding-top:24px; position:relative; }
+.axl .field::before { position:absolute; top:4px; left:8px; font-size:15px; line-height:20px; color:#B5B9C2; }
+.axl .weight::before { content:"WEIGHT"; }
+.axl .reps::before { content:"REPS"; left:0; }
+.axl .previous::before { content:"PREVIOUS"; display:block; font-size:15px; line-height:20px; }
+.axl .field.weight { grid-column:1 / 3; }
+.axl .field.weight { grid-column:1; }
+.axl .field.reps { grid-column:2 / 4; }
+.axl .field input,.axl .current .field input { font-size:28px; }
+.axl .unit { font-size:20px; }
+.axl .footer { grid-template-columns:1fr; gap:8px; padding-bottom:16px; }
+.axl .footer button { font-size:23px; }
+.axl .rest { grid-template-columns:1fr; gap:8px; }
+.axl .rest-actions { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.axl .rest-actions button { font-size:28px; line-height:34px; min-height:56px; }
+.axl .clock-label { font-size:17px; line-height:23px; }
+.axl .time { font-size:44px; line-height:50px; }
+.axl .countdown > svg { width:32px; height:32px; }
+@media(prefers-reduced-motion:reduce) { * { animation:none!important; transition:none!important; } }
+
+  </style>
+</helmet>
+<div class="phone"><div class="composition direction-b" style="display:contents"><div class="nav"><button class="minimize" aria-label="Minimize workout"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><button class="cancel">Cancel</button><button class="rename" aria-label="Edit workout name"><span>Seated Chest Press</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 15 11-11 4 4L9 19l-5 1zM14 6l4 4"/></svg></button><button class="finish">Finish</button></div><main class="viewport"><div class="status"><span class="gym"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="7" r="3"/><path d="M12 10v8M7 16c-7 4 17 4 10 0"/></svg>Iron Temple</span><span class="elapsed">12 min</span><span class="progress"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="#2B323C"/><path d="M12 3a9 9 0 0 1 6.4 15.4" stroke="#B5B9C2"/></svg>3/8 sets</span></div><div class="hr card"><div class="hr-main"><span style="color:#FF5E7A"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path fill="currentColor" stroke="none" d="M12 21S2 15 2 8a5 5 0 0 1 10-1 5 5 0 0 1 10 1c0 7-10 13-10 13"/></svg></span><span class="bpm">128 <small>bpm</small></span><span class="zone">Zone 3<span class="zone-meter"><i></i><i></i><i></i><i></i><i></i></span></span><span class="cal">142 cal</span></div><div class="source">Test data<button>· edit zones</button></div></div><section class="exercise card"><div class="exercise-title"><h2>Seated Chest Press</h2><button class="icon-button" aria-label="Exercise options"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="7" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="17" cy="12" r=".6"/></svg></button><button class="icon-button" aria-label="Previous performance"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h6M8 15h4"/></svg></button></div><button class="machine"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="3"/><path d="M10 3v2m0 10v2M3 10h2m10 0h2M5 5l2 2m6 6 2 2M5 15l2-2m6-6 2-2"/><circle cx="18" cy="18" r="3"/></svg><span class="machine-text">Chest Press<small>Life Fitness Insignia Series</small></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button><div class="cols columns"><span>SET</span><span>PREVIOUS</span><span>WEIGHT</span><span>REPS</span><span></span></div><div class="cols set done"><button class="marker" aria-label="Set 1 type">1<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="previous">60 lb × 10</span><div class="field weight"><input aria-label="Set 1 weight" value="60"><button class="unit" aria-label="Set 1 unit"><span>lb</span></button></div><div class="field reps"><input aria-label="Set 1 reps" value="10"></div><button class="complete" aria-label="Completed set 1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></div><div class="cols set current"><button class="marker" aria-label="Set 2 type">2<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="previous">60 lb × 10</span><div class="field weight"><input aria-label="Set 2 weight" value="60"><button class="unit" aria-label="Set 2 unit"><span>lb</span></button></div><div class="field reps"><input aria-label="Set 2 reps" value="10"></div><button class="complete" aria-label="Complete set 2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></button></div><div class="cols set planned"><button class="marker" aria-label="Set 3 type">3<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="previous">—</span><div class="field weight"><input aria-label="Set 3 weight" value="60"><button class="unit" aria-label="Set 3 unit"><span>lb</span></button></div><div class="field reps"><input aria-label="Set 3 reps" value="10"></div><button class="complete" aria-label="Complete set 3"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg></button></div><button class="addset"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Add Set</button></section><section class="exercise card"><div class="exercise-title"><h2>Lat Pulldown</h2><button class="icon-button" aria-label="Exercise options"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="7" cy="12" r=".6"/><circle cx="12" cy="12" r=".6"/><circle cx="17" cy="12" r=".6"/></svg></button><button class="icon-button" aria-label="Previous performance"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h6M8 15h4"/></svg></button></div><button class="machine"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="10" cy="10" r="3"/><path d="M10 3v2m0 10v2M3 10h2m10 0h2M5 5l2 2m6 6 2 2M5 15l2-2m6-6 2-2"/><circle cx="18" cy="18" r="3"/></svg><span class="machine-text">Lat Pulldown<small>Hammer Strength</small></span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button><div class="cols columns"><span>SET</span><span>PREVIOUS</span><span>WEIGHT</span><span>REPS</span><span></span></div><div class="cols set planned"><button class="marker" aria-label="Set 1 type">1<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="previous">—</span><div class="field weight"><input aria-label="Set 1 weight" value="80"><button class="unit" aria-label="Set 1 unit"><span>lb</span></button></div><div class="field reps"><input aria-label="Set 1 reps" value="10"></div><button class="complete" aria-label="Complete set 1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg></button></div><div class="cols set planned"><button class="marker" aria-label="Set 2 type">2<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button><span class="previous">—</span><div class="field weight"><input aria-label="Set 2 weight" value="80"><button class="unit" aria-label="Set 2 unit"><span>lb</span></button></div><div class="field reps"><input aria-label="Set 2 reps" value="10"></div><button class="complete" aria-label="Complete set 2"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg></button></div><button class="addset"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Add Set</button></section></main><div class="dock"><div class="footer"><button><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Add Exercise</button><button><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2"/><path d="M12 8v7m-6-5 6 2 6-2M9 21l3-6 3 6M4 7v10m16-10v10M2 14h20"/></svg>Add by Machine</button></div></div></div></div>
+</x-dc>
+</body>
+</html>
