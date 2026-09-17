@@ -75,3 +75,16 @@ group — two rows at accessibility sizes, so no mid-word wrap) and **Codex B �
 (no card walls; one enlarged current row in a continuous ledger). The canvas now has two pages
 (Codex, Claude); the board `canvas/active/active-workout-comparison.png` puts the current screen
 beside Codex A (logging, resting), Codex B and Claude A. Awaiting the pick.
+
+## Round 3 — the revision (2026-09-17)
+
+The user: "I like the design of Codex A, except for current set magnifying. I like the rest
+timer of current. I also think it would be better if Codex A's time display is a bit bigger (but
+not as much as current design). Redesign Codex A based on this feedback and show me." →
+`canvas/active/CodexA2.dc.html` + `CodexA2Rest.dc.html` (from Codex's files, three edits): the
+current row keeps its tint and its one amber tick but its fields are the same size as every
+other row; the rest bar is the current one (the draining ring with the hourglass, "Rest" over
+the time in `stat`, "+15s" secondary, "Skip" primary amber) in Codex's elevated card, with Codex's
+two-row layout at accessibility sizes; the elapsed time is Title 2 bold in primary
+(`12 min`), between Codex's caption and the old Large Title hero. Board:
+`canvas/active/active-workout-revised.png`. Awaiting the user's yes.

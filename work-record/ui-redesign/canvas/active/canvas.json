@@ -1,6 +1,24 @@
 {
   "artboards": [
     {
+      "file": "CodexA2.dc.html",
+      "x": 0,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Codex A \u00b7 REVISED \u00b7 logging",
+      "page": "page-1"
+    },
+    {
+      "file": "CodexA2Rest.dc.html",
+      "x": 520,
+      "y": 1000,
+      "w": 390,
+      "h": 844,
+      "title": "Codex A \u00b7 REVISED \u00b7 resting",
+      "page": "page-1"
+    },
+    {
       "file": "CodexA.dc.html",
       "x": 0,
       "y": 0,
@@ -89,6 +107,14 @@
       "w": 520,
       "text": "Active workout, second pass. Three structures, same fixture: 12 min in, set 2 of Seated Chest Press is next, a 1:58 rest running, heart rate 128 in zone 3.\nA keeps today's structure and fixes the hierarchy: the big elapsed number, the amber Add Exercise and the amber ring all step down; the current set's tick and the rest capsule are the only amber things. The rest is the Start screen's capsule shape, so Skip and +15s cannot wrap.\nB shows one exercise at a time with bigger rows and an exercise strip on top.\nC collapses done sets to one line and puts the rest right under the set you just finished.\nTab bar, nav bar and icons are stand-ins; the real ones stay.",
       "page": "page-2"
+    },
+    {
+      "id": "revised",
+      "x": 1040,
+      "y": 1000,
+      "w": 420,
+      "page": "page-1",
+      "text": "Revised from the user's feedback: Codex A, but the current set is not magnified (normal fields, the row tint and the amber tick stay); the rest timer is the current design's (ring, Rest / time, +15s, amber Skip); the elapsed time is Title 2, bigger than Codex's caption and smaller than the old hero."
     }
   ],
   "launch": {
