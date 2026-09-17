@@ -871,6 +871,14 @@ user's own numbers. Bar mode's fields dodge it by seeding through `WeightMath.di
   info details` shows `tunnelState: unavailable`; `xcodebuild` says "Unable to find a destination".
   A USB cable fixed it within seconds. Do not spend more than one retry on Wi-Fi — ask for the cable.
 
+- **Recurred 2026-09-17 with Xcode 27.0 (installed 09-15): the update signed the Apple ID out
+  again; the Mac had not rebooted, so the old CoreSimulator service also ran under the new
+  Xcode ("CoreSimulator is out of date", `simctl` hanging, a DVTCoreDeviceCore plug-in refusing
+  to load) — `pkill -9 -f CoreSimulatorService` fixed the simulator; the user signing in to
+  Xcode → Settings → Accounts fixed signing (a fresh profile to 2026-09-24 followed). Check
+  `xcodebuild -version` at the start of a session: a new major means both.** Also: build for the
+  phone with `-destination 'generic/platform=iOS'` — the id-destination build waits for the
+  phone's developer disk image and hung for 22 hours on 09-12 while the Mac slept.
 - **Xcode 26.6 had NO Apple ID signed in on 2026-09-06 — a device build cannot mint profiles.
   Resolved by the user by 2026-09-10 (the account list is populated again; the 09-10 build minted
   fresh profiles). Kept because it WILL recur after an Xcode update or a sign-out:**
