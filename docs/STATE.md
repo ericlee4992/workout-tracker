@@ -11,16 +11,11 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   archive, link, and configuration checks passed. Personal settings use an 872K context window,
   780K compaction threshold, and context-usage footer, verified in a fresh Codex session.
   Restart existing Codex sessions to load these defaults.
-- **Active: finish summary second pass, ticket 17.** User chose this screen on 2026-09-17.
-  [Ticket](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md). Branch
-  `ericlee4992/finish-summary-second-pass`, base `c7ef99b`, isolated worktree
-  `/Users/ericlee06/orca/workspaces/Health App/finish-summary-second-pass`.
-  Native design checkpoint `6c3bd5c` compares balanced, lifting-first and heart-rate-first
-  structures. The browser gallery now includes the current shipped screen as a fourth column,
-  with its different test fixture labelled.
-  No product source, test, schema or phone-install change. Native preview compilation/capture exited 0; default/AXL comparisons inspected.
-  Next: obtain the user's composition choice before implementation. App verification,
-  independent review, merge and installation remain pending.
+- **This is the archived design-exploration branch.** The user selected the shipped finish
+  screen with only metric reordering. Implementation is on `ericlee4992/finish-summary-order`,
+  source `4d70d7d`, in `/Users/ericlee06/orca/workspaces/Health App/finish-summary-order`.
+  Resume that worktree's STATE and ticket 17; its tests/review/merge state supersedes this
+  exploration. A/B/C remain here as historical comparison artifacts.
 - Gym feedback on ticket 16 still remains welcome; it has not been supplied in this session.
 
 ## Latest shipped work and verification

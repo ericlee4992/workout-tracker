@@ -1,6 +1,6 @@
 # 17 — Finish summary, second design pass
 
-Status: claimed — comparing native design previews; no production implementation yet
+Status: resolved — design exploration closed; user retained current screen with a metric reorder
 
 ## Request and scope
 
@@ -160,3 +160,11 @@ Added Current as the first comparison column: ticket 16's real default screensho
 03's real AccessibilityL screenshot. The current screenshot uses a short test workout, not
 the 48-minute proposal fixture; the gallery labels that distinction and keeps Current at the
 first viewport when proposal scroll positions change. No production changes.
+
+## Final design choice
+
+The user selected the current shipped screen, with only Workout details reordered into
+time/volume, active/total calories, avg/max HR. None of A/B/C was selected. Implementation
+continues on `ericlee4992/finish-summary-order`, source commit `4d70d7d`, in
+`/Users/ericlee06/orca/workspaces/Health App/finish-summary-order`; its ticket 17 owns subsequent
+build, screenshots, review and merge evidence. This branch preserves the rejected exploration.

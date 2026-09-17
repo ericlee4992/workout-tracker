@@ -22,5 +22,7 @@ The harness uses the project's palette, type styles and card radii as literals s
 outside the production build. Production implementation must use the shared Theme/components.
 
 Source branch: `ericlee4992/finish-summary-second-pass`, base `c7ef99b`.
-No choice made, independent clearance claimed, app tests run, merge or phone install performed.
+Outcome: the user kept the current shipped screen, only reordering its metrics. No alternative
+was selected. Implementation and its verification are on `ericlee4992/finish-summary-order`
+(source `4d70d7d`), tracked in that branch's ticket 17.
 Keep this exploratory source on its branch; port only the selected composition into product code.
