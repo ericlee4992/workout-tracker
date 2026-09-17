@@ -113,3 +113,33 @@ Inspect build/focused results, export/open the real captures, show the selected 
 Orca's browser, and obtain Claude's independent clearance while the full UI suite runs.
 Then commit/push, fast-forward/push main only after all gates are clear. Phone installation
 is not part of this request; live build remains `0b6515f`.
+
+## Verification checkpoint — source `4d70d7d`
+
+Debug build passed, exit 0. Focused run: WorkoutSummaryTests **8/8**, default finish capture
+**1/1**. AccessibilityL failed in the unchanged active-workout setup while typing reps
+(`setRow.reps`: no keyboard focus), before the receipt opened; focused exit 65. No product
+change made for a single harness failure. Per DEVELOPMENT, rerun the failed method alone.
+
+Original PID 9680 exited. New detached runner PID **15547**, script `run-after-retry.sh`,
+`retry-pid.txt`, `retry-runner.log`, `axl-retry.log` / `axl-retry.xcresult`, then
+`full-ui.log` / `full-ui.xcresult`; same results directory. The full suite starts only if the
+retry passes. Current code is committed/pushed as `4d70d7d`; subsequent edits are evidence/docs.
+
+Independent Claude reviewer is working in separate checkout
+`/Users/ericlee06/orca/workspaces/Health App/review-finish-summary-order` at `4d70d7d`.
+
+AccessibilityL isolated retry passed **1/1**, exit 0; xcresult confirms 0 failed/skipped.
+No source change was necessary; the first attempt's keyboard-focus failure remains recorded.
+Full UI suite started automatically on source `4d70d7d`, same runner PID 15547.
+Exported and opened five actual app PNGs in `screenshots/17/selected/`: default top+scroll,
+AXL top+two scrolls. All six metric labels/values are whole across the AXL captures; default
+rows match the user's requested pairs. Chart and exercise section are recorded too; this
+fixture has no configured zones. Before/after gallery opened in Orca's embedded browser.
+
+Claude independently cleared code, default/AccessibilityL visuals and combined focused
+evidence on source `4d70d7d`; [follow-up report](../claude-review-17-final.md), with the
+[initial report](../claude-review-17-initial.md) preserved. No source findings remain. Merge
+clearance is conditional on the still-running full UI suite. All five captures are listed
+with hashes in the follow-up. The original focus failure is resolved by one unchanged retry,
+not erased. No further product or test edits after the verified source.

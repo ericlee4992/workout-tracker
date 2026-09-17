@@ -14,9 +14,12 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 - **Active: ticket 17, finish-summary metric order.** The user kept the shipped design and
   requested time/volume, active/total calories, average/max HR. Accessibility stays one column.
   [Ticket and running verification](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
-  Implementation branch `ericlee4992/finish-summary-order`, base `c7ef99b`, worktree
+  Implementation branch `ericlee4992/finish-summary-order`, source `4d70d7d` (base `c7ef99b`), worktree
   `/Users/ericlee06/orca/workspaces/Health App/finish-summary-order`.
-  Implemented; build, focused captures, full UI suite and independent Claude review pending.
+  Build and 8 summary unit tests passed. Default capture passed; AXL setup lost keyboard
+  focus once, then passed unchanged in isolation. Both real captures inspected. Full UI suite
+  is running; Claude code and default/AccessibilityL visual reviews are clear, conditional
+  on the full suite passing.
   Runner PID/log/result paths are in the ticket. Next: inspect results and captures, review,
   then merge/push only when clear. No phone install requested; installed source stays `0b6515f`.
 - Rejected design previews remain on `ericlee4992/finish-summary-second-pass` at `5a4c1b2`.
