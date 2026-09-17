@@ -151,3 +151,12 @@ phone installation is claimed. The main checkout has an intentional uncommitted 
 to this worktree so a resumed session finds the active design. Proposed preference: A, because
 it brings the complete metric recap and graph into the initial viewport without choosing
 lifting or heart rate as the sole priority. User decision remains pending.
+
+## Comments
+
+2026-09-17: user could not see the local image in chat; opened `comparison.html` in Orca's
+embedded browser and verified all images loaded. User then requested the current screen.
+Added Current as the first comparison column: ticket 16's real default screenshot and ticket
+03's real AccessibilityL screenshot. The current screenshot uses a short test workout, not
+the 48-minute proposal fixture; the gallery labels that distinction and keeps Current at the
+first viewport when proposal scroll positions change. No production changes.

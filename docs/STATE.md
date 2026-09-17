@@ -15,7 +15,9 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   [Ticket](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md). Branch
   `ericlee4992/finish-summary-second-pass`, base `c7ef99b`, isolated worktree
   `/Users/ericlee06/orca/workspaces/Health App/finish-summary-second-pass`.
-  Native design previews compare balanced, lifting-first and heart-rate-first structures.
+  Native design checkpoint `6c3bd5c` compares balanced, lifting-first and heart-rate-first
+  structures. The browser gallery now includes the current shipped screen as a fourth column,
+  with its different test fixture labelled.
   No product source, test, schema or phone-install change. Native preview compilation/capture exited 0; default/AXL comparisons inspected.
   Next: obtain the user's composition choice before implementation. App verification,
   independent review, merge and installation remain pending.
