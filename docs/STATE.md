@@ -1,19 +1,27 @@
 # Where the project is right now
 
-Updated 2026-09-17 03:25 (ticket 16 — the active workout's header — Codex clear, INSTALLED on the phone with a fresh profile to 09-24, MERGE PENDING the full UI suite that was running when the session ended). **START HERE IF YOU ARE COLD:**
+Updated 2026-09-17 03:54 (ticket 16 — the active workout's header — full UI suite 72/72, MERGED and PUSHED to `main`; already installed on the phone with a profile to 09-24). **START HERE IF YOU ARE COLD:**
 
-00000000000. **HANDOFF 2026-09-17 (03:25) — ticket 16 (active workout, second pass) is on branch
-   `ui-redesign-16-active-workout` (pushed; the app source is `0b6515f`, the later commits are
-   STATE), Codex CLEAR after 2 rounds (`codex-review-16`, `16b`), gates 27 UI + unit green,
+00000000000. **HANDOFF 2026-09-17 (03:54) — ticket 16 (active workout, second pass) is MERGED
+   and PUSHED to `main` (fast-forward to `a49c8d1`; app source `0b6515f`, subsequent changes
+   are documentation). Codex CLEAR after 2 rounds (`codex-review-16`, `16b`), gates 27 UI +
+   formatter tests green, FULL UI suite **72/72**, zero failures and zero skipped. Already
    INSTALLED and launched on the phone at 03:17 with a FRESH profile (expires
-   **2026-09-24 07:16 UTC**). NOT yet merged: the full UI suite was started on `0b6515f` at
-   ~03:10 and was still running when the user ended the session. FIRST THING: read its result —
-   `/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/status.txt` (a `FULLUI DONE <code>` line) and
-   `/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/fullui.log` (`Executed N tests, with M failures`; 73 expected).
-   If 0 failures: `git checkout main && git merge --ff-only ui-redesign-16-active-workout &&
-   git push`, record the count in the ticket's status line, write the handoff. If it never
-   finished (the Mac slept) or failed: rerun the UI suite on the branch (detached, ~40 min)
-   before merging.**
+   **2026-09-24 07:16 UTC**).**
+   - **The pending test gate is closed.** The original detached run was still alive when Codex
+     resumed; it finished at 03:53 without a restart. `status.txt` says `FULLUI DONE 0`,
+     `fullui.log` says `** TEST SUCCEEDED **`, and `fullui.xcresult` independently reports
+     72 passed / 0 failed / 0 skipped. All three are under
+     `/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/`.
+     The earlier expectation of 73 was wrong: all 72 declared UI test methods appear as passed
+     in the log. No app or test source changed in this follow-up.
+   - **Current workflow discussion (proposal only):** the user expects to use Codex for primary
+     implementation and asked about setup and long-session accuracy. Recommended: shared rules
+     in `AGENTS.md`, a short `CLAUDE.md` pointer, current-only `STATE.md`, preserved old handoffs
+     under `docs/archive/`, troubleshooting in `docs/DEVELOPMENT.md`, existing decisions and
+     ticket records retained, and Claude as independent reviewer. None of that restructuring
+     or any context-limit configuration has been applied. The user specifically wants prior
+     decisions and progress preserved when STATE is shortened.
    - **What ticket 16 is** (four rounds; `work-record/ui-redesign/issues/16-active-workout-second-pass.md`;
      canvas https://claude.ai/code/artifact/83323a4b-0e91-4830-9b2a-125d9ca3642b): Claude's three
      directions and Codex's two were all set aside — the user: "lets just keep the current

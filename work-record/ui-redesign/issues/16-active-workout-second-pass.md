@@ -1,6 +1,6 @@
 # 16 — Active workout, second pass
 
-Status: in progress — directions on the canvas, awaiting the user's pick
+Status: resolved — Codex clear after 2 rounds (codex-review-16, 16b); full UI suite **72/72** on app source `0b6515f`; merged and pushed to main 2026-09-17 (`a49c8d1`); installed and launch-verified 03:17 EDT, profile expires 2026-09-24 07:16 UTC
 
 Skill: `.claude/skills/ios-design/`. The user chose this screen next (2026-09-17). The first pass
 (ticket 02, Codex's design) is what is on the phone. Known bug carried in: the rest bar's "Skip"
@@ -142,3 +142,17 @@ Gates on the branch: `FormatElapsedTests`, `CoreLoopUITests` 9, `HeartRateUITest
 `BarbellUITests` 2, `WorkoutNameUITests` 2, `ExercisePresetUITests` 2, `DumbbellCounterpartUITests`,
 `CodexScreenshotUITests` 3, three captures — **27 UI tests, 0 failures**; after the round-1 fixes,
 `FormatElapsedTests` 4/4 and `test02_activeWorkoutLargeText` 1/1.
+
+## Merge verification (2026-09-17, Codex follow-up)
+
+The original detached full UI run remained active after the handoff and completed at 03:53 EDT:
+**72 tests, 0 failures, 0 skipped**, `FULLUI DONE 0`, `** TEST SUCCEEDED **`. Codex checked the
+log and the result bundle's summary independently. The handoff expected 73, but the source
+declares 72 UI test methods and every one appears as passed in the log. The run used app source
+`0b6515f`; later commits changed documentation only. No app or test source changed during this
+follow-up. `main` was fast-forwarded to `a49c8d1` and pushed.
+
+Evidence: `fullui.log`, `status.txt`, and `fullui.xcresult` under
+`/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/`.
+The result bundle also records 22 non-failing runtime warnings, all "Invalid frame dimension
+(negative or non-finite)." Their origin was not investigated in this merge follow-up.
