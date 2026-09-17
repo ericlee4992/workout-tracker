@@ -144,6 +144,18 @@ enum Format {
 
     /// A running clock: "12:34" under an hour, "1:02:03" from an hour on
     /// (ticket 16 — the active workout's elapsed time shows seconds).
+    /// The same clock for VoiceOver: "12 minutes 34 seconds", "1 hour 2 minutes
+    /// 3 seconds" (codex-review-16: the label must carry the seconds too).
+    static func spokenElapsed(seconds: Int) -> String {
+        let s = max(0, seconds)
+        let h = s / 3600, m = (s % 3600) / 60, sec = s % 60
+        var parts: [String] = []
+        if h > 0 { parts.append("\(h) hour\(h == 1 ? "" : "s")") }
+        if h > 0 || m > 0 { parts.append("\(m) minute\(m == 1 ? "" : "s")") }
+        parts.append("\(sec) second\(sec == 1 ? "" : "s")")
+        return parts.joined(separator: " ")
+    }
+
     static func elapsed(seconds: Int) -> String {
         let s = max(0, seconds)
         return s < 3600

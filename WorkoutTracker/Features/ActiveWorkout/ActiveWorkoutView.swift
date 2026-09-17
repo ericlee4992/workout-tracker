@@ -346,7 +346,7 @@ struct ActiveWorkoutView: View {
                     .font(Theme.stat)
                     .monospacedDigit()
                     .foregroundStyle(Theme.text)
-                    .accessibilityLabel("Elapsed \(elapsedMinutes(at: timeline.date)) minutes")
+                    .accessibilityLabel("Elapsed \(Format.spokenElapsed(seconds: elapsedSeconds(at: timeline.date)))")
             }
             Spacer(minLength: 0)
             HStack(spacing: 6) {

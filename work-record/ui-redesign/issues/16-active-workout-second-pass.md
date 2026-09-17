@@ -101,8 +101,13 @@ elapsed hero and the amber "N/M" chip. Everything else (the amber Add Exercise, 
 cards, the ring's amber elsewhere) is untouched by the user's choice. A one-element restyle of
 the header — built directly and shown as real captures (skill step 3's exception).
 
-Step 1, restated for what changed: the header no longer competes for the eye at all; the bold
-element on this screen stays whatever it was in the first pass (the user's call, recorded).
+Step 1, restated for what changed — and the accepted exception (codex-review-16): the header's
+prominence is reduced (no hero, no amber chip; the clock is a `stat` figure, the ring neutral).
+What is bold on this screen is unchanged from the first pass and is NOT one thing: **Add
+Exercise** is an amber filled command while logging, and **Skip** a second amber filled command
+while resting; the completed set's amber is state. The user chose to keep both ("lets just keep
+the current design"); this ticket records that as a deliberate exception to the one-dominant-
+treatment rule, not as compliance.
 Tells: the accent on too many things — **reduced** (one amber chip gone); a figure without a
 glanceable job — the elapsed hero — **gone**; survives only the default size — the AXL capture.
 
@@ -121,3 +126,19 @@ Branch `ui-redesign-16-active-workout`; `FormatElapsedTests` (3); captures
   (the header at AXL: the chip wraps to two words, the clock whole, "1/2 sets" on two lines
   beside its ring; the stacked rest bar), `-axl-2` (the card), `03-finish-summary`. The user on
   the default capture: "looks good."
+
+## Codex review 16 — response (2026-09-17)
+
+`codex-review-16.md`: three P3s, no source defect; the header as requested, the rest wrap fixed,
+item 11 pass, the clock's cost and skew handling fine, the hour format accepted.
+- **VoiceOver heard whole minutes**: `Format.spokenElapsed` — "12 minutes 34 seconds",
+  "1 hour 2 minutes 3 seconds" — is the clock's accessibility label (`FormatElapsedTests` 4/4).
+- **The AXL record stopped at the header**: `test02_activeWorkoutLargeText` now shoots the top,
+  the set rows (`-axl-2`) and the footer above the pinned rest bar (`-axl-3`, asserted by frame).
+- **The hierarchy exception**: named above — Add Exercise (logging) and Skip (resting) are amber
+  filled commands the user chose to keep; the completed set is state.
+
+Gates on the branch: `FormatElapsedTests`, `CoreLoopUITests` 9, `HeartRateUITests` 5,
+`BarbellUITests` 2, `WorkoutNameUITests` 2, `ExercisePresetUITests` 2, `DumbbellCounterpartUITests`,
+`CodexScreenshotUITests` 3, three captures — **27 UI tests, 0 failures**; after the round-1 fixes,
+`FormatElapsedTests` 4/4 and `test02_activeWorkoutLargeText` 1/1.

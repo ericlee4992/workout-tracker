@@ -81,11 +81,17 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.swipeDown()
         app.swipeDown()
         shoot("redesign-02-active-workout-axl")
-        // The entry card is below the fold at this size: scroll it into view.
-        let title = anyElement("entryTitle.\(exerciseName)")
-        for _ in 0..<4 where !(title.exists && title.isHittable) { app.swipeUp() }
-        XCTAssertTrue(title.exists, "the entry card reachable at AccessibilityL")
+        // The rest of the card and the footer (codex-review-16): scroll until
+        // Add Exercise sits above the pinned rest bar, shooting the set rows on
+        // the way.
+        app.swipeUp()
         shoot("redesign-02-active-workout-axl-2")
+        let add = app.buttons["addExercise"]
+        let restLabel = app.staticTexts["Rest"]
+        for _ in 0..<6 where !(add.exists && add.isHittable && add.frame.maxY < restLabel.frame.minY) { app.swipeUp() }
+        XCTAssertTrue(add.exists && add.isHittable, "Add Exercise reachable at AccessibilityL")
+        XCTAssertLessThan(add.frame.maxY, restLabel.frame.minY, "Add Exercise clear of the pinned rest bar")
+        shoot("redesign-02-active-workout-axl-3")
     }
 
     /// The receipt at the largest non-accessibility-menu text size the plan

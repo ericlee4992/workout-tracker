@@ -17,5 +17,13 @@ struct FormatElapsedTests {
 
     @Test func negativeIsZero() {
         #expect(Format.elapsed(seconds: -5) == "0:00")
+        #expect(Format.spokenElapsed(seconds: -5) == "0 seconds")
+    }
+
+    @Test func spokenFormCarriesTheSeconds() {
+        #expect(Format.spokenElapsed(seconds: 59) == "59 seconds")
+        #expect(Format.spokenElapsed(seconds: 61) == "1 minute 1 second")
+        #expect(Format.spokenElapsed(seconds: 754) == "12 minutes 34 seconds")
+        #expect(Format.spokenElapsed(seconds: 3723) == "1 hour 2 minutes 3 seconds")
     }
 }
