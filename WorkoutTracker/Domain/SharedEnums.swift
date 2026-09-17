@@ -141,4 +141,13 @@ enum Format {
     static func duration(seconds: Int) -> String {
         String(format: "%d:%02d", seconds / 60, seconds % 60)
     }
+
+    /// A running clock: "12:34" under an hour, "1:02:03" from an hour on
+    /// (ticket 16 — the active workout's elapsed time shows seconds).
+    static func elapsed(seconds: Int) -> String {
+        let s = max(0, seconds)
+        return s < 3600
+            ? String(format: "%d:%02d", s / 60, s % 60)
+            : String(format: "%d:%02d:%02d", s / 3600, (s % 3600) / 60, s % 60)
+    }
 }

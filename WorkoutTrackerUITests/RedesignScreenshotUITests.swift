@@ -77,6 +77,9 @@ final class RedesignScreenshotUITests: XCTestCase {
         logSet(weight: "60", reps: "10")
         app.buttons["addSet"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["Rest"].waitForExistence(timeout: 5) || app.buttons["Skip"].waitForExistence(timeout: 5))
+        // Back to the top so the header (ticket 16) is on record, then the card.
+        app.swipeDown()
+        app.swipeDown()
         shoot("redesign-02-active-workout-axl")
         // The entry card is below the fold at this size: scroll it into view.
         let title = anyElement("entryTitle.\(exerciseName)")

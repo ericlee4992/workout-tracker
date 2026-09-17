@@ -88,3 +88,36 @@ the time in `stat`, "+15s" secondary, "Skip" primary amber) in Codex's elevated 
 two-row layout at accessibility sizes; the elapsed time is Title 2 bold in primary
 (`12 min`), between Codex's caption and the old Large Title hero. Board:
 `canvas/active/active-workout-revised.png`. Awaiting the user's yes.
+
+## Round 4 — the user's decision (2026-09-17)
+
+"Actually, lets just keep the current design. but just move the current timer next to gym name
+(and also have timer include seconds), and make the total sets completed icon like the one in
+Codex A. Redesign and show me." → the current screen stays; the header becomes ONE status
+line: the gym chip, the running clock beside it in `stat` with seconds (`Format.elapsed`:
+"12:34", "1:02:03" from an hour), and at the trailing end a small neutral ring (22 pt,
+`Theme.secondary`) with "N/M sets" in a caption — Codex A's indicator. Gone: the Large Title
+elapsed hero and the amber "N/M" chip. Everything else (the amber Add Exercise, the rest bar, the
+cards, the ring's amber elsewhere) is untouched by the user's choice. A one-element restyle of
+the header — built directly and shown as real captures (skill step 3's exception).
+
+Step 1, restated for what changed: the header no longer competes for the eye at all; the bold
+element on this screen stays whatever it was in the first pass (the user's call, recorded).
+Tells: the accent on too many things — **reduced** (one amber chip gone); a figure without a
+glanceable job — the elapsed hero — **gone**; survives only the default size — the AXL capture.
+
+Branch `ui-redesign-16-active-workout`; `FormatElapsedTests` (3); captures
+`test02_activeWorkoutAndFinish`, `test02_activeWorkoutLargeText`.
+
+## Built (2026-09-17)
+
+- `ActiveWorkoutView.header`: one line — the gym chip, `Format.elapsed` in `stat` ticking every
+  second (`TimelineView(.periodic(by: 1))`), a 22 pt `ProgressRing` in `Theme.secondary` with
+  "N/M sets" in a caption. The keyboard-visible compaction is now just less padding.
+- `RestTimerBar`: at accessibility sizes the two buttons take a row under the timer, equal
+  widths — "+15s" and "Skip" no longer break mid-word (the ticket-02 bug).
+- `Format.elapsed(seconds:)` + `FormatElapsedTests` 3/3.
+- Captures `screenshots/16/`: `02-active-workout` (default, resting), `02-active-workout-axl`
+  (the header at AXL: the chip wraps to two words, the clock whole, "1/2 sets" on two lines
+  beside its ring; the stacked rest bar), `-axl-2` (the card), `03-finish-summary`. The user on
+  the default capture: "looks good."

@@ -326,47 +326,48 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    /// Ticket 16 (the user, 2026-09-17: "keep the current design, but move the
+    /// timer next to the gym name, with seconds, and make the sets-completed
+    /// indicator like Codex A's"): one status line — the gym chip, the running
+    /// clock in `stat`, and a small neutral ring with "N/M sets". The Large
+    /// Title hero and the amber count chip are gone; nothing here competes
+    /// with the set being logged. The line stays under the keyboard's
+    /// accessory too — it is short enough — so the fields keep their room.
     private var header: some View {
-        HStack(alignment: .center, spacing: 16) {
-            // Keep the active fields above the keyboard accessory, including
-            // the extra total line in bar mode. The full hero returns on Done.
-            VStack(alignment: .leading, spacing: keyboardVisible ? 4 : 12) {
-                if !keyboardVisible {
-                    Chip(tint: Theme.secondary) {
-                        Label(workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"),
-                              systemImage: "mappin.and.ellipse")
-                    }
-                }
-                TimelineView(.periodic(from: .now, by: 60)) { timeline in
-                    Text("\(elapsedMinutes(at: timeline.date)) min")
-                        .font(keyboardVisible ? Theme.stat : Theme.hero)
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.text)
-                }
+        let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
+        let completed = sets.filter { $0.completedAt != nil }.count
+        return HStack(alignment: .center, spacing: Theme.Space.medium) {
+            Chip(tint: Theme.secondary) {
+                Label(workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"),
+                      systemImage: "mappin.and.ellipse")
+            }
+            TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                Text(Format.elapsed(seconds: elapsedSeconds(at: timeline.date)))
+                    .font(Theme.stat)
+                    .monospacedDigit()
+                    .foregroundStyle(Theme.text)
+                    .accessibilityLabel("Elapsed \(elapsedMinutes(at: timeline.date)) minutes")
             }
             Spacer(minLength: 0)
-            let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
-            let completed = sets.filter { $0.completedAt != nil }.count
-            if !keyboardVisible {
-                // The count sits UNDER the ring, not over its rim: overlaid
-                // with an offset it collided with the tick (seen in the
-                // design-board capture, 2026-09-10).
-                VStack(spacing: 6) {
-                    ZStack {
-                        ProgressRing(progress: sets.isEmpty ? 0 : Double(completed) / Double(sets.count), lineWidth: 6)
-                        Image(systemName: "checkmark").font(.title2.weight(.bold))
-                            .foregroundStyle(Theme.accent)
-                    }
-                    .frame(width: 56, height: 56)
-                    Chip(tint: Theme.accent) { Text("\(completed)/\(sets.count)").monospacedDigit() }
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(completed) completed sets, \(sets.count) total")
+            HStack(spacing: 6) {
+                ProgressRing(progress: sets.isEmpty ? 0 : Double(completed) / Double(sets.count),
+                             tint: Theme.secondary, lineWidth: 3)
+                    .frame(width: 22, height: 22)
+                Text("\(completed)/\(sets.count) sets")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.secondary)
+                    .monospacedDigit()
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(completed) completed sets, \(sets.count) total")
         }
-        .padding(.horizontal, 24)
-        .padding(.top, keyboardVisible ? 0 : 8)
-        .padding(.bottom, keyboardVisible ? 0 : 16)
+        .padding(.horizontal, 20)
+        .padding(.top, keyboardVisible ? 0 : 4)
+        .padding(.bottom, keyboardVisible ? 0 : 8)
+    }
+
+    private func elapsedSeconds(at date: Date) -> Int {
+        workout.isDeleted ? 0 : Int(date.timeIntervalSince(workout.startedAt))
     }
 
     private func elapsedMinutes(at date: Date) -> Int {
