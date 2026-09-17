@@ -11,9 +11,15 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   archive, link, and configuration checks passed. Personal settings use an 872K context window,
   780K compaction threshold, and context-usage footer, verified in a fresh Codex session.
   Restart existing Codex sessions to load these defaults.
-- **Next product action:** get the user's reaction to ticket 16 on the phone. Then choose the
-  finish summary or History for the second design pass, or App Store groundwork. No next
-  screen has been chosen; gym feedback takes priority over the backlog.
+- **Active: finish summary second pass, ticket 17.** User chose this screen on 2026-09-17.
+  [Ticket](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md). Branch
+  `ericlee4992/finish-summary-second-pass`, base `c7ef99b`, isolated worktree
+  `/Users/ericlee06/orca/workspaces/Health App/finish-summary-second-pass`.
+  Native design previews compare balanced, lifting-first and heart-rate-first structures.
+  No product source, test, schema or phone-install change. Native preview compilation/capture exited 0; default/AXL comparisons inspected.
+  Next: obtain the user's composition choice before implementation. App verification,
+  independent review, merge and installation remain pending.
+- Gym feedback on ticket 16 still remains welcome; it has not been supplied in this session.
 
 ## Latest shipped work and verification
 
