@@ -156,3 +156,8 @@ Evidence: `fullui.log`, `status.txt`, and `fullui.xcresult` under
 `/private/tmp/claude-501/-Users-ericlee06-orca-projects-Health-App/101ec037-9885-4a60-bcc5-d372596b74e9/scratchpad/`.
 The result bundle also records 22 non-failing runtime warnings, all "Invalid frame dimension
 (negative or non-finite)." Their origin was not investigated in this merge follow-up.
+
+Launch provenance (clarified during the Codex-setup documentation review): the earlier handoff
+at `a49c8d1:docs/STATE.md` records “INSTALLED and launched on the phone at 03:17”. The current
+state carries that as a reported launch; it does not claim a new device verification or infer
+remote launch from install success.

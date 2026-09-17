@@ -63,12 +63,13 @@ xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
 | `WorkoutTrackerTests/`, `WorkoutTrackerUITests/` | Unit tests (Swift Testing) and end-to-end UI tests (XCTest) |
 | `WorkoutTrackerWidget/` | The Live Activity for the rest timer |
 | `WorkoutTrackerWatch/` | A placeholder Watch target; it has never been built or run |
-| `docs/` | `SPEC.md` (what the product is), `DECISIONS.md` (why, D1–D54), `STATE.md` (where the project is right now) |
+| `AGENTS.md`, `CLAUDE.md` | Shared agent workflow and Claude’s import of it |
+| `docs/` | `SPEC.md` (product), `DECISIONS.md` (why), `STATE.md` (current work), `DEVELOPMENT.md` (runbook), `archive/` (preserved handoffs) |
 | `work-record/` | Every ticket with its acceptance criteria and resolution, every cross-review, and the screenshots each ticket was judged on |
 
 ## How it was built
 
-Solo, with AI coding agents under a workflow described in [`CLAUDE.md`](CLAUDE.md): work is
+Solo, with AI coding agents under a workflow described in [`AGENTS.md`](AGENTS.md): work is
 split into numbered tickets; each ticket is built by one agent and cross-reviewed by a
 different one (Claude and Codex) until it is clear; screens go through a written design
 process with captures at the default and accessibility text sizes; and nothing merges without
