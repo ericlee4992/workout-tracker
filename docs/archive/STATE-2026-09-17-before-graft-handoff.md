@@ -5,53 +5,52 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 ## Active task and next action
 
-- **Resume in the main checkout:** `/Users/ericlee06/orca/projects/Health App`, branch `main`.
-  Pre-checkpoint HEAD is `f89dcde`; this handoff adds documentation/Graft wiring only. Verify
-  current HEAD and working tree on startup. Product source remains `4d70d7d`.
-- **Finish summary is done and installed.** The user kept the current design, changing only
-  the three metric pairs: time/volume, active/total calories, average/max HR. The user approved
-  the real captures and requested the phone install. [Ticket 17](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
-- **Graft is configured for Codex.** CLI 0.18.0, structural graph fresh: 221 files, 2,418 symbols,
-  7,099 links; no optional LLM summaries built. Global Codex MCP entry is enabled and its six
-  tools answered a direct handshake. Four Graft hook events are registered. **Next session:**
-  verify Graft tools actually load in the new Codex session; that client reload and live hook
-  execution have not yet been observed. CLI navigation works now. Read the
-  [setup/handoff ticket](../work-record/graft-setup/issues/01-graft-handoff.md) for exact scope.
-- **Claude scope:** `CLAUDE.md` imports the shared AGENTS/Graft instructions. Separate project
-  Graft skill/MCP wiring and global Claude Graft hooks were not found; do not claim those are
-  installed. No extra configuration is required merely to resume this project.
-- **Next product action is unchosen.** Obtain gym feedback on tickets 16/17, then let the user
-  choose History's second pass or App Store groundwork. Do not restart the rejected A/B/C
-  finish-summary designs or begin another screen just because it is on the backlog.
-- **Workspace/UI preference:** keep the sidebar tidy. Completed setup, design, implementation
-  and review workspaces are sleeping; Hide sleeping is enabled and `main` remains visible.
-  Files/logs/session history are preserved. The stale design-preference prompt was dismissed;
-  no answer remains outstanding. Sleep temporary workspaces again after work finishes.
-- **Personal Codex settings preserved:** context window 872,000; auto-compaction 780,000;
-  context-used/remaining/window-size footer. These are configured values, not a claim that this
-  session tested filling the whole window. A fresh session loads its own configuration.
+- **Codex setup is complete.** [Ticket](../work-record/codex-setup/issues/01-codex-workflow.md):
+  shared AGENTS, short Claude entry point, preserved history, current-only STATE, DEVELOPMENT
+  runbook, and Codex design-skill discovery. Claude cleared the changes after two rounds;
+  archive, link, and configuration checks passed. Personal settings use an 872K context window,
+  780K compaction threshold, and context-usage footer, verified in a fresh Codex session.
+  Restart existing Codex sessions to load these defaults.
+- **Ticket 17 is complete:** the user kept the shipped finish-summary design and changed
+  Workout details to time/volume, active/total calories, average/max HR. Accessibility keeps
+  one column. [Ticket and verification](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
+  App source `4d70d7d`, from `ericlee4992/finish-summary-order` (base `c7ef99b`); subsequent
+  commits contain evidence/closure only. Debug build and 8 summary unit tests passed. Full UI
+  suite **72 passed, 0 failed, 0 skipped**, exit 0, finished 2026-09-17 18:48 EDT. Claude's
+  independent code, default/AccessibilityL visual and final gate reviews are clear.
+- **Ticket 17 installed and launched on the phone**, 2026-09-17 21:43–21:44 EDT, at the user's
+  request after approving the captures. Built repo `39b4c8d` (app source `4d70d7d`), fresh device
+  build, matching bundle ID/team, app and widget profiles checked through September 24.
+  A fresh app-container backup was copied locally before installation; details below.
+- **Next product action:** no further screen selected. Get the user's gym feedback on ticket
+  16, then choose History's second pass or App Store groundwork. Gym feedback takes priority.
+- Rejected design previews remain on `ericlee4992/finish-summary-second-pass` (`5a4c1b2`,
+  outcome recorded at `dea20f4`); they were not selected or brought into the product branch.
 
-## Latest completed work and verification
+## Latest shipped work and verification
 
-- Ticket 17: source `4d70d7d`, merged via `39b4c8d`; subsequent commits through `f89dcde` record
-  evidence/install only. Debug build passed, summary unit tests **8/8**, full local UI suite
-  **72 passed, 0 failed, 0 skipped**, exit 0 (2026-09-17 18:48 EDT). Claude code, default/AXL
-  visual and final gate reviews clear. One initial AXL setup keyboard-focus failure passed
-  unchanged in isolation and again in the full suite. There are 22 non-failing invalid-frame
-  warnings; origin remains uninvestigated. No tests or builds remain running from ticket 17.
-- Real before/after captures: [comparison](../work-record/ui-redesign/screenshots/17/selected/comparison.html).
-  Logs/result bundles remain in the sleeping implementation worktree; exact paths and process
-  history are in ticket 17. These were real app captures, separate from the rejected prototypes.
-- Ticket 16, source `0b6515f`: gym and clock with seconds share the header, small neutral sets
-  ring, accessibility rest controls stack, VoiceOver speaks seconds. Add Exercise/Skip amber
-  treatments are accepted exceptions. [Record](../work-record/ui-redesign/issues/16-active-workout-second-pass.md).
-- Rejected A/B/C mockups remain on `ericlee4992/finish-summary-second-pass` (`5a4c1b2`, outcome
-  `dea20f4`). The four sleeping worktrees can be shown again by disabling Hide sleeping.
-- Templates, muscle maps, History template saving and zone-time cards are shipped. Milestones
-  2–4 and 9 are shipped; milestone 5 was dropped (D49); 7/8 have deferred acceptance work below;
-  milestone 6 bar mode is shipped, plate math and stack increments remain.
-- Earlier detail is preserved in the [pre-checkpoint STATE](archive/STATE-2026-09-17-before-graft-handoff.md)
-  and the linked tickets, including [Codex setup](../work-record/codex-setup/issues/01-codex-workflow.md).
+- Ticket 17's only product change is the finish-summary metric order, source `4d70d7d`. The
+  original focused AXL capture failed once on keyboard focus in unchanged setup, then passed
+  unchanged in isolation and again in the full suite. All 72 declared methods passed in the
+  full run. The bundle has 22 non-failing invalid-frame warnings, the same type/count as the
+  previous suite; origin remains uninvestigated. Logs/results and all three reviews are in
+  [ticket 17](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
+- [Ticket 16: active workout](../work-record/ui-redesign/issues/16-active-workout-second-pass.md)
+  is merged and pushed. App source is `0b6515f`; main reached `9b9feef` with documentation only
+  afterward. Gym and clock (including seconds) share the header; the sets indicator is a small
+  neutral ring. Rest-bar controls stack at accessibility sizes; VoiceOver speaks seconds.
+  The user said the capture looks good. Add Exercise and Skip staying amber are accepted exceptions.
+- Codex cross-review cleared in two rounds. The full UI suite on that source finished
+  2026-09-17 03:53 EDT: **72 passed, 0 failed, 0 skipped**, exit 0. All 72 declared methods
+  appeared in the log; the old handoff's expected 73 was a counting error. Focused gates:
+  27 UI tests; after fixes, formatter 4/4 and accessibility capture 1/1. The result bundle
+  contains 22 non-failing invalid-frame warnings; origin not investigated. Evidence is in the ticket.
+- Templates, muscle-map icons, save-as-template from History, and History zone-time cards are
+  also shipped; records are in [UI redesign](../work-record/ui-redesign/) and
+  [History templates/zones](../work-record/history-templates-and-zones/).
+- Milestones 2–4 and 9 are shipped; milestone 5 (Strong import) was dropped by D49. Milestones
+  7/8 are merged but still have deferred acceptance work below. Milestone 6's bar mode is
+  shipped; plate calculation and selectorized stack increments remain.
 
 ## Live phone and backup
 

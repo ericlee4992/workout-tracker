@@ -181,3 +181,23 @@ up beside it. The CLI reserves context headroom, so an effective budget can be s
 the configured window. Restart Codex to load changed settings; check the footer and `/status`.
 These settings do not replace the checkpoint workflow in AGENTS. Model limits can change;
 inspect the current model metadata before changing the window or switching models.
+
+## Graft code navigation
+
+Graft is development tooling, separate from the iPhone app. After the AGENTS startup reads,
+use `graft map`, `graft ask "<task or symbol>" --source`, `graft skeleton <file>`, and
+`graft callers <symbol>` for orientation. Confirm relevant source and callers before editing;
+the static map is not proof that every SwiftUI callback, SwiftData-generated member or runtime
+dispatch edge was found. Use `rg` and direct reads when the index lacks detail.
+
+`graft check` checks the current checkout. If absent/stale, `graft build` rebuilds its structural
+index without an LLM key. The generated `graft/` cache is gitignored; `.ignore` makes only its
+readable cards searchable and excludes internal `.cache/` / `.graph/` data. Each checkout may
+need its own build. A structural-only installation reports the deep/meaning layer as not built
+or pending; this alone is not a failure and does not call for `--deep`.
+
+`graft init` can rewrite its fenced AGENTS section. Preserve the project-specific precedence
+paragraph outside that fence. Inspect `graft init --help` / `--dry-run` before changing wiring:
+`agents` selects Codex/AGENTS.md; user-level Codex MCP and hook settings affect all repositories.
+Actual installed configuration and the distinction between configured hooks and a verified
+fresh-session load are recorded in the [Graft setup ticket](../work-record/graft-setup/issues/01-graft-handoff.md).
