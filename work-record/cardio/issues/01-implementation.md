@@ -255,3 +255,13 @@ outdoor, route, History route, editor, lifting banner and replacement picker. Co
 visible; source/distance fields are reachable above them when scrolled; route is amber; no
 false location error; new state captures are readable. Independent visual pass requested.
 `full-ui-2` has started automatically on the same frozen source.
+
+### Independent visual clearance
+
+[Claude visual 02](../claude-visual-02.md) viewed all29 final PNGs and clears the built UI.
+No blocking visual findings. Full UI result remains the merge gate. Retain low W1–W4 for
+future polish: scrolling content can peek around the floating control card but every field
+is reachable; the lifting-side recording banner is tappable without a chevron; the picker
+consequence note uses a single native list row; existing large-text gym/sets header wraps.
+Receipt metadata orphaning and mixed duration formats remain the recorded copy exceptions.
+These are accepted low items for this release, not silently lost findings.

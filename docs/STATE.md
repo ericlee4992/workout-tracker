@@ -17,7 +17,8 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   Native visual review required pinned controls, consistent route colour and more state captures;
   those corrections pass `build-10`; targeted units passed13/13. A full run exposed an ambiguous Cancel test query; isolated
   rerun reproduced it and the test is corrected. Focused7 then full79 now run under PID **64009**,
-  frozen `306acf4`, script `final-306acf4.sh`. Claude code review 03 is clear; visual review awaits final captures. Detailed jobs,
+  frozen `306acf4`, script `final-306acf4.sh`. Claude code review03 and visual review02 are clear; focused UI7/7 passed with29 captures
+  in [gallery](../work-record/cardio/gallery.html). Full UI remains running. Detailed jobs,
   measurements and review findings are in the ticket. No phone install.
 - **Distance acceptance:** public live-builder APIs are available; actual AirPods indoor distance
   delivery is not guaranteed by documentation. Implement collection and labeled phone-motion
