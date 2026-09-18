@@ -21,8 +21,8 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 - **Distance acceptance:** collect actual HealthKit readings and labelled phone-motion fallback;
   AirPods Pro3 indoor distance delivery is **not yet physically verified**. Neither HR connection
   nor simulator fixtures prove it. Treadmill (phone carried/stationary), pause/disconnect and
-  locked-screen outdoor GPS checks remain in ticket02. Watch cardio is not claimed. Cardio installed 2026-09-18; remote launch is blocked by the phone lock screen. User has
-  been asked to unlock; verify launch next. Current phone facts are below.
+  locked-screen outdoor GPS checks remain in ticket02. Watch cardio is not claimed. Cardio installed 2026-09-18; launch remains unverified: initially locked, then the phone disconnected after unlocking.
+  Next: open the app manually, or connect unlocked via USB for launch verification. Current phone facts are below.
 - **Design:** reviewed native B prototype source `48608fb`, branch `ericlee4992/cardio-design-prototype`;
   source is reference only, not mergeable. Existing tabs remain. [Design record](../work-record/cardio-design/issues/01-design-discussion.md).
 - **Ring report closed:** user confirmed it works; no product change. Cardio installation was authorized
@@ -58,9 +58,9 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 | Fact | Last verified value |
 |---|---|
-| Installed source | Cardio product `03ada3d`, built from clean main `c847ef3`; installed 2026-09-18 08:32 EDT, devicectl exit0/success. Remote launch blocked by Locked error; awaiting unlock and first launch verification |
+| Installed source | Cardio product `03ada3d`, built from clean main `c847ef3`; installed 2026-09-18 08:32 EDT, devicectl exit0/success. Remote launch initially blocked by Locked, then CoreDevice4016/disconnected after unlock. Install succeeded; launch/on-phone migration unverified |
 | Provisioning | Verified in the installed build: app expires **2026-09-24 07:16:18 UTC**, widget **07:16:20 UTC**; same profiles created September 17 |
-| Store | Cardio code exports schema10; on-phone migration awaits first launch. Offline migration of a fresh actual-store copy passed, preserving all existing values/relationships across13 tables |
+| Store | Cardio code exports schema10; on-phone migration awaits launch verification. Offline migration of a fresh actual-store copy passed, preserving all existing values/relationships across13 tables |
 | Latest local backup | `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`: fresh raw container,26 files, integrity and SHA-256 checks passed. JSON/CSV generated with app exporters from an isolated migrated copy alongside it; private, outside Git. Restore not tested |
 | Last reported app export | User's CSV + JSON export to iCloud Drive, 2026-09-04, immediately before D51 reclassification; 18 sets moved on the real store |
 | Phone UDID | `00008130-001E10C01E62001C` |

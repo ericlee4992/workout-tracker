@@ -6,7 +6,7 @@ Status: open — physical evidence outstanding
 Software merged via **b0a8de9**, product03ada3d; build,748 full units,13 final targeted units,
 7 focused UI and79 full UI passed. [Implementation and review evidence](01-implementation.md).
 These simulator results do not establish AirPods Pro3 distance delivery or locked-screen GPS.
-Phone now has the cardio build from c847ef3 (product03ada3d); first launch is pending unlock,
+Phone now has the cardio build from c847ef3 (product03ada3d); first launch is not yet verified,
 so the on-phone store migration is not yet confirmed. Cardio exports schema10. Follow current
 [STATE](../../../docs/STATE.md) and [DEVELOPMENT](../../../docs/DEVELOPMENT.md) for fresh export,
 raw backup, migration, signing, binary freshness and launch checks before an install.
@@ -64,3 +64,10 @@ Asked user to unlock so launch can be verified. **Installed, not yet launch-veri
 Build/install/launch logs and JSON: main `work-record/ui-redesign/results/cardio-install/`.
 Migration result/log: implementation `work-record/ui-redesign/results/cardio/private-migration-install.*`.
 Physical AirPods/GPS acceptance remains outstanding even after successful launch.
+
+Follow-up: lockState later reported unlocked (`passcodeRequired: false`), but remote launch
+attempts2/3 returned CoreDevice4016 (no trusted connectivity/services). One reconnect retry
+was attempted; the phone then listed unavailable. Installation remains successful; no launch
+or on-phone migration success is inferred. Next: user opens WorkoutTracker manually, or
+reconnects unlocked via USB for tool verification. No reinstall is needed merely for this
+connection failure.
