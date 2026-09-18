@@ -5,32 +5,24 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 ## Active task and next action
 
-- **Resume in the main checkout:** `/Users/ericlee06/orca/projects/Health App`, branch `main`.
-  Pre-checkpoint HEAD is `f89dcde`; checkpoint `e8e5282` has independent Claude clearance.
-  This handoff adds documentation/Graft wiring only. Verify
-  current HEAD and working tree on startup. Product source remains `4d70d7d`.
-- **Finish summary is done and installed.** The user kept the current design, changing only
-  the three metric pairs: time/volume, active/total calories, average/max HR. The user approved
-  the real captures and requested the phone install. [Ticket 17](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
-- **Graft is configured for Codex.** CLI 0.18.0, structural graph fresh: 221 files, 2,418 symbols,
-  7,099 links; no optional LLM summaries built. Global Codex MCP entry is enabled and its six
-  tools answered a direct handshake. Four Graft hook events are registered. **Next session:**
-  verify Graft tools actually load in the new Codex session; that client reload and live hook
-  execution have not yet been observed. CLI navigation works now. Read the
-  [setup/handoff ticket](../work-record/graft-setup/issues/01-graft-handoff.md) for exact scope.
-- **Claude scope:** `CLAUDE.md` imports the shared AGENTS/Graft instructions. Separate project
-  Graft skill/MCP wiring and global Claude Graft hooks were not found; do not claim those are
-  installed. No extra configuration is required merely to resume this project.
-- **Next product action is unchosen.** Obtain gym feedback on tickets 16/17, then let the user
-  choose History's second pass or App Store groundwork. Do not restart the rejected A/B/C
-  finish-summary designs or begin another screen just because it is on the backlog.
-- **Workspace/UI preference:** keep the sidebar tidy. Completed setup, design, implementation
-  and review workspaces are sleeping; Hide sleeping is enabled and `main` remains visible.
-  Files/logs/session history are preserved. The stale design-preference prompt was dismissed;
-  no answer remains outstanding. Sleep temporary workspaces again after work finishes.
-- **Personal Codex settings preserved:** context window 872,000; auto-compaction 780,000;
-  context-used/remaining/window-size footer. These are configured values, not a claim that this
-  session tested filling the whole window. A fresh session loads its own configuration.
+- **Cardio design only:** user wants live gym cardio plus outdoor runs/rides with GPS, saved
+  as **one workout with separate lifting/cardio sections**. They explicitly request design
+  screens before implementation. Worktree `cardio-design-prototype`, branch
+  `ericlee4992/cardio-design-prototype`, base `e51695b`.
+  [Design ticket](../work-record/cardio-design/issues/01-design-discussion.md) contains native
+  A/B/C mockups, proposed shared flow, open decisions and capture process **91563** with logs.
+  These DEBUG-only sample screens are throwaway and must not merge into the shipping app.
+  Next: inspect default/AccessibilityL captures, review, show the gallery and obtain design feedback.
+- **Ring report closed:** the user checked it live and confirmed “it actually works.” No app
+  change is required. Diagnostic 1/1→1/2→2/2 UI/pixel checks passed; no further stress test ran.
+  Ticket 18 and local results are preserved in the separate sets-completion-ring worktree.
+- **Product on phone remains ticket 17**, source `4d70d7d`, with the verification/install facts
+  below. No cardio feature or ring change has been installed.
+- **Graft:** live prompt hints and structural CLI navigation work. Optional AI summaries are
+  unbuilt; all MCP/hook paths have not been exhaustively validated. Setup record remains at
+  [Graft handoff](../work-record/graft-setup/issues/01-graft-handoff.md).
+- **Workspace preference:** completed workspaces sleep, Hide sleeping stays enabled, main
+  remains visible; preserve histories/logs. Personal context/compaction/footer settings remain.
 
 ## Latest completed work and verification
 

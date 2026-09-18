@@ -64,8 +64,15 @@ struct WorkoutTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
-                .preferredColorScheme(.dark)
+            #if DEBUG
+            if WorkoutTrackerStore.isUITestReset && ProcessInfo.processInfo.environment["CARDIO_SCREEN"] != nil {
+                CardioDesignPrototype()
+            } else {
+                RootView().preferredColorScheme(.dark)
+            }
+            #else
+            RootView().preferredColorScheme(.dark)
+            #endif
         }
         .modelContainer(modelContainer)
     }
