@@ -18,8 +18,10 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   commits contain evidence/closure only. Debug build and 8 summary unit tests passed. Full UI
   suite **72 passed, 0 failed, 0 skipped**, exit 0, finished 2026-09-17 18:48 EDT. Claude's
   independent code, default/AccessibilityL visual and final gate reviews are clear.
-- **Phone remains on `0b6515f`.** Ticket 17 has not been installed; no install was requested.
-  The actual before/after captures are available in the ticket and the Orca browser comparison.
+- **Ticket 17 installed and launched on the phone**, 2026-09-17 21:43–21:44 EDT, at the user's
+  request after approving the captures. Built repo `39b4c8d` (app source `4d70d7d`), fresh device
+  build, matching bundle ID/team, app and widget profiles checked through September 24.
+  A fresh app-container backup was copied locally before installation; details below.
 - **Next product action:** no further screen selected. Get the user's gym feedback on ticket
   16, then choose History's second pass or App Store groundwork. Gym feedback takes priority.
 - Rejected design previews remain on `ericlee4992/finish-summary-second-pass` (`5a4c1b2`,
@@ -54,17 +56,19 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 | Fact | Last verified value |
 |---|---|
-| Installed source | `0b6515f`, installed 2026-09-17 03:17 EDT; launch reported in the prior handoff (`a49c8d1:docs/STATE.md`); ticket 17 is verified in the simulator but has not been installed |
-| Provisioning | Fresh profile recorded through **2026-09-24 07:16 UTC**; check app and widget separately before the next install |
-| Store | Export schema 9; no schema change in ticket 16. History snapshots and the user's actual training data are on the phone |
-| Last reported backup | User's CSV + JSON export to iCloud Drive, 2026-09-04, immediately before D51 reclassification; 18 sets moved on the real store |
+| Installed source | `4d70d7d` (built from main `39b4c8d`), installed 2026-09-17 21:43 EDT and launched 21:44 EDT; `devicectl` confirmed install and launch success (PID 15231) |
+| Provisioning | Verified in the installed build: app expires **2026-09-24 07:16:18 UTC**, widget **07:16:20 UTC**; same profiles created September 17 |
+| Store | Export schema 9; no schema change in tickets 16/17. History snapshots and the user's actual training data are on the phone |
+| Latest local backup | Fresh full app-container copy before ticket 17, 2026-09-17: `/Users/ericlee06/WorkoutTracker-Backups/2026-09-17-before-ticket17`; 24 files, SQLite integrity checks passed; SHA-256 manifest beside it. Raw device backup, not the app's CSV/JSON export; restore has not been tested |
+| Last reported app export | User's CSV + JSON export to iCloud Drive, 2026-09-04, immediately before D51 reclassification; 18 sets moved on the real store |
 | Phone UDID | `00008130-001E10C01E62001C` |
 | Bundle ID / team | `com.ericlee4992.workouttracker` / `X68M8SR6NA`; per-developer signing lives in gitignored `Config/Local.xcconfig` |
 | Watch | Companion never built/run/installed; separate target is a sketch |
 | Environment | Xcode 27.0; test simulator `WT-iPhone`. CoreSimulator and Apple ID sign-in issues from the update were resolved 09-17 |
 
-Re-export after sessions worth keeping: the phone is the only known copy of history newer than
-the last reported backup. Get a fresh export before risky data operations or installs.
+Re-export after sessions worth keeping. A fresh raw device backup now exists locally; the
+latest reported portable CSV/JSON export is still September 4. History newer than the latest
+backup is only known to be on the phone. Get a fresh export before risky data operations or installs.
 
 Before build/test/install or troubleshooting, read [DEVELOPMENT](DEVELOPMENT.md), including
 binary freshness, migration-fixture limitations, profile renewal, and detached tests.

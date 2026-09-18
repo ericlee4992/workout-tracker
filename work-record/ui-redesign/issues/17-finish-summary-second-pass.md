@@ -1,6 +1,6 @@
 # 17 — Finish summary: pair related workout metrics
 
-Status: resolved — source `4d70d7d`; build, focused checks, full UI 72/72 and independent Claude clearance
+Status: resolved — source `4d70d7d`; all verification/review clear; installed and launched on phone 2026-09-17
 
 ## User decision and acceptance
 
@@ -112,7 +112,7 @@ captures and actual evidence. Fix and re-review any findings before merge.
 The selected reorder is complete. All implementation, local verification and independent review
 are clear. This closure record lands with the fast-forward of `ericlee4992/finish-summary-order`
 to main; its landing commit is discoverable with `git log -- work-record/ui-redesign/issues/17-finish-summary-second-pass.md`.
-No phone install was requested; installed source remains `0b6515f`.
+Initial closure did not include installation; the later authorized phone installation is recorded below.
 
 ## Verification checkpoint — source `4d70d7d`
 
@@ -169,3 +169,36 @@ Claude read the actual statuses, log, xcresult summary, source diff and binary t
 reconciled all 72 declared methods with the passed log entries. [Gate addendum](../claude-review-17-gates.md):
 **CLEAR to merge source `4d70d7d`; no open findings.** Final record changes are docs/captures
 only. App/test source remains exactly the reviewed and tested source. No install claimed.
+
+## Phone installation — 2026-09-17, authorized after visual approval
+
+User: “looks good. install on phone.” Build from clean main `39b4c8d`; product source is
+`4d70d7d`. No app/test/schema change since the 72/72 run and Claude clearance.
+
+- Fresh generic-iOS build under `/tmp/wt-ticket17-device`, exit **0**, BUILD SUCCEEDED.
+  Compile log names the current WorkoutFinishedSheet source; app dylib timestamp 21:42:12 EDT
+  and symbols verified. Matching bundle `com.ericlee4992.workouttracker`, team `X68M8SR6NA`.
+- Read both built provisioning profiles: app expires 2026-09-24 07:16:18 UTC, widget expires
+  07:16:20 UTC. Both were created September 17; no renewal or longer expiry is claimed.
+- Before install, phone app was not running (only its widget processes). Copied its complete
+  data container via `devicectl device copy from` to
+  `/Users/ericlee06/WorkoutTracker-Backups/2026-09-17-before-ticket17` outside Git: 24 files,
+  24,245,971 bytes. SQLite `quick_check` passed on `Library/Application Support/default.store`
+  and HTTP storage; SHA-256 manifest beside backup. Directory access restricted to the user.
+  This is a fresh raw device backup, not a new portable CSV/JSON export or a tested restore.
+  No schema/history migration is part of this layout-only installation.
+- Installed at 21:43 EDT with same bundle identity (preserves the data container): device tool
+  exit **0**, JSON outcome **success**, new app installation UUID
+  `043B11E1-78BA-4185-8A2C-5F1AF0B61686`.
+- Launched at 21:44 EDT: device tool exit **0**, JSON outcome **success**, process **15231**.
+  No launch arguments or test fixture flags used. A follow-up process query confirmed PID 15231
+  still running. This is actual OS-reported launch evidence.
+
+Build/install/launch logs and JSON live in the main checkout at
+`/Users/ericlee06/orca/projects/Health App/work-record/ui-redesign/results/17-install/`
+(gitignored). The raw backup stays outside the repository. No phone data was committed.
+
+The user's separate “queued follow-up inputs” question was checked against the visible Codex
+CLI: it shows one pending question. That is the earlier asynchronous finish-summary preference
+question; the user already answered in normal chat by choosing the current screen. No further
+answer is required and it did not block installation.
