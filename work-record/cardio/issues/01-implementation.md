@@ -27,8 +27,8 @@ Current cardio activity
 Distance / current pace (or speed)
 HR / calories if available
 Route (outdoors) or source/entered distance (indoors)
-Pause or Resume                      End Cardio
-Add Exercise                         Add Cardio
+Add Exercise / Add by Machine / Add Cardio (scrolls)
+Pause or Resume                      End Cardio (pinned)
 ```
 
 Approved structural reference: prototype `48608fb`, direction B; do not merge throwaway code.
@@ -136,3 +136,51 @@ normal/AccessibilityL screens, and outdoor route display. `focused-ui-2` passed 
 previous UI-only fix. `focused-ui-3` passed five indoor/mixed cases; its outdoor setup query
 was corrected to respect automatic restore. Later fresh runs supersede these intermediate
 captures. Nothing has been installed or hardware-validated.
+
+### N1 / N2 corrections and measurement
+
+Heartbeat checkpoints now use append-only `WorkoutSensorSample` rows; no growing blob is
+assigned at each tick. Domain `finishInPlace` folds checkpoints (including zone provenance)
+into the frozen summary and clears them, covering strays without a live coordinator.
+`unit-7`: **748 tests / 81 suites passed**, actual exit **0**; `build-8` passed.
+
+Measured one simulated hour at 1 Hz through the real recorder and disk-backed SwiftData:
+**3,600 distinct inserted sample rows, 3,600 insert-save notifications**, retained store files
+**1,032,192 bytes**, elapsed **73.18 s** on the simulator. The same trace's growing-blob
+payload sum would be **641,698,200 bytes**. This is save/insert instrumentation and retained
+file size, NOT a physical NAND-write or energy measurement; real device battery remains
+unmeasured. Output is `SENSOR_CHECKPOINT_WRITE_PROBE` in `unit-7.log`.
+
+Visual self-review of `focused-ui-5` captures: live controls were below the first viewport at
+AccessibilityL and outdoor default, so Pause/Resume + End Cardio are now pinned in the safe
+area (stacked at accessibility sizes). The explicit AccentColor asset stabilizes map stroke
+colour; fixture-disabled location callbacks can no longer request real location or inject a
+misleading permission message. Capture input uses a short plausible distance, not 2.40 mi in
+seconds. These UI corrections require recapture and visual follow-up.
+
+Schema 10 remains development-only: no v10 build has been installed or exported by the user.
+The reviewed interim JSON-lines blob was replaced by rows before release; no live data format
+was silently changed. The former codec and its blob attribute were removed.
+
+### Visual review follow-up
+
+[Claude visual 01](../claude-visual-01.md) assessed the earlier d0bcb54 renders. A1–A3/V1
+are corrected in source (pinned controls, fixture sensor guards, explicit amber route asset).
+V2 icons now use neutral text colours. V5 add actions stack at accessibility sizes. V7 current
+sensor pace is hidden while an entered distance overrides measurements, so two conflicting
+pace bases are not displayed. N4 idle lifting focus hides the sensor bar when no activity is
+collecting. V6 new captures cover paused, lifting banner, editor and replacement-picker note
+at both sizes. Recapture and independent re-review remain required.
+
+V3 recorded exception: native compact navigation chrome may truncate the workout title at
+AccessibilityL; the full activity name is in content and workout rename retains the full name.
+The whole-workout timer remains in the shared header because mixed sessions need both clocks.
+V4 existing History lifting headline and native Cardio section header are retained for this
+release; they are semantic peers but not typographically identical. V7 receipt metadata may
+wrap at spaces and the existing whole-workout duration format remains unchanged.
+N3 (low) remains: switching during HealthKit startup can bank that short phase's energy only
+at workout level, not its segment. This is not a distance/pace or whole-workout energy loss.
+
+Earlier 21 native screenshots are preserved under [screenshots/review-01](../screenshots/review-01/)
+from `focused-ui-5`, **7/7 passed**, exit 0. They show scripted sensors/manual values and a
+synthetic route, not physical-device tracking. New final captures will be linked separately.

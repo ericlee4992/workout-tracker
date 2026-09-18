@@ -282,8 +282,10 @@ struct ExportCollector {
             heartRateSeriesHigh: range?.high,
             basalEnergyKilocalories: workout.basalEnergyKilocalories,
             cardioSegments: workout.orderedCardio.isEmpty ? nil : workout.orderedCardio.map(cardio(from:)),
-            sensorCheckpoint: workout.sensorSamplesData == nil && workout.sensorActiveEnergyCheckpoint == nil && workout.sensorBasalEnergyCheckpoint == nil ? nil : .init(
+            sensorCheckpoint: (workout.sensorSampleRows ?? []).isEmpty && workout.sensorActiveEnergyCheckpoint == nil && workout.sensorBasalEnergyCheckpoint == nil ? nil : .init(
                 samples: workout.checkpointSamples.map { .init(id: $0.id, bpm: $0.bpm, date: dateFormat.string(from: $0.date), source: $0.source) },
+                maximumHeartRateBpm: workout.sensorMaxHeartRateBpm,
+                maximumHeartRateEstimated: workout.sensorMaxHeartRateEstimated,
                 activeEnergyKilocalories: workout.sensorActiveEnergyCheckpoint,
                 basalEnergyKilocalories: workout.sensorBasalEnergyCheckpoint))
     }

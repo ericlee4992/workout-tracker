@@ -30,7 +30,8 @@ struct SensorCheckpointTests {
         workout.sensorActiveEnergyCheckpoint = 300
         workout.sensorBasalEnergyCheckpoint = 40
         let earlier = HeartRateSample(bpm: 140, date: now.addingTimeInterval(-50), source: .airPods)
-        workout.sensorSamplesData = try SensorCheckpointCodec.encode([earlier])
+        context.insert(WorkoutSensorSample(sample: earlier, workout: workout))
+        try context.save()
         let feed = Feed(); feed.collectionStartedAt = now
         let provider = WorkoutActivityProvider(configuration: .init(segmentID: segment.id, activity: .indoorRun, paused: true),
                                                initialActiveEnergy: workout.sensorActiveEnergyCheckpoint,
@@ -53,16 +54,31 @@ struct SensorCheckpointTests {
         #expect(segment.activeEnergyKilocalories == 275)
         #expect(provider.activeEnergyKilocalories == 325)
     }
-    @Test func checkpointsRoundTripAndAppendWithoutLosingSamples() throws {
-        let first = HeartRateSample(bpm: 120, date: .now, source: .airPods)
-        let second = HeartRateSample(bpm: 140, date: first.date.addingTimeInterval(1), source: .watch)
-        var data = try SensorCheckpointCodec.encode([first])
-        let prefix = data
-        try SensorCheckpointCodec.append([second], to: &data)
-        #expect(data.starts(with: prefix))
-        #expect(SensorCheckpointCodec.decode(data) == [first, second])
-        #expect(SensorCheckpointCodec.decode(try JSONEncoder().encode([first])) == [first])
+    @Test func strayFinishFoldsSavedSamplesAndClearsCheckpointRows() throws {
+        let context = try context()
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let session = WorkoutSession(context: context)
+        let workout = try session.startWorkout(at: nil, on: start)
+        _ = try CardioSession(context: context).start(.indoorRun, in: workout, at: start)
+        context.insert(WorkoutSensorSample(sample: .init(bpm: 120, date: start.addingTimeInterval(10), source: .airPods), workout: workout))
+        context.insert(WorkoutSensorSample(sample: .init(bpm: 140, date: start.addingTimeInterval(20), source: .airPods), workout: workout))
+        workout.sensorActiveEnergyCheckpoint = 50
+        workout.sensorBasalEnergyCheckpoint = 10
+        workout.sensorMaxHeartRateBpm = 180
+        workout.sensorMaxHeartRateEstimated = true
+        try context.save()
+        // No coordinator is present: replacement/recovery still freezes the facts.
+        _ = try session.startWorkout(at: nil, on: start.addingTimeInterval(60))
+        #expect(workout.averageHeartRate == 130)
+        #expect(workout.maxHeartRate == 140)
+        #expect(workout.activeEnergyKilocalories == 50)
+        #expect(workout.basalEnergyKilocalories == 10)
+        #expect(workout.heartRateSeries.contains { $0 > 0 })
+        #expect(workout.zonesFromEstimatedMax == true)
+        #expect(workout.sensorActiveEnergyCheckpoint == nil)
+        #expect(try context.fetch(FetchDescriptor<WorkoutSensorSample>()).isEmpty)
     }
+
     @Test func energyOnlyCheckpointsAndActiveCardioTimeAreExported() throws {
         let context = try context()
         let start = Date(timeIntervalSince1970: 1_800_000_000)

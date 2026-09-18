@@ -11,11 +11,12 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   and starting/adding either activity remain required. [Ticket](../work-record/cardio/issues/01-implementation.md),
   [spec](../work-record/cardio/spec.md), [API evidence](../work-record/cardio/research/01-indoor-distance-and-pace.md).
 - Checkout `/Users/ericlee06/orca/workspaces/Health App/cardio-implementation`, branch
-  `ericlee4992/cardio-implementation`, base `14982e7`; first implementation checkpoint
-  `b359d7c`. Review fixes and sensor checkpoints now implemented; fresh Debug `build-6` passes.
-  Earlier unit run **742/79** passed; the newest checkpoint changes still need their test run.
-  Next: frozen-source unit + seven focused UI methods, native captures, Claude follow-up,
-  then full UI suite. Detailed jobs/results under the ticket. No phone install.
+  `ericlee4992/cardio-implementation`, base `14982e7`; committed checkpoint `d0bcb54`.
+  N1/N2 fixes now use append-only heartbeat rows and fold stray checkpoints on finish.
+  Full unit run `unit-7`: **748 tests / 81 suites passed**, exit 0; `build-9` passes.
+  Native visual review required pinned controls, consistent route colour and more state captures;
+  those corrections are implemented and the final build/full UI gate are next. Detailed jobs,
+  measurements and review findings are in the ticket. No phone install.
 - **Distance acceptance:** public live-builder APIs are available; actual AirPods indoor distance
   delivery is not guaranteed by documentation. Implement collection and labeled phone-motion
   fallback; retain real-device treadmill validation as a separate gate, never claim simulator

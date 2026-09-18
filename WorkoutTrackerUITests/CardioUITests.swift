@@ -16,8 +16,20 @@ final class CardioUITests: XCTestCase {
         app.descendants(matching: .any).matching(identifier: id).firstMatch
     }
     private func reach(_ element: XCUIElement) {
-        for _ in 0..<8 where !(element.exists && element.isHittable) { app.swipeUp() }
-        XCTAssertTrue(element.exists && element.isHittable)
+        func visible() -> Bool {
+            guard element.exists && element.isHittable else { return false }
+            let controls = app.buttons["cardioPauseResume"]
+            if controls.exists && controls.isHittable,
+               element.identifier != "cardioPauseResume", element.identifier != "endCardio" {
+                return element.frame.maxY < controls.frame.minY - 8
+            }
+            return true
+        }
+        for _ in 0..<10 where !visible() {
+            if element.exists && element.frame.maxY < 130 { app.swipeDown() }
+            else { app.swipeUp() }
+        }
+        XCTAssertTrue(visible())
     }
     private func shot(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
@@ -28,11 +40,12 @@ final class CardioUITests: XCTestCase {
         reach(option); option.tap()
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
     }
-    private func enterDistance(_ value: String) {
+    private func enterDistance(_ value: String, captureName: String? = nil) {
         let edit = app.buttons["cardioEditDistance"]
         reach(edit); edit.tap()
         let field = app.textFields["cardioDistanceField"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
+        if let captureName { shot(captureName) }
         field.tap()
         let current = (field.value as? String) ?? ""
         if !current.isEmpty, current != "Distance" {
@@ -143,12 +156,25 @@ final class CardioUITests: XCTestCase {
         app.buttons["startCardio"].tap()
         shot("cardio-built-picker-\(large ? "axl" : "default")")
         choose("indoorRun")
-        enterDistance("2.40")
+        let size = large ? "axl" : "default"
+        enterDistance("0.03", captureName: "cardio-built-editor-\(size)")
         app.swipeDown(); app.swipeDown()
         shot("cardio-built-live-\(large ? "axl" : "default")")
-        reach(app.buttons["cardioPauseResume"])
+        reach(app.buttons["cardioEditDistance"])
         shot("cardio-built-controls-\(large ? "axl" : "default")")
         app.buttons["cardioPauseResume"].tap()
+        app.swipeDown(); app.swipeDown()
+        XCTAssertTrue(app.staticTexts["Paused"].exists)
+        shot("cardio-built-paused-\(size)")
+        app.buttons["cardioPauseResume"].tap()
+        let lifting = app.segmentedControls["workoutActivityFocus"].buttons["Lifting"]
+        reach(lifting); lifting.tap()
+        XCTAssertTrue(app.staticTexts["Recording"].exists)
+        shot("cardio-built-lifting-banner-\(size)")
+        reach(app.buttons["addCardio"]); app.buttons["addCardio"].tap()
+        XCTAssertTrue(app.staticTexts["Starting another activity ends the current cardio segment."].waitForExistence(timeout: 5))
+        shot("cardio-built-replace-picker-\(size)")
+        app.buttons["Cancel"].tap()
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["saveFinishedAsTemplate"].exists)

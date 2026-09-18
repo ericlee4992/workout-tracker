@@ -155,11 +155,8 @@ final class WorkoutHeartRateCoordinator {
             workout.activeEnergyKilocalories = ending.activeEnergyKilocalories
             workout.basalEnergyKilocalories = ending.basalEnergyKilocalories
             if workout.finishedAt != nil {
-                workout.sensorSamplesData = nil
-                workout.sensorActiveEnergyCheckpoint = nil
-                workout.sensorBasalEnergyCheckpoint = nil
+                if let context = workout.modelContext { workout.clearSensorCheckpoint(in: context) }
             } else {
-                workout.sensorSamplesData = try? SensorCheckpointCodec.encode(ending.samples)
                 workout.sensorActiveEnergyCheckpoint = ending.activeEnergyKilocalories
                 workout.sensorBasalEnergyCheckpoint = ending.basalEnergyKilocalories
             }

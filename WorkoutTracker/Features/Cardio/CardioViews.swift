@@ -46,7 +46,7 @@ struct CardioActivityPicker: View {
                     select(activity); dismiss()
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: activity.symbol).font(.title2).frame(minWidth: 32)
+                        Image(systemName: activity.symbol).font(.title2).foregroundStyle(Theme.secondary).frame(minWidth: 32)
                         Text(activity.name).foregroundStyle(Theme.text)
                         Spacer()
                         Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.secondary)
@@ -112,7 +112,7 @@ struct CardioLiveView: View {
                     CardioMetric(label: "Active calories", value: "\(Int(calories.rounded()))", unit: "cal")
                 }
             }
-            if recorder.freshSpeed != nil {
+            if segment.manualDistanceValue == nil && recorder.freshSpeed != nil {
                 Text(segment.activity.usesSpeed
                      ? "Current speed: \(speedText) \(segment.unit.rawValue)/h"
                      : "Current pace: \(CardioMath.paceText(CardioMath.pace(speed: recorder.freshSpeed, unit: segment.unit))) /\(segment.unit.rawValue)")
@@ -145,18 +145,7 @@ struct CardioLiveView: View {
                     Image(systemName: "pencil").foregroundStyle(Theme.secondary)
                 }.frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("cardioEditDistance")
-            let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
-            layout {
-                Button {
-                    if segment.isRunning { recorder.pause() } else { recorder.resume() }
-                } label: {
-                    Label(segment.isRunning ? "Pause" : "Resume", systemImage: segment.isRunning ? "pause.fill" : "play.fill")
-                        .frame(maxWidth: .infinity)
-                }.buttonStyle(.primary).accessibilityIdentifier("cardioPauseResume")
-                Button { recorder.endCardio() } label: {
-                    Text("End Cardio").frame(maxWidth: .infinity)
-                }.buttonStyle(.secondary).accessibilityIdentifier("endCardio")
-            }
+
         }
         .foregroundStyle(Theme.text)
         .sheet(isPresented: $editingDistance) { CardioDistanceSheet(segment: segment) }
@@ -172,6 +161,29 @@ struct CardioLiveView: View {
     private var speedText: String {
         guard let speed = recorder.freshSpeed else { return "—" }
         return String(format: "%.1f", speed * 3_600 / segment.unit.metersPerUnit)
+    }
+}
+
+/// Recording controls stay at the thumb even when large text or a route needs scroll.
+struct CardioControls: View {
+    @Environment(\.dynamicTypeSize) private var typeSize
+    var segment: CardioSegment
+    var recorder: CardioRecorder
+    var body: some View {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
+        layout {
+            Button {
+                if segment.isRunning { recorder.pause() } else { recorder.resume() }
+            } label: {
+                Label(segment.isRunning ? "Pause" : "Resume", systemImage: segment.isRunning ? "pause.fill" : "play.fill")
+                    .frame(maxWidth: .infinity)
+            }.buttonStyle(.primary).accessibilityIdentifier("cardioPauseResume")
+            Button { recorder.endCardio() } label: {
+                Text("End Cardio").frame(maxWidth: .infinity)
+            }.buttonStyle(.secondary).accessibilityIdentifier("endCardio")
+        }
+        .padding(16).card(.elevated)
+        .padding(.horizontal, 16).padding(.bottom, 8)
     }
 }
 
@@ -197,7 +209,7 @@ struct CardioSummaryCard: View {
     @State private var editingDistance = false
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label(segment.activity.name, systemImage: segment.activity.symbol).font(.headline)
+            Label(segment.activity.name, systemImage: segment.activity.symbol).font(.headline).foregroundStyle(Theme.text)
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("cardioSummary.\(segment.activityRawValue)")
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: typeSize.isAccessibilitySize ? 1 : 2), spacing: 16) {
@@ -289,7 +301,7 @@ struct CardioRouteMap: View {
     var body: some View {
         Map(initialPosition: .automatic, interactionModes: []) {
             ForEach(portions) { portion in
-                MapPolyline(coordinates: portion.coordinates).stroke(Theme.accent, lineWidth: 4)
+                MapPolyline(coordinates: portion.coordinates).stroke(Color("AccentColor"), lineWidth: 4)
             }
         }
         .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))

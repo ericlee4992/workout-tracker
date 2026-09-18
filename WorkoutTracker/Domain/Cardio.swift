@@ -235,9 +235,6 @@ final class CardioSegment {
 }
 
 extension Workout {
-    var checkpointSamples: [HeartRateSample] {
-        SensorCheckpointCodec.decode(sensorSamplesData)
-    }
     var sensorConfiguration: WorkoutSensorConfiguration {
         if let segment = unfinishedCardio {
             return .init(segmentID: segment.id, activity: segment.activity, paused: !segment.isRunning)

@@ -357,9 +357,12 @@ final class Workout {
     var basalEnergyKilocalories: Double?
     /// In-flight sensor checkpoints. Cleared after a finished summary is frozen;
     /// without these a relaunch could replace the first half of a mixed session.
-    var sensorSamplesData: Data?
     var sensorActiveEnergyCheckpoint: Double?
     var sensorBasalEnergyCheckpoint: Double?
+    var sensorMaxHeartRateBpm: Int?
+    var sensorMaxHeartRateEstimated: Bool?
+    @Relationship(deleteRule: .cascade, inverse: \WorkoutSensorSample.workout)
+    var sensorSampleRows: [WorkoutSensorSample]?
 
     var gym: Gym?
     @Relationship(deleteRule: .cascade, inverse: \ExerciseEntry.workout)
@@ -835,6 +838,7 @@ enum WorkoutTrackerStore {
         TemplateItem.self,
         Workout.self,
         CardioSegment.self,
+        WorkoutSensorSample.self,
         ExerciseEntry.self,
         SetRecord.self,
         GymExerciseMemory.self,

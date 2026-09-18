@@ -444,6 +444,8 @@ extension ExportSnapshot {
 extension ExportSnapshot {
     struct SensorCheckpoint: Codable, Equatable {
         var samples: [SensorSample]
+        var maximumHeartRateBpm: Int?
+        var maximumHeartRateEstimated: Bool?
         var activeEnergyKilocalories: Double?
         var basalEnergyKilocalories: Double?
     }

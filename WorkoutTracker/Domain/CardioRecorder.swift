@@ -39,7 +39,6 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
     private final class EnergyBaselines { var values: [UUID: (active: Double?, basal: Double?)] = [:] }
     @ObservationIgnored private var energyBaselines = EnergyBaselines()
     @ObservationIgnored private var checkpointSampleCount = 0
-    @ObservationIgnored private var checkpointBytes = Data()
 
     init(collectsDeviceSensors: Bool = !WorkoutTrackerStore.isUITestReset,
          clock: @escaping () -> Date = { .now }) {
@@ -73,7 +72,6 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
             observedSegmentID = nil; observedStart = nil; distanceEpoch = nil
             energyBaselines = EnergyBaselines()
             checkpointSampleCount = monitor.samples.count
-            checkpointBytes = (try? SensorCheckpointCodec.encode(monitor.samples)) ?? Data()
         }
         self.monitor = monitor
         shuttingDown = false
@@ -158,22 +156,18 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
         guard !shuttingDown else { return }
         measurementTime = clock()
         guard let workout, !workout.isDeleted else { return }
-        // The checkpoint and per-segment aggregates commit together. Encoding is
-        // skipped when no new heartbeat arrived; pauses/timer ticks don't rewrite it.
-        if let monitor {
-            if checkpointSampleCount != monitor.samples.count {
-                do {
-                    if checkpointSampleCount > monitor.samples.count {
-                        checkpointBytes = try SensorCheckpointCodec.encode(monitor.samples)
-                    } else {
-                        try SensorCheckpointCodec.append(monitor.samples.dropFirst(checkpointSampleCount), to: &checkpointBytes)
-                    }
-                    workout.sensorSamplesData = checkpointBytes
-                    checkpointSampleCount = monitor.samples.count
-                } catch { errorMessage = "Could not checkpoint heart-rate data: \(error.localizedDescription)" }
+        // New beats are appended as individual rows. The small scalar checkpoint
+        // and per-segment aggregates commit with them; no growing blob is rewritten.
+        if let monitor, let context {
+            if checkpointSampleCount > monitor.samples.count { checkpointSampleCount = monitor.samples.count }
+            for sample in monitor.samples.dropFirst(checkpointSampleCount) {
+                context.insert(WorkoutSensorSample(sample: sample, workout: workout))
             }
+            checkpointSampleCount = monitor.samples.count
             workout.sensorActiveEnergyCheckpoint = monitor.provider.activeEnergyKilocalories
             workout.sensorBasalEnergyCheckpoint = monitor.provider.basalEnergyKilocalories
+            workout.sensorMaxHeartRateBpm = monitor.maxHeartRate?.bpm
+            workout.sensorMaxHeartRateEstimated = monitor.maxHeartRate?.isEstimated
         }
         guard let segment = workout.unfinishedCardio, !segment.isDeleted, segment.isRunning,
               let start = segment.activeStartedAt else { persist(); return }
@@ -284,7 +278,8 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
     }
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         Task { @MainActor [weak self] in
-            guard let self, self.current?.isRunning == true, self.current?.activity.isOutdoor == true else { return }
+            guard let self, self.collectsDeviceSensors,
+                  self.current?.isRunning == true, self.current?.activity.isOutdoor == true else { return }
             self.startLocationIfAuthorized()
         }
     }
@@ -292,7 +287,11 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
         Task { @MainActor [weak self] in self?.accept(locations) }
     }
     nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        Task { @MainActor [weak self] in self?.locationMessage = "GPS unavailable. Recording time continues." }
+        Task { @MainActor [weak self] in
+            guard let self, self.collectsDeviceSensors,
+                  self.current?.isRunning == true, self.current?.activity.isOutdoor == true else { return }
+            self.locationMessage = "GPS unavailable. Recording time continues."
+        }
     }
     func accept(_ locations: [CLLocation]) {
         measurementTime = clock()
@@ -336,6 +335,8 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
         stopSensors()
         (monitor?.provider as? CardioMetricNotifying)?.onCardioMetrics = nil
         (monitor?.provider as? WorkoutActivityProvider)?.onPhaseStarted = nil
+        // Keep onPhaseFinished until the provider stops: its weak-workout sink
+        // banks the final statistic, even after this recorder releases the screen.
         monitor = nil; workout = nil; context = nil
         observedSegmentID = nil; observedStart = nil
     }

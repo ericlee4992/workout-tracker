@@ -6,6 +6,7 @@ struct ActiveWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var typeSize
     var workout: Workout
     /// C1: dismisses the cover while the workout keeps running — the Workout
     /// tab then shows a resume affordance. Defaults to a plain dismiss.
@@ -114,7 +115,7 @@ struct ActiveWorkoutView: View {
                 // D41: live heart rate, above the exercises because it is
                 // the one number that changes while you are not touching
                 // the screen.
-                if let heartRate {
+                if let heartRate, workout.sensorConfiguration.recordsActivity {
                     HeartRateBar(
                         monitor: heartRate,
                         editMaxHeartRate: { showMaxHeartRateSheet = true })
@@ -141,7 +142,8 @@ struct ActiveWorkoutView: View {
                 }
 
                 VStack(spacing: 6) {
-                        HStack(spacing: 12) {
+                        let addLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
+                        addLayout {
                             addExerciseButton
                             // Machine-first path (D7). D1 (ticket 17): a no-gym
                             // workout has no machines to list, but hiding the
@@ -181,7 +183,9 @@ struct ActiveWorkoutView: View {
             .environment(\.defaultMinListRowHeight, 0)
             .background(Theme.background)
             .safeAreaInset(edge: .bottom) {
-                if let restEnd {
+                if cardioFocus, let segment = workout.unfinishedCardio {
+                    CardioControls(segment: segment, recorder: heartRateCoordinator.cardio)
+                } else if let restEnd {
                     RestTimerBar(
                         restEnd: restEnd,
                         restTotal: restTotal,

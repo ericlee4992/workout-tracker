@@ -69,7 +69,7 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
 ## Design and verification
 
 B: header / Lifting–Cardio focus / current activity / segment timer (hero) / measured metric
-pairs / route or sensor details / one primary Pause / secondary End Cardio. At AccessibilityL,
+pairs / route or sensor details / one primary Pause / secondary End Cardio, pinned within the safe area. At AccessibilityL,
 metrics and controls stack. Existing colours, SF Symbols and tab navigation remain.
 Real normal/AccessibilityL captures, targeted domain/service/export/migration tests, Debug
 build and full local UI suite gate merge, followed by independent Claude code/visual review.

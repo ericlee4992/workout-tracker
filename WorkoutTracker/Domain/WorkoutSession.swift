@@ -177,6 +177,7 @@ struct WorkoutSession {
             context.delete(workout)
             return .discardedEmpty
         }
+        workout.captureSensorCheckpoint(at: date, in: context)
         workout.finishedAt = date
         return .saved
     }
