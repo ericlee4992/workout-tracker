@@ -1,76 +1,82 @@
 # Current project state
 
-Updated 2026-09-18. Read [AGENTS](../AGENTS.md) for the shared workflow. This file holds
-current facts and open work; previous handoffs are preserved in the [archive](archive/README.md).
+Updated 2026-09-18 for a new session. Start with [AGENTS](../AGENTS.md). This checkpoint was
+verified against clean `main` / `origin/main` at **b845a3a**; the handoff changes are docs only.
+Earlier STATE is preserved in the [archive](archive/STATE-2026-09-18-before-cardio-handoff.md).
 
-## Active task and next action
+## Next session: cardio device acceptance
 
-- **Cardio is merged; physical-device acceptance is next.** User chose B and approved indoor
-  distance/pace, outdoor GPS and one workout with separate lifting/cardio sections. Software
-  merged/pushed via **b0a8de9**; remote main verified. Product source **03ada3d**, tests **306acf4**.
-  [Implementation](../work-record/cardio/issues/01-implementation.md),
-  [device acceptance](../work-record/cardio/issues/02-device-acceptance.md),
-  [native gallery](../work-record/cardio/gallery.html).
-- **Verification:** Debug `build-10` passed; full units **748/81 suites**, final targeted units
-  **13/13**, focused cardio UI **7/7**, full local UI **79/79**, all exit0. Full UI finished
-  2026-09-18 03:58 EDT. Claude code03, visual02 and
-  [final merge review](../work-record/cardio/claude-final-clearance.md) clear. No job running.
-  Logs/results stay in `cardio-implementation/work-record/ui-redesign/results/cardio/`.
-  24 non-failing invalid-frame warnings (known class, origin uninvestigated); low limitations
-  retained in the ticket. Graft rebuilt in main and implementation.
-- **Distance acceptance:** collect actual HealthKit readings and labelled phone-motion fallback;
-  AirPods Pro3 indoor distance delivery is **not yet physically verified**. Neither HR connection
-  nor simulator fixtures prove it. Treadmill (phone carried/stationary), pause/disconnect and
-  locked-screen outdoor GPS checks remain in ticket02. Watch cardio is not claimed. Cardio installed 2026-09-18; launch remains unverified: initially locked, then the phone disconnected after unlocking.
-  Next: open the app manually, or connect unlocked via USB for launch verification. Current phone facts are below.
-- **Design:** reviewed native B prototype source `48608fb`, branch `ericlee4992/cardio-design-prototype`;
-  source is reference only, not mergeable. Existing tabs remain. [Design record](../work-record/cardio-design/issues/01-design-discussion.md).
-- **Ring report closed:** user confirmed it works; no product change. Cardio installation was authorized
-  and performed on 2026-09-18; current phone facts below supersede ticket17.
-- Graft CLI and prompt hints work; optional AI summaries unbuilt. Completed workspaces sleep;
-  keep Hide sleeping and main visible. Current cardio workspaces still need actual Sleep:
-  macOS UI accessibility returned permission_denied despite reported grants; no destructive
-  workaround used. Preserve all logs/history and personal Codex settings.
+1. Read [ticket 02](../work-record/cardio/issues/02-device-acceptance.md), then check actual Git
+   branch/HEAD/status. **The cardio build is already installed.** First establish whether the
+   user can open WorkoutTracker and see their history. The previous remote launch failed
+   because the phone was locked, then disconnected after unlocking; this is not an app-crash
+   diagnosis. If tool verification is needed, connect the unlocked phone by USB and launch the
+   existing installation. Reinstalling is unnecessary solely for the connection failure.
+2. Continue ticket 02's physical checks: AirPods Pro 3 indoor walk/run (phone carried and
+   stationary), pause/disconnect/recovery, and outdoor GPS while backgrounded/locked.
+   Automatic indoor distance is established by actual readings, not an HR connection.
+3. Record observed results in ticket 02 and update this file. Simulator fixtures prove code
+   paths, not AirPods delivery or GPS accuracy. Watch cardio remains outside this release.
 
-## Latest completed work and verification
+The old pending input prompt asked the user to unlock the phone for launch verification.
+It is not an unanswered design decision or another install approval. The user has not yet
+reported a successful app opening. Install authorization was already given and acted on.
 
-- Ticket 17: source `4d70d7d`, merged via `39b4c8d`; subsequent commits through `f89dcde` record
-  evidence/install only. Debug build passed, summary unit tests **8/8**, full local UI suite
-  **72 passed, 0 failed, 0 skipped**, exit 0 (2026-09-17 18:48 EDT). Claude code, default/AXL
-  visual and final gate reviews clear. One initial AXL setup keyboard-focus failure passed
-  unchanged in isolation and again in the full suite. There are 22 non-failing invalid-frame
-  warnings; origin remains uninvestigated. No tests or builds remain running from ticket 17.
-- Real before/after captures: [comparison](../work-record/ui-redesign/screenshots/17/selected/comparison.html).
-  Logs/result bundles remain in the sleeping implementation worktree; exact paths and process
-  history are in ticket 17. These were real app captures, separate from the rejected prototypes.
-- Ticket 16, source `0b6515f`: gym and clock with seconds share the header, small neutral sets
-  ring, accessibility rest controls stack, VoiceOver speaks seconds. Add Exercise/Skip amber
-  treatments are accepted exceptions. [Record](../work-record/ui-redesign/issues/16-active-workout-second-pass.md).
-- Rejected A/B/C mockups remain on `ericlee4992/finish-summary-second-pass` (`5a4c1b2`, outcome
-  `dea20f4`). The four sleeping worktrees can be shown again by disabling Hide sleeping.
-- Templates, muscle maps, History template saving and zone-time cards are shipped. Milestones
-  2–4 and 9 are shipped; milestone 5 was dropped (D49); 7/8 have deferred acceptance work below;
-  milestone 6 bar mode is shipped, plate math and stack increments remain.
-- Earlier detail is preserved in the [pre-checkpoint STATE](archive/STATE-2026-09-17-before-graft-handoff.md)
-  and the linked tickets, including [Codex setup](../work-record/codex-setup/issues/01-codex-workflow.md).
+## Completed and verified
+
+- **Cardio:** direction B accepted; start Lifting or Cardio and add either mid-workout; one app
+  workout with separate sections, optional devices/manual fallback, indoor distance/pace and
+  outdoor routes. [Spec](../work-record/cardio/spec.md),
+  [implementation/review trail](../work-record/cardio/issues/01-implementation.md),
+  [29 native default/AccessibilityL captures](../work-record/cardio/gallery.html).
+- Product source **03ada3d**, tests **306acf4**, merged via **b0a8de9**. Installed build is from
+  clean main **c847ef3**; commits through **b845a3a** document evidence/install only. Prototype
+  `cardio-design-prototype` is reference-only; the selected design is already implemented.
+- Debug build passed; full units **748**, targeted units **13**, focused cardio UI **7**, full
+  UI **79**, and actual-store/legacy migration checks **10** all passed with exit 0. Full UI
+  completed September 18 at 03:58 EDT. Claude code, visual and
+  [final merge review](../work-record/cardio/claude-final-clearance.md) are clear.
+- **Installed, launch unverified:** devicectl install succeeded September 18 at 08:32 EDT.
+  Current phone/backup details below. No fresh phone launch, store-migration or hardware success
+  is inferred from the offline checks. The installation was authorized after the merge review.
+- **No local build/test jobs running** at this checkpoint. Implementation, research, prototype and
+  review checkouts were clean before handoff edits; temporary private migration test removed.
+  Preserve the ignored artifacts: main `work-record/ui-redesign/results/cardio-install/` holds
+  device build/install/launch logs; `cardio-implementation/work-record/ui-redesign/results/cardio/`
+  holds unit/UI/migration logs, exit files and xcresults. Private backup data stays outside Git.
+- **Known limits:** 24 non-failing invalid-frame warnings (same known class as ticket 17);
+  accepted low code/UI findings remain listed in ticket 01. Ring report is closed: user said
+  it works. Previous lifting work/verification is retained in the archive and
+  [ticket 17](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
+
+## Tooling and workspace continuity
+
+- **Matt Pocock skills:** 35 project-local skills are recorded in `skills-lock.json` and present
+  under `.agents/skills/`; Codex exposes relevant skills including research, tdd, code-review,
+  grilling and domain-modeling. This is not a global installation. [Verification](../work-record/codex-setup/issues/01-codex-workflow.md#2026-09-18-project-skill-check).
+- Graft structural graph was rebuilt in main/implementation. Optional AI summaries remain
+  unbuilt. Follow AGENTS/DEVELOPMENT for graph precedence; preserve personal Codex settings.
+- Completed cards are marked completed. Actual workspace Sleep remains unverified: Orca's
+  macOS accessibility read failed despite reported grants. Preserve worktrees, logs and
+  resumable terminals; use Sleep when UI access works, with Hide sleeping and main visible.
 
 ## Live phone and backup
 
 | Fact | Last verified value |
 |---|---|
-| Installed source | Cardio product `03ada3d`, built from clean main `c847ef3`; installed 2026-09-18 08:32 EDT, devicectl exit0/success. Remote launch initially blocked by Locked, then CoreDevice4016/disconnected after unlock. Install succeeded; launch/on-phone migration unverified |
+| Installed source | Cardio product `03ada3d`, built from clean main `c847ef3`; installed 2026-09-18 08:32 EDT, devicectl exit 0/success. Remote launch initially blocked by Locked, then CoreDevice 4016/disconnected after unlock. Install succeeded; launch/on-phone migration unverified |
 | Provisioning | Verified in the installed build: app expires **2026-09-24 07:16:18 UTC**, widget **07:16:20 UTC**; same profiles created September 17 |
-| Store | Cardio code exports schema10; on-phone migration awaits launch verification. Offline migration of a fresh actual-store copy passed, preserving all existing values/relationships across13 tables |
-| Latest local backup | `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`: fresh raw container,26 files, integrity and SHA-256 checks passed. JSON/CSV generated with app exporters from an isolated migrated copy alongside it; private, outside Git. Restore not tested |
+| Store | Cardio code exports schema 10; on-phone migration awaits launch verification. Offline migration of a fresh actual-store copy passed, preserving all existing values/relationships across 13 tables |
+| Latest local backup | `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`: fresh raw container, 26 files, integrity and SHA-256 checks passed. JSON/CSV generated with app exporters from an isolated migrated copy alongside it; private, outside Git. Restore not tested |
 | Last reported app export | User's CSV + JSON export to iCloud Drive, 2026-09-04, immediately before D51 reclassification; 18 sets moved on the real store |
 | Phone UDID | `00008130-001E10C01E62001C` |
 | Bundle ID / team | `com.ericlee4992.workouttracker` / `X68M8SR6NA`; per-developer signing lives in gitignored `Config/Local.xcconfig` |
 | Watch | Companion never built/run/installed; separate target is a sketch |
 | Environment | Xcode 27.0; test simulator `WT-iPhone`. CoreSimulator and Apple ID sign-in issues from the update were resolved 09-17 |
 
-Re-export after sessions worth keeping. The September18 raw backup and locally generated
+Re-export after sessions worth keeping. The September 18 raw backup and locally generated
 CSV/JSON include the current pre-install data. The last user-reported in-app export to iCloud
-remains September4; no newer iCloud export is claimed.
+remains September 4; no newer iCloud export is claimed.
 
 Before build/test/install or troubleshooting, read [DEVELOPMENT](DEVELOPMENT.md), including
 binary freshness, migration-fixture limitations, profile renewal, and detached tests.
@@ -91,7 +97,7 @@ reproduction and scope before implementation; detailed history is in the linked 
 | Supersets | Deliberate within-group reordering; grouping in History; stronger D48 invariant test derived through production operations | [Supersets ticket](../work-record/milestone-8-history-and-charts/issues/04-supersets.md) |
 | Coverage / catalog | Drag is confirmed on phone but lacks a drag UI test; milestone-8 load-type catalog audit remains undone | [History ticket](../work-record/milestone-8-history-and-charts/issues/03-edit-history.md), [load-type ticket](../work-record/milestone-8-history-and-charts/issues/02-load-type-editable.md) |
 | Weight precision | `Format.weight` rounds to one decimal; a prefilled 62.25 kg row can commit 62.3. Known, deliberately deferred; bar mode seeds via `WeightMath.displayNumber` | [Archived bug](archive/STATE-2026-09-17-before-codex-setup.md) |
-| Migration fixture | The old `LegacyStore.store` remains. Cardio adds synthetic `PreCardio.store` generated under unchanged `14982e7` model definitions (same shape as installed), and both migration tests pass. Real private-store backup/restore remains untested | [Milestone 7 review](../work-record/milestone-7-heart-rate/codex-review.md) |
+| Migration fixture | Synthetic legacy/pre-cardio fixtures passed; migration of a fresh copy of the actual phone store also passed (10 checks, all existing values across 13 tables preserved). On-phone migration and backup restore remain unverified | [Cardio acceptance](../work-record/cardio/issues/02-device-acceptance.md) |
 | Heart-rate verification | DOB setup toggle lacks UI coverage; revised zone boundaries need current gym feedback; recovery-vs-cap sound distinction and background early-recovery behavior remain unverified. Live AirPods HR, zones, screen-off timed beep, and HR rest timer have been confirmed | [Archived verification](archive/STATE-2026-09-17-before-codex-setup.md#what-to-do-next-in-priority-order) |
 | Watch experiment | Wear the watch with no companion installed and inspect the source label before investing in it. Pairing, streaming, rest mirroring, and phone-triggered wake remain unverified; revisit D41 only with evidence | [Watch ticket](../work-record/milestone-7-heart-rate/issues/04-watch-companion.md) |
 | Catalog gaps | Atlantis dealer-only coverage; Titan/Sorinex gaps; Life Fitness Signature Series | [Catalog sources](catalog-sources/README.md) |

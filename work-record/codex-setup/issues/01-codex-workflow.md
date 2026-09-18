@@ -103,3 +103,11 @@ remaining. Final checks confirmed both archives byte-exact, all checked local li
 valid, the skill discoverable, and only the three intended personal configuration fields
 changed. Closing bookkeeping updates STATE to the completed setup and next product action.
 The landing commit is discoverable with `git log -- work-record/codex-setup/`.
+
+## 2026-09-18 project skill check
+
+User asked whether Matt Pocock skills are installed in Codex. `skills-lock.json` records 35
+entries from `mattpocock/skills`; all 35 corresponding `.agents/skills/<name>/SKILL.md` files
+exist. Current Codex skill context includes research, tdd, code-review, grilling and
+domain-modeling, among others. Project-local installation; the user-level skills directories
+do not contain this collection. No installation or global configuration change was made.
