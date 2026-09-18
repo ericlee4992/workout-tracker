@@ -5,30 +5,32 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 ## Active task and next action
 
-- **Cardio implementation verified; merge checkpoint.** User chose B and on 2026-09-18 approved optional devices /
-  manual fallback, explicitly requiring indoor distance and pace on supported connected devices
-  such as AirPods Pro 3. Outdoor runs/rides with GPS, one saved workout with separate sections,
-  and starting/adding either activity remain required. [Ticket](../work-record/cardio/issues/01-implementation.md),
-  [spec](../work-record/cardio/spec.md), [API evidence](../work-record/cardio/research/01-indoor-distance-and-pace.md).
-- Checkout `/Users/ericlee06/orca/workspaces/Health App/cardio-implementation`, branch
-  `ericlee4992/cardio-implementation`, base `14982e7`; product source **03ada3d**, tests **306acf4**,
-  evidence tip **ff63a47**. Debug `build-10` passes; full units **748/81 suites**, final targeted
-  units **13/13**, focused cardio UI **7/7**, full local UI **79/79**, all actual exit0.
-  Full UI completed 2026-09-18 03:58 EDT; no test job remains running. Claude code03 and
-  visual02 reviews clear; [final merge clearance](../work-record/cardio/claude-final-clearance.md)
-  is clear. Next: commit evidence, fast-forward/push main and verify the remote. [Native gallery](../work-record/cardio/gallery.html).
-  24 non-failing invalid-frame warnings remain (known warning class; origin uninvestigated).
-  Detailed evidence/low limitations in ticket. No phone install.
-- **Distance acceptance:** public live-builder APIs are available; actual AirPods indoor distance
-  delivery is not guaranteed by documentation. Implement collection and labeled phone-motion
-  fallback; retain real-device treadmill validation as a separate gate, never claim simulator
-  fixtures prove AirPods support. Activity-specific HealthKit sessions are consecutive.
+- **Cardio is merged; physical-device acceptance is next.** User chose B and approved indoor
+  distance/pace, outdoor GPS and one workout with separate lifting/cardio sections. Software
+  merged/pushed via **b0a8de9**; remote main verified. Product source **03ada3d**, tests **306acf4**.
+  [Implementation](../work-record/cardio/issues/01-implementation.md),
+  [device acceptance](../work-record/cardio/issues/02-device-acceptance.md),
+  [native gallery](../work-record/cardio/gallery.html).
+- **Verification:** Debug `build-10` passed; full units **748/81 suites**, final targeted units
+  **13/13**, focused cardio UI **7/7**, full local UI **79/79**, all exit0. Full UI finished
+  2026-09-18 03:58 EDT. Claude code03, visual02 and
+  [final merge review](../work-record/cardio/claude-final-clearance.md) clear. No job running.
+  Logs/results stay in `cardio-implementation/work-record/ui-redesign/results/cardio/`.
+  24 non-failing invalid-frame warnings (known class, origin uninvestigated); low limitations
+  retained in the ticket. Graft rebuilt in main and implementation.
+- **Distance acceptance:** collect actual HealthKit readings and labelled phone-motion fallback;
+  AirPods Pro3 indoor distance delivery is **not yet physically verified**. Neither HR connection
+  nor simulator fixtures prove it. Treadmill (phone carried/stationary), pause/disconnect and
+  locked-screen outdoor GPS checks remain in ticket02. Watch cardio is not claimed. No phone
+  install performed; installed source/schema/backup facts below remain unchanged.
 - **Design:** reviewed native B prototype source `48608fb`, branch `ericlee4992/cardio-design-prototype`;
   source is reference only, not mergeable. Existing tabs remain. [Design record](../work-record/cardio-design/issues/01-design-discussion.md).
 - **Ring report closed:** user confirmed it works; no product change. Product on phone remains
   ticket 17, source `4d70d7d`; facts below unchanged. No phone installation requested yet.
 - Graft CLI and prompt hints work; optional AI summaries unbuilt. Completed workspaces sleep;
-  keep Hide sleeping and main visible. Preserve all logs/history and personal Codex settings.
+  keep Hide sleeping and main visible. Current cardio workspaces still need actual Sleep:
+  macOS UI accessibility returned permission_denied despite reported grants; no destructive
+  workaround used. Preserve all logs/history and personal Codex settings.
 
 ## Latest completed work and verification
 

@@ -1,7 +1,7 @@
 # 01 — Cardio sessions, direction B
 
 Type: task
-Status: claimed — implementation begun
+Status: resolved — software merged; physical acceptance tracked in 02
 
 Base main `14982e7`; branch `ericlee4992/cardio-implementation` in
 `/Users/ericlee06/orca/workspaces/Health App/cardio-implementation`.
@@ -288,3 +288,15 @@ product/test trees once this evidence is committed and pushed. Counts and exit f
 independently read, final test query checked, and four lifting regression captures inspected.
 Commit this record/captures/report together, then fast-forward/push main and verify remote tip.
 Physical acceptance remains outstanding, with no phone install authorized by this review.
+
+### Merged
+
+Fast-forwarded main from14982e7 to **b0a8de9**, pushed origin/main and independently checked
+`git ls-remote`: remote tip b0a8de99a3f10269dc4b3d63445eb053f5f07559. Product tree equals
+reviewed03ada3d; test tree equals306acf4. No phone install. [Device acceptance](02-device-acceptance.md)
+remains open. No build/test job remains running. Graft refreshed in implementation and main.
+
+Workspace cleanup: attempted Orca Sleep through its UI after all tests; macOS returned
+`permission_denied` / no accessibility window, including one restore-window retry, despite
+permission inspection showing grants. Completed cards can be marked through CLI but actual
+Sleep is unverified and deferred. No workspace, terminal history, or logs were deleted.
