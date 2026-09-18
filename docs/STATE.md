@@ -8,16 +8,18 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 - **Cardio design discussion is active.** User wants live gym cardio (timer, heart rate,
   calories, distance), outdoor runs/rides with GPS, and **one saved workout with separate
   lifting/cardio sections**. Show designs before implementing the feature.
-- **Native mockups:** branch `ericlee4992/cardio-design-prototype`, source checkpoint `4f004be`,
+- **Native mockups:** branch `ericlee4992/cardio-design-prototype`, reviewed source `48608fb`,
   checkout `/Users/ericlee06/orca/workspaces/Health App/cardio-design-prototype`. Three mixed
   workout directions plus Start, picker, gym, outdoor and summary; default/AccessibilityL
   captures. [Design handoff](../work-record/cardio-design/issues/01-design-discussion.md).
-  The throwaway prototype code must not merge to main. Next: complete independent visual
-  review, show gallery, and get the user's design choice. No production cardio implementation.
+  Debug build and native capture drivers passed **2/2**, exit 0; Claude follow-up **CLEAR**.
+  Gallery shown in main’s browser: 37 PNGs, 29 distinct views after deduplication.
+  **Next: user chooses A/B/C or a combination.** The throwaway UI must not merge to main;
+  no production cardio implementation or running verification job.
 - **Sets ring report closed:** the user checked the ring and confirmed “it actually works.”
   No product fix. Diagnostic UI/pixel checks passed at 1/1 and 2/2; test source was removed.
   [Ticket 18](../work-record/ui-redesign/issues/18-sets-completion-ring.md) preserves evidence.
-- **Main product remains ticket 17**, source `4d70d7d`; current main base `e51695b`. Phone
+- **Main product remains ticket 17**, source `4d70d7d`; docs checkpoint through `fd6a9ff`. Phone
   build and backup facts below remain unchanged. No new phone install was requested.
 - **Graft:** live prompt hints and CLI navigation observed; structural graph has 221 files,
   2,418 symbols and 7,099 links on main. Optional AI summaries are unbuilt; all client MCP/hook

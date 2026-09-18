@@ -1,7 +1,7 @@
 # 01 — Cardio design discussion
 
 Type: prototype
-Status: claimed — native designs under review; user choice pending
+Status: claimed — native designs reviewed CLEAR; user choice pending
 
 ## Accepted scope and workflow
 
@@ -51,3 +51,17 @@ Separate ring ticket 18 is closed because the user checked it and confirmed it a
 closure. The first prototype review found three required design-record/palette/control
 issues (R1–R3); corrections and fresh captures are in progress on the prototype branch.
 No production cardio code will merge as part of this checkpoint.
+
+## Final reviewed designs
+
+Reviewed source **48608fb** on the same prototype branch. [Claude follow-up](../claude-review-02.md)
+is **CLEAR**: R1–R3 resolved, no required findings. Final capture/build exits 0, capture drivers
+**2/2**, no failures/skips/runtime warnings. The gallery shows 29 distinct views from 37 PNGs.
+Updated gallery/ticket disclose A’s scrolling trade-off at both default and AccessibilityL.
+The existing app’s real tab order/icons remain the implementation baseline (A10 is illustrative
+prototype chrome, not a request to change navigation).
+
+[Reviewed prototype record](https://github.com/ericlee4992/workout-tracker/blob/48608fb/work-record/cardio-design/issues/01-design-discussion.md).
+Gallery stays at the same local path and is open in main’s Orca browser. All test/build jobs
+finished. Next action is **the user’s design choice**, then a proper feature spec; no cardio
+implementation has started. The phone and production app source remain unchanged.
