@@ -8,11 +8,12 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 - **Cardio design only:** user wants live gym cardio plus outdoor runs/rides with GPS, saved
   as **one workout with separate lifting/cardio sections**. They explicitly request design
   screens before implementation. Worktree `cardio-design-prototype`, branch
-  `ericlee4992/cardio-design-prototype`, base `e51695b`.
+  `ericlee4992/cardio-design-prototype`, base `e51695b`; reviewed source `48608fb`.
   [Design ticket](../work-record/cardio-design/issues/01-design-discussion.md) contains native
   A/B/C mockups, proposed shared flow, open decisions and capture process **91563** with logs.
   These DEBUG-only sample screens are throwaway and must not merge into the shipping app.
-  Next: inspect default/AccessibilityL captures, review, show the gallery and obtain design feedback.
+  Debug build and capture drivers passed (2/2). Claude follow-up CLEAR on `48608fb`.
+  Gallery shown in main’s browser; next: user chooses A/B/C or a combination. No jobs running.
 - **Ring report closed:** the user checked it live and confirmed “it actually works.” No app
   change is required. Diagnostic 1/1→1/2→2/2 UI/pixel checks passed; no further stress test ran.
   Ticket 18 and local results are preserved in the separate sets-completion-ring worktree.

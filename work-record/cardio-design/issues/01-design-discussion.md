@@ -1,7 +1,7 @@
 # 01 — Cardio design directions
 
 Type: prototype
-Status: claimed — native mockups awaiting user choice; no production cardio implementation
+Status: claimed — native mockups reviewed CLEAR; awaiting user choice; no production cardio implementation
 
 ## User decisions
 
@@ -162,3 +162,17 @@ Fresh Debug build `build-3.log` / `build-3-exit.txt` also passed (0). Exported 3
 the gallery shows 29 distinct views after byte-hash deduplication. Source is unchanged since
 this capture build. Opened and inspected the new Start AXL, mixed controls, zone colours and
 summary tiles as images. Independent follow-up review pending.
+
+## Design delivery checkpoint
+
+Source **48608fb** independently **CLEAR** in [Claude follow-up](../claude-review-02.md).
+R1–R3 resolved. Advisory A11 also reflected in gallery: A controls require a short scroll at
+default, and its timer also falls below completed lifting at AccessibilityL. A10 (prototype
+tab order/icons differ from RootView) is illustrative chrome, not a proposed production change;
+retain the real app’s tab order/icons during implementation. Other advisory choices await the
+user’s preferred composition. No production feature code, schema change or phone install.
+
+The gallery is open in main’s Orca browser. **Next action: user chooses A/B/C or a combination.**
+Do not infer permission to implement from completion of this design prototype. All jobs are
+finished; logs/results remain under the recorded paths. Main’s docs-only checkpoint records
+the scope and the closed ring report separately; never merge this throwaway UI branch.
