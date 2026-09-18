@@ -153,7 +153,7 @@ struct ExportTests {
     @Test func jsonCarriesVersionAndOmitsNilRatherThanNull() throws {
         let text = try #require(
             String(data: try ExportJSON.data(makeSnapshot()), encoding: .utf8))
-        #expect(text.contains("\"schemaVersion\" : 9"), "milestone 9 moved the shape to v6 (name), v7 (D51 provenance), v8 (heart-rate series); the finish graph to v9 (series low/high)")
+        #expect(text.contains("\"schemaVersion\" : 10"), "milestone 9 moved the shape to v6 (name), v7 (D51 provenance), v8 (heart-rate series); the finish graph to v9 (series low/high), cardio to v10")
         #expect(!text.contains("null"), "nil optionals must be omitted, not encoded as null")
         // Sorted keys make the file diffable: `appVersion` precedes `counts`.
         let appVersion = try #require(text.range(of: "\"appVersion\""))
@@ -220,7 +220,7 @@ struct ExportTests {
     @Test func csvHeaderIsTheDocumentedColumnsInOrder() throws {
         let rows = csvRows(makeSnapshot())
         #expect(rows.first == ExportCSV.header)
-        #expect(ExportCSV.header.count == 37)
+        #expect(ExportCSV.header.count == 51)
         #expect(ExportCSV.header.first == "workoutID")
         // Presets (D36) appended two columns and the bar (D39) two more; the
         // first 27 are unchanged, so a reader of a version-1 export still reads
@@ -238,7 +238,9 @@ struct ExportTests {
         #expect(ExportCSV.header[35] == "workoutTypedName")
         #expect(ExportCSV.header[3] == "workoutName")
         // v7 (D51): the reclassification's provenance rides on the rows.
-        #expect(ExportCSV.header.last == "reclassifiedFrom")
+        #expect(ExportCSV.header[36] == "reclassifiedFrom")
+        #expect(ExportCSV.header[37] == "rowKind")
+        #expect(ExportCSV.header.last == "cardioActiveCalories")
         #expect(ExportCSV.header[26] == "completedAt")
     }
 

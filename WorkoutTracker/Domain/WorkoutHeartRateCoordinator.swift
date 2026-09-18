@@ -21,6 +21,7 @@ import SwiftData
 @Observable
 final class WorkoutHeartRateCoordinator {
 
+    let cardio = CardioRecorder()
     private(set) var workoutID: UUID?
     private(set) var monitor: HeartRateMonitor?
     /// The workout the running monitor belongs to, so a REPLACEMENT can bank
@@ -73,7 +74,10 @@ final class WorkoutHeartRateCoordinator {
             Task { await existing.stop() }
         }
         let fresh = HeartRateMonitor(
-            provider: HeartRateProviders.make(workoutID: workout.id.uuidString))
+            provider: HeartRateProviders.make(workoutID: workout.id.uuidString,
+                configuration: WorkoutSensorConfiguration(segmentID: workout.unfinishedCardio?.id,
+                    activity: workout.unfinishedCardio?.activity,
+                    paused: workout.unfinishedCardio != nil && workout.unfinishedCardio?.isRunning != true)))
         fresh.maxHeartRate = maxHeartRate
         // The sample tick is owned here and forwarded on, rather than being
         // handed to the screen: this is the only tick that survives both
@@ -85,6 +89,7 @@ final class WorkoutHeartRateCoordinator {
             // amount of audio work will make the alarm fire.
             restAlarmLog.debug("sample tick")
             self?.soundRestAlarmIfDue()
+            self?.cardio.refresh()
             self?.onSample?()
         }
         monitor = fresh
@@ -94,6 +99,7 @@ final class WorkoutHeartRateCoordinator {
         // suspended background app is unreliable; activating it while the user
         // is still looking at the screen, and keeping it, is not.
         alarm.beginSession()
+        cardio.attach(to: workout, monitor: fresh)
         Task { await fresh.start() }
         return fresh
     }
@@ -106,6 +112,7 @@ final class WorkoutHeartRateCoordinator {
     /// when a different workout arrives).
     func end(_ workout: Workout, capture: Bool = true) {
         guard workoutID == workout.id, let monitor else { return }
+        cardio.stop()
         if capture, !workout.isDeleted {
             // The finish boundary: take the provider's LATEST energy figures,
             // both halves together, rather than whatever the last sample tick
@@ -129,7 +136,16 @@ final class WorkoutHeartRateCoordinator {
         }
         monitor.onSample = nil
         let ending = monitor
-        Task { await ending.stop() }
+        Task {
+            await ending.stop()
+            guard capture, !workout.isDeleted else { return }
+            // End collection can publish one final energy statistic. Keep the same
+            // workout identity while finalising, never overwrite a new workout's totals.
+            ending.refreshEnergy()
+            workout.activeEnergyKilocalories = ending.activeEnergyKilocalories
+            workout.basalEnergyKilocalories = ending.basalEnergyKilocalories
+            try? workout.modelContext?.save()
+        }
         self.monitor = nil
         self.workoutID = nil
         self.currentWorkout = nil

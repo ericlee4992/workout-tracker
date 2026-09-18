@@ -52,7 +52,8 @@ struct ExportSnapshot: Codable, Equatable {
     /// the per-bucket range beside the mean, so a restore draws the chart the
     /// phone drew. Omitted when empty — a v8 workout restored has means only
     /// and draws from them. JSON only, like the mean; CSV unchanged.
-    static let currentSchemaVersion = 9
+    /// 10 — cardio segments, measured/entered distance, active intervals and routes.
+    static let currentSchemaVersion = 10
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -94,6 +95,7 @@ extension ExportSnapshot {
         var equipmentModels: Int = 0
         var templates: Int = 0
         var presets: Int = 0
+        var cardioSegments: Int? = nil
     }
 }
 
@@ -252,6 +254,7 @@ extension ExportSnapshot {
         var heartRateSeriesHigh: [Int]? = nil
         /// v8: the system's resting-energy figure; absent when not provided.
         var basalEnergyKilocalories: Double? = nil
+        var cardioSegments: [Cardio]? = nil
     }
 
     /// One exercise within a workout.
@@ -389,5 +392,44 @@ struct ExportDateFormat {
         formatter.timeZone = self.formatter.timeZone
         formatter.dateFormat = "yyyy-MM-dd-HHmm"
         return formatter.string(from: date)
+    }
+}
+
+
+extension ExportSnapshot {
+    struct Cardio: Codable, Equatable {
+        var id: UUID
+        var order: Int
+        var activity: String
+        var startedAt: String
+        var endedAt: String?
+        var activeStartedAt: String?
+        var accumulatedActiveSeconds: Double
+        var lastCheckpointAt: String
+        var displayUnit: String
+        var automaticDistanceMeters: Double?
+        var distanceSource: String?
+        var manualDistanceValue: Double?
+        var manualDistanceUnit: String?
+        var averageHeartRate: Int?
+        var maxHeartRate: Int?
+        var heartRateTotal: Int
+        var heartRateCount: Int
+        var lastHeartRateSampleID: UUID?
+        var activeEnergyKilocalories: Double?
+        var basalEnergyKilocalories: Double?
+        var intervals: [CardioActiveInterval]
+        var distanceSpans: [CardioDistanceInterval]
+        var route: [CardioRoute]
+    }
+    struct CardioActiveInterval: Codable, Equatable { var start: String; var end: String }
+    struct CardioDistanceInterval: Codable, Equatable { var start: String; var readings: [String: Double] }
+    struct CardioRoute: Codable, Equatable {
+        var id: UUID
+        var latitude: Double
+        var longitude: Double
+        var date: String
+        var accuracy: Double
+        var portion: UUID
     }
 }

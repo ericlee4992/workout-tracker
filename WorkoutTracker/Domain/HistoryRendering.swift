@@ -165,20 +165,31 @@ extension Workout {
     /// library.
     var historyTitle: String {
         HistoryRendering.title(
-            name: name, templateName: sourceTemplateName, exercises: snapshotExercises)
+            name: name, templateName: sourceTemplateName, exercises: snapshotExercises + orderedCardio.map { HistoryExercise(id: $0.id, name: $0.activity.name) })
     }
 
     /// The title this workout would have with NO typed name — what the name
     /// field shows as its placeholder, so an empty field never reads as blank.
     var derivedTitle: String {
         HistoryRendering.title(
-            name: nil, templateName: sourceTemplateName, exercises: snapshotExercises)
+            name: nil, templateName: sourceTemplateName, exercises: snapshotExercises + orderedCardio.map { HistoryExercise(id: $0.id, name: $0.activity.name) })
     }
 
     /// Gym label for history: the name captured at log time (D23) — the
     /// entry snapshots first, then the workout's own start-time snapshot. The
     /// live `gym` relationship is never consulted, so renaming a gym cannot
     /// rewrite the workouts already logged there.
+    var historyStatsLine: String {
+        let cardioCount = recordedCardio.count
+        let cardio = HistoryRendering.pluralized(cardioCount, "cardio activity", "cardio activities")
+        if completedSets.isEmpty, cardioCount > 0 {
+            return [cardio, durationLabel].compactMap { $0 }.joined(separator: " · ")
+        }
+        let lifting = HistoryRendering.statsLine(exerciseCount: entries?.count ?? 0,
+                                                  setCount: completedSets.count, duration: duration)
+        return cardioCount == 0 ? lifting : lifting + " · " + cardio
+    }
+
     var historyGymName: String? {
         WorkoutSession.orderedEntries(of: self)
             .compactMap(\.snapshotGymName).first ?? snapshotGymName

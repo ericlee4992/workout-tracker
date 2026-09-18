@@ -23,6 +23,8 @@ struct ActiveWorkoutView: View {
     @State private var machinePickerEntry: ExerciseEntry?
     @State private var performanceEntry: ExerciseEntry?
     @State private var showExercisePicker = false
+    @State private var showCardioPicker = false
+    @State private var cardioFocus = false
     @State private var showMachinePicker = false
     @State private var confirmingCancel = false
     /// Naming the workout mid-session (milestone 9, ticket 02).
@@ -87,6 +89,16 @@ struct ActiveWorkoutView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
 
+                Picker("Activity", selection: $cardioFocus) {
+                    Text("Lifting").tag(false)
+                    Text("Cardio").tag(true)
+                }
+                .pickerStyle(.segmented).accessibilityIdentifier("workoutActivityFocus")
+                .listRowBackground(Color.clear).listRowSeparator(.hidden)
+
+                if cardioFocus {
+                    CardioWorkoutSection(workout: workout, recorder: heartRateCoordinator.cardio, monitor: heartRate)
+                } else {
                 // D41: live heart rate, above the exercises because it is
                 // the one number that changes while you are not touching
                 // the screen.
@@ -114,9 +126,12 @@ struct ActiveWorkoutView: View {
                 }
                 .onMove(perform: moveEntries)
 
+                }
+
                 VStack(spacing: 6) {
                         HStack(spacing: 12) {
                             Button {
+                                cardioFocus = false
                                 showExercisePicker = true
                             } label: {
                                 Label("Add Exercise", systemImage: "plus")
@@ -139,6 +154,9 @@ struct ActiveWorkoutView: View {
                             .disabled(!hasGym)
                             .accessibilityIdentifier("addByMachine")
                         }
+                        Button { showCardioPicker = true } label: {
+                            Label("Add Cardio", systemImage: "plus").frame(maxWidth: .infinity)
+                        }.buttonStyle(.secondary).accessibilityIdentifier("addCardio")
                         if !hasGym {
                             Text("Pick a gym to log by machine")
                                 .font(.caption)
@@ -263,6 +281,19 @@ struct ActiveWorkoutView: View {
                 PreviousPerformanceSheet(entry: entry)
                     .presentationDetents([.medium, .large])
             }
+            .sheet(isPresented: $showCardioPicker) {
+                CardioActivityPicker(endsCurrentSegment: workout.unfinishedCardio != nil) { activity in
+                    heartRateCoordinator.cardio.start(activity)
+                    cardioFocus = true
+                    refreshRest()
+                    heartRateCoordinator.broadcastRest(endsAt: nil)
+                }
+            }
+            .alert("Cardio could not be saved", isPresented: Binding(
+                get: { heartRateCoordinator.cardio.errorMessage != nil },
+                set: { if !$0 { heartRateCoordinator.cardio.errorMessage = nil } })) {
+                    Button("OK", role: .cancel) { heartRateCoordinator.cardio.errorMessage = nil }
+            } message: { Text(heartRateCoordinator.cardio.errorMessage ?? "") }
             .sheet(isPresented: $showExercisePicker) {
                 ExercisePickerSheet { exercise in
                     addEntry(for: exercise)
@@ -307,6 +338,7 @@ struct ActiveWorkoutView: View {
                 heartRateCoordinator.onSample = { evaluateHeartRateRest() }
                 pushActivityState()
                 heartRate = monitor
+                cardioFocus = !workout.orderedCardio.isEmpty
             }
             // Every path that changes the rest — starting one, +15s, skipping,
             // recovering, degrading, un-completing — moves `restEnd`. Mirroring
@@ -349,6 +381,7 @@ struct ActiveWorkoutView: View {
                     .accessibilityLabel("Elapsed \(Format.spokenElapsed(seconds: elapsedSeconds(at: timeline.date)))")
             }
             Spacer(minLength: 0)
+            if !cardioFocus {
             HStack(spacing: 6) {
                 ProgressRing(progress: sets.isEmpty ? 0 : Double(completed) / Double(sets.count),
                              tint: Theme.secondary, lineWidth: 3)
@@ -360,6 +393,7 @@ struct ActiveWorkoutView: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(completed) completed sets, \(sets.count) total")
+            }
         }
         .padding(.horizontal, 20)
         .padding(.top, keyboardVisible ? 0 : 4)
@@ -489,7 +523,8 @@ struct ActiveWorkoutView: View {
 
     /// The last exercise with a completed set — what the user is working on.
     private var currentExerciseName: String? {
-        entries.last { entry in
+        if let cardio = workout.unfinishedCardio { return cardio.activity.name }
+        return entries.last { entry in
             WorkoutSession.orderedSets(of: entry).contains { $0.completedAt != nil }
         }?.snapshotExerciseName ?? entries.last?.exercise?.name
     }

@@ -144,6 +144,9 @@ struct HistoryView: View {
             } message: {
                 if let workout = confirmingDelete, !workout.isDeleted {
                     let impact = HistoryEditing.impact(ofDeleting: workout)
+                    if !workout.recordedCardio.isEmpty {
+                        Text("Recorded cardio and routes will also be permanently deleted.")
+                    }
                     Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s") will be permanently deleted. Records are recalculated without them.")
                 }
             }
@@ -212,10 +215,7 @@ private struct WorkoutSummaryRow: View {
                     .font(.caption)
                     .foregroundStyle(Theme.secondary)
                 HStack(spacing: 6) {
-                    Text(HistoryRendering.statsLine(
-                        exerciseCount: workout.entries?.count ?? 0,
-                        setCount: completedSets.count,
-                        duration: workout.duration))
+                    Text(workout.historyStatsLine)
                         .font(.caption)
                         .foregroundStyle(Theme.tertiary)
                     // Derived from the actual logged sets — never just the gym

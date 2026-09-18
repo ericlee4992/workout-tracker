@@ -169,6 +169,12 @@ struct WorkoutDetailView: View {
                 .listRowSeparatorTint(Theme.hairline)
             }
 
+            if !workout.recordedCardio.isEmpty {
+                Section("Cardio") {
+                    ForEach(workout.recordedCardio) { CardioSummaryCard(segment: $0) }
+                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                }
+            }
             // Milestone 9, ticket 05: what the sensor saw, for any workout that
             // has it. Aggregates for every workout that recorded them; the
             // graph only when a series exists — older workouts never show an
@@ -347,6 +353,7 @@ struct WorkoutDetailView: View {
             let impact = HistoryEditing.impact(ofDeleting: workout)
             // D47 requires the confirmation to NAME what is destroyed, volume
             // included — it was computed and never shown (codex-review, high).
+            if !workout.recordedCardio.isEmpty { Text("Recorded cardio and routes will also be permanently deleted.") }
             Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s"), \(Format.weight(impact.volumeKg)) kg of volume, permanently deleted. Records are recalculated without them.")
         }
         .saveAsTemplateFlow(workout: workout, isPresented: $namingTemplate) {

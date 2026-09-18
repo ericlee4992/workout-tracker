@@ -359,6 +359,8 @@ final class Workout {
     var gym: Gym?
     @Relationship(deleteRule: .cascade, inverse: \ExerciseEntry.workout)
     var entries: [ExerciseEntry]?
+    @Relationship(deleteRule: .cascade, inverse: \CardioSegment.workout)
+    var cardioSegments: [CardioSegment]?
 
     init(
         id: UUID = UUID(),
@@ -827,6 +829,7 @@ enum WorkoutTrackerStore {
         WorkoutTemplate.self,
         TemplateItem.self,
         Workout.self,
+        CardioSegment.self,
         ExerciseEntry.self,
         SetRecord.self,
         GymExerciseMemory.self,
@@ -848,6 +851,10 @@ enum WorkoutTrackerStore {
         }
         let container = try ModelContainer(for: schema, configurations: [configuration])
         try BarWeightStoreRepair.backfill(in: ModelContext(container))
+        let recovery = ModelContext(container)
+        for workout in try recovery.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt == nil })) {
+            try CardioSession(context: recovery).recover(workout)
+        }
         return container
     }
 

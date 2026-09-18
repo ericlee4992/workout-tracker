@@ -6,6 +6,7 @@ import SwiftUI
 struct WorkoutStartRequest: Equatable {
     let id = UUID()
     var template: WorkoutTemplate?
+    var cardioActivity: CardioActivity? = nil
 
     static func == (lhs: WorkoutStartRequest, rhs: WorkoutStartRequest) -> Bool {
         lhs.id == rhs.id
@@ -31,6 +32,7 @@ struct WorkoutStartFlow: ViewModifier {
     @Environment(\.modelContext) private var modelContext
     @Environment(WorkoutHeartRateCoordinator.self) private var heartRateCoordinator
     @State private var pendingTemplate: WorkoutTemplate?
+    @State private var pendingCardio: CardioActivity?
     @State private var showingResumeDialog = false
     @State private var replacementWorkout: Workout?
     @State private var replacementSourceTemplate: WorkoutTemplate?
@@ -51,7 +53,7 @@ struct WorkoutStartFlow: ViewModifier {
             } message: {
                 // A consequence, not a tutorial: finishing discards every
                 // uncompleted set (codex-review 06).
-                Text("Only its completed sets are kept.")
+                Text("Completed sets and recorded cardio are kept.")
             }
             .templateDriftDialog(
                 isPresented: $showingReplacementDrift,
@@ -61,6 +63,7 @@ struct WorkoutStartFlow: ViewModifier {
             .onChange(of: request) { _, new in
                 guard let new else { return }
                 request = nil
+                pendingCardio = new.cardioActivity
                 startTapped(template: new.template)
             }
     }
@@ -91,6 +94,10 @@ struct WorkoutStartFlow: ViewModifier {
             } else {
                 workout = try session.startWorkout(at: gym)
             }
+            if let activity = pendingCardio {
+                try CardioSession(context: modelContext).start(activity, in: workout)
+            }
+            pendingCardio = nil
             pendingTemplate = nil
             onWorkoutStarted(workout)
         } catch {
@@ -140,6 +147,7 @@ struct WorkoutStartFlow: ViewModifier {
 
     private func resumeActive() {
         pendingTemplate = nil
+        pendingCardio = nil
         if let workout = try? session.resumableWorkout() {
             onWorkoutStarted(workout)
         }

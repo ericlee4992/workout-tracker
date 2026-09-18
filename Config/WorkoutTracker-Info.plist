@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Record distance, pace and your route during outdoor cardio workouts.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Estimate indoor walking and running distance and pace when supported.</string>
 	<!-- Partial Info.plist, MERGED with the generated one.
 
 	     GENERATE_INFOPLIST_FILE stays YES: every usage-description string and
@@ -42,6 +46,7 @@
 		     with the system in advance and fires whether or not the app is
 		     running. The notification arriving never proved the app was alive. -->
 		<string>workout-processing</string>
+		<string>location</string>
 	</array>
 </dict>
 </plist>

@@ -62,10 +62,14 @@ protocol HeartRateProviding: AnyObject {
     /// Defaulted to nil: most providers (a watch link, a test double) have no
     /// energy at all, and total calories is simply not shown without it.
     var basalEnergyKilocalories: Double? { get }
+    var cardioReading: CardioSensorReading? { get }
+    func setPaused(_ paused: Bool) async
 }
 
 extension HeartRateProviding {
     var basalEnergyKilocalories: Double? { nil }
+    var cardioReading: CardioSensorReading? { nil }
+    func setPaused(_ paused: Bool) async {}
 }
 
 /// The app-facing feed. Views observe this; nothing above it knows whether the
@@ -256,7 +260,7 @@ enum HeartRateProviders {
     static let uiTestArgument = "-uiTestHeartRate"
 
     static var isUITestFixture: Bool {
-        ProcessInfo.processInfo.arguments.contains(uiTestArgument)
+        WorkoutTrackerStore.fixtureIsEnabled(uiTestArgument)
     }
 
     /// Both real sources at once (D41): AirPods through the phone's own
@@ -264,19 +268,17 @@ enum HeartRateProviders {
     /// believes at any moment is ticket 01's precedence rule, applied to the
     /// merged stream — not a choice made here.
     @MainActor
-    static func make(workoutID: String) -> any HeartRateProviding {
-        if isUITestFixture { return FixtureHeartRateProvider() }
-        // A UI-test run that is NOT exercising heart rate must not summon the
-        // HealthKit permission sheet: it is a system alert that covers the
-        // screen, and every existing XCUITest that starts a workout went from
-        // passing to "button not hittable" the moment this milestone landed.
-        // Silent rather than fixture-driven, so those tests see the app they
-        // were written against.
-        if WorkoutTrackerStore.isUITestReset { return DisabledHeartRateProvider() }
-        return CompositeHeartRateProvider(providers: [
-            HealthKitHeartRateProvider(assumedSource: .airPods),
-            WatchHeartRateProvider(workoutID: workoutID),
-        ])
+    static func make(workoutID: String, configuration: WorkoutSensorConfiguration = .lifting) -> any HeartRateProviding {
+        return WorkoutActivityProvider(configuration: configuration) { phase in
+            if isUITestFixture { return FixtureHeartRateProvider(cardio: phase.activity != nil) }
+            if WorkoutTrackerStore.isUITestReset { return DisabledHeartRateProvider() }
+            let phone = HealthKitHeartRateProvider(assumedSource: .airPods, activity: phase.activity)
+            // Watch data is opt-in to the companion; its current strength-only protocol
+            // cannot claim cardio configuration. Do not mix its mislabeled phase into cardio.
+            // The phone's supported HR devices continue to supply cardio directly.
+            if phase.activity != nil { return phone }
+            return CompositeHeartRateProvider(providers: [phone, WatchHeartRateProvider(workoutID: workoutID)])
+        }
     }
 }
 
@@ -302,6 +304,9 @@ final class FixtureHeartRateProvider: HeartRateProviding {
 
     private let script: [Int]
     private let interval: TimeInterval
+    private let cardio: Bool
+    private var paused = false
+    private(set) var cardioReading: CardioSensorReading?
     private var continuation: AsyncStream<HeartRateSample>.Continuation?
     private var task: Task<Void, Never>?
     private(set) var activeEnergyKilocalories: Double?
@@ -317,7 +322,8 @@ final class FixtureHeartRateProvider: HeartRateProviding {
         99, 112, 127, 139, 147, 153, 149, 141, 132, 123, 115, 109, 104, 100,
     ]
 
-    init(script: [Int] = FixtureHeartRateProvider.defaultScript, interval: TimeInterval = 1) {
+    init(script: [Int] = FixtureHeartRateProvider.defaultScript, interval: TimeInterval = 1, cardio: Bool = false) {
+        self.cardio = cardio
         self.script = script.isEmpty ? [100] : script
         self.interval = interval
         var captured: AsyncStream<HeartRateSample>.Continuation!
@@ -334,6 +340,10 @@ final class FixtureHeartRateProvider: HeartRateProviding {
             guard let self else { return }
             var index = 0
             while !Task.isCancelled {
+                if self.paused { try? await Task.sleep(for: .seconds(self.interval)); continue }
+                if self.cardio {
+                    self.cardioReading = CardioSensorReading(distanceMeters: (self.cardioReading?.distanceMeters ?? 0) + 2.5 * self.interval, date: .now)
+                }
                 let bpm = self.script[index % self.script.count]
                 self.continuation?.yield(
                     HeartRateSample(bpm: bpm, date: .now, source: .fixture))
@@ -351,6 +361,8 @@ final class FixtureHeartRateProvider: HeartRateProviding {
         }
         return .live(.fixture)
     }
+
+    func setPaused(_ paused: Bool) async { self.paused = paused }
 
     func stop() async {
         task?.cancel()

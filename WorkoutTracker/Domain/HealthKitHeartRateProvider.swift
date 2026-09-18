@@ -17,10 +17,14 @@ import HealthKit
 // lifecycle and not to a screen appearing.
 
 @MainActor
-final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
+final class HealthKitHeartRateProvider: NSObject, HeartRateProviding, CardioMetricNotifying {
 
     private let store = HKHealthStore()
+    private let activity: CardioActivity?
+    private(set) var cardioReading: CardioSensorReading?
+    var onCardioMetrics: (() -> Void)?
     private var session: HKWorkoutSession?
+    private var shouldBePaused = false
     private var builder: HKLiveWorkoutBuilder?
     private var continuation: AsyncStream<HeartRateSample>.Continuation?
 
@@ -35,7 +39,8 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
     /// GATT profile. The watch companion (ticket 04) reports `.watch` itself.
     private let assumedSource: HeartRateSource
 
-    init(assumedSource: HeartRateSource = .airPods) {
+    init(assumedSource: HeartRateSource = .airPods, activity: CardioActivity? = nil) {
+        self.activity = activity
         self.assumedSource = assumedSource
         var captured: AsyncStream<HeartRateSample>.Continuation!
         self.stream = AsyncStream { captured = $0 }
@@ -55,7 +60,8 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
         guard HKHealthStore.isHealthDataAvailable() else { return .unavailable }
 
         let share: Set<HKSampleType> = [HKObjectType.workoutType()]
-        let read: Set<HKObjectType> = [heartRateType, activeEnergyType, basalEnergyType]
+        var read: Set<HKObjectType> = [heartRateType, activeEnergyType, basalEnergyType]
+        if let distanceType { read.insert(distanceType) }
         do {
             // Asked on first use of the feature, not at launch — the same rule
             // the rest-timer notification permission follows.
@@ -71,8 +77,8 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
         // permitted is samples arriving — hence `.waitingForSensor` until one
         // does.
         let configuration = HKWorkoutConfiguration()
-        configuration.activityType = .traditionalStrengthTraining
-        configuration.locationType = .indoor
+        configuration.activityType = activity?.healthKitType ?? .traditionalStrengthTraining
+        configuration.locationType = activity?.isOutdoor == true ? .outdoor : .indoor
 
         do {
             let session = try HKWorkoutSession(
@@ -80,6 +86,7 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
             let builder = session.associatedWorkoutBuilder()
             builder.dataSource = HKLiveWorkoutDataSource(
                 healthStore: store, workoutConfiguration: configuration)
+            if let distanceType { builder.dataSource?.enableCollection(for: distanceType, predicate: nil) }
             builder.delegate = self
             session.delegate = self
 
@@ -100,6 +107,25 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
         }
     }
 
+    private var distanceType: HKQuantityType? {
+        guard let activity else { return nil }
+        if activity.isWalkingOrRunning { return HKQuantityType(.distanceWalkingRunning) }
+        if activity.usesSpeed { return HKQuantityType(.distanceCycling) }
+        if activity == .rowing { return HKQuantityType(.distanceRowing) }
+        return nil
+    }
+
+    func setPaused(_ paused: Bool) async {
+        shouldBePaused = paused
+        reconcilePauseState()
+    }
+
+    private func reconcilePauseState() {
+        guard let session else { return }
+        if shouldBePaused, session.state == .running { session.pause() }
+        else if !shouldBePaused, session.state == .paused { session.resume() }
+    }
+
     func stop() async {
         guard let session, let builder else { return }
         let end = Date()
@@ -110,6 +136,9 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding {
         // session from being torn down — a live session left behind keeps the
         // sensor on.
         try? await builder.endCollection(at: end)
+        for type in [activeEnergyType, basalEnergyType] {
+            if let stats = builder.statistics(for: type) { apply(statistics: stats, identifier: type.identifier) }
+        }
         _ = try? await builder.finishWorkout()
         self.session = nil
         self.builder = nil
@@ -131,7 +160,8 @@ extension HealthKitHeartRateProvider: HKLiveWorkoutBuilderDelegate {
             else { continue }
             let identifier = quantityType.identifier
             Task { @MainActor [weak self] in
-                self?.apply(statistics: statistics, identifier: identifier)
+                guard let self, self.builder === workoutBuilder else { return }
+                self.apply(statistics: statistics, identifier: identifier)
             }
         }
     }
@@ -163,8 +193,13 @@ extension HealthKitHeartRateProvider: HKLiveWorkoutBuilderDelegate {
                 .sumQuantity()?
                 .doubleValue(for: .kilocalorie())
         default:
-            break
+            if identifier == distanceType?.identifier,
+               let meters = statistics.sumQuantity()?.doubleValue(for: .meter()),
+               meters.isFinite, meters >= 0 {
+                cardioReading = CardioSensorReading(distanceMeters: meters, date: statistics.endDate)
+            }
         }
+        onCardioMetrics?()
     }
 }
 
@@ -177,7 +212,12 @@ extension HealthKitHeartRateProvider: HKWorkoutSessionDelegate {
         didChangeTo toState: HKWorkoutSessionState,
         from fromState: HKWorkoutSessionState,
         date: Date
-    ) {}
+    ) {
+        Task { @MainActor [weak self] in
+            guard let self, self.session === workoutSession else { return }
+            self.reconcilePauseState()
+        }
+    }
 
     nonisolated func workoutSession(
         _ workoutSession: HKWorkoutSession,
@@ -190,6 +230,20 @@ extension HealthKitHeartRateProvider: HKWorkoutSessionDelegate {
             self?.continuation?.finish()
             self?.session = nil
             self?.builder = nil
+        }
+    }
+}
+
+
+extension CardioActivity {
+    var healthKitType: HKWorkoutActivityType {
+        switch self {
+        case .indoorWalk, .outdoorWalk: .walking
+        case .indoorRun, .outdoorRun: .running
+        case .indoorCycle, .outdoorCycle: .cycling
+        case .elliptical: .elliptical
+        case .rowing: .rowing
+        case .stairStepper: .stairClimbing
         }
     }
 }

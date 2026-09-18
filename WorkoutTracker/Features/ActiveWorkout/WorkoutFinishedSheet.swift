@@ -124,6 +124,12 @@ struct WorkoutFinishedSheet: View {
                             maxBpm: summary.maxHeartRate)
                     }
                     exercisesSection(summary)
+                    if let workout = savedWorkout, !workout.recordedCardio.isEmpty {
+                        Section("Cardio") {
+                            ForEach(workout.recordedCardio) { CardioSummaryCard(segment: $0) }
+                                .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                        }
+                    }
                 }
             }
             .scrollContentBackground(.hidden)
@@ -156,6 +162,10 @@ struct WorkoutFinishedSheet: View {
             HistoryRendering.pluralized(entryCount, "exercise", "exercises"),
             HistoryRendering.pluralized(setCount, "set", "sets"),
         ]
+        if !saved.recordedCardio.isEmpty {
+            if setCount == 0 { parts = [] }
+            parts.append(HistoryRendering.pluralized(saved.recordedCardio.count, "cardio activity", "cardio activities"))
+        }
         // The snapshot name (D23), like the rest of history — the receipt
         // describes what was logged, not what the gym is called now.
         if let gymName = saved.historyGymName {

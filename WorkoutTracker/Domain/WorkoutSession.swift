@@ -166,9 +166,14 @@ struct WorkoutSession {
                 survivors += 1
             }
         }
+        for segment in workout.orderedCardio {
+            segment.end(at: date)
+            if !segment.hasRecordedActivity { context.delete(segment) }
+        }
         // A2: Start → Finish with nothing logged used to leave a permanent
         // empty row in History. Nothing survived cleanup → nothing happened.
-        guard survivors > 0 else {
+        // Cardio must survive without fake strength sets or it would be silently lost.
+        guard survivors > 0 || !workout.recordedCardio.isEmpty else {
             context.delete(workout)
             return .discardedEmpty
         }

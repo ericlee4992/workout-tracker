@@ -106,7 +106,8 @@ struct ExportCollector {
                 exercises: exportedExercises.count,
                 equipmentModels: exportedModels.count,
                 templates: exportedTemplates.count,
-                presets: presets.count),
+                presets: presets.count,
+                cardioSegments: workouts.reduce(0) { $0 + $1.orderedCardio.count }),
             preferences: preferences.map(self.preferences(from:)),
             gyms: exportedGyms,
             presets: presets
@@ -279,7 +280,27 @@ struct ExportCollector {
             // backup would be a range of nothing.
             heartRateSeriesLow: range?.low,
             heartRateSeriesHigh: range?.high,
-            basalEnergyKilocalories: workout.basalEnergyKilocalories)
+            basalEnergyKilocalories: workout.basalEnergyKilocalories,
+            cardioSegments: workout.orderedCardio.isEmpty ? nil : workout.orderedCardio.map(cardio(from:)))
+    }
+
+    private func cardio(from segment: CardioSegment) -> ExportSnapshot.Cardio {
+        ExportSnapshot.Cardio(
+            id: segment.id, order: segment.order, activity: segment.activityRawValue,
+            startedAt: dateFormat.string(from: segment.startedAt), endedAt: dateFormat.optionalString(from: segment.endedAt),
+            activeStartedAt: dateFormat.optionalString(from: segment.activeStartedAt),
+            accumulatedActiveSeconds: segment.accumulatedActiveSeconds,
+            lastCheckpointAt: dateFormat.string(from: segment.lastCheckpointAt), displayUnit: segment.displayUnitRawValue,
+            automaticDistanceMeters: segment.automaticDistanceMeters, distanceSource: segment.distanceSourceRawValue,
+            manualDistanceValue: segment.manualDistanceValue, manualDistanceUnit: segment.manualDistanceUnitRawValue,
+            averageHeartRate: segment.averageHeartRate, maxHeartRate: segment.maxHeartRate,
+            heartRateTotal: segment.heartRateTotal, heartRateCount: segment.heartRateCount,
+            lastHeartRateSampleID: segment.lastHeartRateSampleID,
+            activeEnergyKilocalories: segment.activeEnergyKilocalories, basalEnergyKilocalories: segment.basalEnergyKilocalories,
+            intervals: segment.intervals.map { .init(start: dateFormat.string(from: $0.start), end: dateFormat.string(from: $0.end)) },
+            distanceSpans: segment.distanceSpans.map { .init(start: dateFormat.string(from: $0.start), readings: $0.readings) },
+            route: segment.route.map { .init(id: $0.id, latitude: $0.latitude, longitude: $0.longitude,
+                date: dateFormat.string(from: $0.date), accuracy: $0.accuracy, portion: $0.portion) })
     }
 
     private func entry(

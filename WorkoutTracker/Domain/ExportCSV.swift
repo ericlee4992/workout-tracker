@@ -11,13 +11,14 @@ import Foundation
 // no snapshot yet, reports its live equipment (see `ExportCollector.context`).
 //
 // Scope, stated plainly (D30 as amended by codex-review finding 6): this file
-// is a complete ledger of *sets*. A workout or entry that holds no set at all
+// is a ledger of strength sets and cardio segments. A workout/entry with neither
+// has no row. A workout or entry that holds no set at all
 // has no row here — "one row per set" has nowhere to put it. The JSON export is
 // the complete backup and does carry those objects.
 
 enum ExportCSV {
 
-    /// The 37 columns, in order. `work-record/milestone-3-export/spec.md` documents
+    /// The original 37 columns followed by append-only cardio columns. `work-record/milestone-3-export/spec.md` documents
     /// each one's source; the order is part of the format — appending is safe,
     /// reordering is not, and so is changing what an existing column means
     /// (codex-review 02 caught a first cut that did).
@@ -55,6 +56,11 @@ enum ExportCSV {
         // reclassification rewrote it; empty for every other row. The
         // provenance travels with the rows it explains.
         "reclassifiedFrom",
+        // v10: cardio is its own row kind; strength columns retain their meaning.
+        "rowKind", "cardioID", "cardioActivity", "cardioStartedAt", "cardioEndedAt",
+        "cardioActiveSeconds", "cardioAutomaticMeters", "cardioDistanceSource",
+        "cardioEnteredDistance", "cardioEnteredUnit", "cardioDisplayUnit",
+        "cardioAvgHeartRate", "cardioMaxHeartRate", "cardioActiveCalories",
     ]
 
     /// RFC 4180 line terminator. Excel on Windows still wants CRLF; every
@@ -71,6 +77,26 @@ enum ExportCSV {
                 for set in entry.sets {
                     lines.append(row(fields(workout: workout, entry: entry, set: set)))
                 }
+            }
+            for cardio in workout.cardioSegments ?? [] {
+                var values = Array(repeating: "", count: header.count)
+                let fields: [String: String] = [
+                    "workoutID": workout.id.uuidString, "workoutStartedAt": workout.startedAt,
+                    "workoutFinishedAt": workout.finishedAt ?? "", "workoutName": workout.sourceTemplateName ?? "",
+                    "workoutTypedName": workout.name ?? "", "workoutNotes": workout.notes,
+                    "gymID": workout.gymID?.uuidString ?? "", "gymName": workout.gymName ?? "",
+                    "rowKind": "cardio", "cardioID": cardio.id.uuidString, "cardioActivity": cardio.activity,
+                    "cardioStartedAt": cardio.startedAt, "cardioEndedAt": cardio.endedAt ?? "",
+                    "cardioActiveSeconds": WeightMath.storageNumber(activeSeconds(cardio, exportedAt: snapshot.exportedAt)),
+                    "cardioAutomaticMeters": cardio.automaticDistanceMeters.map(WeightMath.storageNumber) ?? "",
+                    "cardioDistanceSource": cardio.distanceSource ?? "",
+                    "cardioEnteredDistance": cardio.manualDistanceValue.map(WeightMath.storageNumber) ?? "",
+                    "cardioEnteredUnit": cardio.manualDistanceUnit ?? "", "cardioDisplayUnit": cardio.displayUnit,
+                    "cardioAvgHeartRate": cardio.averageHeartRate.map(String.init) ?? "",
+                    "cardioMaxHeartRate": cardio.maxHeartRate.map(String.init) ?? "",
+                    "cardioActiveCalories": cardio.activeEnergyKilocalories.map(WeightMath.storageNumber) ?? ""]
+                for (index, key) in header.enumerated() { values[index] = fields[key] ?? "" }
+                lines.append(row(values))
             }
         }
         // Trailing terminator: a text file's last line ends, and appending to
@@ -92,7 +118,7 @@ enum ExportCSV {
         entry: ExportSnapshot.Entry,
         set: ExportSnapshot.SetRow
     ) -> [String] {
-        [
+        let values: [String] = [
             workout.id.uuidString,
             workout.startedAt,
             workout.finishedAt ?? "",
@@ -137,6 +163,17 @@ enum ExportCSV {
             workout.name ?? "",
             entry.reclassifiedFromExerciseName ?? "",
         ]
+        return values + ["strength"] + Array(repeating: "", count: header.count - 38)
+    }
+
+    private static func activeSeconds(_ cardio: ExportSnapshot.Cardio, exportedAt: String) -> Double {
+        guard cardio.endedAt == nil, let started = cardio.activeStartedAt else { return cardio.accumulatedActiveSeconds }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let start = formatter.date(from: started), let end = formatter.date(from: exportedAt) else {
+            return cardio.accumulatedActiveSeconds
+        }
+        return cardio.accumulatedActiveSeconds + max(0, end.timeIntervalSince(start))
     }
 
     private static func row(_ fields: [String]) -> String {

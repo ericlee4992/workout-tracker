@@ -30,6 +30,7 @@ struct StartWorkoutView: View {
     @State private var viewingTemplate: WorkoutTemplate?
     @State private var editingTemplate: WorkoutTemplate?
     @State private var showingTemplateEditor = false
+    @State private var showingCardioPicker = false
     /// Called with the workout to present — freshly started or resumed.
     var onWorkoutStarted: (Workout) -> Void
 
@@ -57,6 +58,14 @@ struct StartWorkoutView: View {
                         .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 }
 
+                if activeWorkouts.isEmpty {
+                    Section {
+                        Button { showingCardioPicker = true } label: {
+                            Label("Start Cardio", systemImage: "figure.run").frame(maxWidth: .infinity)
+                        }.buttonStyle(.secondary).accessibilityIdentifier("startCardio")
+                            .listRowBackground(Color.clear).listRowInsets(EdgeInsets())
+                    }
+                }
                 Section("Templates") {
                     // Ticket 10: a two-column grid of tiles (the user chose
                     // direction C's templates). Ticket 11: the tile OPENS the
@@ -130,6 +139,12 @@ struct StartWorkoutView: View {
                     onWorkoutStarted(workout)
                 }
             }
+            .sheet(isPresented: $showingCardioPicker) {
+                CardioActivityPicker { activity in
+                    showingCardioPicker = false
+                    startRequest = WorkoutStartRequest(template: nil, cardioActivity: activity)
+                }
+            }
             .sheet(isPresented: $showingTemplateEditor) {
                 TemplateEditorSheet(template: editingTemplate)
             }
@@ -152,7 +167,7 @@ struct StartWorkoutView: View {
             .accessibilityIdentifier("resumeWorkout")
         } else {
             Button { startRequest = WorkoutStartRequest(template: nil) } label: {
-                HeroCapsuleLabel(title: "Start Empty Workout", subtitle: nil,
+                HeroCapsuleLabel(title: "Start Lifting", subtitle: nil,
                                  symbol: "figure.strengthtraining.traditional", trailing: "arrow.up.right",
                                  live: false)
             }
