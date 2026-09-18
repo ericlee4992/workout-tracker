@@ -6,7 +6,8 @@ Status: open — physical evidence outstanding
 Software merged via **b0a8de9**, product03ada3d; build,748 full units,13 final targeted units,
 7 focused UI and79 full UI passed. [Implementation and review evidence](01-implementation.md).
 These simulator results do not establish AirPods Pro3 distance delivery or locked-screen GPS.
-Phone remains source4d70d7d, export schema9; cardio adds schema10. Follow current
+Phone now has the cardio build from c847ef3 (product03ada3d); first launch is pending unlock,
+so the on-phone store migration is not yet confirmed. Cardio exports schema10. Follow current
 [STATE](../../../docs/STATE.md) and [DEVELOPMENT](../../../docs/DEVELOPMENT.md) for fresh export,
 raw backup, migration, signing, binary freshness and launch checks before an install.
 
@@ -32,3 +33,34 @@ After a separately requested, backed-up phone install, record device OS/AirPods 
 Watch companion cardio remains outside this release. If HealthKit supplies no indoor distance,
 record that result as unavailable with labelled phone-motion/manual fallback; do not call it
 verified AirPods distance support. Record actual device/firmware and results here.
+
+## Installation — user authorized 2026-09-18
+
+User asked “can you install”. Fresh generic-iOS build from clean main **c847ef3**, product
+**03ada3d**, `/tmp/wt-cardio-device-20260918`, exit0. Verified current dylib timestamp and
+CardioRecorder symbol, same app/widget bundle identities, code signatures, and built Health,
+motion, location and camera usage strings plus background location. Profiles reused: app
+expires **2026-09-24 07:16:18 UTC**, widget **07:16:20 UTC**.
+
+Stopped the old app (PID15829) for a consistent backup; its store had no unfinished workout.
+Fresh full container at `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`,
+26 files /23,745,974 bytes, SHA-256 manifest, integrity `ok`, access-restricted outside Git.
+Master backup hashes unchanged after verification. No private data committed.
+
+Before installing, ran production container migration and JSON/CSV exporters on an isolated
+copy of the **actual phone store**. Private probe plus legacy migration tests: **10 passed,
+0 failed/skipped, exit0**. Both databases pass integrity; every pre-existing attribute, row,
+ID and relationship across13 tables matches after normalizing Core Data numeric Z_ENT tags
+through their entity names (the only changed old column). Portable CSV/JSON exports saved
+beside the raw backup from that migrated copy, JSON round-trip verified. This is stronger
+than the synthetic fixture, but not a tested restore. Temporary probe source archived in the
+private backup and removed from the test tree; its private simulator files removed.
+
+Installed 2026-09-18 08:32 EDT successfully: devicectl exit0 /outcome success, same bundle ID preserves
+the app container; installation UUID **615FA1ED-A116-408B-B03C-FD43A5654A54**.
+Remote launch returned Locked (FBSOpenApplicationErrorDomain7), exit1, no app process running.
+Asked user to unlock so launch can be verified. **Installed, not yet launch-verified.**
+
+Build/install/launch logs and JSON: main `work-record/ui-redesign/results/cardio-install/`.
+Migration result/log: implementation `work-record/ui-redesign/results/cardio/private-migration-install.*`.
+Physical AirPods/GPS acceptance remains outstanding even after successful launch.

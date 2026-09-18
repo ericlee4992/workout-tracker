@@ -21,12 +21,12 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 - **Distance acceptance:** collect actual HealthKit readings and labelled phone-motion fallback;
   AirPods Pro3 indoor distance delivery is **not yet physically verified**. Neither HR connection
   nor simulator fixtures prove it. Treadmill (phone carried/stationary), pause/disconnect and
-  locked-screen outdoor GPS checks remain in ticket02. Watch cardio is not claimed. No phone
-  install performed; installed source/schema/backup facts below remain unchanged.
+  locked-screen outdoor GPS checks remain in ticket02. Watch cardio is not claimed. Cardio installed 2026-09-18; remote launch is blocked by the phone lock screen. User has
+  been asked to unlock; verify launch next. Current phone facts are below.
 - **Design:** reviewed native B prototype source `48608fb`, branch `ericlee4992/cardio-design-prototype`;
   source is reference only, not mergeable. Existing tabs remain. [Design record](../work-record/cardio-design/issues/01-design-discussion.md).
-- **Ring report closed:** user confirmed it works; no product change. Product on phone remains
-  ticket 17, source `4d70d7d`; facts below unchanged. No phone installation requested yet.
+- **Ring report closed:** user confirmed it works; no product change. Cardio installation was authorized
+  and performed on 2026-09-18; current phone facts below supersede ticket17.
 - Graft CLI and prompt hints work; optional AI summaries unbuilt. Completed workspaces sleep;
   keep Hide sleeping and main visible. Current cardio workspaces still need actual Sleep:
   macOS UI accessibility returned permission_denied despite reported grants; no destructive
@@ -58,19 +58,19 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 | Fact | Last verified value |
 |---|---|
-| Installed source | `4d70d7d` (built from main `39b4c8d`), installed 2026-09-17 21:43 EDT and launched 21:44 EDT; `devicectl` confirmed install and launch success (PID 15231) |
+| Installed source | Cardio product `03ada3d`, built from clean main `c847ef3`; installed 2026-09-18 08:32 EDT, devicectl exit0/success. Remote launch blocked by Locked error; awaiting unlock and first launch verification |
 | Provisioning | Verified in the installed build: app expires **2026-09-24 07:16:18 UTC**, widget **07:16:20 UTC**; same profiles created September 17 |
-| Store | Export schema 9; no schema change in tickets 16/17. History snapshots and the user's actual training data are on the phone |
-| Latest local backup | Fresh full app-container copy before ticket 17, 2026-09-17: `/Users/ericlee06/WorkoutTracker-Backups/2026-09-17-before-ticket17`; 24 files, SQLite integrity checks passed; SHA-256 manifest beside it. Raw device backup, not the app's CSV/JSON export; restore has not been tested |
+| Store | Cardio code exports schema10; on-phone migration awaits first launch. Offline migration of a fresh actual-store copy passed, preserving all existing values/relationships across13 tables |
+| Latest local backup | `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`: fresh raw container,26 files, integrity and SHA-256 checks passed. JSON/CSV generated with app exporters from an isolated migrated copy alongside it; private, outside Git. Restore not tested |
 | Last reported app export | User's CSV + JSON export to iCloud Drive, 2026-09-04, immediately before D51 reclassification; 18 sets moved on the real store |
 | Phone UDID | `00008130-001E10C01E62001C` |
 | Bundle ID / team | `com.ericlee4992.workouttracker` / `X68M8SR6NA`; per-developer signing lives in gitignored `Config/Local.xcconfig` |
 | Watch | Companion never built/run/installed; separate target is a sketch |
 | Environment | Xcode 27.0; test simulator `WT-iPhone`. CoreSimulator and Apple ID sign-in issues from the update were resolved 09-17 |
 
-Re-export after sessions worth keeping. A fresh raw device backup now exists locally; the
-latest reported portable CSV/JSON export is still September 4. History newer than the latest
-backup is only known to be on the phone. Get a fresh export before risky data operations or installs.
+Re-export after sessions worth keeping. The September18 raw backup and locally generated
+CSV/JSON include the current pre-install data. The last user-reported in-app export to iCloud
+remains September4; no newer iCloud export is claimed.
 
 Before build/test/install or troubleshooting, read [DEVELOPMENT](DEVELOPMENT.md), including
 binary freshness, migration-fixture limitations, profile renewal, and detached tests.
