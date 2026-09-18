@@ -20,7 +20,7 @@ Decisions made during product discovery (2026-08-08 interview). Each entry: deci
 | D12 | Set types: warmup/working/failure; warmups excluded from PRs/volume | The minimal set that keeps records honest. RPE/supersets deferred. (Amended by D26: drop sets added.) |
 | D13 | Rest timer: auto-start on completion, per-exercise durations (warmup vs. working split), notification | Strong-standard behavior; the split is a verified Strong nicety worth matching. |
 | D14 | Load types: weighted / bodyweight / bodyweightPlus / assisted, direction-aware | Assisted machines invert "better" (less assistance wins); naive weight×reps produces wrong PRs. |
-| D15 | Strength-only v1 (no duration/distance sets) | Single set shape is the biggest scope containment available. |
+| D15 | Strength-only shipped v1 (no duration/distance sets). **Reopened for cardio design, 2026-09-17:** user requests live gym cardio and outdoor runs/rides with GPS, saved as one workout with separate lifting/cardio sections. Show native designs before implementation; no schema or product change approved by the mockups alone. [Design record](../work-record/cardio-design/issues/01-design-discussion.md). | Original scope containment: one set shape. Reopened at the user’s explicit request to support cardio and mixed sessions; HealthKit mapping, distance sources, history/export and pause semantics must be specified before implementation. |
 | D16 | v1 extras all in scope but sequenced: export → charts → Strong import → plate calc | Everything ships in v1, but a gym-usable build exists early (dogfooding from milestone 2). |
 | D17 | e1RM: Brzycki, 12-rep record cap | Strong parity (verified from their docs); estimates degrade past 12 reps. |
 | D18 | Adopt Strong's template-drift prompt (update/values-only/both/keep) | Elegant, proven solution to template drift. |
@@ -81,7 +81,7 @@ Decisions made during product discovery (2026-08-08 interview). Each entry: deci
 - Import / restore *from* our own JSON — the format is written to be re-importable, but reading it back is post-milestone-3
 - Notification permission timing (on first completed set, not launch) — milestone 2
 - Seeded catalog curation workflow — parallel content task
-- Post-v1: iCloud sync, duration sets/cardio, RPE/supersets, catalog dedup. (~~drop sets~~ closed by D26; ~~Watch/HealthKit~~ **brought into scope by D41**, 2026-08-22)
+- Post-v1: iCloud sync, duration sets beyond the current cardio design, RPE/supersets, catalog dedup. Cardio is now in design under reopened D15 (2026-09-17), not implemented. (~~drop sets~~ closed by D26; ~~Watch/HealthKit~~ **brought into scope by D41**, 2026-08-22)
 
 ## Reviews
 

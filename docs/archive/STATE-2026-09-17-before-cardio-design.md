@@ -5,29 +5,32 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 ## Active task and next action
 
-- **Cardio design discussion is active.** User wants live gym cardio (timer, heart rate,
-  calories, distance), outdoor runs/rides with GPS, and **one saved workout with separate
-  lifting/cardio sections**. Show designs before implementing the feature.
-- **Native mockups:** branch `ericlee4992/cardio-design-prototype`, source checkpoint `4f004be`,
-  checkout `/Users/ericlee06/orca/workspaces/Health App/cardio-design-prototype`. Three mixed
-  workout directions plus Start, picker, gym, outdoor and summary; default/AccessibilityL
-  captures. [Design handoff](../work-record/cardio-design/issues/01-design-discussion.md).
-  The throwaway prototype code must not merge to main. Next: complete independent visual
-  review, show gallery, and get the user's design choice. No production cardio implementation.
-- **Sets ring report closed:** the user checked the ring and confirmed “it actually works.”
-  No product fix. Diagnostic UI/pixel checks passed at 1/1 and 2/2; test source was removed.
-  [Ticket 18](../work-record/ui-redesign/issues/18-sets-completion-ring.md) preserves evidence.
-- **Main product remains ticket 17**, source `4d70d7d`; current main base `e51695b`. Phone
-  build and backup facts below remain unchanged. No new phone install was requested.
-- **Graft:** live prompt hints and CLI navigation observed; structural graph has 221 files,
-  2,418 symbols and 7,099 links on main. Optional AI summaries are unbuilt; all client MCP/hook
-  event paths have not been exhaustively checked. [Setup ticket](../work-record/graft-setup/issues/01-graft-handoff.md).
-  Claude imports shared instructions; separate Claude MCP/hooks were not installed.
-- **Workspace preference:** keep completed workspaces sleeping with Hide sleeping enabled;
-  main stays visible. Preserve logs/histories. The cardio preview gallery is open in main's
-  Orca browser; keep it accessible while the user compares designs.
-- **Personal Codex settings preserved:** context 872,000, compaction 780,000, context footer.
-  These are configured values, not a tested capacity claim.
+- **Resume in the main checkout:** `/Users/ericlee06/orca/projects/Health App`, branch `main`.
+  Pre-checkpoint HEAD is `f89dcde`; checkpoint `e8e5282` has independent Claude clearance.
+  This handoff adds documentation/Graft wiring only. Verify
+  current HEAD and working tree on startup. Product source remains `4d70d7d`.
+- **Finish summary is done and installed.** The user kept the current design, changing only
+  the three metric pairs: time/volume, active/total calories, average/max HR. The user approved
+  the real captures and requested the phone install. [Ticket 17](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
+- **Graft is configured for Codex.** CLI 0.18.0, structural graph fresh: 221 files, 2,418 symbols,
+  7,099 links; no optional LLM summaries built. Global Codex MCP entry is enabled and its six
+  tools answered a direct handshake. Four Graft hook events are registered. **Next session:**
+  verify Graft tools actually load in the new Codex session; that client reload and live hook
+  execution have not yet been observed. CLI navigation works now. Read the
+  [setup/handoff ticket](../work-record/graft-setup/issues/01-graft-handoff.md) for exact scope.
+- **Claude scope:** `CLAUDE.md` imports the shared AGENTS/Graft instructions. Separate project
+  Graft skill/MCP wiring and global Claude Graft hooks were not found; do not claim those are
+  installed. No extra configuration is required merely to resume this project.
+- **Next product action is unchosen.** Obtain gym feedback on tickets 16/17, then let the user
+  choose History's second pass or App Store groundwork. Do not restart the rejected A/B/C
+  finish-summary designs or begin another screen just because it is on the backlog.
+- **Workspace/UI preference:** keep the sidebar tidy. Completed setup, design, implementation
+  and review workspaces are sleeping; Hide sleeping is enabled and `main` remains visible.
+  Files/logs/session history are preserved. The stale design-preference prompt was dismissed;
+  no answer remains outstanding. Sleep temporary workspaces again after work finishes.
+- **Personal Codex settings preserved:** context window 872,000; auto-compaction 780,000;
+  context-used/remaining/window-size footer. These are configured values, not a claim that this
+  session tested filling the whole window. A fresh session loads its own configuration.
 
 ## Latest completed work and verification
 
