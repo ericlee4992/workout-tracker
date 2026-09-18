@@ -1,7 +1,7 @@
 # 01 — Cardio design discussion
 
 Type: prototype
-Status: claimed — native designs reviewed CLEAR; user choice pending
+Status: claimed — direction B selected; indoor device policy and feature specification pending
 
 ## Accepted scope and workflow
 
@@ -65,3 +65,43 @@ prototype chrome, not a request to change navigation).
 Gallery stays at the same local path and is open in main’s Orca browser. All test/build jobs
 finished. Next action is **the user’s design choice**, then a proper feature spec; no cardio
 implementation has started. The phone and production app source remain unchanged.
+
+## User decision — 2026-09-18
+
+“Regarding design direction, lets go with B.” **B is selected:** focus on the current
+activity while keeping one workout with separate lifting and cardio sections. Start Lifting
+and Start Cardio determine the first activity; either kind can be added mid-workout. The
+throwaway view remains a design source, not production implementation. The previous “user
+choice pending” checkpoints above are historical and superseded by this decision.
+
+The user also wants indoor activity choices aligned with Apple Fitness and asks whether to
+require a connected AirPods/Watch device, wondering whether it is needed for distance.
+**A device gate has not been selected.** Proposed policy: keep the activity list available;
+show automatic metrics only when a supported source supplies them; allow a timer and manual
+machine-distance entry without a wearable. Label source/estimated values, omit unavailable
+HR/calories, and preserve the session if a sensor disconnects. This is a recommendation
+awaiting discussion, not an approved acceptance criterion.
+
+### Verified Apple behavior and limits
+
+- Apple's iPhone Fitness guide lists phone-only outdoor walk/run, hiking, wheelchair push
+  walking/running pace and outdoor cycle. Connected Apple Watch, AirPods Pro 3, Powerbeats
+  Pro 2 or compatible Bluetooth HR monitors enable additional workout types. This refers to
+  compatible HR hardware, not every AirPods generation or arbitrary Bluetooth connection.
+  Apple documents the capability difference but does not state that distance alone motivates
+  the restriction. [iPhone guide](https://support.apple.com/en-gb/guide/iphone/iph8475d8510/ios).
+- AirPods Pro 3 supply heart-rate AND motion data to iPhone for metrics including calories,
+  steps and distance. Do not describe them as HR-only or claim they can never contribute to
+  indoor walking/running distance. Availability through this app's public APIs and the iOS 26
+  deployment floor still needs verification before promising automatic distance.
+  [AirPods guide](https://support.apple.com/guide/airpods/track-heart-rate-workouts-airpods-pro-3-dev1b40fb47d/web).
+- Apple Watch calibration learns stride length at different speeds and improves distance
+  when GPS is limited/unavailable. A wearable-derived distance is an estimate, not the
+  treadmill's own measurement. [Calibration](https://support.apple.com/en-us/105048).
+- Compatible gym equipment can pair with Apple Watch for synchronized workout data. This
+  does not establish general machine connectivity in this app or that a generic HR monitor
+  supplies bike/rowing/elliptical distance.
+  [Gym equipment](https://support.apple.com/guide/watch/use-gym-equipment-apd15b0268fd/watchos).
+
+No app/test/schema changes, build, phone installation or new device integration in this
+checkpoint. Direction B is accepted; sensor policy is the next discussion.

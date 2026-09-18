@@ -1,6 +1,6 @@
 # Current project state
 
-Updated 2026-09-17. Read [AGENTS](../AGENTS.md) for the shared workflow. This file holds
+Updated 2026-09-18. Read [AGENTS](../AGENTS.md) for the shared workflow. This file holds
 current facts and open work; previous handoffs are preserved in the [archive](archive/README.md).
 
 ## Active task and next action
@@ -14,12 +14,15 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   captures. [Design handoff](../work-record/cardio-design/issues/01-design-discussion.md).
   Debug build and native capture drivers passed **2/2**, exit 0; Claude follow-up **CLEAR**.
   Gallery shown in main’s browser: 37 PNGs, 29 distinct views after deduplication.
-  **Next: user chooses A/B/C or a combination.** The throwaway UI must not merge to main;
-  no production cardio implementation or running verification job.
+  **User chose B (2026-09-18): focus on the current activity.** Starting with either lifting
+  or cardio and adding either mid-workout remains the intended flow. Next: settle indoor
+  device requirements and metric sources, then write the implementation spec. Apple-style
+  activity names requested; device gating is being discussed, not approved. No production
+  cardio implementation. The throwaway UI must not merge to main.
 - **Sets ring report closed:** the user checked the ring and confirmed “it actually works.”
   No product fix. Diagnostic UI/pixel checks passed at 1/1 and 2/2; test source was removed.
   [Ticket 18](../work-record/ui-redesign/issues/18-sets-completion-ring.md) preserves evidence.
-- **Main product remains ticket 17**, source `4d70d7d`; docs checkpoint through `fd6a9ff`. Phone
+- **Main product remains ticket 17**, source `4d70d7d`; docs checkpoint through `160af86`. Phone
   build and backup facts below remain unchanged. No new phone install was requested.
 - **Graft:** live prompt hints and CLI navigation observed; structural graph has 221 files,
   2,418 symbols and 7,099 links on main. Optional AI summaries are unbuilt; all client MCP/hook
