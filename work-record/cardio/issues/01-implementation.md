@@ -265,3 +265,26 @@ is reachable; the lifting-side recording banner is tappable without a chevron; t
 consequence note uses a single native list row; existing large-text gym/sets header wraps.
 Receipt metadata orphaning and mixed duration formats remain the recorded copy exceptions.
 These are accepted low items for this release, not silently lost findings.
+
+### Full gate passed
+
+`full-ui-2` on product **03ada3d** / test **306acf4**: **79 passed, 0 failed, 0 skipped**,
+actual xcodebuild exit **0**, readable xcresult summary verified. Completed 2026-09-18
+03:58 EDT, test duration **2779.194 seconds**. Runner64009 is finished. **24 non-failing
+invalid-frame warnings**, all the previously known message class (baseline ticket17 had22);
+origin remains uninvestigated. No other runtime-warning class.
+
+Exported and inspected [lifting regression captures](../screenshots/regression/) at default
+and AccessibilityL, including scrolled add actions/rest controls. Existing lifting layout
+stays usable; the new large-text add buttons are stacked and readable. Final code/visual
+reports are already clear; final merge-clearance review requested against these actual results.
+No product or test changes after306acf4; later commits contain docs and native captures only.
+No phone installation or physical sensor/GPS acceptance is claimed.
+
+### Final independent clearance
+
+[Claude final gate](../claude-final-clearance.md): **clear to merge** the unchanged reviewed
+product/test trees once this evidence is committed and pushed. Counts and exit files were
+independently read, final test query checked, and four lifting regression captures inspected.
+Commit this record/captures/report together, then fast-forward/push main and verify remote tip.
+Physical acceptance remains outstanding, with no phone install authorized by this review.

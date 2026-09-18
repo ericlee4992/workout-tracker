@@ -5,21 +5,20 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 ## Active task and next action
 
-- **Cardio implementation active.** User chose B and on 2026-09-18 approved optional devices /
+- **Cardio implementation verified; merge checkpoint.** User chose B and on 2026-09-18 approved optional devices /
   manual fallback, explicitly requiring indoor distance and pace on supported connected devices
   such as AirPods Pro 3. Outdoor runs/rides with GPS, one saved workout with separate sections,
   and starting/adding either activity remain required. [Ticket](../work-record/cardio/issues/01-implementation.md),
   [spec](../work-record/cardio/spec.md), [API evidence](../work-record/cardio/research/01-indoor-distance-and-pace.md).
 - Checkout `/Users/ericlee06/orca/workspaces/Health App/cardio-implementation`, branch
-  `ericlee4992/cardio-implementation`, base `14982e7`; committed checkpoint `306acf4` (pushed; product source remains `03ada3d`).
-  N1/N2 fixes now use append-only heartbeat rows and fold stray checkpoints on finish.
-  Full unit run `unit-7`: **748 tests / 81 suites passed**, exit 0; `build-9` passes.
-  Native visual review required pinned controls, consistent route colour and more state captures;
-  those corrections pass `build-10`; targeted units passed13/13. A full run exposed an ambiguous Cancel test query; isolated
-  rerun reproduced it and the test is corrected. Focused7 then full79 now run under PID **64009**,
-  frozen `306acf4`, script `final-306acf4.sh`. Claude code review03 and visual review02 are clear; focused UI7/7 passed with29 captures
-  in [gallery](../work-record/cardio/gallery.html). Full UI remains running. Detailed jobs,
-  measurements and review findings are in the ticket. No phone install.
+  `ericlee4992/cardio-implementation`, base `14982e7`; product source **03ada3d**, tests **306acf4**,
+  evidence tip **ff63a47**. Debug `build-10` passes; full units **748/81 suites**, final targeted
+  units **13/13**, focused cardio UI **7/7**, full local UI **79/79**, all actual exit0.
+  Full UI completed 2026-09-18 03:58 EDT; no test job remains running. Claude code03 and
+  visual02 reviews clear; [final merge clearance](../work-record/cardio/claude-final-clearance.md)
+  is clear. Next: commit evidence, fast-forward/push main and verify the remote. [Native gallery](../work-record/cardio/gallery.html).
+  24 non-failing invalid-frame warnings remain (known warning class; origin uninvestigated).
+  Detailed evidence/low limitations in ticket. No phone install.
 - **Distance acceptance:** public live-builder APIs are available; actual AirPods indoor distance
   delivery is not guaranteed by documentation. Implement collection and labeled phone-motion
   fallback; retain real-device treadmill validation as a separate gate, never claim simulator
