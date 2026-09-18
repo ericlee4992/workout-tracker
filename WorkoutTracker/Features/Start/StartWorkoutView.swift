@@ -160,7 +160,7 @@ struct StartWorkoutView: View {
         if let active = activeWorkouts.first, !active.isDeleted {
             Button { resumeActive() } label: {
                 HeroCapsuleLabel(title: "Resume workout", subtitle: resumeSubtitle(active),
-                                 symbol: "figure.strengthtraining.traditional", trailing: "chevron.right",
+                                 symbol: active.unfinishedCardio?.activity.symbol ?? "figure.strengthtraining.traditional", trailing: "chevron.right",
                                  live: true)
             }
             .buttonStyle(.plain)
@@ -179,7 +179,9 @@ struct StartWorkoutView: View {
 
     private func resumeSubtitle(_ workout: Workout) -> String {
         let count = WorkoutSession.orderedEntries(of: workout).count
-        let exercises = "\(count) \(count == 1 ? "exercise" : "exercises")"
+        let exercises = count > 0 ? "\(count) \(count == 1 ? "exercise" : "exercises")"
+            : (workout.unfinishedCardio?.activity.name
+               ?? HistoryRendering.pluralized(workout.recordedCardio.count, "cardio activity", "cardio activities"))
         guard let gymName = workout.gym?.name else { return "In progress · \(exercises)" }
         return "\(gymName) · \(exercises)"
     }

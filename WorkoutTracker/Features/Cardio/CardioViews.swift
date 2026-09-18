@@ -101,22 +101,33 @@ struct CardioLiveView: View {
             LazyVGrid(columns: columns, alignment: .leading, spacing: 20) {
                 CardioMetric(label: "Distance", value: distanceText, unit: segment.unit.rawValue)
                 if segment.activity.usesSpeed {
-                    CardioMetric(label: "Current speed", value: speedText, unit: "\(segment.unit.rawValue)/h")
+                    CardioMetric(label: "Average speed", value: averageSpeedText, unit: "\(segment.unit.rawValue)/h")
                 } else {
-                    CardioMetric(label: "Current pace", value: CardioMath.paceText(CardioMath.pace(speed: recorder.freshSpeed, unit: segment.unit)), unit: "/\(segment.unit.rawValue)")
+                    CardioMetric(label: "Average pace", value: CardioMath.paceText(CardioMath.pace(seconds: segment.activeDuration(at: recorder.measurementTime), meters: segment.distanceMeters, unit: segment.unit)), unit: "/\(segment.unit.rawValue)")
                 }
-                if let monitor, !monitor.isStale, let bpm = monitor.current?.bpm {
-                    CardioMetric(label: "Heart rate", value: "\(bpm)", unit: "bpm", tint: Theme.danger)
+                if let sample = recorder.currentHeartRate {
+                    CardioMetric(label: "Heart rate", value: "\(sample.bpm)", unit: "bpm", tint: Theme.danger)
                 }
                 if let calories = segment.activeEnergyKilocalories {
                     CardioMetric(label: "Active calories", value: "\(Int(calories.rounded()))", unit: "cal")
                 }
             }
-            if let monitor, !monitor.isStale, let zone = monitor.currentZone {
+            if recorder.freshSpeed != nil {
+                Text(segment.activity.usesSpeed
+                     ? "Current speed: \(speedText) \(segment.unit.rawValue)/h"
+                     : "Current pace: \(CardioMath.paceText(CardioMath.pace(speed: recorder.freshSpeed, unit: segment.unit))) /\(segment.unit.rawValue)")
+                    .font(.footnote).foregroundStyle(Theme.secondary)
+                    .accessibilityIdentifier("cardioCurrentPace")
+            }
+            if segment.isRunning && recorder.currentHeartRate == nil {
+                Text("Waiting for heart-rate data").font(.footnote).foregroundStyle(Theme.secondary)
+            }
+            if let sample = recorder.currentHeartRate, let max = monitor?.maxHeartRate,
+               let zone = HeartRateZones.zone(for: sample.bpm, max: max.bpm) {
                 HStack {
                     Chip(tint: zone.color) { Text(zone.label) }
                     Spacer()
-                    Text(monitor.currentSource?.label ?? "").font(.caption).foregroundStyle(Theme.secondary)
+                    Text(sample.source.label).font(.caption).foregroundStyle(Theme.secondary)
                 }
             }
             if !segment.route.isEmpty { CardioRouteMap(points: segment.route).frame(height: 210) }
@@ -132,7 +143,7 @@ struct CardioLiveView: View {
                     }
                     Spacer()
                     Image(systemName: "pencil").foregroundStyle(Theme.secondary)
-                }.frame(minHeight: 44)
+                }.frame(minHeight: 44).contentShape(Rectangle())
             }.buttonStyle(.plain).accessibilityIdentifier("cardioEditDistance")
             let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
             layout {
@@ -153,6 +164,10 @@ struct CardioLiveView: View {
     private var distanceText: String {
         guard let meters = segment.distanceMeters else { return "—" }
         return String(format: "%.2f", meters / segment.unit.metersPerUnit)
+    }
+    private var averageSpeedText: String {
+        guard let meters = segment.distanceMeters, segment.activeDuration(at: recorder.measurementTime) > 0 else { return "—" }
+        return String(format: "%.1f", meters / segment.activeDuration(at: recorder.measurementTime) * 3_600 / segment.unit.metersPerUnit)
     }
     private var speedText: String {
         guard let speed = recorder.freshSpeed else { return "—" }
@@ -183,6 +198,8 @@ struct CardioSummaryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Label(segment.activity.name, systemImage: segment.activity.symbol).font(.headline)
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("cardioSummary.\(segment.activityRawValue)")
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: typeSize.isAccessibilitySize ? 1 : 2), spacing: 16) {
                 CardioMetric(label: "Time", value: Format.elapsed(seconds: Int(segment.activeDuration(at: segment.endedAt ?? .now))))
                 if let meters = segment.distanceMeters {
@@ -202,11 +219,11 @@ struct CardioSummaryCard: View {
                     Text(segment.distanceMeters == nil ? "Enter distance" : segment.distanceLabel)
                     Spacer()
                     Image(systemName: "pencil")
-                }.font(.caption).frame(minHeight: 44)
-            }.foregroundStyle(Theme.secondary).accessibilityIdentifier("cardioSummaryEditDistance")
+                }.font(.caption).frame(minHeight: 44).contentShape(Rectangle())
+            }.buttonStyle(.plain).foregroundStyle(Theme.secondary).accessibilityIdentifier("cardioSummaryEditDistance")
         }
         .padding(16).card()
-        .accessibilityIdentifier("cardioSummary.\(segment.activityRawValue)")
+        .accessibilityElement(children: .contain)
         .sheet(isPresented: $editingDistance) { CardioDistanceSheet(segment: segment) }
     }
 }
@@ -218,18 +235,19 @@ struct CardioDistanceSheet: View {
     @State private var text = ""
     @State private var unit: CardioDistanceUnit = .km
     @State private var error: String?
+    @State private var initialText = ""
+    @State private var initialUnit: CardioDistanceUnit = .km
     var body: some View {
         NavigationStack {
             Form {
                 TextField("Distance", text: $text).keyboardType(.decimalPad).accessibilityIdentifier("cardioDistanceField")
-                Picker("Unit", selection: Binding(get: { unit }, set: { new in
-                    if let value = Double(text.replacingOccurrences(of: ",", with: ".")), value.isFinite {
-                        text = String(value * unit.metersPerUnit / new.metersPerUnit)
-                    }
-                    unit = new
-                })) {
+                Picker("Unit", selection: $unit) {
                     ForEach(CardioDistanceUnit.allCases) { Text($0.rawValue).tag($0) }
                 }.pickerStyle(.segmented).accessibilityIdentifier("cardioDistanceUnit")
+                if let meters = segment.automaticDistanceMeters {
+                    Text("Measured: \(String(format: "%.2f", meters / unit.metersPerUnit)) \(unit.rawValue)")
+                        .font(.subheadline).foregroundStyle(Theme.secondary)
+                }
                 Text("Enter the machine’s distance. Clear it to use the measured distance.")
                     .font(.footnote).foregroundStyle(Theme.secondary)
                 if let error { Text(error).foregroundStyle(Theme.danger) }
@@ -243,12 +261,15 @@ struct CardioDistanceSheet: View {
                             try CardioSession(context: context).enterDistance(text, unit: unit, for: segment)
                             dismiss()
                         } catch { self.error = error.localizedDescription }
-                    }.accessibilityIdentifier("saveCardioDistance")
+                    }.disabled(text == initialText && unit == initialUnit)
+                        .accessibilityIdentifier("saveCardioDistance")
                 }
             }
             .onAppear {
-                unit = segment.unit
-                if let meters = segment.distanceMeters { text = String(meters / unit.metersPerUnit) }
+                unit = segment.manualDistanceUnitRawValue.flatMap(CardioDistanceUnit.init(rawValue:)) ?? segment.unit
+                text = segment.manualDistanceValue.map(String.init(describing:)) ?? ""
+                initialText = text
+                initialUnit = unit
             }
         }
     }
@@ -266,7 +287,7 @@ struct CardioRouteMap: View {
         }
     }
     var body: some View {
-        Map(initialPosition: .automatic) {
+        Map(initialPosition: .automatic, interactionModes: []) {
             ForEach(portions) { portion in
                 MapPolyline(coordinates: portion.coordinates).stroke(Theme.accent, lineWidth: 4)
             }

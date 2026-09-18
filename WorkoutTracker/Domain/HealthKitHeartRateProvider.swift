@@ -22,6 +22,7 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding, CardioMetr
     private let store = HKHealthStore()
     private let activity: CardioActivity?
     private(set) var cardioReading: CardioSensorReading?
+    private(set) var collectionStartedAt: Date?
     var onCardioMetrics: (() -> Void)?
     private var session: HKWorkoutSession?
     private var shouldBePaused = false
@@ -97,10 +98,15 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding, CardioMetr
             // Apple's own guidance, and the reason their UI shows a countdown.
             session.prepare()
             let start = Date()
+            collectionStartedAt = start
             session.startActivity(with: start)
             try await builder.beginCollection(at: start)
             return .waitingForSensor
         } catch {
+            // A collection failure can occur AFTER startActivity. Release that
+            // session or the next activity can be blocked by an orphaned workout.
+            self.session?.end()
+            self.builder?.discardWorkout()
             self.session = nil
             self.builder = nil
             return .unavailable
@@ -127,7 +133,7 @@ final class HealthKitHeartRateProvider: NSObject, HeartRateProviding, CardioMetr
     }
 
     func stop() async {
-        guard let session, let builder else { return }
+        guard let session, let builder else { continuation?.finish(); return }
         let end = Date()
         session.stopActivity(with: end)
         session.end()
@@ -227,9 +233,12 @@ extension HealthKitHeartRateProvider: HKWorkoutSessionDelegate {
         // stops reporting live and the UI can say the sensor is gone, rather
         // than freezing on the last number forever.
         Task { @MainActor [weak self] in
-            self?.continuation?.finish()
-            self?.session = nil
-            self?.builder = nil
+            guard let self, self.session === workoutSession else { return }
+            self.session?.end()
+            self.builder?.discardWorkout()
+            self.continuation?.finish()
+            self.session = nil
+            self.builder = nil
         }
     }
 }

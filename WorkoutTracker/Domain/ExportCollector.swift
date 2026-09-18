@@ -281,7 +281,11 @@ struct ExportCollector {
             heartRateSeriesLow: range?.low,
             heartRateSeriesHigh: range?.high,
             basalEnergyKilocalories: workout.basalEnergyKilocalories,
-            cardioSegments: workout.orderedCardio.isEmpty ? nil : workout.orderedCardio.map(cardio(from:)))
+            cardioSegments: workout.orderedCardio.isEmpty ? nil : workout.orderedCardio.map(cardio(from:)),
+            sensorCheckpoint: workout.sensorSamplesData == nil && workout.sensorActiveEnergyCheckpoint == nil && workout.sensorBasalEnergyCheckpoint == nil ? nil : .init(
+                samples: workout.checkpointSamples.map { .init(id: $0.id, bpm: $0.bpm, date: dateFormat.string(from: $0.date), source: $0.source) },
+                activeEnergyKilocalories: workout.sensorActiveEnergyCheckpoint,
+                basalEnergyKilocalories: workout.sensorBasalEnergyCheckpoint))
     }
 
     private func cardio(from segment: CardioSegment) -> ExportSnapshot.Cardio {
@@ -298,7 +302,11 @@ struct ExportCollector {
             lastHeartRateSampleID: segment.lastHeartRateSampleID,
             activeEnergyKilocalories: segment.activeEnergyKilocalories, basalEnergyKilocalories: segment.basalEnergyKilocalories,
             intervals: segment.intervals.map { .init(start: dateFormat.string(from: $0.start), end: dateFormat.string(from: $0.end)) },
-            distanceSpans: segment.distanceSpans.map { .init(start: dateFormat.string(from: $0.start), readings: $0.readings) },
+            distanceSpans: segment.distanceSpans.map { span in
+                .init(start: dateFormat.string(from: span.start), readings: span.readings,
+                      updatedAt: span.updatedAt.mapValues { dateFormat.string(from: $0) },
+                      selectedSource: span.selectedSourceRawValue)
+            },
             route: segment.route.map { .init(id: $0.id, latitude: $0.latitude, longitude: $0.longitude,
                 date: dateFormat.string(from: $0.date), accuracy: $0.accuracy, portion: $0.portion) })
     }

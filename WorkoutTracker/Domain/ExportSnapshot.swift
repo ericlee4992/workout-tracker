@@ -255,6 +255,7 @@ extension ExportSnapshot {
         /// v8: the system's resting-energy figure; absent when not provided.
         var basalEnergyKilocalories: Double? = nil
         var cardioSegments: [Cardio]? = nil
+        var sensorCheckpoint: SensorCheckpoint? = nil
     }
 
     /// One exercise within a workout.
@@ -423,7 +424,12 @@ extension ExportSnapshot {
         var route: [CardioRoute]
     }
     struct CardioActiveInterval: Codable, Equatable { var start: String; var end: String }
-    struct CardioDistanceInterval: Codable, Equatable { var start: String; var readings: [String: Double] }
+    struct CardioDistanceInterval: Codable, Equatable {
+        var start: String
+        var readings: [String: Double]
+        var updatedAt: [String: String]
+        var selectedSource: String?
+    }
     struct CardioRoute: Codable, Equatable {
         var id: UUID
         var latitude: Double
@@ -431,5 +437,20 @@ extension ExportSnapshot {
         var date: String
         var accuracy: Double
         var portion: UUID
+    }
+}
+
+
+extension ExportSnapshot {
+    struct SensorCheckpoint: Codable, Equatable {
+        var samples: [SensorSample]
+        var activeEnergyKilocalories: Double?
+        var basalEnergyKilocalories: Double?
+    }
+    struct SensorSample: Codable, Equatable {
+        var id: UUID
+        var bpm: Int
+        var date: String
+        var source: HeartRateSource
     }
 }

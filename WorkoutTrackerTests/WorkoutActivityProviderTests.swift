@@ -52,6 +52,22 @@ struct WorkoutActivityProviderTests {
         #expect(trace.events.first == "start-lifting")
         #expect(trace.events.firstIndex(of: "stop-lifting")! < trace.events.firstIndex(of: "start-indoorRun")!)
     }
+    @Test func pausedRecoveryAndIdleDoNotStartPhantomWorkouts() async {
+        let trace = Trace()
+        let id = UUID()
+        let provider = WorkoutActivityProvider(configuration: .init(segmentID: id, activity: .indoorRun, paused: true)) { phase in
+            Feed(phase.activity?.rawValue ?? "lifting", 10, trace)
+        }
+        _ = await provider.start()
+        #expect(trace.live == 0)
+        await provider.configure(.init(segmentID: id, activity: .indoorRun))
+        #expect(trace.live == 1)
+        await provider.configure(.idle)
+        #expect(trace.live == 0)
+        #expect(trace.events.filter { $0.hasPrefix("start") } == ["start-indoorRun"])
+        await provider.stop()
+    }
+
     @Test func queuedChangesAndStopCannotLeaveASensorRunning() async {
         let trace = Trace()
         let provider = WorkoutActivityProvider { phase in Feed(phase.activity?.rawValue ?? "lifting", 10, trace) }

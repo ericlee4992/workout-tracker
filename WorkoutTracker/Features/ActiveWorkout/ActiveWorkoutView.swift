@@ -89,16 +89,28 @@ struct ActiveWorkoutView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
 
+                if !workout.orderedCardio.isEmpty || cardioFocus {
                 Picker("Activity", selection: $cardioFocus) {
                     Text("Lifting").tag(false)
                     Text("Cardio").tag(true)
                 }
                 .pickerStyle(.segmented).accessibilityIdentifier("workoutActivityFocus")
                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                }
 
                 if cardioFocus {
                     CardioWorkoutSection(workout: workout, recorder: heartRateCoordinator.cardio, monitor: heartRate)
                 } else {
+                if let cardio = workout.unfinishedCardio {
+                    Button { cardioFocus = true } label: {
+                        HStack {
+                            Label(cardio.activity.name, systemImage: cardio.activity.symbol)
+                            Spacer()
+                            Text(cardio.isRunning ? "Recording" : "Paused")
+                        }.font(.subheadline).frame(minHeight: 44).contentShape(Rectangle())
+                    }.buttonStyle(.plain).foregroundStyle(Theme.secondary)
+                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                }
                 // D41: live heart rate, above the exercises because it is
                 // the one number that changes while you are not touching
                 // the screen.
@@ -130,21 +142,14 @@ struct ActiveWorkoutView: View {
 
                 VStack(spacing: 6) {
                         HStack(spacing: 12) {
-                            Button {
-                                cardioFocus = false
-                                showExercisePicker = true
-                            } label: {
-                                Label("Add Exercise", systemImage: "plus")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.primary)
-                            .accessibilityIdentifier("addExercise")
+                            addExerciseButton
                             // Machine-first path (D7). D1 (ticket 17): a no-gym
                             // workout has no machines to list, but hiding the
                             // button hid the whole equipment-aware
                             // differentiator with no explanation — so it stays
                             // visible, disabled, and says why below.
                             Button {
+                                cardioFocus = false
                                 showMachinePicker = true
                             } label: {
                                 Label("Add by Machine", systemImage: "figure.strengthtraining.traditional")
@@ -338,7 +343,7 @@ struct ActiveWorkoutView: View {
                 heartRateCoordinator.onSample = { evaluateHeartRateRest() }
                 pushActivityState()
                 heartRate = monitor
-                cardioFocus = !workout.orderedCardio.isEmpty
+                cardioFocus = workout.unfinishedCardio != nil || (!workout.orderedCardio.isEmpty && workout.entries?.isEmpty != false)
             }
             // Every path that changes the rest — starting one, +15s, skipping,
             // recovering, degrading, un-completing — moves `restEnd`. Mirroring
@@ -355,6 +360,7 @@ struct ActiveWorkoutView: View {
                 pushActivityState()
             }
             .onChange(of: restEnd) { _, _ in pushActivityState() }
+            .onChange(of: entries.count) { _, _ in heartRateCoordinator.cardio.sync() }
         }
     }
 
@@ -365,6 +371,18 @@ struct ActiveWorkoutView: View {
     /// Title hero and the amber count chip are gone; nothing here competes
     /// with the set being logged. The line stays under the keyboard's
     /// accessory too — it is short enough — so the fields keep their room.
+    @ViewBuilder
+    private var addExerciseButton: some View {
+        let button = Button {
+            cardioFocus = false
+            showExercisePicker = true
+        } label: {
+            Label("Add Exercise", systemImage: "plus").frame(maxWidth: .infinity)
+        }.accessibilityIdentifier("addExercise")
+        if cardioFocus { button.buttonStyle(.secondary) }
+        else { button.buttonStyle(.primary) }
+    }
+
     private var header: some View {
         let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
         let completed = sets.filter { $0.completedAt != nil }.count

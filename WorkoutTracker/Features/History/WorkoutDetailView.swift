@@ -80,6 +80,10 @@ struct WorkoutDetailView: View {
             .listRowBackground(Theme.card)
             .listRowSeparatorTint(Theme.hairline)
 
+            if !workout.recordedCardio.isEmpty, !(workout.entries ?? []).isEmpty {
+                Text("Lifting").font(.headline).accessibilityAddTraits(.isHeader)
+                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
+            }
             ForEach(WorkoutSession.orderedEntries(of: workout)) { entry in
                 Section {
                     let sets = WorkoutSession.orderedSets(of: entry)
@@ -353,8 +357,8 @@ struct WorkoutDetailView: View {
             let impact = HistoryEditing.impact(ofDeleting: workout)
             // D47 requires the confirmation to NAME what is destroyed, volume
             // included — it was computed and never shown (codex-review, high).
-            if !workout.recordedCardio.isEmpty { Text("Recorded cardio and routes will also be permanently deleted.") }
-            Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s"), \(Format.weight(impact.volumeKg)) kg of volume, permanently deleted. Records are recalculated without them.")
+            let cardio = workout.recordedCardio.isEmpty ? "" : " Recorded cardio and any routes will also be deleted."
+            Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s"), \(Format.weight(impact.volumeKg)) kg of volume, permanently deleted. Records are recalculated without them.\(cardio)")
         }
         .saveAsTemplateFlow(workout: workout, isPresented: $namingTemplate) {
             savedTemplateName = $0

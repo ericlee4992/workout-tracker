@@ -29,8 +29,11 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
   merely connecting audio or receiving HR does not prove distance availability.
 - Indoor walking/running additionally support Core Motion pedometer distance/pace, clearly
   labeled Phone motion. HealthKit distance takes precedence when supplied for the same span;
-  overlapping estimates are never added. No running-speed assumption for indoor walking.
-- Average pace = active duration / measured distance. Current pace is derived from fresh
+  overlapping estimates are never added. Alternatives share a sensor-session epoch across
+  pauses; source timestamps select a fresh fallback and late cumulative totals remain usable. No running-speed assumption for indoor walking.
+- The live view shows average pace (or cycling speed) from active duration / recorded distance.
+  Fresh current pace/speed is additional, so batched distance does not mean no usable pace.
+  Current pace is derived from fresh
   measured movement only; stale/zero/unavailable speed has no current pace. Cycling shows speed.
 - Indoor bike/rower/elliptical/stepper distance uses real supported sensor data when supplied
   or entered machine distance. Never derive distance from heart rate or pretend every device
@@ -53,6 +56,9 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
 - History and receipt keep one workout, with lifting/cardio sections, each segment's duration,
   distance/source/pace, available HR/energy and outdoor route. Shared session metrics retain
   their accepted time/volume, calories, HR order. No cardio fabricated as strength volume/PR.
+- In-flight HR samples and energy totals checkpoint locally and resume without replacing earlier
+  data. App-owned sessions retain the workout across minimise; cross-workout sensor teardown
+  completes before the next session starts. Finished summaries clear transient checkpoints.
 - Existing lifting templates continue to save lifting only; cardio-only workouts do not offer
   an empty lifting template. History delete cascades cardio; export retains every segment,
   manual and measured distance provenance, active intervals and route data.

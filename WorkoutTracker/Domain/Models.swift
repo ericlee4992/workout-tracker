@@ -355,6 +355,11 @@ final class Workout {
     /// calories (active + basal) can be shown as Apple does. nil when the
     /// builder did not provide it — never derived.
     var basalEnergyKilocalories: Double?
+    /// In-flight sensor checkpoints. Cleared after a finished summary is frozen;
+    /// without these a relaunch could replace the first half of a mixed session.
+    var sensorSamplesData: Data?
+    var sensorActiveEnergyCheckpoint: Double?
+    var sensorBasalEnergyCheckpoint: Double?
 
     var gym: Gym?
     @Relationship(deleteRule: .cascade, inverse: \ExerciseEntry.workout)

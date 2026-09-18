@@ -274,7 +274,7 @@ struct WorkoutFinishedSheet: View {
     @ViewBuilder
     private func exercisesSection(_ summary: WorkoutSummary) -> some View {
         if !summary.exercises.isEmpty {
-            Section("Exercises") {
+            Section(savedWorkout?.recordedCardio.isEmpty == false ? "Lifting" : "Exercises") {
                 ForEach(summary.exercises) { line in
                     VStack(alignment: .leading, spacing: 4) {
                         Text(line.name)

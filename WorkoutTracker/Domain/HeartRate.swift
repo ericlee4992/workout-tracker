@@ -53,7 +53,7 @@ enum HeartRateSource: String, Codable, Sendable, CaseIterable {
 }
 
 /// One heart-rate reading.
-struct HeartRateSample: Equatable, Sendable, Identifiable {
+struct HeartRateSample: Codable, Equatable, Sendable, Identifiable {
     var id: UUID
     var bpm: Int
     var date: Date

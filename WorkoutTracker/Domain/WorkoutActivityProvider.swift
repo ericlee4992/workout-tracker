@@ -14,6 +14,8 @@ struct WorkoutSensorConfiguration: Equatable, Sendable {
     var segmentID: UUID?
     var activity: CardioActivity?
     var paused: Bool = false
+    var recordsActivity: Bool = true
+    static let idle = Self(segmentID: nil, activity: nil, recordsActivity: false)
     static let lifting = Self(segmentID: nil, activity: nil)
 }
 
@@ -37,8 +39,14 @@ final class WorkoutActivityProvider: HeartRateProviding, WatchRestBroadcasting, 
     private var feedState: HeartRateFeedState = .idle
     let stream: AsyncStream<HeartRateSample>
     var onCardioMetrics: (() -> Void)?
+    var onPhaseStarted: ((WorkoutSensorConfiguration, any HeartRateProviding) -> Void)?
+    var onPhaseFinished: ((WorkoutSensorConfiguration, any HeartRateProviding) -> Void)?
 
-    init(configuration: WorkoutSensorConfiguration = .lifting, factory: @escaping Factory) {
+    init(configuration: WorkoutSensorConfiguration = .lifting,
+         initialActiveEnergy: Double? = nil, initialBasalEnergy: Double? = nil,
+         factory: @escaping Factory) {
+        bankedActive = initialActiveEnergy
+        bankedBasal = initialBasalEnergy
         desired = configuration
         self.factory = factory
         var captured: AsyncStream<HeartRateSample>.Continuation!
@@ -48,6 +56,7 @@ final class WorkoutActivityProvider: HeartRateProviding, WatchRestBroadcasting, 
     var activeEnergyKilocalories: Double? { Self.sum(bankedActive, current?.activeEnergyKilocalories) }
     var basalEnergyKilocalories: Double? { Self.sum(bankedBasal, current?.basalEnergyKilocalories) }
     var cardioReading: CardioSensorReading? { current?.cardioReading }
+    var collectionStartedAt: Date? { current?.collectionStartedAt }
     var phaseActiveEnergy: Double? { current?.activeEnergyKilocalories }
     var phaseBasalEnergy: Double? { current?.basalEnergyKilocalories }
     var configuration: WorkoutSensorConfiguration? { applied }
@@ -77,20 +86,27 @@ final class WorkoutActivityProvider: HeartRateProviding, WatchRestBroadcasting, 
     private func applyDesired() async {
         guard !stopped else { return }
         let next = desired
-        if let applied, applied.segmentID == next.segmentID, applied.activity == next.activity, let current {
+        if let applied, applied.segmentID == next.segmentID, applied.activity == next.activity, applied.recordsActivity == next.recordsActivity, let current {
             await current.setPaused(next.paused)
             self.applied = next
+            if applied.paused && !next.paused { onPhaseStarted?(next, current) }
             return
         }
         pump?.cancel(); pump = nil
         if let old = current {
             (old as? CardioMetricNotifying)?.onCardioMetrics = nil
             await old.stop()
+            if let applied { onPhaseFinished?(applied, old) }
             bankedActive = Self.sum(bankedActive, old.activeEnergyKilocalories)
             bankedBasal = Self.sum(bankedBasal, old.basalEnergyKilocalories)
         }
         current = nil; applied = nil
         guard !stopped, next == desired else { return }
+        if !next.recordsActivity || (next.activity != nil && next.paused) {
+            applied = next
+            feedState = .waitingForSensor
+            return
+        }
         let provider = factory(next)
         current = provider
         feedState = await provider.start()
@@ -101,6 +117,7 @@ final class WorkoutActivityProvider: HeartRateProviding, WatchRestBroadcasting, 
         }
         applied = next
         await provider.setPaused(next.paused)
+        onPhaseStarted?(next, provider)
         (provider as? CardioMetricNotifying)?.onCardioMetrics = { [weak self] in self?.onCardioMetrics?() }
         pump = Task { [weak self, weak provider] in
             guard let provider else { return }
@@ -123,6 +140,7 @@ final class WorkoutActivityProvider: HeartRateProviding, WatchRestBroadcasting, 
         if let current {
             (current as? CardioMetricNotifying)?.onCardioMetrics = nil
             await current.stop()
+            if let applied { onPhaseFinished?(applied, current) }
             bankedActive = Self.sum(bankedActive, current.activeEnergyKilocalories)
             bankedBasal = Self.sum(bankedBasal, current.basalEnergyKilocalories)
         }

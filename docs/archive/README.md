@@ -8,6 +8,7 @@ Stable decisions remain in [DECISIONS](../DECISIONS.md), detailed ticket records
 
 | Snapshot | Provenance |
 |---|---|
+| [STATE before cardio implementation](STATE-2026-09-18-before-cardio-implementation.md) | Byte-for-byte copy at `14982e7`, after direction B was selected and before the optional-device policy and build were authorized |
 | [STATE before cardio design](STATE-2026-09-17-before-cardio-design.md) | Byte-for-byte copy at `e51695b`, before the user requested gym/outdoor cardio designs and confirmed the sets ring works |
 | [STATE before Graft handoff](STATE-2026-09-17-before-graft-handoff.md) | Byte-for-byte copy at `f89dcde`, after ticket 17 was installed and launched, before the Graft/new-session checkpoint |
 | [STATE before Codex setup](STATE-2026-09-17-before-codex-setup.md) | Byte-for-byte copy of `docs/STATE.md` at `9b9feef`, before the 2026-09-17 documentation reorganization; includes handoffs through ticket 16 and historical environment notes |

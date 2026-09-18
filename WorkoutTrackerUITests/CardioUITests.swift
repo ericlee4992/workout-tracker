@@ -100,6 +100,41 @@ final class CardioUITests: XCTestCase {
         shot("cardio-built-manual-finish")
     }
 
+    func testDistanceEditorDoesNotFreezeAnUntouchedMeasurementOrRewriteTypedUnits() {
+        launch()
+        app.buttons["startCardio"].tap(); choose("indoorRun")
+        reach(app.buttons["cardioEditDistance"]); app.buttons["cardioEditDistance"].tap()
+        let field = app.textFields["cardioDistanceField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["saveCardioDistance"].isEnabled)
+        XCTAssertTrue((field.value as? String) == "Distance" || (field.value as? String) == "")
+        field.tap(); field.typeText("5")
+        app.segmentedControls["cardioDistanceUnit"].buttons["km"].tap()
+        XCTAssertEqual(field.value as? String, "5")
+        app.segmentedControls["cardioDistanceUnit"].buttons["mi"].tap()
+        XCTAssertEqual(field.value as? String, "5")
+        app.buttons["saveCardioDistance"].tap()
+        XCTAssertTrue(app.staticTexts["Entered distance"].waitForExistence(timeout: 5))
+    }
+
+    func testOutdoorRouteDefaultCapture() { outdoorCapture(large: false) }
+    func testOutdoorRouteAccessibilityCapture() { outdoorCapture(large: true) }
+    private func outdoorCapture(large: Bool) {
+        app.launchArguments = ["-uiTestReset", "-uiTestHeartRate", "-uiTestCardioRoute"]
+        if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
+        app.launch()
+        // RootView intentionally restores an unfinished session on launch.
+        XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
+        shot("cardio-built-outdoor-\(large ? "axl" : "default")")
+        let route = any("cardioRoute"); reach(route)
+        shot("cardio-built-route-\(large ? "axl" : "default")")
+        app.buttons["finishWorkout"].tap()
+        XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
+        app.buttons["viewFinishedWorkout"].tap()
+        reach(any("cardioRoute"))
+        shot("cardio-built-history-route-\(large ? "axl" : "default")")
+    }
+
     func testCardioDefaultCaptureAndSave() { capture(large: false) }
     func testCardioAccessibilityCaptureAndSave() { capture(large: true) }
     private func capture(large: Bool) {
@@ -118,7 +153,13 @@ final class CardioUITests: XCTestCase {
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["saveFinishedAsTemplate"].exists)
         shot("cardio-built-finish-\(large ? "axl" : "default")")
-        let summary = any("cardioSummary.indoorRun"); reach(summary)
-        shot("cardio-built-summary-\(large ? "axl" : "default")")
+        let summary = any("cardioSummary.indoorRun")
+        for page in 1...8 {
+            app.swipeUp()
+            shot("cardio-built-summary-\(large ? "axl" : "default")-\(page)")
+            if app.buttons["cardioSummaryEditDistance"].exists && app.buttons["cardioSummaryEditDistance"].isHittable { break }
+        }
+        XCTAssertTrue(summary.exists)
+        XCTAssertTrue(app.buttons["cardioSummaryEditDistance"].isHittable)
     }
 }

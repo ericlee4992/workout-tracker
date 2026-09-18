@@ -53,6 +53,10 @@ struct WorkoutTrackerApp: App {
                 assertionFailure("Heart-rate history fixture seeding failed: \(error)")
             }
         }
+        if CardioRouteFixture.isEnabled {
+            do { try CardioRouteFixture.seed(in: modelContainer.mainContext) }
+            catch { assertionFailure("Cardio route fixture failed: \(error)") }
+        }
         // First-launch unit preference: derive from the locale measurement
         // system (US → lb, else kg). Idempotent; never blocks launch.
         do {

@@ -5,27 +5,34 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 
 ## Active task and next action
 
-- **Cardio implementation active.** User chose B and on 2026-09-18 approved optional devices /
-  manual fallback, explicitly requiring indoor distance and pace on supported connected devices
-  such as AirPods Pro 3. Outdoor runs/rides with GPS, one saved workout with separate sections,
-  and starting/adding either activity remain required. [Ticket](../work-record/cardio/issues/01-implementation.md),
-  [spec](../work-record/cardio/spec.md), [API evidence](../work-record/cardio/research/01-indoor-distance-and-pace.md).
-- Checkout `/Users/ericlee06/orca/workspaces/Health App/cardio-implementation`, branch
-  `ericlee4992/cardio-implementation`, base `14982e7`; first implementation checkpoint
-  `b359d7c`. Review fixes and sensor checkpoints now implemented; fresh Debug `build-6` passes.
-  Earlier unit run **742/79** passed; the newest checkpoint changes still need their test run.
-  Next: frozen-source unit + seven focused UI methods, native captures, Claude follow-up,
-  then full UI suite. Detailed jobs/results under the ticket. No phone install.
-- **Distance acceptance:** public live-builder APIs are available; actual AirPods indoor distance
-  delivery is not guaranteed by documentation. Implement collection and labeled phone-motion
-  fallback; retain real-device treadmill validation as a separate gate, never claim simulator
-  fixtures prove AirPods support. Activity-specific HealthKit sessions are consecutive.
-- **Design:** reviewed native B prototype source `48608fb`, branch `ericlee4992/cardio-design-prototype`;
-  source is reference only, not mergeable. Existing tabs remain. [Design record](../work-record/cardio-design/issues/01-design-discussion.md).
-- **Ring report closed:** user confirmed it works; no product change. Product on phone remains
-  ticket 17, source `4d70d7d`; facts below unchanged. No phone installation requested yet.
-- Graft CLI and prompt hints work; optional AI summaries unbuilt. Completed workspaces sleep;
-  keep Hide sleeping and main visible. Preserve all logs/history and personal Codex settings.
+- **Cardio design discussion is active.** User wants live gym cardio (timer, heart rate,
+  calories, distance), outdoor runs/rides with GPS, and **one saved workout with separate
+  lifting/cardio sections**. Show designs before implementing the feature.
+- **Native mockups:** branch `ericlee4992/cardio-design-prototype`, reviewed source `48608fb`,
+  checkout `/Users/ericlee06/orca/workspaces/Health App/cardio-design-prototype`. Three mixed
+  workout directions plus Start, picker, gym, outdoor and summary; default/AccessibilityL
+  captures. [Design handoff](../work-record/cardio-design/issues/01-design-discussion.md).
+  Debug build and native capture drivers passed **2/2**, exit 0; Claude follow-up **CLEAR**.
+  Gallery shown in main’s browser: 37 PNGs, 29 distinct views after deduplication.
+  **User chose B (2026-09-18): focus on the current activity.** Starting with either lifting
+  or cardio and adding either mid-workout remains the intended flow. Next: settle indoor
+  device requirements and metric sources, then write the implementation spec. Apple-style
+  activity names requested; device gating is being discussed, not approved. No production
+  cardio implementation. The throwaway UI must not merge to main.
+- **Sets ring report closed:** the user checked the ring and confirmed “it actually works.”
+  No product fix. Diagnostic UI/pixel checks passed at 1/1 and 2/2; test source was removed.
+  [Ticket 18](../work-record/ui-redesign/issues/18-sets-completion-ring.md) preserves evidence.
+- **Main product remains ticket 17**, source `4d70d7d`; docs checkpoint through `160af86`. Phone
+  build and backup facts below remain unchanged. No new phone install was requested.
+- **Graft:** live prompt hints and CLI navigation observed; structural graph has 221 files,
+  2,418 symbols and 7,099 links on main. Optional AI summaries are unbuilt; all client MCP/hook
+  event paths have not been exhaustively checked. [Setup ticket](../work-record/graft-setup/issues/01-graft-handoff.md).
+  Claude imports shared instructions; separate Claude MCP/hooks were not installed.
+- **Workspace preference:** keep completed workspaces sleeping with Hide sleeping enabled;
+  main stays visible. Preserve logs/histories. The cardio preview gallery is open in main's
+  Orca browser; keep it accessible while the user compares designs.
+- **Personal Codex settings preserved:** context 872,000, compaction 780,000, context footer.
+  These are configured values, not a tested capacity claim.
 
 ## Latest completed work and verification
 

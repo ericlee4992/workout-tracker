@@ -47,3 +47,7 @@ work-record/ui-redesign/canvas/*/board*.html
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# SQLite runtime sidecars are not portable fixture data.
+WorkoutTrackerTests/Fixtures/*-shm
+WorkoutTrackerTests/Fixtures/*-wal

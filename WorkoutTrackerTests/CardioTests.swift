@@ -160,5 +160,35 @@ struct CardioTests {
         #expect(set.reps == 8)
         #expect(set.entry?.snapshotPresetName == "Standing")
     }
+    @Test func segmentHeartRateDeduplicatesAndExcludesPausedStaleAndFutureSamples() throws {
+        let context = try context()
+        let workout = try WorkoutSession(context: context).startWorkout(at: nil, on: start)
+        let segment = try CardioSession(context: context).start(.indoorRun, in: workout, at: start)
+        let sample = HeartRateSample(bpm: 120, date: start, source: .fixture)
+        segment.record(sample, at: start)
+        segment.record(sample, at: start)
+        segment.record(.init(bpm: 140, date: start.addingTimeInterval(5), source: .fixture), at: start.addingTimeInterval(5))
+        segment.record(.init(bpm: 220, date: start, source: .fixture), at: start.addingTimeInterval(30))
+        segment.record(.init(bpm: 230, date: start.addingTimeInterval(100), source: .fixture), at: start)
+        #expect(segment.heartRateCount == 2)
+        #expect(segment.averageHeartRate == 130)
+        #expect(segment.maxHeartRate == 140)
+        segment.pause(at: start.addingTimeInterval(6))
+        segment.record(.init(bpm: 200, date: start.addingTimeInterval(7), source: .fixture), at: start.addingTimeInterval(7))
+        #expect(segment.heartRateCount == 2)
+    }
+
+    @Test func replacingAWorkoutFinishesCardioAndHistoryCountsItHonestly() throws {
+        let context = try context()
+        let session = WorkoutSession(context: context)
+        let workout = try session.startWorkout(at: nil, on: start)
+        let segment = try CardioSession(context: context).start(.indoorRun, in: workout, at: start)
+        _ = try session.startWorkout(at: nil, on: start.addingTimeInterval(60))
+        #expect(workout.finishedAt == segment.endedAt)
+        #expect(workout.historyStatsLine.contains("1 cardio activity"))
+        #expect(!workout.historyStatsLine.contains("0 sets"))
+        #expect(workout.sensorConfiguration == .idle)
+    }
+
     private final class Marker {}
 }

@@ -24,6 +24,7 @@ final class WorkoutHeartRateCoordinator {
     let cardio = CardioRecorder()
     private(set) var workoutID: UUID?
     private(set) var monitor: HeartRateMonitor?
+    private var finalizationTask: Task<Void, Never>?
     /// The workout the running monitor belongs to, so a REPLACEMENT can bank
     /// its summary before the monitor is thrown away. Weak: the coordinator
     /// outlives workouts and must not keep a deleted one alive.
@@ -75,9 +76,10 @@ final class WorkoutHeartRateCoordinator {
         }
         let fresh = HeartRateMonitor(
             provider: HeartRateProviders.make(workoutID: workout.id.uuidString,
-                configuration: WorkoutSensorConfiguration(segmentID: workout.unfinishedCardio?.id,
-                    activity: workout.unfinishedCardio?.activity,
-                    paused: workout.unfinishedCardio != nil && workout.unfinishedCardio?.isRunning != true)))
+                configuration: workout.sensorConfiguration,
+                initialActiveEnergy: workout.sensorActiveEnergyCheckpoint,
+                initialBasalEnergy: workout.sensorBasalEnergyCheckpoint),
+            initialSamples: workout.checkpointSamples)
         fresh.maxHeartRate = maxHeartRate
         // The sample tick is owned here and forwarded on, rather than being
         // handed to the screen: this is the only tick that survives both
@@ -100,7 +102,13 @@ final class WorkoutHeartRateCoordinator {
         // is still looking at the screen, and keeping it, is not.
         alarm.beginSession()
         cardio.attach(to: workout, monitor: fresh)
-        Task { await fresh.start() }
+        let previousFinalization = finalizationTask
+        let id = workout.id
+        Task { [weak self] in
+            await previousFinalization?.value
+            guard let self, self.workoutID == id, self.monitor === fresh else { return }
+            await fresh.start()
+        }
         return fresh
     }
 
@@ -136,7 +144,9 @@ final class WorkoutHeartRateCoordinator {
         }
         monitor.onSample = nil
         let ending = monitor
-        Task {
+        let previousFinalization = finalizationTask
+        finalizationTask = Task {
+            await previousFinalization?.value
             await ending.stop()
             guard capture, !workout.isDeleted else { return }
             // End collection can publish one final energy statistic. Keep the same
@@ -144,6 +154,15 @@ final class WorkoutHeartRateCoordinator {
             ending.refreshEnergy()
             workout.activeEnergyKilocalories = ending.activeEnergyKilocalories
             workout.basalEnergyKilocalories = ending.basalEnergyKilocalories
+            if workout.finishedAt != nil {
+                workout.sensorSamplesData = nil
+                workout.sensorActiveEnergyCheckpoint = nil
+                workout.sensorBasalEnergyCheckpoint = nil
+            } else {
+                workout.sensorSamplesData = try? SensorCheckpointCodec.encode(ending.samples)
+                workout.sensorActiveEnergyCheckpoint = ending.activeEnergyKilocalories
+                workout.sensorBasalEnergyCheckpoint = ending.basalEnergyKilocalories
+            }
             try? workout.modelContext?.save()
         }
         self.monitor = nil
@@ -225,7 +244,15 @@ final class WorkoutHeartRateCoordinator {
 
     /// Ends whatever is running, whichever workout it belongs to. Used when the
     /// app cannot name the workout being replaced.
+    func waitForFinalization() async { await finalizationTask?.value }
+
     func endAny() {
+        if let currentWorkout, !currentWorkout.isDeleted {
+            cardio.pause()
+            end(currentWorkout)
+            return
+        }
+        cardio.stop()
         guard let monitor else { return }
         monitor.onSample = nil
         let ending = monitor

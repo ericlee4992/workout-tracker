@@ -144,10 +144,8 @@ struct HistoryView: View {
             } message: {
                 if let workout = confirmingDelete, !workout.isDeleted {
                     let impact = HistoryEditing.impact(ofDeleting: workout)
-                    if !workout.recordedCardio.isEmpty {
-                        Text("Recorded cardio and routes will also be permanently deleted.")
-                    }
-                    Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s") will be permanently deleted. Records are recalculated without them.")
+                    let cardio = workout.recordedCardio.isEmpty ? "" : " Recorded cardio and any routes will also be deleted."
+                    Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s") will be permanently deleted. Records are recalculated without them.\(cardio)")
                 }
             }
             .navigationDestination(for: Workout.self) { workout in

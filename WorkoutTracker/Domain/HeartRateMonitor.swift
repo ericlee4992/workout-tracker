@@ -63,12 +63,14 @@ protocol HeartRateProviding: AnyObject {
     /// energy at all, and total calories is simply not shown without it.
     var basalEnergyKilocalories: Double? { get }
     var cardioReading: CardioSensorReading? { get }
+    var collectionStartedAt: Date? { get }
     func setPaused(_ paused: Bool) async
 }
 
 extension HeartRateProviding {
     var basalEnergyKilocalories: Double? { nil }
     var cardioReading: CardioSensorReading? { nil }
+    var collectionStartedAt: Date? { nil }
     func setPaused(_ paused: Bool) async {}
 }
 
@@ -105,8 +107,11 @@ final class HeartRateMonitor {
     // capping was a summary that quietly lied about long workouts, which is
     // exactly the kind of claim this app exists not to make.
 
-    init(provider: any HeartRateProviding) {
+    init(provider: any HeartRateProviding, initialSamples: [HeartRateSample] = []) {
         self.provider = provider
+        self.samples = initialSamples
+        self.activeEnergyKilocalories = provider.activeEnergyKilocalories
+        self.basalEnergyKilocalories = provider.basalEnergyKilocalories
     }
 
     /// The reading to display, or nil when nothing has ever arrived.
@@ -188,7 +193,9 @@ final class HeartRateMonitor {
     func start() async {
         guard !state.isRunning else { return }
         state = await provider.start()
-        guard state.isRunning else { return }
+        // A configurable provider may recover on a later activity even when
+        // initial authorisation/start failed. Keep its app-facing stream attached.
+        guard state.isRunning || provider is WorkoutActivityProvider else { return }
         pump?.cancel()
         pump = Task { [weak self] in
             guard let stream = self?.provider.stream else { return }
@@ -207,6 +214,7 @@ final class HeartRateMonitor {
     }
 
     private func ingest(_ sample: HeartRateSample) {
+        guard sample.bpm > 0, sample.date.timeIntervalSinceReferenceDate.isFinite else { return }
         samples.append(sample)
         activeEnergyKilocalories = provider.activeEnergyKilocalories
         basalEnergyKilocalories = provider.basalEnergyKilocalories
@@ -268,8 +276,10 @@ enum HeartRateProviders {
     /// believes at any moment is ticket 01's precedence rule, applied to the
     /// merged stream — not a choice made here.
     @MainActor
-    static func make(workoutID: String, configuration: WorkoutSensorConfiguration = .lifting) -> any HeartRateProviding {
-        return WorkoutActivityProvider(configuration: configuration) { phase in
+    static func make(workoutID: String, configuration: WorkoutSensorConfiguration = .lifting,
+                     initialActiveEnergy: Double? = nil, initialBasalEnergy: Double? = nil) -> any HeartRateProviding {
+        return WorkoutActivityProvider(configuration: configuration,
+            initialActiveEnergy: initialActiveEnergy, initialBasalEnergy: initialBasalEnergy) { phase in
             if isUITestFixture { return FixtureHeartRateProvider(cardio: phase.activity != nil) }
             if WorkoutTrackerStore.isUITestReset { return DisabledHeartRateProvider() }
             let phone = HealthKitHeartRateProvider(assumedSource: .airPods, activity: phase.activity)
@@ -307,6 +317,7 @@ final class FixtureHeartRateProvider: HeartRateProviding {
     private let cardio: Bool
     private var paused = false
     private(set) var cardioReading: CardioSensorReading?
+    private(set) var collectionStartedAt: Date?
     private var continuation: AsyncStream<HeartRateSample>.Continuation?
     private var task: Task<Void, Never>?
     private(set) var activeEnergyKilocalories: Double?
@@ -333,6 +344,7 @@ final class FixtureHeartRateProvider: HeartRateProviding {
 
     func start() async -> HeartRateFeedState {
         isRunning = true
+        collectionStartedAt = .now
         activeEnergyKilocalories = 0
         basalEnergyKilocalories = 0
         task?.cancel()

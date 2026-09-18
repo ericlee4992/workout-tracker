@@ -42,17 +42,28 @@ enum CardioDistanceSource: String, Codable, Sendable {
     }
 }
 
+/// Alternative cumulative readings over the SAME app-owned sensor epoch. Pauses
+/// do not create another epoch: a late HealthKit total already covers earlier motion.
 struct CardioDistanceSpan: Codable, Equatable, Sendable {
     var start: Date
     var readings: [String: Double] = [:]
-    var selectedSource: CardioDistanceSource? {
-        if readings[CardioDistanceSource.gps.rawValue] != nil { return .gps }
-        if let value = readings[CardioDistanceSource.healthKit.rawValue], value > 0 { return .healthKit }
-        if readings[CardioDistanceSource.phoneMotion.rawValue] != nil { return .phoneMotion }
-        if readings[CardioDistanceSource.healthKit.rawValue] != nil { return .healthKit }
-        return nil
-    }
+    var updatedAt: [String: Date] = [:]
+    var selectedSourceRawValue: String?
+    var selectedSource: CardioDistanceSource? { selectedSourceRawValue.flatMap(CardioDistanceSource.init(rawValue:)) }
     var meters: Double? { selectedSource.flatMap { readings[$0.rawValue] } }
+    mutating func selectSource(asOf now: Date) {
+        let priority: [CardioDistanceSource] = [.gps, .healthKit, .phoneMotion]
+        if let fresh = priority.first(where: { source in
+            guard readings[source.rawValue] != nil, let date = updatedAt[source.rawValue] else { return false }
+            return (-2...15).contains(now.timeIntervalSince(date))
+        }) {
+            selectedSourceRawValue = fresh.rawValue
+        } else if selectedSource == nil {
+            // Distance totals remain useful after their stream goes quiet. Only
+            // current pace expires; do not discard a delayed cumulative measurement.
+            selectedSourceRawValue = priority.first { readings[$0.rawValue] != nil }?.rawValue
+        }
+    }
 }
 
 struct CardioInterval: Codable, Equatable, Sendable {
@@ -152,13 +163,31 @@ final class CardioSegment {
         get { distanceSpansData.flatMap { try? JSONDecoder().decode([CardioDistanceSpan].self, from: $0) } ?? [] }
         set { distanceSpansData = try? JSONEncoder().encode(newValue) }
     }
-    func acceptDistance(_ meters: Double, source: CardioDistanceSource, since start: Date) {
-        guard isRunning, activeStartedAt == start, meters.isFinite, meters >= 0 else { return }
+    func acceptDistance(_ meters: Double, source: CardioDistanceSource, since epoch: Date,
+                        at date: Date = .now, asOf now: Date = .now) {
+        guard isRunning, epoch >= startedAt, meters.isFinite, meters >= 0, source != .mixed else { return }
         var spans = distanceSpans
-        if !spans.contains(where: { $0.start == start }) { spans.append(CardioDistanceSpan(start: start)) }
-        guard let index = spans.firstIndex(where: { $0.start == start }) else { return }
+        if !spans.contains(where: { $0.start == epoch }) { spans.append(CardioDistanceSpan(start: epoch)) }
+        guard let index = spans.firstIndex(where: { $0.start == epoch }) else { return }
+        if let previous = spans[index].updatedAt[source.rawValue], date < previous { return }
         spans[index].readings[source.rawValue] = max(spans[index].readings[source.rawValue] ?? 0, meters)
+        spans[index].updatedAt[source.rawValue] = date
+        spans[index].selectSource(asOf: now)
         distanceSpans = spans
+        recomputeDistance()
+    }
+    func refreshDistanceSelection(since epoch: Date, asOf date: Date) {
+        guard isRunning else { return }
+        var spans = distanceSpans
+        guard let index = spans.firstIndex(where: { $0.start == epoch }) else { return }
+        // Closed epochs keep their logged source; only the current recording may
+        // change sources. A future read of History must never reselect by wall clock.
+        spans[index].selectSource(asOf: date)
+        distanceSpans = spans
+        recomputeDistance()
+    }
+    private func recomputeDistance() {
+        let spans = distanceSpans
         let values = spans.compactMap(\.meters)
         automaticDistanceMeters = values.isEmpty ? nil : values.reduce(0, +)
         let sources = Set(spans.compactMap { $0.selectedSource?.rawValue })
@@ -194,9 +223,9 @@ final class CardioSegment {
         pause(at: date)
         endedAt = max(date, lastCheckpointAt)
     }
-    func record(_ sample: HeartRateSample) {
-        guard let start = activeStartedAt, endedAt == nil, sample.date >= start,
-              !sample.isStale(asOf: .now), sample.id != lastHeartRateSampleID else { return }
+    func record(_ sample: HeartRateSample, at now: Date = .now) {
+        guard let start = activeStartedAt, endedAt == nil, sample.bpm > 0, sample.date >= start,
+              !sample.isStale(asOf: now), sample.date <= now.addingTimeInterval(2), sample.id != lastHeartRateSampleID else { return }
         lastHeartRateSampleID = sample.id
         heartRateCount += 1
         heartRateTotal += sample.bpm
@@ -206,6 +235,18 @@ final class CardioSegment {
 }
 
 extension Workout {
+    var checkpointSamples: [HeartRateSample] {
+        SensorCheckpointCodec.decode(sensorSamplesData)
+    }
+    var sensorConfiguration: WorkoutSensorConfiguration {
+        if let segment = unfinishedCardio {
+            return .init(segmentID: segment.id, activity: segment.activity, paused: !segment.isRunning)
+        }
+        // Ending cardio-only recording must not manufacture a strength workout
+        // while the user reads the result or reaches for Finish.
+        if !orderedCardio.isEmpty, entries?.isEmpty != false { return .idle }
+        return .lifting
+    }
     var orderedCardio: [CardioSegment] {
         (cardioSegments ?? []).filter { !$0.isDeleted }
             .sorted { ($0.order, $0.id.uuidString) < ($1.order, $1.id.uuidString) }
@@ -251,17 +292,23 @@ struct CardioSession {
         segment.end(at: date); try context.save()
     }
     func enterDistance(_ text: String, unit: CardioDistanceUnit, for segment: CardioSegment) throws {
+        guard !segment.isDeleted else { throw CardioSessionError.finishedWorkout }
+        let oldValue = segment.manualDistanceValue
+        let oldUnit = segment.manualDistanceUnitRawValue
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             segment.manualDistanceValue = nil; segment.manualDistanceUnitRawValue = nil
         } else {
-            guard let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")), value.isFinite, value >= 0
+            guard let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")), value.isFinite, value >= 0, (value * unit.metersPerUnit).isFinite
             else { throw CardioSessionError.invalidDistance }
             segment.manualDistanceValue = value
             segment.manualDistanceUnitRawValue = unit.rawValue
         }
         segment.displayUnitRawValue = unit.rawValue
-        if segment.workout?.finishedAt != nil { segment.workout?.historyEditedAt = .now }
+        if segment.workout?.finishedAt != nil,
+           oldValue != segment.manualDistanceValue || oldUnit != segment.manualDistanceUnitRawValue {
+            segment.workout?.historyEditedAt = .now
+        }
         try context.save()
     }
     /// A relaunch cannot claim measurements in an unobserved interval.
