@@ -44,3 +44,10 @@ Sources: [Apple workout types](https://support.apple.com/en-us/105089),
 [HealthKit activities](https://developer.apple.com/documentation/healthkit/dividing-a-healthkit-workout-into-activities).
 
 Separate ring ticket 18 is closed because the user checked it and confirmed it actually works.
+
+## Independent review checkpoint
+
+[Claude review](../claude-review-01.md) cleared the docs-only `c5449c9` checkpoint and ring
+closure. The first prototype review found three required design-record/palette/control
+issues (R1–R3); corrections and fresh captures are in progress on the prototype branch.
+No production cardio code will merge as part of this checkpoint.
