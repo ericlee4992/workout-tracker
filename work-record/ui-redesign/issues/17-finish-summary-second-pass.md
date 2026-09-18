@@ -18,7 +18,7 @@ Keep the shipped screen. Only reorder Workout details:
 Accessibility sizes keep one column in that reading order. Missing values continue to omit
 rather than invent tiles (D44); the existing grid compacts, so exact pairs describe the
 all-metrics state. Values, units, labels, identifiers, colors, card sizes, actions, chart and
-zones are unchanged. No persistence/schema/phone installation changes.
+zones are unchanged. No persistence/schema changes. The later phone installation is recorded below.
 
 Reopen the SPEC's milestone-9 ordering for this explicit user choice. D54 records the reason;
 D44's captured-data contract and D52's plain values stay unchanged.
@@ -161,14 +161,16 @@ result paths are preserved above. No further app or test change was made after t
 
 Verification scope: Debug simulator build; WorkoutSummaryTests 8/8; two real finish capture
 methods green using the original pass + one unchanged isolated retry; full local UI suite72/72;
-independent Claude code and default/AXL visual review. Phone was not built/installed/launched.
+independent Claude code and default/AXL visual review. At that verification checkpoint, the phone
+had not yet been built/installed/launched; the subsequent installation is recorded below.
 
 ## Independent gate clearance
 
 Claude read the actual statuses, log, xcresult summary, source diff and binary timestamps, and
 reconciled all 72 declared methods with the passed log entries. [Gate addendum](../claude-review-17-gates.md):
 **CLEAR to merge source `4d70d7d`; no open findings.** Final record changes are docs/captures
-only. App/test source remains exactly the reviewed and tested source. No install claimed.
+only. App/test source remains exactly the reviewed and tested source. The gate addendum preceded
+the user’s later installation request.
 
 ## Phone installation — 2026-09-17, authorized after visual approval
 
