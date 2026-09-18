@@ -86,3 +86,9 @@ The temporary private test and its simulator files were removed; no private data
 Next session begins with launch/history confirmation, then the physical acceptance work above.
 No source changes or rebuild are required just to resume this handoff. The old unlock prompt
 is context for this unfinished verification, not a new design/install approval.
+
+Independent [handoff review](../handoff-review.md) clears `674c781`. Applied the three optional
+wording improvements: signing expiry near next action, warning origin uninvestigated, and
+older fixture caveat. No product/test/config change and no additional test execution.
+Orca UI reads recovered at handoff, but Sleep actions were not verified (menu/focus failures);
+three completed cardio workspaces remained visible. Worktrees and terminal histories retained.
