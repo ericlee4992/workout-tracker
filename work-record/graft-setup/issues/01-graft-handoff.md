@@ -1,6 +1,6 @@
 # 01 — Graft setup and fresh-session checkpoint
 
-Status: claimed — facts verified; documentation/integration checkpoint awaiting independent review
+Status: resolved — handoff reviewed and ready for fresh-session use; live Codex tool/hook loading remains the next-session check
 
 ## User intent
 
@@ -80,3 +80,21 @@ local links, archive bytes, exact preservation of the generated fence/ignore fil
 app/test diff. Claude independently reviews in a separate checkout before fast-forward/push.
 Then start the new Codex session in main, read AGENTS/STATE/this ticket, verify Graft client
 loading, and wait for the user's next product choice. Do not re-run completed ticket 17 work.
+
+## Checkpoint verification and review
+
+Source checkpoint `e8e5282`, reviewed against base `f89dcde`. [Claude review](../claude-review.md)
+is **CLEAR**, no required changes. Original generated fence and both ignore files are preserved;
+the pre-checkpoint STATE is byte-exact (SHA-256
+`1f572b1bf6e922492a98a1ce2c464555d75fe572e1404e3466202b83095950ae`); the unresolved-work tail
+and complete live-phone/backup table are unchanged. Links/anchors and `git diff --check` pass,
+with no app/test/project-file changes. Prior archives remain.
+
+Additional scoped check: `~/.claude.json` has no global or Health App-specific Graft MCP entry.
+Personal configuration was read selectively and left unchanged. Code/test/install evidence
+for ticket 17 remains authoritative; no new app verification or installation is claimed here.
+
+Fresh-session steps: open Codex in main; read AGENTS, STATE and this ticket; confirm the Graft
+tools are present (CLI fallback works if the client needs troubleshooting). Check hook behavior
+when an appropriate event occurs; avoid treating configured hooks as already observed. Then
+ask for the next product task if the user has not supplied one.

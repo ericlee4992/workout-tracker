@@ -6,7 +6,8 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
 ## Active task and next action
 
 - **Resume in the main checkout:** `/Users/ericlee06/orca/projects/Health App`, branch `main`.
-  Pre-checkpoint HEAD is `f89dcde`; this handoff adds documentation/Graft wiring only. Verify
+  Pre-checkpoint HEAD is `f89dcde`; checkpoint `e8e5282` has independent Claude clearance.
+  This handoff adds documentation/Graft wiring only. Verify
   current HEAD and working tree on startup. Product source remains `4d70d7d`.
 - **Finish summary is done and installed.** The user kept the current design, changing only
   the three metric pairs: time/volume, active/total calories, average/max HR. The user approved
