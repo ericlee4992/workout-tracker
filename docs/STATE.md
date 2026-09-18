@@ -11,11 +11,12 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   and starting/adding either activity remain required. [Ticket](../work-record/cardio/issues/01-implementation.md),
   [spec](../work-record/cardio/spec.md), [API evidence](../work-record/cardio/research/01-indoor-distance-and-pace.md).
 - Checkout `/Users/ericlee06/orca/workspaces/Health App/cardio-implementation`, branch
-  `ericlee4992/cardio-implementation`, base `14982e7`; committed checkpoint `d0bcb54`.
+  `ericlee4992/cardio-implementation`, base `14982e7`; committed checkpoint `03ada3d` (pushed).
   N1/N2 fixes now use append-only heartbeat rows and fold stray checkpoints on finish.
   Full unit run `unit-7`: **748 tests / 81 suites passed**, exit 0; `build-9` passes.
   Native visual review required pinned controls, consistent route colour and more state captures;
-  those corrections are implemented and the final build/full UI gate are next. Detailed jobs,
+  those corrections pass `build-10`; targeted units then full UI are running, PID **59715**,
+  frozen `03ada3d`, script `final-03ada3d.sh`. Claude code review 03 is clear; visual review awaits final captures. Detailed jobs,
   measurements and review findings are in the ticket. No phone install.
 - **Distance acceptance:** public live-builder APIs are available; actual AirPods indoor distance
   delivery is not guaranteed by documentation. Implement collection and labeled phone-motion
@@ -87,7 +88,7 @@ reproduction and scope before implementation; detailed history is in the linked 
 | Supersets | Deliberate within-group reordering; grouping in History; stronger D48 invariant test derived through production operations | [Supersets ticket](../work-record/milestone-8-history-and-charts/issues/04-supersets.md) |
 | Coverage / catalog | Drag is confirmed on phone but lacks a drag UI test; milestone-8 load-type catalog audit remains undone | [History ticket](../work-record/milestone-8-history-and-charts/issues/03-edit-history.md), [load-type ticket](../work-record/milestone-8-history-and-charts/issues/02-load-type-editable.md) |
 | Weight precision | `Format.weight` rounds to one decimal; a prefilled 62.25 kg row can commit 62.3. Known, deliberately deferred; bar mode seeds via `WeightMath.displayNumber` | [Archived bug](archive/STATE-2026-09-17-before-codex-setup.md) |
-| Migration fixture | `Fixtures/LegacyStore.store` was generated at `5239ef2`, older than the live schema. Regeneration from the installed build is still owed; passing it alone does not prove live-store compatibility | [Milestone 7 review](../work-record/milestone-7-heart-rate/codex-review.md) |
+| Migration fixture | The old `LegacyStore.store` remains. Cardio adds synthetic `PreCardio.store` generated under unchanged `14982e7` model definitions (same shape as installed), and both migration tests pass. Real private-store backup/restore remains untested | [Milestone 7 review](../work-record/milestone-7-heart-rate/codex-review.md) |
 | Heart-rate verification | DOB setup toggle lacks UI coverage; revised zone boundaries need current gym feedback; recovery-vs-cap sound distinction and background early-recovery behavior remain unverified. Live AirPods HR, zones, screen-off timed beep, and HR rest timer have been confirmed | [Archived verification](archive/STATE-2026-09-17-before-codex-setup.md#what-to-do-next-in-priority-order) |
 | Watch experiment | Wear the watch with no companion installed and inspect the source label before investing in it. Pairing, streaming, rest mirroring, and phone-triggered wake remain unverified; revisit D41 only with evidence | [Watch ticket](../work-record/milestone-7-heart-rate/issues/04-watch-companion.md) |
 | Catalog gaps | Atlantis dealer-only coverage; Titan/Sorinex gaps; Life Fitness Signature Series | [Catalog sources](catalog-sources/README.md) |

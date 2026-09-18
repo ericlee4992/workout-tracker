@@ -174,7 +174,7 @@ final class CardioUITests: XCTestCase {
         reach(app.buttons["addCardio"]); app.buttons["addCardio"].tap()
         XCTAssertTrue(app.staticTexts["Starting another activity ends the current cardio segment."].waitForExistence(timeout: 5))
         shot("cardio-built-replace-picker-\(size)")
-        app.buttons["Cancel"].tap()
+        app.navigationBars["Choose Cardio"].buttons["Cancel"].tap()
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["saveFinishedAsTemplate"].exists)

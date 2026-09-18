@@ -184,3 +184,57 @@ at workout level, not its segment. This is not a distance/pace or whole-workout 
 Earlier 21 native screenshots are preserved under [screenshots/review-01](../screenshots/review-01/)
 from `focused-ui-5`, **7/7 passed**, exit 0. They show scripted sensors/manual values and a
 synthetic route, not physical-device tracking. New final captures will be linked separately.
+
+### Final gate job (running)
+
+Frozen source **03ada3d**, pushed to origin. Debug `build-10` passed, exit 0.
+Detached runner PID **59715**, script `results/cardio/final-03ada3d.sh` under the UI-redesign
+record; derived `/tmp/wt-cardio-final-derived`. Runs targeted recorder/checkpoint/provider
+units (`unit-targeted-8.xcresult`), then the entire UI target (`full-ui-1.xcresult`, expected
+79 methods). Logs and actual exit files share those stems. Do not edit source or use this
+simulator until it finishes. Claude follow-up requested against this exact commit.
+
+### Physical acceptance still outstanding
+
+After a separately requested, backed-up phone install, record device OS/AirPods firmware and:
+
+1. Indoor Walk and Indoor Run with AirPods Pro 3: compare distance/average pace to treadmill
+   readings, first carrying the phone, then leaving it on the console. Record which source
+   label appears and whether HealthKit distance actually arrives; HR alone is not a pass.
+2. Pause/resume, lock/unlock, and disconnect/reconnect: active time excludes pauses; cumulative
+   distance does not double; old totals survive a quiet stream; fresh pace returns only with
+   new measurements. Where distance never arrives, the source must remain unavailable or
+   honestly labelled Phone motion, with manual entry available.
+3. Indoor cycle/rower: verify HR/calories and any genuinely supplied machine distance; otherwise
+   enter machine distance. AirPods are not a universal bike/rower distance sensor.
+4. Outdoor walk/run/ride: grant location, record a short route while locked, pause/move/resume,
+   then finish and inspect History. No line or distance bridges the pause; stop tracking at End.
+5. Lift → cardio → lift → Finish: one app History item, distinct segments and typed Health
+   workouts, no overlapping energy totals. Force-quit/relaunch once to check paused recovery.
+
+Route persistence currently rewrites its encoded route as points arrive (review F6, low);
+long outdoor-session device energy/IO remains unmeasured. The measured heartbeat-row probe
+does not establish GPS power consumption. Watch companion cardio is outside this release.
+
+### Independent code clearance
+
+[Claude review 03](../claude-review-03.md) clears **03ada3d**: N1/N2 resolved, no remaining
+High/Medium code findings. Visual and full UI gates still outstanding. The final targeted
+recorder/checkpoint/provider run passed **13/13**, exit 0 (`unit-targeted-8.xcresult`).
+Built Info.plist inspected: location background mode and motion/location usage strings exist.
+
+Retained low limits R1–R3: a lifting rest timer stays active/alarming but its bar is hidden
+while Cardio focus shows recording controls; finishing long workouts removes transient sample
+rows in one save (watch phone finish latency); whole-route encoding cost and short explicitly
+started lifting phases saved to Health remain as previously recorded.
+
+### Full-run interruption: capture query
+
+`full-ui-1` was interrupted after both new capture methods failed at their added picker Cancel
+step. The native hierarchy shows two Cancel buttons, one on covered Indoor Run navigation and
+one on Choose Cardio. The test used an unscoped query. No source changes during the run.
+SIGINT did not finish teardown (Xcode asserted during cancellation); exact xcodebuild PID
+60130 was terminated, exit143, and its partial xcresult has no readable Info.plist. Preserve
+its log as failure evidence; it is not a suite result. An early isolated rerun was also stopped
+(exit143) because teardown had not ended; its result is excluded. After both processes ended,
+`cancel-repro-2` reruns the unchanged default method alone before narrowing the query.
