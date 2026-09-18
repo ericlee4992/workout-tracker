@@ -11,12 +11,13 @@ current facts and open work; previous handoffs are preserved in the [archive](ar
   and starting/adding either activity remain required. [Ticket](../work-record/cardio/issues/01-implementation.md),
   [spec](../work-record/cardio/spec.md), [API evidence](../work-record/cardio/research/01-indoor-distance-and-pace.md).
 - Checkout `/Users/ericlee06/orca/workspaces/Health App/cardio-implementation`, branch
-  `ericlee4992/cardio-implementation`, base `14982e7`; committed checkpoint `03ada3d` (pushed).
+  `ericlee4992/cardio-implementation`, base `14982e7`; committed checkpoint `306acf4` (pushed; product source remains `03ada3d`).
   N1/N2 fixes now use append-only heartbeat rows and fold stray checkpoints on finish.
   Full unit run `unit-7`: **748 tests / 81 suites passed**, exit 0; `build-9` passes.
   Native visual review required pinned controls, consistent route colour and more state captures;
-  those corrections pass `build-10`; targeted units then full UI are running, PID **59715**,
-  frozen `03ada3d`, script `final-03ada3d.sh`. Claude code review 03 is clear; visual review awaits final captures. Detailed jobs,
+  those corrections pass `build-10`; targeted units passed13/13. A full run exposed an ambiguous Cancel test query; isolated
+  rerun reproduced it and the test is corrected. Focused7 then full79 now run under PID **64009**,
+  frozen `306acf4`, script `final-306acf4.sh`. Claude code review 03 is clear; visual review awaits final captures. Detailed jobs,
   measurements and review findings are in the ticket. No phone install.
 - **Distance acceptance:** public live-builder APIs are available; actual AirPods indoor distance
   delivery is not guaranteed by documentation. Implement collection and labeled phone-motion

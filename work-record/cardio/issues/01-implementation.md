@@ -238,3 +238,20 @@ SIGINT did not finish teardown (Xcode asserted during cancellation); exact xcode
 its log as failure evidence; it is not a suite result. An early isolated rerun was also stopped
 (exit143) because teardown had not ended; its result is excluded. After both processes ended,
 `cancel-repro-2` reruns the unchanged default method alone before narrowing the query.
+
+The unchanged isolated `cancel-repro-2` reproduced the same multiple-Cancel query failure,
+exit65. Scoped the query to `navigationBars["Choose Cardio"]`; product source is unchanged
+from code-cleared **03ada3d**. Commit **306acf4** (pushed) freezes the corrected test.
+Runner PID **64009**, `final-306acf4.sh`, runs seven focused cardio tests (`focused-ui-6`)
+then full79 UI (`full-ui-2`) only if focused passes. Same derived folder and result root.
+
+### Recapture passed
+
+`focused-ui-6` on **306acf4**: **7/7 passed, 0 failed/skipped**, actual exit0. Exported
+**29 native screenshots** under [final captures](../screenshots/final/), browsable in the
+[gallery](../gallery.html). Two non-failing invalid-frame runtime warnings remain, matching
+the pre-existing warning class. Author inspected default/AXL live, paused, scrolled controls,
+outdoor, route, History route, editor, lifting banner and replacement picker. Controls stay
+visible; source/distance fields are reachable above them when scrolled; route is amber; no
+false location error; new state captures are readable. Independent visual pass requested.
+`full-ui-2` has started automatically on the same frozen source.
