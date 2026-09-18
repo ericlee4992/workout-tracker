@@ -15,6 +15,20 @@ struct CardioDesignPrototype: View {
     private var large: Bool { typeSize.isAccessibilitySize }
 
     var body: some View {
+        if screen == "start" {
+            TabView {
+                page.tabItem { Label("Workout", systemImage: "figure.strengthtraining.traditional") }
+                Text("History").tabItem { Label("History", systemImage: "clock") }
+                Text("Exercises").tabItem { Label("Exercises", systemImage: "dumbbell") }
+                Text("Gyms").tabItem { Label("Gyms", systemImage: "building.2") }
+                Text("Settings").tabItem { Label("Settings", systemImage: "gearshape") }
+            }.tint(Theme.accent).preferredColorScheme(.dark)
+        } else {
+            page
+        }
+    }
+
+    private var page: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
@@ -48,8 +62,7 @@ struct CardioDesignPrototype: View {
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                if screen == "start" { tabBar }
-                else if screen == "gym" || screen == "outdoor" { cardioControls }
+                if screen == "gym" || screen == "outdoor" { cardioControls }
                 else if screen == "mixed" {
                     if !capture { variantSwitcher }
                     else { addActivity }
@@ -93,7 +106,7 @@ struct CardioDesignPrototype: View {
             HStack {
                 Text("Templates").font(.title2.bold())
                 Spacer()
-                Button { } label: { Image(systemName: "plus") }
+                Button { } label: { Image(systemName: "plus").frame(minWidth: 44, minHeight: 44) }
             }
             VStack(alignment: .leading, spacing: 14) {
                 Text("Upper Body").font(Theme.cardTitle)
@@ -102,7 +115,7 @@ struct CardioDesignPrototype: View {
                 HStack {
                     Text("5 exercises").font(.caption).foregroundStyle(Theme.secondary)
                     Spacer()
-                    Button("Start") { screen = "mixed" }.buttonStyle(.bordered).tint(Theme.accent)
+                    Image(systemName: "chevron.right").foregroundStyle(Theme.secondary)
                 }
             }.padding(18).card()
             VStack(alignment: .leading, spacing: 10) {
@@ -110,7 +123,7 @@ struct CardioDesignPrototype: View {
                 Text("Squat, Romanian Deadlift, Leg Curl")
                     .font(.subheadline).foregroundStyle(Theme.secondary)
                 Text("4 exercises").font(.caption).foregroundStyle(Theme.secondary)
-            }.padding(18).card()
+            }.frame(maxWidth: .infinity, alignment: .leading).padding(18).card()
         }
     }
 
@@ -202,15 +215,15 @@ struct CardioDesignPrototype: View {
                 HStack {
                     Label("Indoor Run", systemImage: "figure.run").font(Theme.cardTitle)
                     Spacer()
-                    Button { screen = "gym" } label: { Image(systemName: "arrow.up.left.and.arrow.down.right") }
+                    Button { screen = "gym" } label: {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .frame(minWidth: 44, minHeight: 44)
+                    }
                 }
                 timer("14:32")
                 metrics([("Heart rate", "142", "bpm"), ("Active calories", "93", "cal")])
                 distanceRow
-                HStack(spacing: 12) {
-                    Button(paused ? "Resume" : "Pause") { paused.toggle() }.buttonStyle(.secondary)
-                    Button("End Cardio") { screen = "summary" }.buttonStyle(.secondary)
-                }.frame(maxWidth: .infinity)
+                mixedControls
             }.padding(18).card()
         }
     }
@@ -226,10 +239,7 @@ struct CardioDesignPrototype: View {
             timer("14:32")
             metrics([("Heart rate", "142", "bpm"), ("Active calories", "93", "cal")])
             distanceRow
-            HStack(spacing: 12) {
-                Button(paused ? "Resume" : "Pause") { paused.toggle() }.buttonStyle(.secondary)
-                Button("End Cardio") { screen = "summary" }.buttonStyle(.secondary)
-            }
+            mixedControls
             Divider().overlay(Theme.hairline)
             HStack {
                 VStack(alignment: .leading, spacing: 6) {
@@ -244,8 +254,7 @@ struct CardioDesignPrototype: View {
 
     private var timelineMixed: some View {
         VStack(alignment: .leading, spacing: 0) {
-            timelineItem("20:00", "Indoor Walk", detail: "8:00 · 0.60 km", symbol: "figure.walk", active: false)
-            timelineItem("20:08", "Lifting", detail: "6 exercises · 18/18 sets", symbol: "dumbbell.fill", active: false)
+            timelineItem("20:00", "Lifting", detail: "6 exercises · 18/18 sets", symbol: "dumbbell.fill", active: false)
             HStack(alignment: .top, spacing: 14) {
                 VStack(spacing: 8) {
                     Circle().fill(Theme.accent).frame(width: 12, height: 12)
@@ -257,8 +266,7 @@ struct CardioDesignPrototype: View {
                     timer("14:32")
                     metrics([("Heart rate", "142", "bpm"), ("Active calories", "93", "cal")])
                     distanceRow
-                    Button(paused ? "Resume" : "Pause") { paused.toggle() }.buttonStyle(.secondary)
-                    Button("End Cardio") { screen = "summary" }.buttonStyle(.secondary)
+                    mixedControls
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -308,7 +316,7 @@ struct CardioDesignPrototype: View {
             metrics([("Heart rate", "142", "bpm"), ("Active calories", "93", "cal")])
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
-                    Text("Zone 2").font(.headline).foregroundStyle(Theme.unitKg)
+                    Text("Zone 2").font(.headline).foregroundStyle(HeartRateZone.two.color)
                     Spacer()
                     Text("AirPods").font(.caption).foregroundStyle(Theme.secondary)
                 }
@@ -339,7 +347,7 @@ struct CardioDesignPrototype: View {
                 .clipShape(RoundedRectangle(cornerRadius: 20))
             metrics([("Heart rate", "148", "bpm"), ("Active calories", "281", "cal")])
             HStack {
-                Text("Zone 3").foregroundStyle(Theme.warmup)
+                Text("Zone 3").foregroundStyle(HeartRateZone.three.color)
                 Spacer()
                 Text("AirPods").foregroundStyle(Theme.secondary)
             }.font(.subheadline)
@@ -391,12 +399,18 @@ struct CardioDesignPrototype: View {
                     Text("Lifting + Indoor Run").font(.subheadline).foregroundStyle(Theme.secondary)
                 }
             }.padding(18).card()
-            Button("View in History") { }.buttonStyle(.primary)
+            Button { } label: {
+                Text("View in History").frame(maxWidth: .infinity)
+            }.buttonStyle(.primary)
             Text("Workout details").font(.headline)
-            metrics([("Workout time", "1:23:15", ""), ("Total volume", "8,420", "lb"),
-                     ("Active calories", "436", "cal"), ("Total calories", "532", "cal"),
-                     ("Avg. heart rate", "128", "bpm"), ("Max heart rate", "157", "bpm")])
-                .padding(18).card()
+            LazyVGrid(columns: large ? [GridItem(.flexible())] : [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                summaryTile("1:23:15", "Workout time", "clock")
+                summaryTile("8,420 lb", "Total volume", "scalemass")
+                summaryTile("436 cal", "Active calories", "flame")
+                summaryTile("532 cal", "Total calories", "flame.fill")
+                summaryTile("128 bpm", "Avg. heart rate", "heart")
+                summaryTile("157 bpm", "Max heart rate", "heart.fill")
+            }
             HStack {
                 Text("Lifting").font(.headline)
                 Spacer()
@@ -412,6 +426,11 @@ struct CardioDesignPrototype: View {
         }
     }
 
+    private func summaryTile(_ value: String, _ label: String, _ symbol: String) -> some View {
+        StatTile(value: value, label: label, symbol: symbol,
+                 identifier: "prototype.summary.\(label)", accessibilityText: "\(label), \(value)")
+    }
+
     private var cardioControls: some View {
         HStack(spacing: 12) {
             Button { paused.toggle() } label: {
@@ -423,28 +442,23 @@ struct CardioDesignPrototype: View {
         }.padding(18).background(Theme.background)
     }
 
+    private var mixedControls: some View {
+        let layout = large ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
+        return layout {
+            Button { paused.toggle() } label: {
+                Text(paused ? "Resume" : "Pause").frame(maxWidth: .infinity)
+            }.buttonStyle(.primary)
+            Button { screen = "summary" } label: {
+                Text("End Cardio").frame(maxWidth: .infinity)
+            }.buttonStyle(.secondary)
+        }
+    }
+
     private var addActivity: some View {
         HStack(spacing: 12) {
             Button { } label: { Label("Add Exercise", systemImage: "plus") }.buttonStyle(.secondary)
             Button { screen = "picker" } label: { Label("Add Cardio", systemImage: "plus") }.buttonStyle(.secondary)
         }.padding(16).frame(maxWidth: .infinity).background(Theme.background)
-    }
-
-    private var tabBar: some View {
-        HStack {
-            tab("Workout", "dumbbell.fill", true)
-            tab("History", "clock", false)
-            tab("Exercises", "figure.strengthtraining.traditional", false)
-            tab("Gyms", "building.2", false)
-            tab("Settings", "gearshape", false)
-        }.padding(.top, 12).padding(.bottom, 5).background(Theme.elevated)
-    }
-
-    private func tab(_ label: String, _ symbol: String, _ selected: Bool) -> some View {
-        VStack(spacing: 5) {
-            Image(systemName: symbol).font(.title3)
-            Text(label).font(.caption2)
-        }.foregroundStyle(selected ? Theme.accent : Theme.secondary).frame(maxWidth: .infinity)
     }
 
     private var variantSwitcher: some View {

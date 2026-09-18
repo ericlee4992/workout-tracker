@@ -21,7 +21,7 @@ final class CardioPrototypeCaptureUITests: XCTestCase {
             XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "cardioPrototype.\(screen).\(variant)").firstMatch.waitForExistence(timeout: 10))
             let prefix = "cardio-\(screen)-\(variant)-\(accessibility ? "axl" : "default")"
             take(app, prefix)
-            if accessibility || screen == "picker" || screen == "summary" {
+            if accessibility || screen == "picker" || screen == "summary" || screen == "mixed" {
                 app.swipeUp()
                 take(app, prefix + "-scroll1")
                 if accessibility {

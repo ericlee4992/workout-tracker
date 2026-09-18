@@ -31,7 +31,7 @@ native preview screens. Prototype/UI.md's URL-variant concept is adapted to laun
   action and Start Cardio is secondary. Templates are below both.
 - Activity picker: choose the cardio kind in one tap; a grouped list leads, Gym and Outdoors
   are distinct sections. Search is illustrative in this mockup.
-- Mixed, cardio live: control the current cardio segment in one tap; the timer is the bold
+- Mixed, cardio live: control the current cardio segment once its controls are visible; the timer is the bold
   figure and Pause is its primary control. Completed lifting steps down.
 - Cardio, paused: resume in one tap; the elapsed value stops and the primary action is Resume.
 - Outdoor, live: glance at time/distance/pace and route; timer leads, map supports orientation.
@@ -73,9 +73,7 @@ C — Session timeline
 ```
 Workout title                                      Finish
 Gym / session clock
-✓ 20:00 Indoor Walk — duration / distance
-│
-✓ 20:08 Lifting — 6 exercises / 18 sets
+✓ 20:00 Lifting — 6 exercises / 18 sets
 │
 ● 21:09 Indoor Run — live
 │             segment timer                         largest
@@ -99,7 +97,10 @@ explicitly up for user approval in this design round; existing production string
 - Accent density deliberate: live/selected state, one primary live control; other actions neutral.
 - Equal-weight blocks deliberate: related metric pairs; AccessibilityL stacks them.
 - Phone-sized website absent: native SwiftUI navigation, controls, symbols and type.
-- Content above fold deliberate: current activity before completed-session detail.
+- Content above fold deliberate per variant: A preserves lifting first, so at AccessibilityL
+  the cardio timer and controls require scrolling past completed lifting. B brings live cardio
+  forward. C prioritizes chronological context; live controls may also require scrolling.
+  The expanded gym/outdoor views pin the live controls. This is a trade-off to choose explicitly.
 - Picker as primary absent: picker opens from a command, then uses equal list rows.
 - Default-size-only absent: same sample states captured at default and AccessibilityL.
 
@@ -137,3 +138,27 @@ Both capture drivers passed, actual exit **0**, **2/2**, no failures/skips/runti
 in the result summary. Exported 34 real simulator PNGs into `screenshots/`. Reviewed them
 as images. These establish that the sample screens render, not that cardio works.
 The sets-ring report is separately closed: user confirmed it actually works, no app change.
+
+## Review corrections — recapture 3
+
+Initial independent review at `4f004be`: R1 inaccurate above-fold claim, R2 zone colours,
+R3 primary-control mismatch. Report preserved at `claude-review-01.md`.
+
+- R1: ticket and gallery now explicitly say A requires scrolling past completed lifting at
+  AccessibilityL. Familiarity is the recommendation, not superior one-tap access; B leads with
+  the live activity. C now uses the same lifting→run fixture as A/B (removed extra sample walk).
+- R2: gym/outdoor now use the real `HeartRateZone.two/three.color` palette.
+- R3: Pause is primary and End Cardio secondary in A/B/C, equal-width at default and stacked
+  at AccessibilityL. All mixed variants now get a default scroll capture too.
+- Advisory corrections: Start uses real native TabView chrome; removed its extra template Start
+  pill; expand/+ buttons have 44 pt minimum frames; summary reuses existing StatTile pairs;
+  gallery suppresses identical scroll images. Samples/stub navigation remain deliberate.
+
+Intermediate recapture 2 passed 2/2, exit 0. Final recapture 3 PID **3000** uses `capture-3.sh`, `runner-3.log`, `captures-3.log`,
+`captures-3.xcresult`, `captures-3-exit.txt`, same derived data. Result pending.
+
+Final recapture 3: **2/2 passed**, actual exit **0**, no failures/skips/runtime warnings.
+Fresh Debug build `build-3.log` / `build-3-exit.txt` also passed (0). Exported 37 screenshots;
+the gallery shows 29 distinct views after byte-hash deduplication. Source is unchanged since
+this capture build. Opened and inspected the new Start AXL, mixed controls, zone colours and
+summary tiles as images. Independent follow-up review pending.
