@@ -42,6 +42,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(lifting.waitForExistence(timeout: 5))
         XCTAssertTrue(cardio.isHittable)
         XCTAssertEqual(lifting.frame.width, cardio.frame.width, accuracy: 1)
+        XCTAssertEqual(lifting.frame.height, cardio.frame.height, accuracy: 1)
         if large {
             XCTAssertLessThanOrEqual(lifting.frame.maxY, cardio.frame.minY)
         } else {

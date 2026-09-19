@@ -31,6 +31,14 @@ final class CardioUITests: XCTestCase {
         }
         XCTAssertTrue(visible())
     }
+    private func openFinishedHistory() {
+        // The receipt link is above its metrics/map. Lazy content can remove it
+        // from the accessibility tree, so an absent element must scroll upward.
+        let history = app.buttons["viewFinishedWorkout"]
+        for _ in 0..<10 where !history.exists || !history.isHittable { app.swipeDown() }
+        XCTAssertTrue(history.exists && history.isHittable)
+        history.tap()
+    }
     private func shot(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
@@ -76,20 +84,26 @@ final class CardioUITests: XCTestCase {
         choose("indoorRun")
         // The fixture emits measured distance through the same provider interface.
         reach(app.buttons["cardioEditDistance"])
-        XCTAssertFalse(app.staticTexts["HealthKit estimate"].exists)
         app.buttons["cardioEditDistance"].tap()
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Measured:")).firstMatch.waitForExistence(timeout: 10))
         app.navigationBars["Distance"].buttons["Cancel"].tap()
-        enterDistance("1.25")
+        XCTAssertFalse(app.staticTexts["HealthKit estimate"].exists)
+        shot("cardio-built-automatic-distance")
         reach(app.buttons["endCardio"]); app.buttons["endCardio"].tap()
         XCTAssertTrue(any("cardioSummary.indoorRun").waitForExistence(timeout: 5))
+        reach(app.buttons["cardioSummaryEditDistance"])
+        XCTAssertEqual(app.buttons["cardioSummaryEditDistance"].label, "Distance")
         addLiftingSet()
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["viewFinishedWorkout"].waitForExistence(timeout: 10))
-        app.buttons["viewFinishedWorkout"].tap()
+        reach(app.buttons["cardioSummaryEditDistance"])
+        XCTAssertEqual(app.buttons["cardioSummaryEditDistance"].label, "Distance")
+        openFinishedHistory()
         let summary = any("cardioSummary.indoorRun")
         reach(summary)
         XCTAssertTrue(summary.exists)
+        reach(app.buttons["cardioSummaryEditDistance"])
+        XCTAssertEqual(app.buttons["cardioSummaryEditDistance"].label, "Distance")
         XCTAssertTrue(app.navigationBars.buttons.firstMatch.exists)
         shot("cardio-built-mixed-history")
     }
@@ -152,8 +166,7 @@ final class CardioUITests: XCTestCase {
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
         reach(any("cardioRoute"))
         shot("cardio-built-finish-route-\(large ? "axl" : "default")")
-        reach(app.buttons["viewFinishedWorkout"])
-        app.buttons["viewFinishedWorkout"].tap()
+        openFinishedHistory()
         reach(any("cardioRoute"))
         shot("cardio-built-history-route-\(large ? "axl" : "default")")
     }
@@ -167,6 +180,11 @@ final class CardioUITests: XCTestCase {
         shot("cardio-built-picker-\(large ? "axl" : "default")")
         choose("indoorRun")
         let size = large ? "axl" : "default"
+        reach(app.buttons["cardioEditDistance"]); app.buttons["cardioEditDistance"].tap()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Measured:")).firstMatch.waitForExistence(timeout: 10))
+        app.navigationBars["Distance"].buttons["Cancel"].tap()
+        XCTAssertFalse(app.staticTexts["HealthKit estimate"].exists)
+        shot("cardio-built-automatic-\(size)")
         enterDistance("0.03", captureName: "cardio-built-editor-\(size)")
         app.swipeDown(); app.swipeDown()
         shot("cardio-built-live-\(large ? "axl" : "default")")

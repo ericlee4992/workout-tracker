@@ -58,3 +58,36 @@ Detached runner PID **97931**, worktree
 Artifacts: `work-record/ui-redesign/results/cardio-refinements/` in that worktree;
 `run-focused.sh`, `build.log`, `build-exit.txt`, `focused.log`, `focused-exit.txt`,
 `focused.xcresult`. Working diff against 21ef98f is the tested input (commit after build succeeds).
+
+Build passed (exit 0). Implementation committed/pushed as **3020180**; code under test is
+identical to that commit. Full UI runner PID **1758**, `run-full-ui.sh`, queued after
+focused success on the same simulator; `full-ui.log`, `full-ui-exit.txt`, `full-ui.xcresult`.
+Claude reviewing in `review-cardio-ui-refinements`, terminal
+`term_25860acb-53b5-4121-bb08-e6bcc224a6c0`; code/visual clearance pending.
+
+Initial Claude review: code paths clear; T1 test could assert caption absence before data
+arrived. Moved the assertion after measured-data wait and added automatic-distance checks
+in ended segment, receipt and History. L1 equal-height improvement applied. L2: deliberately
+use compact text-only standard buttons for idle Start so both full labels fit side by side;
+Resume and template detail retain their capsule. This implements the user's selected side-by-side
+composition using existing tokens; default/AXL captures will be shown. Full-UI queued runner
+1758 was stopped before it started tests; final focused verification will precede the full suite.
+
+Final sequential runner PID **4631**, `run-final.sh`: waits for original focus to release simulator,
+then `final-build`, `final-focused` (9), `full-ui` (81), each with `.log`, `-exit.txt` and test
+`.xcresult` under the same artifact directory.
+
+Initial focused result: 7 passed / 2 failed, exit 65. Both outdoor tests passed absence
+before Finish and map presence after Finish, then failed reaching the receipt's History
+link. A single-test `outdoor-repro` (runner PID 5229, test-without-building, same bundle)
+reproduced it. Logs show ten upward swipes after scrolling below the link; exported Summary
+capture contains the expected route. Hypotheses: (1) wrong scroll direction for lazy link,
+(2) link removed by finish behavior, (3) sheet overlay intercepting. Evidence favors (1):
+the link existed before scrolling; Summary is still presented. Fixed only the test helper
+to scroll down toward the top for this known-above action. Skipped broader instrumentation/
+bisection because the failing command, exact scroll trace and capture isolate a test-navigation
+error, not a product defect. Final focused run is the regression check.
+
+Reproduction exit 65 confirmed. Final sequential runner restarted as PID **6068** after
+repro completion; prior queued PID 4631 stopped before testing. `final-build-exit.txt` = 0.
+Final focused tests running, followed automatically by full UI if successful.

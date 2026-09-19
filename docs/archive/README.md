@@ -8,6 +8,7 @@ Stable decisions remain in [DECISIONS](../DECISIONS.md), detailed ticket records
 
 | Snapshot | Provenance |
 |---|---|
+| [STATE before cardio UI refinements](STATE-2026-09-18-before-cardio-ui-refinements.md) | Byte-for-byte copy at `21ef98f`, before the user confirmed indoor distance with AirPods Pro 3 and requested presentation changes |
 | [STATE before cardio handoff](STATE-2026-09-18-before-cardio-handoff.md) | Byte-for-byte copy at `b845a3a`, after successful installation and the disconnected launch attempts, before the clean-session checkpoint |
 | [STATE before cardio implementation](STATE-2026-09-18-before-cardio-implementation.md) | Byte-for-byte copy at `14982e7`, after direction B was selected and before the optional-device policy and build were authorized |
 | [STATE before cardio design](STATE-2026-09-17-before-cardio-design.md) | Byte-for-byte copy at `e51695b`, before the user requested gym/outdoor cardio designs and confirmed the sets ring works |

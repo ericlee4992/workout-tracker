@@ -164,7 +164,7 @@ struct StartWorkoutView: View {
                 .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
                 .accessibilityIdentifier("startEmptyWorkout")
                 Button { showingCardioPicker = true } label: {
-                    Text("Start Cardio").frame(maxWidth: .infinity)
+                    Text("Start Cardio").frame(maxWidth: .infinity, minHeight: 52)
                 }
                 .buttonStyle(.secondary)
                 .accessibilityIdentifier("startCardio")
