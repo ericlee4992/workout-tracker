@@ -1,7 +1,7 @@
 # 04 — Restore the original Start capsule buttons
 
 Type: task
-Status: resolved — verified and independently cleared; installation pending
+Status: resolved — merged, installed and launch-verified
 
 User correction 2026-09-19: disliked ticket 03's changed Start Lifting appearance; restore
 its previous design and give Start Cardio the same design, including its activity logo.
@@ -111,3 +111,23 @@ Claude independently verified the final artifacts and issued **CLEAR TO MERGE** 
 `ericlee4992/restore-start-capsules`, product/tests95a82dd, evidence98d72fd; remaining
 checkpoint changes are documentation only. Fast-forward main and push with this checkpoint,
 then update the installed app as continuation of the authorized device-feedback correction.
+
+## Installation and final delivery
+
+Merged/pushed main **be5a3f0**, remote tip verified. Continued the previously authorized
+installation workflow for the user's correction to the installed buttons. Fresh generic-iOS
+build from clean main be5a3f0 (product/tests **95a82dd**) at
+`/tmp/wt-start-capsules-device-20260919`, build exit 0. Only StartWorkoutView differs from
+prior installed product; no schema/history migration and no new backup claimed.
+
+Verified fresh dylib timestamp, both new idle HeroCapsuleLabel closure symbols, matching
+app/widget bundle IDs and signatures, team X68M8SR6NA. Profiles expire September24
+07:16:18 /07:16:20 UTC (app/widget). Phone initially reported locked; user prompted to
+unlock. Install **2026-09-19 01:41 EDT**, **exit 0 / success**, installation UUID
+`8CF16E2A-6EA5-445C-82E3-F8EB5BF6658C`. Launch **exit 0 / success**; PID **3586**
+independently confirmed running in a subsequent device process list. No reset/uninstall.
+
+Artifacts in main `work-record/ui-redesign/results/start-capsules-install/`: build script,
+log/exit; binary-verification.json; install/launch JSON, logs and exits; processes.json.
+Build runner 45140 finished. Physical cardio acceptance remains ticket02; existing-history
+content was not inspected. Product/test code unchanged after 95a82dd.
