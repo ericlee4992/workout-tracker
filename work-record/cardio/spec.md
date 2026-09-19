@@ -7,7 +7,7 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
 ## User flow
 
 - Start Lifting enters the existing log (preserve startEmptyWorkout test identifier).
-  Start Cardio sits beside Start Lifting (stacked at accessibility sizes) and offers Apple-style Indoor Walk, Indoor Run, Indoor Cycle, Elliptical, Rowing,
+  Start Cardio sits below Start Lifting in a matching original icon capsule (user correction, September 19) and offers Apple-style Indoor Walk, Indoor Run, Indoor Cycle, Elliptical, Rowing,
   Stair Stepper, Outdoor Walk, Outdoor Run and Outdoor Cycle.
 - One ongoing workout, Lifting / Cardio focus switch (B), Add Exercise and Add Cardio available
   mid-workout. A focus switch changes the view; it does not silently end recording.
@@ -87,5 +87,5 @@ cardio segment has ended while the encompassing workout remains open. Route reco
 
 Restore the original Start Lifting amber capsule with activity icon disc and arrow; Start
 Cardio uses the same design with a running icon. The idle activity pair has equal prominence,
-beside each other where labels fit and stacked for larger text. This supersedes ticket 03's
+stacked at every text size, as the user explicitly chose after seeing wrapped titles side by side. This supersedes ticket 03's
 text-only start treatment; maps and HealthKit-caption changes stand.

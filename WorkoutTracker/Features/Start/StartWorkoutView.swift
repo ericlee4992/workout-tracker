@@ -140,7 +140,7 @@ struct StartWorkoutView: View {
         }
     }
 
-    /// Idle: matching activity capsules, stacked when larger text needs the width.
+    /// Idle: the original single-line activity capsules, stacked at the user's request.
     /// Live: the existing Resume capsule returns to the minimised workout.
     @ViewBuilder
     private var heroCapsule: some View {
@@ -153,14 +153,11 @@ struct StartWorkoutView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("resumeWorkout")
         } else {
-            let layout = dynamicTypeSize >= .xxLarge
-                ? AnyLayout(VStackLayout(spacing: 12))
-                : AnyLayout(HStackLayout(spacing: 12))
-            layout {
+            VStack(alignment: .leading, spacing: 12) {
                 Button { startRequest = WorkoutStartRequest(template: nil) } label: {
                     HeroCapsuleLabel(title: "Start Lifting", subtitle: nil,
                                      symbol: "figure.strengthtraining.traditional", trailing: "arrow.up.right",
-                                     live: false, fillsWidth: true)
+                                     live: false)
                 }
                 .buttonStyle(.plain)
                 .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
@@ -168,7 +165,7 @@ struct StartWorkoutView: View {
                 Button { showingCardioPicker = true } label: {
                     HeroCapsuleLabel(title: "Start Cardio", subtitle: nil,
                                      symbol: "figure.run", trailing: "arrow.up.right",
-                                     live: false, fillsWidth: true)
+                                     live: false)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("startCardio")
@@ -294,8 +291,6 @@ struct HeroCapsuleLabel: View {
     var symbol: String
     var trailing: String
     var live: Bool
-    /// The idle activity choices share equal columns; Resume/template keep hugging content.
-    var fillsWidth = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The ink disc grows with its glyph (`.body`) — codex-review-10 saw the
     /// figure flush with a fixed 40 pt disc at AXL.
@@ -327,7 +322,6 @@ struct HeroCapsuleLabel: View {
             }
             VStack(alignment: .leading, spacing: 1) {
                 Text(title).font(.body.weight(.bold))
-                    .fixedSize(horizontal: false, vertical: fillsWidth)
                 if let subtitle {
                     Text(subtitle).font(.caption.weight(.medium)).opacity(0.8)
                 }
@@ -338,7 +332,7 @@ struct HeroCapsuleLabel: View {
         .foregroundStyle(Theme.onAccent)
         .padding(.leading, 8)
         .padding(.trailing, 20)
-        .frame(maxWidth: fillsWidth ? .infinity : nil, minHeight: 56)
+        .frame(minHeight: 56)
         .background(Theme.accent, in: Capsule())
         .accessibilityElement(children: .combine)
     }

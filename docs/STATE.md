@@ -8,7 +8,8 @@ Earlier STATE is preserved in the [archive](archive/STATE-2026-09-19-before-star
 User disliked the text-only Start Lifting restyle. [Ticket 04](../work-record/cardio/issues/04-restore-start-capsules.md)
 restores the original amber capsule/icon-disc/arrow design for Lifting and gives Cardio the
 same treatment with a running icon. Two matching amber activity choices are explicitly wanted;
-D54 is amended. Keep them adjacent where they fit, stack at larger text sizes.
+D54 is amended. User explicitly chose **stacked** to retain the original single-line design at every text size,
+superseding the prior adjacent-button request.
 
 Branch `ericlee4992/restore-start-capsules`, base **62f9469**, implementation in its Orca
 worktree. Build and paired default/AccessibilityL captures are running; PID/artifacts in

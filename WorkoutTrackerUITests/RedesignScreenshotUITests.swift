@@ -41,14 +41,9 @@ final class RedesignScreenshotUITests: XCTestCase {
         let cardio = app.buttons["startCardio"]
         XCTAssertTrue(lifting.waitForExistence(timeout: 5))
         XCTAssertTrue(cardio.isHittable)
-        XCTAssertEqual(lifting.frame.width, cardio.frame.width, accuracy: 1)
         XCTAssertEqual(lifting.frame.height, cardio.frame.height, accuracy: 1)
-        if large {
-            XCTAssertLessThanOrEqual(lifting.frame.maxY, cardio.frame.minY)
-        } else {
-            XCTAssertEqual(lifting.frame.midY, cardio.frame.midY, accuracy: 1)
-            XCTAssertLessThan(lifting.frame.maxX, cardio.frame.minX)
-        }
+        XCTAssertEqual(lifting.frame.minX, cardio.frame.minX, accuracy: 1)
+        XCTAssertLessThanOrEqual(lifting.frame.maxY, cardio.frame.minY)
         shoot("redesign-cardio-start-\(large ? "axl" : "default")")
     }
 
