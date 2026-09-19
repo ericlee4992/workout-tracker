@@ -1,7 +1,7 @@
 # 05 — Arrowless Start row and simpler outdoor cardio
 
 Type: task
-Status: claimed
+Status: resolved — verified and independently cleared; installation pending
 
 User request 2026-09-19: put the original icon capsules on one row by removing arrows;
 remove the outdoor cardio GPS section. Reopens ticket04/D54 stacked layout explicitly.
@@ -80,3 +80,22 @@ then capture passed. Row fits with full labels; phone-specific screenshot shown 
 default/AXL and outdoor details pairs and matching-phone capture.
 Full UI runner PID **61459**, `run-full-ui.sh`, `full-ui.log`, `full-ui-exit.txt`,
 `full-ui.xcresult`. Code unchanged after7825140; artifacts remain in this worktree.
+
+## Final verification — 2026-09-19
+
+Product/tests **7825140**, records/capture tip **0ffafd9**. Build exit0; recorder **7/7**,
+focused UI **5/5**, matching-phone layout **1/1**, full UI **81/81** passed. All actual
+exit files are0; xcresult summaries inspected, no failures/skips. Full UI finished02:58 EDT,
+2901 seconds, TEST SUCCEEDED. 24 known non-failing invalid-frame warnings, same count/class
+as prior suites; origin uninvestigated. Full runner61459 completed.
+
+Code/visual review clear; F1/F2/F3 resolved, F4/F5 informational. Location denied copy
+verified directly in production branch; existing recorder suite passed, no special denied
+UI fixture/injection seam added for deleted wording. No domain math/schema/sensor algorithm
+change. Product/test/config tree unchanged after7825140. Relative links and exact archive
+preservation checked. Final independent artifact clearance requested before merge/install.
+
+Independent [Claude final review](../claude-compact-start-outdoor-review.md), authored
+at e0d2bd2, is **MERGE CLEARED** after reading actual artifacts. Product/tests7825140,
+evidence0ffafd9; subsequent changes documentation only. Main fast-forward/push with this
+checkpoint, then signed device build/install as continuation of authorized UI feedback.
