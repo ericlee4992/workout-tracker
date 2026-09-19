@@ -1,8 +1,7 @@
 # Current project state
 
-Updated 2026-09-19 after cardio UI verification. Main/remote base is
-**21ef98f**; reviewed product/tests **269498b**, evidence **9c7d1b7** on `ericlee4992/cardio-ui-refinements`;
-this docs-only checkpoint records completion and fast-forward to main.
+Updated 2026-09-19 after the authorized cardio UI installation. Verified clean main
+**a7d3d41** before this install-evidence checkpoint; installed product/tests **269498b**.
 Earlier STATE is preserved in the [archive](archive/STATE-2026-09-18-before-cardio-ui-refinements.md).
 
 ## Next action: device acceptance after cardio UI refinements
@@ -17,13 +16,12 @@ full UI tests passed (exit 0); full UI finished September 19 at 00:11 EDT. Indep
 is clear. [16 native captures](../work-record/cardio/ui-refinements-gallery.html) include
 normal/AccessibilityL pairs. No build/test job from this task remains; artifacts are in ticket 03.
 
-**These UI refinements are not installed.** The phone still has the September 18 build from
-`c847ef3`. User feedback confirms app opening, successful indoor distance with AirPods Pro 3,
+**Installed and launch-verified 2026-09-19 00:34 EDT.** Fresh build from clean main `a7d3d41`;
+install and launch exit 0, app process 3283 confirmed running afterward. User feedback confirms app opening, successful indoor distance with AirPods Pro 3,
 and outdoor map rendering. Existing-history preservation, specific indoor activity/phone
 position and locked/background behavior were not explicitly reported.
 
-Next: install the reviewed UI refinements when requested (follow DEVELOPMENT freshness/signing
-checks), then continue [ticket 02](../work-record/cardio/issues/02-device-acceptance.md): history
+Next: continue [ticket 02](../work-record/cardio/issues/02-device-acceptance.md): history
 preservation, indoor phone carried/stationary, pause/disconnect/recovery, outdoor GPS while
 locked/backgrounded and mixed-workout recovery. Watch cardio remains outside this release.
 App/widget profiles expire **September 24, 2026 at 07:16 UTC**.
@@ -35,20 +33,22 @@ App/widget profiles expire **September 24, 2026 at 07:16 UTC**.
   outdoor routes. [Spec](../work-record/cardio/spec.md),
   [implementation/review trail](../work-record/cardio/issues/01-implementation.md),
   [29 native default/AccessibilityL captures](../work-record/cardio/gallery.html).
-- Product source **03ada3d**, tests **306acf4**, merged via **b0a8de9**. Installed build is from
-  clean main **c847ef3**; commits through **b845a3a** document evidence/install only. Prototype
+- Product source **03ada3d**, tests **306acf4**, merged via **b0a8de9**. Initial cardio build was installed from **c847ef3**; current UI-refined build is from
+  clean main **a7d3d41**, installed September 19 (ticket 03). Prototype
   `cardio-design-prototype` is reference-only; the selected design is already implemented.
 - Debug build passed; full units **748**, targeted units **13**, focused cardio UI **7**, full
   UI **79**, and actual-store/legacy migration checks **10** all passed with exit 0. Full UI
   completed September 18 at 03:58 EDT. Claude code, visual and
   [final merge review](../work-record/cardio/claude-final-clearance.md) are clear.
-- **Installed, launch confirmed by user feedback:** devicectl install succeeded September 18 at 08:32 EDT.
+- **Current installation launch-verified:** September 19 UI-refined build installed and launched,
+  devicectl exit 0 for both; app process confirmed running afterward.
   Current phone/backup details below. The user subsequently tested indoor distance and outdoor
   map rendering; existing-history preservation and other hardware checks remain outstanding. The installation was authorized after the merge review.
-- **Prior handoff:** no local build/test jobs were running; the current run is tracked in ticket 03. Implementation, research, prototype and
+- **No local build/test jobs running:** ticket 03 verification and device build completed. Implementation, research, prototype and
   review checkouts were clean before handoff edits; temporary private migration test removed.
   Preserve the ignored artifacts: main `work-record/ui-redesign/results/cardio-install/` holds
-  device build/install/launch logs; `cardio-implementation/work-record/ui-redesign/results/cardio/`
+  original device build/install/launch logs; main `work-record/ui-redesign/results/cardio-ui-install/`
+  holds the September 19 UI-refinement build/install/launch evidence; `cardio-implementation/work-record/ui-redesign/results/cardio/`
   holds unit/UI/migration logs, exit files and xcresults. Private backup data stays outside Git.
 - **Known limits:** 24 non-failing invalid-frame warnings (same known class as ticket 17; origin
   uninvestigated);
@@ -72,7 +72,7 @@ App/widget profiles expire **September 24, 2026 at 07:16 UTC**.
 
 | Fact | Last verified value |
 |---|---|
-| Installed source | Cardio product `03ada3d`, built from clean main `c847ef3`; installed 2026-09-18 08:32 EDT, devicectl exit 0/success. Remote launch initially blocked by Locked, then CoreDevice 4016/disconnected after unlock. Install succeeded; user subsequently reports successful indoor cardio and outdoor map rendering. Existing-history preservation remains unverified |
+| Installed source | UI-refined cardio product/tests `269498b`, built from clean main `a7d3d41`; installed 2026-09-19 00:34 EDT, devicectl install/launch exit 0 and success. App PID 3283 confirmed running after launch. Existing-history preservation remains unverified |
 | Provisioning | Verified in the installed build: app expires **2026-09-24 07:16:18 UTC**, widget **07:16:20 UTC**; same profiles created September 17 |
 | Store | Cardio code exports schema 10; app launch confirmed by user feedback; existing-history preservation awaits explicit confirmation. Offline migration of a fresh actual-store copy passed, preserving all existing values/relationships across 13 tables |
 | Latest local backup | `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`: fresh raw container, 26 files, integrity and SHA-256 checks passed. JSON/CSV generated with app exporters from an isolated migrated copy alongside it; private, outside Git. Restore not tested |

@@ -1,7 +1,7 @@
 # 03 — Cardio presentation refinements
 
 Type: task
-Status: resolved — verified and independently cleared; merged with this checkpoint
+Status: resolved — merged, installed and launch-verified
 
 User request 2026-09-18: indoor distance works with AirPods Pro 3; remove the HealthKit
 estimate label, show routes only in workout Summary/History, and put Start Cardio beside
@@ -129,5 +129,26 @@ in [review](../claude-ui-refinements-review.md). Required T1 resolved and re-rev
 L1/L2/V3/N3 addressed. Start default/AXL and automatic-distance capture links shown to user.
 Final branch is `ericlee4992/cardio-ui-refinements`; reviewed code **269498b**, evidence
 checkpoint **9c7d1b7**. Further commits are records only. Main is fast-forwarded with this
-checkpoint; no PR required. These UI refinements have **not been installed on the phone**.
-Remaining device acceptance stays in ticket 02; the installed build is still c847ef3.
+checkpoint; no PR required. At merge, installation was pending; the authorized installation below supersedes that state.
+Remaining physical device acceptance stays in ticket 02.
+
+## Authorized installation — 2026-09-19
+
+User requested “install.” Built from clean main **a7d3d41**, reviewed product/tests **269498b**,
+with Xcode 27.0 at `/tmp/wt-cardio-ui-device-20260919`; build exit 0 / BUILD SUCCEEDED.
+Only the two UI files differ from the prior installed c847ef3 product; no schema/history
+migration. Existing September 18 private backup retained; no new backup or restore claimed.
+
+Verified fresh debug dylib timestamp plus `distanceSourceCaption` / `showsRoute` symbols,
+app/widget signatures and same bundle IDs/team. Profiles remain valid: app expires
+2026-09-24 07:16:18 UTC, widget 07:16:20 UTC. Initial device connection failed; one retry
+connected and confirmed unlocked. Installed **2026-09-19 00:34 EDT**, devicectl **exit 0 / success**,
+installation UUID `EA8B303F-42B0-4A9D-BCC4-D35483E42D5F`. Launch **exit 0 / success**,
+app PID **3283**, then independently found still running via device process list. Widget
+process PID 3275 also appeared; this does not establish visual widget acceptance.
+
+Logs/JSON/scripts: main `work-record/ui-redesign/results/cardio-ui-install/`, including
+`build-exit.txt`, `binary-verification.json`, `install.json`, `install-exit.txt`,
+`launch.json`, `launch-exit.txt`, `processes.json`. Build runner 22662 finished.
+No reset/uninstall performed; same bundle ID preserves the container. Existing-history
+content was not inspected. Hardware acceptance remains separately tracked in ticket 02.
