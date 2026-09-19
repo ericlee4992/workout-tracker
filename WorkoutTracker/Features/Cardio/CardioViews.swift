@@ -100,6 +100,7 @@ struct CardioLiveView: View {
             }
             LazyVGrid(columns: columns, alignment: .leading, spacing: 20) {
                 CardioMetric(label: "Distance", value: distanceText, unit: segment.unit.rawValue)
+                    .accessibilityIdentifier("cardioDistanceMetric")
                 if segment.activity.usesSpeed {
                     CardioMetric(label: "Average speed", value: averageSpeedText, unit: "\(segment.unit.rawValue)/h")
                 } else {
@@ -133,19 +134,23 @@ struct CardioLiveView: View {
             if let message = recorder.locationMessage {
                 Text(message).font(.footnote).foregroundStyle(Theme.secondary)
             }
-            Button { editingDistance = true } label: {
-                HStack {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if let caption = segment.distanceSourceCaption {
-                            Text(caption).font(.caption).foregroundStyle(Theme.secondary)
+            // Outdoor progress already has a GPS-measured Distance metric above.
+            // Keep the live manual-entry affordance for indoor machine/sensor fallback.
+            if !segment.activity.isOutdoor {
+                Button { editingDistance = true } label: {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 6) {
+                            if let caption = segment.distanceSourceCaption {
+                                Text(caption).font(.caption).foregroundStyle(Theme.secondary)
+                            }
+                            Text(segment.distanceMeters == nil ? "Enter distance" : "\(distanceText) \(segment.unit.rawValue)")
+                                .font(.headline).foregroundStyle(Theme.text)
                         }
-                        Text(segment.distanceMeters == nil ? "Enter distance" : "\(distanceText) \(segment.unit.rawValue)")
-                            .font(.headline).foregroundStyle(Theme.text)
-                    }
-                    Spacer()
-                    Image(systemName: "pencil").foregroundStyle(Theme.secondary)
-                }.frame(minHeight: 44).contentShape(Rectangle())
-            }.buttonStyle(.plain).accessibilityIdentifier("cardioEditDistance")
+                        Spacer()
+                        Image(systemName: "pencil").foregroundStyle(Theme.secondary)
+                    }.frame(minHeight: 44).contentShape(Rectangle())
+                }.buttonStyle(.plain).accessibilityIdentifier("cardioEditDistance")
+            }
 
         }
         .foregroundStyle(Theme.text)

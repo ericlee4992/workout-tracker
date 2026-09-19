@@ -8,6 +8,7 @@ Stable decisions remain in [DECISIONS](../DECISIONS.md), detailed ticket records
 
 | Snapshot | Provenance |
 |---|---|
+| [STATE before arrowless Start/outdoor cleanup](STATE-2026-09-19-before-compact-start-outdoor.md) | Byte-for-byte copy at `0e16a8c`, before the user reopened the stacked Start choice and requested removal of the outdoor GPS section |
 | [STATE before Start capsule restoration](STATE-2026-09-19-before-start-capsules.md) | Byte-for-byte copy at `62f9469`, after UI refinements were installed and before the user rejected the text-only start buttons |
 | [STATE before cardio UI refinements](STATE-2026-09-18-before-cardio-ui-refinements.md) | Byte-for-byte copy at `21ef98f`, before the user confirmed indoor distance with AirPods Pro 3 and requested presentation changes |
 | [STATE before cardio handoff](STATE-2026-09-18-before-cardio-handoff.md) | Byte-for-byte copy at `b845a3a`, after successful installation and the disconnected launch attempts, before the clean-session checkpoint |

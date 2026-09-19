@@ -140,7 +140,7 @@ struct StartWorkoutView: View {
         }
     }
 
-    /// Idle: the original single-line activity capsules, stacked at the user's request.
+    /// Idle: arrowless activity capsules share a row when their full labels fit.
     /// Live: the existing Resume capsule returns to the minimised workout.
     @ViewBuilder
     private var heroCapsule: some View {
@@ -153,23 +153,32 @@ struct StartWorkoutView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("resumeWorkout")
         } else {
-            VStack(alignment: .leading, spacing: 12) {
-                Button { startRequest = WorkoutStartRequest(template: nil) } label: {
-                    HeroCapsuleLabel(title: "Start Lifting", subtitle: nil,
-                                     symbol: "figure.strengthtraining.traditional", trailing: "arrow.up.right",
-                                     live: false)
-                }
-                .buttonStyle(.plain)
-                .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
-                .accessibilityIdentifier("startEmptyWorkout")
-                Button { showingCardioPicker = true } label: {
-                    HeroCapsuleLabel(title: "Start Cardio", subtitle: nil,
-                                     symbol: "figure.run", trailing: "arrow.up.right",
-                                     live: false)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("startCardio")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) { startChoices }
+                    .fixedSize(horizontal: true, vertical: false)
+                VStack(alignment: .leading, spacing: 12) { startChoices }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var startChoices: some View {
+        Group {
+            Button { startRequest = WorkoutStartRequest(template: nil) } label: {
+                HeroCapsuleLabel(title: "Start Lifting", subtitle: nil,
+                                 symbol: "figure.strengthtraining.traditional", trailing: nil,
+                                 live: false)
+            }
+            .buttonStyle(.plain)
+            .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
+            .accessibilityIdentifier("startEmptyWorkout")
+            Button { showingCardioPicker = true } label: {
+                HeroCapsuleLabel(title: "Start Cardio", subtitle: nil,
+                                 symbol: "figure.run", trailing: nil,
+                                 live: false)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("startCardio")
         }
     }
 
@@ -289,7 +298,7 @@ struct HeroCapsuleLabel: View {
     var title: String
     var subtitle: String?
     var symbol: String
-    var trailing: String
+    var trailing: String?
     var live: Bool
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The ink disc grows with its glyph (`.body`) — codex-review-10 saw the
@@ -326,12 +335,14 @@ struct HeroCapsuleLabel: View {
                     Text(subtitle).font(.caption.weight(.medium)).opacity(0.8)
                 }
             }
-            Image(systemName: trailing)
-                .font(.body.weight(.bold))
+            if let trailing {
+                Image(systemName: trailing)
+                    .font(.body.weight(.bold))
+            }
         }
         .foregroundStyle(Theme.onAccent)
         .padding(.leading, 8)
-        .padding(.trailing, 20)
+        .padding(.trailing, trailing == nil ? 12 : 20)
         .frame(minHeight: 56)
         .background(Theme.accent, in: Capsule())
         .accessibilityElement(children: .combine)

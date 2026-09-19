@@ -155,7 +155,11 @@ final class CardioUITests: XCTestCase {
         // RootView intentionally restores an unfinished session on launch.
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
         shot("cardio-built-outdoor-\(large ? "axl" : "default")")
-        reach(app.buttons["cardioEditDistance"])
+        reach(any("cardioDistanceMetric"))
+        XCTAssertTrue(app.staticTexts["0.67"].exists, "GPS fixture distance stays in the main metric")
+        reach(app.buttons["addCardio"])
+        XCTAssertFalse(app.buttons["cardioEditDistance"].exists)
+        XCTAssertFalse(app.staticTexts["GPS"].exists)
         XCTAssertFalse(any("cardioRoute").exists)
         shot("cardio-built-outdoor-details-\(large ? "axl" : "default")")
         app.buttons["endCardio"].tap()

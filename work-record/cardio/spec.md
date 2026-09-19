@@ -7,7 +7,7 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
 ## User flow
 
 - Start Lifting enters the existing log (preserve startEmptyWorkout test identifier).
-  Start Cardio sits below Start Lifting in a matching original icon capsule (user correction, September 19) and offers Apple-style Indoor Walk, Indoor Run, Indoor Cycle, Elliptical, Rowing,
+  Start Cardio sits beside Start Lifting in matching arrowless icon capsules, stacking when full labels cannot fit (latest user correction, September 19) and offers Apple-style Indoor Walk, Indoor Run, Indoor Cycle, Elliptical, Rowing,
   Stair Stepper, Outdoor Walk, Outdoor Run and Outdoor Cycle.
 - One ongoing workout, Lifting / Cardio focus switch (B), Add Exercise and Add Cardio available
   mid-workout. A focus switch changes the view; it does not silently end recording.
@@ -89,3 +89,11 @@ Restore the original Start Lifting amber capsule with activity icon disc and arr
 Cardio uses the same design with a running icon. The idle activity pair has equal prominence,
 stacked at every text size, as the user explicitly chose after seeing wrapped titles side by side. This supersedes ticket 03's
 text-only start treatment; maps and HealthKit-caption changes stand.
+
+## Arrowless Start / outdoor simplification — 2026-09-19
+
+User supersedes the stacked-only choice: idle Start capsules share a row without arrows,
+falling back to vertical at larger text/narrow widths to keep full labels. Resume/template
+arrows remain. Outdoor live cardio has the main GPS-measured Distance metric, without the
+redundant GPS/manual-distance edit row. Location error/status messages still report unavailable
+tracking; indoor manual entry and saved-workout correction remain. Sensor/data logic is unchanged.

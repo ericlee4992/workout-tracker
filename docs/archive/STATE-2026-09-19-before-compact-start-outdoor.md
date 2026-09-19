@@ -1,27 +1,31 @@
 # Current project state
 
-Updated 2026-09-19 for arrowless Start controls and outdoor-cardio cleanup. Base main **0e16a8c**.
-Prior STATE is preserved in the [archive](archive/STATE-2026-09-19-before-compact-start-outdoor.md).
+Updated 2026-09-19 after installing the user-selected stacked Start capsules.
+Verified clean main **be5a3f0** before this install-evidence checkpoint; product/tests **95a82dd**.
+Earlier STATE is preserved in the [archive](archive/STATE-2026-09-19-before-start-capsules.md).
 
-## Current task: arrowless Start row and outdoor cardio
+## Next action: cardio physical-device acceptance
 
-[Ticket 05](../work-record/cardio/issues/05-compact-start-and-outdoor.md): user reopened the
-stacked choice, requesting original icon capsules on the same row without arrows. Fit-driven
-stacking preserves full labels at larger text/narrow widths. Outdoor live cardio drops the
-redundant GPS/distance editor; primary Distance, automatic tracking and location status remain.
-No source/schema/recording change. D15/D54 and cardio spec amended explicitly.
+[Ticket 04](../work-record/cardio/issues/04-restore-start-capsules.md) restores the original
+Start Lifting amber capsule with icon disc and arrow; Start Cardio matches with a running
+icon. User explicitly chose **stacked** at every text size to keep the original single-line
+appearance, superseding the earlier adjacent-button request. D15/D54 and cardio spec agree.
 
-Branch `ericlee4992/compact-start-outdoor`, base **0e16a8c**, in its Orca worktree. Build and
-5 focused capture/flow tests running; PID and artifacts in ticket05. Next: inspect/show
-captures, independent review, full UI gate, then merge and continue the authorized install workflow.
-Current changes are not installed.
+Product/tests **95a82dd**, evidence **98d72fd**, branch `ericlee4992/restore-start-capsules`;
+this docs checkpoint records fast-forward to main. Debug build, 2 focused default/AccessibilityL
+captures and **81 full UI tests passed**, exit 0; full suite finished September 19 01:36 EDT.
+Independent [Claude code, visual and final merge clearance](../work-record/cardio/claude-start-capsules-review.md)
+is clear. Final captures are `work-record/cardio/screenshots/start-capsules/*-stacked.png`;
+unsuffixed PNGs are the superseded side-by-side proposal. No build/test job remains.
 
-Phone still has stacked-capsule product/tests **95a82dd**, built from **be5a3f0**, installed
-and launch-verified September19 01:41 EDT. Remaining hardware acceptance is in
-[ticket02](../work-record/cardio/issues/02-device-acceptance.md): history preservation,
-phone carried/stationary, pause/disconnect/recovery, background/locked GPS and mixed recovery.
-User confirmed indoor distance with AirPods Pro3 and outdoor map rendering. Watch cardio
-remains outside release. App/widget profiles expire September24 at 07:16 UTC.
+**Installed and launch-verified 2026-09-19 01:41 EDT.** Fresh signed build from main **be5a3f0**;
+install and launch exit 0/success, app PID3586 confirmed running afterward. The phone now has
+the original stacked icon capsules. No schema/recording change.
+
+Next: continue [ticket 02](../work-record/cardio/issues/02-device-acceptance.md): history
+preservation, phone carried/stationary, pause/disconnect/recovery, background/locked GPS and
+mixed recovery. User already confirmed indoor distance with AirPods Pro3 and outdoor map
+rendering. Watch cardio remains outside release. Profiles expire September24 at 07:16 UTC.
 
 ## Completed and verified
 
