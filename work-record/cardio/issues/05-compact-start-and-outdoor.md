@@ -1,7 +1,7 @@
 # 05 — Arrowless Start row and simpler outdoor cardio
 
 Type: task
-Status: resolved — verified and independently cleared; installation pending
+Status: resolved — merged, installed and launch-verified
 
 User request 2026-09-19: put the original icon capsules on one row by removing arrows;
 remove the outdoor cardio GPS section. Reopens ticket04/D54 stacked layout explicitly.
@@ -99,3 +99,22 @@ Independent [Claude final review](../claude-compact-start-outdoor-review.md), au
 at e0d2bd2, is **MERGE CLEARED** after reading actual artifacts. Product/tests7825140,
 evidence0ffafd9; subsequent changes documentation only. Main fast-forward/push with this
 checkpoint, then signed device build/install as continuation of authorized UI feedback.
+
+## Installation and delivery
+
+Merged/pushed main **c127832**, remote tip verified. Continued the authorized device-feedback
+update workflow. Built from clean main c127832 (product/tests **7825140**) at
+`/tmp/wt-compact-start-outdoor-device-20260919`, build exit 0. Fresh dylib timestamp and
+new compiled `startChoices` symbol verified, app/widget signatures and same bundle IDs/team
+verified. Profiles remain September 24 07:16:18 /07:16:20 UTC (app/widget).
+
+Installed **2026-09-19 03:02 EDT**, devicectl **exit 0 / success**, installation UUID
+`8B8F2BC1-5823-48B3-97CB-2CB262F1F216`. Launch **exit 0 / success**, PID **3758**,
+then independently confirmed running via device process list. No reset/uninstall. No schema
+or history migration; prior private backup retained, no new backup or restore claimed.
+
+Artifacts: main `work-record/ui-redesign/results/compact-start-outdoor-install/`, build
+script/log/exit, binary-verification.json, install/launch logs/JSON/exits and processes.json.
+Runner 69990 completed. New matching-phone simulator WT-iPhone15ProMax is retained for
+future width verification. Existing-history content not inspected; physical acceptance
+remains ticket 02. Product/test code unchanged after7825140.

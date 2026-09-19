@@ -1,9 +1,10 @@
 # Current project state
 
-Updated 2026-09-19 for arrowless Start controls and outdoor-cardio cleanup. Base main **0e16a8c**.
+Updated 2026-09-19 after installing arrowless Start controls and outdoor-cardio cleanup.
+Verified clean main **c127832** before this install-evidence checkpoint; product/tests **7825140**.
 Prior STATE is preserved in the [archive](archive/STATE-2026-09-19-before-compact-start-outdoor.md).
 
-## Current delivery: arrowless Start row and outdoor cleanup
+## Next action: cardio physical-device acceptance
 
 [Ticket 05](../work-record/cardio/issues/05-compact-start-and-outdoor.md) is complete: original
 icon capsules share one row without arrows; full labels determine responsive stacking at
@@ -19,8 +20,9 @@ September 19 02:58 EDT. Independent [Claude code, visual and final merge clearan
 is clear. 11 final captures in `work-record/cardio/screenshots/compact-start-outdoor/`, including
 actual-model iPhone 15 Pro Max; row fits on the user's model. No local build/test job remains.
 
-Next: signed build/install for this correction. Phone currently has product/tests **95a82dd**
-from **be5a3f0**, installed/launch-verified September 19 01:41 EDT. No schema/recording change.
+**Installed and launch-verified 2026-09-19 03:02 EDT.** Fresh signed build from **c127832**;
+install/launch exit 0 and success, app PID 3758 confirmed running afterward. No schema or
+recording change.
 Remaining hardware acceptance is [ticket 02](../work-record/cardio/issues/02-device-acceptance.md):
 history preservation, phone carried/stationary, pause/disconnect/recovery, background/locked
 GPS and mixed recovery. User confirmed indoor distance with AirPods Pro 3 and outdoor map
@@ -33,8 +35,8 @@ rendering. Watch cardio remains outside release. Profiles expire September 24 at
   outdoor routes. [Spec](../work-record/cardio/spec.md),
   [implementation/review trail](../work-record/cardio/issues/01-implementation.md),
   [29 native default/AccessibilityL captures](../work-record/cardio/gallery.html).
-- Product source **03ada3d**, tests **306acf4**, merged via **b0a8de9**. Initial cardio build was installed from **c847ef3**; current stacked-capsule build is from
-  clean main **be5a3f0**, installed September 19 (ticket 04). Prototype
+- Product source **03ada3d**, tests **306acf4**, merged via **b0a8de9**. Initial cardio build was installed from **c847ef3**; current arrowless-row/outdoor-cleanup build is from
+  clean main **c127832**, installed September 19 (ticket 05). Prototype
   `cardio-design-prototype` is reference-only; the selected design is already implemented.
 - Debug build passed; full units **748**, targeted units **13**, focused cardio UI **7**, full
   UI **79**, and actual-store/legacy migration checks **10** all passed with exit 0. Full UI
@@ -44,12 +46,13 @@ rendering. Watch cardio remains outside release. Profiles expire September 24 at
   devicectl exit 0 for both; app process confirmed running afterward.
   Current phone/backup details below. The user subsequently tested indoor distance and outdoor
   map rendering; existing-history preservation and other hardware checks remain outstanding. The installation was authorized after the merge review.
-- **No local build/test jobs running:** ticket 04 verification and device build completed. Implementation, research, prototype and
+- **No local build/test jobs running:** ticket 05 verification and device build completed. Implementation, research, prototype and
   review checkouts were clean before handoff edits; temporary private migration test removed.
   Preserve the ignored artifacts: main `work-record/ui-redesign/results/cardio-install/` holds
   original device build/install/launch logs; main `work-record/ui-redesign/results/cardio-ui-install/`
   holds the earlier September 19 UI-refinement evidence; main
-  `work-record/ui-redesign/results/start-capsules-install/` holds the current capsule
+  `work-record/ui-redesign/results/start-capsules-install/` holds the prior capsule evidence;
+  main `work-record/ui-redesign/results/compact-start-outdoor-install/` holds current
   build/install/launch evidence; `cardio-implementation/work-record/ui-redesign/results/cardio/`
   holds unit/UI/migration logs, exit files and xcresults. Private backup data stays outside Git.
 - **Known limits:** 24 non-failing invalid-frame warnings (same known class as ticket 17; origin
@@ -74,7 +77,7 @@ rendering. Watch cardio remains outside release. Profiles expire September 24 at
 
 | Fact | Last verified value |
 |---|---|
-| Installed source | Stacked Start capsule product/tests `95a82dd`, built from clean main `be5a3f0`; installed 2026-09-19 01:41 EDT, devicectl install/launch exit 0 and success. App PID3586 confirmed running after launch. Existing-history preservation remains unverified |
+| Installed source | Arrowless Start/outdoor-cleanup product/tests `7825140`, built from clean main `c127832`; installed 2026-09-19 03:02 EDT, devicectl install/launch exit 0 and success. App PID 3758 confirmed running afterward. Existing-history preservation remains unverified |
 | Provisioning | Verified in the installed build: app expires **2026-09-24 07:16:18 UTC**, widget **07:16:20 UTC**; same profiles created September 17 |
 | Store | Cardio code exports schema 10; app launch confirmed by user feedback; existing-history preservation awaits explicit confirmation. Offline migration of a fresh actual-store copy passed, preserving all existing values/relationships across 13 tables |
 | Latest local backup | `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`: fresh raw container, 26 files, integrity and SHA-256 checks passed. JSON/CSV generated with app exporters from an isolated migrated copy alongside it; private, outside Git. Restore not tested |
