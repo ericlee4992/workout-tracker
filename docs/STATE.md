@@ -11,9 +11,9 @@ stacking preserves full labels at larger text/narrow widths. Outdoor live cardio
 redundant GPS/distance editor; primary Distance, automatic tracking and location status remain.
 No source/schema/recording change. D15/D54 and cardio spec amended explicitly.
 
-Branch `ericlee4992/compact-start-outdoor`, base **0e16a8c**, in its Orca worktree. Build and
-5 focused capture/flow tests running; PID and artifacts in ticket05. Next: inspect/show
-captures, independent review, full UI gate, then merge and continue the authorized install workflow.
+Branch `ericlee4992/compact-start-outdoor`, base **0e16a8c**, in its Orca worktree. Product/tests **7825140**: build, 7 recorder tests, 5 focused UI and matching-phone Start
+capture passed. Final captures inspected/shown; full UI running, PID/artifacts in ticket05.
+Next: final independent clearance after full UI gate, merge and continue authorized installation.
 Current changes are not installed.
 
 Phone still has stacked-capsule product/tests **95a82dd**, built from **be5a3f0**, installed

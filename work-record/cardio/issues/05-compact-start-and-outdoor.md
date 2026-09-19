@@ -71,3 +71,12 @@ CardioRecorderTests (`recorder`), final-focused(5), phone-size(1) on WT-iPhone15
 Each uses matching `.log`, `-exit.txt` and `.xcresult` names in the same result directory.
 Denied/restricted status copy is checked directly in production branch and re-reviewed;
 no permission-injection seam or copy-mirroring test added for a deleted sentence.
+
+Final product/tests **7825140**: final-build exit0; existing recorder7/7, final-focused5/5,
+phone-size1/1 all passed, no failed/skipped, exit0 (actual xcresults inspected).
+Phone-size ran iPhone15ProMax/iPhone16,2, matching actual phone; first boot took3minutes,
+then capture passed. Row fits with full labels; phone-specific screenshot shown to user.
+11 selected final PNGs under `../screenshots/compact-start-outdoor/`; parent opened Start
+default/AXL and outdoor details pairs and matching-phone capture.
+Full UI runner PID **61459**, `run-full-ui.sh`, `full-ui.log`, `full-ui-exit.txt`,
+`full-ui.xcresult`. Code unchanged after7825140; artifacts remain in this worktree.
