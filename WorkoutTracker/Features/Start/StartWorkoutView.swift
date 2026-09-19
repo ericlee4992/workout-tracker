@@ -291,7 +291,7 @@ struct StartWorkoutView: View {
 }
 
 /// Ticket 10: the amber capsule — the figure in an ink disc, one or two
-/// lines, a trailing symbol. Hugging, not a slab: the user found the
+/// lines, and an optional trailing symbol. Hugging, not a slab: the user found the
 /// full-width hero "too big and too mundane". Ticket 11: the template
 /// detail's Start wears it too.
 struct HeroCapsuleLabel: View {

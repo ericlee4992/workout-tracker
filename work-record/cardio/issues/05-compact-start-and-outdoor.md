@@ -54,3 +54,20 @@ Implementation in `/Users/ericlee06/orca/workspaces/Health App/compact-start-out
 Detached build/focused runner PID **49847**; artifacts under
 `work-record/ui-redesign/results/compact-start-outdoor/`: `run-focused.sh`, `build.log`,
 `build-exit.txt`, `focused.log`, `focused-exit.txt`, `focused.xcresult` (5 tests).
+
+## Initial verification and review
+
+Initial build/focused product **b0d29fa**: build exit0, 5 focused tests passed (exit0).
+Claude F1: removed live editor made the denied-location instruction obsolete. Resolve by
+deleting “You can enter distance manually.” from that status, reusing existing “Location
+unavailable.” copy; no new wording or sensor behavior. This follows the user's removal of
+the live affordance and is explicitly recorded under D54. Saved correction remains reachable.
+F3: shared capsule comment now says optional trailing symbol.
+F2: review inferred iPhone15 Pro/393pt, but devicectl identifies **iPhone15 Pro Max, iPhone16,2**.
+Will additionally capture the actual matching simulator model before install.
+
+Final sequential runner PID **56510**, `run-final-focused.sh`: final-build, existing
+CardioRecorderTests (`recorder`), final-focused(5), phone-size(1) on WT-iPhone15ProMax.
+Each uses matching `.log`, `-exit.txt` and `.xcresult` names in the same result directory.
+Denied/restricted status copy is checked directly in production branch and re-reviewed;
+no permission-injection seam or copy-mirroring test added for a deleted sentence.

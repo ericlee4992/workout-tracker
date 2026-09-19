@@ -272,7 +272,7 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
                 ? "Precise Location is off. Route accuracy is limited." : "Waiting for GPS…"
             location.startUpdatingLocation()
         case .denied, .restricted:
-            locationMessage = "Location unavailable. You can enter distance manually."
+            locationMessage = "Location unavailable."
         @unknown default: locationMessage = "Location unavailable."
         }
     }
