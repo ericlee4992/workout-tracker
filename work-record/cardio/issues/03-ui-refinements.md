@@ -91,3 +91,18 @@ error, not a product defect. Final focused run is the regression check.
 Reproduction exit 65 confirmed. Final sequential runner restarted as PID **6068** after
 repro completion; prior queued PID 4631 stopped before testing. `final-build-exit.txt` = 0.
 Final focused tests running, followed automatically by full UI if successful.
+
+Final focused: **9 passed, 0 failed/skipped, exit 0**, xcresult inspected. Product/test input
+**269498b** (the working diff was committed during the run, contents unchanged). Two known
+invalid-frame warnings; same class as prior cardio, origin not investigated. Full UI running.
+[Native capture gallery](../ui-refinements-gallery.html): 15 PNGs exported under
+`../screenshots/ui-refinements/`; paired Start, automatic distance, live/ended outdoor,
+Summary and History. Parent inspected them as images. Start labels whole and equal-size;
+caption removed; active/ended maps absent; saved maps present. AXL Summary capture includes
+only upper part of the map; full History route is captured. Claude visual review pending.
+
+Claude code/visual review clear on 269498b; final suite clearance remains pending.
+V2: supplementary AXL receipt map screenshot not required by reviewer (viewport clipping,
+same component fully captured in History); no new test run. V3: exported mixed History
+shot showing automatic Distance edit action, bringing the selected record to 16 PNGs.
+N3: STATE now names 269498b. Start default/AXL capture links shown to the user.

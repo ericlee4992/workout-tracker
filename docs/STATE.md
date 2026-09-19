@@ -1,7 +1,7 @@
 # Current project state
 
 Updated 2026-09-18 for cardio device feedback and UI refinements. Main/remote base is
-**21ef98f**; current implementation **3020180** is on `ericlee4992/cardio-ui-refinements`.
+**21ef98f**; current implementation **269498b** is on `ericlee4992/cardio-ui-refinements`.
 Earlier STATE is preserved in the [archive](archive/STATE-2026-09-18-before-cardio-ui-refinements.md).
 
 ## Current task: cardio UI refinements
@@ -13,8 +13,8 @@ activity/phone position and locked/background behavior were not explicitly repor
 Active [ticket 03](../work-record/cardio/issues/03-ui-refinements.md): remove HealthKit estimate
 caption, hide maps throughout unfinished workouts, place Start Cardio beside Start Lifting
 (stack at accessibility sizes). Branch `ericlee4992/cardio-ui-refinements`, based on `21ef98f`;
-implementation in its Orca worktree. Build/focused verification running; PID and artifact paths
-are in ticket 03. Next: inspect captures, full UI suite, independent Claude review, then merge.
+implementation in its Orca worktree. Build and 9 focused UI tests passed; full UI running. PID and artifact paths
+are in ticket 03. Code/visual Claude review clear; next: full UI result and final independent clearance, then merge.
 These presentation changes are not yet merged or installed.
 
 Continue remaining physical checks in [ticket 02](../work-record/cardio/issues/02-device-acceptance.md)
