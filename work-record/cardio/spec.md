@@ -82,3 +82,10 @@ User confirmed indoor distance works with AirPods Pro 3. Suppress the HealthKit 
 caption without changing saved source evidence; retain manual and other source labels.
 Outdoor maps appear only after workout Finish, in Summary and History, including when a
 cardio segment has ended while the encompassing workout remains open. Route recording is unchanged.
+
+## Start-button correction — 2026-09-19
+
+Restore the original Start Lifting amber capsule with activity icon disc and arrow; Start
+Cardio uses the same design with a running icon. The idle activity pair has equal prominence,
+beside each other where labels fit and stacked for larger text. This supersedes ticket 03's
+text-only start treatment; maps and HealthKit-caption changes stand.

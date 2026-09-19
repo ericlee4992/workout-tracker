@@ -1,25 +1,30 @@
 # Current project state
 
-Updated 2026-09-19 for the user's Start-button design correction. Base main **62f9469**.
-Earlier STATE is preserved in the [archive](archive/STATE-2026-09-19-before-start-capsules.md).
+Updated 2026-09-19 after the authorized cardio UI installation. Verified clean main
+**a7d3d41** before this install-evidence checkpoint; installed product/tests **269498b**.
+Earlier STATE is preserved in the [archive](archive/STATE-2026-09-18-before-cardio-ui-refinements.md).
 
-## Current task: restore the original Start capsules
+## Next action: device acceptance after cardio UI refinements
 
-User disliked the text-only Start Lifting restyle. [Ticket 04](../work-record/cardio/issues/04-restore-start-capsules.md)
-restores the original amber capsule/icon-disc/arrow design for Lifting and gives Cardio the
-same treatment with a running icon. Two matching amber activity choices are explicitly wanted;
-D54 is amended. Keep them adjacent where they fit, stack at larger text sizes.
+[Ticket 03](../work-record/cardio/issues/03-ui-refinements.md) is complete: HealthKit estimate
+caption removed, maps hidden throughout unfinished workouts and retained in finished Summary/
+History, Start Cardio beside Start Lifting (stacked at accessibility sizes). Product/tests
+**269498b**, evidence checkpoint **9c7d1b7**, branch `ericlee4992/cardio-ui-refinements`;
+main is fast-forwarded with this documentation checkpoint. Debug build, 9 focused UI and 81
+full UI tests passed (exit 0); full UI finished September 19 at 00:11 EDT. Independent
+[Claude code, visual and final merge review](../work-record/cardio/claude-ui-refinements-review.md)
+is clear. [16 native captures](../work-record/cardio/ui-refinements-gallery.html) include
+normal/AccessibilityL pairs. No build/test job from this task remains; artifacts are in ticket 03.
 
-Branch `ericlee4992/restore-start-capsules`, base **62f9469**, implementation in its Orca
-worktree. Build and paired default/AccessibilityL captures are running; PID/artifacts in
- ticket 04. Next: inspect/show captures, full UI suite and independent Claude review before merge.
-No schema, recording, map or distance-label change. These button corrections are not installed.
+**Installed and launch-verified 2026-09-19 00:34 EDT.** Fresh build from clean main `a7d3d41`;
+install and launch exit 0, app process 3283 confirmed running afterward. User feedback confirms app opening, successful indoor distance with AirPods Pro 3,
+and outdoor map rendering. Existing-history preservation, specific indoor activity/phone
+position and locked/background behavior were not explicitly reported.
 
-Phone still has ticket 03's UI-refined build from **a7d3d41**, installed and launch-verified
-September 19 00:34 EDT. Hardware acceptance remains in [ticket 02](../work-record/cardio/issues/02-device-acceptance.md):
-history preservation, phone carried/stationary, pause/disconnect/recovery, background/locked GPS
-and mixed recovery. User already confirmed indoor distance with AirPods Pro 3 and outdoor map
-rendering. Watch cardio is outside this release. Signing expires September 24 at 07:16 UTC.
+Next: continue [ticket 02](../work-record/cardio/issues/02-device-acceptance.md): history
+preservation, indoor phone carried/stationary, pause/disconnect/recovery, outdoor GPS while
+locked/backgrounded and mixed-workout recovery. Watch cardio remains outside this release.
+App/widget profiles expire **September 24, 2026 at 07:16 UTC**.
 
 ## Completed and verified
 
