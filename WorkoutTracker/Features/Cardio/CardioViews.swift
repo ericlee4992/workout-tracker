@@ -71,7 +71,7 @@ struct CardioWorkoutSection: View {
                 EmptyState(title: "Add cardio to this workout", symbol: "figure.run")
             }
             ForEach(workout.orderedCardio.filter { $0.endedAt != nil }) { segment in
-                CardioSummaryCard(segment: segment)
+                CardioSummaryCard(segment: segment, showsRoute: false)
             }
         }
         .listRowInsets(EdgeInsets(top: 12, leading: 20, bottom: 12, trailing: 20))
@@ -130,14 +130,15 @@ struct CardioLiveView: View {
                     Text(sample.source.label).font(.caption).foregroundStyle(Theme.secondary)
                 }
             }
-            if !segment.route.isEmpty { CardioRouteMap(points: segment.route).frame(height: 210) }
             if let message = recorder.locationMessage {
                 Text(message).font(.footnote).foregroundStyle(Theme.secondary)
             }
             Button { editingDistance = true } label: {
                 HStack {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text(segment.distanceLabel).font(.caption).foregroundStyle(Theme.secondary)
+                        if let caption = segment.distanceSourceCaption {
+                            Text(caption).font(.caption).foregroundStyle(Theme.secondary)
+                        }
                         Text(segment.distanceMeters == nil ? "Enter distance" : "\(distanceText) \(segment.unit.rawValue)")
                             .font(.headline).foregroundStyle(Theme.text)
                     }
@@ -164,7 +165,7 @@ struct CardioLiveView: View {
     }
 }
 
-/// Recording controls stay at the thumb even when large text or a route needs scroll.
+/// Recording controls stay at the thumb even when large text needs scrolling.
 struct CardioControls: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     var segment: CardioSegment
@@ -206,6 +207,8 @@ struct CardioMetric: View {
 struct CardioSummaryCard: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     var segment: CardioSegment
+    // Completed segments also appear inside an unfinished workout, where maps stay hidden.
+    var showsRoute = true
     @State private var editingDistance = false
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -225,10 +228,10 @@ struct CardioSummaryCard: View {
                 if let bpm = segment.averageHeartRate { CardioMetric(label: "Avg. heart rate", value: "\(bpm)", unit: "bpm") }
                 if let calories = segment.activeEnergyKilocalories { CardioMetric(label: "Active calories", value: "\(Int(calories.rounded()))", unit: "cal") }
             }
-            if !segment.route.isEmpty { CardioRouteMap(points: segment.route).frame(height: 180) }
+            if showsRoute && !segment.route.isEmpty { CardioRouteMap(points: segment.route).frame(height: 180) }
             Button { editingDistance = true } label: {
                 HStack {
-                    Text(segment.distanceMeters == nil ? "Enter distance" : segment.distanceLabel)
+                    Text(segment.distanceMeters == nil ? "Enter distance" : (segment.distanceSourceCaption ?? "Distance"))
                     Spacer()
                     Image(systemName: "pencil")
                 }.font(.caption).frame(minHeight: 44).contentShape(Rectangle())
@@ -308,5 +311,12 @@ struct CardioRouteMap: View {
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.inner))
         .accessibilityLabel("Recorded cardio route")
         .accessibilityIdentifier("cardioRoute")
+    }
+}
+
+private extension CardioSegment {
+    /// Presentation only: keep HealthKit provenance in the model and exports.
+    var distanceSourceCaption: String? {
+        manualDistanceValue == nil && source == .healthKit ? nil : distanceLabel
     }
 }

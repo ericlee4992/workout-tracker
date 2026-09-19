@@ -31,6 +31,26 @@ final class RedesignScreenshotUITests: XCTestCase {
         add(shot)
     }
 
+    func testCardioStartChoicesDefault() { captureCardioStartChoices(large: false) }
+    func testCardioStartChoicesAccessibility() { captureCardioStartChoices(large: true) }
+
+    private func captureCardioStartChoices(large: Bool) {
+        launch(large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : [])
+        app.tabBars.buttons["Workout"].tap()
+        let lifting = app.buttons["startEmptyWorkout"]
+        let cardio = app.buttons["startCardio"]
+        XCTAssertTrue(lifting.waitForExistence(timeout: 5))
+        XCTAssertTrue(cardio.isHittable)
+        XCTAssertEqual(lifting.frame.width, cardio.frame.width, accuracy: 1)
+        if large {
+            XCTAssertLessThanOrEqual(lifting.frame.maxY, cardio.frame.minY)
+        } else {
+            XCTAssertEqual(lifting.frame.midY, cardio.frame.midY, accuracy: 1)
+            XCTAssertLessThan(lifting.frame.maxX, cardio.frame.minX)
+        }
+        shoot("redesign-cardio-start-\(large ? "axl" : "default")")
+    }
+
     // MARK: - Screens
 
     /// Active workout with a live heart-rate feed, one set completed (rest

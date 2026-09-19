@@ -92,3 +92,11 @@ wording improvements: signing expiry near next action, warning origin uninvestig
 older fixture caveat. No product/test/config change and no additional test execution.
 Orca UI reads recovered at handoff, but Sleep actions were not verified (menu/focus failures);
 three completed cardio workspaces remained visible. Worktrees and terminal histories retained.
+
+## User device feedback — 2026-09-18
+
+User reports indoor cardio correctly measures distance with AirPods Pro 3 on, and the
+outdoor map displays during the workout. This confirms the installed app opens and the
+reported indoor-distance scenario works. Activity subtype, phone position, OS/firmware,
+pause/reconnect and locked/background route behavior were not specified; those checks remain
+open. Existing-history preservation was not explicitly reported. UI follow-up: [ticket 03](03-ui-refinements.md).

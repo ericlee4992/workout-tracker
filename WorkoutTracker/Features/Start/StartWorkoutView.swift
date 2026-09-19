@@ -47,25 +47,13 @@ struct StartWorkoutView: View {
                         .listRowInsets(EdgeInsets())
                 }
 
-                // Ticket 10: ONE action, one capsule. With a workout live it
-                // reads Resume (the user's choice, 2026-09-11): the way back
-                // in is the same button as the way in, never two amber
-                // commands. Starting a template while live still goes
-                // through the "already in progress" dialog.
+                // Start choices are peers; a live workout keeps one Resume action.
                 Section {
                     heroCapsule
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                 }
 
-                if activeWorkouts.isEmpty {
-                    Section {
-                        Button { showingCardioPicker = true } label: {
-                            Label("Start Cardio", systemImage: "figure.run").frame(maxWidth: .infinity)
-                        }.buttonStyle(.secondary).accessibilityIdentifier("startCardio")
-                            .listRowBackground(Color.clear).listRowInsets(EdgeInsets())
-                    }
-                }
                 Section("Templates") {
                     // Ticket 10: a two-column grid of tiles (the user chose
                     // direction C's templates). Ticket 11: the tile OPENS the
@@ -152,9 +140,8 @@ struct StartWorkoutView: View {
         }
     }
 
-    /// The screen's one action: Start Empty Workout, or — the moment a
-    /// workout is live — Resume workout with where it stands (C1: the way
-    /// back into a minimised workout). Same capsule, same place.
+    /// Idle: adjacent lifting/cardio choices, stacked for accessibility.
+    /// Live: the existing Resume capsule returns to the minimised workout.
     @ViewBuilder
     private var heroCapsule: some View {
         if let active = activeWorkouts.first, !active.isDeleted {
@@ -166,14 +153,22 @@ struct StartWorkoutView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("resumeWorkout")
         } else {
-            Button { startRequest = WorkoutStartRequest(template: nil) } label: {
-                HeroCapsuleLabel(title: "Start Lifting", subtitle: nil,
-                                 symbol: "figure.strengthtraining.traditional", trailing: "arrow.up.right",
-                                 live: false)
+            let layout = dynamicTypeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(spacing: 12))
+                : AnyLayout(HStackLayout(spacing: 12))
+            layout {
+                Button { startRequest = WorkoutStartRequest(template: nil) } label: {
+                    Text("Start Lifting").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.primary)
+                .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
+                .accessibilityIdentifier("startEmptyWorkout")
+                Button { showingCardioPicker = true } label: {
+                    Text("Start Cardio").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.secondary)
+                .accessibilityIdentifier("startCardio")
             }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
-            .accessibilityIdentifier("startEmptyWorkout")
         }
     }
 

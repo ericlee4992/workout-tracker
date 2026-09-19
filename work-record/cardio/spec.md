@@ -7,7 +7,7 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
 ## User flow
 
 - Start Lifting enters the existing log (preserve startEmptyWorkout test identifier).
-  Start Cardio offers Apple-style Indoor Walk, Indoor Run, Indoor Cycle, Elliptical, Rowing,
+  Start Cardio sits beside Start Lifting (stacked at accessibility sizes) and offers Apple-style Indoor Walk, Indoor Run, Indoor Cycle, Elliptical, Rowing,
   Stair Stepper, Outdoor Walk, Outdoor Run and Outdoor Cycle.
 - One ongoing workout, Lifting / Cardio focus switch (B), Add Exercise and Add Cardio available
   mid-workout. A focus switch changes the view; it does not silently end recording.
@@ -69,8 +69,15 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
 ## Design and verification
 
 B: header / Lifting–Cardio focus / current activity / segment timer (hero) / measured metric
-pairs / route or sensor details / one primary Pause / secondary End Cardio, pinned within the safe area. At AccessibilityL,
+pairs / sensor details (no live map) / one primary Pause / secondary End Cardio, pinned within the safe area. At AccessibilityL,
 metrics and controls stack. Existing colours, SF Symbols and tab navigation remain.
 Real normal/AccessibilityL captures, targeted domain/service/export/migration tests, Debug
 build and full local UI suite gate merge, followed by independent Claude code/visual review.
 Real phone sensor/GPS validation is tracked distinctly from simulator evidence.
+
+## Presentation amendment — 2026-09-18
+
+User confirmed indoor distance works with AirPods Pro 3. Suppress the HealthKit estimate
+caption without changing saved source evidence; retain manual and other source labels.
+Outdoor maps appear only after workout Finish, in Summary and History, including when a
+cardio segment has ended while the encompassing workout remains open. Route recording is unchanged.

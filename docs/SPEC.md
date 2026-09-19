@@ -30,7 +30,7 @@ Four levels:
 - Free weights are **equipment-type tags** (barbell / dumbbell / cable / smith / bodyweight), not machine instances.
 - **Presets** are named variations of a movement — grips, stances, single/double (D36–D38). They belong to the exercise, are chosen when logging (a machine preselects its usual one), and **split records**: a narrow-grip best is not a wide-grip best. The preset is part of the D23 snapshot, so switching it after a set is logged starts a new entry rather than relabelling completed work.
 - Exercises carry a **load type**: `weighted | bodyweight | bodyweightPlus | assisted`. PR/prefill/chart logic respects direction — on assisted machines, *lowest* assistance wins.
-- **Cardio expansion approved 2026-09-18 (D15):** one workout may contain lifting and separate cardio segments. Direction B focuses the current activity; either kind can start the workout or be added later. Optional device tracking, manual distance fallback, indoor distance/pace from supported sources and outdoor GPS are specified in [cardio spec](../work-record/cardio/spec.md). Implementation is in progress; weight × reps remains the strength-set shape.
+- **Cardio expansion approved 2026-09-18 (D15):** one workout may contain lifting and separate cardio segments. Direction B focuses the current activity; either kind can start the workout or be added later. Optional device tracking, manual distance fallback, indoor distance/pace from supported sources and outdoor GPS are specified in [cardio spec](../work-record/cardio/spec.md). Implementation is merged; physical acceptance and user-requested presentation refinements are tracked in the cardio tickets. Weight × reps remains the strength-set shape.
 
 ## History, PRs, integrity
 
