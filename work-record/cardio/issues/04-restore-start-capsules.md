@@ -83,3 +83,9 @@ stacked geometry, equal heights and leading alignment rather than equal widths.
 Original partial full-suite exit 75 (intentional interruption). Stacked build/focused
 runner PID **31057**: `run-stacked.sh`, `stacked-build` and `stacked-focused`
 logs/exits, `stacked-focused.xcresult`. Full suite will run on the final stacked code.
+
+Final stacked product/tests **95a82dd**: build exit 0, focused **2 passed**, no
+failed/skipped tests or runtime warnings, exit 0. Fresh `*-stacked.png` default/AXL
+captures opened and links shown user. Prior un-suffixed PNGs are the superseded side-by-side
+proposal. Final full UI runner PID **32074**, `run-stacked-full-ui.sh`,
+`stacked-full-ui.log`, `stacked-full-ui-exit.txt`, `stacked-full-ui.xcresult`.

@@ -11,9 +11,10 @@ same treatment with a running icon. Two matching amber activity choices are expl
 D54 is amended. User explicitly chose **stacked** to retain the original single-line design at every text size,
 superseding the prior adjacent-button request.
 
-Branch `ericlee4992/restore-start-capsules`, base **62f9469**, implementation in its Orca
-worktree. Build and paired default/AccessibilityL captures are running; PID/artifacts in
- ticket 04. Next: inspect/show captures, full UI suite and independent Claude review before merge.
+Branch `ericlee4992/restore-start-capsules`, base **62f9469**, final stacked product/tests
+**95a82dd**. Build and 2 paired default/AccessibilityL capture tests passed; fresh stacked
+captures inspected and shown to user. Full UI running; PID/artifacts in ticket 04.
+Next: full suite result and independent Claude review before merge.
 No schema, recording, map or distance-label change. These button corrections are not installed.
 
 Phone still has ticket 03's UI-refined build from **a7d3d41**, installed and launch-verified
