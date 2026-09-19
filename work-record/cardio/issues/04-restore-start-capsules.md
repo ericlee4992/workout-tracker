@@ -1,7 +1,7 @@
 # 04 — Restore the original Start capsule buttons
 
 Type: task
-Status: claimed
+Status: resolved — verified and independently cleared; installation pending
 
 User correction 2026-09-19: disliked ticket 03's changed Start Lifting appearance; restore
 its previous design and give Start Cardio the same design, including its activity logo.
@@ -89,3 +89,25 @@ failed/skipped tests or runtime warnings, exit 0. Fresh `*-stacked.png` default/
 captures opened and links shown user. Prior un-suffixed PNGs are the superseded side-by-side
 proposal. Final full UI runner PID **32074**, `run-stacked-full-ui.sh`,
 `stacked-full-ui.log`, `stacked-full-ui-exit.txt`, `stacked-full-ui.xcresult`.
+
+## Final verification — 2026-09-19
+
+Tested product/tests **95a82dd**, records/captures **98d72fd**. Debug stacked-build exit 0;
+stacked-focused **2/2 passed**, 0 failed/skipped/warnings, exit 0. Final stacked-full-ui
+**81/81 passed**, 0 failed/skipped, exit 0; actual log and xcresult summary inspected.
+Finished 01:36 EDT, 2916 seconds. 24 known invalid-frame warnings, same count/class as
+prior run; origin uninvestigated. Runner 32074 finished. No code changes after 95a82dd.
+
+Parent and Claude opened the final default/AccessibilityL stacked captures. Shared
+HeroCapsuleLabel is unchanged from pre-task; user chose stacked explicitly. Earlier
+side-by-side captures and interrupted exit-75 run are retained as superseded evidence,
+not current acceptance. Unit suite not repeated: no domain/schema/sensor change.
+
+Relative links, exact archive preservation and unchanged tested code checked. Independent
+final artifact clearance requested. Current installed build remains a7d3d41 until delivery.
+
+Claude independently verified the final artifacts and issued **CLEAR TO MERGE** in
+[review](../claude-start-capsules-review.md), authored at f679e4c. Branch
+`ericlee4992/restore-start-capsules`, product/tests95a82dd, evidence98d72fd; remaining
+checkpoint changes are documentation only. Fast-forward main and push with this checkpoint,
+then update the installed app as continuation of the authorized device-feedback correction.

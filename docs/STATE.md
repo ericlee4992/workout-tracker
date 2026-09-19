@@ -3,25 +3,26 @@
 Updated 2026-09-19 for the user's Start-button design correction. Base main **62f9469**.
 Earlier STATE is preserved in the [archive](archive/STATE-2026-09-19-before-start-capsules.md).
 
-## Current task: restore the original Start capsules
+## Current delivery: original Start capsules, stacked
 
-User disliked the text-only Start Lifting restyle. [Ticket 04](../work-record/cardio/issues/04-restore-start-capsules.md)
-restores the original amber capsule/icon-disc/arrow design for Lifting and gives Cardio the
-same treatment with a running icon. Two matching amber activity choices are explicitly wanted;
-D54 is amended. User explicitly chose **stacked** to retain the original single-line design at every text size,
-superseding the prior adjacent-button request.
+[Ticket 04](../work-record/cardio/issues/04-restore-start-capsules.md) restores the original
+Start Lifting amber capsule with icon disc and arrow; Start Cardio matches with a running
+icon. User explicitly chose **stacked** at every text size to keep the original single-line
+appearance, superseding the earlier adjacent-button request. D15/D54 and cardio spec agree.
 
-Branch `ericlee4992/restore-start-capsules`, base **62f9469**, final stacked product/tests
-**95a82dd**. Build and 2 paired default/AccessibilityL capture tests passed; fresh stacked
-captures inspected and shown to user. Full UI running; PID/artifacts in ticket 04.
-Next: full suite result and independent Claude review before merge.
-No schema, recording, map or distance-label change. These button corrections are not installed.
+Product/tests **95a82dd**, evidence **98d72fd**, branch `ericlee4992/restore-start-capsules`;
+this docs checkpoint records fast-forward to main. Debug build, 2 focused default/AccessibilityL
+captures and **81 full UI tests passed**, exit 0; full suite finished September 19 01:36 EDT.
+Independent [Claude code, visual and final merge clearance](../work-record/cardio/claude-start-capsules-review.md)
+is clear. Final captures are `work-record/cardio/screenshots/start-capsules/*-stacked.png`;
+unsuffixed PNGs are the superseded side-by-side proposal. No build/test job remains.
 
-Phone still has ticket 03's UI-refined build from **a7d3d41**, installed and launch-verified
-September 19 00:34 EDT. Hardware acceptance remains in [ticket 02](../work-record/cardio/issues/02-device-acceptance.md):
-history preservation, phone carried/stationary, pause/disconnect/recovery, background/locked GPS
-and mixed recovery. User already confirmed indoor distance with AirPods Pro 3 and outdoor map
-rendering. Watch cardio is outside this release. Signing expires September 24 at 07:16 UTC.
+Next: install the reviewed correction, following DEVELOPMENT freshness/signing checks. Phone
+currently has ticket03 build from **a7d3d41**, installed/launch-verified September19 00:34 EDT.
+No schema/recording change. Remaining hardware acceptance is in [ticket02](../work-record/cardio/issues/02-device-acceptance.md):
+history preservation, phone carried/stationary, pause/disconnect/recovery, background/locked
+GPS and mixed recovery. Indoor distance with AirPods Pro3 and outdoor map rendering already
+confirmed by user. Watch cardio is outside release. Profiles expire September24 at 07:16 UTC.
 
 ## Completed and verified
 
