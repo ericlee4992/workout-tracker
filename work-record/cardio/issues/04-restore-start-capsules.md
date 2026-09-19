@@ -51,3 +51,13 @@ Build/focused runner PID **25797**, implementation worktree
 `/Users/ericlee06/orca/workspaces/Health App/restore-start-capsules`; artifacts under
 `work-record/ui-redesign/results/start-capsules/`: `run-focused.sh`, `build.log`,
 `build-exit.txt`, `focused.log`, `focused-exit.txt`, `focused.xcresult`.
+
+Build exit 0; focused **2/2 passed, 0 failed/skipped, exit 0**, actual xcresult summary read.
+Product **5c51f69**; default and AccessibilityL captures exported under
+`../screenshots/start-capsules/`, opened as images and linked to user. Default titles wrap
+at word boundaries to retain the original icon/arrow design beside each other; AXL stacks
+with whole labels. Resume/template use the unchanged default sizing.
+
+Full UI runner PID **29355**, `run-full-ui.sh`, `full-ui.log`, `full-ui-exit.txt`,
+`full-ui.xcresult` in the same artifacts directory. Independent Claude reviewer in
+`review-start-capsules`, terminal `term_607a4c83-d519-4dc0-8bc1-c01abbe954e4`.
