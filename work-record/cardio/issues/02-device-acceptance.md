@@ -6,16 +6,18 @@ Status: open — physical evidence outstanding
 Software merged via **b0a8de9**, product `03ada3d`; build, 748 full units, 13 final targeted units,
 7 focused UI and 79 full UI passed. [Implementation and review evidence](01-implementation.md).
 These simulator results do not establish AirPods Pro3 distance delivery or locked-screen GPS.
-Phone now has the cardio build from c847ef3 (product `03ada3d`); first launch is not yet verified,
-so the on-phone store migration is not yet confirmed. Cardio exports schema10. Follow current
+Phone has the cardio build from c847ef3 (product `03ada3d`). The user subsequently confirmed
+indoor distance with AirPods Pro 3 and outdoor map rendering; app opening is established.
+Existing-history preservation has not been explicitly reported. Cardio exports schema10. Follow current
 [STATE](../../../docs/STATE.md) and [DEVELOPMENT](../../../docs/DEVELOPMENT.md) for fresh export,
 raw backup, migration, signing, binary freshness and launch checks before an install.
 
 ## Acceptance work
 
-The user-authorized installation is complete. First confirm the app opens and the existing
-history is intact; remote launch was not verified because of lock/connectivity errors. Then
-record device OS/AirPods firmware and:
+The user-authorized installation is complete and subsequent user testing confirms the app
+opens. Confirm existing history is intact, then record device OS/AirPods firmware and the
+remaining scenarios below. The reported indoor-distance scenario passed; activity subtype
+and phone position were not specified.
 
 1. Indoor Walk and Indoor Run with AirPods Pro 3: compare distance/average pace to treadmill
    readings, first carrying the phone, then leaving it on the console. Record which source

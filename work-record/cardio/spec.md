@@ -64,7 +64,8 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
   manual and measured distance provenance, active intervals and route data.
 - JSON version increments; CSV appends cardio columns/rows without reusing old meanings.
   Reopen/export tests cover these paths. Verify a current pre-cardio store migration as well
-  as the historical fixture before any phone install. Installation is not requested yet.
+  as the historical fixture before any phone install. The initial cardio installation was
+  authorized and completed September 18; current phone evidence is in ticket 02 and STATE.
 
 ## Design and verification
 

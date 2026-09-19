@@ -1,25 +1,31 @@
 # Current project state
 
-Updated 2026-09-18 for cardio device feedback and UI refinements. Main/remote base is
-**21ef98f**; current implementation **269498b** is on `ericlee4992/cardio-ui-refinements`.
+Updated 2026-09-19 after cardio UI verification. Main/remote base is
+**21ef98f**; reviewed product/tests **269498b**, evidence **9c7d1b7** on `ericlee4992/cardio-ui-refinements`;
+this docs-only checkpoint records completion and fast-forward to main.
 Earlier STATE is preserved in the [archive](archive/STATE-2026-09-18-before-cardio-ui-refinements.md).
 
-## Current task: cardio UI refinements
+## Next action: device acceptance after cardio UI refinements
 
-User device feedback 2026-09-18 confirms the installed app opens and indoor distance works
-with AirPods Pro 3. The outdoor map also renders; history preservation, specific indoor
-activity/phone position and locked/background behavior were not explicitly reported.
+[Ticket 03](../work-record/cardio/issues/03-ui-refinements.md) is complete: HealthKit estimate
+caption removed, maps hidden throughout unfinished workouts and retained in finished Summary/
+History, Start Cardio beside Start Lifting (stacked at accessibility sizes). Product/tests
+**269498b**, evidence checkpoint **9c7d1b7**, branch `ericlee4992/cardio-ui-refinements`;
+main is fast-forwarded with this documentation checkpoint. Debug build, 9 focused UI and 81
+full UI tests passed (exit 0); full UI finished September 19 at 00:11 EDT. Independent
+[Claude code, visual and final merge review](../work-record/cardio/claude-ui-refinements-review.md)
+is clear. [16 native captures](../work-record/cardio/ui-refinements-gallery.html) include
+normal/AccessibilityL pairs. No build/test job from this task remains; artifacts are in ticket 03.
 
-Active [ticket 03](../work-record/cardio/issues/03-ui-refinements.md): remove HealthKit estimate
-caption, hide maps throughout unfinished workouts, place Start Cardio beside Start Lifting
-(stack at accessibility sizes). Branch `ericlee4992/cardio-ui-refinements`, based on `21ef98f`;
-implementation in its Orca worktree. Build and 9 focused UI tests passed; full UI running. PID and artifact paths
-are in ticket 03. Code/visual Claude review clear; next: full UI result and final independent clearance, then merge.
-These presentation changes are not yet merged or installed.
+**These UI refinements are not installed.** The phone still has the September 18 build from
+`c847ef3`. User feedback confirms app opening, successful indoor distance with AirPods Pro 3,
+and outdoor map rendering. Existing-history preservation, specific indoor activity/phone
+position and locked/background behavior were not explicitly reported.
 
-Continue remaining physical checks in [ticket 02](../work-record/cardio/issues/02-device-acceptance.md)
-after the UI follow-up: indoor phone carried/stationary, pause/disconnect/recovery, outdoor
-GPS while locked/backgrounded and mixed-workout recovery. Watch cardio is outside this release.
+Next: install the reviewed UI refinements when requested (follow DEVELOPMENT freshness/signing
+checks), then continue [ticket 02](../work-record/cardio/issues/02-device-acceptance.md): history
+preservation, indoor phone carried/stationary, pause/disconnect/recovery, outdoor GPS while
+locked/backgrounded and mixed-workout recovery. Watch cardio remains outside this release.
 App/widget profiles expire **September 24, 2026 at 07:16 UTC**.
 
 ## Completed and verified

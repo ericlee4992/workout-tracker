@@ -1,7 +1,7 @@
 # 03 — Cardio presentation refinements
 
 Type: task
-Status: claimed
+Status: resolved — verified and independently cleared; merged with this checkpoint
 
 User request 2026-09-18: indoor distance works with AirPods Pro 3; remove the HealthKit
 estimate label, show routes only in workout Summary/History, and put Start Cardio beside
@@ -106,3 +106,28 @@ V2: supplementary AXL receipt map screenshot not required by reviewer (viewport 
 same component fully captured in History); no new test run. V3: exported mixed History
 shot showing automatic Distance edit action, bringing the selected record to 16 PNGs.
 N3: STATE now names 269498b. Start default/AXL capture links shown to the user.
+
+## Final verification — 2026-09-19
+
+- Tested product/tests: **269498b**; subsequent **9c7d1b7** is documentation/captures only.
+- Debug `final-build`: **exit 0**. Focused: **9 passed**, 0 failed/skipped, **exit 0**.
+- Full UI: **81 passed**, 0 failed/skipped, **exit 0**; log `TEST SUCCEEDED`, actual xcresult
+  summary inspected. Completed September 19 00:11 EDT, 2902 seconds of test execution.
+- Full suite reports 24 known invalid-frame warnings, same class/count as pre-change cardio;
+  origin remains uninvestigated. No domain/schema/sensor changes, so no unit-suite rerun.
+- No build/test job remains from this ticket; artifacts and scripts preserved in the
+  implementation worktree. Runner 6068 completed.
+- 16 committed PNGs plus gallery, default/AccessibilityL pairs inspected; code and visual
+  Claude review clear. Independent final artifact clearance requested.
+- Relative links checked; archived STATE is byte-identical to 21ef98f; product/test/config
+  tree unchanged after 269498b. No device installation performed for ticket 03.
+
+## Clearance and delivery
+
+Claude independently read final build/focused/full artifacts and issued **CLEAR TO MERGE**
+in [review](../claude-ui-refinements-review.md). Required T1 resolved and re-reviewed;
+L1/L2/V3/N3 addressed. Start default/AXL and automatic-distance capture links shown to user.
+Final branch is `ericlee4992/cardio-ui-refinements`; reviewed code **269498b**, evidence
+checkpoint **9c7d1b7**. Further commits are records only. Main is fast-forwarded with this
+checkpoint; no PR required. These UI refinements have **not been installed on the phone**.
+Remaining device acceptance stays in ticket 02; the installed build is still c847ef3.
