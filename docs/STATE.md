@@ -1,9 +1,10 @@
 # Current project state
 
-Updated 2026-09-19 for app unit systems and automatic indoor-cardio cleanup. Base main **e457493**.
+Updated 2026-09-20 after app-unit/indoor-cleanup installation. Verified clean main **8c71d27**
+before this install-evidence checkpoint; product/unit tests **dc08ea8**, full-UI tip **cda7fd4**.
 Prior STATE preserved in the [archive](archive/STATE-2026-09-19-before-cardio-units.md).
 
-## Current delivery: app unit systems and indoor cleanup
+## Next action: confirm app opens, then cardio device acceptance
 
 [Ticket 06](../work-record/cardio/issues/06-unit-system-and-indoor.md) implements Metric
 (kg/km) and U.S. customary (lb/mi) app defaults for **new cardio activities only**, per the
@@ -21,8 +22,11 @@ xcresult is Passed. Initial timing/navigation/runner failures are preserved in t
 [Claude code, clock, visual and final merge clearance](../work-record/cardio/claude-units-review.md)
 is clear. 21 captures in `work-record/cardio/screenshots/units-and-indoor/`; links shown user.
 
-Next: fresh signed build and user-requested installation; phone confirmed unlocked/awake.
-Currently installed product **7825140** from **c127832**, launch-verified September19 03:02 EDT.
+**Installed 2026-09-20 01:04 EDT, launch not yet verified.** Fresh signed build from clean main
+**8c71d27**; install exit0/success. Remote launch was refused as Locked (exit1), despite earlier
+user unlock confirmation; process list showed no app. Asked user to open WorkoutTracker
+manually. No reinstall needed for this lock error. No schema/history migration.
+
 Remaining hardware acceptance in [ticket02](../work-record/cardio/issues/02-device-acceptance.md):
 history preservation, phone carried/stationary, pause/disconnect/recovery, background/locked GPS
 and mixed recovery. AirPods Pro3 indoor distance is user-confirmed. Automatic zero/low distance
@@ -36,25 +40,25 @@ Profiles expire September24 at 07:16 UTC. Watch cardio remains outside this rele
   outdoor routes. [Spec](../work-record/cardio/spec.md),
   [implementation/review trail](../work-record/cardio/issues/01-implementation.md),
   [29 native default/AccessibilityL captures](../work-record/cardio/gallery.html).
-- Product source **03ada3d**, tests **306acf4**, merged via **b0a8de9**. Initial cardio build was installed from **c847ef3**; current arrowless-row/outdoor-cleanup build is from
-  clean main **c127832**, installed September 19 (ticket 05). Prototype
+- Product source **03ada3d**, tests **306acf4**, merged via **b0a8de9**. Initial cardio build was installed from **c847ef3**; current app-unit/indoor-cleanup build is from
+  clean main **8c71d27**, installed September 20 (ticket 06; launch confirmation pending). Prototype
   `cardio-design-prototype` is reference-only; the selected design is already implemented.
 - Debug build passed; full units **748**, targeted units **13**, focused cardio UI **7**, full
   UI **79**, and actual-store/legacy migration checks **10** all passed with exit 0. Full UI
   completed September 18 at 03:58 EDT. Claude code, visual and
   [final merge review](../work-record/cardio/claude-final-clearance.md) are clear.
-- **Current installation launch-verified:** September 19 UI-refined build installed and launched,
-  devicectl exit 0 for both; app process confirmed running afterward.
+- **Current installation succeeded; launch pending:** September 20 unit-system build installed,
+  devicectl exit0. Remote launch refused Locked; user manual-open confirmation pending.
   Current phone/backup details below. The user subsequently tested indoor distance and outdoor
   map rendering; existing-history preservation and other hardware checks remain outstanding. The installation was authorized after the merge review.
-- **No local build/test jobs running:** ticket 05 verification and device build completed. Implementation, research, prototype and
+- **No local build/test jobs running:** ticket 06 verification and device build completed. Implementation, research, prototype and
   review checkouts were clean before handoff edits; temporary private migration test removed.
   Preserve the ignored artifacts: main `work-record/ui-redesign/results/cardio-install/` holds
   original device build/install/launch logs; main `work-record/ui-redesign/results/cardio-ui-install/`
   holds the earlier September 19 UI-refinement evidence; main
   `work-record/ui-redesign/results/start-capsules-install/` holds the prior capsule evidence;
-  main `work-record/ui-redesign/results/compact-start-outdoor-install/` holds current
-  build/install/launch evidence; `cardio-implementation/work-record/ui-redesign/results/cardio/`
+  main `work-record/ui-redesign/results/compact-start-outdoor-install/` holds the prior update;
+  main `work-record/ui-redesign/results/cardio-units-install/` holds current build/install/launch evidence; `cardio-implementation/work-record/ui-redesign/results/cardio/`
   holds unit/UI/migration logs, exit files and xcresults. Private backup data stays outside Git.
 - **Known limits:** 24 non-failing invalid-frame warnings (same known class as ticket 17; origin
   uninvestigated);
@@ -78,7 +82,7 @@ Profiles expire September24 at 07:16 UTC. Watch cardio remains outside this rele
 
 | Fact | Last verified value |
 |---|---|
-| Installed source | Arrowless Start/outdoor-cleanup product/tests `7825140`, built from clean main `c127832`; installed 2026-09-19 03:02 EDT, devicectl install/launch exit 0 and success. App PID 3758 confirmed running afterward. Existing-history preservation remains unverified |
+| Installed source | App-unit/indoor-cleanup product/unit tests `dc08ea8`, UI tip `cda7fd4`, built from clean main `8c71d27`; installed 2026-09-20 01:04 EDT, devicectl exit0/success. Remote launch refused Locked, exit1; user manual-open confirmation pending. Existing-history preservation remains unverified |
 | Provisioning | Verified in the installed build: app expires **2026-09-24 07:16:18 UTC**, widget **07:16:20 UTC**; same profiles created September 17 |
 | Store | Cardio code exports schema 10; app launch confirmed by user feedback; existing-history preservation awaits explicit confirmation. Offline migration of a fresh actual-store copy passed, preserving all existing values/relationships across 13 tables |
 | Latest local backup | `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`: fresh raw container, 26 files, integrity and SHA-256 checks passed. JSON/CSV generated with app exporters from an isolated migrated copy alongside it; private, outside Git. Restore not tested |

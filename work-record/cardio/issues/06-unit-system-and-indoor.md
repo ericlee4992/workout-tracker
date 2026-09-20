@@ -1,7 +1,7 @@
 # 06 — App unit system and clean automatic indoor metrics
 
 Type: task
-Status: resolved — merged verification clear; installation pending
+Status: resolved — merged and installed; launch confirmation pending
 
 User request 2026-09-19: remove the Phone motion estimate section during device-tracked indoor
 runs; show no such source/estimate detail. Rename app unit choices to Metric / U.S. customary
@@ -157,3 +157,22 @@ Final independent [Claude review](../claude-units-review.md), authored46ad211, i
 **CLEAR TO MERGE** after direct artifact inspection. Main fast-forward/push with this
 records-only checkpoint; user explicitly requested install once complete and confirmed
 phone unlocked/awake. Fresh signed build/install and launch verification follow.
+
+## Installation — 2026-09-20
+
+Merged/pushed main **8c71d27**. Fresh signed build from clean main8c71d27 (product/unit-test
+code **dc08ea8**, full-UI tested **cda7fd4**) at `/tmp/wt-cardio-units-device-20260920`,
+build exit0. Verified fresh debug dylib and new AppUnitSystem symbol, app/widget identities,
+signatures and team X68M8SR6NA. Profiles remain September24 07:16:18 /07:16:20 UTC.
+No model/schema change or history rewrite; prior private backup retained, no new backup claimed.
+
+Installed **2026-09-20 01:04 EDT**, devicectl **exit0 / success**, installation UUID
+`93A9DA94-2585-4C10-BA40-D0659559BDA4`, same bundle ID and container retained. User had confirmed
+unlocked/awake, but subsequent remote launch was refused as **Locked** (CoreDevice10002 /
+FBSOpenApplicationErrorDomain7), exit1. Process list contained no running app afterward.
+Installed successfully; launch remains unverified, not an app-crash diagnosis. Asked user
+to open WorkoutTracker manually. No reinstall needed solely for this lock error.
+
+Evidence: main `work-record/ui-redesign/results/cardio-units-install/`: build script/log/exit,
+binary-verification.json, install/launch logs/JSON/exits and processes.json. Build runner82268
+finished. No test/build process remains. Physical acceptance remains ticket02.
