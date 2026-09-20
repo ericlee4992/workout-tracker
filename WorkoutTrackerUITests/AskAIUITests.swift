@@ -117,6 +117,22 @@ final class AskAIUITests: XCTestCase {
         start.tap()
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
     }
+    func testEditedProposalLabelSurvivesCatalogSelection() {
+        launch(["-uiTestTerraSpecific"]); scanner(); app.buttons["scanShutter"].tap()
+        let field = app.textFields["identifiedMachineLabel"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10))
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.96, dy: 0.5)).tap()
+        _ = app.keyboards.firstMatch.waitForExistence(timeout: 3)
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (field.value as? String ?? "").count))
+        field.typeText("Press by window")
+        app.buttons["dismissEquipmentKeyboard"].tap()
+        let use = app.buttons["scanUseCandidate"]; reach(use); use.tap()
+        let label = app.textFields["machineLabel"]; XCTAssertTrue(label.waitForExistence(timeout: 5))
+        XCTAssertEqual(label.value as? String, "Press by window")
+        app.buttons["saveMachine"].tap()
+        XCTAssertTrue(app.staticTexts["Press by window"].waitForExistence(timeout: 5))
+    }
+
     func testSpecificIdentityDefault() { identityCapture("Specific", large: false) }
     func testSpecificIdentityAccessibility() { identityCapture("Specific", large: true) }
     func testNewModelIdentityDefault() { identityCapture("NewModel", large: false) }
@@ -181,6 +197,11 @@ final class AskAIUITests: XCTestCase {
         app.launch(); app.tabBars.buttons["Workout"].tap()
         reach(app.buttons["askAIRoutine"]); app.buttons["askAIRoutine"].tap()
         let settings = app.buttons["routineAISettings"]; XCTAssertTrue(settings.waitForExistence(timeout: 5)); settings.tap()
+        let done = app.buttons["Done"].firstMatch
+        let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in done.exists && done.frame.minY < 150 }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed)
+        shot("ai-key-settings-overview-\(large ? "axl" : "default")")
+        reach(app.switches["Send equipment photos to OpenAI"].firstMatch)
         shot("ai-key-settings-permissions-\(large ? "axl" : "default")")
         let key = app.secureTextFields["askAIKeyField"]; reach(key)
         XCTAssertTrue(key.exists)

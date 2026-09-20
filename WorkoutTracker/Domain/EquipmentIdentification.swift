@@ -7,6 +7,9 @@ struct EquipmentIdentification: Codable, Equatable {
     var modelName: String
     var visibleText: String
     var exerciseIDs: [UUID]
+    /// Local editing provenance only: a model response cannot claim that the user typed a name.
+    var labelWasEdited = false
+    private enum CodingKeys: String, CodingKey { case identity, label, manufacturer, modelName, visibleText, exerciseIDs }
 
     static let schema = AISchema.object([
         "identity": ["type": "string", "enum": ["specific", "generic", "uncertain"]],

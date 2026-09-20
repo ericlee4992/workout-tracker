@@ -619,8 +619,10 @@ struct MachineEditorSheet: View {
                     let available = (try? modelContext.fetch(FetchDescriptor<EquipmentModel>())) ?? []
                     if case .catalog(let match) = EquipmentIdentityResolution.resolve(result, among: available, exerciseNames: allExercises.filter(\.isSeeded).map(\.name)) { model = match }
                     else { model = nil }
-                    if trimmedLabel.isEmpty || trimmedLabel == modelDerivedLabel {
-                        label = result.label; modelDerivedLabel = result.label
+                    if result.labelWasEdited || trimmedLabel.isEmpty || trimmedLabel == modelDerivedLabel {
+                        label = result.label
+                        // D3: a confirmed hand-edited name is user-owned, not a replaceable model default.
+                        modelDerivedLabel = result.labelWasEdited ? nil : result.label
                     }
                 }
             }

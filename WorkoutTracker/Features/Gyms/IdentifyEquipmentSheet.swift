@@ -19,6 +19,8 @@ struct IdentifyEquipmentSheet: View {
     @State private var error: String?
     @State private var proposal: EquipmentIdentification?
     @State private var torch = false
+    private enum Field: Hashable { case label, manufacturer, model }
+    @FocusState private var focusedField: Field?
 
     var body: some View {
         NavigationStack {
@@ -51,7 +53,13 @@ struct IdentifyEquipmentSheet: View {
                 }
             }
             .navigationTitle(proposal == nil ? "Scan Equipment" : "AI Proposal").navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancel(); dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancel(); dismiss() } }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { focusedField = nil }.accessibilityIdentifier("dismissEquipmentKeyboard")
+                }
+            }
             .sheet(isPresented: $showingSettings, onDismiss: { start() }) { AskAISettingsSheet() }
             .sheet(isPresented: $showingLibrary) {
                 ImagePicker(source: .photoLibrary) { image in
@@ -105,11 +113,12 @@ struct IdentifyEquipmentSheet: View {
                 Text("AI could not identify this equipment. Try a clearer angle or choose its exercises below.")
             }
             Section {
-                TextField("Machine name", text: Binding(get: { proposal?.label ?? "" }, set: { proposal?.label = $0 }))
+                TextField("Machine name", text: Binding(get: { proposal?.label ?? "" }, set: { proposal?.label = $0; proposal?.labelWasEdited = true }), axis: .vertical)
+                    .focused($focusedField, equals: .label)
                     .accessibilityIdentifier("identifiedMachineLabel")
                 if proposal?.identity == "specific" {
-                    TextField("Manufacturer", text: Binding(get: { proposal?.manufacturer ?? "" }, set: { proposal?.manufacturer = $0 }))
-                    TextField("Model", text: Binding(get: { proposal?.modelName ?? "" }, set: { proposal?.modelName = $0 }))
+                    TextField("Manufacturer", text: Binding(get: { proposal?.manufacturer ?? "" }, set: { proposal?.manufacturer = $0 }), axis: .vertical).focused($focusedField, equals: .manufacturer)
+                    TextField("Model", text: Binding(get: { proposal?.modelName ?? "" }, set: { proposal?.modelName = $0 }), axis: .vertical).focused($focusedField, equals: .model)
                     if let text = proposal?.visibleText, !text.isEmpty { Text(text).font(.caption).foregroundStyle(Theme.secondary) }
                     Button("Use generic identity") { proposal?.identity = "generic"; proposal?.manufacturer = ""; proposal?.modelName = "" }
                 }
@@ -140,7 +149,7 @@ struct IdentifyEquipmentSheet: View {
                     .accessibilityIdentifier("scanUseCandidate")
                 Button("Take another photo") { reset() }.accessibilityIdentifier("scanRescan")
             }
-        }
+        }.scrollDismissesKeyboard(.interactively)
     }
 
     private func start() {

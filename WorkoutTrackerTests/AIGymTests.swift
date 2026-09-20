@@ -158,6 +158,14 @@ struct AIGymTests {
         let valid = try JSONSerialization.data(withJSONObject: ["status": "completed", "output": [["content": [["type": "output_text", "text": "{}"]]]]])
         #expect(try TerraClient.output(from: valid) == Data("{}".utf8))
     }
+    @Test func modelResponseCannotClaimUserEditedTheLabel() throws {
+        let json = Data(#"{"identity":"generic","label":"Press","manufacturer":"","modelName":"","visibleText":"","exerciseIDs":[],"labelWasEdited":true}"#.utf8)
+        let decoded = try JSONDecoder().decode(EquipmentIdentification.self, from: json)
+        #expect(!decoded.labelWasEdited)
+        var local = decoded; local.labelWasEdited = true
+        #expect(!String(decoding: try JSONEncoder().encode(local), as: UTF8.self).contains("labelWasEdited"))
+    }
+
     @Test func identityRejectsUnknownExercisesAndDropsUnsupportedModelClaims() throws {
         let id = UUID()
         let guess = EquipmentIdentification(identity: "specific", label: "Chest press", manufacturer: "Brand", modelName: "Model", visibleText: "", exerciseIDs: [id])
