@@ -77,6 +77,14 @@ struct AIGymTests {
         if case .newModel(let brand, let name) = EquipmentIdentityResolution.resolve(proposal, among: []) { #expect(brand == "Other" && name == "New") }
         else { Issue.record("Expected trimmed new identity") }
     }
+    @Test func printedMovementTitleCannotInventASharedModelEvenWhenAICallsItSpecific() {
+        let proposal = EquipmentIdentification(identity: "specific", label: "Hack squat / deadlift", manufacturer: "Roc-It", modelName: "Hack Squat/Dead Lift", visibleText: "ROC-IT HACK SQUAT/DEAD LIFT", exerciseIDs: [])
+        if case .generic = EquipmentIdentityResolution.resolve(proposal, among: [], exerciseNames: ["Hack Squat", "Deadlift", "Shrug"]) {} else { Issue.record("Movement text alone cannot identify a precise model") }
+        #expect(!EquipmentIdentityResolution.isMovementOnlyName("Insignia Series Chest Press", exerciseNames: ["Seated Chest Press"]))
+        #expect(!EquipmentIdentityResolution.isMovementOnlyName("Hack Squat RPL-5356", exerciseNames: ["Hack Squat"]))
+        #expect(EquipmentIdentityResolution.isMovementOnlyName("Plate Loaded Chest Press", exerciseNames: ["Seated Chest Press"]))
+    }
+
     @Test func unknownCardioTargetsArePreservedAndExported() throws {
         let context = try context(); let template = WorkoutTemplate(name: "Future")
         let known = PlannedCardio(activity: .outdoorWalk, minutes: 10)
@@ -172,6 +180,27 @@ struct AIGymTests {
         #expect(exported.exercises.map(\.id).contains(exercise.id))
         #expect(exported.machines.allSatisfy { $0.modelID == nil && $0.recognizedExerciseIDs == [exercise.id] })
     }
+    @Test func newAIRoutineUsesUniqueConfirmedMachineButNeverGuessesBetweenTwo() throws {
+        let context = try context(); let exercise = Exercise(name: "Chest press"); let gym = Gym(name: "Gym")
+        let machine = MachineInstance(label: "Press A", gym: gym); machine.recognizedExerciseIDs = [exercise.id]
+        for object: any PersistentModel in [exercise,gym,machine] { context.insert(object) }
+        let service = WorkoutTemplateService(context: context)
+        let template = try service.create(name: "AI Day", items: [.init(exercise: exercise, targetRepsBySet: [10])])
+        template.generatedForGymID = gym.id; try context.save()
+        let first = try service.start(template, at: gym)
+        #expect(first.entries?.first?.machine?.id == machine.id)
+        try WorkoutSession(context: context).cancel(first)
+        let other = MachineInstance(label: "Press B", gym: gym); other.recognizedExerciseIDs = [exercise.id]
+        context.insert(other); try context.save()
+        let ambiguous = try service.start(template, at: gym)
+        #expect(ambiguous.entries?.first?.machine == nil)
+        try WorkoutSession(context: context).cancel(ambiguous)
+        context.insert(GymExerciseMemory(gymID: gym.id, exerciseID: exercise.id, machineID: other.id))
+        try context.save()
+        let remembered = try service.start(template, at: gym)
+        #expect(remembered.entries?.first?.machine?.id == other.id)
+    }
+
     @Test func mixedTemplateStartsWithTargetsButNoPerformedCardioOrWeights() throws {
         let context = try context(); let exercise = Exercise(name: "Press"); context.insert(exercise)
         let service = WorkoutTemplateService(context: context)

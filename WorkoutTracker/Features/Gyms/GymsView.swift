@@ -617,7 +617,7 @@ struct MachineEditorSheet: View {
                     identified = result
                     recognizedIDs = Set(result.exerciseIDs)
                     let available = (try? modelContext.fetch(FetchDescriptor<EquipmentModel>())) ?? []
-                    if case .catalog(let match) = EquipmentIdentityResolution.resolve(result, among: available) { model = match }
+                    if case .catalog(let match) = EquipmentIdentityResolution.resolve(result, among: available, exerciseNames: allExercises.filter(\.isSeeded).map(\.name)) { model = match }
                     else { model = nil }
                     if trimmedLabel.isEmpty || trimmedLabel == modelDerivedLabel {
                         label = result.label; modelDerivedLabel = result.label
@@ -710,7 +710,7 @@ struct MachineEditorSheet: View {
             } else {
                 if model == nil, let identified {
                     let available = try modelContext.fetch(FetchDescriptor<EquipmentModel>())
-                    switch EquipmentIdentityResolution.resolve(identified, among: available) {
+                    switch EquipmentIdentityResolution.resolve(identified, among: available, exerciseNames: allExercises.filter(\.isSeeded).map(\.name)) {
                     case .catalog(let existing): model = existing
                     case .newModel(let manufacturer, let name):
                         let custom = EquipmentModel(manufacturer: manufacturer, modelName: name,

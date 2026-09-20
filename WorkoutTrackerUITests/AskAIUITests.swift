@@ -72,16 +72,20 @@ final class AskAIUITests: XCTestCase {
         let ask = app.buttons["askAIRoutine"]; reach(ask); shot("ai-start-\(large ? "axl" : "default")"); ask.tap()
         let goals = app.textFields["routineGoals"].exists ? app.textFields["routineGoals"] : app.textViews["routineGoals"]
         XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap(); _ = app.keyboards.firstMatch.waitForExistence(timeout: 3); goals.typeText("Build strength and endurance")
+        XCTAssertEqual(goals.value as? String, "Build strength and endurance")
         app.buttons["dismissRoutineKeyboard"].tap()
         XCTAssertFalse(app.keyboards.firstMatch.exists)
+        shot("ai-routine-goals-\(large ? "axl" : "default")")
         app.swipeUp()
         enable("routineEquipment.dumbbells")
         shot("ai-routine-inputs-\(large ? "axl" : "default")")
         enable("routineCardio.outdoorWalk")
+        shot("ai-routine-cardio-\(large ? "axl" : "default")")
         let generate = app.buttons["generateAIRoutine"]; reach(generate); XCTAssertTrue(generate.isEnabled); generate.tap()
         let day = any("routineDay.0"); XCTAssertTrue(day.waitForExistence(timeout: 10))
         shot("ai-week-preview-\(large ? "axl" : "default")")
         day.tap(); shot("ai-day-edit-\(large ? "axl" : "default")")
+        reach(app.buttons["Add cardio"]); shot("ai-day-cardio-\(large ? "axl" : "default")")
         if edit {
             let add = app.buttons["Add exercise"]; reach(add); add.tap()
             let remove = app.buttons["Remove exercise"].firstMatch; reach(remove); remove.tap()
@@ -101,10 +105,11 @@ final class AskAIUITests: XCTestCase {
         XCTAssertEqual(app.buttons.matching(identifier: "templateTile.Day 1 — Fitness").count, 1)
         reach(tile); tile.tap()
         shot("ai-template-detail-\(large ? "axl" : "default")")
-        if edit {
-            app.buttons["editTemplate"].tap()
-            let save = app.navigationBars.buttons["Save"]; XCTAssertTrue(save.waitForExistence(timeout: 5)); save.tap()
-        }
+        app.buttons["editTemplate"].tap()
+        let save = app.navigationBars.buttons["Save"]; XCTAssertTrue(save.waitForExistence(timeout: 5))
+        shot("ai-template-editor-\(large ? "axl" : "default")")
+        reach(app.buttons["Add cardio target"]); shot("ai-template-cardio-editor-\(large ? "axl" : "default")")
+        save.tap()
         app.buttons["startTemplate"].tap()
         let start = app.buttons["startPlannedCardio"]; XCTAssertTrue(start.waitForExistence(timeout: 10)); reach(start)
         shot("ai-planned-cardio-\(large ? "axl" : "default")")
@@ -112,6 +117,35 @@ final class AskAIUITests: XCTestCase {
         start.tap()
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
     }
+    func testSpecificIdentityDefault() { identityCapture("Specific", large: false) }
+    func testSpecificIdentityAccessibility() { identityCapture("Specific", large: true) }
+    func testNewModelIdentityDefault() { identityCapture("NewModel", large: false) }
+    func testNewModelIdentityAccessibility() { identityCapture("NewModel", large: true) }
+    func testAmbiguousIdentityDefault() { identityCapture("Ambiguous", large: false) }
+    func testAmbiguousIdentityAccessibility() { identityCapture("Ambiguous", large: true) }
+    func testUncertainIdentityDefault() { identityCapture("Uncertain", large: false) }
+    func testUncertainIdentityAccessibility() { identityCapture("Uncertain", large: true) }
+    private func identityCapture(_ kind: String, large: Bool) {
+        launch(["-uiTestTerra" + kind], large: large); scanner(); app.buttons["scanShutter"].tap()
+        let field = app.textFields["identifiedMachineLabel"]; XCTAssertTrue(field.waitForExistence(timeout: 10))
+        let use = app.buttons["scanUseCandidate"]
+        shot("ai-identity-\(kind.lowercased())-\(large ? "axl" : "default")")
+        reach(use)
+        shot("ai-identity-action-\(kind.lowercased())-\(large ? "axl" : "default")")
+        if kind == "Uncertain" { XCTAssertFalse(use.isEnabled) }
+        else {
+            use.tap()
+            let label = app.textFields["machineLabel"]; XCTAssertTrue(label.waitForExistence(timeout: 5))
+            let savedName = label.value as? String ?? ""
+            XCTAssertFalse(savedName.isEmpty)
+            app.buttons["saveMachine"].tap()
+            XCTAssertTrue(app.staticTexts[savedName].firstMatch.waitForExistence(timeout: 5))
+            if kind == "Ambiguous" { XCTAssertFalse(app.staticTexts["Life Fitness Insignia Series Chest Press"].exists) }
+            if kind == "NewModel" { XCTAssertTrue(app.staticTexts["Fixture Brand Printed Test Press"].exists) }
+            if kind == "Specific" { XCTAssertTrue(app.staticTexts["Life Fitness Insignia Series Chest Press"].exists) }
+        }
+    }
+
     func testPhotoConsentDefault() { photoConsent(large: false) }
     func testPhotoConsentAccessibility() { photoConsent(large: true) }
     private func photoConsent(large: Bool) {
@@ -127,7 +161,7 @@ final class AskAIUITests: XCTestCase {
     func testManualModelSuggestionsRequireConsentAndKeepConfirmation() {
         launch(["-uiTestScanFixture"])
         scanner()
-        app.navigationBars.buttons["Cancel"].tap()
+        app.navigationBars["Scan Equipment"].buttons["Cancel"].tap()
         app.buttons["scanLabelOffline"].tap()
         let shutter = app.buttons["scanShutter"]; XCTAssertTrue(shutter.waitForExistence(timeout: 5)); shutter.tap()
         let create = app.buttons["scanCreateNew"]; XCTAssertTrue(create.waitForExistence(timeout: 15)); reach(create); create.tap()

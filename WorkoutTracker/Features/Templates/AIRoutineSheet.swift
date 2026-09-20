@@ -7,7 +7,8 @@ struct AIRoutineSheet: View {
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     var gym: Gym?
     @AppStorage(TerraAccess.routineConsentKey) private var consent = false
-    @FocusState private var editingInputs: Bool
+    private enum InputFocus: Hashable { case goals, height, weight }
+    @FocusState private var inputFocus: InputFocus?
     @State private var goals = ""
     @State private var experience = "Beginner"
     @State private var days = 3
@@ -49,7 +50,7 @@ struct AIRoutineSheet: View {
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("Done") { editingInputs = false }.accessibilityIdentifier("dismissRoutineKeyboard")
+                    Button("Done") { inputFocus = nil }.accessibilityIdentifier("dismissRoutineKeyboard")
                 }
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancel(); dismiss() } }
                 if routine != nil {
@@ -65,14 +66,14 @@ struct AIRoutineSheet: View {
         Form {
             Section("Goals") {
                 TextField("What would you like to work toward?", text: $goals, axis: .vertical)
-                    .lineLimit(3...6).focused($editingInputs).accessibilityIdentifier("routineGoals")
+                    .lineLimit(3...6).focused($inputFocus, equals: .goals).accessibilityIdentifier("routineGoals")
                 Picker("Experience", selection: $experience) { ForEach(["Beginner", "Intermediate", "Experienced"], id: \.self) { Text($0) } }
                 Stepper("\(days) days per week", value: $days, in: 1...7)
                 Stepper("\(minutes) minutes per session", value: $minutes, in: 15...120, step: 5)
             }
             Section("Optional profile") {
-                TextField("Height (cm)", text: $height).keyboardType(.decimalPad).focused($editingInputs)
-                TextField("Weight (kg)", text: $weight).keyboardType(.decimalPad).focused($editingInputs)
+                TextField("Height (cm)", text: $height).keyboardType(.decimalPad).focused($inputFocus, equals: .height)
+                TextField("Weight (kg)", text: $weight).keyboardType(.decimalPad).focused($inputFocus, equals: .weight)
             }
             Section(gym.map { "Equipment at \($0.name)" } ?? "Available equipment") {
                 if let gym { Text("\(gym.activeMachines.count) saved machines").foregroundStyle(Theme.secondary) }

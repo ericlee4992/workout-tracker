@@ -3,8 +3,7 @@ import SwiftUI
 
 @main
 struct WorkoutTrackerApp: App {
-    /// On-disk SwiftData store (Domain/Models.swift). The UI still renders
-    /// prototype sample data until ticket 07 rewires it onto this container.
+    /// On-disk SwiftData store; UI tests receive a disposable container.
     private let modelContainer: ModelContainer
 
     init() {
@@ -29,6 +28,11 @@ struct WorkoutTrackerApp: App {
             try CatalogSeeder.reconcile(catalog, in: modelContainer.mainContext)
         } catch {
             assertionFailure("Catalog seeding failed: \(error)")
+        }
+        if TerraAccess.fixture, ProcessInfo.processInfo.arguments.contains("-uiTestTerraAmbiguous") {
+            let duplicate = EquipmentModel(manufacturer: "Life Fitness", modelName: "Insignia Series Chest Press", exerciseIDs: [])
+            modelContainer.mainContext.insert(duplicate)
+            try? modelContainer.mainContext.save()
         }
         // A few weeks of history for one exercise, under a launch argument.
         // The simulator has no past, so a progress chart with a real series

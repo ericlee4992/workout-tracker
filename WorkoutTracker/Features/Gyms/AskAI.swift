@@ -182,7 +182,7 @@ struct TerraExerciseProposer: ExerciseProposer {
     let client: TerraClient
     func propose(plate: PlateDescription, candidates: [ExerciseCandidate]) async throws -> [ExerciseProposal] {
         guard !candidates.isEmpty else { return [] }
-        let text = "Plate: \(plate.brand) \(plate.model) \(plate.lines.joined(separator: " / "))\n" + candidates.map { "\($0.id) | \($0.name)" }.joined(separator: "\n")
+        let text = "Plate: \(plate.brand) \(plate.model) \(plate.lines.joined(separator: " / "))\n" + candidates.map { "\($0.id) | \($0.name) | \($0.muscleGroup ?? "-")" }.joined(separator: "\n")
         let data = try await client.complete(instructions: ExerciseProposalAPI.prompt, input: text,
             schema: ExerciseProposalAPI.schema(candidateIDs: candidates.map(\.id.uuidString)), name: "exercise_proposals")
         let wrapped = try JSONSerialization.data(withJSONObject: ["content": [["type": "text", "text": String(decoding: data, as: UTF8.self)]]])

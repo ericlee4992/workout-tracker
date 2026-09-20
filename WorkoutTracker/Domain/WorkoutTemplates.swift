@@ -129,7 +129,9 @@ struct WorkoutTemplateService {
     }
 
     /// Starts a template at `gym` (or no gym), resolving each exercise to the
-    /// latest active remembered machine at that gym. Target set counts
+    /// latest active remembered machine at that gym. An AI-created template at
+    /// its original gym additionally resolves a sole compatible machine on first use.
+    /// Target set counts
     /// materialize as genuinely empty, uncompleted draft rows: a *planned*
     /// rep count is not a *performed* one, so it is never written into a
     /// SetRecord. Ticket 11's same-machine prefill fills rows from real
@@ -156,8 +158,16 @@ struct WorkoutTemplateService {
             guard let exercise = item.exercise else { continue }
             let machine: MachineInstance?
             if let gym {
-                machine = try EquipmentLifecycle(context: context)
+                let remembered = try EquipmentLifecycle(context: context)
                     .rememberedMachine(for: exercise, at: gym)
+                if template.generatedForGymID == gym.id {
+                    // A first-use AI plan was built from this gym's confirmed inventory.
+                    // Leaving its sole matching machine unassigned would lose machine-specific
+                    // history; choosing among several would invent a physical identity.
+                    let compatible = gym.activeMachines.filter { $0.supportedExerciseIDs.contains(exercise.id) }
+                    machine = remembered.flatMap { remembered in compatible.first { $0.id == remembered.id } }
+                        ?? (compatible.count == 1 ? compatible.first : nil)
+                } else { machine = remembered }
             } else {
                 machine = nil
             }

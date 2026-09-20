@@ -50,7 +50,7 @@ struct IdentifyEquipmentSheet: View {
                     capture
                 }
             }
-            .navigationTitle("Scan Equipment").navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(proposal == nil ? "Scan Equipment" : "AI Proposal").navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancel(); dismiss() } } }
             .sheet(isPresented: $showingSettings, onDismiss: { start() }) { AskAISettingsSheet() }
             .sheet(isPresented: $showingLibrary) {
@@ -73,6 +73,8 @@ struct IdentifyEquipmentSheet: View {
                     guard captureID == photo.requestID else { return }
                     captureID = nil; work?.cancel(); identify(photo.image)
                 }, onFailure: { id, message in
+                    // Camera teardown after a photo must not cancel the AI request or overwrite its result.
+                    guard !busy, proposal == nil else { return }
                     if let id, id != captureID { return }
                     captureID = nil; work?.cancel(); error = message
                 }, torchOn: torch)
@@ -90,7 +92,7 @@ struct IdentifyEquipmentSheet: View {
         }.padding(.bottom)
     }
 
-    private var resolution: EquipmentIdentityResolution { proposal.map { EquipmentIdentityResolution.resolve($0, among: models) } ?? .generic }
+    private var resolution: EquipmentIdentityResolution { proposal.map { EquipmentIdentityResolution.resolve($0, among: models, exerciseNames: exercises.filter(\.isSeeded).map(\.name)) } ?? .generic }
     private var catalogMatch: EquipmentModel? {
         if case .catalog(let model) = resolution { return model }
         return nil
@@ -103,14 +105,6 @@ struct IdentifyEquipmentSheet: View {
                 Text("AI could not identify this equipment. Try a clearer angle or choose its exercises below.")
             }
             Section {
-                switch resolution {
-                case .catalog(let model): Text("Matches catalog: \(model.displayName)")
-                case .newModel(let manufacturer, let name): Text("Will add new model: \(manufacturer) \(name)")
-                case .ambiguous: Text("Multiple catalog identities match. This will be saved without a model; you can choose one later.")
-                case .generic: Text("Saved as this gym’s machine, with no model claimed.")
-                }
-            }
-            Section("Equipment") {
                 TextField("Machine name", text: Binding(get: { proposal?.label ?? "" }, set: { proposal?.label = $0 }))
                     .accessibilityIdentifier("identifiedMachineLabel")
                 if proposal?.identity == "specific" {
@@ -118,7 +112,14 @@ struct IdentifyEquipmentSheet: View {
                     TextField("Model", text: Binding(get: { proposal?.modelName ?? "" }, set: { proposal?.modelName = $0 }))
                     if let text = proposal?.visibleText, !text.isEmpty { Text(text).font(.caption).foregroundStyle(Theme.secondary) }
                     Button("Use generic identity") { proposal?.identity = "generic"; proposal?.manufacturer = ""; proposal?.modelName = "" }
-                } else { Text("Model unknown").foregroundStyle(.secondary) }
+                }
+            } header: { Text("Equipment") } footer: {
+                switch resolution {
+                case .catalog(let model): Text("Matches catalog: \(model.displayName)")
+                case .newModel(let manufacturer, let name): Text("Will add new model: \(manufacturer) \(name)")
+                case .ambiguous: Text("Multiple catalog identities match. This will be saved without a model; you can choose one later.")
+                case .generic: Text("Saved as this gym’s machine, with no model claimed.")
+                }
             }
             Section("Exercises") {
                 ForEach(exercises.filter { effectiveIDs.contains($0.id) }) { exercise in Text(exercise.name) }
@@ -135,6 +136,7 @@ struct IdentifyEquipmentSheet: View {
                     if case .generic = resolution { proposal.identity = "generic" }
                     onIdentify(proposal); dismiss()
                 }.disabled(proposal?.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false || effectiveIDs.isEmpty)
+                    .buttonStyle(.primary)
                     .accessibilityIdentifier("scanUseCandidate")
                 Button("Take another photo") { reset() }.accessibilityIdentifier("scanRescan")
             }
@@ -169,7 +171,16 @@ struct IdentifyEquipmentSheet: View {
                 let answer: EquipmentIdentification
                 if TerraAccess.fixture {
                     try await TerraAccess.fixtureDelay()
-                    answer = EquipmentIdentification(identity: "generic", label: "Chest press", manufacturer: "", modelName: "", visibleText: "", exerciseIDs: fixtureID.map { [$0] } ?? [])
+                    let flags = ProcessInfo.processInfo.arguments
+                    if flags.contains("-uiTestTerraUncertain") {
+                        answer = EquipmentIdentification(identity: "uncertain", label: "", manufacturer: "", modelName: "", visibleText: "", exerciseIDs: [])
+                    } else if flags.contains("-uiTestTerraSpecific") || flags.contains("-uiTestTerraAmbiguous") {
+                        answer = EquipmentIdentification(identity: "specific", label: "Chest press", manufacturer: "Life Fitness", modelName: "Insignia Series Chest Press", visibleText: "Life Fitness Insignia Series Chest Press", exerciseIDs: fixtureID.map { [$0] } ?? [])
+                    } else if flags.contains("-uiTestTerraNewModel") {
+                        answer = EquipmentIdentification(identity: "specific", label: "Chest press", manufacturer: "Fixture Brand", modelName: "Printed Test Press", visibleText: "Fixture Brand Printed Test Press", exerciseIDs: fixtureID.map { [$0] } ?? [])
+                    } else {
+                        answer = EquipmentIdentification(identity: "generic", label: "Chest press", manufacturer: "", modelName: "", visibleText: "", exerciseIDs: fixtureID.map { [$0] } ?? [])
+                    }
                 } else {
                     guard let client = TerraAccess.client, let jpeg else { throw TerraError.invalidResponse }
                     let data = try await client.complete(instructions: EquipmentIdentification.instructions, input: candidates,
