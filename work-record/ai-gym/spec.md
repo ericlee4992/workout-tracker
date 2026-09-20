@@ -9,6 +9,7 @@ User authorized end-to-end implementation 2026-09-20, with tickets and independe
 3. [Mixed template targets](issues/03-mixed-templates.md)
 4. [Weekly routine generator](issues/04-routine-generator.md)
 5. [Verification and independent review](issues/05-verification-review.md)
+6. [Private device acceptance](issues/06-device-acceptance.md)
 
 ## Product contract
 
