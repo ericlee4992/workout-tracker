@@ -1,115 +1,89 @@
 # Current project state
 
-Updated 2026-09-20 for a fresh session. Audit baseline: clean `main` / `origin/main`
-**6102b5d**. Reviewed handoff **e9803e0**, prepared on `ericlee4992/session-handoff-sep20`,
-is merged/pushed to `main` with this records checkpoint. The
-[handoff ticket](../work-record/codex-setup/issues/03-session-handoff.md) records clearance and checks.
-Previous STATE is preserved byte-for-byte in the [archive](archive/README.md).
+Updated 2026-09-20. Active branch **`ericlee4992/ai-gym-and-routines`**, product tip
+**e35f80e**, based on main **17e42a0**. Main is not yet updated at this checkpoint.
+The [pre-AI handoff](archive/STATE-2026-09-20-before-ai-gym.md) is preserved byte-for-byte.
 
-## Current implementation — AI equipment and routines
+## Next action
 
-User authorized full build with tickets and Claude review on September 20. Working branch
-`ericlee4992/ai-gym-and-routines` from main `17e42a0`, separate Orca checkout
-`/Users/ericlee06/orca/workspaces/Health App/ai-gym-and-routines`.
-[Spec and ticket index](../work-record/ai-gym/spec.md); implementation starts with
-[ticket 01](../work-record/ai-gym/issues/01-api-and-consent.md). GPT-5.6 Terra only;
-private trial; optional Ask AI below Templates; weekly lifting/cardio routines; no weight
-estimates or guides. Key saved outside Git; first live request failed 429/credit_balance_exhausted.
-User funded API billing; the live Terra smoke now passes.
-Implementation `7dc1622`, review fixes `3f75187`; second Claude review in progress. Clean simulator build passed;
-767 domain tests passed, including installed-era synthetic store migration. Initial AI UI: 7/9
-passed; both failed routine flows now pass in focused default/AccessibilityL rerun. Final serial
-domain/integration UI run active (process identity and artifacts in the linked ticket). Live Terra key and
-structured request smoke passed after credits added; whole-machine recognition remains fallible
-on a challenging sample. [Verification ticket](../work-record/ai-gym/issues/05-verification-review.md)
-tracks exact process/log/result paths and Claude findings. Not merged or installed.
+Finish the final independent Claude source/evidence/UI review of the AI feature, then push the
+branch and fast-forward/push main under T6/T8. [Verification ticket](../work-record/ai-gym/issues/05-verification-review.md).
+Product implementation and selected checks are complete; final review is pending. No build/test
+job is active. No new phone installation has occurred.
 
-## Previous next action — still pending physical acceptance
+After merge, follow [private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md):
+confirm the currently installed app opens and old workouts are intact, make a fresh backup, then
+install/launch the signed build under DEVELOPMENT. The phone needs the OpenAI key entered in
+Settings; the Mac tooling key is not bundled. Profiles expire **September 24, 07:16 UTC**.
 
-The latest app is **installed; launch and existing-history preservation remain unverified**.
-First obtain confirmation that WorkoutTracker opens and old workouts are intact, then continue
-[cardio physical acceptance](../work-record/cardio/issues/02-device-acceptance.md). User confirmed
-AirPods Pro 3 indoor distance and outdoor map rendering on an earlier cardio build; this does
-not establish latest-build launch, phone-position accuracy, pause/reconnect or background GPS.
-No code change, rebuild or reinstall is needed merely to resume. Remote launch failed because
-the phone was Locked, not an established app crash. Signing expires **September 24, 07:16 UTC**.
+## AI scope — implemented and tested, awaiting final review/merge
 
-**Verification policy T8 is already merged:** use targeted checks by change risk;
-full UI is reserved for the escalation cases in [DEVELOPMENT](DEVELOPMENT.md#verification-scope).
-This supersedes blanket full-suite wording in older tickets/skills. Docs-only handoffs use
-link/consistency checks. [Policy ticket and review](../work-record/codex-setup/issues/02-verification-policy.md).
+[Specification and six tickets](../work-record/ai-gym/spec.md), decisions **D56–D58**:
+- GPT-5.6 Terra only, private trial. One consented photo of a label or whole machine proposes an
+  editable identity and exercises. Generic/ambiguous identity stays model-less and gym-local;
+  exact catalog resolution and user confirmation preserve physical-machine history. Explicitly
+  edited names survive catalog defaults. Manual/on-device entry remains available offline.
+- Secondary **Ask AI** below Templates opens a separate flow for an editable weekly set of
+  lifting/cardio templates. Goals, experience, schedule, optional height/weight, saved gym
+  machines and confirmed extra equipment constrain the request. No AI weight guesses or guides.
+- Planned cardio/rest/reps are separate from performed data. Explicit cardio Start, atomic week
+  save, cancellation/consent and schema-11 JSON export are implemented. Existing manual templates
+  keep their startup behavior; an AI-created template at its original gym can use the sole
+  compatible machine when there is no remembered compatible choice.
+- OpenAI key is device-only Keychain; three revocable local consents. No key in Git or binaries.
+  Whole-machine classification remains fallible (g010 sample); no physical accuracy pass claimed.
+  Backend/shared-key public access, App Store release and visual guides remain deferred.
 
-## Latest accepted behavior — implemented and merged
+## Verification and build
 
-- Start Lifting / Start Cardio use the original amber icon-disc capsules, **side by side without
-  arrows** when full labels fit; responsive stacking for large text/narrow widths. The earlier
-  text-only and always-stacked designs are superseded. [Ticket 05](../work-record/cardio/issues/05-compact-start-and-outdoor.md).
-- Outdoor routes record during the workout, but maps appear only in finished Summary / History.
-  The duplicate live GPS/distance section is removed; main metrics and location errors remain.
-- Automatic indoor distance/pace stay in the main metrics without a duplicate source/estimate
-  row, including phone-motion readings. No-data/manual entry and correction after End remain.
-  Automatic zero/low readings also hide that row; this consequence was explicitly accepted.
-- Settings **Metric (kg/km)** / **U.S. customary (lb/mi)** affect **new cardio activities only**.
-  Active/saved cardio units and entered values stay unchanged. Existing kg/lb preference storage
-  is reused; no schema migration. Lifting machine → gym → app precedence remains.
-  [Ticket 06 and review](../work-record/cardio/issues/06-unit-system-and-indoor.md).
-
-## Verification and installed build
-
-| Evidence | Verified result |
+| Evidence | Result |
 |---|---|
-| Product / unit-test code | `dc08ea8`; build exit 0, 753 unit tests and 32 focused clock/unit tests passed |
-| UI-tested tip | `cda7fd4`; 7 focused Cardio cases plus corrected 2 Settings cases passed; full UI **85/85**, exit 0, zero failed/skipped |
-| Independent feature review | [Claude final clearance](../work-record/cardio/claude-units-review.md), authored `46ad211` |
-| Installed source | Clean main **8c71d27**, fresh signed build; installed **2026-09-20 01:04 EDT**, devicectl exit 0 / success |
-| Launch | Remote launch exit 1, **Locked**; no main app process afterward (widget extension only). User manual-open confirmation pending |
-| Later changes | Install records `4a7cbc1`, policy `ad519c3` / `6102b5d`, and this handoff are documentation only |
+| Simulator build | Successful, including clean build and built camera/photo permission-string inspection |
+| Full domain suite | **773/773 passed**, exit 0, zero failed/skipped; later AI/template follow-up **29/29**, edited-name/final preservation suites **23/23** each |
+| UI scope | **36 distinct cases have passing evidence**, including adjacent logging, cardio, history/template, export and offline scanner flows; initial failures and successful focused reruns retained in ticket 05 |
+| UI captures | [51 real Default/AccessibilityL captures](../work-record/ai-gym/gallery.html), same fixtures per pair, including consent, identity states, routine editing, templates and active plans |
+| Independent review | Claude spec review and two code reviews committed; round 2 cleared code at `3f75187`; final source/evidence/UI review of later fixes is pending |
+| Live API | Terra key/model verified after user funded API credits; production-format photo and 3-/7-day routine requests completed. Seven-day request: 10.14 s. Recognition limitations remain explicit |
+| Migration | Synthetic store generated from installed-era `8c71d27`; additive migration preserves old history/templates/units and new-field defaults. Prior legacy fixtures also passed |
+| Signed iPhone build | `/tmp/wt-ai-device/Build/Products/Debug-iphoneos/WorkoutTracker.app`; build exit 0; fresh Terra/routine symbols, app/widget signatures and profiles verified; **not installed** |
 
-Actual exits and xcresult summaries were re-read for this handoff. Initial timing/navigation
-failures remain in ticket 06; final passing runs supersede them. Full UI finished normally after
-stopping only its hung optional simulator-diagnostics collector; auxiliary diagnostics may be
-incomplete. 24 non-failing invalid-frame warnings remain uninvestigated. No build/test job active.
-Original cardio/migration evidence and accepted low findings remain in
-[ticket 01](../work-record/cardio/issues/01-implementation.md).
+Actual exit files and xcresult summaries were read. The 0-test discovery attempt, simulator
+Busy/preflight failure and interrupted overlapping test jobs are not passing evidence. Non-failing
+invalid-frame warnings remain uninvestigated, as in prior work. Hosted CI investigation stays deferred.
 
-## Phone and backup
+## Installed phone and backup — unchanged
 
-| Fact | Last verified value |
-|---|---|
-| Provisioning | Installed app expires **2026-09-24 07:16:18 UTC**, widget **07:16:20 UTC** |
-| Store | Cardio export schema 10; actual-store-copy migration passed, preserving old values/relationships across 13 tables. On-phone history preservation and backup restore remain unverified |
-| Local backup | `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`: 26 raw-container files; integrity/SHA-256 verified September 18. Exported JSON/CSV beside it. Directory/exports still present at this handoff; no newer backup claimed |
-| Last reported in-app export | CSV + JSON to iCloud Drive, September 4, before D51 reclassification (18 real-store sets moved) |
-| Phone / identity | iPhone 15 Pro Max; UDID `00008130-001E10C01E62001C`; bundle `com.ericlee4992.workouttracker`; team `X68M8SR6NA` |
-| Environment | Xcode 27.0; simulator `WT-iPhone`; local signing in ignored `Config/Local.xcconfig` |
-| Watch | Companion never built/run/installed; cardio outside this release |
+- Installed source **8c71d27**, September 20 at 01:04 EDT. Install exit 0/success; remote launch
+  exit 1 because **Locked**, not an established crash. No later manual launch/history confirmation.
+- Earlier AirPods Pro 3 indoor distance and outdoor map feedback applies to an earlier cardio
+  build; pause/reconnect, phone-position accuracy and background GPS remain unverified.
+  [Cardio acceptance](../work-record/cardio/issues/02-device-acceptance.md).
+- Phone: iPhone 15 Pro Max, `00008130-001E10C01E62001C`; bundle
+  `com.ericlee4992.workouttracker`, team `X68M8SR6NA`. App/widget profiles expire
+  **2026-09-24 07:16:18 / 07:16:20 UTC**. Xcode 27.0; simulator WT-iPhone; signing config ignored.
+- Installed export schema **10**; new code exports **11**. September 18 actual-store-copy cardio
+  migration preserved values/relationships across 13 tables. On-phone preservation/restore remain unverified.
+- Private backup `/Users/ericlee06/WorkoutTracker-Backups/2026-09-18-before-cardio`: 26 raw files,
+  integrity/SHA verified September 18; JSON/CSV alongside. No newer backup claimed. Last reported
+  in-app iCloud CSV/JSON export was September 4, before D51 reclassification moved 18 real-store sets.
+- Prior accepted UI remains: amber side-by-side Start capsules when labels fit, responsive stacking;
+  maps only in finished Summary/History; no duplicate automatic indoor-source row; app unit system
+  affects only new cardio activities. Watch companion has never been built/run/installed; cardio
+  on Watch remains outside this release.
 
-Before any future install, follow [DEVELOPMENT](DEVELOPMENT.md) for backup/migration, signing,
-freshness and launch checks. Re-export after sessions worth keeping; private backup stays outside Git.
+## Workspace and remaining work
 
-## Evidence and workspace continuity
-
-- Main checkout: `/Users/ericlee06/orca/projects/Health App`. Latest ignored install evidence:
-  `work-record/ui-redesign/results/cardio-units-install/` (build, binary verification, install,
-  launch and process list). Earlier install evidence remains in the sibling `*-install/` folders.
-- Feature checkout: `/Users/ericlee06/orca/workspaces/Health App/cardio-units-and-sources`;
-  `work-record/ui-redesign/results/cardio-units/` has scripts, logs, exit files and xcresults.
-  Original cardio/migration artifacts remain in the `cardio-implementation` checkout's
-  `work-record/ui-redesign/results/cardio/`. Preserve these ignored artifacts and resumable terminals.
-- [21 selected unit/indoor captures](../work-record/cardio/screenshots/units-and-indoor/),
-  [original cardio gallery](../work-record/cardio/gallery.html). Prototype is reference-only.
-- Prior Orca cards are completed. Three old review checkouts contain untracked report copies
-  already preserved in main (details in handoff ticket); no unique work is lost. Actual workspace
-  **Sleep remains unverified** after earlier menu/focus failures. Keep main visible and preserve
-  worktrees; finish Sleep cleanup when UI interaction is reliable.
-- 35 project-local skills installed; personal Codex settings unchanged.
-  [Setup record](../work-record/codex-setup/issues/01-codex-workflow.md).
-  Graft structural graph rebuilt; optional AI summaries remain unbuilt.
-
-## Other open work
-
-The complete [deferred-work and device-feedback list](../work-record/deferred-work.md) preserves
-scanner, machine picker, lifting/history UX, calculation, supersets, precision, migration, HR,
-Watch, catalog, App Store and CI items. These are not a request to start them all. Consult it
-when choosing the next task; keep resolved items closed. Product rationale remains in
-[SPEC](SPEC.md) and [DECISIONS](DECISIONS.md).
+- Main: `/Users/ericlee06/orca/projects/Health App`. Implementation/results:
+  `/Users/ericlee06/orca/workspaces/Health App/ai-gym-and-routines`; ignored
+  `work-record/ai-gym/results/` contains scripts, actual exits/logs/xcresults and signed-build checks.
+  Mac credential is in the private `~/.config/workouttracker/openai.env` (0600), outside Git.
+- Preserve the implementation, baseline and independent-review checkouts. Existing cardio install
+  evidence remains in main `work-record/ui-redesign/results/*-install/`; unit/UI artifacts in
+  `cardio-units-and-sources`, original cardio/migration artifacts in `cardio-implementation`.
+- Prior completed worktrees/terminal histories and their ignored artifacts remain. Actual Orca
+  workspace Sleep is still unverified after earlier menu/focus failures. The three old untracked
+  review-copy sets remain documented in the [prior handoff ticket](../work-record/codex-setup/issues/03-session-handoff.md).
+- [Deferred work](../work-record/deferred-work.md) preserves all scanner, picker, lifting/history,
+  calculation, supersets, precision, migration, HR, Watch, catalog, App Store and CI follow-ups.
+  Consult the list rather than starting everything. 35 project-local skills remain installed;
+  personal Codex settings unchanged. Graft structural index refreshed; optional AI summaries unbuilt.
