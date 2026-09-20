@@ -1,7 +1,7 @@
 # 05 — Integration verification and independent Claude review
 
 Type: task
-Status: claimed — integration and independent review in progress
+Status: resolved — implemented, verified, independently cleared; merged to main
 
 Specification: [AI gym spec](../spec.md).
 
@@ -11,7 +11,7 @@ Build/domain/UI/captures, live API evidence, independent Claude review and fixes
 
 ## Evidence
 
-Pending implementation and verification.
+Implemented and verified. See [verification ticket](05-verification-review.md) for actual results and independent clearance.
 
 ## Verification scope / review
 
@@ -68,3 +68,11 @@ Before merge, applying the three recommended small changes: C1 recorded last-use
 Polish domain checks: `polish-units` **30/30 passed**, exit 0, including last-used memory whose capability links are incomplete. `polish-ui` targets only changed proposal states, edited-name regression and preview wording; process identity is in `results/polish-active.json`. Prior independent final clearance is [Claude final review](../claude-final-review.md); a targeted re-review of C1/U1/U2 follows this bounded polish.
 
 Final C1/U1/U2 polish validation: **30/30 domain tests passed**, **13/13 targeted UI cases passed**, zero failures/skips, exits 0. `device-polish` signed build exit 0 and app/widget signatures verified. Latest labelled proposal and singular-preview captures replace prior images in the gallery. Product code is `9b0a61a`; updated evidence/capture commit follows. No build/test job remains active. Claude code addendum is clear; its final capture/evidence acknowledgement is the last merge gate.
+
+## Closure
+
+Product code `9b0a61a`; independent [final review](../claude-final-review.md) and [final evidence addendum](../claude-final-review-addendum.md) clear private-trial merge. Main was fast-forwarded through `5895103`; this documentation checkpoint follows on the same feature branch. Software scope is resolved; [device acceptance](06-device-acceptance.md) remains open. No phone installation or public-release/recognition-accuracy clearance is claimed.
+
+Delivery checkpoint: main fast-forwarded from `17e42a0` to `5895103` after independent final clearance. Product code is `9b0a61a`; subsequent changes are reports/captures/records. Final signature/freshness verification remains in `results/device-verification.json`, with source `9b0a61a`, app/widget expiry September 24 at 07:16 UTC. Branch is pushed; final main push/remote-tip confirmation is performed after this records commit and captured in ignored delivery evidence.
+
+The clean planned-cardio AXL image is restored byte-for-byte from `2daaa2b`: the latest take was covered by a system Motion & Fitness prompt, and this row’s code/layout is unchanged. Claude explicitly retained clearance of the clean earlier capture. All other changed proposal/preview images use the final polish run.

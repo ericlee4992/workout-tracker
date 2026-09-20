@@ -1,24 +1,24 @@
 # Current project state
 
-Updated 2026-09-20. Active branch **`ericlee4992/ai-gym-and-routines`**, product tip
-**e35f80e**, based on main **17e42a0**. Main is not yet updated at this checkpoint.
+Updated 2026-09-20 for AI delivery. Product code **9b0a61a** on
+`ericlee4992/ai-gym-and-routines`; independently cleared and fast-forwarded into **main** at
+**5895103**, with final documentation checkpoints following. Verify actual HEAD/remote on resume.
 The [pre-AI handoff](archive/STATE-2026-09-20-before-ai-gym.md) is preserved byte-for-byte.
 
 ## Next action
 
-Finish the final independent Claude source/evidence/UI review of the AI feature, then push the
-branch and fast-forward/push main under T6/T8. [Verification ticket](../work-record/ai-gym/issues/05-verification-review.md).
-Claude final review cleared code/evidence/UI for private-trial merge. Three recommended small
-improvements (remembered-machine precedence, visible proposal field labels, singular exercise
-wording) are implemented; targeted polish checks passed (30 domain / 13 UI, zero failed/skipped). Claude’s code addendum is
-clear; final capture/evidence acknowledgement remains. No build/test job is active; no phone install.
+Software implementation, verification and independent review are complete. Follow
+[private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md): confirm the
+currently installed app opens and old workouts are intact, obtain a fresh export/container backup,
+then install and launch the signed schema-11 build under DEVELOPMENT. The phone needs the OpenAI
+key entered in Settings; the Mac tooling key is not bundled. Profiles expire **September 24,
+07:16 UTC**. No new phone installation has occurred. No local build/test job remains active.
 
-After merge, follow [private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md):
-confirm the currently installed app opens and old workouts are intact, make a fresh backup, then
-install/launch the signed build under DEVELOPMENT. The phone needs the OpenAI key entered in
-Settings; the Mac tooling key is not bundled. Profiles expire **September 24, 07:16 UTC**.
+[Verification and delivery record](../work-record/ai-gym/issues/05-verification-review.md),
+[final independent clearance](../work-record/ai-gym/claude-final-review-addendum.md), and
+[54 real UI captures](../work-record/ai-gym/gallery.html).
 
-## AI scope — implemented and tested, awaiting final review/merge
+## AI scope — implemented, tested, independently reviewed and merged
 
 [Specification and six tickets](../work-record/ai-gym/spec.md), decisions **D56–D58**:
 - GPT-5.6 Terra only, private trial. One consented photo of a label or whole machine proposes an
@@ -41,10 +41,10 @@ Settings; the Mac tooling key is not bundled. Profiles expire **September 24, 07
 | Evidence | Result |
 |---|---|
 | Simulator build | Successful, including clean build and built camera/photo permission-string inspection |
-| Full domain suite | **773/773 passed**, exit 0, zero failed/skipped; later AI/template follow-up **29/29**, edited-name/final preservation suites **23/23** each |
-| UI scope | **36 distinct cases have passing evidence**, including adjacent logging, cardio, history/template, export and offline scanner flows; initial failures and successful focused reruns retained in ticket 05 |
+| Full domain suite | **773/773 passed**, exit 0, zero failed/skipped; later AI/template follow-up **29/29**, edited-name/final preservation suites **23/23** each; final polish domain **30/30** |
+| UI scope | **36 distinct cases have passing evidence**, including adjacent logging, cardio, history/template, export and offline scanner flows; final polish **13/13** passed, zero failed/skipped; initial failures/reruns retained in ticket 05 |
 | UI captures | [54 real Default/AccessibilityL captures](../work-record/ai-gym/gallery.html), same fixtures per pair, including consent, identity states, routine editing, templates and active plans |
-| Independent review | Claude spec review and two code reviews committed; final review cleared code/evidence/UI at `2daaa2b`; three subsequent small recommendations await targeted re-review |
+| Independent review | Claude spec, code, final evidence/UI reviews and addendum clear product `9b0a61a` for private-trial merge; no blocking findings |
 | Live API | Terra key/model verified after user funded API credits; production-format photo and 3-/7-day routine requests completed. Seven-day request: 10.14 s. Recognition limitations remain explicit |
 | Migration | Synthetic store generated from installed-era `8c71d27`; additive migration preserves old history/templates/units and new-field defaults. Prior legacy fixtures also passed |
 | Signed iPhone build | `/tmp/wt-ai-device/Build/Products/Debug-iphoneos/WorkoutTracker.app`; build exit 0; fresh Terra/routine symbols, app/widget signatures and profiles verified; **not installed** |
