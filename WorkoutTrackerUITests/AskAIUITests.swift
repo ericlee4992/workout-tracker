@@ -87,6 +87,7 @@ final class AskAIUITests: XCTestCase {
             let remove = app.buttons["Remove exercise"].firstMatch; reach(remove); remove.tap()
             XCTAssertTrue(app.buttons["Remove exercise"].firstMatch.exists)
             reach(app.buttons["Add exercise"]); app.buttons["Add exercise"].tap()
+            for _ in 0..<3 { app.swipeDown() }
             app.navigationBars.buttons["Edit"].tap()
             let handles = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Reorder"))
             XCTAssertGreaterThanOrEqual(handles.count, 2)
@@ -119,7 +120,7 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(allow.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["scanShutter"].exists)
         shot("ai-photo-consent-\(large ? "axl" : "default")")
-        reach(allow); allow.tap()
+        reach(allow); shot("ai-photo-consent-action-\(large ? "axl" : "default")"); allow.tap()
         XCTAssertTrue(app.buttons["scanShutter"].waitForExistence(timeout: 5))
     }
 
@@ -139,11 +140,16 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["New Model"].exists)
     }
 
-    func testMissingKeyHasReachableSettings() {
-        app.launchArguments = ["-uiTestReset"]; app.launch(); app.tabBars.buttons["Workout"].tap()
+    func testMissingKeyHasReachableSettings() { keySettings(large: false) }
+    func testMissingKeySettingsAccessibility() { keySettings(large: true) }
+    private func keySettings(large: Bool) {
+        app.launchArguments = ["-uiTestReset"] + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : [])
+        app.launch(); app.tabBars.buttons["Workout"].tap()
         reach(app.buttons["askAIRoutine"]); app.buttons["askAIRoutine"].tap()
         let settings = app.buttons["routineAISettings"]; XCTAssertTrue(settings.waitForExistence(timeout: 5)); settings.tap()
-        XCTAssertTrue(app.secureTextFields["askAIKeyField"].waitForExistence(timeout: 5))
-        shot("ai-key-settings-default")
+        shot("ai-key-settings-permissions-\(large ? "axl" : "default")")
+        let key = app.secureTextFields["askAIKeyField"]; reach(key)
+        XCTAssertTrue(key.exists)
+        shot("ai-key-settings-key-\(large ? "axl" : "default")")
     }
 }

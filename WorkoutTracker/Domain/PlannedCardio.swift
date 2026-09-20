@@ -18,7 +18,7 @@ struct PlannedCardio: Codable, Equatable, Identifiable {
     }
 }
 
-/// Preserve unknown future rows byte-for-byte in the backing JSON when known rows are updated.
+/// Preserve unknown future rows in the backing JSON when known rows are updated.
 /// Dropping an unreadable activity would silently erase a user's plan on the next save.
 enum CardioPlanStorage {
     static func rows(_ data: Data?) -> [Any]? {
