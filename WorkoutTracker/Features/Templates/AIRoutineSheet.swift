@@ -112,7 +112,7 @@ struct AIRoutineSheet: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 6) {
                         Text(routine!.sessions[index].name).font(.headline)
-                        Text("\(routine!.sessions[index].strength.count) exercises · \(routine!.sessions[index].cardio.count) cardio").font(.caption).foregroundStyle(Theme.secondary)
+                        Text("\(routine!.sessions[index].strength.count) \(routine!.sessions[index].strength.count == 1 ? "exercise" : "exercises") · \(routine!.sessions[index].cardio.count) cardio").font(.caption).foregroundStyle(Theme.secondary)
                     }
                 }.accessibilityIdentifier("routineDay.\(index)")
             }

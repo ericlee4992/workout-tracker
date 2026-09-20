@@ -165,8 +165,8 @@ struct WorkoutTemplateService {
                     // Leaving its sole matching machine unassigned would lose machine-specific
                     // history; choosing among several would invent a physical identity.
                     let compatible = gym.activeMachines.filter { $0.supportedExerciseIDs.contains(exercise.id) }
-                    machine = remembered.flatMap { remembered in compatible.first { $0.id == remembered.id } }
-                        ?? (compatible.count == 1 ? compatible.first : nil)
+                    // A recorded user choice outranks incomplete catalog capability metadata.
+                    machine = remembered ?? (compatible.count == 1 ? compatible.first : nil)
                 } else { machine = remembered }
             } else {
                 machine = nil

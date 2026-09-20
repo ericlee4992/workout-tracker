@@ -113,12 +113,21 @@ struct IdentifyEquipmentSheet: View {
                 Text("AI could not identify this equipment. Try a clearer angle or choose its exercises below.")
             }
             Section {
-                TextField("Machine name", text: Binding(get: { proposal?.label ?? "" }, set: { proposal?.label = $0; proposal?.labelWasEdited = true }), axis: .vertical)
-                    .focused($focusedField, equals: .label)
-                    .accessibilityIdentifier("identifiedMachineLabel")
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Name").font(.caption).foregroundStyle(Theme.secondary)
+                    TextField("Machine name", text: Binding(get: { proposal?.label ?? "" }, set: { proposal?.label = $0; proposal?.labelWasEdited = true }), axis: .vertical)
+                        .focused($focusedField, equals: .label)
+                        .accessibilityIdentifier("identifiedMachineLabel")
+                }
                 if proposal?.identity == "specific" {
-                    TextField("Manufacturer", text: Binding(get: { proposal?.manufacturer ?? "" }, set: { proposal?.manufacturer = $0 }), axis: .vertical).focused($focusedField, equals: .manufacturer)
-                    TextField("Model", text: Binding(get: { proposal?.modelName ?? "" }, set: { proposal?.modelName = $0 }), axis: .vertical).focused($focusedField, equals: .model)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Manufacturer").font(.caption).foregroundStyle(Theme.secondary)
+                        TextField("Manufacturer", text: Binding(get: { proposal?.manufacturer ?? "" }, set: { proposal?.manufacturer = $0 }), axis: .vertical).focused($focusedField, equals: .manufacturer)
+                    }
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Model").font(.caption).foregroundStyle(Theme.secondary)
+                        TextField("Model", text: Binding(get: { proposal?.modelName ?? "" }, set: { proposal?.modelName = $0 }), axis: .vertical).focused($focusedField, equals: .model)
+                    }
                     if let text = proposal?.visibleText, !text.isEmpty { Text(text).font(.caption).foregroundStyle(Theme.secondary) }
                     Button("Use generic identity") { proposal?.identity = "generic"; proposal?.manufacturer = ""; proposal?.modelName = "" }
                 }

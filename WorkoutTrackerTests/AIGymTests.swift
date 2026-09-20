@@ -208,6 +208,11 @@ struct AIGymTests {
         try context.save()
         let remembered = try service.start(template, at: gym)
         #expect(remembered.entries?.first?.machine?.id == other.id)
+        try WorkoutSession(context: context).cancel(remembered)
+        other.recognizedExerciseIDs = [] // Actual user use can predate or exceed catalog capability links.
+        try context.save()
+        let explicitChoice = try service.start(template, at: gym)
+        #expect(explicitChoice.entries?.first?.machine?.id == other.id)
     }
 
     @Test func mixedTemplateStartsWithTargetsButNoPerformedCardioOrWeights() throws {

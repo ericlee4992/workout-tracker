@@ -58,3 +58,11 @@ Built app camera/photo usage strings re-inspected; both disclose consented OpenA
 The signed generic-iOS build succeeded, exit 0 (`results/device-build.log` / `device-build-exit.txt`), with the existing ignored local signing configuration copied from main. Binary freshness/signature/profile checks follow before handoff; no installation or phone-store access occurred. Phone remains on installed `8c71d27`.
 
 Final caller sweep also preserves confirmed instance exercise links when a selected user-space catalog model has an empty exercise list (the resolver already used that fallback; Add must retain its data). No seeded catalog model is empty. Nil-model behavior and known-model history identity are unchanged.
+
+### Final independent clearance and small recommendations
+
+Claude final review at `2daaa2b` / product `e35f80e` independently cleared code, evidence and all 51 captures for private-trial ff-only merge. Accepted non-blocking follow-ups: U3 planned-cardio row styling; U4 consent-action prominence; U5 legacy template-editor density/AXL Start/Delete spacing; G1 different-gym notice/caption captures and G2 unsupported-future-target UI captures. Existing fail-safe notices remain implemented and storage is tested. C2 conservative movement-only catalog names are documented in D56.
+
+Before merge, applying the three recommended small changes: C1 recorded last-used machine takes precedence over incomplete capability metadata; U1 visible Name/Manufacturer/Model labels in the proposal; U2 singular exercise grammar. Targeted verification and re-review of these changes are the remaining gate. Phone installation/public release/recognition accuracy remain outside clearance.
+
+Polish domain checks: `polish-units` **30/30 passed**, exit 0, including last-used memory whose capability links are incomplete. `polish-ui` targets only changed proposal states, edited-name regression and preview wording; process identity is in `results/polish-active.json`. Prior independent final clearance is [Claude final review](../claude-final-review.md); a targeted re-review of C1/U1/U2 follows this bounded polish.

@@ -8,8 +8,10 @@ The [pre-AI handoff](archive/STATE-2026-09-20-before-ai-gym.md) is preserved byt
 
 Finish the final independent Claude source/evidence/UI review of the AI feature, then push the
 branch and fast-forward/push main under T6/T8. [Verification ticket](../work-record/ai-gym/issues/05-verification-review.md).
-Product implementation and selected checks are complete; final review is pending. No build/test
-job is active. No new phone installation has occurred.
+Claude final review cleared code/evidence/UI for private-trial merge. Three recommended small
+improvements (remembered-machine precedence, visible proposal field labels, singular exercise
+wording) are implemented; targeted polish UI checks and line-level re-review remain. The live
+process is in `results/polish-active.json` in the feature checkout. No phone installation occurred.
 
 After merge, follow [private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md):
 confirm the currently installed app opens and old workouts are intact, make a fresh backup, then
@@ -29,7 +31,7 @@ Settings; the Mac tooling key is not bundled. Profiles expire **September 24, 07
 - Planned cardio/rest/reps are separate from performed data. Explicit cardio Start, atomic week
   save, cancellation/consent and schema-11 JSON export are implemented. Existing manual templates
   keep their startup behavior; an AI-created template at its original gym can use the sole
-  compatible machine when there is no remembered compatible choice.
+  compatible machine when there is no remembered active choice.
 - OpenAI key is device-only Keychain; three revocable local consents. No key in Git or binaries.
   Whole-machine classification remains fallible (g010 sample); no physical accuracy pass claimed.
   Backend/shared-key public access, App Store release and visual guides remain deferred.
@@ -42,7 +44,7 @@ Settings; the Mac tooling key is not bundled. Profiles expire **September 24, 07
 | Full domain suite | **773/773 passed**, exit 0, zero failed/skipped; later AI/template follow-up **29/29**, edited-name/final preservation suites **23/23** each |
 | UI scope | **36 distinct cases have passing evidence**, including adjacent logging, cardio, history/template, export and offline scanner flows; initial failures and successful focused reruns retained in ticket 05 |
 | UI captures | [51 real Default/AccessibilityL captures](../work-record/ai-gym/gallery.html), same fixtures per pair, including consent, identity states, routine editing, templates and active plans |
-| Independent review | Claude spec review and two code reviews committed; round 2 cleared code at `3f75187`; final source/evidence/UI review of later fixes is pending |
+| Independent review | Claude spec review and two code reviews committed; final review cleared code/evidence/UI at `2daaa2b`; three subsequent small recommendations await targeted re-review |
 | Live API | Terra key/model verified after user funded API credits; production-format photo and 3-/7-day routine requests completed. Seven-day request: 10.14 s. Recognition limitations remain explicit |
 | Migration | Synthetic store generated from installed-era `8c71d27`; additive migration preserves old history/templates/units and new-field defaults. Prior legacy fixtures also passed |
 | Signed iPhone build | `/tmp/wt-ai-device/Build/Products/Debug-iphoneos/WorkoutTracker.app`; build exit 0; fresh Terra/routine symbols, app/widget signatures and profiles verified; **not installed** |
