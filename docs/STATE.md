@@ -6,7 +6,19 @@ is merged/pushed to `main` with this records checkpoint. The
 [handoff ticket](../work-record/codex-setup/issues/03-session-handoff.md) records clearance and checks.
 Previous STATE is preserved byte-for-byte in the [archive](archive/README.md).
 
-## Next action
+## Current implementation — AI equipment and routines
+
+User authorized full build with tickets and Claude review on September 20. Working branch
+`ericlee4992/ai-gym-and-routines` from main `17e42a0`, separate Orca checkout
+`/Users/ericlee06/orca/workspaces/Health App/ai-gym-and-routines`.
+[Spec and ticket index](../work-record/ai-gym/spec.md); implementation starts with
+[ticket 01](../work-record/ai-gym/issues/01-api-and-consent.md). GPT-5.6 Terra only;
+private trial; optional Ask AI below Templates; weekly lifting/cardio routines; no weight
+estimates or guides. Key saved outside Git; first live request failed 429/credit_balance_exhausted.
+User asked to fund API billing; fixture work may proceed, live verification pending.
+No new product code, tests, merge or install claimed at this checkpoint.
+
+## Previous next action — still pending physical acceptance
 
 The latest app is **installed; launch and existing-history preservation remain unverified**.
 First obtain confirmation that WorkoutTracker opens and old workouts are intact, then continue

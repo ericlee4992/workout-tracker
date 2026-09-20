@@ -134,3 +134,14 @@ Decisions made during product discovery (2026-08-08 interview). Each entry: deci
 - 2026-08-08 — Independent Codex cross-review of SPEC + milestone-2 tickets: `work-record/milestone-2-core-loop/codex-review.md`. Produced D19–D25 and the milestone-2 ticket rewrite.
 - 2026-08-10 — Codex pass 4 (`codex-review-4.md`), reviewing tickets 19–21. Verdict: do not install over the live phone. Fixed: ten duplicate catalog identities merged onto their older UUID (catalog version 4), a content-sensitive reconciler fast path replacing the row-count check, bodyweight ab/hyperextension benches split off the weighted machine exercises (D20), content-sensitive `CatalogModelIndex` invalidation, and D4 above. The generator now fails on near-duplicate identities, not just identical names.
 - 2026-08-08 — Codex pass 2 (`codex-review-2.md`): 12/24 resolved, 12 partial; 3 new criticals (snapshot loadType + free-weight tag) folded into D19–D25 amendments and ticket edits. Known accepted risk: tickets 02/07/15 are deliberately larger than one session (executed with WIP commits) to avoid renumbering churn.
+
+## September 20 AI expansion — D56
+
+User explicitly reopens D33–D35/D53: Terra recognizes a label or entire machine in one request,
+with prior OpenAI photo consent and user confirmation. Catalog resolution validates exact identity;
+unknown model remains nil with instance-local exercise links. No invented shared model, no history
+rewrite. D34 now permits the requested whole-frame send but still forbids retained photos.
+D5 remains private-trial scope; shared-key backend is deferred until other users. D6/D22 expand to
+weekly generated lifting/cardio templates with planned cardio/rest targets; no AI weight estimates.
+Optional Ask AI below Templates preserves current design. No instructional content or visual guides.
+See [approved scope](../work-record/ai-gym/spec.md). Existing D1/D10/D19/D23 identity/history rules stay.
