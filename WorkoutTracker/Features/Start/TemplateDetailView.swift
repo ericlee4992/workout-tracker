@@ -50,6 +50,19 @@ struct TemplateDetailView: View {
             }
             .listRowBackground(Theme.card)
             .listRowSeparatorTint(Theme.hairline)
+            if !template.plannedCardio.isEmpty {
+                Section("Planned cardio") {
+                    ForEach(template.plannedCardio) { target in
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(target.activity.name).font(.headline)
+                            Text(target.summary).font(.caption).foregroundStyle(Theme.secondary)
+                        }
+                    }
+                }.listRowBackground(Theme.card)
+            }
+            if let source = template.generatedForGymID, source != gym?.id {
+                Text("Created for another gym. Check equipment before starting.").font(.footnote).foregroundStyle(Theme.secondary)
+            }
             // The destructive command last, never primary (ios-design): a red
             // text button after the content, above the pinned Start.
             Section {
@@ -123,8 +136,15 @@ struct TemplateDetailView: View {
                     .font(Theme.cardTitle)
                     .foregroundStyle(Theme.text)
                 Text(item.editableTargets.summary)
-                    .font(.caption)
-                    .foregroundStyle(Theme.secondary)
+                    .font(.caption).foregroundStyle(Theme.secondary)
+                if let rest = item.plannedRestSeconds {
+                    Text("Rest: \(rest)s").font(.caption).foregroundStyle(Theme.secondary)
+                }
+                if template.generatedForGymID != nil, let exercise = item.exercise,
+                   item.preferredEquipmentTag == nil,
+                   !(gym?.activeMachines.contains { $0.supportedExerciseIDs.contains(exercise.id) } ?? false) {
+                    Text("No matching machine at this gym").font(.caption).foregroundStyle(Theme.secondary)
+                }
             }
         }
         .padding(.vertical, 2)

@@ -158,6 +158,7 @@ struct ExportCollector {
     ) -> ReferencedCatalog {
         var referenced = ReferencedCatalog()
         for machine in machines {
+            referenced.exerciseIDs.formUnion(machine.recognizedExerciseIDs)
             if let modelID = machine.model?.id { referenced.modelIDs.insert(modelID) }
         }
         // D27: the user may attach an exercise they invented to a *seeded*
@@ -205,7 +206,7 @@ struct ExportCollector {
             id: machine.id, label: machine.label, gymID: machine.gym?.id,
             modelID: machine.model?.id, defaultUnit: machine.defaultUnit,
             defaultPresetID: machine.defaultPresetID,
-            archived: machine.archived)
+            archived: machine.archived, recognizedExerciseIDs: machine.recognizedExerciseIDs.isEmpty ? nil : machine.recognizedExerciseIDs)
     }
 
     private func exercise(from exercise: Exercise) -> ExportSnapshot.Exercise {
@@ -235,9 +236,11 @@ struct ExportCollector {
                     exerciseName: item.exercise.map { exerciseNamesByID[$0.id] ?? $0.name },
                     targetSets: item.targetSets, targetReps: item.targetReps,
                     targetRepsBySet: item.targetRepsBySet,
-                    supersetGroupID: item.supersetGroupID)
+                    supersetGroupID: item.supersetGroupID, plannedRestSeconds: item.plannedRestSeconds, preferredEquipmentTag: item.preferredEquipmentTag)
             }
-        return ExportSnapshot.Template(id: template.id, name: template.name, items: items)
+        return ExportSnapshot.Template(id: template.id, name: template.name, items: items,
+            plannedCardio: template.plannedCardio.isEmpty ? nil : template.plannedCardio,
+            generatedForGymID: template.generatedForGymID, confirmedEquipment: template.confirmedEquipment.isEmpty ? nil : template.confirmedEquipment)
     }
 
     private func workout(
@@ -287,7 +290,7 @@ struct ExportCollector {
                 maximumHeartRateBpm: workout.sensorMaxHeartRateBpm,
                 maximumHeartRateEstimated: workout.sensorMaxHeartRateEstimated,
                 activeEnergyKilocalories: workout.sensorActiveEnergyCheckpoint,
-                basalEnergyKilocalories: workout.sensorBasalEnergyCheckpoint))
+                basalEnergyKilocalories: workout.sensorBasalEnergyCheckpoint), plannedCardio: workout.plannedCardio.isEmpty ? nil : workout.plannedCardio)
     }
 
     private func cardio(from segment: CardioSegment) -> ExportSnapshot.Cardio {
@@ -343,7 +346,7 @@ struct ExportCollector {
             presetName: context.presetName,
             reclassifiedAt: dateFormat.optionalString(from: entry.reclassifiedAt),
             reclassifiedFromExerciseName: entry.reclassifiedFromExerciseName,
-            sets: sets)
+            sets: sets, plannedRestSeconds: entry.plannedRestSeconds, plannedRepsBySet: entry.plannedRepsBySet.isEmpty ? nil : entry.plannedRepsBySet)
     }
 
     /// Equipment context for one entry.

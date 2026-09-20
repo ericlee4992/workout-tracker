@@ -53,7 +53,7 @@ struct ExportSnapshot: Codable, Equatable {
     /// phone drew. Omitted when empty — a v8 workout restored has means only
     /// and draws from them. JSON only, like the mean; CSV unchanged.
     /// 10 — cardio segments, measured/entered distance, active intervals and routes.
-    static let currentSchemaVersion = 10
+    static let currentSchemaVersion = 11
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -151,6 +151,7 @@ extension ExportSnapshot {
         /// The preset this machine usually is (D38).
         var defaultPresetID: UUID?
         var archived: Bool
+        var recognizedExerciseIDs: [UUID]? = nil
     }
 
     /// A named variation of an exercise (D36–D38).
@@ -194,6 +195,9 @@ extension ExportSnapshot {
         var id: UUID
         var name: String
         var items: [TemplateItem]
+        var plannedCardio: [PlannedCardio]? = nil
+        var generatedForGymID: UUID? = nil
+        var confirmedEquipment: [String]? = nil
     }
 
     struct TemplateItem: Codable, Equatable {
@@ -208,6 +212,8 @@ extension ExportSnapshot {
         /// Superset membership (D48). Omitted at first, so a restored template
         /// came back silently ungrouped (codex-review 2, critical).
         var supersetGroupID: UUID?
+        var plannedRestSeconds: Int? = nil
+        var preferredEquipmentTag: EquipmentTag? = nil
     }
 }
 
@@ -256,6 +262,7 @@ extension ExportSnapshot {
         var basalEnergyKilocalories: Double? = nil
         var cardioSegments: [Cardio]? = nil
         var sensorCheckpoint: SensorCheckpoint? = nil
+        var plannedCardio: [PlannedCardio]? = nil
     }
 
     /// One exercise within a workout.
@@ -302,7 +309,8 @@ extension ExportSnapshot {
         var reclassifiedAt: String? = nil
         var reclassifiedFromExerciseName: String? = nil
         var sets: [SetRow]
-    }
+        var plannedRestSeconds: Int? = nil
+        var plannedRepsBySet: [Int?]? = nil    }
 
     /// One logged set. `weight`/`unit` are exactly as entered and `weightKg`
     /// is the stored normalization (D29) — never a converted display value,

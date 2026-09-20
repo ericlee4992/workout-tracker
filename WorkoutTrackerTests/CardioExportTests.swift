@@ -24,7 +24,7 @@ struct CardioExportTests {
         try CardioSession(context: context).enterDistance("1.25", unit: .mi, for: cardio)
         try session.finish(workout, at: start.addingTimeInterval(360))
         let snapshot = try ExportCollector().snapshot(from: context, now: start.addingTimeInterval(400))
-        #expect(snapshot.schemaVersion == 10)
+        #expect(snapshot.schemaVersion == 11)
         #expect(snapshot.counts.completedSets == 1)
         #expect(snapshot.counts.cardioSegments == 1)
         let exported = try #require(snapshot.workouts.first?.cardioSegments?.first)

@@ -7,8 +7,8 @@ import Security
 /// the Simulator's keychain; the Ask AI fixture pre-fills it.
 enum AskAIKeyStore {
     private static let service = (Bundle.main.bundleIdentifier ?? "workouttracker") + ".askai"
-    private static let account = "anthropic-api-key"
-    private static var memory: String? = AskAI.fixtureIsEnabled ? "uitest-key" : nil
+    private static let account = "openai-api-key"
+    private static var memory: String? = (AskAI.fixtureIsEnabled || TerraAccess.fixture) ? "uitest-key" : nil
 
     static func read() -> String? {
         if WorkoutTrackerStore.isUITestReset { return memory }

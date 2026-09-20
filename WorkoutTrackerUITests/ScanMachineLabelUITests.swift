@@ -30,7 +30,7 @@ final class ScanMachineLabelUITests: XCTestCase {
         openNewMachineSheet()
 
         // --- Scan: the viewfinder, the box, the shutter -------------------
-        app.buttons["scanMachineLabel"].tap()
+        app.buttons["scanLabelOffline"].tap()
         tapShutter(screenshotNamed: "scan-viewfinder")
 
         let candidate = app.descendants(matching: .any)
@@ -100,7 +100,7 @@ final class ScanMachineLabelUITests: XCTestCase {
         createGym()
         openNewMachineSheet()
 
-        app.buttons["scanMachineLabel"].tap()
+        app.buttons["scanLabelOffline"].tap()
         tapShutter(screenshotNamed: nil)
         let createNew = app.buttons["scanCreateNew"]
         XCTAssertTrue(

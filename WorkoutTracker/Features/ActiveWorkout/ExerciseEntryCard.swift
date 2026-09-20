@@ -50,6 +50,10 @@ struct ExerciseEntryCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             titleRow
+            if !entry.plannedRepsBySet.isEmpty {
+                Text("Target: " + TemplateTargets(repsBySet: entry.plannedRepsBySet).summary)
+                    .font(.caption).foregroundStyle(Theme.secondary)
+            }
             machineRow
             barRow
 

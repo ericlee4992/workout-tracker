@@ -485,6 +485,10 @@ struct MachineEditorSheet: View {
     /// nil = create a new machine at `gym`; non-nil = edit that machine
     /// (D2, ticket 17 — its default unit was previously set-once).
     var machine: MachineInstance?
+    @Query(sort: \Exercise.name) private var allExercises: [Exercise]
+    @State private var recognizedIDs: Set<UUID> = []
+    @State private var identified: EquipmentIdentification?
+    @State private var saveFailure: String?
     @State private var label = ""
     @State private var model: EquipmentModel?
     @State private var defaultUnit: WeightUnit?
@@ -495,6 +499,7 @@ struct MachineEditorSheet: View {
     /// typed is the user's.
     @State private var modelDerivedLabel: String?
     @State private var showingScanner = false
+    @State private var showingOfflineScanner = false
     /// A scan that found nothing in the catalog hands its reading here, so the
     /// New Model sheet opens prefilled with what the plate said (D35).
     @State private var scanCreatedModel: ScanDraft?
@@ -530,9 +535,11 @@ struct MachineEditorSheet: View {
                         Button {
                             showingScanner = true
                         } label: {
-                            Label("Scan label…", systemImage: "camera.viewfinder")
+                            Label("Scan equipment…", systemImage: "camera.viewfinder")
                         }
                         .accessibilityIdentifier("scanMachineLabel")
+                        Button("Read label on device") { showingOfflineScanner = true }
+                            .accessibilityIdentifier("scanLabelOffline")
                     }
                 } else {
                     Section {
@@ -548,6 +555,18 @@ struct MachineEditorSheet: View {
                         Text("Use “Correct Model…” on the machine to change this — it asks whether to apply the correction to past workouts.")
                     }
                 }
+                if model == nil {
+                    Section("Exercises") {
+                        ForEach(allExercises.filter { recognizedIDs.contains($0.id) }) { Text($0.name) }
+                        NavigationLink("Choose exercises") {
+                            AIExerciseSelection(exercises: allExercises, selected: $recognizedIDs)
+                        }
+                        if let identified, identified.identity == "specific" {
+                            Text("\(identified.manufacturer) \(identified.modelName)").foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                if let saveFailure { Text(saveFailure).foregroundStyle(.red) }
                 if let exercise = servedExercise, !(exercise.presets ?? []).isEmpty {
                     Section {
                         Picker("Usually", selection: $defaultPresetID) {
@@ -589,17 +608,28 @@ struct MachineEditorSheet: View {
                 }
             }
             .onAppear(perform: load)
-            .onChange(of: model?.id) { _, _ in applyModelDefaultLabel() }
+            .onChange(of: model?.id) { _, _ in
+                if model != nil { identified = nil }
+                applyModelDefaultLabel()
+            }
             .sheet(isPresented: $showingScanner) {
-                ScanMachineLabelSheet(
-                    // Accepting a scanned model goes through exactly the same
-                    // state a hand-picked one does, so the label default (D3)
-                    // has one implementation, not two.
-                    onUseModel: { model = $0 },
-                    onCreateNew: { manufacturer, modelName, plateLines in
-                        scanCreatedModel = ScanDraft(
-                            manufacturer: manufacturer, modelName: modelName, plateLines: plateLines)
-                    })
+                IdentifyEquipmentSheet { result in
+                    identified = result
+                    recognizedIDs = Set(result.exerciseIDs)
+                    let matches = ((try? modelContext.fetch(FetchDescriptor<EquipmentModel>())) ?? []).filter {
+                        result.identity == "specific" && EquipmentIdentification.normalized($0.manufacturer) == EquipmentIdentification.normalized(result.manufacturer)
+                        && EquipmentIdentification.normalized($0.modelName) == EquipmentIdentification.normalized(result.modelName)
+                    }
+                    model = matches.count == 1 ? matches.first : nil
+                    if trimmedLabel.isEmpty || trimmedLabel == modelDerivedLabel {
+                        label = result.label; modelDerivedLabel = result.label
+                    }
+                }
+            }
+            .sheet(isPresented: $showingOfflineScanner) {
+                ScanMachineLabelSheet(onUseModel: { model = $0 }, onCreateNew: { manufacturer, modelName, lines in
+                    scanCreatedModel = ScanDraft(manufacturer: manufacturer, modelName: modelName, plateLines: lines)
+                })
             }
             .sheet(item: $scanCreatedModel) { draft in
                 AddModelSheet(
@@ -621,6 +651,7 @@ struct MachineEditorSheet: View {
         guard let machine else { return }
         label = machine.label
         model = machine.model
+        recognizedIDs = Set(machine.recognizedExerciseIDs)
         defaultUnit = machine.defaultUnit
         defaultPresetID = machine.defaultPresetID
     }
@@ -630,8 +661,8 @@ struct MachineEditorSheet: View {
     /// so it is offered none here; the choice still exists at log time, where
     /// the exercise is known.
     private var servedExercise: Exercise? {
-        guard let model, model.exerciseIDs.count == 1,
-              let exerciseID = model.exerciseIDs.first
+        guard (model?.exerciseIDs ?? Array(recognizedIDs)).count == 1,
+              let exerciseID = (model?.exerciseIDs ?? Array(recognizedIDs)).first
         else { return nil }
         return try? modelContext.fetch(FetchDescriptor<Exercise>(
             predicate: #Predicate { $0.id == exerciseID })).first
@@ -676,18 +707,27 @@ struct MachineEditorSheet: View {
                 try EquipmentLifecycle(context: modelContext).update(
                     machine, label: label, defaultUnit: defaultUnit)
                 machine.defaultPresetID = defaultPresetID
+                machine.recognizedExerciseIDs = Array(recognizedIDs)
                 try modelContext.save()
             } else {
-                modelContext.insert(MachineInstance(
+                if model == nil, let identified, identified.identity == "specific" {
+                    let custom = EquipmentModel(manufacturer: identified.manufacturer, modelName: identified.modelName,
+                                                exerciseIDs: Array(recognizedIDs), isSeeded: false)
+                    modelContext.insert(custom); model = custom
+                }
+                let created = MachineInstance(
                     label: trimmedLabel,
                     defaultUnit: defaultUnit,
                     defaultPresetID: defaultPresetID,
                     gym: gym,
-                    model: model))
+                    model: model)
+                created.recognizedExerciseIDs = model == nil ? Array(recognizedIDs) : []
+                modelContext.insert(created)
                 try modelContext.save()
             }
         } catch {
-            assertionFailure("Failed to save machine: \(error)")
+            saveFailure = error.localizedDescription
+            return
         }
         dismiss()
     }
@@ -1036,7 +1076,7 @@ struct AddModelSheet: View {
                             Text(proposalNote)
                                 .accessibilityIdentifier("newModelSuggestNote")
                         } else {
-                            Text("Sends the manufacturer and model above, the plate's text and this exercise list (names and muscle groups) to Claude, with your key; it picks from the list and you keep the final say.")
+                            Text("Sends the manufacturer and model above, the plate's text and this exercise list (names and muscle groups) to OpenAI (GPT-5.6 Terra), with your key; it picks from the list and you keep the final say.")
                         }
                     }
                 }

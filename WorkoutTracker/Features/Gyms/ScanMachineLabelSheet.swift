@@ -309,7 +309,7 @@ struct ScanMachineLabelSheet: View {
         // only on a tap, only the box crop. A camera reading that preselected
         // never shows this; an AI reading is not asked about again.
         if results.source == .camera, results.preselectedID == nil, results.crop != nil,
-           AskAI.isAvailable {
+           AskAI.transcriber != nil {
             Section {
                 if asking {
                     HStack(spacing: 10) {
@@ -527,7 +527,7 @@ struct ScanMachineLabelSheet: View {
                 // (the library photo) means no crop and no ask: the whole
                 // photo never leaves the phone (codex-review-05).
                 let reading = try await MachineLabelOCR.read(image, regionOfInterest: regionOfInterest)
-                let crop: Data? = if let regionOfInterest, AskAI.isAvailable {
+                let crop: Data? = if let regionOfInterest, AskAI.transcriber != nil {
                     await Task.detached(priority: .userInitiated) {
                         LabelCrop.jpeg(image, region: regionOfInterest)
                     }.value

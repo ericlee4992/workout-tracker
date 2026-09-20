@@ -1,19 +1,7 @@
 import Foundation
 
-/// Scanner accuracy, ticket 05 — "Ask AI": the plate goes to Claude only
-/// when the phone could not place it, and only when the user taps (D53).
-///
-/// On-device first, always: the shutter reads with Vision, and if D33
-/// preselects a row nothing here runs — no network, no cost, no latency.
-/// When nothing preselects, the results sheet offers one button. Tapping it
-/// sends the box crop (`LabelCrop`), never the frame, with the experiment's
-/// transcription prompt; the reply goes through `CatalogMatcher.rank`
-/// locally. The model transcribes, the app decides, the user confirms.
-///
-/// The key is the developer's own, in this phone's keychain, entered once in
-/// Settings. It never ships in the binary. Before anyone else can use this a
-/// proxy has to stand in front of the API — which is a different endpoint
-/// and header value on `AnthropicPlateTranscriber`, not a different app.
+/// Historical plate-reader compatibility for the explicit on-device scanner's test fixtures.
+/// Production AI recognition is IdentifyEquipmentSheet → TerraClient (D56); no Anthropic key is read.
 protocol PlateTranscriber: Sendable {
     func transcribe(jpeg: Data) async throws -> PlateTranscription
 }
@@ -122,19 +110,18 @@ enum AskAI {
 
     /// True when the sheet may offer the button: a key is stored (or the
     /// fixture stands in for one).
-    static var isAvailable: Bool { transcriber != nil }
+    static var isAvailable: Bool { AskAIKeyStore.read() != nil || fixtureIsEnabled }
 
     static var transcriber: PlateTranscriber? {
         if fixtureIsEnabled { return StubPlateTranscriber(failure: stubFailure) }
-        guard let key = AskAIKeyStore.read() else { return nil }
-        return AnthropicPlateTranscriber(client: AnthropicMessagesClient(credential: .apiKey(key)))
+        return nil // Replaced by consent-gated IdentifyEquipmentSheet; no legacy network calls.
     }
 
     /// Ticket 06: the create-new sheet's "Suggest exercises with AI".
     static var proposer: ExerciseProposer? {
         if fixtureIsEnabled { return StubExerciseProposer(failure: stubFailure) }
         guard let key = AskAIKeyStore.read() else { return nil }
-        return AnthropicExerciseProposer(client: AnthropicMessagesClient(credential: .apiKey(key)))
+        return TerraExerciseProposer(client: TerraClient(key: key))
     }
 
     private static var stubFailure: PlateTranscriptionError? {
@@ -187,5 +174,18 @@ struct StubExerciseProposer: ExerciseProposer {
         if let failure { throw failure }
         let pick = candidates.first { $0.name == "Machine Shoulder Press" } ?? candidates.first
         return pick.map { [ExerciseProposal(id: $0.id, reason: "The plate says OVERHEAD PRESS.")] } ?? []
+    }
+}
+
+/// Compatibility for manual catalog creation: the remaining exercise suggestion also uses Terra.
+struct TerraExerciseProposer: ExerciseProposer {
+    let client: TerraClient
+    func propose(plate: PlateDescription, candidates: [ExerciseCandidate]) async throws -> [ExerciseProposal] {
+        guard !candidates.isEmpty else { return [] }
+        let text = "Plate: \(plate.brand) \(plate.model) \(plate.lines.joined(separator: " / "))\n" + candidates.map { "\($0.id) | \($0.name)" }.joined(separator: "\n")
+        let data = try await client.complete(instructions: ExerciseProposalAPI.prompt, input: text,
+            schema: ExerciseProposalAPI.schema(candidateIDs: candidates.map(\.id.uuidString)), name: "exercise_proposals")
+        let wrapped = try JSONSerialization.data(withJSONObject: ["content": [["type": "text", "text": String(decoding: data, as: UTF8.self)]]])
+        return try ExerciseProposalAPI.parse(wrapped, candidates: candidates)
     }
 }

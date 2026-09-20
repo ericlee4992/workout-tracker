@@ -167,6 +167,9 @@ final class Gym {
 final class MachineInstance {
     var id: UUID = UUID()
     var label: String = ""
+    /// Confirmed movements on an unidentified physical machine. Never a fabricated shared model.
+    var recognizedExerciseIDs: [UUID] = []
+    var supportedExerciseIDs: [UUID] { model?.exerciseIDs ?? recognizedExerciseIDs }
     var defaultUnit: WeightUnit?
     /// The preset this machine usually is (D38) — preselected when logging,
     /// never binding. A scalar id, not a relationship: a deleted preset must
@@ -207,6 +210,10 @@ final class WorkoutTemplate {
     var id: UUID = UUID()
     var name: String = ""
 
+    var cardioPlanData: Data?
+    var generatedForGymID: UUID?
+    var confirmedEquipment: [String] = []
+
     @Relationship(deleteRule: .cascade, inverse: \TemplateItem.template)
     var items: [TemplateItem]?
 
@@ -234,7 +241,8 @@ final class TemplateItem {
     /// empty templated workout). Optional: every template saved before
     /// supersets existed has none.
     var supersetGroupID: UUID?
-    // No rest durations in v1 (D22).
+    var plannedRestSeconds: Int?
+    var preferredEquipmentTag: EquipmentTag?
 
     var template: WorkoutTemplate?
     var exercise: Exercise?
@@ -268,6 +276,8 @@ final class Workout {
     /// active workout — the newest keeps running, older strays auto-finish.
     var startedAt: Date = Date()
     var finishedAt: Date?
+    /// Snapshot of planned cardio; independent of completed CardioSegments and live template edits.
+    var cardioPlanData: Data?
     var notes: String = ""
     /// A name the user typed for this workout (milestone 9, ticket 02). nil
     /// means none was typed and the title is DERIVED — from the template
@@ -425,6 +435,8 @@ final class ExerciseEntry {
     /// Scalar ordering within the workout — never implicit to-many order.
     var order: Int = 0
     /// Free-weight equipment choice when no machine is involved (D19).
+    var plannedRestSeconds: Int?
+    var plannedRepsBySet: [Int?] = []
     var freeWeightTag: EquipmentTag?
     /// Superset membership (milestone 8, ticket 04). Entries sharing a
     /// non-nil id are performed alternately — A1/B1, A2/B2 — and rest is taken

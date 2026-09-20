@@ -270,7 +270,7 @@ struct WorkoutSession {
     /// (model-less machine, or no link resolves) → the UI falls back to the
     /// full exercise picker.
     func exercisesFor(machine: MachineInstance) throws -> [Exercise] {
-        let ids = machine.model?.exerciseIDs ?? []
+        let ids = machine.supportedExerciseIDs
         guard !ids.isEmpty else { return [] }
         let fetched = try context.fetch(FetchDescriptor<Exercise>(
             predicate: #Predicate { ids.contains($0.id) }))

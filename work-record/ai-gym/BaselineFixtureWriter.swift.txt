@@ -1,0 +1,37 @@
+import Foundation
+import SwiftData
+import Testing
+@testable import WorkoutTracker
+
+@MainActor struct AIBaselineFixtureWriter {
+    @Test func writeInstalledSchemaFixture() throws {
+        let directory = URL(fileURLWithPath: "/tmp/wt-ai-installed-schema")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appendingPathComponent("PostCardio.store")
+        let container = try WorkoutTrackerStore.makeContainer(url: url)
+        let context = ModelContext(container)
+        let exercise = Exercise(name: "Baseline Press")
+        let row = Exercise(name: "Baseline Row")
+        let gym = Gym(name: "Baseline Gym")
+        let machine = MachineInstance(label: "Unknown press", gym: gym)
+        for object: any PersistentModel in [exercise,row,gym,machine] { context.insert(object) }
+        let group = UUID()
+        let template = try WorkoutTemplateService(context: context).create(name: "Baseline superset", items: [
+            .init(exercise: exercise, targetRepsBySet: [10,8], supersetGroupID: group),
+            .init(exercise: row, targetRepsBySet: [12], supersetGroupID: group)])
+        let service = WorkoutSession(context: context)
+        let at = Date(timeIntervalSince1970: 1_700_000_000)
+        let workout = try WorkoutTemplateService(context: context).start(template, at: gym, on: at)
+        let entry = try #require(workout.entries?.first)
+        let set = try #require(entry.sets?.first)
+        try service.commitWeight("70", for: set); try service.commitReps("8", for: set); try service.toggleCompletion(of: set, at: at)
+        let cardio = try CardioSession(context: context).start(.indoorRun, in: workout, at: at.addingTimeInterval(60))
+        try CardioSession(context: context).enterDistance("1.2", unit: .mi, for: cardio)
+        try CardioSession(context: context).end(cardio, at: at.addingTimeInterval(660))
+        try service.finish(workout)
+        let active = try service.startWorkout(at: gym, on: at.addingTimeInterval(1000))
+        _ = try CardioSession(context: context).start(.outdoorWalk, in: active, at: at.addingTimeInterval(1000))
+        try context.save()
+        print("SYNTHETIC_FIXTURE_WRITTEN")
+    }
+}

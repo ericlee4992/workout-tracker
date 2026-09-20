@@ -7,11 +7,15 @@ struct TemplateItemDraft {
     /// Superset membership (D48), carried so a template does not silently lose
     /// its grouping between save and start.
     var supersetGroupID: UUID?
+    var plannedRestSeconds: Int?
+    var preferredEquipmentTag: EquipmentTag?
 
-    init(exercise: Exercise, targetRepsBySet: [Int?], supersetGroupID: UUID? = nil) {
+    init(exercise: Exercise, targetRepsBySet: [Int?], supersetGroupID: UUID? = nil, plannedRestSeconds: Int? = nil, preferredEquipmentTag: EquipmentTag? = nil) {
         self.exercise = exercise
         self.targetRepsBySet = targetRepsBySet
         self.supersetGroupID = supersetGroupID
+        self.plannedRestSeconds = plannedRestSeconds
+        self.preferredEquipmentTag = preferredEquipmentTag
     }
 }
 
@@ -76,7 +80,7 @@ extension TemplateItem {
 
 /// Ticket 15's persisted template boundary: CRUD, gym-specific startup
 /// resolution, provenance, and finished-workout capture. Templates never own
-/// weights or rest durations (D6/D22).
+/// weights. Optional planned rest/cardio targets are prescriptions (D56), not performed values.
 struct WorkoutTemplateService {
     let context: ModelContext
 
@@ -85,10 +89,12 @@ struct WorkoutTemplateService {
     }
 
     @discardableResult
-    func create(name: String, items: [TemplateItemDraft]) throws -> WorkoutTemplate {
+    func create(name: String, items: [TemplateItemDraft], cardio: [PlannedCardio] = []) throws -> WorkoutTemplate {
         let validName = try validatedName(name)
-        guard !items.isEmpty else { throw WorkoutTemplateError.noExercises }
+        guard !items.isEmpty || !cardio.isEmpty else { throw WorkoutTemplateError.noExercises }
+        guard cardio.allSatisfy(\.isValid) else { throw TerraError.invalidResponse }
         let template = WorkoutTemplate(name: validName)
+        template.plannedCardio = cardio
         context.insert(template)
         try replaceItems(of: template, with: items)
         try context.save()
@@ -98,9 +104,13 @@ struct WorkoutTemplateService {
     func update(
         _ template: WorkoutTemplate,
         name: String,
-        items: [TemplateItemDraft]
+        items: [TemplateItemDraft],
+        cardio: [PlannedCardio]? = nil
     ) throws {
+        guard !items.isEmpty || !(cardio ?? template.plannedCardio).isEmpty else { throw WorkoutTemplateError.noExercises }
+        guard (cardio ?? template.plannedCardio).allSatisfy(\.isValid) else { throw TerraError.invalidResponse }
         template.name = try validatedName(name)
+        if let cardio { template.plannedCardio = cardio }
         try replaceItems(of: template, with: items)
         try context.save()
     }
@@ -128,6 +138,9 @@ struct WorkoutTemplateService {
         // D23: history titles read this snapshot, so renaming or deleting the
         // template later cannot retitle the workouts it produced.
         workout.sourceTemplateName = template.name
+        workout.plannedCardio = template.plannedCardio.map {
+            var target = $0; target.id = UUID(); target.segmentID = nil; return target
+        }
 
         var restoredGroups: [UUID: UUID] = [:]
         for item in Self.orderedItems(of: template) {
@@ -141,6 +154,9 @@ struct WorkoutTemplateService {
             }
             let entry = try session.addEntry(
                 for: exercise, to: workout, machine: machine)
+            entry.plannedRestSeconds = item.plannedRestSeconds
+            entry.plannedRepsBySet = item.editableTargets.repsBySet
+            if machine == nil { entry.freeWeightTag = item.preferredEquipmentTag }
             // Restore the superset (D48). Ids are remapped per start rather
             // than reused: two workouts from one template must not share a
             // group id, or a later query keyed on it would conflate them.
@@ -166,7 +182,7 @@ struct WorkoutTemplateService {
         _ workout: Workout,
         name: String
     ) throws -> WorkoutTemplate {
-        try create(name: name, items: Self.capturableItems(of: workout))
+        try create(name: name, items: Self.capturableItems(of: workout), cardio: Self.capturableCardio(of: workout))
     }
 
     /// Whether `saveAsTemplate` can succeed for this workout. The UI must
@@ -174,7 +190,13 @@ struct WorkoutTemplateService {
     /// `noExercises` afterwards.
     static func canSaveAsTemplate(_ workout: Workout) -> Bool {
         guard !workout.isDeleted else { return false }
-        return !capturableItems(of: workout).isEmpty
+        return !capturableItems(of: workout).isEmpty || !capturableCardio(of: workout).isEmpty
+    }
+
+    private static func capturableCardio(of workout: Workout) -> [PlannedCardio] {
+        workout.orderedCardio.filter { $0.endedAt != nil && $0.activeDuration(at: $0.endedAt ?? .now) > 0 }.map {
+            PlannedCardio(activity: $0.activity, minutes: max(1, min(180, Int(($0.activeDuration(at: $0.endedAt ?? .now) / 60).rounded()))))
+        }
     }
 
     /// The completed structure a template would be built from: entries with a
@@ -188,7 +210,7 @@ struct WorkoutTemplateService {
             return TemplateItemDraft(
                 exercise: exercise,
                 targetRepsBySet: completed.map(\.reps),
-                supersetGroupID: entry.supersetGroupID)
+                supersetGroupID: entry.supersetGroupID, plannedRestSeconds: entry.plannedRestSeconds, preferredEquipmentTag: entry.freeWeightTag)
         }
     }
 
@@ -200,7 +222,7 @@ struct WorkoutTemplateService {
         of template: WorkoutTemplate,
         with drafts: [TemplateItemDraft]
     ) throws {
-        guard !drafts.isEmpty else { throw WorkoutTemplateError.noExercises }
+        guard !drafts.isEmpty || !template.plannedCardio.isEmpty else { throw WorkoutTemplateError.noExercises }
         for old in template.items ?? [] { context.delete(old) }
         for (order, draft) in drafts.enumerated() {
             let reps = draft.targetRepsBySet
@@ -211,6 +233,8 @@ struct WorkoutTemplateService {
                 targetRepsBySet: reps,
                 supersetGroupID: draft.supersetGroupID,
                 exercise: draft.exercise)
+            item.plannedRestSeconds = draft.plannedRestSeconds
+            item.preferredEquipmentTag = draft.preferredEquipmentTag
             item.template = template
             context.insert(item)
         }

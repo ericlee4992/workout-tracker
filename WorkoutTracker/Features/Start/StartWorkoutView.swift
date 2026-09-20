@@ -31,6 +31,7 @@ struct StartWorkoutView: View {
     @State private var editingTemplate: WorkoutTemplate?
     @State private var showingTemplateEditor = false
     @State private var showingCardioPicker = false
+    @State private var showingAIRoutine = false
     /// Called with the workout to present — freshly started or resumed.
     var onWorkoutStarted: (Workout) -> Void
 
@@ -93,6 +94,11 @@ struct StartWorkoutView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                    Button("Ask AI", systemImage: "sparkles") { showingAIRoutine = true }
+                        .buttonStyle(.secondary)
+                        .accessibilityIdentifier("askAIRoutine")
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     Text("Machines resolve to your last-used at \(selectedGym?.name ?? "your gym")")
                         .font(.caption2)
                         .foregroundStyle(Theme.tertiary)
@@ -127,6 +133,7 @@ struct StartWorkoutView: View {
                     onWorkoutStarted(workout)
                 }
             }
+            .fullScreenCover(isPresented: $showingAIRoutine) { AIRoutineSheet(gym: selectedGym) }
             .sheet(isPresented: $showingCardioPicker) {
                 CardioActivityPicker { activity in
                     showingCardioPicker = false

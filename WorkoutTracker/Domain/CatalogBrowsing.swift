@@ -465,7 +465,7 @@ extension MachineBrowseRow {
     /// A machine's groups come from its model's linked exercises; a model-less
     /// machine has none and lands in "Uncategorized" (never hidden).
     init(_ machine: MachineInstance, exercisesByID: [UUID: Exercise]) {
-        let exercises = (machine.model?.exerciseIDs ?? []).compactMap { exercisesByID[$0] }
+        let exercises = (machine.supportedExerciseIDs).compactMap { exercisesByID[$0] }
         self.init(
             id: machine.id,
             label: machine.label,

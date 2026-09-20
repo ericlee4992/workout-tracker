@@ -23,7 +23,10 @@ struct CardioTests {
         #expect(segment.activeDuration() == 300)
         #expect(workout.historyTitle == "Indoor Run")
         #expect(WorkoutSummaryBuilder.summary(for: workout).totalVolumeKg == 0)
-        #expect(!WorkoutTemplateService.canSaveAsTemplate(workout))
+        #expect(WorkoutTemplateService.canSaveAsTemplate(workout))
+        let template = try WorkoutTemplateService(context: context).saveAsTemplate(workout, name: "Run")
+        #expect(template.plannedCardio.first?.minutes == 5)
+        #expect(template.items?.isEmpty != false)
     }
 
     @Test func pauseResumeAndAveragePaceExcludePausedTime() throws {

@@ -330,7 +330,7 @@ struct HeartRateSeriesTests {
         try ctx.save()
 
         var snapshot = try ExportCollector(appVersion: "test").snapshot(from: ctx)
-        #expect(snapshot.schemaVersion == 10)
+        #expect(snapshot.schemaVersion == 11)
         let decoded = try ExportJSON.decode(try ExportJSON.data(snapshot))
         #expect(decoded.workouts.first?.heartRateSeries == [100, 0, 140, 150])
         #expect(decoded.workouts.first?.heartRateSeriesIntervalSeconds == 15)

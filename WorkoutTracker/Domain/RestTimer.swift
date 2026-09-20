@@ -110,6 +110,7 @@ struct RestTimerService {
         let canonical = overrides.canonical
         if isWarmup, let seconds = canonical?.warmupRestSeconds { return max(0, seconds) }
         if !isWarmup, let seconds = canonical?.workingRestSeconds { return max(0, seconds) }
+        if !isWarmup, let seconds = set.entry?.plannedRestSeconds { return max(0, seconds) }
         return max(0, isWarmup
             ? preferences.globalWarmupRestSeconds
             : preferences.globalWorkingRestSeconds)

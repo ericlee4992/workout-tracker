@@ -241,7 +241,7 @@ extension Workout {
         }
         // Ending cardio-only recording must not manufacture a strength workout
         // while the user reads the result or reaches for Finish.
-        if !orderedCardio.isEmpty, entries?.isEmpty != false { return .idle }
+        if (!orderedCardio.isEmpty || !plannedCardio.isEmpty), entries?.isEmpty != false { return .idle }
         return .lifting
     }
     var orderedCardio: [CardioSegment] {

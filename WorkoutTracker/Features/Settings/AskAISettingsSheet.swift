@@ -10,6 +10,8 @@ struct AskAISettingsSheet: View {
     @State private var key = ""
     @State private var hasKey = AskAIKeyStore.read() != nil
     @State private var failure: String?
+    @AppStorage(TerraAccess.photoConsentKey) private var photoConsent = false
+    @AppStorage(TerraAccess.routineConsentKey) private var routineConsent = false
 
     var body: some View {
         NavigationStack {
@@ -21,11 +23,16 @@ struct AskAISettingsSheet: View {
                     }
                     .accessibilityIdentifier("askAIStatus")
                 } footer: {
-                    Text("When a scan cannot place a plate, the results screen offers Ask AI. Tapping it sends the plate inside the box, with a small margin around it — never the whole photo — to Claude with this key, and the app ranks what it reads. On a new model, “Suggest exercises with AI” sends the manufacturer and model you typed, the plate's text and the app's exercise list. Nothing is sent otherwise, and nothing is stored.")
+                    Text("GPT-5.6 Terra identifies equipment and drafts weekly routines. Photos and routine details are sent to OpenAI only with your permission. API usage is billed to your key. OpenAI may retain data under its API policies.")
                 }
 
+                Section("Permissions") {
+                    Toggle("Send equipment photos to OpenAI", isOn: $photoConsent)
+                    Toggle("Send routine details to OpenAI", isOn: $routineConsent)
+                    Link("OpenAI API data policies", destination: URL(string: "https://developers.openai.com/api/docs/guides/your-data")!)
+                }
                 Section {
-                    SecureField(hasKey ? "Replace the saved key" : "Anthropic API key", text: $key)
+                    SecureField(hasKey ? "Replace the saved key" : "OpenAI API key", text: $key)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .accessibilityIdentifier("askAIKeyField")
@@ -43,7 +50,7 @@ struct AskAISettingsSheet: View {
                 } header: {
                     Text("Key")
                 } footer: {
-                    Text(failure ?? "Kept in this phone's keychain only. Each ask costs about a cent.")
+                    Text(failure ?? "Kept in this phone’s keychain only. Private trial: use your own OpenAI API key.")
                 }
             }
             .navigationTitle("Ask AI")

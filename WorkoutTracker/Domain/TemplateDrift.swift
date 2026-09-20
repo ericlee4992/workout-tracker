@@ -175,6 +175,13 @@ struct TemplateDriftService {
         }
 
         let exercises = exerciseLookup(template: template, workout: workout)
+        // Preserve authored rest/equipment targets by occurrence; workout reps do not replace prescriptions.
+        let stored = Self.orderedTemplateItems(template).compactMap { item -> (UUID, Int?, EquipmentTag?)? in
+            guard let id = item.exercise?.id else { return nil }
+            return (id, item.plannedRestSeconds, item.preferredEquipmentTag)
+        }
+        var oldOccurrences = Dictionary(grouping: stored, by: { $0.0 })
+        var restoredGroups: [Int: UUID] = [:]
         for old in template.items ?? [] { context.delete(old) }
         for (order, value) in resolved.enumerated() {
             guard let exercise = exercises[value.exerciseID] else { continue }
@@ -184,6 +191,16 @@ struct TemplateDriftService {
                 targetReps: value.targetRepsBySet.first.flatMap { $0 },
                 targetRepsBySet: value.targetRepsBySet,
                 exercise: exercise)
+            if var originals = oldOccurrences[value.exerciseID], !originals.isEmpty {
+                let original = originals.removeFirst()
+                item.plannedRestSeconds = original.1
+                item.preferredEquipmentTag = original.2
+                oldOccurrences[value.exerciseID] = originals
+            }
+            if let position = value.supersetPosition {
+                let group = restoredGroups[position] ?? UUID()
+                restoredGroups[position] = group; item.supersetGroupID = group
+            }
             item.template = template
             context.insert(item)
         }
@@ -204,6 +221,8 @@ struct TemplateDriftService {
         try apply(resolution, workout: workout, to: template)
         return try WorkoutSession(context: context).finish(workout)
     }
+
+    private static func orderedTemplateItems(_ template: WorkoutTemplate) -> [TemplateItem] { WorkoutTemplateService.orderedItems(of: template) }
 
     func templateSnapshot(_ template: WorkoutTemplate) -> [TemplateDriftItem] {
         snapshotRows(template).map(\.snapshot)

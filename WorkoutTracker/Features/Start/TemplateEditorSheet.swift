@@ -9,6 +9,8 @@ struct TemplateEditorSheet: View {
     @State private var name = ""
     @State private var items: [EditorItem] = []
     @State private var loaded = false
+    @State private var cardio: [PlannedCardio] = []
+    @State private var error: String?
 
     struct EditorItem: Identifiable {
         var id = UUID()
@@ -18,6 +20,8 @@ struct TemplateEditorSheet: View {
         /// Superset membership (D48), carried through the editor so an
         /// ordinary edit does not silently ungroup the template.
         var supersetGroupID: UUID?
+        var restSeconds: Int?
+        var equipment: EquipmentTag?
     }
 
     var body: some View {
@@ -39,6 +43,9 @@ struct TemplateEditorSheet: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+
+                CardioPlanEditor(targets: $cardio)
+                if let error { Text(error).foregroundStyle(.red) }
 
                 Section("Add Exercise") {
                     ForEach(exercises) { exercise in
@@ -62,7 +69,7 @@ struct TemplateEditorSheet: View {
                 ToolbarItem(placement: .principal) { EditButton() }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
-                        .disabled(trimmedName.isEmpty || items.isEmpty)
+                        .disabled(trimmedName.isEmpty || (items.isEmpty && cardio.isEmpty) || !cardio.allSatisfy(\.isValid))
                 }
             }
         }
@@ -85,6 +92,8 @@ struct TemplateEditorSheet: View {
                 "\(items[index].repsBySet.count) sets",
                 value: setCountBinding(at: index),
                 in: 1...12)
+            Stepper(items[index].restSeconds.map { "Rest: \($0)s" } ?? "Rest: exercise default",
+                    value: Binding(get: { items[index].restSeconds ?? 0 }, set: { items[index].restSeconds = $0 == 0 ? nil : $0 }), in: 0...600, step: 15)
             ForEach(items[index].repsBySet.indices, id: \.self) { setIndex in
                 Stepper(
                     slotLabel(itemIndex: index, setIndex: setIndex),
@@ -133,13 +142,14 @@ struct TemplateEditorSheet: View {
         loaded = true
         guard let template else { return }
         name = template.name
+        cardio = template.plannedCardio
         items = WorkoutTemplateService.orderedItems(of: template).compactMap { item in
             guard let exercise = item.exercise else { return nil }
             // 0 is the editor's "no target" value for a slot.
             return EditorItem(
                 exerciseID: exercise.id,
                 repsBySet: item.editableTargets.repsBySet.map { $0 ?? 0 },
-                supersetGroupID: item.supersetGroupID)
+                supersetGroupID: item.supersetGroupID, restSeconds: item.plannedRestSeconds, equipment: item.preferredEquipmentTag)
         }
     }
 
@@ -153,18 +163,18 @@ struct TemplateEditorSheet: View {
                 targetRepsBySet: item.repsBySet.map { $0 == 0 ? nil : $0 },
                 // codex-review 2 (critical): omitted here, so ANY ordinary edit
                 // of a template silently ungrouped its supersets.
-                supersetGroupID: item.supersetGroupID)
+                supersetGroupID: item.supersetGroupID, plannedRestSeconds: item.restSeconds, preferredEquipmentTag: item.equipment)
         }
         do {
             let service = WorkoutTemplateService(context: modelContext)
             if let template {
-                try service.update(template, name: trimmedName, items: drafts)
+                try service.update(template, name: trimmedName, items: drafts, cardio: cardio)
             } else {
-                try service.create(name: trimmedName, items: drafts)
+                try service.create(name: trimmedName, items: drafts, cardio: cardio)
             }
             dismiss()
         } catch {
-            assertionFailure("Failed to save template: \(error)")
+            self.error = error.localizedDescription
         }
     }
 }

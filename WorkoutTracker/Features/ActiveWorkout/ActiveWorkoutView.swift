@@ -57,6 +57,21 @@ struct ActiveWorkoutView: View {
     // moment the user leaves the app, which is most of every rest.
 
 
+    private func startPlannedCardio(_ target: PlannedCardio) {
+        guard workout.unfinishedCardio == nil, target.segmentID == nil else { return }
+        heartRateCoordinator.cardio.start(target.activity)
+        guard let segment = workout.unfinishedCardio, segment.activity == target.activity else { return }
+        var plan = workout.plannedCardio
+        guard let index = plan.firstIndex(where: { $0.id == target.id }) else { return }
+        plan[index].segmentID = segment.id
+        workout.plannedCardio = plan
+        do { try modelContext.save() }
+        catch { heartRateCoordinator.cardio.errorMessage = error.localizedDescription }
+        cardioFocus = true
+        refreshRest()
+        heartRateCoordinator.broadcastRest(endsAt: nil)
+    }
+
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
 
     /// The live feed for this workout, resolved once in `.task`.
@@ -90,6 +105,24 @@ struct ActiveWorkoutView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
 
+                if !workout.plannedCardio.isEmpty {
+                    Section("Planned cardio") {
+                        ForEach(workout.plannedCardio) { target in
+                            HStack {
+                                VStack(alignment: .leading) {
+                                    Text(target.activity.name)
+                                    Text(target.summary).font(.caption).foregroundStyle(Theme.secondary)
+                                }
+                                Spacer()
+                                if target.segmentID == nil {
+                                    Button("Start") { startPlannedCardio(target) }
+                                        .disabled(workout.unfinishedCardio != nil || heartRate == nil)
+                                        .accessibilityIdentifier("startPlannedCardio")
+                                } else { Text("Started").font(.caption).foregroundStyle(Theme.secondary) }
+                            }
+                        }
+                    }.listRowBackground(Theme.card)
+                }
                 if !workout.orderedCardio.isEmpty || cardioFocus {
                 Picker("Activity", selection: $cardioFocus) {
                     Text("Lifting").tag(false)

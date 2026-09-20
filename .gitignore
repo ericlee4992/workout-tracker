@@ -51,3 +51,8 @@ work-record/ui-redesign/canvas/*/board*.html
 # SQLite runtime sidecars are not portable fixture data.
 WorkoutTrackerTests/Fixtures/*-shm
 WorkoutTrackerTests/Fixtures/*-wal
+
+# AI integration evidence and local credentials
+work-record/ai-gym/results/
+Config/openai.key
+.env
