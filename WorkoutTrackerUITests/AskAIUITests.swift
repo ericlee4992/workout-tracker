@@ -117,6 +117,22 @@ final class AskAIUITests: XCTestCase {
         start.tap()
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
     }
+    func testExistingTemplateDefaultRestDefault() { defaultRestCapture(large: false) }
+    func testExistingTemplateDefaultRestAccessibility() { defaultRestCapture(large: true) }
+    private func defaultRestCapture(large: Bool) {
+        launch(["-uiTestTemplate"], large: large); app.tabBars.buttons["Workout"].tap()
+        let tile = app.buttons["templateTile.Whole Body"]; reach(tile); tile.tap()
+        app.buttons["editTemplate"].tap()
+        let toggle = app.switches["Use exercise rest default"].firstMatch; reach(toggle)
+        XCTAssertEqual(toggle.value as? String, "1")
+        shot("ai-template-default-rest-\(large ? "axl" : "default")")
+        app.navigationBars.buttons["Cancel"].firstMatch.tap()
+        app.buttons["startTemplate"].tap()
+        XCTAssertTrue(app.staticTexts["Bench Press"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Target:")).firstMatch.exists)
+        shot("ai-existing-log-\(large ? "axl" : "default")")
+    }
+
     func testEditedProposalLabelSurvivesCatalogSelection() {
         launch(["-uiTestTerraSpecific"]); scanner(); app.buttons["scanShutter"].tap()
         let field = app.textFields["identifiedMachineLabel"]

@@ -37,8 +37,14 @@ enum CardioPlanStorage {
     static func replacing(_ data: Data?, with values: [PlannedCardio]) -> Data? {
         guard let rows = rows(data), let encoded = try? JSONEncoder().encode(values),
               let known = try? JSONSerialization.jsonObject(with: encoded) as? [Any] else { return data }
-        let unknown = rows.filter { target($0) == nil }
-        return (try? JSONSerialization.data(withJSONObject: known + unknown, options: [.sortedKeys])) ?? data
+        var next = 0
+        var preserved: [Any] = []
+        for row in rows {
+            if target(row) == nil { preserved.append(row) }
+            else if next < known.count { preserved.append(known[next]); next += 1 }
+        }
+        preserved.append(contentsOf: known.dropFirst(next))
+        return (try? JSONSerialization.data(withJSONObject: preserved, options: [.sortedKeys])) ?? data
     }
 }
 extension WorkoutTemplate {

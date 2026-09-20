@@ -90,11 +90,12 @@ struct AIGymTests {
         let known = PlannedCardio(activity: .outdoorWalk, minutes: 10)
         let row = try JSONSerialization.jsonObject(with: JSONEncoder().encode(known))
         let future: [String: Any] = ["id": UUID().uuidString, "activity": "futureActivity", "minutes": 20, "unit": "km"]
-        template.cardioPlanData = try JSONSerialization.data(withJSONObject: [row,future]); context.insert(template)
+        template.cardioPlanData = try JSONSerialization.data(withJSONObject: [future,row]); context.insert(template)
         #expect(template.hasUnknownCardioTargets && template.plannedCardio == [known])
         var edited = known; edited.minutes = 15; template.plannedCardio = [edited]
         #expect(template.hasUnknownCardioTargets && template.plannedCardio.first?.minutes == 15)
         #expect((CardioPlanStorage.rows(template.cardioPlanData)?.count) == 2)
+        #expect((CardioPlanStorage.rows(template.cardioPlanData)?.first as? [String: Any])?["activity"] as? String == "futureActivity")
         let exported = try ExportCollector().snapshot(from: context)
         #expect(exported.templates.first?.unreadableCardioPlanData == template.cardioPlanData)
     }
