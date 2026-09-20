@@ -102,16 +102,35 @@ struct HeartRateMonitorTests {
 
     @Test func samplesArriveAndBecomeTheCurrentReading() async {
         let provider = StubHeartRateProvider()
-        let monitor = HeartRateMonitor(provider: provider)
+        let now = t0
+        let monitor = HeartRateMonitor(provider: provider, clock: { now })
         await monitor.start()
 
-        provider.emit(sample(120, at: .now))
+        provider.emit(sample(120, at: now))
         await settle()
 
         #expect(monitor.samples.count == 1)
         #expect(monitor.current?.bpm == 120)
         #expect(monitor.state == .live(.fixture))
         #expect(!monitor.isStale)
+        await monitor.stop()
+    }
+
+
+    @Test func advancingInjectedClockMakesAQuietFeedStale() async {
+        let provider = StubHeartRateProvider()
+        var now = t0
+        let monitor = HeartRateMonitor(provider: provider, clock: { now })
+        await monitor.start()
+        provider.emit(sample(120, at: now))
+        await settle()
+        #expect(monitor.current?.bpm == 120)
+        #expect(monitor.state == .live(.fixture))
+        now = now.addingTimeInterval(60)
+        monitor.refreshLiveness()
+        #expect(monitor.isStale)
+        #expect(monitor.state == .waitingForSensor)
+        await monitor.stop()
     }
 
     @Test func activeEnergyIsWhateverTheProviderSays_neverComputedHere() async {

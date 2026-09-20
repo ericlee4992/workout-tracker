@@ -185,9 +185,9 @@ struct CodexReviewRegressionTests {
 
     @Test func theFeedStateNamesTheSourceOfTheReadingShown() async {
         let provider = StubHeartRateProvider()
-        let monitor = HeartRateMonitor(provider: provider)
+        let now = t0
+        let monitor = HeartRateMonitor(provider: provider, clock: { now })
         await monitor.start()
-        let now = Date()
         provider.emit(HeartRateSample(bpm: 150, date: now, source: .watch))
         // The ears report a moment later; the wrist still wins precedence, so
         // the state must not flip to AirPods just because it arrived last.
@@ -196,6 +196,7 @@ struct CodexReviewRegressionTests {
 
         #expect(monitor.current?.source == .watch)
         #expect(monitor.state == .live(.watch), "the label followed the last arrival, not the reading")
+        await monitor.stop()
     }
 
     // MARK: 3.4 (high) — a queued sample cannot contaminate another workout

@@ -42,11 +42,12 @@ Read `** TEST SUCCEEDED **`, the actual exit status, and the summary from
 does not establish that `xcodebuild` succeeded. A missing shell continuation once turned a
 focused run into the entire suite. Avoid broad `pkill` patterns that can kill another run.
 
-Run suites serially on a simulator. `HeartRateMonitorTests.samplesArriveAndBecomeTheCurrentReading`
-and `CodexReviewRegressionTests.theFeedStateNamesTheSourceOfTheReadingShown` have flaked under
-load due to wall-clock staleness. Rerun affected tests and the suite without competing work
-before treating this as a product failure; persistent failures need a fake clock, not a
-longer arbitrary timeout. A UI failure likewise needs its focused rerun before diagnosis.
+Run suites serially on a simulator. Two historical heart-rate tests used to flake under
+load due to wall-clock staleness; cardio ticket 06 now injects fixed clocks in them and tests
+expiry by advancing time. For new timing failures, rerun affected tests and the suite without
+competing work before treating them as product failures; persistent timing failures need a
+controlled clock, not a longer arbitrary timeout. A UI failure likewise needs its focused
+rerun before diagnosis.
 
 ## Simulator and UI-test pitfalls
 

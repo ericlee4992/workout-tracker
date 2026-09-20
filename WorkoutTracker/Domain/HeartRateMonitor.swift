@@ -93,6 +93,7 @@ final class HeartRateMonitor {
     /// rest mirror) without the monitor knowing what a watch is.
     let provider: any HeartRateProviding
     private var pump: Task<Void, Never>?
+    @ObservationIgnored private let clock: () -> Date
 
     // There is deliberately NO sample cap.
     //
@@ -107,8 +108,10 @@ final class HeartRateMonitor {
     // capping was a summary that quietly lied about long workouts, which is
     // exactly the kind of claim this app exists not to make.
 
-    init(provider: any HeartRateProviding, initialSamples: [HeartRateSample] = []) {
+    init(provider: any HeartRateProviding, initialSamples: [HeartRateSample] = [],
+         clock: @escaping () -> Date = { .now }) {
         self.provider = provider
+        self.clock = clock
         self.samples = initialSamples
         self.activeEnergyKilocalories = provider.activeEnergyKilocalories
         self.basalEnergyKilocalories = provider.basalEnergyKilocalories
@@ -116,7 +119,7 @@ final class HeartRateMonitor {
 
     /// The reading to display, or nil when nothing has ever arrived.
     var current: HeartRateSample? {
-        samples.current(asOf: .now)
+        samples.current(asOf: clock())
     }
 
     /// True when the reading shown is too old to call current. The UI must
@@ -124,7 +127,7 @@ final class HeartRateMonitor {
     /// the user's heart is at 90 is worse than showing nothing at all.
     var isStale: Bool {
         guard let current else { return false }
-        return current.isStale(asOf: .now)
+        return current.isStale(asOf: clock())
     }
 
     var currentZone: HeartRateZone? {
@@ -242,7 +245,8 @@ final class HeartRateMonitor {
     /// Called on a timer by the UI so a sensor that goes quiet stops being
     /// reported as live. Without this the state would say `.live` forever off
     /// the strength of one sample from ten minutes ago.
-    func refreshLiveness(asOf now: Date = .now) {
+    func refreshLiveness(asOf now: Date? = nil) {
+        let now = now ?? clock()
         guard state.isRunning else { return }
         // codex-review-2 #7: energy used to be copied only while ingesting a
         // heart-rate sample, so a session that burned calories without ever

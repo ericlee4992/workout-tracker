@@ -92,3 +92,15 @@ waits for that exit, then `timing-rerun` (both affected classes plus new AppUnit
 INT left Xcode's DVTOperation cancellation assertion stuck; exact PID74706 was verified
 and sent TERM. This is runner cleanup, not an app-code fix. The retry remains serialized
 behind its recorded exit; no simultaneous simulator run.
+
+Targeted retry passed31 tests (both timing suites + AppUnitSystemTests). Full retry again
+failed only the same2 timing cases (750/752 passed), exit65; actual log shows samples arrived
+but wall-clock staleness changed their state after90seconds of concurrent suite load.
+Per DEVELOPMENT, added a clock dependency to HeartRateMonitor, defaulting to Date.now for
+all existing callers, and fixed the two tests to use constant clocks. Added one clock-advance
+regression to prove automatic liveness expiry still works. Do not replace the state assertion
+with a manual refresh that could mask an ingest/source bug. Scope expansion is testability
+only; production clock and liveness rules unchanged. Full unit count now753 expected.
+
+Stable runner PID **96967**: `run-stable.sh`, stable-build, stable-timing(32 expected),
+stable-units(753 expected), focused(9); matching logs/exits/xcresults under same artifacts.
