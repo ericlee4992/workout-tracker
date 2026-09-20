@@ -240,7 +240,7 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
             let end = data?.endDate
             Task { @MainActor in
                 guard let self, self.current?.id == id, self.motionStartedAt == start else { return }
-                if error != nil { self.locationMessage = "Motion data unavailable. You can enter distance manually." }
+                if error != nil { self.locationMessage = "Motion data unavailable." }
                 guard let meters, let end else { return }
                 self.acceptPhoneDistance(meters, at: end, since: start, segmentID: id)
             }

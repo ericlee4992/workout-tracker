@@ -134,9 +134,9 @@ struct CardioLiveView: View {
             if let message = recorder.locationMessage {
                 Text(message).font(.footnote).foregroundStyle(Theme.secondary)
             }
-            // Outdoor progress already has a GPS-measured Distance metric above.
-            // Keep the live manual-entry affordance for indoor machine/sensor fallback.
-            if !segment.activity.isOutdoor {
+            // Measured progress already has Distance above. Manual entry stays
+            // available when indoor sensors supply no distance, or to revise a manual value.
+            if !segment.activity.isOutdoor && (segment.distanceMeters == nil || segment.manualDistanceValue != nil) {
                 Button { editingDistance = true } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 6) {
@@ -320,8 +320,9 @@ struct CardioRouteMap: View {
 }
 
 private extension CardioSegment {
-    /// Presentation only: keep HealthKit provenance in the model and exports.
+    /// Presentation only: keep automatic source provenance in the model and exports.
     var distanceSourceCaption: String? {
-        manualDistanceValue == nil && source == .healthKit ? nil : distanceLabel
+        if manualDistanceValue != nil { return distanceLabel }
+        return source == .gps ? source?.label : nil
     }
 }

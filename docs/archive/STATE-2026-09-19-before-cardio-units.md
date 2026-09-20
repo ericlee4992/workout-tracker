@@ -1,27 +1,32 @@
 # Current project state
 
-Updated 2026-09-19 for app unit systems and automatic indoor-cardio cleanup. Base main **e457493**.
-Prior STATE preserved in the [archive](archive/STATE-2026-09-19-before-cardio-units.md).
+Updated 2026-09-19 after installing arrowless Start controls and outdoor-cardio cleanup.
+Verified clean main **c127832** before this install-evidence checkpoint; product/tests **7825140**.
+Prior STATE is preserved in the [archive](archive/STATE-2026-09-19-before-compact-start-outdoor.md).
 
-## Current task: app units and automatic indoor metrics
+## Next action: cardio physical-device acceptance
 
-[Ticket 06](../work-record/cardio/issues/06-unit-system-and-indoor.md): Settings choices
-Metric (kg/km) and U.S. customary (lb/mi); cardio now reads the app preference. User explicitly
-chose **new cardio activities only**, preserving active/saved units and entered measurements.
-Existing kg/lb backing reused; no schema migration. Lifting machine/gym precedence remains.
-Hide automatic indoor source/estimate details and duplicate live editor once measured distance
-arrives; main distance/pace remain, with manual entry for no-data/manual cases and saved correction.
+[Ticket 05](../work-record/cardio/issues/05-compact-start-and-outdoor.md) is complete: original
+icon capsules share one row without arrows; full labels determine responsive stacking at
+larger text/narrow widths. Outdoor live cardio omits the duplicate GPS/distance editor;
+main Distance, automatic recording and honest location status remain. Obsolete live manual-
+entry guidance removed from denied-location copy. Indoor edit and saved correction remain.
+D15/D54 and spec explicitly supersede the earlier stacked-only decision.
 
-Branch `ericlee4992/cardio-units-and-sources`, base **e457493**, in its Orca worktree.
-Build, full unit and 9 focused UI tests running; PID/artifacts in ticket06. Next: inspect
-Settings/indoor default/AXL captures, independent review, full UI gate and authorized install.
-Current changes are not installed.
+Reviewed product/tests **7825140**, evidence **0ffafd9**, branch `ericlee4992/compact-start-outdoor`;
+this docs checkpoint records fast-forward to main. Debug build, 7 recorder tests, 5 focused UI,
+1 matching-phone layout test and **81 full UI tests passed**, exit 0. Full suite completed
+September 19 02:58 EDT. Independent [Claude code, visual and final merge clearance](../work-record/cardio/claude-compact-start-outdoor-review.md)
+is clear. 11 final captures in `work-record/cardio/screenshots/compact-start-outdoor/`, including
+actual-model iPhone 15 Pro Max; row fits on the user's model. No local build/test job remains.
 
-Phone has ticket05 product **7825140**, built from **c127832**, installed/launch-verified
-September19 03:02 EDT. Remaining hardware acceptance in [ticket02](../work-record/cardio/issues/02-device-acceptance.md):
+**Installed and launch-verified 2026-09-19 03:02 EDT.** Fresh signed build from **c127832**;
+install/launch exit 0 and success, app PID 3758 confirmed running afterward. No schema or
+recording change.
+Remaining hardware acceptance is [ticket 02](../work-record/cardio/issues/02-device-acceptance.md):
 history preservation, phone carried/stationary, pause/disconnect/recovery, background/locked
-GPS and mixed recovery. Indoor AirPods Pro3 distance and outdoor map rendering are user-confirmed.
-Profiles expire September24 at 07:16 UTC. Watch cardio stays outside this release.
+GPS and mixed recovery. User confirmed indoor distance with AirPods Pro 3 and outdoor map
+rendering. Watch cardio remains outside release. Profiles expire September 24 at 07:16 UTC.
 
 ## Completed and verified
 

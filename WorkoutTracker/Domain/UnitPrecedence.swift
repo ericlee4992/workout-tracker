@@ -39,6 +39,6 @@ enum UnitPrecedence {
     /// First-launch app-preference default derived from the locale
     /// measurement system: US customary → lb, everything else → kg.
     static func firstLaunchDefault(for measurementSystem: Locale.MeasurementSystem) -> WeightUnit {
-        measurementSystem == .us ? .lb : .kg
+        AppUnitSystem.resolve(preference: nil, measurementSystem: measurementSystem).weightUnit
     }
 }

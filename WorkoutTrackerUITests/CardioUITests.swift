@@ -48,6 +48,14 @@ final class CardioUITests: XCTestCase {
         reach(option); option.tap()
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
     }
+    private func waitForAutomaticDistance() {
+        let measured = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "[0-9]+\\.[0-9]{2}")).firstMatch
+        XCTAssertTrue(measured.waitForExistence(timeout: 10))
+        reach(app.buttons["addCardio"])
+        XCTAssertFalse(app.buttons["cardioEditDistance"].exists)
+        XCTAssertFalse(app.staticTexts["HealthKit estimate"].exists)
+        XCTAssertFalse(app.staticTexts["Phone motion estimate"].exists)
+    }
     private func enterDistance(_ value: String, captureName: String? = nil) {
         let edit = app.buttons["cardioEditDistance"]
         reach(edit); edit.tap()
@@ -82,12 +90,8 @@ final class CardioUITests: XCTestCase {
         launch()
         app.buttons["startCardio"].tap()
         choose("indoorRun")
-        // The fixture emits measured distance through the same provider interface.
-        reach(app.buttons["cardioEditDistance"])
-        app.buttons["cardioEditDistance"].tap()
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Measured:")).firstMatch.waitForExistence(timeout: 10))
-        app.navigationBars["Distance"].buttons["Cancel"].tap()
-        XCTAssertFalse(app.staticTexts["HealthKit estimate"].exists)
+        // Wait for actual fixture distance before asserting that its old source row is gone.
+        waitForAutomaticDistance()
         shot("cardio-built-automatic-distance")
         reach(app.buttons["endCardio"]); app.buttons["endCardio"].tap()
         XCTAssertTrue(any("cardioSummary.indoorRun").waitForExistence(timeout: 5))
@@ -132,7 +136,9 @@ final class CardioUITests: XCTestCase {
     func testDistanceEditorDoesNotFreezeAnUntouchedMeasurementOrRewriteTypedUnits() {
         launch()
         app.buttons["startCardio"].tap(); choose("indoorRun")
-        reach(app.buttons["cardioEditDistance"]); app.buttons["cardioEditDistance"].tap()
+        waitForAutomaticDistance()
+        app.buttons["endCardio"].tap()
+        reach(app.buttons["cardioSummaryEditDistance"]); app.buttons["cardioSummaryEditDistance"].tap()
         let field = app.textFields["cardioDistanceField"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["saveCardioDistance"].isEnabled)
@@ -175,6 +181,25 @@ final class CardioUITests: XCTestCase {
         shot("cardio-built-history-route-\(large ? "axl" : "default")")
     }
 
+    func testIndoorPhoneMotionDefaultCapture() { phoneMotionCapture(large: false) }
+    func testIndoorPhoneMotionAccessibilityCapture() { phoneMotionCapture(large: true) }
+    private func phoneMotionCapture(large: Bool) {
+        app.launchArguments = ["-uiTestReset", "-uiTestIndoorDistance"]
+        if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
+        app.launch()
+        XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
+        reach(any("cardioDistanceMetric"))
+        XCTAssertTrue(app.staticTexts["1.00"].exists)
+        shot("indoor-measured-\(large ? "axl" : "default")")
+        reach(app.buttons["addCardio"])
+        XCTAssertFalse(app.buttons["cardioEditDistance"].exists)
+        XCTAssertFalse(app.staticTexts["Phone motion estimate"].exists)
+        shot("indoor-measured-details-\(large ? "axl" : "default")")
+        app.buttons["endCardio"].tap()
+        reach(app.buttons["cardioSummaryEditDistance"])
+        XCTAssertEqual(app.buttons["cardioSummaryEditDistance"].label, "Distance")
+    }
+
     func testCardioDefaultCaptureAndSave() { capture(large: false) }
     func testCardioAccessibilityCaptureAndSave() { capture(large: true) }
     private func capture(large: Bool) {
@@ -184,16 +209,12 @@ final class CardioUITests: XCTestCase {
         shot("cardio-built-picker-\(large ? "axl" : "default")")
         choose("indoorRun")
         let size = large ? "axl" : "default"
-        reach(app.buttons["cardioEditDistance"]); app.buttons["cardioEditDistance"].tap()
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Measured:")).firstMatch.waitForExistence(timeout: 10))
-        app.navigationBars["Distance"].buttons["Cancel"].tap()
-        XCTAssertFalse(app.staticTexts["HealthKit estimate"].exists)
+        waitForAutomaticDistance()
         shot("cardio-built-automatic-\(size)")
-        enterDistance("0.03", captureName: "cardio-built-editor-\(size)")
         app.swipeDown(); app.swipeDown()
-        shot("cardio-built-live-\(large ? "axl" : "default")")
-        reach(app.buttons["cardioEditDistance"])
-        shot("cardio-built-controls-\(large ? "axl" : "default")")
+        shot("cardio-built-live-\(size)")
+        reach(app.buttons["addCardio"])
+        shot("cardio-built-controls-\(size)")
         app.buttons["cardioPauseResume"].tap()
         app.swipeDown(); app.swipeDown()
         XCTAssertTrue(app.staticTexts["Paused"].exists)
@@ -221,3 +242,6 @@ final class CardioUITests: XCTestCase {
         XCTAssertTrue(app.buttons["cardioSummaryEditDistance"].isHittable)
     }
 }
+
+// Automatic phone-motion values use the same screen as compatible-device readings.
+// This fixture verifies presentation only, not physical sensor delivery.

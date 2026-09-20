@@ -17,11 +17,12 @@ struct AppSettingsSection: View {
     var body: some View {
         Section {
             Picker("App unit preference", selection: appUnitBinding) {
-                ForEach(WeightUnit.allCases) { unit in
-                    Text(unit.rawValue).tag(unit)
+                ForEach(AppUnitSystem.allCases) { system in
+                    Text(system.title).tag(system)
                 }
             }
             .pickerStyle(.menu)
+            .accessibilityIdentifier("appUnitPreference")
             Stepper(
                 "Working rest · \(Format.duration(seconds: globalWorkingRest))",
                 value: globalWorkingRestBinding,
@@ -107,17 +108,15 @@ struct AppSettingsSection: View {
 
     /// Binding onto the canonical persisted preference row. The row exists
     /// after first-launch bootstrap; reads fall back to the locale default.
-    private var appUnitBinding: Binding<WeightUnit> {
+    private var appUnitBinding: Binding<AppUnitSystem> {
         Binding(
             get: {
-                AppPreferences.canonical(of: allPreferences)?.unitPreference
-                    ?? UnitPrecedence.firstLaunchDefault(
-                        for: Locale.current.measurementSystem)
+                AppUnitSystem.resolve(preference: AppPreferences.canonical(of: allPreferences)?.unitPreference)
             },
             set: { newValue in
                 do {
                     let preferences = try AppPreferences.canonical(in: modelContext)
-                    preferences.unitPreference = newValue
+                    preferences.unitPreference = newValue.weightUnit
                     preferences.updatedAt = .now
                     try modelContext.save()
                 } catch {

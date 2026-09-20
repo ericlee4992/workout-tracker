@@ -28,7 +28,7 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
   observes live builder statistics. Actual data arrival establishes metric capability;
   merely connecting audio or receiving HR does not prove distance availability.
 - Indoor walking/running additionally support Core Motion pedometer distance/pace, clearly
-  labeled Phone motion. HealthKit distance takes precedence when supplied for the same span;
+  stored with Phone motion provenance (the user removed on-screen source/estimate captions in ticket 06). HealthKit distance takes precedence when supplied for the same span;
   overlapping estimates are never added. Alternatives share a sensor-session epoch across
   pauses; source timestamps select a fresh fallback and late cumulative totals remain usable. No running-speed assumption for indoor walking.
 - The live view shows average pace (or cycling speed) from active duration / recorded distance.
@@ -97,3 +97,12 @@ falling back to vertical at larger text/narrow widths to keep full labels. Resum
 arrows remain. Outdoor live cardio has the main GPS-measured Distance metric, without the
 redundant GPS/manual-distance edit row. Location error/status messages still report unavailable
 tracking; indoor manual entry and saved-workout correction remain. Sensor/data logic is unchanged.
+
+## App unit system and indoor presentation — 2026-09-19
+
+Metric selects kg/km; U.S. customary selects lb/mi. New cardio segments snapshot the app
+preference for distance, pace and speed, rather than independently reading the phone locale.
+Existing active/saved units and entered distance pairs remain; gym/machine overrides govern
+lifting only. Automatic indoor cardio shows main metrics without a duplicate source/estimate
+editor row. No-distance/manual indoor fallback and saved correction stay available. Technical
+automatic indoor-source captions are hidden in saved cards too; provenance stays in data/export.

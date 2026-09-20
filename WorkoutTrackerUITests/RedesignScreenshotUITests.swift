@@ -52,6 +52,50 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-cardio-start-\(large ? "axl" : "default")")
     }
 
+    func testUnitSystemDefault() { captureUnitSystem(large: false) }
+    func testUnitSystemAccessibility() { captureUnitSystem(large: true) }
+
+    private func captureUnitSystem(large: Bool) {
+        launch(["-uiTestHeartRate"] + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : []))
+        app.tabBars.buttons["Workout"].tap()
+        app.buttons["openSettings"].tap()
+        selectUnitSystem("Metric")
+        shoot("unit-settings-metric-\(large ? "axl" : "default")")
+        selectUnitSystem("U.S. customary")
+        shoot("unit-settings-us-\(large ? "axl" : "default")")
+        selectUnitSystem("Metric")
+        app.navigationBars.buttons.firstMatch.tap()
+        app.buttons["startCardio"].tap()
+        app.searchFields.firstMatch.tap(); app.searchFields.firstMatch.typeText("Indoor Run")
+        anyElement("cardioActivity.indoorRun").tap()
+        XCTAssertTrue(anyElement("cardioTimer").waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["km"].waitForExistence(timeout: 5))
+        app.buttons["minimizeWorkout"].tap()
+        app.buttons["openSettings"].tap()
+        selectUnitSystem("U.S. customary")
+        app.navigationBars.buttons.firstMatch.tap()
+        anyElement("resumeWorkout").tap()
+        XCTAssertTrue(app.staticTexts["km"].waitForExistence(timeout: 5), "Current activity retains its chosen unit")
+        app.buttons["endCardio"].tap()
+        let add = app.buttons["addCardio"]
+        for _ in 0..<6 where !add.exists || !add.isHittable { app.swipeUp() }
+        add.tap()
+        app.searchFields.firstMatch.tap(); app.searchFields.firstMatch.typeText("Indoor Cycle")
+        anyElement("cardioActivity.indoorCycle").tap()
+        XCTAssertTrue(anyElement("cardioTimer").waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["mi"].waitForExistence(timeout: 5))
+        app.swipeUp()
+        XCTAssertTrue(app.staticTexts["mi/h"].waitForExistence(timeout: 5))
+        shoot("unit-cardio-us-\(large ? "axl" : "default")")
+    }
+
+    private func selectUnitSystem(_ title: String) {
+        let preference = app.buttons["appUnitPreference"]
+        XCTAssertTrue(preference.waitForExistence(timeout: 5))
+        preference.tap()
+        app.buttons[title].tap()
+    }
+
     // MARK: - Screens
 
     /// Active workout with a live heart-rate feed, one set completed (rest

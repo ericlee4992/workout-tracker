@@ -27,7 +27,7 @@ enum CardioDistanceUnit: String, Codable, CaseIterable, Identifiable, Sendable {
     case km, mi
     var id: String { rawValue }
     var metersPerUnit: Double { self == .km ? 1_000 : 1_609.344 }
-    static var localeDefault: Self { Locale.current.measurementSystem == .us ? .mi : .km }
+    static var localeDefault: Self { AppUnitSystem.resolve(preference: nil).distanceUnit }
 }
 
 enum CardioDistanceSource: String, Codable, Sendable {
@@ -266,12 +266,20 @@ struct CardioSession {
     let context: ModelContext
     @discardableResult
     func start(_ activity: CardioActivity, in workout: Workout, at date: Date = .now,
-               unit: CardioDistanceUnit = .localeDefault) throws -> CardioSegment {
+               unit: CardioDistanceUnit? = nil) throws -> CardioSegment {
         guard !workout.isDeleted, workout.finishedAt == nil else { throw CardioSessionError.finishedWorkout }
+        // Snapshot the app default once. A later preference change must not rewrite
+        // an active/saved segment or its manually entered value/unit pair.
+        let resolvedUnit: CardioDistanceUnit
+        if let unit { resolvedUnit = unit }
+        else {
+            let preferences = try AppPreferences.canonical(in: context)
+            resolvedUnit = AppUnitSystem.resolve(preference: preferences.unitPreference).distanceUnit
+        }
         for segment in workout.orderedCardio where segment.endedAt == nil { segment.end(at: date) }
         try RestTimerService(context: context).skip(workout)
         let segment = CardioSegment(activity: activity, order: (workout.orderedCardio.map(\.order).max() ?? -1) + 1,
-                                    workout: workout, at: date, unit: unit)
+                                    workout: workout, at: date, unit: resolvedUnit)
         context.insert(segment)
         try context.save()
         return segment

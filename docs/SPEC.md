@@ -49,6 +49,7 @@ Four levels:
 
 ## Units
 
+- App unit preference is **Metric** (kg/km) or **U.S. customary** (lb/mi). New cardio segments snapshot the selected distance unit, including pace/speed. Existing records retain their units; manual distance entry retains the entered pair.
 - Per-set unit (kg/lb). Default precedence: **machine → gym → app preference** (most specific wins; the app preference is a persisted, editable setting).
 - Original `(value, unit)` preserved verbatim; normalized kg stored alongside for analytics (exactly 1 lb = 0.45359237 kg, recomputed atomically on edit, full precision — D25).
 - Workout summaries derive their unit badge from actual logged sets: kg, lb, or Mixed — never just the gym default.
