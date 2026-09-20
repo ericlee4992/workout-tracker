@@ -1,7 +1,7 @@
 # 06 — App unit system and clean automatic indoor metrics
 
 Type: task
-Status: claimed
+Status: resolved — merged verification clear; installation pending
 
 User request 2026-09-19: remove the Phone motion estimate section during device-tracked indoor
 runs; show no such source/estimate detail. Rename app unit choices to Metric / U.S. customary
@@ -137,3 +137,23 @@ The product and unit-test code remains dc08ea8; later edits are UI test navigati
 Full UI85 runner PID **30336**, `run-full-ui.sh`, `full-ui.log`, `full-ui-exit.txt`,
 `full-ui.xcresult`, tested tip **cda7fd4**. App/unit-test code same dc08ea8.
 Final Settings and cleaned-up indoor capture links shown user; installation explicitly requested.
+
+## Final full-suite verification — 2026-09-20
+
+Full UI **85/85 passed**, 0 failed/skipped, **exit 0**, TEST SUCCEEDED; actual xcresult
+summary inspected. Test execution finished00:54 EDT (3066s); driver finalized00:58.
+Xcode was waiting on its optional `simctl diagnose` child after all tests passed, confirmed
+by process sample `full-ui-driver-sample.txt`; stopped only collector PID73305. The parent
+xcodebuild30363 then finalized normally at exit0, preserving the complete result bundle.
+No test cancellation/skipping; auxiliary simulator diagnostics may be incomplete. 24 known
+non-failing invalid-frame warnings remain, origin uninvestigated. Full runner30336 complete.
+
+Tested full-UI code **cda7fd4**, current records **a262e77**; product and unit-test code
+**dc08ea8** has stable units753/753 and targeted32/32 at exit0. UI source changes since
+dc08ea8 only stabilize test menu/scroll navigation. Archived STATE, relative links and
+unchanged full-UI input checked. Await final independent artifact clearance, then merge/install.
+
+Final independent [Claude review](../claude-units-review.md), authored46ad211, is
+**CLEAR TO MERGE** after direct artifact inspection. Main fast-forward/push with this
+records-only checkpoint; user explicitly requested install once complete and confirmed
+phone unlocked/awake. Fresh signed build/install and launch verification follow.

@@ -3,28 +3,31 @@
 Updated 2026-09-19 for app unit systems and automatic indoor-cardio cleanup. Base main **e457493**.
 Prior STATE preserved in the [archive](archive/STATE-2026-09-19-before-cardio-units.md).
 
-## Current task: app units and automatic indoor metrics
+## Current delivery: app unit systems and indoor cleanup
 
-[Ticket 06](../work-record/cardio/issues/06-unit-system-and-indoor.md): Settings choices
-Metric (kg/km) and U.S. customary (lb/mi); cardio now reads the app preference. User explicitly
-chose **new cardio activities only**, preserving active/saved units and entered measurements.
-Existing kg/lb backing reused; no schema migration. Lifting machine/gym precedence remains.
-Hide automatic indoor source/estimate details and duplicate live editor once measured distance
-arrives; main distance/pace remain, with manual entry for no-data/manual cases and saved correction.
+[Ticket 06](../work-record/cardio/issues/06-unit-system-and-indoor.md) implements Metric
+(kg/km) and U.S. customary (lb/mi) app defaults for **new cardio activities only**, per the
+user's explicit choice. Active/saved units and entered values remain intact. Existing kg/lb
+storage is reused, so no schema migration; lifting machine/gym precedence remains.
+Automatic indoor distance uses the main metrics without a source/estimate row, including
+phone-motion readings. No-data/manual input and saved correction remain; source data retained.
 
-Branch `ericlee4992/cardio-units-and-sources`, base **e457493**, in its Orca worktree.
-Product/tests **dc08ea8**: build passed; full units **753/753** and targeted clock/unit
-checks **32/32** passed, exit 0. Two pre-existing load-sensitive tests now use controlled
-clocks after documented retries (ticket06). All7 focused Cardio cases passed; corrected Settings pair **2/2** passed (initial navigation
-failures preserved in ticket06). Final captures inspected/shown; full UI85 running on **cda7fd4**, with app/unit-test
-code identical to dc08ea8. Final independent clearance then user-requested phone installation. PID/artifacts in ticket06.
-Current changes are not installed.
+Product/unit-test code **dc08ea8**, full-UI tested tip **cda7fd4**, records **a262e77** on
+`ericlee4992/cardio-units-and-sources`; this checkpoint records fast-forward to main.
+Build, **753 unit tests**, **32 focused clock/unit tests**, 7 focused Cardio cases and the
+corrected Settings pair passed. Full UI **85/85 passed**, exit0, finalized September20 00:58 EDT.
+Optional simulator diagnostics collector was stopped after tests completed; final complete
+xcresult is Passed. Initial timing/navigation/runner failures are preserved in ticket06.
+[Claude code, clock, visual and final merge clearance](../work-record/cardio/claude-units-review.md)
+is clear. 21 captures in `work-record/cardio/screenshots/units-and-indoor/`; links shown user.
 
-Phone has ticket05 product **7825140**, built from **c127832**, installed/launch-verified
-September19 03:02 EDT. Remaining hardware acceptance in [ticket02](../work-record/cardio/issues/02-device-acceptance.md):
-history preservation, phone carried/stationary, pause/disconnect/recovery, background/locked
-GPS and mixed recovery. Indoor AirPods Pro3 distance and outdoor map rendering are user-confirmed.
-Profiles expire September24 at 07:16 UTC. Watch cardio stays outside this release.
+Next: fresh signed build and user-requested installation; phone confirmed unlocked/awake.
+Currently installed product **7825140** from **c127832**, launch-verified September19 03:02 EDT.
+Remaining hardware acceptance in [ticket02](../work-record/cardio/issues/02-device-acceptance.md):
+history preservation, phone carried/stationary, pause/disconnect/recovery, background/locked GPS
+and mixed recovery. AirPods Pro3 indoor distance is user-confirmed. Automatic zero/low distance
+also hides the duplicate row; correction is available after End (accepted consequence in ticket06).
+Profiles expire September24 at 07:16 UTC. Watch cardio remains outside this release.
 
 ## Completed and verified
 
