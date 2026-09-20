@@ -54,7 +54,8 @@ fixtures; manual fallback/editor remains. Real Settings and indoor default/Acces
 captures, build, full local unit/UI gates, independent Claude code/visual review before merge.
 No schema migration; data/export semantics remain frozen/as entered.
 
-Base main **e457493**, branch `ericlee4992/cardio-units-and-sources`. Implementation pending.
+Base main **e457493**, branch `ericlee4992/cardio-units-and-sources`. Implementation is
+complete; the progress entries below preserve the original run history.
 
 ## Progress
 
@@ -176,3 +177,14 @@ to open WorkoutTracker manually. No reinstall needed solely for this lock error.
 Evidence: main `work-record/ui-redesign/results/cardio-units-install/`: build script/log/exit,
 binary-verification.json, install/launch logs/JSON/exits and processes.json. Build runner82268
 finished. No test/build process remains. Physical acceptance remains ticket02.
+
+## Fresh-session checkpoint — 2026-09-20
+
+Main **6102b5d** contains this feature, installation records and the user-approved T8 targeted
+verification policy. Product/test/config trees match installed main **8c71d27**. Re-read actual
+stable-build/timing/units, settings-verified and full-ui exits: all 0; summaries show32/753/2/85
+passed respectively, no failed/skipped tests. Initial focused exit65 remains preserved; its7
+Cardio cases passed, followed by the corrected Settings pair and final full85 pass.
+Install exit0/success and launch exit1/Locked rechecked. No active build/test job. No additional
+app build/tests/device operation for this docs-only handoff. Launch/history and physical
+acceptance remain [ticket02](02-device-acceptance.md); new session starts from STATE.

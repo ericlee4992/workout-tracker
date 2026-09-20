@@ -8,6 +8,7 @@ Stable decisions remain in [DECISIONS](../DECISIONS.md), detailed ticket records
 
 | Snapshot | Provenance |
 |---|---|
+| [STATE before September 20 session handoff](STATE-2026-09-20-before-session-handoff.md) | Byte-for-byte copy at `6102b5d`, after the installed unit-system update and targeted-verification policy |
 | [STATE before app unit systems/indoor cleanup](STATE-2026-09-19-before-cardio-units.md) | Byte-for-byte copy at `e457493`, before Metric/U.S. customary defaults and removal of automatic indoor source details |
 | [STATE before arrowless Start/outdoor cleanup](STATE-2026-09-19-before-compact-start-outdoor.md) | Byte-for-byte copy at `0e16a8c`, before the user reopened the stacked Start choice and requested removal of the outdoor GPS section |
 | [STATE before Start capsule restoration](STATE-2026-09-19-before-start-capsules.md) | Byte-for-byte copy at `62f9469`, after UI refinements were installed and before the user rejected the text-only start buttons |

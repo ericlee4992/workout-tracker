@@ -3,29 +3,27 @@
 Type: task
 Status: open — physical evidence outstanding
 
-Software merged via **b0a8de9**, product `03ada3d`; build, 748 full units, 13 final targeted units,
-7 focused UI and 79 full UI passed. [Implementation and review evidence](01-implementation.md).
-These simulator results do not establish AirPods Pro3 distance delivery or locked-screen GPS.
-Phone has the cardio build from c847ef3 (product `03ada3d`). The user subsequently confirmed
-indoor distance with AirPods Pro 3 and outdoor map rendering; app opening is established.
-Existing-history preservation has not been explicitly reported. Cardio exports schema10. Follow current
-[STATE](../../../docs/STATE.md) and [DEVELOPMENT](../../../docs/DEVELOPMENT.md) for fresh export,
-raw backup, migration, signing, binary freshness and launch checks before an install.
+Original cardio software/review evidence: [ticket 01](01-implementation.md). Latest unit-system
+and indoor-presentation changes are merged and installed: [ticket 06](06-unit-system-and-indoor.md).
+Current build/phone/backup facts live in [STATE](../../../docs/STATE.md). Latest-build launch and
+existing-history preservation remain unverified; the earlier user feedback establishes that the
+original cardio app opened and delivered indoor distance with AirPods Pro 3 and an outdoor map.
+Simulator results do not establish device accuracy or locked-screen GPS.
 
 ## Acceptance work
 
-The user-authorized installation is complete and subsequent user testing confirms the app
-opens. Confirm existing history is intact, then record device OS/AirPods firmware and the
+The latest user-authorized installation is complete. Confirm it opens and existing history
+is intact, then record device OS/AirPods firmware and the
 remaining scenarios below. The reported indoor-distance scenario passed; activity subtype
 and phone position were not specified.
 
 1. Indoor Walk and Indoor Run with AirPods Pro 3: compare distance/average pace to treadmill
-   readings, first carrying the phone, then leaving it on the console. Record which source
-   label appears and whether HealthKit distance actually arrives; HR alone is not a pass.
+   readings, first carrying the phone, then leaving it on the console. Record whether distance actually arrives and any available diagnostic provenance; the user
+   requested removal of automatic source labels. HR alone is not a pass.
 2. Pause/resume, lock/unlock, and disconnect/reconnect: active time excludes pauses; cumulative
    distance does not double; old totals survive a quiet stream; fresh pace returns only with
-   new measurements. Where distance never arrives, the source must remain unavailable or
-   honestly labelled Phone motion, with manual entry available.
+   new measurements. Where no automatic distance arrives, manual entry remains available. Automatic phone-motion
+   readings use the main metrics without a source label, per the latest user decision.
 3. Indoor cycle/rower: verify HR/calories and any genuinely supplied machine distance; otherwise
    enter machine distance. AirPods are not a universal bike/rower distance sensor.
 4. Outdoor walk/run/ride: grant location, record a short route while locked, pause/move/resume,
@@ -35,7 +33,7 @@ and phone position were not specified.
 
 
 Watch companion cardio remains outside this release. If HealthKit supplies no indoor distance,
-record that result as unavailable with labelled phone-motion/manual fallback; do not call it
+record the unavailable HealthKit result and any phone-motion/manual fallback in this ticket; do not call it
 verified AirPods distance support. Record actual device/firmware and results here.
 
 ## Installation — user authorized 2026-09-18
@@ -102,3 +100,12 @@ outdoor map displays during the workout. This confirms the installed app opens a
 reported indoor-distance scenario works. Activity subtype, phone position, OS/firmware,
 pause/reconnect and locked/background route behavior were not specified; those checks remain
 open. Existing-history preservation was not explicitly reported. UI follow-up: [ticket 03](03-ui-refinements.md).
+
+## Fresh-session checkpoint — 2026-09-20
+
+Latest build installed successfully from main **8c71d27**. Launch returned Locked (exit 1)
+after the user's unlocked/awake message; no later manual-open confirmation was received.
+Earlier AirPods/map feedback does not prove this latest launch or history preservation.
+Begin with those two confirmations, then the remaining physical scenarios above. Live source
+labels/maps are intentionally absent under tickets 03–06; inspect routes after Finish in
+Summary/History. No code/rebuild/reinstall is required merely for this handoff.
