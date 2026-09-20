@@ -133,7 +133,7 @@ final class CardioUITests: XCTestCase {
         shot("cardio-built-manual-finish")
     }
 
-    func testDistanceEditorDoesNotFreezeAnUntouchedMeasurementOrRewriteTypedUnits() {
+    func testSavedDistanceEditorKeepsEnteredUnitsAndUntouchedMeasurements() {
         launch()
         app.buttons["startCardio"].tap(); choose("indoorRun")
         waitForAutomaticDistance()
@@ -141,6 +141,7 @@ final class CardioUITests: XCTestCase {
         reach(app.buttons["cardioSummaryEditDistance"]); app.buttons["cardioSummaryEditDistance"].tap()
         let field = app.textFields["cardioDistanceField"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Measured:")).firstMatch.exists)
         XCTAssertFalse(app.buttons["saveCardioDistance"].isEnabled)
         XCTAssertTrue((field.value as? String) == "Distance" || (field.value as? String) == "")
         field.tap(); field.typeText("5")

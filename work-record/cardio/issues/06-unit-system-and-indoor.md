@@ -63,3 +63,32 @@ Detached runner PID **74033**, implementation worktree
 `work-record/ui-redesign/results/cardio-units/`: `run-focused.sh`, build/units/focused
 `.log` and `-exit.txt`, unit/focused `.xcresult`. Build, full units (752 expected),
 9 focused indoor/Settings UI tests run serially. Full UI gate expected85 after new tests.
+
+## Initial review and tests
+
+Build passed; product **d4de3d8**. Claude code review clear to proceed, no schema/data/new-only
+defect. F1 deliberately accept: a real automatic zero is a measurement (not missing data),
+so it also hides the duplicate row. Small/zero readings can be corrected after End; no
+threshold falsely treats real low movement as absent. Nil distance still offers Enter
+distance; manual overrides remain editable live. This follows user's request to omit the
+section during automatic tracking. F2 removal of No distance source caption deliberate:
+Enter distance itself is sufficient. F3 renamed saved-editor test accurately and restored
+Measured-line assertion; manual live clear-and-resume measurement is not newly tested;
+existing domain clear-override tests remain. Old editor captures are historical, not current.
+F4 D15 now points to D52/T7 and this ticket.
+
+Initial full-unit log: 752 tests, new AppUnitSystemTests passed; known load-sensitive
+HeartRateMonitorTests.samplesArriveAndBecomeTheCurrentReading and
+CodexReviewRegressionTests.theFeedStateNamesTheSourceOfTheReadingShown failed under the
+full run. Follow DEVELOPMENT: rerun affected cases, then full suite serially; preserve
+initial log/result. No feature change inferred from these failures.
+
+Initial run printed 752-test failure summary at194 seconds, but xcodebuild remained waiting
+without finalizing for over2minutes after the app process exited. Sent INT to exact
+xcodebuild PID74706; interrupted result/exit retained (not a pass). Retry runner PID **87396**
+waits for that exit, then `timing-rerun` (both affected classes plus new AppUnitSystemTests),
+`units-rerun` (full), `focused` (9). Logs/exits/results in same directory.
+
+INT left Xcode's DVTOperation cancellation assertion stuck; exact PID74706 was verified
+and sent TERM. This is runner cleanup, not an app-code fix. The retry remains serialized
+behind its recorded exit; no simultaneous simulator run.
