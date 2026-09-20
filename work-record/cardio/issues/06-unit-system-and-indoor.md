@@ -133,3 +133,7 @@ under `../screenshots/units-and-indoor/`: latest Settings pair and U.S. live pai
 settings-verified; passed indoor/source/saved captures from focused. Parent opened Settings
 (default/AXL) and phone-motion live/details pairs plus U.S. live pair. Full UI85 next.
 The product and unit-test code remains dc08ea8; later edits are UI test navigation/records.
+
+Full UI85 runner PID **30336**, `run-full-ui.sh`, `full-ui.log`, `full-ui-exit.txt`,
+`full-ui.xcresult`, tested tip **cda7fd4**. App/unit-test code same dc08ea8.
+Final Settings and cleaned-up indoor capture links shown user; installation explicitly requested.
