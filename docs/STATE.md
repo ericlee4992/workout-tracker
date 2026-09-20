@@ -10,8 +10,8 @@ Finish the final independent Claude source/evidence/UI review of the AI feature,
 branch and fast-forward/push main under T6/T8. [Verification ticket](../work-record/ai-gym/issues/05-verification-review.md).
 Claude final review cleared code/evidence/UI for private-trial merge. Three recommended small
 improvements (remembered-machine precedence, visible proposal field labels, singular exercise
-wording) are implemented; targeted polish UI checks and line-level re-review remain. The live
-process is in `results/polish-active.json` in the feature checkout. No phone installation occurred.
+wording) are implemented; targeted polish checks passed (30 domain / 13 UI, zero failed/skipped). Claude’s code addendum is
+clear; final capture/evidence acknowledgement remains. No build/test job is active; no phone install.
 
 After merge, follow [private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md):
 confirm the currently installed app opens and old workouts are intact, make a fresh backup, then
@@ -43,7 +43,7 @@ Settings; the Mac tooling key is not bundled. Profiles expire **September 24, 07
 | Simulator build | Successful, including clean build and built camera/photo permission-string inspection |
 | Full domain suite | **773/773 passed**, exit 0, zero failed/skipped; later AI/template follow-up **29/29**, edited-name/final preservation suites **23/23** each |
 | UI scope | **36 distinct cases have passing evidence**, including adjacent logging, cardio, history/template, export and offline scanner flows; initial failures and successful focused reruns retained in ticket 05 |
-| UI captures | [51 real Default/AccessibilityL captures](../work-record/ai-gym/gallery.html), same fixtures per pair, including consent, identity states, routine editing, templates and active plans |
+| UI captures | [54 real Default/AccessibilityL captures](../work-record/ai-gym/gallery.html), same fixtures per pair, including consent, identity states, routine editing, templates and active plans |
 | Independent review | Claude spec review and two code reviews committed; final review cleared code/evidence/UI at `2daaa2b`; three subsequent small recommendations await targeted re-review |
 | Live API | Terra key/model verified after user funded API credits; production-format photo and 3-/7-day routine requests completed. Seven-day request: 10.14 s. Recognition limitations remain explicit |
 | Migration | Synthetic store generated from installed-era `8c71d27`; additive migration preserves old history/templates/units and new-field defaults. Prior legacy fixtures also passed |
