@@ -13,8 +13,10 @@ Hide automatic indoor source/estimate details and duplicate live editor once mea
 arrives; main distance/pace remain, with manual entry for no-data/manual cases and saved correction.
 
 Branch `ericlee4992/cardio-units-and-sources`, base **e457493**, in its Orca worktree.
-Build, full unit and 9 focused UI tests running; PID/artifacts in ticket06. Next: inspect
-Settings/indoor default/AXL captures, independent review, full UI gate and authorized install.
+Product/tests **dc08ea8**: build passed; full units **753/753** and targeted clock/unit
+checks **32/32** passed, exit 0. Two pre-existing load-sensitive tests now use controlled
+clocks after documented retries (ticket06). 9 focused UI tests running; PID/artifacts in
+ticket06. Next: inspect captures, independent review, full UI gate and authorized install.
 Current changes are not installed.
 
 Phone has ticket05 product **7825140**, built from **c127832**, installed/launch-verified

@@ -84,9 +84,26 @@ final class RedesignScreenshotUITests: XCTestCase {
         anyElement("cardioActivity.indoorCycle").tap()
         XCTAssertTrue(anyElement("cardioTimer").waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts["mi"].waitForExistence(timeout: 5))
-        app.swipeUp()
-        XCTAssertTrue(app.staticTexts["mi/h"].waitForExistence(timeout: 5))
+        revealCardioSpeedUnit()
         shoot("unit-cardio-us-\(large ? "axl" : "default")")
+    }
+
+    private func revealCardioSpeedUnit() {
+        let speedUnit = app.staticTexts["mi/h"]
+        func visible() -> Bool {
+            guard speedUnit.exists && speedUnit.isHittable else { return false }
+            return speedUnit.frame.minY > 120
+                && speedUnit.frame.maxY < app.buttons["cardioPauseResume"].frame.minY
+        }
+        // A full swipe can skip the live metrics and land on an older segment at AXL.
+        // Scroll in small steps until this value is actually above the pinned controls.
+        for _ in 0..<8 where !visible() {
+            let down = speedUnit.exists && speedUnit.frame.minY < 120
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.4 : 0.6))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.6 : 0.4))
+            from.press(forDuration: 0.05, thenDragTo: to)
+        }
+        XCTAssertTrue(visible(), "New cycling speed uses the U.S. unit above the controls")
     }
 
     private func selectUnitSystem(_ title: String) {

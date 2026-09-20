@@ -104,3 +104,19 @@ only; production clock and liveness rules unchanged. Full unit count now753 expe
 
 Stable runner PID **96967**: `run-stable.sh`, stable-build, stable-timing(32 expected),
 stable-units(753 expected), focused(9); matching logs/exits/xcresults under same artifacts.
+
+Product/tests **dc08ea8**: stable-build exit 0; stable-timing **32/32 passed** and
+stable-units **753/753 passed**, zero failed/skipped, exit 0. Actual xcresult summaries
+inspected and saved beside bundles. Prior failed runs remain recorded, superseded by this
+passing controlled-clock run. Claude clock re-review clear. Focused UI still running.
+
+Initial focused UI: 8/9 passed, one AXL Settings-flow failure at the speed label after an
+unconditional full swipe. Exported failure hierarchy is already on the prior ended run card,
+with the active cycle above the viewport: the test overshot. Settings Metric/U.S. customary
+captures themselves show whole native labels at both sizes. Single-case reproduction runner
+PID9686 uses original built test (`unit-ui-repro`); fix is test-only small-step scrolling
+until mi/h is visible above pinned controls. Product code and passing753-unit input unchanged.
+
+Single-case original harness reproduced the failure. Corrected Settings pair runner PID
+**12881**, `run-settings-final.sh`, `settings-final` log/exit/xcresult. Other7 CardioUITests
+passed with unchanged code; full85 gate remains.
