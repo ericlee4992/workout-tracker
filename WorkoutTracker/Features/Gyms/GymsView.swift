@@ -727,7 +727,7 @@ struct MachineEditorSheet: View {
                     defaultPresetID: defaultPresetID,
                     gym: gym,
                     model: model)
-                created.recognizedExerciseIDs = model == nil ? recognizedIDs.sorted { $0.uuidString < $1.uuidString } : []
+                created.recognizedExerciseIDs = model?.exerciseIDs.isEmpty != false ? recognizedIDs.sorted { $0.uuidString < $1.uuidString } : []
                 modelContext.insert(created)
                 try modelContext.save()
             }
