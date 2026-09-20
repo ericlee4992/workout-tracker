@@ -11,25 +11,19 @@ struct AIGymTests {
         let schema = WorkoutTrackerStore.schema
         return ModelContext(try ModelContainer(for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)]))
     }
-    @Test func exportWireFixturesForLiveSmoke() throws {
-        let dir = URL(fileURLWithPath: "/tmp/wt-ai-wire-fixtures")
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let exercises = try SeedCatalog.bundled().exercises
-        let all = exercises.map { "\($0.id.uuidString) | \($0.name)" }.joined(separator: "\n")
-        let photoRequest = try TerraClient(key: "fixture-only").request(instructions: EquipmentIdentification.instructions, input: all, schema: EquipmentIdentification.schema, name: "equipment_identity", jpeg: Data())
-        try photoRequest.httpBody!.write(to: dir.appendingPathComponent("equipment.json"))
-        let eligible = exercises.filter { $0.equipmentTypeTags.contains(.dumbbell) }.map {
-            RoutineExerciseOption(id: $0.id, name: $0.name, muscleGroup: $0.muscleGroup ?? "", equipment: .dumbbell)
-        }
-        let input = AIRoutineRequest(goals: "Build strength and general endurance", experience: "Beginner", days: 3, minutes: 45, exercises: eligible, cardioActivities: [.outdoorWalk])
-        let routineRequest = try TerraClient(key: "fixture-only").request(instructions: AIRoutine.instructions, input: AISchema.text(input), schema: AIRoutine.schema, name: "weekly_routine")
-        try routineRequest.httpBody!.write(to: dir.appendingPathComponent("routine.json"))
-    }
     @Test func uploadedPhotoIsBoundedAndHasNoLocationMetadata() throws {
         let image = UIGraphicsImageRenderer(size: CGSize(width: 2400, height: 1800)).image { ctx in
             UIColor.red.setFill(); ctx.fill(CGRect(x: 0, y: 0, width: 2400, height: 1800))
         }
-        let data = try #require(EquipmentPhoto.jpeg(image))
+        let original = NSMutableData()
+        let destination = try #require(CGImageDestinationCreateWithData(original, "public.jpeg" as CFString, 1, nil))
+        CGImageDestinationAddImage(destination, try #require(image.cgImage), [kCGImagePropertyGPSDictionary: [kCGImagePropertyGPSLatitude: 40.0, kCGImagePropertyGPSLatitudeRef: "N", kCGImagePropertyGPSLongitude: 73.0, kCGImagePropertyGPSLongitudeRef: "W"]] as CFDictionary)
+        #expect(CGImageDestinationFinalize(destination))
+        let originalSource = try #require(CGImageSourceCreateWithData(original, nil))
+        let originalInfo = try #require(CGImageSourceCopyPropertiesAtIndex(originalSource, 0, nil) as? [String: Any])
+        #expect(originalInfo[kCGImagePropertyGPSDictionary as String] != nil)
+        let photo = try #require(UIImage(data: original as Data))
+        let data = try #require(EquipmentPhoto.jpeg(photo))
         let source = try #require(CGImageSourceCreateWithData(data as CFData, nil))
         let info = try #require(CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any])
         #expect(info[kCGImagePropertyGPSDictionary as String] == nil)
@@ -53,7 +47,12 @@ struct AIGymTests {
         #expect(items.map(\.targetRepsBySet) == [[10,8],[12]])
         #expect(items[0].supersetGroupID != nil && items[0].supersetGroupID == items[1].supersetGroupID)
         #expect(template.plannedCardio.isEmpty && items.allSatisfy { $0.plannedRestSeconds == nil })
+        #expect(template.confirmedEquipment.isEmpty)
         let workouts = try context.fetch(FetchDescriptor<Workout>())
+        #expect(workouts.allSatisfy { $0.cardioPlanData == nil })
+        #expect(try context.fetch(FetchDescriptor<ExerciseEntry>()).allSatisfy { $0.plannedRepsBySet.isEmpty && $0.plannedRestSeconds == nil })
+        let backup = try ExportCollector().snapshot(from: context)
+        #expect(try JSONDecoder().decode(ExportSnapshot.self, from: JSONEncoder().encode(backup)) == backup)
         #expect(workouts.count == 2)
         let finished = try #require(workouts.first { $0.finishedAt != nil })
         #expect(finished.completedSets.first?.weightValue == 70)
@@ -65,6 +64,70 @@ struct AIGymTests {
         let started = try WorkoutTemplateService(context: context).start(template, at: machine.gym)
         #expect(WorkoutSession.orderedEntries(of: started).map { WorkoutSession.orderedSets(of: $0).count } == [2,1])
     }
+    @Test func exactResolutionNeverCreatesBlankOrDuplicateModels() {
+        let model = EquipmentModel(manufacturer: "Brand", modelName: "Model A", exerciseIDs: [])
+        var proposal = EquipmentIdentification(identity: "specific", label: "Press", manufacturer: "  BRAND ", modelName: "Model-A", visibleText: "BRAND Model-A", exerciseIDs: [])
+        if case .catalog(let match) = EquipmentIdentityResolution.resolve(proposal, among: [model]) { #expect(match.id == model.id) }
+        else { Issue.record("Expected exact normalized catalog match") }
+        let copy = EquipmentModel(manufacturer: "Brand", modelName: "Model A", exerciseIDs: [])
+        if case .ambiguous = EquipmentIdentityResolution.resolve(proposal, among: [model,copy]) {} else { Issue.record("Ambiguous matches must not make another model") }
+        proposal.manufacturer = "  "
+        if case .generic = EquipmentIdentityResolution.resolve(proposal, among: []) {} else { Issue.record("Blank manufacturer is generic") }
+        proposal.manufacturer = " Other "; proposal.modelName = " New "
+        if case .newModel(let brand, let name) = EquipmentIdentityResolution.resolve(proposal, among: []) { #expect(brand == "Other" && name == "New") }
+        else { Issue.record("Expected trimmed new identity") }
+    }
+    @Test func unknownCardioTargetsArePreservedAndExported() throws {
+        let context = try context(); let template = WorkoutTemplate(name: "Future")
+        let known = PlannedCardio(activity: .outdoorWalk, minutes: 10)
+        let row = try JSONSerialization.jsonObject(with: JSONEncoder().encode(known))
+        let future: [String: Any] = ["id": UUID().uuidString, "activity": "futureActivity", "minutes": 20, "unit": "km"]
+        template.cardioPlanData = try JSONSerialization.data(withJSONObject: [row,future]); context.insert(template)
+        #expect(template.hasUnknownCardioTargets && template.plannedCardio == [known])
+        var edited = known; edited.minutes = 15; template.plannedCardio = [edited]
+        #expect(template.hasUnknownCardioTargets && template.plannedCardio.first?.minutes == 15)
+        #expect((CardioPlanStorage.rows(template.cardioPlanData)?.count) == 2)
+        let exported = try ExportCollector().snapshot(from: context)
+        #expect(exported.templates.first?.unreadableCardioPlanData == template.cardioPlanData)
+    }
+    @Test func editedRoutineMayExceedTheGeneratedTimeBudgetButCannotBeEmpty() throws {
+        let id = UUID(); let request = AIRoutineRequest(goals: "Fitness", experience: "Beginner", days: 1, minutes: 15,
+            exercises: [.init(id: id, name: "Press", muscleGroup: "", equipment: nil)], cardioActivities: [])
+        let routine = AIRoutine(sessions: [.init(name: "Longer session", strength: [.init(exerciseID: id, sets: 10, reps: 10, restSeconds: 300)], cardio: [])])
+        #expect(throws: (any Error).self) { try routine.validated(for: request) }
+        #expect(try routine.validated(for: request, edited: true) == routine)
+        var empty = routine; empty.sessions[0].strength = []
+        #expect(throws: (any Error).self) { try empty.validated(for: request, edited: true) }
+    }
+    @Test func restTargetsRespectOverridesAndWarmups() throws {
+        let context = try context(); let exercise = Exercise(name: "Press"); context.insert(exercise)
+        let template = try WorkoutTemplateService(context: context).create(name: "Press", items: [.init(exercise: exercise, targetRepsBySet: [10], plannedRestSeconds: 75)])
+        let workout = try WorkoutTemplateService(context: context).start(template, at: nil)
+        let set = try #require(workout.entries?.first?.sets?.first)
+        let rest = RestTimerService(context: context)
+        #expect(try rest.durationSeconds(for: set) == 75)
+        let override = ExerciseRestOverride(exerciseID: exercise.id, workingRestSeconds: 90)
+        context.insert(override); try context.save()
+        #expect(try rest.durationSeconds(for: set) == 90)
+        set.type = .warmup
+        #expect(try rest.durationSeconds(for: set) == AppPreferences.canonical(in: context).globalWarmupRestSeconds)
+    }
+    @Test func transportErrorsDoNotLeakProviderBodiesAndCancellationStaysCancellation() {
+        #expect(TerraClient.statusError(401).localizedDescription.contains("key"))
+        #expect(TerraClient.statusError(429).localizedDescription.contains("credits"))
+        #expect(TerraClient.transportError(URLError(.timedOut)).localizedDescription.contains("too long"))
+        #expect(TerraClient.transportError(URLError(.cancelled)) is CancellationError)
+    }
+
+    @Test func liveTerraResponseReplaysThroughProductionValidation() throws {
+        let file = try #require(Bundle(for: BundleMarker.self).url(forResource: "TerraRoutineSmoke", withExtension: "json"))
+        let sample = try JSONDecoder().decode(LiveRoutineSample.self, from: Data(contentsOf: file))
+        let data = try JSONSerialization.data(withJSONObject: ["status": "completed", "output": [["content": [["type": "output_text", "text": sample.text]]]]])
+        let routine = try JSONDecoder().decode(AIRoutine.self, from: TerraClient.output(from: data))
+        #expect(try routine.validated(for: sample.request).sessions.count == 3)
+    }
+    private struct LiveRoutineSample: Decodable { var request: AIRoutineRequest; var text: String }
+
     @Test func terraRequestDoesNotStoreOrExposeCredentialsInBody() throws {
         let request = try TerraClient(key: "test-only-secret").request(instructions: "Identify", input: "Catalog", schema: EquipmentIdentification.schema, name: "equipment", jpeg: Data([1, 2]))
         #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer test-only-secret")
@@ -132,7 +195,7 @@ struct AIGymTests {
         #expect(workout.entries?.isEmpty != false && workout.orderedCardio.isEmpty)
         #expect(workout.sensorConfiguration == .idle)
         let export = try ExportCollector().snapshot(from: context)
-        #expect(export.templates.first?.plannedCardio == [target])
+        #expect(export.templates.first?.plannedCardio == [ExportSnapshot.CardioPlan(target)])
         #expect(export.workouts.first?.cardioSegments == nil)
         #expect(export.workouts.first?.plannedCardio?.first?.minutes == 25)
         #expect(try JSONDecoder().decode(ExportSnapshot.self, from: JSONEncoder().encode(export)) == export)
@@ -149,6 +212,20 @@ struct AIGymTests {
         #expect(template.plannedCardio.first?.minutes == 15)
         #expect(WorkoutTemplateService.orderedItems(of: template).first?.plannedRestSeconds == 75)
     }
+    @Test func plannedCardioStartLinksAtomicallyAndRejectsReplay() throws {
+        let context = try context()
+        let template = try WorkoutTemplateService(context: context).create(name: "Walk", items: [], cardio: [.init(activity: .outdoorWalk, minutes: 20)])
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let workout = try WorkoutTemplateService(context: context).start(template, at: nil, on: date)
+        let target = try #require(workout.plannedCardio.first)
+        let segment = try CardioSession(context: context).start(target.activity, in: workout, at: date, plannedTargetID: target.id)
+        #expect(workout.plannedCardio.first?.segmentID == segment.id)
+        #expect(segment.manualDistanceValue == nil && segment.accumulatedActiveSeconds == 0)
+        try CardioSession(context: context).end(segment, at: date.addingTimeInterval(60))
+        #expect(throws: (any Error).self) { try CardioSession(context: context).start(target.activity, in: workout, plannedTargetID: target.id) }
+        #expect(workout.orderedCardio.count == 1)
+    }
+
     @Test func routineRejectsUnknownOrUnavailableActivitiesAndExcessiveVolume() throws {
         let id = UUID()
         let request = AIRoutineRequest(goals: "Fitness", experience: "Beginner", days: 1, minutes: 45,

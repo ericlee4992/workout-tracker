@@ -374,7 +374,7 @@ private struct TemplateTile: View {
                 .font(Theme.cardTitle)
             // Whole, never truncated: the tile grows with its exercises
             // (codex-review-10); the grid row takes the tallest tile.
-            Text(items.compactMap { $0.exercise?.name }.joined(separator: " · "))
+            Text((items.compactMap { $0.exercise?.name } + template.plannedCardio.map { $0.activity.name }).joined(separator: " · "))
                 .font(.caption)
                 .foregroundStyle(Theme.secondary)
         }

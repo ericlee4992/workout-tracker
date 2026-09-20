@@ -58,15 +58,9 @@ struct ActiveWorkoutView: View {
 
 
     private func startPlannedCardio(_ target: PlannedCardio) {
-        guard workout.unfinishedCardio == nil, target.segmentID == nil else { return }
-        heartRateCoordinator.cardio.start(target.activity)
-        guard let segment = workout.unfinishedCardio, segment.activity == target.activity else { return }
-        var plan = workout.plannedCardio
-        guard let index = plan.firstIndex(where: { $0.id == target.id }) else { return }
-        plan[index].segmentID = segment.id
-        workout.plannedCardio = plan
-        do { try modelContext.save() }
-        catch { heartRateCoordinator.cardio.errorMessage = error.localizedDescription }
+        guard workout.canStart(target) else { return }
+        heartRateCoordinator.cardio.start(target.activity, plannedTargetID: target.id)
+        guard workout.unfinishedCardio != nil else { return }
         cardioFocus = true
         refreshRest()
         heartRateCoordinator.broadcastRest(endsAt: nil)
@@ -105,6 +99,9 @@ struct ActiveWorkoutView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(Color.clear)
 
+                if workout.hasUnknownCardioTargets {
+                    Text("Some cardio targets are unavailable in this version.").font(.footnote).foregroundStyle(Theme.secondary)
+                }
                 if !workout.plannedCardio.isEmpty {
                     Section("Planned cardio") {
                         ForEach(workout.plannedCardio) { target in
@@ -114,7 +111,7 @@ struct ActiveWorkoutView: View {
                                     Text(target.summary).font(.caption).foregroundStyle(Theme.secondary)
                                 }
                                 Spacer()
-                                if target.segmentID == nil {
+                                if workout.canStart(target) {
                                     Button("Start") { startPlannedCardio(target) }
                                         .disabled(workout.unfinishedCardio != nil || heartRate == nil)
                                         .accessibilityIdentifier("startPlannedCardio")

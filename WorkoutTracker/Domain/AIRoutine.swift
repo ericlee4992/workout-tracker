@@ -92,24 +92,31 @@ struct AIRoutine: Codable, Equatable {
     Allow approximately 45 seconds per strength set, rest BETWEEN sets and 1 minute transition per exercise when fitting session duration.
     Prefer a manageable beginner routine when experience is beginner. Do not prescribe rehabilitation for injuries; keep to general fitness.
     """
-    func validated(for request: AIRoutineRequest) throws -> Self {
-        guard (1...7).contains(request.days), sessions.count == request.days,
-              Set(sessions.map { $0.name.trimmingCharacters(in: .whitespacesAndNewlines) }).count == sessions.count else { throw TerraError.invalidResponse }
+    func validated(for request: AIRoutineRequest, edited: Bool = false) throws -> Self {
+        guard (1...7).contains(sessions.count), edited || sessions.count == request.days else {
+            throw TerraError.message("The routine must contain 1–7 sessions and match the requested week.")
+        }
         let eligible = Set(request.exercises.map(\.id))
         for day in sessions {
             guard !day.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, day.name.count <= 80,
                   day.strength.count <= 10, day.cardio.count <= 3, !day.strength.isEmpty || !day.cardio.isEmpty,
-                  Set(day.strength.map(\.exerciseID)).count == day.strength.count else { throw TerraError.invalidResponse }
+                  Set(day.strength.map(\.exerciseID)).count == day.strength.count else {
+                throw TerraError.message(edited ? "Each session needs a name, at least one activity, and no repeated strength exercise (up to 10 exercises and 3 cardio targets)." : "AI returned an invalid session. Try generating again.")
+            }
             for item in day.strength {
                 guard eligible.contains(item.exerciseID), (1...10).contains(item.sets), (1...50).contains(item.reps),
-                      (0...600).contains(item.restSeconds) else { throw TerraError.invalidResponse }
+                      (0...600).contains(item.restSeconds) else {
+                    throw TerraError.message(edited ? "Check \(day.name): choose an available exercise, 1–10 sets, 1–50 reps and 0–600 seconds rest." : "AI returned unavailable equipment or invalid targets. Try generating again.")
+                }
             }
             for item in day.cardio {
-                guard request.cardioActivities.contains(item.activity), (1...180).contains(item.minutes) else { throw TerraError.invalidResponse }
+                guard request.cardioActivities.contains(item.activity), (1...180).contains(item.minutes) else {
+                    throw TerraError.message("Check \(day.name): choose an available cardio activity and 1–180 minutes.")
+                }
             }
             let estimate = day.strength.reduce(0) { $0 + $1.sets * 45 + max(0, $1.sets - 1) * $1.restSeconds + 60 }
                 + day.cardio.reduce(0) { $0 + $1.minutes * 60 }
-            guard estimate <= request.minutes * 75 else { throw TerraError.message("The suggested routine exceeds your session length. Try again or increase the time.") }
+            guard edited || estimate <= request.minutes * 75 else { throw TerraError.message("The suggested routine exceeds your session length. Try again or increase the time.") }
         }
         return self
     }
@@ -119,13 +126,17 @@ struct AIRoutineDay: Codable, Equatable {
     var strength: [AIRoutineStrength]
     var cardio: [AIRoutineCardio]
 }
-struct AIRoutineStrength: Codable, Equatable {
+struct AIRoutineStrength: Codable, Equatable, Identifiable {
+    var id = UUID()
+    private enum CodingKeys: String, CodingKey { case exerciseID, sets, reps, restSeconds }
     var exerciseID: UUID
     var sets: Int
     var reps: Int
     var restSeconds: Int
 }
-struct AIRoutineCardio: Codable, Equatable {
+struct AIRoutineCardio: Codable, Equatable, Identifiable {
+    var id = UUID()
+    private enum CodingKeys: String, CodingKey { case activity, minutes }
     var activity: CardioActivity
     var minutes: Int
 }
@@ -134,7 +145,7 @@ struct AIRoutineCardio: Codable, Equatable {
 enum AIRoutinePersistence {
     /// An isolated context makes the week's save atomic without rolling back unrelated workout edits.
     static func save(_ routine: AIRoutine, request: AIRoutineRequest, gymID: UUID?, extras: Set<RoutineEquipment>, in container: ModelContainer) throws {
-        let routine = try routine.validated(for: request)
+        let routine = try routine.validated(for: request, edited: true)
         let context = ModelContext(container); context.autosaveEnabled = false
         let exercises = try context.fetch(FetchDescriptor<Exercise>())
         let byID = Dictionary(exercises.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -144,7 +155,9 @@ enum AIRoutinePersistence {
                 let template = WorkoutTemplate(name: day.name.trimmingCharacters(in: .whitespacesAndNewlines))
                 template.generatedForGymID = gymID
                 template.confirmedEquipment = extras.map(\.rawValue).sorted() + request.cardioActivities.map(\.rawValue)
-                template.plannedCardio = day.cardio.map { PlannedCardio(activity: $0.activity, minutes: $0.minutes) }
+                let preference = try AppPreferences.canonical(in: context)
+                let unit = AppUnitSystem.resolve(preference: preference.unitPreference).distanceUnit
+                template.plannedCardio = day.cardio.map { PlannedCardio(activity: $0.activity, minutes: $0.minutes, unit: unit) }
                 context.insert(template)
                 for (order, prescription) in day.strength.enumerated() {
                     guard let exercise = byID[prescription.exerciseID] else { throw TerraError.invalidResponse }

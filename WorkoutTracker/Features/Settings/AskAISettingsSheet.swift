@@ -10,6 +10,7 @@ struct AskAISettingsSheet: View {
     @State private var key = ""
     @State private var hasKey = AskAIKeyStore.read() != nil
     @State private var failure: String?
+    @AppStorage(TerraAccess.exerciseConsentKey) private var exerciseConsent = false
     @AppStorage(TerraAccess.photoConsentKey) private var photoConsent = false
     @AppStorage(TerraAccess.routineConsentKey) private var routineConsent = false
 
@@ -23,12 +24,13 @@ struct AskAISettingsSheet: View {
                     }
                     .accessibilityIdentifier("askAIStatus")
                 } footer: {
-                    Text("GPT-5.6 Terra identifies equipment and drafts weekly routines. Photos and routine details are sent to OpenAI only with your permission. API usage is billed to your key. OpenAI may retain data under its API policies.")
+                    Text("GPT-5.6 Terra identifies equipment and drafts weekly routines and suggests exercises from model details. Photos and routine details are sent to OpenAI only with your permission. API usage is billed to your key. OpenAI may retain data under its API policies.")
                 }
 
                 Section("Permissions") {
                     Toggle("Send equipment photos to OpenAI", isOn: $photoConsent)
                     Toggle("Send routine details to OpenAI", isOn: $routineConsent)
+                    Toggle("Send model details to OpenAI", isOn: $exerciseConsent)
                     Link("OpenAI API data policies", destination: URL(string: "https://developers.openai.com/api/docs/guides/your-data")!)
                 }
                 Section {

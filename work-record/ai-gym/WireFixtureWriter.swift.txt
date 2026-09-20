@@ -1,0 +1,15 @@
+Temporary fixture-export test used for live requests; not part of the ordinary test suite.
+    @Test func exportWireFixturesForLiveSmoke() throws {
+        let dir = URL(fileURLWithPath: "/tmp/wt-ai-wire-fixtures")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let exercises = try SeedCatalog.bundled().exercises
+        let all = exercises.map { "\($0.id.uuidString) | \($0.name)" }.joined(separator: "\n")
+        let photoRequest = try TerraClient(key: "fixture-only").request(instructions: EquipmentIdentification.instructions, input: all, schema: EquipmentIdentification.schema, name: "equipment_identity", jpeg: Data())
+        try photoRequest.httpBody!.write(to: dir.appendingPathComponent("equipment.json"))
+        let eligible = exercises.filter { $0.equipmentTypeTags.contains(.dumbbell) }.map {
+            RoutineExerciseOption(id: $0.id, name: $0.name, muscleGroup: $0.muscleGroup ?? "", equipment: .dumbbell)
+        }
+        let input = AIRoutineRequest(goals: "Build strength and general endurance", experience: "Beginner", days: 3, minutes: 45, exercises: eligible, cardioActivities: [.outdoorWalk])
+        let routineRequest = try TerraClient(key: "fixture-only").request(instructions: AIRoutine.instructions, input: AISchema.text(input), schema: AIRoutine.schema, name: "weekly_routine")
+        try routineRequest.httpBody!.write(to: dir.appendingPathComponent("routine.json"))
+    }

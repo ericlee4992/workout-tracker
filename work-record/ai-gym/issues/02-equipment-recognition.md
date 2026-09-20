@@ -1,7 +1,7 @@
 # 02 — AI-first equipment recognition
 
 Type: task
-Status: ready-for-agent
+Status: claimed — implemented, review fixes and verification in progress
 
 Specification: [AI gym spec](../spec.md).
 
@@ -11,7 +11,7 @@ Whole-frame or label capture, proposed generic/exact identity, confirmed exercis
 
 ## Evidence
 
-Pending implementation and verification.
+Implementation at `7dc1622`; follow-up fixes and scope/results tracked in [ticket 05](05-verification-review.md).
 
 ## Verification scope / review
 

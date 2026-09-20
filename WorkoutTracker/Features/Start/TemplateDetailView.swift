@@ -50,6 +50,9 @@ struct TemplateDetailView: View {
             }
             .listRowBackground(Theme.card)
             .listRowSeparatorTint(Theme.hairline)
+            if template.hasUnknownCardioTargets {
+                Text("Some cardio targets are unavailable in this version.").font(.footnote).foregroundStyle(Theme.secondary)
+            }
             if !template.plannedCardio.isEmpty {
                 Section("Planned cardio") {
                     ForEach(template.plannedCardio) { target in
@@ -109,6 +112,7 @@ struct TemplateDetailView: View {
                                startPoint: .top, endPoint: .bottom)
                     .allowsHitTesting(false))
             .accessibilityIdentifier("startTemplate")
+            .disabled(items.isEmpty && template.plannedCardio.isEmpty)
         }
         .workoutStartFlow(request: $request, gym: gym, onWorkoutStarted: onWorkoutStarted)
         .sheet(isPresented: $showingEditor) {

@@ -119,7 +119,7 @@ enum AskAI {
 
     /// Ticket 06: the create-new sheet's "Suggest exercises with AI".
     static var proposer: ExerciseProposer? {
-        if fixtureIsEnabled { return StubExerciseProposer(failure: stubFailure) }
+        if fixtureIsEnabled || TerraAccess.fixture { return StubExerciseProposer(failure: stubFailure) }
         guard let key = AskAIKeyStore.read() else { return nil }
         return TerraExerciseProposer(client: TerraClient(key: key))
     }

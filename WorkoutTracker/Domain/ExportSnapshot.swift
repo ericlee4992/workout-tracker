@@ -53,6 +53,7 @@ struct ExportSnapshot: Codable, Equatable {
     /// phone drew. Omitted when empty — a v8 workout restored has means only
     /// and draws from them. JSON only, like the mean; CSV unchanged.
     /// 10 — cardio segments, measured/entered distance, active intervals and routes.
+    /// 11 — confirmed machine exercise links and authored routine targets/provenance. CSV unchanged.
     static let currentSchemaVersion = 11
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
@@ -195,7 +196,8 @@ extension ExportSnapshot {
         var id: UUID
         var name: String
         var items: [TemplateItem]
-        var plannedCardio: [PlannedCardio]? = nil
+        var plannedCardio: [CardioPlan]? = nil
+        var unreadableCardioPlanData: Data? = nil
         var generatedForGymID: UUID? = nil
         var confirmedEquipment: [String]? = nil
     }
@@ -262,7 +264,8 @@ extension ExportSnapshot {
         var basalEnergyKilocalories: Double? = nil
         var cardioSegments: [Cardio]? = nil
         var sensorCheckpoint: SensorCheckpoint? = nil
-        var plannedCardio: [PlannedCardio]? = nil
+        var plannedCardio: [CardioPlan]? = nil
+        var unreadableCardioPlanData: Data? = nil
     }
 
     /// One exercise within a workout.
@@ -310,7 +313,8 @@ extension ExportSnapshot {
         var reclassifiedFromExerciseName: String? = nil
         var sets: [SetRow]
         var plannedRestSeconds: Int? = nil
-        var plannedRepsBySet: [Int?]? = nil    }
+        var plannedRepsBySet: [Int?]? = nil
+    }
 
     /// One logged set. `weight`/`unit` are exactly as entered and `weightKg`
     /// is the stored normalization (D29) — never a converted display value,
@@ -462,5 +466,21 @@ extension ExportSnapshot {
         var bpm: Int
         var date: String
         var source: HeartRateSource
+    }
+}
+
+// Export DTO is independent of the app's editable target representation.
+extension ExportSnapshot {
+    struct CardioPlan: Codable, Equatable {
+        var id: UUID
+        var activity: String
+        var minutes: Int
+        var distance: Double?
+        var unit: String
+        var segmentID: UUID?
+        init(_ target: PlannedCardio) {
+            id = target.id; activity = target.activity.rawValue; minutes = target.minutes
+            distance = target.distance; unit = target.unit.rawValue; segmentID = target.segmentID
+        }
     }
 }

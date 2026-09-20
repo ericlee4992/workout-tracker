@@ -241,7 +241,7 @@ extension Workout {
         }
         // Ending cardio-only recording must not manufacture a strength workout
         // while the user reads the result or reaches for Finish.
-        if (!orderedCardio.isEmpty || !plannedCardio.isEmpty), entries?.isEmpty != false { return .idle }
+        if (!orderedCardio.isEmpty || !plannedCardio.isEmpty || hasUnknownCardioTargets), entries?.isEmpty != false { return .idle }
         return .lifting
     }
     var orderedCardio: [CardioSegment] {
@@ -253,11 +253,12 @@ extension Workout {
 }
 
 enum CardioSessionError: LocalizedError {
-    case finishedWorkout, invalidDistance
+    case finishedWorkout, invalidDistance, unavailablePlan
     var errorDescription: String? {
         switch self {
         case .finishedWorkout: "This workout has already finished."
         case .invalidDistance: "Enter a distance of zero or more."
+        case .unavailablePlan: "This cardio target has already started or is unavailable."
         }
     }
 }
@@ -266,8 +267,14 @@ struct CardioSession {
     let context: ModelContext
     @discardableResult
     func start(_ activity: CardioActivity, in workout: Workout, at date: Date = .now,
-               unit: CardioDistanceUnit? = nil) throws -> CardioSegment {
+               unit: CardioDistanceUnit? = nil, plannedTargetID: UUID? = nil) throws -> CardioSegment {
         guard !workout.isDeleted, workout.finishedAt == nil else { throw CardioSessionError.finishedWorkout }
+        var plan = workout.plannedCardio
+        let targetIndex = plannedTargetID.flatMap { id in plan.firstIndex { $0.id == id } }
+        if plannedTargetID != nil {
+            guard let targetIndex, workout.canStart(plan[targetIndex]),
+                  plan[targetIndex].activity == activity, workout.unfinishedCardio == nil else { throw CardioSessionError.unavailablePlan }
+        }
         // Snapshot the app default once. A later preference change must not rewrite
         // an active/saved segment or its manually entered value/unit pair.
         let resolvedUnit: CardioDistanceUnit
@@ -281,6 +288,11 @@ struct CardioSession {
         let segment = CardioSegment(activity: activity, order: (workout.orderedCardio.map(\.order).max() ?? -1) + 1,
                                     workout: workout, at: date, unit: resolvedUnit)
         context.insert(segment)
+        if let targetIndex {
+            // Persist the start and its plan link together: a relaunch must never offer the same target twice.
+            plan[targetIndex].segmentID = segment.id
+            workout.plannedCardio = plan
+        }
         try context.save()
         return segment
     }

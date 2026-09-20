@@ -44,6 +44,9 @@ struct TemplateEditorSheet: View {
                     }
                 }
 
+                if template?.hasUnknownCardioTargets == true {
+                    Text("Some cardio targets are unavailable in this version. Update the app to edit this template.")
+                }
                 CardioPlanEditor(targets: $cardio)
                 if let error { Text(error).foregroundStyle(.red) }
 
@@ -69,7 +72,7 @@ struct TemplateEditorSheet: View {
                 ToolbarItem(placement: .principal) { EditButton() }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
-                        .disabled(trimmedName.isEmpty || (items.isEmpty && cardio.isEmpty) || !cardio.allSatisfy(\.isValid))
+                        .disabled(trimmedName.isEmpty || (items.isEmpty && cardio.isEmpty) || !cardio.allSatisfy(\.isValid) || template?.hasUnknownCardioTargets == true)
                 }
             }
         }
@@ -92,8 +95,11 @@ struct TemplateEditorSheet: View {
                 "\(items[index].repsBySet.count) sets",
                 value: setCountBinding(at: index),
                 in: 1...12)
-            Stepper(items[index].restSeconds.map { "Rest: \($0)s" } ?? "Rest: exercise default",
-                    value: Binding(get: { items[index].restSeconds ?? 0 }, set: { items[index].restSeconds = $0 == 0 ? nil : $0 }), in: 0...600, step: 15)
+            Toggle("Use exercise rest default", isOn: Binding(get: { items[index].restSeconds == nil }, set: { items[index].restSeconds = $0 ? nil : 90 }))
+            if items[index].restSeconds != nil {
+                Stepper("Rest: \(items[index].restSeconds ?? 0)s",
+                    value: Binding(get: { items[index].restSeconds ?? 0 }, set: { items[index].restSeconds = $0 }), in: 0...600, step: 15)
+            }
             ForEach(items[index].repsBySet.indices, id: \.self) { setIndex in
                 Stepper(
                     slotLabel(itemIndex: index, setIndex: setIndex),

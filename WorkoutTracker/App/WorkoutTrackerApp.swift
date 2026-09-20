@@ -8,6 +8,11 @@ struct WorkoutTrackerApp: App {
     private let modelContainer: ModelContainer
 
     init() {
+        if WorkoutTrackerStore.isUITestReset {
+            UserDefaults.standard.removeObject(forKey: TerraAccess.photoConsentKey)
+            UserDefaults.standard.removeObject(forKey: TerraAccess.exerciseConsentKey)
+            UserDefaults.standard.removeObject(forKey: TerraAccess.routineConsentKey)
+        }
         do {
             // `-uiTestReset` starts from an empty throwaway store so UI tests
             // never inherit state from a previous run.

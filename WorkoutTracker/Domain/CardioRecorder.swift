@@ -97,11 +97,11 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
         }
         sync()
     }
-    func start(_ activity: CardioActivity) {
+    func start(_ activity: CardioActivity, plannedTargetID: UUID? = nil) {
         guard let workout, let context else { return }
         refresh()
         do {
-            _ = try CardioSession(context: context).start(activity, in: workout, at: clock())
+            _ = try CardioSession(context: context).start(activity, in: workout, at: clock(), plannedTargetID: plannedTargetID)
             sync()
         } catch { errorMessage = error.localizedDescription }
     }

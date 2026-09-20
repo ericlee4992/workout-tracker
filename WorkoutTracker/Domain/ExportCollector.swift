@@ -239,7 +239,8 @@ struct ExportCollector {
                     supersetGroupID: item.supersetGroupID, plannedRestSeconds: item.plannedRestSeconds, preferredEquipmentTag: item.preferredEquipmentTag)
             }
         return ExportSnapshot.Template(id: template.id, name: template.name, items: items,
-            plannedCardio: template.plannedCardio.isEmpty ? nil : template.plannedCardio,
+            plannedCardio: template.plannedCardio.isEmpty ? nil : template.plannedCardio.map(ExportSnapshot.CardioPlan.init),
+            unreadableCardioPlanData: template.hasUnknownCardioTargets ? template.cardioPlanData : nil,
             generatedForGymID: template.generatedForGymID, confirmedEquipment: template.confirmedEquipment.isEmpty ? nil : template.confirmedEquipment)
     }
 
@@ -290,7 +291,8 @@ struct ExportCollector {
                 maximumHeartRateBpm: workout.sensorMaxHeartRateBpm,
                 maximumHeartRateEstimated: workout.sensorMaxHeartRateEstimated,
                 activeEnergyKilocalories: workout.sensorActiveEnergyCheckpoint,
-                basalEnergyKilocalories: workout.sensorBasalEnergyCheckpoint), plannedCardio: workout.plannedCardio.isEmpty ? nil : workout.plannedCardio)
+                basalEnergyKilocalories: workout.sensorBasalEnergyCheckpoint), plannedCardio: workout.plannedCardio.isEmpty ? nil : workout.plannedCardio.map(ExportSnapshot.CardioPlan.init),
+            unreadableCardioPlanData: workout.hasUnknownCardioTargets ? workout.cardioPlanData : nil)
     }
 
     private func cardio(from segment: CardioSegment) -> ExportSnapshot.Cardio {

@@ -7,6 +7,7 @@ struct AIRoutineSheet: View {
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     var gym: Gym?
     @AppStorage(TerraAccess.routineConsentKey) private var consent = false
+    @FocusState private var editingInputs: Bool
     @State private var goals = ""
     @State private var experience = "Beginner"
     @State private var days = 3
@@ -18,6 +19,7 @@ struct AIRoutineSheet: View {
     @State private var routine: AIRoutine?
     @State private var sentRequest: AIRoutineRequest?
     @State private var busy = false
+    @State private var saved = false
     @State private var error: String?
     @State private var settings = false
     @State private var task: Task<Void, Never>?
@@ -45,9 +47,13 @@ struct AIRoutineSheet: View {
             }
             .navigationTitle(routine == nil ? "Ask AI" : "Your week")
             .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") { editingInputs = false }.accessibilityIdentifier("dismissRoutineKeyboard")
+                }
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancel(); dismiss() } }
                 if routine != nil {
-                    ToolbarItem(placement: .confirmationAction) { Button("Save templates") { save() }.accessibilityIdentifier("saveAIRoutine") }
+                    ToolbarItem(placement: .confirmationAction) { Button("Save templates") { save() }.disabled(saved).accessibilityIdentifier("saveAIRoutine") }
                 }
             }
             .sheet(isPresented: $settings) { AskAISettingsSheet() }
@@ -59,14 +65,14 @@ struct AIRoutineSheet: View {
         Form {
             Section("Goals") {
                 TextField("What would you like to work toward?", text: $goals, axis: .vertical)
-                    .lineLimit(3...6).accessibilityIdentifier("routineGoals")
+                    .lineLimit(3...6).focused($editingInputs).accessibilityIdentifier("routineGoals")
                 Picker("Experience", selection: $experience) { ForEach(["Beginner", "Intermediate", "Experienced"], id: \.self) { Text($0) } }
                 Stepper("\(days) days per week", value: $days, in: 1...7)
                 Stepper("\(minutes) minutes per session", value: $minutes, in: 15...120, step: 5)
             }
             Section("Optional profile") {
-                TextField("Height (cm)", text: $height).keyboardType(.decimalPad)
-                TextField("Weight (kg)", text: $weight).keyboardType(.decimalPad)
+                TextField("Height (cm)", text: $height).keyboardType(.decimalPad).focused($editingInputs)
+                TextField("Weight (kg)", text: $weight).keyboardType(.decimalPad).focused($editingInputs)
             }
             Section(gym.map { "Equipment at \($0.name)" } ?? "Available equipment") {
                 if let gym { Text("\(gym.activeMachines.count) saved machines").foregroundStyle(Theme.secondary) }
@@ -94,7 +100,7 @@ struct AIRoutineSheet: View {
                     .disabled((!consent && !TerraAccess.bypassesConsent) || goals.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (options.isEmpty && cardio.isEmpty))
                     .accessibilityIdentifier("generateAIRoutine")
             }
-        }
+        }.scrollDismissesKeyboard(.interactively)
     }
     private var preview: some View {
         List {
@@ -149,11 +155,12 @@ struct AIRoutineSheet: View {
         }
     }
     private func save() {
-        guard let routine, let request = sentRequest else { return }
+        guard !saved, let routine, let request = sentRequest else { return }
+        saved = true
         do {
             try AIRoutinePersistence.save(routine, request: request, gymID: gym?.id, extras: extras, in: context.container)
             dismiss()
-        } catch { self.error = error.localizedDescription }
+        } catch { saved = false; self.error = error.localizedDescription }
     }
 }
 
@@ -165,15 +172,15 @@ private struct AIRoutineDayEditor: View {
         Form {
             TextField("Session name", text: $day.name)
             Section("Strength") {
-                ForEach(day.strength.indices, id: \.self) { index in
+                ForEach($day.strength) { $item in
                     VStack(alignment: .leading, spacing: 8) {
-                        Picker("Exercise", selection: $day.strength[index].exerciseID) {
-                            ForEach(options) { Text($0.name).tag($0.id) }
+                        Picker("Exercise", selection: $item.exerciseID) {
+                            ForEach(options.filter { option in option.id == item.exerciseID || !day.strength.contains { $0.exerciseID == option.id } }) { Text($0.name).tag($0.id) }
                         }
-                        Stepper("\(day.strength[index].sets) sets", value: $day.strength[index].sets, in: 1...10)
-                        Stepper("\(day.strength[index].reps) reps", value: $day.strength[index].reps, in: 1...50)
-                        Stepper("\(day.strength[index].restSeconds)s rest", value: $day.strength[index].restSeconds, in: 0...600, step: 15)
-                        Button("Remove exercise", role: .destructive) { day.strength.remove(at: index) }
+                        Stepper("\(item.sets) sets", value: $item.sets, in: 1...10)
+                        Stepper("\(item.reps) reps", value: $item.reps, in: 1...50)
+                        Stepper("\(item.restSeconds)s rest", value: $item.restSeconds, in: 0...600, step: 15)
+                        Button("Remove exercise", role: .destructive) { day.strength.removeAll { $0.id == item.id } }
                     }
                 }.onMove { day.strength.move(fromOffsets: $0, toOffset: $1) }
                 if let first = options.first(where: { option in !day.strength.contains { $0.exerciseID == option.id } }) {
@@ -181,10 +188,12 @@ private struct AIRoutineDayEditor: View {
                 }
             }
             Section("Cardio") {
-                ForEach(day.cardio.indices, id: \.self) { index in
-                    Picker("Activity", selection: $day.cardio[index].activity) { ForEach(activities) { Text($0.name).tag($0) } }
-                    Stepper("\(day.cardio[index].minutes) min", value: $day.cardio[index].minutes, in: 1...180)
-                    Button("Remove cardio", role: .destructive) { day.cardio.remove(at: index) }
+                ForEach($day.cardio) { $item in
+                    VStack(alignment: .leading, spacing: 8) {
+                        Picker("Activity", selection: $item.activity) { ForEach(activities) { Text($0.name).tag($0) } }
+                        Stepper("\(item.minutes) min", value: $item.minutes, in: 1...180)
+                        Button("Remove cardio", role: .destructive) { day.cardio.removeAll { $0.id == item.id } }
+                    }
                 }
                 if let first = activities.first {
                     Button("Add cardio") { day.cardio.append(.init(activity: first, minutes: 15)) }.disabled(day.cardio.count >= 3)

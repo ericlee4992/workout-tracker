@@ -90,20 +90,25 @@ struct IdentifyEquipmentSheet: View {
         }.padding(.bottom)
     }
 
+    private var resolution: EquipmentIdentityResolution { proposal.map { EquipmentIdentityResolution.resolve($0, among: models) } ?? .generic }
     private var catalogMatch: EquipmentModel? {
-        guard let proposal, proposal.identity == "specific" else { return nil }
-        let matches = models.filter {
-            EquipmentIdentification.normalized($0.manufacturer) == EquipmentIdentification.normalized(proposal.manufacturer)
-            && EquipmentIdentification.normalized($0.modelName) == EquipmentIdentification.normalized(proposal.modelName)
-        }
-        return matches.count == 1 ? matches.first : nil
+        if case .catalog(let model) = resolution { return model }
+        return nil
     }
-    private var effectiveIDs: [UUID] { catalogMatch?.exerciseIDs ?? proposal?.exerciseIDs ?? [] }
+    private var effectiveIDs: [UUID] { catalogMatch?.exerciseIDs.isEmpty == false ? catalogMatch!.exerciseIDs : proposal?.exerciseIDs ?? [] }
 
     private var result: some View {
         Form {
             if proposal?.identity == "uncertain" {
                 Text("AI could not identify this equipment. Try a clearer angle or choose its exercises below.")
+            }
+            Section {
+                switch resolution {
+                case .catalog(let model): Text("Matches catalog: \(model.displayName)")
+                case .newModel(let manufacturer, let name): Text("Will add new model: \(manufacturer) \(name)")
+                case .ambiguous: Text("Multiple catalog identities match. This will be saved without a model; you can choose one later.")
+                case .generic: Text("Saved as this gym’s machine, with no model claimed.")
+                }
             }
             Section("Equipment") {
                 TextField("Machine name", text: Binding(get: { proposal?.label ?? "" }, set: { proposal?.label = $0 }))
@@ -117,7 +122,7 @@ struct IdentifyEquipmentSheet: View {
             }
             Section("Exercises") {
                 ForEach(exercises.filter { effectiveIDs.contains($0.id) }) { exercise in Text(exercise.name) }
-                if catalogMatch == nil { NavigationLink("Change exercises") {
+                if catalogMatch?.exerciseIDs.isEmpty != false { NavigationLink("Change exercises") {
                     AIExerciseSelection(exercises: exercises, selected: Binding(get: { Set(proposal?.exerciseIDs ?? []) }, set: { proposal?.exerciseIDs = $0.sorted { $0.uuidString < $1.uuidString } }))
                 } }
             }
@@ -125,6 +130,9 @@ struct IdentifyEquipmentSheet: View {
                 Button("Use this equipment") {
                     guard var proposal else { return }
                     proposal.exerciseIDs = effectiveIDs
+                    proposal.label = proposal.label.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if case .ambiguous = resolution { proposal.identity = "generic" }
+                    if case .generic = resolution { proposal.identity = "generic" }
                     onIdentify(proposal); dismiss()
                 }.disabled(proposal?.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false || effectiveIDs.isEmpty)
                     .accessibilityIdentifier("scanUseCandidate")
@@ -149,11 +157,12 @@ struct IdentifyEquipmentSheet: View {
         }
     }
     private func identify(_ image: UIImage) {
+        guard consent || TerraAccess.bypassesConsent else { return }
         cancel(); busy = true; error = nil
         let id = UUID(); requestID = id
         let jpeg = EquipmentPhoto.jpeg(image)
-        let candidates = exercises.map { "\($0.id.uuidString) | \($0.name) | \($0.loadType.rawValue)" }.joined(separator: "\n")
-        let allowed = Set(exercises.map(\.id))
+        let candidates = exercises.filter(\.isSeeded).map { "\($0.id.uuidString) | \($0.name) | \($0.loadType.rawValue)" }.joined(separator: "\n")
+        let allowed = Set(exercises.filter(\.isSeeded).map(\.id))
         let fixtureID = exercises.first { $0.name == "Seated Chest Press" }?.id ?? exercises.first?.id
         work = Task {
             do {

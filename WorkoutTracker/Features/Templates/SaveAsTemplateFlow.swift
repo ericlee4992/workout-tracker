@@ -64,7 +64,9 @@ struct SaveAsTemplateFlow: ViewModifier {
         case .emptyName:
             return "Give the template a name and try again."
         case .noExercises:
-            return "This workout has no completed sets, so there is nothing to save as a template."
+            return "This workout has no completed sets or recorded cardio to save as a template."
+        case .invalidCardioTargets:
+            return error.localizedDescription
         case nil:
             return "The template could not be saved: \(error.localizedDescription)"
         }

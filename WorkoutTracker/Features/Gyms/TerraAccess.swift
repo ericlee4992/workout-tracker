@@ -5,6 +5,7 @@ import SwiftUI
 /// Permission to send a photograph does not authorize sending a routine profile.
 enum TerraAccess {
     static let photoConsentKey = "openai.photoConsent.v1"
+    static let exerciseConsentKey = "openai.exerciseConsent.v1"
     static let routineConsentKey = "openai.routineConsent.v1"
     static var fixture: Bool { WorkoutTrackerStore.fixtureIsEnabled("-uiTestTerra") }
     static var bypassesConsent: Bool { fixture && !ProcessInfo.processInfo.arguments.contains("-uiTestTerraNeedsConsent") }

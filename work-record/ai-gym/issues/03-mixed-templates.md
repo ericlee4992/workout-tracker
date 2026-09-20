@@ -1,7 +1,7 @@
 # 03 — Lifting and cardio template targets
 
 Type: task
-Status: ready-for-agent
+Status: claimed — implemented, review fixes and verification in progress
 
 Specification: [AI gym spec](../spec.md).
 
@@ -11,7 +11,7 @@ Additive persisted cardio/rest plan targets, editable templates/detail, explicit
 
 ## Evidence
 
-Pending implementation and verification.
+Implementation at `7dc1622`; follow-up fixes and scope/results tracked in [ticket 05](05-verification-review.md).
 
 ## Verification scope / review
 

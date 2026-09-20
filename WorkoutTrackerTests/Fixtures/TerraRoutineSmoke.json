@@ -1,0 +1,104 @@
+{
+  "request": {
+    "days": 3,
+    "exercises": [
+      {
+        "name": "Dumbbell Curl",
+        "muscleGroup": "Biceps",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000010"
+      },
+      {
+        "name": "Dumbbell Bench Press",
+        "muscleGroup": "Chest",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000077"
+      },
+      {
+        "name": "Dumbbell Incline Press",
+        "muscleGroup": "Chest",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000078"
+      },
+      {
+        "name": "Dumbbell Decline Press",
+        "muscleGroup": "Chest",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000079"
+      },
+      {
+        "name": "Dumbbell Fly",
+        "muscleGroup": "Chest",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000080"
+      },
+      {
+        "name": "Dumbbell Floor Press",
+        "muscleGroup": "Chest",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000081"
+      },
+      {
+        "name": "Dumbbell Shoulder Press",
+        "muscleGroup": "Shoulders",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000082"
+      },
+      {
+        "name": "Dumbbell Lateral Raise",
+        "muscleGroup": "Shoulders",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000083"
+      },
+      {
+        "name": "Dumbbell Row",
+        "muscleGroup": "Back",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000084"
+      },
+      {
+        "name": "Dumbbell Shrug",
+        "muscleGroup": "Back",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000085"
+      },
+      {
+        "name": "Dumbbell Romanian Deadlift",
+        "muscleGroup": "Hamstrings",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000086"
+      },
+      {
+        "name": "Dumbbell Lunge",
+        "muscleGroup": "Quads",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000087"
+      },
+      {
+        "name": "Bulgarian Split Squat",
+        "muscleGroup": "Quads",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000088"
+      },
+      {
+        "name": "Dumbbell Goblet Squat",
+        "muscleGroup": "Quads",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000089"
+      },
+      {
+        "name": "Dumbbell Hip Thrust",
+        "muscleGroup": "Glutes",
+        "equipment": "dumbbell",
+        "id": "5EED0001-0000-4000-8000-000000000090"
+      }
+    ],
+    "cardioActivities": [
+      "outdoorWalk"
+    ],
+    "minutes": 45,
+    "goals": "Build strength and general endurance",
+    "experience": "Beginner"
+  },
+  "text": "{\"sessions\":[{\"name\":\"Day 1 Full Body\",\"cardio\":[{\"minutes\":25,\"activity\":\"outdoorWalk\"}],\"strength\":[{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000089\",\"restSeconds\":90},{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000077\",\"restSeconds\":90},{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000084\",\"restSeconds\":90},{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000086\",\"restSeconds\":90},{\"sets\":2,\"reps\":12,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000083\",\"restSeconds\":90}]},{\"name\":\"Day 2 Full Body\",\"cardio\":[{\"minutes\":25,\"activity\":\"outdoorWalk\"}],\"strength\":[{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000087\",\"restSeconds\":90},{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000081\",\"restSeconds\":90},{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000082\",\"restSeconds\":90},{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000084\",\"restSeconds\":90},{\"sets\":2,\"reps\":12,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000010\",\"restSeconds\":90}]},{\"name\":\"Day 3 Full Body\",\"cardio\":[{\"minutes\":25,\"activity\":\"outdoorWalk\"}],\"strength\":[{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000090\",\"restSeconds\":90},{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000078\",\"restSeconds\":90},{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000089\",\"restSeconds\":90},{\"sets\":2,\"reps\":10,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000084\",\"restSeconds\":90},{\"sets\":2,\"reps\":12,\"exerciseID\":\"5EED0001-0000-4000-8000-000000000083\",\"restSeconds\":90}]}]}"
+}

@@ -1,6 +1,8 @@
 import SwiftUI
+import SwiftData
 
 struct CardioPlanEditor: View {
+    @Environment(\.modelContext) private var context
     @Binding var targets: [PlannedCardio]
     var allowed: [CardioActivity] = CardioActivity.allCases
     var body: some View {
@@ -24,7 +26,9 @@ struct CardioPlanEditor: View {
                 }
             }
             if let first = allowed.first {
-                Button("Add cardio target", systemImage: "plus") { targets.append(PlannedCardio(activity: first, minutes: 15)) }
+                Button("Add cardio target", systemImage: "plus") { let preference = try? AppPreferences.canonical(in: context)
+                    let unit = AppUnitSystem.resolve(preference: preference?.unitPreference).distanceUnit
+                    targets.append(PlannedCardio(activity: first, minutes: 15, unit: unit)) }
                     .disabled(targets.count >= 3)
             }
         }

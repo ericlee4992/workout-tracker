@@ -19,9 +19,17 @@ struct TemplateItemDraft {
     }
 }
 
-enum WorkoutTemplateError: Error, Equatable {
+enum WorkoutTemplateError: Error, Equatable, LocalizedError {
     case emptyName
     case noExercises
+    case invalidCardioTargets
+    var errorDescription: String? {
+        switch self {
+        case .emptyName: "Give this template a name."
+        case .noExercises: "Add at least one exercise or cardio target."
+        case .invalidCardioTargets: "Check cardio targets: use 1–180 minutes and a positive distance up to 200 in the selected unit."
+        }
+    }
 }
 
 /// The per-slot rep targets a `TemplateItem` describes. `targetSets`,
@@ -92,7 +100,7 @@ struct WorkoutTemplateService {
     func create(name: String, items: [TemplateItemDraft], cardio: [PlannedCardio] = []) throws -> WorkoutTemplate {
         let validName = try validatedName(name)
         guard !items.isEmpty || !cardio.isEmpty else { throw WorkoutTemplateError.noExercises }
-        guard cardio.allSatisfy(\.isValid) else { throw TerraError.invalidResponse }
+        guard cardio.allSatisfy(\.isValid) else { throw WorkoutTemplateError.invalidCardioTargets }
         let template = WorkoutTemplate(name: validName)
         template.plannedCardio = cardio
         context.insert(template)
@@ -108,7 +116,7 @@ struct WorkoutTemplateService {
         cardio: [PlannedCardio]? = nil
     ) throws {
         guard !items.isEmpty || !(cardio ?? template.plannedCardio).isEmpty else { throw WorkoutTemplateError.noExercises }
-        guard (cardio ?? template.plannedCardio).allSatisfy(\.isValid) else { throw TerraError.invalidResponse }
+        guard (cardio ?? template.plannedCardio).allSatisfy(\.isValid) else { throw WorkoutTemplateError.invalidCardioTargets }
         template.name = try validatedName(name)
         if let cardio { template.plannedCardio = cardio }
         try replaceItems(of: template, with: items)
@@ -138,6 +146,7 @@ struct WorkoutTemplateService {
         // D23: history titles read this snapshot, so renaming or deleting the
         // template later cannot retitle the workouts it produced.
         workout.sourceTemplateName = template.name
+        workout.cardioPlanData = template.cardioPlanData
         workout.plannedCardio = template.plannedCardio.map {
             var target = $0; target.id = UUID(); target.segmentID = nil; return target
         }

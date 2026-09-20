@@ -616,11 +616,9 @@ struct MachineEditorSheet: View {
                 IdentifyEquipmentSheet { result in
                     identified = result
                     recognizedIDs = Set(result.exerciseIDs)
-                    let matches = ((try? modelContext.fetch(FetchDescriptor<EquipmentModel>())) ?? []).filter {
-                        result.identity == "specific" && EquipmentIdentification.normalized($0.manufacturer) == EquipmentIdentification.normalized(result.manufacturer)
-                        && EquipmentIdentification.normalized($0.modelName) == EquipmentIdentification.normalized(result.modelName)
-                    }
-                    model = matches.count == 1 ? matches.first : nil
+                    let available = (try? modelContext.fetch(FetchDescriptor<EquipmentModel>())) ?? []
+                    if case .catalog(let match) = EquipmentIdentityResolution.resolve(result, among: available) { model = match }
+                    else { model = nil }
                     if trimmedLabel.isEmpty || trimmedLabel == modelDerivedLabel {
                         label = result.label; modelDerivedLabel = result.label
                     }
@@ -661,8 +659,8 @@ struct MachineEditorSheet: View {
     /// so it is offered none here; the choice still exists at log time, where
     /// the exercise is known.
     private var servedExercise: Exercise? {
-        guard (model?.exerciseIDs ?? Array(recognizedIDs)).count == 1,
-              let exerciseID = (model?.exerciseIDs ?? Array(recognizedIDs)).first
+        guard (model?.exerciseIDs ?? recognizedIDs.sorted { $0.uuidString < $1.uuidString }).count == 1,
+              let exerciseID = (model?.exerciseIDs ?? recognizedIDs.sorted { $0.uuidString < $1.uuidString }).first
         else { return nil }
         return try? modelContext.fetch(FetchDescriptor<Exercise>(
             predicate: #Predicate { $0.id == exerciseID })).first
@@ -707,13 +705,19 @@ struct MachineEditorSheet: View {
                 try EquipmentLifecycle(context: modelContext).update(
                     machine, label: label, defaultUnit: defaultUnit)
                 machine.defaultPresetID = defaultPresetID
-                machine.recognizedExerciseIDs = Array(recognizedIDs)
+                machine.recognizedExerciseIDs = recognizedIDs.sorted { $0.uuidString < $1.uuidString }
                 try modelContext.save()
             } else {
-                if model == nil, let identified, identified.identity == "specific" {
-                    let custom = EquipmentModel(manufacturer: identified.manufacturer, modelName: identified.modelName,
-                                                exerciseIDs: Array(recognizedIDs), isSeeded: false)
-                    modelContext.insert(custom); model = custom
+                if model == nil, let identified {
+                    let available = try modelContext.fetch(FetchDescriptor<EquipmentModel>())
+                    switch EquipmentIdentityResolution.resolve(identified, among: available) {
+                    case .catalog(let existing): model = existing
+                    case .newModel(let manufacturer, let name):
+                        let custom = EquipmentModel(manufacturer: manufacturer, modelName: name,
+                            exerciseIDs: recognizedIDs.sorted { $0.uuidString < $1.uuidString }, isSeeded: false)
+                        modelContext.insert(custom); model = custom
+                    case .generic, .ambiguous: break
+                    }
                 }
                 let created = MachineInstance(
                     label: trimmedLabel,
@@ -721,7 +725,7 @@ struct MachineEditorSheet: View {
                     defaultPresetID: defaultPresetID,
                     gym: gym,
                     model: model)
-                created.recognizedExerciseIDs = model == nil ? Array(recognizedIDs) : []
+                created.recognizedExerciseIDs = model == nil ? recognizedIDs.sorted { $0.uuidString < $1.uuidString } : []
                 modelContext.insert(created)
                 try modelContext.save()
             }
@@ -1037,6 +1041,8 @@ struct AddModelSheet: View {
     /// The proposal in flight, so Cancel, Add and the sheet going away
     /// CANCEL the paid request rather than let it land on dead state
     /// (codex-review-05b).
+    @AppStorage(TerraAccess.exerciseConsentKey) private var exerciseConsent = false
+    @State private var confirmSendModel = false
     @State private var proposalTask: Task<Void, Never>?
 
     var body: some View {
@@ -1068,7 +1074,10 @@ struct AddModelSheet: View {
                             }
                             .accessibilityIdentifier("newModelSuggestStatus")
                         } else {
-                            Button("Suggest exercises with AI") { suggestExercises() }
+                            Button("Suggest exercises with AI") {
+                                if exerciseConsent || AskAI.fixtureIsEnabled { suggestExercises() }
+                                else { confirmSendModel = true }
+                            }
                                 .accessibilityIdentifier("newModelSuggestExercises")
                         }
                     } footer: {
@@ -1112,6 +1121,13 @@ struct AddModelSheet: View {
                     Text("Link at least one exercise this model serves — multi-exercise stations can link several.")
                 }
             }
+            .alert("Send model details to OpenAI?", isPresented: $confirmSendModel) {
+                Button("Allow and send") { exerciseConsent = true; suggestExercises() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Sends the typed manufacturer/model, plate text and exercise names to OpenAI. You can revoke this in Settings. OpenAI API data policies apply.")
+            }
+            .onChange(of: exerciseConsent) { _, allowed in if !allowed { abandonProposal() } }
             .navigationTitle("New Model")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -1166,6 +1182,7 @@ struct AddModelSheet: View {
     /// Ticket 06: ask once, tick what comes back, say why. Any failure
     /// leaves the sheet exactly as it was, with a note under the button.
     private func suggestExercises() {
+        guard exerciseConsent || AskAI.fixtureIsEnabled else { return }
         guard !proposing, let proposer = AskAI.proposer else { return }
         let candidates = exercises.map {
             ExerciseCandidate(id: $0.id, name: $0.name, muscleGroup: $0.muscleGroup)

@@ -15,8 +15,13 @@ User authorized full build with tickets and Claude review on September 20. Worki
 [ticket 01](../work-record/ai-gym/issues/01-api-and-consent.md). GPT-5.6 Terra only;
 private trial; optional Ask AI below Templates; weekly lifting/cardio routines; no weight
 estimates or guides. Key saved outside Git; first live request failed 429/credit_balance_exhausted.
-User asked to fund API billing; fixture work may proceed, live verification pending.
-No new product code, tests, merge or install claimed at this checkpoint.
+User funded API billing; the live Terra smoke now passes.
+Implementation committed at `7dc1622`; review fixes in progress. Clean simulator build passed;
+767 domain tests passed, including installed-era synthetic store migration. Initial AI UI: 7/9
+passed, two routine input/navigation failures under focused diagnosis. Live Terra key and
+structured request smoke passed after credits added; whole-machine recognition remains fallible
+on a challenging sample. [Verification ticket](../work-record/ai-gym/issues/05-verification-review.md)
+tracks exact process/log/result paths and Claude findings. Not merged or installed.
 
 ## Previous next action — still pending physical acceptance
 

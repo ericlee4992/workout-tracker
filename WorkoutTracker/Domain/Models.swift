@@ -169,7 +169,11 @@ final class MachineInstance {
     var label: String = ""
     /// Confirmed movements on an unidentified physical machine. Never a fabricated shared model.
     var recognizedExerciseIDs: [UUID] = []
-    var supportedExerciseIDs: [UUID] { model?.exerciseIDs ?? recognizedExerciseIDs }
+    var supportedExerciseIDs: [UUID] {
+        let ids = model?.exerciseIDs.isEmpty == false ? model!.exerciseIDs : recognizedExerciseIDs
+        var seen: Set<UUID> = []
+        return ids.filter { seen.insert($0).inserted }
+    }
     var defaultUnit: WeightUnit?
     /// The preset this machine usually is (D38) — preselected when logging,
     /// never binding. A scalar id, not a relationship: a deleted preset must
