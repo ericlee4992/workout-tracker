@@ -73,8 +73,10 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.buttons["minimizeWorkout"].tap()
         app.buttons["openSettings"].tap()
         selectUnitSystem("U.S. customary")
-        app.navigationBars.buttons.firstMatch.tap()
-        anyElement("resumeWorkout").tap()
+        app.navigationBars["Settings"].buttons.firstMatch.tap()
+        let resume = anyElement("resumeWorkout")
+        XCTAssertTrue(resume.waitForExistence(timeout: 10))
+        resume.tap()
         XCTAssertTrue(app.staticTexts["km"].waitForExistence(timeout: 5), "Current activity retains its chosen unit")
         app.buttons["endCardio"].tap()
         let add = app.buttons["addCardio"]
@@ -109,8 +111,16 @@ final class RedesignScreenshotUITests: XCTestCase {
     private func selectUnitSystem(_ title: String) {
         let preference = app.buttons["appUnitPreference"]
         XCTAssertTrue(preference.waitForExistence(timeout: 5))
-        preference.tap()
-        app.buttons[title].tap()
+        if !preference.label.contains(title) {
+            preference.tap()
+            let option = app.buttons[title]
+            XCTAssertTrue(option.waitForExistence(timeout: 5))
+            option.tap()
+            let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: option)
+            XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
+        }
+        let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS %@", title), object: preference)
+        XCTAssertEqual(XCTWaiter.wait(for: [selected], timeout: 5), .completed)
     }
 
     // MARK: - Screens

@@ -120,3 +120,16 @@ until mi/h is visible above pinned controls. Product code and passing753-unit in
 Single-case original harness reproduced the failure. Corrected Settings pair runner PID
 **12881**, `run-settings-final.sh`, `settings-final` log/exit/xcresult. Other7 CardioUITests
 passed with unchanged code; full85 gate remains.
+
+Corrected Settings AXL case passed; default then failed while requesting Resume with the
+Settings page still open and Metric selected (failure hierarchy), before any speed assertion.
+The helper now waits for the menu to close and the selected value to be reflected before
+navigating, skips reselecting the current value, and waits for Resume after navigation.
+No product-code change; rerun both Settings flows for stability and final captures.
+
+Settings verified pair passed **2/2**, exit 0, after menu-selection/dismissal and Resume
+waits. Initial7 Cardio cases passed with identical product code. Final selected21 captures
+under `../screenshots/units-and-indoor/`: latest Settings pair and U.S. live pair from
+settings-verified; passed indoor/source/saved captures from focused. Parent opened Settings
+(default/AXL) and phone-motion live/details pairs plus U.S. live pair. Full UI85 next.
+The product and unit-test code remains dc08ea8; later edits are UI test navigation/records.
