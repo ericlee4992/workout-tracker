@@ -49,3 +49,25 @@ remain in tickets 01, 02 and 06 and in the archive, so no evidence trail is lost
 Backup integrity/hashes, restore, the iCloud export, Orca card states, workspace Sleep, and
 anything on the phone. STATE already labels each of these as unverified or last-verified on a
 stated date, which is the accurate framing.
+
+## Final clearance — checkpoint cd17369
+
+Inspected the diff **e9803e0 → cd17369** on `ericlee4992/session-handoff-sep20` only; no
+artifact checks were rerun and nothing else was changed. It touches three documentation files:
+the copy of this review (byte-identical to **57ce6c1**), STATE and ticket 03. `git diff --check`
+is clean and the new `../session-handoff-review.md` link resolves.
+
+- **L1 resolved.** STATE's header now names the reviewed handoff e9803e0 and its merged status;
+  ticket 03 is resolved with the link, whitespace, archive, backlog and tree checks recorded.
+- **L2 resolved.** The Launch row reads "no main app process afterward (widget extension
+  only)", matching `processes.json`.
+- **L3** needs no action, as recorded.
+
+One note, not a finding: STATE and ticket 03 say "merged/pushed" in a commit made before the
+merge happens. That is accurate only once the parent completes the fast-forward and push, and
+ticket 03 already tells the next session to confirm the actual HEAD and remote. Installed,
+launch and history claims are unchanged: installed 8c71d27, launch and on-phone history
+preservation still unverified.
+
+**Final verdict: clear to merge cd17369.** This section applies cleanly on top of cd17369,
+whose review copy is identical to the text above it.
