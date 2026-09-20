@@ -1,8 +1,9 @@
 # Current project state
 
 Updated 2026-09-20 for a fresh session. Audit baseline: clean `main` / `origin/main`
-**6102b5d**. This docs-only checkpoint is on `ericlee4992/session-handoff-sep20`;
-[handoff ticket](../work-record/codex-setup/issues/03-session-handoff.md) records review and merge.
+**6102b5d**. Reviewed handoff **e9803e0**, prepared on `ericlee4992/session-handoff-sep20`,
+is merged/pushed to `main` with this records checkpoint. The
+[handoff ticket](../work-record/codex-setup/issues/03-session-handoff.md) records clearance and checks.
 Previous STATE is preserved byte-for-byte in the [archive](archive/README.md).
 
 ## Next action
@@ -43,7 +44,7 @@ link/consistency checks. [Policy ticket and review](../work-record/codex-setup/i
 | UI-tested tip | `cda7fd4`; 7 focused Cardio cases plus corrected 2 Settings cases passed; full UI **85/85**, exit 0, zero failed/skipped |
 | Independent feature review | [Claude final clearance](../work-record/cardio/claude-units-review.md), authored `46ad211` |
 | Installed source | Clean main **8c71d27**, fresh signed build; installed **2026-09-20 01:04 EDT**, devicectl exit 0 / success |
-| Launch | Remote launch exit 1, **Locked**; no app process afterward. User manual-open confirmation pending |
+| Launch | Remote launch exit 1, **Locked**; no main app process afterward (widget extension only). User manual-open confirmation pending |
 | Later changes | Install records `4a7cbc1`, policy `ad519c3` / `6102b5d`, and this handoff are documentation only |
 
 Actual exits and xcresult summaries were re-read for this handoff. Initial timing/navigation

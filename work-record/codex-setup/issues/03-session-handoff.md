@@ -1,7 +1,7 @@
 # 03 — September 20 fresh-session handoff
 
 Type: task
-Status: claimed — documentation prepared; independent review pending
+Status: resolved — independently reviewed; merged/pushed with this checkpoint
 
 User requested an updated, clear checkpoint before starting a new session. Base clean main /
 origin/main **6102b5ddfbb0eff271f415c7d9d2e55a22af182d**;
@@ -48,4 +48,12 @@ Sleep remains unverified from the earlier handoff; no UI cleanup attempted here.
 
 ## Verification / review
 
-Pending final relative-link/anchor, whitespace and preservation checks and independent review.
+Reviewed handoff **e9803e0**. Relative Markdown links/anchors and `git diff --check` passed;
+archive bytes match6102b5d exactly and all15 backlog rows plus caveats are preserved after
+rebasing links. Product/unit/UI/config trees match installed8c71d27. No app tests/build/install.
+Independent [Claude review](../session-handoff-review.md), authored **57ce6c1**, is **CLEAR TO
+MERGE**. L1 addressed by recording this completion/merge status and current STATE header;
+L2 clarified that the process list had only the widget extension, not the main app. L3 is
+historical and remains in the archive. Branch is fast-forwarded/pushed to main with this
+records checkpoint; confirm actual HEAD/remote when resuming. Preserve the completed worktrees
+and their artifacts. The user will start the new session; no implementation agent was launched.
