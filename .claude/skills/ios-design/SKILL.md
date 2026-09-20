@@ -45,8 +45,9 @@ decides what is there, in what order, and which one thing the eye lands on.
    reason or the accepted composition>". Author preference is not a reason. Done when every
    tell has a line.
 5. **Build** with the tokens and components, extending `Features/Design/` when a component is
-   missing. Done when the build is green and the screen's gate tests (the ticket names them,
-   with counts) pass.
+   missing. Select tests using [DEVELOPMENT — Verification scope](../../../docs/DEVELOPMENT.md#verification-scope).
+   Done when the build is green and the affected screen/flow tests named in the ticket pass;
+   record counts and why that scope is sufficient.
 6. **Capture and look.** In `RedesignScreenshotUITests`, the SAME fixture and state at the
    default size and at AccessibilityL (the project's gate; it is the first accessibility size,
    not the largest), scrolled so every block the wireframe names is on record; add the capture

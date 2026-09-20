@@ -72,8 +72,10 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
 B: header / Lifting–Cardio focus / current activity / segment timer (hero) / measured metric
 pairs / sensor details (no live map) / one primary Pause / secondary End Cardio, pinned within the safe area. At AccessibilityL,
 metrics and controls stack. Existing colours, SF Symbols and tab navigation remain.
-Real normal/AccessibilityL captures, targeted domain/service/export/migration tests, Debug
-build and full local UI suite gate merge, followed by independent Claude code/visual review.
+Real normal/AccessibilityL captures, a successful Debug build, verification scoped under
+[DEVELOPMENT](../../docs/DEVELOPMENT.md#verification-scope), and independent Claude code/visual
+review gate merge. The September 20 policy supersedes the original blanket full-UI gate;
+retain targeted domain/service/export/migration coverage when those behaviors change.
 Real phone sensor/GPS validation is tracked distinctly from simulator evidence.
 
 ## Presentation amendment — 2026-09-18

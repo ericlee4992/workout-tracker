@@ -55,10 +55,12 @@ Use one session per coherent task; checkpoint before starting a fresh session fo
 - Commit on the branch and push it. Once the required verification and review are clear,
   fast-forward `main` with `git merge --ff-only <branch>` and push `main`. The repository's
   established workflow does not require a PR. Confirm the remote contains the resulting tip.
-- Build/test commands and detached-run instructions are in DEVELOPMENT. Run relevant tests
-  for code changes; run the full local UI suite before merging screen changes. Inspect the
-  actual exit code and result, not another agent's summary. For docs-only changes, check links,
-  archive preservation, and consistency rather than rebuilding the app.
+- **Test scope:** follow [DEVELOPMENT — Verification scope](docs/DEVELOPMENT.md#verification-scope).
+  Use targeted checks for routine changes; reserve the full UI suite for the escalation cases
+  there. This policy governs new work over blanket full-suite instructions in older tickets,
+  specs or generic skills. Record the selected scope and results in the ticket. Inspect actual
+  exit codes and results, not another agent's summary. Docs-only work uses consistency/link
+  checks; device installation alone does not require a full UI run.
 - Code commits must preserve a successful `xcodebuild build`. Before closing a feature, check
   internal functions and doc comments against their callers. Verify gated settings are reachable
   and mirrored messages are actually sent; testing only the gate or receiver misses these defects.

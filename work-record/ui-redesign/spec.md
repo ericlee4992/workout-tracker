@@ -232,8 +232,9 @@ Show the PNGs to the user (SendUserFile) before the next ticket.
 
 ## Risks and containment
 
-- **Test breakage** — each ticket names its gate classes; run them before every commit, the full
-  suite detached (`nohup … &`, ~25 min) before merge. Never put an identifier on a multi-child
+- **Test breakage** — each ticket names affected gate tests and follows
+  [DEVELOPMENT — Verification scope](../../docs/DEVELOPMENT.md#verification-scope) for
+  pre-merge checks (policy updated September 20). Never put an identifier on a multi-child
   container; combined elements keep `.accessibilityElement(children: .combine)` first.
 - **Swipe-to-delete on set rows** — opaque row background, `swipeDeleteWidth` 88, gesture
   threshold 14, `setRow.previous` a single `Text` at the left: unchanged.
@@ -247,8 +248,8 @@ Show the PNGs to the user (SendUserFile) before the next ticket.
 
 ## Verification per ticket
 
-1. `xcodebuild build` clean. 2. Unit suite (698 + `ThemeTests`). 3. The ticket's gate UI classes +
-`RedesignScreenshotUITests` for its screens; PNGs exported, committed, sent to the user. 4. Full UI
-suite detached before merge (46 + new, green). 5. Codex cross-review in a visible Orca terminal
-(`codex "$(cat prompt)"`, watch the report file) to "clear"; Resolution in the ticket; STATE/SPEC/
-DECISIONS updated; fast-forward merge; push both.
+Updated September 20: select tests with [DEVELOPMENT — Verification scope](../../docs/DEVELOPMENT.md#verification-scope).
+Build successfully; run affected domain/UI checks and paired default/AccessibilityL screen
+captures. Export, inspect, commit and show the PNGs. Record test scope/results in the ticket;
+obtain independent review under T6, update STATE/SPEC/DECISIONS where relevant, then fast-forward
+merge and push both branches. Historical ticket results retain the original suite counts.

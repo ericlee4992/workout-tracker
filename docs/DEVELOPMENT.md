@@ -4,6 +4,42 @@ Read this for build, test, simulator, device-install, or environment work. Curre
 commit, expiry, and backup facts are in [STATE](STATE.md). Historical incidents and their
 original evidence are preserved in the [archive](archive/README.md).
 
+## Verification scope
+
+User-approved 2026-09-20 (T8): choose verification by the changed behavior and its callers.
+For new work, this policy supersedes older blanket full-suite gates; past test evidence remains
+historical. The implementer selects the smallest set that covers the change and directly affected
+flows, records the rationale and named tests in the ticket, and runs them before merge. The
+independent reviewer checks whether that scope covers the impact. Routine scope selection does
+not need separate user approval.
+
+| Change | Default checks |
+|---|---|
+| Text, icons, spacing or localized screen layout | Successful build, affected UI flows, real default/AccessibilityL captures of the changed screen |
+| Logic, calculations or unit conversions | Relevant unit/integration tests; affected UI flows where the behavior is exposed |
+| New feature | Feature tests plus adjacent integration flows and relevant domain tests; captures for changed screens |
+| Shared navigation, workout lifecycle, persistence or broad refactoring | Trace affected callers and run broader relevant suites; escalate to full UI when targeted coverage cannot bound the regression risk |
+| Documentation, agent rules or skill instructions only | Links, consistency and archive preservation; no app build or app tests |
+
+### When to run the full UI suite
+
+Run it for a major release candidate, broad/uncertain changes whose impact spans core flows and
+cannot be covered confidently by targeted checks, or an explicit user request. Also use it for
+planned periodic regression checks at stable checkpoints. A routine edit, a new source file,
+starting another task, merging, or installing on the personal phone is not itself a trigger.
+Record the release, risk or periodic-check reason when selecting a full run; no recurring job
+is implied by this policy.
+
+After a failure, reproduce with the focused case and test the fix there first. Re-run affected
+checks after subsequent changes; broaden or repeat suites when new failures, wider impact or
+unresolved concerns justify it. A docs/evidence-only commit can reuse unchanged tested code's
+results. Once the selected checks and independent review are clear, proceed to merge/delivery.
+
+A passing scope means actual successful exits and result summaries, with skipped tests and
+untested hardware behavior stated honestly. Successful builds for code changes, independent
+review (T6), migration/data-preservation tests where applicable, and DEVELOPMENT's backup,
+signing, fresh-binary and launch checks for installation remain required.
+
 ## Build and test
 
 Check `xcodebuild -version` when beginning environment work. Simulator builds need no local
@@ -23,13 +59,16 @@ xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
   -only-testing:WorkoutTrackerUITests
 ```
 
-The shared scheme includes both targets; omit `-only-testing` to run both. Source and test
+For targeted checks, narrow `-only-testing` to `WorkoutTrackerTests/<Suite>` or
+`WorkoutTrackerUITests/<Class>/<testMethod>`, using names from the actual tests. The commands
+above show whole-target runs for when that scope is selected. The shared scheme includes both
+targets; omitting `-only-testing` runs both and should be deliberate. Source and test
 files auto-register through Xcode's synchronized folders. If `WT-iPhone` is absent, inspect
 `xcrun simctl list devices available` and available device types/runtimes; create an available
 iPhone (for example `xcrun simctl create WT-iPhone 'iPhone 17 Pro'`) or use an existing one.
 Screenshot launch environment `PROTO_SCREEN=gyms|exercises` selects the corresponding tab.
 
-The full UI suite took about 42 minutes for 72 tests on 2026-09-17. Launch long tests detached
+The full UI suite took about 51 minutes for 85 tests on 2026-09-20. Launch long tests detached
 so a tool timeout does not kill them. Write a script with the complete command, redirect its
 output, and append the actual exit code to a status file. Launch it via Python
 `subprocess.Popen([script_path], start_new_session=True, stdin=subprocess.DEVNULL,
@@ -44,8 +83,8 @@ focused run into the entire suite. Avoid broad `pkill` patterns that can kill an
 
 Run suites serially on a simulator. Two historical heart-rate tests used to flake under
 load due to wall-clock staleness; cardio ticket 06 now injects fixed clocks in them and tests
-expiry by advancing time. For new timing failures, rerun affected tests and the suite without
-competing work before treating them as product failures; persistent timing failures need a
+expiry by advancing time. For new timing failures, rerun affected tests without competing work, then the selected
+regression scope before treating them as product failures; persistent timing failures need a
 controlled clock, not a longer arbitrary timeout. A UI failure likewise needs its focused
 rerun before diagnosis.
 

@@ -1,7 +1,7 @@
 # Current project state
 
-Updated 2026-09-20 after app-unit/indoor-cleanup installation. Verified clean main **8c71d27**
-before this install-evidence checkpoint; product/unit tests **dc08ea8**, full-UI tip **cda7fd4**.
+Updated 2026-09-20 for the verification-policy change, based on clean main **4a7cbc1**.
+Installed app facts below are unchanged: build **8c71d27**, product/unit tests **dc08ea8**, UI tip **cda7fd4**.
 Prior STATE preserved in the [archive](archive/STATE-2026-09-19-before-cardio-units.md).
 
 ## Next action: confirm app opens, then cardio device acceptance
@@ -67,6 +67,11 @@ Profiles expire September24 at 07:16 UTC. Watch cardio remains outside this rele
   [ticket 17](../work-record/ui-redesign/issues/17-finish-summary-second-pass.md).
 
 ## Tooling and workspace continuity
+
+- **Verification policy (T8):** user approved targeted checks by change risk. Current rule:
+  [DEVELOPMENT — Verification scope](DEVELOPMENT.md#verification-scope). Docs-only branch
+  `ericlee4992/verification-policy`, base **4a7cbc1**; [ticket](../work-record/codex-setup/issues/02-verification-policy.md)
+  tracks consistency checks and independent review. No app build or install for this update.
 
 - **Matt Pocock skills:** 35 project-local skills are recorded in `skills-lock.json` and present
   under `.agents/skills/`; Codex exposes relevant skills including research, tdd, code-review,

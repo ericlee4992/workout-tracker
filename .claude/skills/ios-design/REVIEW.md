@@ -37,8 +37,10 @@ judgement.
 11. **Copy.** Every visible string and accessibility identifier the tests read is unchanged
     (diff the UI tests' queries against the tree); no new string without the user's decision
     recorded.
-12. **Record.** The ticket has the job/state sentences, the wireframe, each tell answered with
-    a functional reason or accepted composition, the gate tests with counts, and both captures.
+12. **Record and verification scope.** The ticket has the job/state sentences, wireframe,
+    tells, both captures, and named tests/results with a scope rationale. Assess coverage under
+    [DEVELOPMENT — Verification scope](../../../docs/DEVELOPMENT.md#verification-scope);
+    request broader testing for a specific uncovered risk, not simply because a screen changed.
 
 Advisory (label as judgement): whether the composition is the best of the alternatives, whether
 spacing feels right, whether the accent could mark something better.
