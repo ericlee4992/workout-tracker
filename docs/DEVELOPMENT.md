@@ -15,7 +15,7 @@ not need separate user approval.
 
 | Change | Default checks |
 |---|---|
-| Text, icons, spacing or localized screen layout | Successful build, affected UI flows, real default/AccessibilityL captures of the changed screen |
+| Text, icons, spacing or layout within one screen | Successful build, affected UI flows, real default/AccessibilityL captures of the changed screen |
 | Logic, calculations or unit conversions | Relevant unit/integration tests; affected UI flows where the behavior is exposed |
 | New feature | Feature tests plus adjacent integration flows and relevant domain tests; captures for changed screens |
 | Shared navigation, workout lifecycle, persistence or broad refactoring | Trace affected callers and run broader relevant suites; escalate to full UI when targeted coverage cannot bound the regression risk |
@@ -83,9 +83,9 @@ focused run into the entire suite. Avoid broad `pkill` patterns that can kill an
 
 Run suites serially on a simulator. Two historical heart-rate tests used to flake under
 load due to wall-clock staleness; cardio ticket 06 now injects fixed clocks in them and tests
-expiry by advancing time. For new timing failures, rerun affected tests without competing work, then the selected
-regression scope before treating them as product failures; persistent timing failures need a
-controlled clock, not a longer arbitrary timeout. A UI failure likewise needs its focused
+expiry by advancing time. For new timing failures, rerun affected tests without competing work,
+then the selected regression scope before treating them as product failures. Persistent timing
+failures need a controlled clock, not a longer arbitrary timeout. A UI failure likewise needs its focused
 rerun before diagnosis.
 
 ## Simulator and UI-test pitfalls

@@ -70,8 +70,10 @@ Profiles expire September24 at 07:16 UTC. Watch cardio remains outside this rele
 
 - **Verification policy (T8):** user approved targeted checks by change risk. Current rule:
   [DEVELOPMENT — Verification scope](DEVELOPMENT.md#verification-scope). Docs-only branch
-  `ericlee4992/verification-policy`, base **4a7cbc1**; [ticket](../work-record/codex-setup/issues/02-verification-policy.md)
-  tracks consistency checks and independent review. No app build or install for this update.
+  `ericlee4992/verification-policy`, reviewed policy **ad519c3**, merged with this checkpoint;
+  [ticket](../work-record/codex-setup/issues/02-verification-policy.md) records passing consistency/
+  link checks and [independent clearance](../work-record/codex-setup/verification-policy-review.md).
+  No app build or install for this update.
 
 - **Matt Pocock skills:** 35 project-local skills are recorded in `skills-lock.json` and present
   under `.agents/skills/`; Codex exposes relevant skills including research, tdd, code-review,
