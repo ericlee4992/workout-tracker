@@ -228,3 +228,65 @@ Optional diagnostic collection interruption is documented above; it did not inte
 and xcodebuild finalized normally with TEST SUCCEEDED.
 
 Final selected checks now running against this product code; no merge/install until reviewed.
+
+### Running verification checkpoint at 9f733a2
+
+Final product/test code **9f733a2** pushed. Final scope xcodebuild PID 83435 (chain 77596):
+42 domain tests in 3 suites passed; UI cases so far pass for empty-list immediate rendering,
+populated AccessibilityL rendering, edited catalog name, existing/no-gym selection, and nested
+photo-consent/offline/cancel preservation. Full run exit/summary still pending; individual case
+success is not a completed-run claim. Finish chain PID **92713** waits for final-scope exit 0,
+then runs the two iOS 26.5 smoke cases and an explicit final simulator build serially:
+`../results/followup/finish-verification.{py,log}`, `ios26-smoke.{sh,log,exit,xcresult}` and
+`final-build.{log,exit}` in that same directory. No additional UI runs overlap these.
+
+### Completed selected scopes and final visual QA
+
+- iOS 27 `final-scope`: actual **exit 0**, xcresult summary **53 passed / 0 failed / 0 skipped**:
+  **42 domain + 11 UI**. All new scanning/gym/consent/error/cancel cases passed on first run of
+  corrected tests; no scanner-auto-entry retry. With focused default rich-grid fix, **12 distinct
+  UI cases** now have passing iOS 27 evidence.
+- iOS 26.5 `ios26-smoke`: actual **exit 0**, **2 passed / 0 failed / 0 skipped** (rich populated
+  grid and complete default routine-scanner flow). No earlier-runtime regression seen.
+- Exports under `final-shots/`; 24 curated PNGs in `../screenshots/followup/` include before,
+  three default/AX rich-grid captures, three separately named empty-grid captures, and seven
+  default/AX scanner/setup state pairs. Do not pair the short empty fixture with rich AX cards.
+- Self-QA found one incomplete initial `followup-start-default.png`: several unrelated Start
+  visuals absent though controls accessible. AX and populated Start captures are intact.
+  Original remains in final-scope.xcresult and raw final-shots; not accepted as final evidence.
+  Added two capture-only tests checking visible text for Start Lifting, Start Cardio and Ask AI
+  before capture, default/AX same empty fixture. Queued after final build (no product change):
+  PID 9893, `../results/followup/start-captures.{sh,log,exit,xcresult}`.
+- Final independent Claude code/evidence/capture review underway; clearance pending final QA.
+
+Final simulator build `final-build`: actual **exit 0 / BUILD SUCCEEDED**. The new empty-Start
+pixel checks read Start Lifting and Start Cardio correctly. First capture attempt hit an OCR
+false negative: Vision read “Ask AI” as “Ask Al” at AccessibilityL. Changed that screenshot-text
+assertion to the unambiguous word “Templates”; exact full button label is already asserted in
+both scan tests. No product change. Focused capture retry PID 16252,
+`../results/followup/start-captures-final.{sh,log,exit,xcresult}`; prior attempt retained.
+
+### Final capture provenance and evidence checkpoint
+
+- `start-captures-final`: actual **exit 0**, completed xcresult **2 passed / 0 failed / 0
+  skipped**. Both `followup-start-default.png` and `followup-start-axl.png`, plus their two
+  `followup-start-top-*` companions, now come from this **one iOS 27 run**, same empty fixture.
+  Reopened the PNGs after replacement: complete Start controls and renamed button at both sizes.
+  First `start-captures` attempt: exit 65, both cases failed only the capital-I/lowercase-l OCR
+  ambiguity; hero strings were drawn. Full-string accessibility assertions remain unchanged.
+- The focused green grid run exercised the exact working-tree product source later committed
+  as **9f733a2**; that commit's product diff is only StartWorkoutView. Later changes are
+  capture-only tests, docs and PNGs, so the product evidence transfers unchanged.
+- Exact retained earlier 26.5 harness failures (`populated-and-scan.log`): line 79 of that
+  test-source snapshot waited for offscreen `askAIRoutine` after save; line 131 in both scan
+  variants asserted `Machine Chest Press`, while the stub supplies `Seated Chest Press`.
+  No passing-run claim is made for those failed attempts. The corrected complete cases passed
+  on iOS 27, and the corrected default scan additionally passed in the iOS 26.5 smoke.
+- Final passing inventory: **42 domain tests**, **14 distinct iOS 27 UI cases** (11 in final
+  scope, 1 focused populated-default regression, 2 Start pixel/capture cases), plus 2 repeated
+  compatibility cases on iOS 26.5. All completed passing runs have actual exit 0, no failed/skipped
+  tests. Clean simulator build and final simulator build exit 0. No schema change, live API call,
+  phone install, or new physical recognition/cardio acceptance claimed.
+- [Final gallery](../followup-gallery.html): 26 real PNGs retained in screenshots/followup;
+  changed-state pairs use matching fixtures. Original incomplete/default capture and all failed
+  attempts remain in ignored raw xcresults/logs; they are not the accepted gallery evidence.

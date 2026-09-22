@@ -1,29 +1,31 @@
 # Current project state
 
-Updated **2026-09-22**. Follow-up implementation branch
-`ericlee4992/ai-template-followup`, product checkpoint **9f733a2** (pushed); main remains
-**5a894da** pending verification and independent clearance. Installed product remains
-**9b0a61a**, delivered at **0c87a6f**, installed September 20. No new phone installation.
-The [prior handoff](archive/STATE-2026-09-22-before-template-followup.md) is archived byte-for-byte.
+Updated **2026-09-22** for a fresh session. Main/remote checkpoint **9d84c1d** includes the
+installation record; product code **9b0a61a** was delivered at **0c87a6f** and installed September 20.
+Documentation handoff branch: `ericlee4992/session-handoff-sep22` (standard fast-forward-to-main
+workflow). Verify actual HEAD/remote on resume; later documentation commits do not change the
+installed binary. User explicitly waived Claude review for this handoff only.
+The [pre-AI handoff](archive/STATE-2026-09-20-before-ai-gym.md) is preserved byte-for-byte.
 
 ## Next action
 
-Active implementation: [07 — template visibility and scanning](../work-record/ai-gym/issues/07-template-visibility-and-scanning.md),
-branch `ericlee4992/ai-template-followup`, baseline main `5a894da` (September 22).
-User reports three AI templates save but the first two stay absent even at the top until restart;
-also requests scanning during routine setup and “Ask AI for Templates”. User authorized execution.
-Exact blank-first-row bug reproduced on iOS 27 (not 26.5); eager template rows fix the focused
-regression. Scanning during setup and rename implemented. 42 targeted domain tests and 14 distinct iOS 27 UI cases passed; two iOS 26.5 compatibility
-cases, clean/final simulator builds and paired captures passed. Final independent review is
-finishing, then fast-forward main. Actual results and retained failed attempts live in ticket 07.
-No build/test job remains active.
+Software implementation, verification, independent review, installation and remote launch are
+complete. Active ticket: [06 — private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md).
 
-[06 — private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md) remains open.
-User now reports actual AI template creation on phone; do not repeat key/billing setup.
-Post-update visual history confirmation and real machine/cardio physical checks remain outstanding.
-Installed product and phone backup facts below are unchanged; this follow-up is not installed.
-Signing expires **September 24 at 03:16 EDT (07:16 UTC)**; follow DEVELOPMENT renewal and
-fresh-backup prerequisites before a later installation. No public backend work requested.
+1. Ask whether the user has entered the existing OpenAI key in the phone's Settings and tried
+   the new features. Key entry and post-update visual history confirmation are **not reported**.
+   The user was shown how to open `~/.config/workouttracker/openai.env` on the Mac and copy
+   only the value after `OPENAI_API_KEY=`. Never print the secret or ask for it in chat.
+   Credits were already added and live Terra requests succeeded; do not repeat billing setup
+   unless a new actual API error warrants it. The Mac key is not bundled/provisioned to the phone.
+2. Collect actual gym recognition and routine-generation feedback under ticket 06, preserving
+   the separate open cardio hardware checks. No new feature or public backend work is requested.
+3. Signing expires **September 24 at 03:16 EDT (07:16 UTC)**. If continuing on/after that date,
+   check expiry first; renewal/reinstallation follows [DEVELOPMENT](DEVELOPMENT.md#provisioning-expiry)
+   with a fresh backup if workouts have changed. Reinstalling the existing binary does not renew it.
+
+No local build/test job remains active (rechecked September 22). This handoff did not reconnect
+to or change the phone, call the API, renew profiles, or start another agent session.
 
 [Verification and delivery record](../work-record/ai-gym/issues/05-verification-review.md),
 [final independent clearance](../work-record/ai-gym/claude-final-review-addendum.md), and
@@ -72,7 +74,7 @@ invalid-frame warnings remain uninvestigated, as in prior work. Hosted CI invest
 - Earlier AirPods Pro 3 indoor distance and outdoor map feedback applies to an earlier cardio
   build; pause/reconnect, phone-position accuracy and background GPS remain unverified.
   [Cardio acceptance](../work-record/cardio/issues/02-device-acceptance.md).
-- Phone: iPhone 15 Pro Max, iOS **27.0 (24A437)** (read-only device-info check September 22), `00008130-001E10C01E62001C`; bundle
+- Phone: iPhone 15 Pro Max, `00008130-001E10C01E62001C`; bundle
   `com.ericlee4992.workouttracker`, team `X68M8SR6NA`. App/widget profiles expire
   **2026-09-24 07:16:18 / 07:16:20 UTC**. Xcode 27.0; simulator WT-iPhone; signing config ignored.
 - Installed export schema **11**. After-launch phone-store copy passes integrity; every old row,

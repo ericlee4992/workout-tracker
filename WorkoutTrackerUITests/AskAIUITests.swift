@@ -65,6 +65,19 @@ final class AskAIUITests: XCTestCase {
         noResult.isInverted = true
         XCTAssertEqual(XCTWaiter.wait(for: [noResult], timeout: 5), .completed)
     }
+    func testEmptyStartScreenDrawsDefault() { emptyStartCapture(large: false) }
+    func testEmptyStartScreenDrawsAccessibility() { emptyStartCapture(large: true) }
+    private func emptyStartCapture(large: Bool) {
+        launch(large: large); app.tabBars.buttons["Workout"].tap()
+        let lifting = app.buttons["startEmptyWorkout"]
+        XCTAssertTrue(lifting.waitForExistence(timeout: 5)); reach(lifting)
+        assertDrawn("Start Lifting", in: lifting)
+        let cardio = app.buttons["startCardio"]; reach(cardio); assertDrawn("Start Cardio", in: cardio)
+        shot("followup-start-top-\(large ? "axl" : "default")")
+        let ask = app.buttons["askAIRoutine"]; reach(ask); assertDrawn("Templates", in: ask)
+        shot("followup-start-\(large ? "axl" : "default")")
+    }
+
     func testAllThreeGeneratedTemplatesAppearWithoutRestart() { allThreeTemplates() }
     func testAllThreeGeneratedTemplatesInPopulatedListDefault() { allThreeTemplates(populated: true) }
     func testAllThreeGeneratedTemplatesInPopulatedListAccessibility() { allThreeTemplates(populated: true, large: true) }
