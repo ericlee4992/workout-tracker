@@ -164,3 +164,67 @@ baseline; that baseline still does not reproduce the phone's blank cards.
   UDID `47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`. Existing WT-iPhone left intact.
 - Same-major/same-device baseline starts at PID 69979,
   `../results/followup/ios27-baseline.{sh,log,exit,xcresult}`. Grid/save still baseline code.
+
+### Exact reproduction on iOS 27
+
+`ios27-baseline.sh` at product/test checkpoint **51da414**: actual exit **65**, **0 passed /
+1 failed / 0 skipped**. Command selects
+`AskAIUITests/testAllThreeGeneratedTemplatesInPopulatedListDefault` on WT-iPhone27. It saves
+three six-exercise templates into a selected gym with existing Whole Body, scrolls to the top,
+then cannot find Day 1. Capture [blank first row](../screenshots/followup/ios27-before-blank-grid.png)
+visually matches user feedback: first two cards are blank space, Day 3 and Whole Body appear.
+The isolated UI-test SQLite store contains all four names and 24 TemplateItems; read-only
+check saved in `../results/followup/ios27-store-check.txt`. No loss of saved templates.
+
+Ranked falsifiable hypotheses shared with user: (1) nested LazyVGrid drops first-row rendering,
+so replacing only its laziness restores cards; (2) stale @Query, so layout-only change will not
+restore missing results; (3) incomplete save, refuted by independent SQLite rows/items.
+Test case is three-day user scenario; OS runtime is the decisive controlled variable so far.
+The loop takes about 2–3 minutes because it drives real XCUITest UI, not a seconds-long unit
+seam; the screenshots are necessary to establish this rendering bug.
+
+One-variable fix experiment: replace the LazyVGrid inside the single List row with eager,
+equal-width VStack/HStack rows. Same one/two columns, spacing, buttons and template cells;
+no query, save or schema change. `ios27-eager-grid.{sh,log,exit,xcresult}`, PID 74925, focused
+regression pending. Parent List still virtualizes the collection row. Apple's
+[LazyVGrid documentation](https://developer.apple.com/documentation/swiftui/LazyVGrid) recommends
+starting with eager construction unless measured collection size makes that too costly; this
+personal template collection does not require nested laziness.
+
+### Final-scope selection and capture equivalence
+
+The unchanged parent Start screen is captured by `scanDuringRoutine` as `followup-start` at
+both text sizes with the **same** empty fixture, and populated template rows by the rich
+three-template tests at both sizes with the **same** selected-gym/four-template state. These
+are the Start capture pairs for this change; repeating RedesignScreenshotUITests' differing
+historic fixtures would not add coverage. TemplateDetailUITests covers delete/cancel row
+identity after the layout change. Existing weekly tests cover edit/save/start/planned-cardio.
+The exact populated-default regression is not repeated in final-scope after its focused fix
+passes; unchanged code reuses that evidence. Remaining final scope is 3 domain suites +
+11 UI cases. Chain PID 77596 launches final-scope only if focused fix exit is 0; paths
+`../results/followup/verification-chain.{py,log}`, `../results/followup/final-scope.{sh,log,exit,xcresult}`.
+After iOS 27 checks, run a bounded iOS 26.5 smoke (populated layout and default scanner) to
+validate supported earlier runtime; no need to duplicate all iOS 27 UI cases there.
+
+### Xcode diagnostic collection delay
+
+Focused eager-grid XCTest case passed (151.315 s, zero test failures). After test teardown,
+Xcode waited on optional `simctl diagnose` PID 79632 (`--timeout=600`) for over 2m40s, despite
+suite completion. Sent SIGTERM only to that exact verified diagnostic process; xcodebuild
+74926 and the test result remained intact. Future runs use documented
+`-collect-test-diagnostics never`; results and screenshot attachments remain enabled.
+Actual xcodebuild exit and completed xcresult still required before calling the run successful.
+No app/simulator data erased and no broad process kill.
+
+### Focused fix verified
+
+`ios27-eager-grid`: actual **exit 0**, completed xcresult **1 passed / 0 failed / 0 skipped**.
+The same iOS 27 case that failed at 51da414 now draws/opens all three cards, with no query/save
+change. [After capture](../screenshots/followup/ai-immediate-template-1-default.png) opened and
+visually checked: Day 1 and Day 2 are fully rendered; existing two-column design preserved.
+This isolates the failure to nested lazy-grid rendering after insertion on iOS 27. Eager rows
+fix that boundary. The prior invalid-frame warning is still reported; not claimed resolved.
+Optional diagnostic collection interruption is documented above; it did not interrupt tests,
+and xcodebuild finalized normally with TEST SUCCEEDED.
+
+Final selected checks now running against this product code; no merge/install until reviewed.

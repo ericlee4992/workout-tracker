@@ -113,6 +113,7 @@ final class AskAIUITests: XCTestCase {
         do { try VNImageRequestHandler(cgImage: pixels).perform([request]) }
         catch { return XCTFail("Screenshot OCR failed: \(error)") }
         let visible = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        print("Rendered template OCR: \(visible)")
         XCTAssertTrue(visible.contains(text), "Card exists in accessibility but its title is not drawn: \(text). Pixels read: \(visible)")
     }
 

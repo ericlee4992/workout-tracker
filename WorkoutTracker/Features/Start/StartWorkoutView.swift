@@ -61,35 +61,26 @@ struct StartWorkoutView: View {
                     // template (its exercises, then Start) — the user asked to
                     // see the list before starting. Ticket 15: Edit and Delete
                     // are on the opened template, nowhere else.
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10),
-                                             count: dynamicTypeSize.isAccessibilitySize ? 1 : 2),
-                              spacing: 10) {
-                        ForEach(templates) { template in
-                            Button { viewingTemplate = template } label: {
-                                TemplateTile(template: template)
+                    // The List already virtualizes this collection as one row. A nested
+                    // LazyVGrid on iOS 27 leaves the first row blank after an AI week save.
+                    // Eager, equal-width rows keep every saved card instantiated (ticket 07).
+                    let columns = dynamicTypeSize.isAccessibilitySize ? 1 : 2
+                    let cells = templates.count + 1 // Includes New Template.
+                    VStack(spacing: 10) {
+                        ForEach(0..<((cells + columns - 1) / columns), id: \.self) { row in
+                            HStack(spacing: 10) {
+                                ForEach(0..<columns, id: \.self) { column in
+                                    let index = row * columns + column
+                                    if index < templates.count {
+                                        templateButton(templates[index])
+                                    } else if index == templates.count {
+                                        newTemplateButton
+                                    } else {
+                                        Color.clear.frame(maxWidth: .infinity).frame(height: 0)
+                                    }
+                                }
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("templateTile.\(template.name)")
-                            // Ticket 15: no long-press menu. On the phone the
-                            // tile's context menu deleted the OTHER template.
-                            // Suspected cause, not proven (codex-review-15): the
-                            // grid is one List row holding several context menus,
-                            // and the press was attributed to the wrong one. Edit
-                            // and Delete live on the opened template instead.
                         }
-                        Button {
-                            editingTemplate = nil
-                            showingTemplateEditor = true
-                        } label: {
-                            VStack(spacing: Theme.Space.small) {
-                                Image(systemName: "plus").font(.title3.weight(.semibold))
-                                Text("New Template…").font(.subheadline.weight(.semibold))
-                            }
-                            .frame(maxWidth: .infinity, minHeight: 118)
-                            .padding(Theme.Space.medium)
-                            .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
-                        }
-                        .buttonStyle(.plain)
                     }
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -215,6 +206,31 @@ struct StartWorkoutView: View {
             machineUnit: nil,
             gymUnit: selectedGym?.defaultUnit,
             appPreference: AppPreferences.canonical(of: allPreferences)?.unitPreference)
+    }
+
+    private func templateButton(_ template: WorkoutTemplate) -> some View {
+        Button { viewingTemplate = template } label: {
+            TemplateTile(template: template)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("templateTile.\(template.name)")
+        // Delete stays on detail; a context menu in a shared List row can target a peer.
+    }
+
+    private var newTemplateButton: some View {
+        Button {
+            editingTemplate = nil
+            showingTemplateEditor = true
+        } label: {
+            VStack(spacing: Theme.Space.small) {
+                Image(systemName: "plus").font(.title3.weight(.semibold))
+                Text("New Template…").font(.subheadline.weight(.semibold))
+            }
+            .frame(maxWidth: .infinity, minHeight: 118)
+            .padding(Theme.Space.medium)
+            .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
+        }
+        .buttonStyle(.plain)
     }
 
     /// D1: restore the remembered gym at launch. An archived or deleted gym

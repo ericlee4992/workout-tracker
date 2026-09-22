@@ -133,3 +133,128 @@ in the ticket; captures opened; actual exit codes and xcresult summary lines for
 (`AskAIUITests` new and existing routine/scan cases, `TemplateDetailUITests`, `AIGymTests`,
 `WorkoutTemplateTests`, `EquipmentLifecycleTests`, clean build). No merge or push is authorized
 by this review.
+
+---
+
+# Addendum 1 — template grid layout fix and F1/F2 resolutions (static, preliminary)
+
+Date: 2026-09-22, later session. Reviewed in the implementation checkout: the uncommitted
+`StartWorkoutView.swift` diff against **51da414** (the only product change; no save, query or
+schema change, confirmed by `git diff 51da414 -- WorkoutTracker/`), the iOS 27 baseline evidence
+(`results/followup/ios27-baseline.log`, exit file **65**, failure at `AskAIUITests.swift:23`,
+`ios27-store-check.txt`), the before screenshot
+`screenshots/followup/ios27-before-blank-grid.png`, and the F1/F2 tests committed in 51da414.
+No build or simulator run by the reviewer; the red-to-green run `ios27-eager-grid.*` was still
+pending when this was written.
+
+## Reproduction evidence — accepted as an exact reproduction
+
+- The before screenshot shows the Templates section with a blank block the height of one grid
+  row above a row holding **Day 3 — Fitness** and **Whole Body**, then New Template… This is the
+  user's report: space where the first two cards belong, third card drawn.
+- The failing assertion is `reach()`'s final `exists && isHittable` on the Day 1 tile, not the
+  OCR check, so the tile was not reachable at all after scrolling to the top. The store check
+  lists all four template names and 24 items. Together they falsify "incomplete save" and
+  make "stale @Query" unlikely (the grid reserved the height for four cells and rendered the
+  later two). The remaining hypothesis, first-row cells of a nested `LazyVGrid` inside one List
+  row not being instantiated on iOS 27, is what the fix targets. Same case passing on iOS 26.5
+  at both sizes supports the OS-runtime variable. Evidence is sufficient to justify a
+  one-variable layout change.
+
+## Layout fix — clear on static reading, pending the green run
+
+`StartWorkoutView.swift:61-84, 211-234`: the `LazyVGrid` becomes a `VStack` of `HStack` rows,
+`columns` = 1 at accessibility sizes else 2, spacing 10 both ways, cells in the same order
+(templates then New Template…), same `templateButton`/`newTemplateButton` bodies, identifiers
+unchanged. Checks:
+
+- **Equal widths.** `TemplateTile` and the New Template button both carry
+  `.frame(maxWidth: .infinity)`; the odd-cell filler is `Color.clear.frame(maxWidth: .infinity)`
+  with zero height, so the HStack splits every row equally and a lone last card keeps half
+  width, as in the screenshot's New Template… cell. Correct.
+- **Row count.** `(cells + columns - 1) / columns` with `cells = templates.count + 1`; the
+  index arithmetic covers `index < templates.count`, `== templates.count` (New Template…) and
+  fillers. Correct for 0..n templates and both column counts.
+- **Identity.** `ForEach(0..<rows, id: \.self)` over a range that changes with the count is
+  valid with `id: \.self`; cells are keyed by position, so a template that moves changes the
+  content of an existing cell. `TemplateTile` has no `@State`, so nothing sticks to the wrong
+  template. Acceptable.
+- **Alignment.** `HStack` default centre alignment matches the previous `LazyVGrid` row
+  behavior (the screenshot shows Day 3 and Whole Body centred against each other), so the look
+  is unchanged. Advisory only: `HStack(alignment: .top)` would read better for unequal tiles,
+  but that is a design change outside this ticket.
+- **Laziness.** The parent List row still virtualizes; the collection is personal-sized, and
+  the comment records why laziness was dropped. Fine.
+- The ticket-15 context-menu note was shortened to one line at `templateButton`; the
+  behavior (no context menu on tiles) is unchanged.
+
+Evidence required before clearance: `ios27-eager-grid` green with actual exit 0 and its
+xcresult summary; the same populated case at AccessibilityL on iOS 27; the two original
+short-tile cases; `TemplateDetailUITests` and the `RedesignScreenshotUITests` Start pair on the
+new layout (the row structure changed, so the Start captures must be retaken and opened); and
+one run of the same case on iOS 26.5 to show no regression on the earlier runtime. A green OCR
+assertion must show a non-empty "Pixels read" path at least once in the log.
+
+## F1 — resolved in 51da414
+
+`testRoutineGymPickerRemembersExistingGymAndNoGym` selects an existing gym in `routineGym`,
+confirms Scan Machine and the count appear, cancels, and asserts the Workout `gymPicker` label
+contains that gym; then selects **No gym** and asserts the Workout picker reads "No gym". The
+`scanDuringRoutine` cases additionally assert, after cancelling the unsaved routine, that the
+Workout picker shows the gym added in-sheet and that the two "Chest press" machines exist under
+Gyms → gym detail. That covers D1 remembering, the No gym path, and "explicit machine saves
+survive routine cancel" (D58 amendment). Remaining gap, advisory: no assertion that the footnote
+"Choose or add a gym to save scanned machines." is present in the No gym state; add a
+`staticTexts` check when convenient.
+
+## F2 — unchanged code, resolution by evidence
+
+`MachineEditorSheet.load()` still presents the scanner from `onAppear`. Acceptable if the three
+routine-scan cases (default, AccessibilityL, consent/failure) pass on a clean run on both
+runtimes with no retry. Record any retry in the ticket; if one is needed, apply the `.task`
+fallback from F2 before clearance.
+
+## Status
+
+No blocking static finding in this diff. Clearance waits on the named evidence above and the
+final commit. No merge or push is authorized by this addendum.
+
+---
+
+# Addendum 2 — verification scope assessment (DEVELOPMENT T8)
+
+Date: 2026-09-22, later session. Assessed from the implementer's stated scope; no product
+change since the eager-grid diff reviewed in Addendum 1. No tools or tests run by the reviewer.
+
+Reported: the focused iOS 27 populated case passed with all three cards OCR-drawn and opened;
+result collection was still finishing. Queued final scope: three domain suites (`AIGymTests`,
+`WorkoutTemplateTests`, `EquipmentLifecycleTests`) plus eleven UI cases on iOS 27, and a bounded
+iOS 26.5 smoke of the populated grid and the default routine scanner. Ticket records capture
+equivalence: `followup-start` default/AXL share the empty fixture, the three-template captures
+share the populated state, and `TemplateDetailUITests` covers row identity through deletion.
+
+Assessment under the Verification scope table:
+
+- The grid change is "layout within one screen" plus "shared presentation of persisted data";
+  the routine-setup change is "new feature". Both rows call for build, affected UI flows, real
+  default/AccessibilityL captures of the changed screens and relevant domain tests. The queued
+  scope meets that. It does not need the full UI suite: the changed surfaces are the Start
+  templates section and the routine sheet's equipment section, and the eleven cases exercise
+  both directly plus the adjacent template detail flow.
+- **Both-runtime coverage.** Requiring every scan case on both runtimes is not warranted. The
+  layout defect was runtime-specific, so the populated grid on both runtimes is the right
+  control; the scanner code did not change between runtimes, and the earlier 26.5 scan runs
+  reached Add, Cancel and Generate at both sizes and failed only on a fixture name that has
+  since been corrected. One 26.5 scanner smoke at the default size is sufficient; record the
+  earlier partial runs as evidence with their actual failure line, not as passes.
+- **Captures.** Replacing the historic RedesignScreenshot Start pair with the new
+  `followup-start` and three-template pairs is acceptable because each pair shares one fixture
+  and state at both sizes (REFERENCE — Captures). State in the ticket that the historic Start
+  captures are superseded for this section, and open the new PNGs.
+- **Honesty conditions.** Actual exit 0 for the focused run and for the final scope, xcresult
+  summary lines with zero skipped, the OCR stdout showing recognized text for each card, and
+  any retry noted. The F2 condition stands: the routine-scan cases pass without retry, or the
+  `.task` fallback is applied before clearance.
+
+Scope accepted as bounded and sufficient, conditional on the evidence above. No merge or push
+is authorized by this addendum.
