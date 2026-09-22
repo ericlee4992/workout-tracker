@@ -1,29 +1,38 @@
 # Current project state
 
-Updated **2026-09-22**. Follow-up implementation branch
-`ericlee4992/ai-template-followup`, product checkpoint **9f733a2** (pushed); main remains
-**5a894da** pending verification and independent clearance. Installed product remains
-**9b0a61a**, delivered at **0c87a6f**, installed September 20. No new phone installation.
+Updated **2026-09-22**. `main` and `origin/main` contain delivery **35842a2** (remote verified):
+product **9f733a2**, tested capture/evidence **dcf445f**, reviewed documentation **1ff72d1**.
+Subsequent documentation records delivery; verify actual HEAD on resume. Completed branch:
+`ericlee4992/ai-template-followup`. Installed product remains **9b0a61a** from **0c87a6f**,
+September 20. **This follow-up is not installed on the phone.**
 The [prior handoff](archive/STATE-2026-09-22-before-template-followup.md) is archived byte-for-byte.
 
 ## Next action
 
-Active implementation: [07 — template visibility and scanning](../work-record/ai-gym/issues/07-template-visibility-and-scanning.md),
-branch `ericlee4992/ai-template-followup`, baseline main `5a894da` (September 22).
-User reports three AI templates save but the first two stay absent even at the top until restart;
-also requests scanning during routine setup and “Ask AI for Templates”. User authorized execution.
-Exact blank-first-row bug reproduced on iOS 27 (not 26.5); eager template rows fix the focused
-regression. Scanning during setup and rename implemented. 42 targeted domain tests and 14 distinct iOS 27 UI cases passed; two iOS 26.5 compatibility
-cases, clean/final simulator builds and paired captures passed. Independent [Claude review](../work-record/ai-gym/claude-followup-final-review.md) is **CLEAR**
-through evidence/docs **1ff72d1**; fast-forward/push main is the remaining delivery step. Actual results and retained failed attempts live in ticket 07.
-No build/test job remains active.
+Active ticket: [06 — private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md).
+Software follow-up [07](../work-record/ai-gym/issues/07-template-visibility-and-scanning.md) is
+implemented, verified, independently cleared, merged and pushed. No build/test job remains active.
 
-[06 — private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md) remains open.
-User now reports actual AI template creation on phone; do not repeat key/billing setup.
-Post-update visual history confirmation and real machine/cardio physical checks remain outstanding.
-Installed product and phone backup facts below are unchanged; this follow-up is not installed.
-Signing expires **September 24 at 03:16 EDT (07:16 UTC)**; follow DEVELOPMENT renewal and
-fresh-backup prerequisites before a later installation. No public backend work requested.
+1. Install the follow-up when requested, following DEVELOPMENT's fresh-backup, signing,
+   binary-freshness and launch checks. The current phone build still predates the fixes.
+2. Collect real machine/routine feedback and visual confirmation of old history after the
+   update. User already reports actual AI template creation; do not repeat key/billing setup.
+   Keep the separate [cardio physical checks](../work-record/cardio/issues/02-device-acceptance.md) open.
+3. Signing expires **September 24 at 03:16 EDT (07:16 UTC)**. Check expiry before any install;
+   renewal needs a newly signed build. Current backup/install facts below remain unchanged.
+
+Completed follow-up: reproduced the blank first two template cards on iOS 27 (older 26.5 passed),
+then fixed the nested lazy-grid rendering while preserving save/query logic. **Ask AI for Templates**
+now includes gym selection/addition and **Scan Machine**, using one AI label/whole-machine photo
+flow with editable confirmation. Preferences survive scan/cancel; confirmed machines update
+eligibility immediately and persist independently of cancelling an unsaved routine.
+
+Verification: **42 domain tests, 14 distinct iOS 27 UI cases**, two iOS 26.5 compatibility cases,
+clean/final simulator builds, **26 real captures**. Passing runs have actual exit 0 and zero
+failed/skipped tests. [Claude clearance](../work-record/ai-gym/claude-followup-final-review.md),
+[gallery](../work-record/ai-gym/followup-gallery.html), and ticket 07 retain failed attempts and
+actual result paths. No schema change, new live API call or phone installation in this follow-up.
+The prior non-failing invalid-frame warning and hosted CI investigation remain deferred.
 
 [Verification and delivery record](../work-record/ai-gym/issues/05-verification-review.md),
 [final independent clearance](../work-record/ai-gym/claude-final-review-addendum.md), and
@@ -31,12 +40,12 @@ fresh-backup prerequisites before a later installation. No public backend work r
 
 ## AI scope — implemented, tested, independently reviewed and merged
 
-[Specification and six tickets](../work-record/ai-gym/spec.md), decisions **D56–D58**:
+[Specification and tickets](../work-record/ai-gym/spec.md), decisions **D56–D58**:
 - GPT-5.6 Terra only, private trial. One consented photo of a label or whole machine proposes an
   editable identity and exercises. Generic/ambiguous identity stays model-less and gym-local;
   exact catalog resolution and user confirmation preserve physical-machine history. Explicitly
   edited names survive catalog defaults. Manual/on-device entry remains available offline.
-- Secondary **Ask AI** below Templates opens a separate flow for an editable weekly set of
+- Secondary **Ask AI for Templates** below Templates opens a separate flow for an editable weekly set of
   lifting/cardio templates. Goals, experience, schedule, optional height/weight, saved gym
   machines and confirmed extra equipment constrain the request. No AI weight guesses or guides.
 - Planned cardio/rest/reps are separate from performed data. Explicit cardio Start, atomic week
@@ -90,7 +99,12 @@ invalid-frame warnings remain uninvestigated, as in prior work. Hosted CI invest
 
 ## Workspace and remaining work
 
-- Main: `/Users/ericlee06/orca/projects/Health App`. Implementation/results:
+- Follow-up implementation/results: `/Users/ericlee06/orca/workspaces/Health App/ai-template-followup`;
+  ignored `work-record/ai-gym/results/followup/` holds scripts, actual exits/logs/xcresults. Review
+  checkout `ai-template-followup-review` retained. UI regression simulator **WT-iPhone27** is
+  iPhone 15 Pro Max / iOS 27.0 (24A434), UDID `47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`;
+  older WT-iPhone / iOS 26.5 retained for compatibility. Graft structural index refreshed.
+- Main: `/Users/ericlee06/orca/projects/Health App`. Prior AI implementation/results:
   `/Users/ericlee06/orca/workspaces/Health App/ai-gym-and-routines`; ignored
   `work-record/ai-gym/results/` contains scripts, actual exits/logs/xcresults and signed-build checks.
   Mac credential is in the private `~/.config/workouttracker/openai.env` (0600), outside Git.

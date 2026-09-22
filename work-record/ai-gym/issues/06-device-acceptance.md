@@ -76,3 +76,12 @@ then appeared after restarting. User requests scanning from routine setup, a sin
 label recognition path, and “Ask AI for Templates” entry wording. Authorized implementation in
 ticket 07. This reports phone-side AI template generation, not physical scan accuracy, history
 visual acceptance or cardio checks.
+
+
+### September 22 — follow-up delivered, not installed
+
+[Ticket 07](07-template-visibility-and-scanning.md) is verified, independently cleared and merged
+on main (delivery **35842a2**, product **9f733a2**). It fixes iOS 27 blank template cards and adds
+Scan Machine/gym selection to template setup with the renamed entry. The phone still has the
+September 20 build. Next installation requires the usual fresh backup, signing/freshness and
+launch checks; post-install feedback remains physical acceptance, not inferred from simulator runs.

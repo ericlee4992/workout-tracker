@@ -1,7 +1,7 @@
 # 07 — Immediate template visibility and scanning during setup
 
 Type: task
-Status: verified and independently cleared — fast-forward delivery next
+Status: done — verified, independently cleared, merged and pushed; phone installation pending ticket 06
 
 ## Request and acceptance
 
@@ -299,3 +299,14 @@ tested capture/evidence **dcf445f**, documentation **1ff72d1**. All earlier revi
 The review explicitly accepts the bounded verification/capture scope and permits fast-forward
 main under the established workflow. This record imports the reviewer-authored clearance;
 no author-supplied clearance. Next: fast-forward/push main and record actual remote delivery.
+
+
+### Delivery
+
+Fast-forwarded main from **5a894da** to **35842a2** and pushed; direct `git ls-remote origin
+refs/heads/main` returned **35842a2caf3b25f3bbe87b14c42786a2ed007e7b**. Product **9f733a2**
+is delivered with evidence/tests **dcf445f**, documentation **1ff72d1**, and the imported independent
+clearance. A subsequent docs-only commit records this completed delivery and the current handoff.
+All local source/test work is complete. Main/feature source matches the verified product.
+Installed phone remains September 20's build; new installation/physical acceptance stay in ticket 06.
+No active build/test jobs. Results and both worktrees are retained.
