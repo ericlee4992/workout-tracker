@@ -1,7 +1,7 @@
 # 07 — Immediate template visibility and scanning during setup
 
 Type: task
-Status: done — verified, independently cleared, merged and pushed; phone installation pending ticket 06
+Status: done — verified, independently cleared, merged and pushed; installed and launch-verified September 22; physical acceptance in ticket 06
 
 ## Request and acceptance
 
@@ -310,3 +310,10 @@ clearance. A subsequent docs-only commit records this completed delivery and the
 All local source/test work is complete. Main/feature source matches the verified product.
 Installed phone remains September 20's build; new installation/physical acceptance stay in ticket 06.
 No active build/test jobs. Results and both worktrees are retained.
+
+
+### September 22 — installed
+
+User requested installation. Product **9f733a2** from merged source **7e96a82** was freshly
+built, backed up, installed and launch-verified; all existing phone-store data preserved.
+See [ticket 06 installation evidence](06-device-acceptance.md) and STATE for current phone facts.

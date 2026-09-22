@@ -8,6 +8,7 @@ Stable decisions remain in [DECISIONS](../DECISIONS.md), detailed ticket records
 
 | Snapshot | Provenance |
 |---|---|
+| [STATE before AI follow-up installation](STATE-2026-09-22-before-followup-install.md) | Byte-for-byte copy at `7e96a82`; verified/merged follow-up awaiting installation |
 | [STATE before template visibility/scanning follow-up](STATE-2026-09-22-before-template-followup.md) | Byte-for-byte copy at `5a894da`; September 20 AI installation, verification and still-open device acceptance |
 | [STATE before AI gym implementation](STATE-2026-09-20-before-ai-gym.md) | Byte-for-byte copy at `17e42a0`; installed cardio/unit build, prior verification and unresolved physical acceptance |
 | [STATE before September 20 session handoff](STATE-2026-09-20-before-session-handoff.md) | Byte-for-byte copy at `6102b5d`, after the installed unit-system update and targeted-verification policy |

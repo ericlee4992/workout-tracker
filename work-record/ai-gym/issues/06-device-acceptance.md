@@ -1,13 +1,16 @@
 # 06 — Private device trial and recognition acceptance
 
 Type: task
-Status: open — device feedback received; ticket 07 addresses template visibility and setup flow
+Status: ready-for-human — ticket 07 installed and launch-verified; physical acceptance remains
 
-Software scope and decisions: [spec](../spec.md), D56–D58. Product `9b0a61a`, delivered on main `0c87a6f`, is installed and remote launch verified.
+Software scope and decisions: [spec](../spec.md), D56–D58. Product `9f733a2` from source `7e96a82` is installed and remote launch verified September 22.
 
 ## Next action
 
-User reports AI template creation on the phone on September 22. Address the missing-template display and setup-flow feedback in [ticket 07](07-template-visibility-and-scanning.md), then collect the remaining physical checks and post-update visual history confirmation. The tooling key saved on the Mac is not bundled or automatically provisioned to the phone; API credits were already funded and verified. Profiles expire September 24 at 03:16 EDT /07:16 UTC. Database preservation is verified below.
+The ticket 07 follow-up is installed. Collect actual phone feedback on immediate template
+visibility, scanning during setup, and post-update visual history confirmation, then the physical
+checks below. Key/billing setup already works; do not repeat it. Current phone/build/profile
+facts live in STATE. Signing expiry was not renewed by this installation.
 
 ## Installation — September 20, user authorized “can you install”
 
@@ -85,3 +88,31 @@ on main (delivery **35842a2**, product **9f733a2**). It fixes iOS 27 blank templ
 Scan Machine/gym selection to template setup with the renamed entry. The phone still has the
 September 20 build. Next installation requires the usual fresh backup, signing/freshness and
 launch checks; post-install feedback remains physical acceptance, not inferred from simulator runs.
+
+
+### September 22 — follow-up installation (user: “install”)
+
+Clean main/source **7e96a82**, reviewed product **9f733a2**, no product edits or schema change.
+Fresh generic-iOS build `/tmp/wt-ai-followup-device-20260922`, actual exit **0 / BUILD SUCCEEDED**.
+Verified new binary timestamp, Ask AI for Templates / scanner entry strings, eager-grid private
+helper and scanner-auto-entry symbols; app/widget signatures, same bundle IDs, device provisioning
+and required permission strings. Existing valid profiles reused; no renewal claimed.
+
+Phone reachable; app not running. Fresh private full-container backup at
+`/Users/ericlee06/WorkoutTracker-Backups/2026-09-22-before-ai-followup`: **27 files, 31,286,447
+bytes**, access-restricted; SHA-256 manifest verified, three databases integrity `ok` on copies,
+no unfinished workout. No new portable export or tested restore claimed.
+
+Installation **exit 0 / success**, new bundle UUID **B3D551F5-560C-46B0-906B-A4B7489D58B9**,
+September 22 ~02:50 EDT. First launch exit **0** (PID 17096). A later process check only showed
+the widget, so launch was confirmed again: **exit 0**, PID **17112** then observed running from
+the newly installed bundle. This verifies launch, not subsequent manual UI acceptance.
+
+After-launch container copy/integrity passed. Comparison of **all 15 app tables** found every
+pre-existing row, attribute and relationship unchanged (ignore Z_OPT; normalize Z_ENT via entity
+names): **24 workouts, 343 sets, 2 templates** preserved. Original backup hashes remain unchanged.
+Private verification copies and full preservation report stay beside the backup outside Git.
+Build/install/launch/check logs, JSON and actual exits are in main's ignored
+`work-record/ai-gym/results/device-install-20260922/`. Existing reviewed source and passing
+verification apply; installation alone requires no new simulator suite under DEVELOPMENT T8.
+No live API call or physical scanner/cardio acceptance claimed. Next: user trial feedback.
