@@ -14,8 +14,8 @@ User reports three AI templates save but the first two stay absent even at the t
 also requests scanning during routine setup and “Ask AI for Templates”. User authorized execution.
 Exact blank-first-row bug reproduced on iOS 27 (not 26.5); eager template rows fix the focused
 regression. Scanning during setup and rename implemented. 42 targeted domain tests and 14 distinct iOS 27 UI cases passed; two iOS 26.5 compatibility
-cases, clean/final simulator builds and paired captures passed. Final independent review is
-finishing, then fast-forward main. Actual results and retained failed attempts live in ticket 07.
+cases, clean/final simulator builds and paired captures passed. Independent [Claude review](../work-record/ai-gym/claude-followup-final-review.md) is **CLEAR**
+through evidence/docs **1ff72d1**; fast-forward/push main is the remaining delivery step. Actual results and retained failed attempts live in ticket 07.
 No build/test job remains active.
 
 [06 — private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md) remains open.

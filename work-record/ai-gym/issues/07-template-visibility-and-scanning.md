@@ -1,7 +1,7 @@
 # 07 — Immediate template visibility and scanning during setup
 
 Type: task
-Status: in-progress
+Status: verified and independently cleared — fast-forward delivery next
 
 ## Request and acceptance
 
@@ -290,3 +290,12 @@ both scan tests. No product change. Focused capture retry PID 16252,
 - [Final gallery](../followup-gallery.html): 26 real PNGs retained in screenshots/followup;
   changed-state pairs use matching fixtures. Original incomplete/default capture and all failed
   attempts remain in ignored raw xcresults/logs; they are not the accepted gallery evidence.
+
+
+### Independent clearance
+
+[Claude final review](../claude-followup-final-review.md) is **CLEAR** for product **9f733a2**,
+tested capture/evidence **dcf445f**, documentation **1ff72d1**. All earlier review items closed.
+The review explicitly accepts the bounded verification/capture scope and permits fast-forward
+main under the established workflow. This record imports the reviewer-authored clearance;
+no author-supplied clearance. Next: fast-forward/push main and record actual remote delivery.
