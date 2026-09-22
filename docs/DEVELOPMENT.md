@@ -90,6 +90,16 @@ rerun before diagnosis.
 
 ## Simulator and UI-test pitfalls
 
+- Match the simulator runtime to the phone OS in STATE when investigating device-only UI bugs.
+  `xcodebuild -showsdks` reports SDKs, not installed runtimes; use `xcrun simctl list runtimes`.
+  AI ticket 07's blank template row reproduced on iOS 27 but passed on iOS 26.5. The added
+  `WT-iPhone27` simulator provides that regression gate; keep older runtimes for bounded
+  compatibility checks. Do not infer phone behavior from an older runtime's green result.
+- If a completed test suite stalls while Xcode collects optional `simctl diagnose` output,
+  inspect that exact child process separately from xcodebuild. Ticket 07 retained all test
+  evidence, stopped only the identified diagnostic child, and used
+  `-collect-test-diagnostics never` for subsequent runs. Actual xcodebuild exits and completed
+  xcresult summaries remain required; a suite-passed line alone is not a finished run.
 - An Xcode update can leave an old CoreSimulator service running. After confirming the stale
   service error, restart that service (2026-09-17: `pkill -9 -f CoreSimulatorService` fixed it).
   Coordinate with other runs before restarting services. Repeated simulator install failures
