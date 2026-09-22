@@ -1,18 +1,31 @@
 # Current project state
 
-Updated 2026-09-20 after AI device installation. Product code **9b0a61a**, independently
-cleared and merged into **main** at **0c87a6f**, is now installed and launch-verified.
-Installation records are on `ericlee4992/ai-device-install`, with documentation commit following.
-Verify actual HEAD/remote on resume.
+Updated **2026-09-22** for a fresh session. Main/remote checkpoint **9d84c1d** includes the
+installation record; product code **9b0a61a** was delivered at **0c87a6f** and installed September 20.
+Documentation handoff branch: `ericlee4992/session-handoff-sep22` (standard fast-forward-to-main
+workflow). Verify actual HEAD/remote on resume; later documentation commits do not change the
+installed binary. User explicitly waived Claude review for this handoff only.
 The [pre-AI handoff](archive/STATE-2026-09-20-before-ai-gym.md) is preserved byte-for-byte.
 
 ## Next action
 
 Software implementation, verification, independent review, installation and remote launch are
-complete. Continue [private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md):
-enter the OpenAI key in the phone's Settings and try real machine photos and routine generation.
-The Mac tooling key is not bundled; API credits were already funded and verified. Profiles expire
-**September 24, 07:16 UTC**. No local build/test job remains active.
+complete. Active ticket: [06 — private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md).
+
+1. Ask whether the user has entered the existing OpenAI key in the phone's Settings and tried
+   the new features. Key entry and post-update visual history confirmation are **not reported**.
+   The user was shown how to open `~/.config/workouttracker/openai.env` on the Mac and copy
+   only the value after `OPENAI_API_KEY=`. Never print the secret or ask for it in chat.
+   Credits were already added and live Terra requests succeeded; do not repeat billing setup
+   unless a new actual API error warrants it. The Mac key is not bundled/provisioned to the phone.
+2. Collect actual gym recognition and routine-generation feedback under ticket 06, preserving
+   the separate open cardio hardware checks. No new feature or public backend work is requested.
+3. Signing expires **September 24 at 03:16 EDT (07:16 UTC)**. If continuing on/after that date,
+   check expiry first; renewal/reinstallation follows [DEVELOPMENT](DEVELOPMENT.md#provisioning-expiry)
+   with a fresh backup if workouts have changed. Reinstalling the existing binary does not renew it.
+
+No local build/test job remains active (rechecked September 22). This handoff did not reconnect
+to or change the phone, call the API, renew profiles, or start another agent session.
 
 [Verification and delivery record](../work-record/ai-gym/issues/05-verification-review.md),
 [final independent clearance](../work-record/ai-gym/claude-final-review-addendum.md), and
@@ -56,7 +69,7 @@ invalid-frame warnings remain uninvestigated, as in prior work. Hosted CI invest
 ## Installed phone and backup
 
 - Installed source **0c87a6f**, product **9b0a61a**, September 20 at approximately 14:11 EDT.
-  Install and remote launch both exit 0; app process **9606** observed running from the new bundle.
+  Install and remote launch both exit 0; app process **9606** observed then from the new bundle.
   Before updating, user confirmed the old app opens and old workouts are present.
 - Earlier AirPods Pro 3 indoor distance and outdoor map feedback applies to an earlier cardio
   build; pause/reconnect, phone-position accuracy and background GPS remain unverified.
@@ -70,7 +83,7 @@ invalid-frame warnings remain uninvestigated, as in prior work. Hosted CI invest
   preserved. Visual post-update history confirmation and backup restore remain unverified.
 - Fresh private backup `/Users/ericlee06/WorkoutTracker-Backups/2026-09-20-140830-before-ai`:
   24 raw files /26,745,283 bytes; database integrity and SHA-256 verified, master hashes unchanged
-  after comparison. No fresh portable JSON/CSV export claimed. September 18 backup and its
+  after comparison; all 24 master hashes reverified September 22. No fresh portable JSON/CSV export claimed. September 18 backup and its
   JSON/CSV remain. Last reported in-app iCloud CSV/JSON export was September 4.
 - Prior accepted UI remains: amber side-by-side Start capsules when labels fit, responsive stacking;
   maps only in finished Summary/History; no duplicate automatic indoor-source row; app unit system
@@ -83,6 +96,7 @@ invalid-frame warnings remain uninvestigated, as in prior work. Hosted CI invest
   `/Users/ericlee06/orca/workspaces/Health App/ai-gym-and-routines`; ignored
   `work-record/ai-gym/results/` contains scripts, actual exits/logs/xcresults and signed-build checks.
   Mac credential is in the private `~/.config/workouttracker/openai.env` (0600), outside Git.
+  File existence/permissions rechecked September 22 without reading its contents.
 - Current install/launch logs and actual exits are in main's ignored
   `work-record/ai-gym/results/device-install-20260920/`; private copies/comparison report stay
   beside the fresh backup outside Git. Device installation changed no product code; existing

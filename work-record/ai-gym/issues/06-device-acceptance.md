@@ -7,7 +7,7 @@ Software scope and decisions: [spec](../spec.md), D56–D58. Product `9b0a61a`, 
 
 ## Next action
 
-Enter the OpenAI key in the new app’s Settings and perform the physical checks below. The tooling key saved on the Mac is not bundled or automatically provisioned to the phone; API credits were already funded and verified. Profiles expire September 24 at 07:16 UTC. Confirm the updated app's history visually; database preservation is verified below.
+First establish whether the user entered the existing OpenAI key in the new app’s Settings; no confirmation has been reported. Then collect the physical checks below and post-update visual history confirmation. The tooling key saved on the Mac is not bundled or automatically provisioned to the phone; API credits were already funded and verified. Profiles expire September 24 at 03:16 EDT /07:16 UTC. Database preservation is verified below.
 
 ## Installation — September 20, user authorized “can you install”
 
@@ -43,3 +43,28 @@ This establishes on-phone migration preservation, not visual acceptance or teste
 - Generate/review/edit a real weekly lifting/cardio routine; check available equipment and suitability. No starting weights are generated. Cardio starts only with an explicit tap; plans are not measured activity.
 - Verify camera permission/denial, photo library, weak connection, API billing/authorization errors and cancellation on the phone. Simulator flows do not establish physical camera/GPS/HealthKit behavior.
 - Existing [cardio physical acceptance](../../cardio/issues/02-device-acceptance.md) remains open separately. Restore testing remains unverified; public backend/App Store work and guides remain deferred.
+
+## Comments
+
+### September 22 — new-session handoff
+
+User requested an updated, clear handoff and explicitly waived Claude review for this docs-only
+task. Main and remote both started at `9d84c1d`; installed product remains `9b0a61a` from delivery
+`0c87a6f`. No product edits, phone installation, profile renewal or API request in this handoff.
+
+Re-read actual successful install/launch exits and JSON outcomes, prior build/test exit files,
+the 15-table preservation report, and all 24 original backup hashes. Private backup unchanged;
+prepared app and widget still exist with the September 24 profile expirations. Mac credential
+file exists with mode 0600; contents not read. No local xcodebuild/xcresulttool process running.
+Documentation checks cover local links, diff whitespace, status consistency and remote tip;
+no app tests needed under DEVELOPMENT's docs-only verification scope.
+
+After installation the user asked where to find the key. Provided Finder → Command-Shift-G →
+`~/.config/workouttracker` → open `openai.env` in TextEdit → copy the value after
+`OPENAI_API_KEY=` into phone Settings. No key entry, phone-side AI success, real gym recognition,
+or post-update visual history confirmation has since been reported. Do not infer any of these
+from successful Mac API tests or installation. Credits are already funded, not an open setup task.
+
+Next session starts with STATE and this ticket, checks Git, then asks for this device feedback.
+If signing has expired, follow DEVELOPMENT renewal and backup instructions. Do not reopen
+implementation tickets 01–05 or deferred public launch work without a new request or defect.
