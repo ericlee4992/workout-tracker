@@ -5,7 +5,17 @@ struct AIRoutineSheet: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
-    var gym: Gym?
+    @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name) private var gyms: [Gym]
+    @Query(filter: #Predicate<MachineInstance> { !$0.archived }) private var machines: [MachineInstance]
+    @State var gym: Gym?
+    var onSelectGym: (Gym?) -> Void = { _ in }
+    @State private var showingNewGym = false
+    @State private var scanningGym: Gym?
+
+    private var availableMachines: [MachineInstance] {
+        guard let gym, !gym.archived else { return [] }
+        return machines.filter { $0.gym?.id == gym.id }
+    }
     @AppStorage(TerraAccess.routineConsentKey) private var consent = false
     private enum InputFocus: Hashable { case goals, height, weight }
     @FocusState private var inputFocus: InputFocus?
@@ -27,7 +37,7 @@ struct AIRoutineSheet: View {
     @State private var token: UUID?
 
     private var options: [RoutineExerciseOption] {
-        RoutineAvailability.exercises(exercises, machines: gym?.archived == false ? gym?.activeMachines ?? [] : [], extras: extras)
+        RoutineAvailability.exercises(exercises, machines: availableMachines, extras: extras)
     }
     var body: some View {
         NavigationStack {
@@ -58,6 +68,12 @@ struct AIRoutineSheet: View {
                 }
             }
             .sheet(isPresented: $settings) { AskAISettingsSheet() }
+            .sheet(isPresented: $showingNewGym) {
+                GymEditorSheet(onSave: { created in gym = created; onSelectGym(created) })
+            }
+            .sheet(item: $scanningGym) { gym in
+                MachineEditorSheet(gym: gym, startsWithScanner: true)
+            }
             .onDisappear { cancel() }
             .onChange(of: consent) { _, permitted in if !permitted { cancel(); routine = nil } }
         }
@@ -76,7 +92,25 @@ struct AIRoutineSheet: View {
                 TextField("Weight (kg)", text: $weight).keyboardType(.decimalPad).focused($inputFocus, equals: .weight)
             }
             Section(gym.map { "Equipment at \($0.name)" } ?? "Available equipment") {
-                if let gym { Text("\(gym.activeMachines.count) saved machines").foregroundStyle(Theme.secondary) }
+                Picker("Gym", selection: Binding(get: { gym?.id }, set: { id in
+                    gym = gyms.first { $0.id == id }
+                    onSelectGym(gym)
+                })) {
+                    Text("No gym").tag(UUID?.none)
+                    ForEach(gyms) { Text($0.name).tag(Optional($0.id)) }
+                }.accessibilityIdentifier("routineGym")
+                Button("Add Gym…", systemImage: "plus") { showingNewGym = true }
+                    .accessibilityIdentifier("routineAddGym")
+                if let gym, !gym.archived {
+                    Text("\(availableMachines.count) saved machines").foregroundStyle(Theme.secondary)
+                        .accessibilityIdentifier("routineMachineCount")
+                    Button("Scan Machine", systemImage: "camera.viewfinder") {
+                        inputFocus = nil
+                        scanningGym = gym
+                    }.accessibilityIdentifier("routineScanMachine")
+                } else {
+                    Text("Choose or add a gym to save scanned machines.").font(.footnote).foregroundStyle(Theme.secondary)
+                }
                 ForEach(RoutineEquipment.allCases) { equipment in
                     Toggle(equipment.name, isOn: Binding(get: { extras.contains(equipment) }, set: { on in
                         if on { extras.insert(equipment) } else { extras.remove(equipment) }
@@ -137,9 +171,9 @@ struct AIRoutineSheet: View {
                 if TerraAccess.fixture {
                     try await TerraAccess.fixtureDelay()
                     result = AIRoutine(sessions: (1...request.days).map { day in
-                        AIRoutineDay(name: "Day \(day) — Fitness", strength: request.exercises.first.map {
-                            [AIRoutineStrength(exerciseID: $0.id, sets: 3, reps: 10, restSeconds: 60)]
-                        } ?? [], cardio: request.cardioActivities.first.map { [AIRoutineCardio(activity: $0, minutes: 15)] } ?? [])
+                        AIRoutineDay(name: "Day \(day) — Fitness", strength: request.exercises.prefix(WorkoutTrackerStore.fixtureIsEnabled("-uiTestTerraFullRoutine") ? 6 : 1).map {
+                            AIRoutineStrength(exerciseID: $0.id, sets: 3, reps: 10, restSeconds: 60)
+                        }, cardio: request.cardioActivities.first.map { [AIRoutineCardio(activity: $0, minutes: 15)] } ?? [])
                     })
                 } else {
                     guard let client = TerraAccess.client else { throw TerraError.message("Add an OpenAI key in Settings.") }

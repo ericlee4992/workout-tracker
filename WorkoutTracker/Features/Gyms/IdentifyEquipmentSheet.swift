@@ -89,7 +89,7 @@ struct IdentifyEquipmentSheet: View {
             } else {
                 Image(systemName: "camera.viewfinder").font(.largeTitle).frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            Text("Frame one machine or its label").font(.callout)
+            Text("Scan a machine or its label").font(.callout)
             HStack {
                 Button("Take photo", systemImage: "camera") { shutter() }
                     .disabled(captureID != nil || (!TerraAccess.fixture && CaptureAvailability.resolve() != .camera))

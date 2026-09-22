@@ -94,7 +94,7 @@ struct StartWorkoutView: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                    Button("Ask AI", systemImage: "sparkles") { showingAIRoutine = true }
+                    Button("Ask AI for Templates", systemImage: "sparkles") { showingAIRoutine = true }
                         .buttonStyle(.secondary)
                         .accessibilityIdentifier("askAIRoutine")
                         .listRowBackground(Color.clear)
@@ -133,7 +133,7 @@ struct StartWorkoutView: View {
                     onWorkoutStarted(workout)
                 }
             }
-            .fullScreenCover(isPresented: $showingAIRoutine) { AIRoutineSheet(gym: selectedGym) }
+            .fullScreenCover(isPresented: $showingAIRoutine) { AIRoutineSheet(gym: selectedGym, onSelectGym: select) }
             .sheet(isPresented: $showingCardioPicker) {
                 CardioActivityPicker { activity in
                     showingCardioPicker = false

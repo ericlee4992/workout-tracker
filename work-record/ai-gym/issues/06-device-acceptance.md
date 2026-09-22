@@ -1,13 +1,13 @@
 # 06 — Private device trial and recognition acceptance
 
 Type: task
-Status: ready-for-human — installed and launch-verified; key setup and gym evidence outstanding
+Status: open — device feedback received; ticket 07 addresses template visibility and setup flow
 
 Software scope and decisions: [spec](../spec.md), D56–D58. Product `9b0a61a`, delivered on main `0c87a6f`, is installed and remote launch verified.
 
 ## Next action
 
-First establish whether the user entered the existing OpenAI key in the new app’s Settings; no confirmation has been reported. Then collect the physical checks below and post-update visual history confirmation. The tooling key saved on the Mac is not bundled or automatically provisioned to the phone; API credits were already funded and verified. Profiles expire September 24 at 03:16 EDT /07:16 UTC. Database preservation is verified below.
+User reports AI template creation on the phone on September 22. Address the missing-template display and setup-flow feedback in [ticket 07](07-template-visibility-and-scanning.md), then collect the remaining physical checks and post-update visual history confirmation. The tooling key saved on the Mac is not bundled or automatically provisioned to the phone; API credits were already funded and verified. Profiles expire September 24 at 03:16 EDT /07:16 UTC. Database preservation is verified below.
 
 ## Installation — September 20, user authorized “can you install”
 
@@ -68,3 +68,11 @@ from successful Mac API tests or installation. Credits are already funded, not a
 Next session starts with STATE and this ticket, checks Git, then asks for this device feedback.
 If signing has expired, follow DEVELOPMENT renewal and backup instructions. Do not reopen
 implementation tickets 01–05 or deferred public launch work without a new request or defect.
+
+### September 22 — first routine trial feedback
+
+User created three AI templates. The first two were absent even after scrolling to the top,
+then appeared after restarting. User requests scanning from routine setup, a single AI machine/
+label recognition path, and “Ask AI for Templates” entry wording. Authorized implementation in
+ticket 07. This reports phone-side AI template generation, not physical scan accuracy, history
+visual acceptance or cardio checks.

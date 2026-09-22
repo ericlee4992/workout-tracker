@@ -144,3 +144,15 @@ Decisions made during product discovery (2026-08-08 interview). Each entry: deci
 | D58 | **Optional Ask AI below Templates produces a coordinated editable week, not a calendar or coaching chatbot.** Goals/experience/days/time and optional height/weight are transient inputs. Active gym machine links plus confirmed supplemental equipment/activity choices constrain eligible IDs. At the original gym, AI-created templates use a remembered active machine or the sole compatible active machine; several unmatched physical candidates remain unassigned. Manual/traveling templates retain D6. Exactly requested 1–7 sessions on generation; editable names need not be unique. Validate IDs, bounds and generated duration; authored edits may exceed that duration. Save the week atomically in an isolated context, with duplicate-submit protection. | User chose weekly lifting+cardio, supplementary checklist and no load estimates. Preserve current Workout composition and fast logging. Three independent versioned local consent flags cover photos, routine details, and the legacy manual-model exercise suggestion. OpenAI key is device-only Keychain, never bundled; old Anthropic key is unused. Private trial first; backend/usage controls required before shared-key public use. Visual guides/explanations, automatic coaching and monetization stay deferred. |
 
 Implementation and acceptance: [AI gym specification](../work-record/ai-gym/spec.md).
+
+### September 22 — D58 routine setup follow-up
+
+D58 is reopened narrowly by user request (AI gym ticket 07): name the Workout entry
+**Ask AI for Templates**, and offer **Scan Machine** inside its equipment section regardless
+of saved machine count. Select/add a gym there when needed; preserve routine preferences across
+scan/add/cancel and refresh eligible exercises immediately after a confirmed machine save.
+Gym selection is an immediate remembered choice, as on Workout. Adding a gym/machine is an
+explicit independent save and survives cancelling the routine; generated templates remain
+staged until Save templates. D56's one photo of machine OR label, Terra identification, editable
+confirmation and physical-instance history boundaries remain. No OCR-first step or label-vs-
+machine mode choice is introduced. The user approved execution after reviewing this flow.

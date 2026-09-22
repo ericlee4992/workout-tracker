@@ -393,11 +393,13 @@ struct GymDetailView: View {
 /// Ticket 06's add-gym form, doubling as the edit form (D2, ticket 17): the
 /// fields a gym is created with are exactly the fields it can be corrected
 /// with, so there is one place to learn and one place to maintain.
-private struct GymEditorSheet: View {
+struct GymEditorSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     /// nil = create a new gym; non-nil = edit that gym in place.
     var gym: Gym?
+    var onSave: (Gym) -> Void = { _ in }
+    @State private var saveFailure: String?
     @State private var name = ""
     @State private var city = ""
     @State private var defaultUnit: WeightUnit?
@@ -406,6 +408,7 @@ private struct GymEditorSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                if let saveFailure { Text(saveFailure).foregroundStyle(.red) }
                 Section {
                     TextField("Name", text: $name)
                         .accessibilityIdentifier("gymName")
@@ -459,16 +462,20 @@ private struct GymEditorSheet: View {
             if let gym {
                 try EquipmentLifecycle(context: modelContext).update(
                     gym, name: name, city: city, defaultUnit: defaultUnit)
+                onSave(gym)
             } else {
                 let trimmedCity = city.trimmingCharacters(in: .whitespacesAndNewlines)
-                modelContext.insert(Gym(
+                let created = Gym(
                     name: trimmedName,
                     city: trimmedCity.isEmpty ? nil : trimmedCity,
-                    defaultUnit: defaultUnit))
+                    defaultUnit: defaultUnit)
+                modelContext.insert(created)
                 try modelContext.save()
+                onSave(created)
             }
         } catch {
-            assertionFailure("Failed to save gym: \(error)")
+            saveFailure = error.localizedDescription
+            return
         }
         dismiss()
     }
@@ -485,6 +492,8 @@ struct MachineEditorSheet: View {
     /// nil = create a new machine at `gym`; non-nil = edit that machine
     /// (D2, ticket 17 — its default unit was previously set-once).
     var machine: MachineInstance?
+    /// Routine setup enters the same confirmed AI flow directly; ordinary editors stay unchanged.
+    var startsWithScanner = false
     @Query(sort: \Exercise.name) private var allExercises: [Exercise]
     @State private var recognizedIDs: Set<UUID> = []
     @State private var identified: EquipmentIdentification?
@@ -648,6 +657,7 @@ struct MachineEditorSheet: View {
     private func load() {
         guard !loaded else { return }
         loaded = true
+        if machine == nil && startsWithScanner { showingScanner = true }
         guard let machine else { return }
         label = machine.label
         model = machine.model

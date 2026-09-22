@@ -1,4 +1,5 @@
 import XCTest
+import Vision
 
 final class AskAIUITests: XCTestCase {
     private var app: XCUIApplication!
@@ -64,6 +65,169 @@ final class AskAIUITests: XCTestCase {
         noResult.isInverted = true
         XCTAssertEqual(XCTWaiter.wait(for: [noResult], timeout: 5), .completed)
     }
+    func testAllThreeGeneratedTemplatesAppearWithoutRestart() { allThreeTemplates() }
+    func testAllThreeGeneratedTemplatesInPopulatedListDefault() { allThreeTemplates(populated: true) }
+    func testAllThreeGeneratedTemplatesInPopulatedListAccessibility() { allThreeTemplates(populated: true, large: true) }
+    private func allThreeTemplates(populated: Bool = false, large: Bool = false) {
+        launch(populated ? ["-uiTestTemplate", "-uiTestTerraFullRoutine"] : [], large: large); app.tabBars.buttons["Workout"].tap()
+        if populated {
+            app.tabBars.buttons["Gyms"].tap(); app.buttons["addGym"].tap()
+            let name = app.textFields["gymName"]; XCTAssertTrue(name.waitForExistence(timeout: 5))
+            name.tap(); name.typeText("Template Gym"); app.buttons["saveGym"].tap()
+            app.tabBars.buttons["Workout"].tap(); app.buttons["gymPicker"].tap()
+            app.buttons["Template Gym"].tap()
+        }
+        let ask = app.buttons["askAIRoutine"]; reach(ask); ask.tap()
+        let goals = app.textFields["routineGoals"].exists ? app.textFields["routineGoals"] : app.textViews["routineGoals"]
+        XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap(); goals.typeText("Build strength")
+        app.buttons["dismissRoutineKeyboard"].tap()
+        enable("routineEquipment.dumbbells")
+        let generate = app.buttons["generateAIRoutine"]; reach(generate); generate.tap()
+        XCTAssertTrue(any("routineDay.2").waitForExistence(timeout: 10))
+        app.buttons["saveAIRoutine"].tap()
+        XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 10))
+        for day in 1...3 {
+            for _ in 0..<4 { app.swipeDown() }
+            let tile = app.buttons["templateTile.Day \(day) — Fitness"]
+            reach(tile)
+            shot("ai-immediate-template-\(day)-\(large ? "axl" : "default")")
+            assertDrawn("Day \(day)", in: tile)
+            XCTAssertEqual(app.buttons.matching(identifier: "templateTile.Day \(day) — Fitness").count, 1)
+            tile.tap()
+            XCTAssertTrue(app.buttons["startTemplate"].waitForExistence(timeout: 5))
+            app.navigationBars.buttons.element(boundBy: 0).tap()
+        }
+    }
+
+    /// Accessibility can report an invisible lazy-grid cell as present. Inspect rendered pixels too.
+    private func assertDrawn(_ text: String, in element: XCUIElement) {
+        let screenshot = app.screenshot().image
+        guard let pixels = screenshot.cgImage else { return XCTFail("Screenshot has no pixels") }
+        let frame = element.frame.intersection(app.frame)
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.regionOfInterest = CGRect(x: frame.minX / app.frame.width,
+                                         y: 1 - frame.maxY / app.frame.height,
+                                         width: frame.width / app.frame.width,
+                                         height: frame.height / app.frame.height)
+        do { try VNImageRequestHandler(cgImage: pixels).perform([request]) }
+        catch { return XCTFail("Screenshot OCR failed: \(error)") }
+        let visible = (request.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(separator: " ")
+        XCTAssertTrue(visible.contains(text), "Card exists in accessibility but its title is not drawn: \(text). Pixels read: \(visible)")
+    }
+
+    func testScanMachinesDuringRoutineSetupDefault() { scanDuringRoutine(large: false) }
+    func testScanMachinesDuringRoutineSetupAccessibility() { scanDuringRoutine(large: true) }
+    private func scanDuringRoutine(large: Bool) {
+        launch(large: large); app.tabBars.buttons["Workout"].tap()
+        let ask = app.buttons["askAIRoutine"]; reach(ask)
+        XCTAssertEqual(ask.label, "Ask AI for Templates")
+        shot("followup-start-\(large ? "axl" : "default")"); ask.tap()
+        let goals = app.textFields["routineGoals"].exists ? app.textFields["routineGoals"] : app.textViews["routineGoals"]
+        XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap(); goals.typeText("Build strength with my machines")
+        app.buttons["dismissRoutineKeyboard"].tap()
+        let addGym = app.buttons["routineAddGym"]; reach(addGym)
+        shot("followup-no-gym-\(large ? "axl" : "default")"); addGym.tap()
+        let name = app.textFields["gymName"]; XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap(); name.typeText("Routine Gym"); app.buttons["saveGym"].tap()
+        let scan = app.buttons["routineScanMachine"]; XCTAssertTrue(scan.waitForExistence(timeout: 5)); reach(scan)
+        XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
+        shot("followup-empty-gym-\(large ? "axl" : "default")")
+        for count in 1...2 {
+            scan.tap()
+            let shutter = app.buttons["scanShutter"]; XCTAssertTrue(shutter.waitForExistence(timeout: 5))
+            XCTAssertTrue(app.staticTexts["Scan a machine or its label"].exists)
+            shot("followup-capture-\(large ? "axl" : "default")"); shutter.tap()
+            let use = app.buttons["scanUseCandidate"]; XCTAssertTrue(use.waitForExistence(timeout: 10)); reach(use)
+            shot("followup-proposal-\(large ? "axl" : "default")"); use.tap()
+            let add = app.buttons["saveMachine"]; XCTAssertTrue(add.waitForExistence(timeout: 5))
+            shot("followup-machine-editor-\(large ? "axl" : "default")"); add.tap()
+            XCTAssertTrue(scan.waitForExistence(timeout: 5)); reach(scan)
+            XCTAssertEqual(any("routineMachineCount").label, "\(count) saved machines")
+        }
+        shot("followup-scanned-equipment-\(large ? "axl" : "default")")
+        scan.tap(); XCTAssertTrue(app.buttons["scanShutter"].waitForExistence(timeout: 5))
+        app.navigationBars["Scan Equipment"].buttons["Cancel"].tap()
+        app.navigationBars["New Machine"].buttons["Cancel"].tap()
+        XCTAssertTrue(scan.waitForExistence(timeout: 5))
+        XCTAssertEqual(any("routineMachineCount").label, "2 saved machines")
+        for _ in 0..<6 { app.swipeDown() }
+        XCTAssertEqual(goals.value as? String, "Build strength with my machines")
+        let generate = app.buttons["generateAIRoutine"]; reach(generate)
+        XCTAssertTrue(generate.isEnabled); generate.tap()
+        XCTAssertTrue(any("routineDay.2").waitForExistence(timeout: 10))
+        any("routineDay.0").tap()
+        XCTAssertTrue(app.staticTexts["Seated Chest Press"].firstMatch.waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.navigationBars.buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
+        for _ in 0..<6 { app.swipeDown() }
+        XCTAssertTrue(app.buttons["gymPicker"].label.contains("Routine Gym"))
+        app.tabBars.buttons["Gyms"].tap()
+        let gymRow = any("gymRow.Routine Gym"); XCTAssertTrue(gymRow.waitForExistence(timeout: 5)); gymRow.tap()
+        XCTAssertEqual(app.staticTexts.matching(identifier: "Chest press").count, 2,
+                       "Explicitly added machines survive cancelling the unsaved routine")
+    }
+
+    func testRoutineGymPickerRemembersExistingGymAndNoGym() {
+        launch(); app.tabBars.buttons["Gyms"].tap()
+        for name in ["First Gym", "Second Gym"] {
+            app.buttons["addGym"].tap()
+            let field = app.textFields["gymName"]; XCTAssertTrue(field.waitForExistence(timeout: 5))
+            field.tap(); field.typeText(name); app.buttons["saveGym"].tap()
+        }
+        app.tabBars.buttons["Workout"].tap()
+        let ask = app.buttons["askAIRoutine"]; reach(ask); ask.tap()
+        let picker = app.buttons["routineGym"]; reach(picker); picker.tap()
+        app.buttons["Second Gym"].tap()
+        let scan = app.buttons["routineScanMachine"]; XCTAssertTrue(scan.waitForExistence(timeout: 5))
+        XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
+        app.navigationBars.buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
+        for _ in 0..<4 { app.swipeDown() }
+        XCTAssertTrue(app.buttons["gymPicker"].label.contains("Second Gym"))
+        reach(ask); ask.tap(); reach(picker); picker.tap(); app.buttons["No gym"].tap()
+        XCTAssertFalse(scan.exists)
+        XCTAssertTrue(app.staticTexts["Choose or add a gym to save scanned machines."].exists)
+        app.navigationBars.buttons["Cancel"].tap()
+        XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
+        for _ in 0..<4 { app.swipeDown() }
+        XCTAssertTrue(app.buttons["gymPicker"].label.contains("No gym"))
+    }
+
+    func testRoutineScannerConsentAndFailureKeepPreferences() {
+        launch(["-uiTestTerraNeedsConsent", "-uiTestTerraOffline"])
+        app.tabBars.buttons["Workout"].tap()
+        let ask = app.buttons["askAIRoutine"]; reach(ask); ask.tap()
+        let goals = app.textFields["routineGoals"].exists ? app.textFields["routineGoals"] : app.textViews["routineGoals"]
+        XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap(); goals.typeText("Keep these preferences")
+        app.buttons["dismissRoutineKeyboard"].tap()
+        enable("routineEquipment.dumbbells"); enable("routineCardio.outdoorWalk")
+        let addGym = app.buttons["routineAddGym"]
+        for _ in 0..<5 { app.swipeDown() }; reach(addGym); addGym.tap()
+        let name = app.textFields["gymName"]; XCTAssertTrue(name.waitForExistence(timeout: 5)); name.tap(); name.typeText("Consent Gym")
+        app.buttons["saveGym"].tap()
+        let scan = app.buttons["routineScanMachine"]; XCTAssertTrue(scan.waitForExistence(timeout: 5)); reach(scan); scan.tap()
+        let allow = app.buttons["allowAIPhotos"]; XCTAssertTrue(allow.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["scanShutter"].exists)
+        app.navigationBars["Scan Equipment"].buttons["Cancel"].tap()
+        app.navigationBars["New Machine"].buttons["Cancel"].tap()
+        XCTAssertTrue(scan.waitForExistence(timeout: 5)); XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
+        scan.tap(); XCTAssertTrue(allow.waitForExistence(timeout: 5)); reach(allow); allow.tap()
+        app.buttons["scanShutter"].tap()
+        XCTAssertTrue(any("scanAIError").waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["scanUseCandidate"].exists)
+        app.navigationBars["Scan Equipment"].buttons["Cancel"].tap()
+        app.navigationBars["New Machine"].buttons["Cancel"].tap()
+        XCTAssertTrue(scan.waitForExistence(timeout: 5)); XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
+        for _ in 0..<5 { app.swipeDown() }
+        XCTAssertEqual(goals.value as? String, "Keep these preferences")
+        let dumbbells = app.switches["routineEquipment.dumbbells"].firstMatch; reach(dumbbells); XCTAssertEqual(dumbbells.value as? String, "1")
+        let cardio = app.switches["routineCardio.outdoorWalk"].firstMatch; reach(cardio); XCTAssertEqual(cardio.value as? String, "1")
+        let consent = app.switches["allowAIRoutine"].firstMatch; reach(consent); XCTAssertEqual(consent.value as? String, "0")
+        let generate = app.buttons["generateAIRoutine"]; reach(generate); XCTAssertFalse(generate.isEnabled)
+    }
+
     func testWeeklyRoutineDefault() { routine(large: false) }
     func testWeeklyRoutineAccessibility() { routine(large: true) }
     func testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce() { routine(large: false, edit: true) }

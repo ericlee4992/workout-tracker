@@ -10,6 +10,7 @@ User authorized end-to-end implementation 2026-09-20, with tickets and independe
 4. [Weekly routine generator](issues/04-routine-generator.md)
 5. [Verification and independent review](issues/05-verification-review.md)
 6. [Private device acceptance](issues/06-device-acceptance.md)
+7. [Template visibility and scanning](issues/07-template-visibility-and-scanning.md)
 
 ## Product contract
 
@@ -61,3 +62,12 @@ Tabs                       Generate week              Exercise choices
 ```
 
 Existing Theme/system styles and form/list conventions reused. No new cards around single explanatory sentences, no nested cards or decorative chips, no new typography or motion. Existing twin amber start capsules remain the D54 exception; the new action is secondary. Metadata dots are the existing summary convention. Permission/error/consequence text is deliberate and required by the new sends; no exercise instructions added. Dynamic Type uses native wrapping/forms and the existing one-column template grid. Captures cover default and AccessibilityL; long forms are captured at multiple scroll positions. This follows the user's authorized additive design and unattended implementation; no new design choice is held for approval.
+
+## September 22 follow-up
+
+Ticket 07 implements user feedback: immediate visibility of every saved template, entry label
+“Ask AI for Templates”, and an in-flow “Scan Machine” action. Select/add a gym in preferences,
+scan one label or machine with Terra, review/correct, then Add. Return with goals/settings intact
+and equipment availability updated; repeated scans are supported. Explicit gym/machine commits
+persist independently of cancelling the routine; week saving remains atomic. D58 amendment in
+DECISIONS records this boundary. No schema/API model/history rules change.
