@@ -170,3 +170,6 @@ independent review before merge/install. Do not begin product changes on this ti
 
 - September 24: user explicitly asks for visuals first. No request for signing renewal during
   this task. Historical device acceptance remains open in AI gym ticket 06 and cardio ticket 02.
+- Proposal committed/pushed as `a1242db` on `ericlee4992/redesign-visual-proposal`; main remains
+  `a0364f2`. This subsequent checkpoint changes records only. No review, merge or installation
+  of the proposed redesign is claimed; next action is the user's visual feedback.

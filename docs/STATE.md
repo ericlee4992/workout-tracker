@@ -2,8 +2,9 @@
 
 Updated **2026-09-24** for the user-requested whole-app redesign **visual proposal**.
 Base/main/live remote verified at **a0364f2c93ebb0ebbfd1e28b8847aa79b304d0fd**.
-Branch: `ericlee4992/redesign-visual-proposal`; product code remains unchanged. New work is
-the design artifact and its records; check actual Git status on resume. The user wants visuals
+Proposal commit: **a1242db**, committed/pushed on `ericlee4992/redesign-visual-proposal`;
+product code remains unchanged. New work is the design artifact and its records; check actual
+Git status on resume (later checkpoint commits only update these records). The user wants visuals
 before implementation. No native redesign, build/test run, API request, phone connection or install.
 Product **9f733a2**, built from source **7e96a82**, remains the last verified September 22 install.
 [Pre-redesign STATE](archive/STATE-2026-09-24-before-redesign-proposal.md) is archived byte-for-byte.
