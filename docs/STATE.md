@@ -5,7 +5,7 @@ Base/main/live remote verified at **a0364f2c93ebb0ebbfd1e28b8847aa79b304d0fd**.
 Proposal commit: **a1242db**, committed/pushed on `ericlee4992/redesign-visual-proposal`;
 product code remains unchanged. New work is the design artifact and its records; check actual
 Git status on resume (later checkpoint commits only update these records). The user wants visuals
-before implementation. No native redesign, build/test run, API request, phone connection or install.
+before implementation. No production redesign/build/tests, AI request, phone connection or install.
 Product **9f733a2**, built from source **7e96a82**, remains the last verified September 22 install.
 [Pre-redesign STATE](archive/STATE-2026-09-24-before-redesign-proposal.md) is archived byte-for-byte.
 
@@ -19,6 +19,12 @@ Journal. Light/dark and enlarged-text mock layouts are available. Browser checks
 overflow. Captures and limitations are in the ticket. This is **not** a native AccessibilityL pass.
 The [standalone browser copy](../work-record/redesign-2026/visuals/workout-redesign-browser.html)
 was opened and visually confirmed in Orca after the user asked how to view the inline proposal.
+**Current deliverable:** [interactive iPhone preview](../work-record/redesign-2026/visuals/iphone-interactive.html),
+open in Orca with scrolling inside the phone and pinned tabs. Actual browser clicks verified
+Start Lifting, edited weight retention and set completion/rest. A separate simulator shell built
+and launched, but the Xcode 27 / Orca touch bridge failed; it is **not** a working native demo.
+[Prototype record](../work-record/redesign-2026/iphone-prototype/README.md) has the failure and
+cleanup details. No simulator viewer/server remains active; the browser preview needs no server.
 
 User chooses/refines direction before product edits. D54 is explicitly reopened for exploration;
 the proposed palette, copy and composition are not yet accepted. No independent clearance,

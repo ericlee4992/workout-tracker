@@ -1,0 +1,3 @@
+clang: warning: using sysroot for 'macOS 27.0' but targeting 'arm64-apple-ios26.0.0-simulator' [-Wincompatible-sysroot]
+/tmp/wt-design-preview/DesignPreview.app: replacing existing signature
+/tmp/wt-design-preview/DesignPreview.app

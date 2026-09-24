@@ -8,10 +8,10 @@ Status: ready-for-human — visual proposal, no production implementation
 September 24: the user requests a complete redesign, finding the app clean but sometimes messy,
 missing details and boring. They explicitly allow replacing the theme and ask to see visuals
 before implementation. This is a new task, superseding signing/device acceptance as the current
-session's work. No Swift, assets, tests, schema, installed binary or phone data changed.
+session's work. No production Swift, assets, tests, schema, installed binary or phone data changed.
 
 Base: clean main `a0364f2c93ebb0ebbfd1e28b8847aa79b304d0fd`, verified against live origin/main.
-Proposal branch: `ericlee4992/redesign-visual-proposal`. No build, install or API request.
+Proposal branch: `ericlee4992/redesign-visual-proposal`. No production build, phone install or AI request.
 No independent clearance or native accessibility pass is claimed for the proposal.
 
 ## Proposal
@@ -177,3 +177,10 @@ independent review before merge/install. Do not begin product changes on this ti
   [standalone browser preview](../visuals/workout-redesign-browser.html), opened it in Orca's
   embedded browser and visually confirmed it rendered. No public upload. Preview screen menu
   switches designs; Settings contains appearance and large-text switches in the standalone copy.
+- User then requested an interactive iPhone visualization. Built/installed a throwaway simulator
+  shell with a separate bundle ID; it rendered on iOS 27 and 26.5, but native input delivery failed.
+  Process-local framework workaround restored streaming only. Viewer/helpers stopped afterward.
+  Delivered the [direct interactive phone](../visuals/iphone-interactive.html) instead, opened
+  in Orca and verified through actual clicks/input and post-state snapshots. Product code untouched.
+  [Full prototype/incident record](../iphone-prototype/README.md). Native demo remains unverified;
+  the working deliverable is explicitly a browser prototype. User design choice remains pending.
