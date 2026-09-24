@@ -1,0 +1,2017 @@
+<!doctype html>
+<html lang="en" data-visualize-standalone>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src 'unsafe-inline' blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Workout Redesign</title>
+<style>:root{color-scheme:light dark;background:light-dark(rgb(255 255 255), rgb(24 24 24))}html,body{margin:0}body{box-sizing:border-box;padding:1rem;background:inherit}iframe{display:block;width:100%;height:calc(100vh - 2rem);margin:0 auto;border:0}</style>
+</head>
+<body>
+<iframe id="codex-visualization" sandbox="allow-scripts" referrerpolicy="no-referrer" title="Workout Redesign" data-srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot; data-visualize-standalone&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;referrer&quot; content=&quot;no-referrer&quot;&gt;
+&lt;meta http-equiv=&quot;Content-Security-Policy&quot; content=&quot;default-src &#x27;none&#x27;; script-src &#x27;unsafe-inline&#x27; &#x27;unsafe-eval&#x27; &#x27;wasm-unsafe-eval&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; style-src &#x27;unsafe-inline&#x27; blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; img-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; font-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; media-src blob: data: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://esm.sh https://fonts.bunny.net https://fonts.googleapis.com https://fonts.gstatic.com https://unpkg.com; worker-src blob:; connect-src blob: data:; frame-src &#x27;none&#x27;; object-src &#x27;none&#x27;; base-uri &#x27;none&#x27;; form-action &#x27;none&#x27;&quot;&gt;
+&lt;title&gt;Workout Redesign&lt;/title&gt;
+&lt;style&gt;:root {
+  color-scheme: light dark;
+  background-color: var(
+    --background,
+    var(--color-background-primary, light-dark(rgb(255 255 255), rgb(24 24 24)))
+  ) !important;
+
+  /* Agent-facing contract; keep in sync with SKILL.md. */
+  --background: var(
+    --color-background-primary,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --card: color-mix(in oklab, var(--foreground) 5%, var(--background));
+  --card-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --popover: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255), rgb(45 45 45))
+  );
+  --popover-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --primary: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --primary-foreground: var(
+    --color-text-inverse,
+    light-dark(rgb(255 255 255), rgb(13 13 13))
+  );
+  --secondary: var(
+    --color-background-secondary,
+    light-dark(rgb(255 255 255 / 96%), rgb(54 54 54 / 96%))
+  );
+  --secondary-foreground: var(
+    --color-text-primary,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --muted: color-mix(in srgb, var(--foreground) 10%, transparent);
+  --muted-foreground: var(
+    --color-text-secondary,
+    light-dark(rgb(26 28 31 / 49.4%), rgb(255 255 255 / 49.8%))
+  );
+  --accent: var(
+    --color-background-info,
+    light-dark(rgb(229 242 255), rgb(13 39 63))
+  );
+  --accent-foreground: var(
+    --color-text-info,
+    light-dark(rgb(51 156 255), rgb(131 195 255))
+  );
+  --destructive: var(
+    --color-text-warning,
+    light-dark(rgb(226 85 7), rgb(255 133 73))
+  );
+  --border: var(
+    --color-border-secondary,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+  --input: var(
+    --color-border-primary,
+    light-dark(
+      rgb(26 28 31 / 11.8%),
+      color-mix(in oklab, rgb(0 0 0) 10%, transparent)
+    )
+  );
+  --ring: var(
+    --color-ring-primary,
+    light-dark(rgb(51 156 255), rgb(131 195 255 / 76%))
+  );
+  --font-size-base: var(--font-text-md-size, 14px);
+  --blue: light-dark(rgb(51 156 255), rgb(51 156 255));
+  --orange: light-dark(rgb(226 85 7), rgb(251 106 34));
+  --green: light-dark(rgb(0 162 64), rgb(64 201 119));
+  --red: light-dark(rgb(224 46 42), rgb(255 103 100));
+  --purple: light-dark(rgb(146 79 247), rgb(173 123 249));
+  --yellow: light-dark(rgb(255 195 0), rgb(255 210 64));
+  --viz-series-1: var(--primary);
+  --viz-series-2: light-dark(rgb(243 136 59), rgb(245 154 86));
+  --viz-series-3: light-dark(rgb(93 201 119), rgb(116 213 139));
+  --viz-series-4: light-dark(rgb(235 119 177), rgb(240 143 192));
+  --viz-series-5: light-dark(rgb(155 121 236), rgb(170 145 239));
+  --viz-series-6: light-dark(rgb(58 185 177), rgb(90 203 194));
+
+  /* Internal implementation variables; not part of the agent contract. */
+  --font-sans: -apple-system, system-ui, &quot;Segoe UI&quot;, sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, &quot;SF Mono&quot;, Menlo, Consolas, &quot;Liberation Mono&quot;,
+    monospace;
+  --font-size-normal: max(11px, var(--font-size-base));
+  --font-size-tooltip: calc(var(--font-size-base) - 1px);
+  --font-size-small: max(11px, calc(var(--font-size-base) - 2px));
+  --font-size-h1: calc(var(--font-size-normal) * 1.7142857143);
+  --font-size-h2: calc(var(--font-size-normal) * 1.4285714286);
+  --font-size-h3: calc(var(--font-size-normal) * 1.2857142857);
+  --font-weight-normal: 430;
+  --font-weight-medium: 500;
+  --icon-size: 16px;
+  --line-height-normal: calc(var(--font-size-normal) * 1.5);
+  --line-height-tooltip: calc(var(--font-size-tooltip) * 1.4285714286);
+  --line-height-small: calc(var(--font-size-small) + 4px);
+  --corner-shape: round;
+  --radius: var(--border-radius-lg, 10px);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.6);
+  --radius-full: 9999px;
+  --shadow-sm: 0 1px 2px -1px rgb(0 0 0 / 8%);
+  --checkmark-image: url(&quot;data:image/svg+xml,%3Csvg xmlns=&#x27;http://www.w3.org/2000/svg&#x27; viewBox=&#x27;0 0 17 17&#x27;%3E%3Cpath d=&#x27;M12.8961 3.64101C13.1297 3.41418 13.4984 3.37523 13.7779 3.56581C14.0571 3.75635 14.1554 4.11331 14.0299 4.41347L13.9615 4.53847L7.71151 13.7045C7.59411 13.8767 7.4063 13.9877 7.19881 14.0072C6.99136 14.0267 6.78564 13.9533 6.63826 13.806L2.88826 10.056L2.79842 9.9457C2.6192 9.67407 2.64927 9.30496 2.88826 9.06581C3.12738 8.82669 3.49647 8.79676 3.76815 8.97597L3.8785 9.06581L7.03084 12.2182L12.8053 3.74941L12.8961 3.64101Z&#x27;/%3E%3C/svg%3E&quot;);
+
+  /* Legacy aliases; not part of the current agent contract. */
+  --viz-bg: transparent;
+  --viz-panel: var(--card);
+  --viz-border: var(--border);
+  --viz-text: var(--foreground);
+  --viz-muted: var(--muted-foreground);
+  --viz-accent: var(--primary);
+  --viz-accent-text: var(--primary-foreground);
+  --viz-accent-bg: var(--accent);
+  --viz-font-size: var(--font-size-base);
+  --viz-warning: var(--destructive);
+}
+
+:root[data-theme=&quot;light&quot;] {
+  color-scheme: light;
+}
+
+:root[data-theme=&quot;dark&quot;] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html &gt; body {
+  /* Preserve MCP aliases for older inline renderers without creating :root cycles. */
+  --color-background-primary: var(
+    --background,
+    light-dark(rgb(255 255 255), rgb(24 24 24))
+  );
+  --color-text-primary: var(
+    --foreground,
+    light-dark(rgb(26 28 31), rgb(255 255 255))
+  );
+  --color-border-secondary: var(
+    --border,
+    light-dark(rgb(26 28 31 / 8%), rgb(255 255 255 / 8.2%))
+  );
+
+  margin: 0;
+  padding: var(--visualize-paint-gutter, 0px);
+  color: var(--foreground);
+  background: transparent !important;
+  font-family: var(--font-sans) !important;
+  font-size: var(--font-size-normal);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+.cursor-interaction {
+  cursor: var(--cursor-interaction, pointer);
+}
+
+a {
+  color: color-mix(in srgb, var(--viz-accent) 80%, var(--viz-text) 20%);
+  cursor: var(--cursor-interaction, pointer);
+  font-weight: var(--font-weight-medium, 500);
+  text-decoration: none;
+  text-underline-offset: 2px;
+}
+
+a:is(:hover, :focus-visible) {
+  text-decoration-line: underline;
+  text-decoration-style: dashed;
+  text-decoration-thickness: 0.5px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  margin-block: 0;
+}
+
+h1 {
+  font-size: var(--font-size-h1);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h2 {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.3;
+}
+
+b,
+strong,
+th {
+  font-weight: var(--font-weight-medium);
+}
+
+code:not(pre code) {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  word-break: break-word;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--foreground);
+  font: inherit;
+  text-align: start;
+}
+
+.table :is(th, td) {
+  padding-block: 10px;
+  padding-inline: 0 24px;
+  overflow-wrap: anywhere;
+  border-bottom: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.table-responsive &gt; .table :is(th, td) {
+  overflow-wrap: break-word;
+}
+
+.table :is(th, td):last-child {
+  padding-inline-end: 0;
+}
+
+.table :is(caption, thead th) {
+  font-weight: 600;
+}
+
+.table thead th {
+  padding-block: 8px;
+  border-bottom-color: color-mix(in srgb, var(--foreground) 16%, transparent);
+}
+
+.table tbody tr:last-child :is(th, td) {
+  border-bottom: 0;
+}
+
+.table.table-sm :is(th, td) {
+  padding-block: 6px;
+}
+
+.table.table-sm :is(th, td):not(:last-child) {
+  padding-inline-end: 16px;
+}
+
+.table :is(.text-end, [align=&quot;right&quot;]) {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+.table :is(.text-center, [align=&quot;center&quot;]) {
+  text-align: center;
+}
+
+.table .text-nowrap {
+  white-space: nowrap;
+}
+
+#widget {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  background: transparent !important;
+}
+
+.card {
+  min-width: 0;
+  padding: 12px;
+  overflow: hidden;
+  overflow-wrap: break-word;
+  border-radius: var(--radius-2xl);
+  corner-shape: var(--corner-shape);
+  color: var(--card-foreground);
+  background: var(--card);
+}
+
+#widget &gt; :not(.card, .progress) {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.tooltip {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  width: max-content;
+  max-width: min(
+    20rem,
+    var(--tooltip-available-width, calc(100vw - 10px)),
+    calc(100vw - 10px)
+  );
+  max-height: min(
+    var(--tooltip-available-height, calc(100vh - 10px)),
+    calc(100vh - 10px)
+  );
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--popover-foreground);
+  background: var(--popover);
+  box-shadow: none;
+  font-size: var(--font-size-tooltip);
+  line-height: var(--line-height-tooltip);
+  overflow-wrap: break-word;
+  white-space: normal;
+  pointer-events: none;
+  user-select: none;
+}
+
+.viz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(max(180px, 24%), 1fr));
+  gap: 10px;
+}
+
+.viz-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.viz-stat-value {
+  font-size: var(--font-size-h2);
+  font-weight: var(--font-weight-medium);
+  line-height: 1.25;
+}
+
+.viz-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+hr {
+  width: 100%;
+  height: 1px;
+  margin-block: 6px;
+  border: 0;
+  background: var(--border);
+}
+
+.nav {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 4px;
+}
+
+.progress {
+  display: flex;
+  height: 8px;
+  margin-block: calc((var(--line-height-normal, 1.5em) - 8px) / 2);
+  overflow: hidden;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+}
+
+.progress-bar:only-child {
+  border-radius: var(--radius-full);
+}
+
+.progress-bar {
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--viz-series-1);
+}
+
+.viz-badge {
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  color: var(--accent-foreground);
+  background: var(--accent);
+  font-weight: var(--font-weight-medium);
+}
+
+small,
+.text-small,
+.viz-badge {
+  font-size: var(--font-size-small);
+  line-height: var(--line-height-small);
+}
+
+.text-muted {
+  color: var(--muted-foreground);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.viz-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.viz-controls &gt; .form-label {
+  display: grid;
+  min-width: min(100%, 260px);
+  flex: 1 1 280px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 2px 12px;
+  margin-bottom: 0;
+}
+
+.viz-controls &gt; .form-label &gt; :is(.form-control, .form-range, .form-select) {
+  grid-column: 1 / -1;
+}
+
+.btn,
+.nav-link,
+.form-check-input,
+.form-control,
+.form-range,
+.form-select {
+  font: inherit;
+}
+
+.btn,
+.nav-link {
+  appearance: button;
+  display: inline-flex;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  min-height: 28px;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0 8px;
+  -webkit-app-region: no-drag;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: var(--cursor-interaction, pointer);
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.btn:is(.btn-block, .viz-tile) {
+  inline-size: 100%;
+}
+
+.btn.viz-tile {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+a.btn {
+  cursor: var(--cursor-interaction, pointer);
+  text-decoration: none;
+}
+
+.btn:not(:disabled):hover,
+.nav-link:not(:disabled):not([aria-disabled=&quot;true&quot;]):hover {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.btn-primary {
+  border-color: transparent;
+  color: var(--primary-foreground);
+  background: var(--foreground);
+  background-clip: padding-box;
+}
+
+.btn-primary .text-muted {
+  color: color-mix(in srgb, var(--primary-foreground) 50%, transparent);
+}
+
+.btn-primary:not(:disabled):hover {
+  background: color-mix(in srgb, var(--foreground) 80%, transparent);
+  background-clip: padding-box;
+}
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.btn-ghost:not(:disabled):hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.nav-pills .nav-link {
+  min-width: 0;
+  border-color: transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+}
+
+.nav-justified .nav-link {
+  flex: 1 1 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.nav-pills .nav-link.active {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.btn:disabled,
+.nav-link:disabled,
+.nav-link[aria-disabled=&quot;true&quot;] {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+[data-lucide] {
+  stroke-width: 1.6;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--foreground);
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  padding: 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background: var(--secondary);
+}
+
+.form-control::placeholder {
+  color: var(--muted-foreground);
+}
+
+.form-control[type=&quot;file&quot;] {
+  padding: 0;
+  overflow: hidden;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control[type=&quot;file&quot;]::file-selector-button {
+  min-height: 26px;
+  margin-right: 8px;
+  padding: 0 8px;
+  border: 0;
+  border-right: 1px solid var(--input);
+  color: var(--secondary-foreground);
+  background: var(--secondary);
+  cursor: inherit;
+  font: inherit;
+}
+
+.form-control[type=&quot;file&quot;]:not(:disabled):hover::file-selector-button {
+  background: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-control-color[type=&quot;color&quot;] {
+  width: 40px;
+  height: 28px;
+  padding: 3px;
+  cursor: var(--cursor-interaction, pointer);
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.form-control-color[type=&quot;color&quot;]::-webkit-color-swatch {
+  border: 0;
+  border-radius: calc(var(--radius-lg) - 4px);
+  corner-shape: var(--corner-shape);
+}
+
+textarea.form-control {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+.form-control:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-control:disabled,
+.form-select:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.form-select {
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: 28px;
+  margin: 0;
+  padding: 0 32px 0 8px;
+  outline: none;
+  border: 1px solid var(--input);
+  border-radius: var(--radius-lg);
+  corner-shape: var(--corner-shape);
+  color: var(--foreground);
+  background-color: var(--secondary);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted-foreground) 50%),
+    linear-gradient(135deg, var(--muted-foreground) 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 10px) 50%;
+  background-repeat: no-repeat;
+  background-size: 4px 4px;
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-select:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--foreground) 6%, var(--secondary));
+}
+
+.form-select:focus-visible {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-check {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+
+.form-check-input {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  margin: 0;
+  border: 1px solid var(--input);
+  color: var(--primary-foreground);
+  background-color: transparent;
+  cursor: var(--cursor-interaction, default);
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;] {
+  border-color: var(--input);
+  border-radius: var(--radius-sm);
+  corner-shape: var(--corner-shape);
+  background-color: var(--secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input:not(:disabled):not(:checked):hover {
+  background-color: var(--card);
+}
+
+.form-check:not(.form-switch) .form-check-input[type=&quot;checkbox&quot;]:checked {
+  border-color: var(--primary);
+  background-color: var(--primary);
+}
+
+.form-check:not(.form-switch)
+  .form-check-input[type=&quot;checkbox&quot;]:checked::before {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--primary-foreground);
+  content: &quot;&quot;;
+  mask: var(--checkmark-image) center / 12px 12px no-repeat;
+}
+
+.form-check-input[type=&quot;radio&quot;] {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+}
+
+.form-check-input[type=&quot;radio&quot;]:checked {
+  border: 2px solid var(--primary);
+  background:
+    radial-gradient(circle, var(--primary-foreground) 0 2.5px, transparent 3px),
+    var(--primary);
+}
+
+.form-check:not(.form-switch) .form-check-input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.form-check:not(.form-switch) .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+}
+
+.form-switch .form-check-input:disabled,
+.form-switch .form-check-input:disabled + .form-check-label {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.form-check-label {
+  color: var(--foreground);
+  cursor: var(--cursor-interaction, default);
+}
+
+.form-switch .form-check-input {
+  position: relative;
+  width: 32px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--muted);
+  box-shadow: none;
+  transition: background-color 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input::before {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1px solid light-dark(var(--primary-foreground), var(--foreground));
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+  box-shadow: var(--shadow-sm);
+  content: &quot;&quot;;
+  transform: translate(2px, -50%);
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.form-switch .form-check-input:checked {
+  background: var(--primary);
+}
+
+.form-switch .form-check-input:checked::before {
+  transform: translate(14px, -50%);
+}
+
+.form-switch .form-check-input:focus-visible {
+  box-shadow: 0 0 0 2px var(--ring);
+}
+
+.form-range {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 28px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  accent-color: var(--primary);
+  background: linear-gradient(
+      color-mix(in srgb, var(--foreground) 7%, transparent),
+      color-mix(in srgb, var(--foreground) 7%, transparent)
+    )
+    center / 100% 2px no-repeat;
+}
+
+.form-range::-webkit-slider-runnable-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-webkit-slider-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range::-moz-range-track {
+  height: 28px;
+  background: transparent;
+}
+
+.form-range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: light-dark(var(--primary-foreground), var(--foreground));
+}
+
+.form-range:focus-visible::-moz-range-thumb {
+  border-color: var(--ring);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.form-range:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.btn:not(.btn-primary, .viz-tile):is(
+  [aria-pressed=&quot;true&quot;],
+  [aria-selected=&quot;true&quot;],
+  .is-selected
+) {
+  border-color: var(--primary);
+  color: var(--primary-foreground);
+  background: var(--primary);
+}
+
+.btn.viz-tile:is([aria-pressed=&quot;true&quot;], [aria-selected=&quot;true&quot;], .is-selected) {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.btn:focus-visible,
+.nav-link:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+@media (pointer: coarse) {
+  .btn,
+  .nav-link,
+  .form-control,
+  .form-select {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Keep small-screen WebKit from zooming when a text field receives focus. */
+  .form-control,
+  .form-select {
+    font-size: max(16px, var(--font-size-normal));
+  }
+
+  .form-control[type=&quot;file&quot;]::file-selector-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .form-control-color[type=&quot;color&quot;] {
+    width: 44px;
+    height: 44px;
+  }
+
+  .form-control:is(
+    [type=&quot;date&quot;],
+    [type=&quot;datetime-local&quot;],
+    [type=&quot;month&quot;],
+    [type=&quot;time&quot;],
+    [type=&quot;week&quot;]
+  ) {
+    min-width: 0;
+    max-width: 100%;
+    padding-block: 8px;
+  }
+
+  .form-check {
+    min-height: 44px;
+    padding-inline: 15px;
+  }
+
+  .form-check-input {
+    position: relative;
+  }
+
+  .form-check-input::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    content: &quot;&quot;;
+    transform: translate(-50%, -50%);
+  }
+
+  .form-check-label {
+    display: inline-flex;
+    min-width: 44px;
+    min-height: 44px;
+    align-items: center;
+  }
+
+  .form-range {
+    height: 44px;
+    touch-action: pan-y;
+  }
+
+  .form-range::-webkit-slider-runnable-track {
+    height: 44px;
+  }
+
+  .form-range::-moz-range-track {
+    height: 44px;
+  }
+
+  .form-range::-webkit-slider-thumb {
+    margin-top: 12px;
+  }
+}
+
+svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+#widget &gt; svg {
+  width: 100%;
+}
+
+/* Model-authored chart rules can otherwise stretch icons after these styles load. */
+svg.lucide {
+  display: block;
+  width: var(--icon-size) !important;
+  height: var(--icon-size) !important;
+  flex: none;
+  margin: 0 !important;
+  stroke-width: 1.6;
+}
+
+.text-warning,
+.text-destructive {
+  color: var(--destructive);
+}
+
+html&gt;body{padding:0}&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;script type=&quot;application/json&quot; id=&quot;codex-visualization-widget-state&quot;&gt;__CODEX_VISUALIZATION_WIDGET_STATE__&lt;/script&gt;
+&lt;script&gt;(() =&gt; {
+  const root = document.documentElement;
+  const mediaQuery = globalThis.matchMedia(&quot;(prefers-color-scheme: dark)&quot;);
+  const apply = Reflect.apply;
+  const isArray = Array.isArray;
+  const hasOwn = Object.hasOwn;
+  const parentWindow = globalThis.parent;
+  const stringify = JSON.stringify;
+  const parse = JSON.parse;
+  const encode = TextEncoder.prototype.encode.bind(new TextEncoder());
+  const initialStateElement = document.getElementById(
+    &quot;codex-visualization-widget-state&quot;,
+  );
+  const initialGlobals = parse(initialStateElement?.textContent ?? &quot;{}&quot;);
+  initialStateElement?.remove();
+  /** @type {Record&lt;string, unknown&gt; | null} */
+  let state = initialGlobals.widgetState ?? null;
+  const statePersistence = initialGlobals.statePersistence ?? &quot;none&quot;;
+  let nextStateRequestId = 0;
+  /** @type {Map&lt;number, { resolve: () =&gt; void; reject: (error: Error) =&gt; void; timeout: ReturnType&lt;typeof globalThis.setTimeout&gt;; serializedState: string }&gt;} */
+  const pendingStateWrites = new Map();
+  const persistenceError = () =&gt;
+    Object.assign(
+      new Error(&quot;The host could not persist the widget state update&quot;),
+      {
+        code: -32000,
+        data: { code: &quot;widget_state_persistence_failed&quot;, retryable: false },
+      },
+    );
+  /**
+   * @param {object} prototype
+   * @param {string} property
+   */
+  const getPrototypeGetter = (prototype, property) =&gt; {
+    // oxlint-disable-next-line typescript/unbound-method -- invoked through captured Reflect.apply
+    const getter = Object.getOwnPropertyDescriptor(prototype, property)?.get;
+    if (getter == null) {
+      throw new Error(`Missing ${property} getter`);
+    }
+    return getter;
+  };
+  const getMessageData = getPrototypeGetter(MessageEvent.prototype, &quot;data&quot;);
+  const getMessagePorts = getPrototypeGetter(MessageEvent.prototype, &quot;ports&quot;);
+  const getMessageSource = getPrototypeGetter(MessageEvent.prototype, &quot;source&quot;);
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const addHostMessageListener = MessagePort.prototype.addEventListener;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const postHostMessage = MessagePort.prototype.postMessage;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const startHostPort = MessagePort.prototype.start;
+  // oxlint-disable-next-line typescript/unbound-method -- captured before the untrusted fragment runs
+  const stopMessagePropagation = Event.prototype.stopImmediatePropagation;
+  /** @type {MessagePort | null} */
+  let hostPort = null;
+  const postToHost = (type, payload) =&gt; {
+    if (hostPort != null) {
+      apply(postHostMessage, hostPort, [{ type, ...payload }]);
+    }
+  };
+  const openExternal = ({ href }) =&gt; {
+    if (globalThis.navigator.userActivation?.isActive === true) {
+      postToHost(&quot;open-external&quot;, { href });
+    }
+  };
+  const sendFollowUpMessage = ({ context, prompt, title }) =&gt; {
+    if (globalThis.navigator.userActivation?.isActive === true) {
+      postToHost(&quot;follow-up&quot;, { context, prompt, title });
+    }
+    return Promise.resolve();
+  };
+  /**
+   * @param {Record&lt;string, unknown&gt; | ((previous: Record&lt;string, unknown&gt; | null) =&gt; Record&lt;string, unknown&gt;)} next
+   * @returns {Promise&lt;void&gt;}
+   */
+  const setWidgetState = async (next) =&gt; {
+    const nextState = typeof next === &quot;function&quot; ? next(state) : next;
+    if (
+      nextState == null ||
+      typeof nextState !== &quot;object&quot; ||
+      isArray(nextState)
+    ) {
+      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+    }
+    const inputState = stringify(
+      nextState,
+      (_key, /** @type {unknown} */ value) =&gt; {
+        if (
+          typeof value === &quot;undefined&quot; ||
+          typeof value === &quot;function&quot; ||
+          typeof value === &quot;symbol&quot; ||
+          (typeof value === &quot;number&quot; &amp;&amp; !Number.isFinite(value))
+        ) {
+          throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+        }
+        return value;
+      },
+    );
+    const parsedState = parse(inputState);
+    if (
+      parsedState == null ||
+      typeof parsedState !== &quot;object&quot; ||
+      isArray(parsedState)
+    ) {
+      throw new TypeError(&quot;Widget state must be a JSON object&quot;);
+    }
+    const storedState = {
+      modelContent: null,
+      privateContent: null,
+      ...parsedState,
+    };
+    const serializedState = stringify(storedState);
+    if (encode(serializedState).length &gt; 16 * 1024) {
+      throw new TypeError(
+        &quot;Widget state must be a JSON object of at most 16 KiB&quot;,
+      );
+    }
+    if (
+      hasOwn(storedState, &quot;imageIds&quot;) &amp;&amp;
+      (!isArray(storedState.imageIds) ||
+        storedState.imageIds.some(
+          (/** @type {unknown} */ id) =&gt; typeof id !== &quot;string&quot;,
+        ))
+    ) {
+      throw new TypeError(&quot;Widget state imageIds must be an array of strings&quot;);
+    }
+    if (storedState.imageIds?.length &gt; 0) {
+      throw Object.assign(
+        new TypeError(&quot;Visualization state does not support image attachments&quot;),
+        { code: -32602, data: { code: &quot;images_unsupported&quot; } },
+      );
+    }
+    state = storedState;
+    globalThis.openai.widgetState = state;
+    globalThis.dispatchEvent(
+      new CustomEvent(&quot;openai:set_globals&quot;, {
+        detail: { globals: { widgetState: state } },
+      }),
+    );
+    if (statePersistence === &quot;none&quot;) {
+      throw persistenceError();
+    }
+    const id = ++nextStateRequestId;
+    return new Promise((resolve, reject) =&gt; {
+      const timeout = globalThis.setTimeout(() =&gt; {
+        pendingStateWrites.delete(id);
+        reject(persistenceError());
+      }, 30_000);
+      pendingStateWrites.set(id, { resolve, reject, timeout, serializedState });
+      postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
+    });
+  };
+  const syncTheme = () =&gt; {
+    const theme = mediaQuery.matches ? &quot;dark&quot; : &quot;light&quot;;
+    root.dataset.theme = theme;
+    globalThis.openai = {
+      ...globalThis.openai,
+      openExternal,
+      sendFollowUpMessage,
+      setWidgetState,
+      theme,
+      visualizationStyleVariables: {},
+      visualizationTheme: theme,
+      widgetState: state,
+      statePersistence,
+      stateModelContext: &quot;none&quot;,
+    };
+    globalThis.dispatchEvent(
+      new CustomEvent(&quot;openai:set_globals&quot;, {
+        detail: { globals: globalThis.openai },
+      }),
+    );
+  };
+  const sendHeight = () =&gt; {
+    postToHost(&quot;height&quot;, {
+      height: Math.ceil(
+        Math.max(
+          document.body.scrollHeight,
+          document.body.getBoundingClientRect().height,
+        ),
+      ),
+    });
+  };
+
+  globalThis.addEventListener(
+    &quot;message&quot;,
+    (event) =&gt; {
+      const data = apply(getMessageData, event, []);
+      const ports = apply(getMessagePorts, event, []);
+      const source = apply(getMessageSource, event, []);
+      if (
+        hostPort != null ||
+        source !== parentWindow ||
+        typeof data !== &quot;object&quot; ||
+        data?.type !== &quot;codex-visualization-initialize&quot; ||
+        !isArray(ports) ||
+        ports.length !== 1
+      ) {
+        return;
+      }
+      apply(stopMessagePropagation, event, []);
+      const nextHostPort = ports[0];
+      try {
+        apply(addHostMessageListener, nextHostPort, [
+          &quot;message&quot;,
+          (event) =&gt; {
+            const data = apply(getMessageData, event, []);
+            if (typeof data === &quot;object&quot; &amp;&amp; data?.type === &quot;measure&quot;) {
+              sendHeight();
+            } else if (
+              typeof data === &quot;object&quot; &amp;&amp;
+              data?.type === &quot;widget-state-result&quot;
+            ) {
+              /** @type {unknown} */
+              const id = data.id;
+              if (typeof id !== &quot;number&quot;) {
+                return;
+              }
+              const pending = pendingStateWrites.get(id);
+              if (pending != null) {
+                pendingStateWrites.delete(id);
+                globalThis.clearTimeout(pending.timeout);
+                if (data.ok === true) {
+                  pending.resolve();
+                } else {
+                  pending.reject(persistenceError());
+                }
+              }
+            }
+          },
+        ]);
+        apply(startHostPort, nextHostPort, []);
+      } catch {
+        return;
+      }
+      hostPort = nextHostPort;
+      for (const [id, { serializedState }] of pendingStateWrites) {
+        postToHost(&quot;widget-state-write&quot;, { id, state: serializedState });
+      }
+      sendHeight();
+    },
+    { capture: true },
+  );
+  document.currentScript?.remove();
+  mediaQuery.addEventListener(&quot;change&quot;, syncTheme);
+  globalThis.addEventListener(&quot;click&quot;, (event) =&gt; {
+    if (event.defaultPrevented) {
+      return;
+    }
+    let element = null;
+    if (event.target instanceof globalThis.Element) {
+      element = event.target;
+    } else if (event.target instanceof globalThis.Node) {
+      element = event.target.parentElement;
+    }
+    const link = element?.closest(&quot;a[href]&quot;);
+    const href = link?.getAttribute(&quot;href&quot;);
+    if (href == null) {
+      return;
+    }
+    if (href.startsWith(&quot;#&quot;)) {
+      let id;
+      try {
+        id = decodeURIComponent(href.slice(1));
+      } catch {
+        return;
+      }
+      const target = id.length === 0 ? root : document.getElementById(id);
+      if (
+        target == null ||
+        globalThis.navigator.userActivation?.isActive !== true
+      ) {
+        return;
+      }
+      event.preventDefault();
+      postToHost(&quot;scroll-to&quot;, {
+        top: target.getBoundingClientRect().top + globalThis.scrollY,
+      });
+      return;
+    }
+    event.preventDefault();
+    openExternal({ href });
+  });
+  new ResizeObserver(sendHeight).observe(document.body);
+  syncTheme();
+})();
+&lt;/script&gt;
+&lt;style&gt;
+#wt-study{font-family:-apple-system,BlinkMacSystemFont,&quot;Segoe UI&quot;,sans-serif;color:light-dark(#172019,#f1f4eb);max-width:460px;margin:0 auto;--wt-bg:light-dark(#f4f5ee,#111610);--wt-paper:light-dark(#ffffff,#1e251d);--wt-soft:light-dark(#e9ecdf,#2b3427);--wt-line:light-dark(#d4dacb,#3a4535);--wt-ink:light-dark(#19221a,#f2f5ec);--wt-muted:light-dark(#56624f,#b3beaa);--wt-accent:light-dark(#335a0b,#d1f477);--wt-on:light-dark(#fff,#182208);--wt-good:light-dark(#286240,#a5dcad);--wt-danger:light-dark(#ad3038,#ff9296);--wt-warm:light-dark(#796100,#f2d76c);--wt-size:17px;color-scheme:light dark}
+#wt-study *{box-sizing:border-box}#wt-study button,#wt-study input,#wt-study select,#wt-study textarea{font:inherit;color:inherit}#wt-study button{border:0;background:none;cursor:inherit;min-height:44px;padding:10px 12px;text-align:left;transition:transform .14s,background .16s}#wt-study button:active{transform:scale(.98)}#wt-study button:focus-visible,#wt-study input:focus-visible,#wt-study select:focus-visible{outline:3px solid var(--wt-accent);outline-offset:3px}#wt-study svg{flex-shrink:0;width:21px;height:21px}#wt-study .study-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 5px 12px;font-size:12px;letter-spacing:.06em;font-weight:650}#wt-study .study-bar span:last-child{font-weight:400;letter-spacing:0;color:var(--wt-muted)}#wt-study .jump{width:100%;min-height:46px;border:1px solid var(--wt-line);border-radius:12px;background:var(--wt-paper);padding:10px 12px;margin-bottom:14px;font-size:14px}#wt-study .phone{background:var(--wt-bg);border:1px solid var(--wt-line);border-radius:38px;overflow:hidden;color:var(--wt-ink);position:relative;font-size:var(--wt-size)}#wt-study .status{display:flex;justify-content:space-between;align-items:center;padding:18px 28px 10px;font-size:14px;font-weight:650}#wt-study .status .island{width:92px;height:25px;background:#050604;border-radius:20px}#wt-study .status .signal{display:flex;gap:6px}#wt-study .status svg{width:16px;height:16px}#wt-study .screen{padding:12px 23px 24px;min-height:660px}#wt-study h1,#wt-study h2,#wt-study h3,#wt-study p{margin:0}#wt-study h1{font-size:34px;line-height:1.12;letter-spacing:-1.4px;font-weight:760}#wt-study h2{font-size:22px;line-height:1.2;letter-spacing:-.5px;font-weight:720}#wt-study h3{font-size:17px;line-height:1.3;font-weight:650}#wt-study .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:22px}#wt-study .top .icon{background:var(--wt-paper);border:1px solid var(--wt-line);border-radius:50%}#wt-study .icon{display:inline-flex;align-items:center;justify-content:center;width:44px;min-width:44px;padding:10px}#wt-study .muted{color:var(--wt-muted)}#wt-study .small{font-size:13px;line-height:1.45}#wt-study .eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:750;color:var(--wt-muted)}#wt-study .line{display:flex;align-items:center;justify-content:space-between;gap:12px}#wt-study .stack{display:flex;flex-direction:column;gap:5px;min-width:0}#wt-study .space{height:22px}#wt-study .section{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:23px 0 10px}#wt-study .section button{font-size:14px;font-weight:650;padding-right:0}#wt-study .pill{display:inline-flex;align-items:center;gap:7px;border-radius:99px;padding:7px 11px;background:var(--wt-soft);font-size:13px;font-weight:600}#wt-study .context{display:flex;align-items:center;gap:7px;color:var(--wt-muted);font-size:14px;padding:0;min-height:44px}#wt-study .context svg{width:16px}#wt-study .primary{display:flex;align-items:center;justify-content:center;gap:10px;background:var(--wt-accent);color:var(--wt-on);border-radius:16px;font-weight:700;width:100%;min-height:54px;text-align:center}#wt-study .secondary{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--wt-soft);border-radius:16px;min-height:50px;font-weight:650;width:100%;text-align:center}#wt-study .text-action{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;font-size:15px;font-weight:650}#wt-study .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}#wt-study .feature{border-radius:24px;background:var(--wt-paper);padding:23px;position:relative;overflow:hidden;border:1px solid var(--wt-line);margin:10px 0 14px}#wt-study .feature h2{font-size:37px;line-height:1.02;letter-spacing:-1.5px;margin:20px 0 15px;max-width:250px;font-weight:800}#wt-study .feature .number{position:absolute;right:10px;top:28px;font-size:116px;letter-spacing:-10px;font-weight:800;line-height:1;color:var(--wt-soft);pointer-events:none}#wt-study .feature&gt;*:not(.number){position:relative}#wt-study .feature .primary{margin-top:21px}#wt-study .muscles{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--wt-muted);margin:15px 0 2px}#wt-study .muscles span{width:30px;height:4px;border-radius:2px;background:var(--wt-line)}#wt-study .muscles span.on{background:var(--wt-muted)}#wt-study .rows{border-top:1px solid var(--wt-line)}#wt-study .row{width:100%;display:flex;align-items:center;gap:13px;padding:16px 0;border-bottom:1px solid var(--wt-line);min-height:73px}#wt-study .row&gt;.stack{flex:1}#wt-study .row .trailing{color:var(--wt-muted);font-size:14px;white-space:nowrap}#wt-study .ordinal{width:30px;font-size:13px;font-weight:600;color:var(--wt-muted)}#wt-study .row svg{color:var(--wt-muted);width:18px}#wt-study .tile-icon{width:46px;height:46px;border-radius:14px;background:var(--wt-soft);display:flex;align-items:center;justify-content:center;flex-shrink:0}#wt-study .tile-icon svg{width:23px;height:23px;color:var(--wt-ink)}#wt-study .nav{margin:0 13px 12px;padding:5px;display:flex;gap:2px;background:var(--wt-paper);border:1px solid var(--wt-line);border-radius:28px;box-shadow:0 8px 25px #0000000c}#wt-study .nav button{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:4px;min-width:0;font-size:11px;border-radius:22px;color:var(--wt-muted);padding:10px 3px}#wt-study .nav button.active{background:var(--wt-soft);color:var(--wt-ink);font-weight:700}#wt-study .nav button.active svg{color:var(--wt-accent)}#wt-study .home-indicator{height:5px;width:110px;border-radius:4px;background:var(--wt-ink);margin:14px auto 8px}#wt-study .back{padding-left:0;display:flex;align-items:center;gap:4px;font-size:14px;color:var(--wt-muted)}#wt-study .toolbar{display:flex;align-items:center;justify-content:space-between;margin:-5px 0 10px}#wt-study .toolbar .quiet{font-size:14px;font-weight:650}#wt-study .progress{height:4px;border-radius:4px;background:var(--wt-soft);overflow:hidden;margin:16px 0 20px}#wt-study .progress span{display:block;height:100%;background:var(--wt-accent);transition:width .3s}#wt-study .exercise-head{margin:23px 0 17px}#wt-study .exercise-head h2{font-size:29px;letter-spacing:-1px}#wt-study .group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#wt-study .previous{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--wt-line);border-bottom:1px solid var(--wt-line);margin-bottom:17px;gap:8px;font-size:14px;width:100%}#wt-study .sethead,#wt-study .setrow{display:grid;grid-template-columns:35px 1fr 1fr 47px;gap:9px;align-items:center}#wt-study .sethead{color:var(--wt-muted);font-size:12px;margin-bottom:8px;text-align:center}#wt-study .setrow{padding:7px 0;border-bottom:1px solid var(--wt-line)}#wt-study .setnum{text-align:center;font-size:14px}#wt-study input[type=number]{width:100%;background:var(--wt-paper);border:1px solid var(--wt-line);border-radius:12px;min-height:49px;text-align:center;font-size:20px;font-weight:650;padding:5px;appearance:textfield}#wt-study input::-webkit-inner-spin-button{appearance:none}#wt-study .complete{border-radius:13px;background:var(--wt-soft);justify-content:center;padding:11px;display:flex}#wt-study .setrow.done .complete{background:var(--wt-accent);color:var(--wt-on)}#wt-study .setrow.done input{border-color:transparent;background:var(--wt-soft);color:var(--wt-muted)}#wt-study .setrow.done{animation:wt-complete .3s ease-out}#wt-study .rest{background:var(--wt-soft);padding:17px;border-radius:20px;margin:19px 0;display:flex;align-items:center;justify-content:space-between;gap:12px}#wt-study .rest strong{font-size:32px;letter-spacing:-1px;font-variant-numeric:tabular-nums}#wt-study .rest button{background:var(--wt-paper);border-radius:99px;font-size:13px}#wt-study .metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 23px}#wt-study .metric{padding:17px 0;border-bottom:1px solid var(--wt-line)}#wt-study .metric strong{font-size:27px;letter-spacing:-.8px;display:block;font-weight:730;font-variant-numeric:tabular-nums}#wt-study .metric small{font-size:13px;color:var(--wt-muted);display:block;margin-top:5px}#wt-study .big-number{font-size:72px;line-height:1;letter-spacing:-4px;font-weight:780;font-variant-numeric:tabular-nums}#wt-study .big-number span{font-size:20px;letter-spacing:0;color:var(--wt-muted);font-weight:500}#wt-study .hero-metric{padding:22px 0 10px}#wt-study .chart{width:100%;height:auto;display:block;margin:20px 0 8px}#wt-study .chart text{fill:var(--wt-muted);font-size:11px}#wt-study .chart .grid{stroke:var(--wt-line);stroke-width:1}#wt-study .chart .trace{stroke:var(--wt-accent);stroke-width:3;fill:none}#wt-study .chart .point{fill:var(--wt-accent)}#wt-study .chart .hr{stroke:var(--wt-danger);stroke-width:3;stroke-linecap:round}#wt-study .segmented{display:flex;gap:4px;background:var(--wt-soft);padding:4px;border-radius:12px;margin:16px 0}#wt-study .segmented button{flex:1;text-align:center;font-size:14px;min-height:38px;padding:6px;border-radius:9px}#wt-study .segmented button.selected{background:var(--wt-paper);font-weight:650}#wt-study .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;text-align:center;margin:18px 0}#wt-study .calendar button{padding:5px;text-align:center;min-width:0;min-height:43px;border-radius:50%;font-size:14px}#wt-study .calendar .day{font-size:11px;color:var(--wt-muted);padding:6px 0}#wt-study .calendar .marked{background:var(--wt-soft);font-weight:700}#wt-study .calendar .selected{background:var(--wt-accent);color:var(--wt-on)}#wt-study .field{display:block;margin:17px 0}#wt-study .field&gt;span{display:block;font-size:13px;color:var(--wt-muted);margin-bottom:8px}#wt-study .field input:not([type=checkbox]),#wt-study .field select,#wt-study .field textarea{width:100%;min-height:49px;background:var(--wt-paper);border:1px solid var(--wt-line);border-radius:12px;padding:12px;font-size:17px}#wt-study .field textarea{min-height:90px;resize:vertical}#wt-study .choices{display:flex;gap:7px;flex-wrap:wrap}#wt-study .choices button{border:1px solid var(--wt-line);border-radius:12px;font-size:14px;min-width:45px;text-align:center;background:var(--wt-paper)}#wt-study .choices .selected{background:var(--wt-soft);border-color:var(--wt-accent);font-weight:650}#wt-study .toggle{display:flex;align-items:center;gap:12px;padding:18px 0;border-bottom:1px solid var(--wt-line);font-size:15px}#wt-study .toggle input{width:22px;height:22px;accent-color:var(--wt-accent);margin-left:auto;flex-shrink:0}#wt-study .camera{height:255px;background:var(--wt-soft);border-radius:24px;position:relative;display:flex;align-items:center;justify-content:center;margin:21px 0;overflow:hidden}#wt-study .camera:before{content:&quot;&quot;;position:absolute;inset:23px;border:1px dashed var(--wt-muted);border-radius:14px}#wt-study .camera .camera-content{display:flex;align-items:center;flex-direction:column;gap:15px;color:var(--wt-muted)}#wt-study .camera-content svg{width:50px;height:50px}#wt-study .notice{padding:15px 0;font-size:14px;line-height:1.5;color:var(--wt-muted)}#wt-study .empty{padding:54px 10px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:15px}#wt-study .empty .tile-icon{width:80px;height:80px;border-radius:24px;margin-bottom:12px}#wt-study .empty .tile-icon svg{width:33px;height:33px}#wt-study .empty h2{font-size:28px}#wt-study .error{color:var(--wt-danger)}#wt-study .success{color:var(--wt-good)}#wt-study .receipt{border-top:1px dashed var(--wt-line);margin-top:20px;padding-top:4px}#wt-study .history-date{font-size:12px;font-weight:650;color:var(--wt-muted);margin:21px 0 9px}#wt-study .note{padding:15px;background:var(--wt-paper);border-radius:14px;font-size:14px;line-height:1.5}#wt-study .sheet{background:var(--wt-paper);border-radius:25px;padding:20px;border:1px solid var(--wt-line);margin-top:26px}#wt-study .handle{width:38px;height:4px;background:var(--wt-line);border-radius:3px;margin:0 auto 15px}#wt-study .toast{background:var(--wt-soft);color:var(--wt-ink);border-radius:12px;padding:12px;font-size:14px;margin-bottom:14px;display:flex;gap:8px;align-items:center}#wt-study .bigname{font-size:46px;line-height:1.02;letter-spacing:-2px;font-weight:800;margin:15px 0 20px}#wt-study .timeline{border-left:2px solid var(--wt-line);padding-left:21px;margin:25px 0}#wt-study .timeline .row{position:relative}#wt-study .timeline .row:before{content:&quot;&quot;;position:absolute;width:9px;height:9px;background:var(--wt-muted);border-radius:50%;left:-27px;top:23px}#wt-study .footer-note{text-align:center;color:var(--wt-muted);font-size:11px;padding:11px 0 3px}#wt-study .lock-card{padding:22px;background:var(--wt-paper);border:1px solid var(--wt-line);border-radius:23px;margin:25px 0}#wt-study .lock-time{font-size:76px;font-weight:750;text-align:center;letter-spacing:-3px;margin:30px 0 5px}#wt-study .zones{display:flex;height:13px;gap:3px;margin:14px 0;border-radius:6px;overflow:hidden}#wt-study .zones span{background:var(--wt-muted)}#wt-study .zones span:nth-child(2){opacity:.7}#wt-study .zones span:nth-child(3){opacity:.45}#wt-study .zones span:nth-child(4){opacity:.25}#wt-study .access{--wt-size:23px}#wt-study .access h1{font-size:43px}#wt-study .access h2{font-size:29px}#wt-study .access h3{font-size:23px}#wt-study .access .small,#wt-study .access .context,#wt-study .access .pill,#wt-study .access .trailing,#wt-study .access .field&gt;span{font-size:18px}#wt-study .access .duo,#wt-study .access .metric-grid{grid-template-columns:1fr}#wt-study .access .row{flex-wrap:wrap}#wt-study .access .row .trailing{white-space:normal}#wt-study .access .feature h2{font-size:42px}#wt-study .access .sethead{display:none}#wt-study .access .setrow{grid-template-columns:33px 1fr 47px;gap:8px}#wt-study .access .setrow input{grid-column:2;font-size:25px;min-height:54px}#wt-study .access .setrow .complete{grid-column:3;grid-row:1 / span 2}#wt-study .access .setrow .setnum{grid-row:1 / span 2}#wt-study .access .setrow{position:relative}#wt-study .access .top{align-items:flex-start}#wt-study .access .previous{flex-wrap:wrap;font-size:18px}#wt-study .access .field select{font-size:20px}#wt-study .access .rest{flex-wrap:wrap}#wt-study .access .nav button{font-size:12px}#wt-study .access .line{flex-wrap:wrap}#wt-study .access .section{flex-wrap:wrap}#wt-study .access .big-number{font-size:67px}
+#wt-study .previous strong{display:flex;align-items:center;gap:6px}#wt-study .quiet{display:inline-flex;align-items:center;gap:6px}#wt-study [hidden]{display:none!important}
+@keyframes wt-complete{from{transform:translateY(3px)}to{transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){#wt-study *,#wt-study *:before{animation:none!important;transition:none!important}}
+@media(max-width:370px){#wt-study .screen{padding:12px 17px 20px}#wt-study .phone{border-radius:26px}#wt-study .feature{padding:19px}#wt-study .feature h2{font-size:33px}#wt-study .sethead,#wt-study .setrow{grid-template-columns:26px 1fr 1fr 44px;gap:6px}#wt-study .rest{gap:7px}#wt-study .rest button{padding:9px}#wt-study .nav{margin:0 8px 10px}#wt-study .nav button{font-size:10px}#wt-study .big-number{font-size:62px}#wt-study .metric strong{font-size:24px}#wt-study .access .setrow{grid-template-columns:27px 1fr 44px}}
+&lt;/style&gt;
+&lt;div id=&quot;wt-study&quot; aria-label=&quot;Workout Tracker redesign proposal&quot;&gt;
+  &lt;div class=&quot;study-bar&quot;&gt;&lt;span&gt;WORKOUT TRACKER / DESIGN STUDY&lt;/span&gt;&lt;span&gt;Sample data&lt;/span&gt;&lt;/div&gt;
+  &lt;label for=&quot;wt-screen&quot; class=&quot;eyebrow&quot;&gt;Preview screen&lt;/label&gt;
+  &lt;select id=&quot;wt-screen&quot; class=&quot;jump&quot; aria-label=&quot;Preview screen&quot;&gt;&lt;/select&gt;
+  &lt;div class=&quot;phone&quot; id=&quot;wt-phone&quot;&gt;
+    &lt;div class=&quot;status&quot;&gt;&lt;span&gt;9:41&lt;/span&gt;&lt;span class=&quot;island&quot; aria-hidden=&quot;true&quot;&gt;&lt;/span&gt;&lt;span class=&quot;signal&quot;&gt;&lt;i data-lucide=&quot;wifi&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;i data-lucide=&quot;battery-full&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;&lt;/span&gt;&lt;/div&gt;
+    &lt;main class=&quot;screen&quot; id=&quot;wt-content&quot;&gt;&lt;/main&gt;
+    &lt;nav class=&quot;nav&quot; id=&quot;wt-nav&quot; aria-label=&quot;App navigation&quot;&gt;&lt;/nav&gt;
+    &lt;div class=&quot;home-indicator&quot; aria-hidden=&quot;true&quot;&gt;&lt;/div&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;footer-note&quot;&gt;Interactive concept · proposed layouts and copy · no real data&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+(()=&gt;{
+const root=document.getElementById(&#x27;wt-study&#x27;),content=document.getElementById(&#x27;wt-content&#x27;),jump=document.getElementById(&#x27;wt-screen&#x27;),nav=document.getElementById(&#x27;wt-nav&#x27;),phone=document.getElementById(&#x27;wt-phone&#x27;);
+const screens={home:&#x27;01 · Workout — Focus&#x27;,library:&#x27;02 · Workout — Library alternative&#x27;,journal:&#x27;03 · Workout — Journal alternative&#x27;,active:&#x27;04 · Active workout&#x27;,rest:&#x27;05 · Rest timer&#x27;,previous:&#x27;06 · Previous performance&#x27;,equipment:&#x27;07 · Equipment &amp; variation&#x27;,bar:&#x27;08 · Bar &amp; plates&#x27;,exercisePicker:&#x27;09 · Add exercise&#x27;,cardioSetup:&#x27;10 · Start cardio&#x27;,cardio:&#x27;11 · Cardio in progress&#x27;,finish:&#x27;12 · Finish receipt&#x27;,templates:&#x27;13 · All templates&#x27;,template:&#x27;14 · Template detail&#x27;,templateEdit:&#x27;15 · Template editor&#x27;,ai:&#x27;16 · Ask AI for Templates&#x27;,aiReview:&#x27;17 · Review generated week&#x27;,gyms:&#x27;18 · Gyms&#x27;,gym:&#x27;19 · Gym &amp; equipment&#x27;,machine:&#x27;20 · Machine detail&#x27;,scan:&#x27;21 · Scan Machine&#x27;,scanReview:&#x27;22 · Confirm recognition&#x27;,exercises:&#x27;23 · Exercise library&#x27;,exercise:&#x27;24 · Exercise &amp; records&#x27;,history:&#x27;25 · History&#x27;,calendar:&#x27;26 · History calendar&#x27;,session:&#x27;27 · Session detail&#x27;,progress:&#x27;28 · Progress chart&#x27;,settings:&#x27;29 · Settings&#x27;,privacy:&#x27;30 · AI settings &amp; consents&#x27;,restSettings:&#x27;31 · Rest settings&#x27;,export:&#x27;32 · Export&#x27;,empty:&#x27;33 · First workout / empty&#x27;,error:&#x27;34 · Connection error&#x27;,confirm:&#x27;35 · Destructive confirmation&#x27;,live:&#x27;36 · Lock Screen activity&#x27;};
+const saved=window.openai?.widgetState?.privateContent||{};
+const state={screen:screens[saved.screen]?saved.screen:&#x27;home&#x27;,large:false,appearance:&#x27;System&#x27;,home:&#x27;Focus&#x27;,done:[true,false,false],resting:false,paused:false,toast:&#x27;&#x27;,days:&#x27;3&#x27;,goal:&#x27;Build strength&#x27;,gym:&#x27;Downtown Gym&#x27;,distance:&#x27;km&#x27;,filter:&#x27;All&#x27;,savedWeek:false,restSeconds:92,activity:&#x27;Indoor Run&#x27;,chartMetric:&#x27;Weight&#x27;,values:[[60,10],[60,10],[62.5,8]],superset:false};
+const I=n=&gt;`&lt;i data-lucide=&quot;${n}&quot; aria-hidden=&quot;true&quot;&gt;&lt;/i&gt;`;
+const B=(text,action,cls=&#x27;secondary&#x27;,icon=&#x27;&#x27;)=&gt;`&lt;button type=&quot;button&quot; class=&quot;${cls} cursor-interaction&quot; data-action=&quot;${action}&quot;&gt;${icon?I(icon):&#x27;&#x27;}${text}&lt;/button&gt;`;
+const head=(title,back=&#x27;&#x27;,action=&#x27;settings&#x27;,icon=&#x27;settings-2&#x27;)=&gt;`${back?`&lt;div class=&quot;toolbar&quot;&gt;${B(&#x27;Back&#x27;,back,&#x27;back&#x27;,&#x27;chevron-left&#x27;)}&lt;/div&gt;`:&#x27;&#x27;}&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;${title}&lt;/h1&gt;${action?B(&#x27;&#x27;,action,&#x27;icon&#x27;,icon):&#x27;&#x27;}&lt;/div&gt;`;
+const row=(title,sub,action,lead=&#x27;&#x27;,trail=&#x27;&#x27;)=&gt;`&lt;button type=&quot;button&quot; class=&quot;row cursor-interaction&quot; data-action=&quot;${action}&quot;&gt;${lead?`&lt;span class=&quot;${lead.length&gt;3?&#x27;tile-icon&#x27;:&#x27;ordinal&#x27;}&quot;&gt;${lead.length&gt;3?I(lead):lead}&lt;/span&gt;`:&#x27;&#x27;}&lt;span class=&quot;stack&quot;&gt;&lt;h3&gt;${title}&lt;/h3&gt;${sub?`&lt;span class=&quot;small muted&quot;&gt;${sub}&lt;/span&gt;`:&#x27;&#x27;}&lt;/span&gt;${trail?`&lt;span class=&quot;trailing&quot;&gt;${trail}&lt;/span&gt;`:&#x27;&#x27;}${I(&#x27;chevron-right&#x27;)}&lt;/button&gt;`;
+const section=(title,action=&#x27;&#x27;,label=&#x27;See all&#x27;)=&gt;`&lt;div class=&quot;section&quot;&gt;&lt;h3&gt;${title}&lt;/h3&gt;${action?B(label,action,&#x27;quiet&#x27;):&#x27;&#x27;}&lt;/div&gt;`;
+const metric=(value,label)=&gt;`&lt;div class=&quot;metric&quot;&gt;&lt;strong&gt;${value}&lt;/strong&gt;&lt;small&gt;${label}&lt;/small&gt;&lt;/div&gt;`;
+const field=(label,value,type=&#x27;text&#x27;)=&gt;`&lt;label class=&quot;field&quot;&gt;&lt;span&gt;${label}&lt;/span&gt;&lt;input type=&quot;${type}&quot; value=&quot;${value}&quot; aria-label=&quot;${label}&quot;&gt;&lt;/label&gt;`;
+const select=(label,options)=&gt;`&lt;label class=&quot;field&quot;&gt;&lt;span&gt;${label}&lt;/span&gt;&lt;select aria-label=&quot;${label}&quot;&gt;${options.map(x=&gt;`&lt;option&gt;${x}&lt;/option&gt;`).join(&#x27;&#x27;)}&lt;/select&gt;&lt;/label&gt;`;
+const toggle=(label,on=true)=&gt;`&lt;label class=&quot;toggle&quot;&gt;${label}&lt;input type=&quot;checkbox&quot; ${on?&#x27;checked&#x27;:&#x27;&#x27;} aria-label=&quot;${label}&quot;&gt;&lt;/label&gt;`;
+const gymContext=()=&gt;B(`${state.gym} ${I(&#x27;chevron-down&#x27;)}`,&#x27;chooseGym&#x27;,&#x27;context&#x27;,&#x27;map-pin&#x27;);
+const templateRows=()=&gt;row(&#x27;Upper Body A&#x27;,&#x27;Chest, back, shoulders&#x27;,&#x27;template&#x27;,&#x27;01&#x27;,&#x27;5 exercises&#x27;)+row(&#x27;Lower Body A&#x27;,&#x27;Legs, core&#x27;,&#x27;template&#x27;,&#x27;02&#x27;,&#x27;4 exercises&#x27;)+row(&#x27;Full Body + Cardio&#x27;,&#x27;Strength, indoor run&#x27;,&#x27;template&#x27;,&#x27;03&#x27;,&#x27;6 activities&#x27;);
+const savedTemplateRows=()=&gt;Array.from({length:Number(state.days)},(_,i)=&gt;row([&#x27;Upper Body A&#x27;,&#x27;Lower Body A&#x27;,&#x27;Full Body + Cardio&#x27;,&#x27;Upper Body B&#x27;,&#x27;Lower Body B&#x27;,&#x27;Full Body B&#x27;][i],&#x27;5 exercises · 15 working sets&#x27;,&#x27;template&#x27;,String(i+1).padStart(2,&#x27;0&#x27;))).join(&#x27;&#x27;);
+const exerciseRows=()=&gt;row(&#x27;Chest Press&#x27;,&#x27;3 sets · 8–12 reps · 2:00 rest&#x27;,&#x27;equipment&#x27;,&#x27;01&#x27;)+row(&#x27;Lat Pulldown&#x27;,&#x27;3 sets · 8–12 reps · 2:00 rest&#x27;,&#x27;equipment&#x27;,&#x27;02&#x27;)+row(&#x27;Dumbbell Shoulder Press&#x27;,&#x27;3 sets · 10 reps · 1:30 rest&#x27;,&#x27;equipment&#x27;,&#x27;03&#x27;)+row(&#x27;Seated Cable Row&#x27;,&#x27;3 sets · 10 reps · 1:30 rest&#x27;,&#x27;equipment&#x27;,&#x27;04&#x27;)+row(&#x27;Triceps Pushdown&#x27;,&#x27;3 sets · 12 reps · 1:00 rest&#x27;,&#x27;equipment&#x27;,&#x27;05&#x27;);
+const chart=()=&gt;`&lt;svg class=&quot;chart&quot; viewBox=&quot;0 0 330 185&quot; role=&quot;img&quot; aria-label=&quot;Sample chest press best working weight: 50 kilograms August 28, 55 September 4, 55 September 11, 60 September 18, 62.5 September 24&quot;&gt;&lt;title&gt;Best working weight on Chest Press #2&lt;/title&gt;&lt;path class=&quot;grid&quot; d=&quot;M32 25H315 M32 80H315 M32 135H315&quot;/&gt;&lt;text x=&quot;0&quot; y=&quot;29&quot;&gt;65&lt;/text&gt;&lt;text x=&quot;0&quot; y=&quot;84&quot;&gt;55&lt;/text&gt;&lt;text x=&quot;0&quot; y=&quot;139&quot;&gt;45&lt;/text&gt;&lt;text x=&quot;0&quot; y=&quot;12&quot;&gt;kg&lt;/text&gt;&lt;path class=&quot;trace&quot; d=&quot;M38 108L103 80L169 80L236 52L302 39&quot;/&gt;${[[38,108],[103,80],[169,80],[236,52],[302,39]].map(p=&gt;`&lt;circle class=&quot;point&quot; cx=&quot;${p[0]}&quot; cy=&quot;${p[1]}&quot; r=&quot;4&quot;/&gt;`).join(&#x27;&#x27;)}&lt;text x=&quot;30&quot; y=&quot;163&quot;&gt;Aug 28&lt;/text&gt;&lt;text x=&quot;139&quot; y=&quot;163&quot;&gt;Sep 11&lt;/text&gt;&lt;text x=&quot;278&quot; y=&quot;163&quot;&gt;Sep 24&lt;/text&gt;&lt;/svg&gt;`;
+const hrchart=()=&gt;`&lt;svg class=&quot;chart&quot; viewBox=&quot;0 0 330 110&quot; role=&quot;img&quot; aria-label=&quot;Sample recorded heart rate ranges, 94 to 158 beats per minute, with a sensor gap&quot;&gt;&lt;text x=&quot;0&quot; y=&quot;13&quot;&gt;158 bpm&lt;/text&gt;&lt;text x=&quot;0&quot; y=&quot;85&quot;&gt;94&lt;/text&gt;${Array.from({length:51},(_,i)=&gt;{if(i&gt;21&amp;&amp;i&lt;26)return &#x27;&#x27;;let y=30+Math.sin(i*.7)*15+Math.cos(i*.3)*8;return `&lt;path class=&quot;hr&quot; d=&quot;M${40+i*5.4} ${y}v${12+i%7}&quot;/&gt;`}).join(&#x27;&#x27;)}&lt;text x=&quot;39&quot; y=&quot;105&quot;&gt;6:10&lt;/text&gt;&lt;text x=&quot;158&quot; y=&quot;105&quot;&gt;6:35&lt;/text&gt;&lt;text x=&quot;276&quot; y=&quot;105&quot;&gt;7:00&lt;/text&gt;&lt;/svg&gt;`;
+function home(mode){const top=head(&#x27;Workout&#x27;)+gymContext();const feature=`&lt;div class=&quot;feature&quot;&gt;&lt;span class=&quot;number&quot; aria-hidden=&quot;true&quot;&gt;01&lt;/span&gt;&lt;div class=&quot;eyebrow&quot;&gt;Last used template&lt;/div&gt;&lt;h2&gt;UPPER&lt;br&gt;BODY A&lt;/h2&gt;&lt;p class=&quot;small muted&quot;&gt;5 exercises · 15 working sets&lt;/p&gt;&lt;div class=&quot;muscles&quot;&gt;&lt;span class=&quot;on&quot;&gt;&lt;/span&gt;&lt;span class=&quot;on&quot;&gt;&lt;/span&gt;&lt;span class=&quot;on&quot;&gt;&lt;/span&gt;Chest / back / shoulders&lt;/div&gt;${B(&#x27;Open template&#x27;,&#x27;template&#x27;,&#x27;primary&#x27;,&#x27;arrow-up-right&#x27;)}&lt;/div&gt;`;
+if(mode===&#x27;Library&#x27;)return top+`&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;&lt;div class=&quot;duo&quot;&gt;${B(&#x27;Start Lifting&#x27;,&#x27;active&#x27;,&#x27;primary&#x27;,&#x27;dumbbell&#x27;)}${B(&#x27;Start Cardio&#x27;,&#x27;cardioSetup&#x27;,&#x27;secondary&#x27;,&#x27;activity&#x27;)}&lt;/div&gt;`+section(&#x27;Templates&#x27;,&#x27;templateEdit&#x27;,&#x27;New&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${state.savedWeek?savedTemplateRows():templateRows()}&lt;/div&gt;`+B(&#x27;Ask AI for Templates&#x27;,&#x27;ai&#x27;,&#x27;text-action&#x27;,&#x27;sparkles&#x27;)+section(&#x27;Last session&#x27;)+row(&#x27;Upper Body A&#x27;,&#x27;Sep 22 · 52 min · 15 sets&#x27;,&#x27;session&#x27;,&#x27;history&#x27;);
+if(mode===&#x27;Journal&#x27;)return top+`&lt;div class=&quot;hero-metric&quot;&gt;&lt;span class=&quot;eyebrow&quot;&gt;This week&lt;/span&gt;&lt;div class=&quot;bigname&quot;&gt;3 sessions.&lt;br&gt;Time well spent.&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;timeline&quot;&gt;${row(&#x27;Upper Body A&#x27;,&#x27;Today · 52 min&#x27;,&#x27;session&#x27;,&#x27;&#x27;,&#x27;15 sets&#x27;)}${row(&#x27;Lower Body A&#x27;,&#x27;Tuesday · 46 min&#x27;,&#x27;session&#x27;,&#x27;&#x27;,&#x27;12 sets&#x27;)}${row(&#x27;Full Body + Cardio&#x27;,&#x27;Monday · 61 min&#x27;,&#x27;session&#x27;,&#x27;&#x27;,&#x27;Mixed&#x27;)}&lt;/div&gt;${B(&#x27;Start Lifting&#x27;,&#x27;active&#x27;,&#x27;primary&#x27;,&#x27;dumbbell&#x27;)}${B(&#x27;Start Cardio&#x27;,&#x27;cardioSetup&#x27;,&#x27;text-action&#x27;,&#x27;activity&#x27;)}`+section(&#x27;Templates&#x27;,&#x27;templates&#x27;)+row(&#x27;Upper Body A&#x27;,&#x27;5 exercises&#x27;,&#x27;template&#x27;,&#x27;01&#x27;);
+return top+feature+`&lt;div class=&quot;duo&quot;&gt;${B(&#x27;Start Lifting&#x27;,&#x27;active&#x27;,&#x27;secondary&#x27;,&#x27;dumbbell&#x27;)}${B(&#x27;Start Cardio&#x27;,&#x27;cardioSetup&#x27;,&#x27;secondary&#x27;,&#x27;activity&#x27;)}&lt;/div&gt;`+section(&#x27;Templates&#x27;,&#x27;templates&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Lower Body A&#x27;,&#x27;Legs, core · 4 exercises&#x27;,&#x27;template&#x27;,&#x27;02&#x27;)}${row(&#x27;Full Body + Cardio&#x27;,&#x27;5 exercises + indoor run&#x27;,&#x27;template&#x27;,&#x27;03&#x27;)}&lt;/div&gt;`+B(&#x27;Ask AI for Templates&#x27;,&#x27;ai&#x27;,&#x27;text-action&#x27;,&#x27;sparkles&#x27;);}
+function active(rest=false){return `&lt;div class=&quot;toolbar&quot;&gt;${B(&#x27;Workout&#x27;,&#x27;home&#x27;,&#x27;back&#x27;,&#x27;chevron-left&#x27;)}${B(&#x27;Finish&#x27;,&#x27;finish&#x27;,&#x27;quiet&#x27;)}&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;div&gt;&lt;div class=&quot;eyebrow&quot;&gt;Upper Body A&lt;/div&gt;&lt;h1 style=&quot;margin-top:6px&quot;&gt;24:18&lt;/h1&gt;&lt;/div&gt;&lt;span class=&quot;pill&quot;&gt;${I(&#x27;heart&#x27;)} 128 bpm&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;progress&quot;&gt;&lt;span style=&quot;width:${27+state.done.filter(Boolean).length*5}%&quot;&gt;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;line small muted&quot;&gt;&lt;span&gt;Exercise 2 of 5&lt;/span&gt;${B(&#x27;Session&#x27;,&#x27;exercisePicker&#x27;,&#x27;quiet&#x27;,&#x27;list&#x27;)}&lt;/div&gt;&lt;div class=&quot;exercise-head&quot;&gt;&lt;h2&gt;Chest Press&lt;/h2&gt;${B(&#x27;Chest Press #2 · Neutral grip&#x27;,&#x27;equipment&#x27;,&#x27;context&#x27;,&#x27;sliders-horizontal&#x27;)}&lt;/div&gt;&lt;button class=&quot;previous cursor-interaction&quot; data-action=&quot;previous&quot;&gt;&lt;span class=&quot;muted&quot;&gt;Previous · this machine&lt;/span&gt;&lt;strong&gt;60 kg × 10 ${I(&#x27;chevron-right&#x27;)}&lt;/strong&gt;&lt;/button&gt;&lt;div class=&quot;sethead&quot;&gt;&lt;span&gt;Set&lt;/span&gt;&lt;span&gt;kg&lt;/span&gt;&lt;span&gt;Reps&lt;/span&gt;&lt;span&gt;Done&lt;/span&gt;&lt;/div&gt;${state.done.map((done,i)=&gt;`&lt;div class=&quot;setrow ${done?&#x27;done&#x27;:&#x27;&#x27;}&quot;&gt;&lt;span class=&quot;setnum&quot;&gt;${i+1}&lt;/span&gt;&lt;input type=&quot;number&quot; value=&quot;${state.values[i]?.[0]??60}&quot; data-set=&quot;${i}&quot; data-field=&quot;0&quot; min=&quot;0&quot; step=&quot;.5&quot; aria-label=&quot;Set ${i+1} weight in kilograms&quot;&gt;&lt;input type=&quot;number&quot; value=&quot;${state.values[i]?.[1]??10}&quot; data-set=&quot;${i}&quot; data-field=&quot;1&quot; min=&quot;1&quot; aria-label=&quot;Set ${i+1} reps&quot;&gt;&lt;button class=&quot;complete cursor-interaction&quot; aria-label=&quot;${done?&#x27;Uncomplete&#x27;:&#x27;Complete&#x27;} set ${i+1}&quot; aria-pressed=&quot;${done}&quot; data-action=&quot;set:${i}&quot;&gt;${I(done?&#x27;check&#x27;:&#x27;circle&#x27;)}&lt;/button&gt;&lt;/div&gt;`).join(&#x27;&#x27;)}${B(&#x27;Add Set&#x27;,&#x27;addSet&#x27;,&#x27;text-action&#x27;,&#x27;plus&#x27;)}${rest||state.resting?`&lt;div class=&quot;rest&quot;&gt;&lt;div class=&quot;stack&quot;&gt;&lt;span class=&quot;small muted&quot;&gt;Rest · next set&lt;/span&gt;&lt;strong&gt;${Math.floor(state.restSeconds/60)}:${String(state.restSeconds%60).padStart(2,&#x27;0&#x27;)}&lt;/strong&gt;&lt;/div&gt;&lt;div class=&quot;group&quot;&gt;${B(&#x27;+30s&#x27;,&#x27;addRest&#x27;,&#x27;quiet&#x27;)}${B(&#x27;Skip&#x27;,&#x27;skipRest&#x27;,&#x27;quiet&#x27;)}&lt;/div&gt;&lt;/div&gt;`:&#x27;&#x27;}&lt;div class=&quot;section&quot;&gt;&lt;h3&gt;Up next&lt;/h3&gt;${B(&#x27;Rest settings&#x27;,&#x27;restSettings&#x27;,&#x27;quiet&#x27;)}&lt;/div&gt;${row(&#x27;Lat Pulldown&#x27;,&#x27;3 sets · 8–12 reps&#x27;,&#x27;exercisePicker&#x27;,&#x27;02&#x27;)}&lt;div class=&quot;duo&quot; style=&quot;margin-top:18px&quot;&gt;${B(&#x27;Add Exercise&#x27;,&#x27;exercisePicker&#x27;,&#x27;secondary&#x27;,&#x27;plus&#x27;)}${B(&#x27;Add Cardio&#x27;,&#x27;cardioSetup&#x27;,&#x27;secondary&#x27;,&#x27;activity&#x27;)}&lt;/div&gt;`;}
+function render(){phone.classList.toggle(&#x27;access&#x27;,state.large);root.style.colorScheme=state.appearance===&#x27;System&#x27;?&#x27;light dark&#x27;:state.appearance.toLowerCase();let html=&#x27;&#x27;;switch(state.screen){
+case &#x27;home&#x27;:html=home(state.home);break;case &#x27;library&#x27;:html=home(&#x27;Library&#x27;);break;case &#x27;journal&#x27;:html=home(&#x27;Journal&#x27;);break;
+case &#x27;active&#x27;:html=active();break;case &#x27;rest&#x27;:html=active(true);break;
+case &#x27;previous&#x27;:html=head(&#x27;Previous&#x27;,&#x27;active&#x27;,&#x27;&#x27;)+`&lt;h2&gt;Chest Press&lt;/h2&gt;&lt;p class=&quot;small muted&quot; style=&quot;margin-top:8px&quot;&gt;Neutral grip · Chest Press #2&lt;/p&gt;`+section(&#x27;This machine&#x27;)+`&lt;div class=&quot;hero-metric&quot;&gt;&lt;div class=&quot;big-number&quot;&gt;60&lt;span&gt; kg × 10&lt;/span&gt;&lt;/div&gt;&lt;p class=&quot;small muted&quot; style=&quot;margin-top:12px&quot;&gt;September 22 · working set&lt;/p&gt;&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Set 1&#x27;,&#x27;60 kg × 10&#x27;,&#x27;active&#x27;)}${row(&#x27;Set 2&#x27;,&#x27;60 kg × 10&#x27;,&#x27;active&#x27;)}${row(&#x27;Set 3&#x27;,&#x27;62.5 kg × 8&#x27;,&#x27;active&#x27;)}&lt;/div&gt;`+section(&#x27;Other reference history&#x27;)+row(&#x27;Same equipment model&#x27;,&#x27;Downtown Annex · Sep 16&#x27;,&#x27;progress&#x27;,&#x27;&#x27;,&#x27;55 kg × 12&#x27;)+row(&#x27;Any equipment&#x27;,&#x27;Different resistance · reference only&#x27;,&#x27;progress&#x27;,&#x27;&#x27;,&#x27;70 kg × 8&#x27;)+`&lt;p class=&quot;notice&quot;&gt;Only this machine’s history fills your next set.&lt;/p&gt;`;break;
+case &#x27;equipment&#x27;:html=head(&#x27;Equipment&#x27;,&#x27;active&#x27;,&#x27;&#x27;)+`&lt;h2&gt;Chest Press&lt;/h2&gt;`+select(&#x27;Gym&#x27;,[state.gym,&#x27;No gym&#x27;,&#x27;Downtown Annex&#x27;])+section(&#x27;Machine&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Chest Press #2&#x27;,&#x27;Life Fitness Insignia · last used&#x27;,&#x27;selectMachine&#x27;,&#x27;check&#x27;)}${row(&#x27;Chest Press #1&#x27;,&#x27;Life Fitness Insignia&#x27;,&#x27;selectMachine&#x27;,&#x27;&#x27;,&#x27;&#x27;)}&lt;/div&gt;`+select(&#x27;Variation&#x27;,[&#x27;Neutral grip&#x27;,&#x27;Wide grip&#x27;,&#x27;No variation&#x27;])+B(&#x27;Manage variations&#x27;,&#x27;exercise&#x27;,&#x27;text-action&#x27;)+select(&#x27;Set type&#x27;,[&#x27;Working&#x27;,&#x27;Warmup&#x27;,&#x27;Failure&#x27;,&#x27;Drop&#x27;])+B(&#x27;Bar &amp; plates&#x27;,&#x27;bar&#x27;,&#x27;text-action&#x27;)+`&lt;p class=&quot;notice&quot;&gt;Changing equipment or variation after a completed set starts a new entry.&lt;/p&gt;`+B(&#x27;Use selection&#x27;,&#x27;active&#x27;,&#x27;primary&#x27;);break;
+case &#x27;bar&#x27;:html=head(&#x27;Bar &amp; plates&#x27;,&#x27;active&#x27;,&#x27;&#x27;)+select(&#x27;Bar&#x27;,[&#x27;20 kg Olympic bar&#x27;,&#x27;15 kg Olympic bar&#x27;,&#x27;45 lb bar&#x27;,&#x27;Custom&#x27;])+field(&#x27;Plates on one side&#x27;,&#x27;20&#x27;,&#x27;number&#x27;)+`&lt;div class=&quot;hero-metric&quot;&gt;&lt;div class=&quot;small muted&quot;&gt;Total lifted&lt;/div&gt;&lt;div class=&quot;big-number&quot; style=&quot;margin-top:12px&quot;&gt;60&lt;span&gt; kg&lt;/span&gt;&lt;/div&gt;&lt;p class=&quot;notice&quot;&gt;20 kg bar + 2 × 20 kg plates&lt;/p&gt;&lt;/div&gt;`+B(&#x27;Use bar&#x27;,&#x27;active&#x27;,&#x27;primary&#x27;)+B(&#x27;Enter total weight instead&#x27;,&#x27;active&#x27;,&#x27;text-action&#x27;);break;
+case &#x27;exercisePicker&#x27;:html=head(&#x27;Add Exercise&#x27;,&#x27;active&#x27;,&#x27;&#x27;)+field(&#x27;Search exercises&#x27;,&#x27;&#x27;,&#x27;search&#x27;)+`&lt;div class=&quot;segmented&quot;&gt;${B(&#x27;Exercises&#x27;,&#x27;filter:Exercises&#x27;,&#x27;selected&#x27;)}${B(&#x27;By machine&#x27;,&#x27;gym&#x27;,&#x27;&#x27;)}&lt;/div&gt;`+`&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Chest Press&#x27;,&#x27;Machine · chest&#x27;,&#x27;addExercise&#x27;)}${row(&#x27;Lat Pulldown&#x27;,&#x27;Machine · back&#x27;,&#x27;addExercise&#x27;)}${row(&#x27;Dumbbell Shoulder Press&#x27;,&#x27;Dumbbell · shoulders&#x27;,&#x27;addExercise&#x27;)}${row(&#x27;Seated Cable Row&#x27;,&#x27;Cable · back&#x27;,&#x27;addExercise&#x27;)}${row(&#x27;Triceps Pushdown&#x27;,&#x27;Cable · arms&#x27;,&#x27;addExercise&#x27;)}${row(&#x27;Squat&#x27;,&#x27;Barbell · legs&#x27;,&#x27;addExercise&#x27;)}&lt;/div&gt;`+B(&#x27;New Exercise…&#x27;,&#x27;exercise&#x27;,&#x27;text-action&#x27;,&#x27;plus&#x27;);break;
+case &#x27;cardioSetup&#x27;:html=head(&#x27;Start Cardio&#x27;,&#x27;home&#x27;,&#x27;&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Indoor Run&#x27;,&#x27;Treadmill&#x27;,&#x27;selectCardio:Indoor Run&#x27;,&#x27;footprints&#x27;)}${row(&#x27;Outdoor Run&#x27;,&#x27;GPS route&#x27;,&#x27;selectCardio:Outdoor Run&#x27;,&#x27;map-pin&#x27;)}${row(&#x27;Walk&#x27;,&#x27;Indoor or outdoor&#x27;,&#x27;selectCardio:Walk&#x27;,&#x27;footprints&#x27;)}${row(&#x27;Cycling&#x27;,&#x27;Indoor or outdoor&#x27;,&#x27;selectCardio:Cycling&#x27;,&#x27;bike&#x27;)}&lt;/div&gt;`+`&lt;p class=&quot;notice&quot;&gt;Selected · ${state.activity}&lt;/p&gt;`+toggle(&#x27;Use available sensors&#x27;,true)+`&lt;p class=&quot;notice&quot;&gt;Your activity starts when you tap Start.&lt;/p&gt;`+B(&#x27;Start &#x27;+state.activity,&#x27;cardio&#x27;,&#x27;primary&#x27;,&#x27;play&#x27;);break;
+case &#x27;cardio&#x27;:html=`&lt;div class=&quot;toolbar&quot;&gt;${B(&#x27;Workout&#x27;,&#x27;active&#x27;,&#x27;back&#x27;,&#x27;chevron-left&#x27;)}${B(&#x27;End&#x27;,&#x27;endCardio&#x27;,&#x27;quiet&#x27;)}&lt;/div&gt;&lt;div class=&quot;top&quot;&gt;&lt;h1&gt;${state.activity}&lt;/h1&gt;&lt;span class=&quot;pill&quot;&gt;${I(state.paused?&#x27;pause&#x27;:&#x27;activity&#x27;)}${state.paused?&#x27;Paused&#x27;:&#x27;Live&#x27;}&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;hero-metric&quot;&gt;&lt;div class=&quot;eyebrow&quot;&gt;Distance · phone estimate&lt;/div&gt;&lt;div class=&quot;big-number&quot; style=&quot;margin:17px 0&quot;&gt;2.48&lt;span&gt; km&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;metric-grid&quot;&gt;${metric(&#x27;18:42&#x27;,&#x27;Active time&#x27;)}${metric(&#x27;7:32&#x27;,&#x27;Pace /km&#x27;)}${metric(&#x27;142&#x27;,&#x27;Heart rate · bpm&#x27;)}${metric(&#x27;186&#x27;,&#x27;Active kcal&#x27;)}&lt;/div&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;&lt;div class=&quot;line small muted&quot;&gt;&lt;span&gt;Planned target&lt;/span&gt;&lt;span&gt;20 min · easy effort&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;progress&quot;&gt;&lt;span style=&quot;width:93%&quot;&gt;&lt;/span&gt;&lt;/div&gt;${B(state.paused?&#x27;Resume&#x27;:&#x27;Pause&#x27;,&#x27;pause&#x27;,&#x27;primary&#x27;,state.paused?&#x27;play&#x27;:&#x27;pause&#x27;)}${B(&#x27;Edit distance&#x27;,&#x27;manualDistance&#x27;,&#x27;text-action&#x27;,&#x27;pencil&#x27;)}&lt;p class=&quot;notice&quot;&gt;Phone estimate · distance can be corrected.&lt;/p&gt;`;break;
+case &#x27;finish&#x27;:html=head(&#x27;Workout saved&#x27;,&#x27;&#x27;,&#x27;closeFinish&#x27;,&#x27;x&#x27;)+`&lt;div class=&quot;eyebrow&quot;&gt;Thursday, September 24&lt;/div&gt;&lt;div class=&quot;bigname&quot;&gt;UPPER&lt;br&gt;BODY A.&lt;/div&gt;&lt;div class=&quot;group small muted&quot;&gt;${I(&#x27;map-pin&#x27;)}${state.gym} · 5 exercises · 15 sets&lt;/div&gt;&lt;div class=&quot;receipt&quot;&gt;&lt;div class=&quot;metric-grid&quot;&gt;${metric(&#x27;52:18&#x27;,&#x27;Workout time&#x27;)}${metric(&#x27;4,860 kg&#x27;,&#x27;Total volume&#x27;)}${metric(&#x27;286&#x27;,&#x27;Active kcal&#x27;)}${metric(&#x27;342&#x27;,&#x27;Total kcal&#x27;)}${metric(&#x27;126 bpm&#x27;,&#x27;Average heart rate&#x27;)}${metric(&#x27;158 bpm&#x27;,&#x27;Maximum heart rate&#x27;)}&lt;/div&gt;&lt;/div&gt;`+section(&#x27;Heart rate&#x27;)+hrchart()+`&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;`+B(&#x27;View Workout&#x27;,&#x27;session&#x27;,&#x27;primary&#x27;,&#x27;arrow-up-right&#x27;)+B(&#x27;Save as Template…&#x27;,&#x27;templateEdit&#x27;,&#x27;text-action&#x27;,&#x27;bookmark&#x27;);break;
+case &#x27;templates&#x27;:html=head(&#x27;Templates&#x27;,&#x27;home&#x27;,&#x27;templateEdit&#x27;,&#x27;plus&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${state.savedWeek?savedTemplateRows():templateRows()}&lt;/div&gt;`+B(&#x27;Ask AI for Templates&#x27;,&#x27;ai&#x27;,&#x27;text-action&#x27;,&#x27;sparkles&#x27;);break;
+case &#x27;template&#x27;:html=head(&#x27;Template&#x27;,&#x27;templates&#x27;,&#x27;templateEdit&#x27;,&#x27;pencil&#x27;)+`&lt;div class=&quot;eyebrow&quot;&gt;Strength / 01&lt;/div&gt;&lt;div class=&quot;bigname&quot;&gt;UPPER&lt;br&gt;BODY A&lt;/div&gt;&lt;div class=&quot;line small muted&quot;&gt;&lt;span&gt;5 exercises&lt;/span&gt;&lt;span&gt;15 working sets&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;${B(&#x27;Start Workout&#x27;,&#x27;active&#x27;,&#x27;primary&#x27;,&#x27;play&#x27;)}&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${exerciseRows()}&lt;/div&gt;${B(&#x27;Delete Template…&#x27;,&#x27;confirm&#x27;,&#x27;text-action error&#x27;,&#x27;trash-2&#x27;)}`;break;
+case &#x27;templateEdit&#x27;:html=`&lt;div class=&quot;toolbar&quot;&gt;${B(&#x27;Cancel&#x27;,&#x27;template&#x27;,&#x27;back&#x27;)}${B(&#x27;Save&#x27;,&#x27;saveTemplate&#x27;,&#x27;quiet&#x27;)}&lt;/div&gt;&lt;h1&gt;Edit Template&lt;/h1&gt;`+field(&#x27;Name&#x27;,&#x27;Upper Body A&#x27;)+section(&#x27;Exercises&#x27;,&#x27;exercisePicker&#x27;,&#x27;Add&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Chest Press&#x27;,&#x27;3 sets · 8–12 reps · 2:00 rest&#x27;,&#x27;equipment&#x27;,&#x27;grip-vertical&#x27;)}${row(&#x27;Lat Pulldown&#x27;,&#x27;3 sets · 8–12 reps · 2:00 rest&#x27;,&#x27;equipment&#x27;,&#x27;grip-vertical&#x27;)}${row(&#x27;Dumbbell Shoulder Press&#x27;,&#x27;3 sets · 10 reps · 1:30 rest&#x27;,&#x27;equipment&#x27;,&#x27;grip-vertical&#x27;)}&lt;/div&gt;`+section(&#x27;Cardio target&#x27;,&#x27;cardioSetup&#x27;,&#x27;Add&#x27;)+row(&#x27;Indoor Run&#x27;,&#x27;20 min · easy effort&#x27;,&#x27;cardioSetup&#x27;,&#x27;activity&#x27;)+`&lt;label class=&quot;field&quot;&gt;&lt;span&gt;Notes&lt;/span&gt;&lt;textarea aria-label=&quot;Template notes&quot; placeholder=&quot;Add a note&quot;&gt;&lt;/textarea&gt;&lt;/label&gt;`;break;
+case &#x27;ai&#x27;:html=head(&#x27;Ask AI for Templates&#x27;,&#x27;home&#x27;,&#x27;privacy&#x27;,&#x27;sliders-horizontal&#x27;)+`&lt;p class=&quot;small muted&quot;&gt;Your preferences&lt;/p&gt;`+section(&#x27;Goal&#x27;)+`&lt;div class=&quot;choices&quot;&gt;${[&#x27;Build strength&#x27;,&#x27;Build muscle&#x27;,&#x27;General fitness&#x27;].map(g=&gt;B(g,&#x27;goal:&#x27;+g,g===state.goal?&#x27;selected&#x27;:&#x27;&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;`+select(&#x27;Experience&#x27;,[&#x27;Intermediate&#x27;,&#x27;Beginner&#x27;,&#x27;Advanced&#x27;])+section(&#x27;Sessions per week&#x27;)+`&lt;div class=&quot;choices&quot;&gt;${[&#x27;2&#x27;,&#x27;3&#x27;,&#x27;4&#x27;,&#x27;5&#x27;,&#x27;6&#x27;].map(g=&gt;B(g,&#x27;days:&#x27;+g,g===state.days?&#x27;selected&#x27;:&#x27;&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;`+select(&#x27;Time per session&#x27;,[&#x27;45–60 minutes&#x27;,&#x27;30 minutes&#x27;,&#x27;75 minutes&#x27;])+section(&#x27;Equipment&#x27;,&#x27;gym&#x27;,&#x27;Edit&#x27;)+gymContext()+`&lt;p class=&quot;small muted&quot;&gt;12 saved machines · dumbbells · barbell&lt;/p&gt;`+B(&#x27;Scan Machine&#x27;,&#x27;scan&#x27;,&#x27;text-action&#x27;,&#x27;scan-line&#x27;)+`&lt;p class=&quot;notice&quot;&gt;Creates an editable week. No starting weights.&lt;/p&gt;`+B(&#x27;Generate templates&#x27;,&#x27;aiReview&#x27;,&#x27;primary&#x27;,&#x27;sparkles&#x27;);break;
+case &#x27;aiReview&#x27;:html=head(&#x27;Your week&#x27;,&#x27;ai&#x27;,&#x27;&#x27;)+`&lt;p class=&quot;small muted&quot;&gt;${state.days} sessions · review before saving&lt;/p&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${Array.from({length:Number(state.days)},(_,i)=&gt;row([&#x27;Upper Body A&#x27;,&#x27;Lower Body A&#x27;,&#x27;Full Body + Cardio&#x27;,&#x27;Upper Body B&#x27;,&#x27;Lower Body B&#x27;,&#x27;Full Body B&#x27;][i],`${i===2?&#x27;5 exercises + 20 min run&#x27;:&#x27;5 exercises · 15 working sets&#x27;}`,&#x27;templateEdit&#x27;,String(i+1).padStart(2,&#x27;0&#x27;))).join(&#x27;&#x27;)}&lt;/div&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;`+B(&#x27;Save templates&#x27;,&#x27;saveWeek&#x27;,&#x27;primary&#x27;,&#x27;check&#x27;)+B(&#x27;Adjust preferences&#x27;,&#x27;ai&#x27;,&#x27;text-action&#x27;);break;
+case &#x27;gyms&#x27;:html=head(&#x27;Gyms&#x27;,&#x27;&#x27;,&#x27;addGym&#x27;,&#x27;plus&#x27;)+`&lt;div class=&quot;feature&quot;&gt;&lt;span class=&quot;eyebrow&quot;&gt;Your usual gym&lt;/span&gt;&lt;h2&gt;DOWNTOWN&lt;br&gt;GYM&lt;/h2&gt;&lt;p class=&quot;small muted&quot;&gt;12 machines · kg&lt;/p&gt;${B(&#x27;View equipment&#x27;,&#x27;gym&#x27;,&#x27;primary&#x27;,&#x27;arrow-up-right&#x27;)}&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Downtown Annex&#x27;,&#x27;6 machines · lb&#x27;,&#x27;gym&#x27;,&#x27;building-2&#x27;)}${row(&#x27;No gym&#x27;,&#x27;Home / no location&#x27;,&#x27;home&#x27;,&#x27;house&#x27;)}&lt;/div&gt;`;break;
+case &#x27;gym&#x27;:html=head(&#x27;Downtown Gym&#x27;,&#x27;gyms&#x27;,&#x27;addGym&#x27;,&#x27;pencil&#x27;)+`&lt;div class=&quot;line small muted&quot;&gt;&lt;span&gt;12 saved machines&lt;/span&gt;&lt;span&gt;Default · kg&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;`+B(&#x27;Scan Machine&#x27;,&#x27;scan&#x27;,&#x27;primary&#x27;,&#x27;scan-line&#x27;)+field(&#x27;Search equipment&#x27;,&#x27;&#x27;,&#x27;search&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Chest Press #2&#x27;,&#x27;Life Fitness · Insignia&#x27;,&#x27;machine&#x27;)}${row(&#x27;Chest Press #1&#x27;,&#x27;Life Fitness · Insignia&#x27;,&#x27;machine&#x27;)}${row(&#x27;Lat Pulldown&#x27;,&#x27;Technogym · Selection&#x27;,&#x27;machine&#x27;)}${row(&#x27;Cable station&#x27;,&#x27;Model not specified&#x27;,&#x27;machine&#x27;)}${row(&#x27;Leg Press&#x27;,&#x27;Hammer Strength&#x27;,&#x27;machine&#x27;)}&lt;/div&gt;`+B(&#x27;Add manually&#x27;,&#x27;machine&#x27;,&#x27;text-action&#x27;,&#x27;plus&#x27;);break;
+case &#x27;machine&#x27;:html=head(&#x27;Machine&#x27;,&#x27;gym&#x27;,&#x27;scanReview&#x27;,&#x27;pencil&#x27;)+`&lt;div class=&quot;eyebrow&quot;&gt;Downtown Gym&lt;/div&gt;&lt;div class=&quot;bigname&quot;&gt;Chest&lt;br&gt;Press #2&lt;/div&gt;&lt;p class=&quot;muted&quot;&gt;Life Fitness · Insignia&lt;/p&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Exercise&#x27;,&#x27;Chest Press&#x27;,&#x27;exercise&#x27;)}${row(&#x27;Usual variation&#x27;,&#x27;Neutral grip&#x27;,&#x27;equipment&#x27;)}${row(&#x27;Weight unit&#x27;,&#x27;kg&#x27;,&#x27;equipment&#x27;)}${row(&#x27;This machine’s history&#x27;,&#x27;8 sessions&#x27;,&#x27;progress&#x27;)}&lt;/div&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;`+B(&#x27;Add to workout&#x27;,&#x27;addExercise&#x27;,&#x27;primary&#x27;,&#x27;plus&#x27;)+B(&#x27;Archive Machine…&#x27;,&#x27;confirm&#x27;,&#x27;text-action error&#x27;);break;
+case &#x27;scan&#x27;:html=head(&#x27;Scan Machine&#x27;,&#x27;ai&#x27;,&#x27;&#x27;)+`&lt;p class=&quot;small muted&quot;&gt;Machine or label&lt;/p&gt;&lt;div class=&quot;camera&quot;&gt;&lt;div class=&quot;camera-content&quot;&gt;${I(&#x27;scan-line&#x27;)}&lt;span class=&quot;small&quot;&gt;Camera preview&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;`+B(&#x27;Take Photo&#x27;,&#x27;scanReview&#x27;,&#x27;primary&#x27;,&#x27;camera&#x27;)+`&lt;div class=&quot;duo&quot; style=&quot;margin-top:12px&quot;&gt;${B(&#x27;Choose Photo&#x27;,&#x27;scanReview&#x27;,&#x27;secondary&#x27;,&#x27;image&#x27;)}${B(&#x27;Enter Manually&#x27;,&#x27;machine&#x27;,&#x27;secondary&#x27;,&#x27;pencil&#x27;)}&lt;/div&gt;&lt;p class=&quot;notice&quot;&gt;Photo sent to OpenAI with your permission.&lt;/p&gt;`+B(&#x27;Photo permission&#x27;,&#x27;privacy&#x27;,&#x27;text-action&#x27;)+B(&#x27;On-device label reader&#x27;,&#x27;scanReview&#x27;,&#x27;text-action&#x27;);break;
+case &#x27;scanReview&#x27;:html=`&lt;div class=&quot;toolbar&quot;&gt;${B(&#x27;Retake&#x27;,&#x27;scan&#x27;,&#x27;back&#x27;,&#x27;chevron-left&#x27;)}&lt;/div&gt;&lt;h1&gt;Check the match&lt;/h1&gt;&lt;p class=&quot;notice&quot;&gt;Suggested from your photo · confirm or edit.&lt;/p&gt;`+field(&#x27;Machine label&#x27;,&#x27;Chest Press #3&#x27;)+field(&#x27;Brand&#x27;,&#x27;Life Fitness&#x27;)+field(&#x27;Model&#x27;,&#x27;Insignia&#x27;)+select(&#x27;Exercise&#x27;,[&#x27;Chest Press&#x27;,&#x27;Shoulder Press&#x27;,&#x27;Other exercise&#x27;])+select(&#x27;Gym&#x27;,[&#x27;Downtown Gym&#x27;,&#x27;Downtown Annex&#x27;])+B(&#x27;Model not identified&#x27;,&#x27;genericMachine&#x27;,&#x27;text-action&#x27;)+B(&#x27;Add Machine&#x27;,&#x27;saveMachine&#x27;,&#x27;primary&#x27;,&#x27;check&#x27;);break;
+case &#x27;exercises&#x27;:html=head(&#x27;Exercises&#x27;,&#x27;&#x27;,&#x27;newExercise&#x27;,&#x27;plus&#x27;)+field(&#x27;Search exercises&#x27;,&#x27;&#x27;,&#x27;search&#x27;)+`&lt;div class=&quot;choices&quot;&gt;${[&#x27;All&#x27;,&#x27;Chest&#x27;,&#x27;Back&#x27;,&#x27;Legs&#x27;].map(f=&gt;B(f,&#x27;filter:&#x27;+f,state.filter===f?&#x27;selected&#x27;:&#x27;&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${[[&#x27;Chest Press&#x27;,&#x27;Chest · weighted&#x27;],[&#x27;Dumbbell Bench Press&#x27;,&#x27;Chest · weighted&#x27;],[&#x27;Lat Pulldown&#x27;,&#x27;Back · weighted&#x27;],[&#x27;Assisted Pull-up&#x27;,&#x27;Back · assisted&#x27;],[&#x27;Squat&#x27;,&#x27;Legs · weighted&#x27;],[&#x27;Push-up&#x27;,&#x27;Chest · bodyweight&#x27;]].filter(x=&gt;state.filter===&#x27;All&#x27;||x[1].startsWith(state.filter)).map(x=&gt;row(x[0],x[1],&#x27;exercise&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;`;break;
+case &#x27;exercise&#x27;:html=head(&#x27;Exercise&#x27;,&#x27;exercises&#x27;,&#x27;equipment&#x27;,&#x27;sliders-horizontal&#x27;)+`&lt;div class=&quot;eyebrow&quot;&gt;Chest / weighted&lt;/div&gt;&lt;div class=&quot;bigname&quot;&gt;Chest Press&lt;/div&gt;`+B(&#x27;Chest Press #2 · Neutral grip&#x27;,&#x27;equipment&#x27;,&#x27;context&#x27;,&#x27;chevron-down&#x27;)+`&lt;div class=&quot;metric-grid&quot;&gt;${metric(&#x27;62.5 kg&#x27;,&#x27;Best weight · 8 reps&#x27;)}${metric(&#x27;12&#x27;,&#x27;Sessions&#x27;)}&lt;/div&gt;`+chart()+B(&#x27;View Progress&#x27;,&#x27;progress&#x27;,&#x27;secondary&#x27;,&#x27;chart-no-axes-combined&#x27;)+section(&#x27;Variations&#x27;,&#x27;equipment&#x27;,&#x27;Manage&#x27;)+row(&#x27;Neutral grip&#x27;,&#x27;8 sessions&#x27;,&#x27;progress&#x27;)+row(&#x27;Wide grip&#x27;,&#x27;4 sessions&#x27;,&#x27;progress&#x27;);break;
+case &#x27;history&#x27;:html=head(&#x27;History&#x27;,&#x27;&#x27;,&#x27;calendar&#x27;,&#x27;calendar-days&#x27;)+`&lt;div class=&quot;hero-metric&quot;&gt;&lt;div class=&quot;eyebrow&quot;&gt;September&lt;/div&gt;&lt;div class=&quot;big-number&quot; style=&quot;margin-top:14px&quot;&gt;12&lt;span&gt; sessions&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;history-date&quot;&gt;TODAY · SEPTEMBER 24&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Upper Body A&#x27;,&#x27;Downtown Gym · 52 min&#x27;,&#x27;session&#x27;,&#x27;&#x27;,&#x27;15 sets&#x27;)}&lt;/div&gt;&lt;div class=&quot;history-date&quot;&gt;TUESDAY · SEPTEMBER 22&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Lower Body A&#x27;,&#x27;Downtown Gym · 46 min&#x27;,&#x27;session&#x27;,&#x27;&#x27;,&#x27;12 sets&#x27;)}&lt;/div&gt;&lt;div class=&quot;history-date&quot;&gt;MONDAY · SEPTEMBER 21&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Full Body + Cardio&#x27;,&#x27;Downtown Gym · 61 min&#x27;,&#x27;session&#x27;,&#x27;&#x27;,&#x27;Mixed&#x27;)}${row(&#x27;Evening walk&#x27;,&#x27;No gym · 23 min&#x27;,&#x27;session&#x27;,&#x27;&#x27;,&#x27;1.8 km&#x27;)}&lt;/div&gt;`;break;
+case &#x27;calendar&#x27;:html=head(&#x27;Calendar&#x27;,&#x27;history&#x27;,&#x27;&#x27;)+`&lt;div class=&quot;line&quot;&gt;&lt;h2&gt;September 2026&lt;/h2&gt;${B(&#x27;Today&#x27;,&#x27;calendar&#x27;,&#x27;quiet&#x27;)}&lt;/div&gt;&lt;div class=&quot;calendar&quot;&gt;${[&#x27;M&#x27;,&#x27;T&#x27;,&#x27;W&#x27;,&#x27;T&#x27;,&#x27;F&#x27;,&#x27;S&#x27;,&#x27;S&#x27;].map(d=&gt;`&lt;span class=&quot;day&quot;&gt;${d}&lt;/span&gt;`).join(&#x27;&#x27;)}&lt;span&gt;&lt;/span&gt;${Array.from({length:30},(_,i)=&gt;B(String(i+1),&#x27;day:&#x27;+String(i+1),i===23?&#x27;selected&#x27;:[1,3,7,9,11,14,16,18,20,21].includes(i)?&#x27;marked&#x27;:&#x27;&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;`+section(&#x27;September 24&#x27;)+row(&#x27;Upper Body A&#x27;,&#x27;52 min · 15 sets&#x27;,&#x27;session&#x27;);break;
+case &#x27;session&#x27;:html=head(&#x27;Upper Body A&#x27;,&#x27;history&#x27;,&#x27;editSession&#x27;,&#x27;ellipsis&#x27;)+`&lt;p class=&quot;small muted&quot;&gt;Sep 24, 2026 · 6:10–7:02 PM&lt;/p&gt;${gymContext()}&lt;div class=&quot;metric-grid&quot;&gt;${metric(&#x27;52:18&#x27;,&#x27;Workout time&#x27;)}${metric(&#x27;4,860 kg&#x27;,&#x27;Total volume&#x27;)}${metric(&#x27;286&#x27;,&#x27;Active kcal&#x27;)}${metric(&#x27;342&#x27;,&#x27;Total kcal&#x27;)}&lt;/div&gt;`+section(&#x27;Exercises&#x27;)+row(&#x27;Chest Press&#x27;,&#x27;Chest Press #2 · Neutral grip&#x27;,&#x27;progress&#x27;,&#x27;&#x27;,&#x27;3 sets&#x27;)+`&lt;div class=&quot;line small muted&quot; style=&quot;padding:14px 0&quot;&gt;&lt;span&gt;60 kg × 10&lt;/span&gt;&lt;span&gt;60 kg × 10&lt;/span&gt;&lt;span&gt;62.5 kg × 8&lt;/span&gt;&lt;/div&gt;`+row(&#x27;Lat Pulldown&#x27;,&#x27;Technogym Selection&#x27;,&#x27;progress&#x27;,&#x27;&#x27;,&#x27;3 sets&#x27;)+section(&#x27;Heart rate&#x27;)+hrchart()+`&lt;div class=&quot;line small muted&quot;&gt;&lt;span&gt;Average 126 bpm&lt;/span&gt;&lt;span&gt;Maximum 158 bpm&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;zones&quot; aria-label=&quot;Sample time in zones&quot;&gt;&lt;span style=&quot;width:42%&quot;&gt;&lt;/span&gt;&lt;span style=&quot;width:31%&quot;&gt;&lt;/span&gt;&lt;span style=&quot;width:22%&quot;&gt;&lt;/span&gt;&lt;span style=&quot;width:5%&quot;&gt;&lt;/span&gt;&lt;/div&gt;&lt;p class=&quot;small muted&quot;&gt;Z1 22m · Z2 16m · Z3 11m · Z4 3m&lt;/p&gt;`+B(&#x27;Save as Template…&#x27;,&#x27;templateEdit&#x27;,&#x27;text-action&#x27;,&#x27;bookmark&#x27;);break;
+case &#x27;progress&#x27;:html=head(&#x27;Progress&#x27;,&#x27;exercise&#x27;,&#x27;&#x27;)+`&lt;h2&gt;Chest Press&lt;/h2&gt;`+B(&#x27;Chest Press #2 · Neutral grip&#x27;,&#x27;equipment&#x27;,&#x27;context&#x27;,&#x27;chevron-down&#x27;)+`&lt;div class=&quot;segmented&quot;&gt;${[&#x27;Weight&#x27;,&#x27;Est. 1RM&#x27;,&#x27;Volume&#x27;].map(m=&gt;B(m,&#x27;chartMetric:&#x27;+m,state.chartMetric===m?&#x27;selected&#x27;:&#x27;&#x27;)).join(&#x27;&#x27;)}&lt;/div&gt;&lt;div class=&quot;hero-metric&quot;&gt;&lt;div class=&quot;small muted&quot;&gt;${state.chartMetric===&#x27;Weight&#x27;?&#x27;Best working weight&#x27;:state.chartMetric}&lt;/div&gt;&lt;div class=&quot;big-number&quot; style=&quot;margin-top:12px&quot;&gt;${state.chartMetric===&#x27;Weight&#x27;?&#x27;62.5&#x27;:state.chartMetric===&#x27;Est. 1RM&#x27;?&#x27;77.6&#x27;:&#x27;1,700&#x27;}&lt;span&gt; kg&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;`+(state.chartMetric===&#x27;Weight&#x27;?chart():`&lt;p class=&quot;notice&quot;&gt;Chart layout shown in the Weight tab.&lt;/p&gt;`)+`&lt;div class=&quot;line small muted&quot;&gt;&lt;span&gt;Aug 28 – Sep 24&lt;/span&gt;&lt;span&gt;5 sessions&lt;/span&gt;&lt;/div&gt;`+section(&#x27;September 24&#x27;)+row(&#x27;62.5 kg × 8&#x27;,&#x27;As entered · working set&#x27;,&#x27;session&#x27;)+`&lt;p class=&quot;notice&quot;&gt;This machine and variation only.&lt;/p&gt;`;break;
+case &#x27;settings&#x27;:html=head(&#x27;Settings&#x27;,&#x27;home&#x27;,&#x27;&#x27;)+section(&#x27;Training&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${row(&#x27;App unit preference&#x27;,&#x27;Metric · kg / km&#x27;,&#x27;units&#x27;)}${row(&#x27;Rest timers&#x27;,&#x27;Working 2:00 · warmup 1:00&#x27;,&#x27;restSettings&#x27;)}${row(&#x27;Heart rate zones&#x27;,&#x27;Maximum 190 bpm&#x27;,&#x27;heartZones&#x27;)}${row(&#x27;Template updates&#x27;,&#x27;Ask after changed workouts&#x27;,&#x27;drift&#x27;)}&lt;/div&gt;`+section(&#x27;Your data&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${row(&#x27;AI settings&#x27;,&#x27;Key saved · permissions&#x27;,&#x27;privacy&#x27;)}${row(&#x27;Export&#x27;,&#x27;JSON backup · CSV ledger&#x27;,&#x27;export&#x27;)}&lt;/div&gt;`+section(&#x27;Appearance&#x27;)+`&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Theme&#x27;,state.appearance,&#x27;appearance&#x27;)}${row(&#x27;Larger text preview&#x27;,state.large?&#x27;On&#x27;:&#x27;Off&#x27;,&#x27;large&#x27;)}${row(&#x27;Motion&#x27;,&#x27;Follows Reduce Motion&#x27;,&#x27;motion&#x27;)}&lt;/div&gt;`;break;
+case &#x27;privacy&#x27;:html=head(&#x27;AI settings&#x27;,&#x27;settings&#x27;,&#x27;&#x27;)+`&lt;div class=&quot;line&quot;&gt;&lt;h2&gt;OpenAI&lt;/h2&gt;&lt;span class=&quot;pill&quot;&gt;Key saved&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;`+field(&#x27;API key&#x27;,&#x27;••••••••••••••••&#x27;,&#x27;password&#x27;)+B(&#x27;Save key&#x27;,&#x27;saveKey&#x27;,&#x27;secondary&#x27;)+section(&#x27;Permissions&#x27;)+toggle(&#x27;Send equipment photos to OpenAI&#x27;)+toggle(&#x27;Send routine details to OpenAI&#x27;)+toggle(&#x27;Suggest exercises for manual models&#x27;,false)+`&lt;p class=&quot;notice&quot;&gt;Each permission can be turned off independently.&lt;/p&gt;`+B(&#x27;Remove key&#x27;,&#x27;removeKey&#x27;,&#x27;text-action error&#x27;);break;
+case &#x27;restSettings&#x27;:html=head(&#x27;Rest settings&#x27;,&#x27;active&#x27;,&#x27;&#x27;)+select(&#x27;Rest mode&#x27;,[&#x27;Timer&#x27;,&#x27;Heart rate&#x27;])+field(&#x27;Working rest · seconds&#x27;,&#x27;120&#x27;,&#x27;number&#x27;)+field(&#x27;Warmup rest · seconds&#x27;,&#x27;60&#x27;,&#x27;number&#x27;)+field(&#x27;Heart rate threshold · bpm&#x27;,&#x27;110&#x27;,&#x27;number&#x27;)+field(&#x27;Maximum wait · seconds&#x27;,&#x27;180&#x27;,&#x27;number&#x27;)+`&lt;p class=&quot;notice&quot;&gt;Without a live heart rate, the standard timer is used.&lt;/p&gt;`+B(&#x27;Done&#x27;,&#x27;active&#x27;,&#x27;primary&#x27;);break;
+case &#x27;export&#x27;:html=head(&#x27;Export&#x27;,&#x27;settings&#x27;,&#x27;&#x27;)+`&lt;div class=&quot;feature&quot;&gt;&lt;div class=&quot;eyebrow&quot;&gt;Full backup&lt;/div&gt;&lt;h2&gt;Your data.&lt;br&gt;Yours to keep.&lt;/h2&gt;&lt;p class=&quot;small muted&quot;&gt;Workouts, templates, gyms and settings.&lt;/p&gt;${B(&#x27;Export JSON&#x27;,&#x27;exportJSON&#x27;,&#x27;primary&#x27;,&#x27;arrow-up-from-line&#x27;)}&lt;/div&gt;&lt;div class=&quot;rows&quot;&gt;${row(&#x27;Export CSV&#x27;,&#x27;Your set ledger&#x27;,&#x27;exportCSV&#x27;,&#x27;table-2&#x27;)}&lt;/div&gt;&lt;p class=&quot;notice&quot;&gt;Choose Save to Files in the share sheet.&lt;/p&gt;`;break;
+case &#x27;empty&#x27;:html=head(&#x27;Workout&#x27;)+gymContext()+`&lt;div class=&quot;empty&quot;&gt;&lt;div class=&quot;tile-icon&quot;&gt;${I(&#x27;dumbbell&#x27;)}&lt;/div&gt;&lt;h2&gt;Your first session&lt;br&gt;starts here.&lt;/h2&gt;&lt;p class=&quot;small muted&quot;&gt;A gym is optional.&lt;/p&gt;&lt;/div&gt;${B(&#x27;Start Lifting&#x27;,&#x27;active&#x27;,&#x27;primary&#x27;,&#x27;plus&#x27;)}${B(&#x27;Start Cardio&#x27;,&#x27;cardioSetup&#x27;,&#x27;text-action&#x27;,&#x27;activity&#x27;)}`+section(&#x27;Templates&#x27;,&#x27;templateEdit&#x27;,&#x27;New&#x27;)+B(&#x27;Ask AI for Templates&#x27;,&#x27;ai&#x27;,&#x27;secondary&#x27;,&#x27;sparkles&#x27;);break;
+case &#x27;error&#x27;:html=head(&#x27;Ask AI for Templates&#x27;,&#x27;ai&#x27;,&#x27;&#x27;)+`&lt;div class=&quot;empty&quot;&gt;&lt;div class=&quot;tile-icon&quot;&gt;${I(&#x27;wifi-off&#x27;)}&lt;/div&gt;&lt;h2&gt;Couldn’t connect&lt;/h2&gt;&lt;p class=&quot;small muted&quot;&gt;Your preferences are still here.&lt;/p&gt;&lt;/div&gt;${B(&#x27;Try again&#x27;,&#x27;aiReview&#x27;,&#x27;primary&#x27;,&#x27;rotate-cw&#x27;)}${B(&#x27;Back to preferences&#x27;,&#x27;ai&#x27;,&#x27;text-action&#x27;)}`;break;
+case &#x27;confirm&#x27;:html=head(&#x27;Template&#x27;,&#x27;template&#x27;,&#x27;&#x27;)+`&lt;h2&gt;Upper Body A&lt;/h2&gt;&lt;div class=&quot;sheet&quot;&gt;&lt;div class=&quot;handle&quot;&gt;&lt;/div&gt;&lt;h2&gt;Delete this template?&lt;/h2&gt;&lt;p class=&quot;notice&quot;&gt;Logged workouts are kept.&lt;/p&gt;${B(&#x27;Cancel&#x27;,&#x27;template&#x27;,&#x27;secondary&#x27;)}${B(&#x27;Delete Template&#x27;,&#x27;deleteTemplate&#x27;,&#x27;text-action error&#x27;,&#x27;trash-2&#x27;)}&lt;/div&gt;`;break;
+case &#x27;live&#x27;:html=`&lt;p style=&quot;text-align:center;margin-top:28px&quot; class=&quot;small&quot;&gt;Thursday, September 24&lt;/p&gt;&lt;div class=&quot;lock-time&quot;&gt;6:34&lt;/div&gt;&lt;div class=&quot;lock-card&quot;&gt;&lt;div class=&quot;line&quot;&gt;&lt;h3&gt;Upper Body A&lt;/h3&gt;${I(&#x27;dumbbell&#x27;)}&lt;/div&gt;&lt;div class=&quot;space&quot;&gt;&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;div class=&quot;stack&quot;&gt;&lt;span class=&quot;small muted&quot;&gt;Rest remaining&lt;/span&gt;&lt;strong style=&quot;font-size:38px;letter-spacing:-1px&quot;&gt;1:32&lt;/strong&gt;&lt;/div&gt;&lt;div class=&quot;stack&quot;&gt;&lt;strong&gt;Chest Press&lt;/strong&gt;&lt;span class=&quot;small muted&quot;&gt;Next · set 3 of 3&lt;/span&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class=&quot;progress&quot;&gt;&lt;span style=&quot;width:77%&quot;&gt;&lt;/span&gt;&lt;/div&gt;${B(&#x27;Open Workout&#x27;,&#x27;rest&#x27;,&#x27;secondary&#x27;)}&lt;/div&gt;`;break;
+}
+content.innerHTML=(state.toast?`&lt;div class=&quot;toast&quot; role=&quot;status&quot;&gt;${I(&#x27;check&#x27;)}${state.toast}&lt;/div&gt;`:&#x27;&#x27;)+html;jump.value=state.screen;
+const group=[&#x27;history&#x27;,&#x27;calendar&#x27;,&#x27;session&#x27;,&#x27;progress&#x27;].includes(state.screen)?&#x27;history&#x27;:[&#x27;gyms&#x27;,&#x27;gym&#x27;,&#x27;machine&#x27;,&#x27;scanReview&#x27;].includes(state.screen)?&#x27;gyms&#x27;:[&#x27;exercises&#x27;,&#x27;exercise&#x27;].includes(state.screen)?&#x27;exercises&#x27;:&#x27;home&#x27;;
+nav.innerHTML=[[&#x27;home&#x27;,&#x27;Workout&#x27;,&#x27;dumbbell&#x27;],[&#x27;history&#x27;,&#x27;History&#x27;,&#x27;history&#x27;],[&#x27;gyms&#x27;,&#x27;Gyms&#x27;,&#x27;building-2&#x27;],[&#x27;exercises&#x27;,&#x27;Exercises&#x27;,&#x27;list&#x27;]].map(([s,t,i])=&gt;`&lt;button type=&quot;button&quot; class=&quot;cursor-interaction ${s===group?&#x27;active&#x27;:&#x27;&#x27;}&quot; data-action=&quot;${s}&quot; ${s===group?&#x27;aria-current=&quot;page&quot;&#x27;:&#x27;&#x27;}&gt;${I(i)}&lt;span&gt;${t}&lt;/span&gt;&lt;/button&gt;`).join(&#x27;&#x27;);nav.hidden=state.screen===&#x27;live&#x27;;
+root.querySelectorAll(&#x27;button&#x27;).forEach(b=&gt;b.type=&#x27;button&#x27;);if(globalThis.lucide)lucide.createIcons({attrs:{width:20,height:20}});
+}
+function persist(){window.openai?.setWidgetState?.({modelContent:{screen:screens[state.screen],direction:state.home,appearance:state.appearance},privateContent:{screen:state.screen}})?.catch(()=&gt;{});}
+function go(screen){state.toast=&#x27;&#x27;;state.screen=screen;render();persist();}
+root.addEventListener(&#x27;click&#x27;,e=&gt;{const btn=e.target.closest(&#x27;[data-action]&#x27;);if(!btn||!root.contains(btn))return;const a=btn.dataset.action;if(screens[a]){go(a);return;}state.toast=&#x27;&#x27;;if(a.startsWith(&#x27;set:&#x27;)){let i=Number(a.split(&#x27;:&#x27;)[1]);state.done[i]=!state.done[i];state.resting=state.done[i];state.screen=&#x27;active&#x27;;state.restSeconds=120;}else if(a===&#x27;addSet&#x27;){state.done.push(false);state.values.push([...(state.values[state.values.length-1]||[60,10])]);}else if(a===&#x27;addRest&#x27;){state.restSeconds+=30;}else if(a===&#x27;skipRest&#x27;){state.resting=false;state.screen=&#x27;active&#x27;;}else if(a===&#x27;pause&#x27;){state.paused=!state.paused;}else if(a.startsWith(&#x27;days:&#x27;))state.days=a.slice(5);else if(a.startsWith(&#x27;goal:&#x27;))state.goal=a.slice(5);else if(a.startsWith(&#x27;filter:&#x27;))state.filter=a.slice(7);else if(a===&#x27;saveWeek&#x27;){state.savedWeek=true;state.screen=&#x27;templates&#x27;;state.toast=`${state.days} templates saved`;}else if(a===&#x27;saveMachine&#x27;){state.screen=&#x27;ai&#x27;;state.toast=&#x27;Machine added to Downtown Gym&#x27;;}else if(a===&#x27;saveTemplate&#x27;){state.screen=&#x27;template&#x27;;state.toast=&#x27;Template saved&#x27;;}else if(a===&#x27;deleteTemplate&#x27;){state.screen=&#x27;templates&#x27;;state.toast=&#x27;Template deleted · workouts kept&#x27;;}else if(a===&#x27;large&#x27;){state.large=!state.large;}else if(a===&#x27;appearance&#x27;){state.appearance=state.appearance===&#x27;Dark&#x27;?&#x27;Light&#x27;:&#x27;Dark&#x27;;}else if(a===&#x27;chooseGym&#x27;){state.gym=state.gym===&#x27;Downtown Gym&#x27;?&#x27;No gym&#x27;:&#x27;Downtown Gym&#x27;;}else if(a===&#x27;addExercise&#x27;){state.screen=&#x27;active&#x27;;state.toast=&#x27;Exercise added&#x27;;}else if(a===&#x27;endCardio&#x27;){state.screen=&#x27;active&#x27;;state.toast=&#x27;Indoor Run saved · 2.48 km&#x27;;}else if(a===&#x27;closeFinish&#x27;){state.screen=&#x27;home&#x27;;}else if(a===&#x27;selectMachine&#x27;){state.toast=&#x27;Machine selected&#x27;;}else if(a.startsWith(&#x27;selectCardio:&#x27;)){state.activity=a.slice(13);}else if(a===&#x27;genericMachine&#x27;){content.querySelector(&#x27;input[aria-label=&quot;Model&quot;]&#x27;).value=&#x27;&#x27;;state.toast=&#x27;&#x27;;return;}else if(a.startsWith(&#x27;day:&#x27;)){state.screen=&#x27;session&#x27;;}else if(a.startsWith(&#x27;chartMetric:&#x27;)){state.chartMetric=a.slice(12);}else{const messages={exportJSON:&#x27;Preview · JSON share sheet would open&#x27;,exportCSV:&#x27;Preview · CSV share sheet would open&#x27;,saveKey:&#x27;Preview · key saved&#x27;,removeKey:&#x27;Preview · remove-key confirmation&#x27;,units:&#x27;Preview · Metric / U.S. customary picker&#x27;,heartZones:&#x27;Preview · measured maximum or date of birth&#x27;,drift:&#x27;Preview · template update preference&#x27;,motion:&#x27;Motion follows the iPhone Reduce Motion setting&#x27;,manualDistance:&#x27;Preview · correct distance, keeping the entered unit&#x27;,editSession:&#x27;Preview · edit history, rename, save as template&#x27;,addGym:&#x27;Preview · gym name, location, unit and notes&#x27;,newExercise:&#x27;Preview · exercise name, load type and equipment&#x27;};state.toast=messages[a]||&#x27;Preview selection updated&#x27;;}render();persist();});
+root.addEventListener(&#x27;input&#x27;,e=&gt;{if(e.target.dataset.set!==undefined){const i=Number(e.target.dataset.set),f=Number(e.target.dataset.field);if(!state.values[i])state.values[i]=[60,10];state.values[i][f]=e.target.value;}if(e.target.type===&#x27;search&#x27;){const q=e.target.value.toLowerCase();content.querySelectorAll(&#x27;.row&#x27;).forEach(r=&gt;r.hidden=!r.textContent.toLowerCase().includes(q));}});
+jump.innerHTML=Object.entries(screens).map(([k,v])=&gt;`&lt;option value=&quot;${k}&quot;&gt;${v}&lt;/option&gt;`).join(&#x27;&#x27;);jump.addEventListener(&#x27;change&#x27;,()=&gt;go(jump.value));render();
+if(globalThis.Tweak){const t=new Tweak({container:phone,onChange:render});t.addSelect(state,&#x27;home&#x27;,{label:&#x27;Workout composition&#x27;,options:[&#x27;Focus&#x27;,&#x27;Library&#x27;,&#x27;Journal&#x27;]});t.addSelect(state,&#x27;appearance&#x27;,{label:&#x27;Appearance&#x27;,options:[&#x27;System&#x27;,&#x27;Light&#x27;,&#x27;Dark&#x27;]});t.addToggle(state,&#x27;large&#x27;,{label:&#x27;Large text layout&#x27;});}
+window.addEventListener(&#x27;openai:set_globals&#x27;,e=&gt;{const s=e.detail?.globals?.widgetState?.privateContent?.screen;if(screens[s]){state.screen=s;render();}});
+})();
+&lt;/script&gt;
+
+&lt;script src=&quot;https://unpkg.com/@floating-ui/core@1.7.3/dist/floating-ui.core.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/@floating-ui/dom@1.7.4/dist/floating-ui.dom.umd.min.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  if (window.FloatingUIDOM == null) {
+    return;
+  }
+  const { autoUpdate, computePosition, flip, offset, shift, size } =
+    window.FloatingUIDOM;
+  const tooltipPlacements = new Set([&quot;top&quot;, &quot;right&quot;, &quot;bottom&quot;, &quot;left&quot;]);
+  const tooltipId = `codex-visualization-tooltip-${
+    window.crypto?.randomUUID?.() ?? Date.now().toString(36)
+  }`;
+  const tooltipGap = 5;
+  const hoverDelay = 700;
+  const skipDelay = 300;
+  let activeTrigger = null;
+  let pendingTrigger = null;
+  let tooltip = null;
+  let openTimeout = null;
+  let autoUpdateCleanup = null;
+  let positionRequest = 0;
+  let skipDelayUntil = 0;
+  let lastPointerWasTouch = false;
+  let pinnedByTouch = false;
+
+  const getTrigger = (event) =&gt; {
+    for (const target of event.composedPath()) {
+      if (target?.nodeType === Node.ELEMENT_NODE) {
+        const trigger = target.closest(&quot;[data-tooltip]&quot;);
+        if (trigger) return trigger;
+      }
+    }
+    return null;
+  };
+  const containsTarget = (trigger, target) =&gt;
+    target?.nodeType != null &amp;&amp; trigger.contains(target);
+  const getContent = (trigger) =&gt;
+    trigger.getAttribute(&quot;data-tooltip&quot;)?.trim() ?? &quot;&quot;;
+  const getPlacement = (trigger) =&gt; {
+    const placement = trigger.getAttribute(&quot;data-tooltip-placement&quot;);
+    return tooltipPlacements.has(placement) ? placement : &quot;top&quot;;
+  };
+  const getTooltip = () =&gt; {
+    if (tooltip == null) {
+      tooltip = document.createElement(&quot;div&quot;);
+      tooltip.id = tooltipId;
+      tooltip.className = &quot;tooltip&quot;;
+      tooltip.setAttribute(&quot;role&quot;, &quot;tooltip&quot;);
+    }
+    return tooltip;
+  };
+  const setDescribedBy = (trigger, described) =&gt; {
+    const ids = new Set(
+      (trigger.getAttribute(&quot;aria-describedby&quot;) ?? &quot;&quot;)
+        .split(/\s+/)
+        .filter(Boolean),
+    );
+    if (described) {
+      ids.add(tooltipId);
+    } else {
+      ids.delete(tooltipId);
+    }
+    if (ids.size === 0) {
+      trigger.removeAttribute(&quot;aria-describedby&quot;);
+    } else {
+      trigger.setAttribute(&quot;aria-describedby&quot;, [...ids].join(&quot; &quot;));
+    }
+  };
+  const clearOpenTimeout = () =&gt; {
+    if (openTimeout != null) {
+      window.clearTimeout(openTimeout);
+      openTimeout = null;
+    }
+    pendingTrigger = null;
+  };
+  const closeTooltip = (activateSkipDelay = true) =&gt; {
+    clearOpenTimeout();
+    pinnedByTouch = false;
+    positionRequest += 1;
+    autoUpdateCleanup?.();
+    autoUpdateCleanup = null;
+    if (activeTrigger == null) {
+      return;
+    }
+    setDescribedBy(activeTrigger, false);
+    activeTrigger = null;
+    tooltip?.remove();
+    if (activateSkipDelay) {
+      skipDelayUntil = Date.now() + skipDelay;
+    }
+  };
+  const updatePosition = (trigger, floating) =&gt; {
+    const request = ++positionRequest;
+    void computePosition(trigger, floating, {
+      middleware: [
+        offset(tooltipGap),
+        flip({ padding: tooltipGap }),
+        shift({ padding: tooltipGap }),
+        size({
+          padding: tooltipGap,
+          apply({ availableHeight, availableWidth, elements }) {
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-width&quot;,
+              `${Math.max(0, availableWidth)}px`,
+            );
+            elements.floating.style.setProperty(
+              &quot;--tooltip-available-height&quot;,
+              `${Math.max(0, availableHeight)}px`,
+            );
+          },
+        }),
+      ],
+      placement: getPlacement(trigger),
+      strategy: &quot;fixed&quot;,
+    })
+      .then(({ x, y }) =&gt; {
+        if (activeTrigger !== trigger || request !== positionRequest) {
+          return;
+        }
+        const scale = window.devicePixelRatio || 1;
+        floating.style.transform = `translate(${Math.round(x * scale) / scale}px, ${Math.round(y * scale) / scale}px)`;
+        floating.style.visibility = &quot;visible&quot;;
+      })
+      .catch(() =&gt; {
+        if (activeTrigger === trigger &amp;&amp; request === positionRequest) {
+          closeTooltip(false);
+        }
+      });
+  };
+  const openTooltip = (trigger) =&gt; {
+    const content = getContent(trigger);
+    if (!trigger.isConnected || content.length === 0) {
+      return;
+    }
+    clearOpenTimeout();
+    if (activeTrigger === trigger) {
+      return;
+    }
+    closeTooltip();
+    const floating = getTooltip();
+    floating.textContent = content;
+    floating.style.visibility = &quot;hidden&quot;;
+    floating.style.transform = &quot;translate(0, 0)&quot;;
+    document.body.appendChild(floating);
+    activeTrigger = trigger;
+    setDescribedBy(trigger, true);
+    autoUpdateCleanup = autoUpdate(trigger, floating, () =&gt; {
+      updatePosition(trigger, floating);
+    });
+  };
+  const requestOpen = (trigger, immediate = false) =&gt; {
+    if (
+      getContent(trigger).length === 0 ||
+      activeTrigger === trigger ||
+      pendingTrigger === trigger
+    ) {
+      return;
+    }
+    clearOpenTimeout();
+    pendingTrigger = trigger;
+    const delay =
+      immediate || activeTrigger != null || Date.now() &lt; skipDelayUntil
+        ? 0
+        : hoverDelay;
+    if (delay === 0) {
+      openTooltip(trigger);
+      return;
+    }
+    openTimeout = window.setTimeout(() =&gt; {
+      openTimeout = null;
+      pendingTrigger = null;
+      openTooltip(trigger);
+    }, delay);
+  };
+  const handlePointerOpen = (event) =&gt; {
+    if (event.pointerType === &quot;touch&quot;) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    requestOpen(trigger);
+  };
+  const handlePointer = (event) =&gt; {
+    lastPointerWasTouch =
+      event.type === &quot;pointerdown&quot; &amp;&amp; event.pointerType === &quot;touch&quot;;
+  };
+  const handleTouchClick = (event) =&gt; {
+    const isTouch = event.pointerType === &quot;touch&quot; || lastPointerWasTouch;
+    lastPointerWasTouch = false;
+    if (!isTouch || event.detail === 0) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (
+      trigger == null ||
+      !trigger.isConnected ||
+      getContent(trigger).length === 0 ||
+      (pinnedByTouch &amp;&amp; activeTrigger === trigger)
+    ) {
+      if (pinnedByTouch) {
+        closeTooltip();
+      }
+      return;
+    }
+    openTooltip(trigger);
+    pinnedByTouch = activeTrigger === trigger;
+    window.setTimeout(() =&gt; {
+      if (activeTrigger === trigger &amp;&amp; !trigger.isConnected) {
+        closeTooltip(false);
+      }
+    }, 0);
+  };
+  const handleLeave = (event) =&gt; {
+    if (pinnedByTouch) {
+      return;
+    }
+    const trigger = getTrigger(event);
+    if (trigger == null || containsTarget(trigger, event.relatedTarget)) {
+      return;
+    }
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handleFocusIn = (event) =&gt; {
+    const trigger = getTrigger(event);
+    if (trigger?.matches(&quot;:focus-visible&quot;)) {
+      requestOpen(trigger, true);
+    }
+  };
+  const handleKeyDown = (event) =&gt; {
+    if (event.key === &quot;Escape&quot;) {
+      closeTooltip();
+    }
+  };
+  const handleContextMenu = (event) =&gt; {
+    lastPointerWasTouch = false;
+    const trigger = getTrigger(event);
+    if (activeTrigger === trigger || pendingTrigger === trigger) {
+      closeTooltip();
+    }
+  };
+  const handlers = {
+    pointerover: handlePointerOpen,
+    pointerdown: handlePointer,
+    pointercancel: handlePointer,
+    click: handleTouchClick,
+    pointerout: handleLeave,
+    focusin: handleFocusIn,
+    focusout: handleLeave,
+    keydown: handleKeyDown,
+    contextmenu: handleContextMenu,
+  };
+  const roots = new Map();
+  const handledEvents = new WeakSet();
+  const handleEvent = (event) =&gt; {
+    if (handledEvents.has(event)) return;
+    handledEvents.add(event);
+    handlers[event.type](event);
+  };
+  const discoverRoots = (node) =&gt; {
+    if (node.shadowRoot) listen(node.shadowRoot);
+    for (const element of node.querySelectorAll(&quot;*&quot;)) {
+      if (element.shadowRoot) listen(element.shadowRoot);
+    }
+  };
+  const listen = (root) =&gt; {
+    if (roots.has(root)) return;
+    for (const type of Object.keys(handlers)) root.addEventListener(type, handleEvent);
+    const observer = new window.MutationObserver((records) =&gt; {
+      for (const { addedNodes } of records) {
+        for (const node of addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) discoverRoots(node);
+        }
+      }
+      for (const [root, cleanup] of roots) {
+        if (root.host &amp;&amp; !root.host.isConnected) {
+          cleanup();
+          roots.delete(root);
+        }
+      }
+      if (activeTrigger &amp;&amp; !activeTrigger.isConnected) closeTooltip(false);
+    });
+    observer.observe(root, { childList: true, subtree: true });
+    roots.set(root, () =&gt; {
+      observer.disconnect();
+      for (const type of Object.keys(handlers)) root.removeEventListener(type, handleEvent);
+    });
+    discoverRoots(root);
+  };
+  const destroy = () =&gt; {
+    closeTooltip(false);
+    lastPointerWasTouch = false;
+    for (const cleanup of roots.values()) cleanup();
+    roots.clear();
+    tooltip = null;
+  };
+
+  // Events between children of one shadow root never reach the document.
+  listen(document);
+  window.addEventListener(&quot;pagehide&quot;, destroy, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-tabs&quot;&gt;
+(() =&gt; {
+  const selector = &#x27;.nav[role=&quot;tablist&quot;] [role=&quot;tab&quot;]&#x27;;
+  const disabled = &#x27;:disabled,[aria-disabled=&quot;true&quot;]&#x27;;
+  const selectTab = (selected) =&gt; {
+    const panelId = selected.getAttribute(&quot;aria-controls&quot;);
+    for (const tab of selected.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;)) {
+      const active = tab === selected;
+      tab.classList.toggle(&quot;active&quot;, active);
+      tab.setAttribute(&quot;aria-selected&quot;, String(active));
+      const id = tab.getAttribute(&quot;aria-controls&quot;);
+      const panel = id &amp;&amp; document.getElementById(id);
+      if (panel != null) {
+        panel.hidden = id !== panelId;
+        if (!panel.hidden &amp;&amp; selected.id) {
+          panel.setAttribute(&quot;aria-labelledby&quot;, selected.id);
+        }
+      }
+    }
+  };
+  const interact = (event) =&gt; {
+    const tab = event.target?.closest?.(selector);
+    if (event.defaultPrevented || tab == null || tab.matches(disabled)) {
+      return;
+    }
+    if (event.type === &quot;click&quot;) {
+      selectTab(tab);
+      return;
+    }
+    const tabs = Array.from(
+      tab.closest(&#x27;[role=&quot;tablist&quot;]&#x27;).querySelectorAll(&#x27;[role=&quot;tab&quot;]&#x27;),
+    ).filter((candidate) =&gt; !candidate.matches(disabled));
+    const current = tabs.indexOf(tab);
+    let next;
+    if (event.key === &quot;ArrowRight&quot; || event.key === &quot;ArrowDown&quot;) {
+      next = (current + 1) % tabs.length;
+    } else if (event.key === &quot;ArrowLeft&quot; || event.key === &quot;ArrowUp&quot;) {
+      next = (current + tabs.length - 1) % tabs.length;
+    } else if (event.key === &quot;Home&quot;) {
+      next = 0;
+    } else if (event.key === &quot;End&quot;) {
+      next = tabs.length - 1;
+    } else {
+      return;
+    }
+    event.preventDefault();
+    tabs[next].focus();
+    selectTab(tabs[next]);
+  };
+
+  for (const list of document.querySelectorAll(&#x27;.nav[role=&quot;tablist&quot;]&#x27;)) {
+    const selected =
+      list.querySelector(&#x27;[role=&quot;tab&quot;][aria-selected=&quot;true&quot;]&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;].active&#x27;) ??
+      list.querySelector(&#x27;[role=&quot;tab&quot;]&#x27;);
+    if (selected != null) {
+      selectTab(selected);
+    }
+  }
+  document.addEventListener(&quot;click&quot;, interact);
+  document.addEventListener(&quot;keydown&quot;, interact);
+  window.addEventListener(&quot;pagehide&quot;, () =&gt; {
+    document.removeEventListener(&quot;click&quot;, interact);
+    document.removeEventListener(&quot;keydown&quot;, interact);
+  }, { once: true });
+})();
+&lt;/script&gt;
+&lt;script id=&quot;codex-visualization-lucide&quot; async src=&quot;https://unpkg.com/lucide@1.17.0/dist/umd/lucide.js&quot;&gt;&lt;/script&gt;
+&lt;script&gt;
+(() =&gt; {
+  const initialize = () =&gt; {
+    globalThis.lucide?.createIcons({ attrs: { width: 16, height: 16 } });
+  };
+  if (globalThis.lucide != null) {
+    initialize();
+    return;
+  }
+  document
+    .getElementById(&quot;codex-visualization-lucide&quot;)
+    ?.addEventListener(&quot;load&quot;, initialize, { once: true });
+})();
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+"></iframe>
+<script>(() => {
+  const frame = document.getElementById("codex-visualization");
+  if (!(frame instanceof HTMLIFrameElement)) {
+    return;
+  }
+  let viewportHeight = globalThis.innerHeight;
+  const storageKey = `codex:visualization-widget-state-v2:${JSON.stringify([
+    globalThis.location.pathname,
+    globalThis.location.search,
+  ])}`;
+  const parseState = (serializedState) => {
+    if (
+      typeof serializedState !== "string" ||
+      new TextEncoder().encode(serializedState).length > 16 * 1024
+    ) {
+      throw new TypeError(
+        "Widget state must be a JSON object of at most 16 KiB",
+      );
+    }
+    /** @type {unknown} */
+    const state = JSON.parse(serializedState);
+    if (
+      state == null ||
+      typeof state !== "object" ||
+      Array.isArray(state) ||
+      ("imageIds" in state &&
+        (!Array.isArray(state.imageIds) || state.imageIds.length > 0))
+    ) {
+      throw new TypeError("Widget state must be a JSON object");
+    }
+    const storedState = { modelContent: null, privateContent: null, ...state };
+    const canonicalState = JSON.stringify(
+      storedState,
+      (_key, /** @type {unknown} */ value) => {
+        if (typeof value === "number" && !Number.isFinite(value)) {
+          throw new TypeError("Widget state must contain finite numbers");
+        }
+        return value;
+      },
+    );
+    if (new TextEncoder().encode(canonicalState).length > 16 * 1024) {
+      throw new TypeError(
+        "Widget state must be a JSON object of at most 16 KiB",
+      );
+    }
+    return storedState;
+  };
+  let storage = null;
+  let state = null;
+  try {
+    const localStorage = globalThis.localStorage;
+    const probeKey = `${storageKey}:probe`;
+    localStorage.setItem(probeKey, "1");
+    localStorage.removeItem(probeKey);
+    storage = localStorage;
+    const savedState = storage.getItem(storageKey);
+    if (savedState != null) {
+      try {
+        state = parseState(savedState);
+      } catch {
+        // Invalid saved state does not disable future writes.
+      }
+    }
+  } catch {
+    storage = null;
+  }
+  const initialGlobals = {
+    widgetState: state,
+    statePersistence: storage == null ? "none" : "local",
+  };
+
+  const channel = new MessageChannel();
+  channel.port1.addEventListener("message", (event) => {
+    const data = event.data;
+    if (typeof data !== "object" || data == null) {
+      return;
+    }
+    if (data.type === "widget-state-write") {
+      if (!Number.isSafeInteger(data.id) || data.id <= 0) {
+        return;
+      }
+      let ok = false;
+      try {
+        if (storage != null) {
+          const state = parseState(data.state);
+          storage.setItem(storageKey, JSON.stringify(state));
+          ok = true;
+        }
+      } catch {
+        // Storage denial, quota limits, and invalid state return a failed receipt.
+      }
+      channel.port1.postMessage({
+        type: "widget-state-result",
+        id: data.id,
+        ok,
+      });
+      return;
+    }
+    if (data.type === "height") {
+      const height = data.height;
+      if (
+        typeof height === "number" &&
+        Number.isFinite(height) &&
+        height >= 0 &&
+        height <= 10_000
+      ) {
+        frame.style.height = Math.ceil(height) + "px";
+      }
+      return;
+    }
+    if (data.type === "scroll-to") {
+      const top = data.top;
+      if (
+        typeof top === "number" &&
+        Number.isFinite(top) &&
+        top >= 0 &&
+        globalThis.navigator.userActivation?.isActive === true
+      ) {
+        globalThis.scrollTo({
+          top: Math.ceil(
+            globalThis.scrollY + frame.getBoundingClientRect().top + top,
+          ),
+        });
+      }
+      return;
+    }
+    if (data.type === "open-external") {
+      const rawHref = data.href;
+      if (typeof rawHref !== "string") {
+        return;
+      }
+      let href;
+      try {
+        const url = new URL(rawHref, document.baseURI);
+        if (url.protocol !== "https:") {
+          return;
+        }
+        href = url.href;
+      } catch {
+        return;
+      }
+      if (globalThis.navigator.userActivation?.isActive === true) {
+        const anchor = document.createElement("a");
+        anchor.href = href;
+        anchor.rel = "noopener noreferrer";
+        anchor.target = "_blank";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+      }
+      return;
+    }
+    if (data.type === "follow-up") {
+      const prompt = data.prompt;
+      if (
+        typeof prompt !== "string" ||
+        globalThis.navigator.userActivation?.isActive !== true
+      ) {
+        return;
+      }
+      const title = data.title;
+      globalThis.prompt(typeof title === "string" ? title : prompt, prompt);
+    }
+  });
+  channel.port1.start();
+  const srcdoc = frame.dataset.srcdoc;
+  if (srcdoc == null) {
+    return;
+  }
+  globalThis.addEventListener("resize", () => {
+    const height = Number.parseFloat(frame.style.height);
+    if (!Number.isFinite(height) || height <= viewportHeight) {
+      frame.style.removeProperty("height");
+    }
+    viewportHeight = globalThis.innerHeight;
+    channel.port1.postMessage({ type: "measure" });
+  });
+  frame.addEventListener(
+    "load",
+    () => {
+      frame.contentWindow?.postMessage(
+        { type: "codex-visualization-initialize" },
+        "*",
+        [channel.port2],
+      );
+    },
+    { once: true },
+  );
+  // Match the trusted bootstrap element, not the same text in an authored title.
+  frame.srcdoc = srcdoc.replace(
+    '<script type="application/json" id="codex-visualization-widget-state">__CODEX_VISUALIZATION_WIDGET_STATE__<\/script>',
+    () =>
+      '<script type="application/json" id="codex-visualization-widget-state">' +
+      JSON.stringify(initialGlobals).replaceAll("<", "\\u003c") +
+      "<\/script>",
+  );
+  delete frame.dataset.srcdoc;
+})();
+</script>
+</body>
+</html>

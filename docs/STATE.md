@@ -17,6 +17,8 @@ screen/state compositions with sample data. Three home structures: Focus (recomm
 Journal. Light/dark and enlarged-text mock layouts are available. Browser checks opened all
 36 at regular/narrow widths and enlarged text; actual exit 0, no JS exceptions or horizontal
 overflow. Captures and limitations are in the ticket. This is **not** a native AccessibilityL pass.
+The [standalone browser copy](../work-record/redesign-2026/visuals/workout-redesign-browser.html)
+was opened and visually confirmed in Orca after the user asked how to view the inline proposal.
 
 User chooses/refines direction before product edits. D54 is explicitly reopened for exploration;
 the proposed palette, copy and composition are not yet accepted. No independent clearance,

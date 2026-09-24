@@ -173,3 +173,7 @@ independent review before merge/install. Do not begin product changes on this ti
 - Proposal committed/pushed as `a1242db` on `ericlee4992/redesign-visual-proposal`; main remains
   `a0364f2`. This subsequent checkpoint changes records only. No review, merge or installation
   of the proposed redesign is claimed; next action is the user's visual feedback.
+- User could not find how to view the inline preview. Exported the existing fragment to a
+  [standalone browser preview](../visuals/workout-redesign-browser.html), opened it in Orca's
+  embedded browser and visually confirmed it rendered. No public upload. Preview screen menu
+  switches designs; Settings contains appearance and large-text switches in the standalone copy.
