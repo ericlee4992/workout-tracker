@@ -1,36 +1,22 @@
 # Current project state
 
-Updated **2026-09-24** for the user-requested whole-app redesign **visual proposal**.
-Base/main/live remote verified at **a0364f2c93ebb0ebbfd1e28b8847aa79b304d0fd**.
-Branch: `ericlee4992/redesign-visual-proposal`; product code remains unchanged. New work is
-the design artifact and its records; check actual Git status on resume. The user wants visuals
-before implementation. No native redesign, build/test run, API request, phone connection or install.
-Product **9f733a2**, built from source **7e96a82**, remains the last verified September 22 install.
-[Pre-redesign STATE](archive/STATE-2026-09-24-before-redesign-proposal.md) is archived byte-for-byte.
+Updated **2026-09-24** for a new session. Main/remote were verified at **40f3f65** before this
+docs-only handoff; verify actual Git HEAD on resume. Product **9f733a2**, built from source
+**7e96a82**, was installed September 22. Later documentation commits do not change that binary.
+Handoff branch: `ericlee4992/session-handoff-sep24`; user explicitly waived Claude review for
+this handoff only. [Prior STATE](archive/STATE-2026-09-24-before-session-handoff.md) is archived
+byte-for-byte. No product edits, API requests, phone connection, renewal or reinstall in this handoff.
 
-## Next action — review the visual direction
+## Next action — signing first, then device acceptance
 
-Active ticket: [01 — whole-app visual direction](../work-record/redesign-2026/issues/01-visual-direction.md).
-The [interactive proposal](../work-record/redesign-2026/visuals/workout-redesign.html) covers 36
-screen/state compositions with sample data. Three home structures: Focus (recommended), Library,
-Journal. Light/dark and enlarged-text mock layouts are available. Browser checks opened all
-36 at regular/narrow widths and enlarged text; actual exit 0, no JS exceptions or horizontal
-overflow. Captures and limitations are in the ticket. This is **not** a native AccessibilityL pass.
+Active ticket: [06 — private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md).
 
-User chooses/refines direction before product edits. D54 is explicitly reopened for exploration;
-the proposed palette, copy and composition are not yet accepted. No independent clearance,
-merge or install of the proposal. After selection, complete detailed state designs and native
-captures, then implementation tickets, appropriate tests and Claude review. Device acceptance
-and signing remain open background work, not actions requested during this design task.
-
-## Outstanding device acceptance
-
-[06 — private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md) remains open.
-
-1. Recorded app/widget profiles **expired September 24 at 03:16:18 /03:16:20 EDT
-   (07:16:18 /07:16:20 UTC)**; current time checked at 07:18 UTC. No renewal or fresh phone check.
-   Before device use/install, follow [renewal](DEVELOPMENT.md#provisioning-expiry) for both
-   profiles, a newly signed build and backup as needed. Reinstalling the old binary does not renew signing.
+1. **Check the current time against signing expiry before assuming the app can launch.** App and
+   widget profiles expire **September 24 at 03:16:18 /03:16:20 EDT (07:16:18 /07:16:20 UTC)**.
+   Embedded profiles were re-read today; at the 05:08 UTC audit they were still valid but due
+   within hours. If expired on resume, follow [provisioning renewal](DEVELOPMENT.md#provisioning-expiry)
+   for both profiles and a newly signed build, with a fresh backup if phone data has changed.
+   Reinstalling the existing binary does not renew signing. No renewal has been performed.
 2. Collect post-update phone feedback: all newly generated templates visible without restart;
    Scan Machine inside template setup; preserved preferences/equipment updates; visual confirmation
    of old history. These checks have **not been reported since the September 22 installation**.
@@ -38,7 +24,7 @@ and signing remain open background work, not actions requested during this desig
    Do not ask for the secret in chat or repeat funding/key setup without a new actual error.
 3. Continue actual gym recognition/routine feedback under ticket 06. Keep the separate
    [cardio hardware checks](../work-record/cardio/issues/02-device-acceptance.md) open. No new
-   backend or App Store work is requested. No build/test job remains active.
+   feature, public backend or App Store work is requested. No build/test job remains active.
 
 ## Delivered software and verification
 

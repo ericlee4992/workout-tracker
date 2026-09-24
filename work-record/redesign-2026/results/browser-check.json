@@ -1,0 +1,6 @@
+{
+  "screens": 36,
+  "errors": [],
+  "overflows": [],
+  "interactions": "set completion, explicit add, rest, AI session count, save receipt, large text"
+}

@@ -8,6 +8,7 @@ Stable decisions remain in [DECISIONS](../DECISIONS.md), detailed ticket records
 
 | Snapshot | Provenance |
 |---|---|
+| [STATE before whole-app redesign proposal](STATE-2026-09-24-before-redesign-proposal.md) | Byte-for-byte copy at `a0364f2`; signing/device acceptance retained while user requests visuals before a redesign |
 | [STATE before September 24 handoff](STATE-2026-09-24-before-session-handoff.md) | Byte-for-byte copy at `40f3f65`; September 22 installation and full prior verification/context |
 | [STATE before AI follow-up installation](STATE-2026-09-22-before-followup-install.md) | Byte-for-byte copy at `7e96a82`; verified/merged follow-up awaiting installation |
 | [STATE before template visibility/scanning follow-up](STATE-2026-09-22-before-template-followup.md) | Byte-for-byte copy at `5a894da`; September 20 AI installation, verification and still-open device acceptance |

@@ -156,3 +156,19 @@ explicit independent save and survives cancelling the routine; generated templat
 staged until Save templates. D56's one photo of machine OR label, Terra identification, editable
 confirmation and physical-instance history boundaries remain. No OCR-first step or label-vs-
 machine mode choice is introduced. The user approved execution after reviewing this flow.
+
+### September 24 — D54 reopened for a whole-app visual proposal
+
+The user requests a complete redesign: the app feels clean but partly messy, missing details,
+and boring; they explicitly allow a different theme and ask to see visuals before implementation.
+This reopens D54's dark-only/amber palette, card composition, start-button prominence,
+template muscle representation, short UI copy, and matching Live Activity/icon treatment for
+**exploration**. The existing shipped D54 system remains until a new direction is accepted.
+No replacement palette, light-mode support, wording, navigation or behavior is yet approved.
+
+[Visual-direction ticket](../work-record/redesign-2026/issues/01-visual-direction.md) records
+the proposal, three home compositions and 36 screen/state previews. Mock data and simulated
+browser interactions are not implementation or native accessibility evidence. D56–D58's
+consent/recognition/staged-save rules, explicit cardio Start, physical-equipment identity,
+as-entered units, frozen history and deliberate set creation remain unchanged. No new
+backend, coaching, Watch release or public launch scope is introduced.
