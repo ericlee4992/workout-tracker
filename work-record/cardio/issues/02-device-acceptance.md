@@ -5,17 +5,18 @@ Status: open — physical evidence outstanding
 
 Original cardio software/review evidence: [ticket 01](01-implementation.md). Latest unit-system
 and indoor-presentation changes are merged and installed: [ticket 06](06-unit-system-and-indoor.md).
-Current build/phone/backup facts live in [STATE](../../../docs/STATE.md). Latest-build launch and
-existing-history preservation remain unverified; the earlier user feedback establishes that the
-original cardio app opened and delivered indoor distance with AirPods Pro 3 and an outdoor map.
-Simulator results do not establish device accuracy or locked-screen GPS.
+Current build/phone/backup facts live in [STATE](../../../docs/STATE.md). The September 22
+installation's launch and database-level history preservation were verified in
+[AI device acceptance](../../ai-gym/issues/06-device-acceptance.md). Visual post-update history
+confirmation remains unreported. Earlier user feedback established indoor distance with AirPods
+Pro 3 and an outdoor map on an older build; it does not establish current hardware accuracy or
+locked-screen GPS. Check signing expiry in STATE before resuming phone checks.
 
 ## Acceptance work
 
-The latest user-authorized installation is complete. Confirm it opens and existing history
-is intact, then record device OS/AirPods firmware and the
-remaining scenarios below. The reported indoor-distance scenario passed; activity subtype
-and phone position were not specified.
+The latest installation and remote launch are verified. Obtain visual history confirmation,
+then record device OS/AirPods firmware and the remaining scenarios below. The reported
+indoor-distance scenario passed; activity subtype and phone position were not specified.
 
 1. Indoor Walk and Indoor Run with AirPods Pro 3: compare distance/average pace to treadmill
    readings, first carrying the phone, then leaving it on the console. Record whether distance actually arrives and any available diagnostic provenance; the user
@@ -109,3 +110,11 @@ Earlier AirPods/map feedback does not prove this latest launch or history preser
 Begin with those two confirmations, then the remaining physical scenarios above. Live source
 labels/maps are intentionally absent under tickets 03–06; inspect routes after Finish in
 Summary/History. No code/rebuild/reinstall is required merely for this handoff.
+
+
+## September 24 — status reconciliation
+
+The older installation/launch incidents above remain historical evidence. September 22's later
+AI follow-up installation verified remote launch and preservation of all pre-existing phone-store
+rows; current facts and signing expiry live in STATE. This does not close any of the physical
+cardio scenarios above or establish post-update visual acceptance. No new phone test in this handoff.

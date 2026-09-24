@@ -7,10 +7,15 @@ Software scope and decisions: [spec](../spec.md), D56–D58. Product `9f733a2` f
 
 ## Next action
 
-The ticket 07 follow-up is installed. Collect actual phone feedback on immediate template
-visibility, scanning during setup, and post-update visual history confirmation, then the physical
-checks below. Key/billing setup already works; do not repeat it. Current phone/build/profile
-facts live in STATE. Signing expiry was not renewed by this installation.
+The ticket 07 follow-up was installed and launch-verified September 22. **First check signing
+expiry against current time** using STATE; profiles expire today (September 24) and were not
+renewed. If expired, follow DEVELOPMENT's backup/signing/rebuild/launch procedure. This handoff
+has not reconnected to the phone or renewed anything.
+
+Then collect post-update phone feedback on immediate template visibility, scanning during setup,
+preferences/equipment refresh and visual history confirmation, followed by the physical checks
+below. None of this post-update feedback has yet been reported. Key/billing setup already works;
+do not repeat it. Current phone/build/profile facts live in STATE.
 
 ## Installation — September 20, user authorized “can you install”
 
@@ -116,3 +121,31 @@ Build/install/launch/check logs, JSON and actual exits are in main's ignored
 `work-record/ai-gym/results/device-install-20260922/`. Existing reviewed source and passing
 verification apply; installation alone requires no new simulator suite under DEVELOPMENT T8.
 No live API call or physical scanner/cardio acceptance claimed. Next: user trial feedback.
+
+
+### September 24 — clean new-session handoff
+
+User requested updated records before a new session and explicitly waived Claude review for this
+docs-only handoff. Started from clean main **40f3f65**, live remote matched; handoff branch
+`ericlee4992/session-handoff-sep24`. Product/source remain **9f733a2 /7e96a82**, installed September 22.
+No product edits, phone connection, signing renewal, installation, API call or fresh test run.
+
+Re-read actual build/install/launch/confirmation/copy exits (all 0), install/launch JSON success,
+15-table preservation report, all **27** original backup hashes (unchanged), prepared app/widget
+embedded profiles and prior successful xcresult summaries (53 +1 +2 +2 passed, zero failed/skipped).
+Clean/final simulator build exits remain 0. Source/test trees match reviewed checkpoints; no local
+xcodebuild/xctest/xcresulttool job active. Credential existence/mode checked without reading contents.
+Profiles expire at the time in STATE; at the 05:08 UTC audit they had not yet expired. Next session
+must evaluate current time, not assume either current launchability or a completed renewal.
+
+Read-only audit of 31 checkouts: no tracked modifications. Untracked reviewer reports remain in
+`ai-template-followup-review` (three reports, each byte-identical to the committed main copy),
+`review-cardio-design` (two), `review-finish-summary-order` (three) and `review-session-handoff`
+(one). These are retained review artifacts, not unfinished product implementation. Older details
+remain in the codex-setup handoff record; no workspace or terminal was closed/cleaned.
+
+Archived pre-handoff STATE byte-for-byte from **40f3f65**. Corrected stale current-status wording
+in cardio acceptance and deferred work: latest launch and database preservation are verified;
+post-update visual acceptance, backup restore and hardware checks remain open. No product decisions
+reopened. Docs verification: local links, archive preservation, whitespace, status consistency,
+source invariance and remote tip; no app build/test required under DEVELOPMENT's docs-only scope.
