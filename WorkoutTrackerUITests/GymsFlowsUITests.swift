@@ -65,6 +65,23 @@ final class GymsFlowsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["restoreGym.Hotel Gym"].exists)
     }
 
+    /// The grouping pills are each at least 44 pt tall at the smallest text size too (Codex
+    /// review 06b: the scaled pill shrinks below 38 at Small).
+    func testGroupingPillsKeep44PointTargetsAtSmallText() {
+        app.terminate()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryXS"]
+        app.launch()
+        app.tabBars.buttons["Gyms"].tap()
+        let iron = any("gymRow.Iron Temple")
+        XCTAssertTrue(iron.waitForExistence(timeout: 15))
+        iron.tap()
+        for mode in ["bodyArea", "exercise", "alphabetical"] {
+            let pill = any("machineGrouping.\(mode)")
+            XCTAssertTrue(pill.waitForExistence(timeout: 10))
+            XCTAssertGreaterThanOrEqual(pill.frame.height, 44, "\(mode) pill: \(pill.frame)")
+        }
+    }
+
     /// Deleting the gym Home is set to (Iron Temple, the fixture's current gym): Home drops it at
     /// once — no relaunch — so a new workout cannot start at an archived gym (Codex review 06).
     func testDeletingTheCurrentGymClearsHomesSelection() {

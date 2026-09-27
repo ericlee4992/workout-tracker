@@ -360,9 +360,11 @@ struct GroupingPills<Option: Hashable>: View {
                                     .matchedGeometryEffect(id: "selection", in: namespace)
                             }
                         }
-                        // The track's 3 pt inset belongs to each pill's hit region: 38 + 3 + 3
-                        // = 44 pt per button, not only for the group (Codex review 06).
+                        // The track's 3 pt inset belongs to each pill's hit region, and 44 pt is a
+                        // floor at every text size: the scaled pill shrinks below 38 at Small
+                        // (Codex review 06, 06b).
                         .padding(.vertical, 3)
+                        .frame(minHeight: 44)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
