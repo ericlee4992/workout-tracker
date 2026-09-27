@@ -40,6 +40,8 @@ struct IdentifyEquipmentSheet: View {
     @State private var identifyError: String?
     @State private var photo: UIImage?
     @State private var proposal: EquipmentIdentification?
+    /// The AI's own label, kept so an unedited name can follow the identity back and forth.
+    @State private var aiLabel = ""
     /// "Use generic identity": the AI's answer stays in `proposal`, so this is reversible.
     @State private var genericChosen = false
     @State private var added: MachineInstance?
@@ -161,6 +163,9 @@ struct IdentifyEquipmentSheet: View {
         .onAppear { if consent || TerraAccess.bypassesConsent { start() } }
         .onDisappear { cancel() }
         .onChange(of: consent) { _, allowed in if !allowed { cancel(); proposal = nil } }
+        // Editing maker/model can move the answer to another catalog row (or none): the unedited
+        // name follows it, so both modes save the name the result shows (codex-review-07).
+        .onChange(of: catalogModelID) { _, _ in reconcileLabel() }
         .sensoryFeedback(.success, trigger: added?.id)
     }
 
@@ -189,6 +194,22 @@ struct IdentifyEquipmentSheet: View {
 
     private var resolution: EquipmentIdentityResolution {
         proposal.map { EquipmentIdentityResolution.resolve($0, among: models, exerciseNames: seededNames) } ?? .generic
+    }
+
+    private var catalogModelID: UUID? {
+        if case .catalog(let model) = resolution { return model.id }
+        return nil
+    }
+
+    private func reconcileLabel() {
+        guard var current = proposal else { return }
+        var model: EquipmentModel?
+        if case .catalog(let match) = resolution { model = match }
+        let label = ScanMachine.reconciledLabel(current, aiLabel: aiLabel, catalogModelName: model?.modelName,
+                                                modelExerciseNames: model.map { names(of: $0.exerciseIDs) } ?? [])
+        guard label != current.label else { return }
+        current.label = label
+        proposal = current
     }
 
     private var catalogMatches: [EquipmentModel] {
@@ -294,6 +315,7 @@ struct IdentifyEquipmentSheet: View {
                     answer = try JSONDecoder().decode(EquipmentIdentification.self, from: data).validated(allowed: allowed)
                 }
                 guard !Task.isCancelled, requestID == id else { return }
+                aiLabel = answer.label
                 proposal = prefilled(answer); genericChosen = false; busy = false
             } catch {
                 guard !Task.isCancelled, requestID == id else { return }

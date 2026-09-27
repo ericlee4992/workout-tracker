@@ -311,46 +311,170 @@ final class FloodlightScanUITests: XCTestCase {
                         .waitForExistence(timeout: 5), "past workouts are rewritten only after asking")
         Thread.sleep(forTimeInterval: 0.6)
         shoot("floodlight-07-correct-confirm-\(suffix)")
-        app.buttons["Cancel"].firstMatch.tap()
+        // Dismiss the question (a popover with no Cancel button at the default size) by a tap
+        // outside it; the sheet stays.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)).tap()
         XCTAssertTrue(commit.waitForExistence(timeout: 5), "cancelling the question keeps the sheet")
     }
 
     // MARK: Flows
 
-    /// Future-only needs no question and changes the machine's model; the machine page shows it.
-    func testFutureOnlyCorrectionAppliesWithoutAsking() {
-        launch([], appearance: "dark", large: false)
-        openCorrection()
-        let pick = suggestion
-        XCTAssertTrue(pick.waitForExistence(timeout: 5))
-        let chosen = pick.identifier.replacingOccurrences(of: "correctModel.option.", with: "")
-        reach(pick, bar: any("correctModel.commit"))
-        pick.tap()
-        any("correctModel.commit").tap()
-        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Change the model in")).firstMatch.exists)
-        XCTAssertTrue(any("machineDetail.correctModel").waitForExistence(timeout: 5), "the sheet closed")
-        let modelName = chosen.split(separator: " ").dropFirst().joined(separator: " ")
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", modelName)).firstMatch
-                        .waitForExistence(timeout: 5), "the machine page shows \(chosen)")
+    /// What a finished workout says Chest Press 2 was: the history detail's snapshot equipment
+    /// line ("Chest Press 2 · <model at log time>", D23). Opens the recent workouts until one used
+    /// it, reads the line, and comes back to the Gyms tab where it was.
+    private func historyEquipment(_ machine: String = "Chest Press 2") -> String? {
+        // Right after a sheet closes the tab bar is still settling; a tap then has no hit point.
+        let tab = app.tabBars.buttons["History"]
+        for _ in 0..<10 where !tab.isHittable { Thread.sleep(forTimeInterval: 0.5) }
+        Thread.sleep(forTimeInterval: 0.6)
+        tab.tap()
+        defer { app.tabBars.buttons["Gyms"].tap() }
+        let rows = app.buttons.matching(identifier: "historyWorkoutRow")
+        // The list's rows stay in the accessibility tree under a pushed detail, so "back on the
+        // list" means no Back button: pop until there is none.
+        let back = app.navigationBars.buttons["BackButton"]
+        func popToList() {
+            for _ in 0..<4 where back.exists {
+                back.firstMatch.tap()
+                Thread.sleep(forTimeInterval: 0.8)
+            }
+        }
+        popToList()
+        XCTAssertTrue(rows.firstMatch.waitForExistence(timeout: 10))
+        for index in 0..<5 {
+            let row = rows.element(boundBy: index)
+            guard row.exists else { break }
+            for _ in 0..<4 where !(row.isHittable && row.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+            row.tap()
+            let line = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "\(machine) · ")).firstMatch
+            let found = line.waitForExistence(timeout: 3) ? line.label : nil
+            popToList()
+            XCTAssertFalse(back.exists, "back on the History list")
+            if let found { return found }
+        }
+        return nil
     }
 
-    /// Apply to Past asks first; confirming closes the sheet with the new model.
-    func testPastCorrectionAsksThenApplies() {
-        launch([], appearance: "light", large: false)
-        openCorrection()
+    private var currentModel: String { "Insignia Series Chest Press" }
+
+    /// The machine page exists UNDER the sheet too, so "closed" means the sheet's own commit is gone.
+    private func assertSheetClosed() {
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: any("correctModel.commit"))
+        XCTAssertEqual(XCTWaiter.wait(for: [gone], timeout: 5), .completed, "the Correct Model sheet closed")
+        XCTAssertTrue(any("machineDetail.correctModel").waitForExistence(timeout: 5))
+    }
+
+    /// The suggestion's model name, from its identifier ("correctModel.option.<maker model>").
+    private func pickSuggestion() -> String {
         let pick = suggestion
-        XCTAssertTrue(pick.waitForExistence(timeout: 5))
+        XCTAssertTrue(pick.waitForExistence(timeout: 5), "a likely correction is suggested")
+        let displayName = pick.identifier.replacingOccurrences(of: "correctModel.option.", with: "")
         reach(pick, bar: any("correctModel.commit"))
         pick.tap()
+        return displayName
+    }
+
+    /// Future-only needs no question, changes the machine's model, and leaves history as logged.
+    func testFutureOnlyCorrectionAppliesWithoutAsking() {
+        launch([], appearance: "dark", large: false)
+        let before = historyEquipment()
+        XCTAssertTrue(before?.contains(currentModel) == true, "history names the model at log time: \(String(describing: before))")
+        openCorrection()
+        let chosen = pickSuggestion()
+        any("correctModel.commit").tap()
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Change the model in")).firstMatch.exists)
+        assertSheetClosed()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", chosen)).firstMatch
+                        .waitForExistence(timeout: 5), "the machine page shows \(chosen)")
+        XCTAssertEqual(historyEquipment(), before, "future-only leaves logged workouts on the old model")
+    }
+
+    /// Apply to Past asks first; cancelling the question (and the sheet) changes nothing; confirming
+    /// rewrites this machine's logged workouts to the new model.
+    func testPastCorrectionAsksThenApplies() {
+        launch([], appearance: "light", large: false)
+        let before = historyEquipment()
+        XCTAssertTrue(before?.contains(currentModel) == true, "history names the model at log time: \(String(describing: before))")
+        openCorrection()
+        let chosen = pickSuggestion()
         let past = any("correctModel.scope.applyToPast")
         reach(past, bar: any("correctModel.commit"))
         XCTAssertTrue(past.value.map { "\($0)" }?.hasPrefix("Rewrites") == true, "\(String(describing: past.value))")
         past.tap()
         any("correctModel.commit").tap()
-        let confirm = app.buttons["Apply to Past Workouts Too"].firstMatch
+        // The scope tile carries the same label; the question's button is the one that is not the tile.
+        let confirm = app.buttons.matching(NSPredicate(format: "label == %@ AND identifier != %@",
+                                                       "Apply to Past Workouts Too", "correctModel.scope.applyToPast")).firstMatch
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+
+        // Cancel the question (on iOS 27 a popover on the tile, with no Cancel button: a tap
+        // outside it), then the sheet: nothing changed.
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)).tap()
+        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: confirm)
+        XCTAssertEqual(XCTWaiter.wait(for: [gone], timeout: 5), .completed, "the question closed")
+        XCTAssertTrue(any("correctModel.commit").waitForExistence(timeout: 5), "cancelling the question keeps the sheet")
+        app.buttons["scanCancel"].tap()
+        assertSheetClosed()
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", chosen)).firstMatch.exists,
+                       "the machine keeps its model")
+        XCTAssertEqual(historyEquipment(), before, "cancelling leaves history alone")
+
+        // Now confirm it.
+        any("machineDetail.correctModel").tap()
+        XCTAssertTrue(any("correctModel.commit").waitForExistence(timeout: 5))
+        XCTAssertEqual(pickSuggestion(), chosen)
+        reach(past, bar: any("correctModel.commit"))
+        past.tap()
+        any("correctModel.commit").tap()
         XCTAssertTrue(confirm.waitForExistence(timeout: 5))
         confirm.tap()
-        XCTAssertTrue(any("machineDetail.correctModel").waitForExistence(timeout: 5), "the sheet closed")
+        assertSheetClosed()
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@", chosen)).firstMatch
+                        .waitForExistence(timeout: 5), "the machine page shows \(chosen)")
+        let after = historyEquipment()
+        XCTAssertEqual(after, "Chest Press 2 · \(chosen)", "the logged workouts now name the corrected model")
+    }
+
+    /// Clearing Maker or Model on the way to retyping it keeps both fields (the answer resolves to
+    /// generic for a moment), and an unedited name follows the new catalog match — the SAME name
+    /// the form then receives (codex-review-07).
+    func testEditingMakerAndModelKeepsTheFieldsAndTheNameFollows() {
+        launch(["-uiTestTerra", "-uiTestTerraSpecific"], appearance: "dark", large: false)
+        openIronTemple()
+        let add = any("addMachine")
+        reach(add)
+        add.tap()
+        let scan = app.buttons["scanMachineLabel"]
+        XCTAssertTrue(scan.waitForExistence(timeout: 5))
+        scan.tap()
+        let shutter = app.buttons["scanShutter"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10))
+        shutter.tap()
+        let use = app.buttons["scanUseCandidate"]
+        XCTAssertTrue(use.waitForExistence(timeout: 10))
+        let name = any("identifiedMachineLabel")
+        XCTAssertEqual(name.value as? String, "Seated Chest Press")
+        let model = any("identifiedModel")
+        reach(model, bar: use)
+        let old = model.value as? String ?? ""
+        model.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: model.frame.width - 10, dy: 14)).tap()
+        _ = app.keyboards.firstMatch.waitForExistence(timeout: 3)
+        model.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: old.count + 2))
+        XCTAssertTrue(any("identifiedModel").exists && any("identifiedManufacturer").exists,
+                      "the editors stay while the field is empty")
+        XCTAssertTrue(app.staticTexts["Generic"].waitForExistence(timeout: 3), "an empty model resolves to no model")
+        any("identifiedModel").typeText("Insignia Series Shoulder Press")
+        app.buttons["dismissEquipmentKeyboard"].tap()
+        XCTAssertTrue(app.staticTexts["Matches catalog"].waitForExistence(timeout: 3))
+        let followed = any("identifiedMachineLabel").value as? String ?? ""
+        XCTAssertFalse(followed.isEmpty)
+        XCTAssertNotEqual(followed, "Seated Chest Press", "the unedited name follows the new match")
+        use.tap()
+        let label = app.textFields["machineLabel"]
+        XCTAssertTrue(label.waitForExistence(timeout: 5))
+        XCTAssertEqual(label.value as? String, followed, "the form receives the name the result showed")
+        let row = any("catalogModel")
+        XCTAssertTrue(row.label.contains("Insignia Series Shoulder Press"), row.label)
     }
 
     /// The generic answer is added straight to the gym and listed on its page.

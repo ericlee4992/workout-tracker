@@ -20,6 +20,19 @@ enum ScanMachine {
         return MachineLabelDefaults.label(modelName: catalogModelName, exerciseNames: modelExerciseNames)
     }
 
+    /// The name after the identity changed under it (maker/model edited on the result): an
+    /// unedited name follows the CURRENT catalog match's movement, or goes back to the AI's own
+    /// label when nothing is matched, so the field always shows what Add — and the form, whose
+    /// own model default runs on the handed-back answer — will save. A typed name is kept.
+    static func reconciledLabel(
+        _ proposal: EquipmentIdentification, aiLabel: String, catalogModelName: String?, modelExerciseNames: [String]
+    ) -> String {
+        guard !proposal.labelWasEdited else { return proposal.label }
+        var original = proposal
+        original.label = aiLabel
+        return prefilledLabel(for: original, catalogModelName: catalogModelName, modelExerciseNames: modelExerciseNames)
+    }
+
     /// The proposal as Add (or the form) receives it. A catalog model supplies its own exercises
     /// (D24); choosing the generic identity, an ambiguous answer and a generic answer all save
     /// with no model claimed (D56), so the identity is cleared rather than left for a later

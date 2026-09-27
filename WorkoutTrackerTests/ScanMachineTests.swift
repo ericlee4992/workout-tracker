@@ -41,6 +41,20 @@ struct ScanMachineTests {
                                            modelExerciseNames: []) == "Chest press")
     }
 
+    @Test func anUneditedNameFollowsTheIdentityAndATypedOneStays() {
+        // The answer now matches the shoulder press: the name follows its movement…
+        var answer = proposal(label: "Seated Chest Press")
+        #expect(ScanMachine.reconciledLabel(answer, aiLabel: "Chest press", catalogModelName: "Insignia Series Shoulder Press",
+                                            modelExerciseNames: ["Machine Shoulder Press"]) == "Machine Shoulder Press")
+        // …and back to the AI's own label when nothing is matched any more.
+        #expect(ScanMachine.reconciledLabel(answer, aiLabel: "Chest press", catalogModelName: nil,
+                                            modelExerciseNames: []) == "Chest press")
+        answer.labelWasEdited = true
+        answer.label = "Press by window"
+        #expect(ScanMachine.reconciledLabel(answer, aiLabel: "Chest press", catalogModelName: "Insignia Series Shoulder Press",
+                                            modelExerciseNames: ["Machine Shoulder Press"]) == "Press by window")
+    }
+
     // MARK: Confirmation
 
     @Test func aCatalogMatchSuppliesItsExercisesAndGenericClearsTheIdentity() {

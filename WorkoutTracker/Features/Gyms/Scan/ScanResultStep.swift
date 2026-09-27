@@ -123,12 +123,11 @@ struct ScanResultStep: View {
         return model
     }
 
+    /// Shown for the AI's specific answer whatever it currently resolves to: clearing a field on
+    /// the way to retyping it resolves to generic for a moment, and hiding the editors then would
+    /// leave the correction unfinishable (codex-review-07). Only "Use generic identity" hides them.
     private var showsMakerFields: Bool {
-        guard !genericChosen, proposal.identity == "specific" else { return false }
-        switch resolution {
-        case .catalog, .newModel, .ambiguous: return true
-        case .generic: return false
-        }
+        !genericChosen && proposal.identity == "specific"
     }
 
     private var discSize: CGFloat { typeSize.isAccessibilitySize ? 52 : 58 }
@@ -323,9 +322,11 @@ struct ScanResultStep: View {
             VStack(spacing: 0) {
                 makerField("Manufacturer", text: Binding(get: { proposal.manufacturer }, set: { proposal.manufacturer = $0 }),
                            field: .manufacturer)
+                    .accessibilityIdentifier("identifiedManufacturer")
                 LookDivider().padding(.leading, 14)
                 makerField("Model", text: Binding(get: { proposal.modelName }, set: { proposal.modelName = $0 }),
                            field: .model)
+                    .accessibilityIdentifier("identifiedModel")
             }
             .lookSurface(.field)
         }

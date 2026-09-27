@@ -192,7 +192,7 @@ Read Label: `scanStatus`, `scanFramingBox`, `scanFixtureViewfinder`, `scanTorch`
 `scanCandidate.<model>`, `scanUseCandidate`, `scanCreateNew`, "Scan again", "Take photo".
 Callers: `scanMachineLabel`, `scanLabelOffline` (form), `scanMachine` (gym page),
 `routineScanMachine`, `routineMachineCount` (routine setup).
-New identifiers: `scanCancel`, `scanDone`, `scanAnother`, `scanManual`, `scanGenericToggle`,
+New identifiers: `identifiedManufacturer`, `identifiedModel` (round 1), `scanCancel`, `scanDone`, `scanAnother`, `scanManual`, `scanGenericToggle`,
 `scanDuplicate`, `scanExerciseCount`, `scanChangeExercises`, `correctModel.option.<displayName>`,
 `correctModel.none`, `correctModel.catalog`, `correctModel.scope.futureOnly`,
 `correctModel.scope.applyToPast`, `correctModel.commit`.
@@ -354,3 +354,38 @@ WT-Floodlight (iOS 27.0); logs, exits and result bundles `/tmp/wt-floodlight/res
 - Decision record: user decision 1 changes where a Scan Machine scan is confirmed (the sheet's
   Add, not the form) — D56's confirmation stays (Add is the tap). Record it with the D54 entry
   before merge, as ticket 05 did for D47.
+
+## Codex review 07 — response (round 1)
+
+Report: [codex-review-07.md](../codex-review-07.md) — not clear; three medium. All accepted.
+
+1. **Clearing Maker or Model removed both editors.** An empty field resolves to generic for a
+   moment, and the editors were shown only for a specific resolution. They now follow the AI's
+   specific answer, whatever it currently resolves to; only "Use generic identity" hides them.
+2. **Changing the identity could make the two modes save different names.** The movement
+   prefill ran once, at the answer. `ScanMachine.reconciledLabel` (unit test
+   `anUneditedNameFollowsTheIdentityAndATypedOneStays`) now runs whenever the catalog match
+   changes: an unedited name follows the current match's movement, or returns to the AI's own
+   label; a typed name is kept. So the field shows what direct Add saves and what the form's
+   own model default produces. UI test `testEditingMakerAndModelKeepsTheFieldsAndTheNameFollows`
+   (form mode): clear Model → both editors remain, "Generic"; type "Insignia Series Shoulder
+   Press" → "Matches catalog", the name follows, the form receives the same name and model.
+3. **Correction tests did not prove the history boundary.** They now read the History detail's
+   snapshot equipment line ("Chest Press 2 · <model at log time>", D23) before and after:
+   future-only leaves it; cancelling the question and then the sheet leaves it and the machine's
+   model; confirming rewrites it to exactly "Chest Press 2 · <chosen>". "Sheet closed" now
+   means the sheet's own commit is gone (the machine page exists under the sheet too).
+   Writing them showed **the earlier passes of `testPastCorrectionAsksThenApplies` were
+   vacuous**: the scope tile's accessibility label is also "Apply to Past Workouts Too", so
+   `app.buttons["Apply to Past Workouts Too"]` tapped the TILE, which only dismissed the question
+   (iOS 27 shows it as a popover on the tile, with no Cancel button). The test now selects the
+   question's button by excluding the tile's identifier, and dismisses the question by a tap
+   outside it. The product was not changed for this (a speculative delayed dismissal was tried in
+   `scan-ui-13` and reverted once the cause was found).
+
+Verification (round 2): `scan-ui-8` (exit 65): `ScanMachineTests` 11/11, the maker/model test
+and future-only passed; the past test failed on test mechanics (a tab tap during the sheet's
+dismissal; a Back tap lost; then the label collision above) — `scan-ui-9`…`-14` isolate them;
+`scan-ui-14`: future-only, `testCaptureCorrectionLightDefault` and `…DarkAccessibility` pass;
+`scan-ui-15`: **exit 0**, `testPastCorrectionAsksThenApplies`. The fixes move no captured pixel
+except the result's maker/model fields, whose visible default state is unchanged.
