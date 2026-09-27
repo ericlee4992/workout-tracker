@@ -1,7 +1,7 @@
 # 05 — Floodlight: History
 
 Type: feature (part of [01](01-implement-redesign.md))
-Status: in progress — ticket written 2026-09-27; implementation next
+Status: resolved — Codex clear after 3 rounds (codex-review-05c.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-history` (scratch checkout `/tmp/wt-floodlight/history`),
 stacked on the ticket-04 finish tip `1c3fc99`.
@@ -358,3 +358,5 @@ findings resolved).
   (`historyHeroFamilies` reads "Legs", no Chest) and, on the list, the row's set count.
 
 Verification (round 3): `history-ui-8` **exit 0** — HistoryEditFlows 5/5 (build included).
+
+Codex review 05c (round 3): **clear** ([codex-review-05c.md](../codex-review-05c.md)).
