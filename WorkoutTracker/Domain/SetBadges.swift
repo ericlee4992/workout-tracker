@@ -126,6 +126,37 @@ extension SetBadgeMath {
         return (current, history)
     }
 
+    /// History's new-best count for EVERY finished workout in one pass (ticket 05): the record
+    /// scopes in which the workout set a new best against the sets completed before it started —
+    /// the receipt's "New bests" lines, counted. Finished entries are grouped by their SNAPSHOT
+    /// scope and load type once, so each workout reads only its scopes' pasts instead of the whole
+    /// history per entry.
+    static func newBestCounts(finishedEntries: [ExerciseEntry]) -> [UUID: Int] {
+        struct Key: Hashable { var scope: Scope; var loadType: LoadType }
+        var groups: [Key: [ExerciseEntry]] = [:]
+        for entry in finishedEntries where !entry.isDeleted && entry.workout != nil {
+            groups[Key(scope: Scope(snapshotOf: entry), loadType: entry.snapshotLoadType), default: []].append(entry)
+        }
+        var counts: [UUID: Int] = [:]
+        for (key, entries) in groups {
+            let byWorkout = Dictionary(grouping: entries) { $0.workout?.id }
+            for case let (workoutID?, own) in byWorkout {
+                guard let started = own.first?.workout?.startedAt else { continue }
+                let current = own.sorted { $0.order < $1.order }.flatMap { entry in
+                    (entry.sets ?? []).map { (id: $0.id, set: input($0, entry: entry, loadType: key.loadType)) }
+                }
+                let history = entries
+                    .filter { $0.workout?.id != workoutID }
+                    .flatMap { entry in (entry.sets ?? []).map { input($0, entry: entry, loadType: key.loadType) } }
+                    .filter { ($0.completedAt ?? .distantFuture) < started }
+                if outcomes(current: current, history: history).values.contains(where: { $0.badge == .newBest }) {
+                    counts[workoutID, default: 0] += 1
+                }
+            }
+        }
+        return counts
+    }
+
     private static func input(_ set: SetRecord, entry: ExerciseEntry, loadType: LoadType) -> RecordSetInput {
         RecordSetInput(
             loadType: loadType, exerciseID: entry.snapshotExerciseID, gymID: entry.snapshotGymID,
@@ -137,7 +168,7 @@ extension SetBadgeMath {
 
     /// This equipment + variation. A live entry reads its current machine / tag / preset (it may
     /// not have frozen yet); history reads the snapshots (D23).
-    private struct Scope: Equatable {
+    private struct Scope: Hashable {
         var exerciseID: UUID
         var machineID: UUID?
         var freeWeightTag: EquipmentTag?

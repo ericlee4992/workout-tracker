@@ -203,6 +203,51 @@ enum HistoryEditing {
         return (entry, set)
     }
 
+    /// Adds one set to an exercise of a finished workout (Floodlight ticket 05: the exercise's
+    /// menu offers Add Set, as Add Exercise already could). The new set is completed at `date`,
+    /// working, in the unit of the exercise's last set and with no numbers yet: the caller opens
+    /// it in the set editor and removes it again if the user leaves without values
+    /// (`pruneAbandonedSet`), so history never shows an empty row. Marked as an edit.
+    static func addSet(
+        to entry: ExerciseEntry, in context: ModelContext, at date: Date = .now
+    ) -> SetRecord? {
+        guard !entry.isDeleted, let workout = entry.workout, !workout.isDeleted,
+              workout.finishedAt != nil else { return nil }
+        let sets = WorkoutSession.orderedSets(of: entry)
+        let set = SetRecord(order: (sets.last?.order).map { $0 + 1 } ?? 0, type: .working, entry: entry)
+        if let unit = sets.last?.weightUnit { set.weightUnit = unit }
+        set.completedAt = date
+        context.insert(set)
+        markEdited(workout, at: date)
+        return set
+    }
+
+    /// Removes a set the user added and abandoned without loggable values, and its exercise
+    /// when that leaves it empty. Returns true when something was removed.
+    @discardableResult
+    static func pruneAbandonedSet(_ set: SetRecord, in context: ModelContext) -> Bool {
+        guard !set.isDeleted, !WorkoutSession.isLoggable(set) else { return false }
+        let entry = set.entry
+        context.delete(set)
+        if let entry { pruneIfEmpty(entry, in: context) }
+        return true
+    }
+
+    /// The workout's notes, edited in History — reopening D47 for a third non-number field (the
+    /// user's decision, 2026-09-27, as D50 did for the name): notes are authored, not captured,
+    /// and nothing downstream reads them, but a workout whose note changed later says so. Marked
+    /// like every other edit; refuses a running workout (not history yet). Surrounding
+    /// whitespace is trimmed; returns false when nothing would change.
+    @discardableResult
+    static func setNotes(_ workout: Workout, to text: String, at date: Date = .now) -> Bool {
+        guard !workout.isDeleted, workout.finishedAt != nil else { return false }
+        let next = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard next != workout.notes else { return false }
+        workout.notes = next
+        markEdited(workout, at: date)
+        return true
+    }
+
     /// Removes a whole exercise, and every set under it, from a past workout.
     @discardableResult
     static func deleteEntry(
