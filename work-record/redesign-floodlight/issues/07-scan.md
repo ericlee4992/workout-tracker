@@ -274,6 +274,20 @@ result bundles `/tmp/wt-floodlight/results/scan-*`; screenshots exported with
   Label viewfinder was shot mid-presentation (faded); the test waits for the sheet to land. The
   454 s of the first test was a cold simulator launch (a Spindump attachment at launch), not the
   sheets.
+- `scan-ui-2` (exit 65): the whole `FloodlightScanUITests` class, **17/19**. The two
+  AccessibilityL correction captures failed ("Timed out while evaluating UI query"; the app never
+  went idle after Correct Model opened): **a layout loop** in the timeline, ported as-is from the
+  prototype — the "Today" label was centred under a MEASURED tick with an alignment guide, and at
+  AX sizes the label is wider than the dots before the tick, so it widened the stack, which moved
+  the tick, which moved the label. The prototype's own AXL capture used `simctl` screenshots,
+  which never wait for idle, so it went unnoticed there. Fixed: the tick's x is computed from the
+  dot count; only the label's own width is measured. Captures reviewed (light/dark ×
+  Default/AXL): fixed the Read Label viewfinder in light appearance — its brackets, status and
+  photo button took the sheet's LIGHT colours on the black camera (the dark override applied via
+  `.environment` reaches child views, not the view's own properties); it now reads the dark look
+  explicitly.
+- `scan-ui-3` (exit 65): void — a second copy of the run collided with the first in the same
+  derived data ("database is locked"); both stopped, rerun as `scan-ui-4`.
 
 Scope (DEVELOPMENT: new feature + shared sheets — the scan sheet opens from the gym page, the
 machine form, mid-workout Add Machine and AI routine setup; the correction sheet from the gym
