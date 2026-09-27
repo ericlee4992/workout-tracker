@@ -70,6 +70,11 @@ enum LookFormat {
         grouped0.string(from: value.rounded() as NSNumber) ?? "\(Int(value))"
     }
     static func grouped(_ value: Int) -> String { grouped(Double(value)) }
+    private static let grouped2 = formatter(maxFraction: 2, grouping: true)
+    /// "18,450", "7.5", "1,234.25" — grouped with a weight's precision (≤ 2 decimals, D25).
+    static func groupedDecimal(_ value: Double) -> String {
+        grouped2.string(from: value as NSNumber) ?? number(value)
+    }
 
     /// "102.5"
     static func weight(_ value: Double) -> String { number(value) }
@@ -77,9 +82,11 @@ enum LookFormat {
     static func weight(_ value: Double, _ unit: WeightUnit) -> String { "\(number(value)) \(unit.rawValue)" }
 
     /// "110 lb × 8", "12 reps" (no weight: bodyweight).
+    /// With a bar (bar mode, D39): "60 kg × 5 (20 kg bar)".
     static func set(_ value: SetValue, loadType: LoadType = .weighted) -> String {
         guard loadType.takesWeight, let w = value.weight else { return reps(value.reps) }
-        return "\(weight(w, value.unit)) × \(value.reps)"
+        let bar = value.bar.map { " (\(weight($0, value.unit)) bar)" } ?? ""
+        return "\(weight(w, value.unit)) × \(value.reps)\(bar)"
     }
     /// "110 × 8" (the live PREVIOUS column / last-time comparisons).
     static func setShort(_ value: SetValue, loadType: LoadType = .weighted) -> String {

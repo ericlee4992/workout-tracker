@@ -328,7 +328,7 @@ struct ComparisonBars: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title): \(todayLabel) \(LookFormat.grouped(today)) \(unit), \(lastLabel) \(LookFormat.grouped(last)) \(unit), \((change ?? 0) >= 0 ? "up" : "down") \(percent)")
+        .accessibilityLabel("\(title): \(todayLabel) \(LookFormat.groupedDecimal(today)) \(unit), \(lastLabel) \(LookFormat.groupedDecimal(last)) \(unit), \((change ?? 0) >= 0 ? "up" : "down") \(percent)")
     }
 
     private var floodlight: some View {
@@ -387,7 +387,7 @@ struct ComparisonBars: View {
         }
         .frame(height: thickness)
         let figure = HStack(alignment: .firstTextBaseline, spacing: 3) {
-            Text(LookFormat.grouped(value))
+            Text(LookFormat.groupedDecimal(value))
                 .font(look.id == .floodlight ? Font.system(.subheadline, weight: .heavy).width(.expanded).monospacedDigit()
                       : .system(.subheadline, weight: .bold).monospacedDigit())
                 .foregroundStyle(emphasized ? look.textPrimary : look.textSecondary)

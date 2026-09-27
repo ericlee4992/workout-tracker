@@ -39,6 +39,13 @@ final class FloodlightFinishUITests: XCTestCase {
         if keep.waitForExistence(timeout: 3) { keep.tap() }
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10), "the receipt opens")
         XCTAssertTrue(any("viewFinishedWorkout").exists)
+        // Codex review 04: one line for the chest press, spoken with its machine (the scope).
+        let best = any("finishNewBest")
+        for _ in 0..<3 where !best.exists { app.swipeUp() }
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "finishNewBest").count, 1)
+        XCTAssertTrue(best.label.contains("Seated Chest Press, Chest Press 2, 110 lb × 8"), best.label)
+        XCTAssertTrue(best.label.contains("previous best 45 lb × 8"), best.label)
+        for _ in 0..<4 where !any("viewFinishedWorkout").isHittable { app.swipeDown() }
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
         Thread.sleep(forTimeInterval: 1.5)
         shoot("floodlight-04-finish-\(suffix)-1")

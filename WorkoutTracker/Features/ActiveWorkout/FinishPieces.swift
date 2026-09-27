@@ -23,6 +23,8 @@ struct FinishHeader: View {
     var gymName: String?
     var countLine: String?
     var summaryLine: String
+    /// The ring (every completed set, in workout order) and its key (mapped families' totals).
+    var ringRuns: [RingRun]
     var families: [FamilyCount]
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -63,8 +65,8 @@ struct FinishHeader: View {
     }
 
     @ViewBuilder private var ring: some View {
-        if saved && !families.isEmpty {
-            FinishStatusRing(segments: families, size: 112)
+        if saved && ringRuns.contains(where: { $0.sets > 0 }) {
+            FinishStatusRing(segments: ringRuns, size: 112)
         } else {
             ZStack {
                 Circle().stroke(look.ringTrack, lineWidth: 10).padding(5)
@@ -184,6 +186,7 @@ struct FinishBestRow: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(spoken)
+        .accessibilityIdentifier("finishNewBest")
     }
 
     private func values(alignment: HorizontalAlignment) -> some View {
@@ -199,7 +202,10 @@ struct FinishBestRow: View {
     }
 
     private var spoken: String {
-        var parts = ["New best", best.exerciseName, LookFormat.set(best.value, loadType: best.loadType)]
+        // The scope is part of the record (two machines are two records), so it is spoken too.
+        var parts = ["New best", best.exerciseName]
+        if let equipment = best.equipment { parts.append(equipment) }
+        parts.append(LookFormat.set(best.value, loadType: best.loadType))
         if let previous = best.previous { parts.append("previous best \(LookFormat.set(previous, loadType: best.loadType))") }
         return parts.joined(separator: ", ")
     }
@@ -221,6 +227,11 @@ struct FinishSetValueText: View {
                 Text(value.unit.label).font(.system(.caption, weight: .semibold)).foregroundStyle(look.textSecondary)
                 Text("×").font(.system(.subheadline, weight: .bold)).foregroundStyle(look.textSecondary)
                 Text("\(value.reps)").font(numberFont)
+                if let bar = value.bar {
+                    // D39: which bar — the total alone does not say what was loaded.
+                    Text("(\(LookFormat.weight(bar, value.unit)) bar)")
+                        .font(.system(.caption, weight: .semibold)).foregroundStyle(look.textSecondary)
+                }
             } else {
                 Text("\(value.reps)").font(numberFont)
                 Text(value.reps == 1 ? "rep" : "reps").font(.system(.caption, weight: .semibold)).foregroundStyle(look.textSecondary)

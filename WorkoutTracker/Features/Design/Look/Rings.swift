@@ -121,20 +121,37 @@ struct SetsRingLabel: View {
 // MARK: - Finish status ring
 
 struct FinishStatusRing: View {
-    /// Working sets per family in workout order (e.g. chest 8, shoulders 10, arms 4).
-    var segments: [FamilyCount]
+    /// Completed sets as family runs in workout order (chest 3, back 4, chest 2 …); a nil family
+    /// (Core, Full Body, unclassified) is drawn neutral, so every set has its segment.
+    var segments: [RingRun]
     var size: CGFloat?
     @State private var drawn = false
     @State private var checkIn = false
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(segments: [FamilyCount], size: CGFloat? = nil) {
+    init(segments: [RingRun], size: CGFloat? = nil) {
         self.segments = segments.filter { $0.sets > 0 }
         self.size = size
     }
 
     private var total: Int { segments.reduce(0) { $0 + $1.sets } }
+
+    private func color(_ family: MuscleFamily?) -> Color {
+        family.map { look.family($0) } ?? look.textTertiary
+    }
+
+    /// "Workout saved, 5 sets: 3 chest, 2 other" — totals per family in first-appearance order.
+    private var spokenSummary: String {
+        var order: [MuscleFamily?] = []
+        var totals: [MuscleFamily?: Int] = [:]
+        for run in segments {
+            if totals[run.family] == nil { order.append(run.family) }
+            totals[run.family, default: 0] += run.sets
+        }
+        let parts = order.map { "\(totals[$0] ?? 0) \($0?.label.lowercased() ?? "other")" }
+        return "Workout saved, \(total) sets: " + parts.joined(separator: ", ")
+    }
 
     var body: some View {
         let side = size ?? (look.id == .floodlight ? 112 : 100)
@@ -148,7 +165,7 @@ struct FinishStatusRing: View {
         .onAppear(perform: play)
         .sensoryFeedback(.success, trigger: checkIn) { _, new in new }
         .accessibilityElement()
-        .accessibilityLabel("Workout saved, \(total) sets: " + segments.map { "\($0.sets) \($0.family.label.lowercased())" }.joined(separator: ", "))
+        .accessibilityLabel(spokenSummary)
     }
 
     /// How long the ring takes to draw before the check lands.
@@ -169,7 +186,7 @@ struct FinishStatusRing: View {
     /// Each set is one segment, lit in its family colour, in order (28 ms stagger).
     private func floodlight(_ side: CGFloat) -> some View {
         let width = side * 0.1
-        let colors: [Color] = segments.flatMap { Array(repeating: look.family($0.family), count: $0.sets) }
+        let colors: [Color] = segments.flatMap { Array(repeating: color($0.family), count: $0.sets) }
         let count = colors.count
         return ZStack {
             if count <= 24 && count > 0 {
@@ -191,16 +208,16 @@ struct FinishStatusRing: View {
         .padding(width / 2)
     }
 
-    /// Family-coloured runs around the ring, drawn family by family (Floodlight's > 24-set fallback).
+    /// Family-coloured runs around the ring, drawn run by run (Floodlight's > 24-set fallback).
     private func runs(width: CGFloat, cap: CGLineCap, gap: Double) -> some View {
         let fractions = segments.map { Double($0.sets) / Double(max(total, 1)) }
         let starts = fractions.indices.map { i in fractions[..<i].reduce(0, +) }
         return ZStack {
-            ForEach(Array(segments.enumerated()), id: \.element.family) { index, segment in
+            ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
                 let start = starts[index] + gap / 2
                 let end = max(start, starts[index] + fractions[index] - gap / 2)
                 RingArc(start: start, end: drawn ? end : start)
-                    .stroke(look.family(segment.family), style: StrokeStyle(lineWidth: width, lineCap: cap))
+                    .stroke(color(segment.family), style: StrokeStyle(lineWidth: width, lineCap: cap))
                     .opacity(drawn ? 1 : 0)
                     .animation(reduceMotion ? nil : .easeOut(duration: 0.7).delay(Double(index) * 0.25), value: drawn)
             }

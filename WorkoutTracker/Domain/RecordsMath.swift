@@ -42,6 +42,9 @@ struct RecordSetInput: Equatable {
     var normalizedKg: Double?
     /// nil = not completed; only completed sets feed records/volume.
     var completedAt: Date?
+    /// The bar under a bar-mode set (same unit; D39). Display only — never ranked: the load
+    /// above already is the total.
+    var barWeightValue: Double? = nil
 }
 
 // MARK: - Results

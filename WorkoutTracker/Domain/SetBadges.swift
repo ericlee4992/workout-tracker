@@ -89,22 +89,32 @@ extension SetBadgeMath {
 
     /// The Finish receipt's reads for one entry's scope — every mark and the scope's
     /// `workoutBest` (entries sharing a scope return the same best) — from one history fetch.
-    static func receiptMarks(for entry: ExerciseEntry, in context: ModelContext) throws
+    /// `finishedEntries`: `finishedEntries(in:)`, read once for the whole receipt.
+    static func receiptMarks(for entry: ExerciseEntry, finishedEntries: [ExerciseEntry])
         -> (outcomes: [UUID: SetBadgeOutcome], best: (id: UUID, previous: RecordSetInput)?) {
-        guard let (current, history) = try inputs(for: entry, in: context) else { return ([:], nil) }
+        guard let (current, history) = inputs(for: entry, finishedEntries: finishedEntries) else { return ([:], nil) }
         return (outcomes(current: current, history: history), workoutBest(current: current, history: history))
     }
 
+    /// Every finished workout's entries — the history every scope is judged against.
+    static func finishedEntries(in context: ModelContext) throws -> [ExerciseEntry] {
+        try context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt != nil }))
+            .flatMap { WorkoutSession.orderedEntries(of: $0) }
+    }
+
     private static func inputs(for entry: ExerciseEntry, in context: ModelContext) throws
+        -> (current: [(id: UUID, set: RecordSetInput)], history: [RecordSetInput])? {
+        inputs(for: entry, finishedEntries: try finishedEntries(in: context))
+    }
+
+    private static func inputs(for entry: ExerciseEntry, finishedEntries: [ExerciseEntry])
         -> (current: [(id: UUID, set: RecordSetInput)], history: [RecordSetInput])? {
         guard let workout = entry.workout else { return nil }
         let started = workout.startedAt
         let scope = Scope(entry)
         let loadType = entry.effectiveLoadType
-        let finished = try context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt != nil }))
-        let history = finished
-            .filter { $0.id != workout.id }
-            .flatMap { WorkoutSession.orderedEntries(of: $0) }
+        let history = finishedEntries
+            .filter { $0.workout?.id != workout.id }
             .filter { Scope(snapshotOf: $0) == scope && $0.snapshotLoadType == loadType }
             .flatMap { entry in (entry.sets ?? []).map { input($0, entry: entry, loadType: loadType) } }
             .filter { ($0.completedAt ?? .distantFuture) < started }
@@ -122,7 +132,7 @@ extension SetBadgeMath {
             machineID: entry.snapshotMachineID, modelID: entry.snapshotModelID,
             freeWeightTag: entry.snapshotFreeWeightTag, presetID: entry.snapshotPresetID,
             setType: set.type, reps: set.reps, weightValue: set.weightValue, weightUnit: set.weightUnit,
-            normalizedKg: set.normalizedKg, completedAt: set.completedAt)
+            normalizedKg: set.normalizedKg, completedAt: set.completedAt, barWeightValue: set.barWeightValue)
     }
 
     /// This equipment + variation. A live entry reads its current machine / tag / preset (it may

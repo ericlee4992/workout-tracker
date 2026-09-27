@@ -107,3 +107,34 @@ Simulator WT-Floodlight (iOS 27.0).
   record (`workoutBest`); receipt unit tests added. Heart-rate section given the Floodlight
   heading/panel with zones below. `ComparisonBars` draws its own panel; the receipt's extra
   panel around it (a card in a card) removed.
+
+## Codex review 04 — response (round 1)
+
+Report: [codex-review-04.md](../codex-review-04.md) — not clear; 4 medium, 1 low. All accepted.
+
+1. **Ring dropped unmapped sets / merged families (medium).** `FinishReceipt.ringRuns`: every
+   completed set in workout order as runs of one family; nil family (Core, Neck, Full Body,
+   unclassified) drawn neutral (`textTertiary`). `familySets` stays the key (mapped totals).
+   `FinishStatusRing` takes `[RingRun]`; its spoken summary totals per family plus "other".
+   Tests: `theRingHasEveryCompletedSetInWorkoutOrder`, `aCoreOnlyWorkoutStillHasARing`.
+2. **Locale count-up (medium).** `CountUpFormat.parse` reads with a `NumberFormatter` in the
+   locale that formatted the string (German "1.880" → 1880, "1.234,25" → 1234.25). Test:
+   `countUpParsesInTheFormattingLocale`.
+3. **Volume precision (medium).** New `LookFormat.groupedDecimal` (grouped, ≤ 2 decimals) for
+   the volume tile and `ComparisonBars` (7.5 stays 7.5). Whole figures still count up in whole
+   steps. Test: `volumeKeepsItsDecimals`. Not changed: the live vitals strip's running volume
+   (ticket 03, cleared) still shows whole numbers — noted for the History/live polish pass.
+4. **VoiceOver scope (medium).** The best row's label includes the equipment/preset
+   ("New best, Seated Chest Press, Chest Press 2, 110 lb × 8, previous best 45 lb × 8");
+   identifier `finishNewBest`; asserted in `FloodlightFinishUITests`.
+5. **Bar annotation (low).** `RecordSetInput.barWeightValue` (display only, never ranked) carries
+   the bar through the incumbent; `SetValue(input)` keeps it; `FinishSetValueText` and
+   `LookFormat.set` append "(20 kg bar)". Test: `barModeBestsKeepTheirBar`.
+- **Performance note.** `SetBadgeMath.finishedEntries(in:)` is read once per receipt and shared
+  by every entry (`receiptMarks(for:finishedEntries:)`).
+
+Verification (round 2): `finish-build-6` exit 0; `finish-ui-5` **exit 0** — UI 12/12
+(FloodlightFinishUITests 4/4 incl. the single spoken best with its machine, View in History,
+finish-sheet template save, heart-rate finishing summary, Barbell 2/2, RedesignScreenshot
+test02/test03, mixed cardio-first workout); unit 57/57 (`FinishReceiptTests` 11,
+`SetBadgeTests`, `RecordsMathTests`, `RecordsSurfaceTests`). Captures refreshed in `../captures/04/`.

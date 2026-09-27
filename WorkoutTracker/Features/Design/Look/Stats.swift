@@ -117,18 +117,23 @@ struct StatFigure: View {
     }
 }
 
-/// Parses display strings back into a count-up ("52:10" → seconds, "18,450" → number).
+/// Parses display strings back into a count-up ("52:10" → seconds, "18,450" → number). Numbers
+/// are read in the locale that formatted them (Codex review 04: a German "1.880" is 1880, not
+/// 1.88) and counted back up in the same grouped, ≤ 2-decimal form.
 enum CountUpFormat {
-    static func parse(_ string: String) -> (value: Double, format: (Double) -> String)? {
+    static func parse(_ string: String, locale: Locale = .current) -> (value: Double, format: (Double) -> String)? {
         let parts = string.split(separator: ":")
         if parts.count >= 2, parts.allSatisfy({ Int($0) != nil }) {
             let seconds = parts.reduce(0) { $0 * 60 + Int($1)! }
             return (Double(seconds), { LookFormat.elapsed(Int($0.rounded())) })
         }
-        let digits = string.replacingOccurrences(of: ",", with: "")
-        if let number = Double(digits) {
-            let decimals = digits.contains(".")
-            return (number, { decimals ? LookFormat.number($0) : LookFormat.grouped($0) })
+        let reader = NumberFormatter()
+        reader.locale = locale
+        reader.numberStyle = .decimal
+        if let number = reader.number(from: string)?.doubleValue {
+            // A whole figure counts in whole steps; a fractional one keeps its decimals.
+            let whole = number == number.rounded()
+            return (number, { whole ? LookFormat.grouped($0) : LookFormat.groupedDecimal($0) })
         }
         return nil
     }

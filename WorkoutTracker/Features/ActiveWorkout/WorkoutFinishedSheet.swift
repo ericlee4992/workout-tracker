@@ -59,6 +59,7 @@ struct WorkoutFinishedSheet: View {
                     gymName: savedWorkout?.historyGymName,
                     countLine: countLine,
                     summaryLine: summaryLine,
+                    ringRuns: receipt?.ringRuns ?? [],
                     families: receipt?.familySets ?? [])
                     .finishRow(top: 8, bottom: 10)
 
@@ -234,7 +235,8 @@ struct WorkoutFinishedSheet: View {
         if summary.totalVolumeKg > 0 {
             // In the app's own unit, plain (D52).
             let volume = WeightMath.convert(summary.totalVolumeKg, from: .kg, to: displayUnit)
-            tiles.append((FinishTile(kind: .totalVolume, value: LookFormat.grouped(volume), unit: displayUnit.label), "summaryVolume"))
+            // Grouped, with the volume's established precision (≤ 2 decimals, D25): 7.5, not 8.
+            tiles.append((FinishTile(kind: .totalVolume, value: LookFormat.groupedDecimal(volume), unit: displayUnit.label), "summaryVolume"))
         }
         if let calories = summary.activeEnergyKilocalories {
             tiles.append((FinishTile(kind: .activeCalories, value: "\(Int(calories.rounded()))", unit: "cal"), "summaryCalories"))

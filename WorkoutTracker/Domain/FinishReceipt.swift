@@ -36,18 +36,31 @@ struct FinishReceipt: Equatable {
         var volumeKg: Double
     }
 
-    /// Completed sets per family in workout order (every set type: the ring has one segment per
-    /// completed set, so it agrees with the set count).
+    /// The ring: every completed set (every type) in workout order, as runs of one family —
+    /// nil for a set whose muscle group is none of the five families (Core, Full Body,
+    /// unclassified), drawn neutral — so the ring always agrees with the set count.
+    var ringRuns: [RingRun]
+    /// The ring's key: completed sets per family, in first-appearance order (mapped sets only —
+    /// the key shows a family's map).
     var familySets: [FamilyCount]
     var bests: [Best]
     var exercises: [ExerciseRow]
     var comparison: Comparison?
 }
 
+/// A run of consecutive completed sets of one family (nil = no family) in workout order.
+struct RingRun: Hashable {
+    var family: MuscleFamily?
+    var sets: Int
+}
+
 extension FinishReceipt {
     static func build(for workout: Workout, in context: ModelContext) throws -> FinishReceipt {
         let entries = WorkoutSession.orderedEntries(of: workout)
         var order: [MuscleFamily] = []
+        var runs: [RingRun] = []
+        // Read once: every scope is judged against the same finished history.
+        let finishedEntries = try SetBadgeMath.finishedEntries(in: context)
         var counts: [MuscleFamily: Int] = [:]
         var bests: [Best] = []
         var rows: [ExerciseRow] = []
@@ -59,12 +72,18 @@ extension FinishReceipt {
         for entry in entries {
             let completed = WorkoutSession.orderedSets(of: entry).filter { $0.completedAt != nil }
             guard !completed.isEmpty else { continue }
-            if let family = MuscleFamily(muscleGroup: entry.exercise?.muscleGroup) {
+            let family = MuscleFamily(muscleGroup: entry.exercise?.muscleGroup)
+            if let family {
                 if counts[family] == nil { order.append(family) }
                 counts[family, default: 0] += completed.count
             }
+            if let last = runs.last, last.family == family {
+                runs[runs.count - 1].sets += completed.count
+            } else {
+                runs.append(RingRun(family: family, sets: completed.count))
+            }
             let loadType = entry.snapshotLoadType
-            let (outcomes, scopeBest) = try SetBadgeMath.receiptMarks(for: entry, in: context)
+            let (outcomes, scopeBest) = SetBadgeMath.receiptMarks(for: entry, finishedEntries: finishedEntries)
             let marks = completed.compactMap { outcomes[$0.id]?.badge }
             let entryBadge: SetBadge? = marks.contains(.newBest) ? .newBest : marks.first
             // One line per scope. Entries sharing a scope (a preset switched back and forth)
@@ -91,6 +110,7 @@ extension FinishReceipt {
         }
 
         return FinishReceipt(
+            ringRuns: runs,
             familySets: order.map { FamilyCount(family: $0, sets: counts[$0] ?? 0) },
             bests: bests, exercises: rows,
             comparison: try comparison(for: workout, in: context))

@@ -13,6 +13,6 @@ extension SetValue {
     /// The as-entered value of a record input (nil reps = not a displayable set).
     init?(_ input: RecordSetInput) {
         guard let reps = input.reps else { return nil }
-        self.init(weight: input.weightValue, unit: input.weightUnit, reps: reps)
+        self.init(weight: input.weightValue, unit: input.weightUnit, reps: reps, bar: input.barWeightValue)
     }
 }
