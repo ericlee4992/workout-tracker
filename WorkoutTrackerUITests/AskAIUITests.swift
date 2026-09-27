@@ -22,6 +22,12 @@ final class AskAIUITests: XCTestCase {
         }
         XCTAssertTrue(element.exists && element.isHittable)
     }
+    /// The scan sheet's commit is pinned at the sheet's foot (Floodlight ticket 07): it never
+    /// scrolls, and at AX sizes it sits below `reach`'s tab-bar margin, so it is only required to
+    /// be hittable.
+    private func pinned(_ element: XCUIElement) {
+        XCTAssertTrue(element.waitForExistence(timeout: 5) && element.isHittable)
+    }
     private func enable(_ id: String) {
         let control = app.switches[id].firstMatch; reach(control)
         if control.value as? String != "1" { control.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap() }
@@ -45,7 +51,7 @@ final class AskAIUITests: XCTestCase {
         let shutter = app.buttons["scanShutter"]; XCTAssertTrue(shutter.waitForExistence(timeout: 5)); shutter.tap()
         let use = app.buttons["scanUseCandidate"]; XCTAssertTrue(use.waitForExistence(timeout: 10))
         shot("ai-scan-proposal-\(large ? "axl" : "default")")
-        reach(use); use.tap()
+        pinned(use); use.tap()
         let label = app.textFields["machineLabel"]; XCTAssertTrue(label.waitForExistence(timeout: 5))
         XCTAssertEqual(label.value as? String, "Chest press")
         app.buttons["saveMachine"].tap()
@@ -155,7 +161,7 @@ final class AskAIUITests: XCTestCase {
             let shutter = app.buttons["scanShutter"]; XCTAssertTrue(shutter.waitForExistence(timeout: 5))
             XCTAssertTrue(app.staticTexts["Scan a machine or its label"].exists)
             shot("followup-capture-\(large ? "axl" : "default")"); shutter.tap()
-            let use = app.buttons["scanUseCandidate"]; XCTAssertTrue(use.waitForExistence(timeout: 10)); reach(use)
+            let use = app.buttons["scanUseCandidate"]; XCTAssertTrue(use.waitForExistence(timeout: 10)); pinned(use)
             shot("followup-proposal-\(large ? "axl" : "default")"); use.tap()
             // Floodlight ticket 07: the scan adds the machine itself and ends on the Added step.
             let done = app.buttons["scanDone"]; XCTAssertTrue(done.waitForExistence(timeout: 5))
@@ -315,14 +321,15 @@ final class AskAIUITests: XCTestCase {
 
     func testEditedProposalLabelSurvivesCatalogSelection() {
         launch(["-uiTestTerraSpecific"]); scanner(); app.buttons["scanShutter"].tap()
-        let field = app.textFields["identifiedMachineLabel"]
+        // A multi-line field: exposed as a text view once it is being edited, so found by identifier.
+        let field = any("identifiedMachineLabel")
         XCTAssertTrue(field.waitForExistence(timeout: 10))
         field.coordinate(withNormalizedOffset: CGVector(dx: 0.96, dy: 0.5)).tap()
         _ = app.keyboards.firstMatch.waitForExistence(timeout: 3)
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (field.value as? String ?? "").count))
         field.typeText("Press by window")
         app.buttons["dismissEquipmentKeyboard"].tap()
-        let use = app.buttons["scanUseCandidate"]; reach(use); use.tap()
+        let use = app.buttons["scanUseCandidate"]; pinned(use); use.tap()
         let label = app.textFields["machineLabel"]; XCTAssertTrue(label.waitForExistence(timeout: 5))
         XCTAssertEqual(label.value as? String, "Press by window")
         app.buttons["saveMachine"].tap()
@@ -342,7 +349,7 @@ final class AskAIUITests: XCTestCase {
         let field = app.textFields["identifiedMachineLabel"]; XCTAssertTrue(field.waitForExistence(timeout: 10))
         let use = app.buttons["scanUseCandidate"]
         shot("ai-identity-\(kind.lowercased())-\(large ? "axl" : "default")")
-        reach(use)
+        pinned(use)
         shot("ai-identity-action-\(kind.lowercased())-\(large ? "axl" : "default")")
         if kind == "Uncertain" { XCTAssertFalse(use.isEnabled) }
         else {
