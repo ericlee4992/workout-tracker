@@ -57,53 +57,134 @@ struct DeleteMachineMenuItem: View {
     }
 }
 
-/// The gym's deleted machines, each one tap from coming back.
+/// The gym's deleted machines, each one tap from coming back (Floodlight redesign ticket 06, G07):
+/// the glyph, label and model, and how many workouts it still carries; Restore brings it back
+/// with a check, a success tap, and the row folding away.
 struct DeletedMachinesView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let gym: Gym
+    @State private var restoring: Set<UUID> = []
+    @State private var restoredTick = 0
+    @State private var titleInBar = false
+    @State private var use: [UUID: MachineUse] = [:]
 
     var body: some View {
-        List {
-            Section {
-                // UI redesign ticket 07: cards; strings and ids unchanged.
-                ForEach(gym.archivedMachines) { machine in
-                    HStack(spacing: Theme.Space.medium) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(machine.label)
-                                .font(Theme.cardTitle)
-                            Text(machine.model?.displayName ?? "No model")
-                                .font(.caption)
-                                .foregroundStyle(Theme.secondary)
-                        }
-                        Spacer(minLength: 0)
-                        Button("Restore") { restore(machine) }
-                            .buttonStyle(.secondary)
-                            .accessibilityIdentifier("restoreMachine.\(machine.label)")
-                    }
-                    .padding(Theme.Space.inset)
-                    .card()
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+        let machines = gym.archivedMachines
+        ScrollView {
+            VStack(alignment: .leading, spacing: look.space.section - 4) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Deleted Machines")
+                        .font(look.font.title)
+                        .foregroundStyle(look.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                    Text(gym.name)
+                        .font(.subheadline)
+                        .foregroundStyle(look.textSecondary)
                 }
-                if gym.archivedMachines.isEmpty {
+                if machines.isEmpty {
                     // UI redesign ticket 09: the illustration; same string.
-                    EmptyState(title: "Nothing deleted", symbol: "trash")
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
+                    EmptyStateView(symbol: "trash", title: "Nothing deleted")
+                        .padding(.top, 60)
+                        .transition(.opacity)
+                } else {
+                    LookList(separatorInset: 68) {
+                        ForEach(machines) { machine in
+                            DeletedMachineRow(machine: machine, workouts: use[machine.id]?.workouts ?? 0,
+                                              restoring: restoring.contains(machine.id)) { restore(machine) }
+                                .transition(.opacity.combined(with: .move(edge: .trailing)))
+                        }
+                    }
                 }
-            } footer: {
-                Text("A restored machine returns to the pickers as it was. Your history never left.")
             }
+            .padding(.horizontal, look.space.margin)
+            .padding(.top, 4)
+            .padding(.bottom, 40)
         }
-        .scrollContentBackground(.hidden)
-        .background(Theme.background)
-        .navigationTitle("Deleted Machines")
-        .navigationBarTitleDisplayMode(.inline)
+        .lookScreenBackground()
+        .onScrollGeometryChange(for: Bool.self) { geo in
+            geo.contentOffset.y + geo.contentInsets.top > 40
+        } action: { _, past in
+            withAnimation(.easeInOut(duration: 0.18)) { titleInBar = past }
+        }
+        .gymsInlineTitle("Deleted Machines", visible: titleInBar)
+        .sensoryFeedback(.success, trigger: restoredTick)
+        .onAppear {
+            let entries = (try? SetBadgeMath.finishedEntries(in: modelContext)) ?? []
+            use = GymOverviewMath.machineUse(GymOverviewMath.machineSetInputs(finishedEntries: entries))
+        }
     }
 
     private func restore(_ machine: MachineInstance) {
+        guard !restoring.contains(machine.id) else { return }
+        restoredTick += 1
+        if reduceMotion { commit(machine); return }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { _ = restoring.insert(machine.id) }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.9)) {
+                commit(machine)
+                restoring.remove(machine.id)
+            }
+        }
+    }
+
+    private func commit(_ machine: MachineInstance) {
         do { try EquipmentLifecycle(context: modelContext).restore(machine) }
         catch { assertionFailure("Failed to restore machine: \(error)") }
+    }
+}
+
+private struct DeletedMachineRow: View {
+    var machine: MachineInstance
+    var workouts: Int
+    var restoring: Bool
+    var restore: () -> Void
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        let ax = typeSize.isAccessibilitySize
+        let layout = ax ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(alignment: .center, spacing: 12))
+        layout {
+            HStack(alignment: .center, spacing: 12) {
+                EquipmentTile(category: machine.model?.equipmentType, size: 40, dimmed: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(machine.label)
+                        .font(.system(.body, weight: .semibold))
+                        .foregroundStyle(look.textPrimary)
+                    Text(machine.model?.modelName ?? "No model")
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    // The history it still carries (the app does not record when it was deleted).
+                    if workouts > 0 {
+                        Text("\(workouts) workout\(workouts == 1 ? "" : "s")")
+                            .font(look.font.caption)
+                            .foregroundStyle(look.textSecondary)
+                    }
+                }
+            }
+            if !ax { Spacer(minLength: 8) }
+            Button(action: restore) {
+                ZStack {
+                    Text("Restore").opacity(restoring ? 0 : 1)
+                    Image(systemName: "checkmark")
+                        .font(.system(.subheadline, weight: .heavy))
+                        .opacity(restoring ? 1 : 0)
+                        .scaleEffect(restoring ? 1 : 0.4)
+                }
+            }
+            .buttonStyle(QuietPillStyle())
+            .disabled(restoring)
+            .accessibilityLabel("Restore \(machine.label)")
+            .accessibilityIdentifier("restoreMachine.\(machine.label)")
+            .padding(.leading, ax ? 52 : 0)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 68, alignment: .leading)
     }
 }
