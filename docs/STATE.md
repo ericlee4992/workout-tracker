@@ -1,5 +1,14 @@
 # Current project state
 
+## ACTIVE (2026-09-26): implement the Floodlight redesign in the real app
+
+Branch `ericlee4992/redesign-floodlight` (worktree `/Users/ericlee06/orca/workspaces/Health App/redesign-floodlight`,
+from main `a0364f2`). Read [ticket 01](../work-record/redesign-floodlight/issues/01-implement-redesign.md) first:
+the user's chosen design is "★ Floodlight + Paper workout" with a Light/Dark Appearance setting. Claude implements
+and Codex reviews. Rollout is all at once to the phone. New wording is approved. The reference prototype and
+captures are linked there. Blockers for install: Xcode has no Apple account signed in; the app's signing
+expired Sep 24. No product code has been written yet.
+
 Updated **2026-09-24** for a new session. Main/remote were verified at **40f3f65** before this
 docs-only handoff; verify actual Git HEAD on resume. Product **9f733a2**, built from source
 **7e96a82**, was installed September 22. Later documentation commits do not change that binary.
