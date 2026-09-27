@@ -47,51 +47,63 @@ struct ExerciseEntryCard: View {
         entry.isDeleted ? .weighted : entry.effectiveLoadType
     }
 
+    /// Environment-free inputs from the workout screen: the next set to do (whole workout), whether
+    /// a rest is running, and the New best / First time marks.
+    var nextSetID: UUID?
+    var isResting: Bool = false
+    var badges: [UUID: SetBadge] = [:]
+
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             titleRow
             if entry.plannedRestSeconds != nil, !entry.plannedRepsBySet.isEmpty {
                 Text("Target: " + TemplateTargets(repsBySet: entry.plannedRepsBySet).summary)
-                    .font(.caption).foregroundStyle(Theme.secondary)
+                    .font(look.font.subhead).foregroundStyle(look.textSecondary)
             }
             machineRow
             barRow
 
             if loadType == .assisted {
                 Label("Assisted: lower weight = harder. Records track least assistance.", systemImage: "arrow.down.right.circle")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(look.font.caption)
+                    .foregroundStyle(look.textSecondary)
             }
 
-            if !dynamicTypeSize.isAccessibilitySize { columnHeaders }
+            SetColumnHeader(weightTitle: weightHeader).padding(.top, 4)
 
-            ForEach(orderedSets) { set in
-                LegacySetRowView(
-                    set: set,
-                    index: workingIndex(of: set),
-                    loadType: loadType,
-                    onCompletionChanged: { completed in
-                        completionChanged(set, completed)
-                    },
-                    onDelete: { deleteSet(set) })
+            VStack(spacing: 4) {
+                ForEach(orderedSets) { set in
+                    LiveSetRow(
+                        set: set,
+                        index: workingIndex(of: set),
+                        loadType: loadType,
+                        isNextUp: set.id == nextSetID,
+                        isResting: isResting,
+                        badge: badges[set.id],
+                        onCompletionChanged: { completed in
+                            completionChanged(set, completed)
+                        },
+                        onDelete: { deleteSet(set) })
+                    .transition(reduceMotion ? .opacity : .asymmetric(
+                        insertion: .move(edge: .top).combined(with: .opacity),
+                        removal: .opacity.combined(with: .scale(scale: 0.96, anchor: .trailing))))
+                }
             }
 
             presetRow
 
-            Button {
-                addSet()
-            } label: {
-                Label("Add Set", systemImage: "plus")
-                    .font(.subheadline)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.secondary)
-            .accessibilityIdentifier("addSet")
-            .padding(.top, 2)
+            // Rows are only ever created deliberately (2026-08-22).
+            AddSetRow { addSet() }
+                .accessibilityIdentifier("addSet")
+                .padding(.top, 2)
         }
-        .padding(Theme.Space.inset)
-        .card()
-        .padding(.horizontal)
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 14)
+        .lookSurface(.panel)
         .sheet(isPresented: $showingRestSettings) {
             if let exercise = entry.exercise {
                 ExerciseRestSettingsSheet(exercise: exercise)
@@ -112,26 +124,12 @@ struct ExerciseEntryCard: View {
     @ViewBuilder
     private var barRow: some View {
         if WorkoutSession.offersBar(entry) {
-            Button {
-                showingBarPicker = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "figure.strengthtraining.traditional")
-                        .font(.caption)
-                    Text(barLabel)
-                        .font(.subheadline.weight(.medium))
-                    Image(systemName: "chevron.right")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                    Spacer()
-                }
-                .padding(.vertical, 6)
-                .padding(.horizontal, 10)
-                .background(Theme.fill)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.field))
+            HStack {
+                Chip(barLabel, symbol: "figure.strengthtraining.traditional") { showingBarPicker = true }
+                    .accessibilityIdentifier("barPicker")
+                    .accessibilityHint("Changes the bar")
+                Spacer(minLength: 0)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("barPicker")
         }
     }
 
@@ -201,13 +199,7 @@ struct ExerciseEntryCard: View {
     private func presetChip(
         _ title: String, isSelected: Bool, action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            LegacyChip(tint: Theme.secondary, selected: isSelected) {
-                Text(title)
-            }
-            .frame(minHeight: 44)
-        }
-        .buttonStyle(.plain)
+        Chip(title, isSelected: isSelected, action: action)
     }
 
     /// The exercise's presets, in the order the user arranged them.
@@ -273,33 +265,33 @@ struct ExerciseEntryCard: View {
         catch { assertionFailure("Failed to save superset change: \(error)") }
     }
 
+    /// The name (wraps, never truncates) with the superset letter, and the previous-performance
+    /// and "…" buttons. No muscle icon beside the name (ticket 11 — the user: "They don't match").
     private var titleRow: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // No muscle icon beside the name (ticket 11 — the user: "In
-            // workout too. They don't match"); the superset chip leads when
-            // there is one.
-            HStack(spacing: 10) {
+        let ax = dynamicTypeSize.isAccessibilitySize
+        return HStack(alignment: ax ? .top : .center, spacing: 10) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
                 if let member = supersetLabel {
-                    LegacyChip(tint: Theme.accent, selected: true) { Text(member) }
+                    TemplateSupersetTag(letter: member)
                         .accessibilityIdentifier("supersetBadge")
-                        .accessibilityLabel("Superset position \(member)")
                 }
                 Text(entry.exercise?.name ?? entry.snapshotExerciseName)
-                    .font(Theme.cardTitle)
+                    .font(look.font.cardTitle)
+                    .foregroundStyle(look.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier(
                         "entryTitle.\(entry.exercise?.name ?? entry.snapshotExerciseName)")
-                Spacer()
-                if !dynamicTypeSize.isAccessibilitySize { titleActions }
             }
-            if dynamicTypeSize.isAccessibilitySize {
-                HStack { Spacer(); titleActions }
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            titleActions.padding(.top, ax ? 4 : 0)
         }
     }
 
     private var titleActions: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
+            CardIconButton(look.previousPerformanceSymbol, accessibilityLabel: "Previous performance",
+                           action: showPerformance)
             Menu {
                 if entry.exercise != nil {
                     Button("Rest Durations…", systemImage: "timer") {
@@ -323,57 +315,20 @@ struct ExerciseEntryCard: View {
                     deleteEntry()
                 }
             } label: {
-                Image(systemName: "ellipsis.circle")
-                    .foregroundStyle(.secondary)
+                CardIconFace(symbol: "ellipsis")
             }
             .accessibilityLabel("Exercise options")
-            Button(action: showPerformance) {
-                Image(systemName: "chart.bar.doc.horizontal")
-                    .foregroundStyle(.tint)
-            }
-            .accessibilityLabel("Previous performance")
         }
     }
 
+    /// The equipment row: the machine (weight-stack glyph) or free weight, with the model under it.
     private var machineRow: some View {
-        Button(action: showMachinePicker) {
-            HStack(spacing: 6) {
-                Image(systemName: entry.machine != nil ? "gearshape.2" : "dumbbell")
-                    .font(.caption)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(entry.equipmentDisplayLabel)
-                        .font(.subheadline.weight(.medium))
-                    if let model = entry.machine?.model {
-                        Text(model.displayName)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                Image(systemName: "chevron.right")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                Spacer()
-            }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 10)
-            .background(Theme.fill)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.field))
-        }
-        .buttonStyle(.plain)
+        EquipmentRow(
+            title: entry.equipmentDisplayLabel,
+            subtitle: entry.machine?.model?.displayName,
+            symbol: entry.machine != nil ? LookIcon.machine : "dumbbell",
+            action: showMachinePicker)
         .accessibilityIdentifier("entryEquipment")
-    }
-
-    private var columnHeaders: some View {
-        HStack(spacing: 8) {
-            Text("SET").frame(width: 34)
-            Text("PREVIOUS").frame(maxWidth: .infinity, alignment: .leading)
-            Text(weightHeader).frame(width: 88)
-            Text("REPS").frame(width: 48)
-            Color.clear.frame(width: 30)
-        }
-        .font(.caption2.weight(.semibold))
-        .foregroundStyle(Theme.tertiary)
-        .padding(.top, 8)
     }
 
     /// In bar mode the field takes the plates on **one** end, so the header has
@@ -420,502 +375,5 @@ struct ExerciseEntryCard: View {
         } catch {
             assertionFailure("Failed to delete entry: \(error)")
         }
-    }
-}
-
-struct LegacySetRowView: View {
-    @Environment(\.modelContext) private var modelContext
-    var set: SetRecord
-    var index: Int
-    /// The entry's load type — decides which fields this row must carry
-    /// before it may be logged (A1).
-    var loadType: LoadType
-    /// Called after either completion direction so the rest timer can start,
-    /// replace, or cancel its persisted source.
-    var onCompletionChanged: (Bool) -> Void
-    var onDelete: () -> Void
-
-    // In-progress keystrokes live here; they hit the store only on commit
-    // (end-editing / completion) — SPEC's durability boundary.
-    @State private var weightText: String
-    @State private var repsText: String
-    @State private var previousLabel = "—"
-    @State private var isDirty = false
-    /// Swipe-to-delete: how far the row is currently pulled left (≤ 0) and
-    /// whether it has settled open. Only an open row's button is tappable, so
-    /// a half-swipe can never delete anything.
-    @State private var swipeOffset: CGFloat = 0
-    @State private var isSwipeOpen = false
-    @FocusState private var focusedField: Field?
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    @ScaledMetric(relativeTo: .subheadline) private var markerSize = 34.0
-
-    private static let swipeDeleteWidth: CGFloat = 88
-
-    private enum Field { case weight, reps }
-
-    private var session: WorkoutSession { WorkoutSession(context: modelContext) }
-
-    init(
-        set: SetRecord, index: Int, loadType: LoadType,
-        onCompletionChanged: @escaping (Bool) -> Void,
-        onDelete: @escaping () -> Void
-    ) {
-        self.set = set
-        self.index = index
-        self.loadType = loadType
-        self.onCompletionChanged = onCompletionChanged
-        self.onDelete = onDelete
-        _weightText = State(initialValue: Self.weightFieldText(for: set))
-        _repsText = State(initialValue: set.reps.map(String.init) ?? "")
-    }
-
-    private var isCompleted: Bool { !set.isDeleted && set.completedAt != nil }
-
-    /// The two facts that define what the weight field means. Watching only the
-    /// numeric bar value misses 15 lb → 15 kg, even though that unit change must
-    /// invalidate the old plate input.
-    private struct BarInputContext: Equatable {
-        var weight: Double?
-        var unit: WeightUnit
-    }
-
-    private var barInputContext: BarInputContext {
-        BarInputContext(
-            weight: set.isDeleted ? nil : set.barWeightValue,
-            unit: set.isDeleted ? .kg : set.weightUnit)
-    }
-
-    /// The bar this row is loaded on (D39), or nil when its field is the total.
-    private var barWeight: Double? {
-        // `set` first in a computed property's body reads as a setter clause.
-        return self.set.isDeleted ? nil : self.set.barWeightValue
-    }
-
-    /// What the weight field shows for a row: the plates on one end in bar
-    /// mode, the total otherwise. The stored weight is the total either way, so
-    /// bar mode has to divide it back out (`BarbellMath.platesPerSide`).
-    ///
-    /// Formatted through `WeightMath.displayNumber`, not `Format.weight`: the
-    /// latter renders to one decimal, and halving an odd total puts a second
-    /// one there (47.5 → 23.75 a side). Committing "23.8" would log a set the
-    /// user never performed — the field's text becomes the stored value the
-    /// moment they tap the checkmark.
-    private static func weightFieldText(for set: SetRecord) -> String {
-        guard let bar = set.barWeightValue else {
-            return set.weightValue.map(Format.weight) ?? ""
-        }
-        guard let total = set.weightValue,
-              let perSide = BarbellMath.platesPerSide(total: total, barWeight: bar)
-        else { return "" }
-        return WeightMath.displayNumber(perSide)
-    }
-
-    /// Deleting a set was already possible from the row's menu, but nobody
-    /// finds a menu they don't know is there. The swipe is the discoverable
-    /// half of the same action — both call `WorkoutSession.deleteSet`.
-    var body: some View {
-        ZStack(alignment: .trailing) {
-            if swipeOffset < 0 { swipeDeleteButton }
-            rowContent
-                // Opaque, so the delete button stays hidden behind the row
-                // until the swipe pulls it out from under.
-                .background(isCompleted ? Theme.accent.opacity(0.08) : Color.clear)
-                .background(Theme.card)
-                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.field))
-                .offset(x: swipeOffset)
-                .gesture(swipeToDelete)
-        }
-        .onChange(of: focusedField) { previous, _ in
-            // Field commit on end-editing (SPEC durability boundary).
-            switch previous {
-            case .weight: commitWeight()
-            case .reps: commitReps()
-            case nil: break
-            }
-        }
-        .onChange(of: weightText) { _, _ in
-            if focusedField == .weight { isDirty = true }
-        }
-        .onChange(of: repsText) { _, _ in
-            if focusedField == .reps { isDirty = true }
-        }
-        // Picking or clearing a bar changes what the field *means*, so the text
-        // is re-read from the row. `chooseBar` may have kept the total (it can
-        // be re-read as bar + plates) or dropped it (it was in another unit, or
-        // lighter than the bar itself); only the row knows which.
-        .onChange(of: barInputContext) { _, _ in
-            guard !set.isDeleted else { return }
-            weightText = Self.weightFieldText(for: set)
-        }
-        // Preset/equipment changes select a different history context. The
-        // session clears untouched inherited values in the model; mirror that
-        // into these local TextField states before stale values can be logged.
-        .onChange(of: prefillTaskID) { _, _ in
-            guard !set.isDeleted, !isDirty else { return }
-            weightText = Self.weightFieldText(for: set)
-            repsText = set.reps.map(String.init) ?? ""
-        }
-        .task(id: prefillTaskID) {
-            loadPreviousAndPrefill()
-        }
-        // B3: decimalPad/numberPad have no return key, so the keyboard used
-        // to cover the lower rows with no way out. Only the focused row
-        // contributes a bar, or every row would stack one.
-        .toolbar {
-            if focusedField != nil {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    // Clearing focus runs the same end-editing commit as
-                    // tapping away (ticket 07's durability boundary).
-                    Button("Done") { focusedField = nil }
-                        .accessibilityIdentifier("keyboardDone")
-                }
-            }
-        }
-    }
-
-    private var swipeToDelete: some Gesture {
-        DragGesture(minimumDistance: 14)
-            .onChanged { value in
-                // Vertical drags belong to the scroll view, not to us.
-                guard abs(value.translation.width) > abs(value.translation.height)
-                else { return }
-                swipeOffset = settledOffset(after: value.translation.width)
-            }
-            .onEnded { value in
-                setSwipeOpen(
-                    settledOffset(after: value.translation.width)
-                        < -Self.swipeDeleteWidth / 2)
-            }
-    }
-
-    private func settledOffset(after translation: CGFloat) -> CGFloat {
-        let base: CGFloat = isSwipeOpen ? -Self.swipeDeleteWidth : 0
-        return min(0, max(-Self.swipeDeleteWidth, base + translation))
-    }
-
-    private func setSwipeOpen(_ open: Bool) {
-        isSwipeOpen = open
-        withAnimation(.snappy) {
-            swipeOffset = open ? -Self.swipeDeleteWidth : 0
-        }
-    }
-
-    private var swipeDeleteButton: some View {
-        Button(role: .destructive) {
-            setSwipeOpen(false)
-            onDelete()
-        } label: {
-            Image(systemName: "trash")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white)
-                .frame(width: Self.swipeDeleteWidth - 10, height: 34)
-                .background(Theme.danger, in: RoundedRectangle(cornerRadius: Theme.Radius.field))
-        }
-        .buttonStyle(.plain)
-        .allowsHitTesting(isSwipeOpen)
-        .accessibilityIdentifier("setRow.swipeDelete")
-        .accessibilityLabel("Delete set")
-    }
-
-    private var rowContent: some View {
-        fieldsRow
-            .padding(.vertical, 5)
-            .sensoryFeedback(.setComplete, trigger: isCompleted) { _, completed in completed }
-            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.65), value: isCompleted)
-    }
-
-    private var totalCaption: String? {
-        guard let barWeight else { return nil }
-        guard let perSide = WorkoutSession.weightValue(from: weightText) else {
-            // No plates typed yet: say what the bar alone weighs rather than
-            // claiming a total the user has not entered.
-            return "\(WeightMath.displayNumber(barWeight)) \(set.weightUnit.rawValue) bar"
-        }
-        return BarbellMath.totalLabel(
-            barWeight: barWeight, platesPerSide: perSide, unit: set.weightUnit)
-    }
-
-    private var previousText: some View {
-        Text(previousLabel)
-            .font(.footnote)
-            .foregroundStyle(Theme.tertiary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityIdentifier("setRow.previous")
-    }
-
-    private var fieldsRow: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack(spacing: 12) {
-                        setTypeButton
-                        previousText
-                        completeButton
-                    }
-                    HStack(alignment: .top, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(barWeight != nil ? "PER SIDE" : (loadType == .assisted ? "ASSIST" : "WEIGHT"))
-                                .font(Theme.label)
-                                .foregroundStyle(Theme.secondary)
-                            weightInput
-                        }
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("REPS").font(Theme.label).foregroundStyle(Theme.secondary)
-                            repsInput
-                        }
-                        .frame(maxWidth: 100)
-                    }
-                }
-            } else {
-                HStack(spacing: 8) {
-                    setTypeButton
-                    previousText
-                    weightInput
-                    repsInput
-                    completeButton.frame(width: 30)
-                }
-            }
-        }
-        .font(.subheadline.weight(.semibold))
-        .monospacedDigit()
-        .contextMenu {
-            Button("Delete Set", systemImage: "trash", role: .destructive) { onDelete() }
-        }
-    }
-
-    private var weightInput: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                TextField("–", text: $weightText)
-                    .keyboardType(.decimalPad)
-                    .focused($focusedField, equals: .weight)
-                    .multilineTextAlignment(.center)
-                    .frame(minWidth: 0, maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .accessibilityIdentifier("setRow.weight")
-
-                Button {
-                    toggleUnit()
-                } label: {
-                    UnitBadge(unit: set.isDeleted ? .kg : set.weightUnit)
-                }
-                .buttonStyle(.plain)
-                // The unit follows the selected bar; input remains plates per side.
-                .disabled(barWeight != nil)
-                .accessibilityIdentifier("setRow.unit")
-                .accessibilityHint(
-                    barWeight == nil ? "" : "The unit follows the bar. Change the bar to log in the other unit.")
-            }
-            if let totalCaption {
-                Text(totalCaption)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Theme.accent)
-                    .padding(.bottom, 7)
-                    .accessibilityIdentifier("setRow.total")
-            }
-        }
-        .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 88)
-        .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.field))
-    }
-
-    private var repsInput: some View {
-        TextField("–", text: $repsText)
-            .keyboardType(.numberPad)
-            .focused($focusedField, equals: .reps)
-            .multilineTextAlignment(.center)
-            .frame(width: dynamicTypeSize.isAccessibilitySize ? nil : 48)
-            .padding(.vertical, 10)
-            .background(Theme.fill)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.field))
-            .accessibilityIdentifier("setRow.reps")
-    }
-
-    /// E5: the marker is a menu of named set types — the old control cycled
-    /// blindly through them and announced itself as "1". The compact
-    /// W/#/F/D visual keeps its footprint, plus a small chevron so it reads
-    /// as something with options rather than as a plain number.
-    private var setTypeButton: some View {
-        Menu {
-            ForEach(SetType.allCases, id: \.self) { type in
-                Button {
-                    apply(type)
-                } label: {
-                    if !set.isDeleted, set.type == type {
-                        Label(type.displayName, systemImage: "checkmark")
-                    } else {
-                        Text(type.displayName)
-                    }
-                }
-            }
-        } label: {
-            HStack(spacing: 1) {
-                Text(set.isDeleted ? "" : (set.type.marker ?? "\(index)"))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(isCompleted ? Theme.onAccent : markerColor)
-                Image(systemName: "chevron.down")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(.tertiary)
-            }
-            .frame(width: markerSize, height: markerSize)
-            .background(isCompleted ? Theme.accent : Theme.fill, in: Circle())
-        }
-        .accessibilityIdentifier("setRow.setType")
-        .accessibilityLabel(
-            "Set type: \(set.isDeleted ? "" : set.type.displayName.lowercased())")
-    }
-
-    private var markerColor: Color {
-        // `set` first in a computed property's body reads as a setter clause.
-        return self.set.isDeleted ? .primary : self.set.type.markerColor
-    }
-
-    /// A1: the checkmark is live only once the row says something true —
-    /// judged on what is *on screen*, since the fields commit on end-editing
-    /// and the tap itself is the commit. An already-completed row stays
-    /// tappable so it can always be un-completed.
-    /// The domain owns the parsing as well as the rule, so "the checkmark is
-    /// live" and "the store will accept this" can never disagree — a negative
-    /// or NaN weight used to enable the tap and then do nothing.
-    private var canComplete: Bool {
-        isCompleted || WorkoutSession.isLoggable(
-            weightText: weightText, repsText: repsText, loadType: loadType)
-    }
-
-    private var completeButton: some View {
-        Button {
-            toggleCompletion()
-        } label: {
-            Image(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-                .font(.title2)
-                .foregroundStyle(completeTint)
-                .scaleEffect(isCompleted ? 1 : 0.88)
-        }
-        .buttonStyle(.plain)
-        .disabled(!canComplete)
-        .accessibilityIdentifier("setRow.complete")
-        .accessibilityLabel("Complete set")
-        .accessibilityValue(isCompleted ? "Completed" : "Not completed")
-        .accessibilityHint(canComplete ? "" : incompleteHint)
-    }
-
-    private var completeTint: Color {
-        if isCompleted { return Theme.accent }
-        return canComplete ? .secondary : Color(.quaternaryLabel)
-    }
-
-    private var incompleteHint: String {
-        loadType == .bodyweight
-            ? "Enter reps to log this set"
-            : "Enter \(loadType == .assisted ? "assistance" : "weight") and reps to log this set"
-    }
-
-    // MARK: Commits
-
-    /// One commit path for the weight field, whatever the field currently
-    /// means. `commitPerSide` computes the total from the row's bar, and falls
-    /// through to `commitWeight` when there is no bar — so a mode change
-    /// mid-edit can never double or halve the user's number.
-    private func commitWeight() {
-        guard !set.isDeleted else { return }
-        do {
-            try session.commitPerSide(weightText, for: set)
-        } catch {
-            assertionFailure("Failed to commit weight: \(error)")
-        }
-    }
-
-    private func commitReps() {
-        guard !set.isDeleted else { return }
-        do {
-            try session.commitReps(repsText, for: set)
-        } catch {
-            assertionFailure("Failed to commit reps: \(error)")
-        }
-    }
-
-    private func toggleUnit() {
-        guard !set.isDeleted else { return }
-        isDirty = true
-        do {
-            // Commit any in-progress weight text first so the toggle applies
-            // to what is on screen.
-            try session.commitPerSide(weightText, for: set)
-            try session.toggleUnit(of: set)
-        } catch {
-            assertionFailure("Failed to toggle unit: \(error)")
-        }
-    }
-
-    private func apply(_ type: SetType) {
-        guard !set.isDeleted else { return }
-        do {
-            try session.setType(type, of: set)
-        } catch {
-            assertionFailure("Failed to set the set type: \(error)")
-        }
-    }
-
-    private func toggleCompletion() {
-        guard !set.isDeleted, canComplete else { return }
-        do {
-            // Completion is a commit boundary: on-screen values first.
-            try session.commitPerSide(weightText, for: set)
-            try session.commitReps(repsText, for: set)
-            try session.toggleCompletion(of: set)
-        } catch WorkoutSessionError.setNotLoggable {
-            // A1: the button is disabled until the row is loggable, so this
-            // is unreachable — and silently ignoring it beats logging a set
-            // that says nothing.
-        } catch {
-            assertionFailure("Failed to toggle completion: \(error)")
-        }
-        let completed = set.completedAt != nil
-        if completed {
-            focusedField = nil
-        }
-        onCompletionChanged(completed)
-    }
-
-    /// Snapshot-keyed ticket-11 query. The label always shows the selected
-    /// historical row; values are applied only while this draft remains
-    /// untouched, so a delayed refresh can never clobber typing.
-    private func loadPreviousAndPrefill() {
-        guard !set.isDeleted else { return }
-        do {
-            let history = PerformanceHistory(context: modelContext)
-            guard let candidate = try history.prefill(for: set) else {
-                previousLabel = "—"
-                return
-            }
-            previousLabel = candidate.displayLabel
-            guard try history.applyPrefill(candidate, to: set, isDirty: isDirty) else {
-                return
-            }
-            // Read the field back off the row rather than off the candidate:
-            // the prefill carries the bar too, so in bar mode the field must
-            // show the plates it implies, not last session's total.
-            weightText = Self.weightFieldText(for: set)
-            repsText = String(candidate.reps)
-        } catch {
-            assertionFailure("Failed to load previous performance: \(error)")
-        }
-    }
-
-    /// Changing equipment, preset, set type, or type-relative order selects a new
-    /// candidate. A dirty row still refreshes its PREVIOUS reference label
-    /// but `loadPreviousAndPrefill` refuses to overwrite its inputs.
-    private var prefillTaskID: String {
-        let entry = set.entry
-        return [
-            set.id.uuidString,
-            String(set.order),
-            set.type.rawValue,
-            entry?.machine?.id.uuidString ?? "no-machine",
-            entry?.freeWeightTag?.rawValue ?? "no-tag",
-            entry?.preset?.id.uuidString ?? "no-preset",
-        ].joined(separator: "|")
     }
 }

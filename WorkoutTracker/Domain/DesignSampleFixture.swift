@@ -13,6 +13,19 @@ enum DesignSampleFixture {
         WorkoutTrackerStore.fixtureIsEnabled(launchArgument)
     }
 
+    /// With `-uiTestDesignLive` too: Push Day is running at Iron Temple, 18 minutes in, with two
+    /// sets logged on the chest press and a rest counting down (the live workout's captures).
+    static let liveArgument = "-uiTestDesignLive"
+    static var liveIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(liveArgument)
+    }
+
+    /// Machines at the gym: label, catalog model (manufacturer, model name), the exercise it serves.
+    static let machines: [(label: String, manufacturer: String, model: String, exercise: String)] = [
+        ("Chest Press 2", "Life Fitness", "Insignia Series Chest Press", "Seated Chest Press"),
+        ("Incline Press", "Hammer Strength", "Iso-Lateral Incline Press", "Incline Chest Press"),
+    ]
+
     static let gymName = "Iron Temple"
 
     /// Template name → seeded exercise names, in order.
@@ -36,6 +49,19 @@ enum DesignSampleFixture {
 
         let gym = Gym(name: gymName, city: "Seoul", defaultUnit: .lb)
         context.insert(gym)
+
+        let models = try context.fetch(FetchDescriptor<EquipmentModel>())
+        var machineFor: [String: MachineInstance] = [:]
+        for spec in machines {
+            let model = models.first { $0.manufacturer == spec.manufacturer && $0.modelName == spec.model }
+            let machine = MachineInstance(label: spec.label, gym: gym, model: model)
+            context.insert(machine)
+            if let exercise = exercise(spec.exercise) {
+                machineFor[spec.exercise] = machine
+                // The gym remembers the machine, so a template start resolves to it (D1/D6).
+                context.insert(GymExerciseMemory(gymID: gym.id, exerciseID: exercise.id, machineID: machine.id))
+            }
+        }
 
         var byName: [String: WorkoutTemplate] = [:]
         for (name, names) in templates {
@@ -62,10 +88,13 @@ enum DesignSampleFixture {
             let names = templates.first { $0.name == templateName }?.exercises ?? []
             for (order, name) in names.enumerated() {
                 guard let exercise = exercise(name) else { continue }
+                let machine = machineFor[name]
                 let entry = ExerciseEntry(
-                    order: order, workout: workout, exercise: exercise, snapshotCapturedAt: start,
-                    snapshotExerciseID: exercise.id, snapshotGymID: gym.id, snapshotLoadType: exercise.loadType,
-                    snapshotExerciseName: exercise.name, snapshotGymName: gym.name)
+                    order: order, workout: workout, exercise: exercise, machine: machine, snapshotCapturedAt: start,
+                    snapshotExerciseID: exercise.id, snapshotMachineID: machine?.id, snapshotModelID: machine?.model?.id,
+                    snapshotGymID: gym.id, snapshotLoadType: exercise.loadType,
+                    snapshotExerciseName: exercise.name, snapshotMachineLabel: machine?.label,
+                    snapshotModelName: machine?.model?.displayName, snapshotGymName: gym.name)
                 context.insert(entry)
                 let base = 40.0 + Double(order * 15)
                 let rows: [(SetType, Double, Int)] = order == 0
@@ -83,5 +112,28 @@ enum DesignSampleFixture {
         }
         try context.save()
         try GymSelection.remember(gym, in: context)
+        if liveIsEnabled, let push = byName["Push Day"] {
+            try startLive(push, at: gym, now: now, in: context)
+        }
+    }
+
+    /// Push Day, 18 minutes in: the chest press's first two sets logged (the second a new best),
+    /// its third carried forward and untouched, and the rest after set 2 running.
+    private static func startLive(_ template: WorkoutTemplate, at gym: Gym, now: Date, in context: ModelContext) throws {
+        let workout = try WorkoutTemplateService(context: context)
+            .start(template, at: gym, on: now.addingTimeInterval(-18 * 60 - 42))
+        let session = WorkoutSession(context: context)
+        guard let first = WorkoutSession.orderedEntries(of: workout).first else { return }
+        let sets = WorkoutSession.orderedSets(of: first)
+        let values: [(String, String)] = [("100", "10"), ("110", "8"), ("110", "8")]
+        for (index, set) in sets.enumerated() where index < values.count {
+            try session.commitPerSide(values[index].0, for: set)
+            try session.commitReps(values[index].1, for: set)
+            if index < 2 {
+                try session.toggleCompletion(of: set)
+                if index == 1 { _ = try RestTimerService(context: context).handleCompletionChange(of: set, isCompleted: true) }
+            }
+        }
+        try context.save()
     }
 }

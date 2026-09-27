@@ -1,12 +1,20 @@
 import SwiftData
 import SwiftUI
 
+/// Add Exercise (Floodlight redesign): search, the exercises recently done at this gym first,
+/// then every exercise grouped head to toe by body area under a family colour mark (never a
+/// mark per row). Tapping a row adds it (the tap is the commit); Cancel adds nothing. No match
+/// offers "Create “…”" under the typed name (ticket 19).
 struct ExercisePickerSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.look) private var look
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @State private var searchText = ""
     /// Non-nil while the inline creation form is up (ticket 19).
     @State private var creating: NewExerciseRequest?
+    /// The workout's gym: "Recent at <gym>" leads the list.
+    var gym: Gym? = nil
     var onSelect: (Exercise) -> Void
 
     /// Same multi-token matching the catalog pickers use (ticket 21), so
@@ -23,45 +31,68 @@ struct ExercisePickerSheet: View {
         searchText.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    /// Body areas head to toe (`BodyArea.order`), then any other group, then Uncategorized.
+    private var sections: [(title: String, exercises: [Exercise])] {
+        let grouped = Dictionary(grouping: filtered) { $0.muscleGroup ?? "" }
+        let known = BodyArea.order.filter { grouped[$0] != nil }
+        let others = grouped.keys.filter { !$0.isEmpty && !BodyArea.order.contains($0) }.sorted()
+        var result = (known + others).map { (title: $0, exercises: grouped[$0] ?? []) }
+        if let none = grouped[""], !none.isEmpty { result.append((title: "Uncategorized", exercises: none)) }
+        return result
+    }
+
+    private var recent: [Exercise] {
+        guard trimmedSearch.isEmpty, let gym, !gym.isDeleted else { return [] }
+        return LiveRecentSection.exercises(at: gym, in: modelContext)
+    }
+
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    ForEach(filtered) { exercise in
-                        Button {
-                            select(exercise)
-                        } label: {
-                            ExerciseRow(exercise: exercise)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("exerciseOption.\(exercise.name)")
+                if let gym, !recent.isEmpty {
+                    Section {
+                        ForEach(recent) { exercise in row(exercise, identifier: "recentOption.\(exercise.name)") }
+                    } header: {
+                        LookSectionLabel(title: "Recent at \(gym.name)", symbol: "clock.arrow.circlepath")
                     }
-                    // Ticket 19: a search that matches nothing is exactly the
-                    // moment the movement needs inventing — offer it under the
-                    // name already typed rather than making the user clear the
-                    // field and start over.
-                    if filtered.isEmpty, !trimmedSearch.isEmpty {
+                    .lookListRows()
+                }
+                ForEach(sections, id: \.title) { section in
+                    Section {
+                        ForEach(section.exercises) { exercise in row(exercise, identifier: "exerciseOption.\(exercise.name)") }
+                    } header: {
+                        LookSectionLabel(title: section.title, family: MuscleFamily(muscleGroup: section.title))
+                    }
+                    .lookListRows()
+                }
+                // Ticket 19: a search that matches nothing is exactly the moment the movement
+                // needs inventing — offer it under the name already typed.
+                if filtered.isEmpty, !trimmedSearch.isEmpty {
+                    Section {
                         Button {
                             creating = NewExerciseRequest(name: trimmedSearch)
                         } label: {
                             Label("Create “\(trimmedSearch)”", systemImage: "plus")
+                                .font(.system(.body, weight: .semibold))
+                                .foregroundStyle(look.actionText)
                         }
                         .accessibilityIdentifier("createExerciseFromSearch")
                     }
+                    .lookListRows()
                 }
-                .listRowBackground(Theme.card)
                 Section {
-                    Button("New Exercise…", systemImage: "plus") {
+                    Button {
                         creating = NewExerciseRequest(name: trimmedSearch)
+                    } label: {
+                        Label("New Exercise…", systemImage: "plus")
                     }
-                    .buttonStyle(.secondary)
+                    .buttonStyle(.lookSecondary)
                     .accessibilityIdentifier("newExercise")
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.background)
+            .lookGroupedList()
             .searchable(text: $searchText, prompt: "Search exercises")
             .navigationTitle("Add Exercise")
             .navigationBarTitleDisplayMode(.inline)
@@ -76,6 +107,12 @@ struct ExercisePickerSheet: View {
                 }
             }
         }
+    }
+
+    private func row(_ exercise: Exercise, identifier: String) -> some View {
+        Button { select(exercise) } label: { ExerciseRow(exercise: exercise) }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(identifier)
     }
 
     /// Selecting closes the creation form first, so the picker is never
@@ -118,31 +155,44 @@ struct ExerciseRow: View {
     /// the caption still says the body area, so a filtered list explains itself.
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
+    @Environment(\.look) private var look
+
     var body: some View {
         let stacked = dynamicTypeSize.isAccessibilitySize
-        HStack(spacing: Theme.Space.medium) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(name)
-                    .font(Theme.cardTitle)
-                WrapLayout {
-                    if let bodyArea {
-                        Text(bodyArea)
-                            .font(.caption)
-                            .foregroundStyle(Theme.secondary)
-                    }
-                    ForEach(tags) { tag in
-                        LegacyChip { Text(tag.label).fixedSize() }
-                    }
-                    if stacked, loadType != .weighted {
-                        LegacyChip(tint: Theme.accent) { Text(loadType.badge).fixedSize() }
-                    }
+                    .font(.system(.body, weight: .semibold))
+                    .foregroundStyle(look.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                if !detail.isEmpty {
+                    Text(detail)
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                if stacked, loadType != .weighted { badge }
             }
             Spacer(minLength: 0)
-            if !stacked, loadType != .weighted {
-                LegacyChip(tint: Theme.accent) { Text(loadType.badge).fixedSize() }
-            }
+            if !stacked, loadType != .weighted { badge }
         }
-        .padding(.vertical, 2)
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+    }
+
+    /// "Chest · Machine · Cable": the body area, then the equipment tags.
+    private var detail: String {
+        ([bodyArea].compactMap { $0 } + tags.map(\.label)).joined(separator: " · ")
+    }
+
+    /// A non-default load type as a small outlined tag (the default, weighted, carries none).
+    private var badge: some View {
+        Text(loadType.badge)
+            .font(.system(.caption, weight: .semibold))
+            .foregroundStyle(look.textPrimary)
+            .padding(.horizontal, 8)
+            .frame(minHeight: 24)
+            .overlay { Capsule().strokeBorder(look.hairline, lineWidth: 1) }
+            .fixedSize()
     }
 }

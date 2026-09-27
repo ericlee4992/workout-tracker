@@ -53,6 +53,7 @@ struct MaxHeartRateSheet: View {
                     }
                 }
             }
+            .lookGroupedList()
             .navigationTitle("Heart Rate")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -58,7 +58,7 @@ struct BarPickerSheet: View {
                             dismiss()
                         }
                     }
-                    .buttonStyle(.primary)
+                    .buttonStyle(.lookPrimary)
                     .disabled(!isCustomValid)
                     .accessibilityIdentifier("barCustomApply")
                     .listRowBackground(Color.clear)
@@ -67,8 +67,7 @@ struct BarPickerSheet: View {
                     Text("Custom bar")
                 }
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.background)
+            .lookGroupedList()
             .navigationTitle("Bar")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

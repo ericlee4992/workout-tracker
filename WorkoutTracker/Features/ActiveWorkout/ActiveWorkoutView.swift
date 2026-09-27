@@ -20,7 +20,6 @@ struct ActiveWorkoutView: View {
     @State private var restEnd: Date?
     @State private var restTotal: Double = 120
     @State private var restExpiryCount = 0
-    @State private var keyboardVisible = false
     @State private var machinePickerEntry: ExerciseEntry?
     @State private var performanceEntry: ExerciseEntry?
     @State private var showExercisePicker = false
@@ -86,147 +85,133 @@ struct ActiveWorkoutView: View {
         !workout.isDeleted && workout.gym != nil
     }
 
+    @Environment(\.look) private var appLook
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// New best / First time marks, per set (recomputed when a set completes, not per frame).
+    @State private var badges: [UUID: SetBadge] = [:]
+
+    /// The lifting workout is drawn in the Paper-structure live look (ticket 01's chosen design);
+    /// cardio focus stays plain Floodlight.
+    private var screenLook: Look {
+        cardioFocus ? appLook : Look.live(dark: appLook.isDark)
+    }
+
     var body: some View {
         NavigationStack {
             // A List, not a ScrollView, SO THAT EXERCISES CAN BE DRAGGED
-            // (requested 2026-08-29). `.onMove` is List-only; the cards keep
-            // their own background, corner radius and horizontal padding, so
-            // every row is stripped back to nothing and the layout is
-            // unchanged from the ScrollView it replaces.
+            // (requested 2026-08-29). `.onMove` is List-only; every row is
+            // stripped back to nothing and the cards draw their own surface.
             List {
                 header
-                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 7, trailing: 0))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
+                    .liveRow(top: 4, bottom: 6)
+
+                vitals
+                    .liveRow(top: 6, bottom: 8)
 
                 if workout.hasUnknownCardioTargets {
-                    Text("Some cardio targets are unavailable in this version.").font(.footnote).foregroundStyle(Theme.secondary)
+                    Text("Some cardio targets are unavailable in this version.")
+                        .font(screenLook.font.footnote).foregroundStyle(screenLook.textSecondary)
+                        .liveRow(top: 2, bottom: 6)
                 }
                 if !workout.plannedCardio.isEmpty {
-                    Section("Planned cardio") {
-                        ForEach(workout.plannedCardio) { target in
-                            HStack {
-                                VStack(alignment: .leading) {
-                                    Text(target.activity.name)
-                                    Text(target.summary).font(.caption).foregroundStyle(Theme.secondary)
-                                }
-                                Spacer()
-                                if workout.canStart(target) {
-                                    Button("Start") { startPlannedCardio(target) }
-                                        .disabled(workout.unfinishedCardio != nil || heartRate == nil)
-                                        .accessibilityIdentifier("startPlannedCardio")
-                                } else { Text("Started").font(.caption).foregroundStyle(Theme.secondary) }
-                            }
-                        }
-                    }.listRowBackground(Theme.card)
+                    plannedCardio.liveRow(top: 6, bottom: 8)
                 }
                 if !workout.orderedCardio.isEmpty || cardioFocus {
-                Picker("Activity", selection: $cardioFocus) {
-                    Text("Lifting").tag(false)
-                    Text("Cardio").tag(true)
-                }
-                .pickerStyle(.segmented).accessibilityIdentifier("workoutActivityFocus")
-                .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                    Picker("Activity", selection: $cardioFocus) {
+                        Text("Lifting").tag(false)
+                        Text("Cardio").tag(true)
+                    }
+                    .pickerStyle(.segmented).accessibilityIdentifier("workoutActivityFocus")
+                    .liveRow(top: 4, bottom: 6)
                 }
 
                 if cardioFocus {
                     CardioWorkoutSection(workout: workout, recorder: heartRateCoordinator.cardio, monitor: heartRate)
                 } else {
-                if let cardio = workout.unfinishedCardio {
-                    Button { cardioFocus = true } label: {
-                        HStack {
-                            Label(cardio.activity.name, systemImage: cardio.activity.symbol)
-                            Spacer()
-                            Text(cardio.isRunning ? "Recording" : "Paused")
-                        }.font(.subheadline).frame(minHeight: 44).contentShape(Rectangle())
-                    }.buttonStyle(.plain).foregroundStyle(Theme.secondary)
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
-                }
-                // D41: live heart rate, above the exercises because it is
-                // the one number that changes while you are not touching
-                // the screen.
-                if let heartRate, workout.sensorConfiguration.recordsActivity {
-                    HeartRateBar(
-                        monitor: heartRate,
-                        editMaxHeartRate: { showMaxHeartRateSheet = true })
-                        .listRowInsets(EdgeInsets(top: 7, leading: 0, bottom: 7, trailing: 0))
-                        .listRowSeparator(.hidden)
-                        .listRowBackground(Color.clear)
-                }
-
-                ForEach(entries) { entry in
-                    ExerciseEntryCard(
-                        entry: entry,
-                        showMachinePicker: { machinePickerEntry = entry },
-                        showPerformance: { performanceEntry = entry },
-                        completionChanged: { set, completed in
-                            updateRest(for: set, isCompleted: completed)
-                        }
-                    )
-                    .listRowInsets(EdgeInsets(top: 7, leading: 0, bottom: 7, trailing: 0))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-                }
-                .onMove(perform: moveEntries)
-
-                }
-
-                VStack(spacing: 6) {
-                        let addLayout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 12)) : AnyLayout(HStackLayout(spacing: 12))
-                        addLayout {
-                            addExerciseButton
-                            // Machine-first path (D7). D1 (ticket 17): a no-gym
-                            // workout has no machines to list, but hiding the
-                            // button hid the whole equipment-aware
-                            // differentiator with no explanation — so it stays
-                            // visible, disabled, and says why below.
-                            Button {
-                                cardioFocus = false
-                                showMachinePicker = true
-                            } label: {
-                                Label("Add by Machine", systemImage: "figure.strengthtraining.traditional")
-                                    .frame(maxWidth: .infinity)
+                    if let cardio = workout.unfinishedCardio {
+                        Button { cardioFocus = true } label: {
+                            HStack {
+                                Label(cardio.activity.name, systemImage: cardio.activity.symbol)
+                                Spacer()
+                                Text(cardio.isRunning ? "Recording" : "Paused")
                             }
-                            .buttonStyle(.secondary)
-                            .disabled(!hasGym)
-                            .accessibilityIdentifier("addByMachine")
+                            .font(screenLook.font.subhead).frame(minHeight: 44).contentShape(Rectangle())
                         }
-                        Button { showCardioPicker = true } label: {
-                            Label("Add Cardio", systemImage: "plus").frame(maxWidth: .infinity)
-                        }.buttonStyle(.secondary).accessibilityIdentifier("addCardio")
-                        if !hasGym {
-                            Text("Pick a gym to log by machine")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .accessibilityIdentifier("addByMachineUnavailable")
+                        .buttonStyle(.plain).foregroundStyle(screenLook.textSecondary)
+                        .liveRow(top: 2, bottom: 8)
+                    }
+
+                    let nextID = WorkoutSession.nextSet(in: workout)?.id
+                    ForEach(entries) { entry in
+                        ExerciseEntryCard(
+                            entry: entry,
+                            showMachinePicker: { machinePickerEntry = entry },
+                            showPerformance: { performanceEntry = entry },
+                            completionChanged: { set, completed in
+                                updateRest(for: set, isCompleted: completed)
+                                refreshBadges()
+                            },
+                            nextSetID: nextID,
+                            isResting: restEnd != nil,
+                            badges: badges
+                        )
+                        .liveRow(top: 6, bottom: 6)
+                    }
+                    .onMove(perform: moveEntries)
+
+                    if entries.isEmpty, let gym = workout.isDeleted ? nil : workout.gym {
+                        let recent = LiveRecentSection.exercises(at: gym, in: modelContext)
+                        if !recent.isEmpty {
+                            LiveRecentSection(gymName: gym.name, exercises: recent) { addEntry(for: $0) }
+                                .liveRow(top: 10, bottom: 8)
                         }
                     }
-                .padding(.horizontal)
-                .padding(.bottom, 24)
-                .listRowInsets(EdgeInsets(top: 7, leading: 0, bottom: 0, trailing: 0))
-                .listRowSeparator(.hidden)
-                .listRowBackground(Color.clear)
+                }
+
+                LiveAddBlock(
+                    hasGym: hasGym, isResting: restEnd != nil, cardioFocus: cardioFocus,
+                    addExercise: {
+                        cardioFocus = false
+                        showExercisePicker = true
+                    },
+                    addByMachine: {
+                        // Machine-first path (D7).
+                        cardioFocus = false
+                        showMachinePicker = true
+                    },
+                    addCardio: { showCardioPicker = true })
+                .liveRow(top: entries.isEmpty ? 10 : 18, bottom: 8)
+
+                // Discarding lives at the end of the list (the chosen live design), confirmed.
+                DestructiveRowButton("Discard Workout…") { confirmingCancel = true }
+                    .accessibilityIdentifier("discardWorkout")
+                    .liveRow(top: 14, bottom: 28)
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .environment(\.defaultMinListRowHeight, 0)
-            .background(Theme.background)
-            .safeAreaInset(edge: .bottom) {
+            .scrollDismissesKeyboard(.interactively)
+            .background(screenLook.ground.ignoresSafeArea())
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 if cardioFocus, let segment = workout.unfinishedCardio {
                     CardioControls(segment: segment, recorder: heartRateCoordinator.cardio)
                 } else if let restEnd {
-                    RestTimerBar(
+                    LiveRestSlab(
                         restEnd: restEnd,
                         restTotal: restTotal,
+                        next: nextLabel,
                         addFifteen: addFifteen,
                         skip: skipRest,
                         expired: {
                             restExpiryCount += 1
                             refreshRest()
                         })
+                    .transition(RestBar.transition(reduceMotion: reduceMotion))
                 }
             }
+            .animation(reduceMotion ? nil : .spring(response: 0.36, dampingFraction: 0.86), value: restEnd == nil)
+            // Inside the list and the rest slab only: the sheets over the cover stay Floodlight.
+            .environment(\.look, screenLook)
             .sensoryFeedback(.restDone, trigger: restExpiryCount)
             .navigationTitle(workout.isDeleted ? "Workout" : workout.historyTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -240,13 +225,15 @@ struct ActiveWorkoutView: View {
                         renameText = workout.isDeleted ? "" : (workout.name ?? "")
                         renamingWorkout = true
                     } label: {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 6) {
                             Text(workout.isDeleted ? "Workout" : workout.historyTitle)
-                                .font(.headline)
+                                .font(screenLook.font.navTitle)
+                                .foregroundStyle(screenLook.textPrimary)
                                 .lineLimit(1)
+                                .minimumScaleFactor(0.8)
                             Image(systemName: "pencil")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .font(.system(.caption, weight: .semibold))
+                                .foregroundStyle(screenLook.textSecondary)
                         }
                     }
                     .buttonStyle(.plain)
@@ -259,17 +246,16 @@ struct ActiveWorkoutView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button { minimize() } label: {
                         Image(systemName: "chevron.down")
+                            .font(.system(.body, weight: .semibold))
+                            .foregroundStyle(screenLook.textPrimary)
                     }
                     .accessibilityIdentifier("minimizeWorkout")
                     .accessibilityLabel("Minimize workout")
                 }
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Cancel", role: .cancel) { confirmingCancel = true }
-                        .tint(.red)
-                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Finish") { finishTapped() }
-                        .font(.headline)
+                        .font(.system(.body, weight: .bold))
+                        .foregroundStyle(screenLook.textPrimary)
                         .accessibilityIdentifier("finishWorkout")
                 }
             }
@@ -334,7 +320,7 @@ struct ActiveWorkoutView: View {
                     Button("OK", role: .cancel) { heartRateCoordinator.cardio.errorMessage = nil }
             } message: { Text(heartRateCoordinator.cardio.errorMessage ?? "") }
             .sheet(isPresented: $showExercisePicker) {
-                ExercisePickerSheet { exercise in
+                ExercisePickerSheet(gym: workout.isDeleted ? nil : workout.gym) { exercise in
                     addEntry(for: exercise)
                 }
             }
@@ -352,13 +338,8 @@ struct ActiveWorkoutView: View {
             } content: {
                 MaxHeartRateSheet()
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                keyboardVisible = true
-            }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
-                keyboardVisible = false
-            }
             .onAppear(perform: refreshRest)
+            .onAppear(perform: refreshBadges)
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshRest() }
             }
@@ -394,62 +375,117 @@ struct ActiveWorkoutView: View {
                 pushActivityState()
             }
             .onChange(of: restEnd) { _, _ in pushActivityState() }
-            .onChange(of: entries.count) { _, _ in heartRateCoordinator.cardio.sync() }
+            .onChange(of: entries.count) { _, _ in
+                heartRateCoordinator.cardio.sync()
+                refreshBadges()
+            }
         }
     }
 
-    /// Ticket 16 (the user, 2026-09-17: "keep the current design, but move the
-    /// timer next to the gym name, with seconds, and make the sets-completed
-    /// indicator like Codex A's"): one status line — the gym chip, the running
-    /// clock in `stat`, and a small neutral ring with "N/M sets". The Large
-    /// Title hero and the amber count chip are gone; nothing here competes
-    /// with the set being logged. The line stays under the keyboard's
-    /// accessory too — it is short enough — so the fields keep their room.
-    @ViewBuilder
-    private var addExerciseButton: some View {
-        let button = Button {
-            cardioFocus = false
-            showExercisePicker = true
-        } label: {
-            Label("Add Exercise", systemImage: "plus").frame(maxWidth: .infinity)
-        }.accessibilityIdentifier("addExercise")
-        if cardioFocus { button.buttonStyle(.secondary) }
-        else { button.buttonStyle(.primary) }
-    }
-
+    /// Ticket 16 (the user, 2026-09-17: "keep the current design, but move the timer next to
+    /// the gym name, with seconds, and make the sets-completed indicator like Codex A's"): one
+    /// status line — the gym, the running clock, and a small ring with "N/M sets".
     private var header: some View {
         let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
         let completed = sets.filter { $0.completedAt != nil }.count
-        return HStack(alignment: .center, spacing: Theme.Space.medium) {
-            LegacyChip(tint: Theme.secondary) {
-                Label(workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"),
-                      systemImage: "mappin.and.ellipse")
-            }
-            TimelineView(.periodic(from: .now, by: 1)) { timeline in
-                Text(Format.elapsed(seconds: elapsedSeconds(at: timeline.date)))
-                    .font(Theme.stat)
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.text)
-                    .accessibilityLabel("Elapsed \(Format.spokenElapsed(seconds: elapsedSeconds(at: timeline.date)))")
-            }
-            Spacer(minLength: 0)
-            if !cardioFocus {
-            HStack(spacing: 6) {
-                ProgressRing(progress: sets.isEmpty ? 0 : Double(completed) / Double(sets.count),
-                             tint: Theme.secondary, lineWidth: 3)
-                    .frame(width: 22, height: 22)
-                Text("\(completed)/\(sets.count) sets")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.secondary)
-                    .monospacedDigit()
-            }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(completed) completed sets, \(sets.count) total")
+        return LiveHeaderLine(
+            gym: workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"),
+            startedAt: workout.isDeleted ? .now : workout.startedAt,
+            done: completed, total: sets.count, showsSets: !cardioFocus)
+    }
+
+    /// D41: live heart rate beside the workout's calories and volume, above the exercises —
+    /// the numbers that change while you are not touching the screen.
+    private var vitals: some View {
+        LiveVitalsStrip(
+            monitor: heartRate,
+            recordsHeartRate: !workout.isDeleted && workout.sensorConfiguration.recordsActivity,
+            volume: WeightMath.convert(volumeKg, from: .kg, to: displayUnit),
+            unit: displayUnit,
+            editMaxHeartRate: { showMaxHeartRateSheet = true })
+    }
+
+    /// Σ(normalizedKg × reps) of this workout's completed weighted sets (D21, `RecordsMath`).
+    private var volumeKg: Double {
+        let inputs = entries.flatMap { entry in
+            WorkoutSession.orderedSets(of: entry).map { set in
+                RecordSetInput(
+                    loadType: entry.effectiveLoadType, exerciseID: entry.snapshotExerciseID, gymID: nil,
+                    machineID: nil, modelID: nil, freeWeightTag: nil, presetID: nil, setType: set.type,
+                    reps: set.reps, weightValue: set.weightValue, weightUnit: set.weightUnit,
+                    normalizedKg: set.normalizedKg, completedAt: set.completedAt)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, keyboardVisible ? 0 : 4)
-        .padding(.bottom, keyboardVisible ? 0 : 8)
+        return RecordsMath.totalVolumeKg(among: inputs)
+    }
+
+    /// The gym's unit, else the app preference (T7), for the derived volume figure.
+    private var displayUnit: WeightUnit {
+        let rows = (try? modelContext.fetch(FetchDescriptor<AppPreferences>())) ?? []
+        return UnitPrecedence.defaultUnit(
+            machineUnit: nil,
+            gymUnit: workout.isDeleted ? nil : workout.gym?.defaultUnit,
+            appPreference: AppPreferences.canonical(of: rows)?.unitPreference)
+    }
+
+    /// Template cardio targets (D57): a prescription with an explicit Start, never automatic.
+    private var plannedCardio: some View {
+        VStack(alignment: .leading, spacing: screenLook.space.header) {
+            SectionHeader("Cardio targets")
+            LookList {
+                ForEach(workout.plannedCardio) { target in
+                    LookRow(target.activity.name, subtitle: target.summary, symbol: target.activity.symbol,
+                            showsChevron: false) {
+                        if workout.canStart(target) {
+                            Button("Start") { startPlannedCardio(target) }
+                                .font(.system(.subheadline, weight: .bold))
+                                .foregroundStyle(screenLook.actionText)
+                                .frame(minHeight: 44)
+                                .disabled(workout.unfinishedCardio != nil || heartRate == nil)
+                                .accessibilityIdentifier("startPlannedCardio")
+                        } else {
+                            Text("Started").font(screenLook.font.caption).foregroundStyle(screenLook.textSecondary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// The rest slab's next line: "Next · Set 3 · 110 × 8" in the same exercise, else
+    /// "Next · <exercise>" (rest comes after the last superset member, D48).
+    private var nextLabel: String? {
+        guard !workout.isDeleted, let next = WorkoutSession.nextSet(in: workout), let entry = next.entry else { return nil }
+        let startingEntryID = workout.restStartedBySetID.flatMap { restStartingSet($0) }?.entry?.id
+        guard startingEntryID == entry.id else {
+            return screenLook.nextExerciseLabel(entry.exercise?.name ?? entry.snapshotExerciseName)
+        }
+        let sets = WorkoutSession.orderedSets(of: entry)
+        let number = sets.prefix { $0.id != next.id }.filter { $0.type != .warmup }.count + 1
+        let loadType = entry.effectiveLoadType
+        var value: SetValue?
+        if let reps = next.reps, !loadType.takesWeight || next.weightValue != nil {
+            value = SetValue(weight: next.weightValue, unit: next.weightUnit, reps: reps)
+        }
+        if next.type == .warmup {
+            return "Next · Warmup" + (value.map { " · \(screenLook.previousLabel($0, rowUnit: next.weightUnit, loadType: loadType))" } ?? "")
+        }
+        return screenLook.nextSetLabel(number: number, value: value, rowUnit: next.weightUnit, loadType: loadType)
+    }
+
+    /// Recomputes the New best / First time marks (`SetBadgeMath`). Called on appear and after
+    /// every completion change — not per frame: it reads the scope's whole history.
+    private func refreshBadges() {
+        guard !workout.isDeleted else { badges = [:]; return }
+        var result: [UUID: SetBadge] = [:]
+        for entry in entries {
+            if let marks = try? SetBadgeMath.badges(for: entry, in: modelContext) {
+                result.merge(marks) { first, _ in first }
+            }
+        }
+        if result != badges {
+            withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.6)) { badges = result }
+        }
     }
 
     private func elapsedSeconds(at date: Date) -> Int {
@@ -779,4 +815,13 @@ struct ActiveWorkoutView: View {
     return ActiveWorkoutView(workout: workout)
         .modelContainer(container)
         .environment(WorkoutHeartRateCoordinator())
+}
+
+private extension View {
+    /// A bare list row: no separator, no background, the 20 pt margin.
+    func liveRow(top: CGFloat, bottom: CGFloat) -> some View {
+        listRowInsets(EdgeInsets(top: top, leading: 20, bottom: bottom, trailing: 20))
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+    }
 }

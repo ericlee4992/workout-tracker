@@ -35,13 +35,13 @@ struct MachinePickerSheet: View {
                         Button("Add Machine…", systemImage: "plus") {
                             showingAddMachine = true
                         }
-                        .buttonStyle(.secondary)
+                        .buttonStyle(.lookSecondary)
                         .listRowBackground(Color.clear)
                         .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                     } header: {
                         Text("Machines at \(gym.name)")
                     }
-                    .listRowBackground(Theme.card)
+                    .lookListRows()
                 }
 
                 Section {
@@ -92,10 +92,9 @@ struct MachinePickerSheet: View {
                         Text("A completed set locks equipment; a change continues in a new entry.")
                     }
                 }
-                .listRowBackground(Theme.card)
+                .lookListRows()
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.background)
+            .lookGroupedList()
             .navigationTitle("Equipment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

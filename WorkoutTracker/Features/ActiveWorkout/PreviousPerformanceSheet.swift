@@ -32,6 +32,7 @@ struct PreviousPerformanceSheet: View {
                     }
                 }
             }
+            .lookGroupedList()
             .navigationTitle(entry.isDeleted ? "" : (entry.exercise?.name ?? entry.snapshotExerciseName))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

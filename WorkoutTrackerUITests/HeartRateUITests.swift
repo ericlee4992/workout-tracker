@@ -53,8 +53,7 @@ final class HeartRateUITests: XCTestCase {
         XCTAssertEqual(source.label, "Test data")
 
         // Tidy up so the run leaves nothing behind.
-        app.buttons["Cancel"].firstMatch.tap()
-        app.buttons["Discard Workout"].firstMatch.tap()
+        app.discardActiveWorkout()
     }
 
     /// D45: with no measured maximum and no date of birth, no zone is shown at
@@ -69,8 +68,7 @@ final class HeartRateUITests: XCTestCase {
             app.descendants(matching: .any).matching(identifier: "hrZone").firstMatch.exists,
             "a zone with no maximum behind it would be a fabricated number")
 
-        app.buttons["Cancel"].firstMatch.tap()
-        app.buttons["Discard Workout"].firstMatch.tap()
+        app.discardActiveWorkout()
     }
 
     /// D44: finishing shows what you lifted AND what your heart did, on one
@@ -175,8 +173,7 @@ final class HeartRateUITests: XCTestCase {
         shot.lifetime = .keepAlways
         add(shot)
 
-        app.buttons["Cancel"].firstMatch.tap()
-        app.buttons["Discard Workout"].firstMatch.tap()
+        app.discardActiveWorkout()
     }
 
     /// A date of birth is not a thing to enter mid-set, so the same screen is

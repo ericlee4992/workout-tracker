@@ -373,8 +373,7 @@ final class CoreLoopUITests: XCTestCase {
             "The emptied exercise must stay usable")
 
         // Leave nothing behind.
-        app.buttons["Cancel"].firstMatch.tap()
-        app.buttons["Discard Workout"].firstMatch.tap()
+        app.discardActiveWorkout()
         XCTAssertTrue(tab("History").waitForExistence(timeout: 5))
     }
 
@@ -499,8 +498,7 @@ final class CoreLoopUITests: XCTestCase {
             "Resuming should reopen the still-active workout")
 
         // Leave nothing behind.
-        app.buttons["Cancel"].firstMatch.tap()
-        app.buttons["Discard Workout"].firstMatch.tap()
+        app.discardActiveWorkout()
         XCTAssertTrue(tab("History").waitForExistence(timeout: 5))
     }
 

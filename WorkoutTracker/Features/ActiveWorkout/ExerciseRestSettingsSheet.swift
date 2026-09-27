@@ -29,6 +29,7 @@ struct ExerciseRestSettingsSheet: View {
                     seconds: $workingSeconds)
                 heartRateSection
             }
+            .lookGroupedList()
             .navigationTitle("Rest")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear(perform: load)

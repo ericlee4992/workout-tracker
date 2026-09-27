@@ -59,7 +59,7 @@ struct AddByMachineSheet: View {
                     Button("Add Machine…", systemImage: "plus") {
                         showingAddMachine = true
                     }
-                    .buttonStyle(.secondary)
+                    .buttonStyle(.lookSecondary)
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 } header: {
@@ -67,10 +67,9 @@ struct AddByMachineSheet: View {
                         Text("Machines at \(gym.name)")
                     }
                 }
-                .listRowBackground(Theme.card)
+                .lookListRows()
             }
-            .scrollContentBackground(.hidden)
-            .background(Theme.background)
+            .lookGroupedList()
             .navigationTitle("Add by Machine")
             .navigationBarTitleDisplayMode(.inline)
             .deleteMachineConfirmation($deletingMachine) { machine in
@@ -183,19 +182,18 @@ private struct MachineExerciseList: View {
                     .accessibilityIdentifier("createExerciseFromSearch")
                 }
             }
-            .listRowBackground(Theme.card)
+            .lookListRows()
             Section {
                 Button("New Exercise…", systemImage: "plus") {
                     creating = request(named: trimmedSearch)
                 }
-                .buttonStyle(.secondary)
+                .buttonStyle(.lookSecondary)
                 .accessibilityIdentifier("newExercise")
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
             }
         }
-        .scrollContentBackground(.hidden)
-        .background(Theme.background)
+        .lookGroupedList()
         .modifier(FullCatalogSearch(enabled: choice.linked == nil, text: $searchText))
         .navigationTitle(choice.linked == nil ? "Pick Exercise" : choice.machine.label)
         .navigationBarTitleDisplayMode(.inline)
