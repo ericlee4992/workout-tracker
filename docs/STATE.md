@@ -9,15 +9,16 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
 `main` (a0364f2); nothing installed. Install blockers unchanged (Xcode Apple ID, expired signing).
 
 - **Ticket 02** (foundation + Workout tab): this branch, **Codex clear after 3 rounds**.
-- **Ticket 03** (live workout): stacked branch `ericlee4992/redesign-floodlight-live`. Codex
-  round 1 **not clear** (4 medium, 2 low, `codex-review-03.md`); all fixed in `1a04857`
-  (pushed); round-2 verification batch `live-ui-3` running; then Codex round 2.
-- **Ticket 04** (finish receipt): `ericlee4992/redesign-floodlight-finish` (pushed `a3fcf53`,
-  stacked on the live branch's pre-fix tip — rebase onto the live tip next). Bests fix + receipt
-  unit tests done; `finish-ui-2` 15/16 (the one failure pre-existing). Codex review not started.
-- Five UI tests fail identically on untouched `main` on iOS 27 (listed in ticket 02). Two
-  (the preset tests) and one CoreLoop case were a hidden search field; ticket 03's helper
-  `revealedSearchField()` addresses them — confirm in `live-ui-3`.
+- **Ticket 03** (live workout): stacked branch `ericlee4992/redesign-floodlight-live`
+  (pushed `0ca7868`). **Codex clear after 3 rounds** (`codex-review-03c.md`).
+- **Ticket 04** (finish receipt): `ericlee4992/redesign-floodlight-finish` (pushed `743f609`,
+  stacked on the live tip). Verified (`finish-ui-4`: UI 17/18, the one failure pre-existing;
+  unit 14/14). **Codex review 04 running** (Orca "Codex review — Floodlight 04").
+- User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
+  zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
+  in tickets 03/04.
+- Pre-existing iOS 27 UI failures: three fixed by `revealedSearchField()` (ticket 03); two
+  remain — Gyms model picker (CoreLoop :252) and History detail HR section (HeartRateSummary :66).
 
 Updated **2026-09-24** for a new session. Main/remote were verified at **40f3f65** before this
 docs-only handoff; verify actual Git HEAD on resume. Product **9f733a2**, built from source
