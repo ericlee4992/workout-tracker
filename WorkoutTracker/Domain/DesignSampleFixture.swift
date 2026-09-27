@@ -18,6 +18,9 @@ enum DesignSampleFixture {
     static let liveArgument = "-uiTestDesignLive"
     /// With `-uiTestDesignLiveEmpty` instead: an empty workout just started at Iron Temple.
     static let emptyLiveArgument = "-uiTestDesignLiveEmpty"
+    /// With `-uiTestDesignLive` too: a barbell Bench Press on a 45 lb bar — 90 lb × 10 five days
+    /// ago, and today a logged 102.5 lb × 10, a bar-mode new best (the receipt's bar annotation).
+    static let barBestArgument = "-uiTestDesignBarBest"
     static var liveIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(liveArgument)
     }
@@ -114,13 +117,39 @@ enum DesignSampleFixture {
         }
         try context.save()
         try GymSelection.remember(gym, in: context)
+        let barBest = ProcessInfo.processInfo.arguments.contains(barBestArgument)
+            ? exercise("Bench Press") : nil
+        if liveIsEnabled, let bench = barBest {
+            try logBench(bench, perSide: "22.5", at: gym, on: now.addingTimeInterval(-5 * 86_400), in: context)
+        }
         if liveIsEnabled, let push = byName["Push Day"] {
             try startLive(push, at: gym, now: now, in: context)
+            if let bench = barBest, let live = try context.fetch(
+                FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt == nil })).first {
+                try logBench(bench, perSide: "28.75", into: live, at: gym, on: now.addingTimeInterval(-60), in: context)
+            }
         } else if isEnabled && ProcessInfo.processInfo.arguments.contains(emptyLiveArgument) {
             // An empty workout just started at the gym (the "Recent at" state).
             _ = try WorkoutSession(context: context).startWorkout(at: gym, on: now.addingTimeInterval(-40))
             try context.save()
         }
+    }
+
+    /// One barbell Bench Press set of 10 on a 45 lb bar with `perSide` plates: a finished workout
+    /// of its own on `date`, or appended to `workout` (completed at `date`).
+    private static func logBench(_ bench: Exercise, perSide: String, into workout: Workout? = nil,
+                                 at gym: Gym, on date: Date = .now, in context: ModelContext) throws {
+        let session = WorkoutSession(context: context)
+        let target = try workout ?? session.startWorkout(at: gym, on: date.addingTimeInterval(-600))
+        let entry = try session.addEntry(for: bench, to: target, machine: nil, freeWeightTag: .barbell)
+        try session.chooseBar(weight: 45, unit: .lb, for: entry)
+        guard let set = WorkoutSession.orderedSets(of: entry).first(where: { $0.completedAt == nil }) else { return }
+        set.weightUnit = .lb
+        try session.commitPerSide(perSide, for: set)
+        try session.commitReps("10", for: set)
+        try session.toggleCompletion(of: set, at: date)
+        if workout == nil { try session.finish(target, at: date.addingTimeInterval(300)) }
+        try context.save()
     }
 
     /// Push Day, 18 minutes in: the chest press's first two sets logged (the second a new best),

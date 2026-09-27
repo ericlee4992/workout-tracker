@@ -191,11 +191,13 @@ struct FinishBestRow: View {
 
     private func values(alignment: HorizontalAlignment) -> some View {
         VStack(alignment: alignment, spacing: 3) {
-            FinishSetValueText(value: best.value, loadType: best.loadType, big: true)
+            FinishSetValueText(value: best.value, loadType: best.loadType, big: true, alignment: alignment)
             if let previous = best.previous {
                 Text(LookFormat.set(previous, loadType: best.loadType))
                     .font(.system(.footnote, weight: .semibold))
                     .strikethrough()
+                    .multilineTextAlignment(alignment == .leading ? .leading : .trailing)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(look.textSecondary)
             }
         }
@@ -211,35 +213,42 @@ struct FinishBestRow: View {
     }
 }
 
-/// "110 lb × 8": the numbers heavy, the unit and × small; reps only for bodyweight.
+/// "110 lb × 8": the numbers heavy, the unit and × small; reps only for bodyweight. A bar-mode
+/// set says which bar on its own line beneath ("(45 lb bar)", D39), so the load line stays one
+/// line at any size and the annotation wraps instead of pushing past the panel.
 struct FinishSetValueText: View {
     var value: SetValue
     var loadType: LoadType
     var big = false
+    var alignment: HorizontalAlignment = .trailing
     @Environment(\.look) private var look
 
     var body: some View {
         let numberFont = big ? Font.system(.title3, weight: .heavy).width(.expanded).monospacedDigit()
                              : Font.system(.subheadline, weight: .heavy).width(.expanded).monospacedDigit()
-        HStack(alignment: .firstTextBaseline, spacing: 3) {
-            if loadType.takesWeight, let weight = value.weight {
-                Text(LookFormat.weight(weight)).font(numberFont)
-                Text(value.unit.label).font(.system(.caption, weight: .semibold)).foregroundStyle(look.textSecondary)
-                Text("×").font(.system(.subheadline, weight: .bold)).foregroundStyle(look.textSecondary)
-                Text("\(value.reps)").font(numberFont)
-                if let bar = value.bar {
-                    // D39: which bar — the total alone does not say what was loaded.
-                    Text("(\(LookFormat.weight(bar, value.unit)) bar)")
-                        .font(.system(.caption, weight: .semibold)).foregroundStyle(look.textSecondary)
+        VStack(alignment: alignment, spacing: 1) {
+            HStack(alignment: .firstTextBaseline, spacing: 3) {
+                if loadType.takesWeight, let weight = value.weight {
+                    Text(LookFormat.weight(weight)).font(numberFont)
+                    Text(value.unit.label).font(.system(.caption, weight: .semibold)).foregroundStyle(look.textSecondary)
+                    Text("×").font(.system(.subheadline, weight: .bold)).foregroundStyle(look.textSecondary)
+                    Text("\(value.reps)").font(numberFont)
+                } else {
+                    Text("\(value.reps)").font(numberFont)
+                    Text(value.reps == 1 ? "rep" : "reps").font(.system(.caption, weight: .semibold)).foregroundStyle(look.textSecondary)
                 }
-            } else {
-                Text("\(value.reps)").font(numberFont)
-                Text(value.reps == 1 ? "rep" : "reps").font(.system(.caption, weight: .semibold)).foregroundStyle(look.textSecondary)
+            }
+            .foregroundStyle(look.textPrimary)
+            .lineLimit(1)
+            .fixedSize()
+            if loadType.takesWeight, value.weight != nil, let bar = value.bar {
+                Text("(\(LookFormat.weight(bar, value.unit)) bar)")
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(look.textSecondary)
+                    .multilineTextAlignment(alignment == .leading ? .leading : .trailing)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .foregroundStyle(look.textPrimary)
-        .lineLimit(1)
-        .fixedSize()
     }
 }
 
@@ -267,7 +276,10 @@ struct FinishExerciseRow: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: typeSize.isAccessibilitySize ? .leading : .trailing, spacing: 4) {
-                if let best = row.best { FinishSetValueText(value: best, loadType: row.loadType) }
+                if let best = row.best {
+                    FinishSetValueText(value: best, loadType: row.loadType,
+                                       alignment: typeSize.isAccessibilitySize ? .leading : .trailing)
+                }
                 if let badge = row.badge { NewBestBadge(kind: badge) }
             }
         }

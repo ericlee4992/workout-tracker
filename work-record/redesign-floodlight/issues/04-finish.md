@@ -136,5 +136,25 @@ Report: [codex-review-04.md](../codex-review-04.md) — not clear; 4 medium, 1 l
 Verification (round 2): `finish-build-6` exit 0; `finish-ui-5` **exit 0** — UI 12/12
 (FloodlightFinishUITests 4/4 incl. the single spoken best with its machine, View in History,
 finish-sheet template save, heart-rate finishing summary, Barbell 2/2, RedesignScreenshot
-test02/test03, mixed cardio-first workout); unit 57/57 (`FinishReceiptTests` 11,
+test02/test03, mixed cardio-first workout); unit 57/57 (`FinishReceiptTests` 10,
 `SetBadgeTests`, `RecordsMathTests`, `RecordsSurfaceTests`). Captures refreshed in `../captures/04/`.
+
+## Codex review 04b — response (round 2)
+
+Report: [codex-review-04b.md](../codex-review-04b.md) — not clear; one medium (all round-1
+findings resolved).
+
+- **Bar annotation could overflow at AX sizes (medium).** `FinishSetValueText` keeps the load
+  on one line and puts "(45 lb bar)" on its own wrapping line beneath, aligned with the value
+  (leading at AX sizes, trailing otherwise); the struck-through incumbent wraps the same way.
+  New fixture `-uiTestDesignBarBest` (with `-uiTestDesignLive`): a barbell Bench Press on a
+  45 lb bar, 90 lb × 10 five days ago and today 102.5 lb × 10. New captures
+  `testCaptureBarBest{Light,Dark}{Default,Accessibility}` assert two best lines, the spoken
+  "102.5 lb × 10 (45 lb bar)" / "previous best 90 lb × 10 (45 lb bar)", and that the row stays
+  inside the window. Captures: `../captures/04/floodlight-04-barbest-*.png`.
+- Ticket count corrected: `FinishReceiptTests` has 10 tests.
+
+Verification (round 3): `finish-build-7` exit 0; `finish-ui-6` **exit 0** — UI 11/11
+(FloodlightFinishUITests 8/8, Barbell 2/2, RedesignScreenshot test03 AXL), unit
+`FinishReceiptTests` 10/10; `finish-ui-7` exit 0 — the four bar captures re-shot with the whole
+bench row in frame (4/4).

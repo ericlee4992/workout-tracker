@@ -26,9 +26,15 @@ final class FloodlightFinishUITests: XCTestCase {
     func testCaptureReceiptDarkDefault() { captureReceipt(appearance: "dark", large: false) }
     func testCaptureReceiptDarkAccessibility() { captureReceipt(appearance: "dark", large: true) }
 
-    private func captureReceipt(appearance: String, large: Bool) {
+    // Codex review 04b: a bar-mode new best (102.5 lb × 10 on a 45 lb bar) at every size.
+    func testCaptureBarBestLightDefault() { captureReceipt(appearance: "light", large: false, barBest: true) }
+    func testCaptureBarBestLightAccessibility() { captureReceipt(appearance: "light", large: true, barBest: true) }
+    func testCaptureBarBestDarkDefault() { captureReceipt(appearance: "dark", large: false, barBest: true) }
+    func testCaptureBarBestDarkAccessibility() { captureReceipt(appearance: "dark", large: true, barBest: true) }
+
+    private func captureReceipt(appearance: String, large: Bool, barBest: Bool = false) {
         app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestDesignLive", "-uiTestHeartRate",
-                               "-appearance", appearance]
+                               "-appearance", appearance] + (barBest ? ["-uiTestDesignBarBest"] : [])
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
         let finish = app.buttons["finishWorkout"]
@@ -39,12 +45,26 @@ final class FloodlightFinishUITests: XCTestCase {
         if keep.waitForExistence(timeout: 3) { keep.tap() }
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10), "the receipt opens")
         XCTAssertTrue(any("viewFinishedWorkout").exists)
-        // Codex review 04: one line for the chest press, spoken with its machine (the scope).
-        let best = any("finishNewBest")
+        // Codex review 04: one line per scope, spoken with its machine / bar (the scope).
+        let bests = app.descendants(matching: .any).matching(identifier: "finishNewBest")
+        let best = bests.firstMatch
         for _ in 0..<3 where !best.exists { app.swipeUp() }
-        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "finishNewBest").count, 1)
-        XCTAssertTrue(best.label.contains("Seated Chest Press, Chest Press 2, 110 lb × 8"), best.label)
-        XCTAssertTrue(best.label.contains("previous best 45 lb × 8"), best.label)
+        XCTAssertEqual(bests.count, barBest ? 2 : 1)
+        XCTAssertTrue(bests.element(boundBy: 0).label.contains("Seated Chest Press, Chest Press 2, 110 lb × 8"), bests.element(boundBy: 0).label)
+        XCTAssertTrue(bests.element(boundBy: 0).label.contains("previous best 45 lb × 8"))
+        if barBest {
+            let bench = bests.element(boundBy: 1)
+            for _ in 0..<3 where !bench.isHittable { app.swipeUp() }
+            XCTAssertTrue(bench.label.contains("Bench Press"), bench.label)
+            XCTAssertTrue(bench.label.contains("102.5 lb × 10 (45 lb bar)"), bench.label)
+            XCTAssertTrue(bench.label.contains("previous best 90 lb × 10 (45 lb bar)"), bench.label)
+            let window = app.windows.firstMatch.frame
+            XCTAssertLessThanOrEqual(bench.frame.maxX, window.maxX, "the bar-mode best stays on screen")
+            // Hittable can mean its first line only: bring the whole row, bar line included, up.
+            if bench.frame.maxY > window.maxY - 160 { app.swipeUp() }
+            shoot("floodlight-04-barbest-\(appearance)-\(large ? "axl" : "default")")
+            return
+        }
         for _ in 0..<4 where !any("viewFinishedWorkout").isHittable { app.swipeDown() }
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
         Thread.sleep(forTimeInterval: 1.5)
