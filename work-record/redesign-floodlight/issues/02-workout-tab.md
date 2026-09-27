@@ -1,7 +1,7 @@
 # 02 — Floodlight: design foundation + Workout tab, template detail and editor
 
 Type: feature (part of [01](01-implement-redesign.md))
-Status: implemented and verified (targeted); Codex review pending
+Status: resolved — Codex clear after 3 rounds (`../codex-review-02c.md`, 2026-09-26)
 Implementer: Claude. Reviewer: Codex (the user's choice for this redesign).
 
 ## Scope
@@ -167,3 +167,8 @@ a0364f2, `base-5.log`; to fix in their own areas): CoreLoop
 `testModelPickerFiltersAndSearchesDownToOneModel` (Gyms model-picker type submenu), and
 `HeartRateSummaryUITests.testFinishShowsTheChartAndHistoryShowsItAgain` (History detail's
 heart-rate section).
+
+## Codex review 02c — round 3
+
+[Report](../codex-review-02c.md): **clear**. Flagged design decision (for the user): a card dropped
+between two members of a superset joins that superset.

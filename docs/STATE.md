@@ -1,13 +1,21 @@
 # Current project state
 
-## ACTIVE (2026-09-26): implement the Floodlight redesign in the real app
+## ACTIVE (2026-09-26, end of session 1): implementing the Floodlight redesign
 
-Branch `ericlee4992/redesign-floodlight` (worktree `/Users/ericlee06/orca/workspaces/Health App/redesign-floodlight`,
-from main `a0364f2`). Read [ticket 01](../work-record/redesign-floodlight/issues/01-implement-redesign.md) first:
-the user's chosen design is "★ Floodlight + Paper workout" with a Light/Dark Appearance setting. Claude implements
-and Codex reviews. Rollout is all at once to the phone. New wording is approved. The reference prototype and
-captures are linked there. Blockers for install: Xcode has no Apple account signed in; the app's signing
-expired Sep 24. No product code has been written yet.
+Worktree `/Users/ericlee06/orca/workspaces/Health App/redesign-floodlight`, branch
+`ericlee4992/redesign-floodlight` (pushed). Read [ticket 01](../work-record/redesign-floodlight/issues/01-implement-redesign.md)
+**Progress → Handoff** first: it has the exact branch/commit map, what is verified, and the next steps.
+Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothing merged to
+`main` (a0364f2); nothing installed. Install blockers unchanged (Xcode Apple ID, expired signing).
+
+- **Ticket 02** (foundation + Workout tab, template detail/editor): on this branch, **Codex clear
+  after 3 rounds** (`codex-review-02c.md`).
+- **Ticket 03** (live lifting workout + sheets): implemented and tested on stacked branch
+  `ericlee4992/redesign-floodlight-live` (pushed, tip `9d07a9c`); **not yet Codex-reviewed**.
+- **Ticket 04** (finish receipt): WIP on `ericlee4992/redesign-floodlight-finish` (pushed, tip
+  `cb90a5b`, stacked on live); built, first test batch was mid-run at handoff — re-run.
+- Five UI tests fail identically on untouched `main` on the iOS 27 simulator (pre-existing;
+  listed in ticket 02); fix them in the Exercises / Gyms / History areas.
 
 Updated **2026-09-24** for a new session. Main/remote were verified at **40f3f65** before this
 docs-only handoff; verify actual Git HEAD on resume. Product **9f733a2**, built from source
