@@ -41,11 +41,13 @@ Identifiers: `finishedDone`, `viewFinishedWorkout`, `saveAsTemplate`, `summaryEx
 finish discards and says so; save-as-template from the receipt; View in History opens the
 workout just logged; no chart without a series; zones only with a basis.
 
-## Decisions to flag to the user
+## User decisions (2026-09-26)
 
-- New bests are listed once per exercise/equipment against the pre-workout record (the
-  prototype's shape). A first workout in a scope lists no best; its row says "First time".
-- Time in zones moved under the heart-rate chart (the approved receipt).
+- **New bests: one line per exercise, as in the prototype**, against the record from before the
+  workout. "Exercise" here is the record scope (exercise + equipment + variation, D36): records
+  never merge across machines, so the same exercise on two machines in one workout is two
+  lines — each its own record. A first workout in a scope lists no best; its row says "First time".
+- **Time in zones under the heart-rate chart: OK.**
 
 ## New / changed visible strings
 
