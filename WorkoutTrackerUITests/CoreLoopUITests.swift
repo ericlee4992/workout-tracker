@@ -187,17 +187,16 @@ final class CoreLoopUITests: XCTestCase {
 
         anyElement("gymRow.\(gymName)").tap()
         app.buttons["editGym"].tap()
-        let city = app.textFields["City (optional)"]
+        let city = app.textFields["gymCity"]
         XCTAssertTrue(city.waitForExistence(timeout: 5))
         city.tap()
         city.typeText("Seoul")
-        anyElement("gymUnitPicker").tap()
         tapOption("lb")
         app.buttons["saveGym"].tap()
 
         XCTAssertTrue(
-            app.staticTexts["Seoul"].waitForExistence(timeout: 5),
-            "The edited city should show on the gym")
+            app.staticTexts["Seoul · lb"].waitForExistence(timeout: 5),
+            "The edited city and unit should show on the gym")
 
         // D3: a model supplies the label, so Add is enabled without typing.
         app.buttons["addMachine"].tap()
@@ -243,16 +242,15 @@ final class CoreLoopUITests: XCTestCase {
         XCTAssertTrue(app.textFields["machineLabel"].waitForExistence(timeout: 5))
         anyElement("catalogModel").tap()
 
-        let browseMenu = anyElement("modelBrowseMenu")
+        // Floodlight ticket 06: the equipment type is a visible chip (the iOS 27 submenu of the
+        // browse menu never opened — the failure this test had at :252).
         XCTAssertTrue(
-            browseMenu.waitForExistence(timeout: 5),
+            anyElement("modelBrowseMenu").waitForExistence(timeout: 5),
             "The model picker should offer grouping and filtering")
-        browseMenu.tap()
-        tapMenuItem("Equipment Type")
         let plateLoadedFilter = anyElement("modelFilter.type.plateLoaded")
         XCTAssertTrue(
             plateLoadedFilter.waitForExistence(timeout: 5),
-            "The equipment-type submenu should offer the seeded types")
+            "The equipment-type chips should offer the seeded types")
         plateLoadedFilter.tap()
 
         XCTAssertTrue(
@@ -514,7 +512,6 @@ final class CoreLoopUITests: XCTestCase {
         name.tap()
         name.typeText(gymName)
 
-        anyElement("gymUnitPicker").tap()
         tapOption("kg")
 
         app.buttons["saveGym"].tap()
@@ -608,15 +605,6 @@ final class CoreLoopUITests: XCTestCase {
     /// for a row, picker, or menu.
     private func anyElement(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
-    }
-
-    /// Taps a menu entry by label. Menus nest (a submenu button and the
-    /// picker inside it can share a label), so this deliberately takes the
-    /// first match rather than requiring a unique one.
-    private func tapMenuItem(_ label: String) {
-        let item = app.buttons[label].firstMatch
-        XCTAssertTrue(item.waitForExistence(timeout: 5), "No menu item labelled \(label)")
-        item.tap()
     }
 
     /// Taps an option by its visible label, whether it renders as a menu

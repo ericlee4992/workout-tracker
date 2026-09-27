@@ -475,6 +475,9 @@ struct SheetHeader: View {
     var commitEnabled = true
     /// The commit button's accessibility identifier (UI tests find Save by it).
     var commitIdentifier: String?
+    /// At accessibility sizes the title leaves the bar and becomes the first line under the
+    /// buttons (a long title ran into Cancel and Save — ticket 06's Edit Gym).
+    var reflowsTitle = false
     var cancel: () -> Void = {}
     var commit: () -> Void = {}
     @Environment(\.look) private var look
@@ -482,8 +485,9 @@ struct SheetHeader: View {
 
     init(cancel: @escaping () -> Void = {}, title: String, commit: @escaping () -> Void = {},
          cancelTitle: String = "Cancel", commitTitle: String = "Save", commitEnabled: Bool = true,
-         commitIdentifier: String? = nil) {
+         commitIdentifier: String? = nil, reflowsTitle: Bool = false) {
         self.commitIdentifier = commitIdentifier
+        self.reflowsTitle = reflowsTitle
         self.cancel = cancel
         self.title = title
         self.commit = commit
@@ -492,38 +496,58 @@ struct SheetHeader: View {
         self.commitEnabled = commitEnabled
     }
 
+    @Environment(\.dynamicTypeSize) private var typeSize
+
     var body: some View {
-        ZStack {
-            Text(title)
-                .font(look.font.navTitle)
-                .foregroundStyle(look.textPrimary)
-                .lineLimit(1)
-                .padding(.horizontal, 100)
-                .accessibilityAddTraits(.isHeader)
-            HStack {
-                GlassCapsuleButton(cancelTitle, action: cancel)
-                Spacer()
-                Button(action: commit) {
-                    Text(commitTitle)
-                        .font(look.font.button)
-                        .foregroundStyle(commitEnabled ? look.onAction : look.textTertiary)
-                        .padding(.horizontal, 18)
-                        .frame(minHeight: height)
-                        .background(commitEnabled ? look.action : look.surfaceRaised, in: Capsule())
-                        .overlay {
-                            if look.id.isPaperClub && commitEnabled { Capsule().strokeBorder(look.outline, lineWidth: 2) }
-                        }
+        Group {
+            if reflowsTitle && typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 12) {
+                    buttons
+                    Text(title)
+                        .font(look.font.title2)
+                        .foregroundStyle(look.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
                 }
-                .buttonStyle(.lookPressable)
-                .disabled(!commitEnabled)
-                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .accessibilityShowsLargeContentViewer { Text(commitTitle) }
-                .accessibilityIdentifier(commitIdentifier ?? commitTitle)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                ZStack {
+                    Text(title)
+                        .font(look.font.navTitle)
+                        .foregroundStyle(look.textPrimary)
+                        .lineLimit(1)
+                        .padding(.horizontal, 100)
+                        .accessibilityAddTraits(.isHeader)
+                    buttons
+                }
             }
         }
         .padding(.horizontal, look.space.margin)
         .padding(.top, 12)
         .padding(.bottom, 8)
+    }
+
+    private var buttons: some View {
+        HStack {
+            GlassCapsuleButton(cancelTitle, action: cancel)
+            Spacer()
+            Button(action: commit) {
+                Text(commitTitle)
+                    .font(look.font.button)
+                    .foregroundStyle(commitEnabled ? look.onAction : look.textTertiary)
+                    .padding(.horizontal, 18)
+                    .frame(minHeight: height)
+                    .background(commitEnabled ? look.action : look.surfaceRaised, in: Capsule())
+                    .overlay {
+                        if look.id.isPaperClub && commitEnabled { Capsule().strokeBorder(look.outline, lineWidth: 2) }
+                    }
+            }
+            .buttonStyle(.lookPressable)
+            .disabled(!commitEnabled)
+            .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+            .accessibilityShowsLargeContentViewer { Text(commitTitle) }
+            .accessibilityIdentifier(commitIdentifier ?? commitTitle)
+        }
     }
 }
 

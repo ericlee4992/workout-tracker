@@ -231,11 +231,26 @@ To be answered after the first captures.
 
 ## Tests
 
-To be listed as they are written (plan: `GymOverviewTests` for visits/weeks/order/machine
-bests incl. warmups, assisted, ties, snapshot scope after a rename/re-model, relative day,
-prefill; `FloodlightGymsUITests` captures light/dark × Default/AXL on `-uiTestDesignSample`
-(+ history) and the empty screen; restore-gym and machine-page flows; updated CoreLoop gym
-tests, MachineDeletion, ExercisePreset, Codex/Redesign screenshot gym helpers).
+- New unit tests `GymOverviewTests` (9): visits as distinct days and the rhythm ending this week;
+  order (Current, recent, name); machine use — workouts, sets (warmups included), one best per
+  scope (warmup never a best, more reps at a load wins, an uncompleted draft ignored, a preset its
+  own scope, another machine's sets excluded); assisted least-assistance and a tie keeping the
+  earliest; snapshot scope through a rename and a re-model, a running workout not counted (store
+  test); relative day words; New Model prefill; restoring a deleted gym.
+- New fixture `-uiTestDesignGyms` (with `-uiTestDesignSample`): Iron Temple's Pull/Leg Day
+  machines (so their history lands on them), a cable station, a model-less "Biceps Curl", a kg
+  override on Calf Raise, a deleted "Old Row"; Hotel Gym (New York, one visit); deleted Gangnam
+  Fitness.
+- New UI captures `FloodlightGymsUITests` (12): list + deleted gyms, gym page (pills, Exercise
+  grouping), Deleted Machines, machine page; Edit Gym, machine form, picker (browse, search, no
+  match), New Model prefilled from the search — light/dark × Default/AXL; the empty tab ×4.
+- New `GymsFlowsUITests` (2): Delete Gym… confirmed (Cancel first) → the page closes → Restore
+  from the list; the machine page's best opens its chart, inline rename (blank restores), kg
+  override, Delete Machine… closes the page.
+- Updated: `CoreLoopUITests` (the city field by `gymCity`; the unit pills tapped directly; the
+  gym's place line "Seoul · lb"; the model-picker test taps the type chip — the iOS 27 fix),
+  `CodexScreenshotUITests` (unit pill), `ScanMachineLabelUITests` (the row shows the model name
+  without its maker).
 
 ## Verification
 

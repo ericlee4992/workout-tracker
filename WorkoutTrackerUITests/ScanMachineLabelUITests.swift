@@ -87,10 +87,11 @@ final class ScanMachineLabelUITests: XCTestCase {
             "The machine should be saved at the gym under the movement it serves")
 
         // The label alone proves nothing — it was defaulted from the candidate.
-        // The machine row's subtitle is `machine.model?.displayName`, so this
+        // The machine row's subtitle is the model's name (its maker left to the
+        // machine page since Floodlight ticket 06), so this
         // is the persisted *relationship* talking (codex-review, finding 10).
         XCTAssertTrue(
-            app.staticTexts["Life Fitness \(expectedModel)"].waitForExistence(timeout: 5),
+            app.staticTexts[expectedModel].waitForExistence(timeout: 5),
             "The saved machine should carry the scanned catalog model, not just its name")
     }
 
@@ -135,7 +136,7 @@ final class ScanMachineLabelUITests: XCTestCase {
         XCTAssertTrue(label.waitForExistence(timeout: 5), "Back on the New Machine sheet")
         app.buttons["saveMachine"].tap()
 
-        let row = app.staticTexts["Life Fitness \(expectedModel)"]
+        let row = app.staticTexts[expectedModel]
         XCTAssertTrue(
             row.waitForExistence(timeout: 5),
             "The machine should carry the model created from the scan")

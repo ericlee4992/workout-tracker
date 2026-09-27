@@ -26,6 +26,14 @@ enum DesignSampleFixture {
     /// Pull Day three days ago has a note, Leg Day nine days ago logs its calf raise in kg
     /// ("kg + lb"), and Pull Day eleven days ago is marked edited.
     static let historyArgument = "-uiTestDesignHistory"
+    /// With `-uiTestDesignGyms` too (ticket 06, the Gyms captures): Iron Temple gets the machines
+    /// the Pull and Leg Day templates use (so their history lands on them), a cable station, a
+    /// machine with no model, a kg override and a deleted machine; Hotel Gym (New York) has one
+    /// visit; Gangnam Fitness is deleted.
+    static let gymsArgument = "-uiTestDesignGyms"
+    static var gymsIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(gymsArgument)
+    }
     static var historyIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(historyArgument)
     }
@@ -40,6 +48,18 @@ enum DesignSampleFixture {
     ]
 
     static let gymName = "Iron Temple"
+
+    /// The Gyms captures' extra machines at Iron Temple (`-uiTestDesignGyms`).
+    static let gymMachines: [(label: String, manufacturer: String, model: String, exercise: String)] = [
+        ("Lat Pulldown", "Life Fitness", "Insignia Series Pulldown", "Lat Pulldown"),
+        ("Seated Row", "Life Fitness", "Insignia Series Row", "Seated Row"),
+        ("Pec Deck", "Life Fitness", "Insignia Series Pectoral Fly/Rear Deltoid", "Rear Delt Fly"),
+        ("Cable Station", "Life Fitness", "Dual Adjustable Pulley", "Triceps Pushdown"),
+        ("Leg Press", "Life Fitness", "Plate Loaded Linear Leg Press", "Leg Press"),
+        ("Leg Extension", "Life Fitness", "Insignia Series Leg Extension", "Leg Extension"),
+        ("Seated Leg Curl", "Life Fitness", "Insignia Series Seated Leg Curl", "Seated Leg Curl"),
+        ("Calf Raise", "Life Fitness", "Insignia Series Calf Extension", "Calf Raise"),
+    ]
 
     /// Template name → seeded exercise names, in order.
     static let templates: [(name: String, exercises: [String])] = [
@@ -65,7 +85,7 @@ enum DesignSampleFixture {
 
         let models = try context.fetch(FetchDescriptor<EquipmentModel>())
         var machineFor: [String: MachineInstance] = [:]
-        for spec in machines {
+        for spec in machines + (gymsIsEnabled ? gymMachines : []) {
             let model = models.first { $0.manufacturer == spec.manufacturer && $0.modelName == spec.model }
             let machine = MachineInstance(label: spec.label, gym: gym, model: model)
             context.insert(machine)
@@ -130,6 +150,7 @@ enum DesignSampleFixture {
                 }
             }
         }
+        if gymsIsEnabled { try addGymsExtras(to: gym, machines: machineFor, models: models, now: now, in: context) }
         try context.save()
         try GymSelection.remember(gym, in: context)
         let barBest = ProcessInfo.processInfo.arguments.contains(barBestArgument)
@@ -148,6 +169,26 @@ enum DesignSampleFixture {
             _ = try WorkoutSession(context: context).startWorkout(at: gym, on: now.addingTimeInterval(-40))
             try context.save()
         }
+    }
+
+    /// The Gyms captures' extras: a kg override, a machine with no model, a deleted machine, a
+    /// second gym with one finished visit, and a deleted gym.
+    private static func addGymsExtras(to gym: Gym, machines: [String: MachineInstance], models: [EquipmentModel],
+                                      now: Date, in context: ModelContext) throws {
+        machines["Calf Raise"]?.defaultUnit = .kg
+        context.insert(MachineInstance(label: "Biceps Curl", gym: gym))
+        let oldRow = models.first { $0.manufacturer == "Life Fitness" && $0.modelName == "Plate Loaded Row" }
+        context.insert(MachineInstance(label: "Old Row", archived: true, gym: gym, model: oldRow))
+        let hotel = Gym(name: "Hotel Gym", city: "New York")
+        context.insert(hotel)
+        let calendar = Calendar.current
+        if let day = calendar.date(byAdding: .day, value: -24, to: now) {
+            let start = calendar.date(bySettingHour: 7, minute: 30, second: 0, of: day) ?? day
+            let visit = Workout(startedAt: start, snapshotGymName: hotel.name, gym: hotel)
+            visit.finishedAt = start.addingTimeInterval(40 * 60)
+            context.insert(visit)
+        }
+        context.insert(Gym(name: "Gangnam Fitness", city: "Seoul", defaultUnit: .kg, archived: true))
     }
 
     /// History captures: the newest workout's sensor data, a note, an edit mark.

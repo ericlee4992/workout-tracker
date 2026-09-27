@@ -94,6 +94,24 @@ struct GymOverviewTests {
         #expect(use.best(for: UUID()) == nil && use.lastUsed(for: UUID()) == nil, "missing is not zero")
     }
 
+    @Test func aGroupsRowShowsItsOwnExercisesBest() {
+        // A cable station used mostly for pushdowns, once for a chest fly: under Chest its row
+        // shows the fly, never the pushdown; outside a group, the most-used scope.
+        let station = UUID(), pushdown = UUID(), fly = UUID()
+        let d1 = date(2026, 9, 1), d2 = date(2026, 9, 8), d3 = date(2026, 9, 15)
+        let inputs: [MachineSetInput] = [
+            .init(workoutID: UUID(), workoutStartedAt: d1, set: set(station, pushdown, 40, 10, at: d1)),
+            .init(workoutID: UUID(), workoutStartedAt: d2, set: set(station, pushdown, 45, 10, at: d2)),
+            .init(workoutID: UUID(), workoutStartedAt: d3, set: set(station, fly, 20, 12, at: d3)),
+        ]
+        let use = try! #require(GymOverviewMath.machineUse(inputs)[station])
+        #expect(use.best()?.exerciseID == pushdown)
+        #expect(use.best(among: [fly])?.exerciseID == fly)
+        #expect(use.lastUsed(among: [pushdown]) == d2)
+        #expect(use.lastUsed(among: [fly, pushdown]) == d3)
+        #expect(use.best(among: [UUID()]) == nil && use.lastUsed(among: [UUID()]) == nil)
+    }
+
     @Test func assistedBestIsTheLeastAssistanceAndATieKeepsTheEarliest() {
         let machine = UUID(), dip = UUID()
         let d1 = date(2026, 9, 1), d2 = date(2026, 9, 8), d3 = date(2026, 9, 15)

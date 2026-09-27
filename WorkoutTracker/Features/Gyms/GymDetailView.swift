@@ -52,7 +52,7 @@ struct GymDetailView: View {
                 }
                 let rows = section.rows.compactMap { machinesByID[$0.id] }
                 ForEach(Array(rows.enumerated()), id: \.element.id) { index, machine in
-                    machineRow(machine, exerciseID: exerciseID(of: section))
+                    machineRow(machine, exercises: exerciseIDs(of: section))
                         .historyPanelRow(first: index == 0, last: index == rows.count - 1,
                                          separatorInset: typeSize.isAccessibilitySize ? 16 : 66)
                 }
@@ -181,13 +181,13 @@ struct GymDetailView: View {
     }
 
     /// The machine row: equipment glyph · label (+ unit tag) over the model without its maker;
-    /// trailing, its best over its last use. Under Exercise grouping the numbers are that
-    /// exercise's on this machine. Never used: no numbers (missing is not zero). AX: the names
+    /// trailing, its best over its last use. In an exercise's or a body area's group the numbers
+    /// are that group's exercises' on this machine. Never used: no numbers (missing is not zero). AX: the names
     /// wrap and the numbers drop under them.
-    private func machineRow(_ machine: MachineInstance, exerciseID: UUID?) -> some View {
+    private func machineRow(_ machine: MachineInstance, exercises: Set<UUID>?) -> some View {
         let facts = use[machine.id] ?? .unused
-        let best = facts.best(for: exerciseID)
-        let last = facts.lastUsed(for: exerciseID)
+        let best = facts.best(among: exercises)
+        let last = facts.lastUsed(among: exercises)
         let ax = typeSize.isAccessibilitySize
         return HStack(alignment: ax ? .top : .center, spacing: 12) {
             EquipmentTile(category: machine.model?.equipmentType, size: 40)
@@ -272,10 +272,18 @@ struct GymDetailView: View {
         Dictionary(gym.activeMachines.map { ($0.id, $0) }) { first, _ in first }
     }
 
-    /// Under Exercise grouping a section is one exercise: its rows show that exercise's numbers.
-    private func exerciseID(of section: CatalogSection<MachineBrowseRow>) -> UUID? {
-        guard machineGrouping == .exercise, let title = section.title else { return nil }
-        return exercises.first { $0.name == title }?.id
+    /// The exercises a section is about, whose numbers its rows show: one exercise under Exercise
+    /// grouping, the body area's exercises under Body area (a station serving several areas is
+    /// listed under each, D23 display rule). nil (A–Z, Uncategorized): the machine's own best.
+    private func exerciseIDs(of section: CatalogSection<MachineBrowseRow>) -> Set<UUID>? {
+        guard let title = section.title else { return nil }
+        let matching: [Exercise]
+        switch machineGrouping {
+        case .exercise: matching = exercises.filter { $0.name == title }
+        case .bodyArea: matching = exercises.filter { $0.muscleGroup == title }
+        case .alphabetical: return nil
+        }
+        return matching.isEmpty ? nil : Set(matching.map(\.id))
     }
 
     private func family(of bodyArea: String) -> MuscleFamily? {

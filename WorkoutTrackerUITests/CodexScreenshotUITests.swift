@@ -126,7 +126,6 @@ final class CodexScreenshotUITests: XCTestCase {
         name.tap()
         name.typeText(gymName)
 
-        anyElement("gymUnitPicker").tap()
         tapOption("kg")
 
         app.buttons["saveGym"].tap()

@@ -63,15 +63,25 @@ struct MachineUse: Equatable {
 
     static let unused = MachineUse(workouts: 0, lastUsed: nil, sets: 0, bests: [], lastUsedByExercise: [:])
 
-    /// The row's best: the most-used scope's, or under Exercise grouping that exercise's.
+    /// The row's best: the most-used scope's, or — in a group about some exercises (one exercise
+    /// under Exercise grouping, a body area's exercises under Body area) — the most-used scope
+    /// among them, so a cable station listed under Chest never shows its triceps best there.
     func best(for exerciseID: UUID? = nil) -> MachineBest? {
-        guard let exerciseID else { return bests.first }
-        return bests.first { $0.exerciseID == exerciseID }
+        best(among: exerciseID.map { [$0] })
+    }
+
+    func best(among exerciseIDs: Set<UUID>?) -> MachineBest? {
+        guard let exerciseIDs else { return bests.first }
+        return bests.first { exerciseIDs.contains($0.exerciseID) }
     }
 
     func lastUsed(for exerciseID: UUID? = nil) -> Date? {
-        guard let exerciseID else { return lastUsed }
-        return lastUsedByExercise[exerciseID]
+        lastUsed(among: exerciseID.map { [$0] })
+    }
+
+    func lastUsed(among exerciseIDs: Set<UUID>?) -> Date? {
+        guard let exerciseIDs else { return lastUsed }
+        return exerciseIDs.compactMap { lastUsedByExercise[$0] }.max()
     }
 }
 

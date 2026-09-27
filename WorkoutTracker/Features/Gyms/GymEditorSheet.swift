@@ -48,7 +48,7 @@ struct GymEditorSheet: View {
         VStack(spacing: 0) {
             SheetHeader(cancel: { dismiss() }, title: gym == nil ? "New Gym" : "Edit Gym", commit: save,
                         commitTitle: gym == nil ? "Add" : "Save", commitEnabled: canCommit,
-                        commitIdentifier: "saveGym")
+                        commitIdentifier: "saveGym", reflowsTitle: true)
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section - 4) {
                     if let saveFailure {
