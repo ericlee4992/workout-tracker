@@ -101,3 +101,36 @@ WT-Floodlight (iPhone 15 Pro Max, iOS 27.0). Logs and result bundles: `/tmp/wt-f
 ## Progress
 
 - 2026-09-26: foundation committed `b22f2c0`; Workout tab, detail, editor implemented.
+
+## Codex review 02 — response (round 1)
+
+[Report](../codex-review-02.md): not clear, 1 high, 4 medium, 4 low. All accepted and fixed:
+
+1. **High — reorder unlinked supersets.** Drag and the VoiceOver Move up/down actions now share
+   `TemplateEditorSheet.moving(_:from:to:)`: a card that lands beside a member of its own group
+   keeps it (A/B reordered stays a pair); only a card dragged away from its group travels alone.
+   Covered by `FloodlightWorkoutTabUITests.testSupersetSurvivesReorderAndSave` (link, save,
+   drag B above A, save, the detail still shows A/B and the new order).
+2. **Medium — narrowed ranges.** Cardio minutes step by 1 again (1…180); planned rest allows
+   0:00 again (0…600 in 15 s steps), as the old editor did.
+3. **Medium — light zone contrast on unrebuilt screens.** `HeartRateZone.color` zones 1–3 take
+   the Floodlight Light ramp in light mode (≥ 4.85:1 on white); dark keeps its hues.
+4. **Medium — Reduce Motion.** Every editor transaction is gated; panels insert with opacity only
+   under Reduce Motion; the distance toggle's animation too.
+5. **Medium — coverage.** New `FloodlightWorkoutTabUITests`: superset reorder (1), dirty Cancel →
+   Keep Editing / Discard Changes, rest set then back to Default (saved and reopened), Appearance
+   Light/Dark reaching Settings, the pushed detail and the editor sheet (pixel check of the
+   ground), and capture runs of Home/detail/editor/rest-open in light and dark at Default and
+   AccessibilityL (`../captures/02/`).
+6. **Low — day minutes.** `DayWorkout` keeps seconds; a day's minutes sum seconds and round once
+   (`WeekDaySummary.minutes`); new test `aDaysMinutesRoundOnceAcrossItsWorkouts`.
+7. **Low — 44 pt.** Search Clear is 44×44; the drag handle is 44×44.
+8. **Low — AXL assertion.** Now asserts Ask AI is hittable and clear of the tab bar.
+9. **Low — Add Set invented a target.** It copies the last slot as-is, "no target" included.
+
+Verification (WT-Floodlight): batch 3 `area1-ui-3` — `WeekSummaryTests` 6/6; UI 9 of 10 passed
+(`testSupersetSurvivesReorderAndSave`, `testDirtyCancelAsksBeforeDiscarding`,
+`testRestBackToDefaultIsSaved`, `test04_startLargeText`, `test04_startTemplates`, both
+`TemplateDetailUITests`, `AskAIUITests.testExistingTemplateDefaultRestDefault`); the appearance
+test failed because it launched with `-appearance system`, which (as a launch argument) overrides
+the stored setting — fixed; re-run `area1-ui-4` passed. Captures `area1-captures`: 4/4 passed.

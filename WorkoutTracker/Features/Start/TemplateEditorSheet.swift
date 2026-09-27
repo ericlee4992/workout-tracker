@@ -344,15 +344,27 @@ struct TemplateEditorSheet: View {
         let to = dragTarget ?? current.from
         withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
             if to != current.from {
-                var items = draft.items
-                var moved = items.remove(at: current.from)
-                // Dragged out of (or into) a superset: the exercise travels alone.
-                moved.supersetGroupID = nil
-                items.insert(moved, at: to)
-                draft.items = Self.normalizedSupersets(items)
+                draft.items = Self.moving(draft.items, from: current.from, to: to)
             }
             drag = nil
         }
+    }
+
+    /// Moves one card (drag and the VoiceOver Move up / Move down actions share this rule, D48):
+    /// a card that lands beside a member of its own superset stays in it — reordering A and B
+    /// keeps the pair; dragged away from its group, the exercise travels alone.
+    static func moving(_ items: [EditorItem], from: Int, to: Int) -> [EditorItem] {
+        guard items.indices.contains(from), from != to else { return items }
+        var result = items
+        var moved = result.remove(at: from)
+        let index = min(max(0, to), result.count)
+        if let group = moved.supersetGroupID {
+            let before = index > 0 ? result[index - 1].supersetGroupID : nil
+            let after = index < result.count ? result[index].supersetGroupID : nil
+            if before != group && after != group { moved.supersetGroupID = nil }
+        }
+        result.insert(moved, at: index)
+        return normalizedSupersets(result)
     }
 
     /// Superset groups stay contiguous runs of two or more (D48); anything else is split.
@@ -376,9 +388,8 @@ struct TemplateEditorSheet: View {
         guard let from = draft.items.firstIndex(where: { $0.id == id }) else { return }
         let to = from + offset
         guard draft.items.indices.contains(to) else { return }
-        withAnimation(.snappy) {
-            draft.items.swapAt(from, to)
-            draft.items = Self.normalizedSupersets(draft.items)
+        withAnimation(reduceMotion ? nil : .snappy) {
+            draft.items = Self.moving(draft.items, from: from, to: to)
         }
     }
 
@@ -485,17 +496,17 @@ struct TemplateEditorSheet: View {
                 switch panel {
                 case .set(let index) where index < value.repsBySet.count:
                     setAdjuster(item, index: index)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
                 case .rest:
                     restAdjuster(item)
-                        .transition(.opacity.combined(with: .move(edge: .top)))
+                        .transition(reduceMotion ? .opacity : .opacity.combined(with: .move(edge: .top)))
                 default:
                     EmptyView()
                 }
             }
-            .padding(.leading, 44)
+            .padding(.leading, 48)
         }
-        .padding(.leading, 4)
+        .padding(.leading, 2)
         .padding(.trailing, 14)
         .padding(.bottom, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -518,7 +529,7 @@ struct TemplateEditorSheet: View {
         Image(systemName: "line.3.horizontal")
             .font(.system(.body, weight: .semibold))
             .foregroundStyle(drag?.id == item.id ? look.textPrimary : look.textSecondary)
-            .frame(width: 40, height: 44)
+            .frame(width: 44, height: 44)
             .contentShape(Rectangle())
             .highPriorityGesture(dragGesture(for: item.id))
             .accessibilityLabel("Reorder")
@@ -530,7 +541,7 @@ struct TemplateEditorSheet: View {
             ForEach(Array(value.repsBySet.enumerated()), id: \.offset) { index, reps in
                 let selected = panel == .set(index)
                 Button {
-                    withAnimation(.snappy(duration: 0.22)) {
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) {
                         panels[value.id] = selected ? nil : .set(index)
                     }
                 } label: {
@@ -549,9 +560,10 @@ struct TemplateEditorSheet: View {
                 }
             }
             Button {
+                // Copies the last slot as it is, "no target" included (the old stepper's rule).
                 let last = value.repsBySet.last ?? 10
-                withAnimation(.snappy(duration: 0.25)) {
-                    item.wrappedValue.repsBySet.append(last == 0 ? 10 : last)
+                withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
+                    item.wrappedValue.repsBySet.append(last)
                     panels[value.id] = nil
                 }
             } label: {
@@ -584,7 +596,7 @@ struct TemplateEditorSheet: View {
                 NumberStepperPill(value: binding, range: 0...100) { $0 == 0 ? "—" : LookFormat.reps($0) }
                 Spacer(minLength: 0)
                 Button {
-                    withAnimation(.snappy(duration: 0.25)) {
+                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.25)) {
                         item.wrappedValue.repsBySet.remove(at: index)
                         panels[item.wrappedValue.id] = nil
                     }
@@ -618,7 +630,7 @@ struct TemplateEditorSheet: View {
         let isDefault = value.restSeconds == nil
         let seconds = value.restSeconds ?? fallbackRest(value)
         return Button {
-            withAnimation(.snappy(duration: 0.22)) { panels[value.id] = open ? nil : .rest }
+            withAnimation(reduceMotion ? nil : .snappy(duration: 0.22)) { panels[value.id] = open ? nil : .rest }
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: "timer").font(.system(.footnote, weight: .bold))
@@ -645,7 +657,8 @@ struct TemplateEditorSheet: View {
         .accessibilityIdentifier("templateRest")
     }
 
-    /// "Default" (the exercise's own rest) or a time for this template, 0:15 to 10:00.
+    /// "Default" (the exercise's own rest) or a time for this template, 0:00 to 10:00 in 15 s steps
+    /// (the range the old editor allowed).
     private func restAdjuster(_ item: Binding<EditorItem>) -> some View {
         let value = item.wrappedValue
         let fallback = fallbackRest(value)
@@ -655,12 +668,13 @@ struct TemplateEditorSheet: View {
         let ax = typeSize.isAccessibilitySize
         return (ax ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 10))) {
             Chip("Default", isSelected: value.restSeconds == nil) {
-                withAnimation(.snappy(duration: 0.2)) { item.wrappedValue.restSeconds = nil }
+                withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) { item.wrappedValue.restSeconds = nil }
             }
             .accessibilityValue(Format.duration(seconds: fallback))
             .accessibilityIdentifier("templateRestDefault")
-            NumberStepperPill(value: seconds, range: 15...600, step: 15) { Format.duration(seconds: $0) }
+            NumberStepperPill(value: seconds, range: 0...600, step: 15) { Format.duration(seconds: $0) }
                 .opacity(value.restSeconds == nil ? 0.6 : 1)
+                .accessibilityIdentifier("templateRestStepper")
             if !ax { Spacer(minLength: 0) }
         }
     }
@@ -721,11 +735,11 @@ struct TemplateEditorSheet: View {
             }
             HStack(spacing: 10) {
                 Image(systemName: "timer").font(.system(.subheadline, weight: .semibold)).foregroundStyle(look.textSecondary)
-                NumberStepperPill(value: plan.minutes, range: 1...180, step: 5) { "\($0) min" }
+                NumberStepperPill(value: plan.minutes, range: 1...180) { "\($0) min" }
                 Spacer(minLength: 0)
             }
             LookDivider()
-            Toggle(isOn: distanceOn.animation(.snappy)) {
+            Toggle(isOn: distanceOn.animation(reduceMotion ? nil : .snappy)) {
                 Text("Distance target").font(.system(.subheadline, weight: .semibold)).foregroundStyle(look.textPrimary)
             }
             .toggleStyle(.look)

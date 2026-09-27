@@ -275,7 +275,8 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.swipeUp()
         let ask = app.buttons["askAIRoutine"]
         for _ in 0..<4 where !(ask.exists && ask.isHittable) { app.swipeUp() }
-        XCTAssertTrue(ask.exists, "Ask AI for Templates reachable at AccessibilityL")
+        XCTAssertTrue(ask.exists && ask.isHittable, "Ask AI for Templates reachable at AccessibilityL")
+        XCTAssertLessThanOrEqual(ask.frame.maxY, app.tabBars.firstMatch.frame.minY, "clear of the tab bar")
         shoot("redesign-04-start-axl-2")
         // Ticket 11: the same template opened, at AccessibilityL.
         for _ in 0..<4 where !app.buttons["templateTile.Full Session"].isHittable { app.swipeDown() }

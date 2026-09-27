@@ -119,4 +119,15 @@ struct WeekSummaryTests {
         #expect(stats.lastRun == date(17))
         #expect(stats.averageDurationSeconds == 3000)
     }
+
+    @Test func aDaysMinutesRoundOnceAcrossItsWorkouts() {
+        let a = WeekSummaryInput(id: UUID(), title: "A", startedAt: date(23, 7), durationSeconds: 30 * 60 + 59,
+                                 hasLifting: true, hasCardio: false, familySets: [:])
+        var b = a
+        b.id = UUID()
+        b.startedAt = date(23, 18)
+        let summary = WeekSummaryMath.summary(of: [a, b], now: date(24), calendar: calendar)
+        #expect(summary.days[2].minutes == 61)
+        #expect(summary.minutes == 61)
+    }
 }

@@ -50,7 +50,6 @@ extension WeekSummary {
 
 extension WeekDaySummary {
     fileprivate var trained: Bool { !workouts.isEmpty }
-    fileprivate var minutes: Int { workouts.reduce(0) { $0 + $1.minutes } }
     fileprivate var spoken: String {
         let day = LookFormat.weekday(date)
         if trained { return "\(day), \(workouts.map(\.title).joined(separator: ", ")), \(minutes) minutes" }

@@ -23,8 +23,10 @@ struct DayWorkout: Identifiable, Hashable {
     var title: String
     var kind: DayWorkoutKind
     var families: [MuscleFamily]
-    var minutes: Int
+    /// Kept in seconds so a day's total rounds once, not once per workout.
+    var seconds: Int
     var sets: Int
+    var minutes: Int { seconds / 60 }
 }
 
 struct WeekDaySummary: Identifiable, Hashable {
@@ -35,6 +37,8 @@ struct WeekDaySummary: Identifiable, Hashable {
     var isToday: Bool
     var isFuture: Bool
     var workouts: [DayWorkout]
+    /// The day's training time: summed in seconds, then rounded down once.
+    var minutes: Int { workouts.reduce(0) { $0 + $1.seconds } / 60 }
 }
 
 struct WeekSummary: Hashable {
@@ -137,7 +141,7 @@ enum WeekSummaryMath {
         return DayWorkout(
             workoutID: input.id, title: input.title, kind: kind,
             families: MuscleFamily.allCases.filter { (input.familySets[$0] ?? 0) > 0 },
-            minutes: input.durationSeconds / 60,
+            seconds: input.durationSeconds,
             sets: input.familySets.values.reduce(0, +))
     }
 }
