@@ -16,6 +16,8 @@ enum DesignSampleFixture {
     /// With `-uiTestDesignLive` too: Push Day is running at Iron Temple, 18 minutes in, with two
     /// sets logged on the chest press and a rest counting down (the live workout's captures).
     static let liveArgument = "-uiTestDesignLive"
+    /// With `-uiTestDesignLiveEmpty` instead: an empty workout just started at Iron Temple.
+    static let emptyLiveArgument = "-uiTestDesignLiveEmpty"
     static var liveIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(liveArgument)
     }
@@ -114,6 +116,10 @@ enum DesignSampleFixture {
         try GymSelection.remember(gym, in: context)
         if liveIsEnabled, let push = byName["Push Day"] {
             try startLive(push, at: gym, now: now, in: context)
+        } else if isEnabled && ProcessInfo.processInfo.arguments.contains(emptyLiveArgument) {
+            // An empty workout just started at the gym (the "Recent at" state).
+            _ = try WorkoutSession(context: context).startWorkout(at: gym, on: now.addingTimeInterval(-40))
+            try context.save()
         }
     }
 

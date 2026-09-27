@@ -171,7 +171,8 @@ struct LiveVitalsStrip: View {
         }
     }
 
-    /// AX: heart rate on its own row, then calories and volume.
+    /// AX: heart rate on its own row, then calories and volume side by side when they fit (so the
+    /// header and vitals stay near a third of the screen), else stacked.
     private var rows: some View {
         VStack(spacing: 0) {
             if let liveMonitor {
@@ -179,12 +180,26 @@ struct LiveVitalsStrip: View {
                     .buttonStyle(.plain)
                     .accessibilityHint("Edits zones")
                 LookDivider()
-                if let calories = liveMonitor.activeEnergyKilocalories {
-                    caloriesCell(calories)
-                    LookDivider()
+            }
+            let calories = liveMonitor?.activeEnergyKilocalories
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 0) {
+                    if let calories {
+                        caloriesCell(calories).fixedSize()
+                        LookDivider(vertical: true)
+                    }
+                    volumeCell.fixedSize()
+                    Spacer(minLength: 0)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                VStack(spacing: 0) {
+                    if let calories {
+                        caloriesCell(calories)
+                        LookDivider()
+                    }
+                    volumeCell
                 }
             }
-            volumeCell
         }
     }
 
