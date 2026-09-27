@@ -1,7 +1,8 @@
 Re-review (round 2) of ticket 03, Floodlight live workout, branch
 `ericlee4992/redesign-floodlight-live` in `/tmp/wt-floodlight/live`. Your round-1 report is
-`work-record/redesign-floodlight/codex-review-03.md`. The fixes are commit `1a04857` (plus the
-ticket's verification record committed after it); range `b1e0128..HEAD`. Read the
+`work-record/redesign-floodlight/codex-review-03.md`. The fixes are commits `1a04857` and `57d20cc`
+(the user chose the prototype's AX behaviour for the band: at AX sizes with a rest running it
+replaces the Rest/time text instead of stacking); range `b1e0128..HEAD`. Read the
 "Codex review 03 — response (round 1)" and "Verification — round 2" sections of
 `issues/03-live-workout.md`.
 
