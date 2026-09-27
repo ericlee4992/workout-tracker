@@ -74,7 +74,25 @@ Changed: PREVIOUS short form (above). Removed: the toolbar Cancel.
 
 ## Verification
 
-In progress — see Progress.
+Scope (DEVELOPMENT: shared workout lifecycle + new feature): build; the live-workout UI flows
+below (core logging loop, supersets/rest, heart rate, bar mode, presets, machine deletion,
+dumbbell counterpart, rename, cardio mix, captures); unit tests for the new Domain rules;
+Default/AXL captures in light and dark. Simulator WT-Floodlight (iOS 27.0).
+
+- Build: exit 0.
+- `live-ui-1` (31 UI + 12 unit): unit `NextSetTests` 6/6 + `SetBadgeTests` 6/6 passed. UI 28
+  passed, 5 failed — all five **pre-existing**: they fail identically on untouched `main`
+  a0364f2 (`base-5.log`): the Exercises tab's search field (CoreLoop
+  `testCreatingAnExerciseMidWorkoutLogsASetAndReachesHistory`, both `ExercisePresetUITests`),
+  the Gyms model-picker type submenu (CoreLoop `testModelPickerFiltersAndSearchesDownToOneModel`)
+  and History detail's heart-rate section (`HeartRateSummaryUITests.testFinishShowsTheChart…`).
+  None is in a screen this ticket changes; each goes to its area's ticket.
+  Passed include: CoreLoop core loop / one-tap repeat / Add Set carry-forward / swipe delete /
+  minimise-resume / View in History / empty finish / gym settings; HeartRateUITests 5/5;
+  BarbellUITests 2/2; MachineDeletionUITests 2/2; DumbbellCounterpart; WorkoutNameUITests 2/2;
+  CodexScreenshotUITests 3/3; HeartRateSummary no-series; RedesignScreenshot
+  test02 default + AXL; Cardio mixed workouts 2/2.
+- Captures: `/tmp/wt-floodlight/shots/l01-{light,dark,axl,empty}.png` (fixture).
 
 ## Progress
 
