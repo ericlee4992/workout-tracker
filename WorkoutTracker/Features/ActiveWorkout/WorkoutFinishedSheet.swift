@@ -42,8 +42,11 @@ struct WorkoutFinishedSheet: View {
     }
 
     /// The families, new bests, exercise rows and template comparison (Floodlight redesign).
-    private var receipt: FinishReceipt? {
-        savedWorkout.flatMap { try? FinishReceipt.build(for: $0, in: modelContext) }
+    /// Built once per saved workout, not per render: it reads each scope's whole history.
+    @State private var receipt: FinishReceipt?
+
+    private func buildReceipt() {
+        receipt = savedWorkout.flatMap { try? FinishReceipt.build(for: $0, in: modelContext) }
     }
 
     var body: some View {
@@ -111,6 +114,8 @@ struct WorkoutFinishedSheet: View {
             // The summary made this sheet tall; a medium detent hid the
             // actions and the exercises below the fold.
             .presentationDetents([.large])
+            .onAppear(perform: buildReceipt)
+            .onChange(of: savedWorkout?.id) { _, _ in buildReceipt() }
             .navigationTitle(savedWorkout == nil ? "Nothing logged" : "Nice work")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

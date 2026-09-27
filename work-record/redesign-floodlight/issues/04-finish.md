@@ -33,6 +33,8 @@ plain Floodlight (not the live Paper structure):
   `SetBadgeMath.outcomes` (each mark with the incumbent it beat) and `workoutBest` (the
   receipt's line per scope); badge history is limited to sets completed before the workout
   started, so an old workout is judged against its own past; `SetValue` moved to Domain.
+  The sheet builds the receipt once per saved workout (not per render) and
+  `SetBadgeMath.receiptMarks` reads each scope's history once.
 
 ## Rules kept
 

@@ -64,12 +64,12 @@ extension FinishReceipt {
                 counts[family, default: 0] += completed.count
             }
             let loadType = entry.snapshotLoadType
-            let outcomes = try SetBadgeMath.outcomes(for: entry, in: context)
+            let (outcomes, scopeBest) = try SetBadgeMath.receiptMarks(for: entry, in: context)
             let marks = completed.compactMap { outcomes[$0.id]?.badge }
             let entryBadge: SetBadge? = marks.contains(.newBest) ? .newBest : marks.first
             // One line per scope. Entries sharing a scope (a preset switched back and forth)
             // report the same best, so it is listed once, with the equipment of the entry holding it.
-            if let best = try SetBadgeMath.workoutBest(for: entry, in: context),
+            if let best = scopeBest,
                listedBests.insert(best.id).inserted,
                let (set, holder) = setsByID[best.id] {
                 bests.append(Best(

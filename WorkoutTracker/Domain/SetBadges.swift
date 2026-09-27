@@ -87,10 +87,12 @@ extension SetBadgeMath {
         return outcomes(current: current, history: history)
     }
 
-    /// `workoutBest` for the scope `entry` is in; entries sharing a scope return the same set.
-    static func workoutBest(for entry: ExerciseEntry, in context: ModelContext) throws -> (id: UUID, previous: RecordSetInput)? {
-        guard let (current, history) = try inputs(for: entry, in: context) else { return nil }
-        return workoutBest(current: current, history: history)
+    /// The Finish receipt's reads for one entry's scope — every mark and the scope's
+    /// `workoutBest` (entries sharing a scope return the same best) — from one history fetch.
+    static func receiptMarks(for entry: ExerciseEntry, in context: ModelContext) throws
+        -> (outcomes: [UUID: SetBadgeOutcome], best: (id: UUID, previous: RecordSetInput)?) {
+        guard let (current, history) = try inputs(for: entry, in: context) else { return ([:], nil) }
+        return (outcomes(current: current, history: history), workoutBest(current: current, history: history))
     }
 
     private static func inputs(for entry: ExerciseEntry, in context: ModelContext) throws
