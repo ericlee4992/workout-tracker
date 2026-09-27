@@ -387,5 +387,7 @@ Verification (round 2): `scan-ui-8` (exit 65): `ScanMachineTests` 11/11, the mak
 and future-only passed; the past test failed on test mechanics (a tab tap during the sheet's
 dismissal; a Back tap lost; then the label collision above) — `scan-ui-9`…`-14` isolate them;
 `scan-ui-14`: future-only, `testCaptureCorrectionLightDefault` and `…DarkAccessibility` pass;
-`scan-ui-15`: **exit 0**, `testPastCorrectionAsksThenApplies`. The fixes move no captured pixel
+`scan-ui-15`: **exit 0**, `testPastCorrectionAsksThenApplies`; `scan-ui-16`: **exit 0 — 7/7**, a
+regression pass over the result step after fixes 1–2 (`testCaptureScanLightDefault`, AskAI
+identity ×4 default, edited label, generic scan). The fixes move no captured pixel
 except the result's maker/model fields, whose visible default state is unchanged.
