@@ -13,9 +13,10 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   (pushed `0ca7868`). **Codex clear after 3 rounds** (`codex-review-03c.md`).
 - **Ticket 04** (finish receipt): `ericlee4992/redesign-floodlight-finish` (pushed, stacked on
   the live tip). **Codex clear after 3 rounds** (`codex-review-04c.md`).
-- **Next:** ticket 05, History (month card + week lists, calendar, detail, edit set, progress
-  chart; the heart-rate plate/zone restyle deferred from 04; fix the pre-existing History HR
-  test), branched from the finish tip.
+- **Ticket 05** (History — month card + week lists, calendar, detail, edit set, progress chart;
+  the heart-rate plate/zone restyle deferred from 04; fix the pre-existing History HR test):
+  started 2026-09-27 in a fresh session. Branch `ericlee4992/redesign-floodlight-history`
+  (pushed, from the finish tip `1c3fc99`), scratch checkout `/tmp/wt-floodlight/history`.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
