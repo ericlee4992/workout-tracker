@@ -24,20 +24,23 @@ struct ScanPhotoTile: View {
     var dimmed = false
 
     var body: some View {
-        ZStack {
-            Color(white: 0.1)
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .saturation(dimmed ? 0 : 1)
-                    .brightness(dimmed ? -0.12 : 0)
-            } else {
-                Image(systemName: "camera.viewfinder")
-                    .font(.system(size: 34, weight: .semibold))
-                    .foregroundStyle(.white.opacity(0.75))
+        // The tile sets the size; the photo only fills it. An aspect-filled image as a sibling
+        // would lay out at the photo's own width and push the whole column off the screen.
+        Color(white: 0.1)
+            .overlay {
+                if let image {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .saturation(dimmed ? 0 : 1)
+                        .brightness(dimmed ? -0.12 : 0)
+                } else {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(size: 34, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.75))
+                }
             }
-        }
+            .clipped()
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)

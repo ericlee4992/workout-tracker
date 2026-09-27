@@ -1,7 +1,7 @@
 # 07 — Floodlight: Scan
 
 Type: feature (part of [01](01-implement-redesign.md))
-Status: in progress — ticket written 2026-09-27; implementation next
+Status: in progress — implemented 2026-09-27; targeted verification running (see Verification)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-scan` (scratch checkout `/tmp/wt-floodlight/scan`),
 stacked on the ticket-06 gyms tip `d45d5c5` (Codex clear). Nothing merged to `main`; nothing installed.
@@ -256,6 +256,25 @@ plain list (now the picker above).
 
 ## Verification
 
+Runner `/tmp/wt-floodlight/scan-run.sh <name> build|test …` (fresh derived data
+`/tmp/wt-floodlight/dd-scan-test`, `-collect-test-diagnostics never`); logs, `.exit` files and
+result bundles `/tmp/wt-floodlight/results/scan-*`; screenshots exported with
+`/tmp/wt-floodlight/scan-export.sh`.
+
+- `scan-unit-1` (exit 65): the new test file did not compile (`[a, b].forEach { insert }` over
+  mixed model types). Fixed.
+- `scan-unit-2`: **exit 0 — 49/49** (`ScanMachineTests` 11, `AIGymTests`, `EquipmentLifecycleTests`,
+  `MachineCreationTests`), built from fresh derived data (app + tests).
+- `scan-build-1`, `scan-build-2`: exit 0 (build-for-testing after the sheets).
+- `scan-ui-1`: **exit 0 — 7/7** FloodlightScan light-default captures (scan, outcomes, Read
+  Label, correction) and the three flows (direct add, future-only, past asks then applies). The
+  captures showed a layout bug no assertion caught: the aspect-filled photo laid out at the
+  fixture photo's own width and pushed the identifying, error and result columns off the screen.
+  Fixed in `ScanPhotoTile` (the tile sets the size; the photo fills it in an overlay). The Read
+  Label viewfinder was shot mid-presentation (faded); the test waits for the sheet to land. The
+  454 s of the first test was a cold simulator launch (a Spindump attachment at launch), not the
+  sheets.
+
 Scope (DEVELOPMENT: new feature + shared sheets — the scan sheet opens from the gym page, the
 machine form, mid-workout Add Machine and AI routine setup; the correction sheet from the gym
 page and machine page): build; unit tests for the new Domain rules and the identification and
@@ -268,4 +287,14 @@ WT-Floodlight (iOS 27.0); logs, exits and result bundles `/tmp/wt-floodlight/res
 - 2026-09-27: resumed in a fresh session; verified branches (scan = gyms tip `d45d5c5`, pushed,
   clean; main `a0364f2`; nothing merged or installed). Read the prototype Scan area, the real
   scan/correction code and `AskAIUITests` / `ScanMachineLabelUITests`; prototype captured into
-  `../reference/prototype-scan/`. User decisions 1–4 recorded. Ticket written.
+  `../reference/prototype-scan/`. User decisions 1–4 recorded. Ticket written (`d0f1bef`).
+- 2026-09-27: Domain `ScanMachine` / `ModelCorrection` (+ `EquipmentIdentityResolution.exactMatches`)
+  with `ScanMachineTests`; the Scan pieces (`Features/Gyms/Scan/`), the Scan Machine sheet in both
+  modes, Read Label, Correct Model, the exercise picker (also the form's "Choose exercises");
+  the gym page and routine setup add directly, "Choose a catalog model" opens the machine form
+  once the scan sheet has closed (`a637e62`). `AskAIUITests` updated (Cancel by `scanCancel`,
+  routine scans end on `scanDone`, the error's Take another photo re-arms the shutter); new
+  `FloodlightScanUITests` (16 captures + 3 flows).
+- Decision record: user decision 1 changes where a Scan Machine scan is confirmed (the sheet's
+  Add, not the form) — D56's confirmation stays (Add is the tap). Record it with the D54 entry
+  before merge, as ticket 05 did for D47.

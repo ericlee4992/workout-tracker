@@ -54,8 +54,11 @@ final class AskAIUITests: XCTestCase {
     func testScanFailureAndRescanRemainUsable() {
         launch(["-uiTestTerraOffline"]); scanner(); app.buttons["scanShutter"].tap()
         XCTAssertTrue(any("scanAIError").waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["scanShutter"].isEnabled)
         XCTAssertFalse(app.buttons["scanUseCandidate"].exists)
+        // Floodlight ticket 07: the error sits beside the photo; Take another photo re-arms the camera.
+        app.buttons["scanRescan"].tap()
+        let shutter = app.buttons["scanShutter"]; XCTAssertTrue(shutter.waitForExistence(timeout: 5))
+        XCTAssertTrue(shutter.isEnabled)
     }
     func testRescanDropsLateAIResponse() {
         launch(["-uiTestTerraSlow"]); scanner(); app.buttons["scanShutter"].tap()
@@ -154,15 +157,15 @@ final class AskAIUITests: XCTestCase {
             shot("followup-capture-\(large ? "axl" : "default")"); shutter.tap()
             let use = app.buttons["scanUseCandidate"]; XCTAssertTrue(use.waitForExistence(timeout: 10)); reach(use)
             shot("followup-proposal-\(large ? "axl" : "default")"); use.tap()
-            let add = app.buttons["saveMachine"]; XCTAssertTrue(add.waitForExistence(timeout: 5))
-            shot("followup-machine-editor-\(large ? "axl" : "default")"); add.tap()
+            // Floodlight ticket 07: the scan adds the machine itself and ends on the Added step.
+            let done = app.buttons["scanDone"]; XCTAssertTrue(done.waitForExistence(timeout: 5))
+            shot("followup-added-\(large ? "axl" : "default")"); done.tap()
             XCTAssertTrue(scan.waitForExistence(timeout: 5)); reach(scan)
             XCTAssertEqual(any("routineMachineCount").label, "\(count) saved machines")
         }
         shot("followup-scanned-equipment-\(large ? "axl" : "default")")
         scan.tap(); XCTAssertTrue(app.buttons["scanShutter"].waitForExistence(timeout: 5))
-        app.navigationBars["Scan Equipment"].buttons["Cancel"].tap()
-        app.navigationBars["New Machine"].buttons["Cancel"].tap()
+        app.buttons["scanCancel"].tap()
         XCTAssertTrue(scan.waitForExistence(timeout: 5))
         XCTAssertEqual(any("routineMachineCount").label, "2 saved machines")
         for _ in 0..<6 { app.swipeDown() }
@@ -224,15 +227,13 @@ final class AskAIUITests: XCTestCase {
         let scan = app.buttons["routineScanMachine"]; XCTAssertTrue(scan.waitForExistence(timeout: 5)); reach(scan); scan.tap()
         let allow = app.buttons["allowAIPhotos"]; XCTAssertTrue(allow.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["scanShutter"].exists)
-        app.navigationBars["Scan Equipment"].buttons["Cancel"].tap()
-        app.navigationBars["New Machine"].buttons["Cancel"].tap()
+        app.buttons["scanCancel"].tap()
         XCTAssertTrue(scan.waitForExistence(timeout: 5)); XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
         scan.tap(); XCTAssertTrue(allow.waitForExistence(timeout: 5)); reach(allow); allow.tap()
         app.buttons["scanShutter"].tap()
         XCTAssertTrue(any("scanAIError").waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["scanUseCandidate"].exists)
-        app.navigationBars["Scan Equipment"].buttons["Cancel"].tap()
-        app.navigationBars["New Machine"].buttons["Cancel"].tap()
+        app.buttons["scanCancel"].tap()
         XCTAssertTrue(scan.waitForExistence(timeout: 5)); XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
         for _ in 0..<5 { app.swipeDown() }
         XCTAssertEqual(goals.value as? String, "Keep these preferences")
@@ -373,7 +374,7 @@ final class AskAIUITests: XCTestCase {
     func testManualModelSuggestionsRequireConsentAndKeepConfirmation() {
         launch(["-uiTestScanFixture"])
         scanner()
-        app.navigationBars["Scan Equipment"].buttons["Cancel"].tap()
+        let cancel = app.buttons["scanCancel"]; XCTAssertTrue(cancel.waitForExistence(timeout: 5)); cancel.tap()
         app.buttons["scanLabelOffline"].tap()
         let shutter = app.buttons["scanShutter"]; XCTAssertTrue(shutter.waitForExistence(timeout: 5)); shutter.tap()
         let create = app.buttons["scanCreateNew"]; XCTAssertTrue(create.waitForExistence(timeout: 15)); reach(create); create.tap()

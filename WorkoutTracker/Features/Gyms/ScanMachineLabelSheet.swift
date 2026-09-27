@@ -178,7 +178,10 @@ struct ScanMachineLabelSheet: View {
     /// Always dark: the camera edge to edge, the plate-shaped box as flood-white brackets over a
     /// scrim, the status in a glass capsule and the control row (photo · shutter · torch).
     private var scanningContent: some View {
-        ZStack(alignment: .bottom) {
+        // Read here, not from the environment: this view's own `look` is the sheet's, and the
+        // viewfinder is always dark (the `.environment` override reaches only child views).
+        let dark = look.darkCounterpart
+        return ZStack(alignment: .bottom) {
             viewfinder
                 .ignoresSafeArea(edges: .bottom)
                 // The box the user frames the plate in: the SAME geometry the camera turns into
@@ -192,7 +195,7 @@ struct ScanMachineLabelSheet: View {
                         }
                         .fill(Color.black.opacity(0.34), style: FillStyle(eoFill: true))
                         ScanFrameCorners(length: 30, radius: 3)
-                            .stroke(look.done, style: StrokeStyle(lineWidth: 5, lineCap: .square, lineJoin: .miter))
+                            .stroke(dark.done, style: StrokeStyle(lineWidth: 5, lineCap: .square, lineJoin: .miter))
                             .frame(width: box.width, height: box.height)
                             .position(x: box.midX, y: box.midY)
                             .accessibilityElement()
@@ -213,7 +216,7 @@ struct ScanMachineLabelSheet: View {
                 Spacer(minLength: 0)
                 Text(capturing ? "Reading…" : "Fit the name plate in the box")
                     .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(look.onSlab)
+                    .foregroundStyle(dark.onSlab)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 9)
@@ -258,12 +261,13 @@ struct ScanMachineLabelSheet: View {
     }
 
     private func circleButton(symbol: String, lit: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
+        let dark = look.darkCounterpart
+        return Button(action: action) {
             Image(systemName: symbol)
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(lit ? Color.black : look.onSlab)
+                .foregroundStyle(lit ? Color.black : dark.onSlab)
                 .frame(width: 54, height: 54)
-                .background(lit ? look.onSlab : Color.clear, in: Circle())
+                .background(lit ? dark.onSlab : Color.clear, in: Circle())
                 .glassEffect(.regular.interactive(), in: Circle())
         }
         .buttonStyle(.plain)

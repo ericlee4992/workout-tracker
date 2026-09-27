@@ -356,7 +356,7 @@ private struct CorrectionTimeline: View {
     var lit: Bool
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var tickX: CGFloat = 0
+    @State private var todayWidth: CGFloat = 0
 
     private let dot: CGFloat = 9
     private let futureCount = 3
@@ -376,20 +376,28 @@ private struct CorrectionTimeline: View {
                     .fill(look.textPrimary)
                     .frame(width: 2, height: dot + 8)
                     .padding(.horizontal, 6)
-                    .onGeometryChange(for: CGFloat.self) { $0.frame(in: .named("correctionTimeline")).midX } action: { tickX = $0 }
                 HStack(spacing: 4) {
                     ForEach(0..<futureCount, id: \.self) { _ in dotView(filled: true) }
                 }
                 Spacer(minLength: 0)
             }
+            // Centred under the tick, whose x is COMPUTED from the dots: measuring the tick and
+            // moving the label by it fed back at AX sizes (a label wider than the dots before the
+            // tick widened the stack, which moved the tick, which moved the label — a layout loop
+            // that never let the app go idle). Only the label's own width is measured.
             Text("Today")
                 .font(.system(.caption2, weight: .bold))
                 .foregroundStyle(look.textSecondary)
                 .fixedSize()
-                .alignmentGuide(.leading) { d in d.width / 2 - tickX }
+                .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { todayWidth = $0 }
+                .padding(.leading, max(0, tickCentre(shown: shown) - todayWidth / 2))
         }
-        .coordinateSpace(.named("correctionTimeline"))
         .accessibilityHidden(true)
+    }
+
+    /// The tick's centre from the timeline's leading edge: the past dots, then the tick's padding.
+    private func tickCentre(shown: Int) -> CGFloat {
+        CGFloat(shown) * dot + CGFloat(max(0, shown - 1)) * 4 + 6 + 1
     }
 
     @ViewBuilder private func dotView(filled: Bool) -> some View {
