@@ -149,8 +149,13 @@ Both review terminals closed. Logs/results: `/tmp/wt-floodlight/results/`; ticke
 captures are committed under `../captures/03/`, `../captures/04/`. Pre-existing iOS 27 UI
 failures left: Gyms model picker (CoreLoop :252), History HR section (HeartRateSummary :66).
 Ticket 05 (History) Codex clear 2026-09-27 on its own branch from the finish tip; details and
-verification in `issues/05-history.md` (on that branch). Next: ticket 06 Gyms + scan (fix the
-model-picker test), on a new branch from the history tip. D47 reopening for notes (user,
+verification in `issues/05-history.md` (on that branch). Next: ticket 06 Gyms, in a fresh
+session, on `ericlee4992/redesign-floodlight-gyms` (pushed from the history tip `646187e`; scratch
+checkout `/tmp/wt-floodlight/gyms`). Scope G01–G07 (list/empty, gym detail, a new machine detail,
+edit gym, model picker, deleted machines) plus the model-picker test (CoreLoop :252); proposal for
+the user: Scan (S01–S07) as its own ticket 07. Flag each prototype-only feature (visit stats and
+rhythm, Current badge, machine bests/last used, grouping pills, machine detail, deleted gyms with
+Restore, New Model prefill) in `issues/06-gyms.md`. D47 reopening for notes (user,
 2026-09-27) goes into DECISIONS with the D54 entry.
 
 ### Handoff — 2026-09-26, end of session 1 (context full; continue in a new session)

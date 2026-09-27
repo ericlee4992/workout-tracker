@@ -22,6 +22,10 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   History HR test (HeartRateSummary :66) now passes. User decisions 2026-09-27: notes on the
   detail, shown and editable as a MARKED edit (reopens D47 — record with the D54 entry);
   empty History follows the prototype (no calendar until the first workout; Start Lifting).
+- **Ticket 06** (Gyms): NOT STARTED — to begin in a fresh session. Branch
+  `ericlee4992/redesign-floodlight-gyms` (pushed, from the history tip `646187e`, no commits),
+  scratch checkout `/tmp/wt-floodlight/gyms`. Start prompt: `/tmp/wt-floodlight/ticket06-brief.md`
+  (ephemeral; the same content is summarised in ticket 01 → Session 2).
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
