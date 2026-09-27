@@ -26,8 +26,11 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   (scratch checkout `/tmp/wt-floodlight/gyms`, stacked on the history tip `646187e`). Record:
   `issues/06-gyms.md` on that branch (ticket + prototype captures committed `0a489a8`). User
   decisions 2026-09-27: **Scan screens split into ticket 07**; **Add Machine… keeps its form**
-  (restyled), not the prototype's catalog-first flow. Next: Domain `GymOverview` + tests, then
-  the screens, captures, targeted tests, Codex review.
+  (restyled), not the prototype's catalog-first flow. Implemented and pushed (`aeb89e0`):
+  Domain `GymOverview` + tests, all G01–G07 screens, capture/flow tests, a clean-build fix in
+  the progress view (ticket-05 code failed from fresh derived data). First captures reviewed
+  (`gyms-cap-1`, 8/12; the 4 failures were a test scroll step). Next: targeted batch
+  `gyms-ui-1` (log/exit `/tmp/wt-floodlight/results/gyms-ui-1.*`), show captures, Codex review.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
