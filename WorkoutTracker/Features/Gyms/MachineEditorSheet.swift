@@ -13,8 +13,6 @@ struct MachineEditorSheet: View {
     /// nil = create a new machine at `gym`; non-nil = edit that machine
     /// (D2, ticket 17 — its default unit was previously set-once).
     var machine: MachineInstance?
-    /// Routine setup enters the same confirmed AI flow directly; ordinary editors stay unchanged.
-    var startsWithScanner = false
     @Query(sort: \Exercise.name) private var allExercises: [Exercise]
     @State private var recognizedIDs: Set<UUID> = []
     @State private var identified: EquipmentIdentification?
@@ -94,7 +92,9 @@ struct MachineEditorSheet: View {
                     Section("Exercises") {
                         ForEach(allExercises.filter { recognizedIDs.contains($0.id) }) { Text($0.name) }
                         NavigationLink("Choose exercises") {
-                            AIExerciseSelection(exercises: allExercises, selected: $recognizedIDs)
+                            ScanExercisePicker(exercises: allExercises, proposed: [], selected: Binding(
+                                get: { allExercises.filter { recognizedIDs.contains($0.id) }.map(\.id) },
+                                set: { recognizedIDs = Set($0) }))
                         }
                         if let identified, identified.identity == "specific" {
                             Text("\(identified.manufacturer) \(identified.modelName)").foregroundStyle(.secondary)
@@ -154,7 +154,7 @@ struct MachineEditorSheet: View {
                 applyModelDefaultLabel()
             }
             .sheet(isPresented: $showingScanner) {
-                IdentifyEquipmentSheet { result in
+                IdentifyEquipmentSheet(gym: gym) { result in
                     identified = result
                     recognizedIDs = Set(result.exerciseIDs)
                     let available = (try? modelContext.fetch(FetchDescriptor<EquipmentModel>())) ?? []
@@ -189,7 +189,6 @@ struct MachineEditorSheet: View {
     private func load() {
         guard !loaded else { return }
         loaded = true
-        if machine == nil && startsWithScanner { showingScanner = true }
         guard let machine else { return }
         label = machine.label
         model = machine.model

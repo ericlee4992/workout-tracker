@@ -99,124 +99,174 @@ struct ScanMachineLabelSheet: View {
         let source: ImagePicker.Source
     }
 
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var shutterTaps = 0
+
     var body: some View {
         NavigationStack {
-            content
-                .navigationTitle("Scan Label")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { dismiss() }
-                    }
-                    if case .scanning = phase, hasTorch {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                torchOn.toggle()
-                            } label: {
-                                Image(systemName: torchOn ? "bolt.fill" : "bolt.slash")
-                            }
-                            .accessibilityIdentifier("scanTorch")
-                        }
-                    }
+            // Floodlight redesign ticket 07: the Scan sheets' chrome (glass Cancel, the title in
+            // the bar, the pinned commands) over the same phases and the same capture code.
+            VStack(spacing: 0) {
+                if case .scanning = phase {
+                    scanningContent
+                        .environment(\.look, look.darkCounterpart)
+                        .environment(\.colorScheme, .dark)
+                } else {
+                    ScanTopBar(title: "Read Label", onCancel: { dismiss() })
+                    content
                 }
-                .sheet(item: $pickerRequest) { request in
-                    ImagePicker(source: request.source) { image in
-                        pickerRequest = nil
-                        guard let image else {
-                            if case .idle = phase { cancelledWithoutPhoto() }
-                            return
-                        }
-                        read(image)
+            }
+            .toolbar(.hidden, for: .navigationBar)
+            .sheet(item: $pickerRequest) { request in
+                ImagePicker(source: request.source) { image in
+                    pickerRequest = nil
+                    guard let image else {
+                        if case .idle = phase { cancelledWithoutPhoto() }
+                        return
                     }
-                    .ignoresSafeArea()
+                    read(image)
                 }
-                .onAppear(perform: start)
-                // Neither the 8 s capture timeout nor an ask outlives the sheet.
-                .onDisappear {
-                    abandonCapture()
-                    abandonAsk()
-                }
+                .ignoresSafeArea()
+            }
+            .onAppear(perform: start)
+            // Neither the 8 s capture timeout nor an ask outlives the sheet.
+            .onDisappear {
+                abandonCapture()
+                abandonAsk()
+            }
         }
+        .lookSheetGround()
+        .presentationBackground(isScanning ? Color.black : look.groundSheet)
+        .sensoryFeedback(.impact(weight: .medium), trigger: shutterTaps)
+    }
+
+    private var isScanning: Bool {
+        if case .scanning = phase { true } else { false }
     }
 
     @ViewBuilder
     private var content: some View {
         switch phase {
         case .idle:
-            List {
-                Label("Starting the camera…", systemImage: "camera")
-                    .foregroundStyle(.secondary)
-                    .accessibilityIdentifier("scanStatus")
+            ScanPagedScroll(centered: true) {
+                VStack(spacing: 18) {
+                    ScanGlyphDisc(symbol: "camera", size: 88, glyphFont: .system(size: 32, weight: .semibold))
+                    Text("Starting the camera…")
+                        .font(look.font.title3)
+                        .foregroundStyle(look.textSecondary)
+                        .accessibilityIdentifier("scanStatus")
+                }
             }
         case .scanning:
-            scanningContent
+            EmptyView()
         case .reading:
-            List {
-                HStack(spacing: 10) {
-                    ProgressView()
-                    Text("Reading the label…")
-                }
-                .accessibilityIdentifier("scanStatus")
+            ScanPagedScroll(centered: true) {
+                ScanProgressInstrument(title: "Reading the label…")
+                    .accessibilityIdentifier("scanStatus")
+                    .padding(.horizontal, look.space.margin)
             }
         case .results(let results):
-            List { resultsContent(results) }
+            resultsContent(results)
         case .failed(let message):
-            List { failureContent(message) }
+            failureContent(message)
         }
     }
 
     // MARK: - Viewfinder
 
+    /// Always dark: the camera edge to edge, the plate-shaped box as flood-white brackets over a
+    /// scrim, the status in a glass capsule and the control row (photo · shutter · torch).
     private var scanningContent: some View {
         ZStack(alignment: .bottom) {
             viewfinder
                 .ignoresSafeArea(edges: .bottom)
-                // The box the user frames the plate in: the SAME geometry the
-                // camera turns into Vision's region of interest, so what is
-                // drawn is what is read (LabelFramingBox).
+                // The box the user frames the plate in: the SAME geometry the camera turns into
+                // Vision's region of interest, so what is drawn is what is read (LabelFramingBox).
                 .overlay {
                     GeometryReader { geometry in
                         let box = LabelFramingBox.rect(in: geometry.size)
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(.white.opacity(0.9), lineWidth: 2)
+                        Path { p in
+                            p.addRect(CGRect(origin: .zero, size: geometry.size))
+                            p.addRoundedRect(in: box, cornerSize: CGSize(width: 10, height: 10), style: .continuous)
+                        }
+                        .fill(Color.black.opacity(0.34), style: FillStyle(eoFill: true))
+                        ScanFrameCorners(length: 30, radius: 3)
+                            .stroke(look.done, style: StrokeStyle(lineWidth: 5, lineCap: .square, lineJoin: .miter))
                             .frame(width: box.width, height: box.height)
                             .position(x: box.midX, y: box.midY)
+                            .accessibilityElement()
+                            .accessibilityLabel("Framing box")
                             .accessibilityIdentifier("scanFramingBox")
                     }
                     .allowsHitTesting(false)
                 }
 
-            VStack(spacing: 14) {
+            VStack(spacing: 0) {
+                HStack {
+                    GlassCapsuleButton("Cancel") { dismiss() }
+                        .accessibilityIdentifier("scanCancel")
+                    Spacer()
+                }
+                .padding(.horizontal, look.space.margin)
+                .padding(.top, 14)
+                Spacer(minLength: 0)
                 Text(capturing ? "Reading…" : "Fit the name plate in the box")
-                    .font(.callout)
-                    .foregroundStyle(.white)
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(look.onSlab)
+                    .multilineTextAlignment(.center)
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(.black.opacity(0.55), in: .rect(cornerRadius: 12))
+                    .padding(.vertical, 9)
+                    .glassEffect(.regular.tint(.black.opacity(0.35)), in: Capsule())
+                    .dynamicTypeSize(...DynamicTypeSize.accessibility2)
                     .accessibilityIdentifier("scanStatus")
-
-                Button(action: shutter) {
-                    ZStack {
-                        Circle().stroke(.white, lineWidth: 4).frame(width: 74, height: 74)
-                        Circle().fill(.white).frame(width: 60, height: 60)
-                        if capturing { ProgressView().tint(.black) }
+                    .padding(.bottom, 18)
+                HStack {
+                    circleButton(symbol: "photo.on.rectangle", lit: false) {
+                        pickerRequest = PickerRequest(source: .photoLibrary)
+                    }
+                    .disabled(capturing)
+                    .accessibilityLabel("Choose a photo instead")
+                    .accessibilityIdentifier("scanChoosePhoto")
+                    Spacer()
+                    Button {
+                        shutterTaps += 1
+                        shutter()
+                    } label: {
+                        EmptyView()
+                    }
+                    .buttonStyle(ScanShutterStyle())
+                    .overlay { if capturing { ProgressView().tint(.white).allowsHitTesting(false) } }
+                    .disabled(capturing)
+                    .accessibilityLabel("Take photo")
+                    .accessibilityIdentifier("scanShutter")
+                    Spacer()
+                    if hasTorch {
+                        circleButton(symbol: torchOn ? "bolt.fill" : "bolt.slash", lit: torchOn) { torchOn.toggle() }
+                            .accessibilityLabel("Flash")
+                            .accessibilityValue(torchOn ? "On" : "Off")
+                            .accessibilityIdentifier("scanTorch")
+                    } else {
+                        Color.clear.frame(width: 54, height: 54)
                     }
                 }
-                .buttonStyle(.plain)
-                .disabled(capturing)
-                .accessibilityLabel("Take photo")
-                .accessibilityIdentifier("scanShutter")
-
-                Button("Choose a photo instead") {
-                    pickerRequest = PickerRequest(source: .photoLibrary)
-                }
-                .buttonStyle(.bordered)
-                .tint(.white)
-                .disabled(capturing)
-                .accessibilityIdentifier("scanChoosePhoto")
+                .padding(.horizontal, 30)
+                .padding(.bottom, 14)
             }
-            .padding(.bottom, 24)
         }
+        .background(Color.black.ignoresSafeArea())
+    }
+
+    private func circleButton(symbol: String, lit: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(lit ? Color.black : look.onSlab)
+                .frame(width: 54, height: 54)
+                .background(lit ? look.onSlab : Color.clear, in: Circle())
+                .glassEffect(.regular.interactive(), in: Circle())
+        }
+        .buttonStyle(.plain)
     }
 
     /// The camera, or — under `-uiTestScanFixture`, where the Simulator has no
@@ -278,141 +328,202 @@ struct ScanMachineLabelSheet: View {
 
     // MARK: - Content
 
+    /// Results: what was read (the plate's text as read), the candidates as radio rows with the
+    /// matcher's score as a ten-cell meter (D33 shows scores), "Use This" the one filled command.
+    /// Below D33's create-new floor the create-new action leads instead.
     @ViewBuilder
     private func resultsContent(_ results: Results) -> some View {
-        if let captureNotice {
-            Section {
-                Label(captureNotice, systemImage: "info.circle")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-        }
-
-        Section {
-            Text(results.reading.text)
-                .font(.footnote.monospaced())
-                .foregroundStyle(.secondary)
-                .accessibilityIdentifier("scanReadingText")
-        } header: {
-            Text(results.source == .ai ? "What AI read" : "What the camera read")
-        } footer: {
-            // The counting client the ticket asks for: under the fixture the
-            // stubs count every call and the sheet shows the tally, so a UI
-            // test can assert "none" or "one" (codex-review-05b).
-            if AskAI.fixtureIsEnabled {
-                Text("AI calls: \(AskAIFixtureLedger.calls)")
-                    .accessibilityIdentifier("scanAskAICalls")
-            }
-        }
-
-        // Ticket 05 (D53): only when the phone could not place the plate,
-        // only on a tap, only the box crop. A camera reading that preselected
-        // never shows this; an AI reading is not asked about again.
-        if results.source == .camera, results.preselectedID == nil, results.crop != nil,
-           AskAI.transcriber != nil {
-            Section {
-                if asking {
-                    HStack(spacing: 10) {
-                        ProgressView()
-                        Text("Asking AI…")
-                    }
-                    .accessibilityIdentifier("scanAskAIStatus")
-                } else {
-                    Button("Ask AI about this plate") { ask(results) }
-                        .accessibilityIdentifier("scanAskAI")
-                }
-            } footer: {
-                if let note = results.askNote {
-                    Text(note)
-                        .accessibilityIdentifier("scanAskAINote")
-                } else {
-                    Text("Sends the plate inside the box (plus a small margin around it) to Claude, with your key, and ranks what it reads here.")
-                }
-            }
-        }
-
         // Below the create-new floor the catalog probably does not have this
         // machine, so the *action* leads, not just the wording. Above it, the
         // candidates lead and create-new waits below.
         let leadWithCreateNew = results.matches.isEmpty
             || CatalogMatcher.suggestsCreatingNew(results.matches)
-
-        if leadWithCreateNew {
-            Section {
-                Button("Add this as a new model") {
-                    createNew(results)
+        ScanPagedScroll {
+            VStack(alignment: .leading, spacing: 22) {
+                ScanInlineTitle(title: "Read Label")
+                if let captureNotice {
+                    Label(captureNotice, systemImage: "info.circle")
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .accessibilityIdentifier("scanCreateNew")
-            } footer: {
-                Text(results.matches.isEmpty
-                    ? "Nothing in the catalog looks like this label."
-                    : "Nothing in the catalog is a close match for this label.")
+                readingCard(results)
+                askSection(results)
+                if leadWithCreateNew && !results.matches.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        MakeRow(title: "Add this as a new model") { createNew(results) }
+                            .accessibilityIdentifier("scanCreateNew")
+                        footnote("Nothing in the catalog is a close match for this label.")
+                    }
+                } else if results.matches.isEmpty {
+                    footnote("Nothing in the catalog looks like this label.")
+                }
+                if !results.matches.isEmpty {
+                    candidates(results, leadWithCreateNew: leadWithCreateNew)
+                }
+                if typeSize.isAccessibilitySize { rescanButton }
+            }
+            .padding(.horizontal, look.space.margin)
+            .padding(.top, 6)
+            .padding(.bottom, 24)
+        } bar: {
+            ScanBottomBar {
+                if results.matches.isEmpty {
+                    ScanPrimaryButton("Add this as a new model", symbol: "plus") { createNew(results) }
+                        .accessibilityIdentifier("scanCreateNew")
+                } else {
+                    ScanPrimaryButton("Use This", symbol: "checkmark", enabled: selectedID != nil) { use(selectedID) }
+                        .accessibilityIdentifier("scanUseCandidate")
+                }
+                if !typeSize.isAccessibilitySize { rescanButton }
             }
         }
+    }
 
-        if !results.matches.isEmpty {
-            Section {
-                ForEach(results.matches, id: \.modelID) { match in
-                    Button {
-                        selectedID = match.modelID
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(match.modelName)
-                                Text(match.manufacturer)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text(percentage(match.score))
-                                .font(.caption.monospacedDigit())
-                                .foregroundStyle(.tertiary)
-                            if selectedID == match.modelID {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.tint)
-                            }
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("scanCandidate.\(match.modelName)")
-                }
-            } header: {
-                Text(leadWithCreateNew ? "Weak alternatives" : "Catalog models")
-            } footer: {
-                Text(selectedID == nil
-                    ? "Nothing is picked for you here — the reading was not clear enough to choose between these. Tap the machine you are standing at."
-                    : "Check the machine in front of you before accepting — records are kept per model, so the wrong one splits your history.")
+    private func footnote(_ text: String) -> some View {
+        Text(text)
+            .font(look.font.footnote)
+            .foregroundStyle(look.textSecondary)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 4)
+    }
+
+    private func readingCard(_ results: Results) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(results.source == .ai ? "What AI read" : "What the camera read")
+                .font(.system(.footnote, weight: .semibold))
+                .foregroundStyle(look.textSecondary)
+                .padding(.leading, 4)
+                .accessibilityAddTraits(.isHeader)
+            Text(results.reading.text)
+                .font(.system(.body, design: .monospaced, weight: .semibold))
+                .foregroundStyle(look.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(look.space.panelPadding)
+                .lookSurface(.panel)
+                .accessibilityIdentifier("scanReadingText")
+            // The counting client the ticket asks for: under the fixture the
+            // stubs count every call and the sheet shows the tally, so a UI
+            // test can assert "none" or "one" (codex-review-05b).
+            if AskAI.fixtureIsEnabled {
+                footnote("AI calls: \(AskAIFixtureLedger.calls)")
+                    .accessibilityIdentifier("scanAskAICalls")
             }
+        }
+    }
 
-            Section {
-                Button("Use This") {
-                    use(selectedID)
-                }
-                .disabled(selectedID == nil)
-                .accessibilityIdentifier("scanUseCandidate")
-
-                if !leadWithCreateNew {
-                    Button("None of these — create new") {
-                        createNew(results)
+    // Ticket 05 (D53): only when the phone could not place the plate,
+    // only on a tap, only the box crop. A camera reading that preselected
+    // never shows this; an AI reading is not asked about again.
+    @ViewBuilder
+    private func askSection(_ results: Results) -> some View {
+        if results.source == .camera, results.preselectedID == nil, results.crop != nil,
+           AskAI.transcriber != nil {
+            VStack(alignment: .leading, spacing: 8) {
+                if asking {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Asking AI…").font(look.font.body).foregroundStyle(look.textPrimary)
                     }
+                    .frame(minHeight: 44)
+                    .accessibilityIdentifier("scanAskAIStatus")
+                } else {
+                    Button("Ask AI about this plate") { ask(results) }
+                        .buttonStyle(.lookSecondary)
+                        .accessibilityIdentifier("scanAskAI")
+                }
+                if let note = results.askNote {
+                    footnote(note).accessibilityIdentifier("scanAskAINote")
+                } else {
+                    footnote("Sends the plate inside the box (plus a small margin around it) to Claude, with your key, and ranks what it reads here.")
+                }
+            }
+        }
+    }
+
+    private func candidates(_ results: Results, leadWithCreateNew: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(leadWithCreateNew ? "Weak alternatives" : "Catalog models")
+                .font(look.font.sectionTitle)
+                .foregroundStyle(look.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+            VStack(spacing: 0) {
+                ForEach(Array(results.matches.enumerated()), id: \.element.modelID) { index, match in
+                    if index > 0 { LookDivider().padding(.leading, 56) }
+                    candidateRow(match)
+                }
+                if !leadWithCreateNew {
+                    LookDivider().padding(.leading, 56)
+                    Button { createNew(results) } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "plus")
+                                .font(.system(.body, weight: .bold))
+                                .foregroundStyle(look.textSecondary)
+                                .frame(width: 26)
+                            Text("None of these — create new")
+                                .font(.system(.body, weight: .semibold))
+                                .foregroundStyle(look.textPrimary)
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(minHeight: 56)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.lookPressable)
                     .accessibilityIdentifier("scanCreateNew")
                 }
-
-                rescanButton
             }
-        } else {
-            Section { rescanButton }
+            .clipShape(RoundedRectangle(cornerRadius: look.radius.panel, style: .continuous))
+            .lookSurface(.panel)
+            footnote(selectedID == nil
+                ? "Nothing is picked for you here — the reading was not clear enough to choose between these. Tap the machine you are standing at."
+                : "Check the machine in front of you before accepting — records are kept per model, so the wrong one splits your history.")
         }
+    }
+
+    private func candidateRow(_ match: CatalogMatch) -> some View {
+        let selected = selectedID == match.modelID
+        return Button {
+            selectedID = match.modelID
+        } label: {
+            HStack(alignment: .top, spacing: 14) {
+                ScanRadio(selected: selected).padding(.top, 2)
+                VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(match.manufacturer)
+                            .font(.system(.footnote, weight: .semibold))
+                            .foregroundStyle(look.textSecondary)
+                        Text(match.modelName)
+                            .font(.system(.body, weight: .semibold))
+                            .foregroundStyle(look.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    ScanScoreMeter(value: match.score)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(selected ? look.selectionFill : .clear)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.lookPressable)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(match.manufacturer) \(match.modelName), \(percentage(match.score))")
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityIdentifier("scanCandidate.\(match.modelName)")
     }
 
     @ViewBuilder
     private var rescanButton: some View {
-        if CaptureAvailability.resolve().allowsCamera {
+        if CaptureAvailability.resolve().allowsCamera || ScanFixture.isEnabled {
             Button("Scan again") { restartScanning() }
+                .buttonStyle(.lookSecondary)
         } else {
             Button("Choose another photo") {
                 pickerRequest = PickerRequest(source: .photoLibrary)
             }
+            .buttonStyle(.lookSecondary)
         }
     }
 
@@ -421,31 +532,45 @@ struct ScanMachineLabelSheet: View {
         dismiss()
     }
 
-    @ViewBuilder
+    /// The camera failed or cannot open: the stated reason, then what can still work. Labelled
+    /// by what each actually opens: offering "try the camera" when the camera cannot open is a
+    /// lie the user pays for twice.
     private func failureContent(_ message: String) -> some View {
-        Section {
-            Label(message, systemImage: "exclamationmark.triangle")
-                .accessibilityIdentifier("scanStatus")
-        }
-        Section {
-            let availability = CaptureAvailability.resolve()
-            if availability.settingsCanHelp,
-               let settings = URL(string: UIApplication.openSettingsURLString) {
-                Link("Open Settings", destination: settings)
+        let availability = CaptureAvailability.resolve()
+        return ScanPagedScroll(centered: true) {
+            VStack(spacing: 18) {
+                ScanOutcomeDisc(outcome: .failed, size: 64)
+                Text(message)
+                    .font(look.font.title3)
+                    .foregroundStyle(look.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("scanStatus")
+                if availability.settingsCanHelp,
+                   let settings = URL(string: UIApplication.openSettingsURLString) {
+                    Link("Open Settings", destination: settings)
+                        .buttonStyle(.lookSecondary)
+                }
             }
-            Button("Choose from photos") {
-                pickerRequest = PickerRequest(source: .photoLibrary)
+            .padding(.horizontal, look.space.margin + 8)
+        } bar: {
+            ScanBottomBar {
+                if availability.allowsCamera {
+                    ScanPrimaryButton("Try the camera again", symbol: "camera") { restartScanning() }
+                    Button("Choose from photos") { pickerRequest = PickerRequest(source: .photoLibrary) }
+                        .buttonStyle(.lookSecondary)
+                } else {
+                    ScanPrimaryButton("Choose from photos", symbol: "photo.on.rectangle") {
+                        pickerRequest = PickerRequest(source: .photoLibrary)
+                    }
+                }
+                Button("Enter it by hand") {
+                    onCreateNew("", "", [])
+                    dismiss()
+                }
+                .buttonStyle(.lookSecondary)
+                .accessibilityIdentifier("scanCreateNew")
             }
-            // Labelled by what it actually opens: offering "try the camera"
-            // when the camera cannot open is a lie the user pays for twice.
-            if availability.allowsCamera {
-                Button("Try the camera again") { restartScanning() }
-            }
-            Button("Enter it by hand") {
-                onCreateNew("", "", [])
-                dismiss()
-            }
-            .accessibilityIdentifier("scanCreateNew")
         }
     }
 

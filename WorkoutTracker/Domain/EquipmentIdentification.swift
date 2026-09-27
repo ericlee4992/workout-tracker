@@ -67,13 +67,20 @@ enum EquipmentIdentityResolution {
         // A readable movement title is not a hardware identity. Without this guard an AI
         // "specific" answer like Hack Squat/Dead Lift creates a false shared model history.
         if isMovementOnlyName(name, exerciseNames: exerciseNames) { return .generic }
-        let matches = models.filter {
-            EquipmentIdentification.normalized($0.manufacturer) == EquipmentIdentification.normalized(brand)
-            && EquipmentIdentification.normalized($0.modelName) == EquipmentIdentification.normalized(name)
-        }
+        let matches = exactMatches(manufacturer: brand, modelName: name, among: models)
         if matches.count > 1 { return .ambiguous }
         if let model = matches.first { return .catalog(model) }
         return .newModel(manufacturer: brand, name: name)
+    }
+    /// Catalog rows whose normalized maker AND model equal the answer's — the rows an ambiguous
+    /// answer names (Floodlight ticket 07 lists them; D56 still saves no model).
+    static func exactMatches(manufacturer: String, modelName: String, among models: [EquipmentModel]) -> [EquipmentModel] {
+        let brand = EquipmentIdentification.normalized(manufacturer)
+        let name = EquipmentIdentification.normalized(modelName)
+        return models.filter {
+            EquipmentIdentification.normalized($0.manufacturer) == brand
+            && EquipmentIdentification.normalized($0.modelName) == name
+        }
     }
     static func isMovementOnlyName(_ name: String, exerciseNames: [String]) -> Bool {
         guard !exerciseNames.isEmpty, !name.contains(where: \.isNumber) else { return false }

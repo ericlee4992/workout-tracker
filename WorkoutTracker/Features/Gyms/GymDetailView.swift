@@ -20,6 +20,8 @@ struct GymDetailView: View {
     @Query(filter: #Predicate<Workout> { $0.finishedAt != nil }) private var finished: [Workout]
     @State private var showingAddMachine = false
     @State private var showingScanner = false
+    /// "Choose a catalog model" inside the scan: the form opens once the scan sheet is gone.
+    @State private var manualAfterScan = false
     @State private var editingGym = false
     @State private var editingMachine: MachineInstance?
     @State private var correctingMachine: MachineInstance?
@@ -106,8 +108,11 @@ struct GymDetailView: View {
         .sheet(isPresented: $showingAddMachine) {
             MachineEditorSheet(gym: gym)
         }
-        .sheet(isPresented: $showingScanner) {
-            MachineEditorSheet(gym: gym, startsWithScanner: true)
+        .sheet(isPresented: $showingScanner, onDismiss: {
+            if manualAfterScan { manualAfterScan = false; showingAddMachine = true }
+        }) {
+            // Ticket 07 (user decision 1): the scan adds the machine itself.
+            IdentifyEquipmentSheet(addingTo: gym, onManual: { manualAfterScan = true })
         }
         .sheet(isPresented: $editingGym) {
             GymEditorSheet(gym: gym)

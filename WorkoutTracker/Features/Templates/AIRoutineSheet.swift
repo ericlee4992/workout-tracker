@@ -11,6 +11,8 @@ struct AIRoutineSheet: View {
     var onSelectGym: (Gym?) -> Void = { _ in }
     @State private var showingNewGym = false
     @State private var scanningGym: Gym?
+    @State private var manualGymPending: Gym?
+    @State private var manualGym: Gym?
 
     private var availableMachines: [MachineInstance] {
         guard let gym, !gym.archived else { return [] }
@@ -71,8 +73,15 @@ struct AIRoutineSheet: View {
             .sheet(isPresented: $showingNewGym) {
                 GymEditorSheet(onSave: { created in gym = created; onSelectGym(created) })
             }
-            .sheet(item: $scanningGym) { gym in
-                MachineEditorSheet(gym: gym, startsWithScanner: true)
+            .sheet(item: $scanningGym, onDismiss: {
+                if let pending = manualGymPending { manualGymPending = nil; manualGym = pending }
+            }) { gym in
+                // Floodlight ticket 07 (user decision 1): the scan adds the machine itself;
+                // "Choose a catalog model" opens the machine form once the scan has closed.
+                IdentifyEquipmentSheet(addingTo: gym, onManual: { manualGymPending = gym })
+            }
+            .sheet(item: $manualGym) { gym in
+                MachineEditorSheet(gym: gym)
             }
             .onDisappear { cancel() }
             .onChange(of: consent) { _, permitted in if !permitted { cancel(); routine = nil } }

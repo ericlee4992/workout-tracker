@@ -2,13 +2,31 @@ import SwiftUI
 import SwiftData
 import UIKit
 
-/// One photograph, one Terra request, then an editable proposal. Nothing is saved here.
+/// One photograph, one Terra request, then an editable proposal (D56).
+///
+/// Floodlight redesign ticket 07: one "Scan Machine" sheet driven by its step — consent (before
+/// the camera, user decision 2) → no key → camera → identifying → error / result → added. Two
+/// ways in (user decision 1): **add** mode (the gym page's Scan Machine, AI routine setup) saves
+/// the confirmed machine itself and shows the Added step; **fill-form** mode (the machine form's
+/// "Scan equipment…") hands the confirmed proposal back to the form and saves nothing here.
 struct IdentifyEquipmentSheet: View {
+    enum Mode {
+        case fillForm((EquipmentIdentification) -> Void)
+        case add
+    }
+
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.look) private var look
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @Query private var models: [EquipmentModel]
     @AppStorage(TerraAccess.photoConsentKey) private var consent = false
-    var onIdentify: (EquipmentIdentification) -> Void
+    /// The gym the machine is for: add mode saves there; both modes check it for duplicates.
+    var gym: Gym?
+    var mode: Mode
+    /// "Choose a catalog model" (no key, error): add mode hands over to the machine form.
+    var onManual: (() -> Void)?
+
     @State private var showingSettings = false
     @State private var showingLibrary = false
     @State private var started = false
@@ -16,169 +34,239 @@ struct IdentifyEquipmentSheet: View {
     @State private var work: Task<Void, Never>?
     @State private var requestID: UUID?
     @State private var busy = false
-    @State private var error: String?
+    /// Why the camera cannot take a photo (shown on the camera step).
+    @State private var cameraNotice: String?
+    /// Why identification failed (the error step, beside the photo).
+    @State private var identifyError: String?
+    @State private var photo: UIImage?
     @State private var proposal: EquipmentIdentification?
+    /// "Use generic identity": the AI's answer stays in `proposal`, so this is reversible.
+    @State private var genericChosen = false
+    @State private var added: MachineInstance?
+    @State private var saveFailure: String?
     @State private var torch = false
-    private enum Field: Hashable { case label, manufacturer, model }
+    @State private var path: [ScanPage] = []
+    @State private var shutterTaps = 0
+    @State private var picks = 0
+
+    enum Field: Hashable { case label, manufacturer, model }
     @FocusState private var focusedField: Field?
 
+    /// The form's scan button.
+    init(gym: Gym? = nil, onIdentify: @escaping (EquipmentIdentification) -> Void) {
+        self.gym = gym
+        self.mode = .fillForm(onIdentify)
+    }
+
+    /// The gym page's Scan Machine and AI routine setup: Add saves the machine at `gym`.
+    init(addingTo gym: Gym, onManual: (() -> Void)? = nil) {
+        self.gym = gym
+        self.mode = .add
+        self.onManual = onManual
+    }
+
+    enum Step: Hashable { case consent, noKey, camera, identifying, error, result, added }
+
+    private var step: Step {
+        if !consent && !TerraAccess.bypassesConsent { return .consent }
+        if TerraAccess.client == nil && !TerraAccess.fixture { return .noKey }
+        if added != nil { return .added }
+        if busy { return .identifying }
+        if identifyError != nil { return .error }
+        if proposal != nil { return .result }
+        return .camera
+    }
+
+    private var isAddMode: Bool { if case .add = mode { true } else { false } }
+
     var body: some View {
-        NavigationStack {
-            Group {
-                if !consent && !TerraAccess.bypassesConsent {
-                    Form {
-                        Section {
-                            Text("Send equipment photos to OpenAI?").font(.headline)
-                            Text("Each scan sends the full photo, including any people or screens in frame, and the exercise catalog to OpenAI for identification. The app does not save the photo. OpenAI’s API data policies apply.")
-                            Link("OpenAI data policies", destination: URL(string: "https://developers.openai.com/api/docs/guides/your-data")!)
-                            Button("Allow photos and continue") { consent = true; start() }
-                                .accessibilityIdentifier("allowAIPhotos")
-                        }
+        NavigationStack(path: $path) {
+            ZStack {
+                switch step {
+                case .consent:
+                    ScanConsentStep(onCancel: close) {
+                        consent = true
+                        start()
                     }
-                } else if TerraAccess.client == nil && !TerraAccess.fixture {
-                    Form {
-                        Text("Add your OpenAI API key to identify equipment with Terra.")
-                        Button("Open AI Settings") { showingSettings = true }.accessibilityIdentifier("scannerAISettings")
-                        Text("You can also cancel and choose a catalog model manually.").foregroundStyle(.secondary)
+                    .transition(stepTransition)
+                case .noKey:
+                    ScanNoKeyStep(onCancel: close, onSettings: { showingSettings = true }, onManual: chooseManually)
+                        .transition(stepTransition)
+                case .camera:
+                    ScanCameraStep(gymName: gym?.name, machineCount: machineCount, started: started,
+                                   notice: cameraNotice, captureID: captureID, torch: $torch,
+                                   onCancel: close, onShutter: shutter, onLibrary: { showingLibrary = true },
+                                   onPhoto: { captured in
+                                       guard captureID == captured.requestID else { return }
+                                       captureID = nil; work?.cancel(); identify(captured.image)
+                                   },
+                                   onFailure: { id, message in
+                                       // Camera teardown after a photo must not cancel the AI request or overwrite its result.
+                                       guard !busy, proposal == nil else { return }
+                                       if let id, id != captureID { return }
+                                       captureID = nil; work?.cancel(); cameraNotice = message
+                                   })
+                    .transition(stepTransition)
+                case .identifying:
+                    ScanIdentifyingStep(photo: photo, onCancel: close, onRetake: reset)
+                        .transition(stepTransition)
+                case .error:
+                    ScanErrorStep(photo: photo, message: identifyError ?? "", onCancel: close,
+                                  onRetake: reset, onManual: chooseManually)
+                        .transition(stepTransition)
+                case .result:
+                    if let proposal {
+                        ScanResultStep(
+                            proposal: Binding(get: { self.proposal ?? proposal }, set: { self.proposal = $0 }),
+                            photo: photo, gym: gym, isAddMode: isAddMode, genericChosen: $genericChosen,
+                            resolution: resolution, catalogMatches: catalogMatches, effectiveIDs: effectiveIDs,
+                            exercises: exercises, saveFailure: saveFailure, focusedField: $focusedField,
+                            onCancel: close, onRetake: reset, onCommit: commit,
+                            onChangeExercises: { path.append(.exercises) })
+                        .transition(stepTransition)
                     }
-                } else if busy {
-                    VStack(spacing: 20) {
-                        ProgressView("Identifying equipment…")
-                        Button("Take another photo") { reset() }.accessibilityIdentifier("scanRescan")
-                    }.frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if proposal != nil {
-                    result
-                } else {
-                    capture
+                case .added:
+                    if let added {
+                        ScanAddedStep(machine: added, photo: photo, gymName: gym?.name ?? "", machineCount: machineCount,
+                                      exerciseNames: names(of: added.supportedExerciseIDs),
+                                      onDone: { dismiss() }, onScanAnother: scanAnother)
+                        .transition(stepTransition)
+                    }
                 }
             }
-            .navigationTitle(proposal == nil ? "Scan Equipment" : "AI Proposal").navigationBarTitleDisplayMode(.inline)
+            .animation(stepAnimation, value: step)
+            .toolbar(.hidden, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancel(); dismiss() } }
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
                     Button("Done") { focusedField = nil }.accessibilityIdentifier("dismissEquipmentKeyboard")
                 }
             }
-            .sheet(isPresented: $showingSettings, onDismiss: { start() }) { AskAISettingsSheet() }
-            .sheet(isPresented: $showingLibrary) {
-                ImagePicker(source: .photoLibrary) { image in
-                    showingLibrary = false
-                    if let image { identify(image) }
-                }
+            .navigationDestination(for: ScanPage.self) { _ in
+                ScanExercisePicker(exercises: exercises, proposed: proposal?.exerciseIDs ?? [],
+                                   selected: Binding(get: { proposal?.exerciseIDs ?? [] },
+                                                     set: { proposal?.exerciseIDs = $0 }))
             }
-            .onAppear { if consent || TerraAccess.bypassesConsent { start() } }
-            .onDisappear { cancel() }
-            .onChange(of: consent) { _, allowed in if !allowed { cancel(); proposal = nil } }
+        }
+        .lookSheetGround()
+        .presentationBackground(step == .camera ? Color.black : look.groundSheet)
+        .interactiveDismissDisabled(step == .result || step == .identifying)
+        .sheet(isPresented: $showingSettings, onDismiss: { start() }) { AskAISettingsSheet() }
+        .sheet(isPresented: $showingLibrary) {
+            ImagePicker(source: .photoLibrary) { image in
+                showingLibrary = false
+                if let image { identify(image) }
+            }
+        }
+        .onAppear { if consent || TerraAccess.bypassesConsent { start() } }
+        .onDisappear { cancel() }
+        .onChange(of: consent) { _, allowed in if !allowed { cancel(); proposal = nil } }
+        .sensoryFeedback(.success, trigger: added?.id)
+    }
+
+    private var stepAnimation: Animation {
+        UIAccessibility.isReduceMotionEnabled ? .easeInOut(duration: 0.2) : .spring(response: 0.5, dampingFraction: 0.86)
+    }
+
+    /// Out first, then in: the old step's pinned buttons never sit under the new step's.
+    private var stepTransition: AnyTransition {
+        if UIAccessibility.isReduceMotionEnabled { return .opacity.animation(.easeInOut(duration: 0.18)) }
+        return .asymmetric(insertion: .opacity.animation(.easeOut(duration: 0.3).delay(0.08)),
+                           removal: .opacity.animation(.easeIn(duration: 0.1)))
+    }
+
+    private var machineCount: Int {
+        (gym?.machines ?? []).filter { !$0.archived }.count
+    }
+
+    private func names(of ids: [UUID]) -> [String] {
+        ids.compactMap { id in exercises.first { $0.id == id }?.name }
+    }
+
+    // MARK: Resolution
+
+    private var seededNames: [String] { exercises.filter(\.isSeeded).map(\.name) }
+
+    private var resolution: EquipmentIdentityResolution {
+        proposal.map { EquipmentIdentityResolution.resolve($0, among: models, exerciseNames: seededNames) } ?? .generic
+    }
+
+    private var catalogMatches: [EquipmentModel] {
+        guard let proposal, case .ambiguous = resolution else { return [] }
+        return EquipmentIdentityResolution.exactMatches(manufacturer: proposal.manufacturer,
+                                                        modelName: proposal.modelName, among: models)
+            .sorted { $0.displayName < $1.displayName }
+    }
+
+    /// The exercises Add would save: a catalog match's own, unless the answer is set aside.
+    private var effectiveIDs: [UUID] {
+        guard let proposal else { return [] }
+        return ScanMachine.confirmed(proposal, resolution: resolution, genericChosen: genericChosen).exerciseIDs
+    }
+
+    // MARK: Actions
+
+    private func close() {
+        cancel()
+        dismiss()
+    }
+
+    private func chooseManually() {
+        cancel()
+        dismiss()
+        onManual?()
+    }
+
+    private func commit() {
+        guard let proposal else { return }
+        focusedField = nil
+        let confirmed = ScanMachine.confirmed(proposal, resolution: resolution, genericChosen: genericChosen)
+        switch mode {
+        case .fillForm(let onIdentify):
+            onIdentify(confirmed)
+            dismiss()
+        case .add:
+            guard let gym else { return }
+            do {
+                let machine = try ScanMachine.add(confirmed, to: gym, context: modelContext)
+                withAnimation(stepAnimation) { added = machine }
+            } catch {
+                saveFailure = error.localizedDescription
+            }
         }
     }
 
-    private var capture: some View {
-        VStack(spacing: 12) {
-            if let error { Text(error).foregroundStyle(Theme.secondary).padding().accessibilityIdentifier("scanAIError") }
-            if started && CaptureAvailability.resolve() == .camera && !TerraAccess.fixture {
-                LabelCameraView(captureRequest: captureID, onPhoto: { photo in
-                    guard captureID == photo.requestID else { return }
-                    captureID = nil; work?.cancel(); identify(photo.image)
-                }, onFailure: { id, message in
-                    // Camera teardown after a photo must not cancel the AI request or overwrite its result.
-                    guard !busy, proposal == nil else { return }
-                    if let id, id != captureID { return }
-                    captureID = nil; work?.cancel(); error = message
-                }, torchOn: torch)
-            } else {
-                Image(systemName: "camera.viewfinder").font(.largeTitle).frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            Text("Scan a machine or its label").font(.callout)
-            HStack {
-                Button("Take photo", systemImage: "camera") { shutter() }
-                    .disabled(captureID != nil || (!TerraAccess.fixture && CaptureAvailability.resolve() != .camera))
-                    .accessibilityIdentifier("scanShutter")
-                Button("Flash", systemImage: "bolt") { torch.toggle() }.disabled(TerraAccess.fixture)
-            }.buttonStyle(.bordered)
-            Button("Choose a photo instead") { showingLibrary = true }.accessibilityIdentifier("scanChoosePhoto")
-        }.padding(.bottom)
-    }
-
-    private var resolution: EquipmentIdentityResolution { proposal.map { EquipmentIdentityResolution.resolve($0, among: models, exerciseNames: exercises.filter(\.isSeeded).map(\.name)) } ?? .generic }
-    private var catalogMatch: EquipmentModel? {
-        if case .catalog(let model) = resolution { return model }
-        return nil
-    }
-    private var effectiveIDs: [UUID] { catalogMatch?.exerciseIDs.isEmpty == false ? catalogMatch!.exerciseIDs : proposal?.exerciseIDs ?? [] }
-
-    private var result: some View {
-        Form {
-            if proposal?.identity == "uncertain" {
-                Text("AI could not identify this equipment. Try a clearer angle or choose its exercises below.")
-            }
-            Section {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Name").font(.caption).foregroundStyle(Theme.secondary)
-                    TextField("Machine name", text: Binding(get: { proposal?.label ?? "" }, set: { proposal?.label = $0; proposal?.labelWasEdited = true }), axis: .vertical)
-                        .focused($focusedField, equals: .label)
-                        .accessibilityIdentifier("identifiedMachineLabel")
-                }
-                if proposal?.identity == "specific" {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Manufacturer").font(.caption).foregroundStyle(Theme.secondary)
-                        TextField("Manufacturer", text: Binding(get: { proposal?.manufacturer ?? "" }, set: { proposal?.manufacturer = $0 }), axis: .vertical).focused($focusedField, equals: .manufacturer)
-                    }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Model").font(.caption).foregroundStyle(Theme.secondary)
-                        TextField("Model", text: Binding(get: { proposal?.modelName ?? "" }, set: { proposal?.modelName = $0 }), axis: .vertical).focused($focusedField, equals: .model)
-                    }
-                    if let text = proposal?.visibleText, !text.isEmpty { Text(text).font(.caption).foregroundStyle(Theme.secondary) }
-                    Button("Use generic identity") { proposal?.identity = "generic"; proposal?.manufacturer = ""; proposal?.modelName = "" }
-                }
-            } header: { Text("Equipment") } footer: {
-                switch resolution {
-                case .catalog(let model): Text("Matches catalog: \(model.displayName)")
-                case .newModel(let manufacturer, let name): Text("Will add new model: \(manufacturer) \(name)")
-                case .ambiguous: Text("Multiple catalog identities match. This will be saved without a model; you can choose one later.")
-                case .generic: Text("Saved as this gym’s machine, with no model claimed.")
-                }
-            }
-            Section("Exercises") {
-                ForEach(exercises.filter { effectiveIDs.contains($0.id) }) { exercise in Text(exercise.name) }
-                if catalogMatch?.exerciseIDs.isEmpty != false { NavigationLink("Change exercises") {
-                    AIExerciseSelection(exercises: exercises, selected: Binding(get: { Set(proposal?.exerciseIDs ?? []) }, set: { proposal?.exerciseIDs = $0.sorted { $0.uuidString < $1.uuidString } }))
-                } }
-            }
-            Section {
-                Button("Use this equipment") {
-                    guard var proposal else { return }
-                    proposal.exerciseIDs = effectiveIDs
-                    proposal.label = proposal.label.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if case .ambiguous = resolution { proposal.identity = "generic" }
-                    if case .generic = resolution { proposal.identity = "generic" }
-                    onIdentify(proposal); dismiss()
-                }.disabled(proposal?.label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false || effectiveIDs.isEmpty)
-                    .buttonStyle(.primary)
-                    .accessibilityIdentifier("scanUseCandidate")
-                Button("Take another photo") { reset() }.accessibilityIdentifier("scanRescan")
-            }
-        }.scrollDismissesKeyboard(.interactively)
+    private func scanAnother() {
+        withAnimation(stepAnimation) {
+            added = nil
+            reset()
+        }
     }
 
     private func start() {
         started = true
-        if !TerraAccess.fixture { error = CaptureAvailability.resolve().reason }
+        if !TerraAccess.fixture { cameraNotice = CaptureAvailability.resolve().reason }
     }
     private func cancel() { work?.cancel(); work = nil; requestID = nil; captureID = nil; busy = false }
-    private func reset() { cancel(); proposal = nil; error = nil; start() }
+    private func reset() {
+        cancel(); proposal = nil; cameraNotice = nil; identifyError = nil; photo = nil
+        genericChosen = false; saveFailure = nil; path = []
+        start()
+    }
     private func shutter() {
+        shutterTaps += 1
         if TerraAccess.fixture { identify(ScanFixture.image()); return }
         let id = UUID(); captureID = id
         work = Task {
             try? await Task.sleep(for: .seconds(10))
             guard !Task.isCancelled, captureID == id else { return }
-            captureID = nil; error = "The camera did not return a photo. Try again."
+            captureID = nil; cameraNotice = "The camera did not return a photo. Try again."
         }
     }
     private func identify(_ image: UIImage) {
         guard consent || TerraAccess.bypassesConsent else { return }
-        cancel(); busy = true; error = nil
+        cancel(); busy = true; cameraNotice = nil; identifyError = nil
+        photo = image
         let id = UUID(); requestID = id
         let jpeg = EquipmentPhoto.jpeg(image)
         let candidates = exercises.filter(\.isSeeded).map { "\($0.id.uuidString) | \($0.name) | \($0.loadType.rawValue)" }.joined(separator: "\n")
@@ -206,29 +294,29 @@ struct IdentifyEquipmentSheet: View {
                     answer = try JSONDecoder().decode(EquipmentIdentification.self, from: data).validated(allowed: allowed)
                 }
                 guard !Task.isCancelled, requestID == id else { return }
-                proposal = answer; busy = false
+                proposal = prefilled(answer); genericChosen = false; busy = false
             } catch {
                 guard !Task.isCancelled, requestID == id else { return }
-                self.error = error.localizedDescription; busy = false
+                identifyError = error.localizedDescription; busy = false
             }
         }
     }
+
+    /// D3: an answer that matched a catalog model arrives named by its movement, as picking that
+    /// model in the form names it — what the field shows is what Add saves.
+    private func prefilled(_ answer: EquipmentIdentification) -> EquipmentIdentification {
+        guard case .catalog(let model) = EquipmentIdentityResolution.resolve(answer, among: models, exerciseNames: seededNames)
+        else { return answer }
+        var result = answer
+        result.label = ScanMachine.prefilledLabel(for: answer, catalogModelName: model.modelName,
+                                                  modelExerciseNames: names(of: model.exerciseIDs))
+        return result
+    }
 }
 
-struct AIExerciseSelection: View {
-    var exercises: [Exercise]
-    @Binding var selected: Set<UUID>
-    @State private var query = ""
-    var body: some View {
-        List(exercises.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }) { exercise in
-            Button {
-                if selected.contains(exercise.id) { selected.remove(exercise.id) }
-                else if selected.count < 6 { selected.insert(exercise.id) }
-            } label: {
-                HStack { Text(exercise.name); Spacer(); if selected.contains(exercise.id) { Image(systemName: "checkmark") } }
-            }.foregroundStyle(Theme.text)
-        }.searchable(text: $query).navigationTitle("Exercises")
-    }
+/// Pages pushed inside the scan sheet.
+enum ScanPage: Hashable {
+    case exercises
 }
 
 /// Upright pixel rendering deliberately strips the original EXIF/GPS metadata.
