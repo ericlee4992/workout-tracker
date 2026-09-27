@@ -309,6 +309,13 @@ exits and result bundles `/tmp/wt-floodlight/results/gyms-*`.
   test06 (index-0 bar button is now the Edit Gym pencil), ScanMachineLabel create-new (the
   labelled fields' accessibility label — now set explicitly to "Manufacturer" / "Model").
 
+- `gyms-ui-2` (exit 65): 21/24 — AskAI identity ×4 + Ambiguous + New Model consent 6/6,
+  FloodlightGyms 10/12 (all gyms/empty captures, both AXL editor runs), GymsFlows 2/2,
+  ScanMachineLabel 2/2, RedesignScreenshot test06 AXL. Failures: the two default-size editor
+  runs (the no-match New Model… row sat under the keyboard's search bar — the test submits the
+  search first) and test06 default, now past the gym steps and failing at the Exercises tab's
+  search field (the pre-existing iOS 27 search drawer; `revealedSearchField()` now).
+
 ## Progress
 
 - 2026-09-27: resumed in a fresh session; verified branches (gyms = history tip `646187e`,

@@ -96,6 +96,7 @@ final class FloodlightGymsUITests: XCTestCase {
         } else {
             XCTAssertTrue(bodyArea.exists, "the grouping pills")
             bodyArea.tap()
+            Thread.sleep(forTimeInterval: 1.0) // let the regrouping settle
         }
         shoot("floodlight-06-gym-\(suffix)-1")
         let deletedMachines = any("deletedMachines")
@@ -180,8 +181,13 @@ final class FloodlightGymsUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.8)
         shoot("floodlight-06-picker-nomatch-\(suffix)")
 
-        // New Model… prefilled from the search.
-        any("newModelFromSearch").tap()
+        // New Model… prefilled from the search. Submit first: the keyboard and the bottom search
+        // bar cover the no-match row at the default size, so a tap there lands on the bar.
+        field.typeText("\n")
+        let newModel = any("newModelFromSearch")
+        let bar = app.searchFields.firstMatch
+        for _ in 0..<3 where !(newModel.isHittable && newModel.frame.maxY < bar.frame.minY - 4) { app.swipeUp() }
+        newModel.tap()
         let manufacturer = app.textFields["Manufacturer"]
         XCTAssertTrue(manufacturer.waitForExistence(timeout: 5))
         XCTAssertEqual(manufacturer.value as? String, "Life Fitness", "the maker split off the search")

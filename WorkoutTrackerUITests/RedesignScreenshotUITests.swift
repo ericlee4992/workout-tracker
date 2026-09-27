@@ -458,7 +458,8 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(anyElement("gymRow.\(gymName)").waitForExistence(timeout: 5))
         shoot("redesign-06-gyms")
         app.tabBars.buttons["Exercises"].tap()
-        XCTAssertTrue(app.searchFields.firstMatch.waitForExistence(timeout: 10))
+        // iOS 27 keeps the search field in a drawer until pulled (ticket 03's helper).
+        _ = app.revealedSearchField()
         shoot("redesign-07-exercises")
     }
 
