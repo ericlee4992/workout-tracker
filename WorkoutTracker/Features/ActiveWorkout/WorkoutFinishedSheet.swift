@@ -20,6 +20,7 @@ struct WorkoutFinishedSheet: View {
     var done: () -> Void
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.look) private var look
     @State private var namingTemplate = false
     @State private var savedTemplateName: String?
 
@@ -33,84 +34,47 @@ struct WorkoutFinishedSheet: View {
     }
 
     private var entryCount: Int {
-        savedWorkout.map { WorkoutSession.orderedEntries(of: $0).count } ?? 0
+        savedWorkout.map { WorkoutSession.orderedEntries(of: $0).filter { !($0.sets ?? []).filter { $0.completedAt != nil }.isEmpty }.count } ?? 0
     }
 
     private var setCount: Int {
         savedWorkout?.completedSets.count ?? 0
     }
 
+    /// The families, new bests, exercise rows and template comparison (Floodlight redesign).
+    private var receipt: FinishReceipt? {
+        savedWorkout.flatMap { try? FinishReceipt.build(for: $0, in: modelContext) }
+    }
+
     var body: some View {
+        let receipt = receipt
         NavigationStack {
             List {
-                // D54: the receipt opens on a status ring — full and amber for
-                // a saved workout, empty and quiet for a discarded one — beside
-                // the same two lines it always said.
-                Section {
-                    HStack(spacing: Theme.Space.inset) {
-                        ZStack {
-                            ProgressRing(progress: savedWorkout == nil ? 0 : 1,
-                                         tint: savedWorkout == nil ? Theme.tertiary : Theme.accent,
-                                         lineWidth: 7)
-                            Image(systemName: savedWorkout == nil ? "tray" : "checkmark")
-                                .font(.title.weight(.bold))
-                                .foregroundStyle(savedWorkout == nil ? Theme.tertiary : Theme.accent)
-                        }
-                        .frame(width: 84, height: 84)
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(savedWorkout == nil ? "Nothing to save" : "Workout saved")
-                                .font(Theme.stat)
-                                .foregroundStyle(savedWorkout == nil ? Theme.secondary : Theme.text)
-                            Text(summaryLine)
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.secondary)
-                                .accessibilityIdentifier("finishedSummary")
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(Theme.Space.inset)
-                    .card()
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 4, trailing: 16))
-                    .listRowSeparator(.hidden)
-                }
+                FinishHeader(
+                    saved: savedWorkout != nil,
+                    title: savedWorkout?.historyTitle,
+                    gymName: savedWorkout?.historyGymName,
+                    countLine: countLine,
+                    summaryLine: summaryLine,
+                    families: receipt?.familySets ?? [])
+                    .finishRow(top: 8, bottom: 10)
 
                 if savedWorkout != nil {
-                    Section {
-                        VStack(spacing: Theme.Space.small) {
-                            Button {
-                                viewInHistory()
-                            } label: {
-                                Label("View in History", systemImage: "clock.arrow.circlepath")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.primary)
-                            .accessibilityIdentifier("viewFinishedWorkout")
-
-                            if let savedTemplateName {
-                                Label("Saved as template “\(savedTemplateName)”", systemImage: "checkmark")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Theme.secondary)
-                                    .frame(maxWidth: .infinity, minHeight: 44)
-                            } else if canSaveAsTemplate {
-                                Button {
-                                    namingTemplate = true
-                                } label: {
-                                    Label("Save as Template", systemImage: "square.on.square")
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.secondary)
-                                .accessibilityIdentifier("saveAsTemplate")
-                            }
-                        }
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                        .listRowSeparator(.hidden)
-                    }
+                    actions.finishRow(top: 10, bottom: 8)
                 }
 
                 if let summary {
-                    statsSection(summary)
+                    statsSection(summary).finishRow(top: 18, bottom: 8)
+                    if let receipt, !receipt.bests.isEmpty {
+                        bestsSection(receipt.bests).finishRow(top: 18, bottom: 8)
+                    }
+                    if let comparison = receipt?.comparison {
+                        comparisonSection(comparison).finishRow(top: 18, bottom: 8)
+                    }
+                    if summary.zoneSeconds.contains(where: { $0 > 0 }) {
+                        ZoneTimeCard(seconds: summary.zoneSeconds)
+                            .finishRow(top: 8, bottom: 8)
+                    }
                     // Milestone 9, ticket 05: the graph, when a series exists.
                     if summary.hasHeartRateSeries, let interval = summary.heartRateSeriesIntervalSeconds {
                         HeartRateSummarySection(
@@ -123,26 +87,42 @@ struct WorkoutFinishedSheet: View {
                             averageBpm: summary.averageHeartRate,
                             maxBpm: summary.maxHeartRate)
                     }
-                    exercisesSection(summary)
                     if let workout = savedWorkout, !workout.recordedCardio.isEmpty {
-                        Section("Cardio") {
+                        Section {
                             ForEach(workout.recordedCardio) { CardioSummaryCard(segment: $0) }
                                 .listRowBackground(Color.clear).listRowSeparator(.hidden)
+                        } header: {
+                            SectionHeader("Cardio").textCase(nil)
                         }
+                    }
+                    if let receipt, !receipt.exercises.isEmpty {
+                        exercisesSection(receipt.exercises).finishRow(top: 18, bottom: 24)
                     }
                 }
             }
+            .listStyle(.plain)
             .scrollContentBackground(.hidden)
-            .background(Theme.background)
+            .environment(\.defaultMinListRowHeight, 0)
+            .background(look.groundSheet.ignoresSafeArea())
+            .environment(\.lookOnSheet, true)
             // The summary made this sheet tall; a medium detent hid the
             // actions and the exercises below the fold.
             .presentationDetents([.large])
             .navigationTitle(savedWorkout == nil ? "Nothing logged" : "Nice work")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(savedWorkout == nil ? "Nothing logged" : "Nice work")
+                        .font(look.font.navTitle)
+                        .foregroundStyle(look.textPrimary)
+                        .lineLimit(1)
+                        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                        .accessibilityAddTraits(.isHeader)
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { done() }
-                        .font(.headline)
+                        .font(.system(.body, weight: .semibold))
+                        .foregroundStyle(look.textPrimary)
                         .accessibilityIdentifier("finishedDone")
                 }
             }
@@ -152,6 +132,42 @@ struct WorkoutFinishedSheet: View {
                 savedTemplateName = $0
             }
         }
+    }
+
+    // MARK: Actions
+
+    /// View in History is the one filled command; Save as Template the quiet peer, replaced in
+    /// place by the confirmation once saved (C2).
+    private var actions: some View {
+        VStack(spacing: 10) {
+            PrimaryButton("View in History", symbol: "clock.arrow.circlepath") { viewInHistory() }
+                .accessibilityIdentifier("viewFinishedWorkout")
+            if let savedTemplateName {
+                FinishSavedTemplateLine(name: savedTemplateName)
+            } else if canSaveAsTemplate {
+                Button {
+                    namingTemplate = true
+                } label: {
+                    Label("Save as Template", systemImage: "square.on.square")
+                }
+                .buttonStyle(.lookSecondary)
+                .accessibilityIdentifier("saveAsTemplate")
+            }
+        }
+    }
+
+    /// "5 exercises · 22 sets" (the lifting counts), cardio named when there was some.
+    private var countLine: String? {
+        guard let saved = savedWorkout else { return nil }
+        var parts: [String] = []
+        if setCount > 0 {
+            parts.append(HistoryRendering.pluralized(entryCount, "exercise", "exercises"))
+            parts.append(HistoryRendering.pluralized(setCount, "set", "sets"))
+        }
+        if !saved.recordedCardio.isEmpty {
+            parts.append(HistoryRendering.pluralized(saved.recordedCardio.count, "cardio activity", "cardio activities"))
+        }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     private var summaryLine: String {
@@ -200,121 +216,86 @@ struct WorkoutFinishedSheet: View {
         WeightMath.displayLabel(kilograms: kg, in: displayUnit)
     }
 
-    @ViewBuilder
+    /// Workout details: the paired tiles in the user's order (ticket 17) — time / volume,
+    /// active / total calories, average / max heart rate. Every tile is OMITTED, not zeroed,
+    /// when its fact is missing (D44); one column at accessibility sizes.
     private func statsSection(_ summary: WorkoutSummary) -> some View {
-        Section("Workout details") {
-            // Milestone 9, ticket 05: the headline figures as a block of
-            // tiles, the way the user's reference (Apple Fitness) lays them
-            // out — now every figure is a tile (D54). Every tile is still
-            // OMITTED, not zeroed, when its fact is missing (D44) — a block
-            // with a hole is honest; a block with a 0 is not.
-            // Ticket 17: time/volume, active/total calories, average/max HR.
-            // Missing facts still omit their tiles and let the grid compact.
-            // One column at accessibility sizes: two columns truncated the
-            // BPM values ("126 B…") at AccessibilityL (codex-review-03b).
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: dynamicTypeSize.isAccessibilitySize ? 1 : 2),
-                      spacing: Theme.Space.small) {
-                tile("Workout time", Format.duration(seconds: Int(summary.duration)), symbol: "timer",
-                     tint: Theme.accent, id: "summaryTime")
-                if summary.totalVolumeKg > 0 {
-                    // Shown in the app's own unit, not always kg. Reported
-                    // 2026-08-26: a user logging in lb saw their volume in kg,
-                    // which is a number they cannot sanity-check against
-                    // anything they typed. Plain, no ≈ (D52).
-                    tile("Total volume", volumeLabel(summary.totalVolumeKg), symbol: "scalemass.fill",
-                         tint: Theme.text, id: "summaryVolume")
-                }
-                if let calories = summary.activeEnergyKilocalories {
-                    tile("Active calories", "\(Int(calories.rounded()))", unit: "CAL", symbol: "flame.fill",
-                         tint: Self.calorieTint, id: "summaryCalories")
-                }
-                // Total = active + basal, only when the system gave both (D9/D25).
-                if let total = summary.totalEnergyKilocalories {
-                    tile("Total calories", "\(Int(total.rounded()))", unit: "CAL", symbol: "flame",
-                         tint: Self.calorieTint, id: "summaryTotalCalories")
-                }
-                if let average = summary.averageHeartRate {
-                    tile("Avg. heart rate", "\(average)", unit: "BPM", symbol: "heart.fill",
-                         tint: Theme.danger, id: "summaryAvgHR")
-                }
-                if let maximum = summary.maxHeartRate {
-                    tile("Max heart rate", "\(maximum)", unit: "BPM", symbol: "arrow.up.heart.fill",
-                         tint: Theme.danger, id: "summaryMaxHR")
-                }
-            }
-            .listRowBackground(Color.clear)
-            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-            .listRowSeparator(.hidden)
-
-            if summary.zoneSeconds.contains(where: { $0 > 0 }) {
-                ZoneTimeCard(seconds: summary.zoneSeconds)
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                    .listRowSeparator(.hidden)
-            }
+        var tiles: [(FinishTile, String)] = [
+            (FinishTile(kind: .workoutTime, value: Format.duration(seconds: Int(summary.duration)), unit: ""), "summaryTime"),
+        ]
+        if summary.totalVolumeKg > 0 {
+            // In the app's own unit, plain (D52).
+            let volume = WeightMath.convert(summary.totalVolumeKg, from: .kg, to: displayUnit)
+            tiles.append((FinishTile(kind: .totalVolume, value: LookFormat.grouped(volume), unit: displayUnit.label), "summaryVolume"))
+        }
+        if let calories = summary.activeEnergyKilocalories {
+            tiles.append((FinishTile(kind: .activeCalories, value: "\(Int(calories.rounded()))", unit: "cal"), "summaryCalories"))
+        }
+        // Total = active + basal, only when the system gave both (D9/D25).
+        if let total = summary.totalEnergyKilocalories {
+            tiles.append((FinishTile(kind: .totalCalories, value: "\(Int(total.rounded()))", unit: "cal"), "summaryTotalCalories"))
+        }
+        if let average = summary.averageHeartRate {
+            tiles.append((FinishTile(kind: .averageHeartRate, value: "\(average)", unit: "bpm"), "summaryAvgHR"))
+        }
+        if let maximum = summary.maxHeartRate {
+            tiles.append((FinishTile(kind: .maxHeartRate, value: "\(maximum)", unit: "bpm"), "summaryMaxHR"))
+        }
+        return VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader("Workout details")
+            FinishTileGrid(tiles: tiles)
         }
     }
 
-    private static let calorieTint = Color(rgb: 0xF4939C)
+    // MARK: New bests
 
-    /// A stat tile whose unit rides in the value ("7 CAL") and whose
-    /// accessibility label keeps the shape the tests and VoiceOver knew:
-    /// "title, value unit".
-    private func tile(_ title: String, _ value: String, unit: String? = nil, symbol: String, tint: Color, id: String) -> some View {
-        StatTile(
-            value: unit.map { "\(value) \($0)" } ?? value,
-            label: title,
-            symbol: symbol,
-            tint: tint,
-            identifier: id,
-            accessibilityText: "\(title), \(value) \(unit ?? "")")
+    private func bestsSection(_ bests: [FinishReceipt.Best]) -> some View {
+        VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader("New bests")
+            VStack(spacing: 0) {
+                ForEach(Array(bests.enumerated()), id: \.element.id) { index, best in
+                    if index > 0 { LookDivider().padding(.leading, 16) }
+                    FinishBestRow(best: best)
+                }
+            }
+            .lookSurface(.panel)
+        }
+        .sensoryFeedback(.success, trigger: bests.count)
+    }
+
+    // MARK: Last run
+
+    /// The template's last run beside this one: total volume, two bars and the change.
+    private func comparisonSection(_ comparison: FinishReceipt.Comparison) -> some View {
+        VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader("Last \(comparison.templateName)")
+            ComparisonBars(
+                lastLabel: LookFormat.shortDate(comparison.lastDate),
+                last: WeightMath.convert(comparison.lastVolumeKg, from: .kg, to: displayUnit),
+                today: WeightMath.convert(comparison.volumeKg, from: .kg, to: displayUnit),
+                unit: displayUnit.label)
+            .padding(16)
+            .lookSurface(.panel)
+        }
     }
 
     /// The half Apple's summary cannot show: what was actually lifted.
-    @ViewBuilder
-    private func exercisesSection(_ summary: WorkoutSummary) -> some View {
-        if !summary.exercises.isEmpty {
-            Section(savedWorkout?.recordedCardio.isEmpty == false ? "Lifting" : "Exercises") {
-                ForEach(summary.exercises) { line in
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(line.name)
-                            .font(Theme.cardTitle)
-                        HStack(spacing: 6) {
-                            if let equipment = line.equipment {
-                                Text(equipment)
-                            }
-                            if let preset = line.preset {
-                                Text("· \(preset)")
-                            }
-                        }
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondary)
-                        HStack(spacing: 6) {
-                            Text(HistoryRendering.pluralized(line.setCount, "set", "sets"))
-                            if let best = line.bestSet {
-                                Text("· best \(best)")
-                            }
-                        }
-                        .font(.caption.weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(Theme.accent)
-                    }
-                    .padding(Theme.Space.inset)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .card()
-                    // Combined for the same reason the heart-rate bar's rows
-                    // are: an identifier on a multi-Text container is not
-                    // queryable, and propagates over its children's.
-                    .accessibilityElement(children: .combine)
-                    .accessibilityIdentifier("summaryExercise")
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                    .listRowSeparator(.hidden)
+    private func exercisesSection(_ rows: [FinishReceipt.ExerciseRow]) -> some View {
+        VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader(savedWorkout?.recordedCardio.isEmpty == false ? "Lifting" : "Exercises")
+            VStack(spacing: 0) {
+                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                    if index > 0 { LookDivider().padding(.leading, 16) }
+                    FinishExerciseRow(row: row)
+                        // Combined: an identifier on a multi-Text container is not queryable,
+                        // and propagates over its children's.
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("summaryExercise")
                 }
             }
+            .lookSurface(.panel)
         }
     }
-
 }
 
 #Preview {

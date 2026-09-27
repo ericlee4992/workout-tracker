@@ -3,15 +3,6 @@ import SwiftUI
 // Plain display values the design components take. Screens build them from the SwiftData
 // models; the components never read the store.
 
-/// A set as the components display it: the as-entered weight and unit, reps, and the bar when
-/// it was logged in bar mode (same unit).
-struct SetValue: Hashable {
-    var weight: Double?
-    var unit: WeightUnit
-    var reps: Int
-    var bar: Double? = nil
-}
-
 /// A live set row's state: an empty draft, a draft carried forward (untouched), a draft the
 /// user typed, or a completed (logged) set.
 enum LiveSetState: Hashable {
