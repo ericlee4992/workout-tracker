@@ -102,17 +102,23 @@ final class HistoryEditFlowsUITests: XCTestCase {
         XCTAssertEqual(rows(endingWith: " · 10 sets").count, 1, "a saved set stays")
     }
 
+    /// Cancel and swiping the editor away: the exercise, its set and its family all go — the
+    /// open detail's hero included (Codex review 05b), and the list's count.
     func testAnAbandonedAddExerciseLeavesNothing() {
         openLegDay()
-        let add = app.buttons["addHistoryExercise"]
-        reach(add)
-        add.tap()
-        pickExercise("Seated Chest Press")
-        dismissSheetBySwipe()
-        editorClosed()
-        let count = app.staticTexts["4 exercises"]
-        reach(count, up: false)
-        XCTAssertFalse(app.staticTexts["5 exercises"].exists, "the abandoned exercise is gone")
+        for bySwipe in [false, true] {
+            let add = app.buttons["addHistoryExercise"]
+            reach(add)
+            add.tap()
+            pickExercise("Seated Chest Press")
+            if bySwipe { dismissSheetBySwipe() } else { app.buttons["Cancel"].firstMatch.tap() }
+            editorClosed()
+            reach(app.staticTexts["4 exercises"], up: false)
+            XCTAssertFalse(app.staticTexts["5 exercises"].exists, "the abandoned exercise is gone")
+            let families = any("historyHeroFamilies")
+            reach(families, up: false)
+            XCTAssertEqual(families.label, "Legs", "the hero keeps only the families trained (\(bySwipe ? "swipe" : "Cancel"))")
+        }
         backToList()
         XCTAssertEqual(rows(endingWith: " · 10 sets").count, 0)
     }

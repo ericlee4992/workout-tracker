@@ -121,7 +121,10 @@ struct HistoryDetailHero: View {
             }
             if !families.isEmpty || newBests > 0 || unitBadge != nil {
                 WrapLayout(spacing: 10, lineSpacing: 8) {
-                    if !families.isEmpty { FamilyStrip(families: families, size: 30, spacing: 2) }
+                    if !families.isEmpty {
+                        FamilyStrip(families: families, size: 30, spacing: 2)
+                            .accessibilityIdentifier("historyHeroFamilies")
+                    }
                     if newBests > 0 { HistoryPRMark(count: newBests) }
                     if let unitBadge { HistoryTextBadge(unitBadge) }
                 }

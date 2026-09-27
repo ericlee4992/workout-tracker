@@ -345,3 +345,16 @@ Verification (round 2): `history-build-5` exit 0.
   alert's field by identifier (system alert fields drop it).
 - `history-ui-7`: **exit 0** — notes 1/1.
 - Captures refreshed from `history-ui-5` (52 files in `../captures/05/`).
+
+## Codex review 05b — response (round 2)
+
+Report: [codex-review-05b.md](../codex-review-05b.md) — not clear; one medium (all round-1
+findings resolved).
+
+- **Abandoned exercise left its family in the open detail's hero (medium).** The prune is
+  unmarked, so the detail's cached receipt/marks were not rebuilt. `discardIncompleteAddition`
+  now rebuilds them after a successful prune. `testAnAbandonedAddExerciseLeavesNothing` covers
+  Cancel and swipe-away, and after each checks the exercise count, the hero's families
+  (`historyHeroFamilies` reads "Legs", no Chest) and, on the list, the row's set count.
+
+Verification (round 3): `history-ui-8` **exit 0** — HistoryEditFlows 5/5 (build included).

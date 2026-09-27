@@ -496,7 +496,12 @@ struct WorkoutDetailView: View {
     private func discardIncompleteAddition() {
         defer { addedSet = nil; pendingNewSet = nil }
         guard let set = addedSet else { return }
-        if HistoryEditing.pruneAbandonedSet(set, in: modelContext) { save() }
+        if HistoryEditing.pruneAbandonedSet(set, in: modelContext) {
+            save()
+            // The prune is unmarked, so nothing else refreshes the cached receipt and marks: an
+            // abandoned exercise must not leave its family in the hero (Codex review 05b).
+            rebuildDerived()
+        }
     }
 
     private func deleteConfirmedEntry() {
