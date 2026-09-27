@@ -809,11 +809,14 @@ struct RestBar: View {
     var onSkip: () -> Void = {}
     /// False when a container (the live slab with its New best band) draws `slabBackground`.
     var drawsBackground = true
+    /// AX sizes: shown in place of the Rest/time text while set (the live New best, L03).
+    var axTimeReplacement: AnyView?
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
 
     init(remaining: Int, total: Int, next: String?, onAdd15: @escaping () -> Void = {}, onSkip: @escaping () -> Void = {},
-         drawsBackground: Bool = true) {
+         drawsBackground: Bool = true, axTimeReplacement: AnyView? = nil) {
+        self.axTimeReplacement = axTimeReplacement
         self.remaining = remaining
         self.total = total
         self.next = next
@@ -834,7 +837,10 @@ struct RestBar: View {
         Group {
             if typeSize.isAccessibilitySize {
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 12) { ring; timeBlock(showNext: look.id != .floodlight) }
+                    HStack(spacing: 12) {
+                        ring
+                        if let axTimeReplacement { axTimeReplacement } else { timeBlock(showNext: look.id != .floodlight) }
+                    }
                     HStack(spacing: 10) { add15.frame(maxWidth: .infinity); skip.frame(maxWidth: .infinity) }
                 }
                 .padding(14)

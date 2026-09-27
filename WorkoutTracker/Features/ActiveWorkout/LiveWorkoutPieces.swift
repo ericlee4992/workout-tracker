@@ -350,6 +350,8 @@ struct LiveFreshBest: Equatable {
 }
 
 /// The thumb slab: the NEW BEST band docked on top while a best is fresh, over the pinned rest
+/// (AX sizes with a rest: the band does not stack — for its seconds it takes the place of the
+/// Rest/time text, `LiveBestCompact`, so the slab stays within about a fifth of the screen)
 /// (draining ring with its hourglass, "Rest" over the time, what is next, +15s and Skip —
 /// the live workout's inverse ink slab, `RestBar`). One unit: shared background and edge.
 /// D46: the beep and notification are scheduled with the system; this only draws the countdown.
@@ -367,10 +369,12 @@ struct LiveRestSlab: View {
     @State private var now = Date()
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
+        let compact = typeSize.isAccessibilitySize && restEnd != nil
         VStack(spacing: 0) {
-            if let best {
+            if let best, !compact {
                 LiveBestBand(best: best, action: openBest)
                     .transition(reduceMotion ? .opacity
                                 : .asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity), removal: .opacity))
@@ -379,7 +383,8 @@ struct LiveRestSlab: View {
             if let restEnd {
                 let remaining = max(0, Int(restEnd.timeIntervalSince(now).rounded(.up)))
                 RestBar(remaining: remaining, total: max(1, Int(restTotal.rounded())), next: next,
-                        onAdd15: addFifteen, onSkip: skip, drawsBackground: false)
+                        onAdd15: addFifteen, onSkip: skip, drawsBackground: false,
+                        axTimeReplacement: compact ? best.map { AnyView(LiveBestCompact(best: $0, action: openBest)) } : nil)
             }
         }
         .environment(\.lookOnSlab, look.id.isPaperClub)
@@ -394,6 +399,14 @@ struct LiveRestSlab: View {
             now = date
             if let restEnd, restEnd <= date { expired() }
         }
+    }
+}
+
+extension LiveBestBand {
+    /// "New best, Seated Chest Press, 115 lb × 8, up from 110 lb × 8".
+    static func spokenLabel(_ best: LiveFreshBest) -> String {
+        "New best, \(best.exerciseName), \(LookFormat.set(best.value, loadType: best.loadType))"
+            + (best.previous.map { ", up from \(LookFormat.set($0, loadType: best.loadType))" } ?? "")
     }
 }
 
@@ -444,8 +457,41 @@ struct LiveBestBand: View {
         .buttonStyle(.plain)
         .onAppear { if !reduceMotion { landed += 1 } }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("New best, \(best.exerciseName), \(LookFormat.set(best.value, loadType: best.loadType))"
-                            + (best.previous.map { ", up from \(LookFormat.set($0, loadType: best.loadType))" } ?? ""))
+        .accessibilityLabel(Self.spokenLabel(best))
+        .accessibilityHint("Opens previous performance")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("liveNewBest")
+    }
+}
+
+/// AX sizes: the band's few seconds in place of the Rest/time text — the value swiped in
+/// highlighter and the exercise. Same label, hint and tap as the band.
+private struct LiveBestCompact: View {
+    var best: LiveFreshBest
+    var action: () -> Void
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var landed = 0
+
+    var body: some View {
+        let now = look.previousLabel(best.value, rowUnit: best.value.unit, loadType: best.loadType)
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 4) {
+                NewBestBadge(kind: .newBest)
+                    .modifier(LiveLandEffect(trigger: landed, look: look))
+                LiveBestValue(text: now, trigger: landed)
+                Text(best.exerciseName)
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(look.id.isPaperClub ? look.onSlabSecondary : look.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onAppear { if !reduceMotion { landed += 1 } }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(LiveBestBand.spokenLabel(best))
         .accessibilityHint("Opens previous performance")
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("liveNewBest")

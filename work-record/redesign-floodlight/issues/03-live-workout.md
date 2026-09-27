@@ -123,9 +123,10 @@ Report: [codex-review-03.md](../codex-review-03.md) — not clear; 4 medium, 2 l
    the sticker slaps and the value is swiped in highlighter, Reduce Motion: it appears. With rest
    off the band shows alone for its seconds. `RestBar` gained `drawsBackground` and a shared
    `slabBackground`. `SetBadgeMath.outcomes` is the ticket-04 commit's version, moved here.
-   AX sizes: the band stacks over the rest (the prototype swapped it for the Rest/time text;
-   the slab is capped at AX1 and the band lasts 4 s). Regression:
-   `testANewBestDocksTheBandOnTheRestSlab`.
+   AX sizes: **the user chose the prototype's behaviour (2026-09-26)** — with a rest running
+   the band does not stack; for its seconds it takes the place of the Rest/time text
+   (`LiveBestCompact` via `RestBar.axTimeReplacement`), then gives it back. Regressions:
+   `testANewBestDocksTheBandOnTheRestSlab`, `testAtAccessibilitySizesTheBestTakesTheRestTextsPlace`.
 5. **Bar / Rest sheets (low).** `floodlightSheet(from:)` resets the look at both presentation
    boundaries, keeping the scheme.
 6. **Unit suffix target (low).** The suffix button is at least 44 × 44 pt of its own.
@@ -135,3 +136,29 @@ L01/L03 show it; the app has hidden it since ticket 11 because `prefill` returns
 logged set). New `PerformanceHistory.reference(for:)` = the same lookup without the draft
 guard; `prefill` is `reference` for drafts only, and `applyPrefill` still refuses a completed
 row. Unit test: `PreviousPerformanceTests.aCompletedRowKeepsItsReferenceButIsNeverPrefilled`.
+
+## Verification — round 2 (2026-09-26, after `1a04857` and the AX band change)
+
+Scope: the regressions for every finding, the preset flows (finding 3), and the live flows the
+fixes touch (row editing, marks, rest slab, sheets, PREVIOUS). Simulator WT-Floodlight, iOS 27.
+
+- `live-build-2` / `live-build-4` (build-for-testing): exit 0.
+- `live-ui-2`: first run of the new regressions — `testACompletedSetCanBeCorrectedInPlace`
+  failed in the TEST helper (the tap put the caret before the text: "102.5100"); the band test
+  passed for the same wrong reason ("115110"). Helper fixed (tap the trailing edge, assert the
+  field holds exactly the typed value) and the band assertions tightened to "115 lb × 8" /
+  "up from 110 lb × 8". Unit 21/21. A temporary probe (not committed) showed the Exercises
+  tab's search field is hidden in the navigation-bar drawer on iOS 27 → `revealedSearchField()`.
+- `live-ui-3` (`1a04857`): exit 65 — **UI 33/34 passed**; the one failure is the pre-existing
+  Gyms model-picker case (`CoreLoopUITests.swift:252`, identical on main). **Now passing**
+  (failed on main and in round 1): both `ExercisePresetUITests` (preset chips, stale-prefill
+  clearing, freeze on the live screen) and `testCreatingAnExerciseMidWorkoutLogsASetAndReachesHistory`.
+  Also passed: FloodlightLiveUITests 6/6, CoreLoop 9 others, Barbell 2/2, HeartRate 5/5,
+  Dumbbell, WorkoutName 2/2, MachineDeletion 2/2, CodexScreenshot 3/3, RedesignScreenshot
+  test02 default + AXL. Unit (`PreviousPerformanceTests`, `SetBadgeTests`, `NextSetTests`) 21/21.
+- `live-ui-4` (with the AX band change): exit 0 — 9/9: FloodlightLiveUITests 7/7 (incl.
+  `testAtAccessibilitySizesTheBestTakesTheRestTextsPlace`), RedesignScreenshot test02 AXL,
+  CodexScreenshot AX workout.
+- Captures (`../captures/03/`): `floodlight-03-live-{light-default,dark-default,light-axl}.png`,
+  `floodlight-03-live-new-best-band.png` (dark, L03), `floodlight-03-live-new-best-axl.png`;
+  `floodlight-03-live-empty.png` from round 1.

@@ -100,4 +100,27 @@ final class FloodlightLiveUITests: XCTestCase {
         waitForExpectations(timeout: 8)
         XCTAssertTrue(app.staticTexts["Rest"].exists, "the slab returns to the rest alone")
     }
+
+    /// L03 at AX sizes (the prototype's choice, confirmed by the user): the band does not stack
+    /// on the rest — for its seconds it takes the place of the Rest/time text, then gives it back.
+    func testAtAccessibilitySizesTheBestTakesTheRestTextsPlace() {
+        launch(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"])
+        let weight = app.textFields.matching(identifier: "setRow.weight").element(boundBy: 2)
+        for _ in 0..<6 where !(weight.exists && weight.isHittable) { app.swipeUp() }
+        XCTAssertTrue(weight.isHittable)
+        replace(weight, with: "115")
+        let check = app.buttons.matching(identifier: "setRow.complete").element(boundBy: 2)
+        for _ in 0..<4 where !check.isHittable { app.swipeUp() }
+        check.tap()
+        let band = any("liveNewBest")
+        XCTAssertTrue(band.waitForExistence(timeout: 5), "the compact New best lands")
+        XCTAssertTrue(band.label.contains("up from 110 lb × 8"), band.label)
+        XCTAssertFalse(app.staticTexts["Rest"].exists, "the best stands in for the Rest/time text")
+        XCTAssertTrue(app.buttons["Skip"].exists, "the rest controls stay")
+        shoot("floodlight-03-live-new-best-axl")
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: band)
+        waitForExpectations(timeout: 8)
+        XCTAssertTrue(app.staticTexts["Rest"].waitForExistence(timeout: 2), "the Rest text comes back")
+    }
 }
