@@ -19,7 +19,8 @@ Review for:
    the eight-week rhythm on the phone's calendar, the tab order; each machine's workouts / last
    used / sets and one best per record scope (exercise × preset × load type) read from SNAPSHOTS
    (D23) — warmups, assisted lower-is-better, ties, bodyweight, a renamed or re-modelled machine,
-   a running workout; the Exercise grouping's per-exercise numbers; relative day words; the New
+   a running workout; a group's rows showing only that group's exercises' numbers (Exercise and
+   Body area grouping — a station is listed under every body area it serves); relative day words; the New
    Model prefill. Any case where a number is wrong, or two screens (gym page row, machine page,
    progress chart the best opens) disagree.
 2. Lifecycle and edits: Delete Gym… (archive, confirmation, the page closing, the Home selection
@@ -33,7 +34,9 @@ Review for:
    Restore, D3 label defaults, the model picker's search / filters / grouping remembered in
    AppPreferences (D23), New Model's AI suggestion rules and consent (D53), scan prefill (D35).
    The iOS 27 model-picker test fix (CoreLoop, formerly :252). The clean-build fix in
-   `ExerciseProgressView` (`ProgressSessionLink`) — is it sound?
+   `ExerciseProgressView` (`ProgressSessionLink`) — is it sound? The shared `SheetHeader`'s new
+   opt-in `reflowsTitle`; the `-uiTestDesignGyms` fixture (can it touch other captures or a real
+   store?).
 4. Look and accessibility per REVIEW.md: the bold element per screen (Scan Machine the only
    filled command on the gym page; the top best the only hero figure on the machine page),
    grouping, light/dark, AXL layouts, VoiceOver (gym cards, machine rows now containers with an
