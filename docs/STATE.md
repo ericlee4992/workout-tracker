@@ -30,10 +30,17 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   (restyled). Verification: `gyms-ui-1`..`gyms-ui-5` (final runs exit 0; every targeted test passed
   in final form); captures `captures/06/`. Also fixed: the pre-existing iOS 27 CoreLoop :252
   model-picker failure, and a clean-build failure in ticket 05's progress view.
-- **Ticket 07** (Scan, S01–S07): NOT STARTED — to begin in a fresh session. Branch
-  `ericlee4992/redesign-floodlight-scan` (pushed, from the gyms tip `d45d5c5`, no commits),
-  scratch checkout `/tmp/wt-floodlight/scan`. Start prompt: `/tmp/wt-floodlight/ticket07-brief.md`
-  (ephemeral; the same content is summarised in ticket 01 → Session 3).
+- **Ticket 07** (Scan, S01–S07): **implemented, targeted verification running** (2026-09-27).
+  Branch `ericlee4992/redesign-floodlight-scan` (pushed, stacked on the gyms tip `d45d5c5`),
+  scratch checkout `/tmp/wt-floodlight/scan`. Record: `issues/07-scan.md` on that branch (scope,
+  verification, progress). User decisions 2026-09-27: Scan Machine (gym page, routine setup)
+  **adds directly** with an Added step (the form's own scan still fills the form); photo consent
+  stays **before** the camera; ambiguous stays D56 (listed, no pick); no picker Scan pill / scope
+  alert. Verified so far: `scan-unit-2` exit 0 (49/49), `scan-ui-1` exit 0 (7/7), `scan-ui-2`
+  17/19 (two AX correction captures hit a layout loop, fixed). Running: `scan-ui-4` (correction
+  and Read Label recaptures, AskAI, ScanMachineLabel, CoreLoop, GymsFlows, MachineDeletion);
+  logs/exits `/tmp/wt-floodlight/results/scan-*`. Next: read `scan-ui-4`, copy captures to
+  `captures/07/`, then Codex review 07 (prompt `codex-review-07-prompt.md` on the scan branch).
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
