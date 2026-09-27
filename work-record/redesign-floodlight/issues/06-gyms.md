@@ -1,7 +1,7 @@
 # 06 — Floodlight: Gyms
 
 Type: feature (part of [01](01-implement-redesign.md))
-Status: in progress — ticket written, implementation next
+Status: implemented and verified (targeted); Codex review 06 next
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-gyms` (scratch checkout `/tmp/wt-floodlight/gyms`),
 stacked on the ticket-05 history tip `646187e`.
@@ -315,6 +315,16 @@ exits and result bundles `/tmp/wt-floodlight/results/gyms-*`.
   runs (the no-match New Model… row sat under the keyboard's search bar — the test submits the
   search first) and test06 default, now past the gym steps and failing at the Exercises tab's
   search field (the pre-existing iOS 27 search drawer; `revealedSearchField()` now).
+- `gyms-ui-3`: **exit 0 — 13/13**: FloodlightGyms 12/12 (captures from the final code; the
+  first gym page shot now after the regrouping settles — the Chest group shows no numbers on
+  the cable station and pec deck, which were never used for a chest exercise) and
+  RedesignScreenshot test06. Every test in the targeted scope has now passed in its final form
+  (`gyms-ui-1` + reruns `gyms-ui-2`, `gyms-ui-3`).
+- Captures: `../captures/06/` (86 files from `gyms-ui-3`): gyms list (+ deleted gyms), gym page
+  (pages, Exercise grouping), Deleted Machines, machine page, Edit Gym, machine form, picker
+  (browse, search, no match), New Model — light/dark × Default/AXL — and the empty tab.
+- Not exercised: Reduce Motion by a test (checked by reading each animation's gate — rolling
+  counts, restore, card insert, chart draw-in), VoiceOver by a person, the real camera.
 
 ## Progress
 
