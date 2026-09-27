@@ -324,7 +324,12 @@ final class AskAIUITests: XCTestCase {
         // A multi-line field: exposed as a text view once it is being edited, so found by identifier.
         let field = any("identifiedMachineLabel")
         XCTAssertTrue(field.waitForExistence(timeout: 10))
-        field.coordinate(withNormalizedOffset: CGVector(dx: 0.96, dy: 0.5)).tap()
+        // Floodlight ticket 07: on a catalog match the name field starts under the pinned
+        // "Use This Machine" bar; a tap there commits the sheet. Scroll it clear first.
+        let commit = app.buttons["scanUseCandidate"]
+        for _ in 0..<6 where !(field.isHittable && field.frame.maxY < commit.frame.minY - 20) { app.swipeUp() }
+        XCTAssertLessThan(field.frame.maxY, commit.frame.minY - 20, "the name field is clear of the pinned bar")
+        field.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: field.frame.width - 10, dy: 14)).tap()
         _ = app.keyboards.firstMatch.waitForExistence(timeout: 3)
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: (field.value as? String ?? "").count))
         field.typeText("Press by window")
@@ -384,7 +389,11 @@ final class AskAIUITests: XCTestCase {
         let cancel = app.buttons["scanCancel"]; XCTAssertTrue(cancel.waitForExistence(timeout: 5)); cancel.tap()
         app.buttons["scanLabelOffline"].tap()
         let shutter = app.buttons["scanShutter"]; XCTAssertTrue(shutter.waitForExistence(timeout: 5)); shutter.tap()
-        let create = app.buttons["scanCreateNew"]; XCTAssertTrue(create.waitForExistence(timeout: 15)); reach(create); create.tap()
+        let create = app.buttons["scanCreateNew"]; XCTAssertTrue(create.waitForExistence(timeout: 15))
+        // Clear of the pinned Use This bar: a tap on a row half under it lands on the bar.
+        let bar = app.buttons["scanUseCandidate"]
+        for _ in 0..<8 where !(create.isHittable && (!bar.exists || create.frame.maxY < bar.frame.minY - 20)) { app.swipeUp() }
+        create.tap()
         let suggest = app.buttons["newModelSuggestExercises"]; XCTAssertTrue(suggest.waitForExistence(timeout: 5)); reach(suggest); suggest.tap()
         XCTAssertTrue(app.alerts["Send model details to OpenAI?"].waitForExistence(timeout: 5))
         app.alerts.buttons["Allow and send"].tap()

@@ -107,6 +107,7 @@ final class ScanMachineLabelUITests: XCTestCase {
         XCTAssertTrue(
             createNew.waitForExistence(timeout: 20),
             "Create-new must always be reachable from a scan")
+        clearOfPinnedBar(createNew)
         createNew.tap()
 
         let manufacturer = app.textFields["Manufacturer"]
@@ -151,6 +152,19 @@ final class ScanMachineLabelUITests: XCTestCase {
     }
 
     // MARK: - Helpers
+
+    /// Floodlight ticket 07: "None of these — create new" ends the candidate list, which scrolls
+    /// under the pinned Use This / Scan again bar. A row half under the bar is "hittable", but the
+    /// tap lands on the bar (it once accepted the preselected model), so scroll it clear first.
+    private func clearOfPinnedBar(_ element: XCUIElement) {
+        let bar = app.buttons["scanUseCandidate"]
+        for _ in 0..<8 where !(element.isHittable && (!bar.exists || element.frame.maxY < bar.frame.minY - 20)) {
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.4)
+        }
+        XCTAssertTrue(element.isHittable && (!bar.exists || element.frame.maxY < bar.frame.minY - 20),
+                      "create-new is clear of the pinned bar")
+    }
 
     /// Scanner accuracy, ticket 03: nothing is read until the shutter. The
     /// fixture stands in for the camera; the box and the shutter are real.

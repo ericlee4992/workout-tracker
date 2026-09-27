@@ -288,21 +288,45 @@ result bundles `/tmp/wt-floodlight/results/scan-*`; screenshots exported with
   explicitly.
 - `scan-ui-3` (exit 65): void — a second copy of the run collided with the first in the same
   derived data ("database is locked"); both stopped, rerun as `scan-ui-4`.
-- `scan-ui-4` (RUNNING when paused 2026-09-27, xcodebuild pid 22055; log/exit/xcresult
-  `/tmp/wt-floodlight/results/scan-ui-4.*`): correction ×4 + Read Label light ×2 recaptures,
-  AskAI, ScanMachineLabel, CoreLoop, GymsFlows, MachineDeletion. Interim at pause: 8 passed,
-  4 failed, all AskAI and all test mechanics of the new chrome, fixed in the test file AFTER this
-  run was built (so it still fails them; rerun needed):
-  - `testAmbiguousIdentityAccessibility`, `testGenericScanConfirmsBeforeSavingAccessibility`
-    (and likely the other AX identity tests later in the run): `reach(use)` requires the button
-    above the tab-bar margin; the commit is pinned at the sheet's foot and at AX sits below it.
-    Now `pinned(use)` (exists and hittable).
-  - `testEditedProposalLabelSurvivesCatalogSelection`: the multi-line name field is exposed as a
-    text view once focused, so `textFields[…]` lost it. Now found by identifier.
-  - `testAllThreeGeneratedTemplatesInPopulatedListAccessibility`: stalled reaching
-    `routineEquipment.dumbbells` on the routine form (20 drags) — a screen this ticket does not
-    change (only two @State vars and a second sheet were added to AIRoutineSheet). It passed in
-    ticket 06's runs; rerun it alone before judging (flake vs regression).
+- `scan-ui-4` (exit 65 — **46/55**; paused mid-run by the user, then read): the correction ×4
+  (incl. both AXL — the layout-loop fix holds) and Read Label light ×2 recaptures, CoreLoop 9/9,
+  GymsFlows, MachineDeletion, ScanMachineLabel scanning, AskAI default flows incl. routine setup
+  adding two machines directly and the offline error re-arming the shutter. 9 failures, all test
+  mechanics of the new chrome except two:
+  - AX identity ×4, AX generic scan, AX routine scan: `reach(use)` wants the button above a
+    tab-bar margin; the commit is pinned at the sheet's foot → `pinned(use)`.
+  - Create-new ×2 (`ScanMachineLabelUITests`, AskAI manual suggestions): the tap on "None of these
+    — create new" landed on the pinned **Use This** and accepted the preselected model (the row
+    ends the list, half under the bar — ticket 06's lesson). The tests scroll it clear first.
+  - Edited label: the name field (y 763–788) starts under the pinned "Use This Machine" on a
+    catalog match; a tap there commits the sheet. The test scrolls it clear first (`scan-ui-6`
+    exit 65 showed the frame; `scan-ui-7` **exit 0**).
+- `scan-ui-5` (exit 65, 8/11): all AX identity tests, AX generic scan, manual suggestions and both
+  ScanMachineLabel tests pass. Still failing: `testAllThreeGeneratedTemplatesInPopulatedListAccessibility`
+  and `testScanMachinesDuringRoutineSetupAccessibility`, both stalling on the AI routine FORM
+  (reaching `routineEquipment.dumbbells` / `routineAddGym` after the keyboard is dismissed),
+  before any scan screen. **Pre-existing:** `scan-baseline-1` ran both on the unchanged ticket-06
+  tip (`/tmp/wt-floodlight/gyms`, `d45d5c5`): **exit 65, the same two failures at the same step**.
+  They passed in ticket 06's `gyms-ui-1`, so this is environment drift on the simulator or a
+  flaky reach, not ticket 07; left for the AI routine area (ticket 01 area 9). The default-size
+  routine scan (direct add ×2, counts, preferences kept) passes.
+- `scan-unit-3`: **exit 0 — 66/66** (`ScanMachineTests` 11, `AIGymTests`, `EquipmentLifecycleTests`,
+  `MachineCreationTests`, `CatalogMatcherTests`) from NEW derived data
+  (`/tmp/wt-floodlight/dd-scan-clean`) — the clean-build check on the final code.
+- **Every targeted test has passed in its final form** (FloodlightScan 19/19 across `scan-ui-2`
+  + `scan-ui-4` on the final product code; the rest in `scan-ui-4`/`-5`/`-7`) except the two
+  pre-existing AX routine-form tests above.
+- Captures: `../captures/07/` (90 PNGs): consent, camera, identifying, result (catalog match,
+  generic toggle, new model, ambiguous, generic, uncertain), error, no key, Change exercises,
+  Added, Read Label (viewfinder, results), Correct Model (open, picked, the past-workouts
+  question) — light/dark × Default/AXL; from `scan-ui-2`, with the correction and light Read
+  Label shots from `scan-ui-4` (after their fixes). Contact sheets:
+  `/tmp/wt-floodlight/results/scan-sheets/final-*.png`.
+- Noted, deliberate: on a catalog match with the duplicate warning, the first viewport shows the
+  photo, the stamp, the identity and the warning; the name field is one scroll away.
+- Not exercised: the real camera and a real Terra call (fixtures only), VoiceOver by a person,
+  Reduce Motion by a test (each animation's gate read in code: stamp, sweep, instrument, flow dot,
+  flash, count-up, timeline, shake).
 
 Scope (DEVELOPMENT: new feature + shared sheets — the scan sheet opens from the gym page, the
 machine form, mid-workout Add Machine and AI routine setup; the correction sheet from the gym
@@ -324,11 +348,9 @@ WT-Floodlight (iOS 27.0); logs, exits and result bundles `/tmp/wt-floodlight/res
   once the scan sheet has closed (`a637e62`). `AskAIUITests` updated (Cancel by `scanCancel`,
   routine scans end on `scanDone`, the error's Take another photo re-arms the shutter); new
   `FloodlightScanUITests` (16 captures + 3 flows).
-- 2026-09-27 (paused by the user mid-verification): see `scan-ui-4` under Verification.
-  **Next:** read `scan-ui-4`'s final exit/TEST line; rerun the failed tests with the fixed test
-  file (plus the templates AX test alone); export `scan-ui-2` + reruns' captures into
-  `../captures/07/`; then Codex review 07 in a visible Orca terminal (prompt
-  `../codex-review-07-prompt.md`; report `../codex-review-07.md`).
+- 2026-09-27: paused by the user mid-verification, resumed; verification complete (above).
+  Next: Codex review 07 in a visible Orca terminal (prompt `../codex-review-07-prompt.md`;
+  report `../codex-review-07.md`).
 - Decision record: user decision 1 changes where a Scan Machine scan is confirmed (the sheet's
   Add, not the form) — D56's confirmation stays (Add is the tap). Record it with the D54 entry
   before merge, as ticket 05 did for D47.
