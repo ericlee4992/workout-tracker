@@ -368,3 +368,15 @@ Verification (round 2): `gyms-ui-4` **exit 0** — unit 39/39 (`GymOverviewTests
 current-gym deletion), CoreLoop 9/9, `testCaptureGymsLightDefault`. The fixes move no pixel at
 the captured states (pill hit regions, labels, Reduce Motion paths, chart data for multi-exercise
 stations — the fixture's top bests are single-exercise), so the `gyms-ui-3` captures stand.
+
+## Codex review 06b — response (round 2)
+
+Report: [codex-review-06b.md](../codex-review-06b.md) — not clear; one medium (findings 1–5, 7,
+8 confirmed resolved).
+
+- **Grouping pills below 44 pt at small text sizes.** The scaled pill (38 at Large) shrinks at
+  Small/XS; each pill now has a 44 pt floor inside its button (`.frame(minHeight: 44)` before the
+  content shape). New `testGroupingPillsKeep44PointTargetsAtSmallText` (XS: every pill ≥ 44 pt).
+
+Verification (round 3): `gyms-ui-5` **exit 0 — 5/5**: GymsFlows 4/4 (incl. the XS bounds
+test), `testCaptureGymsLightDefault` (the pills look unchanged at the default size).
