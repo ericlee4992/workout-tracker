@@ -392,8 +392,13 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(anyElement("historyWorkoutRow").waitForExistence(timeout: 10))
         shoot("redesign-05-history-axl")
         anyElement("historyWorkoutRow").tap()
-        XCTAssertTrue(anyElement("historySetLine").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["historyWorkoutName"].waitForExistence(timeout: 10))
         shoot("redesign-05-detail-axl")
+        // The exercises sit under the hero and tiles; the lazy list builds them once scrolled.
+        let setLine = anyElement("historySetLine")
+        for _ in 0..<8 where !setLine.exists { app.swipeUp() }
+        XCTAssertTrue(setLine.waitForExistence(timeout: 5))
+        shoot("redesign-05-detail-axl-sets")
     }
 
     /// A finished hour with a full heart-rate series, in History.
@@ -420,9 +425,13 @@ final class RedesignScreenshotUITests: XCTestCase {
         let row = anyElement("historyWorkoutRow")
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
-        XCTAssertTrue(anyElement("historyHeartRateSection").waitForExistence(timeout: 10))
-        app.swipeUp()
-        XCTAssertTrue(anyElement("heartRateChart").waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["historyWorkoutName"].waitForExistence(timeout: 10))
+        let section = anyElement("historyHeartRateSection")
+        for _ in 0..<8 where !section.exists { app.swipeUp() }
+        XCTAssertTrue(section.waitForExistence(timeout: 5))
+        let chart = anyElement("heartRateChart")
+        for _ in 0..<3 where !(chart.exists && chart.isHittable) { app.swipeUp() }
+        XCTAssertTrue(chart.waitForExistence(timeout: 10))
         shoot("redesign-05-detail-heart-rate-axl")
         let zones = anyElement("historyZoneCard")
         for _ in 0..<4 where !zones.exists { app.swipeUp() }

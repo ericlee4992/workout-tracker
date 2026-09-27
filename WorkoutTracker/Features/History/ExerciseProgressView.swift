@@ -709,15 +709,16 @@ struct ProgressChart: View {
                 AxisValueLabel(horizontalSpacing: 8).foregroundStyle(look.textTertiary)
             }
         }
-        // A tap picks a day; a short press then a drag scrubs. A bare drag stays the page's
-        // scroll (a zero-distance drag here would trap every swipe that starts on the chart).
-        .chartGesture { proxy in
-            LongPressGesture(minimumDuration: 0.15)
-                .sequenced(before: DragGesture(minimumDistance: 0))
-                .onChanged { value in
-                    if case .second(true, let drag?) = value { select(atX: drag.location.x, proxy: proxy) }
-                }
-                .exclusively(before: SpatialTapGesture().onEnded { select(atX: $0.location.x, proxy: proxy) })
+        // A tap picks a day; a sideways drag scrubs. The scrub is a UIKit pan that only BEGINS
+        // when the motion is more across than down, so a swipe that starts on the chart is the
+        // page's scroll. (Every SwiftUI drag here — plain, simultaneous, after a long press —
+        // trapped the scroll, and `chartXSelection` never fires inside a scroll view.)
+        .chartOverlay { proxy in
+            GeometryReader { geo in
+                Rectangle().fill(.clear).contentShape(Rectangle())
+                    .simultaneousGesture(SpatialTapGesture().onEnded { select(at: $0.location, proxy: proxy, geo: geo) })
+                    .gesture(HorizontalScrubGesture { select(at: $0, proxy: proxy, geo: geo) })
+            }
         }
         // Axis labels readable but capped, so dates never collide at accessibility sizes (the
         // selected value above the chart carries the number in full size).
@@ -741,7 +742,9 @@ struct ProgressChart: View {
         }
     }
 
-    private func select(atX x: CGFloat, proxy: ChartProxy) {
+    private func select(at location: CGPoint, proxy: ChartProxy, geo: GeometryProxy) {
+        guard let plot = proxy.plotFrame else { return }
+        let x = location.x - geo[plot].origin.x
         guard let date: Date = proxy.value(atX: x),
               let nearest = points.min(by: { abs($0.date.timeIntervalSince(date)) < abs($1.date.timeIntervalSince(date)) })
         else { return }
@@ -762,6 +765,33 @@ struct ProgressChart: View {
         } else {
             Circle().fill(look.surface).frame(width: 8, height: 8)
                 .overlay { Circle().strokeBorder(look.done, lineWidth: 2) }
+        }
+    }
+}
+
+/// A pan that begins only on a mostly-horizontal motion and reports the touch in the view's own
+/// coordinates: the chart's scrub, leaving vertical swipes to the enclosing scroll view.
+struct HorizontalScrubGesture: UIGestureRecognizerRepresentable {
+    var onChange: (CGPoint) -> Void
+
+    func makeUIGestureRecognizer(context: Context) -> UIPanGestureRecognizer {
+        let pan = UIPanGestureRecognizer()
+        pan.delegate = context.coordinator
+        return pan
+    }
+
+    func handleUIGestureRecognizerAction(_ recognizer: UIPanGestureRecognizer, context: Context) {
+        guard recognizer.state == .began || recognizer.state == .changed else { return }
+        onChange(context.converter.localLocation)
+    }
+
+    func makeCoordinator(converter: CoordinateSpaceConverter) -> Coordinator { Coordinator() }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        func gestureRecognizerShouldBegin(_ recognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = recognizer as? UIPanGestureRecognizer else { return true }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y)
         }
     }
 }

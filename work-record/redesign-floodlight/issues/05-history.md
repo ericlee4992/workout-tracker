@@ -29,8 +29,8 @@ session scratchpad: H02 calendar, H05 edit set, H06 progress, H07 empty).
    (cardio adds a run glyph), today dashed, the selected day outlined. Tapping a trained day
    **selects** it; the day's workouts are listed under the grid (all of them, not only one);
    tapping a workout opens it. Close button top-leading.
-3. **Workout detail (H03).** Hero: the status ring (the finish receipt's `FinishStatusRing` —
-   one segment per completed set in its family colour) beside "Saturday, Sep 19", the title
+3. **Workout detail (H03).** Hero: the working-set ring (`HistoryHeroRing` — one segment per
+   working set in its family colour, the count in the middle) beside "Saturday, Sep 19", the title
    (tap to rename, pencil) and "10:30 AM – 11:37 AM · Iron Temple"; families + new-best count +
    unit badge; the Edited line. **Save as Template…** as a visible secondary button (was in the
    toolbar menu). **Workout details** tiles in the Finish order (`FinishTileGrid`). **Last
@@ -69,18 +69,21 @@ standard hero without a ring and the existing cardio cards.
 
 ## Domain (derived on read, unit-tested)
 
-- `HistoryOverview` (new): month summary (workouts, working sets, hours), per-day signal
+- `HistoryOverview` (new): month summary (workouts, completed sets, hours), per-day signal
   (sets → intensity 0–4, families, has cardio/lifting), week grouping by the phone's calendar
   (the same weeks as Home's This week and the calendar), week titles.
-- `HistoryRowFacts` (new, built once per list change from one history read): per workout the
-  families (live `muscleGroup`, the documented exception), the new-best count (exercises with a
-  new-best set, judged against history before that workout — `SetBadgeMath`, grouped by scope
+- `HistoryWorkoutFacts` + `HistoryOverviewMath.facts` (built once per list change from one history read): per workout the
+  families (live `muscleGroup`, the documented exception), the new-best count (record scopes with a
+  new best — the receipt's "New bests" lines — judged against history before that workout — `SetBadgeMath`, grouped by scope
   so the whole list is one pass), volume, unit badge.
 - Detail: `FinishReceipt.build` (ring runs, families, comparison) and per-set marks via
   `SetBadgeMath.receiptMarks`.
 - `HistoryEditing.addSet` (new) for the exercise menu's Add Set, marked as an edit like Add
   Exercise; abandoned (Cancel / swipe down with no values) it is removed again.
-- Rules kept: warmups never count toward sets/volume/records; assisted lower is better; ties
+- `HistoryEditing.setNotes` (new): notes edited in History, trimmed, marked (user decision).
+  `ProgressSeriesMath.scoped / recordDays / change(first:last:)` for the progress chart.
+- Rules kept: warmups never count toward volume, records or the ring (the row's and month's
+  "sets" count every completed set, as the receipt does); assisted lower is better; ties
   are not bests; first time is not a best; frozen snapshots only (D23); display conversions
   plain (D52), storage untouched.
 
@@ -163,8 +166,8 @@ Following the approved prototype (veto any): calendar selects a day and lists it
 Delete Workout… are visible on the page instead of in the toolbar menu; rows no longer show
 the gym (the detail does); edit-set footer shortened to "The workout will be marked as
 edited."; Add Set in a past exercise's menu; the progress chart gains rep-count records and a
-tappable Sessions list; the detail ring counts completed sets like the receipt (the prototype
-counted working sets only). Weeks follow the phone's first weekday, as Home.
+tappable Sessions list; the detail ring counts WORKING sets as the prototype does (labelled
+"working sets"; the receipt's ring counts every completed set, the row's "N sets" too). Weeks follow the phone's first weekday, as Home.
 
 User decisions (2026-09-27, asked in session):
 1. **Notes on the detail: show and edit, marked as an edit** (like the name, D50). This
@@ -176,20 +179,28 @@ User decisions (2026-09-27, asked in session):
 ## New / changed visible strings
 
 New: month figures "Workouts", "Sets", "Time", "h"; week titles "This week", "Last week",
-"Sep 7 – 13"; "N workouts"; month break "August" + "12 workouts · 180 sets · 9.5 h"; the
-new-best count mark; unit badge "kg + lb" (was "Mixed"); detail date "Saturday, Sep 19", time
-range "10:30 AM – 11:37 AM"; "Save as Template…" (button); "Workout details"; "Last
-<template>"; "Exercises" + "N exercises"; "Add Set" (menu, sheet title); "Load type" (menu);
-"As entered" / "Show in kg" / "Show in lb" in the units capsule; edit-set "Weight", "Reps",
-"Unit", "The workout will be marked as edited.", "Delete Set" (button); calendar "Sep 2026",
-"Previous month", "Next month", "N workouts · N sets · N h", "No workouts", day title
-"Monday, Sep 21"; progress "Since first session" badge, "Weight records" / "Least-assistance
-records · lower is better" / "Added-weight records" / "Bodyweight record", "N reps",
-"Sessions", "N days"; heart-rate zones inside the plate. Approved:
-"Add Note…", "Notes", "Start Lifting" on the empty screen.
-Removed: the month section header "SEPTEMBER 2026", the row's gym line and chevron, "Name"
-row label, the load-type chip, the toolbar menu, the long edit-set footer, the "Change /
-Since first session" list row (now the badge), "No gym".
+"Sep 7 – 13" / "Aug 30 – Sep 5"; "N workouts"; month break "August" + "12 workouts · 180 sets ·
+9.5 h"; the new-best count mark (spoken "N new bests"); unit badge "kg + lb" (was "Mixed") or
+the one non-app unit; row meta "6:40 PM · 55 min · 14 sets" (cardio only: "… · 9:15 /mi");
+detail date "Saturday, Sep 26", time range "6:10 PM – 7:05 PM · Iron Temple", ring "N working
+sets"; "Save as Template…" (button); "Workout details"; "Last <template>"; "Exercises" /
+"Lifting" + "N exercises"; "Add Set", "Load type", "Options" (exercise menu); units capsule
+"As entered ▾" / "kg" / "lb" with "Show in kg" / "Show in lb"; "Add Note…", "Notes"; edit set
+"Add Set" (title), "Weight"/"Assistance", "Reps", "Unit", "Decrease/Increase <field>",
+"The workout will be marked as edited.", "Delete Set" (button); set delete message gains
+"<Exercise> has no other sets, so it is removed from this workout too." when it is the last
+set; calendar "Sep 2026", "Previous month", "Next month", "N workouts · N sets · N h", day title
+"Saturday, Sep 26", "No workouts"; progress "Since first session" badge ("Up 20 percent…"),
+"Weight records" / "Least-assistance records · lower is better" / "Added-weight records" /
+"Bodyweight record", "N reps", "Sessions", "N days", "One session", Close; empty History
+"Start Lifting". Heart rate: the zones sit inside the chart's plate (receipt and History).
+Changed: the detail's bar title is the workout's title once scrolled (was the date).
+Removed: month section header "SEPTEMBER 2026", the row's gym line and chevron, the detail's
+"Name" row, the load-type chip, the toolbar menu (`workoutDetailMenu`), the long edit-set
+footer, the "Change / Since first session" list row, "No gym", "Finished workouts show up here.",
+the separate "Heart rate" tiles (now the Workout details tiles, as on the receipt).
+Kept: row volume as a whole number in the app unit (a mixed-unit workout's detail tile keeps
+its decimals, D25).
 
 ## Tells (ios-design step 4)
 
@@ -211,24 +222,65 @@ Since first session" list row (now the badge), "No gym".
 
 ## Tests
 
-Planned: `HistoryOverviewTests` (month summary, intensity, week grouping and titles, a week
-spanning two months), `HistoryRowFactsTests` (families, new-best count judged against the
-past only, warmups out, assisted lower-is-better), `HistoryEditing` add-set test; UI tests
-updated for the moved menu items and the calendar's select-then-open; new
-`FloodlightHistoryUITests` captures (list, calendar, detail pages, edit set, progress) in
-light/dark × Default/AXL on `-uiTestDesignSample`.
+- New unit tests: `HistoryOverviewTests` (9: month summary, intensity, days, weeks across a
+  month end and their titles, unit badge, new-best counts judged against the past only incl.
+  assisted/ties/warmups, row facts, Add Set + abandoned prune, notes), `ProgressSeriesTests` +2
+  (record days, scoping and per-metric change).
+- New UI captures `FloodlightHistoryUITests` (6): list, calendar, detail pages, edit set,
+  progress chart in light/dark × Default/AXL on `-uiTestDesignSample -uiTestDesignHistory`,
+  and the empty screen in light/dark (no calendar button; Start Lifting).
+- Updated: `HistoryEditingUITests` (Delete Workout… on the page), `HistoryTemplateUITests`
+  (Save as Template… on the page), `HistoryCalendarUITests` (select a day → its row opens it;
+  the detail's date line instead of a date nav title; new `testAnEmptyDayIsSelectableAndMonthsPage`;
+  the empty-store case replaced by `testEmptyHistoryHasNoCalendarAndStartsLifting`),
+  `HeartRateSummaryUITests` and `RedesignScreenshotUITests.test05_historyHeartRateLargeText`
+  (zone legend reads "Zone 2, 14:15"), `CoreLoopUITests` (row meta "… · 1 set"; the set line's
+  label), `BarbellUITests` (set line label carries value and bar breakdown), progress tests and
+  `test05_history` use `revealedSearchField()` (iOS 27 search drawer).
 
 ## Verification
 
-Scope (DEVELOPMENT: new feature + shared screens): build; unit tests above plus the existing
-History/records/progress Domain tests; the History UI flows — `HistoryEditingUITests`,
-`HistoryTemplateUITests`, `HistoryCalendarUITests`, `WorkoutNameUITests`,
-`HeartRateSummaryUITests`, `ProgressChartUITests`, `ProgressChartTooltipUITests`, the
-History parts of `RedesignScreenshotUITests` and `CoreLoopUITests` (View in History), the
-finish receipt's `FloodlightFinishUITests` (shared heart-rate section), `BarbellUITests`
-(bar breakdown in History), `MachineDeletionUITests` (history after a machine is deleted),
-`CardioUITests` (cardio in History); Default/AXL captures in light and dark.
-Simulator WT-Floodlight (iOS 27.0). Results: `/tmp/wt-floodlight/results/history-*`.
+Scope (DEVELOPMENT: new feature + shared screens — History, the finish receipt's shared
+heart-rate plate and tiles, the progress chart the Exercises tab also opens): build; unit tests
+for the new Domain rules and the neighbouring records/progress/receipt tests; every History UI
+flow; the finish receipt; flows that land in History (core loop, bar mode, machine deletion,
+cardio); captures light/dark × Default/AXL. Full UI suite deferred to the whole-redesign release
+candidate (ticket 01 step 4). Simulator WT-Floodlight (iOS 27.0); logs, exits and result bundles
+`/tmp/wt-floodlight/results/history-*`.
+
+- `history-unit-1`: `HistoryOverviewTests`, `SetBadgeTests`, `FinishReceiptTests` 28/28, exit 0.
+- `history-build-1..4`: build exit 0 (after a `set` property-name fix in build 1).
+- `history-cap-1`: `FloodlightHistoryUITests` 6/6, exit 0 — first captures, reviewed; fixes applied.
+- `history-ui-1` (exit 65): unit 64/64 (`HistoryOverviewTests`, `ProgressSeriesTests`,
+  `ChartPresetScopingTests`, `SetBadgeTests`, `FinishReceiptTests`); UI 42 of 46 passed —
+  HistoryEditing 2/2, HistoryTemplate 3/3, HistoryCalendar 3/3, WorkoutName 1/2,
+  HeartRateSummary 2/3, ProgressChart 2/2, ProgressChartTooltip 4/4, RedesignScreenshot
+  test05_history/historyHeartRate 2/4, CoreLoop 3/3, FloodlightFinish 8/8, Barbell 2/2,
+  MachineDeletion 1/1, Cardio mixed 2/2, HeartRate finishing summary 1/1, FloodlightHistory 6/6.
+  Failures: HeartRateSummary :66 (the pre-existing one — the plate now sits under the tiles and
+  the lazy List only builds it once scrolled; the test now scrolls to it),
+  `test05_historyLargeText` / `test05_historyHeartRateLargeText` (same: sections below the fold
+  at AXL; now scrolled to), `WorkoutName…HistoryShowsIt` (the receipt's Done tap was dropped
+  mid-presentation — passed unchanged on rerun).
+- `history-ui-2` (exit 65): the two AXL screenshot tests and WorkoutName 2/2 passed;
+  HeartRateSummary 2/3 — the finish case failed earlier on a "View in History" button half under
+  the receipt's bar (hittable but the tap hit the bar); the test's scroll-back now also requires
+  it clear of the bar.
+- `history-ui-3` (exit 65): **`testFinishShowsTheChartAndHistoryShowsItAgain` passed** (the
+  pre-existing iOS 27 failure is fixed); ProgressChartTooltip 4/4; the capture runs failed a new
+  assertion: a swipe starting on the progress chart did not scroll the page. Probed: the chart
+  itself scrolls fine; a SwiftUI drag of any kind on it (plain, simultaneous, after a long press)
+  traps the scroll, and `chartXSelection` never fires in a scroll view. Fix: tap to pick
+  (simultaneous `SpatialTapGesture`) and a UIKit pan that only begins on a mostly-horizontal
+  motion (`HorizontalScrubGesture`) — probe: the page scrolls from the chart (401 → 249) and the
+  drag still selects. ProgressChartUITests' one-session case also failed there on the same
+  dropped Done tap; its helper now waits for the receipt.
+- `history-ui-4`: **exit 0 — 13/13**: FloodlightHistory 6/6 (incl. "a swipe on the chart scrolls
+  the page"), ProgressChartTooltip 4/4, ProgressChart 2/2, RedesignScreenshot test05_history.
+- Captures: `../captures/05/floodlight-05-{list,calendar,detail,editset,progress}-{light,dark}-{default,axl}*.png`,
+  `floodlight-05-empty-{light,dark}.png` (46 files, from `history-ui-4`).
+- Not exercised: Reduce Motion by a test (the simulator setting is not toggled; checked by
+  reading each animation's gate), VoiceOver by a person.
 
 ## Progress
 

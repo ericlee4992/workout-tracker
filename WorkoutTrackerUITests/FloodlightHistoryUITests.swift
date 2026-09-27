@@ -86,7 +86,12 @@ final class FloodlightHistoryUITests: XCTestCase {
         XCTAssertTrue(any("progressChart").waitForExistence(timeout: 10), "a multi-day series draws")
         Thread.sleep(forTimeInterval: 1)
         shoot("floodlight-05-progress-\(suffix)-1")
-        app.swipeUp()
+        // A swipe that starts on the chart scrolls the page (the chart's scrub must not trap it).
+        let chart = any("progressChart")
+        let before = chart.frame.minY
+        chart.swipeUp()
+        Thread.sleep(forTimeInterval: 0.8)
+        XCTAssertLessThan(chart.frame.minY, before - 40, "a swipe on the chart scrolls the page")
         shoot("floodlight-05-progress-\(suffix)-2")
     }
 

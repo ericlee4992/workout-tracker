@@ -59,14 +59,22 @@ final class HeartRateSummaryUITests: XCTestCase {
 
         // Back up to the actions: the chart scroll left them above the fold.
         let viewInHistory = app.buttons["viewFinishedWorkout"].firstMatch
-        for _ in 0..<6 where !(viewInHistory.exists && viewInHistory.isHittable) { app.swipeDown() }
+        // Clear of the sheet's bar too: a button half under it is "hittable" but the tap lands
+        // on the bar.
+        let bar = app.navigationBars["Nice work"]
+        for _ in 0..<6 where !(viewInHistory.exists && viewInHistory.isHittable
+                               && viewInHistory.frame.minY >= bar.frame.maxY) { app.swipeDown() }
         XCTAssertTrue(viewInHistory.isHittable, "View in History is reachable after the chart scroll")
         viewInHistory.tap()
+        XCTAssertTrue(app.buttons["historyWorkoutName"].waitForExistence(timeout: 15), "View in History opens the detail")
+        // The plate sits under the Workout details tiles, and a lazy List only materialises it
+        // once scrolled into view (as on the receipt above).
         let section = app.descendants(matching: .any).matching(identifier: "historyHeartRateSection").firstMatch
-        XCTAssertTrue(section.waitForExistence(timeout: 15), "History detail should show the heart-rate section")
-        app.swipeUp()
-        XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
-            .waitForExistence(timeout: 10), "and the same chart")
+        for _ in 0..<6 where !section.exists { app.swipeUp() }
+        XCTAssertTrue(section.waitForExistence(timeout: 5), "History detail should show the heart-rate section")
+        let historyChart = app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
+        for _ in 0..<3 where !(historyChart.exists && historyChart.isHittable) { app.swipeUp() }
+        XCTAssertTrue(historyChart.waitForExistence(timeout: 10), "and the same chart")
 
         let after = XCTAttachment(screenshot: app.screenshot())
         after.name = "history-heart-rate"
