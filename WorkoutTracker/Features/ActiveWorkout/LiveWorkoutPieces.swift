@@ -337,8 +337,11 @@ struct LiveVitalsStrip: View {
 
 /// A new best that just landed (L03): shown on the slab for `LiveFreshBest.window` seconds.
 struct LiveFreshBest: Equatable {
-    /// The celebration's length (the prototype's `celebrationWindow`).
-    static let window: Duration = .seconds(4)
+    /// The celebration's length (the prototype's `celebrationWindow`). UI tests that change the
+    /// set during the celebration hold it for 30 s (`-uiTestLongCelebration`), so the band can
+    /// only disappear because it followed its set — never because it timed out mid-test.
+    static let window: Duration = ProcessInfo.processInfo.arguments.contains("-uiTestLongCelebration")
+        ? .seconds(30) : .seconds(4)
 
     var setID: UUID
     var entryID: UUID

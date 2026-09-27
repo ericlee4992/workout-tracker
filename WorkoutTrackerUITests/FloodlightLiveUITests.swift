@@ -123,4 +123,53 @@ final class FloodlightLiveUITests: XCTestCase {
         waitForExpectations(timeout: 8)
         XCTAssertTrue(app.staticTexts["Rest"].waitForExistence(timeout: 2), "the Rest text comes back")
     }
+
+    // MARK: Codex review 03b — the band follows its set
+
+    /// Logs set 3 at 115 × 8 (a new best over set 2's 110 × 8) and returns the band.
+    private func celebrateSetThree() -> XCUIElement {
+        let weight = app.textFields.matching(identifier: "setRow.weight").element(boundBy: 2)
+        XCTAssertTrue(weight.waitForExistence(timeout: 5))
+        replace(weight, with: "115")
+        app.buttons.matching(identifier: "setRow.complete").element(boundBy: 2).tap()
+        let band = any("liveNewBest")
+        XCTAssertTrue(band.waitForExistence(timeout: 5), "the New best band lands")
+        XCTAssertEqual(all("setRow.badge").count, 3)
+        return band
+    }
+
+    /// With the band held for 30 s, it can only go because it followed its set.
+    private func expectGone(_ band: XCUIElement, _ message: String) {
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: band)
+        waitForExpectations(timeout: 3)
+        XCTAssertFalse(band.exists, message)
+    }
+
+    func testMakingAFreshBestAWarmupTakesTheBandAway() {
+        launch(["-uiTestLongCelebration"])
+        let band = celebrateSetThree()
+        app.buttons.matching(identifier: "setRow.setType").element(boundBy: 2).tap()
+        app.buttons["Warmup"].firstMatch.tap()
+        expectGone(band, "no New best band for a warmup")
+        XCTAssertEqual(all("setRow.badge").count, 2, "the warmup loses its sticker")
+    }
+
+    func testCorrectingAFreshBestBelowTheRecordTakesTheBandAway() {
+        launch(["-uiTestLongCelebration"])
+        let band = celebrateSetThree()
+        replace(app.textFields.matching(identifier: "setRow.weight").element(boundBy: 2), with: "100")
+        expectGone(band, "100 × 8 is no record")
+        XCTAssertEqual(all("setRow.badge").count, 2, "the corrected set loses its sticker")
+    }
+
+    func testCorrectingAFreshBestThatStaysARecordUpdatesTheBand() {
+        launch(["-uiTestLongCelebration"])
+        let band = celebrateSetThree()
+        replace(app.textFields.matching(identifier: "setRow.weight").element(boundBy: 2), with: "120")
+        let updated = NSPredicate(format: "label CONTAINS '120 lb × 8'")
+        expectation(for: updated, evaluatedWith: band)
+        waitForExpectations(timeout: 3)
+        XCTAssertTrue(band.label.contains("up from 110 lb × 8"), band.label)
+    }
 }

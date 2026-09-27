@@ -153,7 +153,7 @@ fixes touch (row editing, marks, rest slab, sheets, PREVIOUS). Simulator WT-Floo
   Gyms model-picker case (`CoreLoopUITests.swift:252`, identical on main). **Now passing**
   (failed on main and in round 1): both `ExercisePresetUITests` (preset chips, stale-prefill
   clearing, freeze on the live screen) and `testCreatingAnExerciseMidWorkoutLogsASetAndReachesHistory`.
-  Also passed: FloodlightLiveUITests 6/6, CoreLoop 9 others, Barbell 2/2, HeartRate 5/5,
+  Also passed: FloodlightLiveUITests 6/6, CoreLoop 8 of the other 9 (the ninth is the model picker above), Barbell 2/2, HeartRate 5/5,
   Dumbbell, WorkoutName 2/2, MachineDeletion 2/2, CodexScreenshot 3/3, RedesignScreenshot
   test02 default + AXL. Unit (`PreviousPerformanceTests`, `SetBadgeTests`, `NextSetTests`) 21/21.
 - `live-ui-4` (with the AX band change): exit 0 — 9/9: FloodlightLiveUITests 7/7 (incl.
@@ -162,3 +162,27 @@ fixes touch (row editing, marks, rest slab, sheets, PREVIOUS). Simulator WT-Floo
 - Captures (`../captures/03/`): `floodlight-03-live-{light-default,dark-default,light-axl}.png`,
   `floodlight-03-live-new-best-band.png` (dark, L03), `floodlight-03-live-new-best-axl.png`;
   `floodlight-03-live-empty.png` from round 1.
+
+## Codex review 03b — response (round 2)
+
+Report: [codex-review-03b.md](../codex-review-03b.md) — not clear; one medium. Round-1
+findings 1–3, 5, 6 resolved; 4 implemented but:
+
+- **The band could announce a revoked best (medium).** `refreshBadges()` now ends with
+  `reconcileFreshBest()`: the band's set is re-judged (`freshBest(for:)`, the same outcome the
+  celebration used) — gone, un-logged, made a warmup, corrected below the record or its whole
+  exercise deleted → the band goes; still a record after a correction → its value/incumbent
+  update. Same set id, so the original expiry stands (no second celebration).
+- **`badgeInputs` claim (audit note).** Made complete for this workout: added the workout start,
+  live exercise id, the frozen snapshot scope (`snapshotCapturedAt`, exercise / machine / tag /
+  preset ids), and each set's `weightValue` / `weightUnit`. Finished history is deliberately
+  not in it (it cannot change while the live screen is up; appear refreshes) — said in the comment.
+- Test hook: `-uiTestLongCelebration` holds the band 30 s so a test can only see it go because
+  it followed its set. Regressions: `testMakingAFreshBestAWarmupTakesTheBandAway`,
+  `testCorrectingAFreshBestBelowTheRecordTakesTheBandAway`,
+  `testCorrectingAFreshBestThatStaysARecordUpdatesTheBand` (each checks band and stickers).
+
+Verification (round 3 fix): `live-build-5` exit 0; `live-ui-5` **exit 0** — UI 16/16:
+FloodlightLiveUITests 10/10 (incl. the three band-follows-its-set regressions), both
+ExercisePresetUITests, Barbell 2/2, CoreLoop core loop + swipe delete. Unit (`SetBadgeTests`,
+`PreviousPerformanceTests`) all passed.

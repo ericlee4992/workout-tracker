@@ -487,22 +487,35 @@ struct ActiveWorkoutView: View {
         return screenLook.nextSetLabel(number: number, value: value, rowUnit: next.weightUnit, loadType: loadType)
     }
 
-    /// What `SetBadgeMath` reads from this workout, hashed: read in `body`, so SwiftData
-    /// observation re-renders on any change to it and `refreshBadges` runs only then.
+    /// What `SetBadgeMath` reads from this workout, hashed: the workout's start, each entry's
+    /// scope (live exercise / machine / tag / preset and the frozen snapshot of each), its load
+    /// type, and each set's identity, type, completion and value. Read in `body`, so SwiftData
+    /// observation re-renders on any change to it and `refreshBadges` runs only then. Finished
+    /// history is not in it: history cannot change while this screen is up (it is edited from
+    /// History, and returning here refreshes on appear).
     private var badgeInputs: Int {
         guard !workout.isDeleted else { return 0 }
         var hasher = Hasher()
+        hasher.combine(workout.startedAt)
         for entry in entries where !entry.isDeleted {
             hasher.combine(entry.id)
+            hasher.combine(entry.exercise?.id)
             hasher.combine(entry.machine?.id)
             hasher.combine(entry.freeWeightTag)
             hasher.combine(entry.preset?.id)
             hasher.combine(entry.effectiveLoadType)
+            hasher.combine(entry.snapshotCapturedAt)
+            hasher.combine(entry.snapshotExerciseID)
+            hasher.combine(entry.snapshotMachineID)
+            hasher.combine(entry.snapshotFreeWeightTag)
+            hasher.combine(entry.snapshotPresetID)
             for set in entry.sets ?? [] where !set.isDeleted {
                 hasher.combine(set.id)
                 hasher.combine(set.type)
                 hasher.combine(set.completedAt)
                 hasher.combine(set.reps)
+                hasher.combine(set.weightValue)
+                hasher.combine(set.weightUnit)
                 hasher.combine(set.normalizedKg)
             }
         }
@@ -516,10 +529,15 @@ struct ActiveWorkoutView: View {
             if freshBest?.setID == set.id { freshBest = nil }
             return
         }
-        guard let entry = set.entry,
+        if let best = freshBest(for: set) { freshBest = best }
+    }
+
+    /// The band's content for `set`, or nil when it is not (or no longer) a new best in its scope.
+    private func freshBest(for set: SetRecord) -> LiveFreshBest? {
+        guard !set.isDeleted, set.completedAt != nil, let entry = set.entry, !entry.isDeleted,
               let outcome = try? SetBadgeMath.outcomes(for: entry, in: modelContext)[set.id],
-              outcome.badge == .newBest, let reps = set.reps else { return }
-        freshBest = LiveFreshBest(
+              outcome.badge == .newBest, let reps = set.reps else { return nil }
+        return LiveFreshBest(
             setID: set.id, entryID: entry.id,
             exerciseName: entry.exercise?.name ?? entry.snapshotExerciseName,
             value: SetValue(weight: set.weightValue, unit: set.weightUnit, reps: reps),
@@ -529,10 +547,21 @@ struct ActiveWorkoutView: View {
             loadType: entry.effectiveLoadType)
     }
 
-    /// Recomputes the New best / First time marks (`SetBadgeMath`). Called on appear and when
-    /// `badgeInputs` changes — not per frame: it reads the scope's whole history.
+    /// Codex review 03b: the band follows its set like the stickers do. A set made a warmup,
+    /// deleted, un-logged or corrected below the record takes the band away; a correction that
+    /// keeps the record updates its numbers. Same set id, so the original 4 s expiry stands.
+    private func reconcileFreshBest() {
+        guard let current = freshBest else { return }
+        let set = entries.lazy.flatMap { $0.sets ?? [] }.first { $0.id == current.setID }
+        let updated = set.flatMap(freshBest(for:))
+        if updated != current { freshBest = updated }
+    }
+
+    /// Recomputes the New best / First time marks (`SetBadgeMath`) and reconciles the fresh
+    /// band. Called on appear and when `badgeInputs` changes — not per frame: it reads the
+    /// scope's whole history.
     private func refreshBadges() {
-        guard !workout.isDeleted else { badges = [:]; return }
+        guard !workout.isDeleted else { badges = [:]; freshBest = nil; return }
         var result: [UUID: SetBadge] = [:]
         for entry in entries {
             if let marks = try? SetBadgeMath.badges(for: entry, in: modelContext) {
@@ -542,6 +571,7 @@ struct ActiveWorkoutView: View {
         if result != badges {
             withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.6)) { badges = result }
         }
+        reconcileFreshBest()
     }
 
     private func elapsedSeconds(at date: Date) -> Int {
