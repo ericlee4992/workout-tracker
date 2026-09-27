@@ -1,7 +1,7 @@
 # 07 — Floodlight: Scan
 
 Type: feature (part of [01](01-implement-redesign.md))
-Status: in progress — implemented 2026-09-27; targeted verification running (see Verification)
+Status: resolved — Codex clear after 2 rounds (codex-review-07b.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-scan` (scratch checkout `/tmp/wt-floodlight/scan`),
 stacked on the ticket-06 gyms tip `d45d5c5` (Codex clear). Nothing merged to `main`; nothing installed.
@@ -391,3 +391,11 @@ dismissal; a Back tap lost; then the label collision above) — `scan-ui-9`…`-
 regression pass over the result step after fixes 1–2 (`testCaptureScanLightDefault`, AskAI
 identity ×4 default, edited label, generic scan). The fixes move no captured pixel
 except the result's maker/model fields, whose visible default state is unchanged.
+
+Codex review 07b (round 2): **clear** ([codex-review-07b.md](../codex-review-07b.md)).
+
+Open items handed on (not ticket 07's): the two AX AI-routine-form AskAI tests
+(`testAllThreeGeneratedTemplatesInPopulatedListAccessibility`,
+`testScanMachinesDuringRoutineSetupAccessibility`) fail identically on the ticket-06 tip
+(`scan-baseline-1`) — for the AI routine area (ticket 01 area 9) or the release-candidate full
+suite; D54 entry before merge records user decision 1 (scan confirmation moves to the sheet's Add).
