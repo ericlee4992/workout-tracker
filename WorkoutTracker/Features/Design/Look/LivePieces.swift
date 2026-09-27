@@ -229,8 +229,6 @@ struct ZoneMeter: View {
 
 // MARK: - New best
 
-enum SetBadge: Hashable { case newBest, firstTime }
-
 /// A: outlined plate with a starburst (never a white fill — white means done).
 /// B: a pearl pill with a star. C: a yellow highlighter sticker rotated −3°.
 struct NewBestBadge: View {
@@ -466,8 +464,7 @@ struct SetRowView: View {
 
     // MARK: Fields
 
-    private enum FieldStyle { case done, draft, typed, empty }
-    private var fieldStyle: FieldStyle {
+    private var fieldStyle: SetFieldBackground.Style {
         switch state {
         case .completed: .done
         case .prefilled: .draft
@@ -508,39 +505,8 @@ struct SetRowView: View {
         }
     }
 
-    @ViewBuilder private var fieldBackground: some View {
-        let shape = RoundedRectangle(cornerRadius: look.radius.field, style: .continuous)
-        switch (look.id, fieldStyle) {
-        case (.floodlight, .done):
-            shape.fill(look.wash(0.045))
-        case (.floodlight, _):
-            shape.fill(look.field).overlay { shape.strokeBorder(look.textPrimary.opacity(0.45), lineWidth: 1) }
-        case (_, .done):
-            // C: the box dissolves as the values stand inked.
-            shape.fill(look.field).opacity(0).overlay { unboxing(shape) }
-        case (_, .typed):
-            shape.fill(look.field).overlay { shape.strokeBorder(look.hairline, lineWidth: 1.5) }
-        case (_, _):
-            shape.fill(look.field).overlay { shape.strokeBorder(look.dash, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])) }
-        }
-    }
-
-    /// C "unbox": the dashed draft box fades away after completion.
-    @ViewBuilder private func unboxing(_ shape: RoundedRectangle) -> some View {
-        if reduceMotion {
-            Color.clear
-        } else {
-            shape.fill(look.field)
-                .overlay { shape.strokeBorder(look.dash, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])) }
-                .keyframeAnimator(initialValue: 0.0, trigger: stamp) { view, opacity in
-                    view.opacity(opacity)
-                } keyframes: { _ in
-                    KeyframeTrack {
-                        MoveKeyframe(1.0)
-                        LinearKeyframe(0.0, duration: 0.45)
-                    }
-                }
-        }
+    private var fieldBackground: some View {
+        SetFieldBackground(style: fieldStyle, stamp: stamp)
     }
 
     // MARK: Check
@@ -577,6 +543,50 @@ struct SetRowView: View {
                             MoveKeyframe(0.12)
                             LinearKeyframe(0, duration: 1.0)
                         }
+                    }
+                }
+        }
+    }
+}
+
+/// A set field's box: Floodlight a filled well; the live workout's pencil→ink box — dashed while
+/// a draft (empty or carried forward), a soft rule once typed, and dissolving ("unboxing") as
+/// the values stand inked when the set completes. `stamp` increments on completion.
+struct SetFieldBackground: View {
+    enum Style { case done, draft, typed, empty }
+    var style: Style
+    var stamp: Int
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: look.radius.field, style: .continuous)
+        switch (look.id, style) {
+        case (.floodlight, .done):
+            shape.fill(look.wash(0.045))
+        case (.floodlight, _):
+            shape.fill(look.field).overlay { shape.strokeBorder(look.textPrimary.opacity(0.45), lineWidth: 1) }
+        case (_, .done):
+            shape.fill(look.field).opacity(0).overlay { unboxing(shape) }
+        case (_, .typed):
+            shape.fill(look.field).overlay { shape.strokeBorder(look.hairline, lineWidth: 1.5) }
+        case (_, _):
+            shape.fill(look.field).overlay { shape.strokeBorder(look.dash, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])) }
+        }
+    }
+
+    @ViewBuilder private func unboxing(_ shape: RoundedRectangle) -> some View {
+        if reduceMotion {
+            Color.clear
+        } else {
+            shape.fill(look.field)
+                .overlay { shape.strokeBorder(look.dash, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])) }
+                .keyframeAnimator(initialValue: 0.0, trigger: stamp) { view, opacity in
+                    view.opacity(opacity)
+                } keyframes: { _ in
+                    KeyframeTrack {
+                        MoveKeyframe(1.0)
+                        LinearKeyframe(0.0, duration: 0.45)
                     }
                 }
         }
@@ -723,8 +733,8 @@ struct DropTag: Shape {
     }
 }
 
-/// The check control with the look's set-complete effect.
-private struct SetCheck: View {
+/// The check control with the look's set-complete effect. `stamp` increments on completion.
+struct SetCheck: View {
     var done: Bool
     var warmup: Bool
     var isNextUp: Bool

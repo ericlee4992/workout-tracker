@@ -90,7 +90,7 @@ final class CodexScreenshotUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         field.typeText("Core Session")
-        app.buttons["Abdominal Crunch"].firstMatch.tap()
+        app.addTemplateExercises(["Abdominal Crunch"])
         app.buttons["Save"].tap()
         XCTAssertTrue(app.staticTexts["Core Session"].waitForExistence(timeout: 5))
     }

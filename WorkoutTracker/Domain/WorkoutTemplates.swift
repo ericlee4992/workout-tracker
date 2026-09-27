@@ -137,6 +137,21 @@ struct WorkoutTemplateService {
     /// SetRecord. Ticket 11's same-machine prefill fills rows from real
     /// history, and it can only do so while the row is untouched.
     @discardableResult
+    /// The machine a template row starts on at `gym` — also what the template detail shows, so
+    /// the preview and the start cannot disagree. The gym's remembered machine for the exercise
+    /// (D1/D6); for an AI plan built for this gym, else its only compatible machine; else none.
+    func resolvedMachine(for exercise: Exercise, in template: WorkoutTemplate, at gym: Gym?) throws -> MachineInstance? {
+        guard let gym else { return nil }
+        let remembered = try EquipmentLifecycle(context: context).rememberedMachine(for: exercise, at: gym)
+        guard template.generatedForGymID == gym.id else { return remembered }
+        // A first-use AI plan was built from this gym's confirmed inventory.
+        // Leaving its sole matching machine unassigned would lose machine-specific
+        // history; choosing among several would invent a physical identity.
+        let compatible = gym.activeMachines.filter { $0.supportedExerciseIDs.contains(exercise.id) }
+        // A recorded user choice outranks incomplete catalog capability metadata.
+        return remembered ?? (compatible.count == 1 ? compatible.first : nil)
+    }
+
     func start(
         _ template: WorkoutTemplate,
         at gym: Gym?,
@@ -156,21 +171,7 @@ struct WorkoutTemplateService {
         var restoredGroups: [UUID: UUID] = [:]
         for item in Self.orderedItems(of: template) {
             guard let exercise = item.exercise else { continue }
-            let machine: MachineInstance?
-            if let gym {
-                let remembered = try EquipmentLifecycle(context: context)
-                    .rememberedMachine(for: exercise, at: gym)
-                if template.generatedForGymID == gym.id {
-                    // A first-use AI plan was built from this gym's confirmed inventory.
-                    // Leaving its sole matching machine unassigned would lose machine-specific
-                    // history; choosing among several would invent a physical identity.
-                    let compatible = gym.activeMachines.filter { $0.supportedExerciseIDs.contains(exercise.id) }
-                    // A recorded user choice outranks incomplete catalog capability metadata.
-                    machine = remembered ?? (compatible.count == 1 ? compatible.first : nil)
-                } else { machine = remembered }
-            } else {
-                machine = nil
-            }
+            let machine = try resolvedMachine(for: exercise, in: template, at: gym)
             let entry = try session.addEntry(
                 for: exercise, to: workout, machine: machine)
             entry.plannedRestSeconds = item.plannedRestSeconds

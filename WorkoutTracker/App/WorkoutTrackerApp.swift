@@ -53,6 +53,12 @@ struct WorkoutTrackerApp: App {
                 assertionFailure("Template fixture seeding failed: \(error)")
             }
         }
+        // A gym, three templates and two weeks of workouts for the redesign's captures
+        // (see DesignSampleFixture).
+        if DesignSampleFixture.isEnabled {
+            do { try DesignSampleFixture.seed(in: modelContainer.mainContext) }
+            catch { assertionFailure("Design sample fixture failed: \(error)") }
+        }
         // One hour-long workout with a heart-rate series, for the same reason
         // (see HeartRateHistoryFixture).
         if HeartRateHistoryFixture.isEnabled {

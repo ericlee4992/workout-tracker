@@ -27,7 +27,7 @@ final class TemplateDetailUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         field.typeText("Second\n")
-        app.buttons["Abdominal Crunch"].firstMatch.tap()
+        app.addTemplateExercises(["Abdominal Crunch"])
         app.buttons["Save"].tap()
         let second = anyElement("templateTile.Second")
         XCTAssertTrue(second.waitForExistence(timeout: 5))

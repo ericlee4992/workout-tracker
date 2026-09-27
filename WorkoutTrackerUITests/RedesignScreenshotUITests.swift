@@ -235,9 +235,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         // Return dismisses the keyboard: with it up, the swipes that bring
         // the lower options into the lazy List land on the keys.
         field.typeText("Full Session\n")
-        for name in ["Abdominal Crunch", "Assisted Dip", "Assisted Pull-Up", "Back Extension", "Belt Squat"] {
-            tapScrolling(app.buttons[name].firstMatch, name)
-        }
+        app.addTemplateExercises(["Abdominal Crunch", "Assisted Dip", "Assisted Pull-Up", "Back Extension", "Belt Squat"])
         app.buttons["Save"].tap()
         XCTAssertTrue(anyElement("templateTile.Full Session").waitForExistence(timeout: 5))
         shoot("redesign-04-start-templates")
@@ -265,20 +263,19 @@ final class RedesignScreenshotUITests: XCTestCase {
         // Return dismisses the keyboard: with it up, the swipes that bring
         // the lower options into the lazy List land on the keys.
         field.typeText("Full Session\n")
-        for name in ["Abdominal Crunch", "Assisted Dip", "Assisted Pull-Up", "Back Extension", "Belt Squat"] {
-            tapScrolling(app.buttons[name].firstMatch, name)
-        }
+        app.addTemplateExercises(["Abdominal Crunch", "Assisted Dip", "Assisted Pull-Up", "Back Extension", "Belt Squat"])
         app.buttons["Save"].tap()
         XCTAssertTrue(anyElement("templateTile.Full Session").waitForExistence(timeout: 5))
         shoot("redesign-04-start-axl")
-        // The blocks under the fold — New Template and the machines line —
-        // on record too (ios-design step 6).
+        // The blocks under the fold — New Template and Ask AI — on record too
+        // (ios-design step 6). The Floodlight redesign dropped the "Machines
+        // resolve…" caption; the template detail now names each row's machine.
         // A tile half under the tab bar still counts as hittable, so scroll
-        // unconditionally, then make sure the machines line is on screen.
+        // unconditionally, then make sure the last make row is on screen.
         app.swipeUp()
-        let line = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Machines resolve'")).firstMatch
-        for _ in 0..<4 where !(line.exists && line.isHittable) { app.swipeUp() }
-        XCTAssertTrue(line.exists, "the machines line reachable at AccessibilityL")
+        let ask = app.buttons["askAIRoutine"]
+        for _ in 0..<4 where !(ask.exists && ask.isHittable) { app.swipeUp() }
+        XCTAssertTrue(ask.exists, "Ask AI for Templates reachable at AccessibilityL")
         shoot("redesign-04-start-axl-2")
         // Ticket 11: the same template opened, at AccessibilityL.
         for _ in 0..<4 where !app.buttons["templateTile.Full Session"].isHittable { app.swipeDown() }
@@ -518,12 +515,6 @@ final class RedesignScreenshotUITests: XCTestCase {
     /// A lazy List materialises rows near the viewport only: an option below
     /// the fold is not in the hierarchy until the list scrolls. Scroll
     /// (bounded) until it exists and is hittable, then tap.
-    private func tapScrolling(_ element: XCUIElement, _ name: String) {
-        for _ in 0..<8 where !(element.exists && element.isHittable) { app.swipeUp() }
-        XCTAssertTrue(element.exists && element.isHittable, "\(name) reachable in the editor")
-        element.tap()
-    }
-
     private func anyElement(_ identifier: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }

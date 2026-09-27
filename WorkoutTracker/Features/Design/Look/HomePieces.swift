@@ -5,20 +5,13 @@ import SwiftUI
 
 // MARK: - Gym picker
 
-/// The Home gym picker: pin disc · gym name · city · unit tag · ⌃⌄.
-/// A: a full-width row. B: a content-hugging capsule. C: a full-width pressable card with
-/// the city under the name. AX sizes (every SPEC): the city and the unit move under the name.
+/// The Home gym picker as a button (see `GymPickerLabel`).
 struct GymPickerButton: View {
     var name: String
     var city: String?
     var unit: WeightUnit?
     var action: () -> Void = {}
-    @Environment(\.look) private var look
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 36
-    @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 56
 
-    /// `name == nil`-style empty states belong to the screen; pass the gym's name and city.
     init(name: String, city: String? = nil, unit: WeightUnit? = nil, action: @escaping () -> Void = {}) {
         self.name = name
         self.city = city
@@ -26,55 +19,79 @@ struct GymPickerButton: View {
         self.action = action
     }
 
+    var body: some View {
+        Button(action: action) { GymPickerLabel(name: name, city: city, unit: unit) }
+            .buttonStyle(.lookPressable)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(GymPickerLabel.spoken(name: name, city: city, unit: unit))
+            .accessibilityAddTraits(.isButton)
+    }
+}
+
+/// The Home gym picker's face: pin disc · gym name · city · unit tag · ⌃⌄, a full-width row.
+/// AX sizes: the city and the unit move under the name. Also the label of a `Menu`.
+struct GymPickerLabel: View {
+    var name: String
+    var city: String?
+    var unit: WeightUnit?
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 56
+
+    init(name: String, city: String? = nil, unit: WeightUnit? = nil) {
+        self.name = name
+        self.city = city
+        self.unit = unit
+    }
+
+    static func spoken(name: String, city: String?, unit: WeightUnit?) -> String {
+        [name, city, unit?.label].compactMap { $0 }.joined(separator: ", ")
+    }
+
     private var stacked: Bool { typeSize.isAccessibilitySize }
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 12) {
-                IconDisc(symbol: look.gymSymbol, size: disc, context: .onSurface)
-                    .background { if look.id == .floodlight { Circle().fill(look.surfaceRaised) } }
-                if stacked {
-                    VStack(alignment: .leading, spacing: 4) {
-                        nameText
-                        HStack(spacing: 8) {
-                            if let city { cityText(city) }
-                            unitTag
-                            chevron
-                        }
-                    }
-                    Spacer(minLength: 0)
-                } else if look.id.isPaperClub {
-                    VStack(alignment: .leading, spacing: 0) {
-                        nameText
+        HStack(spacing: 12) {
+            IconDisc(symbol: look.gymSymbol, size: disc, context: .onSurface)
+                .background { if look.id == .floodlight { Circle().fill(look.surfaceRaised) } }
+            if stacked {
+                VStack(alignment: .leading, spacing: 4) {
+                    nameText
+                    HStack(spacing: 8) {
                         if let city { cityText(city) }
+                        unitTag
+                        chevron
                     }
-                    Spacer(minLength: 8)
-                    unitTag
-                    chevron
-                } else {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        nameText
-                        if let city { cityText(city) }
-                    }
-                    if look.id == .floodlight { Spacer(minLength: 8) }
-                    unitTag
-                    chevron
                 }
+                Spacer(minLength: 0)
+            } else if look.id.isPaperClub {
+                VStack(alignment: .leading, spacing: 0) {
+                    nameText
+                    if let city { cityText(city) }
+                }
+                Spacer(minLength: 8)
+                unitTag
+                chevron
+            } else {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    nameText
+                    if let city { cityText(city) }
+                }
+                if look.id == .floodlight { Spacer(minLength: 8) }
+                unitTag
+                chevron
             }
-            .foregroundStyle(look.textPrimary)
-            .padding(.leading, 10)
-            .padding(.trailing, 12)
-            .padding(.vertical, 8)
-            .frame(minHeight: minHeight)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .lookSurface(.tile, radius: radius)
-            .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
         }
-        .buttonStyle(.lookPressable)
+        .foregroundStyle(look.textPrimary)
+        .padding(.leading, 10)
+        .padding(.trailing, 12)
+        .padding(.vertical, 8)
+        .frame(minHeight: minHeight)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel([name, city, unit?.label].compactMap { $0 }.joined(separator: ", "))
-        .accessibilityAddTraits(.isButton)
+        .lookSurface(.tile, radius: radius)
+        .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
     }
 
     private var radius: CGFloat {

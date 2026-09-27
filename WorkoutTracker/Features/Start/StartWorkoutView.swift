@@ -3,6 +3,9 @@ import SwiftUI
 
 struct StartWorkoutView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
     private var gyms: [Gym]
     @Query(sort: \WorkoutTemplate.name) private var templates: [WorkoutTemplate]
@@ -14,11 +17,9 @@ struct StartWorkoutView: View {
         filter: #Predicate<Workout> { $0.finishedAt == nil },
         sort: [SortDescriptor(\Workout.startedAt, order: .reverse)])
     private var activeWorkouts: [Workout]
-    /// One template column at accessibility sizes: two tiles of icons, a
-    /// name and the exercise line do not share 390 pt at AccessibilityL.
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-    /// The pin tile grows with its glyph (`.title2`).
-    @ScaledMetric(relativeTo: .title2) private var pinTile: CGFloat = 44
+    /// History behind "This week" and the tiles' last-run dates.
+    @Query(filter: #Predicate<Workout> { $0.finishedAt != nil })
+    private var finishedWorkouts: [Workout]
     @State private var selectedGym: Gym?
     /// D1: the stored pick is read once per screen lifetime — re-reading it
     /// would fight the user's in-session choice.
@@ -32,6 +33,8 @@ struct StartWorkoutView: View {
     @State private var showingTemplateEditor = false
     @State private var showingCardioPicker = false
     @State private var showingAIRoutine = false
+    /// Scrolled past the large title: the inline "Workout" takes over in the bar.
+    @State private var titleInBar = false
     /// Called with the workout to present — freshly started or resumed.
     var onWorkoutStarted: (Workout) -> Void
 
@@ -39,77 +42,50 @@ struct StartWorkoutView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    gymPicker
-                        .padding(20)
-                        .card()
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets())
-                }
-
-                // Start choices are peers; a live workout keeps one Resume action.
-                Section {
-                    heroCapsule
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                }
-
-                Section("Templates") {
-                    // Ticket 10: a two-column grid of tiles (the user chose
-                    // direction C's templates). Ticket 11: the tile OPENS the
-                    // template (its exercises, then Start) — the user asked to
-                    // see the list before starting. Ticket 15: Edit and Delete
-                    // are on the opened template, nowhere else.
-                    // The List already virtualizes this collection as one row. A nested
-                    // LazyVGrid on iOS 27 leaves the first row blank after an AI week save.
-                    // Eager, equal-width rows keep every saved card instantiated (ticket 07).
-                    let columns = dynamicTypeSize.isAccessibilitySize ? 1 : 2
-                    let cells = templates.count + 1 // Includes New Template.
-                    VStack(spacing: 10) {
-                        ForEach(0..<((cells + columns - 1) / columns), id: \.self) { row in
-                            HStack(spacing: 10) {
-                                ForEach(0..<columns, id: \.self) { column in
-                                    let index = row * columns + column
-                                    if index < templates.count {
-                                        templateButton(templates[index])
-                                    } else if index == templates.count {
-                                        newTemplateButton
-                                    } else {
-                                        Color.clear.frame(maxWidth: .infinity).frame(height: 0)
-                                    }
-                                }
-                            }
-                        }
+            ScrollView {
+                VStack(alignment: .leading, spacing: look.space.section) {
+                    LookNavTitle("Workout", subtitle: WorkoutDates.homeSubtitle(.now))
+                    VStack(spacing: 14) {
+                        gymPicker
+                        startControl
                     }
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                    Button("Ask AI for Templates", systemImage: "sparkles") { showingAIRoutine = true }
-                        .buttonStyle(.secondary)
-                        .accessibilityIdentifier("askAIRoutine")
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                    Text("Machines resolve to your last-used at \(selectedGym?.name ?? "your gym")")
-                        .font(.caption2)
-                        .foregroundStyle(Theme.tertiary)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                        .listRowInsets(EdgeInsets(top: 0, leading: 4, bottom: 8, trailing: 0))
+                    weekCard
+                    templatesSection
                 }
+                .padding(.horizontal, look.space.margin)
+                .padding(.top, 2)
+                .padding(.bottom, 36)
             }
-            .scrollContentBackground(.hidden)
-            .listRowSeparator(.hidden)
-            .background(Theme.background)
+            .scrollIndicators(.hidden)
+            .onScrollGeometryChange(for: Bool.self) { geo in
+                geo.contentOffset.y + geo.contentInsets.top > (dynamicTypeSize.isAccessibilitySize ? 70 : 46)
+            } action: { _, past in
+                withAnimation(.easeInOut(duration: 0.18)) { titleInBar = past }
+            }
+            .lookScreenBackground()
             .navigationTitle("Workout")
-            // Ticket 05: Settings behind a gear here, not at the foot of the
-            // Gyms list (the user's choice, 2026-09-10).
+            .navigationBarTitleDisplayMode(.inline)
+            // Scrolled: the bar takes the solid ground, so nothing shows through under the title.
+            .toolbarBackground(look.ground, for: .navigationBar)
+            .toolbarBackgroundVisibility(titleInBar ? .visible : .hidden, for: .navigationBar)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("Workout")
+                        .font(look.font.navTitle)
+                        .foregroundStyle(look.textPrimary)
+                        .lineLimit(1)
+                        .opacity(titleInBar ? 1 : 0)
+                        .accessibilityHidden(!titleInBar)
+                }
+                // Ticket 05: Settings behind a gear here, not at the foot of the
+                // Gyms list (the user's choice, 2026-09-10).
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
                         SettingsView()
                     } label: {
                         Image(systemName: "gearshape")
+                            .font(.system(.body, weight: .semibold))
+                            .foregroundStyle(look.textPrimary)
                     }
                     .accessibilityLabel("Settings")
                     .accessibilityIdentifier("openSettings")
@@ -138,55 +114,55 @@ struct StartWorkoutView: View {
         }
     }
 
-    /// Idle: arrowless activity capsules share a row when their full labels fit.
-    /// Live: the existing Resume capsule returns to the minimised workout.
-    @ViewBuilder
-    private var heroCapsule: some View {
-        if let active = activeWorkouts.first, !active.isDeleted {
-            Button { resumeActive() } label: {
-                HeroCapsuleLabel(title: "Resume workout", subtitle: resumeSubtitle(active),
-                                 symbol: active.unfinishedCardio?.activity.symbol ?? "figure.strengthtraining.traditional", trailing: "chevron.right",
-                                 live: true)
+    // MARK: Start / Resume
+
+    /// Idle: the two equal Start capsules, side by side, stacking only when a label can't fit.
+    /// Live: ONE Resume capsule returns to the minimised workout.
+    private var startControl: some View {
+        ZStack {
+            if let active = activeWorkouts.first, !active.isDeleted {
+                WorkoutResumeCapsule(
+                    symbol: active.unfinishedCardio?.activity.symbol ?? "figure.strengthtraining.traditional",
+                    detail: resumeDetail(active),
+                    startedAt: active.startedAt,
+                    action: resumeActive)
+                    .accessibilityIdentifier("resumeWorkout")
+                    .transition(swapTransition)
+            } else {
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { startCapsules }
+                    VStack(spacing: 12) { startCapsules }
+                }
+                .transition(swapTransition)
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("resumeWorkout")
-        } else {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) { startChoices }
-                    .fixedSize(horizontal: true, vertical: false)
-                VStack(alignment: .leading, spacing: 12) { startChoices }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.42, dampingFraction: 0.82),
+                   value: activeWorkouts.first?.id)
     }
 
-    private var startChoices: some View {
-        Group {
-            Button { startRequest = WorkoutStartRequest(template: nil) } label: {
-                HeroCapsuleLabel(title: "Start Lifting", subtitle: nil,
-                                 symbol: "figure.strengthtraining.traditional", trailing: nil,
-                                 live: false)
-            }
-            .buttonStyle(.plain)
-            .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
-            .accessibilityIdentifier("startEmptyWorkout")
-            Button { showingCardioPicker = true } label: {
-                HeroCapsuleLabel(title: "Start Cardio", subtitle: nil,
-                                 symbol: "figure.run", trailing: nil,
-                                 live: false)
-            }
-            .buttonStyle(.plain)
+    @ViewBuilder private var startCapsules: some View {
+        StartCapsule(title: "Start Lifting", symbol: "figure.strengthtraining.traditional") {
+            startRequest = WorkoutStartRequest(template: nil)
+        }
+        .frame(maxWidth: .infinity)
+        .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
+        .accessibilityIdentifier("startEmptyWorkout")
+        StartCapsule(title: "Start Cardio", symbol: "figure.run") { showingCardioPicker = true }
+            .frame(maxWidth: .infinity)
             .accessibilityIdentifier("startCardio")
-        }
     }
 
-    private func resumeSubtitle(_ workout: Workout) -> String {
-        let count = WorkoutSession.orderedEntries(of: workout).count
-        let exercises = count > 0 ? "\(count) \(count == 1 ? "exercise" : "exercises")"
-            : (workout.unfinishedCardio?.activity.name
-               ?? HistoryRendering.pluralized(workout.recordedCardio.count, "cardio activity", "cardio activities"))
-        guard let gymName = workout.gym?.name else { return "In progress · \(exercises)" }
-        return "\(gymName) · \(exercises)"
+    private var swapTransition: AnyTransition {
+        reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.96))
+    }
+
+    /// What is running: the cardio activity, or the workout's title with its set progress.
+    private func resumeDetail(_ workout: Workout) -> String {
+        if let cardio = workout.unfinishedCardio { return cardio.activity.name }
+        let sets = WorkoutSession.orderedEntries(of: workout).flatMap { $0.sets ?? [] }
+        let title = workout.historyTitle
+        guard !sets.isEmpty else { return title }
+        return "\(title) · \(sets.filter { $0.completedAt != nil }.count)/\(sets.count) sets"
     }
 
     // MARK: Start flow — `WorkoutStartFlow` (ticket 11); Resume needs no dialog.
@@ -195,6 +171,121 @@ struct StartWorkoutView: View {
         if let workout = try? session.resumableWorkout() {
             onWorkoutStarted(workout)
         }
+    }
+
+    // MARK: This week
+
+    @ViewBuilder private var weekCard: some View {
+        let inputs = finishedWorkouts.compactMap(WeekSummaryInput.init(workout:))
+        let summary = WeekSummaryMath.summary(of: inputs, now: .now)
+        if inputs.isEmpty && activeWorkouts.isEmpty {
+            // First run: no scoreboard of zeros, just the week waiting for its first workout.
+            WorkoutFirstWeekCard(days: summary.days)
+        } else {
+            WeekWidget(summary: summary)
+        }
+    }
+
+    // MARK: Templates
+
+    private var templatesSection: some View {
+        VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader("Templates", level: .page)
+            if templates.isEmpty {
+                // First run: an invitation that shows what a template becomes (its family maps).
+                VStack(spacing: look.space.grid) {
+                    WorkoutTemplateInvite(action: newTemplate)
+                    askAIRow
+                }
+            } else if dynamicTypeSize.isAccessibilitySize {
+                // AX sizes: one column; the two "make one" tiles become full-width rows.
+                VStack(spacing: look.space.grid) {
+                    ForEach(templates) { tile($0, stats: templateStats) }
+                    WorkoutMakeRow(title: "New Template…", symbol: "plus", action: newTemplate)
+                    askAIRow
+                }
+            } else {
+                grid
+            }
+        }
+    }
+
+    /// Two columns in an eager `Grid` (a nested lazy grid left the first row blank on iOS 27
+    /// after an AI week save — ticket 07). An odd count puts New Template… beside the last tile
+    /// and Ask AI across the row below; an even count puts the two make tiles side by side.
+    private var grid: some View {
+        let stats = templateStats
+        let odd = templates.count % 2 == 1
+        let pairs = stride(from: 0, to: templates.count - (odd ? 1 : 0), by: 2).map { Array(templates[$0..<$0 + 2]) }
+        return Grid(horizontalSpacing: look.space.grid, verticalSpacing: look.space.grid) {
+            ForEach(pairs, id: \.first!.id) { pair in
+                GridRow(alignment: .top) {
+                    ForEach(pair) { tile($0, stats: stats) }
+                }
+            }
+            if odd, let last = templates.last {
+                GridRow(alignment: .top) {
+                    tile(last, stats: stats)
+                    newTemplateTile
+                }
+                GridRow { askAITile.gridCellColumns(2) }
+            } else {
+                GridRow(alignment: .top) {
+                    newTemplateTile
+                    askAITile
+                }
+            }
+        }
+    }
+
+    private var templateStats: [UUID: TemplateStats] { TemplateStats.byTemplate(finishedWorkouts) }
+
+    /// A tile opens the template (ticket 11). No context menu: on the phone a long-press menu
+    /// deleted the wrong template (ticket 15) — Edit and Delete live on the detail.
+    private func tile(_ template: WorkoutTemplate, stats: [UUID: TemplateStats]) -> some View {
+        let items = WorkoutTemplateService.orderedItems(of: template)
+        let names = items.compactMap { $0.exercise?.name } + template.plannedCardio.map { $0.activity.name }
+        let running = activeWorkouts.first?.sourceTemplateID == template.id
+        return TemplateTile(name: template.name,
+                            families: MuscleFamily.families(of: items.map { $0.exercise?.muscleGroup }),
+                            exercises: names, lastDone: stats[template.id]?.lastRun, now: .now) {
+            viewingTemplate = template
+        }
+        // The template that is running carries the live pulse beside its map strip.
+        .overlay(alignment: .topTrailing) {
+            if running {
+                ZStack {
+                    Circle().fill(look.surface).frame(width: 24, height: 24)
+                    WorkoutLivePulse(color: look.live, size: 9)
+                }
+                .padding(10)
+                .allowsHitTesting(false)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .accessibilityValue(running ? "In progress" : "")
+        .accessibilityIdentifier("templateTile.\(template.name)")
+    }
+
+    private var newTemplateTile: some View {
+        MakeTile(title: "New Template…", symbol: "plus", action: newTemplate)
+    }
+
+    /// D58 amendment: the entry to the AI routine flow sits with the templates, below the user's
+    /// own tiles, never above the Start pair.
+    private var askAITile: some View {
+        MakeTile(title: "Ask AI for Templates", symbol: "sparkles") { showingAIRoutine = true }
+            .accessibilityIdentifier("askAIRoutine")
+    }
+
+    private var askAIRow: some View {
+        WorkoutMakeRow(title: "Ask AI for Templates", symbol: "sparkles") { showingAIRoutine = true }
+            .accessibilityIdentifier("askAIRoutine")
+    }
+
+    private func newTemplate() {
+        editingTemplate = nil
+        showingTemplateEditor = true
     }
 
     // MARK: Gym & units
@@ -206,31 +297,6 @@ struct StartWorkoutView: View {
             machineUnit: nil,
             gymUnit: selectedGym?.defaultUnit,
             appPreference: AppPreferences.canonical(of: allPreferences)?.unitPreference)
-    }
-
-    private func templateButton(_ template: WorkoutTemplate) -> some View {
-        Button { viewingTemplate = template } label: {
-            LegacyTemplateTile(template: template)
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("templateTile.\(template.name)")
-        // Delete stays on detail; a context menu in a shared List row can target a peer.
-    }
-
-    private var newTemplateButton: some View {
-        Button {
-            editingTemplate = nil
-            showingTemplateEditor = true
-        } label: {
-            VStack(spacing: Theme.Space.small) {
-                Image(systemName: "plus").font(.title3.weight(.semibold))
-                Text("New Template…").font(.subheadline.weight(.semibold))
-            }
-            .frame(maxWidth: .infinity, minHeight: 118)
-            .padding(Theme.Space.medium)
-            .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.card))
-        }
-        .buttonStyle(.plain)
     }
 
     /// D1: restore the remembered gym at launch. An archived or deleted gym
@@ -252,6 +318,8 @@ struct StartWorkoutView: View {
         catch { assertionFailure("Failed to remember gym selection: \(error)") }
     }
 
+    /// The gym is a VALUE, not a command (codex-review-10): a neutral row, the system menu
+    /// lists the gyms.
     private var gymPicker: some View {
         Menu {
             Button {
@@ -276,39 +344,11 @@ struct StartWorkoutView: View {
                 }
             }
         } label: {
-            // Neutral text — a Menu tints its label with the accent, and the
-            // gym is a VALUE, not a command (codex-review-10). Accessories
-            // stack under the text at accessibility sizes.
-            let stacked = dynamicTypeSize.isAccessibilitySize
-            let layout = stacked
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Space.small))
-                : AnyLayout(HStackLayout(spacing: Theme.Space.medium))
-            layout {
-                HStack(spacing: Theme.Space.medium) {
-                    Image(systemName: "mappin.and.ellipse")
-                        .font(.title2)
-                        .foregroundStyle(Theme.accent)
-                        .frame(width: pinTile, height: pinTile)
-                        .background(Theme.accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(selectedGym?.name ?? "No gym")
-                            .font(.headline)
-                            .foregroundStyle(Theme.text)
-                        Text(selectedGym.map { $0.city ?? "" } ?? "Home / no location")
-                            .font(.subheadline)
-                            .foregroundStyle(Theme.secondary)
-                    }
-                    if !stacked { Spacer(minLength: 0) }
-                }
-                HStack(spacing: Theme.Space.small) {
-                    if stacked { Spacer(minLength: 0) }
-                    UnitBadge(unit: currentUnit)
-                    Image(systemName: "chevron.up.chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondary)
-                }
-            }
+            GymPickerLabel(name: selectedGym?.name ?? "No gym", city: selectedGym?.city, unit: currentUnit)
         }
+        .buttonStyle(.lookPressable)
+        .accessibilityLabel(GymPickerLabel.spoken(name: selectedGym?.name ?? "No gym",
+                                                  city: selectedGym?.city, unit: currentUnit))
         .accessibilityIdentifier("gymPicker")
     }
 }
@@ -369,36 +409,6 @@ struct HeroCapsuleLabel: View {
         .frame(minHeight: 56)
         .background(Theme.accent, in: Capsule())
         .accessibilityElement(children: .combine)
-    }
-}
-
-/// Ticket 10: a template as a tile — its muscle icons, its name, its
-/// exercises. The whole tile opens the template (ticket 11). The icons are
-/// the FAMILIES the template trains (chest, back, shoulders, arms, legs),
-/// each once, head to toe — not one per exercise (ticket 11, the user).
-private struct LegacyTemplateTile: View {
-    var template: WorkoutTemplate
-
-    var body: some View {
-        let items = WorkoutTemplateService.orderedItems(of: template)
-        let families = MuscleFamily.families(of: items.map { $0.exercise?.muscleGroup })
-        VStack(alignment: .leading, spacing: Theme.Space.small) {
-            if !families.isEmpty {
-                MuscleFamilyStrip(families: families, size: 24)
-            }
-            Text(template.name)
-                .font(Theme.cardTitle)
-            // Whole, never truncated: the tile grows with its exercises
-            // (codex-review-10); the grid row takes the tallest tile.
-            Text((items.compactMap { $0.exercise?.name } + template.plannedCardio.map { $0.activity.name }).joined(separator: " · "))
-                .font(.caption)
-                .foregroundStyle(Theme.secondary)
-        }
-        .frame(maxWidth: .infinity, minHeight: 118, alignment: .topLeading)
-        .padding(Theme.Space.medium)
-        .card()
-        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-        .accessibilityElement(children: .contain)
     }
 }
 

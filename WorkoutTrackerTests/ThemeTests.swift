@@ -14,7 +14,7 @@ struct ThemeTests {
                 #expect(image.renderingMode == .alwaysTemplate, "\(name) must be a template image")
             }
         }
-        #expect(UIColor(named: "MuscleBody", in: bundle, compatibleWith: nil) != nil)
+        // The body colour is a design token now (`Look.mapBody`, light and dark), not an asset.
     }
 
     /// The seeded vocabulary is still 14 groups; each is a family or one of

@@ -419,16 +419,13 @@ private struct GlassCapsuleFace: View {
 }
 
 /// Round icon buttons inside a card (previous performance, options).
-/// The visual is 32 (A, a bare glyph), 38 (B, a white 8 % disc) or 36 (C, an outlined disc);
-/// the hit area is 44 but takes only the visual's layout space, so a card title keeps its
-/// rhythm. Glyphs are text styles, so they scale with Dynamic Type.
+/// The visual is 32 (Floodlight, a bare glyph) or 36 (the live workout, an outlined disc); the
+/// hit area is 44 but takes only the visual's layout space, so a card title keeps its rhythm.
+/// Glyphs are text styles, so they scale with Dynamic Type.
 struct CardIconButton: View {
     var symbol: String
     var accessibilityLabel: String?
     var action: () -> Void = {}
-    @Environment(\.look) private var look
-    @ScaledMetric(relativeTo: .body) private var discC: CGFloat = 36
-    @ScaledMetric(relativeTo: .body) private var bareA: CGFloat = 32
 
     init(_ symbol: String, accessibilityLabel: String? = nil, action: @escaping () -> Void = {}) {
         self.symbol = symbol
@@ -436,24 +433,30 @@ struct CardIconButton: View {
         self.action = action
     }
 
-    private var visual: CGFloat {
-        switch look.id {
-        case .floodlight: bareA
-        case .paper, .carbon: discC
-        }
+    var body: some View {
+        Button(action: action) { CardIconFace(symbol: symbol) }
+            .buttonStyle(.lookPressable)
+            .accessibilityLabel(accessibilityLabel ?? symbol)
     }
+}
+
+/// The face of a `CardIconButton`, also usable as a `Menu` label: the visual plus a 44 pt hit
+/// area that takes no extra layout space.
+struct CardIconFace: View {
+    var symbol: String
+    @Environment(\.look) private var look
+    @ScaledMetric(relativeTo: .body) private var discC: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var bareA: CGFloat = 32
+
+    private var visual: CGFloat { look.id == .floodlight ? bareA : discC }
 
     var body: some View {
         let outset = max(0, (44 - visual) / 2)
-        Button(action: action) {
-            face
-                .frame(width: visual, height: visual)
-                .padding(outset)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.lookPressable)
-        .padding(-outset)
-        .accessibilityLabel(accessibilityLabel ?? symbol)
+        face
+            .frame(width: visual, height: visual)
+            .padding(outset)
+            .contentShape(Rectangle())
+            .padding(-outset)
     }
 
     @ViewBuilder private var face: some View {
@@ -490,6 +493,7 @@ struct MakeTile: View {
     var body: some View {
         Button(action: action) { content }
             .buttonStyle(.lookPressable)
+            .accessibilityLabel(title)
     }
 
     @ViewBuilder private var content: some View {
@@ -540,6 +544,7 @@ struct DestructiveRowButton: View {
     var body: some View {
         Button(action: action) { content }
             .buttonStyle(.lookPressable)
+            .accessibilityLabel(title)
     }
 
     @ViewBuilder private var content: some View {
