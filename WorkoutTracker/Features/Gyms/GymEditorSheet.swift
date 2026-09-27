@@ -13,6 +13,7 @@ struct GymEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// nil = create a new gym; non-nil = edit that gym in place.
     var gym: Gym?
     var onSave: (Gym) -> Void = { _ in }
@@ -92,7 +93,7 @@ struct GymEditorSheet: View {
         return HStack(spacing: 14) {
             GymMonogram(name: shownName, size: 56)
                 .id(GymMonogram.initials(shownName))
-                .transition(.scale(scale: 0.8).combined(with: .opacity))
+                .transition(reduceMotion ? .opacity : .scale(scale: 0.8).combined(with: .opacity))
             VStack(alignment: .leading, spacing: 3) {
                 Text(shownName)
                     .font(look.font.cardTitle)
@@ -109,7 +110,8 @@ struct GymEditorSheet: View {
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
         .lookSurface(.tile)
-        .animation(.snappy(duration: 0.25), value: GymMonogram.initials(shownName))
+        .animation(reduceMotion ? .easeInOut(duration: 0.2) : .snappy(duration: 0.25),
+                   value: GymMonogram.initials(shownName))
         .accessibilityElement(children: .combine)
     }
 
@@ -195,12 +197,16 @@ struct GymEditorSheet: View {
         dismiss()
     }
 
-    /// Delete = archive (D10): the gym leaves the pickers and the Home selection, its workouts keep
-    /// their snapshot name, and the Gyms list can restore it.
+    /// Delete = archive (D10): the gym leaves the pickers and the Home selection (the remembered
+    /// id is cleared, and Home drops its cached pick), its workouts keep their snapshot name, and
+    /// the Gyms list can restore it.
     private func deleteGym() {
         guard let gym else { return }
         do {
             try EquipmentLifecycle(context: modelContext).archive(gym)
+            if AppPreferences.canonical(of: allPreferences)?.selectedGymID == gym.id {
+                try GymSelection.remember(nil, in: modelContext)
+            }
             dismiss()
         } catch {
             saveFailure = error.localizedDescription

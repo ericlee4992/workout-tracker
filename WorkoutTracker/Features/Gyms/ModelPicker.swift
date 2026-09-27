@@ -453,6 +453,7 @@ struct AddModelSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// Prefill from a scanned name plate (D35) or the picker's search. Both stay editable: the
     /// prefill proposes a name, the user owns it.
     var initialManufacturer: String = ""
@@ -499,7 +500,7 @@ struct AddModelSheet: View {
                     WrapLayout(spacing: 8, lineSpacing: 8) {
                         ForEach(EquipmentCategory.allCases) { type in
                             TypeChip(title: type.label, category: type, isSelected: equipmentType == type) {
-                                withAnimation(.snappy(duration: 0.2)) { equipmentType = equipmentType == type ? nil : type }
+                                withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) { equipmentType = equipmentType == type ? nil : type }
                             }
                             .accessibilityIdentifier("newModelType.\(type.rawValue)")
                         }
@@ -546,7 +547,7 @@ struct AddModelSheet: View {
                         WrapLayout(spacing: 8, lineSpacing: 8) {
                             ForEach(linkedOrder) { exercise in
                                 Chip(exercise.name, symbol: "xmark", isSelected: true) {
-                                    withAnimation(.snappy(duration: 0.2)) { toggle(exercise.id) }
+                                    withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) { toggle(exercise.id) }
                                 }
                                 .accessibilityHint("Removes it")
                             }
@@ -608,7 +609,7 @@ struct AddModelSheet: View {
         let empty = trimmedManufacturer.isEmpty && trimmedModelName.isEmpty
         return HStack(spacing: 14) {
             EquipmentTile(category: equipmentType, size: 56)
-                .animation(.snappy(duration: 0.2), value: equipmentType)
+                .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: equipmentType)
             VStack(alignment: .leading, spacing: 5) {
                 Text(empty ? "New Model" : "\(trimmedManufacturer) \(trimmedModelName)".trimmingCharacters(in: .whitespaces))
                     .font(look.font.cardTitle)
@@ -661,7 +662,7 @@ struct AddModelSheet: View {
     private func exerciseRow(_ exercise: Exercise) -> some View {
         let on = linkedExerciseIDs.contains(exercise.id)
         return Button {
-            withAnimation(.snappy(duration: 0.2)) { toggle(exercise.id) }
+            withAnimation(reduceMotion ? nil : .snappy(duration: 0.2)) { toggle(exercise.id) }
         } label: {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 2) {
@@ -681,7 +682,7 @@ struct AddModelSheet: View {
                 Image(systemName: on ? "checkmark.circle.fill" : "circle")
                     .font(.system(.title3, weight: .semibold))
                     .foregroundStyle(on ? look.actionText : look.textTertiary)
-                    .contentTransition(.symbolEffect(.replace))
+                    .contentTransition(reduceMotion ? .identity : .symbolEffect(.replace))
                     .accessibilityHidden(true)
             }
             .contentShape(Rectangle())

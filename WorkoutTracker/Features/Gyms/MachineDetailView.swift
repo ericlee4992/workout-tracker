@@ -69,7 +69,7 @@ struct MachineDetailView: View {
         }
         .sheet(item: $chartingBest) { best in
             NavigationStack {
-                ExerciseProgressView(exerciseID: best.exerciseID, exerciseName: title(of: best),
+                ExerciseProgressView(exerciseID: best.exerciseID, exerciseName: best.exerciseName,
                                      initialVariation: best.variation(on: machine.id))
             }
         }
@@ -155,7 +155,7 @@ struct MachineDetailView: View {
     /// The most-used scope: its name, the best as the page's one hero figure, how many workouts
     /// it spans, and its best set per day here with every new best labelled.
     private func topBest(_ best: MachineBest) -> some View {
-        let series = ProgressSeriesMath.series(for: sets, variation: best.variation(on: machine.id))
+        let series = GymOverviewMath.series(of: best, on: machine.id, in: sets)
         let text = bestText(best)
         return Button { chartingBest = best } label: {
             VStack(alignment: .leading, spacing: 10) {
@@ -229,7 +229,7 @@ struct MachineDetailView: View {
         }
         .buttonStyle(PanelRowPressStyle())
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title(of: best)), best \(text), \(workoutsText(best.workouts))")
+        .accessibilityLabel("\(title(of: best)), best \(text)\(best.loadType == .assisted ? ", Assisted" : ""), \(workoutsText(best.workouts))")
         .accessibilityAddTraits(.isButton)
     }
 
@@ -420,13 +420,8 @@ struct MachineDetailView: View {
 
     // MARK: Data
 
-    private func title(of best: MachineBest) -> String {
-        let exercise = exercises.first { $0.id == best.exerciseID }
-        let name = exercise?.name ?? "Exercise"
-        guard let presetID = best.presetID,
-              let preset = exercise?.presets?.first(where: { $0.id == presetID }) else { return name }
-        return "\(name) · \(preset.name)"
-    }
+    /// The snapshot names the best was logged under (D23), never the live exercise or preset.
+    private func title(of best: MachineBest) -> String { best.title }
 
     private func bestText(_ best: MachineBest) -> String {
         SetValue(best.best).map { LookFormat.set($0, loadType: best.loadType) } ?? ""

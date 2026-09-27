@@ -112,6 +112,60 @@ struct GymOverviewTests {
         #expect(use.best(among: [UUID()]) == nil && use.lastUsed(among: [UUID()]) == nil)
     }
 
+    @Test func warmupOnlyWorkoutsCountAsUseButNeverAsABest() {
+        // Scope A: one working workout and two warmup-only ones — used three times. Scope B: two
+        // working workouts. A leads (usage); its best is the working set (Codex review 06).
+        let machine = UUID(), a = UUID(), b = UUID()
+        let d = (1...5).map { date(2026, 9, $0) }
+        let inputs: [MachineSetInput] = [
+            .init(workoutID: UUID(), workoutStartedAt: d[0], set: set(machine, a, 60, 8, at: d[0])),
+            .init(workoutID: UUID(), workoutStartedAt: d[1], set: set(machine, a, 30, 12, at: d[1], type: .warmup)),
+            .init(workoutID: UUID(), workoutStartedAt: d[4], set: set(machine, a, 30, 12, at: d[4], type: .warmup)),
+            .init(workoutID: UUID(), workoutStartedAt: d[2], set: set(machine, b, 50, 8, at: d[2])),
+            .init(workoutID: UUID(), workoutStartedAt: d[3], set: set(machine, b, 55, 8, at: d[3])),
+        ]
+        let use = try! #require(GymOverviewMath.machineUse(inputs)[machine])
+        #expect(use.bests.map(\.exerciseID) == [a, b])
+        #expect(use.bests[0].workouts == 3 && use.bests[0].lastUsed == d[4])
+        #expect(use.bests[0].best.normalizedKg == 60, "the warmups never become the best")
+        // A scope with nothing but warmups has usage but no best row.
+        let onlyWarmups = [MachineSetInput(workoutID: UUID(), workoutStartedAt: d[0],
+                                           set: set(machine, a, 30, 12, at: d[0], type: .warmup))]
+        let warm = try! #require(GymOverviewMath.machineUse(onlyWarmups)[machine])
+        #expect(warm.workouts == 1 && warm.sets == 1 && warm.bests.isEmpty)
+    }
+
+    @Test func aBestsChartOnAStationChartsOnlyItsExercise() {
+        // Pushdowns at 40 kg three times, then one fly at 70 kg — same station, no preset, both
+        // weighted. The pushdown's chart must not carry the fly's 70 kg (Codex review 06).
+        let station = UUID(), pushdown = UUID(), fly = UUID()
+        let d = (1...4).map { date(2026, 9, $0 * 2) }
+        var inputs = (0..<3).map { i in
+            MachineSetInput(workoutID: UUID(), workoutStartedAt: d[i], set: set(station, pushdown, 40, 10, at: d[i]))
+        }
+        inputs.append(.init(workoutID: UUID(), workoutStartedAt: d[3], set: set(station, fly, 70, 10, at: d[3])))
+        let use = try! #require(GymOverviewMath.machineUse(inputs)[station])
+        let best = try! #require(use.best())
+        #expect(best.exerciseID == pushdown)
+        let series = GymOverviewMath.series(of: best, on: station, in: inputs.map(\.set), calendar: calendar)
+        #expect(series.points.count == 3)
+        #expect(series.points.allSatisfy { $0.bestKg == 40 }, "only the pushdown's days")
+    }
+
+    @Test func aBestKeepsTheNamesItWasLoggedUnder() {
+        let machine = UUID(), row = UUID(), narrow = UUID(), wide = UUID()
+        let d1 = date(2026, 9, 1), d2 = date(2026, 9, 8)
+        let inputs: [MachineSetInput] = [
+            .init(workoutID: UUID(), workoutStartedAt: d1, set: set(machine, row, 60, 8, at: d1, preset: narrow),
+                  exerciseName: "Seated Row", presetName: "Narrow grip"),
+            .init(workoutID: UUID(), workoutStartedAt: d2, set: set(machine, row, 50, 8, at: d2, preset: wide),
+                  exerciseName: "Seated Row", presetName: "Wide grip"),
+        ]
+        let titles = Set(try! #require(GymOverviewMath.machineUse(inputs)[machine]).bests.map(\.title))
+        #expect(titles == ["Seated Row · Narrow grip", "Seated Row · Wide grip"],
+                "two scopes whose live presets may be gone still read apart")
+    }
+
     @Test func assistedBestIsTheLeastAssistanceAndATieKeepsTheEarliest() {
         let machine = UUID(), dip = UUID()
         let d1 = date(2026, 9, 1), d2 = date(2026, 9, 8), d3 = date(2026, 9, 15)
@@ -160,12 +214,14 @@ struct GymOverviewTests {
         let lifecycle = EquipmentLifecycle(context: context)
         try lifecycle.rename(machine, to: "Old Press")
         try lifecycle.correctModel(of: machine, to: newModel, scope: .futureOnly)
+        try lifecycle.rename(press, to: "Machine Press")
 
         let entries = try SetBadgeMath.finishedEntries(in: context)
         let use = try #require(GymOverviewMath.machineUse(GymOverviewMath.machineSetInputs(finishedEntries: entries))[machine.id])
         #expect(use.workouts == 1 && use.sets == 1)
         let best = try #require(use.best())
         #expect(best.best.weightValue == 150 && best.best.weightUnit == .lb, "as entered (D52)")
+        #expect(best.exerciseName == "Chest Press", "the snapshot name, not a later rename")
         #expect(best.variation(on: machine.id) == ProgressVariationKey(loadType: .weighted, equipment: .machine(machine.id), presetID: nil))
 
         let visits = GymOverviewMath.visits(of: gym.id, in: GymOverviewMath.visitInputs(

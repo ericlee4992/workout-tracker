@@ -119,6 +119,12 @@ struct StartWorkoutView: View {
                 TemplateEditorSheet(template: editingTemplate)
             }
             .onAppear(perform: restoreSelectedGym)
+            // A gym deleted (archived) elsewhere — Gyms → Edit Gym → Delete Gym… — while it is the
+            // selection: drop it here too, or the next workout would start at an archived gym
+            // (Codex review 06). Delete Gym… also clears the remembered id.
+            .onChange(of: selectedGym?.archived) { _, archived in
+                if archived == true { selectedGym = nil }
+            }
             .onAppear(perform: consumeStartLiftingRequest)
             .onChange(of: startLiftingRequest) { _, _ in consumeStartLiftingRequest() }
         }

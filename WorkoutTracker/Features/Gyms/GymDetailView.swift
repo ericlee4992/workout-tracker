@@ -360,16 +360,18 @@ struct GroupingPills<Option: Hashable>: View {
                                     .matchedGeometryEffect(id: "selection", in: namespace)
                             }
                         }
-                        .contentShape(Capsule())
+                        // The track's 3 pt inset belongs to each pill's hit region: 38 + 3 + 3
+                        // = 44 pt per button, not only for the group (Codex review 06).
+                        .padding(.vertical, 3)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(selected ? .isSelected : [])
                 .accessibilityIdentifier(identifier(option))
             }
         }
-        .padding(3)
+        .padding(.horizontal, 3)
         .background(look.surface, in: Capsule())
-        .frame(minHeight: 44)
         .sensoryFeedback(.selection, trigger: selection)
     }
 }

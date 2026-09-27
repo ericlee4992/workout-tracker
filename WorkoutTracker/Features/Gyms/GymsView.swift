@@ -193,6 +193,10 @@ struct GymCard: View {
         if let last = visits.lastVisit { parts.append("Last visit \(GymOverviewMath.relativeDay(last, now: .now))") }
         let machines = gym.activeMachines.count
         parts.append("\(machines) machine\(machines == 1 ? "" : "s")")
+        // The rhythm the card draws, spoken as its cells read (the card replaces its children).
+        if visits.visits > 0 {
+            parts.append("Visits per week, last 8 weeks: \(visits.weekly.map(String.init).joined(separator: ", "))")
+        }
         return parts.joined(separator: ", ")
     }
 }

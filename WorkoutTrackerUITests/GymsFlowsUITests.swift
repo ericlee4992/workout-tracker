@@ -65,6 +65,30 @@ final class GymsFlowsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["restoreGym.Hotel Gym"].exists)
     }
 
+    /// Deleting the gym Home is set to (Iron Temple, the fixture's current gym): Home drops it at
+    /// once — no relaunch — so a new workout cannot start at an archived gym (Codex review 06).
+    func testDeletingTheCurrentGymClearsHomesSelection() {
+        app.tabBars.buttons["Workout"].tap()
+        let picker = any("gymPicker")
+        XCTAssertTrue(picker.waitForExistence(timeout: 10))
+        XCTAssertTrue(picker.label.contains("Iron Temple"), "the fixture's gym is selected: \(picker.label)")
+        app.tabBars.buttons["Gyms"].tap()
+        let iron = any("gymRow.Iron Temple")
+        XCTAssertTrue(iron.waitForExistence(timeout: 10))
+        iron.tap()
+        app.buttons["editGym"].tap()
+        let delete = app.buttons["deleteGym"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5))
+        delete.tap()
+        app.alerts.buttons["Delete Gym"].tap()
+        XCTAssertTrue(any("deletedGyms").waitForExistence(timeout: 10))
+        app.tabBars.buttons["Workout"].tap()
+        XCTAssertTrue(picker.waitForExistence(timeout: 10))
+        let cleared = NSPredicate(format: "label CONTAINS 'No gym'")
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: cleared, evaluatedWith: picker)], timeout: 5), .completed,
+                       "Home no longer offers the deleted gym: \(picker.label)")
+    }
+
     /// The machine page: a best that opens its chart, the name edited inline (a blank one puts the
     /// old one back), the unit override set, and Delete Machine… closing the page.
     func testMachinePageEditsApplyAndDeleteCloses() {

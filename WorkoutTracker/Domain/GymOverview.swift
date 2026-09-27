@@ -24,11 +24,15 @@ struct GymVisits: Hashable {
     static let none = GymVisits(visits: 0, lastVisit: nil, weekly: Array(repeating: 0, count: 8))
 }
 
-/// One logged set on a machine, with the workout it belongs to.
+/// One logged set on a machine, with the workout it belongs to and the names frozen with it.
 struct MachineSetInput: Equatable {
     var workoutID: UUID
     var workoutStartedAt: Date
     var set: RecordSetInput
+    /// The entry's snapshot names (D23): a past best keeps the names it was logged under, even
+    /// after the exercise or preset is renamed or deleted.
+    var exerciseName: String = ""
+    var presetName: String?
 }
 
 /// The best set of one record scope on a machine: exercise × preset × load type (D36/D20).
@@ -37,9 +41,18 @@ struct MachineBest: Identifiable, Equatable {
     var presetID: UUID?
     var loadType: LoadType
     var best: RecordSetInput
-    /// Workouts with a completed set in this scope.
+    /// Workouts with a completed set in this scope — warmups included: usage is not ranking.
     var workouts: Int
     var lastUsed: Date
+    /// The scope's snapshot names, from its most recent workout.
+    var exerciseName: String
+    var presetName: String?
+
+    /// "Seated Row · Narrow grip": the snapshot names, never the live rows.
+    var title: String {
+        guard let presetName, !presetName.isEmpty else { return exerciseName }
+        return "\(exerciseName) · \(presetName)"
+    }
 
     var id: String { "\(exerciseID.uuidString)|\(presetID?.uuidString ?? "-")|\(loadType.rawValue)" }
 
@@ -138,20 +151,24 @@ enum GymOverviewMath {
             let exerciseID = input.set.exerciseID
             lastByExercise[exerciseID] = max(lastByExercise[exerciseID] ?? .distantPast, input.workoutStartedAt)
         }
-        let eligible = sets.filter { RecordsMath.isEligible($0.set) }
-        let scopes = Dictionary(grouping: eligible) {
+        // Usage (workouts, recency, names) counts every completed set of a scope; only the best
+        // is chosen among the eligible ones (warmups out) — a warmup-only workout is still a use.
+        let scopes = Dictionary(grouping: sets) {
             ScopeKey(exerciseID: $0.set.exerciseID, presetID: $0.set.presetID, loadType: $0.set.loadType)
         }
         let bests = scopes.compactMap { key, members -> MachineBest? in
             // `outranks` owns the direction (assisted: lower is better), then reps, then the
             // earlier set on a tie. Plain bodyweight ranks by reps, as the records do.
-            guard let first = members.first?.set else { return nil }
-            let best = members.dropFirst().map(\.set).reduce(first) { incumbent, candidate in
+            let eligible = members.map(\.set).filter(RecordsMath.isEligible)
+            guard let first = eligible.first else { return nil }
+            let best = eligible.dropFirst().reduce(first) { incumbent, candidate in
                 RecordsMath.outranks(candidate, incumbent) ? candidate : incumbent
             }
+            let latest = members.max { $0.workoutStartedAt < $1.workoutStartedAt }
             return MachineBest(exerciseID: key.exerciseID, presetID: key.presetID, loadType: key.loadType,
                                best: best, workouts: Set(members.map(\.workoutID)).count,
-                               lastUsed: members.map(\.workoutStartedAt).max() ?? .distantPast)
+                               lastUsed: latest?.workoutStartedAt ?? .distantPast,
+                               exerciseName: latest?.exerciseName ?? "", presetName: latest?.presetName)
         }
         .sorted { a, b in
             if a.workouts != b.workouts { return a.workouts > b.workouts }
@@ -222,14 +239,16 @@ extension GymOverviewMath {
                   let workout = entry.workout, !workout.isDeleted, workout.finishedAt != nil
             else { return [] }
             return (entry.sets ?? []).map { set in
-                MachineSetInput(workoutID: workout.id, workoutStartedAt: workout.startedAt, set: RecordSetInput(
+                MachineSetInput(workoutID: workout.id, workoutStartedAt: workout.startedAt,
+                                set: RecordSetInput(
                     loadType: entry.snapshotLoadType, exerciseID: entry.snapshotExerciseID,
                     gymID: entry.snapshotGymID, machineID: entry.snapshotMachineID,
                     modelID: entry.snapshotModelID, freeWeightTag: entry.snapshotFreeWeightTag,
                     presetID: entry.snapshotPresetID, setType: set.type, reps: set.reps,
                     weightValue: set.weightValue, weightUnit: set.weightUnit,
                     normalizedKg: set.normalizedKg, completedAt: set.completedAt,
-                    barWeightValue: set.barWeightValue))
+                    barWeightValue: set.barWeightValue),
+                                exerciseName: entry.snapshotExerciseName, presetName: entry.snapshotPresetName)
             }
         }
     }
@@ -237,5 +256,15 @@ extension GymOverviewMath {
     /// The machine's sets as plain record inputs (the machine page's chart).
     static func recordInputs(of machineID: UUID, in inputs: [MachineSetInput]) -> [RecordSetInput] {
         inputs.filter { $0.set.machineID == machineID }.map(\.set)
+    }
+
+    /// One best's chart on its machine: that EXERCISE's sets in the best's variation. The
+    /// variation key scopes equipment, preset and load type but not the exercise, so a
+    /// multi-exercise station must be filtered here — or a fly would chart as a pushdown's best
+    /// (Codex review 06). Matches what the progress chart the best opens draws.
+    static func series(of best: MachineBest, on machineID: UUID, in sets: [RecordSetInput],
+                       calendar: Calendar = .current) -> ProgressSeries {
+        ProgressSeriesMath.series(for: sets.filter { $0.exerciseID == best.exerciseID },
+                                  variation: best.variation(on: machineID), calendar: calendar)
     }
 }
