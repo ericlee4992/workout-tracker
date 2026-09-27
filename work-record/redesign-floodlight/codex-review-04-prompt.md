@@ -1,6 +1,6 @@
 Independent review (T6) of ticket 04 of the Floodlight redesign: the finish receipt, on branch
-`ericlee4992/redesign-floodlight-finish`. Range: `e6facea..HEAD` (e6facea is the ticket-03
-live branch tip). Claude implemented; you review. Run in the checkout `/tmp/wt-floodlight/finish`
+`ericlee4992/redesign-floodlight-finish`. Range: `ericlee4992/redesign-floodlight-live..HEAD`
+(the branch is stacked on ticket 03's live branch). Claude implemented; you review. Run in the checkout `/tmp/wt-floodlight/finish`
 and stay in it.
 
 Read first: AGENTS.md; `work-record/redesign-floodlight/issues/01-implement-redesign.md` (user
@@ -8,7 +8,7 @@ decisions); `issues/04-finish.md` (scope, kept rules, user decisions of 2026-09-
 verification); `reference/look-api.md`, `reference/brief/constraints.md` §1–2,
 `reference/brief/domain-data.md` §3. Approved screen: `reference/captures/{dark,light}/F01-final.png`;
 prototype source (read-only) `/Users/ericlee06/orca/workspaces/Health App/redesign-prototype/RedesignPrototype/Sources/Screens/Finish/`.
-Actual captures: `captures/04/`. Old sheet: `git show e6facea:WorkoutTracker/Features/ActiveWorkout/WorkoutFinishedSheet.swift`.
+Actual captures: `captures/04/`. Old sheet: `git show ericlee4992/redesign-floodlight-live:WorkoutTracker/Features/ActiveWorkout/WorkoutFinishedSheet.swift`.
 
 Review for:
 1. Derived data (`Domain/FinishReceipt.swift`, `SetBadgeMath.outcomes/workoutBest`,
