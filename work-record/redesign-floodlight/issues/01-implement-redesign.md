@@ -145,7 +145,7 @@ prototype).
 |---|---|---|---|
 | `ericlee4992/redesign-floodlight` | see `git log` (after `b2c0329`) | foundation `b22f2c0`, ticket 02 `934a5ba` + fixes `37f16a0`, `ed82fdb` | ticket 02 **Codex clear** (3 rounds) |
 | `ericlee4992/redesign-floodlight-live` | `9d07a9c` | ticket 03 live workout (two WIP commits + record) | implemented + tested; **Codex review not started** |
-| `ericlee4992/redesign-floodlight-finish` | `cb90a5b` | ticket 04 finish receipt WIP | builds; tests mid-run, unverified |
+| `ericlee4992/redesign-floodlight-finish` | `cb90a5b` | ticket 04 finish receipt WIP | builds; first batch `finish-ui-1` **14/14 passed** (4 capture runs + 10 finish flows); captures not yet reviewed |
 
 The live/finish branches were worked in scratch checkouts `/tmp/wt-floodlight/{live,finish}`
 (git worktrees of this repo; /tmp may be cleared — recreate with `git worktree add` or check the
@@ -158,7 +158,7 @@ Codex review terminal: Orca "Codex review — Floodlight 02" (`term_e2829166…`
 1. Ticket 03: squash the two WIP commits (optional), write `codex-review-03-prompt.md` (model on
    `codex-review-02-prompt.md`; range `ed82fdb…` → live tip), run Codex in a visible Orca terminal,
    iterate to clear. Ticket file: `issues/03-live-workout.md` (on the live branch).
-2. Ticket 04 (finish): re-run `FloodlightFinishUITests` (4 captures: finishes the `-uiTestDesignLive`
+2. Ticket 04 (finish): the first batch passed 14/14 (log `/tmp/wt-floodlight/results/finish-ui-1.log`; re-run if /tmp is gone) — `FloodlightFinishUITests` (4 captures: finishes the `-uiTestDesignLive`
    fixture, taps "Keep Original" on the drift dialog) and the finish flows listed in the batch
    command (CoreLoop empty finish / View in History, HistoryTemplate, HeartRate finishing summary,
    RedesignScreenshot test02/test03, Cardio capture+save); look at the captures against

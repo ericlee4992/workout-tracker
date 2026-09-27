@@ -13,7 +13,7 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
 - **Ticket 03** (live lifting workout + sheets): implemented and tested on stacked branch
   `ericlee4992/redesign-floodlight-live` (pushed, tip `9d07a9c`); **not yet Codex-reviewed**.
 - **Ticket 04** (finish receipt): WIP on `ericlee4992/redesign-floodlight-finish` (pushed, tip
-  `cb90a5b`, stacked on live); built, first test batch was mid-run at handoff — re-run.
+  `cb90a5b`, stacked on live); built; first test batch 14/14 passed, captures not yet reviewed.
 - Five UI tests fail identically on untouched `main` on the iOS 27 simulator (pre-existing;
   listed in ticket 02); fix them in the Exercises / Gyms / History areas.
 
