@@ -99,7 +99,7 @@ struct HistoryView: View {
                 if !workouts.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button("Calendar", systemImage: "calendar") { showCalendar = true }
-                            .foregroundStyle(look.textPrimary)
+                            .tint(look.textPrimary)
                             .accessibilityIdentifier("historyCalendar")
                     }
                 }

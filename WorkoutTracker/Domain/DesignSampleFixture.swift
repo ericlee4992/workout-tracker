@@ -21,6 +21,14 @@ enum DesignSampleFixture {
     /// With `-uiTestDesignLive` too: a barbell Bench Press on a 45 lb bar — 90 lb × 10 five days
     /// ago, and today a logged 102.5 lb × 10, a bar-mode new best (the receipt's bar annotation).
     static let barBestArgument = "-uiTestDesignBarBest"
+    /// With `-uiTestDesignHistory` too (ticket 05, History's captures): weights climb session by
+    /// session (new bests), the newest workout carries a heart-rate series with time in zones,
+    /// Pull Day three days ago has a note, Leg Day nine days ago logs its calf raise in kg
+    /// ("kg + lb"), and Pull Day eleven days ago is marked edited.
+    static let historyArgument = "-uiTestDesignHistory"
+    static var historyIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(historyArgument)
+    }
     static var liveIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(liveArgument)
     }
@@ -90,6 +98,7 @@ enum DesignSampleFixture {
                                   sourceTemplateName: template.name, snapshotGymName: gym.name, gym: gym)
             workout.finishedAt = start.addingTimeInterval(Double(minutes) * 60)
             context.insert(workout)
+            if historyIsEnabled { decorate(workout, daysAgo: daysAgo, minutes: minutes) }
             let names = templates.first { $0.name == templateName }?.exercises ?? []
             for (order, name) in names.enumerated() {
                 guard let exercise = exercise(name) else { continue }
@@ -101,14 +110,20 @@ enum DesignSampleFixture {
                     snapshotExerciseName: exercise.name, snapshotMachineLabel: machine?.label,
                     snapshotModelName: machine?.model?.displayName, snapshotGymName: gym.name)
                 context.insert(entry)
-                let base = 40.0 + Double(order * 15)
+                // History captures: 5 lb more every few days, so newer sessions set new bests.
+                let bump = historyIsEnabled ? Double((12 - daysAgo) / 3) * 5 : 0
+                let base = 40.0 + Double(order * 15) + bump
+                // One exercise logged in kg ("kg + lb" on its row).
+                let inKg = historyIsEnabled && daysAgo == 9 && name == "Calf Raise"
                 let rows: [(SetType, Double, Int)] = order == 0
                     ? [(.warmup, base * 0.5, 12), (.working, base, 10), (.working, base + 5, 8)]
                     : [(.working, base, 10), (.working, base, 8)]
                 for (index, row) in rows.enumerated() {
+                    let value = inKg ? (row.1 / 2.2).rounded() : row.1
+                    let unit: WeightUnit = inKg ? .kg : .lb
                     let set = SetRecord(
-                        order: index, type: row.0, reps: row.2, weightValue: row.1, weightUnit: .lb,
-                        normalizedKg: WeightMath.normalizedKg(value: row.1, unit: .lb),
+                        order: index, type: row.0, reps: row.2, weightValue: value, weightUnit: unit,
+                        normalizedKg: WeightMath.normalizedKg(value: value, unit: unit),
                         completedAt: start.addingTimeInterval(Double(order * 600 + index * 150)))
                     set.entry = entry
                     context.insert(set)
@@ -132,6 +147,33 @@ enum DesignSampleFixture {
             // An empty workout just started at the gym (the "Recent at" state).
             _ = try WorkoutSession(context: context).startWorkout(at: gym, on: now.addingTimeInterval(-40))
             try context.save()
+        }
+    }
+
+    /// History captures: the newest workout's sensor data, a note, an edit mark.
+    private static func decorate(_ workout: Workout, daysAgo: Int, minutes: Int) {
+        switch daysAgo {
+        case 1:
+            let interval = HeartRateSeriesMath.defaultIntervalSeconds
+            let full = HeartRateHistoryFixture.folded(intervalSeconds: interval)
+            let count = min(full.mean.count, minutes * 60 / interval)
+            let mean = Array(full.mean.prefix(count))
+            let present = mean.filter { $0 > 0 }
+            workout.heartRateSeries = mean
+            workout.heartRateSeriesLow = Array(full.low.prefix(count))
+            workout.heartRateSeriesHigh = Array(full.high.prefix(count))
+            workout.heartRateSeriesIntervalSeconds = interval
+            workout.averageHeartRate = present.isEmpty ? nil : present.reduce(0, +) / present.count
+            workout.maxHeartRate = workout.heartRateSeriesHigh.max()
+            workout.zoneSeconds = HeartRateHistoryFixture.zoneSeconds(of: mean, intervalSeconds: interval)
+            workout.activeEnergyKilocalories = 318
+            workout.basalEnergyKilocalories = 92
+        case 3:
+            workout.notes = "Rows felt strong. Last curl set was a grind."
+        case 11:
+            workout.historyEditedAt = workout.finishedAt?.addingTimeInterval(86_400)
+        default:
+            break
         }
     }
 

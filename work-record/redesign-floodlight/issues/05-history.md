@@ -234,3 +234,12 @@ Simulator WT-Floodlight (iOS 27.0). Results: `/tmp/wt-floodlight/results/history
 
 - 2026-09-27: resumed (branches verified: history = finish tip `1c3fc99`, pushed); read the
   prototype History screens and the real History code; prototype captures taken; ticket written.
+- 2026-09-27: Domain `HistoryOverview` + tests (`history-unit-1`: 28/28 with SetBadge 9 and
+  FinishReceipt 10, exit 0). Screens rebuilt: list, calendar, detail, edit set, progress chart;
+  heart-rate section is one plate (chart + zones) shared with the receipt (`ZoneTimeCard`
+  deleted; `FinishTile.summaryTiles` shared). Fixture `-uiTestDesignHistory` for captures.
+  First captures `history-cap-1` 6/6 passed (exit 0), reviewed: fixed neutral toolbar tint,
+  whole-number row volumes, progress Close button, chart scrub needs a short press (a bare
+  drag scrolls the page), short dates. UI tests updated for the moved menu items, the
+  calendar's select-then-open, zone legend labels, iOS 27 search drawer (progress tests).
+  Next: targeted UI batch `history-ui-1`.

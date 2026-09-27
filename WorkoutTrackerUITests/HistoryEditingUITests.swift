@@ -68,9 +68,10 @@ final class HistoryEditingUITests: XCTestCase {
         XCTAssertTrue(firstWorkout.waitForExistence(timeout: 10), "the finished workout should be listed")
         firstWorkout.tap()
 
-        app.buttons["workoutDetailMenu"].firstMatch.tap()
+        // Floodlight ticket 05: Delete Workout… sits at the end of the page (was in a toolbar menu).
         let delete = app.buttons["deleteWorkout"]
-        XCTAssertTrue(delete.waitForExistence(timeout: 5))
+        for _ in 0..<6 where !(delete.exists && delete.isHittable) { app.swipeUp() }
+        XCTAssertTrue(delete.isHittable)
         delete.tap()
 
         let confirm = app.buttons["Delete Workout"]

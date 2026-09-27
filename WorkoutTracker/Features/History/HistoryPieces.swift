@@ -56,6 +56,8 @@ enum HistoryFormat {
     static func monthYear(_ date: Date) -> String { monthYearF.string(from: date) }
     /// "Saturday, Sep 19"
     static func dayTitle(_ date: Date) -> String { "\(LookFormat.weekday(date)), \(LookFormat.shortDate(date))" }
+    /// "Sat, Sep 19"
+    static func shortDayTitle(_ date: Date) -> String { "\(weekdayShort(date)), \(LookFormat.shortDate(date))" }
     /// "6:40 PM"
     static func time(_ date: Date) -> String { date.formatted(date: .omitted, time: .shortened) }
     /// "10:30 AM – 11:37 AM"
@@ -411,8 +413,8 @@ struct HistoryWorkoutRow: View {
         .padding(.vertical, 14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .contentShape(Rectangle())
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(spoken)
+        // No combined label of its own: the row's button reads its texts in order (title, date,
+        // times and sets, the marks' own labels), and each stays findable on its own.
     }
 
     private var standard: some View {
@@ -519,8 +521,14 @@ struct HistoryWorkoutRow: View {
         if isCardioOnly, let distance = facts?.distance {
             figure(HistoryFormat.distance(distance), distance.unit.rawValue)
         } else if let volume = facts?.volumeKg, volume > 0 {
-            figure(LookFormat.groupedDecimal(WeightMath.convert(volume, from: .kg, to: appUnit)), appUnit.rawValue)
+            figure(volumeText(volume), appUnit.rawValue)
         }
+    }
+
+    /// The row's glance figure: whole units, grouped ("24,136"). A mixed-unit workout converts
+    /// to fractions ("4,907.01") that the detail's tile keeps (D25); a list row rounds.
+    private func volumeText(_ kg: Double) -> String {
+        LookFormat.grouped(WeightMath.convert(kg, from: .kg, to: appUnit))
     }
 
     /// The number over its unit; at accessibility sizes inline ("24,136 lb").
@@ -535,19 +543,6 @@ struct HistoryWorkoutRow: View {
         .fixedSize()
     }
 
-    private var spoken: String {
-        var parts = [workout.historyTitle, HistoryFormat.dayTitle(workout.startedAt), metaText]
-        if isCardioOnly, let distance = facts?.distance {
-            parts.append("\(HistoryFormat.distance(distance)) \(distance.unit.rawValue)")
-        } else if let volume = facts?.volumeKg, volume > 0 {
-            parts.append("\(LookFormat.groupedDecimal(WeightMath.convert(volume, from: .kg, to: appUnit))) \(appUnit.rawValue)")
-        }
-        if !families.isEmpty { parts.append(families.map(\.label).joined(separator: ", ")) }
-        if newBests > 0 { parts.append(newBests == 1 ? "1 new best" : "\(newBests) new bests") }
-        if let unitBadge { parts.append(unitBadge == "kg + lb" ? "kilograms and pounds" : unitBadge) }
-        if workout.historyEditedAt != nil { parts.append("Edited") }
-        return parts.joined(separator: ", ")
-    }
 }
 
 // MARK: - Marks

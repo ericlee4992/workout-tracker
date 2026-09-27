@@ -67,11 +67,12 @@ final class CoreLoopUITests: XCTestCase {
         XCTAssertTrue(
             app.staticTexts[exerciseName].waitForExistence(timeout: 5),
             "The history row should be titled by the exercise performed")
+        // Floodlight ticket 05: the row reads "<time> · <duration> · 1 set".
         let summary = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS %@", "1 exercise · 1 set")).firstMatch
+            NSPredicate(format: "label ENDSWITH %@", " · 1 set")).firstMatch
         XCTAssertTrue(
             summary.waitForExistence(timeout: 5),
-            "The finished workout should appear in History with 1 exercise and 1 set")
+            "The finished workout should appear in History with 1 set")
 
         // --- Second workout on the same machine ----------------------------
         startEmptyWorkout()
@@ -105,7 +106,7 @@ final class CoreLoopUITests: XCTestCase {
 
         tab("History").tap()
         let rows = app.staticTexts.matching(
-            NSPredicate(format: "label CONTAINS %@", "1 exercise · 1 set"))
+            NSPredicate(format: "label ENDSWITH %@", " · 1 set"))
         XCTAssertEqual(rows.count, 2, "Both workouts should be in History")
     }
 
@@ -172,9 +173,9 @@ final class CoreLoopUITests: XCTestCase {
         XCTAssertTrue(
             app.buttons["As entered"].waitForExistence(timeout: 5),
             "View in History should push the finished workout's detail")
-        XCTAssertTrue(
-            app.staticTexts["70 kg × 8"].waitForExistence(timeout: 5),
-            "The opened workout should show the set just logged")
+        let setLine = app.descendants(matching: .any).matching(identifier: "historySetLine").firstMatch
+        XCTAssertTrue(setLine.waitForExistence(timeout: 5))
+        XCTAssertTrue(setLine.label.contains("70 kg × 8"), "The opened workout should show the set just logged, got '\(setLine.label)'")
     }
 
     // MARK: - D2/D3: gyms and machines are editable

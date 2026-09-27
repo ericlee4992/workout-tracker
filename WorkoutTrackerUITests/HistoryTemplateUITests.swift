@@ -42,9 +42,9 @@ final class HistoryTemplateUITests: XCTestCase {
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
         XCTAssertTrue(app.buttons["historyWorkoutName"].waitForExistence(timeout: 10))
-        app.buttons["workoutDetailMenu"].tap()
+        // Floodlight ticket 05: a visible button under the hero (was in a toolbar menu).
         let save = app.buttons["saveAsTemplate"]
-        XCTAssertTrue(save.waitForExistence(timeout: 5), "the menu offers Save as Template… for a workout with completed sets")
+        XCTAssertTrue(save.waitForExistence(timeout: 5), "the detail offers Save as Template… for a workout with completed sets")
         shoot("history-13-menu\(suffix)")
         save.tap()
         let field = app.textFields["Template name"]

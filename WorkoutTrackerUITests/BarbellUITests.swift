@@ -100,12 +100,12 @@ final class BarbellUITests: XCTestCase {
         XCTAssertTrue(
             app.staticTexts[exerciseName].waitForExistence(timeout: 5))
         app.staticTexts[exerciseName].tap()
-        XCTAssertTrue(
-            app.staticTexts["135 lb × 5"].waitForExistence(timeout: 5),
-            "History must record the total lifted, not the plates typed")
-        XCTAssertTrue(
-            app.staticTexts["45 + 45 × 2 = 135 lb"].firstMatch.exists,
-            "…with the bar it was loaded on")
+        // The set line speaks the value and its bar breakdown (Floodlight ticket 05).
+        let setLine = app.descendants(matching: .any).matching(identifier: "historySetLine").firstMatch
+        XCTAssertTrue(setLine.waitForExistence(timeout: 5))
+        XCTAssertTrue(setLine.label.contains("135 lb × 5"),
+                      "History must record the total lifted, not the plates typed, got '\(setLine.label)'")
+        XCTAssertTrue(setLine.label.contains("45 + 45 × 2 = 135 lb"), "…with the bar it was loaded on")
     }
 
     func testEqualValuedBarInAnotherUnitClearsTheOldPlateInput() {

@@ -169,6 +169,36 @@ struct ProgressSeriesTests {
             for: [set(30, reps: 5, day: 1, loadType: .assisted)], variation: ProgressVariationKey(loadType: .assisted, equipment: .unrecorded, presetID: nil))
         #expect(assisted.points.first?.e1rmKg == nil, "D20: no e1RM outside weighted")
     }
+
+    // MARK: - Floodlight ticket 05: markers and per-metric change
+
+    /// A new-best marker lands on a day that beat EVERY earlier day: not the first day, not a
+    /// tie, and for assisted the day with LESS assistance.
+    @Test func recordDaysAreStrictImprovementsInTheLoadTypesDirection() {
+        let weighted = ProgressSeriesMath.series(
+            for: [set(60, day: 1), set(70, day: 8), set(70, day: 15), set(65, day: 22), set(75, day: 29)],
+            variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
+        let days = weighted.points.map(\.date)
+        #expect(ProgressSeriesMath.recordDays(weighted) == [days[1], days[4]])
+
+        let assisted = ProgressSeriesMath.series(
+            for: [set(40, day: 1, loadType: .assisted), set(45, day: 8, loadType: .assisted),
+                  set(30, day: 15, loadType: .assisted)],
+            variation: ProgressVariationKey(loadType: .assisted, equipment: .unrecorded, presetID: nil))
+        #expect(ProgressSeriesMath.recordDays(assisted) == [assisted.points[2].date])
+    }
+
+    @Test func scopedKeepsOneVariationAndMetricChangeNeedsABaseline() {
+        let plain = set(60, day: 1)
+        var dumbbell = set(20, day: 1)
+        dumbbell.freeWeightTag = .dumbbell
+        let scoped = ProgressSeriesMath.scoped(
+            [plain, dumbbell], to: ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.dumbbell), presetID: nil))
+        #expect(scoped == [dumbbell])
+        #expect(ProgressSeriesMath.change(first: 1000, last: 1200) == 0.2)
+        #expect(ProgressSeriesMath.change(first: 0, last: 1200) == nil)
+        #expect(ProgressSeriesMath.change(first: nil, last: 1200) == nil)
+    }
 }
 
 /// D36 in the charts, which had NO preset coverage at all until this defect.
@@ -506,4 +536,5 @@ struct ChartPresetScopingTests {
         #expect(weighted.points.count == 1)
         #expect(weighted.points.first?.bestKg == 100)
     }
+
 }

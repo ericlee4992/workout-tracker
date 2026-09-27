@@ -58,6 +58,7 @@ struct HistoryCalendarSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Close", systemImage: "xmark") { dismiss() }
+                        .tint(look.textPrimary)
                         .accessibilityIdentifier("closeCalendar")
                 }
             }

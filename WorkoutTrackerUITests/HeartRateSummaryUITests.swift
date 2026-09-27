@@ -97,7 +97,9 @@ final class HeartRateSummaryUITests: XCTestCase {
         let zones = app.descendants(matching: .any).matching(identifier: "historyZoneCard").firstMatch
         XCTAssertTrue(zones.waitForExistence(timeout: 5), "time in zones sits under the graph")
         XCTAssertTrue(app.staticTexts["Time in zones"].exists)
-        XCTAssertTrue(app.staticTexts["Zone 2"].exists, "the seeded hour spends time in zone 2")
+        // The zone legend speaks each zone with its time ("Zone 2, 14:15").
+        XCTAssertTrue(app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Zone 2'")).firstMatch.exists,
+                      "the seeded hour spends time in zone 2")
 
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "history-heart-rate-hour"

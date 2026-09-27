@@ -367,8 +367,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-05-detail")
 
         app.tabBars.buttons["Exercises"].tap()
-        let search = app.searchFields.firstMatch
-        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        let search = app.revealedSearchField()
         search.tap()
         search.typeText(exerciseName)
         let row = app.staticTexts[exerciseName].firstMatch
@@ -430,7 +429,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(zones.exists, "the zones card reachable at AccessibilityL")
         // A card half under the tab bar counts as hittable (ticket 10's
         // lesson): scroll until its last row is on screen.
-        let lastRow = app.staticTexts["Zone 3"]
+        let lastRow = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Zone 3'")).firstMatch
         for _ in 0..<4 where !(lastRow.exists && lastRow.isHittable) { app.swipeUp() }
         // The condition the loop was after, asserted (codex-review-14): the
         // last row hittable AND clear of the tab bar, so the capture is whole.

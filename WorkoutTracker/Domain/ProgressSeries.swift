@@ -223,14 +223,7 @@ enum ProgressSeriesMath {
         // line — the pooling D36 exists to forbid, and the opposite of what
         // this function's own caller documented. Contract and caller
         // disagreed; the caller won, silently.
-        let eligible = sets
-            .filter { $0.loadType == loadType }
-            .filter {
-                ProgressEquipment(machineID: $0.machineID, freeWeightTag: $0.freeWeightTag)
-                    == variation.equipment
-            }
-            .filter { $0.presetID == variation.presetID }
-            .filter { RecordsMath.isEligible($0) }
+        let eligible = scoped(sets, to: variation).filter { RecordsMath.isEligible($0) }
         // Grouped by calendar DAY, which is not identical to "session": two
         // workouts in one day collapse to a point, and one workout spanning
         // midnight becomes two (codex-review 2). Day is still the right x-axis
@@ -279,6 +272,41 @@ enum ProgressSeriesMath {
             points: points,
             loadType: loadType,
             confidence: confidence(days: points.count))
+    }
+
+    /// The sets of one variation — its load type, equipment and preset, each stated (D36; see
+    /// `series`). Eligibility is the caller's: the series and the rep records both apply
+    /// `RecordsMath.isEligible`.
+    static func scoped(_ sets: [RecordSetInput], to variation: ProgressVariationKey) -> [RecordSetInput] {
+        sets
+            .filter { $0.loadType == variation.loadType }
+            .filter { ProgressEquipment(machineID: $0.machineID, freeWeightTag: $0.freeWeightTag) == variation.equipment }
+            .filter { $0.presetID == variation.presetID }
+    }
+
+    /// The days whose best set beat every earlier day's (Floodlight ticket 05: the chart's
+    /// new-best markers). The first day is not a best (nothing to beat) and a tie is not one;
+    /// assisted improves DOWNWARD, plain bodyweight by reps (`bestKg` holds them).
+    static func recordDays(_ series: ProgressSeries) -> Set<Date> {
+        var best: Double?
+        var days: Set<Date> = []
+        for point in series.points {
+            guard let value = point.bestKg else { continue }
+            if let incumbent = best {
+                let beats = series.higherIsBetter ? value > incumbent + 1e-9 : value < incumbent - 1e-9
+                if beats { days.insert(point.date); best = value }
+            } else {
+                best = value
+            }
+        }
+        return days
+    }
+
+    /// Change from the first to the last value of a metric where more is better (volume,
+    /// 1RM), as a fraction. nil for fewer than two values or a zero baseline.
+    static func change(first: Double?, last: Double?) -> Double? {
+        guard let first, let last, first != 0 else { return nil }
+        return (last - first) / abs(first)
     }
 
     static func confidence(days sessions: Int) -> ProgressConfidence {

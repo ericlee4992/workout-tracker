@@ -462,7 +462,8 @@ struct WorkoutDetailView: View {
             .padding(.horizontal, 6)
             .fixedSize()
         }
-        .accessibilityLabel("Units, \(displayUnit.map { "Show in \($0.rawValue)" } ?? "As entered")")
+        .accessibilityLabel(displayUnit?.rawValue ?? "As entered")
+        .accessibilityHint("Units")
         .accessibilityIdentifier("historyUnits")
     }
 

@@ -99,13 +99,13 @@ struct EditLoggedSetSheet: View {
             }
             HStack(spacing: 10) {
                 SetMarker(kind: setType, number: number, done: true)
-                Text(HistoryFormat.dayTitle(date))
+                Text(HistoryFormat.shortDayTitle(date))
                     .font(.system(.subheadline, weight: .semibold))
                     .foregroundStyle(look.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(setType == .working ? "Set \(number)" : setType.displayName), \(HistoryFormat.dayTitle(date))")
+            .accessibilityLabel("\(setType == .working ? "Set \(number)" : setType.displayName), \(HistoryFormat.shortDayTitle(date))")
             .padding(.top, 6)
         }
     }
