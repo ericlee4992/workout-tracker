@@ -1,7 +1,7 @@
 # 06 — Floodlight: Gyms
 
 Type: feature (part of [01](01-implement-redesign.md))
-Status: implemented and verified (targeted); Codex review 06 next
+Status: resolved — Codex clear after 3 rounds (codex-review-06c.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-gyms` (scratch checkout `/tmp/wt-floodlight/gyms`),
 stacked on the ticket-05 history tip `646187e`.
@@ -380,3 +380,5 @@ Report: [codex-review-06b.md](../codex-review-06b.md) — not clear; one medium 
 
 Verification (round 3): `gyms-ui-5` **exit 0 — 5/5**: GymsFlows 4/4 (incl. the XS bounds
 test), `testCaptureGymsLightDefault` (the pills look unchanged at the default size).
+
+Codex review 06c (round 3): **clear** ([codex-review-06c.md](../codex-review-06c.md)).
