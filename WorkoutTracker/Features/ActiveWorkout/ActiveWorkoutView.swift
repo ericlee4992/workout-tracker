@@ -421,7 +421,7 @@ struct ActiveWorkoutView: View {
         let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
         let completed = sets.filter { $0.completedAt != nil }.count
         return HStack(alignment: .center, spacing: Theme.Space.medium) {
-            Chip(tint: Theme.secondary) {
+            LegacyChip(tint: Theme.secondary) {
                 Label(workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"),
                       systemImage: "mappin.and.ellipse")
             }

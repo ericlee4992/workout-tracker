@@ -131,16 +131,16 @@ struct ExerciseRow: View {
                             .foregroundStyle(Theme.secondary)
                     }
                     ForEach(tags) { tag in
-                        Chip { Text(tag.label).fixedSize() }
+                        LegacyChip { Text(tag.label).fixedSize() }
                     }
                     if stacked, loadType != .weighted {
-                        Chip(tint: Theme.accent) { Text(loadType.badge).fixedSize() }
+                        LegacyChip(tint: Theme.accent) { Text(loadType.badge).fixedSize() }
                     }
                 }
             }
             Spacer(minLength: 0)
             if !stacked, loadType != .weighted {
-                Chip(tint: Theme.accent) { Text(loadType.badge).fixedSize() }
+                LegacyChip(tint: Theme.accent) { Text(loadType.badge).fixedSize() }
             }
         }
         .padding(.vertical, 2)

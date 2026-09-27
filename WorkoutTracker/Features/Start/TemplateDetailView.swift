@@ -132,7 +132,7 @@ struct TemplateDetailView: View {
             : AnyLayout(HStackLayout(spacing: 10))
         return layout {
             if let supersetLabel {
-                Chip(tint: Theme.accent, selected: true) { Text(supersetLabel) }
+                LegacyChip(tint: Theme.accent, selected: true) { Text(supersetLabel) }
                     .accessibilityLabel("Superset position \(supersetLabel)")
             }
             VStack(alignment: .leading, spacing: 4) {

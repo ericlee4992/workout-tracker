@@ -210,7 +210,7 @@ struct StartWorkoutView: View {
 
     private func templateButton(_ template: WorkoutTemplate) -> some View {
         Button { viewingTemplate = template } label: {
-            TemplateTile(template: template)
+            LegacyTemplateTile(template: template)
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("templateTile.\(template.name)")
@@ -376,7 +376,7 @@ struct HeroCapsuleLabel: View {
 /// exercises. The whole tile opens the template (ticket 11). The icons are
 /// the FAMILIES the template trains (chest, back, shoulders, arms, legs),
 /// each once, head to toe — not one per exercise (ticket 11, the user).
-private struct TemplateTile: View {
+private struct LegacyTemplateTile: View {
     var template: WorkoutTemplate
 
     var body: some View {

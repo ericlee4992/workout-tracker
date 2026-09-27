@@ -140,7 +140,7 @@ struct WorkoutDetailView: View {
                                     }
                                     .accessibilityIdentifier("removeHistoryExercise")
                                 } label: {
-                                    Chip { Text(entry.snapshotLoadType.badge).textCase(nil).lineLimit(1).fixedSize() }
+                                    LegacyChip { Text(entry.snapshotLoadType.badge).textCase(nil).lineLimit(1).fixedSize() }
                                 }
                                 .accessibilityIdentifier("historyEntryLoadType")
                             }

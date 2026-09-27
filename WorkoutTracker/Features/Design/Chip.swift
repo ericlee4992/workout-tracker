@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct Chip<Content: View>: View {
+struct LegacyChip<Content: View>: View {
     var tint: Color = Theme.secondary
     var selected = false
     @ViewBuilder var content: () -> Content
@@ -19,7 +19,7 @@ struct UnitChip: View {
     var unit: WeightUnit
 
     var body: some View {
-        Chip(tint: unit == .kg ? Theme.unitKg : Theme.unitLb) {
+        LegacyChip(tint: unit == .kg ? Theme.unitKg : Theme.unitLb) {
             Text(unit.rawValue)
         }
     }

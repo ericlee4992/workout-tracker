@@ -66,7 +66,7 @@ struct ExerciseEntryCard: View {
             if !dynamicTypeSize.isAccessibilitySize { columnHeaders }
 
             ForEach(orderedSets) { set in
-                SetRowView(
+                LegacySetRowView(
                     set: set,
                     index: workingIndex(of: set),
                     loadType: loadType,
@@ -202,7 +202,7 @@ struct ExerciseEntryCard: View {
         _ title: String, isSelected: Bool, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Chip(tint: Theme.secondary, selected: isSelected) {
+            LegacyChip(tint: Theme.secondary, selected: isSelected) {
                 Text(title)
             }
             .frame(minHeight: 44)
@@ -280,7 +280,7 @@ struct ExerciseEntryCard: View {
             // there is one.
             HStack(spacing: 10) {
                 if let member = supersetLabel {
-                    Chip(tint: Theme.accent, selected: true) { Text(member) }
+                    LegacyChip(tint: Theme.accent, selected: true) { Text(member) }
                         .accessibilityIdentifier("supersetBadge")
                         .accessibilityLabel("Superset position \(member)")
                 }
@@ -423,7 +423,7 @@ struct ExerciseEntryCard: View {
     }
 }
 
-struct SetRowView: View {
+struct LegacySetRowView: View {
     @Environment(\.modelContext) private var modelContext
     var set: SetRecord
     var index: Int

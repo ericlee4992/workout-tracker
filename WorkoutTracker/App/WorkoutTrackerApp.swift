@@ -82,7 +82,9 @@ struct WorkoutTrackerApp: App {
     var body: some Scene {
         WindowGroup {
             RootView()
-                .preferredColorScheme(.dark)
+                // Settings → Appearance (System / Light / Dark) picks the scheme and the
+                // Floodlight token set (D54 reopened by the Floodlight redesign).
+                .lookLayer()
         }
         .modelContainer(modelContainer)
     }

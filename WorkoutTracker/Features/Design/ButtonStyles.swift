@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct PrimaryButtonStyle: ButtonStyle {
+struct LegacyPrimaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -17,7 +17,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
-struct SecondaryButtonStyle: ButtonStyle {
+struct LegacySecondaryButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
@@ -32,9 +32,9 @@ struct SecondaryButtonStyle: ButtonStyle {
     }
 }
 
-extension ButtonStyle where Self == PrimaryButtonStyle {
+extension ButtonStyle where Self == LegacyPrimaryButtonStyle {
     static var primary: Self { .init() }
 }
-extension ButtonStyle where Self == SecondaryButtonStyle {
+extension ButtonStyle where Self == LegacySecondaryButtonStyle {
     static var secondary: Self { .init() }
 }

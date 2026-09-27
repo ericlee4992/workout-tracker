@@ -83,7 +83,7 @@ private struct GymRow: View {
                         .foregroundStyle(Theme.secondary)
                 }
                 HStack(spacing: 6) {
-                    Chip {
+                    LegacyChip {
                         HStack(spacing: 4) {
                             Image(systemName: "dumbbell.fill")
                             Text("\(machines)").monospacedDigit()
@@ -319,7 +319,7 @@ struct GymDetailView: View {
                             .font(.caption)
                             .foregroundStyle(Theme.secondary)
                     } else {
-                        Chip { Text(model.displayName).lineLimit(1).minimumScaleFactor(0.85) }
+                        LegacyChip { Text(model.displayName).lineLimit(1).minimumScaleFactor(0.85) }
                     }
                 } else {
                     Text("No model")

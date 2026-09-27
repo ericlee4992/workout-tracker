@@ -1,25 +1,38 @@
 import SwiftUI
 
-/// Ink, graphite and amber. Semantic type scales with the user's text size.
+/// TRANSITIONAL (Floodlight redesign): the pre-redesign token names, now drawn from the
+/// Floodlight palette and following Settings → Appearance (light / dark), so a screen not yet
+/// rebuilt on `Look` stays legible in both schemes. Screens move to `@Environment(\.look)`;
+/// this enum is removed once none reads it.
 enum Theme {
     static let accent = Color.accentColor
-    static let onAccent = Color("OnAccent")
-    static let background = Color("SurfaceBackground")
-    static let card = Color("SurfaceCard")
-    static let elevated = Color("SurfaceElevated")
-    static let fill = Color("SurfaceFill")
-    static let hairline = Color("Hairline")
-    static let text = Color("TextPrimary")
-    static let secondary = Color("TextSecondary")
-    static let tertiary = Color("TextTertiary")
-    static let danger = Color("Danger")
-    static let warmup = Color("Warmup")
-    static let drop = Color("Drop")
-    static let unitKg = Color("UnitKg")
-    static let unitLb = Color("UnitLb")
-    static let unitMixed = Color("UnitMixed")
+    static let onAccent = dynamic(dark: 0x060708, light: 0xFFFFFF)
+    static let background = dynamic(dark: 0x060708, light: 0xF2F3F5)
+    static let card = dynamic(dark: 0x181A1E, light: 0xFFFFFF)
+    static let elevated = dynamic(dark: 0x22252A, light: 0xEBEDF0)
+    static let fill = dynamic(dark: 0x2A2D33, light: 0xE3E6EA)
+    static let hairline = dynamic(dark: 0xFFFFFF, darkAlpha: 0.10, light: 0x0B0C0E, lightAlpha: 0.10)
+    static let text = dynamic(dark: 0xF4F6F8, light: 0x0B0C0E)
+    static let secondary = dynamic(dark: 0xA4A9B1, light: 0x555A63)
+    static let tertiary = dynamic(dark: 0x7F858E, light: 0x62676F)
+    static let danger = dynamic(dark: 0xFF5E3A, light: 0xBF3510)
+    static let warmup = dynamic(dark: 0xA4A9B1, light: 0x555A63)
+    static let drop = dynamic(dark: 0xF4F6F8, light: 0x0B0C0E)
+    static let unitKg = dynamic(dark: 0xA4A9B1, light: 0x555A63)
+    static let unitLb = dynamic(dark: 0xA4A9B1, light: 0x555A63)
+    static let unitMixed = dynamic(dark: 0xA4A9B1, light: 0x555A63)
     /// The neutral body of a muscle-map icon (ticket 12) — the muscle wears the family colour.
-    static let muscleBody = Color("MuscleBody")
+    static let muscleBody = dynamic(dark: 0x535862, light: 0xC9CDD4)
+
+    private static func dynamic(dark: UInt32, darkAlpha: CGFloat = 1, light: UInt32, lightAlpha: CGFloat = 1) -> Color {
+        func ui(_ hex: UInt32, _ alpha: CGFloat) -> UIColor {
+            UIColor(red: CGFloat((hex >> 16) & 255) / 255, green: CGFloat((hex >> 8) & 255) / 255,
+                    blue: CGFloat(hex & 255) / 255, alpha: alpha)
+        }
+        return Color(UIColor { traits in
+            traits.userInterfaceStyle == .light ? ui(light, lightAlpha) : ui(dark, darkAlpha)
+        })
+    }
 
     enum Radius {
         static let card: CGFloat = 24

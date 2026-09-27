@@ -1,7 +1,7 @@
 # 01 — Implement the Floodlight redesign in the real app
 
 Type: feature
-Status: ready — handed off 2026-09-26 for a fresh session; no product code written yet
+Status: in progress — foundation built 2026-09-26 (see Progress); areas not yet restyled
 
 ## Request and user decisions (2026-09-24 → 09-26, all explicit)
 
@@ -89,6 +89,53 @@ Status: ready — handed off 2026-09-26 for a fresh session; no product code wri
    per AGENTS.md.
 5. Install on the phone (all at once): fresh full backup, **signing renewal**, install,
    launch, data-preservation check.
+
+## Progress
+
+### 2026-09-26 — foundation (Claude)
+
+Verified on resume: worktree branch `ericlee4992/redesign-floodlight` at main `a0364f2`; this
+ticket and `reference/` were untracked and are now committed (`2a1b787`, pushed). The prototype
+(`redesign-prototype/RedesignPrototype/`) is still untracked in its own checkout.
+
+Done (build: `xcodebuild … -sdk iphonesimulator build` exit 0):
+- Ported the prototype Look system into `WorkoutTracker/Features/Design/Look/` (tokens, Floodlight
+  Light, live-workout look, all components). The unchosen Anatomy study and the Paper/Carbon week,
+  study token tables and switcher are not ported; the Paper structure survives only as the live
+  workout's base (`Look.paperClubStructure`). `LookFormat` adapts formatting to the real app
+  (`WeightMath.displayNumber`, device locale). Support values: `SetValue`, `LiveSetState`,
+  `HRSlot` (= `HeartRateSeriesMath.DisplaySlot`), `FinishTileKind`; `Domain/WeekSummary.swift`
+  holds the week-card value types (builder + tests come with the Workout area).
+- **Appearance setting — refinement of plan step 2:** stored per device with `@AppStorage("appearance")`
+  (`AppearanceSetting`), not as an `AppPreferences` attribute. Reasons: no SwiftData schema change,
+  migration or export-format change for a display preference; it must be readable before the model
+  container opens; appearance is a per-device choice. Settings row `appearanceSetting`
+  (System / Light / Dark). Launch argument `-appearance light|dark` works for captures/tests.
+- Removed the forced `.preferredColorScheme(.dark)`; the window root applies `.lookLayer()`.
+- Transitional bridge: `Theme` tokens now resolve to the Floodlight palette dynamically (light/dark)
+  and `AccentColor` is violet (#7A2EE0 light / #B25CFF dark), so not-yet-rebuilt screens stay
+  legible in both schemes. The old `Colors/*` asset set is deleted. Old components colliding with
+  new names are renamed `Legacy*` (`LegacyChip`, `LegacyPrimaryButtonStyle`,
+  `LegacySecondaryButtonStyle`, `LegacySetRowView`, `LegacyTemplateTile`) until their screens move.
+- Simulator for this branch: **WT-Floodlight** `9E822EF6-DC67-4958-AEA2-D53D2D36D674`
+  (iPhone 15 Pro Max, iOS 27.0; simulator bundle id `com.example.workouttracker`).
+
+New visible string so far: "Appearance" with options "System", "Light", "Dark" (approved in the
+prototype).
+
+### Area order (each: restyle → targeted tests + captures → Codex review to clear)
+
+1. Workout tab (Home: gym picker, Start pair, This week, template tiles, Ask AI row) + template
+   detail/editor. Week summary builder in Domain with unit tests.
+2. Live lifting workout + its sheets (the Paper-structure look), rest bar, finish flow entry.
+3. Cardio (picker, live panel, distance editor).
+4. Finish receipt.
+5. History (list, calendar, detail, edit set, progress chart).
+6. Gyms + machine editor + model picker + scan.
+7. Exercises tab + presets.
+8. Settings + export + Ask AI settings.
+9. AI routine flow.
+10. Live Activity / widget + app icon; remove `Theme`/legacy components; D54 decision record.
 
 ## Blockers and facts for the install
 

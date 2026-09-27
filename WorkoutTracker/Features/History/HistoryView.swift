@@ -244,7 +244,7 @@ struct WorkoutUnitBadgeView: View {
         case .single(let unit):
             UnitBadge(unit: unit)
         case .mixed:
-            Chip(tint: Theme.unitMixed) { Text(badge.label) }
+            LegacyChip(tint: Theme.unitMixed) { Text(badge.label) }
         }
     }
 }

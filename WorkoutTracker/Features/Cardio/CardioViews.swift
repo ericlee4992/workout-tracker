@@ -126,7 +126,7 @@ struct CardioLiveView: View {
             if let sample = recorder.currentHeartRate, let max = monitor?.maxHeartRate,
                let zone = HeartRateZones.zone(for: sample.bpm, max: max.bpm) {
                 HStack {
-                    Chip(tint: zone.color) { Text(zone.label) }
+                    LegacyChip(tint: zone.color) { Text(zone.label) }
                     Spacer()
                     Text(sample.source.label).font(.caption).foregroundStyle(Theme.secondary)
                 }

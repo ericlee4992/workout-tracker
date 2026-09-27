@@ -154,7 +154,7 @@ struct HeartRateBar: View {
     /// Zone as a label *and* a meter. Colour alone would fail for a colour-blind
     /// user and in bright gym light, so the number and the word carry it too.
     private func zoneChip(_ zone: HeartRateZone) -> some View {
-        Chip(tint: zoneColor(zone)) {
+        LegacyChip(tint: zoneColor(zone)) {
             HStack(spacing: 5) {
                 Text(zone.label)
                 HStack(spacing: 2) {

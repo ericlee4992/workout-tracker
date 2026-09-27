@@ -13,9 +13,18 @@ struct AppSettingsSection: View {
     @State private var showAskAISheet = false
     /// Re-read when the Ask AI sheet closes; the keychain is not observable.
     @State private var askAIOn = AskAIKeyStore.read() != nil
+    /// Settings → Appearance (Floodlight redesign): per device, not synced (see `AppearanceSetting`).
+    @AppStorage(AppearanceSetting.key) private var appearanceRaw = Appearance.system.rawValue
 
     var body: some View {
         Section {
+            Picker("Appearance", selection: $appearanceRaw) {
+                ForEach(Appearance.allCases) { appearance in
+                    Text(appearance.label).tag(appearance.rawValue)
+                }
+            }
+            .pickerStyle(.menu)
+            .accessibilityIdentifier("appearanceSetting")
             Picker("App unit preference", selection: appUnitBinding) {
                 ForEach(AppUnitSystem.allCases) { system in
                     Text(system.title).tag(system)
