@@ -30,19 +30,19 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   (restyled). Verification: `gyms-ui-1`..`gyms-ui-5` (final runs exit 0; every targeted test passed
   in final form); captures `captures/06/`. Also fixed: the pre-existing iOS 27 CoreLoop :252
   model-picker failure, and a clean-build failure in ticket 05's progress view.
-- **Ticket 07** (Scan, S01–S07): **implemented, targeted verification running** (2026-09-27).
+- **Ticket 07** (Scan, S01–S07): **implemented and verified; Codex review 07 running** (2026-09-27).
   Branch `ericlee4992/redesign-floodlight-scan` (pushed, stacked on the gyms tip `d45d5c5`),
   scratch checkout `/tmp/wt-floodlight/scan`. Record: `issues/07-scan.md` on that branch (scope,
   verification, progress). User decisions 2026-09-27: Scan Machine (gym page, routine setup)
   **adds directly** with an Added step (the form's own scan still fills the form); photo consent
   stays **before** the camera; ambiguous stays D56 (listed, no pick); no picker Scan pill / scope
   alert. Verified so far: `scan-unit-2` exit 0 (49/49), `scan-ui-1` exit 0 (7/7), `scan-ui-2`
-  17/19 (two AX correction captures hit a layout loop, fixed). **Paused by the user** during
-  `scan-ui-4` (pid 22055, may still be running; interim 8 passed / 4 failed — AskAI test
-  mechanics fixed after that build, plus one routine-form AX test to rerun alone). Scan tip
-  `cfc199d`. Next: read `scan-ui-4`'s exit, rerun the failed tests, copy captures to
-  `captures/07/`, then Codex review 07 (prompt `codex-review-07-prompt.md`). Details:
-  `issues/07-scan.md` → Verification and Progress.
+  17/19 (two AX correction captures hit a layout loop, fixed); `scan-ui-4`/`-5`/`-7` and
+  `scan-unit-3` (66/66, fresh derived data): **every targeted test passed in final form** except
+  two AX AI-routine-form AskAI tests that fail identically on the unchanged gyms tip
+  (`scan-baseline-1`, pre-existing). Captures `captures/07/` (90). Scan tip `b5a93ea`.
+  **Codex review 07 running** in Orca terminal "Codex review — Floodlight 07"
+  (`term_5638fd81-1b42-4b4d-9d5e-e229264740a4`); report `codex-review-07.md` on the scan branch.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
