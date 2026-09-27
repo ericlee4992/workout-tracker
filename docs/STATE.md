@@ -37,10 +37,12 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   **adds directly** with an Added step (the form's own scan still fills the form); photo consent
   stays **before** the camera; ambiguous stays D56 (listed, no pick); no picker Scan pill / scope
   alert. Verified so far: `scan-unit-2` exit 0 (49/49), `scan-ui-1` exit 0 (7/7), `scan-ui-2`
-  17/19 (two AX correction captures hit a layout loop, fixed). Running: `scan-ui-4` (correction
-  and Read Label recaptures, AskAI, ScanMachineLabel, CoreLoop, GymsFlows, MachineDeletion);
-  logs/exits `/tmp/wt-floodlight/results/scan-*`. Next: read `scan-ui-4`, copy captures to
-  `captures/07/`, then Codex review 07 (prompt `codex-review-07-prompt.md` on the scan branch).
+  17/19 (two AX correction captures hit a layout loop, fixed). **Paused by the user** during
+  `scan-ui-4` (pid 22055, may still be running; interim 8 passed / 4 failed — AskAI test
+  mechanics fixed after that build, plus one routine-form AX test to rerun alone). Scan tip
+  `cfc199d`. Next: read `scan-ui-4`'s exit, rerun the failed tests, copy captures to
+  `captures/07/`, then Codex review 07 (prompt `codex-review-07-prompt.md`). Details:
+  `issues/07-scan.md` → Verification and Progress.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
