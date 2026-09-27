@@ -143,11 +143,14 @@ prototype).
 |---|---|---|
 | `ericlee4992/redesign-floodlight-live` | `0ca7868` | ticket 03 **Codex clear after 3 rounds** |
 | `ericlee4992/redesign-floodlight-finish` | `1c3fc99` | ticket 04 **Codex clear after 3 rounds** |
+| `ericlee4992/redesign-floodlight-history` | see `git log` | ticket 05 History: implemented + verified (targeted, `history-ui-4` exit 0); **Codex review 05 in progress** |
 
 Both review terminals closed. Logs/results: `/tmp/wt-floodlight/results/`; ticket 03/04
 captures are committed under `../captures/03/`, `../captures/04/`. Pre-existing iOS 27 UI
 failures left: Gyms model picker (CoreLoop :252), History HR section (HeartRateSummary :66).
-Next: ticket 05 History, on a new branch from the finish tip.
+Ticket 05 (History) started 2026-09-27 on its own branch from the finish tip; details and
+verification in `issues/05-history.md` (on that branch). Next after it clears: Gyms + scan
+(fix the model-picker test).
 
 ### Handoff — 2026-09-26, end of session 1 (context full; continue in a new session)
 

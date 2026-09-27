@@ -13,15 +13,22 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   (pushed `0ca7868`). **Codex clear after 3 rounds** (`codex-review-03c.md`).
 - **Ticket 04** (finish receipt): `ericlee4992/redesign-floodlight-finish` (pushed, stacked on
   the live tip). **Codex clear after 3 rounds** (`codex-review-04c.md`).
-- **Ticket 05** (History — month card + week lists, calendar, detail, edit set, progress chart;
-  the heart-rate plate/zone restyle deferred from 04; fix the pre-existing History HR test):
-  started 2026-09-27 in a fresh session. Branch `ericlee4992/redesign-floodlight-history`
-  (pushed, from the finish tip `1c3fc99`), scratch checkout `/tmp/wt-floodlight/history`.
+- **Ticket 05** (History — list/month card/weeks, calendar, detail, edit set, progress chart;
+  the heart-rate plate with zones inside, shared with the receipt): branch
+  `ericlee4992/redesign-floodlight-history` (pushed, stacked on the finish tip), scratch checkout
+  `/tmp/wt-floodlight/history`. **Implemented and verified (targeted); Codex review 05 running**
+  (Orca terminal "Codex review — Floodlight 05"; report `work-record/redesign-floodlight/codex-review-05.md`
+  on that branch). Latest: `history-ui-4` exit 0 (13/13) after `history-ui-1` (unit 64/64, UI
+  42/46 — failures fixed/rerun, see `issues/05-history.md` Verification). The pre-existing
+  History HR test (HeartRateSummary :66) now passes. User decisions 2026-09-27: notes on the
+  detail, shown and editable as a MARKED edit (reopens D47 — record with the D54 entry);
+  empty History follows the prototype (no calendar until the first workout; Start Lifting).
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
-- Pre-existing iOS 27 UI failures: three fixed by `revealedSearchField()` (ticket 03); two
-  remain — Gyms model picker (CoreLoop :252) and History detail HR section (HeartRateSummary :66).
+- Pre-existing iOS 27 UI failures: three fixed by `revealedSearchField()` (ticket 03), the
+  History HR section (HeartRateSummary :66) fixed in ticket 05; one remains — Gyms model picker
+  (CoreLoop :252).
 
 Updated **2026-09-24** for a new session. Main/remote were verified at **40f3f65** before this
 docs-only handoff; verify actual Git HEAD on resume. Product **9f733a2**, built from source
