@@ -30,6 +30,11 @@ and link it from STATE. Put detailed progress in the ticket and stable decisions
 Preserve old handoffs in the archive when shortening STATE; keep every unresolved item in
 STATE or an explicitly linked record.
 Use one session per coherent task; checkpoint before starting a fresh session for another task.
+Checkpoint continuously so any turn can be the session's last: after each ticket's review clears
+and before each long build, test run or review, commit and push, then update STATE and the
+ticket's handoff (branch map, verified vs. pending, next steps). When the user asks to hand off,
+finish that checkpoint and reply with a one-paragraph resume prompt naming the checkout path —
+work on a branch in another worktree keeps its STATE there, not in the main checkout.
 
 ## Code and data conventions
 
