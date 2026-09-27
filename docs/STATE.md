@@ -22,24 +22,23 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   History HR test (HeartRateSummary :66) now passes. User decisions 2026-09-27: notes on the
   detail, shown and editable as a MARKED edit (reopens D47 — record with the D54 entry);
   empty History follows the prototype (no calendar until the first workout; Start Lifting).
-- **Ticket 06** (Gyms): IN PROGRESS (session 3, 2026-09-27) on `ericlee4992/redesign-floodlight-gyms`
-  (scratch checkout `/tmp/wt-floodlight/gyms`, stacked on the history tip `646187e`). Record:
-  `issues/06-gyms.md` on that branch (ticket + prototype captures committed `0a489a8`). User
-  decisions 2026-09-27: **Scan screens split into ticket 07**; **Add Machine… keeps its form**
-  (restyled), not the prototype's catalog-first flow. Implemented, verified (targeted) and pushed
-  (tip `6f10b2c`+): Domain `GymOverview` + tests, all G01–G07 screens, a clean-build fix in the
-  progress view (ticket-05 code failed from fresh derived data). Verification: `gyms-ui-1`
-  (unit 95/95, UI 62/73) + reruns `gyms-ui-2` (21/24) and `gyms-ui-3` (**exit 0, 13/13**) — every
-  test in scope has passed in final form; **CoreLoop :252 model-picker failure fixed**. Captures
-  `captures/06/` (86). **Codex review 06 running** in Orca terminal "Codex review — Floodlight 06"
-  (`term_bb0cbf21…`), report `work-record/redesign-floodlight/codex-review-06.md` on the gyms
-  branch (watch its mtime). Next: address findings, re-review to clear.
+- **Ticket 06** (Gyms — list, gym page, new machine page, edit gym, model picker, new model,
+  deleted machines): branch `ericlee4992/redesign-floodlight-gyms` (pushed, tip `d45d5c5`, stacked
+  on the history tip), scratch checkout `/tmp/wt-floodlight/gyms`. **Codex clear after 3 rounds**
+  (`codex-review-06c.md`; review terminal closed). Record: `issues/06-gyms.md` on that branch.
+  User decisions 2026-09-27: Scan screens split into **ticket 07**; Add Machine… keeps its form
+  (restyled). Verification: `gyms-ui-1`..`gyms-ui-5` (final runs exit 0; every targeted test passed
+  in final form); captures `captures/06/`. Also fixed: the pre-existing iOS 27 CoreLoop :252
+  model-picker failure, and a clean-build failure in ticket 05's progress view.
+- **Ticket 07** (Scan, S01–S07): NOT STARTED — to begin in a fresh session. Branch
+  `ericlee4992/redesign-floodlight-scan` (pushed, from the gyms tip `d45d5c5`, no commits),
+  scratch checkout `/tmp/wt-floodlight/scan`. Start prompt: `/tmp/wt-floodlight/ticket07-brief.md`
+  (ephemeral; the same content is summarised in ticket 01 → Session 3).
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
-- Pre-existing iOS 27 UI failures: three fixed by `revealedSearchField()` (ticket 03), the
-  History HR section (HeartRateSummary :66) fixed in ticket 05; one remains — Gyms model picker
-  (CoreLoop :252).
+- Pre-existing iOS 27 UI failures: all four known ones are fixed (three by `revealedSearchField()`
+  in ticket 03, History HR in ticket 05, the Gyms model picker in ticket 06).
 
 Updated **2026-09-24** for a new session. Main/remote were verified at **40f3f65** before this
 docs-only handoff; verify actual Git HEAD on resume. Product **9f733a2**, built from source

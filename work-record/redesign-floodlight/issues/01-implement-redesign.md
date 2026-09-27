@@ -159,6 +159,17 @@ rhythm, Current badge, machine bests/last used, grouping pills, machine detail, 
 Restore, New Model prefill) in `issues/06-gyms.md`. D47 reopening for notes (user,
 2026-09-27) goes into DECISIONS with the D54 entry.
 
+### Session 3 — 2026-09-27 (checkpoint)
+
+Ticket 06 Gyms: **Codex clear after 3 rounds** on `ericlee4992/redesign-floodlight-gyms` (tip
+`d45d5c5`); details, user decisions (Scan → ticket 07; Add Machine keeps its form), prototype-only
+features to veto and verification in `issues/06-gyms.md`. Fixed on the way: the iOS 27 model-picker
+test (CoreLoop :252) and a clean-build failure in ticket 05's progress view (`ProgressSessionLink`).
+New fixture `-uiTestDesignGyms`. Next: **ticket 07 Scan** in a fresh session on
+`ericlee4992/redesign-floodlight-scan` (pushed from the gyms tip; scratch checkout
+`/tmp/wt-floodlight/scan`): IdentifyEquipmentSheet, ScanMachineLabelSheet, LabelCameraView,
+MachineModelCorrectionSheet (S01–S07). Then area 7 Exercises onward.
+
 ### Handoff — 2026-09-26, end of session 1 (context full; continue in a new session)
 
 **Branches (all pushed to origin; stacked, each on the previous):**
