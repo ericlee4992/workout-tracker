@@ -1,7 +1,7 @@
 # 04 — Floodlight: the finish receipt
 
 Type: feature (part of [01](01-implement-redesign.md))
-Status: implemented; verification in progress; Codex review pending
+Status: implemented and verified (targeted scope); Codex review pending (after ticket 03 clears)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-finish`, stacked on the live branch (ticket 03).
 
@@ -87,7 +87,16 @@ Simulator WT-Floodlight (iOS 27.0).
   detail's heart-rate section, identical on main a0364f2 `base-5.log`); its finish-sheet part
   (chart on the receipt, View in History reachable) passed. Unit: 14/14 (`FinishReceiptTests`
   5, `SetBadgeTests` 9). Captures: `/tmp/wt-floodlight/shots/04b/`.
-- Next run: after rebasing on ticket 03's fixes — the same batch plus fresh captures.
+- `finish-ui-3`: started, then stopped when the receipt caching change landed (superseded).
+- `finish-ui-4` (rebased on the ticket-03 fixes; receipt built once; comparison single panel):
+  exit 65 — **UI 17/18 passed**; the one failure is the same pre-existing History assertion
+  (`HeartRateSummaryUITests.swift:66`). Passed: FloodlightFinishUITests 4/4 (captures),
+  CoreLoop empty finish + View in History, HistoryTemplate 3/3, HeartRate finishing summary,
+  HeartRateSummary no-series + hour-long chart, RedesignScreenshot test02/test03, Cardio
+  capture+save and both mixed cardio/lifting workouts (the "Lifting" heading, Cardio section).
+  Unit: 14/14.
+- Captures: `../captures/04/floodlight-04-finish-{light,dark}-{default,axl}-N.png` (scrolled
+  pages of one receipt each).
 
 ## Progress
 
