@@ -16,10 +16,9 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
 - **Ticket 05** (History — list/month card/weeks, calendar, detail, edit set, progress chart;
   the heart-rate plate with zones inside, shared with the receipt): branch
   `ericlee4992/redesign-floodlight-history` (pushed, stacked on the finish tip), scratch checkout
-  `/tmp/wt-floodlight/history`. **Implemented and verified (targeted); Codex review 05 running**
-  (Orca terminal "Codex review — Floodlight 05"; report `work-record/redesign-floodlight/codex-review-05.md`
-  on that branch). Latest: `history-ui-4` exit 0 (13/13) after `history-ui-1` (unit 64/64, UI
-  42/46 — failures fixed/rerun, see `issues/05-history.md` Verification). The pre-existing
+  `/tmp/wt-floodlight/history`. **Codex clear after 3 rounds** (`codex-review-05c.md`; tip
+  `ericlee4992/redesign-floodlight-history` pushed). Last runs: `history-ui-8` exit 0, earlier
+  batches recorded in `issues/05-history.md` Verification. The pre-existing
   History HR test (HeartRateSummary :66) now passes. User decisions 2026-09-27: notes on the
   detail, shown and editable as a MARKED edit (reopens D47 — record with the D54 entry);
   empty History follows the prototype (no calendar until the first workout; Start Lifting).
