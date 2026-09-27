@@ -35,7 +35,13 @@ struct HeartRateSummarySection: View {
     let startedAt: Date
     let averageBpm: Int?
     let maxBpm: Int?
+    /// `.listSection` (History's grouped list) or `.receipt`: the Floodlight finish receipt's
+    /// heading and panel, laid out as one list row like the receipt's other sections.
+    var style: Style = .listSection
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.look) private var look
+
+    enum Style { case listSection, receipt }
 
     private var xEnd: Int {
         HeartRateSeriesMath.plotExtentSeconds(
@@ -73,29 +79,42 @@ struct HeartRateSummarySection: View {
 
     var body: some View {
         if let drawnRange, !slots.isEmpty {
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    chart(drawnRange)
-                        .frame(height: 160)
-                        .accessibilityIdentifier("heartRateChart")
-                        .accessibilityLabel(accessibilitySummary)
-                    if let averageBpm {
-                        Text("\(averageBpm) BPM AVG")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Theme.danger)
-                            .monospacedDigit()
-                            .accessibilityIdentifier("heartRateAverageCaption")
-                    }
+            switch style {
+            case .listSection:
+                Section {
+                    content(drawnRange)
+                        // A card of its own (D54) — in History's grouped list.
+                        .padding(Theme.Space.inset)
+                        .card()
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
+                        .listRowSeparator(.hidden)
+                } header: {
+                    Text("Heart rate")
                 }
-                // A card of its own (D54) — in the finish sheet's cleared
-                // list and in History's grouped one alike.
-                .padding(Theme.Space.inset)
-                .card()
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                .listRowSeparator(.hidden)
-            } header: {
-                Text("Heart rate")
+            case .receipt:
+                VStack(alignment: .leading, spacing: look.space.header) {
+                    SectionHeader("Heart rate")
+                    content(drawnRange)
+                        .padding(16)
+                        .lookSurface(.panel)
+                }
+            }
+        }
+    }
+
+    private func content(_ drawnRange: ClosedRange<Int>) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            chart(drawnRange)
+                .frame(height: 160)
+                .accessibilityIdentifier("heartRateChart")
+                .accessibilityLabel(accessibilitySummary)
+            if let averageBpm {
+                Text("\(averageBpm) BPM AVG")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.danger)
+                    .monospacedDigit()
+                    .accessibilityIdentifier("heartRateAverageCaption")
             }
         }
     }

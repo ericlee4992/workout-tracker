@@ -51,7 +51,10 @@ extension FinishReceipt {
         var counts: [MuscleFamily: Int] = [:]
         var bests: [Best] = []
         var rows: [ExerciseRow] = []
-        var seenScopes = Set<UUID>()
+        var listedBests = Set<UUID>()
+        let setsByID = Dictionary(
+            entries.flatMap { entry in (entry.sets ?? []).map { ($0.id, ($0, entry)) } },
+            uniquingKeysWith: { first, _ in first })
 
         for entry in entries {
             let completed = WorkoutSession.orderedSets(of: entry).filter { $0.completedAt != nil }
@@ -61,31 +64,27 @@ extension FinishReceipt {
                 counts[family, default: 0] += completed.count
             }
             let loadType = entry.snapshotLoadType
-            let equipment = [entry.snapshotMachineLabel ?? entry.snapshotFreeWeightTag?.label, entry.snapshotPresetName]
-                .compactMap { $0 }.joined(separator: " · ")
-            // Outcomes are per scope; entries sharing one (a preset switched back and forth)
-            // report the same map, so each set is read once.
             let outcomes = try SetBadgeMath.outcomes(for: entry, in: context)
-            var entryBadge: SetBadge?
-            for set in completed {
-                guard let outcome = outcomes[set.id], seenScopes.insert(set.id).inserted else { continue }
-                if outcome.badge == .newBest {
-                    entryBadge = .newBest
-                    bests.append(Best(
-                        id: set.id, exerciseName: entry.snapshotExerciseName,
-                        equipment: equipment.isEmpty ? nil : equipment,
-                        value: SetValue(weight: set.weightValue, unit: set.weightUnit, reps: set.reps ?? 0,
-                                        bar: set.barWeightValue),
-                        previous: outcome.previous.flatMap(SetValue.init),
-                        loadType: loadType))
-                } else if entryBadge == nil {
-                    entryBadge = .firstTime
-                }
+            let marks = completed.compactMap { outcomes[$0.id]?.badge }
+            let entryBadge: SetBadge? = marks.contains(.newBest) ? .newBest : marks.first
+            // One line per scope. Entries sharing a scope (a preset switched back and forth)
+            // report the same best, so it is listed once, with the equipment of the entry holding it.
+            if let best = try SetBadgeMath.workoutBest(for: entry, in: context),
+               listedBests.insert(best.id).inserted,
+               let (set, holder) = setsByID[best.id] {
+                bests.append(Best(
+                    id: set.id, exerciseName: holder.snapshotExerciseName,
+                    equipment: equipmentLabel(holder),
+                    value: SetValue(weight: set.weightValue, unit: set.weightUnit, reps: set.reps ?? 0,
+                                    bar: set.barWeightValue),
+                    previous: SetValue(best.previous),
+                    loadType: holder.snapshotLoadType))
             }
+            let equipment = equipmentLabel(entry)
             let best = bestSet(completed, loadType: loadType)
             rows.append(ExerciseRow(
                 id: entry.id, name: entry.snapshotExerciseName,
-                detail: ([equipment.isEmpty ? nil : equipment,
+                detail: ([equipment,
                           HistoryRendering.pluralized(completed.count, "set", "sets")] as [String?])
                     .compactMap { $0 }.joined(separator: " · "),
                 best: best, loadType: loadType, badge: entryBadge))
@@ -95,6 +94,12 @@ extension FinishReceipt {
             familySets: order.map { FamilyCount(family: $0, sets: counts[$0] ?? 0) },
             bests: bests, exercises: rows,
             comparison: try comparison(for: workout, in: context))
+    }
+
+    /// "Chest Press 2", "Dumbbell · Narrow grip" — the snapshot equipment and preset.
+    private static func equipmentLabel(_ entry: ExerciseEntry) -> String? {
+        let parts = [entry.snapshotMachineLabel ?? entry.snapshotFreeWeightTag?.label, entry.snapshotPresetName].compactMap { $0 }
+        return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
     /// The best completed set by the records rank (warmups out unless nothing else was logged).

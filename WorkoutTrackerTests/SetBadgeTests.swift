@@ -76,4 +76,34 @@ struct SetBadgeTests {
         ], history: [set(nil, 12, -500, load: .bodyweight)])
         #expect(badges == [id[1]: .newBest])
     }
+
+    // The Finish receipt's line per scope: the last new best, against the pre-workout record.
+
+    @Test func workoutBestPairsTheLastBestWithThePreWorkoutRecord() throws {
+        let id = ids(3)
+        let best = try #require(SetBadgeMath.workoutBest(current: [
+            (id[0], set(102, 5, 1)),
+            (id[1], set(105, 5, 2)),
+            (id[2], set(90, 5, 3)),
+        ], history: [set(100, 5, -500), set(95, 8, -400)]))
+        #expect(best.id == id[1])
+        #expect(best.previous.weightValue == 100)
+        #expect(best.previous.reps == 5)
+    }
+
+    @Test func workoutBestIsNilWithoutANewBestOrOnAFirstWorkout() {
+        let id = ids(2)
+        #expect(SetBadgeMath.workoutBest(current: [(id[0], set(90, 5, 1))],
+                                         history: [set(100, 5, -500)]) == nil)
+        #expect(SetBadgeMath.workoutBest(current: [(id[0], set(90, 5, 1)), (id[1], set(95, 5, 2))],
+                                         history: []) == nil)
+    }
+
+    @Test func outcomesCarryTheIncumbentEachBestBeat() {
+        let id = ids(2)
+        let outcomes = SetBadgeMath.outcomes(current: [(id[0], set(102, 5, 1)), (id[1], set(105, 5, 2))],
+                                             history: [set(100, 5, -500)])
+        #expect(outcomes[id[0]]?.previous?.weightValue == 100)
+        #expect(outcomes[id[1]]?.previous?.weightValue == 102)
+    }
 }

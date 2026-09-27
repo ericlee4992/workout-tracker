@@ -71,11 +71,8 @@ struct WorkoutFinishedSheet: View {
                     if let comparison = receipt?.comparison {
                         comparisonSection(comparison).finishRow(top: 18, bottom: 8)
                     }
-                    if summary.zoneSeconds.contains(where: { $0 > 0 }) {
-                        ZoneTimeCard(seconds: summary.zoneSeconds)
-                            .finishRow(top: 8, bottom: 8)
-                    }
-                    // Milestone 9, ticket 05: the graph, when a series exists.
+                    // Milestone 9, ticket 05: the graph, when a series exists; time in zones
+                    // directly below it (the approved receipt).
                     if summary.hasHeartRateSeries, let interval = summary.heartRateSeriesIntervalSeconds {
                         HeartRateSummarySection(
                             series: summary.heartRateSeries,
@@ -85,7 +82,13 @@ struct WorkoutFinishedSheet: View {
                             durationSeconds: Int(summary.duration.rounded(.up)),
                             startedAt: summary.date,
                             averageBpm: summary.averageHeartRate,
-                            maxBpm: summary.maxHeartRate)
+                            maxBpm: summary.maxHeartRate,
+                            style: .receipt)
+                            .finishRow(top: 18, bottom: 8)
+                    }
+                    if summary.zoneSeconds.contains(where: { $0 > 0 }) {
+                        ZoneTimeCard(seconds: summary.zoneSeconds)
+                            .finishRow(top: 8, bottom: 8)
                     }
                     if let workout = savedWorkout, !workout.recordedCardio.isEmpty {
                         Section {
@@ -274,8 +277,6 @@ struct WorkoutFinishedSheet: View {
                 last: WeightMath.convert(comparison.lastVolumeKg, from: .kg, to: displayUnit),
                 today: WeightMath.convert(comparison.volumeKg, from: .kg, to: displayUnit),
                 unit: displayUnit.label)
-            .padding(16)
-            .lookSurface(.panel)
         }
     }
 

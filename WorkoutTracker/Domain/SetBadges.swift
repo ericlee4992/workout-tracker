@@ -57,6 +57,19 @@ enum SetBadgeMath {
         }
         return result
     }
+
+    /// The Finish receipt's one line per scope: the workout's last new best and the best it
+    /// displaced from BEFORE the workout. Comparing with an earlier set of the same workout would
+    /// list one exercise once per improving set. Nil when the scope has no new best.
+    static func workoutBest(current: [(id: UUID, set: RecordSetInput)], history: [RecordSetInput]) -> (id: UUID, previous: RecordSetInput)? {
+        let marks = outcomes(current: current, history: history)
+        let bests = current
+            .filter { marks[$0.id]?.badge == .newBest }
+            .sorted { ($0.set.completedAt ?? .distantPast) < ($1.set.completedAt ?? .distantPast) }
+        // The first new best beat the pre-workout record: nothing earlier in the workout had.
+        guard let first = bests.first, let last = bests.last, let previous = marks[first.id]?.previous else { return nil }
+        return (last.id, previous)
+    }
 }
 
 // MARK: - SwiftData bridge
@@ -70,7 +83,19 @@ extension SetBadgeMath {
     /// History is only what was logged BEFORE this workout started: a past workout opened in
     /// History is judged against its own past, not against later sessions.
     static func outcomes(for entry: ExerciseEntry, in context: ModelContext) throws -> [UUID: SetBadgeOutcome] {
-        guard let workout = entry.workout else { return [:] }
+        guard let (current, history) = try inputs(for: entry, in: context) else { return [:] }
+        return outcomes(current: current, history: history)
+    }
+
+    /// `workoutBest` for the scope `entry` is in; entries sharing a scope return the same set.
+    static func workoutBest(for entry: ExerciseEntry, in context: ModelContext) throws -> (id: UUID, previous: RecordSetInput)? {
+        guard let (current, history) = try inputs(for: entry, in: context) else { return nil }
+        return workoutBest(current: current, history: history)
+    }
+
+    private static func inputs(for entry: ExerciseEntry, in context: ModelContext) throws
+        -> (current: [(id: UUID, set: RecordSetInput)], history: [RecordSetInput])? {
+        guard let workout = entry.workout else { return nil }
         let started = workout.startedAt
         let scope = Scope(entry)
         let loadType = entry.effectiveLoadType
@@ -86,7 +111,7 @@ extension SetBadgeMath {
         let current = WorkoutSession.orderedEntries(of: workout)
             .filter { Scope($0) == scope && $0.effectiveLoadType == loadType }
             .flatMap { entry in (entry.sets ?? []).map { (id: $0.id, set: input($0, entry: entry, loadType: loadType)) } }
-        return outcomes(current: current, history: history)
+        return (current, history)
     }
 
     private static func input(_ set: SetRecord, entry: ExerciseEntry, loadType: LoadType) -> RecordSetInput {
