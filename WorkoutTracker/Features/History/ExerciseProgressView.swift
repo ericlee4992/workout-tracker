@@ -122,7 +122,7 @@ struct ExerciseProgressView: View {
                     .accessibilityIdentifier("closeProgress")
             }
         }
-        .navigationDestination(for: Workout.self) { WorkoutDetailView(workout: $0) }
+        .navigationDestination(for: ProgressSessionLink.self) { WorkoutDetailView(workout: $0.workout) }
         .sensoryFeedback(.selection, trigger: ticks)
         // Resolved once: the default reads the whole history, and every part of the screen
         // asks for the variation.
@@ -415,7 +415,7 @@ struct ExerciseProgressView: View {
         .background(point.date == selectedDate ? look.pressedFill : .clear)
         .contentShape(Rectangle())
         if let workout = data.workouts[point.date] {
-            NavigationLink(value: workout) { row }
+            NavigationLink(value: ProgressSessionLink(workout: workout)) { row }
                 .buttonStyle(HistoryRowPressStyle())
                 .accessibilityIdentifier("progressSession")
         } else {
@@ -838,4 +838,15 @@ struct ProgressChangeBadge: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(up ? "Up" : "Down") \(rounded) percent since first session")
     }
+}
+
+/// A Sessions row's push value. Not the `Workout` itself: in a clean build on Xcode 27.0 (27A266a)
+/// the model's Hashable conformance was rejected inside this view ("requires that 'Workout'
+/// conform to 'Hashable'") — incremental builds had hidden it (Floodlight ticket 06). Identity is
+/// the workout's id, as for the model.
+struct ProgressSessionLink: Hashable {
+    let workout: Workout
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.workout.id == rhs.workout.id }
+    func hash(into hasher: inout Hasher) { hasher.combine(workout.id) }
 }

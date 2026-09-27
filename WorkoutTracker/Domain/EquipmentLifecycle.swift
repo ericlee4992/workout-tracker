@@ -154,6 +154,13 @@ struct EquipmentLifecycle {
         try context.save()
     }
 
+    /// Floodlight ticket 06: a deleted (archived) gym comes back as it was — its machines, their
+    /// archived states and every workout that points at it are untouched by either direction.
+    func restore(_ gym: Gym) throws {
+        gym.archived = false
+        try context.save()
+    }
+
     /// Corrects a machine's model. Applying to past workouts rewrites both
     /// the grouping UUID and display string on snapshots for this machine;
     /// all other snapshot fields remain frozen.

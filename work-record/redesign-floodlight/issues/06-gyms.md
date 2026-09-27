@@ -239,6 +239,16 @@ tests, MachineDeletion, ExercisePreset, Codex/Redesign screenshot gym helpers).
 
 ## Verification
 
+- `gyms-unit-1`, `gyms-build-1` (exit 65): a clean build failed in `ExerciseProgressView`
+  ("'Workout' must conform to 'Hashable'" at `navigationDestination(for: Workout.self)`). The
+  **unchanged ticket-05 tip fails the same way from fresh derived data** (`gyms-baseline-build`,
+  exit 65, Xcode 27.0 27A266a): ticket 05's builds were incremental and never showed it. Naming
+  the closure parameter (`gyms-build-2`) and spelling `WorkoutTracker.Workout` did not help; the
+  model's conformance is rejected inside that view only. Fix: the Sessions rows push a small
+  explicit `ProgressSessionLink` (Hashable by the workout's id).
+- `gyms-unit-3`: **exit 0** — `GymOverviewTests` 9, `EquipmentLifecycleTests`, `RecordsMathTests`:
+  50/50 (clean build of app + tests included).
+
 Scope (DEVELOPMENT: new feature + shared screens — the Gyms tab, the machine form also opened
 mid-workout and from AI routine setup, the model picker also opened from the correction sheet):
 build; unit tests for the new Domain rules and the records neighbours; every Gyms UI flow; the
@@ -253,3 +263,6 @@ exits and result bundles `/tmp/wt-floodlight/results/gyms-*`.
   pushed, clean; main `a0364f2`; nothing merged or installed). Read the prototype Gyms area and
   the real Gyms code/tests; prototype captured into `../reference/prototype-gyms/` (both
   appearance runs exit 0, 76 PNGs). User decisions 1–2 recorded. Ticket written.
+- 2026-09-27: Domain `GymOverview` (visits, order, machine use/bests, relative day, prefill) and
+  `EquipmentLifecycle.restore(_ gym:)` with `GymOverviewTests`; clean-build fix in the progress
+  view (see Verification). Next: the screens.
