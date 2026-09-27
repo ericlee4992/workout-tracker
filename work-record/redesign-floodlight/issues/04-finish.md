@@ -1,7 +1,7 @@
 # 04 — Floodlight: the finish receipt
 
 Type: feature (part of [01](01-implement-redesign.md))
-Status: implemented and verified (targeted scope); Codex review pending (after ticket 03 clears)
+Status: resolved — Codex clear after 3 rounds (codex-review-04c.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-finish`, stacked on the live branch (ticket 03).
 
