@@ -335,3 +335,30 @@ exits and result bundles `/tmp/wt-floodlight/results/gyms-*`.
 - 2026-09-27: Domain `GymOverview` (visits, order, machine use/bests, relative day, prefill) and
   `EquipmentLifecycle.restore(_ gym:)` with `GymOverviewTests`; clean-build fix in the progress
   view (see Verification). Next: the screens.
+
+## Codex review 06 — response (round 1)
+
+Report: [codex-review-06.md](../codex-review-06.md) — not clear; 1 high, 6 medium, 1 low. All
+accepted.
+
+1. **High — the machine chart mixed exercises on a station.** The variation key scopes
+   equipment, preset and load type, not the exercise. `GymOverviewMath.series(of:on:in:)`
+   filters the best's exercise first (what the progress chart it opens draws). Test
+   `aBestsChartOnAStationChartsOnlyItsExercise` (pushdowns 40 kg ×3, one fly at 70 kg).
+2. **Medium — warmup-only workouts dropped from usage.** Usage (workouts, recency, names)
+   now counts every completed set of a scope; only the best is chosen among eligible sets; a
+   warmup-only scope has usage but no best row. Test `warmupOnlyWorkoutsCountAsUseButNeverAsABest`.
+3. **Medium — best titles used live names.** `MachineSetInput` carries the entry's snapshot
+   exercise and preset names; `MachineBest.title` reads them (from the scope's latest workout);
+   the progress sheet gets the exercise name only. Tests `aBestKeepsTheNamesItWasLoggedUnder`
+   and the store test's exercise rename.
+4. **Medium — deleting the current gym left Home using it (inherited).** Delete Gym… clears the
+   remembered id when it is that gym, and Home drops a cached gym that becomes archived
+   (`StartWorkoutView` `.onChange(of: selectedGym?.archived)`). UI test
+   `testDeletingTheCurrentGymClearsHomesSelection`.
+5. **Medium — editor animations ignored Reduce Motion.** Edit Gym's monogram swap is a
+   crossfade under Reduce Motion; New Model's chip/type/check animations are off.
+6. **Medium — grouping pills 38 pt.** The track's inset moved into each button: 44 pt per pill.
+7. **Medium — VoiceOver dropped "Assisted" on secondary bests.** Added.
+8. **Low — gym cards hid the visit rhythm from VoiceOver.** The card's label now ends with
+   "Visits per week, last 8 weeks: …".
