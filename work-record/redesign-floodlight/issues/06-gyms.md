@@ -362,3 +362,9 @@ accepted.
 7. **Medium — VoiceOver dropped "Assisted" on secondary bests.** Added.
 8. **Low — gym cards hid the visit rhythm from VoiceOver.** The card's label now ends with
    "Visits per week, last 8 weeks: …".
+
+Verification (round 2): `gyms-ui-4` **exit 0** — unit 39/39 (`GymOverviewTests` 12,
+`EquipmentLifecycleTests`, `ProgressSeriesTests`); UI 13/13 — GymsFlows 3/3 (incl. the new
+current-gym deletion), CoreLoop 9/9, `testCaptureGymsLightDefault`. The fixes move no pixel at
+the captured states (pill hit regions, labels, Reduce Motion paths, chart data for multi-exercise
+stations — the fixture's top bests are single-exercise), so the `gyms-ui-3` captures stand.
