@@ -142,11 +142,12 @@ prototype).
 | Branch | Tip | State |
 |---|---|---|
 | `ericlee4992/redesign-floodlight-live` | `0ca7868` | ticket 03 **Codex clear after 3 rounds** |
-| `ericlee4992/redesign-floodlight-finish` | `743f609` | ticket 04 verified (`finish-ui-4`); Codex review 04 running |
+| `ericlee4992/redesign-floodlight-finish` | `1c3fc99` | ticket 04 **Codex clear after 3 rounds** |
 
-Codex terminal: Orca "Codex review — Floodlight 04" (`term_05fa33a9…`) in `/tmp/wt-floodlight/finish`;
-ticket 03's terminal closed. Logs/results: `/tmp/wt-floodlight/results/`; ticket 03/04 captures
-are committed under `../captures/03/`, `../captures/04/`. Next after 04 clears: History area.
+Both review terminals closed. Logs/results: `/tmp/wt-floodlight/results/`; ticket 03/04
+captures are committed under `../captures/03/`, `../captures/04/`. Pre-existing iOS 27 UI
+failures left: Gyms model picker (CoreLoop :252), History HR section (HeartRateSummary :66).
+Next: ticket 05 History, on a new branch from the finish tip.
 
 ### Handoff — 2026-09-26, end of session 1 (context full; continue in a new session)
 
