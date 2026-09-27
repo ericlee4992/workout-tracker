@@ -188,6 +188,14 @@ struct ProgressSeriesTests {
         #expect(ProgressSeriesMath.recordDays(assisted) == [assisted.points[2].date])
     }
 
+    /// Codex review 05: more reps at the same load is a best (the records' rank), a repeat is not.
+    @Test func moreRepsAtAnEqualLoadIsARecordDay() {
+        let series = ProgressSeriesMath.series(
+            for: [set(100, reps: 5, day: 1), set(100, reps: 8, day: 8), set(100, reps: 8, day: 15)],
+            variation: ProgressVariationKey(loadType: .weighted, equipment: .unrecorded, presetID: nil))
+        #expect(ProgressSeriesMath.recordDays(series) == [series.points[1].date])
+    }
+
     @Test func scopedKeepsOneVariationAndMetricChangeNeedsABaseline() {
         let plain = set(60, day: 1)
         var dumbbell = set(20, day: 1)

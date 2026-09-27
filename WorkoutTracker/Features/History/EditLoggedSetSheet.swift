@@ -22,6 +22,9 @@ struct EditLoggedSetSheet: View {
     /// A set just created by Add Set / Add Exercise: titled "Add Set", no Delete (Cancel removes
     /// it — the presenter's job, on dismiss).
     var isNew = false
+    /// The saved set's mark (New best / First time) from the detail; it steps aside while the
+    /// fields differ from what was saved, since the mark belongs to the saved values.
+    var badge: SetBadge? = nil
     @State private var repsText = ""
     @State private var weightText = ""
     @State private var unit: WeightUnit = .kg
@@ -97,15 +100,24 @@ struct EditLoggedSetSheet: View {
                     .foregroundStyle(look.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 10) {
-                SetMarker(kind: setType, number: number, done: true)
-                Text(HistoryFormat.shortDayTitle(date))
-                    .font(.system(.subheadline, weight: .semibold))
-                    .foregroundStyle(look.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            let layout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8))
+                : AnyLayout(HStackLayout(spacing: 10))
+            layout {
+                HStack(spacing: 10) {
+                    SetMarker(kind: setType, number: number, done: true)
+                    Text(HistoryFormat.shortDayTitle(date))
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(look.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(setType == .working ? "Set \(number)" : setType.displayName), \(HistoryFormat.shortDayTitle(date))")
+                if !typeSize.isAccessibilitySize { Spacer(minLength: 4) }
+                if !isNew, !isChanged, let badge {
+                    NewBestBadge(kind: badge).accessibilityIdentifier("editSetBadge")
+                }
             }
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(setType == .working ? "Set \(number)" : setType.displayName), \(HistoryFormat.shortDayTitle(date))")
             .padding(.top, 6)
         }
     }
@@ -182,6 +194,19 @@ struct EditLoggedSetSheet: View {
     }
 
     // MARK: Values
+
+    /// The fields differ from the saved set.
+    private var isChanged: Bool {
+        guard loaded, !record.isDeleted else { return false }
+        let weight = loadType.takesWeight ? parsedWeight : nil
+        let savedWeight = loadType.takesWeight ? record.weightValue : nil
+        let weightChanged = switch (weight, savedWeight) {
+        case (nil, nil): false
+        case let (a?, b?): abs(a - b) > 0.0001
+        default: true
+        }
+        return setType != record.type || unit != record.weightUnit || parsedReps != record.reps || weightChanged
+    }
 
     private var parsedReps: Int? { Int(repsText.trimmingCharacters(in: .whitespaces)) }
 

@@ -80,6 +80,9 @@ struct HistoryView: View {
                     list
                 }
             }
+            // Also on every return to the list: not every change stamps `historyEditedAt` — an
+            // abandoned Add Set is removed unmarked — and the rows must still count what is there.
+            .onAppear(perform: rebuildFacts)
             .lookScreenBackground()
             .navigationTitle("History")
             .navigationBarTitleDisplayMode(.inline)

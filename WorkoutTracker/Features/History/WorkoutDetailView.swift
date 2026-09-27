@@ -43,6 +43,9 @@ struct WorkoutDetailView: View {
     /// values it is removed again (with its exercise when that leaves it empty) — history must
     /// never show a row with nothing in it.
     @State private var pendingNewSet: SetRecord?
+    /// The same set, kept apart from the sheet's item: SwiftUI clears `pendingNewSet` before the
+    /// sheet's `onDismiss` runs, so the cleanup must not read it (Codex review 05, high).
+    @State private var addedSet: SetRecord?
     /// Whole-view convert toggle (D9): nil shows every weight as entered;
     /// a unit renders everything in that unit, plain (D52). Display-only —
     /// storage is never touched.
@@ -116,7 +119,7 @@ struct WorkoutDetailView: View {
         .onAppear(perform: rebuildDerived)
         .onChange(of: workout.historyEditedAt) { _, _ in rebuildDerived() }
         .sheet(item: $editingSet) { set in
-            EditLoggedSetSheet(record: set)
+            EditLoggedSetSheet(record: set, badge: marks[set.id])
         }
         .sheet(item: $pendingNewSet, onDismiss: discardIncompleteAddition) { set in
             EditLoggedSetSheet(record: set, isNew: true)
@@ -477,20 +480,22 @@ struct WorkoutDetailView: View {
         // Straight into the editor: the new set has no values yet, and an
         // entry whose sets are all unloggable would render as an exercise with
         // nothing under it.
+        addedSet = pair.set
         pendingNewSet = pair.set
     }
 
     private func addSet(to entry: ExerciseEntry) {
         guard let set = HistoryEditing.addSet(to: entry, in: modelContext) else { return }
         save()
+        addedSet = set
         pendingNewSet = set
     }
 
     /// Called when the editor for a just-added set closes. An addition the user abandoned
     /// leaves nothing behind (its exercise too, when that was all it had).
     private func discardIncompleteAddition() {
-        defer { pendingNewSet = nil }
-        guard let set = pendingNewSet else { return }
+        defer { addedSet = nil; pendingNewSet = nil }
+        guard let set = addedSet else { return }
         if HistoryEditing.pruneAbandonedSet(set, in: modelContext) { save() }
     }
 

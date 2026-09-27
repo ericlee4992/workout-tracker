@@ -285,18 +285,22 @@ enum ProgressSeriesMath {
     }
 
     /// The days whose best set beat every earlier day's (Floodlight ticket 05: the chart's
-    /// new-best markers). The first day is not a best (nothing to beat) and a tie is not one;
-    /// assisted improves DOWNWARD, plain bodyweight by reps (`bestKg` holds them).
+    /// new-best markers), by the records' own rank (`RecordsMath.outranks`): load first —
+    /// assisted improves DOWNWARD — then reps, so 100 kg × 8 after 100 kg × 5 is a best. The first
+    /// day is not a best (nothing to beat) and a tie is not one. Plain bodyweight ranks by reps.
     static func recordDays(_ series: ProgressSeries) -> Set<Date> {
-        var best: Double?
+        var best: RecordSetInput?
         var days: Set<Date> = []
         for point in series.points {
-            guard let value = point.bestKg else { continue }
+            guard let reps = point.bestReps else { continue }
+            let candidate = RecordSetInput(
+                loadType: series.loadType, exerciseID: UUID(), setType: .working, reps: reps,
+                weightValue: point.bestValue ?? point.bestKg, weightUnit: point.bestUnit ?? .kg,
+                normalizedKg: series.loadType == .bodyweight ? nil : point.bestKg, completedAt: point.date)
             if let incumbent = best {
-                let beats = series.higherIsBetter ? value > incumbent + 1e-9 : value < incumbent - 1e-9
-                if beats { days.insert(point.date); best = value }
+                if RecordsMath.outranks(candidate, incumbent) { days.insert(point.date); best = candidate }
             } else {
-                best = value
+                best = candidate
             }
         }
         return days

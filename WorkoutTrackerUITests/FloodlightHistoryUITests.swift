@@ -27,8 +27,10 @@ final class FloodlightHistoryUITests: XCTestCase {
     func testCaptureHistoryDarkDefault() { captureHistory(appearance: "dark", large: false) }
     func testCaptureHistoryDarkAccessibility() { captureHistory(appearance: "dark", large: true) }
 
-    func testCaptureEmptyLight() { captureEmpty(appearance: "light") }
-    func testCaptureEmptyDark() { captureEmpty(appearance: "dark") }
+    func testCaptureEmptyLight() { captureEmpty(appearance: "light", large: false) }
+    func testCaptureEmptyDark() { captureEmpty(appearance: "dark", large: false) }
+    func testCaptureEmptyLightAccessibility() { captureEmpty(appearance: "light", large: true) }
+    func testCaptureEmptyDarkAccessibility() { captureEmpty(appearance: "dark", large: true) }
 
     private func launch(_ arguments: [String], appearance: String, large: Bool) {
         app.launchArguments = arguments + ["-appearance", appearance]
@@ -69,14 +71,26 @@ final class FloodlightHistoryUITests: XCTestCase {
             shoot("floodlight-05-detail-\(suffix)-\(page)")
         }
 
-        // The set editor, from the first set line.
-        for _ in 0..<8 where !(any("historySetLine").exists && any("historySetLine").isHittable) { app.swipeDown() }
-        let setLine = any("historySetLine")
-        XCTAssertTrue(setLine.waitForExistence(timeout: 5))
+        // The set editor, on one fixed set at every size: Leg Extension's first working set
+        // (70 lb × 10, a new best), then its lower half (footer, Delete Set).
+        let setLine = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "identifier == 'historySetLine' AND label BEGINSWITH 'Set 1, 70 lb × 10'")).firstMatch
+        for _ in 0..<10 where !(setLine.exists && setLine.isHittable) { app.swipeDown() }
+        for _ in 0..<10 where !(setLine.exists && setLine.isHittable) { app.swipeUp() }
+        XCTAssertTrue(setLine.isHittable)
         setLine.tap()
         XCTAssertTrue(app.textFields["editSetWeight"].waitForExistence(timeout: 5))
+        XCTAssertTrue(any("editSetBadge").exists, "the saved set's NEW BEST mark is in the editor")
         Thread.sleep(forTimeInterval: 0.8)
-        shoot("floodlight-05-editset-\(suffix)")
+        shoot("floodlight-05-editset-\(suffix)-1")
+        let deleteSet = app.buttons["deleteEditedSet"]
+        let editor = app.textFields["editSetWeight"]
+        if !(deleteSet.exists && deleteSet.isHittable) {
+            editor.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 2.5))
+                .press(forDuration: 0.05, thenDragTo: editor.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: -3)))
+        }
+        XCTAssertTrue(deleteSet.isHittable, "Delete Set reachable")
+        shoot("floodlight-05-editset-\(suffix)-2")
         app.buttons["Cancel"].firstMatch.tap()
 
         // The progress chart of the first exercise.
@@ -95,11 +109,12 @@ final class FloodlightHistoryUITests: XCTestCase {
         shoot("floodlight-05-progress-\(suffix)-2")
     }
 
-    private func captureEmpty(appearance: String) {
-        launch(["-uiTestReset"], appearance: appearance, large: false)
+    private func captureEmpty(appearance: String, large: Bool) {
+        launch(["-uiTestReset"], appearance: appearance, large: large)
         app.tabBars.buttons["History"].tap()
         XCTAssertTrue(any("historyStartLifting").waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["historyCalendar"].exists, "no calendar before the first workout")
-        shoot("floodlight-05-empty-\(appearance)")
+        XCTAssertTrue(any("historyStartLifting").isHittable, "Start Lifting on screen")
+        shoot("floodlight-05-empty-\(appearance)\(large ? "-axl" : "")")
     }
 }

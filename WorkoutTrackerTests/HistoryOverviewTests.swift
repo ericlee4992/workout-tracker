@@ -167,6 +167,27 @@ struct HistoryOverviewTests {
         #expect(try allFacts(f)[second.id]?.newBests == 2)
     }
 
+    /// Codex review 05: the list's count is the receipt's "New bests" count, workout by
+    /// workout — including a best on reps at an equal load, and two workouts on one day.
+    @Test func newBestCountsAgreeWithTheReceiptForEveryWorkout() throws {
+        let f = try fixture()
+        let day = 86_400.0
+        try workout(f, at: t0, [(f.press, [(100, 5, false, .kg)]), (f.pulldown, [(40, 8, false, .kg)])])
+        try workout(f, at: t0 + day, [(f.press, [(100, 8, false, .kg)])])               // reps at equal load
+        try workout(f, at: t0 + day + 7200, [(f.press, [(100, 8, false, .kg)])])        // a tie, same day
+        try workout(f, at: t0 + 2 * day, [(f.pulldown, [(40, 10, false, .kg), (35, 6, false, .kg)])])
+        try workout(f, at: t0 + 3 * day, [(f.press, [(95, 12, false, .kg)]), (f.pulldown, [(50, 12, false, .kg)])])
+        let facts = try allFacts(f)
+        let workouts = try f.context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt != nil }))
+        var counts: [Int] = []
+        for w in workouts.sorted(by: { $0.startedAt < $1.startedAt }) {
+            let receipt = try FinishReceipt.build(for: w, in: f.context)
+            #expect(facts[w.id]?.newBests == receipt.bests.count, "workout at \(w.startedAt)")
+            counts.append(receipt.bests.count)
+        }
+        #expect(counts == [0, 1, 0, 1, 0])
+    }
+
     @Test func rowFactsCountCompletedSetsAndWeightedVolumeWithoutWarmups() throws {
         let f = try fixture()
         let w = try workout(f, at: t0, [(f.press, [(20, 10, true, .kg), (100, 5, false, .kg)]),

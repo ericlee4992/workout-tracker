@@ -207,7 +207,7 @@ struct ExerciseProgressView: View {
 
     private func chartPanel(_ data: ProgressData, days: Int) -> some View {
         let points = plottedPoints(data)
-        let selected = selectedPoint(data) ?? data.series.points.last
+        let selected = selectedPoint(data) ?? data.series.points.last { plotted($0) != nil }
         return VStack(alignment: .leading, spacing: 16) {
             let layout = typeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
@@ -226,7 +226,11 @@ struct ExerciseProgressView: View {
                     ProgressChangeBadge(fraction: change, alignment: typeSize.isAccessibilitySize ? .leading : .trailing)
                 }
             }
-            ProgressChart(points: points, selectedDate: selected?.date, yLabel: yLabel(data)) { date in
+            ProgressChart(points: points, selectedDate: selected?.date, yLabel: yLabel(data),
+                          selectionText: selected.map {
+                              "\(HistoryFormat.shortDayTitle($0.date)), \(calloutValue($0, data: data))"
+                              + (metric == .bestSet && data.recordDays.contains($0.date) ? ", New best" : "")
+                          }) { date in
                 if selectedDate != date {
                     selectedDate = date
                     ticks += 1
@@ -263,10 +267,14 @@ struct ExerciseProgressView: View {
                         Text("reps").font(.system(.title3, weight: .semibold)).foregroundStyle(look.textSecondary)
                     }
                 case .volume, .e1rm:
-                    let kg = metric == .volume ? point.volumeKg : (point.e1rmKg ?? 0)
-                    Text(LookFormat.groupedDecimal(WeightMath.convert(kg, from: .kg, to: displayUnit).rounded()))
-                        .font(look.font.heroNumber)
-                    Text(displayUnit.rawValue).font(.system(.title3, weight: .semibold)).foregroundStyle(look.textSecondary)
+                    // The plotted value, with its precision (7.5 stays 7.5, D25); a day without
+                    // a 1RM (only sets past 12 reps) says so rather than showing 0.
+                    if let value = plotted(point) {
+                        Text(LookFormat.groupedDecimal(value)).font(look.font.heroNumber)
+                        Text(displayUnit.rawValue).font(.system(.title3, weight: .semibold)).foregroundStyle(look.textSecondary)
+                    } else {
+                        Text("—").font(look.font.heroNumber)
+                    }
                 }
             }
             .foregroundStyle(look.textPrimary)
@@ -426,10 +434,11 @@ struct ExerciseProgressView: View {
         }
     }
 
-    /// The point nearest the selected day, or nil when nothing is selected.
+    /// The charted point nearest the selected day (only days with a value for the metric), or
+    /// nil when nothing is selected.
     private func selectedPoint(_ data: ProgressData) -> ProgressPoint? {
         guard let selectedDate else { return nil }
-        return data.series.points.min {
+        return data.series.points.filter { plotted($0) != nil }.min {
             abs($0.date.timeIntervalSince(selectedDate)) < abs($1.date.timeIntervalSince(selectedDate))
         }
     }
@@ -533,7 +542,7 @@ struct ExerciseProgressView: View {
         var series: ProgressSeries
         var scoped: [RecordSetInput]
         var recordDays: Set<Date>
-        /// The workout each charted day came from (the latest that day), for Sessions.
+        /// The workout holding each charted day's best set — the set the Sessions row shows.
         var workouts: [Date: Workout]
 
         init(history: [(input: RecordSetInput, workout: Workout)], variation: ProgressVariationKey) {
@@ -542,14 +551,20 @@ struct ExerciseProgressView: View {
             series = ProgressSeriesMath.series(for: inputs, variation: variation)
             scoped = ProgressSeriesMath.scoped(inputs, to: variation)
             recordDays = ProgressSeriesMath.recordDays(series)
-            var byDay: [Date: Workout] = [:]
+            // The same pick as the series (`ProgressSeriesMath.series`): per day, the best set by
+            // the records' rank (plain bodyweight: most reps), first one kept on a tie — so a
+            // session row opens the workout that set it, not merely the day's latest (Codex 05).
+            var best: [Date: (input: RecordSetInput, workout: Workout)] = [:]
             for item in history where ProgressSeriesMath.scoped([item.input], to: variation).count == 1
                 && RecordsMath.isEligible(item.input) {
                 let day = Calendar.current.startOfDay(for: item.input.completedAt ?? .distantPast)
-                if let current = byDay[day], current.startedAt >= item.workout.startedAt { continue }
-                byDay[day] = item.workout
+                guard let incumbent = best[day] else { best[day] = item; continue }
+                let better = variation.loadType == .bodyweight
+                    ? (item.input.reps ?? 0) > (incumbent.input.reps ?? 0)
+                    : RecordsMath.outranks(item.input, incumbent.input)
+                if better { best[day] = item }
             }
-            workouts = byDay
+            workouts = best.mapValues(\.workout)
         }
     }
 
@@ -647,6 +662,9 @@ struct ProgressChart: View {
     var points: [Point]
     var selectedDate: Date?
     var yLabel: String
+    /// The selected day and its value as the page shows them — the adjustable chart's value, so
+    /// VoiceOver hears each step without leaving the chart.
+    var selectionText: String?
     var onSelect: (Date) -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -731,6 +749,7 @@ struct ProgressChart: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Progress, \(points.count) days")
+        .accessibilityValue(selectionText ?? "")
         .accessibilityAdjustableAction { direction in
             guard let index = points.firstIndex(where: { $0.date == selectedDate }) ?? (points.isEmpty ? nil : points.count - 1)
             else { return }

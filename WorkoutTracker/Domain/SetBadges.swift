@@ -126,11 +126,13 @@ extension SetBadgeMath {
         return (current, history)
     }
 
-    /// History's new-best count for EVERY finished workout in one pass (ticket 05): the record
-    /// scopes in which the workout set a new best against the sets completed before it started —
-    /// the receipt's "New bests" lines, counted. Finished entries are grouped by their SNAPSHOT
-    /// scope and load type once, so each workout reads only its scopes' pasts instead of the whole
-    /// history per entry.
+    /// History's new-best count for EVERY finished workout (ticket 05): the record scopes in
+    /// which the workout set a new best against the sets completed before it started — the
+    /// receipt's "New bests" lines, counted. Finished entries are grouped by their SNAPSHOT scope
+    /// and load type; each group is swept once in time order with a running incumbent (the best
+    /// set completed before the current workout started), so the cost grows with the number of
+    /// sets, not with workouts × history (Codex review 05). A workout's own sets never count as
+    /// its past: they are completed after it starts.
     static func newBestCounts(finishedEntries: [ExerciseEntry]) -> [UUID: Int] {
         struct Key: Hashable { var scope: Scope; var loadType: LoadType }
         var groups: [Key: [ExerciseEntry]] = [:]
@@ -139,17 +141,31 @@ extension SetBadgeMath {
         }
         var counts: [UUID: Int] = [:]
         for (key, entries) in groups {
-            let byWorkout = Dictionary(grouping: entries) { $0.workout?.id }
-            for case let (workoutID?, own) in byWorkout {
-                guard let started = own.first?.workout?.startedAt else { continue }
-                let current = own.sorted { $0.order < $1.order }.flatMap { entry in
+            var byWorkout: [UUID: (started: Date, entries: [ExerciseEntry])] = [:]
+            for entry in entries {
+                guard let workout = entry.workout else { continue }
+                byWorkout[workout.id, default: (workout.startedAt, [])].entries.append(entry)
+            }
+            // Every eligible set of the scope, in completion order: the sweep's past.
+            let past = entries
+                .flatMap { entry in (entry.sets ?? []).map { input($0, entry: entry, loadType: key.loadType) } }
+                .filter(RecordsMath.isEligible)
+                .sorted { ($0.completedAt ?? .distantFuture) < ($1.completedAt ?? .distantFuture) }
+            var cursor = 0
+            var incumbent: RecordSetInput?
+            for (workoutID, item) in byWorkout.sorted(by: { $0.value.started < $1.value.started }) {
+                while cursor < past.count, (past[cursor].completedAt ?? .distantFuture) < item.started {
+                    let set = past[cursor]
+                    if incumbent.map({ RecordsMath.outranks(set, $0) }) ?? true { incumbent = set }
+                    cursor += 1
+                }
+                let current = item.entries.sorted { $0.order < $1.order }.flatMap { entry in
                     (entry.sets ?? []).map { (id: $0.id, set: input($0, entry: entry, loadType: key.loadType)) }
                 }
-                let history = entries
-                    .filter { $0.workout?.id != workoutID }
-                    .flatMap { entry in (entry.sets ?? []).map { input($0, entry: entry, loadType: key.loadType) } }
-                    .filter { ($0.completedAt ?? .distantFuture) < started }
-                if outcomes(current: current, history: history).values.contains(where: { $0.badge == .newBest }) {
+                // The incumbent alone stands for the past: `outcomes` only needs its best and
+                // whether there was any.
+                if outcomes(current: current, history: incumbent.map { [$0] } ?? [])
+                    .values.contains(where: { $0.badge == .newBest }) {
                     counts[workoutID, default: 0] += 1
                 }
             }

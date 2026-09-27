@@ -114,6 +114,10 @@ final class HistoryEditingUITests: XCTestCase {
         repsField.typeText(reps)
         app.buttons["setRow.complete"].firstMatch.tap()
         app.buttons["finishWorkout"].tap()
-        app.buttons["finishedDone"].firstMatch.tap()
+        // Wait for the receipt: a Done tapped mid-presentation is dropped and the sheet stays up.
+        let done = app.buttons["finishedDone"].firstMatch
+        XCTAssertTrue(done.waitForExistence(timeout: 10))
+        done.tap()
+        XCTAssertTrue(done.waitForNonExistence(timeout: 5))
     }
 }

@@ -272,7 +272,9 @@ struct HistoryCalendarDayCell: View {
 
     private var bulb: some View {
         let shape = RoundedRectangle(cornerRadius: 9, style: .continuous)
-        let levels: [Double] = [0, 0.55, 0.7, 0.85, 1]
+        // The lightest lit step keeps its number legible: at 0.62, white on Floodlight Light's
+        // ink measures 5.6:1 (0.55 was 4.35:1 — Codex review 05).
+        let levels: [Double] = [0, 0.62, 0.74, 0.87, 1]
         return ZStack {
             shape
                 .fill(trained ? look.done.opacity(levels[min(4, intensity)])

@@ -249,7 +249,7 @@ candidate (ticket 01 step 4). Simulator WT-Floodlight (iOS 27.0); logs, exits an
 `/tmp/wt-floodlight/results/history-*`.
 
 - `history-unit-1`: `HistoryOverviewTests`, `SetBadgeTests`, `FinishReceiptTests` 28/28, exit 0.
-- `history-build-1..4`: build exit 0 (after a `set` property-name fix in build 1).
+- `history-build-1`: exit 65 (a `set` property name parsed as a setter); `history-build-2..4`: exit 0.
 - `history-cap-1`: `FloodlightHistoryUITests` 6/6, exit 0 — first captures, reviewed; fixes applied.
 - `history-ui-1` (exit 65): unit 64/64 (`HistoryOverviewTests`, `ProgressSeriesTests`,
   `ChartPresetScopingTests`, `SetBadgeTests`, `FinishReceiptTests`); UI 42 of 46 passed —
@@ -295,3 +295,53 @@ candidate (ticket 01 step 4). Simulator WT-Floodlight (iOS 27.0); logs, exits an
   drag scrolls the page), short dates. UI tests updated for the moved menu items, the
   calendar's select-then-open, zone legend labels, iOS 27 search drawer (progress tests).
   Next: targeted UI batch `history-ui-1`.
+
+## Codex review 05 — response (round 1)
+
+Report: [codex-review-05.md](../codex-review-05.md) — not clear; 1 high, 5 medium, 3 low. All
+accepted.
+
+1. **High — an abandoned Add Set / Add Exercise survived.** `.sheet(item:onDismiss:)` clears the
+   item before `onDismiss` runs, so the cleanup read nil (inherited for Add Exercise). The detail
+   keeps the added set in its own `addedSet` for the cleanup. New `HistoryEditFlowsUITests`:
+   Add Set → Cancel, → swipe the editor away (nothing left, counted on the list row), → Save
+   (kept); Add Exercise → swipe away (nothing left).
+2. **Medium — chart record days ignored reps.** `ProgressSeriesMath.recordDays` ranks each day's
+   best with `RecordsMath.outranks` (100 kg × 8 after 100 kg × 5 is a best; a repeat is not).
+   Test `moreRepsAtAnEqualLoadIsARecordDay`.
+3. **Medium — a Sessions row could open the wrong workout.** The day → workout map now picks
+   the workout holding the day's best set, by the series' own rule.
+4. **Medium — the metric hero showed 0 for a missing 1RM and rounded volume.** The hero shows the
+   plotted value with its precision, "—" when the day has none; the default and the chart's
+   selection only land on days with a value for the metric.
+5. **Medium — quadratic new-best count.** `SetBadgeMath.newBestCounts` sweeps each scope once in
+   time order with a running incumbent (the best set completed before the workout started).
+   Test `newBestCountsAgreeWithTheReceiptForEveryWorkout` (reps at equal load, a same-day tie,
+   assisted) checks the list's count against `FinishReceipt.build` for every workout.
+6. **Medium — VoiceOver: the adjustable chart had no value.** It now carries the selected
+   day and value ("Sat, Sep 26, 60 lb × 8, New best") as its accessibility value.
+7. **Low — light calendar contrast.** The lightest lit step is 0.62 (white on the composited
+   ink 5.6:1; was 4.35:1).
+8. **Low — Edit Set lacked the NEW BEST mark.** The detail passes the set's saved mark; it
+   shows beside the date (under it at AX sizes) and steps aside while the fields differ.
+   Asserted in the capture test (`editSetBadge`).
+9. **Low — capture gaps.** The editor captures open one fixed set (Leg Extension, set 1,
+   70 lb × 10) at every size and add the lower half (footer, Delete Set); the empty screen has
+   AXL captures. `HistoryEditFlowsUITests` also covers notes (saved, marked) and deleting an
+   exercise's last set from the editor and by a swipe (the dialog says the exercise goes).
+- Ticket wording: build 1's actual exit 65 recorded.
+- **Found while verifying:** the list's row facts went stale after an abandoned Add Set (the
+  prune is unmarked, so `historyEditedAt` did not change and the row kept "10 sets"). The list
+  now also rebuilds its facts whenever it reappears.
+
+Verification (round 2): `history-build-5` exit 0.
+- `history-ui-5` (exit 65): unit 66/66 (`HistoryOverviewTests` 10, `ProgressSeriesTests`,
+  `ChartPresetScopingTests`, `SetBadgeTests`, `FinishReceiptTests`); FloodlightHistory 8/8
+  (fixed edit-set state + lower half, `editSetBadge` asserted, empty AXL); HistoryCalendar 3/3;
+  ProgressChartTooltip 4/4; HistoryEditing 1/2 (its helper tapped the receipt's Done
+  mid-presentation — now waits); HistoryEditFlows 0/5 (test mechanics: the title button leaves
+  the lazy list when scrolled, buttons under the tab bar; and the stale-facts bug above).
+- `history-ui-6` (exit 65): HistoryEditFlows 4/5, HistoryEditing 2/2; notes failed finding the
+  alert's field by identifier (system alert fields drop it).
+- `history-ui-7`: **exit 0** — notes 1/1.
+- Captures refreshed from `history-ui-5` (52 files in `../captures/05/`).
