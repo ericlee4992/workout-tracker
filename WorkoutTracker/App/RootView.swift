@@ -20,6 +20,8 @@ struct RootView: View {
     /// C2: the workout History should open — selecting the tab is not the
     /// same as showing the workout that was just logged.
     @State private var historyTarget: Workout?
+    /// History's empty screen asked for Start Lifting (ticket 05).
+    @State private var startLiftingFromHistory = false
 
     enum Tab: Hashable {
         case workout, history, gyms, exercises
@@ -36,11 +38,15 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            StartWorkoutView(onWorkoutStarted: { activeWorkout = $0 })
+            StartWorkoutView(onWorkoutStarted: { activeWorkout = $0 },
+                             startLiftingRequest: $startLiftingFromHistory)
                 .tabItem { Label("Workout", systemImage: "figure.strengthtraining.traditional") }
                 .tag(Tab.workout)
 
-            HistoryView(target: $historyTarget)
+            HistoryView(target: $historyTarget, onStartLifting: {
+                selection = .workout
+                startLiftingFromHistory = true
+            })
                 .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
                 .tag(Tab.history)
 

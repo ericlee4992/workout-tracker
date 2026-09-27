@@ -274,12 +274,14 @@ struct ZoneLegend: View {
 /// "Time in zones" directly under the graph, with no tap.
 struct ZoneBreakdown: View {
     var seconds: [Int]
+    /// The rule that separates the zones from a graph above them.
+    var showsRule = true
     @Environment(\.look) private var look
     @Environment(\.lookOnSlab) private var onSlab
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            LookDivider().padding(.bottom, 4)
+            if showsRule { LookDivider().padding(.bottom, 4) }
             Text("Time in zones")
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(onSlab ? look.onSlab : look.textPrimary)

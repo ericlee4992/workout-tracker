@@ -1,9 +1,17 @@
 import SwiftData
 import SwiftUI
 
+/// One finished workout (Floodlight redesign ticket 05): the hero, Save as Template…, the
+/// Finish tiles, the last same-template comparison, heart rate with zones, the exercises with
+/// their editable set lines, cardio, Add Exercise…, notes and Delete Workout…. A native `List`,
+/// so set rows keep their swipe-to-delete; every block is a clear row, each exercise (a
+/// superset's members together) one Floodlight panel.
 struct WorkoutDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Query private var allPreferences: [AppPreferences]
     var workout: Workout
     /// The set being corrected, if any (milestone 8, ticket 03).
     @State private var editingSet: SetRecord?
@@ -25,258 +33,93 @@ struct WorkoutDetailView: View {
     /// Renaming a logged workout (milestone 9, ticket 02) — a marked edit (D47).
     @State private var renamingWorkout = false
     @State private var renameText = ""
+    /// The workout's notes (ticket 05, the user's decision 2026-09-27) — a marked edit.
+    @State private var editingNotes = false
+    @State private var notesText = ""
     /// Ticket 13: "Save as Template…" from History, the finish sheet's flow.
     @State private var namingTemplate = false
     @State private var savedTemplateName: String?
-    /// A set just created by "Add Exercise". If the user leaves without giving
-    /// it real values, the whole entry is removed — history must never show an
-    /// exercise with nothing under it.
+    /// A set just created by Add Exercise or Add Set. If the user leaves without giving it real
+    /// values it is removed again (with its exercise when that leaves it empty) — history must
+    /// never show a row with nothing in it.
     @State private var pendingNewSet: SetRecord?
     /// Whole-view convert toggle (D9): nil shows every weight as entered;
     /// a unit renders everything in that unit, plain (D52). Display-only —
     /// storage is never touched.
     @State private var displayUnit: WeightUnit?
-    /// At accessibility sizes the equipment line and the load-type chip
-    /// stack instead of sharing a row — side by side they broke mid-word
-    /// ("equip-ment", "Weight ed") at AccessibilityL (codex-review-06).
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    /// Ring families, new bests and the template comparison, and each set's mark — rebuilt when
+    /// the workout is edited, not per render (they read each scope's past).
+    @State private var receipt: FinishReceipt?
+    @State private var marks: [UUID: SetBadge] = [:]
+    /// Scrolled past the hero: the workout's title takes over in the bar.
+    @State private var titleInBar = false
+
+    /// The app's default weight unit (D2/T7 precedence, app level) — volume and comparison.
+    private var appUnit: WeightUnit {
+        UnitPrecedence.defaultUnit(
+            machineUnit: nil, gymUnit: nil,
+            appPreference: AppPreferences.canonical(of: allPreferences)?.unitPreference)
+    }
+
+    /// The same summary the finish sheet showed, rebuilt from the stored
+    /// workout — so History and the receipt cannot disagree.
+    private var summary: WorkoutSummary? {
+        workout.isDeleted ? nil : WorkoutSummaryBuilder.summary(for: workout)
+    }
+
+    private func rebuildDerived() {
+        guard !workout.isDeleted else { receipt = nil; marks = [:]; return }
+        receipt = try? FinishReceipt.build(for: workout, in: modelContext)
+        let finished = (try? SetBadgeMath.finishedEntries(in: modelContext)) ?? []
+        var result: [UUID: SetBadge] = [:]
+        for entry in WorkoutSession.orderedEntries(of: workout) {
+            for (id, outcome) in SetBadgeMath.receiptMarks(for: entry, finishedEntries: finished).outcomes {
+                result[id] = outcome.badge
+            }
+        }
+        marks = result
+    }
 
     var body: some View {
         List {
-            Section {
-                Button {
-                    renameText = workout.isDeleted ? "" : (workout.name ?? "")
-                    renamingWorkout = true
-                } label: {
-                    LabeledContent("Name") {
-                        HStack(spacing: 4) {
-                            Text(workout.isDeleted ? "" : workout.historyTitle)
-                                .lineLimit(1)
-                            Image(systemName: "pencil")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("historyWorkoutName")
-                HStack {
-                    Label(workout.historyGymName ?? "No gym", systemImage: "mappin.and.ellipse")
-                    Spacer()
-                    // E3 (ticket 17): seconds below a minute, here too.
-                    Text(workout.durationLabel ?? "—")
-                        .foregroundStyle(.secondary)
-                }
-                .font(.subheadline)
-                if let savedTemplateName {
-                    // The finish sheet's confirmation line, here as a row of the
-                    // same section (ticket 13).
-                    Label("Saved as template “\(savedTemplateName)”", systemImage: "checkmark")
-                        .font(.subheadline)
-                        .foregroundStyle(Theme.secondary)
-                        .accessibilityIdentifier("savedTemplateConfirmation")
-                }
+            if !workout.isDeleted {
+                content
             }
-            .listRowBackground(Theme.card)
-            .listRowSeparatorTint(Theme.hairline)
-
-            if !workout.recordedCardio.isEmpty, !(workout.entries ?? []).isEmpty {
-                Text("Lifting").font(.headline).accessibilityAddTraits(.isHeader)
-                    .listRowBackground(Color.clear).listRowSeparator(.hidden)
-            }
-            ForEach(WorkoutSession.orderedEntries(of: workout)) { entry in
-                Section {
-                    let sets = WorkoutSession.orderedSets(of: entry)
-                        .filter { $0.completedAt != nil }
-                    ForEach(Array(sets.enumerated()), id: \.element.id) { pair in
-                        setLine(index: pair.offset, set: pair.element)
-                            .accessibilityElement(children: .combine)
-                            .accessibilityIdentifier("historySetLine")
-                            .contentShape(Rectangle())
-                            .onTapGesture { editingSet = pair.element }
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    confirmingSetDelete = pair.element
-                                } label: { Label("Delete", systemImage: "trash") }
-                            }
-                    }
-                } header: {
-                    // Snapshot display strings ONLY (D23) — never the live
-                    // exercise/machine/model relationships. (Ticket 06's muscle
-                    // icon, the one exception, went with ticket 11 — no icon
-                    // beside an exercise anywhere; History no longer reads the
-                    // live exercise at all.)
-                    HStack(alignment: .top, spacing: Theme.Space.medium) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(entry.snapshotExerciseName)
-                                .font(Theme.cardTitle)
-                                .foregroundStyle(Theme.text)
-                                .textCase(nil)
-                            let subtitle = dynamicTypeSize.isAccessibilitySize
-                                ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Space.small))
-                                : AnyLayout(HStackLayout(spacing: Theme.Space.small))
-                            subtitle {
-                                Text(entry.snapshotEquipmentLabel)
-                                    .font(.caption)
-                                    .textCase(nil)
-                                    .foregroundStyle(Theme.secondary)
-                                // Repairs a set logged under the wrong load type —
-                                // the case correcting the EXERCISE cannot reach,
-                                // because history is frozen (codex-review).
-                                Menu {
-                                    ForEach(LoadType.allCases, id: \.self) { type in
-                                        Button {
-                                            retype(entry, to: type)
-                                        } label: {
-                                            Label(
-                                                type.badge,
-                                                systemImage: entry.snapshotLoadType == type
-                                                    ? "checkmark" : "")
-                                        }
-                                    }
-                                    Divider()
-                                    Button("Remove Exercise", systemImage: "trash", role: .destructive) {
-                                        confirmingEntryDelete = entry
-                                    }
-                                    .accessibilityIdentifier("removeHistoryExercise")
-                                } label: {
-                                    LegacyChip { Text(entry.snapshotLoadType.badge).textCase(nil).lineLimit(1).fixedSize() }
-                                }
-                                .accessibilityIdentifier("historyEntryLoadType")
-                            }
-                            // D51: a reclassified row says what it was, on the row.
-                            if let from = entry.reclassifiedFromExerciseName, let when = entry.reclassifiedAt {
-                                Text("Reclassified from \(from) · \(when.formatted(date: .abbreviated, time: .omitted))")
-                                    .font(.caption2)
-                                    .textCase(nil)
-                                    .foregroundStyle(Theme.secondary)
-                                    .accessibilityIdentifier("historyReclassifiedMark")
-                            }
-                        }
-                        Spacer(minLength: 0)
-                        Button {
-                            chartingEntry = entry
-                        } label: {
-                            Image(systemName: "chart.xyaxis.line")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Theme.accent)
-                                .frame(width: 32, height: 32)
-                                .background(Theme.accent.opacity(0.12), in: Circle())
-                        }
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel("Progress chart")
-                        .accessibilityIdentifier("historyEntryChart")
-                    }
-                    .padding(.bottom, Theme.Space.xs)
-                }
-                .listRowBackground(Theme.card)
-                .listRowSeparatorTint(Theme.hairline)
-            }
-
-            if !workout.recordedCardio.isEmpty {
-                Section("Cardio") {
-                    ForEach(workout.recordedCardio) { CardioSummaryCard(segment: $0) }
-                        .listRowBackground(Color.clear).listRowSeparator(.hidden)
-                }
-            }
-            // Milestone 9, ticket 05: what the sensor saw, for any workout that
-            // has it. Aggregates for every workout that recorded them; the
-            // graph only when a series exists — older workouts never show an
-            // empty chart.
-            if !workout.isDeleted, let summary = heartRateSummary, summary.hasHeartRate {
-                // No header of its own: the chart card under it is titled
-                // "Heart rate", and the receipt lays its tiles out the same way.
-                Section {
-                    // The same tiles as the receipt (ticket 03), so History
-                    // and the finish sheet read alike. Each figure only when
-                    // its fact exists (D44); plain numbers (D52).
-                    LazyVGrid(columns: [GridItem(.flexible(), spacing: Theme.Space.small),
-                                        GridItem(.flexible(), spacing: Theme.Space.small)],
-                              spacing: Theme.Space.small) {
-                        if let average = summary.averageHeartRate {
-                            StatTile(value: "\(average) BPM", label: "Average", symbol: "heart.fill",
-                                     tint: Theme.danger, identifier: "historyAverageHR",
-                                     accessibilityText: "Average, \(average) BPM")
-                        }
-                        if let maximum = summary.maxHeartRate {
-                            StatTile(value: "\(maximum) BPM", label: "Maximum", symbol: "bolt.heart.fill",
-                                     tint: Theme.danger, identifier: "historyMaxHR",
-                                     accessibilityText: "Maximum, \(maximum) BPM")
-                        }
-                        if let calories = summary.activeEnergyKilocalories {
-                            StatTile(value: "\(Int(calories.rounded())) CAL", label: "Active calories",
-                                     symbol: "flame.fill", tint: Color(rgb: 0xFF5E7A),
-                                     identifier: "historyActiveCalories",
-                                     accessibilityText: "Active calories, \(Int(calories.rounded())) CAL")
-                        }
-                        if let total = summary.totalEnergyKilocalories {
-                            StatTile(value: "\(Int(total.rounded())) CAL", label: "Total calories",
-                                     symbol: "flame", tint: Color(rgb: 0xFF5E7A),
-                                     identifier: "historyTotalCalories",
-                                     accessibilityText: "Total calories, \(Int(total.rounded())) CAL")
-                        }
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowInsets(EdgeInsets())
-                    .listRowSeparator(.hidden)
-                }
-                .accessibilityIdentifier("historyHeartRateSection")
-                if summary.hasHeartRateSeries, let interval = summary.heartRateSeriesIntervalSeconds {
-                    HeartRateSummarySection(
-                        series: summary.heartRateSeries,
-                        low: summary.heartRateSeriesLow,
-                        high: summary.heartRateSeriesHigh,
-                        intervalSeconds: interval,
-                        durationSeconds: Int(summary.duration.rounded(.up)),
-                        startedAt: summary.date,
-                        averageBpm: summary.averageHeartRate,
-                        maxBpm: summary.maxHeartRate)
-                }
-                // Ticket 14: time in zones under the graph — the finish sheet's
-                // card, so History and the receipt read alike.
-                if summary.zoneSeconds.contains(where: { $0 > 0 }) {
-                    Section {
-                        ZoneTimeCard(seconds: summary.zoneSeconds)
-                            .listRowBackground(Color.clear)
-                            .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                            .listRowSeparator(.hidden)
-                            .accessibilityIdentifier("historyZoneCard")
-                    }
-                }
-            }
-
-            Section {
-                Button("Add Exercise…", systemImage: "plus") {
-                    showExercisePicker = true
-                }
-                .buttonStyle(.secondary)
-                .accessibilityIdentifier("addHistoryExercise")
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                .listRowSeparator(.hidden)
-            } footer: {
-                Text("Recorded as defined today, without equipment.")
-            }
-
-            if let edited = workout.isDeleted ? nil : workout.historyEditedAt {
-                Section {
-                    Label(
-                        "Edited \(edited.formatted(date: .abbreviated, time: .shortened))",
-                        systemImage: "pencil.circle")
-                        .font(.caption)
-                        .foregroundStyle(Theme.secondary)
-                        .accessibilityIdentifier("historyEditedMark")
-                        .listRowBackground(Color.clear)
-                }
-            }
-
         }
+        .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(Theme.background)
-        .navigationTitle(workout.startedAt.formatted(date: .abbreviated, time: .omitted))
+        .environment(\.defaultMinListRowHeight, 0)
+        .lookScreenBackground()
+        .onScrollGeometryChange(for: Bool.self) { geo in
+            geo.contentOffset.y + geo.contentInsets.top > (dynamicTypeSize.isAccessibilitySize ? 220 : 130)
+        } action: { _, past in
+            withAnimation(.easeInOut(duration: 0.18)) { titleInBar = past }
+        }
+        .navigationTitle(workout.isDeleted ? "" : workout.historyTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(look.ground, for: .navigationBar)
+        .toolbarBackgroundVisibility(titleInBar ? .visible : .hidden, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(workout.isDeleted ? "" : workout.historyTitle)
+                    .font(look.font.navTitle)
+                    .foregroundStyle(look.textPrimary)
+                    .lineLimit(1)
+                    .opacity(titleInBar ? 1 : 0)
+                    .accessibilityHidden(!titleInBar)
+            }
+            // Units are about weights: no control on a workout with no lifting.
+            if !workout.isDeleted, !workout.completedSets.isEmpty {
+                ToolbarItem(placement: .topBarTrailing) { unitsMenu }
+            }
+        }
+        .onAppear(perform: rebuildDerived)
+        .onChange(of: workout.historyEditedAt) { _, _ in rebuildDerived() }
         .sheet(item: $editingSet) { set in
             EditLoggedSetSheet(record: set)
+        }
+        .sheet(item: $pendingNewSet, onDismiss: discardIncompleteAddition) { set in
+            EditLoggedSetSheet(record: set, isNew: true)
         }
         .alert("Workout Name", isPresented: $renamingWorkout) {
             TextField(workout.isDeleted ? "" : workout.derivedTitle, text: $renameText)
@@ -292,8 +135,17 @@ struct WorkoutDetailView: View {
             .accessibilityIdentifier("saveWorkoutName")
             Button("Cancel", role: .cancel) {}
         }
-        // On the List, not the Section: a `.sheet` on a Section inside a List
-        // never presents (STATE gotcha, milestone 3).
+        .alert("Notes", isPresented: $editingNotes) {
+            TextField("Notes", text: $notesText, axis: .vertical)
+                .accessibilityIdentifier("historyNotesField")
+            Button("Save") {
+                if HistoryEditing.setNotes(workout, to: notesText) { save() }
+            }
+            .accessibilityIdentifier("saveHistoryNotes")
+            Button("Cancel", role: .cancel) {}
+        }
+        // On the List, not a row: a `.sheet` inside a List row never presents (STATE gotcha,
+        // milestone 3).
         .sheet(item: $chartingEntry) { entry in
             NavigationStack {
                 ExerciseProgressView(
@@ -311,9 +163,6 @@ struct WorkoutDetailView: View {
             ExercisePickerSheet { exercise in
                 addExercise(exercise)
             }
-        }
-        .sheet(item: $pendingNewSet, onDismiss: discardIncompleteAddition) { set in
-            EditLoggedSetSheet(record: set)
         }
         .confirmationDialog(
             "Remove this exercise?",
@@ -343,7 +192,7 @@ struct WorkoutDetailView: View {
             }
             Button("Cancel", role: .cancel) { confirmingSetDelete = nil }
         } message: {
-            Text("This set is removed permanently, and records and volume are recalculated without it.")
+            Text(HistoryDeleteCopy.set(confirmingSetDelete))
         }
         .confirmationDialog(
             "Delete this workout?", isPresented: $confirmingDelete, titleVisibility: .visible
@@ -363,37 +212,261 @@ struct WorkoutDetailView: View {
         .saveAsTemplateFlow(workout: workout, isPresented: $namingTemplate) {
             savedTemplateName = $0
         }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    // Ticket 13: the user asked to save a template from History.
-                    // Offered only when it can succeed (completed sets with a live
-                    // exercise), as the finish sheet does.
-                    if !workout.isDeleted, WorkoutTemplateService.canSaveAsTemplate(workout) {
-                        Button("Save as Template…", systemImage: "square.on.square") {
-                            namingTemplate = true
-                        }
-                        .accessibilityIdentifier("saveAsTemplate")
-                        Divider()
+    }
+
+    // MARK: Page
+
+    @ViewBuilder private var content: some View {
+        let summary = summary
+        let entries = WorkoutSession.orderedEntries(of: workout)
+        HistoryDetailHero(
+            workout: workout,
+            ringSets: ringSets(entries),
+            families: receipt?.familySets.map(\.family) ?? [],
+            newBests: receipt?.bests.count ?? 0,
+            unitBadge: HistoryWorkoutFacts(workout: workout)?.unitBadge(appUnit: appUnit),
+            onRename: {
+                renameText = workout.name ?? ""
+                renamingWorkout = true
+            })
+            .historyPageRow(top: 8, bottom: 6)
+
+        if let savedTemplateName {
+            // The finish sheet's confirmation line, in place of the button (ticket 13).
+            FinishSavedTemplateLine(name: savedTemplateName)
+                .historyPageRow(top: 12, bottom: 0)
+        } else if WorkoutTemplateService.canSaveAsTemplate(workout) {
+            // Ticket 13: offered only when it can succeed (completed sets with a live exercise).
+            Button { namingTemplate = true } label: {
+                Label("Save as Template…", systemImage: "square.on.square")
+            }
+            .buttonStyle(.lookSecondary)
+            .accessibilityIdentifier("saveAsTemplate")
+            .historyPageRow(top: 12, bottom: 0)
+        }
+
+        if let summary {
+            VStack(alignment: .leading, spacing: look.space.header) {
+                SectionHeader("Workout details")
+                FinishTileGrid(tiles: FinishTile.summaryTiles(summary, unit: appUnit) { kind in
+                    switch kind {
+                    case .workoutTime: "historyWorkoutTime"
+                    case .totalVolume: "historyVolume"
+                    case .activeCalories: "historyActiveCalories"
+                    case .totalCalories: "historyTotalCalories"
+                    case .averageHeartRate: "historyAverageHR"
+                    case .maxHeartRate: "historyMaxHR"
                     }
-                    Button("Delete Workout…", systemImage: "trash", role: .destructive) {
-                        confirmingDelete = true
-                    }
-                    .accessibilityIdentifier("deleteWorkout")
-                    Divider()
-                    Picker("Units", selection: $displayUnit) {
-                        Text("As entered").tag(WeightUnit?.none)
-                        ForEach(WeightUnit.allCases) { unit in
-                            Text("Show in \(unit.rawValue)").tag(WeightUnit?.some(unit))
-                        }
-                    }
-                } label: {
-                    Label(displayUnit?.rawValue ?? "As entered", systemImage: "scalemass")
+                })
+            }
+            .historyPageRow(top: 26, bottom: 0)
+
+            if let comparison = receipt?.comparison {
+                VStack(alignment: .leading, spacing: look.space.header) {
+                    SectionHeader("Last \(comparison.templateName)")
+                    ComparisonBars(
+                        lastLabel: LookFormat.shortDate(comparison.lastDate),
+                        last: WeightMath.convert(comparison.lastVolumeKg, from: .kg, to: appUnit),
+                        today: WeightMath.convert(comparison.volumeKg, from: .kg, to: appUnit),
+                        unit: appUnit.label)
                 }
-                .accessibilityIdentifier("workoutDetailMenu")
+                .historyPageRow(top: 26, bottom: 0)
+            }
+
+            // Milestone 9, ticket 05: what the sensor saw — the graph when a series exists,
+            // time in zones under it — in one plate (the receipt's). Older workouts never show
+            // an empty chart; their aggregates are the tiles above.
+            if summary.hasHeartRateSeries || summary.zoneSeconds.contains(where: { $0 > 0 }) {
+                HeartRateSummarySection(summary: summary, sectionIdentifier: "historyHeartRateSection",
+                                        zonesIdentifier: "historyZoneCard")
+                    .historyPageRow(top: 26, bottom: 0)
+            }
+        }
+
+        if !entries.isEmpty {
+            SectionHeader(workout.recordedCardio.isEmpty ? "Exercises" : "Lifting",
+                          trailing: HistoryRendering.pluralized(entries.count, "exercise", "exercises"))
+                .historyPageRow(top: 30, bottom: 12)
+            ForEach(Array(Supersets.runs(of: workout).enumerated()), id: \.offset) { runIndex, run in
+                if runIndex > 0 {
+                    Color.clear.frame(height: look.space.group).historyPageRow()
+                }
+                exercisePanel(run)
+            }
+        }
+
+        // Add Exercise… sits right under the exercises it adds to.
+        VStack(alignment: .leading, spacing: 8) {
+            HistoryMakeRow(title: "Add Exercise…") { showExercisePicker = true }
+                .accessibilityIdentifier("addHistoryExercise")
+            Text("Recorded as defined today, without equipment.")
+                .font(look.font.footnote)
+                .foregroundStyle(look.textSecondary)
+                .padding(.horizontal, 4)
+        }
+        .historyPageRow(top: 14, bottom: 0)
+
+        if !workout.recordedCardio.isEmpty {
+            VStack(alignment: .leading, spacing: look.space.header) {
+                SectionHeader("Cardio")
+                ForEach(workout.recordedCardio) { CardioSummaryCard(segment: $0) }
+            }
+            .historyPageRow(top: 30, bottom: 0)
+        }
+
+        notesSection
+            .historyPageRow(top: 30, bottom: 0)
+
+        DestructiveRowButton("Delete Workout…") { confirmingDelete = true }
+            .accessibilityIdentifier("deleteWorkout")
+            .historyPageRow(top: 30, bottom: 40)
+    }
+
+    /// Working sets in workout order with their family — the hero ring. The family reads the
+    /// live `muscleGroup` (the documented exception: it is not snapshotted).
+    private func ringSets(_ entries: [ExerciseEntry]) -> [MuscleFamily?] {
+        entries.flatMap { entry in
+            let family = MuscleFamily(muscleGroup: entry.exercise?.muscleGroup)
+            return WorkoutSession.orderedSets(of: entry)
+                .filter { $0.completedAt != nil && $0.type.countsTowardRecords }
+                .map { _ in family }
+        }
+    }
+
+    // MARK: Exercises
+
+    /// One panel per run: a superset's members share it, lettered A/B.
+    @ViewBuilder
+    private func exercisePanel(_ run: [ExerciseEntry]) -> some View {
+        let lettered = run.count > 1
+        ForEach(Array(run.enumerated()), id: \.element.id) { index, entry in
+            let sets = WorkoutSession.orderedSets(of: entry).filter { $0.completedAt != nil }
+            let isLastEntry = index == run.count - 1
+            HistoryEntryHeader(
+                entry: entry,
+                letter: lettered ? String(Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ")[min(index, 25)]) : nil,
+                onChart: { chartingEntry = entry }
+            ) {
+                entryMenu(entry)
+            }
+            .historyPanelRow(first: index == 0, last: isLastEntry && sets.isEmpty, separatorInset: 0)
+            ForEach(Array(sets.enumerated()), id: \.element.id) { setIndex, set in
+                Button { editingSet = set } label: {
+                    HistorySetLine(
+                        record: set,
+                        number: sets[...setIndex].filter { $0.type != .warmup }.count,
+                        loadType: entry.snapshotLoadType,
+                        badge: marks[set.id],
+                        displayUnit: displayUnit)
+                }
+                .buttonStyle(HistoryRowPressStyle())
+                .accessibilityIdentifier("historySetLine")
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        confirmingSetDelete = set
+                    } label: { Label("Delete", systemImage: "trash") }
+                }
+                .historyPanelRow(first: false, last: isLastEntry && setIndex == sets.count - 1,
+                                 separatorInset: setIndex == 0 ? nil : 62)
+            }
+            if !isLastEntry {
+                Color.clear.frame(height: 8)
+                    .historyPanelRow(first: false, last: false, separatorInset: nil)
             }
         }
     }
+
+    /// The exercise's "…": Add Set, its load type (repairs a set logged under the wrong type —
+    /// the case correcting the EXERCISE cannot reach, because history is frozen), Remove Exercise.
+    private func entryMenu(_ entry: ExerciseEntry) -> some View {
+        Menu {
+            Button("Add Set", systemImage: "plus") { addSet(to: entry) }
+                .accessibilityIdentifier("addHistorySet")
+            Picker(selection: Binding(
+                get: { entry.snapshotLoadType },
+                set: { retype(entry, to: $0) })
+            ) {
+                ForEach(LoadType.allCases, id: \.self) { Text($0.badge).tag($0) }
+            } label: {
+                Label("Load type", systemImage: "scalemass")
+            }
+            .pickerStyle(.menu)
+            Divider()
+            Button("Remove Exercise", systemImage: "trash", role: .destructive) {
+                confirmingEntryDelete = entry
+            }
+            .accessibilityIdentifier("removeHistoryExercise")
+        } label: {
+            HistoryIconFace(symbol: "ellipsis")
+        }
+        .accessibilityLabel("Options")
+        .accessibilityIdentifier("historyEntryLoadType")
+    }
+
+    // MARK: Notes
+
+    /// The note (tap to edit), or a dashed Add Note… when there is none yet.
+    @ViewBuilder private var notesSection: some View {
+        if workout.notes.isEmpty {
+            HistoryMakeRow(title: "Add Note…", symbol: "square.and.pencil") {
+                notesText = ""
+                editingNotes = true
+            }
+            .accessibilityIdentifier("addHistoryNote")
+        } else {
+            VStack(alignment: .leading, spacing: look.space.header) {
+                SectionHeader("Notes")
+                Button {
+                    notesText = workout.notes
+                    editingNotes = true
+                } label: {
+                    HStack(alignment: .top, spacing: 10) {
+                        Text(workout.notes)
+                            .font(look.font.body)
+                            .foregroundStyle(look.textPrimary)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Image(systemName: "pencil")
+                            .font(.system(.footnote, weight: .semibold))
+                            .foregroundStyle(look.textTertiary)
+                    }
+                    .padding(16)
+                    .lookSurface(.panel)
+                }
+                .buttonStyle(.lookPressable)
+                .accessibilityHint("Edits the note")
+                .accessibilityIdentifier("historyNotes")
+            }
+        }
+    }
+
+    // MARK: Units
+
+    /// A quiet capsule naming the current mode ("As entered", "kg", "lb") — display only;
+    /// nothing is rewritten (D9/D52).
+    private var unitsMenu: some View {
+        Menu {
+            Picker("Units", selection: $displayUnit) {
+                Text("As entered").tag(WeightUnit?.none)
+                ForEach(WeightUnit.allCases) { unit in
+                    Text("Show in \(unit.rawValue)").tag(WeightUnit?.some(unit))
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(displayUnit?.rawValue ?? "As entered")
+                Image(systemName: "chevron.down").font(.system(.caption2, weight: .bold))
+            }
+            .font(.system(.subheadline, weight: .semibold))
+            .foregroundStyle(look.textPrimary)
+            .padding(.horizontal, 6)
+            .fixedSize()
+        }
+        .accessibilityLabel("Units, \(displayUnit.map { "Show in \($0.rawValue)" } ?? "As entered")")
+        .accessibilityIdentifier("historyUnits")
+    }
+
+    // MARK: Actions
 
     private func addExercise(_ exercise: Exercise) {
         guard let pair = HistoryEditing.addEntry(
@@ -406,16 +479,18 @@ struct WorkoutDetailView: View {
         pendingNewSet = pair.set
     }
 
-    /// Called when the editor for a just-added exercise closes. An addition the
-    /// user abandoned leaves nothing behind.
+    private func addSet(to entry: ExerciseEntry) {
+        guard let set = HistoryEditing.addSet(to: entry, in: modelContext) else { return }
+        save()
+        pendingNewSet = set
+    }
+
+    /// Called when the editor for a just-added set closes. An addition the user abandoned
+    /// leaves nothing behind (its exercise too, when that was all it had).
     private func discardIncompleteAddition() {
         defer { pendingNewSet = nil }
-        guard let set = pendingNewSet, !set.isDeleted else { return }
-        guard !WorkoutSession.isLoggable(set) else { return }
-        if let entry = set.entry, !entry.isDeleted {
-            HistoryEditing.deleteEntry(entry, in: modelContext)
-        }
-        save()
+        guard let set = pendingNewSet else { return }
+        if HistoryEditing.pruneAbandonedSet(set, in: modelContext) { save() }
     }
 
     private func deleteConfirmedEntry() {
@@ -446,59 +521,18 @@ struct WorkoutDetailView: View {
         do { try modelContext.save() }
         catch { assertionFailure("Failed to save history edit: \(error)") }
     }
+}
 
-    /// The same summary the finish sheet showed, rebuilt from the stored
-    /// workout — so History and the receipt cannot disagree.
-    private var heartRateSummary: WorkoutSummary? {
-        workout.isDeleted ? nil : WorkoutSummaryBuilder.summary(for: workout)
-    }
-
-    /// Weight text for a set under the current toggle: as entered by default,
-    /// converted plain when rendered in the other unit (WeightMath, D25/D52).
-    private func weightLabel(for set: SetRecord) -> String {
-        guard let value = set.weightValue,
-              let stored = StoredWeight(value: value, unit: set.weightUnit) else {
-            return "—"
+/// The set confirmation's words: the existing message, and — when it is the exercise's only
+/// set — that the exercise goes too (deleting the last set removes the entry).
+enum HistoryDeleteCopy {
+    static func set(_ set: SetRecord?) -> String {
+        var text = "This set is removed permanently, and records and volume are recalculated without it."
+        if let set, !set.isDeleted, let entry = set.entry, !entry.isDeleted,
+           (entry.sets ?? []).filter({ !$0.isDeleted }).count == 1 {
+            text += " \(entry.snapshotExerciseName) has no other sets, so it is removed from this workout too."
         }
-        return WeightMath.displayLabel(for: stored, in: displayUnit ?? stored.unit)
-    }
-
-    private func setLine(index: Int, set: SetRecord) -> some View {
-        HStack(spacing: 10) {
-            Text(set.type.marker ?? "\(index + 1)")
-                .font(Theme.label)
-                .monospacedDigit()
-                // Same marker tints as the active workout (W/F/D), so a `D`
-                // in history means what it meant while logging (D26).
-                .foregroundStyle(set.type.markerColor)
-                .frame(width: 28, height: 28)
-                .background(Theme.fill, in: Circle())
-            VStack(alignment: .leading, spacing: 1) {
-                Text("\(weightLabel(for: set)) × \(set.reps.map(String.init) ?? "—")")
-                    .font(.body.weight(.semibold))
-                    .monospacedDigit()
-                if let breakdown = barBreakdown(for: set) {
-                    Text(breakdown)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-        }
-    }
-
-    /// D39: how a bar-mode set was loaded — `45 + 45 × 2 = 135 lb`. The weight
-    /// above it is the total, and always was; this only says where it came from.
-    ///
-    /// Shown as entered only. Under the convert toggle the numbers above are
-    /// converted values (D9/D25), and a converted sum of two converted parts
-    /// reads as arithmetic the app is claiming rather than reporting.
-    private func barBreakdown(for set: SetRecord) -> String? {
-        guard displayUnit == nil || displayUnit == set.weightUnit,
-              let bar = set.barWeightValue, let total = set.weightValue
-        else { return nil }
-        return BarbellMath.breakdownLabel(
-            barWeight: bar, total: total, unit: set.weightUnit)
+        return text
     }
 }
 

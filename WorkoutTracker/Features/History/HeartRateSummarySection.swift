@@ -18,9 +18,10 @@ import SwiftUI
 /// - The average sits under the plot in the bar colour. The dashed average
 ///   rule and its annotation over the bars are gone.
 ///
-/// Says nothing at all when there is no series: a workout logged before the
-/// series existed shows its aggregates and no chart, never an empty one. Gaps
-/// are simply not drawn.
+/// Draws no graph when there is no series: a workout logged before the series
+/// existed shows its aggregates (the tiles) and no chart, never an empty one.
+/// Gaps are simply not drawn. Floodlight ticket 05: the graph and time in
+/// zones share one plate (the receipt and History alike).
 struct HeartRateSummarySection: View {
     let series: [Int]
     /// Per-bucket range beside the mean; empty for workouts folded before
@@ -35,13 +36,34 @@ struct HeartRateSummarySection: View {
     let startedAt: Date
     let averageBpm: Int?
     let maxBpm: Int?
-    /// `.listSection` (History's grouped list) or `.receipt`: the Floodlight finish receipt's
-    /// heading and panel, laid out as one list row like the receipt's other sections.
-    var style: Style = .listSection
+    /// Time in zones, drawn INSIDE the same plate under the graph (Floodlight ticket 05: the
+    /// plate/zone restyle deferred from the receipt). Empty or all-zero: no zones.
+    var zoneSeconds: [Int] = []
+    /// The whole block's identifier (History: `historyHeartRateSection`) and the zones' own
+    /// (History: `historyZoneCard`). Each sits on a CONTAINER element: iOS 27 does not expose an
+    /// identifier set on a List `Section` (the pre-existing History failure this fixes).
+    var sectionIdentifier = "heartRateSection"
+    var zonesIdentifier = "heartRateZones"
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.look) private var look
 
-    enum Style { case listSection, receipt }
+    /// From a workout's summary — the receipt and History read the same stored fields.
+    init(summary: WorkoutSummary, sectionIdentifier: String = "heartRateSection",
+         zonesIdentifier: String = "heartRateZones") {
+        self.series = summary.hasHeartRateSeries ? summary.heartRateSeries : []
+        self.low = summary.heartRateSeriesLow
+        self.high = summary.heartRateSeriesHigh
+        self.intervalSeconds = summary.heartRateSeriesIntervalSeconds ?? 0
+        self.durationSeconds = Int(summary.duration.rounded(.up))
+        self.startedAt = summary.date
+        self.averageBpm = summary.averageHeartRate
+        self.maxBpm = summary.maxHeartRate
+        self.zoneSeconds = summary.zoneSeconds
+        self.sectionIdentifier = sectionIdentifier
+        self.zonesIdentifier = zonesIdentifier
+    }
+
+    private var hasZones: Bool { zoneSeconds.contains { $0 > 0 } }
 
     private var xEnd: Int {
         HeartRateSeriesMath.plotExtentSeconds(
@@ -49,7 +71,8 @@ struct HeartRateSummarySection: View {
     }
 
     private var slots: [HeartRateSeriesMath.DisplaySlot] {
-        HeartRateSeriesMath.displaySlots(
+        guard intervalSeconds > 0, !series.isEmpty else { return [] }
+        return HeartRateSeriesMath.displaySlots(
             mean: series, low: low, high: high,
             intervalSeconds: intervalSeconds, durationSeconds: xEnd)
     }
@@ -77,29 +100,23 @@ struct HeartRateSummarySection: View {
         dynamicTypeSize.isAccessibilitySize ? [0] : Set(timeTicks)
     }
 
+    /// One Floodlight plate: "Heart rate", the graph when a series exists, and time in zones
+    /// under it when there is a basis. Nothing at all when neither exists.
     var body: some View {
-        if let drawnRange, !slots.isEmpty {
-            switch style {
-            case .listSection:
-                Section {
-                    content(drawnRange)
-                        // A card of its own (D54) — in History's grouped list.
-                        .padding(Theme.Space.inset)
-                        .card()
-                        .listRowBackground(Color.clear)
-                        .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 4, trailing: 16))
-                        .listRowSeparator(.hidden)
-                } header: {
-                    Text("Heart rate")
+        let range = slots.isEmpty ? nil : drawnRange
+        if range != nil || hasZones {
+            HeartRatePlate {
+                if let range {
+                    content(range)
                 }
-            case .receipt:
-                VStack(alignment: .leading, spacing: look.space.header) {
-                    SectionHeader("Heart rate")
-                    content(drawnRange)
-                        .padding(16)
-                        .lookSurface(.panel)
+                if hasZones {
+                    ZoneBreakdown(seconds: zoneSeconds, showsRule: range != nil)
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier(zonesIdentifier)
                 }
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(sectionIdentifier)
         }
     }
 
@@ -111,8 +128,8 @@ struct HeartRateSummarySection: View {
                 .accessibilityLabel(accessibilitySummary)
             if let averageBpm {
                 Text("\(averageBpm) BPM AVG")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.danger)
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(look.heartRate)
                     .monospacedDigit()
                     .accessibilityIdentifier("heartRateAverageCaption")
             }
@@ -134,8 +151,7 @@ struct HeartRateSummarySection: View {
                     xEnd: .value("To", Double(slot.endSeconds) - inset),
                     yStart: .value("Low", Double(slot.low) - 0.5),
                     yEnd: .value("High", Double(slot.high) + 0.5))
-                .foregroundStyle(
-                    LinearGradient(colors: [Theme.accent, Theme.danger], startPoint: .bottom, endPoint: .top))
+                .foregroundStyle(look.heartRate)
                 .cornerRadius(1)
             }
         }
@@ -144,12 +160,12 @@ struct HeartRateSummarySection: View {
         .chartXAxis {
             AxisMarks(values: timeTicks) { value in
                 AxisGridLine(stroke: StrokeStyle(lineWidth: 1))
-                    .foregroundStyle(Theme.hairline)
+                    .foregroundStyle(look.hairline)
                 AxisValueLabel(anchor: .topLeading) {
                     if let seconds = value.as(Double.self), labelledTicks.contains(seconds) {
                         Text(clockLabel(elapsed: seconds))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .font(.system(.caption2, weight: .semibold))
+                            .foregroundStyle(look.textTertiary)
                     }
                 }
             }
@@ -160,8 +176,8 @@ struct HeartRateSummarySection: View {
                 AxisValueLabel {
                     if let bpm = value.as(Double.self) {
                         Text("\(Int(bpm))")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+                            .font(.system(.caption2, weight: .semibold))
+                            .foregroundStyle(look.textTertiary)
                             .monospacedDigit()
                     }
                 }

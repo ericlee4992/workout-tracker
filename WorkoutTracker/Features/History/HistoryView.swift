@@ -1,6 +1,8 @@
 import SwiftData
 import SwiftUI
 
+/// The History tab (Floodlight redesign ticket 05): the month card over the workouts grouped by
+/// week, each week one panel. A native `List`, so rows keep their swipe-to-delete.
 struct HistoryView: View {
     /// Only finished workouts are history; the active one (finishedAt nil)
     /// never appears here.
@@ -8,12 +10,17 @@ struct HistoryView: View {
         filter: #Predicate<Workout> { $0.finishedAt != nil },
         sort: \Workout.startedAt, order: .reverse)
     private var workouts: [Workout]
+    @Query private var allPreferences: [AppPreferences]
     /// C2: a workout the presenter wants opened — "View in History" on the
     /// post-finish receipt. Consumed (set back to nil) once pushed, so the
     /// same workout can be opened again later.
     @Binding private var target: Workout?
+    /// The empty screen's one command: the Workout tab's Start Lifting.
+    private var onStartLifting: () -> Void
     @State private var path: [Workout] = []
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     /// The workout a swipe is proposing to delete.
     @State private var confirmingDelete: Workout?
     /// Milestone 9, ticket 03: the calendar sheet, and the session it chose.
@@ -21,6 +28,16 @@ struct HistoryView: View {
     /// while a sheet is still presented lands on the list under the sheet.
     @State private var showCalendar = false
     @State private var calendarPick: Workout?
+    /// Each row's derived marks, rebuilt when history changes — not per render: the new-best
+    /// counts read every scope's past.
+    @State private var facts: [UUID: HistoryWorkoutFacts] = [:]
+    /// Scrolled past the large title: the inline "History" takes over in the bar.
+    @State private var titleInBar = false
+
+    init(target: Binding<Workout?> = .constant(nil), onStartLifting: @escaping () -> Void = {}) {
+        _target = target
+        self.onStartLifting = onStartLifting
+    }
 
     private func deleteConfirmedWorkout() {
         defer { confirmingDelete = nil }
@@ -28,90 +45,63 @@ struct HistoryView: View {
         modelContext.delete(workout)
         do { try modelContext.save() }
         catch { assertionFailure("Failed to delete workout: \(error)") }
+        rebuildFacts()
     }
 
-    init(target: Binding<Workout?> = .constant(nil)) {
-        _target = target
+    /// The app's default weight unit (D2/T7 precedence, app level) — the unit of every row's volume.
+    private var appUnit: WeightUnit {
+        UnitPrecedence.defaultUnit(
+            machineUnit: nil, gymUnit: nil,
+            appPreference: AppPreferences.canonical(of: allPreferences)?.unitPreference)
     }
 
-    private var byMonth: [(month: String, workouts: [Workout])] {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
-        var order: [String] = []
-        var groups: [String: [Workout]] = [:]
-        for workout in workouts {
-            let key = formatter.string(from: workout.startedAt)
-            if groups[key] == nil { order.append(key) }
-            groups[key, default: []].append(workout)
-        }
-        return order.map { ($0, groups[$0] ?? []) }
+    /// Changes whenever a row's facts could: a workout added or deleted, or any history edit
+    /// (every edit stamps `historyEditedAt`, D47).
+    private var historySignature: [String] {
+        workouts.map { "\($0.id)|\($0.historyEditedAt?.timeIntervalSince1970 ?? 0)" }
+    }
+
+    private func rebuildFacts() {
+        let finished = workouts.filter { !$0.isDeleted }
+        let entries = (try? SetBadgeMath.finishedEntries(in: modelContext)) ?? []
+        facts = HistoryOverviewMath.facts(for: finished, finishedEntries: entries)
+    }
+
+    private var allFacts: [HistoryWorkoutFacts] {
+        workouts.compactMap { facts[$0.id] }
     }
 
     var body: some View {
         NavigationStack(path: $path) {
             Group {
                 if workouts.isEmpty {
-                    // UI redesign ticket 06: the symbol illustration; the two
-                    // strings are the ones this screen always had.
-                    VStack(spacing: 0) {
-                        EmptyState(title: "No workouts yet", symbol: "clock.arrow.circlepath")
-                        Text("Finished workouts show up here.")
-                            .font(.subheadline)
-                            .foregroundStyle(Theme.secondary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Theme.background)
+                    emptyState
                 } else {
-                    List {
-                        ForEach(byMonth, id: \.month) { group in
-                            Section {
-                                ForEach(group.workouts) { workout in
-                                    // A Button rather than a NavigationLink so
-                                    // the card owns its whole row (a List draws
-                                    // a link's chevron outside the label);
-                                    // the push goes through the same path the
-                                    // calendar and the receipt use.
-                                    Button {
-                                        path.append(workout)
-                                    } label: {
-                                        WorkoutSummaryRow(workout: workout)
-                                    }
-                                    .buttonStyle(.plain)
-                                    .accessibilityIdentifier("historyWorkoutRow")
-                                    .listRowBackground(Color.clear)
-                                    .listRowSeparator(.hidden)
-                                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
-                                    // Swipe to delete, requested 2026-08-26.
-                                    // Still CONFIRMS: this is the only copy of
-                                    // the training history, and a swipe is far
-                                    // easier to do by accident than a menu.
-                                    .swipeActions(edge: .trailing) {
-                                        Button(role: .destructive) {
-                                            confirmingDelete = workout
-                                        } label: {
-                                            Label("Delete", systemImage: "trash")
-                                        }
-                                        .tint(Theme.danger)
-                                    }
-                                }
-                            } header: {
-                                Text(group.month)
-                                    .font(Theme.label)
-                                    .foregroundStyle(Theme.secondary)
-                                    .textCase(.uppercase)
-                            }
-                        }
-                    }
-                    .scrollContentBackground(.hidden)
-                    .background(Theme.background)
+                    list
                 }
             }
+            .lookScreenBackground()
             .navigationTitle("History")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(look.ground, for: .navigationBar)
+            .toolbarBackgroundVisibility(titleInBar ? .visible : .hidden, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Calendar", systemImage: "calendar") { showCalendar = true }
-                        .accessibilityIdentifier("historyCalendar")
+                ToolbarItem(placement: .principal) {
+                    Text("History")
+                        .font(look.font.navTitle)
+                        .foregroundStyle(look.textPrimary)
+                        .lineLimit(1)
+                        .opacity(titleInBar ? 1 : 0)
+                        .accessibilityHidden(!titleInBar)
+                }
+                // Nothing to show on a calendar yet: the button arrives with the first workout
+                // (the user's decision, 2026-09-27).
+                if !workouts.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Calendar", systemImage: "calendar") { showCalendar = true }
+                            .foregroundStyle(look.textPrimary)
+                            .accessibilityIdentifier("historyCalendar")
+                    }
                 }
             }
             .sheet(isPresented: $showCalendar, onDismiss: {
@@ -124,28 +114,9 @@ struct HistoryView: View {
                     path = [destination]
                 }
             }) {
-                HistoryCalendarSheet(
-                    // `workouts` is already the finished-only query.
-                    calendar: WorkoutCalendar(startedAt: workouts.map(\.startedAt))
-                ) { day in
-                    calendarPick = WorkoutCalendar.workoutToOpen(on: day, among: workouts)
+                HistoryCalendarSheet(workouts: workouts, facts: facts, appUnit: appUnit) { workout in
+                    calendarPick = workout
                     showCalendar = false
-                }
-            }
-            .confirmationDialog(
-                "Delete this workout?",
-                isPresented: Binding(
-                    get: { confirmingDelete != nil },
-                    set: { if !$0 { confirmingDelete = nil } }),
-                titleVisibility: .visible
-            ) {
-                Button("Delete Workout", role: .destructive) { deleteConfirmedWorkout() }
-                Button("Cancel", role: .cancel) { confirmingDelete = nil }
-            } message: {
-                if let workout = confirmingDelete, !workout.isDeleted {
-                    let impact = HistoryEditing.impact(ofDeleting: workout)
-                    let cardio = workout.recordedCardio.isEmpty ? "" : " Recorded cardio and any routes will also be deleted."
-                    Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s") will be permanently deleted. Records are recalculated without them.\(cardio)")
                 }
             }
             .navigationDestination(for: Workout.self) { workout in
@@ -157,6 +128,122 @@ struct HistoryView: View {
         // change — otherwise "View in History" would land on the list.
         .onAppear(perform: openTarget)
         .onChange(of: target?.id) { _, _ in openTarget() }
+        .onAppear(perform: rebuildFacts)
+        .onChange(of: historySignature) { _, _ in rebuildFacts() }
+    }
+
+    // MARK: List
+
+    private var list: some View {
+        let now = Date.now
+        let sections = HistoryOverviewMath.sections(allFacts, now: now)
+        let byID = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        let thisMonth = Calendar.current.dateInterval(of: .month, for: now)?.start ?? now
+        return List {
+            LookNavTitle("History")
+                .historyPageRow(top: 2, bottom: 6)
+            HistoryMonthCard(
+                summary: HistoryOverviewMath.monthSummary(allFacts, month: now),
+                days: HistoryOverviewMath.days(inMonthOf: now, facts: allFacts, now: now),
+                onOpenCalendar: { showCalendar = true })
+                .historyPageRow(top: 16, bottom: 8)
+            ForEach(Array(sections.enumerated()), id: \.element.id) { index, month in
+                if index > 0 || month.month != thisMonth {
+                    HistoryMonthBreak(summary: HistoryOverviewMath.monthSummary(allFacts, month: month.month))
+                        .historyPageRow(top: 24, bottom: 0)
+                }
+                ForEach(month.weeks) { week in
+                    HistoryWeekHeader(title: week.title, count: week.workoutIDs.count)
+                        .historyPageRow(top: 22, bottom: 10)
+                    let rows = week.workoutIDs.compactMap { byID[$0] }
+                    ForEach(Array(rows.enumerated()), id: \.element.id) { rowIndex, workout in
+                        // The date only on a day's first row; a second workout that day leaves
+                        // the column empty.
+                        let sameDay = rowIndex > 0
+                            && Calendar.current.isDate(rows[rowIndex - 1].startedAt, inSameDayAs: workout.startedAt)
+                        row(workout, dateStyle: sameDay ? .continued : .shown)
+                            .historyPanelRow(first: rowIndex == 0, last: rowIndex == rows.count - 1,
+                                             separatorInset: dynamicTypeSize.isAccessibilitySize ? 16 : 70)
+                    }
+                }
+            }
+            Color.clear.frame(height: 24).historyPageRow()
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+        .environment(\.defaultMinListRowHeight, 0)
+        .onScrollGeometryChange(for: Bool.self) { geo in
+            geo.contentOffset.y + geo.contentInsets.top > (dynamicTypeSize.isAccessibilitySize ? 70 : 46)
+        } action: { _, past in
+            withAnimation(.easeInOut(duration: 0.18)) { titleInBar = past }
+        }
+        .confirmationDialog(
+            "Delete this workout?",
+            isPresented: Binding(
+                get: { confirmingDelete != nil },
+                set: { if !$0 { confirmingDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Workout", role: .destructive) { deleteConfirmedWorkout() }
+            Button("Cancel", role: .cancel) { confirmingDelete = nil }
+        } message: {
+            if let workout = confirmingDelete, !workout.isDeleted {
+                let impact = HistoryEditing.impact(ofDeleting: workout)
+                let cardio = workout.recordedCardio.isEmpty ? "" : " Recorded cardio and any routes will also be deleted."
+                Text("\(impact.sets) set\(impact.sets == 1 ? "" : "s") across \(impact.exercises) exercise\(impact.exercises == 1 ? "" : "s") will be permanently deleted. Records are recalculated without them.\(cardio)")
+            }
+        }
+    }
+
+    private func row(_ workout: Workout, dateStyle: HistoryRowDateStyle) -> some View {
+        // A Button rather than a NavigationLink so the row owns its whole width (a List draws a
+        // link's chevron outside the label); the push goes through the same path the calendar
+        // and the receipt use.
+        Button {
+            path.append(workout)
+        } label: {
+            HistoryWorkoutRow(workout: workout, facts: facts[workout.id], appUnit: appUnit, dateStyle: dateStyle)
+        }
+        .buttonStyle(HistoryRowPressStyle())
+        .accessibilityIdentifier("historyWorkoutRow")
+        // Swipe to delete, requested 2026-08-26. Still CONFIRMS: this is the only copy of the
+        // training history, and a swipe is far easier to do by accident than a menu.
+        .swipeActions(edge: .trailing) {
+            Button(role: .destructive) {
+                confirmingDelete = workout
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .tint(look.destructive)
+        }
+    }
+
+    // MARK: Empty
+
+    /// Empty is an invitation: the unlit ring, the existing title, and one command.
+    private var emptyState: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                LookNavTitle("History")
+                VStack(spacing: 22) {
+                    HistoryEmptyMark(size: 132)
+                    Text("No workouts yet")
+                        .font(look.font.title2)
+                        .foregroundStyle(look.textPrimary)
+                        .multilineTextAlignment(.center)
+                    StartCapsule(title: "Start Lifting", symbol: "figure.strengthtraining.traditional",
+                                 action: onStartLifting)
+                        .fixedSize()
+                        .padding(.top, 6)
+                        .accessibilityIdentifier("historyStartLifting")
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 90)
+            }
+            .padding(.horizontal, look.space.margin)
+            .padding(.top, 2)
+        }
+        .scrollIndicators(.hidden)
     }
 
     /// C2: opens the requested workout's detail rather than merely selecting
@@ -170,82 +257,15 @@ struct HistoryView: View {
     }
 }
 
-/// E1–E4 (ticket 17): titled by what was actually done, with the gym demoted
-/// to a subtitle and the unit badge sitting inline with the stats it
-/// qualifies — so every row has the same left edge whether or not it has one.
-/// UI redesign ticket 06: a card led by the day (the month is the section
-/// header), the same strings as before.
-private struct WorkoutSummaryRow: View {
-    var workout: Workout
-    /// At accessibility sizes the day tile sits ABOVE the text instead of
-    /// beside it, and the title may wrap: side by side, "Seated Chest Press"
-    /// truncated to "Seated Che…" at AccessibilityL (codex-review-06).
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+/// Rows highlight with the pressed fill (no scale, so lists don't wobble).
+struct HistoryRowPressStyle: ButtonStyle {
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    var body: some View {
-        let completedSets = workout.completedSets
-        let stacked = dynamicTypeSize.isAccessibilitySize
-        let layout = stacked
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Theme.Space.medium))
-            : AnyLayout(HStackLayout(spacing: Theme.Space.medium))
-        HStack(spacing: Theme.Space.medium) {
-            layout {
-            VStack(spacing: 0) {
-                Text(workout.startedAt, format: .dateTime.day())
-                    .font(Theme.stat)
-                    .monospacedDigit()
-                Text(workout.startedAt, format: .dateTime.weekday(.abbreviated))
-                    .font(Theme.label)
-                    .foregroundStyle(Theme.secondary)
-                    .textCase(.uppercase)
-            }
-            // Minimums, not a fixed frame: the day and weekday scale with
-            // Dynamic Type and the tile grows with them (codex-review-06).
-            .padding(.horizontal, Theme.Space.small)
-            .padding(.vertical, Theme.Space.xs)
-            .frame(minWidth: 52, minHeight: 56)
-            .background(Theme.fill, in: RoundedRectangle(cornerRadius: Theme.Radius.inner))
-            VStack(alignment: .leading, spacing: 4) {
-                Text(workout.historyTitle)
-                    .font(Theme.cardTitle)
-                    .lineLimit(stacked ? 3 : 1)
-                Label(workout.historyGymName ?? "No gym", systemImage: "mappin.and.ellipse")
-                    .font(.caption)
-                    .foregroundStyle(Theme.secondary)
-                HStack(spacing: 6) {
-                    Text(workout.historyStatsLine)
-                        .font(.caption)
-                        .foregroundStyle(Theme.tertiary)
-                    // Derived from the actual logged sets — never just the gym
-                    // default (SPEC "Units").
-                    if let badge = WorkoutUnitBadge.derive(fromCompleted: completedSets) {
-                        WorkoutUnitBadgeView(badge: badge)
-                    }
-                }
-            }
-            }
-            Spacer(minLength: 0)
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.tertiary)
-        }
-        .padding(Theme.Space.inset)
-        .card()
-        .contentShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-    }
-}
-
-/// kg/lb reuse the standard unit badge; Mixed gets its own tint.
-struct WorkoutUnitBadgeView: View {
-    var badge: WorkoutUnitBadge
-
-    var body: some View {
-        switch badge {
-        case .single(let unit):
-            UnitBadge(unit: unit)
-        case .mixed:
-            LegacyChip(tint: Theme.unitMixed) { Text(badge.label) }
-        }
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? look.pressedFill : Color.clear)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
 

@@ -37,6 +37,14 @@ struct StartWorkoutView: View {
     @State private var titleInBar = false
     /// Called with the workout to present — freshly started or resumed.
     var onWorkoutStarted: (Workout) -> Void
+    /// Set by History's empty screen ("Start Lifting"): runs this tab's own Start Lifting flow
+    /// once, then resets (ticket 05).
+    @Binding var startLiftingRequest: Bool
+
+    init(onWorkoutStarted: @escaping (Workout) -> Void, startLiftingRequest: Binding<Bool> = .constant(false)) {
+        self.onWorkoutStarted = onWorkoutStarted
+        _startLiftingRequest = startLiftingRequest
+    }
 
     private var session: WorkoutSession { WorkoutSession(context: modelContext) }
 
@@ -111,7 +119,17 @@ struct StartWorkoutView: View {
                 TemplateEditorSheet(template: editingTemplate)
             }
             .onAppear(perform: restoreSelectedGym)
+            .onAppear(perform: consumeStartLiftingRequest)
+            .onChange(of: startLiftingRequest) { _, _ in consumeStartLiftingRequest() }
         }
+    }
+
+    private func consumeStartLiftingRequest() {
+        guard startLiftingRequest else { return }
+        startLiftingRequest = false
+        // A running workout is resumed from this tab instead; Start stays the Start pair's.
+        guard activeWorkouts.isEmpty else { return }
+        startRequest = WorkoutStartRequest(template: nil)
     }
 
     // MARK: Start / Resume

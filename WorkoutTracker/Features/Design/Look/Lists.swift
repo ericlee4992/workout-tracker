@@ -473,13 +473,17 @@ struct SheetHeader: View {
     var cancelTitle = "Cancel"
     var commitTitle = "Save"
     var commitEnabled = true
+    /// The commit button's accessibility identifier (UI tests find Save by it).
+    var commitIdentifier: String?
     var cancel: () -> Void = {}
     var commit: () -> Void = {}
     @Environment(\.look) private var look
     @ScaledMetric(relativeTo: .body) private var height: CGFloat = 44
 
     init(cancel: @escaping () -> Void = {}, title: String, commit: @escaping () -> Void = {},
-         cancelTitle: String = "Cancel", commitTitle: String = "Save", commitEnabled: Bool = true) {
+         cancelTitle: String = "Cancel", commitTitle: String = "Save", commitEnabled: Bool = true,
+         commitIdentifier: String? = nil) {
+        self.commitIdentifier = commitIdentifier
         self.cancel = cancel
         self.title = title
         self.commit = commit
@@ -514,6 +518,7 @@ struct SheetHeader: View {
                 .disabled(!commitEnabled)
                 .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                 .accessibilityShowsLargeContentViewer { Text(commitTitle) }
+                .accessibilityIdentifier(commitIdentifier ?? commitTitle)
             }
         }
         .padding(.horizontal, look.space.margin)

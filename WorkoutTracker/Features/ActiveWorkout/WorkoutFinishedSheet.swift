@@ -75,24 +75,11 @@ struct WorkoutFinishedSheet: View {
                     if let comparison = receipt?.comparison {
                         comparisonSection(comparison).finishRow(top: 18, bottom: 8)
                     }
-                    // Milestone 9, ticket 05: the graph, when a series exists; time in zones
-                    // directly below it (the approved receipt).
-                    if summary.hasHeartRateSeries, let interval = summary.heartRateSeriesIntervalSeconds {
-                        HeartRateSummarySection(
-                            series: summary.heartRateSeries,
-                            low: summary.heartRateSeriesLow,
-                            high: summary.heartRateSeriesHigh,
-                            intervalSeconds: interval,
-                            durationSeconds: Int(summary.duration.rounded(.up)),
-                            startedAt: summary.date,
-                            averageBpm: summary.averageHeartRate,
-                            maxBpm: summary.maxHeartRate,
-                            style: .receipt)
+                    // Milestone 9, ticket 05: the graph, when a series exists, with time in zones
+                    // under it in the same plate (ticket 05 of the redesign).
+                    if summary.hasHeartRateSeries || summary.zoneSeconds.contains(where: { $0 > 0 }) {
+                        HeartRateSummarySection(summary: summary)
                             .finishRow(top: 18, bottom: 8)
-                    }
-                    if summary.zoneSeconds.contains(where: { $0 > 0 }) {
-                        ZoneTimeCard(seconds: summary.zoneSeconds)
-                            .finishRow(top: 8, bottom: 8)
                     }
                     if let workout = savedWorkout, !workout.recordedCardio.isEmpty {
                         Section {
@@ -229,27 +216,15 @@ struct WorkoutFinishedSheet: View {
     /// active / total calories, average / max heart rate. Every tile is OMITTED, not zeroed,
     /// when its fact is missing (D44); one column at accessibility sizes.
     private func statsSection(_ summary: WorkoutSummary) -> some View {
-        var tiles: [(FinishTile, String)] = [
-            (FinishTile(kind: .workoutTime, value: Format.duration(seconds: Int(summary.duration)), unit: ""), "summaryTime"),
-        ]
-        if summary.totalVolumeKg > 0 {
-            // In the app's own unit, plain (D52).
-            let volume = WeightMath.convert(summary.totalVolumeKg, from: .kg, to: displayUnit)
-            // Grouped, with the volume's established precision (≤ 2 decimals, D25): 7.5, not 8.
-            tiles.append((FinishTile(kind: .totalVolume, value: LookFormat.groupedDecimal(volume), unit: displayUnit.label), "summaryVolume"))
-        }
-        if let calories = summary.activeEnergyKilocalories {
-            tiles.append((FinishTile(kind: .activeCalories, value: "\(Int(calories.rounded()))", unit: "cal"), "summaryCalories"))
-        }
-        // Total = active + basal, only when the system gave both (D9/D25).
-        if let total = summary.totalEnergyKilocalories {
-            tiles.append((FinishTile(kind: .totalCalories, value: "\(Int(total.rounded()))", unit: "cal"), "summaryTotalCalories"))
-        }
-        if let average = summary.averageHeartRate {
-            tiles.append((FinishTile(kind: .averageHeartRate, value: "\(average)", unit: "bpm"), "summaryAvgHR"))
-        }
-        if let maximum = summary.maxHeartRate {
-            tiles.append((FinishTile(kind: .maxHeartRate, value: "\(maximum)", unit: "bpm"), "summaryMaxHR"))
+        let tiles = FinishTile.summaryTiles(summary, unit: displayUnit) { kind in
+            switch kind {
+            case .workoutTime: "summaryTime"
+            case .totalVolume: "summaryVolume"
+            case .activeCalories: "summaryCalories"
+            case .totalCalories: "summaryTotalCalories"
+            case .averageHeartRate: "summaryAvgHR"
+            case .maxHeartRate: "summaryMaxHR"
+            }
         }
         return VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Workout details")

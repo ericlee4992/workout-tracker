@@ -100,6 +100,38 @@ struct FinishHeader: View {
 
 // MARK: - Stat tiles
 
+extension FinishTile {
+    /// Workout details for a summary, in the user's order (ticket 17) — time / volume, active /
+    /// total calories, average / max heart rate — each OMITTED, not zeroed, when its fact is
+    /// missing (D44). Volume in `unit`, plain (D52), grouped with its precision (≤ 2 decimals,
+    /// D25: 7.5, not 8). Shared by the receipt and History's detail; `identifier` names each tile.
+    static func summaryTiles(_ summary: WorkoutSummary, unit: WeightUnit,
+                             identifier: (FinishTileKind) -> String) -> [(tile: FinishTile, id: String)] {
+        var tiles: [FinishTile] = [
+            FinishTile(kind: .workoutTime, value: Format.duration(seconds: Int(summary.duration)), unit: ""),
+        ]
+        if summary.totalVolumeKg > 0 {
+            let volume = WeightMath.convert(summary.totalVolumeKg, from: .kg, to: unit)
+            tiles.append(FinishTile(kind: .totalVolume, value: LookFormat.groupedDecimal(volume), unit: unit.label))
+        }
+        if let calories = summary.activeEnergyKilocalories {
+            tiles.append(FinishTile(kind: .activeCalories, value: "\(Int(calories.rounded()))", unit: "cal"))
+        }
+        // Total = active + basal, only when the system gave both (D9/D25).
+        if let total = summary.totalEnergyKilocalories {
+            tiles.append(FinishTile(kind: .totalCalories, value: "\(Int(total.rounded()))", unit: "cal"))
+        }
+        if let average = summary.averageHeartRate {
+            tiles.append(FinishTile(kind: .averageHeartRate, value: "\(average)", unit: "bpm"))
+        }
+        if let maximum = summary.maxHeartRate {
+            tiles.append(FinishTile(kind: .maxHeartRate, value: "\(maximum)", unit: "bpm"))
+        }
+        return tiles.map { ($0, identifier($0.kind)) }
+    }
+}
+
+
 /// The paired tiles as one scoreboard panel split by hairlines; one column at AX sizes. Each
 /// tile carries its identifier (`summaryTime` …).
 struct FinishTileGrid: View {
