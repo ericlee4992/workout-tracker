@@ -30,19 +30,21 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   (restyled). Verification: `gyms-ui-1`..`gyms-ui-5` (final runs exit 0; every targeted test passed
   in final form); captures `captures/06/`. Also fixed: the pre-existing iOS 27 CoreLoop :252
   model-picker failure, and a clean-build failure in ticket 05's progress view.
-- **Ticket 07** (Scan, S01–S07): **implemented and verified; Codex review 07 running** (2026-09-27).
-  Branch `ericlee4992/redesign-floodlight-scan` (pushed, stacked on the gyms tip `d45d5c5`),
-  scratch checkout `/tmp/wt-floodlight/scan`. Record: `issues/07-scan.md` on that branch (scope,
-  verification, progress). User decisions 2026-09-27: Scan Machine (gym page, routine setup)
-  **adds directly** with an Added step (the form's own scan still fills the form); photo consent
-  stays **before** the camera; ambiguous stays D56 (listed, no pick); no picker Scan pill / scope
-  alert. Verified so far: `scan-unit-2` exit 0 (49/49), `scan-ui-1` exit 0 (7/7), `scan-ui-2`
-  17/19 (two AX correction captures hit a layout loop, fixed); `scan-ui-4`/`-5`/`-7` and
-  `scan-unit-3` (66/66, fresh derived data): **every targeted test passed in final form** except
-  two AX AI-routine-form AskAI tests that fail identically on the unchanged gyms tip
-  (`scan-baseline-1`, pre-existing). Captures `captures/07/` (90). Scan tip `b5a93ea`.
-  **Codex review 07 running** in Orca terminal "Codex review — Floodlight 07"
-  (`term_5638fd81-1b42-4b4d-9d5e-e229264740a4`); report `codex-review-07.md` on the scan branch.
+- **Ticket 07** (Scan — Scan Machine sheet, Read Label, Correct Model): branch
+  `ericlee4992/redesign-floodlight-scan` (pushed, tip `7655aa7`, stacked on the gyms tip
+  `d45d5c5`), scratch checkout `/tmp/wt-floodlight/scan`. **Codex clear after 2 rounds**
+  (`codex-review-07b.md`; review terminal closed). Record: `issues/07-scan.md` on that branch.
+  User decisions 2026-09-27: Scan Machine (gym page, routine setup) **adds directly** with an
+  Added step (the form's own scan still fills the form); photo consent stays **before** the
+  camera; ambiguous stays D56 (listed, no pick); no picker Scan pill / scope alert. Verification:
+  `scan-unit-3` (66/66, fresh derived data), FloodlightScan 19/19 + 3 flows, AskAI /
+  ScanMachineLabel / CoreLoop / GymsFlows / MachineDeletion; captures `captures/07/` (90).
+  Fixed along the way: a correction-timeline layout loop at AX sizes (also in the prototype).
+  **Open, not ticket 07's:** two AX AI-routine-form AskAI tests fail identically on the gyms tip
+  (`scan-baseline-1`) — for the AI routine area or the release-candidate suite. Record user
+  decision 1 (scan confirmation moves to the sheet's Add) with the D54 entry before merge.
+- **Next:** ticket 08 — Exercises tab + presets (ticket 01 area order item 7), in a fresh
+  session, stacked on the scan tip `7655aa7`.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
