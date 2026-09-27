@@ -128,9 +128,42 @@ WT-Floodlight (iPhone 15 Pro Max, iOS 27.0). Logs and result bundles: `/tmp/wt-f
 8. **Low — AXL assertion.** Now asserts Ask AI is hittable and clear of the tab bar.
 9. **Low — Add Set invented a target.** It copies the last slot as-is, "no target" included.
 
-Verification (WT-Floodlight): batch 3 `area1-ui-3` — `WeekSummaryTests` 6/6; UI 9 of 10 passed
+Verification (WT-Floodlight): batch 3 `area1-ui-3` — `WeekSummaryTests` 6/6; UI 8 of 9 passed
+(result bundle: 15 tests, 14 passed)
 (`testSupersetSurvivesReorderAndSave`, `testDirtyCancelAsksBeforeDiscarding`,
 `testRestBackToDefaultIsSaved`, `test04_startLargeText`, `test04_startTemplates`, both
 `TemplateDetailUITests`, `AskAIUITests.testExistingTemplateDefaultRestDefault`); the appearance
 test failed because it launched with `-appearance system`, which (as a launch argument) overrides
 the stored setting — fixed; re-run `area1-ui-4` passed. Captures `area1-captures`: 4/4 passed.
+
+## Codex review 02b — response (round 2)
+
+[Report](../codex-review-02b.md): not clear, 3 medium + 1 low. All addressed:
+
+1. **Moved card joining another run.** `moving` now normalizes runs FIRST (separated runs that
+   share an id become distinct), then: beside a member of its own run → stays; dropped between
+   two members of one run → joins it (the pair is not silently broken; the chain shows it);
+   elsewhere → alone. New unit tests `TemplateEditorMoveTests` (reorder a pair; drag away;
+   drop into a pair; separated runs with one id — the reviewer's A/B/X/C/D case — both ways).
+   Decision to flag: dropping INTO a pair joins it rather than splitting it.
+2. **Digit rolls.** The editor summary and `NumberStepperPill` drop the numeric transition and
+   animation under Reduce Motion. (Reduce Motion itself is not exercised by a UI test: the
+   simulator setting is not toggled by the suite; verified by inspection.)
+3. **Coverage.** Added `testUnlinkingBeforeSaveLeavesNoSuperset`,
+   `testEditorSupersetStartsLinkedInTheWorkout` (both members carry the A/B badge in the started
+   workout), and the appearance test now also selects System (follows the light simulator),
+   and checks the workout's full-screen cover and the rename alert over it in Dark.
+4. **Count.** Corrected above (8 of 9 UI; 15/14 in the bundle).
+
+Verification `area1-ui-5` (test-without-building on the round-2 build): unit
+`TemplateEditorMoveTests` + `WeekSummaryTests` 10/10; UI 4/4 (`testAppearanceReachesScreensAndSheets`,
+`testEditorSupersetStartsLinkedInTheWorkout`, `testSupersetSurvivesReorderAndSave`,
+`testUnlinkingBeforeSaveLeavesNoSuperset`); exit 0.
+
+Pre-existing failures found while testing ticket 03 (all fail identically on untouched `main`
+a0364f2, `base-5.log`; to fix in their own areas): CoreLoop
+`testCreatingAnExerciseMidWorkoutLogsASetAndReachesHistory` and both `ExercisePresetUITests`
+(the Exercises tab's search field is not found), CoreLoop
+`testModelPickerFiltersAndSearchesDownToOneModel` (Gyms model-picker type submenu), and
+`HeartRateSummaryUITests.testFinishShowsTheChartAndHistoryShowsItAgain` (History detail's
+heart-rate section).

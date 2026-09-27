@@ -258,8 +258,8 @@ struct TemplateEditorSheet: View {
             Text(parts.joined(separator: " · "))
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(look.textSecondary)
-                .contentTransition(.numericText())
-                .animation(.snappy, value: sets)
+                .contentTransition(reduceMotion ? .identity : .numericText())
+                .animation(reduceMotion ? nil : .snappy, value: sets)
         }
     }
 
@@ -350,18 +350,22 @@ struct TemplateEditorSheet: View {
         }
     }
 
-    /// Moves one card (drag and the VoiceOver Move up / Move down actions share this rule, D48):
-    /// a card that lands beside a member of its own superset stays in it — reordering A and B
-    /// keeps the pair; dragged away from its group, the exercise travels alone.
+    /// Moves one card (drag and the VoiceOver Move up / Move down actions share this rule, D48).
+    /// Runs are made distinct first (a template can carry one group id in two separated runs),
+    /// then: a card that lands beside a member of its own run stays in it (reordering A and B
+    /// keeps the pair); a card dropped between two members of one run joins that run (the pair
+    /// is not silently broken, and the chain shows the three); anywhere else it travels alone.
     static func moving(_ items: [EditorItem], from: Int, to: Int) -> [EditorItem] {
         guard items.indices.contains(from), from != to else { return items }
-        var result = items
+        var result = normalizedSupersets(items)
         var moved = result.remove(at: from)
         let index = min(max(0, to), result.count)
-        if let group = moved.supersetGroupID {
-            let before = index > 0 ? result[index - 1].supersetGroupID : nil
-            let after = index < result.count ? result[index].supersetGroupID : nil
-            if before != group && after != group { moved.supersetGroupID = nil }
+        let before = index > 0 ? result[index - 1].supersetGroupID : nil
+        let after = index < result.count ? result[index].supersetGroupID : nil
+        if let before, before == after {
+            moved.supersetGroupID = before
+        } else if let group = moved.supersetGroupID, before != group, after != group {
+            moved.supersetGroupID = nil
         }
         result.insert(moved, at: index)
         return normalizedSupersets(result)

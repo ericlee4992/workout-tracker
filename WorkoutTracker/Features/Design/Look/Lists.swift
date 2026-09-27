@@ -293,6 +293,7 @@ struct NumberStepperPill: View {
     var step: Int = 1
     var format: (Int) -> String = { "\($0)" }
     @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     init(value: Binding<Int>, range: ClosedRange<Int>, step: Int = 1, format: @escaping (Int) -> String = { "\($0)" }) {
         _value = value
@@ -307,9 +308,9 @@ struct NumberStepperPill: View {
             Text(format(value))
                 .font(look.id == .floodlight ? Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit() : look.font.fieldNumber)
                 .foregroundStyle(look.textPrimary)
-                .contentTransition(.numericText(value: Double(value)))
+                .contentTransition(reduceMotion ? .identity : .numericText(value: Double(value)))
                 .frame(minWidth: 56)
-                .animation(.snappy, value: value)
+                .animation(reduceMotion ? nil : .snappy, value: value)
             stepButton("plus", enabled: value + step <= range.upperBound) { value = min(range.upperBound, value + step) }
         }
         .background(fill, in: Capsule())

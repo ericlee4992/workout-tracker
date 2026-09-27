@@ -73,6 +73,39 @@ final class FloodlightWorkoutTabUITests: XCTestCase {
         XCTAssertTrue(superset("A").exists && superset("B").exists, "the superset survived the reorder")
     }
 
+    func testUnlinkingBeforeSaveLeavesNoSuperset() {
+        launch()
+        newTemplate("Loose", exercises: ["Bench Press", "Lat Pulldown"])
+        app.buttons["Superset with next"].firstMatch.tap()
+        let unlink = app.buttons["Break superset"].firstMatch
+        XCTAssertTrue(unlink.waitForExistence(timeout: 5))
+        unlink.tap()
+        XCTAssertTrue(app.buttons["Superset with next"].firstMatch.waitForExistence(timeout: 5))
+        app.navigationBars.buttons["Save"].tap()
+        let tile = any("templateTile.Loose")
+        XCTAssertTrue(tile.waitForExistence(timeout: 5))
+        tile.tap()
+        XCTAssertTrue(any("templateExercise.Lat Pulldown").waitForExistence(timeout: 5))
+        XCTAssertFalse(superset("A").exists, "no superset was saved")
+    }
+
+    /// The superset the editor made starts as one in the workout (D48: its members carry the
+    /// A/B badge there, and rest waits for the last member).
+    func testEditorSupersetStartsLinkedInTheWorkout() {
+        launch()
+        newTemplate("Linked", exercises: ["Bench Press", "Lat Pulldown"])
+        app.buttons["Superset with next"].firstMatch.tap()
+        app.navigationBars.buttons["Save"].tap()
+        let tile = any("templateTile.Linked")
+        XCTAssertTrue(tile.waitForExistence(timeout: 5))
+        tile.tap()
+        app.buttons["startTemplate"].tap()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 10))
+        let badges = app.descendants(matching: .any).matching(identifier: "supersetBadge")
+        XCTAssertTrue(badges.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertEqual(badges.count, 2, "both members start in the superset")
+    }
+
     func testDirtyCancelAsksBeforeDiscarding() {
         launch()
         let new = app.buttons["New Template…"]
@@ -135,14 +168,16 @@ final class FloodlightWorkoutTabUITests: XCTestCase {
         let gear = app.buttons["openSettings"]
         XCTAssertTrue(gear.waitForExistence(timeout: 10))
         gear.tap()
-        for (choice, light) in [("Light", true), ("Dark", false)] {
+        // The simulator runs light: System follows it; Light and Dark override it.
+        for (choice, light) in [("Dark", false), ("System", true), ("Light", true), ("Dark", false)] {
             let picker = app.buttons["appearanceSetting"]
             XCTAssertTrue(picker.waitForExistence(timeout: 5))
             picker.tap()
             app.buttons[choice].firstMatch.tap()
             assertGround(light: light, "Settings in \(choice)")
         }
-        // Dark stays for the pushed detail, the editor sheet and the Settings sheet flows.
+        // Dark stays for the pushed detail, the editor sheet, the workout's full-screen cover and
+        // an alert over it.
         app.navigationBars.buttons.element(boundBy: 0).tap()
         let tile = any("templateTile.Whole Body")
         XCTAssertTrue(tile.waitForExistence(timeout: 5))
@@ -153,6 +188,31 @@ final class FloodlightWorkoutTabUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars.buttons["Save"].waitForExistence(timeout: 5))
         assertGround(light: false, "editor sheet in Dark")
         shoot("floodlight-02-editor-dark")
+        app.navigationBars.buttons["Cancel"].tap()
+        app.buttons["startTemplate"].tap()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 10))
+        assertGround(light: false, "workout cover in Dark")
+        app.buttons["workoutTitle"].tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
+        assertAlertIsDark()
+        shoot("floodlight-02-alert-dark")
+        app.alerts.buttons["Cancel"].tap()
+    }
+
+    /// The rename alert's panel, sampled at its centre: dark in Dark.
+    private func assertAlertIsDark() {
+        Thread.sleep(forTimeInterval: 0.6)
+        let alert = app.alerts.firstMatch.frame
+        let image = app.screenshot().image
+        guard let cg = image.cgImage, let data = cg.dataProvider?.data, let bytes = CFDataGetBytePtr(data) else {
+            return XCTFail("no pixels")
+        }
+        let scale = CGFloat(cg.width) / app.frame.width
+        // Just inside the panel's top edge, left of centre (clear of the title text).
+        let x = Int((alert.minX + 24) * scale), y = Int((alert.minY + 8) * scale)
+        let offset = y * cg.bytesPerRow + x * (cg.bitsPerPixel / 8)
+        let luminance = (Double(bytes[offset]) + Double(bytes[offset + 1]) + Double(bytes[offset + 2])) / (3 * 255)
+        XCTAssertLessThan(luminance, 0.45, "the alert should be dark in Dark, got \(luminance)")
     }
 
     /// Samples the screen just under the status bar: the ground is near-white in Light
