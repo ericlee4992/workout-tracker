@@ -1,7 +1,7 @@
 # 03 — Floodlight: the live lifting workout and its sheets
 
 Type: feature (part of [01](01-implement-redesign.md))
-Status: implemented; verification in progress; Codex review pending
+Status: resolved — Codex clear after 3 rounds (codex-review-03c.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: built on `ericlee4992/redesign-floodlight` after ticket 02.
 
