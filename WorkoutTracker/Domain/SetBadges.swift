@@ -17,29 +17,42 @@ import SwiftData
 
 enum SetBadge: Hashable { case newBest, firstTime }
 
+/// A set's mark and, for a new best, the incumbent it beat — a finished workout's set or an
+/// earlier set of this same workout.
+struct SetBadgeOutcome: Equatable {
+    var badge: SetBadge
+    /// The set that held the best until this one (history or this workout); nil for First time.
+    var previous: RecordSetInput?
+}
+
 enum SetBadgeMath {
     /// Marks for `current` — this workout's sets in one scope, keyed by id — given the scope's
     /// finished history. Sets are judged in completion order.
     static func badges(current: [(id: UUID, set: RecordSetInput)], history: [RecordSetInput]) -> [UUID: SetBadge] {
+        outcomes(current: current, history: history).mapValues(\.badge)
+    }
+
+    /// `badges`, with the incumbent each new best beat (the Finish receipt strikes it through).
+    static func outcomes(current: [(id: UUID, set: RecordSetInput)], history: [RecordSetInput]) -> [UUID: SetBadgeOutcome] {
         let pastEligible = history.filter(RecordsMath.isEligible)
         var best = pastEligible.reduce(nil as RecordSetInput?) { incumbent, set in
             guard let incumbent else { return set }
             return RecordsMath.outranks(set, incumbent) ? set : incumbent
         }
         let firstWorkout = pastEligible.isEmpty
-        var result: [UUID: SetBadge] = [:]
+        var result: [UUID: SetBadgeOutcome] = [:]
         let ordered = current
             .filter { RecordsMath.isEligible($0.set) }
             .sorted { ($0.set.completedAt ?? .distantPast) < ($1.set.completedAt ?? .distantPast) }
         for (index, item) in ordered.enumerated() {
             guard let incumbent = best else {
                 best = item.set
-                if firstWorkout && index == 0 { result[item.id] = .firstTime }
+                if firstWorkout && index == 0 { result[item.id] = SetBadgeOutcome(badge: .firstTime, previous: nil) }
                 continue
             }
             if RecordsMath.outranks(item.set, incumbent) {
                 best = item.set
-                if !firstWorkout { result[item.id] = .newBest }
+                if !firstWorkout { result[item.id] = SetBadgeOutcome(badge: .newBest, previous: incumbent) }
             }
         }
         return result
@@ -51,7 +64,14 @@ enum SetBadgeMath {
 extension SetBadgeMath {
     /// Marks for one live entry's completed sets, against finished workouts in the same scope.
     static func badges(for entry: ExerciseEntry, in context: ModelContext) throws -> [UUID: SetBadge] {
+        try outcomes(for: entry, in: context).mapValues(\.badge)
+    }
+
+    /// History is only what was logged BEFORE this workout started: a past workout opened in
+    /// History is judged against its own past, not against later sessions.
+    static func outcomes(for entry: ExerciseEntry, in context: ModelContext) throws -> [UUID: SetBadgeOutcome] {
         guard let workout = entry.workout else { return [:] }
+        let started = workout.startedAt
         let scope = Scope(entry)
         let loadType = entry.effectiveLoadType
         let finished = try context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt != nil }))
@@ -60,12 +80,13 @@ extension SetBadgeMath {
             .flatMap { WorkoutSession.orderedEntries(of: $0) }
             .filter { Scope(snapshotOf: $0) == scope && $0.snapshotLoadType == loadType }
             .flatMap { entry in (entry.sets ?? []).map { input($0, entry: entry, loadType: loadType) } }
+            .filter { ($0.completedAt ?? .distantFuture) < started }
         // This workout's earlier entries in the same scope count too (a change of preset back and
         // forth splits one exercise into several entries).
         let current = WorkoutSession.orderedEntries(of: workout)
             .filter { Scope($0) == scope && $0.effectiveLoadType == loadType }
             .flatMap { entry in (entry.sets ?? []).map { (id: $0.id, set: input($0, entry: entry, loadType: loadType)) } }
-        return badges(current: current, history: history)
+        return outcomes(current: current, history: history)
     }
 
     private static func input(_ set: SetRecord, entry: ExerciseEntry, loadType: LoadType) -> RecordSetInput {

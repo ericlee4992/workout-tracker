@@ -271,19 +271,18 @@ struct LiveSetRow: View {
                     .font(look.font.fieldNumber)
                     .foregroundStyle(look.textPrimary)
                     .tint(look.actionText)
-                    .disabled(isCompleted)
                     .accessibilityIdentifier("setRow.weight")
                 Button { toggleUnit() } label: {
                     Text(unit.label)
                         .font(.system(.caption, weight: .semibold))
                         .foregroundStyle(look.unit(unit))
-                        .padding(.vertical, 12)
-                        .padding(.trailing, 6)
+                        // A full 44 pt target of its own; the rest of the box focuses the field.
+                        .frame(minWidth: 44, minHeight: 44, alignment: .leading)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 // The unit follows the selected bar; input remains plates per side.
-                .disabled(barWeight != nil || isCompleted)
+                .disabled(barWeight != nil)
                 .accessibilityIdentifier("setRow.unit")
                 .accessibilityLabel(unit.label)
                 .accessibilityHint(barWeight == nil ? "Switches the unit" : "The unit follows the bar. Change the bar to log in the other unit.")
@@ -292,7 +291,7 @@ struct LiveSetRow: View {
             .frame(maxWidth: .infinity, minHeight: 44)
             .background { SetFieldBackground(style: fieldStyle(hasValue: !weightText.isEmpty), stamp: stamp).padding(.vertical, 2) }
             .contentShape(Rectangle())
-            .onTapGesture { if !isCompleted { focusedField = .weight } }
+            .onTapGesture { focusedField = .weight }
             if let totalCaption {
                 Text(totalCaption)
                     .font(.system(.caption2, weight: .semibold))
@@ -313,7 +312,6 @@ struct LiveSetRow: View {
             .font(look.font.fieldNumber)
             .foregroundStyle(look.textPrimary)
             .tint(look.actionText)
-            .disabled(isCompleted)
             .frame(maxWidth: .infinity, minHeight: 44)
             .background { SetFieldBackground(style: fieldStyle(hasValue: !repsText.isEmpty), stamp: stamp).padding(.vertical, 2) }
             .accessibilityIdentifier("setRow.reps")
@@ -462,7 +460,8 @@ struct LiveSetRow: View {
         guard !set.isDeleted else { return }
         do {
             let history = PerformanceHistory(context: modelContext)
-            guard let candidate = try history.prefill(for: set) else {
+            // PREVIOUS stays beside a completed set; `applyPrefill` never touches one.
+            guard let candidate = try history.reference(for: set) else {
                 previous = nil
                 return
             }

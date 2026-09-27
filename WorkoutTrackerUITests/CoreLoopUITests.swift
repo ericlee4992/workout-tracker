@@ -589,8 +589,7 @@ final class CoreLoopUITests: XCTestCase {
     /// and ~75 exercises (ticket 20), so a target row is usually only rendered
     /// once a search has narrowed the list.
     private func typeInSearchField(_ text: String) {
-        let field = app.searchFields.firstMatch
-        XCTAssertTrue(field.waitForExistence(timeout: 5), "This screen should be searchable")
+        let field = app.revealedSearchField()
         field.tap()
         field.typeText(text)
     }

@@ -105,15 +105,19 @@ struct ExerciseEntryCard: View {
         .padding(.bottom, 14)
         .lookSurface(.panel)
         .sheet(isPresented: $showingRestSettings) {
-            if let exercise = entry.exercise {
-                ExerciseRestSettingsSheet(exercise: exercise)
+            Group {
+                if let exercise = entry.exercise {
+                    ExerciseRestSettingsSheet(exercise: exercise)
+                }
             }
+            .floodlightSheet(from: look)
         }
         .sheet(isPresented: $showingBarPicker) {
             BarPickerSheet(
                 barWeight: currentBar,
                 initialUnit: currentBar?.unit ?? draftUnit,
                 onSelect: chooseBar)
+            .floodlightSheet(from: look)
         }
     }
 

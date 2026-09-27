@@ -87,8 +87,10 @@ struct ActiveWorkoutView: View {
 
     @Environment(\.look) private var appLook
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// New best / First time marks, per set (recomputed when a set completes, not per frame).
+    /// New best / First time marks, per set (recomputed when their inputs change, not per frame).
     @State private var badges: [UUID: SetBadge] = [:]
+    /// L03: the new best the user just logged, on the rest slab for a few seconds.
+    @State private var freshBest: LiveFreshBest?
 
     /// The lifting workout is drawn in the Paper-structure live look (ticket 01's chosen design);
     /// cardio focus stays plain Floodlight.
@@ -149,7 +151,7 @@ struct ActiveWorkoutView: View {
                             showPerformance: { performanceEntry = entry },
                             completionChanged: { set, completed in
                                 updateRest(for: set, isCompleted: completed)
-                                refreshBadges()
+                                celebrateIfNewBest(set, completed: completed)
                             },
                             nextSetID: nextID,
                             isResting: restEnd != nil,
@@ -195,21 +197,31 @@ struct ActiveWorkoutView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if cardioFocus, let segment = workout.unfinishedCardio {
                     CardioControls(segment: segment, recorder: heartRateCoordinator.cardio)
-                } else if let restEnd {
+                } else if restEnd != nil || freshBest != nil {
                     LiveRestSlab(
                         restEnd: restEnd,
                         restTotal: restTotal,
                         next: nextLabel,
+                        best: freshBest,
                         addFifteen: addFifteen,
                         skip: skipRest,
                         expired: {
                             restExpiryCount += 1
                             refreshRest()
+                        },
+                        openBest: {
+                            performanceEntry = freshBest.flatMap { best in entries.first { $0.id == best.entryID } }
                         })
                     .transition(RestBar.transition(reduceMotion: reduceMotion))
                 }
             }
-            .animation(reduceMotion ? nil : .spring(response: 0.36, dampingFraction: 0.86), value: restEnd == nil)
+            .animation(reduceMotion ? nil : .spring(response: 0.36, dampingFraction: 0.86), value: restEnd == nil && freshBest == nil)
+            // L03: the band stays for its few seconds, then the slab is the rest alone (or goes).
+            .task(id: freshBest?.setID) {
+                guard freshBest != nil else { return }
+                try? await Task.sleep(for: LiveFreshBest.window)
+                if !Task.isCancelled { freshBest = nil }
+            }
             // Inside the list and the rest slab only: the sheets over the cover stay Floodlight.
             .environment(\.look, screenLook)
             .sensoryFeedback(.restDone, trigger: restExpiryCount)
@@ -377,8 +389,10 @@ struct ActiveWorkoutView: View {
             .onChange(of: restEnd) { _, _ in pushActivityState() }
             .onChange(of: entries.count) { _, _ in
                 heartRateCoordinator.cardio.sync()
-                refreshBadges()
             }
+            // Every input of the marks — completion, set type, value, deletion, equipment or
+            // variation — changes this, so a sticker can never outlive the data behind it.
+            .onChange(of: badgeInputs) { _, _ in refreshBadges() }
         }
     }
 
@@ -473,8 +487,50 @@ struct ActiveWorkoutView: View {
         return screenLook.nextSetLabel(number: number, value: value, rowUnit: next.weightUnit, loadType: loadType)
     }
 
-    /// Recomputes the New best / First time marks (`SetBadgeMath`). Called on appear and after
-    /// every completion change — not per frame: it reads the scope's whole history.
+    /// What `SetBadgeMath` reads from this workout, hashed: read in `body`, so SwiftData
+    /// observation re-renders on any change to it and `refreshBadges` runs only then.
+    private var badgeInputs: Int {
+        guard !workout.isDeleted else { return 0 }
+        var hasher = Hasher()
+        for entry in entries where !entry.isDeleted {
+            hasher.combine(entry.id)
+            hasher.combine(entry.machine?.id)
+            hasher.combine(entry.freeWeightTag)
+            hasher.combine(entry.preset?.id)
+            hasher.combine(entry.effectiveLoadType)
+            for set in entry.sets ?? [] where !set.isDeleted {
+                hasher.combine(set.id)
+                hasher.combine(set.type)
+                hasher.combine(set.completedAt)
+                hasher.combine(set.reps)
+                hasher.combine(set.normalizedKg)
+            }
+        }
+        return hasher.finalize()
+    }
+
+    /// L03: completing a set that sets a new best docks the band on the slab; un-completing it
+    /// takes the band away. Only a deliberate completion celebrates — never a refresh or appear.
+    private func celebrateIfNewBest(_ set: SetRecord, completed: Bool) {
+        guard completed else {
+            if freshBest?.setID == set.id { freshBest = nil }
+            return
+        }
+        guard let entry = set.entry,
+              let outcome = try? SetBadgeMath.outcomes(for: entry, in: modelContext)[set.id],
+              outcome.badge == .newBest, let reps = set.reps else { return }
+        freshBest = LiveFreshBest(
+            setID: set.id, entryID: entry.id,
+            exerciseName: entry.exercise?.name ?? entry.snapshotExerciseName,
+            value: SetValue(weight: set.weightValue, unit: set.weightUnit, reps: reps),
+            previous: outcome.previous.flatMap { previous in
+                previous.reps.map { SetValue(weight: previous.weightValue, unit: previous.weightUnit, reps: $0) }
+            },
+            loadType: entry.effectiveLoadType)
+    }
+
+    /// Recomputes the New best / First time marks (`SetBadgeMath`). Called on appear and when
+    /// `badgeInputs` changes — not per frame: it reads the scope's whole history.
     private func refreshBadges() {
         guard !workout.isDeleted else { badges = [:]; return }
         var result: [UUID: SetBadge] = [:]

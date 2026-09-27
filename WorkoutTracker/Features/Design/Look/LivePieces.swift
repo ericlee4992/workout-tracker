@@ -807,15 +807,19 @@ struct RestBar: View {
     var next: String?
     var onAdd15: () -> Void = {}
     var onSkip: () -> Void = {}
+    /// False when a container (the live slab with its New best band) draws `slabBackground`.
+    var drawsBackground = true
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
 
-    init(remaining: Int, total: Int, next: String?, onAdd15: @escaping () -> Void = {}, onSkip: @escaping () -> Void = {}) {
+    init(remaining: Int, total: Int, next: String?, onAdd15: @escaping () -> Void = {}, onSkip: @escaping () -> Void = {},
+         drawsBackground: Bool = true) {
         self.remaining = remaining
         self.total = total
         self.next = next
         self.onAdd15 = onAdd15
         self.onSkip = onSkip
+        self.drawsBackground = drawsBackground
     }
 
     /// Rises 24–28 pt with a fade; Reduce Motion: appears in place.
@@ -847,7 +851,7 @@ struct RestBar: View {
             }
         }
         .environment(\.lookOnSlab, look.id.isPaperClub)
-        .background { barBackground }
+        .background { if drawsBackground { Self.slabBackground(look) } }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Rest, \(LookFormat.duration(remaining)) left" + (next.map { ". \($0)" } ?? ""))
     }
@@ -885,7 +889,7 @@ struct RestBar: View {
         Button("Skip", action: onSkip).buttonStyle(PillButtonStyle(prominent: true))
     }
 
-    @ViewBuilder private var barBackground: some View {
+    @ViewBuilder static func slabBackground(_ look: Look) -> some View {
         let shape = RoundedRectangle(cornerRadius: look.radius.bar, style: .continuous)
         switch look.id {
         case .floodlight:

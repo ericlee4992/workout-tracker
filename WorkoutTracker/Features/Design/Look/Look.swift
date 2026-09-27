@@ -484,6 +484,14 @@ extension View {
     }
 }
 
+extension View {
+    /// A sheet presented from inside the live workout's Paper look (a card's Bar or Rest sheet):
+    /// back to plain Floodlight in the same scheme, like every other sheet over the cover.
+    func floodlightSheet(from look: Look) -> some View {
+        environment(\.look, Look.app(look.isDark ? .dark : .light))
+    }
+}
+
 private struct LookLayerModifier: ViewModifier {
     @AppStorage(AppearanceSetting.key) private var appearanceRaw = Appearance.system.rawValue
     @Environment(\.colorScheme) private var systemScheme

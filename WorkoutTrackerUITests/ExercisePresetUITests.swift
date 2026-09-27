@@ -103,8 +103,7 @@ final class ExercisePresetUITests: XCTestCase {
 
     private func definePresets() {
         tab("Exercises").tap()
-        let field = app.searchFields.firstMatch
-        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        let field = app.revealedSearchField()
         field.tap()
         field.typeText(exerciseName)
 

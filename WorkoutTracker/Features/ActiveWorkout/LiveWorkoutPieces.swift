@@ -335,32 +335,199 @@ struct LiveVitalsStrip: View {
 
 // MARK: - Rest slab
 
-/// The pinned rest: draining ring with its hourglass, "Rest" over the time, what is next, +15s
-/// and Skip — drawn as the live workout's inverse ink slab (`RestBar`). D46: the beep and
-/// notification are scheduled with the system; this only draws the countdown.
+/// A new best that just landed (L03): shown on the slab for `LiveFreshBest.window` seconds.
+struct LiveFreshBest: Equatable {
+    /// The celebration's length (the prototype's `celebrationWindow`).
+    static let window: Duration = .seconds(4)
+
+    var setID: UUID
+    var entryID: UUID
+    var exerciseName: String
+    var value: SetValue
+    /// The best it beat — history or an earlier set of this workout.
+    var previous: SetValue?
+    var loadType: LoadType
+}
+
+/// The thumb slab: the NEW BEST band docked on top while a best is fresh, over the pinned rest
+/// (draining ring with its hourglass, "Rest" over the time, what is next, +15s and Skip —
+/// the live workout's inverse ink slab, `RestBar`). One unit: shared background and edge.
+/// D46: the beep and notification are scheduled with the system; this only draws the countdown.
 struct LiveRestSlab: View {
-    var restEnd: Date
+    var restEnd: Date?
     var restTotal: Double
     var next: String?
+    var best: LiveFreshBest?
     var addFifteen: () -> Void
     var skip: () -> Void
     var expired: () -> Void
+    var openBest: () -> Void
 
     private let tick = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
     @State private var now = Date()
     @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        let remaining = max(0, Int(restEnd.timeIntervalSince(now).rounded(.up)))
-        RestBar(remaining: remaining, total: max(1, Int(restTotal.rounded())), next: next,
-                onAdd15: addFifteen, onSkip: skip)
-            .dynamicTypeSize(...DynamicTypeSize.accessibility1)
-            .padding(.horizontal, look.space.margin)
-            .padding(.bottom, 8)
-            .onReceive(tick) { date in
-                now = date
-                if restEnd <= date { expired() }
+        VStack(spacing: 0) {
+            if let best {
+                LiveBestBand(best: best, action: openBest)
+                    .transition(reduceMotion ? .opacity
+                                : .asymmetric(insertion: .move(edge: .bottom).combined(with: .opacity), removal: .opacity))
+                if restEnd != nil { LookDivider().padding(.horizontal, 14) }
             }
+            if let restEnd {
+                let remaining = max(0, Int(restEnd.timeIntervalSince(now).rounded(.up)))
+                RestBar(remaining: remaining, total: max(1, Int(restTotal.rounded())), next: next,
+                        onAdd15: addFifteen, onSkip: skip, drawsBackground: false)
+            }
+        }
+        .environment(\.lookOnSlab, look.id.isPaperClub)
+        .clipShape(RoundedRectangle(cornerRadius: look.radius.bar, style: .continuous))
+        .background { RestBar.slabBackground(look) }
+        .dynamicTypeSize(...DynamicTypeSize.accessibility1)
+        .animation(reduceMotion ? nil : .spring(response: 0.4, dampingFraction: 0.8), value: best?.setID)
+        .sensoryFeedback(trigger: best?.setID) { _, new in new == nil ? nil : .success }
+        .padding(.horizontal, look.space.margin)
+        .padding(.bottom, 8)
+        .onReceive(tick) { date in
+            now = date
+            if let restEnd, restEnd <= date { expired() }
+        }
+    }
+}
+
+/// L03's band: the look's New best mark, the exercise, today's set and — dimmed, with an up
+/// arrow — the best it beat. Tapping opens previous performance. The mark lands with a slap and
+/// the value is swiped in highlighter; Reduce Motion: it simply appears.
+struct LiveBestBand: View {
+    var best: LiveFreshBest
+    var action: () -> Void
+
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var landed = 0
+
+    var body: some View {
+        let now = look.previousLabel(best.value, rowUnit: best.value.unit, loadType: best.loadType)
+        let was = best.previous.map { look.previousLabel($0, rowUnit: best.value.unit, loadType: best.loadType) }
+        let secondary = look.id.isPaperClub ? look.onSlabSecondary : look.textSecondary
+        Button(action: action) {
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    NewBestBadge(kind: .newBest)
+                        .modifier(LiveLandEffect(trigger: landed, look: look))
+                    Text(best.exerciseName)
+                        .font(.system(.subheadline, weight: .semibold))
+                        .foregroundStyle(secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                VStack(alignment: .trailing, spacing: 3) {
+                    LiveBestValue(text: now, trigger: landed)
+                    if let was {
+                        HStack(spacing: 3) {
+                            Image(systemName: "arrow.up").font(.system(.caption2, weight: .heavy))
+                            Text(was).font(.system(.footnote, weight: .medium)).monospacedDigit()
+                        }
+                        .foregroundStyle(secondary.opacity(0.85))
+                        .lineLimit(1)
+                        .fixedSize()
+                    }
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onAppear { if !reduceMotion { landed += 1 } }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("New best, \(best.exerciseName), \(LookFormat.set(best.value, loadType: best.loadType))"
+                            + (best.previous.map { ", up from \(LookFormat.set($0, loadType: best.loadType))" } ?? ""))
+        .accessibilityHint("Opens previous performance")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("liveNewBest")
+    }
+}
+
+/// Today's best value: the live (Paper-structure) look swipes it in highlighter, ink on yellow;
+/// plain Floodlight draws the figure.
+private struct LiveBestValue: View {
+    var text: String
+    var trigger: Int
+    @Environment(\.look) private var look
+
+    var body: some View {
+        if look.id.isPaperClub {
+            Text(text).font(look.font.smallNumber).foregroundStyle(look.onPositive)
+                .lineLimit(1)
+                .padding(.horizontal, 6).padding(.vertical, 1)
+                .background { LiveHighlighterSwipe(trigger: trigger) }
+                .fixedSize()
+        } else {
+            Text(text).font(look.font.smallNumber).foregroundStyle(look.textPrimary).lineLimit(1).fixedSize()
+        }
+    }
+}
+
+/// How the mark lands: the Paper sticker slaps on with a twist; Floodlight drops in.
+private struct LiveLandEffect: ViewModifier {
+    var trigger: Int
+    var look: Look
+
+    struct Value { var scale: CGFloat = 1; var rotation: Double = 0; var y: CGFloat = 0 }
+
+    /// (start scale, overshoot, start rotation, overshoot rotation, start y, first leg, settle leg)
+    private var params: (CGFloat, CGFloat, Double, Double, CGFloat, Double, Double) {
+        look.id.isPaperClub ? (1.5, 0.97, -6, 1.2, 0, 0.18, 0.14) : (1.3, 0.96, 0, 0, -8, 0.2, 0.22)
+    }
+
+    func body(content: Content) -> some View {
+        let p = params
+        return content.keyframeAnimator(initialValue: Value(), trigger: trigger) { view, v in
+            view.scaleEffect(v.scale).rotationEffect(.degrees(v.rotation)).offset(y: v.y)
+        } keyframes: { _ in
+            KeyframeTrack(\.scale) {
+                MoveKeyframe(p.0)
+                CubicKeyframe(p.1, duration: p.5)
+                CubicKeyframe(1, duration: p.6)
+            }
+            KeyframeTrack(\.rotation) {
+                MoveKeyframe(p.2)
+                CubicKeyframe(p.3, duration: p.5)
+                CubicKeyframe(0, duration: p.6)
+            }
+            KeyframeTrack(\.y) {
+                MoveKeyframe(p.4)
+                CubicKeyframe(0, duration: p.5 + p.6)
+            }
+        }
+    }
+}
+
+/// The highlighter swipes left to right behind the value (no swipe before it lands, or with
+/// Reduce Motion: the trigger stays 0).
+private struct LiveHighlighterSwipe: View {
+    var trigger: Int
+    @Environment(\.look) private var look
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 3, style: .continuous)
+        if trigger == 0 {
+            shape.fill(look.positive)
+        } else {
+            shape.fill(look.positive)
+                .keyframeAnimator(initialValue: 1.0, trigger: trigger) { view, fraction in
+                    view.scaleEffect(x: fraction, y: 1, anchor: .leading)
+                } keyframes: { _ in
+                    KeyframeTrack {
+                        MoveKeyframe(0.0)
+                        CubicKeyframe(1.0, duration: 0.4)
+                    }
+                }
+        }
     }
 }
 

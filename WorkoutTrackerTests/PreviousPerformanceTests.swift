@@ -95,6 +95,30 @@ struct PreviousPerformanceTests {
         #expect(row.completedAt == Date(timeIntervalSince1970: 301))
     }
 
+    /// Floodlight L01/L03: a logged row keeps its PREVIOUS reference, but only a draft is
+    /// ever seeded from it — the completed row's own numbers are never replaced.
+    @Test func aCompletedRowKeepsItsReferenceButIsNeverPrefilled() throws {
+        let rig = try makeRig()
+        try log(
+            rig: rig, gym: rig.gymA, machine: rig.machineA,
+            values: [(.working, 60, .kg, 10)], start: Date(timeIntervalSince1970: 100))
+
+        let workout = try rig.session.startWorkout(at: rig.gymA, on: Date(timeIntervalSince1970: 300))
+        let entry = try rig.session.addEntry(for: rig.exercise, to: workout, machine: rig.machineA)
+        let row = try #require(WorkoutSession.orderedSets(of: entry).first)
+        row.weightUnit = .kg
+        try rig.session.commitWeight("65", for: row)
+        try rig.session.commitReps("8", for: row)
+        try rig.session.toggleCompletion(of: row, at: Date(timeIntervalSince1970: 301))
+
+        #expect(try rig.history.prefill(for: row) == nil)
+        let reference = try #require(try rig.history.reference(for: row))
+        #expect(reference.displayLabel == "60 kg × 10")
+        #expect(try rig.history.applyPrefill(reference, to: row, isDirty: false) == false)
+        #expect(row.weightValue == 65)
+        #expect(row.reps == 8)
+    }
+
     @Test func typeAwareOrdinalMatchingSkipsWarmups() throws {
         let rig = try makeRig()
         try log(

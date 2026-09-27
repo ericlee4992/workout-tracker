@@ -64,7 +64,9 @@ New: vitals labels "Active calories", "Total volume", "cal"; "Recent at <gym>"; 
 Workout…"; rest slab "Next · Set N · W × R" / "Next · <exercise>" / "Next · Warmup";
 "New best" / "First time"; "Cardio targets" (was "Planned cardio"); "Uncategorized" in Add
 Exercise; the "0/0 sets" header on an empty workout (was the same count).
-Changed: PREVIOUS short form (above). Removed: the toolbar Cancel.
+Changed: PREVIOUS short form (above); a non-bar weight field is rebuilt with
+`WeightMath.displayNumber` (two decimals kept, e.g. "102.25") instead of `Format.weight` (one).
+Removed: the toolbar Cancel.
 
 ## Tests changed
 
@@ -80,7 +82,7 @@ dumbbell counterpart, rename, cardio mix, captures); unit tests for the new Doma
 Default/AXL captures in light and dark. Simulator WT-Floodlight (iOS 27.0).
 
 - Build: exit 0.
-- `live-ui-1` (31 UI + 12 unit): unit `NextSetTests` 6/6 + `SetBadgeTests` 6/6 passed. UI 28
+- `live-ui-1` (33 UI + 12 unit; exit 65 because of the five below): unit `NextSetTests` 6/6 + `SetBadgeTests` 6/6 passed. UI 28
   passed, 5 failed — all five **pre-existing**: they fail identically on untouched `main`
   a0364f2 (`base-5.log`): the Exercises tab's search field (CoreLoop
   `testCreatingAnExerciseMidWorkoutLogsASetAndReachesHistory`, both `ExercisePresetUITests`),
@@ -99,3 +101,37 @@ Default/AXL captures in light and dark. Simulator WT-Floodlight (iOS 27.0).
 - 2026-09-26: implemented in the scratch checkout `/tmp/wt-floodlight/live` (branch
   `ericlee4992/redesign-floodlight-live`, rebased on 37f16a0) while Codex reviewed ticket 02.
   Captures: `/tmp/wt-floodlight/shots/l01-{light,dark,axl,empty}.png`.
+
+## Codex review 03 — response (round 1)
+
+Report: [codex-review-03.md](../codex-review-03.md) — not clear; 4 medium, 2 low. All accepted.
+
+1. **Completed sets locked (medium).** Weight, reps and the unit suffix are editable again on a
+   logged set (only bar mode locks the unit, as before); commits take the same field-end path,
+   so a correction keeps its `completedAt` and does not restart rest. Regression:
+   `FloodlightLiveUITests.testACompletedSetCanBeCorrectedInPlace`.
+2. **Stale marks (medium).** `ActiveWorkoutView.badgeInputs` hashes everything the marks read
+   (entry equipment/variation/load type; each set's id, type, completion, reps, normalized
+   load); read in `body`, so SwiftData observation re-renders on any change and
+   `.onChange(of: badgeInputs)` recomputes. Replaces the completion/entry-count triggers.
+   Regression: `testTurningABestIntoAWarmupRemovesItsMark`.
+3. **Preset coverage (medium).** See Verification round 2 below.
+4. **L03 band (medium).** Implemented: `LiveFreshBest` + `LiveBestBand` docked on
+   `LiveRestSlab` (one slab: shared background, divider), for 4 s after a deliberate completion
+   that sets a new best (`SetBadgeMath.outcomes` — the incumbent it beat, history or this
+   workout); un-completing takes it away; tapping opens previous performance; success haptic;
+   the sticker slaps and the value is swiped in highlighter, Reduce Motion: it appears. With rest
+   off the band shows alone for its seconds. `RestBar` gained `drawsBackground` and a shared
+   `slabBackground`. `SetBadgeMath.outcomes` is the ticket-04 commit's version, moved here.
+   AX sizes: the band stacks over the rest (the prototype swapped it for the Rest/time text;
+   the slab is capped at AX1 and the band lasts 4 s). Regression:
+   `testANewBestDocksTheBandOnTheRestSlab`.
+5. **Bar / Rest sheets (low).** `floodlightSheet(from:)` resets the look at both presentation
+   boundaries, keeping the scheme.
+6. **Unit suffix target (low).** The suffix button is at least 44 × 44 pt of its own.
+
+Also, from the capture comparison: completed rows now keep their PREVIOUS reference (approved
+L01/L03 show it; the app has hidden it since ticket 11 because `prefill` returns nil for a
+logged set). New `PerformanceHistory.reference(for:)` = the same lookup without the draft
+guard; `prefill` is `reference` for drafts only, and `applyPrefill` still refuses a completed
+row. Unit test: `PreviousPerformanceTests.aCompletedRowKeepsItsReferenceButIsNeverPrefilled`.

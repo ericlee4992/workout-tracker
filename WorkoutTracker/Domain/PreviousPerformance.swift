@@ -101,7 +101,14 @@ struct PerformanceHistory {
     /// recent finished matching workout; if that workout contains duplicates,
     /// the last entry by scalar order wins.
     func prefill(for target: SetRecord) throws -> PreviousSetValue? {
-        guard target.completedAt == nil, let entry = target.entry else { return nil }
+        guard target.completedAt == nil else { return nil }
+        return try reference(for: target)
+    }
+
+    /// The same historical row for any set, completed or not: the live row's PREVIOUS label
+    /// stays beside a logged set (Floodlight L01/L03). Only `prefill` may seed values.
+    func reference(for target: SetRecord) throws -> PreviousSetValue? {
+        guard let entry = target.entry else { return nil }
         let peers = WorkoutSession.orderedSets(of: entry)
             .filter { $0.type == target.type }
         guard let ordinal = peers.firstIndex(where: { $0.id == target.id }),
