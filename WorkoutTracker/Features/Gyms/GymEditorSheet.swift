@@ -132,6 +132,7 @@ struct GymEditorSheet: View {
                 .submitLabel(which == .name ? .next : .done)
                 .focused($focus, equals: which)
                 .onSubmit { focus = which == .name ? .city : nil }
+                .accessibilityLabel(Text(label))
                 .accessibilityIdentifier(identifier)
         }
         .padding(.horizontal, 16)

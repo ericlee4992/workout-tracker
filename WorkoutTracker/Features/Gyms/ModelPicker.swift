@@ -164,7 +164,9 @@ struct ModelPickerView: View {
                             .accessibilityIdentifier("noModelsMatch")
                         let prefill = prefillFromSearch
                         let name = "\(prefill.manufacturer) \(prefill.modelName)".trimmingCharacters(in: .whitespaces)
+                        // The same way out as the pinned pill (hidden while nothing matches).
                         MakeRow(title: "New Model…", detail: name.isEmpty ? nil : name) { openNewModel() }
+                            .accessibilityIdentifier("newModelFromSearch")
                     }
                     .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
                     .listRowBackground(Color.clear)
@@ -644,6 +646,7 @@ struct AddModelSheet: View {
                 .foregroundStyle(look.textPrimary)
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
+                .accessibilityLabel(Text(label))
         }
     }
 

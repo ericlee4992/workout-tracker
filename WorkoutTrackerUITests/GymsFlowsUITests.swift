@@ -85,11 +85,14 @@ final class GymsFlowsUITests: XCTestCase {
         // Rename inline: a blank name restores the old one; a new one is saved.
         let name = app.textFields["machineDetail.name"]
         reach(name)
-        name.tap()
-        name.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 14) + "\n")
+        // The field is trailing-aligned: tap its trailing end so the cursor lands after the text.
+        let end = name.coordinate(withNormalizedOffset: CGVector(dx: 0.98, dy: 0.5))
+        let clear = String(repeating: XCUIKeyboardKey.delete.rawValue, count: 16)
+        end.tap()
+        name.typeText(clear + "\n")
         XCTAssertEqual(name.value as? String, "Seated Row", "a blank name puts the old one back")
-        name.tap()
-        name.typeText(" 2\n")
+        end.tap()
+        name.typeText(clear + "Seated Row 2\n")
         XCTAssertEqual(name.value as? String, "Seated Row 2")
 
         // The unit override: kg, applied at once (its tag shows on the hero).

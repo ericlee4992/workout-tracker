@@ -453,7 +453,8 @@ final class RedesignScreenshotUITests: XCTestCase {
         createGym()
         addMachine()
         shoot("redesign-06-gym-detail")
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        // Back, not the gym page's Edit Gym… pencil (Floodlight ticket 06 put it in the bar).
+        app.navigationBars.buttons.matching(NSPredicate(format: "identifier != 'editGym'")).firstMatch.tap()
         XCTAssertTrue(anyElement("gymRow.\(gymName)").waitForExistence(timeout: 5))
         shoot("redesign-06-gyms")
         app.tabBars.buttons["Exercises"].tap()
@@ -472,7 +473,8 @@ final class RedesignScreenshotUITests: XCTestCase {
         addMachine()
         XCTAssertTrue(anyElement("machineRow.\(machineLabel)").waitForExistence(timeout: 10))
         shoot("redesign-06-gym-detail-axl")
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        // Back, not the gym page's Edit Gym… pencil (Floodlight ticket 06 put it in the bar).
+        app.navigationBars.buttons.matching(NSPredicate(format: "identifier != 'editGym'")).firstMatch.tap()
         XCTAssertTrue(anyElement("gymRow.\(gymName)").waitForExistence(timeout: 5))
         shoot("redesign-06-gyms-axl")
     }

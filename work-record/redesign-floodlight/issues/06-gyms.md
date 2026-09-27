@@ -227,15 +227,33 @@ was. Your history never left.", "Can't find the machine's model? …".
 
 ## Tells (ios-design step 4)
 
-To be answered after the first captures.
+- Same container on everything: absent — cards only for groups (a gym card = identity + stats +
+  rhythm; the stat strips; machine groups; the bests panel; the form panels); titles, the
+  Machines heading, Scan Machine and the dashed make-rows sit on the ground.
+- Chips: deliberate — tags are information (unit override, Custom, type, Assisted), at most two
+  on a machine row (unit tag + Assisted); type chips in the picker are filters (visible options).
+- All-caps labels: absent (the old uppercase "MACHINES" section header is gone).
+- Middle-dot metadata: deliberate for the place line ("Seoul · lb").
+- Accent everywhere: absent — violet fills only Scan Machine / Add Gym… (empty) / a sheet's
+  commit; selection uses the lozenge; bests use the positive burst.
+- Equal full-width blocks: absent — the hero (monogram + title) leads the gym page, the top best
+  (hero figure + chart) leads the machine page.
+- Phone-sized website: absent. First viewport: list = two gym cards + Add Gym…; gym page =
+  hero, stats, Scan Machine, pills and the first group; machine page = hero, stats, the top best.
+- Control dressed as primary: absent — grouping menus are quiet capsules with a chevron; the
+  unit choices are segmented pills.
+- Only survives default size: answered by the AXL captures (stat strips become rows, machine
+  numbers drop under the names, grouping pills become a menu, the sheet title moves under its
+  buttons, unit choices stack).
 
 ## Tests
 
-- New unit tests `GymOverviewTests` (9): visits as distinct days and the rhythm ending this week;
+- New unit tests `GymOverviewTests` (9; `gyms-unit-3` ran the first 8): visits as distinct days and the rhythm ending this week;
   order (Current, recent, name); machine use — workouts, sets (warmups included), one best per
   scope (warmup never a best, more reps at a load wins, an uncompleted draft ignored, a preset its
   own scope, another machine's sets excluded); assisted least-assistance and a tie keeping the
-  earliest; snapshot scope through a rename and a re-model, a running workout not counted (store
+  earliest; a group's row showing its own exercises' best (a station under Chest never shows its
+  triceps best); snapshot scope through a rename and a re-model, a running workout not counted (store
   test); relative day words; New Model prefill; restoring a deleted gym.
 - New fixture `-uiTestDesignGyms` (with `-uiTestDesignSample`): Iron Temple's Pull/Leg Day
   machines (so their history lands on them), a cable station, a model-less "Biceps Curl", a kg
@@ -261,7 +279,7 @@ To be answered after the first captures.
   the closure parameter (`gyms-build-2`) and spelling `WorkoutTracker.Workout` did not help; the
   model's conformance is rejected inside that view only. Fix: the Sessions rows push a small
   explicit `ProgressSessionLink` (Hashable by the workout's id).
-- `gyms-unit-3`: **exit 0** — `GymOverviewTests` 9, `EquipmentLifecycleTests`, `RecordsMathTests`:
+- `gyms-unit-3`: **exit 0** — `GymOverviewTests` 8 (then), `EquipmentLifecycleTests`, `RecordsMathTests`:
   50/50 (clean build of app + tests included).
 
 Scope (DEVELOPMENT: new feature + shared screens — the Gyms tab, the machine form also opened
@@ -271,6 +289,25 @@ flows that add a machine from elsewhere (Add by Machine, AI routine setup, scan 
 through the form); captures light/dark × Default/AXL. Full UI suite deferred to the
 whole-redesign release candidate (ticket 01 step 4). Simulator WT-Floodlight (iOS 27.0); logs,
 exits and result bundles `/tmp/wt-floodlight/results/gyms-*`.
+
+- `gyms-cap-1` (exit 65): FloodlightGyms 8/12 — list/gym/machine captures ×4 and empty ×4
+  passed; the 4 editor runs failed searching the picker (the lazy top row was scrolled away; the
+  test scrolls back first). Captures reviewed: fixed the body-area rows showing another area's
+  best (a station is listed under each area it serves; each row now shows that area's
+  exercises' best — new unit test) and the cramped Edit Gym title at AX (`SheetHeader`
+  `reflowsTitle`, opt-in).
+- `gyms-ui-1` (exit 65, `-collect-test-diagnostics never`): unit 95/95 (`GymOverviewTests` 9,
+  `EquipmentLifecycleTests`, `CatalogBrowsingTests`, `MachineCreationTests`, `RecordsMathTests`,
+  `ProgressSeriesTests`); UI 62/73 — **CoreLoop 9/9 incl. the model-picker test (the pre-existing
+  iOS 27 failure is fixed)**, MachineDeletion 2/2, ExercisePreset 2/2, CodexScreenshot 3/3,
+  ProgressChart + Tooltip all, FloodlightGyms gyms ×4 + empty ×4, GymsFlows delete/restore,
+  AskAI 28/32, RedesignScreenshot 2/3, ScanMachineLabel 1/2. Failures, all test mechanics or
+  expectations the redesign changed: AskAI identity ×4 (asserted the row's "Maker Model"; the
+  row now names the model), FloodlightGyms editors ×4 (Add Machine… half under the tab bar at
+  AXL; the no-match New Model… row's label carries its prefill — now found by identifier),
+  GymsFlows rename (cursor at the start of the trailing-aligned field), RedesignScreenshot
+  test06 (index-0 bar button is now the Edit Gym pencil), ScanMachineLabel create-new (the
+  labelled fields' accessibility label — now set explicitly to "Manufacturer" / "Model").
 
 ## Progress
 

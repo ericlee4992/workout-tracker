@@ -351,9 +351,10 @@ final class AskAIUITests: XCTestCase {
             XCTAssertFalse(savedName.isEmpty)
             app.buttons["saveMachine"].tap()
             XCTAssertTrue(app.staticTexts[savedName].firstMatch.waitForExistence(timeout: 5))
-            if kind == "Ambiguous" { XCTAssertFalse(app.staticTexts["Life Fitness Insignia Series Chest Press"].exists) }
-            if kind == "NewModel" { XCTAssertTrue(app.staticTexts["Fixture Brand Printed Test Press"].exists) }
-            if kind == "Specific" { XCTAssertTrue(app.staticTexts["Life Fitness Insignia Series Chest Press"].exists) }
+            // The gym page's machine row names the model without its maker (Floodlight ticket 06).
+            if kind == "Ambiguous" { XCTAssertFalse(app.staticTexts["Insignia Series Chest Press"].exists) }
+            if kind == "NewModel" { XCTAssertTrue(app.staticTexts["Printed Test Press"].exists) }
+            if kind == "Specific" { XCTAssertTrue(app.staticTexts["Insignia Series Chest Press"].exists) }
         }
     }
 
