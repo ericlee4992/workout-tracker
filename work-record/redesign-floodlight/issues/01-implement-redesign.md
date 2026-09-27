@@ -137,6 +137,18 @@ prototype).
 9. AI routine flow.
 10. Live Activity / widget + app icon; remove `Theme`/legacy components; D54 decision record.
 
+### Session 2 — 2026-09-26 (checkpoint)
+
+| Branch | Tip | State |
+|---|---|---|
+| `ericlee4992/redesign-floodlight-live` | `1a04857` | ticket 03: Codex round 1 not clear (6 findings) → all addressed; `live-ui-3` batch running; Codex round 2 next |
+| `ericlee4992/redesign-floodlight-finish` | `a3fcf53` | ticket 04: bests one-per-scope fix, `FinishReceiptTests`, HR heading; `finish-ui-2` 15/16 (1 pre-existing). Needs rebase onto the live tip, re-run, captures, Codex |
+
+Codex terminal: Orca "Codex review — Floodlight 03" (`term_ca235960…`), running in
+`/tmp/wt-floodlight/live`; ticket 02's terminal was closed. Logs/results/captures:
+`/tmp/wt-floodlight/results/{live-ui-2,live-ui-3,finish-unit-1,finish-ui-2}*`,
+`/tmp/wt-floodlight/shots/04b/`. Details in tickets 03 and 04.
+
 ### Handoff — 2026-09-26, end of session 1 (context full; continue in a new session)
 
 **Branches (all pushed to origin; stacked, each on the previous):**

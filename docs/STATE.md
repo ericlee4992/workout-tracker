@@ -1,21 +1,23 @@
 # Current project state
 
-## ACTIVE (2026-09-26, end of session 1): implementing the Floodlight redesign
+## ACTIVE (2026-09-26, session 2): implementing the Floodlight redesign
 
 Worktree `/Users/ericlee06/orca/workspaces/Health App/redesign-floodlight`, branch
 `ericlee4992/redesign-floodlight` (pushed). Read [ticket 01](../work-record/redesign-floodlight/issues/01-implement-redesign.md)
-**Progress → Handoff** first: it has the exact branch/commit map, what is verified, and the next steps.
+**Progress → Handoff** first: branch/commit map, what is verified, next steps.
 Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothing merged to
 `main` (a0364f2); nothing installed. Install blockers unchanged (Xcode Apple ID, expired signing).
 
-- **Ticket 02** (foundation + Workout tab, template detail/editor): on this branch, **Codex clear
-  after 3 rounds** (`codex-review-02c.md`).
-- **Ticket 03** (live lifting workout + sheets): implemented and tested on stacked branch
-  `ericlee4992/redesign-floodlight-live` (pushed, tip `9d07a9c`); **not yet Codex-reviewed**.
-- **Ticket 04** (finish receipt): WIP on `ericlee4992/redesign-floodlight-finish` (pushed, tip
-  `cb90a5b`, stacked on live); built; first test batch 14/14 passed, captures not yet reviewed.
-- Five UI tests fail identically on untouched `main` on the iOS 27 simulator (pre-existing;
-  listed in ticket 02); fix them in the Exercises / Gyms / History areas.
+- **Ticket 02** (foundation + Workout tab): this branch, **Codex clear after 3 rounds**.
+- **Ticket 03** (live workout): stacked branch `ericlee4992/redesign-floodlight-live`. Codex
+  round 1 **not clear** (4 medium, 2 low, `codex-review-03.md`); all fixed in `1a04857`
+  (pushed); round-2 verification batch `live-ui-3` running; then Codex round 2.
+- **Ticket 04** (finish receipt): `ericlee4992/redesign-floodlight-finish` (pushed `a3fcf53`,
+  stacked on the live branch's pre-fix tip — rebase onto the live tip next). Bests fix + receipt
+  unit tests done; `finish-ui-2` 15/16 (the one failure pre-existing). Codex review not started.
+- Five UI tests fail identically on untouched `main` on iOS 27 (listed in ticket 02). Two
+  (the preset tests) and one CoreLoop case were a hidden search field; ticket 03's helper
+  `revealedSearchField()` addresses them — confirm in `live-ui-3`.
 
 Updated **2026-09-24** for a new session. Main/remote were verified at **40f3f65** before this
 docs-only handoff; verify actual Git HEAD on resume. Product **9f733a2**, built from source
