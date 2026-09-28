@@ -43,10 +43,15 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   **Open, not ticket 07's:** two AX AI-routine-form AskAI tests fail identically on the gyms tip
   (`scan-baseline-1`) — for the AI routine area or the release-candidate suite. Record user
   decision 1 (scan confirmation moves to the sheet's Add) with the D54 entry before merge.
-- **Ticket 08** (Exercises, E01–E05): NOT STARTED — to begin in a fresh session. Branch
-  `ericlee4992/redesign-floodlight-exercises` (pushed, from the scan tip `7655aa7`, no commits),
-  scratch checkout `/tmp/wt-floodlight/exercises`. Start prompt: `/tmp/wt-floodlight/ticket08-brief.md`
-  (ephemeral; scope = ticket 01 area 7, workflow as ticket 07).
+- **Ticket 08** (Exercises, E01–E05): IN PROGRESS. Branch `ericlee4992/redesign-floodlight-exercises`
+  (pushed, stacked on the scan tip `7655aa7`), scratch checkout `/tmp/wt-floodlight/exercises`. Record:
+  `issues/08-exercises.md` on that branch (decisions, scope, verification log). User decisions
+  2026-09-27: Exercise Detail opens from the tab AND the machine page's exercise rows; presets keep
+  reordering; Load Type takes the prototype's shortened copy; New Exercise gets Body area and refuses
+  a taken name. Done: domain `ExerciseOverview` (unit 15/15, `exercises-unit-3`), the five screens,
+  build green (`exercises-build-1`). Running: `FloodlightExercisesUITests` first batch
+  (`/tmp/wt-floodlight/results/exercises-ui-1.*`, runner `/tmp/wt-floodlight/ex-run.sh`, derived data
+  `/tmp/wt-floodlight/dd-exercises`). Next: captures light/dark × Default/AXL, neighbour tests, Codex 08.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
