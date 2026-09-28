@@ -54,10 +54,13 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   05–07); captures `captures/08/` (91). Shared changes: `WrapLayout` 0.5 pt slack, `SearchFieldView`
   identifier, `ExercisesSheetHeader` Done = `sheetDone`. Not exercised: VoiceOver by a person, runtime
   Reduce Motion, the drag-reorder gesture (release-candidate pass).
-- **Ticket 09** (Settings, X01–X03): NOT STARTED — to begin in a fresh session. Branch
-  `ericlee4992/redesign-floodlight-settings` (pushed, from the exercises tip `bf4363b`, no commits),
-  scratch checkout `/tmp/wt-floodlight/settings`. Start prompt: `/tmp/wt-floodlight/ticket09-brief.md`
-  (ephemeral; scope = ticket 01 area 8, workflow as ticket 08).
+- **Ticket 09** (Settings, X01–X03): IN PROGRESS (2026-09-28). Branch `ericlee4992/redesign-floodlight-settings`
+  (pushed, stacked on the exercises tip `bf4363b`), scratch checkout `/tmp/wt-floodlight/settings`. Record:
+  `issues/09-settings.md` on that branch (progress, verification, next step). User decisions 2026-09-28: last
+  export recorded only when the share sheet completes (per-device `@AppStorage`); Export opens the share sheet
+  at once and keeps a file card with Share; the saved key shows its last 4 characters; the Ask AI disclosure
+  paragraph is dropped — record with the D54 entry before merge. Prototype captured into
+  `reference/prototype-settings/{dark,light}/` (both exit 0, 24 PNGs each, all with content).
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
