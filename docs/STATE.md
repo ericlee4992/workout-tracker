@@ -43,15 +43,19 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   **Open, not ticket 07's:** two AX AI-routine-form AskAI tests fail identically on the gyms tip
   (`scan-baseline-1`) — for the AI routine area or the release-candidate suite. Record user
   decision 1 (scan confirmation moves to the sheet's Add) with the D54 entry before merge.
-- **Ticket 08** (Exercises, E01–E05): IN PROGRESS. Branch `ericlee4992/redesign-floodlight-exercises`
-  (pushed, stacked on the scan tip `7655aa7`), scratch checkout `/tmp/wt-floodlight/exercises`. Record:
-  `issues/08-exercises.md` on that branch (decisions, scope, verification log). User decisions
-  2026-09-27: Exercise Detail opens from the tab AND the machine page's exercise rows; presets keep
-  reordering; Load Type takes the prototype's shortened copy; New Exercise gets Body area and refuses
-  a taken name. Done: domain `ExerciseOverview` (unit 15/15, `exercises-unit-3`), the five screens,
-  build green (`exercises-build-1`). Running: `FloodlightExercisesUITests` first batch
-  (`/tmp/wt-floodlight/results/exercises-ui-1.*`, runner `/tmp/wt-floodlight/ex-run.sh`, derived data
-  `/tmp/wt-floodlight/dd-exercises`). Next: captures light/dark × Default/AXL, neighbour tests, Codex 08.
+- **Ticket 08** (Exercises, E01–E05): implemented and verified; **Codex review 08 running** (visible
+  Orca terminal "Codex review — Floodlight 08", `term_022ff29e-6813-4656-8fb6-d3d2802a6018`; prompt
+  `codex-review-08-prompt.md`; report `codex-review-08.md` — detect completion by the file). Branch
+  `ericlee4992/redesign-floodlight-exercises` (pushed, tip `06d3651`, stacked on the scan tip `7655aa7`),
+  scratch checkout `/tmp/wt-floodlight/exercises`. Record: `issues/08-exercises.md` on that branch.
+  User decisions 2026-09-27: Exercise Detail (new) opens from the tab AND the machine page's exercise
+  rows; presets keep reordering (Edit); Load Type takes the prototype's shortened copy; New Exercise gets
+  Body area and refuses a taken name. Verification: unit 15/15 (`exercises-unit-3`), the four capture
+  passes (`exercises-ui-8`), six flows, neighbours (ProgressChart, Tooltip, GymsFlows, ExercisePreset,
+  CoreLoop creation, RedesignScreenshot 05–07) — every targeted test passed in final form; captures
+  `captures/08/` (80). Shared changes: `WrapLayout` 0.5 pt slack, `SearchFieldView` identifier.
+  Runner `/tmp/wt-floodlight/ex-run.sh`, derived data `/tmp/wt-floodlight/dd-exercises`.
+  Next: Codex findings → fix → re-review to clear; then ticket 09 (Settings, area 8).
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
