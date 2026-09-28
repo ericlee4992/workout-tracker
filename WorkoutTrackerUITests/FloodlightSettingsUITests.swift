@@ -98,6 +98,22 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertTrue(app.sheets.firstMatch.waitForNonExistence(timeout: 5), "the dialog closed")
     }
 
+    /// Types into the secure key field once the keyboard is up and the sheet has stopped moving:
+    /// the sheet grows to full height as the keyboard rises, and keys typed during that move were
+    /// lost (settings-ui-6, seen in its screen recording). Verifies the length and retypes once.
+    private func typeKey(_ field: XCUIElement, _ text: String) {
+        field.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 1.2)
+        field.typeText(text)
+        if (field.value as? String)?.count != text.count {
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
+            Thread.sleep(forTimeInterval: 0.8)
+            field.typeText(text)
+        }
+        XCTAssertEqual((field.value as? String)?.count, text.count, "the typed key stays in the field (as dots)")
+    }
+
     // MARK: Captures
 
     func testCaptureSettingsLightDefault() { capture(appearance: "light", large: false) }
@@ -136,14 +152,12 @@ final class FloodlightSettingsUITests: XCTestCase {
         // Typing a replacement: Save key appears.
         let field = app.secureTextFields["askAIKeyField"]
         for _ in 0..<4 where !field.isHittable { app.swipeDown() }
-        field.tap()
-        field.typeText("sk-proj-new9")
+        typeKey(field, "sk-proj-new9")
         XCTAssertTrue(app.buttons["askAISaveKey"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.6)
         // iOS blanks secure-entry text and its keyboard in screenshots: the shot shows Save key,
         // not the dots.
         shoot("floodlight-09-x02-typing-\(suffix)")
-        XCTAssertEqual((field.value as? String)?.count, 12, "the typed key stays in the field (as dots)")
         // Empty the field, then Return: with nothing typed, Return only ends editing.
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "\n")
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
@@ -256,9 +270,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertEqual(status.label, "Ask AI, Off")
         XCTAssertFalse(app.buttons["askAISaveKey"].exists, "no Save key until something is typed")
         let field = app.secureTextFields["askAIKeyField"]
-        field.tap()
-        field.typeText("sk-test-abcd1234")
-        XCTAssertEqual((field.value as? String)?.count, 16, "the typed key stays in the field (as dots)")
+        typeKey(field, "sk-test-abcd1234")
         let save = app.buttons["askAISaveKey"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
         // Let the sheet finish moving with the keyboard before the tap (settings-ui-1).

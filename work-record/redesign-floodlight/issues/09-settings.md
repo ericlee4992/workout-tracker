@@ -219,8 +219,43 @@ logs, `.exit` files and result bundles `/tmp/wt-floodlight/results/settings-*`.
   metric), X02 (with key, typing, remove confirmation, no key), X03 (idle, sharing, file card,
   failure), light/dark. Secure entry is blank in every typing shot by design (iOS capture protection).
   Contact sheets beside the prototype: `/tmp/wt-floodlight/results/settings-sheets/compare-*.png`.
-- Not yet re-run on the final code: the Default capture passes and flows after the AX-only link-row
-  change and the sheet-aware test helper (planned with the review fixes).
+- `settings-ui-5`: **exit 0 — 11/11** on `bbe74db` (the reviewed code): the whole
+  `FloodlightSettingsUITests` class (four capture passes, five flows) and AskAI key settings ×2.
+
+## Codex review 09 — response (round 1)
+
+Report: [codex-review-09.md](../codex-review-09.md) — not clear; two medium, three low. All accepted.
+
+1. **Share could point at a deleted file after a tab round trip** (the tab keeps Export's state;
+   `onDisappear` had deleted the file but kept the card). Leaving now drops the card with the file
+   and cancels an export in flight (the task checks cancellation after its one suspension point).
+   UI test `testTabRoundTripDropsTheFileCard`.
+2. **A failed replacement lost the previous file's cleanup handle.** `Domain/ExportFile.swift`
+   `ExportStaging` owns the staged file: a newer file replaces it, a failure or leaving releases it.
+   Unit test `stagingDeletesReplacedAndReleasedFiles` checks the files on disk.
+3. **Three or more workouts on one day climbed out of the strip.** The strip's height comes from the
+   busiest day (`Tally.tallestStack`, unit-tested), capped at four rows; more share the top row (the
+   count says the number). The Settings fixture now has three workouts yesterday (two short
+   "Mobility" workouts), so the captures show a stack.
+4. **VoiceOver heard only the maximum on the heart-rate card.** Its label adds the zones
+   ("Zone 1 from 102, …", `SettingsZoneLadder.summary`).
+5. **`ExportUITests` could pass without a share sheet** (the file card shows the name too). It now
+   waits for the system sheet (`ActivityListView`), finds the file inside it, and closes it.
+Also from the report: the AXL no-key capture now asserts "Off" is below the sheet's header; the key
+flow closes the sheet while On and checks Settings' row says On, then reopens.
+
+Verification (round 2):
+- `settings-ui-6` (exit 65): unit `ExportRecordTests` (11, with the staging and busiest-day tests) and
+  `ExportTests` passed; UI **13/14** on `d887393` — all four capture passes, the tab round trip, the
+  completed-share, failure, units and workout-defaults flows, `ExportUITests` (now scoped to the share
+  sheet) and the HR zones row. The key flow failed: 1 of 16 typed characters in the field. Its screen
+  recording showed the field focused while the sheet grew to full height as the keyboard rose; the
+  keys typed during that move were lost. Test mechanics (a person types after the keyboard is up): the
+  test now waits for the keyboard, lets the sheet settle, verifies the length and retypes once.
+- `settings-ui-7`: **exit 0 — 6/6** (`-test-iterations 2`): the key flow, light Default and dark AXL
+  capture passes, each twice, on the final test code.
+- Captures `../captures/09/` refreshed from `settings-ui-6` (50 PNGs, product code unchanged since;
+  three workouts yesterday show as a stack in X03).
 
 ## Progress
 
