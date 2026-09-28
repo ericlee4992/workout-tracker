@@ -62,6 +62,13 @@ final class FloodlightExercisesUITests: XCTestCase {
         let field = app.textFields["exerciseSearch"]
         field.tap()
         field.typeText(text)
+        // The simulator keyboard once added a stray key ("Landmine PressY", exercises-ui-13): check
+        // what landed and type it again if it is not the text.
+        for _ in 0..<2 where (field.value as? String) != text {
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 40))
+            field.typeText(text)
+        }
+        XCTAssertEqual(field.value as? String, text)
     }
 
     private func clearSearch() {
@@ -74,7 +81,11 @@ final class FloodlightExercisesUITests: XCTestCase {
         search(name)
         let row = any("exerciseRow.\(name)")
         XCTAssertTrue(row.waitForExistence(timeout: 5), "\(name) is listed")
-        if app.keyboards.firstMatch.exists { app.swipeDown() }
+        // End editing (the keyboard's Search) and let it go before the tap: a swipe raced the
+        // keyboard's dismissal at AX sizes and the tap was lost (exercises-ui-13).
+        app.textFields["exerciseSearch"].typeText("\n")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        reach(row)
         row.tap()
         XCTAssertTrue(any("exerciseDetail").waitForExistence(timeout: 5), "\(name)'s page opened")
     }

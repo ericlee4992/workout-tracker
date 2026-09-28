@@ -330,3 +330,10 @@ Report: [codex-review-08.md](../codex-review-08.md) — not clear; five medium, 
    E05 changed scrolls until the logged-sets row is on screen (asserted), shot as `…-2`.
 
 Verification (round 2): `exercises-build-12` exit 0; `exercises-unit-4` **exit 0 — 20/20**.
+- `exercises-ui-13` (exit 65, **9/10**): the whole `FloodlightExercisesUITests` class on the fixed code —
+  six flows and three capture passes passed (with the new E03/E05 pages asserted); dark AXL failed
+  opening Landmine Press: the simulator keyboard typed a stray key ("Landmine PressY", seen in the
+  hierarchy). Test mechanics: `search` now verifies the field's value and retypes; `open` ends editing
+  with the keyboard's Search before tapping. `exercises-ui-14`: **exit 0** — dark AXL.
+- Captures `../captures/08/` refreshed from `-ui-13` (default ×2, light AXL) and `-ui-14` (dark AXL):
+  91 PNGs, adding E03 pages to the Equipment chips and E05's full ledger.
