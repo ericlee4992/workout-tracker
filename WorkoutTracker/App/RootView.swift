@@ -61,7 +61,7 @@ struct RootView: View {
         // The coordinator is owned here and read by the Start screen too: it
         // must bank the active workout's summary before "Finish it and start
         // new" auto-finishes that workout (codex-review 05).
-        .tint(Theme.accent)
+        .tint(Color.accentColor)
         .environment(heartRateCoordinator)
         .fullScreenCover(item: $activeWorkout) { workout in
             ActiveWorkoutView(

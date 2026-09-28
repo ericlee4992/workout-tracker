@@ -10,20 +10,6 @@ extension ExerciseEntry {
     }
 }
 
-extension SetType {
-    /// The marker's tint, shared by the active workout and history detail so
-    /// a `D` never means one thing on one screen and another elsewhere.
-    /// Set types retain their own meaning; completed work uses the accent.
-    var markerColor: Color {
-        switch self {
-        case .warmup: Theme.warmup
-        case .working: Theme.text
-        case .failure: Theme.danger
-        case .drop: Theme.drop
-        }
-    }
-}
-
 struct ExerciseEntryCard: View {
     @Environment(\.modelContext) private var modelContext
     var entry: ExerciseEntry

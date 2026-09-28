@@ -17,6 +17,7 @@ extension CardioActivity {
 }
 
 struct CardioActivityPicker: View {
+    @Environment(\.look) private var look
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
     var endsCurrentSegment = false
@@ -26,12 +27,12 @@ struct CardioActivityPicker: View {
             List {
                 if endsCurrentSegment {
                     Text("Starting another activity ends the current cardio segment.")
-                        .font(.footnote).foregroundStyle(Theme.secondary)
+                        .font(.footnote).foregroundStyle(look.textSecondary)
                 }
                 activities(outdoor: false, title: "Gym")
                 activities(outdoor: true, title: "Outdoors")
             }
-            .scrollContentBackground(.hidden).background(Theme.background)
+            .scrollContentBackground(.hidden).background(look.ground)
             .navigationTitle("Choose Cardio")
             .searchable(text: $search, prompt: "Search activities")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
@@ -46,13 +47,13 @@ struct CardioActivityPicker: View {
                     select(activity); dismiss()
                 } label: {
                     HStack(spacing: 14) {
-                        Image(systemName: activity.symbol).font(.title2).foregroundStyle(Theme.secondary).frame(minWidth: 32)
-                        Text(activity.name).foregroundStyle(Theme.text)
+                        Image(systemName: activity.symbol).font(.title2).foregroundStyle(look.textSecondary).frame(minWidth: 32)
+                        Text(activity.name).foregroundStyle(look.textPrimary)
                         Spacer()
-                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.secondary)
+                        Image(systemName: "chevron.right").font(.caption).foregroundStyle(look.textSecondary)
                     }.padding(.vertical, 8).frame(minHeight: 44)
                 }
-                .listRowBackground(Theme.card)
+                .listRowBackground(look.surface)
                 .accessibilityIdentifier("cardioActivity.\(activity.rawValue)")
             }
         }
@@ -68,7 +69,7 @@ struct CardioWorkoutSection: View {
             if let segment = workout.unfinishedCardio {
                 CardioLiveView(segment: segment, recorder: recorder, monitor: monitor)
             } else if workout.orderedCardio.isEmpty {
-                EmptyState(title: "Add cardio to this workout", symbol: "figure.run")
+                EmptyStateView(symbol: "figure.run", title: "Add cardio to this workout")
             }
             ForEach(workout.orderedCardio.filter { $0.endedAt != nil }) { segment in
                 CardioSummaryCard(segment: segment, showsRoute: false)
@@ -80,6 +81,7 @@ struct CardioWorkoutSection: View {
 }
 
 struct CardioLiveView: View {
+    @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     var segment: CardioSegment
     var recorder: CardioRecorder
@@ -93,9 +95,9 @@ struct CardioLiveView: View {
             Label(segment.activity.name, systemImage: segment.activity.symbol).font(.title2.bold())
             TimelineView(.periodic(from: .now, by: 1)) { tick in
                 VStack(spacing: 7) {
-                    Text(segment.isRunning ? "Time" : "Paused").font(.subheadline).foregroundStyle(Theme.secondary)
+                    Text(segment.isRunning ? "Time" : "Paused").font(.subheadline).foregroundStyle(look.textSecondary)
                     Text(Format.elapsed(seconds: Int(segment.activeDuration(at: tick.date))))
-                        .font(Theme.hero).monospacedDigit().accessibilityIdentifier("cardioTimer")
+                        .font(look.font.heroNumber).monospacedDigit().accessibilityIdentifier("cardioTimer")
                 }.frame(maxWidth: .infinity)
             }
             LazyVGrid(columns: columns, alignment: .leading, spacing: 20) {
@@ -107,7 +109,7 @@ struct CardioLiveView: View {
                     CardioMetric(label: "Average pace", value: CardioMath.paceText(CardioMath.pace(seconds: segment.activeDuration(at: recorder.measurementTime), meters: segment.distanceMeters, unit: segment.unit)), unit: "/\(segment.unit.rawValue)")
                 }
                 if let sample = recorder.currentHeartRate {
-                    CardioMetric(label: "Heart rate", value: "\(sample.bpm)", unit: "bpm", tint: Theme.danger)
+                    CardioMetric(label: "Heart rate", value: "\(sample.bpm)", unit: "bpm", tint: look.heartRate)
                 }
                 if let calories = segment.activeEnergyKilocalories {
                     CardioMetric(label: "Active calories", value: "\(Int(calories.rounded()))", unit: "cal")
@@ -117,22 +119,26 @@ struct CardioLiveView: View {
                 Text(segment.activity.usesSpeed
                      ? "Current speed: \(speedText) \(segment.unit.rawValue)/h"
                      : "Current pace: \(CardioMath.paceText(CardioMath.pace(speed: recorder.freshSpeed, unit: segment.unit))) /\(segment.unit.rawValue)")
-                    .font(.footnote).foregroundStyle(Theme.secondary)
+                    .font(.footnote).foregroundStyle(look.textSecondary)
                     .accessibilityIdentifier("cardioCurrentPace")
             }
             if segment.isRunning && recorder.currentHeartRate == nil {
-                Text("Waiting for heart-rate data").font(.footnote).foregroundStyle(Theme.secondary)
+                Text("Waiting for heart-rate data").font(.footnote).foregroundStyle(look.textSecondary)
             }
             if let sample = recorder.currentHeartRate, let max = monitor?.maxHeartRate,
                let zone = HeartRateZones.zone(for: sample.bpm, max: max.bpm) {
                 HStack {
-                    LegacyChip(tint: zone.color) { Text(zone.label) }
+                    Text(zone.label)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .foregroundStyle(look.zone(zone))
+                        .background(look.zone(zone).opacity(0.12), in: Capsule())
                     Spacer()
-                    Text(sample.source.label).font(.caption).foregroundStyle(Theme.secondary)
+                    Text(sample.source.label).font(.caption).foregroundStyle(look.textSecondary)
                 }
             }
             if let message = recorder.locationMessage {
-                Text(message).font(.footnote).foregroundStyle(Theme.secondary)
+                Text(message).font(.footnote).foregroundStyle(look.textSecondary)
             }
             // Measured progress already has Distance above. Manual entry stays
             // available when indoor sensors supply no distance, or to revise a manual value.
@@ -141,19 +147,19 @@ struct CardioLiveView: View {
                     HStack {
                         VStack(alignment: .leading, spacing: 6) {
                             if let caption = segment.distanceSourceCaption {
-                                Text(caption).font(.caption).foregroundStyle(Theme.secondary)
+                                Text(caption).font(.caption).foregroundStyle(look.textSecondary)
                             }
                             Text(segment.distanceMeters == nil ? "Enter distance" : "\(distanceText) \(segment.unit.rawValue)")
-                                .font(.headline).foregroundStyle(Theme.text)
+                                .font(.headline).foregroundStyle(look.textPrimary)
                         }
                         Spacer()
-                        Image(systemName: "pencil").foregroundStyle(Theme.secondary)
+                        Image(systemName: "pencil").foregroundStyle(look.textSecondary)
                     }.frame(minHeight: 44).contentShape(Rectangle())
                 }.buttonStyle(.plain).accessibilityIdentifier("cardioEditDistance")
             }
 
         }
-        .foregroundStyle(Theme.text)
+        .foregroundStyle(look.textPrimary)
         .sheet(isPresented: $editingDistance) { CardioDistanceSheet(segment: segment) }
     }
     private var distanceText: String {
@@ -183,12 +189,12 @@ struct CardioControls: View {
             } label: {
                 Label(segment.isRunning ? "Pause" : "Resume", systemImage: segment.isRunning ? "pause.fill" : "play.fill")
                     .frame(maxWidth: .infinity)
-            }.buttonStyle(.primary).accessibilityIdentifier("cardioPauseResume")
+            }.buttonStyle(.lookPrimary).accessibilityIdentifier("cardioPauseResume")
             Button { recorder.endCardio() } label: {
                 Text("End Cardio").frame(maxWidth: .infinity)
-            }.buttonStyle(.secondary).accessibilityIdentifier("endCardio")
+            }.buttonStyle(.lookSecondary).accessibilityIdentifier("endCardio")
         }
-        .padding(16).card(.elevated)
+        .padding(16).lookSurface(.raised)
         .padding(.horizontal, 16).padding(.bottom, 8)
     }
 }
@@ -197,19 +203,21 @@ struct CardioMetric: View {
     var label: String
     var value: String
     var unit: String = ""
-    var tint: Color = Theme.text
+    var tint: Color?
+    @Environment(\.look) private var look
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(label).font(.caption).foregroundStyle(Theme.secondary)
+            Text(label).font(.caption).foregroundStyle(look.textSecondary)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text(value).font(Theme.stat).monospacedDigit().foregroundStyle(tint)
-                Text(unit).font(.subheadline).foregroundStyle(Theme.secondary)
+                Text(value).font(look.font.statNumber).monospacedDigit().foregroundStyle(tint ?? look.textPrimary)
+                Text(unit).font(.subheadline).foregroundStyle(look.textSecondary)
             }
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
 struct CardioSummaryCard: View {
+    @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     var segment: CardioSegment
     // Completed segments also appear inside an unfinished workout, where maps stay hidden.
@@ -217,7 +225,7 @@ struct CardioSummaryCard: View {
     @State private var editingDistance = false
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Label(segment.activity.name, systemImage: segment.activity.symbol).font(.headline).foregroundStyle(Theme.text)
+            Label(segment.activity.name, systemImage: segment.activity.symbol).font(.headline).foregroundStyle(look.textPrimary)
                 .accessibilityElement(children: .combine)
                 .accessibilityIdentifier("cardioSummary.\(segment.activityRawValue)")
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), alignment: .leading), count: typeSize.isAccessibilitySize ? 1 : 2), spacing: 16) {
@@ -240,15 +248,16 @@ struct CardioSummaryCard: View {
                     Spacer()
                     Image(systemName: "pencil")
                 }.font(.caption).frame(minHeight: 44).contentShape(Rectangle())
-            }.buttonStyle(.plain).foregroundStyle(Theme.secondary).accessibilityIdentifier("cardioSummaryEditDistance")
+            }.buttonStyle(.plain).foregroundStyle(look.textSecondary).accessibilityIdentifier("cardioSummaryEditDistance")
         }
-        .padding(16).card()
+        .padding(16).lookSurface(.card)
         .accessibilityElement(children: .contain)
         .sheet(isPresented: $editingDistance) { CardioDistanceSheet(segment: segment) }
     }
 }
 
 struct CardioDistanceSheet: View {
+    @Environment(\.look) private var look
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     var segment: CardioSegment
@@ -266,11 +275,11 @@ struct CardioDistanceSheet: View {
                 }.pickerStyle(.segmented).accessibilityIdentifier("cardioDistanceUnit")
                 if let meters = segment.automaticDistanceMeters {
                     Text("Measured: \(String(format: "%.2f", meters / unit.metersPerUnit)) \(unit.rawValue)")
-                        .font(.subheadline).foregroundStyle(Theme.secondary)
+                        .font(.subheadline).foregroundStyle(look.textSecondary)
                 }
                 Text("Enter the machine’s distance. Clear it to use the measured distance.")
-                    .font(.footnote).foregroundStyle(Theme.secondary)
-                if let error { Text(error).foregroundStyle(Theme.danger) }
+                    .font(.footnote).foregroundStyle(look.textSecondary)
+                if let error { Text(error).foregroundStyle(look.destructive) }
             }
             .navigationTitle("Distance")
             .toolbar {
@@ -296,6 +305,7 @@ struct CardioDistanceSheet: View {
 }
 
 struct CardioRouteMap: View {
+    @Environment(\.look) private var look
     var points: [CardioRoutePoint]
     private struct Portion: Identifiable {
         let id: UUID
@@ -309,11 +319,11 @@ struct CardioRouteMap: View {
     var body: some View {
         Map(initialPosition: .automatic, interactionModes: []) {
             ForEach(portions) { portion in
-                MapPolyline(coordinates: portion.coordinates).stroke(Color("AccentColor"), lineWidth: 4)
+                MapPolyline(coordinates: portion.coordinates).stroke(look.live, lineWidth: 4)
             }
         }
         .mapStyle(.standard(elevation: .flat, pointsOfInterest: .excludingAll))
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.inner))
+        .clipShape(RoundedRectangle(cornerRadius: look.radius.row))
         .accessibilityLabel("Recorded cardio route")
         .accessibilityIdentifier("cardioRoute")
     }

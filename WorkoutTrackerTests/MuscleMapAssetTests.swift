@@ -2,14 +2,16 @@ import Testing
 import UIKit
 @testable import WorkoutTracker
 
-struct ThemeTests {
-    /// Every family has a style whose two map layers are in the asset
-    /// catalog (ticket 12: muscle maps, body + muscle, template images).
+struct MuscleMapAssetTests {
+    /// Every family's two map layers are in the asset catalog (ticket 12: muscle maps, body +
+    /// muscle, template images), and every family has its own colour in both Floodlight palettes.
     @Test @MainActor func everyMuscleFamilyHasBothMapLayers() throws {
         let bundle = Bundle(for: AppPreferences.self)
         for family in MuscleFamily.allCases {
-            let style = try #require(MuscleGroupStyle.styles[family], "Missing muscle style: \(family)")
-            for name in [style.bodyImage, style.muscleImage] {
+            for look in [Look.floodlight, Look.floodlightLight] {
+                #expect(look.familyColors[family] != nil, "No \(family) colour")
+            }
+            for name in [family.bodyAsset, family.muscleAsset] {
                 let image = try #require(UIImage(named: name, in: bundle, with: nil), "Missing asset: \(name)")
                 #expect(image.renderingMode == .alwaysTemplate, "\(name) must be a template image")
             }

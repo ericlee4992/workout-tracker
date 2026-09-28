@@ -52,7 +52,7 @@ struct AddByMachineSheet: View {
                     }
                     if machines.isEmpty {
                         // UI redesign ticket 09: the illustration; same string.
-                        EmptyState(title: "No machines yet", symbol: "dumbbell")
+                        EmptyStateView(symbol: "dumbbell", title: "No machines yet")
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
                     }

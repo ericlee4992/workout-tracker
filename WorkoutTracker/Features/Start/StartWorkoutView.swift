@@ -382,70 +382,18 @@ struct StartWorkoutView: View {
     }
 }
 
-/// Ticket 10: the amber capsule — the figure in an ink disc, one or two
-/// lines, and an optional trailing symbol. Hugging, not a slab: the user found the
-/// full-width hero "too big and too mundane". Ticket 11: the template
-/// detail's Start wears it too.
-struct HeroCapsuleLabel: View {
-    var title: String
-    var subtitle: String?
-    var symbol: String
-    var trailing: String?
-    var live: Bool
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// The ink disc grows with its glyph (`.body`) — codex-review-10 saw the
-    /// figure flush with a fixed 40 pt disc at AXL.
-    @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 40
-    @ScaledMetric(relativeTo: .body) private var dot: CGFloat = 9
-    @State private var breathing = false
-
-    var body: some View {
-        HStack(spacing: Theme.Space.medium) {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: symbol)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(Theme.accent)
-                    .frame(width: disc, height: disc)
-                    .background(Theme.onAccent, in: Circle())
-                if live {
-                    // Inside the ink disc — amber on ink; at its edge the dot
-                    // sat amber on the amber capsule and vanished. Geometry,
-                    // scaled with the disc; it breathes unless Reduce Motion.
-                    Circle()
-                        .fill(Theme.accent)
-                        .frame(width: dot, height: dot)
-                        .opacity(breathing || reduceMotion ? 1 : 0.35)
-                        .animation(reduceMotion ? nil : .easeInOut(duration: 1).repeatForever(autoreverses: true), value: breathing)
-                        .onAppear { breathing = true }
-                        .offset(x: -dot * 0.55, y: dot * 0.55)
-                        .accessibilityHidden(true)
-                }
-            }
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.body.weight(.bold))
-                if let subtitle {
-                    Text(subtitle).font(.caption.weight(.medium)).opacity(0.8)
-                }
-            }
-            if let trailing {
-                Image(systemName: trailing)
-                    .font(.body.weight(.bold))
-            }
-        }
-        .foregroundStyle(Theme.onAccent)
-        .padding(.leading, 8)
-        .padding(.trailing, trailing == nil ? 12 : 20)
-        .frame(minHeight: 56)
-        .background(Theme.accent, in: Capsule())
-        .accessibilityElement(children: .combine)
-    }
-}
-
+/// A machine's default unit in the machine pickers ("kg" / "lb"): a quiet capsule, never a command.
 struct UnitBadge: View {
     var unit: WeightUnit
+    @Environment(\.look) private var look
 
     var body: some View {
-        UnitChip(unit: unit)
+        Text(unit.rawValue)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .foregroundStyle(look.textSecondary)
+            .background(look.textSecondary.opacity(0.12), in: Capsule())
     }
 }
 
