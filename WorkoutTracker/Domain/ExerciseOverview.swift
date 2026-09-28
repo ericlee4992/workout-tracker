@@ -61,6 +61,15 @@ enum ExerciseOverview {
         return stat
     }
 
+    /// One progress variation's readout by WORKOUT (the chart groups by day; a day can hold two
+    /// workouts and one workout can cross midnight): its sets scoped to the variation, then `stat`
+    /// under the variation's load type — so its `lastWasNewBest` means the latest workout on this
+    /// variation set the best and an earlier workout had an eligible set.
+    static func variationStat(of sets: [ExerciseLoggedSet], variation: ProgressVariationKey) -> ExerciseStat {
+        let scoped = sets.filter { ProgressSeriesMath.scoped([$0.input], to: variation).count == 1 }
+        return stat(of: scoped, currentLoadType: variation.loadType)
+    }
+
     /// The best eligible set among `inputs` of `loadType` (ties keep the earlier set).
     static func best(_ inputs: [RecordSetInput], loadType: LoadType) -> RecordSetInput? {
         inputs
@@ -390,29 +399,44 @@ extension ExerciseOverview {
             normalizedKg: set.normalizedKg, completedAt: set.completedAt, barWeightValue: set.barWeightValue)
     }
 
-    /// Sets already logged for an exercise — they keep the load type they were logged under.
-    /// Counts every set of every captured entry (the Load Type sheet's ledger).
-    static func loggedSetCount(of exercise: Exercise) -> Int {
-        guard !exercise.isDeleted else { return 0 }
-        return (exercise.entries ?? [])
-            .filter { !$0.isDeleted && $0.snapshotCapturedAt != nil }
-            .reduce(0) { $0 + ($1.sets ?? []).filter { !$0.isDeleted }.count }
+    /// Sets already logged for an exercise, counted by the load type each was logged UNDER (the
+    /// entry's snapshot, D23) — not the exercise's current type, which a correction may have changed
+    /// since (the Load Type sheet's ledger). Every set of every captured entry; types in
+    /// `LoadType.allCases` order, only those with sets.
+    static func loggedSetCounts(of exercise: Exercise) -> [(loadType: LoadType, sets: Int)] {
+        guard !exercise.isDeleted else { return [] }
+        var counts: [LoadType: Int] = [:]
+        for entry in exercise.entries ?? [] where !entry.isDeleted && entry.snapshotCapturedAt != nil {
+            counts[entry.snapshotLoadType, default: 0] += (entry.sets ?? []).filter { !$0.isDeleted }.count
+        }
+        return LoadType.allCases.compactMap { type in
+            counts[type].flatMap { $0 > 0 ? (type, $0) : nil }
+        }
     }
 
     /// One past workout's sets of an exercise (the detail's History rows).
     struct Session: Identifiable {
         var id: UUID { workout.id }
         var workout: Workout
+        /// The workout's entries of the exercise in logging order, each with ITS OWN snapshot
+        /// context (D23/D36): a switch of grip or equipment mid-workout, or an entry re-typed in
+        /// History, keeps its own words and its own load type. Adjacent entries with the same context
+        /// share one group.
+        var groups: [SessionGroup]
+        var newBestSetIDs: Set<UUID>
+    }
+
+    struct SessionGroup: Identifiable {
+        var id: UUID
         /// "Chest Press 2 · Narrow grip": the snapshot equipment, then the preset.
         var equipment: String
         var loadType: LoadType
         var sets: [SetRecord]
-        var newBestSetIDs: Set<UUID>
     }
 
-    /// The newest `limit` finished workouts that trained the exercise, their entries merged, the
-    /// sets in logging order; each set marked when it set a new best in its scope (`SetBadgeMath`,
-    /// the same mark the live workout and the receipt show).
+    /// The newest `limit` finished workouts that trained the exercise, the sets in logging order,
+    /// grouped by entry context; each set marked when it set a new best in its scope
+    /// (`SetBadgeMath`, the same mark the live workout and the receipt show).
     static func recentSessions(
         exerciseID: UUID, finishedEntries: [ExerciseEntry], limit: Int = 3
     ) -> [Session] {
@@ -421,20 +445,26 @@ extension ExerciseOverview {
         return byWorkout.values
             .compactMap { entries -> Session? in
                 let ordered = entries.sorted { $0.order < $1.order }
-                guard let first = ordered.first, let workout = first.workout else { return nil }
-                let sets = ordered.flatMap { entry in
-                    (entry.sets ?? []).filter { !$0.isDeleted && $0.completedAt != nil }.sorted { $0.order < $1.order }
-                }
-                guard !sets.isEmpty else { return nil }
+                guard let workout = ordered.first?.workout else { return nil }
+                var groups: [SessionGroup] = []
                 var newBests = Set<UUID>()
                 for entry in ordered {
+                    let sets = (entry.sets ?? []).filter { !$0.isDeleted && $0.completedAt != nil }
+                        .sorted { $0.order < $1.order }
+                    guard !sets.isEmpty else { continue }
                     let marks = SetBadgeMath.receiptMarks(for: entry, finishedEntries: finishedEntries).outcomes
                     newBests.formUnion(marks.filter { $0.value.badge == .newBest }.keys)
+                    let equipment = [entry.snapshotMachineLabel ?? entry.snapshotFreeWeightTag?.label,
+                                     entry.snapshotPresetName].compactMap { $0 }.joined(separator: " · ")
+                    if let last = groups.last, last.equipment == equipment, last.loadType == entry.snapshotLoadType {
+                        groups[groups.count - 1].sets += sets
+                    } else {
+                        groups.append(SessionGroup(id: entry.id, equipment: equipment,
+                                                   loadType: entry.snapshotLoadType, sets: sets))
+                    }
                 }
-                let equipment = [first.snapshotMachineLabel ?? first.snapshotFreeWeightTag?.label, first.snapshotPresetName]
-                    .compactMap { $0 }.joined(separator: " · ")
-                return Session(workout: workout, equipment: equipment, loadType: first.snapshotLoadType,
-                               sets: sets, newBestSetIDs: newBests)
+                guard !groups.isEmpty else { return nil }
+                return Session(workout: workout, groups: groups, newBestSetIDs: newBests)
             }
             .sorted { $0.workout.startedAt > $1.workout.startedAt }
             .prefix(limit)

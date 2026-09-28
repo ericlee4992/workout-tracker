@@ -305,3 +305,28 @@ whole-redesign release candidate (ticket 01 step 4). Simulator WT-Floodlight (iO
   display unit (D52 plain number); the mini chart is the machine page's `MachineBestChart`.
   `exerciseBrowseMuscleGroup` now holds a family name: only the Exercises tab reads that field
   (checked: no other reader; export does not include it).
+
+## Codex review 08 — response (round 1)
+
+Report: [codex-review-08.md](../codex-review-08.md) — not clear; five medium, two low. All accepted.
+
+1. **Recent sessions used the first entry's context for every set.** `ExerciseOverview.Session` now
+   holds `groups` — one per entry context (equipment · preset, snapshot load type), adjacent entries
+   with the same context merged — and E02 shows each group's words over its own sets, formatted by
+   its own load type. Unit test `sessionsKeepEachEntrysOwnContext` (narrow grip assisted, then wide
+   grip re-typed Weighted).
+2. **The hero's new-best mark was judged by chart day.** `ExerciseOverview.variationStat` scopes the
+   sets to the variation and reuses `stat`'s workout rule; the hero's best and mark come from it (the
+   chart keeps its days). Unit tests: two workouts on one day (evening best is marked), a first
+   workout across midnight (not marked), a later lighter workout (not marked).
+3. **The Load Type ledger badged old sets with the current type.** `loggedSetCounts` counts by each
+   entry's snapshot load type; the ledger shows one row per type logged. Unit test
+   `theLedgerCountsSetsByTheTypeTheyWereLoggedUnder` (3 Weighted, corrected to Assisted, 1 Assisted).
+4. **Placeholder contrast in dark (4.13:1).** "Name" and "New preset (e.g. Wide grip)" use
+   `textSecondary`: 6.51:1 dark, 5.91:1 light on `field`.
+5. **Edit bypassed Reduce Motion.** Edit/Done go through `setEditing`, unanimated under Reduce Motion.
+6. **`page(to:)` could pass without reaching its target.** It now asserts the element was reached.
+7. **AXL sheet captures stopped short.** E03 pages down to the Equipment chips (asserted on screen);
+   E05 changed scrolls until the logged-sets row is on screen (asserted), shot as `…-2`.
+
+Verification (round 2): `exercises-build-12` exit 0; `exercises-unit-4` **exit 0 — 20/20**.

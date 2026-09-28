@@ -54,6 +54,7 @@ struct ExerciseDetailView: View {
     /// One read of this exercise's history per render.
     private struct Readout {
         var stat: ExerciseStat
+        var sets: [ExerciseLoggedSet]
         var inputs: [RecordSetInput]
         var variations: [(key: ProgressVariationKey, days: Int)]
         var labels: [ProgressVariationKey: String]
@@ -73,7 +74,7 @@ struct ExerciseDetailView: View {
         })
         return Readout(
             stat: ExerciseOverview.stat(of: sets, currentLoadType: exercise.loadType),
-            inputs: inputs, variations: variations, labels: labels,
+            sets: sets, inputs: inputs, variations: variations, labels: labels,
             sessions: ExerciseOverview.recentSessions(exerciseID: exerciseID, finishedEntries: finishedEntries),
             machineUses: ExerciseOverview.machineUses(exerciseID: exerciseID, currentLoadType: exercise.loadType,
                                                       sets: sets, machines: machines))
@@ -200,9 +201,11 @@ struct ExerciseDetailView: View {
         let scoped = ProgressSeriesMath.scoped(data.inputs, to: key)
         let series = ProgressSeriesMath.series(for: data.inputs, variation: key)
         let recordDays = ProgressSeriesMath.recordDays(series)
-        let best = ExerciseOverview.best(scoped, loadType: key.loadType).flatMap(SetValue.init)
-        // Marked only when the newest session set it (never a first time or a tie).
-        let marked = series.points.count > 1 && series.points.last.map { recordDays.contains($0.date) } == true
+        // By workout, not by the chart's days: marked only when the latest workout on this variation
+        // set it and an earlier workout had a set (never a first time or a tie) — codex-review-08 #2.
+        let variation = ExerciseOverview.variationStat(of: data.sets, variation: key)
+        let best = variation.best.flatMap(SetValue.init)
+        let marked = variation.lastWasNewBest
         let oneRepMax = key.loadType == .weighted ? RecordsMath.bestE1RM(among: scoped)?.e1RMKg : nil
         let change = ProgressSeriesMath.change(series)
         let label = data.labels[key] ?? key.loadType.badge
@@ -511,22 +514,26 @@ struct ExerciseDetailView: View {
                     .font(look.exercisesRowTitle)
                     .foregroundStyle(look.textPrimary)
                     .multilineTextAlignment(.leading)
-                if !session.equipment.isEmpty {
-                    Text(session.equipment)
-                        .font(look.font.footnote)
-                        .foregroundStyle(look.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                WrapLayout(spacing: 10, lineSpacing: 4) {
-                    ForEach(session.sets) { set in
-                        if let reps = set.reps {
-                            ExercisesSetText(value: SetValue(weight: set.weightValue, unit: set.weightUnit, reps: reps),
-                                             type: set.type, loadType: session.loadType, userUnit: displayUnit,
-                                             isNewBest: session.newBestSetIDs.contains(set.id))
+                // Each entry's own context (codex-review-08 #1): a grip switched mid-workout, or an
+                // entry re-typed in History, keeps its words and formats by its own load type.
+                ForEach(session.groups) { group in
+                    if !group.equipment.isEmpty {
+                        Text(group.equipment)
+                            .font(look.font.footnote)
+                            .foregroundStyle(look.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    WrapLayout(spacing: 10, lineSpacing: 4) {
+                        ForEach(group.sets) { set in
+                            if let reps = set.reps {
+                                ExercisesSetText(value: SetValue(weight: set.weightValue, unit: set.weightUnit, reps: reps),
+                                                 type: set.type, loadType: group.loadType, userUnit: displayUnit,
+                                                 isNewBest: session.newBestSetIDs.contains(set.id))
+                            }
                         }
                     }
+                    .padding(.top, 2)
                 }
-                .padding(.top, 2)
             }
             Spacer(minLength: 0)
             Image(systemName: "chevron.right")

@@ -84,7 +84,7 @@ struct NewExerciseSheet: View {
 
     private var nameField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            TextField("Name", text: $name, prompt: Text("Name").foregroundStyle(look.textTertiary))
+            TextField("Name", text: $name, prompt: Text("Name").foregroundStyle(look.textSecondary))
                 .font(look.font.title3)
                 .foregroundStyle(look.textPrimary)
                 .tint(look.actionText)

@@ -222,8 +222,8 @@ struct ExerciseOverviewTests {
         let finished = try SetBadgeMath.finishedEntries(in: context)
         let sessions = ExerciseOverview.recentSessions(exerciseID: press.id, finishedEntries: finished)
         #expect(sessions.count == 2)
-        #expect(sessions[0].sets.map(\.weightValue) == [40, 105, 100])
-        let best = sessions[0].sets[1]
+        #expect(sessions[0].groups.flatMap(\.sets).map(\.weightValue) == [40, 105, 100])
+        let best = sessions[0].groups[0].sets[1]
         #expect(sessions[0].newBestSetIDs == [best.id])
         #expect(sessions[1].newBestSetIDs.isEmpty)   // the first time is not a best
     }
@@ -253,5 +253,95 @@ struct ExerciseOverviewTests {
         #expect(uses[0].best?.weightValue == 45)
         #expect(uses[1].workouts == 0)
         #expect(uses[1].best == nil)
+    }
+
+    // MARK: codex-review-08
+
+    private func set(_ kg: Double, _ reps: Int, workout: UUID, started: Date, at completed: Date) -> ExerciseLoggedSet {
+        ExerciseLoggedSet(setID: UUID(), workoutID: workout, workoutStartedAt: started,
+                          input: RecordSetInput(loadType: .weighted, exerciseID: exercise, gymID: nil, machineID: nil,
+                                                modelID: nil, freeWeightTag: .barbell, presetID: nil, setType: .working,
+                                                reps: reps, weightValue: kg, weightUnit: .kg, normalizedKg: kg,
+                                                completedAt: completed))
+    }
+
+    private var barbell: ProgressVariationKey {
+        ProgressVariationKey(loadType: .weighted, equipment: .freeWeight(.barbell), presetID: nil)
+    }
+
+    /// Two workouts on one day: the evening's best is a new best, though the chart has one point.
+    @Test func aVariationsNewBestIsJudgedByWorkoutNotByDay() {
+        let morning = t0, evening = t0.addingTimeInterval(9 * 3600)
+        let stat = ExerciseOverview.variationStat(of: [
+            set(100, 8, workout: workoutID(1), started: morning, at: morning.addingTimeInterval(600)),
+            set(110, 8, workout: workoutID(2), started: evening, at: evening.addingTimeInterval(600)),
+        ], variation: barbell)
+        #expect(stat.best?.weightValue == 110)
+        #expect(stat.lastWasNewBest)
+    }
+
+    /// One first-ever workout across midnight: two chart days, but no earlier workout — no new best.
+    @Test func aFirstWorkoutAcrossMidnightIsNotANewBest() {
+        var calendar = Calendar.current
+        calendar.timeZone = .current
+        let start = calendar.date(bySettingHour: 23, minute: 40, second: 0, of: t0)!
+        let stat = ExerciseOverview.variationStat(of: [
+            set(100, 8, workout: workoutID(1), started: start, at: start.addingTimeInterval(600)),
+            set(110, 8, workout: workoutID(1), started: start, at: start.addingTimeInterval(1800)),
+        ], variation: barbell)
+        #expect(stat.best?.weightValue == 110)
+        #expect(!stat.lastWasNewBest)
+    }
+
+    /// A later, lighter workout means the latest session did not set the best.
+    @Test func aLaterLighterWorkoutClearsTheMark() {
+        let stat = ExerciseOverview.variationStat(of: [
+            set(100, 8, workout: workoutID(1), started: t0, at: t0.addingTimeInterval(600)),
+            set(110, 8, workout: workoutID(2), started: t0.addingTimeInterval(3600), at: t0.addingTimeInterval(4200)),
+            set(90, 8, workout: workoutID(3), started: t0.addingTimeInterval(7200), at: t0.addingTimeInterval(7800)),
+        ], variation: barbell)
+        #expect(!stat.lastWasNewBest)
+    }
+
+    @Test func sessionsKeepEachEntrysOwnContext() throws {
+        let store = try container()
+        let context = store.mainContext
+        let pull = Exercise(name: "Assisted Pull-Up", loadType: .assisted)
+        context.insert(pull)
+        let start = t0
+        let workout = Workout(startedAt: start, finishedAt: start.addingTimeInterval(3600))
+        context.insert(workout)
+        // Narrow grip, then wide grip; the wide entry was re-typed in History to Weighted.
+        for (order, preset, load) in [(0, "Narrow grip", LoadType.assisted), (1, "Wide grip", LoadType.weighted)] {
+            let entry = ExerciseEntry(order: order, workout: workout, exercise: pull, snapshotCapturedAt: start,
+                                      snapshotExerciseID: pull.id, snapshotLoadType: load,
+                                      snapshotExerciseName: pull.name, snapshotPresetID: UUID(), snapshotPresetName: preset)
+            context.insert(entry)
+            context.insert(SetRecord(order: 0, reps: 8, weightValue: 25, weightUnit: .kg, normalizedKg: 25,
+                                     completedAt: start.addingTimeInterval(Double(order + 1) * 300), entry: entry))
+        }
+        try context.save()
+        let sessions = ExerciseOverview.recentSessions(
+            exerciseID: pull.id, finishedEntries: try SetBadgeMath.finishedEntries(in: context))
+        #expect(sessions.count == 1)
+        #expect(sessions[0].groups.map(\.equipment) == ["Narrow grip", "Wide grip"])
+        #expect(sessions[0].groups.map(\.loadType) == [.assisted, .weighted])
+        #expect(sessions[0].groups.map { $0.sets.count } == [1, 1])
+    }
+
+    @Test func theLedgerCountsSetsByTheTypeTheyWereLoggedUnder() throws {
+        let store = try container()
+        let context = store.mainContext
+        let dip = Exercise(name: "Dip", loadType: .weighted)
+        context.insert(dip)
+        workout(context, day: 0, exercise: dip, sets: [(10, 8, .working), (10, 8, .working), (10, 8, .working)])
+        try context.save()
+        // Corrected to Assisted: the three sets stay Weighted.
+        dip.loadType = .assisted
+        workout(context, day: 1, exercise: dip, sets: [(20, 8, .working)])
+        try context.save()
+        let counts = ExerciseOverview.loggedSetCounts(of: dip)
+        #expect(counts.map(\.loadType) == [.weighted, .assisted])
+        #expect(counts.map(\.sets) == [3, 1])
     }
 }

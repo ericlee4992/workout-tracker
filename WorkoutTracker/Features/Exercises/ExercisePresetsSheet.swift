@@ -131,7 +131,7 @@ struct ExercisePresetsSheet: View {
                 if isEditing {
                     HStack {
                         Spacer()
-                        GlassCapsuleButton("Done") { withAnimation { editMode = .inactive } }
+                        GlassCapsuleButton("Done") { setEditing(false) }
                             .accessibilityIdentifier("presetsEndEdit")
                     }
                     .padding(.horizontal, look.space.margin)
@@ -140,12 +140,19 @@ struct ExercisePresetsSheet: View {
             }
             .overlay(alignment: .topLeading) {
                 if presets.count > 1 && !isEditing {
-                    GlassCapsuleButton("Edit") { withAnimation { editMode = .active } }
+                    GlassCapsuleButton("Edit") { setEditing(true) }
                         .accessibilityIdentifier("presetsEdit")
                         .padding(.leading, look.space.margin)
                         .padding(.top, 16)
                 }
             }
+    }
+
+    /// Reduce Motion: the handles appear without the list's animation (codex-review-08 #5).
+    private func setEditing(_ on: Bool) {
+        if reduceMotion { editMode = on ? .active : .inactive } else {
+            withAnimation { editMode = on ? .active : .inactive }
+        }
     }
 
     // MARK: Rows
@@ -226,7 +233,7 @@ struct ExercisePresetsSheet: View {
         return VStack(alignment: .leading, spacing: 10) {
             layout {
                 TextField("New preset (e.g. Wide grip)", text: $newName,
-                          prompt: Text("New preset (e.g. Wide grip)").foregroundStyle(look.textTertiary))
+                          prompt: Text("New preset (e.g. Wide grip)").foregroundStyle(look.textSecondary))
                     .font(look.font.body)
                     .foregroundStyle(look.textPrimary)
                     .tint(look.actionText)

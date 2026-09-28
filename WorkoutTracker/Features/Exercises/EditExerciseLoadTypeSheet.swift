@@ -73,14 +73,17 @@ struct EditExerciseLoadTypeSheet: View {
     /// What the change touches (sets from now on → the new type) and what it leaves alone (the
     /// sets already logged keep theirs, counted so "does not rewrite the past" is a number).
     private var consequence: some View {
-        let logged = ExerciseOverview.loggedSetCount(of: exercise)
+        // By the type each set was logged UNDER (its snapshot), not the exercise's current type — a
+        // corrected exercise's older sets keep the old one, and history can hold several
+        // (codex-review-08 #3). One row per type.
+        let logged = ExerciseOverview.loggedSetCounts(of: exercise)
         return VStack(spacing: 0) {
             ledgerRow(symbol: "arrow.forward.circle", text: "Sets you log from now on", type: loadType, emphasized: true)
-            if logged > 0 {
+            ForEach(logged, id: \.loadType) { item in
                 LookDivider().padding(.leading, 52)
                 ledgerRow(symbol: "clock.arrow.circlepath",
-                          text: "\(logged) set\(logged == 1 ? "" : "s") already logged",
-                          type: originalLoadType, emphasized: false)
+                          text: "\(item.sets) set\(item.sets == 1 ? "" : "s") already logged",
+                          type: item.loadType, emphasized: false)
                     .accessibilityIdentifier("editLoadTypeHistoryNote")
             }
         }

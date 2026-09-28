@@ -54,6 +54,8 @@ final class FloodlightExercisesUITests: XCTestCase {
             shoot("\(name)-\(page)")
             page += 1
         }
+        // The pages prove the content only if the traversal reached it (codex-review-08 #6).
+        XCTAssertTrue(element.exists && element.isHittable, "\(name): reached \(element)")
     }
 
     private func search(_ text: String) {
@@ -159,6 +161,14 @@ final class FloodlightExercisesUITests: XCTestCase {
         XCTAssertTrue(any("editLoadTypeHistoryNote").waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.8)
         shoot("floodlight-08-e05-changed-\(suffix)")
+        // The whole ledger on record, down to the logged-sets row (codex-review-08 #7).
+        let note = any("editLoadTypeHistoryNote")
+        for _ in 0..<4 where !(note.isHittable && note.frame.maxY < app.frame.maxY - 40) {
+            app.swipeUp(velocity: .slow)
+            Thread.sleep(forTimeInterval: 0.5)
+        }
+        XCTAssertTrue(note.isHittable, "the logged-sets row is on screen")
+        shoot("floodlight-08-e05-changed-\(suffix)-2")
         app.buttons["Cancel"].firstMatch.tap()
         XCTAssertTrue(any("loadType.assisted").waitForNonExistence(timeout: 5))
         back()
@@ -202,6 +212,17 @@ final class FloodlightExercisesUITests: XCTestCase {
         XCTAssertFalse(app.buttons["saveNewExercise"].isEnabled, "Add is off while the name is blank")
         Thread.sleep(forTimeInterval: 1.0)
         shoot("floodlight-08-e03-\(suffix)")
+        // Body area and Equipment on record too (codex-review-08 #7).
+        var sheetPage = 2
+        let lastChip = any("newExerciseTag.bodyweight")
+        while !(lastChip.isHittable && lastChip.frame.maxY < app.frame.maxY - 40), sheetPage <= (large ? 6 : 3) {
+            app.swipeUp(velocity: .slow)
+            Thread.sleep(forTimeInterval: 0.5)
+            shoot("floodlight-08-e03-\(suffix)-\(sheetPage)")
+            sheetPage += 1
+        }
+        XCTAssertTrue(lastChip.isHittable, "the Equipment chips are on screen")
+        for _ in 0..<6 { app.swipeDown(velocity: .slow) }
         field.tap()
         field.typeText("Bench press")
         XCTAssertTrue(any("newExerciseTaken").waitForExistence(timeout: 5))
