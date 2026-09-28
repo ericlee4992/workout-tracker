@@ -75,6 +75,10 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `FloodlightAIRoutineUITests` class + all twelve `AskAIUITests` routine cases, which include the two AX
   AI-routine-form tests ticket 07 listed as failing — now passing); captures `captures/10/` (84). Not
   exercised: VoiceOver by a person, runtime Reduce Motion, a narrow phone, a real device, a real OpenAI call.
+- **Cardio area (ticket 01 area order item 3: picker, live cardio panel, distance editor): NOT DONE — no ticket
+  yet.** Missed in the ticket 02–10 sequence; `Features/Cardio/CardioViews.swift` still uses `Theme` (27 uses).
+  Open user question first (ticket 01): plain Floodlight, or the Anatomy direction's cardio screen the user said
+  they liked best (offered, never answered). Do it BEFORE ticket 11 (removing `Theme` needs it restyled).
 - **Ticket 11** (System surfaces + cleanup: Live Activity/notifications, app icon, remove `Theme`/`Legacy*`, the
   D54 decision record): NOT STARTED — to begin in a fresh session. Branch `ericlee4992/redesign-floodlight-system`
   (pushed, from the ticket-10 tip `0fa6814`, no commits), scratch checkout `/tmp/wt-floodlight/system`. Start
