@@ -43,17 +43,19 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertTrue(visible(element), "reached \(element)")
     }
 
+    /// On screen, below the navigation bar and clear of the tab bar — unless a sheet covers the tab
+    /// bar (the Ask AI sheet), where the screen's bottom edge is the limit (settings-ui-3).
     private func visible(_ element: XCUIElement) -> Bool {
         let bar = app.tabBars.firstMatch
-        return element.exists && element.isHittable && element.frame.minY > 100
-            && (!bar.exists || element.frame.maxY < bar.frame.minY - 8)
+        let inSheet = app.buttons["askAIDone"].exists
+        let floor = inSheet || !bar.exists ? app.frame.maxY - 30 : bar.frame.minY - 8
+        return element.exists && element.isHittable && element.frame.minY > 100 && element.frame.maxY < floor
     }
 
     /// Swipes up until `element` is on screen, shooting each page after the first under `name`.
     private func page(to element: XCUIElement, name: String, limit: Int = 8) {
         var page = 2
-        while !(visible(element) || (element.exists && element.isHittable && !app.tabBars.firstMatch.exists)),
-              page <= limit + 1 {
+        while !visible(element), page <= limit + 1 {
             app.swipeUp()
             Thread.sleep(forTimeInterval: 0.6)
             shoot("\(name)-\(page)")

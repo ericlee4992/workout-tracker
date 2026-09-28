@@ -208,6 +208,19 @@ logs, `.exit` files and result bundles `/tmp/wt-floodlight/results/settings-*`.
   Appearance, RedesignScreenshot unit system ×2 and test05. Two test-mechanics failures: three swipes
   down closed the fitted Ask AI sheet, and iOS 27's confirmation dialog has no Cancel button (a tap
   outside cancels). Both fixed in the test.
+- `settings-ui-3` (exit 65, **3/5**): light and dark Default capture passes and the key flow passed
+  (Save → "Ask AI, On, key sk-…1234"; Remove asks first; Cancel by tapping outside keeps it). Both AXL
+  passes failed at `reach(Remove key)`: the helper wanted clearance above the tab bar, which the
+  full-height sheet covers (the shots show Remove key on screen from the second page). The helper is
+  now sheet-aware. Also from these shots: at AX sizes the data-policies ↗ dropped onto its own line;
+  the row keeps it inline now (AX only).
+- `settings-ui-4`: **exit 0** — both AXL capture passes.
+- Captures `../captures/09/` (52 PNGs): Default from `-ui-3`, AXL from `-ui-4` — X01 (top, end,
+  metric), X02 (with key, typing, remove confirmation, no key), X03 (idle, sharing, file card,
+  failure), light/dark. Secure entry is blank in every typing shot by design (iOS capture protection).
+  Contact sheets beside the prototype: `/tmp/wt-floodlight/results/settings-sheets/compare-*.png`.
+- Not yet re-run on the final code: the Default capture passes and flows after the AX-only link-row
+  change and the sheet-aware test helper (planned with the review fixes).
 
 ## Progress
 
@@ -215,3 +228,8 @@ logs, `.exit` files and result bundles `/tmp/wt-floodlight/results/settings-*`.
   pushed, clean; nothing merged or installed). Read ticket 01/08, the prototype Settings area and the
   real Settings code; prototype captured (dark: exit 0, 24 PNGs, all with content). User decisions 1–4
   recorded. Ticket written.
+- 2026-09-28: implemented (`d93599e`, `f396fb7`): `Domain/ExportRecord.swift` + `ExportRecordTests`;
+  `SettingsPieces`, X01 `SettingsView` (absorbs `AppSettingsSection`), X02 `AskAISettingsSheet`, X03
+  `ExportView` (replaces `ExportSection`); `ShareSheet` reports completion; `-uiTestDesignSettings`,
+  `-uiTestExportFails`; `FloodlightSettingsUITests`; neighbours moved to the new controls. Shared with
+  ticket 08: `exercisesInlineTitle`, `exercisesSheetChrome` (reused, unchanged).

@@ -161,7 +161,7 @@ struct AskAISettingsSheet: View {
                 consentRow("Model details", feature: "Suggest exercises with AI", symbol: "tag",
                            label: "Send model details to OpenAI", isOn: $exerciseConsent)
                 Link(destination: URL(string: "https://developers.openai.com/api/docs/guides/your-data")!) {
-                    SettingsRow("OpenAI API data policies", symbol: "doc.text") {
+                    SettingsRow("OpenAI API data policies", symbol: "doc.text", trailingStaysInline: true) {
                         Image(systemName: "arrow.up.right")
                             .font(.system(.footnote, weight: .bold))
                             .foregroundStyle(look.textTertiary)
