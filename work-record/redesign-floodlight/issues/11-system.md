@@ -203,3 +203,36 @@ Runner `/tmp/wt-floodlight/sys-run.sh <name> build|test …` (derived data `/tmp
   still raced the shot. `sys-ui-8` (65): the app did not reach the live screen in 15 s (a one-off; `-9` passed).
   `sys-ui-9` exit 0: after Skip the card shows the ready state; after +15s the countdown moved. `sys-ui-10`
   exit 0: heavy type on the real card.
+- `sys-ui-11` (on `c6e93af`; exit 65 from one unit case): **UI 56/56** — `FloodlightSystemUITests` 5/5 (the four
+  gallery passes, 15 states each, and the real card), `FloodlightWorkoutTabUITests`, `FloodlightLiveUITests`
+  10/10, `CardioUITests` (the cardio views on Look tokens), `HeartRateUITests` (the recovered / degraded rest
+  paths the live screen now records), `CoreLoopUITests` (the machine sheets' empty state and unit badge),
+  `FloodlightFinishUITests` (the cardio summary card). **Unit 898/899**: the one failure is
+  `SeedingTests.reconcileIsCheapOnceSeeded`, a timing bound (`perRun < 0.05`) — it passed alone in `sys-ui-12`;
+  the machine's load average was ~16 then (other sessions' simulators busy).
+- `sys-ui-12` (on `6cc310d`: the VoiceOver fix for the card's timers, the title in the cache key): unit
+  `SeedingTests` + `WorkoutActivityContentTests` 28/28; `FloodlightSystemUITests` 5/5; `FloodlightLiveUITests`
+  9/10 — `testCorrectingAFreshBestBelowTheRecordTakesTheBandAway` timed out on a 3 s wait. `sys-ui-13` (the two
+  band tests ×2) failed differently each time (a launch that stayed on the Workout tab; a typed value lost) under
+  the same load. After shutting down this session's idle prototype simulator, `sys-ui-14`: **`FloodlightLiveUITests`
+  10/10** (exit 0).
+- Captures `../captures/11/` (70): Z01 gallery × 15 states × light/dark × Default/AXL (from `sys-ui-12`), the real
+  card (resting, after +15s, after Skip → ready), the app after Skip, the compact island over the Home Screen;
+  Z02 the icon's three appearances and the Home Screen; Z04/Z05 Home and Live at AXL (from `sys-ui-11`).
+  Compared with the prototype in `/tmp/wt-floodlight/results/sys-sheets/compare-{dark,light}.png`.
+- Scope rationale (DEVELOPMENT): new feature (the commands) → its unit tests + a real-system flow; the live
+  screen's rest handling and activity push changed → the live, heart-rate-rest and finish flows; views moved off
+  `Theme` → the screens that show them (cardio, the machine sheets); the unit suite whole (cheap). The full UI suite
+  is the release-candidate pass after ticket 12.
+- Z04 / Z05 check: Home and Live at AccessibilityL match the prototype's composition (the week starts on the
+  phone's first weekday — ticket 02's flagged decision). Not exercised: VoiceOver by a person, a real device (the
+  Lock Screen of an iPhone, the Watch mirror after a lock-screen command), a cold background launch by an intent
+  (unit-tested path only), the Dynamic Island's expanded view on the Simulator (the gallery shows it).
+
+## Progress
+
+- 2026-09-28: started in a fresh session. Verified the checkout (`0fa6814`, clean, pushed). Read STATE,
+  tickets 01 and 10, the prototype System area, the widget and the activity controller. Prototype captured
+  (dark, light). User decisions 1–4. Ticket written (`1a9ab08`); Theme removed (`2e0a62f`); Live Activity,
+  commands, icon, D59 (`c6e93af`); VoiceOver and docs (`6cc310d`). Another session recorded the same day that
+  cardio stays plain Floodlight (ticket 01, `c9c973e` on the main redesign branch) — reflected in D59 and STATE.
