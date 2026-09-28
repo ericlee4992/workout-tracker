@@ -1,7 +1,7 @@
 # 10 — Floodlight: Ask AI for Templates (AI routine flow)
 
 Type: feature (part of [01](01-implement-redesign.md), area order item 9)
-Status: in progress
+Status: resolved — Codex clear after 2 rounds (codex-review-10b.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-ai-routine` (scratch checkout `/tmp/wt-floodlight/ai-routine`),
 stacked on the ticket-09 settings tip `c286b59` (Codex clear). Nothing merged to `main`; nothing installed.
@@ -255,4 +255,12 @@ Verification (round 2, on `ef43ae2` plus the two test fixes):
   reorder now proved with named cards).
 - Captures `../captures/10/` refreshed from `ai-ui-7` (84 PNGs); the AX undo bar shows the whole message
   with Undo under it, the consent line names every field.
+
+Codex review 10b (round 2): **clear** ([codex-review-10b.md](../codex-review-10b.md)); review terminal closed.
+
+Open items handed on (not ticket 10's): record user decisions 1–4 with the D54 entry before merge; VoiceOver
+by a person, Reduce Motion at runtime, a narrow (375–393 pt) phone and a real device remain for the
+release-candidate pass (ticket 01 step 4); a real OpenAI call through the new flow has not been made (the
+Terra fixture stands in, as in the old tests); the two pre-existing AX AI-routine-form AskAI tests noted in
+ticket 07 were among the moved cases and now pass (`ai-ui-7`).
 
