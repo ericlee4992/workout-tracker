@@ -75,16 +75,15 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `FloodlightAIRoutineUITests` class + all twelve `AskAIUITests` routine cases, which include the two AX
   AI-routine-form tests ticket 07 listed as failing — now passing); captures `captures/10/` (84). Not
   exercised: VoiceOver by a person, runtime Reduce Motion, a narrow phone, a real device, a real OpenAI call.
-- **Ticket 11 — Cardio** (ticket 01 area order item 3: cardio picker, live cardio panel, distance editor): NOT
-  STARTED — next, in a fresh session. Missed in the 02–10 sequence; `Features/Cardio/CardioViews.swift` still uses
-  `Theme` (27 uses). **User decision 2026-09-28: keep cardio plain Floodlight** (not the Anatomy direction's
-  cardio screen; recorded in ticket 01). Branch `ericlee4992/redesign-floodlight-cardio` (pushed, from the
-  ticket-10 tip `0fa6814`, no commits), scratch checkout `/tmp/wt-floodlight/cardio`. Start prompt:
-  `/tmp/wt-floodlight/ticket11-brief.md` (it now covers cardio first; workflow as tickets 08–10).
-- **Ticket 12 — System surfaces + cleanup** (Live Activity/notifications, app icon, remove `Theme`/`Legacy*`, the
-  D54 decision record): after ticket 11. Branch `ericlee4992/redesign-floodlight-system` exists (pushed, at
-  `0fa6814`, no commits) — move it onto the cardio tip before starting (`git reset --hard <cardio tip>` in
-  `/tmp/wt-floodlight/system`, then force-push; it has no commits of its own). After it: the release-candidate
+- **Ticket 11 — System surfaces + cleanup** (Live Activity/notifications, app icon, remove `Theme`/`Legacy*`, the
+  D54 decision record): IN PROGRESS in another session (started 2026-09-28 from `/tmp/wt-floodlight/ticket11-brief.md`).
+  Branch `ericlee4992/redesign-floodlight-system`, scratch checkout `/tmp/wt-floodlight/system`.
+- **Ticket 12 — Cardio** (ticket 01 area order item 3: cardio picker, live cardio panel, distance editor): NOT
+  STARTED. Missed in the 02–10 sequence; `Features/Cardio/CardioViews.swift` still uses `Theme` (27 uses), so
+  ticket 11 keeps the `Theme` bridge for it. **User decision 2026-09-28: keep cardio plain Floodlight** (recorded
+  in ticket 01). Branch `ericlee4992/redesign-floodlight-cardio` (pushed, from the ticket-10 tip `0fa6814`, no
+  commits — move it onto the ticket-11 tip before starting), scratch checkout `/tmp/wt-floodlight/cardio`, start
+  prompt `/tmp/wt-floodlight/ticket-cardio-brief.md`. After it: remove the `Theme` bridge, the release-candidate
   pass (full UI suite, ticket 01 step 4), then the one install.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
