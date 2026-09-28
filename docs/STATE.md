@@ -65,9 +65,14 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `-ui-7` 6/6 for the one typing case), neighbours (Export, AskAI key settings ×2, HR zones, Appearance, unit
   system ×2, test05); captures `captures/09/` (50). Not exercised: VoiceOver by a person, runtime Reduce
   Motion, a real device (release-candidate pass).
-- **Next: ticket 10 — AI routine flow** (ticket 01 area order item 9), in a fresh session: branch from the
-  settings tip `c286b59`, workflow as tickets 08–09 (ticket first, prototype captured dark then light one at
-  a time, user decisions asked, Codex in a visible Orca terminal). Not started; no branch created.
+- **Ticket 10** (Ask AI for Templates, A01–A05): IN PROGRESS (2026-09-28, same session as ticket 09 at the
+  user's request). Branch `ericlee4992/redesign-floodlight-ai-routine` (pushed, stacked on the settings tip
+  `c286b59`), scratch checkout `/tmp/wt-floodlight/ai-routine`, runner `/tmp/wt-floodlight/ai-run.sh`
+  (derived data `dd-ai`). Record: `issues/10-ai-routine.md` on that branch (progress, verification, next step).
+  User decisions 2026-09-28: generating shows the prototype's timed percentage/stages (holds at 90 % until
+  the reply); a Saved step after Save templates; leaving any unsaved week asks first; the optional profile
+  follows the unit setting — record with the D54 entry before merge. Prototype captured into
+  `reference/prototype-ai/{dark,light}/` (76 PNGs, all with content).
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
