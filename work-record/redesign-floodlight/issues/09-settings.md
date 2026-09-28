@@ -1,7 +1,7 @@
 # 09 — Floodlight: Settings
 
 Type: feature (part of [01](01-implement-redesign.md), area order item 8)
-Status: in progress
+Status: resolved — Codex clear after 2 rounds (codex-review-09b.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-settings` (scratch checkout `/tmp/wt-floodlight/settings`),
 stacked on the ticket-08 exercises tip `bf4363b` (Codex clear). Nothing merged to `main`; nothing installed.
@@ -245,8 +245,8 @@ Also from the report: the AXL no-key capture now asserts "Off" is below the shee
 flow closes the sheet while On and checks Settings' row says On, then reopens.
 
 Verification (round 2):
-- `settings-ui-6` (exit 65): unit `ExportRecordTests` (11, with the staging and busiest-day tests) and
-  `ExportTests` passed; UI **13/14** on `d887393` — all four capture passes, the tab round trip, the
+- `settings-ui-6` (exit 65): unit **33/33** — `ExportRecordTests` 10 (with the staging and busiest-day
+  tests) and `ExportTests` 23; UI **11/12** on `d887393` (counts corrected by Codex 09b from the xcresult) — all four capture passes, the tab round trip, the
   completed-share, failure, units and workout-defaults flows, `ExportUITests` (now scoped to the share
   sheet) and the HR zones row. The key flow failed: 1 of 16 typed characters in the field. Its screen
   recording showed the field focused while the sheet grew to full height as the keyboard rose; the
@@ -268,3 +268,13 @@ Verification (round 2):
   `ExportView` (replaces `ExportSection`); `ShareSheet` reports completion; `-uiTestDesignSettings`,
   `-uiTestExportFails`; `FloodlightSettingsUITests`; neighbours moved to the new controls. Shared with
   ticket 08: `exercisesInlineTitle`, `exercisesSheetChrome` (reused, unchanged).
+
+Codex review 09b (round 2): **clear** ([codex-review-09b.md](../codex-review-09b.md)); review terminal closed.
+Noted there: the failed-replacement wiring and the task cancellation are verified by source inspection
+and the staging unit test, not by a dedicated end-to-end failure/cancellation UI test.
+
+Open items handed on (not ticket 09's): record user decisions 1–4 with the D54 entry before merge;
+VoiceOver by a person, Reduce Motion at runtime and a real device remain for the release-candidate pass
+(ticket 01 step 4); the two pre-existing AX AI-routine-form AskAI tests (ticket 07) are unchanged. The
+last-export record is a local export event, not restore/integrity verification (Codex 09).
+
