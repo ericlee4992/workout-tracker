@@ -75,9 +75,11 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `FloodlightAIRoutineUITests` class + all twelve `AskAIUITests` routine cases, which include the two AX
   AI-routine-form tests ticket 07 listed as failing — now passing); captures `captures/10/` (84). Not
   exercised: VoiceOver by a person, runtime Reduce Motion, a narrow phone, a real device, a real OpenAI call.
-- **Next: ticket 11 — Live Activity / widget + app icon; remove `Theme`/legacy components; the D54 decision
-  record** (ticket 01 area order item 10), then the release-candidate pass (full UI suite, ticket 01 step 4)
-  and the one install. Not started; no branch created.
+- **Ticket 11** (System surfaces + cleanup: Live Activity/notifications, app icon, remove `Theme`/`Legacy*`, the
+  D54 decision record): NOT STARTED — to begin in a fresh session. Branch `ericlee4992/redesign-floodlight-system`
+  (pushed, from the ticket-10 tip `0fa6814`, no commits), scratch checkout `/tmp/wt-floodlight/system`. Start
+  prompt: `/tmp/wt-floodlight/ticket11-brief.md` (ephemeral; scope = ticket 01 area 10, workflow as tickets 08–10).
+  After it: the release-candidate pass (full UI suite, ticket 01 step 4), then the one install.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
