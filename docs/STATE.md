@@ -65,17 +65,19 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `-ui-7` 6/6 for the one typing case), neighbours (Export, AskAI key settings ×2, HR zones, Appearance, unit
   system ×2, test05); captures `captures/09/` (50). Not exercised: VoiceOver by a person, runtime Reduce
   Motion, a real device (release-candidate pass).
-- **Ticket 10** (Ask AI for Templates, A01–A05): IN REVIEW (2026-09-28, same session as ticket 09 at the
-  user's request). Codex round 1 running in Orca terminal `term_7e026546…` ("Codex review — Floodlight 10"),
-  report `work-record/redesign-floodlight/codex-review-10.md` (watch its mtime). Verified so far: unit 33/33
-  (`ai-unit-1`), the whole `FloodlightAIRoutineUITests` class + five AskAI cases (`ai-ui-4` 13/13), the other
-  seven AskAI routine cases passed in `ai-ui-3` and rerun as `ai-ui-5`; captures `captures/10/` (84). Branch `ericlee4992/redesign-floodlight-ai-routine` (pushed, stacked on the settings tip
-  `c286b59`), scratch checkout `/tmp/wt-floodlight/ai-routine`, runner `/tmp/wt-floodlight/ai-run.sh`
-  (derived data `dd-ai`). Record: `issues/10-ai-routine.md` on that branch (progress, verification, next step).
-  User decisions 2026-09-28: generating shows the prototype's timed percentage/stages (holds at 90 % until
-  the reply); a Saved step after Save templates; leaving any unsaved week asks first; the optional profile
-  follows the unit setting — record with the D54 entry before merge. Prototype captured into
-  `reference/prototype-ai/{dark,light}/` (76 PNGs, all with content).
+- **Ticket 10** (Ask AI for Templates, A01–A05): branch `ericlee4992/redesign-floodlight-ai-routine` (pushed, tip
+  in the ticket, stacked on the settings tip `c286b59`), scratch checkout `/tmp/wt-floodlight/ai-routine`, runner
+  `/tmp/wt-floodlight/ai-run.sh` (derived data `dd-ai`). **Codex clear after 2 rounds** (`codex-review-10b.md`;
+  review terminal closed). Record: `issues/10-ai-routine.md` on that branch. User decisions 2026-09-28:
+  generating shows the prototype's timed percentage/stages (holds at 90 % until the reply); a Saved step after
+  Save templates; leaving any unsaved week asks first; the optional profile follows the unit setting — record
+  with the D54 entry before merge. Verification: unit 33/33 (`ai-unit-1`); `ai-ui-7` 20/20 (the whole
+  `FloodlightAIRoutineUITests` class + all twelve `AskAIUITests` routine cases, which include the two AX
+  AI-routine-form tests ticket 07 listed as failing — now passing); captures `captures/10/` (84). Not
+  exercised: VoiceOver by a person, runtime Reduce Motion, a narrow phone, a real device, a real OpenAI call.
+- **Next: ticket 11 — Live Activity / widget + app icon; remove `Theme`/legacy components; the D54 decision
+  record** (ticket 01 area order item 10), then the release-candidate pass (full UI suite, ticket 01 step 4)
+  and the one install. Not started; no branch created.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
