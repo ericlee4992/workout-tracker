@@ -11,6 +11,8 @@ struct WorkoutTrackerApp: App {
             UserDefaults.standard.removeObject(forKey: TerraAccess.photoConsentKey)
             UserDefaults.standard.removeObject(forKey: TerraAccess.exerciseConsentKey)
             UserDefaults.standard.removeObject(forKey: TerraAccess.routineConsentKey)
+            // Per-device facts outside the store start fresh too (ticket 09).
+            ExportRecord.clear()
         }
         do {
             // `-uiTestReset` starts from an empty throwaway store so UI tests
@@ -75,6 +77,14 @@ struct WorkoutTrackerApp: App {
         if CardioIndoorFixture.isEnabled {
             do { try CardioIndoorFixture.seed(in: modelContainer.mainContext) }
             catch { assertionFailure("Indoor cardio fixture failed: \(error)") }
+        }
+        // The Settings captures (see DesignSampleFixture.seedSettings): with the saved key
+        // (AskAIKeyStore), photo and routine permissions on, model details off.
+        if DesignSampleFixture.settingsIsEnabled {
+            do { try DesignSampleFixture.seedSettings(in: modelContainer.mainContext) }
+            catch { assertionFailure("Settings fixture failed: \(error)") }
+            UserDefaults.standard.set(true, forKey: TerraAccess.photoConsentKey)
+            UserDefaults.standard.set(true, forKey: TerraAccess.routineConsentKey)
         }
         // First-launch unit preference: derive from the locale measurement
         // system (US → lb, else kg). Idempotent; never blocks launch.

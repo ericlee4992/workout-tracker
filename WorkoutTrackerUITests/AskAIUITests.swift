@@ -410,8 +410,9 @@ final class AskAIUITests: XCTestCase {
         app.launch(); app.tabBars.buttons["Workout"].tap()
         reach(app.buttons["askAIRoutine"]); app.buttons["askAIRoutine"].tap()
         let settings = app.buttons["routineAISettings"]; XCTAssertTrue(settings.waitForExistence(timeout: 5)); settings.tap()
-        let done = app.buttons["Done"].firstMatch
-        let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in done.exists && done.frame.minY < 150 }, object: nil)
+        // Floodlight ticket 09: the sheet opens at its content height (full height at AX sizes).
+        let done = app.buttons["askAIDone"]
+        let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in done.exists && done.isHittable }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed)
         shot("ai-key-settings-overview-\(large ? "axl" : "default")")
         reach(app.switches["Send equipment photos to OpenAI"].firstMatch)

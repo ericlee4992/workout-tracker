@@ -8,14 +8,15 @@ import UIKit
 /// export is built when the user asks for it, then handed to this.
 struct ShareSheet: UIViewControllerRepresentable {
     let url: URL
-    /// Called once the activity has finished with the file (shared, saved, or
-    /// cancelled) — the staged copy can be deleted only then.
-    var onFinish: () -> Void = {}
+    /// Called once the activity has finished with the file; `true` when an
+    /// action completed (saved, sent, copied), `false` on Cancel. A completed
+    /// action is what counts as an export (Floodlight ticket 09, decision 1).
+    var onFinish: (_ completed: Bool) -> Void = { _ in }
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(
             activityItems: [url], applicationActivities: nil)
-        controller.completionWithItemsHandler = { _, _, _, _ in onFinish() }
+        controller.completionWithItemsHandler = { _, completed, _, _ in onFinish(completed) }
         return controller
     }
 

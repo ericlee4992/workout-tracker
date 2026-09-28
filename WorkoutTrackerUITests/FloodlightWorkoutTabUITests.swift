@@ -170,10 +170,10 @@ final class FloodlightWorkoutTabUITests: XCTestCase {
         gear.tap()
         // The simulator runs light: System follows it; Light and Dark override it.
         for (choice, light) in [("Dark", false), ("System", true), ("Light", true), ("Dark", false)] {
-            let picker = app.buttons["appearanceSetting"]
+            // Floodlight ticket 09: System / Light / Dark are pills inside `appearanceSetting`.
+            let picker = app.descendants(matching: .any).matching(identifier: "appearanceSetting").firstMatch
             XCTAssertTrue(picker.waitForExistence(timeout: 5))
-            picker.tap()
-            app.buttons[choice].firstMatch.tap()
+            picker.buttons[choice].firstMatch.tap()
             assertGround(light: light, "Settings in \(choice)")
         }
         // Dark stays for the pushed detail, the editor sheet, the workout's full-screen cover and

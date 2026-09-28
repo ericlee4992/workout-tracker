@@ -108,18 +108,12 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(visible(), "New cycling speed uses the U.S. unit above the controls")
     }
 
+    /// Floodlight ticket 09: the unit preference is two tiles (`appUnitPreference.<raw>`).
     private func selectUnitSystem(_ title: String) {
-        let preference = app.buttons["appUnitPreference"]
-        XCTAssertTrue(preference.waitForExistence(timeout: 5))
-        if !preference.label.contains(title) {
-            preference.tap()
-            let option = app.buttons[title]
-            XCTAssertTrue(option.waitForExistence(timeout: 5))
-            option.tap()
-            let dismissed = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"), object: option)
-            XCTAssertEqual(XCTWaiter.wait(for: [dismissed], timeout: 5), .completed)
-        }
-        let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label CONTAINS %@", title), object: preference)
+        let tile = app.buttons["appUnitPreference.\(title == "Metric" ? "metric" : "usCustomary")"]
+        XCTAssertTrue(tile.waitForExistence(timeout: 5))
+        if !tile.isSelected { tile.tap() }
+        let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: tile)
         XCTAssertEqual(XCTWaiter.wait(for: [selected], timeout: 5), .completed)
     }
 

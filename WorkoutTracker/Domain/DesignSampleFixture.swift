@@ -36,6 +36,27 @@ enum DesignSampleFixture {
     /// variation — beside an assisted pull-up (less assistance each time, a new best), a dip with
     /// added weight, and a user-made Landmine Press (Shoulders, barbell).
     static let exercisesArgument = "-uiTestDesignExercises"
+    /// With `-uiTestDesignSettings` too (ticket 09, the Settings captures): a measured maximum of
+    /// 185 bpm (the zone ramp), a one-time dumbbell history note, and an export completed five
+    /// days ago as CSV (so the Export screen has workouts before and after its mark). The app also
+    /// saves an Ask AI key and turns on two of the three permissions (`WorkoutTrackerApp`).
+    static let settingsArgument = "-uiTestDesignSettings"
+    static var settingsIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(settingsArgument)
+    }
+
+    /// The Settings captures' preferences and last export (`-uiTestDesignSettings`).
+    static func seedSettings(in context: ModelContext, now: Date = .now, defaults: UserDefaults = .standard) throws {
+        let preferences = try AppPreferences.canonical(in: context)
+        preferences.measuredMaxHeartRate = 185
+        preferences.dumbbellHistoryMovedSets = 6
+        preferences.dumbbellHistoryMovedAt = Calendar.current.date(byAdding: .day, value: -24, to: now)
+        try context.save()
+        let exported = Calendar.current.date(byAdding: .day, value: -5, to: Calendar.current.startOfDay(for: now))!
+            .addingTimeInterval(20 * 3600 + 14 * 60)
+        ExportRecord.write(ExportRecord(date: exported, format: .csv), defaults)
+    }
+
     static var exercisesIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(exercisesArgument)
     }

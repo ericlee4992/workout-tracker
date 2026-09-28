@@ -8,7 +8,8 @@ import Security
 enum AskAIKeyStore {
     private static let service = (Bundle.main.bundleIdentifier ?? "workouttracker") + ".askai"
     private static let account = "openai-api-key"
-    private static var memory: String? = (AskAI.fixtureIsEnabled || TerraAccess.fixture) ? "uitest-key" : nil
+    private static var memory: String? = (AskAI.fixtureIsEnabled || TerraAccess.fixture) ? "uitest-key"
+        : DesignSampleFixture.settingsIsEnabled ? "sk-proj-7Hq2c9Tza1b2" : nil
 
     static func read() -> String? {
         if WorkoutTrackerStore.isUITestReset { return memory }
