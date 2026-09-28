@@ -244,7 +244,7 @@ struct AIErrorStep: View {
         .safeAreaBar(edge: .bottom) {
             AIBottomBar(fade: false) {
                 AIPrimaryButton("Generate week", symbol: "sparkles", isEnabled: canRetry, identifier: "routineRetry",
-                                action: onRetry)
+                                disabledHint: "Allow sending routine details to OpenAI first.", action: onRetry)
                 Button("Back to preferences") { model.back() }
                     .buttonStyle(.lookSecondary)
                     .accessibilityIdentifier("routineErrorBack")

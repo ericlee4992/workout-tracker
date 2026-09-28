@@ -79,8 +79,8 @@ struct AIEquipmentStep: View {
                     Text("\(machines.count)")
                         .font(look.font.statNumber)
                         .foregroundStyle(look.textPrimary)
-                        .contentTransition(.numericText(value: Double(machines.count)))
-                        .animation(.snappy, value: machines.count)
+                        .contentTransition(reduceMotion ? .identity : .numericText(value: Double(machines.count)))
+                        .animation(reduceMotion ? nil : .snappy, value: machines.count)
                     Text(machines.count == 1 ? "saved machine" : "saved machines")
                         .font(.system(.subheadline, weight: .semibold))
                         .foregroundStyle(look.textSecondary)
@@ -229,8 +229,9 @@ struct AIEquipmentStep: View {
                     .allowsHitTesting(false)
             }
             if !consent {
-                // One consequence line (was three sentences). It names everything the request sends.
-                Text("Sends your goals, schedule, optional profile and exercise list — not Health data or history.")
+                // One consequence line (was three sentences). It names everything the request sends
+                // (`AIRoutineRequest`; codex-review-10 L1).
+                Text("Sends your goals, experience, schedule, optional profile, exercise list and chosen cardio — not Health data or history.")
                     .font(look.font.footnote)
                     .foregroundStyle(look.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -278,6 +279,8 @@ struct AIEquipmentStep: View {
                 AIPrimaryButton("Ask AI Settings", symbol: "key", identifier: "routineAISettings", action: onOpenSettings)
             } else {
                 AIPrimaryButton("Generate week", symbol: "sparkles", isEnabled: canGenerate, identifier: "generateAIRoutine",
+                                disabledHint: permitted ? "Choose equipment or cardio first."
+                                    : "Allow sending routine details to OpenAI first.",
                                 onDisabledTap: { pointAtMissing(proxy) }, action: onGenerate)
             }
         }
@@ -310,8 +313,8 @@ struct AIEquipmentStep: View {
             AIInlineFigure(number: options.count, label: options.count.aiPlural("exercise"), numberFont: look.font.fieldNumber)
             AIInlineFigure(number: model.cardio.count, label: "cardio", numberFont: look.font.fieldNumber)
         }
-        .animation(.snappy, value: options.count)
-        .animation(.snappy, value: model.cardio.count)
+        .animation(reduceMotion ? nil : .snappy, value: options.count)
+        .animation(reduceMotion ? nil : .snappy, value: model.cardio.count)
         .accessibilityIdentifier("routineReadout")
     }
 }

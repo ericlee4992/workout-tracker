@@ -300,7 +300,8 @@ final class AskAIUITests: XCTestCase {
         let dumbbells = app.buttons["routineEquipment.dumbbells"].firstMatch; reach(dumbbells); XCTAssertTrue(dumbbells.isSelected)
         let cardio = app.buttons["routineCardio.outdoorWalk"].firstMatch; reach(cardio); XCTAssertTrue(cardio.isSelected)
         let consent = app.switches["allowAIRoutine"].firstMatch; reach(consent); XCTAssertEqual(consent.value as? String, "0")
-        XCTAssertFalse(app.buttons["generateAIRoutine"].isEnabled)
+        // Off without consent: still actionable (it points at the switch), its value says so (ticket 10).
+        XCTAssertEqual(app.buttons["generateAIRoutine"].value as? String, "Unavailable")
         app.buttons["routineBack"].tap()
         XCTAssertTrue(routineGoals.waitForExistence(timeout: 5))
         XCTAssertEqual(routineGoals.value as? String, "Keep these preferences")
@@ -341,7 +342,10 @@ final class AskAIUITests: XCTestCase {
             for _ in 0..<3 { app.swipeDown() }
             let before = second.label
             XCTAssertFalse(before.isEmpty); XCTAssertNotEqual(before, first.label)
-            second.press(forDuration: 0.8, thenDragTo: first)
+            // A long press lifts the row; a slow drag onto the first row's top places it there.
+            second.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3))
+                .press(forDuration: 1.2, thenDragTo: first.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.1)),
+                       withVelocity: .slow, thenHoldForDuration: 0.6)
             let moved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", before), object: first)
             XCTAssertEqual(XCTWaiter.wait(for: [moved], timeout: 5), .completed, "the dragged exercise leads the session")
         }
@@ -356,7 +360,11 @@ final class AskAIUITests: XCTestCase {
         app.buttons["editTemplate"].tap()
         let save = app.navigationBars.buttons["Save"]; XCTAssertTrue(save.waitForExistence(timeout: 5))
         shot("ai-template-editor-\(large ? "axl" : "default")")
-        reach(app.buttons["Add Cardio Target"]); shot("ai-template-cardio-editor-\(large ? "axl" : "default")")
+        // The editor sheet's last row: no tab bar under a sheet, so it only has to be on screen (with an
+        // edited, longer week it sits at the sheet's foot, below `reach`'s tab-bar margin).
+        let addTarget = app.buttons["Add Cardio Target"]
+        for _ in 0..<5 where !addTarget.isHittable { app.swipeUp() }
+        XCTAssertTrue(addTarget.isHittable); shot("ai-template-cardio-editor-\(large ? "axl" : "default")")
         save.tap()
         app.buttons["startTemplate"].tap()
         let start = app.buttons["startPlannedCardio"]; XCTAssertTrue(start.waitForExistence(timeout: 10)); reach(start)

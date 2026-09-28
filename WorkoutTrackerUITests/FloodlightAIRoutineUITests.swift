@@ -255,7 +255,8 @@ final class FloodlightAIRoutineUITests: XCTestCase {
 
     /// A failed request shows the error step; Back to preferences returns to Equipment with the choices.
     func testErrorStepReturnsToEquipment() {
-        launch(extra: ["-uiTestTerraOffline"])
+        // Slow as well: the failure arrives after 4 s, so the retried request's wait is observable.
+        launch(extra: ["-uiTestTerraOffline", "-uiTestTerraSlow"])
         fillGoals()
         any("routineNext").tap()
         let dumbbells = any("routineEquipment.dumbbells")
@@ -265,7 +266,10 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         let error = any("routineAIError")
         XCTAssertTrue(error.waitForExistence(timeout: 10))
         XCTAssertTrue(error.label.contains("Could not reach OpenAI."), error.label)
-        XCTAssertTrue(any("routineRetry").isEnabled)
+        // Retry sends again: the wait shows, then (still offline) the error returns (codex-review-10 L4).
+        any("routineRetry").tap()
+        XCTAssertTrue(any("routineProgress").waitForExistence(timeout: 3), "retry started a new request")
+        XCTAssertTrue(any("routineErrorBack").waitForExistence(timeout: 10))
         any("routineErrorBack").tap()
         XCTAssertTrue(dumbbells.waitForExistence(timeout: 5))
         reach(dumbbells)
@@ -285,26 +289,45 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Day 2 — Fitness"].firstMatch.exists)
     }
 
-    /// Removing an exercise can be undone; the session's figures follow.
-    func testUndoRestoresARemovedExercise() {
+    private var itemLabels: [String] {
+        app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'routineItem.'"))
+            .allElementsBoundByIndex.map(\.label)
+    }
+
+    /// Undo restores the exact day: an edited prescription, every exercise in order, the figures
+    /// (codex-review-10 L4).
+    func testUndoRestoresTheExactDay() {
         launch()
         toWeek()
         topTap(any("routineDay.0"))
         let first = any("routineItem.0")
         XCTAssertTrue(first.waitForExistence(timeout: 5))
-        let count = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'routineItem.'")).count
-        let name = first.label
-        XCTAssertFalse(name.isEmpty, "the card is named by its exercise")
+        // Edit first: four sets on the first exercise.
         first.tap()
+        let sets = any("routineStepper.Sets")
+        XCTAssertTrue(sets.waitForExistence(timeout: 5))
+        sets.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        XCTAssertEqual(sets.value as? String, "4")
+        first.tap()
+        XCTAssertTrue(sets.waitForNonExistence(timeout: 5))
+        let before = itemLabels
+        let figures = any("routineSessionFigures").label
+        XCTAssertFalse(before.contains(""), "every card is named by its exercise")
+        XCTAssertTrue(figures.contains("19 sets"), figures)
+        // Remove the second exercise, then undo.
+        let second = any("routineItem.1")
+        second.tap()
         let remove = app.buttons["routineRemoveItem"]
         XCTAssertTrue(remove.waitForExistence(timeout: 5))
         reach(remove); remove.tap()
         let undo = app.buttons["routineUndo"]
         XCTAssertTrue(undo.waitForExistence(timeout: 3))
-        XCTAssertEqual(app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'routineItem.'")).count,
-                       count - 1)
+        XCTAssertEqual(itemLabels.count, before.count - 1)
         undo.tap()
-        let restored = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", name), object: any("routineItem.0"))
-        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 5), .completed, "the exercise is back in its place")
+        let restored = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in self.itemLabels == before }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [restored], timeout: 5), .completed, "every exercise back in its place")
+        XCTAssertEqual(any("routineSessionFigures").label, figures, "the figures are the edited day's")
+        first.tap()
+        XCTAssertEqual(any("routineStepper.Sets").value as? String, "4", "the edit survived the undo")
     }
 }

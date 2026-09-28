@@ -46,10 +46,24 @@ struct AIRoutineSheet: View {
     private var sentOptions: [RoutineExerciseOption] { model.sentRequest?.exercises ?? options }
     private var names: [UUID: String] { Dictionary(sentOptions.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a }) }
     private var groups: [UUID: String] { Dictionary(sentOptions.map { ($0.id, $0.muscleGroup) }, uniquingKeysWith: { a, _ in a }) }
+    /// The equipment line under an exercise: the machine the saved template will start on at this gym —
+    /// the same rule as `WorkoutTemplateService.resolvedMachine` (the gym's remembered machine, else the
+    /// only compatible one); several compatible machines and no memory read "N machines", never one
+    /// picked for the user (codex-review-10 M4).
     private var machineLabels: [UUID: String] {
+        guard let gym, !gym.archived else { return [:] }
+        let lifecycle = EquipmentLifecycle(context: context)
         var labels: [UUID: String] = [:]
-        for machine in availableMachines.sorted(by: { $0.label < $1.label }) {
-            for id in machine.supportedExerciseIDs where labels[id] == nil { labels[id] = machine.label }
+        for option in sentOptions {
+            let compatible = availableMachines.filter { $0.supportedExerciseIDs.contains(option.id) }
+            if let exercise = exercises.first(where: { $0.id == option.id }),
+               let remembered = try? lifecycle.rememberedMachine(for: exercise, at: gym) {
+                labels[option.id] = remembered.label
+            } else if compatible.count == 1 {
+                labels[option.id] = compatible[0].label
+            } else if compatible.count > 1 {
+                labels[option.id] = "\(compatible.count) machines"
+            }
         }
         return labels
     }
@@ -86,12 +100,11 @@ struct AIRoutineSheet: View {
             }
         }
         .onChange(of: model.step) { _, step in if step != .preview && !path.isEmpty { path = [] } }
-        // Withdrawing consent mid-flow stops a request and drops an unsaved week (as before).
+        // Withdrawing consent mid-flow stops a request at once. A generated week stays (saving it sends
+        // nothing); only the user's own Back / Cancel / Change preferences drop it, and those ask
+        // first (codex-review-10 M5).
         .onChange(of: consent) { _, allowed in
-            if !allowed && !TerraAccess.bypassesConsent {
-                model.cancelGeneration()
-                if model.step == .preview || model.step == .error { model.back() }
-            }
+            if !allowed && !TerraAccess.bypassesConsent { model.cancelGeneration() }
         }
         .onDisappear { model.cancelTasks() }
         .confirmationDialog("Discard this week?", isPresented: Binding(get: { confirmingLeave != nil },

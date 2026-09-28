@@ -209,3 +209,42 @@ logs, `.exit` files and result bundles `/tmp/wt-floodlight/results/ai-*`.
   callback opens the template). `FloodlightAIRoutineUITests` (four capture passes, four flows);
   `AskAIUITests` routine cases moved to the steps (helpers `typeGoals`, `toEquipment`, `choose`,
   `chooseGym`, `addGymFromRoutine`, `discardWeekAndClose`; `reach` knows the flow's pinned bars).
+
+## Codex review 10 — response (round 1)
+
+Report: [codex-review-10.md](../codex-review-10.md) — not clear; five medium, four low. All accepted.
+
+1. **M1 — the off Next / Generate could not be activated with VoiceOver.** The off face stays a working
+   button (a tap points at what is missing); VoiceOver hears the value "Unavailable" and a hint naming the
+   requirement ("Add a goal first." / "Allow sending routine details to OpenAI first." / "Choose equipment
+   or cardio first."). Generation is still gated by the model. Tests read the value, not `isEnabled`.
+2. **M2 — schedule and count animations ignored Reduce Motion.** The day/minute figures, the minutes bar,
+   the saved-machine count, the readout counts and `AIInlineFigure` now drop their numeric transitions and
+   animations under Reduce Motion.
+3. **M3 — cardio minutes lost one-minute precision.** The editor's minutes stepper is 1…180 in one-minute
+   steps again (as the old editor); every value is reachable by the buttons and VoiceOver alike.
+4. **M4 — the equipment line could name a machine the template will not use.** It follows
+   `WorkoutTemplateService.resolvedMachine`'s rule: the gym's remembered machine, else the only compatible
+   one; several compatible and none remembered read "N machines".
+5. **M5 — revoking consent silently discarded the week.** Revocation now only stops a running request;
+   a generated week stays (saving sends nothing) and is dropped only through Back / Cancel / Change
+   preferences, which ask. (Decision 3 holds on every path.)
+6. **L1 — the consent line omitted fields.** "Sends your goals, experience, schedule, optional profile,
+   exercise list and chosen cardio — not Health data or history." (every `AIRoutineRequest` field).
+7. **L2 — the undo message truncated at AX.** At accessibility sizes Undo sits under the message, which
+   wraps whole.
+8. **L3 — day cells under 44 pt on 375–393 pt phones.** The cells reach into the panel's padding and the
+   gap narrows (6 → 4 → 2 → 0) until every cell is at least 44 pt wide.
+9. **L4 — retry and undo not proved.** The error test now taps Retry and sees a new request's wait before
+   the (still offline) error returns; `testUndoRestoresTheExactDay` edits a prescription (4 sets), removes
+   another exercise, undoes, and compares every card, the session's figures ("19 sets") and the edited
+   stepper.
+
+Also found in this round (Claude): the reorder check in `testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce`
+had passed in `ai-ui-3` only because both cards' labels were empty. With the cards named (see above), the
+quick drag did not reorder (`ai-ui-5`, 6/7 — the other six routine cases passed on the final helpers); a
+long press and slow drag does (`ai-ui-6`: the reorder check passed; the test then failed at the saved
+template editor's last row, below the old helper's tab-bar margin inside a sheet — the test now only
+requires it on screen). `ai-ui-6` also passed `testUndoRestoresTheExactDay`; the retry check needed the
+slow fixture (the offline failure arrives in 0.2 s).
+

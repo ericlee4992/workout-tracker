@@ -171,6 +171,8 @@ struct AIPrimaryButton: View {
     var trailingSymbol = false
     var isEnabled = true
     var identifier: String?
+    /// VoiceOver's hint on the off face: what is missing ("Add a goal first.").
+    var disabledHint: String?
     var onDisabledTap: (() -> Void)?
     var action: () -> Void
     @Environment(\.look) private var look
@@ -178,12 +180,14 @@ struct AIPrimaryButton: View {
     @State private var disabledTaps = 0
 
     init(_ title: String, symbol: String? = nil, trailingSymbol: Bool = false, isEnabled: Bool = true,
-         identifier: String? = nil, onDisabledTap: (() -> Void)? = nil, action: @escaping () -> Void) {
+         identifier: String? = nil, disabledHint: String? = nil, onDisabledTap: (() -> Void)? = nil,
+         action: @escaping () -> Void) {
         self.title = title
         self.symbol = symbol
         self.trailingSymbol = trailingSymbol
         self.isEnabled = isEnabled
         self.identifier = identifier
+        self.disabledHint = disabledHint
         self.onDisabledTap = onDisabledTap
         self.action = action
     }
@@ -203,7 +207,8 @@ struct AIPrimaryButton: View {
                     PrimaryButton(title, symbol: symbol, action: action)
                 }
             } else {
-                // Still a button (so tests and VoiceOver find it, not enabled): a tap only points.
+                // Still a button: a tap only points at what is missing. VoiceOver can activate that too
+                // — the value says it is unavailable and the hint says why (codex-review-10 M1).
                 Button {
                     disabledTaps += 1
                     onDisabledTap?()
@@ -219,12 +224,8 @@ struct AIPrimaryButton: View {
                 }
                 .buttonStyle(.plain)
                 .sensoryFeedback(.warning, trigger: disabledTaps)
-                .accessibilityHint("Unavailable")
-                .accessibilityAddTraits(.isButton)
                 .accessibilityValue("Unavailable")
-                .accessibilityRepresentation {
-                    Button(title) { onDisabledTap?() }.disabled(true)
-                }
+                .accessibilityHint(disabledHint ?? "Unavailable")
             }
         }
         .accessibilityIdentifier(identifier ?? "")
@@ -436,13 +437,14 @@ struct AIInlineFigure: View {
     var label: String
     var numberFont: Font?
     @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             Text("\(number)")
                 .font(numberFont ?? look.font.smallNumber)
                 .foregroundStyle(look.textPrimary)
-                .contentTransition(.numericText(value: Double(number)))
+                .contentTransition(reduceMotion ? .identity : .numericText(value: Double(number)))
             Text(label)
                 .font(.system(.footnote, weight: .semibold))
                 .foregroundStyle(look.textSecondary)

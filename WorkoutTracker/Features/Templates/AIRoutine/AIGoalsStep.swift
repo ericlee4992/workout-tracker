@@ -11,6 +11,7 @@ struct AIGoalsStep: View {
 
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focus: Field?
 
     private enum Field: Hashable { case goals, heightA, heightB, weight }
@@ -44,7 +45,8 @@ struct AIGoalsStep: View {
                     }
                     // With no goal yet, a tap on the off Next puts the cursor in the goal field.
                     AIPrimaryButton("Next", symbol: "arrow.right", trailingSymbol: true, isEnabled: model.hasGoals,
-                                    identifier: "routineNext", onDisabledTap: { focus = .goals }) {
+                                    identifier: "routineNext", disabledHint: "Add a goal first.",
+                                    onDisabledTap: { focus = .goals }) {
                         focus = nil
                         model.next()
                     }
@@ -133,6 +135,9 @@ struct AIGoalsStep: View {
             figure(model.days, model.days == 1 ? "day per week" : "days per week")
             AIDayCountPicker(count: model.days) { model.days = $0 }
                 .padding(.top, 14)
+                // The cells reach into the panel's padding so seven of them keep 44 pt targets on a
+                // 375–393 pt wide phone (codex-review-10 L3).
+                .padding(.horizontal, -10)
             LookDivider().padding(.vertical, 18)
             figure(model.minutes, "minutes per session")
             AIMinutesControl(value: $model.minutes)
@@ -149,8 +154,8 @@ struct AIGoalsStep: View {
             Text("\(number)")
                 .font(look.font.heroNumber)
                 .foregroundStyle(look.textPrimary)
-                .contentTransition(.numericText(value: Double(number)))
-                .animation(.snappy, value: number)
+                .contentTransition(reduceMotion ? .identity : .numericText(value: Double(number)))
+                .animation(reduceMotion ? nil : .snappy, value: number)
             Text(label)
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(look.textSecondary)
@@ -270,11 +275,17 @@ struct AIDayCountPicker: View {
     @ScaledMetric(relativeTo: .title3) private var height: CGFloat = 54
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(1...7, id: \.self) { n in
-                Button { onSelect(n) } label: { cell(n) }
-                    .buttonStyle(.lookPressable)
-                    .accessibilityIdentifier("routineDays.\(n)")
+        // The widest gap that still leaves every cell 44 pt wide.
+        ViewThatFits(in: .horizontal) {
+            ForEach([6, 4, 2, 0], id: \.self) { spacing in
+                HStack(spacing: CGFloat(spacing)) {
+                    ForEach(1...7, id: \.self) { n in
+                        Button { onSelect(n) } label: { cell(n) }
+                            .buttonStyle(.lookPressable)
+                            .frame(minWidth: 44)
+                            .accessibilityIdentifier("routineDays.\(n)")
+                    }
+                }
             }
         }
         .sensoryFeedback(.selection, trigger: count)
@@ -313,6 +324,7 @@ struct AIMinutesControl: View {
     var step = 5
     @Environment(\.look) private var look
     @ScaledMetric(relativeTo: .body) private var thumb: CGFloat = 28
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var dragAxis: Axis?
 
     var body: some View {
@@ -383,7 +395,7 @@ struct AIMinutesControl: View {
                         set(x: g.location.x, usable: usable)
                     }
                     .onEnded { _ in dragAxis = nil })
-            .animation(.snappy(duration: 0.18), value: value)
+            .animation(reduceMotion ? nil : .snappy(duration: 0.18), value: value)
         }
         .frame(height: 44)
     }

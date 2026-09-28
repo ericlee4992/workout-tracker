@@ -222,6 +222,9 @@ struct AIDayEditor: View {
         }
         .animation(reduceMotion ? nil : .snappy, value: sets)
         .animation(reduceMotion ? nil : .snappy, value: minutes)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(day.strength.count) \(day.strength.count.aiPlural("exercise")), \(sets) \(sets.aiPlural("set")), \(minutes) min")
+        .accessibilityIdentifier("routineSessionFigures")
     }
 
     /// The machine at the routine's gym, else the free-weight equipment the option was sent with.
@@ -503,14 +506,18 @@ private struct AIUndoBar: View {
     var name: String
     var undo: () -> Void
     @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        HStack(spacing: 12) {
+        // At accessibility sizes Undo goes under the message, which wraps whole (codex-review-10 L2).
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 6)) : AnyLayout(HStackLayout(spacing: 12))
+        layout {
             Text("\(name) removed")
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(look.textPrimary)
-                .lineLimit(2)
-            Spacer(minLength: 8)
+                .fixedSize(horizontal: false, vertical: true)
+            if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
             Button(action: undo) {
                 Label("Undo", systemImage: "arrow.uturn.backward")
                     .font(.system(.subheadline, weight: .bold))
@@ -525,8 +532,8 @@ private struct AIUndoBar: View {
         }
         .padding(.leading, 18)
         .padding(.trailing, 6)
-        .padding(.vertical, 6)
-        .glassEffect(.regular, in: Capsule())
+        .padding(.vertical, typeSize.isAccessibilitySize ? 12 : 6)
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: typeSize.isAccessibilitySize ? 24 : 32, style: .continuous))
         .accessibilityElement(children: .contain)
     }
 }
@@ -577,7 +584,9 @@ private struct AICardioEditorRow: View {
 
     private var minutes: some View {
         NumberStepperPill(value: Binding(get: { cardio.minutes }, set: { m in var c = cardio; c.minutes = m; onChange(c) }),
-                          range: 1...180, step: 5) { "\($0) min" }
+                          // One-minute steps, as the old editor had: a generated 12 can become 10, and
+                          // every value in 1…180 is reachable (codex-review-10 M3).
+                          range: 1...180, step: 1) { "\($0) min" }
             .fixedSize()
             .accessibilityLabel("Minutes")
     }
