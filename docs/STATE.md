@@ -65,8 +65,11 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `-ui-7` 6/6 for the one typing case), neighbours (Export, AskAI key settings ×2, HR zones, Appearance, unit
   system ×2, test05); captures `captures/09/` (50). Not exercised: VoiceOver by a person, runtime Reduce
   Motion, a real device (release-candidate pass).
-- **Ticket 10** (Ask AI for Templates, A01–A05): IN PROGRESS (2026-09-28, same session as ticket 09 at the
-  user's request). Branch `ericlee4992/redesign-floodlight-ai-routine` (pushed, stacked on the settings tip
+- **Ticket 10** (Ask AI for Templates, A01–A05): IN REVIEW (2026-09-28, same session as ticket 09 at the
+  user's request). Codex round 1 running in Orca terminal `term_7e026546…` ("Codex review — Floodlight 10"),
+  report `work-record/redesign-floodlight/codex-review-10.md` (watch its mtime). Verified so far: unit 33/33
+  (`ai-unit-1`), the whole `FloodlightAIRoutineUITests` class + five AskAI cases (`ai-ui-4` 13/13), the other
+  seven AskAI routine cases passed in `ai-ui-3` and rerun as `ai-ui-5`; captures `captures/10/` (84). Branch `ericlee4992/redesign-floodlight-ai-routine` (pushed, stacked on the settings tip
   `c286b59`), scratch checkout `/tmp/wt-floodlight/ai-routine`, runner `/tmp/wt-floodlight/ai-run.sh`
   (derived data `dd-ai`). Record: `issues/10-ai-routine.md` on that branch (progress, verification, next step).
   User decisions 2026-09-28: generating shows the prototype's timed percentage/stages (holds at 90 % until
