@@ -374,6 +374,8 @@ private struct AIItemEditorRow: View {
         .contentShape(shape)
         .onTapGesture(perform: onToggle)
         .accessibilityElement(children: .contain)
+        // The card is named by its exercise (a container's label is otherwise empty).
+        .accessibilityLabel(name)
         .accessibilityAction(named: isExpanded ? "Collapse" : "Edit sets, reps and rest", onToggle)
         .accessibilityAction(named: "Remove exercise", onRemove)
     }

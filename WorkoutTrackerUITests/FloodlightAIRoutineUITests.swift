@@ -41,7 +41,10 @@ final class FloodlightAIRoutineUITests: XCTestCase {
     private func visible(_ element: XCUIElement) -> Bool {
         let bottom = [any("routineNext"), any("generateAIRoutine"), any("routineAISettings"), any("saveAIRoutine")]
             .first { $0.exists }.map { $0.frame.minY - 12 } ?? app.frame.maxY - 30
-        return element.exists && element.isHittable && element.frame.minY > 150 && element.frame.maxY < bottom
+        guard element.exists && element.isHittable && element.frame.minY > 150 else { return false }
+        // A card taller than the space between the bars (a session at AX sizes) counts once its
+        // top half is in view: its tap target is there.
+        return element.frame.maxY < bottom || (element.frame.height > bottom - 150 && element.frame.minY < bottom - 120)
     }
 
     private func reach(_ element: XCUIElement, limit: Int = 12) {
@@ -64,6 +67,11 @@ final class FloodlightAIRoutineUITests: XCTestCase {
             page += 1
         }
         XCTAssertTrue(visible(element), "\(name): reached \(element)")
+    }
+
+    /// Taps near an element's top: a tall card's centre can sit under the pinned Save button.
+    private func topTap(_ element: XCUIElement) {
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: min(0.5, 40 / max(1, element.frame.height)))).tap()
     }
 
     private func fillGoals() {
@@ -129,7 +137,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         for _ in 0..<6 { app.swipeDown() }
 
         // A05: a session; an open card; a removal's undo bar; the picker.
-        reach(day0); day0.tap()
+        reach(day0); topTap(day0)
         let item0 = any("routineItem.0")
         XCTAssertTrue(item0.waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.8)
@@ -281,11 +289,12 @@ final class FloodlightAIRoutineUITests: XCTestCase {
     func testUndoRestoresARemovedExercise() {
         launch()
         toWeek()
-        any("routineDay.0").tap()
+        topTap(any("routineDay.0"))
         let first = any("routineItem.0")
         XCTAssertTrue(first.waitForExistence(timeout: 5))
         let count = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'routineItem.'")).count
         let name = first.label
+        XCTAssertFalse(name.isEmpty, "the card is named by its exercise")
         first.tap()
         let remove = app.buttons["routineRemoveItem"]
         XCTAssertTrue(remove.waitForExistence(timeout: 5))

@@ -125,6 +125,18 @@ no load estimates, planned cardio in the user's distance unit, explicit Start la
 - Only survives default size: answered by AXL captures (tiles one column, the bar's label alone at AX,
   profile rows stack, day cards' rows stack).
 
+## Strings changed
+
+"N saved machines" → "1 saved machine" / "N saved machines" (singular fixed); the consent footnote (see
+above); "Ask AI" stays the flow's title; "Your week" title → the step indicator; "Edit session" stays;
+"Remove exercise" / "Remove cardio" stay; "Add exercise" / "Add cardio" stay; "Change preferences" and
+"Back to preferences" stay; "Open AI Settings" → "Ask AI Settings"; "Building your week…" stays as the
+first stage. New: the phrase chips, "Experience", "Optional profile", "day(s) per week", "minutes per
+session", "Available equipment", "Available cardio", "saved machine(s)", "Choose or add a gym to save
+scanned machines." (kept), "Add your OpenAI API key to create routines." (was "…with Terra."), the stage
+lines, "Sessions", "Sets", "Time", "N exercises / sets / min", "Discard this week?", "Discard Week", "Keep
+Editing", "N templates saved", "Done", "<name> removed", "Undo", "No matches", "10/10", "3/3".
+
 ## Rules and identifiers
 
 Kept: `askAIRoutine`, `routineGoals`, `dismissRoutineKeyboard`, `routineGym` (the menu), `routineAddGym`
@@ -161,6 +173,21 @@ logs, `.exit` files and result bundles `/tmp/wt-floodlight/results/ai-*`.
   and none was sent. The capture now chooses a cardio tile, and shoots Generating at 2.6 s (the shot at
   2.9 s caught the week sliding in: the 4 s fixture was replying).
 - `ai-ui-2` (exit 65): the test target did not compile (a duplicate `save` in the moved AskAI test).
+- `ai-ui-3` (exit 65; started with a shell `&` by mistake instead of the tool's background mode — it ran
+  to completion and wrote its exit file): `FloodlightAIRoutineUITests` **6/8** — light and dark Default
+  capture passes and all four flows (Back keeps inputs + every way out of a week asks first; the error step
+  → Back to preferences; a saved tile opens its template; undo restores). Both AXL passes failed reaching
+  the first day card: at AX sizes a session card is taller than the space between the pinned bars (the
+  helper now accepts a tall card once its top is in view, and taps near its top — its centre can sit under
+  Save templates). `AskAIUITests` routine cases **7/12**: every Default case passed except scan-during-setup,
+  which expected the old "1 saved machines" (the count now says "1 saved machine" — a string fix listed
+  below); the four AX cases failed dismissing the keyboard: the recording showed iOS 27's floating keyboard
+  Done, with a stale copy in the hierarchy while the keyboard rises — the test tapped that one. The helper
+  waits for the keyboard to settle, taps the Done on it, retries once. The run's AX shots (A01–A04) were
+  looked at: tiles in one column, the schedule figures wrap, the scoreboard as rows, cards stack — no
+  layout faults. Product change after this run: the exercise card's accessibility label is its exercise
+  (a container's label was empty, so the undo/reorder tests' label checks could pass vacuously; they now
+  assert a non-empty label).
 
 ## Progress
 

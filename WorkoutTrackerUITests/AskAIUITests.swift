@@ -50,8 +50,22 @@ final class AskAIUITests: XCTestCase {
         let goals = routineGoals; XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap()
         _ = app.keyboards.firstMatch.waitForExistence(timeout: 3); goals.typeText(text)
         XCTAssertEqual(routineGoals.value as? String, text)
-        app.buttons["dismissRoutineKeyboard"].tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        dismissRoutineKeyboard()
+    }
+    /// The keyboard's Done floats above the keyboard (iOS 27); while the keyboard rises a stale copy is
+    /// also in the hierarchy (AX runs tapped it, ai-ui-3). Tap the one on the settled keyboard; retry once.
+    private func dismissRoutineKeyboard() {
+        let keyboard = app.keyboards.firstMatch
+        XCTAssertTrue(keyboard.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 1.0)
+        for _ in 0..<2 where keyboard.exists {
+            let dones = app.buttons.matching(identifier: "dismissRoutineKeyboard").allElementsBoundByIndex
+            let done = dones.first { $0.isHittable && $0.frame.maxY <= keyboard.frame.minY + 4 && $0.frame.minY > keyboard.frame.minY - 90 }
+                ?? dones.first { $0.isHittable }
+            done?.tap()
+            _ = keyboard.waitForNonExistence(timeout: 3)
+        }
+        XCTAssertFalse(keyboard.exists, "the keyboard went away")
     }
     private func toEquipment() {
         let next = app.buttons["routineNext"]; XCTAssertTrue(next.waitForExistence(timeout: 5)); next.tap()
@@ -208,7 +222,8 @@ final class AskAIUITests: XCTestCase {
             let done = app.buttons["scanDone"]; XCTAssertTrue(done.waitForExistence(timeout: 5))
             shot("followup-added-\(large ? "axl" : "default")"); done.tap()
             XCTAssertTrue(scan.waitForExistence(timeout: 5)); reach(scan)
-            XCTAssertEqual(any("routineMachineCount").label, "\(count) saved machines")
+            // Floodlight ticket 10: "1 saved machine" (singular), "2 saved machines".
+            XCTAssertEqual(any("routineMachineCount").label, "\(count) saved \(count == 1 ? "machine" : "machines")")
         }
         shot("followup-scanned-equipment-\(large ? "axl" : "default")")
         scan.tap(); XCTAssertTrue(app.buttons["scanShutter"].waitForExistence(timeout: 5))
@@ -223,7 +238,8 @@ final class AskAIUITests: XCTestCase {
         let generate = app.buttons["generateAIRoutine"]; XCTAssertTrue(generate.waitForExistence(timeout: 5))
         XCTAssertTrue(generate.isEnabled); generate.tap()
         XCTAssertTrue(any("routineDay.2").waitForExistence(timeout: 10))
-        any("routineDay.0").tap()
+        let firstDay = any("routineDay.0"); reach(firstDay)
+        firstDay.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: min(0.5, 40 / max(1, firstDay.frame.height)))).tap()
         XCTAssertTrue(app.staticTexts["Seated Chest Press"].firstMatch.waitForExistence(timeout: 5))
         app.buttons["routineBack"].tap()
         discardWeekAndClose()
@@ -306,7 +322,10 @@ final class AskAIUITests: XCTestCase {
         let generate = app.buttons["generateAIRoutine"]; XCTAssertTrue(generate.isEnabled); generate.tap()
         let day = any("routineDay.0"); XCTAssertTrue(day.waitForExistence(timeout: 10))
         shot("ai-week-preview-\(large ? "axl" : "default")")
-        reach(day); day.tap(); shot("ai-day-edit-\(large ? "axl" : "default")")
+        reach(day)
+        // Near its top: at AX sizes a card's centre can sit under the pinned Save button.
+        day.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: min(0.5, 40 / max(1, day.frame.height)))).tap()
+        shot("ai-day-edit-\(large ? "axl" : "default")")
         reach(any("routineAddCardio")); shot("ai-day-cardio-\(large ? "axl" : "default")")
         if edit {
             // Add from the picker, remove it again (the undo bar shows), add another, then reorder.
@@ -321,6 +340,7 @@ final class AskAIUITests: XCTestCase {
             XCTAssertTrue(second.waitForExistence(timeout: 5))
             for _ in 0..<3 { app.swipeDown() }
             let before = second.label
+            XCTAssertFalse(before.isEmpty); XCTAssertNotEqual(before, first.label)
             second.press(forDuration: 0.8, thenDragTo: first)
             let moved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", before), object: first)
             XCTAssertEqual(XCTWaiter.wait(for: [moved], timeout: 5), .completed, "the dragged exercise leads the session")
