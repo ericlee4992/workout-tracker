@@ -200,12 +200,15 @@ struct Chip: View {
 struct SearchFieldView: View {
     @Binding var text: String
     var prompt: String = "Search"
+    /// The text field's accessibility identifier (UI tests type into it).
+    var identifier: String?
     @Environment(\.look) private var look
     @ScaledMetric(relativeTo: .body) private var height: CGFloat = 44
 
-    init(text: Binding<String>, prompt: String = "Search") {
+    init(text: Binding<String>, prompt: String = "Search", identifier: String? = nil) {
         _text = text
         self.prompt = prompt
+        self.identifier = identifier
     }
 
     var body: some View {
@@ -218,6 +221,7 @@ struct SearchFieldView: View {
                 .foregroundStyle(look.textPrimary)
                 .tint(look.actionText)
                 .submitLabel(.search)
+                .accessibilityIdentifier(identifier ?? "")
             if !text.isEmpty {
                 Button { text = "" } label: {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(look.textTertiary)

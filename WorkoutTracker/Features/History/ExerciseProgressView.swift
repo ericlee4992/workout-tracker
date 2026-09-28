@@ -625,24 +625,7 @@ struct ExerciseProgressView: View {
     /// (D23). Naming policy lives in `ProgressSeriesMath.labels`.
     private func words(for key: ProgressVariationKey) -> ProgressVariationWords {
         let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
-        var equipmentName: String?
-        var gymName: String?
-        switch key.equipment {
-        case .freeWeight(let tag):
-            equipmentName = tag.label
-        case .machine(let machineID):
-            let entry = entries.first { $0.snapshotMachineID == machineID }
-            equipmentName = entry?.snapshotMachineLabel ?? "Machine"
-            gymName = entry?.snapshotGymName
-        case .unrecorded:
-            break
-        }
-        let presetName = key.presetID.map { id in
-            entries.first { $0.snapshotPresetID == id }?.snapshotPresetName ?? "Variation"
-        }
-        return ProgressVariationWords(
-            loadType: key.loadType, equipment: key.equipment,
-            equipmentName: equipmentName, gymName: gymName, presetName: presetName)
+        return ExerciseOverview.variationWords(for: key, entries: entries)
     }
 }
 

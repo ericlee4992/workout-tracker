@@ -363,10 +363,14 @@ struct MachineDetailView: View {
             VStack(alignment: .leading, spacing: look.space.header) {
                 SectionHeader("Exercises")
                 LookList {
+                    // Each opens the exercise's own page (Floodlight ticket 08, user decision 1).
                     ForEach(served) { exercise in
-                        LookRow(exercise.name, subtitle: exercise.muscleGroup,
-                                value: exercise.loadType == .weighted ? nil : exercise.loadType.badge,
-                                showsChevron: false)
+                        NavigationLink { ExerciseDetailView(exerciseID: exercise.id) } label: {
+                            LookRow(exercise.name, subtitle: exercise.muscleGroup,
+                                    value: exercise.loadType == .weighted ? nil : exercise.loadType.badge)
+                        }
+                        .buttonStyle(ExercisesRowPressStyle())
+                        .accessibilityIdentifier("machineExercise.\(exercise.name)")
                     }
                 }
             }
