@@ -12,8 +12,14 @@ final class AskAIUITests: XCTestCase {
     private func any(_ id: String) -> XCUIElement { app.descendants(matching: .any).matching(identifier: id).firstMatch }
     private func reach(_ element: XCUIElement) {
         for _ in 0..<20 {
-            let top = app.navigationBars.firstMatch.frame.maxY + 8
-            let bottom = app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY - 8 : app.frame.maxY - 85
+            // The Ask AI flow (Floodlight ticket 10) pins its own bars: under its top bar and above its
+            // step command, not the navigation bar and tab bar.
+            let pinned = ["routineNext", "generateAIRoutine", "routineAISettings", "saveAIRoutine"]
+                .map { app.buttons[$0] }.first { $0.exists && element.identifier != $0.identifier }
+            let flowTop = app.buttons["routineCancel"].exists ? app.buttons["routineCancel"].frame.maxY + 56 : 0
+            let top = max(app.navigationBars.firstMatch.frame.maxY + 8, flowTop)
+            let bottom = app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY - 8
+                : (pinned.map { $0.frame.minY - 12 } ?? app.frame.maxY - 85)
             if element.exists && element.isHittable && element.frame.minY >= top && element.frame.maxY <= bottom { return }
             let down = element.exists && element.frame.minY < top
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: down ? 0.4 : 0.65))
@@ -35,6 +41,43 @@ final class AskAIUITests: XCTestCase {
     }
     private func shot(_ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+    }
+    // Floodlight ticket 10: the routine flow is stepped — Goals (Next) → Equipment (Generate) → Your week.
+    private var routineGoals: XCUIElement {
+        app.textViews["routineGoals"].exists ? app.textViews["routineGoals"] : app.textFields["routineGoals"]
+    }
+    private func typeGoals(_ text: String) {
+        let goals = routineGoals; XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap()
+        _ = app.keyboards.firstMatch.waitForExistence(timeout: 3); goals.typeText(text)
+        XCTAssertEqual(routineGoals.value as? String, text)
+        app.buttons["dismissRoutineKeyboard"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+    }
+    private func toEquipment() {
+        let next = app.buttons["routineNext"]; XCTAssertTrue(next.waitForExistence(timeout: 5)); next.tap()
+        XCTAssertTrue(any("routineGym").waitForExistence(timeout: 5))
+    }
+    /// Equipment and cardio are tiles (buttons with the selected trait), not switches.
+    private func choose(_ id: String) {
+        let tile = app.buttons[id].firstMatch; reach(tile)
+        if !tile.isSelected { tile.tap() }
+        XCTAssertTrue(tile.isSelected, "\(id) chosen")
+    }
+    private func chooseGym(_ name: String) {
+        let menu = any("routineGym"); reach(menu); menu.tap()
+        let item = app.buttons[name].firstMatch; XCTAssertTrue(item.waitForExistence(timeout: 5)); item.tap()
+    }
+    private func addGymFromRoutine(_ name: String) {
+        let menu = any("routineGym"); reach(menu); menu.tap()
+        let add = app.buttons["Add Gym…"].firstMatch; XCTAssertTrue(add.waitForExistence(timeout: 5)); add.tap()
+        let field = app.textFields["gymName"]; XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap(); field.typeText(name); app.buttons["saveGym"].tap()
+    }
+    /// Cancel from Your week asks first (ticket 10, decision 3).
+    private func discardWeekAndClose() {
+        app.buttons["routineCancel"].tap()
+        let discard = app.buttons["Discard Week"].firstMatch; XCTAssertTrue(discard.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 0.6); discard.tap()
     }
     private func scanner() {
         app.tabBars.buttons["Gyms"].tap(); app.buttons["addGym"].tap()
@@ -100,13 +143,15 @@ final class AskAIUITests: XCTestCase {
             app.buttons["Template Gym"].tap()
         }
         let ask = app.buttons["askAIRoutine"]; reach(ask); ask.tap()
-        let goals = app.textFields["routineGoals"].exists ? app.textFields["routineGoals"] : app.textViews["routineGoals"]
-        XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap(); goals.typeText("Build strength")
-        app.buttons["dismissRoutineKeyboard"].tap()
-        enable("routineEquipment.dumbbells")
-        let generate = app.buttons["generateAIRoutine"]; reach(generate); generate.tap()
+        typeGoals("Build strength"); toEquipment()
+        choose("routineEquipment.dumbbells")
+        let generate = app.buttons["generateAIRoutine"]; generate.tap()
         XCTAssertTrue(any("routineDay.2").waitForExistence(timeout: 10))
         app.buttons["saveAIRoutine"].tap()
+        // Floodlight ticket 10: the Saved step lists the three templates; Done closes the flow.
+        let done = app.buttons["routineSavedDone"]; XCTAssertTrue(done.waitForExistence(timeout: 10))
+        XCTAssertTrue(any("routineSavedTitle").label.hasPrefix("3 templates saved"))
+        done.tap()
         XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 10))
         for day in 1...3 {
             for _ in 0..<4 { app.swipeDown() }
@@ -146,13 +191,9 @@ final class AskAIUITests: XCTestCase {
         let ask = app.buttons["askAIRoutine"]; reach(ask)
         XCTAssertEqual(ask.label, "Ask AI for Templates")
         shot("followup-start-\(large ? "axl" : "default")"); ask.tap()
-        let goals = app.textFields["routineGoals"].exists ? app.textFields["routineGoals"] : app.textViews["routineGoals"]
-        XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap(); goals.typeText("Build strength with my machines")
-        app.buttons["dismissRoutineKeyboard"].tap()
-        let addGym = app.buttons["routineAddGym"]; reach(addGym)
-        shot("followup-no-gym-\(large ? "axl" : "default")"); addGym.tap()
-        let name = app.textFields["gymName"]; XCTAssertTrue(name.waitForExistence(timeout: 5))
-        name.tap(); name.typeText("Routine Gym"); app.buttons["saveGym"].tap()
+        typeGoals("Build strength with my machines"); toEquipment()
+        shot("followup-no-gym-\(large ? "axl" : "default")")
+        addGymFromRoutine("Routine Gym")
         let scan = app.buttons["routineScanMachine"]; XCTAssertTrue(scan.waitForExistence(timeout: 5)); reach(scan)
         XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
         shot("followup-empty-gym-\(large ? "axl" : "default")")
@@ -174,15 +215,18 @@ final class AskAIUITests: XCTestCase {
         app.buttons["scanCancel"].tap()
         XCTAssertTrue(scan.waitForExistence(timeout: 5))
         XCTAssertEqual(any("routineMachineCount").label, "2 saved machines")
-        for _ in 0..<6 { app.swipeDown() }
-        XCTAssertEqual(goals.value as? String, "Build strength with my machines")
-        let generate = app.buttons["generateAIRoutine"]; reach(generate)
+        // Back to Goals keeps the goal; Next returns.
+        app.buttons["routineBack"].tap()
+        XCTAssertTrue(routineGoals.waitForExistence(timeout: 5))
+        XCTAssertEqual(routineGoals.value as? String, "Build strength with my machines")
+        toEquipment()
+        let generate = app.buttons["generateAIRoutine"]; XCTAssertTrue(generate.waitForExistence(timeout: 5))
         XCTAssertTrue(generate.isEnabled); generate.tap()
         XCTAssertTrue(any("routineDay.2").waitForExistence(timeout: 10))
         any("routineDay.0").tap()
         XCTAssertTrue(app.staticTexts["Seated Chest Press"].firstMatch.waitForExistence(timeout: 5))
-        app.navigationBars.buttons.element(boundBy: 0).tap()
-        app.navigationBars.buttons["Cancel"].tap()
+        app.buttons["routineBack"].tap()
+        discardWeekAndClose()
         XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
         for _ in 0..<6 { app.swipeDown() }
         XCTAssertTrue(app.buttons["gymPicker"].label.contains("Routine Gym"))
@@ -201,18 +245,18 @@ final class AskAIUITests: XCTestCase {
         }
         app.tabBars.buttons["Workout"].tap()
         let ask = app.buttons["askAIRoutine"]; reach(ask); ask.tap()
-        let picker = app.buttons["routineGym"]; reach(picker); picker.tap()
-        app.buttons["Second Gym"].tap()
+        typeGoals("Pick a gym"); toEquipment()
+        chooseGym("Second Gym")
         let scan = app.buttons["routineScanMachine"]; XCTAssertTrue(scan.waitForExistence(timeout: 5))
         XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
-        app.navigationBars.buttons["Cancel"].tap()
+        app.buttons["routineCancel"].tap()
         XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
         for _ in 0..<4 { app.swipeDown() }
         XCTAssertTrue(app.buttons["gymPicker"].label.contains("Second Gym"))
-        reach(ask); ask.tap(); reach(picker); picker.tap(); app.buttons["No gym"].tap()
+        reach(ask); ask.tap(); typeGoals("Pick a gym"); toEquipment(); chooseGym("No gym")
         XCTAssertFalse(scan.exists)
         XCTAssertTrue(app.staticTexts["Choose or add a gym to save scanned machines."].exists)
-        app.navigationBars.buttons["Cancel"].tap()
+        app.buttons["routineCancel"].tap()
         XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
         for _ in 0..<4 { app.swipeDown() }
         XCTAssertTrue(app.buttons["gymPicker"].label.contains("No gym"))
@@ -222,14 +266,10 @@ final class AskAIUITests: XCTestCase {
         launch(["-uiTestTerraNeedsConsent", "-uiTestTerraOffline"])
         app.tabBars.buttons["Workout"].tap()
         let ask = app.buttons["askAIRoutine"]; reach(ask); ask.tap()
-        let goals = app.textFields["routineGoals"].exists ? app.textFields["routineGoals"] : app.textViews["routineGoals"]
-        XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap(); goals.typeText("Keep these preferences")
-        app.buttons["dismissRoutineKeyboard"].tap()
-        enable("routineEquipment.dumbbells"); enable("routineCardio.outdoorWalk")
-        let addGym = app.buttons["routineAddGym"]
-        for _ in 0..<5 { app.swipeDown() }; reach(addGym); addGym.tap()
-        let name = app.textFields["gymName"]; XCTAssertTrue(name.waitForExistence(timeout: 5)); name.tap(); name.typeText("Consent Gym")
-        app.buttons["saveGym"].tap()
+        typeGoals("Keep these preferences"); toEquipment()
+        choose("routineEquipment.dumbbells"); choose("routineCardio.outdoorWalk")
+        for _ in 0..<5 { app.swipeDown() }
+        addGymFromRoutine("Consent Gym")
         let scan = app.buttons["routineScanMachine"]; XCTAssertTrue(scan.waitForExistence(timeout: 5)); reach(scan); scan.tap()
         let allow = app.buttons["allowAIPhotos"]; XCTAssertTrue(allow.waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["scanShutter"].exists)
@@ -241,12 +281,13 @@ final class AskAIUITests: XCTestCase {
         XCTAssertFalse(app.buttons["scanUseCandidate"].exists)
         app.buttons["scanCancel"].tap()
         XCTAssertTrue(scan.waitForExistence(timeout: 5)); XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
-        for _ in 0..<5 { app.swipeDown() }
-        XCTAssertEqual(goals.value as? String, "Keep these preferences")
-        let dumbbells = app.switches["routineEquipment.dumbbells"].firstMatch; reach(dumbbells); XCTAssertEqual(dumbbells.value as? String, "1")
-        let cardio = app.switches["routineCardio.outdoorWalk"].firstMatch; reach(cardio); XCTAssertEqual(cardio.value as? String, "1")
+        let dumbbells = app.buttons["routineEquipment.dumbbells"].firstMatch; reach(dumbbells); XCTAssertTrue(dumbbells.isSelected)
+        let cardio = app.buttons["routineCardio.outdoorWalk"].firstMatch; reach(cardio); XCTAssertTrue(cardio.isSelected)
         let consent = app.switches["allowAIRoutine"].firstMatch; reach(consent); XCTAssertEqual(consent.value as? String, "0")
-        let generate = app.buttons["generateAIRoutine"]; reach(generate); XCTAssertFalse(generate.isEnabled)
+        XCTAssertFalse(app.buttons["generateAIRoutine"].isEnabled)
+        app.buttons["routineBack"].tap()
+        XCTAssertTrue(routineGoals.waitForExistence(timeout: 5))
+        XCTAssertEqual(routineGoals.value as? String, "Keep these preferences")
     }
 
     func testWeeklyRoutineDefault() { routine(large: false) }
@@ -255,37 +296,39 @@ final class AskAIUITests: XCTestCase {
     private func routine(large: Bool, edit: Bool = false) {
         launch(large: large); app.tabBars.buttons["Workout"].tap()
         let ask = app.buttons["askAIRoutine"]; reach(ask); shot("ai-start-\(large ? "axl" : "default")"); ask.tap()
-        let goals = app.textFields["routineGoals"].exists ? app.textFields["routineGoals"] : app.textViews["routineGoals"]
-        XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap(); _ = app.keyboards.firstMatch.waitForExistence(timeout: 3); goals.typeText("Build strength and endurance")
-        XCTAssertEqual(goals.value as? String, "Build strength and endurance")
-        app.buttons["dismissRoutineKeyboard"].tap()
-        XCTAssertFalse(app.keyboards.firstMatch.exists)
+        typeGoals("Build strength and endurance")
         shot("ai-routine-goals-\(large ? "axl" : "default")")
-        app.swipeUp()
-        enable("routineEquipment.dumbbells")
+        toEquipment()
+        choose("routineEquipment.dumbbells")
         shot("ai-routine-inputs-\(large ? "axl" : "default")")
-        enable("routineCardio.outdoorWalk")
+        choose("routineCardio.outdoorWalk")
         shot("ai-routine-cardio-\(large ? "axl" : "default")")
-        let generate = app.buttons["generateAIRoutine"]; reach(generate); XCTAssertTrue(generate.isEnabled); generate.tap()
+        let generate = app.buttons["generateAIRoutine"]; XCTAssertTrue(generate.isEnabled); generate.tap()
         let day = any("routineDay.0"); XCTAssertTrue(day.waitForExistence(timeout: 10))
         shot("ai-week-preview-\(large ? "axl" : "default")")
-        day.tap(); shot("ai-day-edit-\(large ? "axl" : "default")")
-        reach(app.buttons["Add cardio"]); shot("ai-day-cardio-\(large ? "axl" : "default")")
+        reach(day); day.tap(); shot("ai-day-edit-\(large ? "axl" : "default")")
+        reach(any("routineAddCardio")); shot("ai-day-cardio-\(large ? "axl" : "default")")
         if edit {
-            let add = app.buttons["Add exercise"]; reach(add); add.tap()
-            let remove = app.buttons["Remove exercise"].firstMatch; reach(remove); remove.tap()
-            XCTAssertTrue(app.buttons["Remove exercise"].firstMatch.exists)
-            reach(app.buttons["Add exercise"]); app.buttons["Add exercise"].tap()
+            // Add from the picker, remove it again (the undo bar shows), add another, then reorder.
+            let add = any("routineAddExercise"); reach(add); add.tap()
+            let pick = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'routinePick.'")).firstMatch
+            XCTAssertTrue(pick.waitForExistence(timeout: 5)); pick.tap()
+            let remove = app.buttons["routineRemoveItem"]; XCTAssertTrue(remove.waitForExistence(timeout: 5)); reach(remove); remove.tap()
+            XCTAssertTrue(app.buttons["routineUndo"].waitForExistence(timeout: 3))
+            reach(add); add.tap()
+            XCTAssertTrue(pick.waitForExistence(timeout: 5)); pick.tap()
+            let first = any("routineItem.0"), second = any("routineItem.1")
+            XCTAssertTrue(second.waitForExistence(timeout: 5))
             for _ in 0..<3 { app.swipeDown() }
-            app.navigationBars.buttons["Edit"].tap()
-            let handles = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Reorder"))
-            XCTAssertGreaterThanOrEqual(handles.count, 2)
-            if handles.count >= 2 { handles.element(boundBy: 0).press(forDuration: 0.5, thenDragTo: handles.element(boundBy: 1)) }
-            app.navigationBars.buttons["Done"].tap()
+            let before = second.label
+            second.press(forDuration: 0.8, thenDragTo: first)
+            let moved = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == %@", before), object: first)
+            XCTAssertEqual(XCTWaiter.wait(for: [moved], timeout: 5), .completed, "the dragged exercise leads the session")
         }
-        app.navigationBars.buttons.element(boundBy: 0).tap()
-        if edit { app.buttons["saveAIRoutine"].doubleTap() }
-        else { app.buttons["saveAIRoutine"].tap() }
+        app.buttons["routineBack"].tap()
+        let saveWeek = app.buttons["saveAIRoutine"]; XCTAssertTrue(saveWeek.waitForExistence(timeout: 5))
+        if edit { saveWeek.doubleTap() } else { saveWeek.tap() }
+        let done = app.buttons["routineSavedDone"]; XCTAssertTrue(done.waitForExistence(timeout: 10)); done.tap()
         let tile = app.buttons["templateTile.Day 1 — Fitness"]; XCTAssertTrue(tile.waitForExistence(timeout: 10))
         XCTAssertEqual(app.buttons.matching(identifier: "templateTile.Day 1 — Fitness").count, 1)
         reach(tile); tile.tap()
@@ -409,6 +452,8 @@ final class AskAIUITests: XCTestCase {
         app.launchArguments = ["-uiTestReset"] + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : [])
         app.launch(); app.tabBars.buttons["Workout"].tap()
         reach(app.buttons["askAIRoutine"]); app.buttons["askAIRoutine"].tap()
+        // Floodlight ticket 10: the flow opens without a key; Equipment offers Ask AI Settings instead of Generate.
+        typeGoals("Build strength"); toEquipment()
         let settings = app.buttons["routineAISettings"]; XCTAssertTrue(settings.waitForExistence(timeout: 5)); settings.tap()
         // Floodlight ticket 09: the sheet opens at its content height (full height at AX sizes).
         let done = app.buttons["askAIDone"]

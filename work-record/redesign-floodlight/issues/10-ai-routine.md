@@ -151,8 +151,26 @@ New: `routineNext`, `routineBack`, `routineCancel`, `routineGoalPhrase.<n>`, `ro
 Runner `/tmp/wt-floodlight/ai-run.sh <name> build|test …` (NEW derived data `/tmp/wt-floodlight/dd-ai`);
 logs, `.exit` files and result bundles `/tmp/wt-floodlight/results/ai-*`.
 
+- Prototype captures: dark and light both exit 0 (38 each); two dark shots came out blank (A04:p2,
+  A04:discard AXL — the known capture glitch) and were retaken (content checked); all 76 have content.
+- `ai-build-1`: exit 0 (build-for-testing, fresh derived data, no warnings in the new files).
+- `ai-unit-1`: **exit 0 — 33/33** (`AIRoutineFlowMathTests` 11 new, `AIGymTests` 22).
+- `ai-ui-1` (exit 65): the light Default capture pass reached A01–A05 (an open card, the undo bar, the
+  picker) and failed paging the editor to "Add cardio": no cardio had been chosen, so the editor ended
+  on a bare "Cardio" header. Product fix: the Cardio section is hidden when the session has no cardio
+  and none was sent. The capture now chooses a cardio tile, and shoots Generating at 2.6 s (the shot at
+  2.9 s caught the week sliding in: the 4 s fixture was replying).
+- `ai-ui-2` (exit 65): the test target did not compile (a duplicate `save` in the moved AskAI test).
+
 ## Progress
 
 - 2026-09-28: started in the ticket-09 session at the user's request; branch created from `c286b59`
   and pushed. Read ticket 01, the prototype AI area (flow, five steps, components, support, store
   logic) and the real `AIRoutineSheet` / `AIRoutine`. User decisions 1–4 recorded. Ticket written.
+- 2026-09-28: implemented (`c469a0a` and after): `Domain/AIRoutineFlowMath.swift` + tests;
+  `AIRoutineDay` gets a local id (not encoded); `AIRoutinePersistence.save` returns the ids;
+  `Features/Templates/AIRoutine/` — `AIRoutineFlowModel`, components, the five steps and the Saved step;
+  `AIRoutineSheet` is the stepped flow's root (same name, so the Workout tab's cover presents it; its tile
+  callback opens the template). `FloodlightAIRoutineUITests` (four capture passes, four flows);
+  `AskAIUITests` routine cases moved to the steps (helpers `typeGoals`, `toEquipment`, `choose`,
+  `chooseGym`, `addGymFromRoutine`, `discardWeekAndClose`; `reach` knows the flow's pinned bars).

@@ -113,7 +113,10 @@ struct AIDayEditor: View {
             }
             .accessibilityIdentifier("routineAddExercise")
             .editorRow(top: 5, bottom: 10)
-            SectionHeader("Cardio").editorRow(top: 20, bottom: 4)
+            // No cardio sent and none in the session: no Cardio section (a bare header offers nothing).
+            if !day.cardio.isEmpty || !activities.isEmpty {
+                SectionHeader("Cardio").editorRow(top: 20, bottom: 4)
+            }
             ForEach(day.cardio) { cardio in
                 AICardioEditorRow(cardio: cardio, options: activities,
                                   onChange: { updated in
@@ -148,6 +151,7 @@ struct AIDayEditor: View {
                 .editorRow(top: 5, bottom: 24)
             } else {
                 Color.clear.frame(height: 24).editorRow()
+                    .accessibilityIdentifier("routineEditorEnd")
             }
         }
         .listStyle(.plain)
