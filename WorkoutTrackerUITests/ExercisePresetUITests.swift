@@ -103,11 +103,7 @@ final class ExercisePresetUITests: XCTestCase {
 
     private func definePresets() {
         tab("Exercises").tap()
-        let field = app.revealedSearchField()
-        field.tap()
-        field.typeText(exerciseName)
-
-        let row = app.staticTexts[exerciseName].firstMatch
+        let row = app.exercisesTabRow(exerciseName)
         XCTAssertTrue(row.waitForExistence(timeout: 5), "The seeded exercise should be listed")
         row.press(forDuration: 1.2)
         app.buttons["Presets…"].firstMatch.tap()

@@ -367,10 +367,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-05-detail")
 
         app.tabBars.buttons["Exercises"].tap()
-        let search = app.revealedSearchField()
-        search.tap()
-        search.typeText(exerciseName)
-        let row = app.staticTexts[exerciseName].firstMatch
+        let row = app.exercisesTabRow(exerciseName)
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.press(forDuration: 1.0)
         let progress = app.buttons["Progress…"].firstMatch
@@ -458,8 +455,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(anyElement("gymRow.\(gymName)").waitForExistence(timeout: 5))
         shoot("redesign-06-gyms")
         app.tabBars.buttons["Exercises"].tap()
-        // iOS 27 keeps the search field in a drawer until pulled (ticket 03's helper).
-        _ = app.revealedSearchField()
+        XCTAssertTrue(app.textFields["exerciseSearch"].waitForExistence(timeout: 10))
         shoot("redesign-07-exercises")
     }
 
@@ -487,7 +483,7 @@ final class RedesignScreenshotUITests: XCTestCase {
                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
         app.launch()
         app.tabBars.buttons["Exercises"].tap()
-        XCTAssertTrue(app.searchFields.firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.textFields["exerciseSearch"].waitForExistence(timeout: 10))
         shoot("redesign-07-exercises-axl")
     }
 

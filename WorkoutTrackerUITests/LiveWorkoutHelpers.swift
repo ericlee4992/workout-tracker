@@ -17,6 +17,17 @@ extension XCUIApplication {
     /// A tab root's search field: iOS 27 keeps a large-title list's search in the navigation
     /// bar's drawer, hidden until the list is pulled down (it failed on main a0364f2, the
     /// Exercises tab). A sheet's field is already visible, so this is a no-op there.
+    /// Floodlight ticket 08: the Exercises tab searches in its own field under the title (not the
+    /// bar's drawer), and each row is one element named by its identifier. Types `name` and
+    /// returns that row.
+    func exercisesTabRow(_ name: String, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        let field = textFields["exerciseSearch"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "The Exercises tab should be searchable", file: file, line: line)
+        field.tap()
+        field.typeText(name)
+        return descendants(matching: .any).matching(identifier: "exerciseRow.\(name)").firstMatch
+    }
+
     func revealedSearchField(file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
         let field = searchFields.firstMatch
         for _ in 0..<3 where !field.waitForExistence(timeout: 2) {

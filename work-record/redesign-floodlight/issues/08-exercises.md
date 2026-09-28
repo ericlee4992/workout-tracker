@@ -1,7 +1,7 @@
 # 08 — Floodlight: Exercises
 
 Type: feature (part of [01](01-implement-redesign.md), area order item 7)
-Status: in progress — ticket written, user decisions recorded; implementation next
+Status: in progress — implemented; UI verification running
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-exercises` (scratch checkout `/tmp/wt-floodlight/exercises`),
 stacked on the ticket-07 scan tip `7655aa7` (Codex clear). Nothing merged to `main`; nothing installed.
@@ -221,7 +221,14 @@ Removed: the Body Area filter submenu; "Common" stays as the suggestions' title.
 
 ## Verification
 
-(to be filled)
+Runner `/tmp/wt-floodlight/ex-run.sh <name> build|test …` (NEW derived data `/tmp/wt-floodlight/dd-exercises`,
+`-collect-test-diagnostics never`); logs, `.exit` files and result bundles `/tmp/wt-floodlight/results/exercises-*`.
+
+- `exercises-unit-1` (exit 65): the two SwiftData tests released their in-memory container right
+  after taking its context (SwiftData traps; every later test in the process reported "crashed").
+  `exercises-unit-2` isolated it. Fixed by keeping the container alive.
+- `exercises-unit-3`: **exit 0 — 15/15** `ExerciseOverviewTests`.
+- `exercises-build-1`: exit 0 (build-for-testing, the five screens; no warnings in the changed files).
 
 ## Progress
 
@@ -229,3 +236,15 @@ Removed: the Body Area filter submenu; "Common" stays as the suggestions' title.
   pushed, clean; nothing merged or installed). Read ticket 01/07, the prototype Exercises area and
   the real Exercises code; prototype captured into `../reference/prototype-exercises/`. User
   decisions 1–4 recorded. Ticket written.
+- 2026-09-27: `Domain/ExerciseOverview.swift` + `ExerciseOverviewTests` (`0112885`); the screens
+  (`efd60fe`): `ExercisesPieces`, E01 `ExercisesView`, E02 `ExerciseDetailView` (new), E03
+  `NewExerciseSheet`, E04 `ExercisePresetsSheet`, E05 `EditExerciseLoadTypeSheet`; machine page
+  exercise rows → E02; `SearchFieldView` takes an identifier; `ExerciseProgressView.words(for:)` now
+  uses the shared `ExerciseOverview.variationWords`. Fixture: `-uiTestDesignExercises` (presets and a
+  Narrow-grip variation on the chest press, assisted pull-up and dip history, a user-made Landmine
+  Press). New `FloodlightExercisesUITests` (4 captures + 6 flows); neighbours moved to the tab's own
+  search field (`app.exercisesTabRow`): ExercisePreset, ProgressChart, ProgressChartTooltip,
+  RedesignScreenshot test05–07, CoreLoop mid-workout creation.
+- Implementation notes: the progress chart opens from E02 as the sheet it already is (both older
+  callers present it that way; a pushed copy would carry a Close button); the 1RM figure is in the
+  display unit (D52 plain number); the mini chart is the machine page's `MachineBestChart`.

@@ -31,6 +31,14 @@ enum DesignSampleFixture {
     /// machine with no model, a kg override and a deleted machine; Hotel Gym (New York) has one
     /// visit; Gangnam Fitness is deleted.
     static let gymsArgument = "-uiTestDesignGyms"
+    /// With `-uiTestDesignExercises` too (ticket 08, the Exercises captures): the chest press gets
+    /// two presets and two "Whole Body" workouts (5 and 2 days ago) log it with Narrow grip — a second
+    /// variation — beside an assisted pull-up (less assistance each time, a new best), a dip with
+    /// added weight, and a user-made Landmine Press (Shoulders, barbell).
+    static let exercisesArgument = "-uiTestDesignExercises"
+    static var exercisesIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(exercisesArgument)
+    }
     static var gymsIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(gymsArgument)
     }
@@ -151,6 +159,9 @@ enum DesignSampleFixture {
             }
         }
         if gymsIsEnabled { try addGymsExtras(to: gym, machines: machineFor, models: models, now: now, in: context) }
+        if exercisesIsEnabled {
+            addExercisesExtras(at: gym, machines: machineFor, exercise: exercise, now: now, in: context)
+        }
         try context.save()
         try GymSelection.remember(gym, in: context)
         let barBest = ProcessInfo.processInfo.arguments.contains(barBestArgument)
@@ -189,6 +200,57 @@ enum DesignSampleFixture {
             context.insert(visit)
         }
         context.insert(Gym(name: "Gangnam Fitness", city: "Seoul", defaultUnit: .kg, archived: true))
+    }
+
+    /// The Exercises captures' extras (`-uiTestDesignExercises`).
+    private static func addExercisesExtras(at gym: Gym, machines: [String: MachineInstance],
+                                           exercise: (String) -> Exercise?, now: Date, in context: ModelContext) {
+        guard let press = exercise("Seated Chest Press") else { return }
+        let narrow = ExercisePreset(name: "Narrow grip", order: 0, exercise: press)
+        let wide = ExercisePreset(name: "Wide grip", order: 1, exercise: press)
+        context.insert(narrow)
+        context.insert(wide)
+        let landmine = Exercise(name: "Landmine Press", loadType: .weighted, equipmentTypeTags: [.barbell],
+                                muscleGroup: "Shoulders", isSeeded: false)
+        context.insert(landmine)
+        // (days ago, [(exercise, preset, machine, sets as (weight lb, reps))])
+        let pull = exercise("Assisted Pull-Up"), dip = exercise("Dip")
+        let days: [(Int, [(Exercise?, ExercisePreset?, MachineInstance?, [(Double, Int)])])] = [
+            (5, [(press, narrow, machines["Seated Chest Press"], [(85, 10), (85, 10)]),
+                 (pull, nil, nil, [(40, 8), (40, 8)]), (dip, nil, nil, [(10, 8), (0, 12)])]),
+            (2, [(press, narrow, machines["Seated Chest Press"], [(90, 10), (90, 10), (90, 9)]),
+                 (pull, nil, nil, [(35, 8), (25, 8)]), (dip, nil, nil, [(15, 8)]),
+                 (landmine, nil, nil, [(45, 10), (50, 8)])]),
+        ]
+        let calendar = Calendar.current
+        for (daysAgo, entries) in days {
+            guard let day = calendar.date(byAdding: .day, value: -daysAgo, to: now) else { continue }
+            let start = calendar.date(bySettingHour: 7, minute: 0, second: 0, of: day) ?? day
+            let workout = Workout(startedAt: start, name: "Whole Body", snapshotGymName: gym.name, gym: gym)
+            workout.finishedAt = start.addingTimeInterval(50 * 60)
+            context.insert(workout)
+            for (order, item) in entries.enumerated() {
+                guard let lift = item.0 else { continue }
+                let machine = item.2
+                let entry = ExerciseEntry(
+                    order: order, workout: workout, exercise: lift, machine: machine, preset: item.1,
+                    snapshotCapturedAt: start, snapshotExerciseID: lift.id, snapshotMachineID: machine?.id,
+                    snapshotModelID: machine?.model?.id, snapshotGymID: gym.id, snapshotLoadType: lift.loadType,
+                    snapshotFreeWeightTag: machine == nil ? lift.equipmentTypeTags.first : nil,
+                    snapshotExerciseName: lift.name, snapshotMachineLabel: machine?.label,
+                    snapshotModelName: machine?.model?.displayName, snapshotGymName: gym.name,
+                    snapshotPresetID: item.1?.id, snapshotPresetName: item.1?.name)
+                context.insert(entry)
+                for (index, row) in item.3.enumerated() {
+                    let set = SetRecord(
+                        order: index, type: .working, reps: row.1, weightValue: row.0, weightUnit: .lb,
+                        normalizedKg: WeightMath.normalizedKg(value: row.0, unit: .lb),
+                        completedAt: start.addingTimeInterval(Double(order * 600 + index * 150)))
+                    set.entry = entry
+                    context.insert(set)
+                }
+            }
+        }
     }
 
     /// History captures: the newest workout's sensor data, a note, an edit mark.

@@ -47,12 +47,7 @@ final class ProgressChartUITests: XCTestCase {
 
     private func openProgress(for exercise: String) {
         app.tabBars.buttons["Exercises"].tap()
-        // iOS 27 keeps a tab root's search field in the bar's drawer until pulled down.
-        let search = app.revealedSearchField()
-        search.tap()
-        search.typeText(exercise)
-
-        let row = app.staticTexts[exercise].firstMatch
+        let row = app.exercisesTabRow(exercise)
         XCTAssertTrue(row.waitForExistence(timeout: 10), "\(exercise) should be listed")
         row.press(forDuration: 1.0)
 

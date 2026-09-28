@@ -461,9 +461,8 @@ final class CoreLoopUITests: XCTestCase {
         // The seeded catalog is long (ticket 20), so search for it rather than
         // relying on the row being on screen.
         tab("Exercises").tap()
-        typeInSearchField("Landmine Press")
         XCTAssertTrue(
-            app.staticTexts[newExercise].waitForExistence(timeout: 5),
+            app.exercisesTabRow(newExercise).waitForExistence(timeout: 5),
             "A mid-workout creation should appear in the Exercises tab")
     }
 
