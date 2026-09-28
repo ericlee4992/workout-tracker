@@ -21,7 +21,9 @@ Status: in progress — see Progress → Handoff (2026-09-26 end of session 1)
     "Discard Workout…" at the end), re-skinned in Floodlight type (SF Pro Expanded heavy) and
     violet action (#B25CFF dark / #7A2EE0 light).
   - Cardio stays Floodlight. The user said they liked Anatomy's cardio screen best but did not
-    ask for it; offered, unanswered. Ask before changing.
+    ask for it; offered, unanswered. **Answered 2026-09-28: "keep cardio plain floodlight"** — the
+    cardio area (picker, live cardio panel, distance editor) is restyled in plain Floodlight, not
+    Anatomy's layout.
   - **Appearance setting:** Settings → Appearance: System / Light / Dark. Floodlight Light
     palette with measured contrast is in the prototype's `Look/FinalLook.swift` header.
 - **Implementer:** Claude builds, Codex independently reviews (user chose this, swapping the
