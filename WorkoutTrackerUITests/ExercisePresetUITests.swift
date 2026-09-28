@@ -116,12 +116,16 @@ final class ExercisePresetUITests: XCTestCase {
         let name = app.textFields["newPresetName"]
         name.tap()
         name.typeText("Narrow grip")
+        // The sheet rises with the keyboard: a tap at once lands where Add was.
+        Thread.sleep(forTimeInterval: 1.0)
         app.buttons["addPreset"].tap()
 
-        XCTAssertTrue(anyElement("preset.Wide grip").exists)
-        XCTAssertTrue(anyElement("preset.Narrow grip").exists)
+        XCTAssertTrue(anyElement("preset.Wide grip").waitForExistence(timeout: 5))
+        XCTAssertTrue(anyElement("preset.Narrow grip").waitForExistence(timeout: 5))
         // The sheet's Done (the keyboard's return key is "Done" too).
         app.buttons["sheetDone"].tap()
+        // A tab tap during the sheet's dismissal is lost (ticket 07): wait until it has gone.
+        XCTAssertTrue(app.buttons["sheetDone"].waitForNonExistence(timeout: 5))
     }
 
     private func createGym() {

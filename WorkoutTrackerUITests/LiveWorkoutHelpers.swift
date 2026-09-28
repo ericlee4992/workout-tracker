@@ -24,7 +24,9 @@ extension XCUIApplication {
         let field = textFields["exerciseSearch"]
         XCTAssertTrue(field.waitForExistence(timeout: 10), "The Exercises tab should be searchable", file: file, line: line)
         field.tap()
-        field.typeText(name)
+        // Search ends editing: with the field still focused, closing a sheet opened from the row
+        // gives the keyboard back, and it covers the tab bar (ExercisePreset's next tab tap).
+        field.typeText(name + "\n")
         return descendants(matching: .any).matching(identifier: "exerciseRow.\(name)").firstMatch
     }
 
