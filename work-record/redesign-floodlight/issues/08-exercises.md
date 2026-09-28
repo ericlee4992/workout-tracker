@@ -229,6 +229,27 @@ Runner `/tmp/wt-floodlight/ex-run.sh <name> build|test …` (NEW derived data `/
   `exercises-unit-2` isolated it. Fixed by keeping the container alive.
 - `exercises-unit-3`: **exit 0 — 15/15** `ExerciseOverviewTests`.
 - `exercises-build-1`: exit 0 (build-for-testing, the five screens; no warnings in the changed files).
+- `exercises-ui-1` (exit 65, **6/7**): the light-default capture pass and five flows passed (load
+  type save with the "3 sets already logged" ledger, New Exercise refusing "  seated chest PRESS "
+  then opening Zercher Squat with its body area, no-match prefill, family filter remembered, machine
+  page → exercise). The captures showed a catalog row wrapping "Machine / Assisted" onto two lines:
+  the row's details now take one line whenever they fit (`ViewThatFits`). The presets flow failed on
+  test mechanics (the edit menu's Select All vanished before the tap).
+- `exercises-ui-2` (exit 65): dark default and light default passed (the light pass took 415 s
+  against 167 s before — a slow simulator, no failure); both AXL passes failed at the same step:
+  after the Presets sheet closed, the Load type row sat under the navigation bar and the tap missed.
+  The test brings it clear first. The presets flow failed again: `exercises-ui-3` (diagnostic shots)
+  showed the keyboard still rising when Save was tapped — the alert moved up and the tap landed where
+  Save had been. Not a product fault; the test lets the alert settle.
+- `exercises-ui-4`: **exit 0** — presets: add from a suggestion, rename by tap, swipe → the
+  confirmation (nothing deleted before it) → deleted, back to the empty panel.
+- `exercises-ui-5`: **exit 0** — both AXL capture passes. Their captures showed layout faults, fixed:
+  a catalog row's wrapped "Fri" overlapping the next row (the shared `WrapLayout` measured one line,
+  then placed two when handed back its own width rounded to pixels — it now has 0.5 pt of slack,
+  which changes other screens only in that edge case); "Shoulders" truncated on its family tile (the
+  map is capped at AX sizes); "Load type · Weight-ed" squeezed (the type is the row's subtitle at AX
+  sizes). Also: the "Common" heading's first letter was clipped by its zero-inset list row (padded);
+  the no-match capture now dismisses the keyboard first.
 
 ## Progress
 
