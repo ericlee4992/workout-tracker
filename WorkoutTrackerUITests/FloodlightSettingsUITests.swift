@@ -159,8 +159,10 @@ final class FloodlightSettingsUITests: XCTestCase {
         confirm.tap()
         XCTAssertTrue(remove.waitForNonExistence(timeout: 5))
         // Only as far as the key card: a swipe down at the top closes the sheet (settings-ui-2).
+        // "Off" below the sheet's header, not scrolled under it (codex-review-09).
         let status = any("askAIStatus")
-        for _ in 0..<3 where !(status.exists && status.isHittable) { app.swipeDown() }
+        for _ in 0..<3 where !(status.exists && status.frame.minY > done.frame.maxY) { app.swipeDown() }
+        XCTAssertTrue(status.frame.minY > done.frame.maxY, "Off is on screen")
         Thread.sleep(forTimeInterval: 0.8)
         XCTAssertEqual(status.label, "Ask AI, Off")
         shoot("floodlight-09-x02-nokey-\(suffix)")
@@ -265,6 +267,13 @@ final class FloodlightSettingsUITests: XCTestCase {
         let on = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Ask AI, On, key sk-…1234'"), object: status)
         XCTAssertEqual(XCTWaiter.wait(for: [on], timeout: 5), .completed, status.label)
         XCTAssertFalse(app.buttons["askAISaveKey"].exists, "the field is cleared after saving")
+        // Settings' row refreshes On when the sheet closes (codex-review-09).
+        app.buttons["askAIDone"].tap()
+        let rowOn = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Ask AI, On'"), object: row)
+        XCTAssertEqual(XCTWaiter.wait(for: [rowOn], timeout: 5), .completed, row.label)
+        row.tap()
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertEqual(status.label, "Ask AI, On, key sk-…1234", "the key is still saved on reopening")
 
         let remove = app.buttons["askAIRemoveKey"]
         reach(remove)
@@ -318,6 +327,32 @@ final class FloodlightSettingsUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         reach(card)
         XCTAssertTrue(card.label.contains("Last export Today · CSV"), card.label)
+    }
+
+    /// Leaving through another tab drops the card with its file: Share never offers a deleted file
+    /// (codex-review-09 #1).
+    func testTabRoundTripDropsTheFileCard() {
+        launch(settingsFixture: false)
+        let card = app.buttons["exportSettings"]
+        reach(card)
+        card.tap()
+        let csv = app.buttons["exportCSV"]
+        reach(csv)
+        csv.tap()
+        XCTAssertTrue(shareSheet.waitForExistence(timeout: 10))
+        cancelShareSheet()
+        XCTAssertTrue(app.buttons["exportShare"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["History"].tap()
+        Thread.sleep(forTimeInterval: 0.8)
+        app.tabBars.buttons["Workout"].tap()
+        XCTAssertTrue(any("exportPending").waitForExistence(timeout: 5), "back on Export (the tab kept it)")
+        XCTAssertFalse(app.buttons["exportShare"].exists, "no Share for a deleted file")
+        XCTAssertFalse(any("exportFileCard").exists)
+        reach(csv)
+        csv.tap()
+        XCTAssertTrue(shareSheet.waitForExistence(timeout: 10), "a fresh export still shares")
+        cancelShareSheet()
+        XCTAssertTrue(app.buttons["exportShare"].waitForExistence(timeout: 5))
     }
 
     /// A failed write says so in the warning panel and presents nothing.

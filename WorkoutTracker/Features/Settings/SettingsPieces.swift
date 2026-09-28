@@ -223,8 +223,14 @@ struct SettingsZoneLadder: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(zones.map { "\($0.label) from \(HeartRateZones.lowerBound(of: $0, max: maxBpm))" }
-            .joined(separator: ", "))
+        .accessibilityLabel(Self.summary(maxBpm: maxBpm))
+    }
+
+    /// "Zone 1 from 102, Zone 2 from 120, …" — what the ramp shows, for VoiceOver.
+    static func summary(maxBpm: Int) -> String {
+        HeartRateZone.allCases.filter { $0 != .warm }
+            .map { "\($0.label) from \(HeartRateZones.lowerBound(of: $0, max: maxBpm))" }
+            .joined(separator: ", ")
     }
 }
 

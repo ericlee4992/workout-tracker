@@ -77,6 +77,8 @@ enum BackupStatus {
         var exportDay: Int?
         var start: Date
         var end: Date
+        /// The most workouts on one day (the strip's height is sized from it).
+        var tallestStack: Int { (marks.map(\.stack).max() ?? 0) + 1 }
     }
 
     static func tally(workoutDates: [Date], lastExport: Date?, now: Date, calendar: Calendar = .current) -> Tally {

@@ -22,6 +22,12 @@ struct ExportView: View {
     @State private var counts: ExportCounts?
     @State private var building: ExportFormat?
     @State private var file: ExportedFile?
+    /// Owns the staged file on disk: replaced by the next export, deleted on a failed replacement
+    /// or when the screen goes away (codex-review-09 #1–2).
+    @State private var staging = ExportStaging()
+    /// The export in flight, cancelled when the screen goes away so it cannot publish a file after
+    /// the cleanup has run.
+    @State private var exportTask: Task<Void, Never>?
     /// The file handed to the share sheet (identity per presentation, so sharing the same file
     /// twice still presents).
     @State private var sharing: SharePresentation?
@@ -83,9 +89,10 @@ struct ExportView: View {
                 if completed { record(presentation.file) }
             }
         }
-        // The staged file lives while this screen does, for the card's Share; the next export's
-        // write sweeps any older one.
-        .onDisappear { if let file { ExportFileWriter.discard(at: file.url) } }
+        // The staged file lives while this screen is on screen, for the card's Share. Leaving —
+        // including to another tab, which keeps this screen's state — deletes it AND drops the card,
+        // so Share never offers a deleted file (codex-review-09 #1).
+        .onDisappear(perform: dropFile)
     }
 
     // MARK: Summary (the bold element)
@@ -237,10 +244,12 @@ struct ExportView: View {
     private func export(_ format: ExportFormat) {
         failure = nil
         building = format
-        Task { @MainActor in
+        exportTask = Task { @MainActor in
             // One frame for the busy state before the store is read on this actor.
             try? await Task.sleep(for: .milliseconds(60))
             defer { building = nil }
+            // Left the screen meanwhile: build nothing (the rest runs without a suspension point).
+            guard !Task.isCancelled else { return }
             let builtAt = Date.now
             do {
                 if WorkoutTrackerStore.fixtureIsEnabled(Self.failureFixture) {
@@ -253,6 +262,7 @@ struct ExportView: View {
                     case .json: try ExportJSON.data(snapshot)
                     }
                 let url = try ExportFileWriter.write(data, format: format)
+                staging.adopt(url)
                 let written = ExportedFile(url: url, format: format, builtAt: builtAt,
                                            workouts: snapshot.counts.workouts, sets: snapshot.counts.sets)
                 file = written
@@ -260,12 +270,22 @@ struct ExportView: View {
                 doneTick += 1
                 refreshCounts()
             } catch {
+                // The previous file (kept on disk by a failed write) goes with its card.
+                staging.release()
                 file = nil
                 failure = error.localizedDescription
                 failTick += 1
             }
             revealResult()
         }
+    }
+
+    private func dropFile() {
+        exportTask?.cancel()
+        exportTask = nil
+        building = nil
+        staging.release()
+        file = nil
     }
 
     /// A completed share is the backup (decision 1): the mark moves to when the file was built.
@@ -370,6 +390,10 @@ private struct ExportTallyStrip: View {
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let mark: CGFloat = 15
+    /// Rows of marks the strip makes room for: at least two, sized from the busiest day, capped so a
+    /// very busy day cannot push the strip into the panel's count (codex-review-09 #3). Workouts
+    /// beyond the cap share the top row; the count above says the number in words.
+    private var rows: Int { min(max(2, tally.tallestStack), 4) }
 
     var body: some View {
         VStack(spacing: 6) {
@@ -397,13 +421,13 @@ private struct ExportTallyStrip: View {
                                               : look.textSecondary.opacity(0.38)))
                             .frame(width: min(5.5, max(3, perDay - 2)), height: mark)
                             .position(x: x(item.day),
-                                      y: geo.size.height - 4 - mark / 2 - CGFloat(item.stack) * (mark + 3))
+                                      y: geo.size.height - 4 - mark / 2 - CGFloat(min(item.stack, rows - 1)) * (mark + 3))
                             .animation(reduceMotion ? nil : .easeOut(duration: 0.25).delay(Double(item.day) * 0.012),
                                        value: item.exported)
                     }
                 }
             }
-            .frame(height: 16 + 2 * mark + 3)
+            .frame(height: 16 + CGFloat(rows) * mark + CGFloat(rows - 1) * 3)
             .onChange(of: building, initial: true) { _, on in
                 guard on, !reduceMotion else { pulse = false; return }
                 withAnimation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true)) { pulse = true }

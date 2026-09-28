@@ -37,20 +37,22 @@ final class ExportUITests: XCTestCase {
         XCTAssertTrue(exportCSV.waitForExistence(timeout: 5))
         exportCSV.tap()
 
-        // The share sheet names the file it is about to share.
-        let named = app.descendants(matching: .any).matching(
-            NSPredicate(format: "label BEGINSWITH %@", "workout-tracker-")).firstMatch
+        // The share sheet names the file it is about to share. Scoped to the system sheet: the
+        // Export screen's own file card shows the name too (codex-review-09 #5).
+        let sheet = app.descendants(matching: .any).matching(identifier: "ActivityListView").firstMatch
         XCTAssertTrue(
-            named.waitForExistence(timeout: 10),
-            "Exporting should present the share sheet with the written file")
+            sheet.waitForExistence(timeout: 10),
+            "Exporting should present the share sheet")
+        let named = sheet.descendants(matching: .any).matching(
+            NSPredicate(format: "label BEGINSWITH %@", "workout-tracker-")).firstMatch
+        XCTAssertTrue(named.waitForExistence(timeout: 5), "The share sheet holds the written file")
 
         // Dismissing returns to the app with no error surfaced, and the file stays on the card.
-        let close = app.buttons["Close"]
-        if close.waitForExistence(timeout: 3) {
-            close.tap()
-        } else {
-            app.swipeDown(velocity: .fast)
-        }
+        let close = app.buttons["header.closeButton"]
+        XCTAssertTrue(close.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 1.0)  // a tap while the sheet rises is lost
+        close.tap()
+        XCTAssertTrue(sheet.waitForNonExistence(timeout: 5), "The share sheet closed")
         XCTAssertTrue(app.descendants(matching: .any)["exportFileCard"].waitForExistence(timeout: 5))
         XCTAssertFalse(
             app.descendants(matching: .any)["exportFailure"].exists,

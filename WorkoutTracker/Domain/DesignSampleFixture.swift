@@ -37,8 +37,9 @@ enum DesignSampleFixture {
     /// added weight, and a user-made Landmine Press (Shoulders, barbell).
     static let exercisesArgument = "-uiTestDesignExercises"
     /// With `-uiTestDesignSettings` too (ticket 09, the Settings captures): a measured maximum of
-    /// 185 bpm (the zone ramp), a one-time dumbbell history note, and an export completed five
-    /// days ago as CSV (so the Export screen has workouts before and after its mark). The app also
+    /// 185 bpm (the zone ramp), a one-time dumbbell history note, an export completed five days ago
+    /// as CSV (so the Export screen has workouts before and after its mark), and two short extra
+    /// workouts yesterday (three that day: the tally's stacked marks). The app also
     /// saves an Ask AI key and turns on two of the three permissions (`WorkoutTrackerApp`).
     static let settingsArgument = "-uiTestDesignSettings"
     static var settingsIsEnabled: Bool {
@@ -51,6 +52,11 @@ enum DesignSampleFixture {
         preferences.measuredMaxHeartRate = 185
         preferences.dumbbellHistoryMovedSets = 6
         preferences.dumbbellHistoryMovedAt = Calendar.current.date(byAdding: .day, value: -24, to: now)
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Calendar.current.startOfDay(for: now))!
+        for hour in [7.0, 12.5] {
+            let start = yesterday.addingTimeInterval(hour * 3600)
+            context.insert(Workout(startedAt: start, finishedAt: start.addingTimeInterval(20 * 60), name: "Mobility"))
+        }
         try context.save()
         let exported = Calendar.current.date(byAdding: .day, value: -5, to: Calendar.current.startOfDay(for: now))!
             .addingTimeInterval(20 * 3600 + 14 * 60)

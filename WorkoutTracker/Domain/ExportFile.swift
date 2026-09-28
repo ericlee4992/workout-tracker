@@ -78,3 +78,23 @@ enum ExportFileWriter {
         }
     }
 }
+
+/// The one staged export a screen owns (Floodlight ticket 09, decision 2: the file card keeps it for
+/// Share while the screen is up). A newer file replaces it; a failed replacement or leaving the
+/// screen deletes it. `ExportFileWriter.write` keeps the previous staging when a write fails, so
+/// this handle is the only way that file gets cleaned up before the OS's own temp sweep
+/// (codex-review-09 #2).
+struct ExportStaging {
+    private(set) var url: URL?
+
+    mutating func adopt(_ new: URL) {
+        if let url, url != new { ExportFileWriter.discard(at: url) }
+        url = new
+    }
+
+    mutating func release() {
+        if let url { ExportFileWriter.discard(at: url) }
+        url = nil
+    }
+}
+

@@ -59,6 +59,38 @@ struct ExportRecordTests {
         #expect(tally.start == calendar.startOfDay(for: day(-10)))
     }
 
+    @Test func tallyReportsTheBusiestDay() {
+        let dates = [day(-3), day(-1, hour: 7), day(-1, hour: 12), day(-1, hour: 18), day(-1, hour: 21)]
+        let tally = BackupStatus.tally(workoutDates: dates, lastExport: nil, now: now, calendar: calendar)
+        #expect(tally.tallestStack == 4)
+        #expect(tally.marks.filter { $0.day == 2 }.map(\.stack) == [0, 1, 2, 3])
+        #expect(BackupStatus.tally(workoutDates: [], lastExport: nil, now: now, calendar: calendar).tallestStack == 1)
+    }
+
+    /// Success → failed replacement → leaving: every staged file is deleted (codex-review-09 #2).
+    @Test func stagingDeletesReplacedAndReleasedFiles() throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: "ExportStagingTests-\(UUID())")
+        defer { try? FileManager.default.removeItem(at: root) }
+        var staging = ExportStaging()
+        let first = try ExportFileWriter.write(Data("a".utf8), format: .csv, in: root)
+        staging.adopt(first)
+        #expect(FileManager.default.fileExists(atPath: first.path))
+        // A later write that fails leaves the first on disk (ExportFileWriter keeps it); the screen
+        // then releases its handle.
+        staging.release()
+        #expect(!FileManager.default.fileExists(atPath: first.deletingLastPathComponent().path))
+        #expect(staging.url == nil)
+        // A newer file replaces the older one.
+        let second = try ExportFileWriter.write(Data("b".utf8), format: .json, in: root)
+        staging.adopt(second)
+        let third = try ExportFileWriter.write(Data("c".utf8), format: .csv, in: root)
+        staging.adopt(third)
+        #expect(!FileManager.default.fileExists(atPath: second.path))
+        #expect(FileManager.default.fileExists(atPath: third.path))
+        staging.release()
+        #expect(!FileManager.default.fileExists(atPath: third.path))
+    }
+
     @Test func tallyWithoutHistoryOrExport() {
         let empty = BackupStatus.tally(workoutDates: [], lastExport: nil, now: now, calendar: calendar)
         #expect(empty.span == 1 && empty.marks.isEmpty && empty.exportDay == nil)

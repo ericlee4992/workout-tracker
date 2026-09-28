@@ -266,7 +266,9 @@ struct SettingsView: View {
             .padding(.vertical, 15)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(max.map { "Heart rate zones, \($0) bpm" } ?? "Heart rate zones, Not set")
+        // The card ignores its children, so it says the zones too (codex-review-09 #4).
+        .accessibilityLabel(max.map { "Heart rate zones, \($0) bpm. \(SettingsZoneLadder.summary(maxBpm: $0))" }
+            ?? "Heart rate zones, Not set")
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("heartRateZonesSettings")
     }
