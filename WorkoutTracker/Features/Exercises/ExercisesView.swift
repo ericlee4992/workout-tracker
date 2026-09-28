@@ -378,14 +378,21 @@ struct ExercisesCatalogRow: View {
         let equipment = exercise.equipmentLine
         let badge = exercise.loadType == .weighted ? nil : exercise.loadType.badge
         if !equipment.isEmpty || badge != nil || !exercise.isSeeded {
-            WrapLayout(spacing: 6, lineSpacing: 4) {
-                if !equipment.isEmpty {
-                    Text(equipment).font(look.font.footnote).foregroundStyle(look.textSecondary)
-                }
-                if let badge { ExercisesTag(badge) }
-                if !exercise.isSeeded { ExercisesTag("Custom") }
+            // One line whenever it fits (a wrap layout handed exactly its own width by the row's
+            // second pass broke "Machine  Assisted" onto two lines); wraps only when it must.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 6) { detailItems(equipment: equipment, badge: badge) }
+                WrapLayout(spacing: 6, lineSpacing: 4) { detailItems(equipment: equipment, badge: badge) }
             }
         }
+    }
+
+    @ViewBuilder private func detailItems(equipment: String, badge: String?) -> some View {
+        if !equipment.isEmpty {
+            Text(equipment).font(look.font.footnote).foregroundStyle(look.textSecondary).fixedSize()
+        }
+        if let badge { ExercisesTag(badge) }
+        if !exercise.isSeeded { ExercisesTag("Custom") }
     }
 
     private var bestValue: ExercisesBestValue? {

@@ -259,6 +259,8 @@ struct ExercisePresetsSheet: View {
             Text("Common")
                 .font(look.font.tileTitle)
                 .foregroundStyle(look.textPrimary)
+                // The row has no inset: the expanded face overhangs its leading edge and was clipped.
+                .padding(.leading, 4)
                 .accessibilityAddTraits(.isHeader)
             WrapLayout(spacing: 8, lineSpacing: 2) {
                 ForEach(unusedSuggestions, id: \.self) { suggestion in

@@ -248,3 +248,5 @@ Runner `/tmp/wt-floodlight/ex-run.sh <name> build|test …` (NEW derived data `/
 - Implementation notes: the progress chart opens from E02 as the sheet it already is (both older
   callers present it that way; a pushed copy would carry a Close button); the 1RM figure is in the
   display unit (D52 plain number); the mini chart is the machine page's `MachineBestChart`.
+  `exerciseBrowseMuscleGroup` now holds a family name: only the Exercises tab reads that field
+  (checked: no other reader; export does not include it).

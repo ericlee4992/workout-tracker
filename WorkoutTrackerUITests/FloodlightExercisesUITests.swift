@@ -237,9 +237,8 @@ final class FloodlightExercisesUITests: XCTestCase {
         let rename = app.alerts.textFields.firstMatch
         XCTAssertTrue(rename.waitForExistence(timeout: 5), "a tap renames")
         rename.tap()
-        rename.press(forDuration: 1.0)
-        if app.menuItems["Select All"].waitForExistence(timeout: 2) { app.menuItems["Select All"].tap() }
-        rename.typeText(XCUIKeyboardKey.delete.rawValue)
+        // The alert prefills the name with the cursor at its end: delete it, then type the new one.
+        rename.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12))
         rename.typeText("Chin-up grip")
         app.alerts.buttons["Save"].tap()
         let chin = any("preset.Chin-up grip")
