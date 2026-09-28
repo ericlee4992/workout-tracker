@@ -114,6 +114,9 @@ final class FloodlightExercisesUITests: XCTestCase {
         // No match: Add “…”.
         search("Zercher Squat")
         XCTAssertTrue(any("addTypedExercise").waitForExistence(timeout: 5))
+        // Keyboard down (a scroll dismisses it), so the state's action is on record at AX sizes too.
+        app.swipeDown(velocity: .slow)
+        Thread.sleep(forTimeInterval: 0.6)
         shoot("floodlight-08-e01-nomatch-\(suffix)")
         clearSearch()
 
@@ -140,7 +143,10 @@ final class FloodlightExercisesUITests: XCTestCase {
         app.buttons["Done"].firstMatch.tap()
         XCTAssertTrue(any("preset.Narrow grip").waitForNonExistence(timeout: 5))
 
-        // E05: Load Type, unchanged then changed (the ledger).
+        // E05: Load Type, unchanged then changed (the ledger). At AX sizes the row can sit under the
+        // navigation bar once the Presets sheet has closed: bring it clear first.
+        reach(any("exerciseSetupLoadType"))
+        if any("exerciseSetupLoadType").frame.minY < 140 { app.swipeDown(velocity: .slow) }
         any("exerciseSetupLoadType").tap()
         XCTAssertTrue(any("loadType.assisted").waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["saveLoadType"].isEnabled, "Save is off until the type changes")
@@ -240,7 +246,11 @@ final class FloodlightExercisesUITests: XCTestCase {
         // The alert prefills the name with the cursor at its end: delete it, then type the new one.
         rename.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 12))
         rename.typeText("Chin-up grip")
+        // The keyboard can still be rising, which lifts the alert: a tap at once lands where Save
+        // was (seen in exercises-ui-3). Let it settle.
+        Thread.sleep(forTimeInterval: 1.2)
         app.alerts.buttons["Save"].tap()
+        XCTAssertTrue(app.alerts.firstMatch.waitForNonExistence(timeout: 5), "Save closes the rename alert")
         let chin = any("preset.Chin-up grip")
         XCTAssertTrue(chin.waitForExistence(timeout: 5))
 

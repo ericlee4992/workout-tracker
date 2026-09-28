@@ -105,7 +105,8 @@ struct ExercisesFamilyStrip: View {
                     .frame(maxWidth: .infinity)
                 } else {
                     HStack(spacing: 10) {
-                        MuscleMap(family: family, lit: lit, size: axMap)
+                        // Capped: at AccessibilityL a scaled map left "Shoulders" no room.
+                        MuscleMap(family: family, lit: lit, size: min(axMap, 40))
                         name(family, lit: selection == nil || selected)
                         Spacer(minLength: 0)
                     }
@@ -133,7 +134,7 @@ struct ExercisesFamilyStrip: View {
             .font(.system(.caption, weight: .semibold))
             .foregroundStyle(lit ? look.textPrimary : look.textTertiary)
             .lineLimit(1)
-            .minimumScaleFactor(0.8)
+            .minimumScaleFactor(typeSize.isAccessibilitySize ? 0.6 : 0.8)
     }
 }
 

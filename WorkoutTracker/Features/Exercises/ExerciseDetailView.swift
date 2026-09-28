@@ -385,10 +385,15 @@ struct ExerciseDetailView: View {
         let presets = (exercise.presets ?? []).sorted { ($0.order, $0.name) < ($1.order, $1.name) }
         let presetLine = presets.isEmpty ? "No presets yet" : presets.map(\.name).joined(separator: " · ")
         return LookList(separatorInset: 54) {
-            LookRow("Load type", symbol: exercise.loadType.pickerSymbol, action: { showingLoadType = true }) {
-                Text(exercise.loadType.badge)
-                    .font(look.font.subhead)
-                    .foregroundStyle(look.textSecondary)
+            // At AX sizes the type is the subtitle: as a trailing value it squeezed to "Weight-ed".
+            let ax = typeSize.isAccessibilitySize
+            LookRow("Load type", subtitle: ax ? exercise.loadType.badge : nil, symbol: exercise.loadType.pickerSymbol,
+                    action: { showingLoadType = true }) {
+                if !ax {
+                    Text(exercise.loadType.badge)
+                        .font(look.font.subhead)
+                        .foregroundStyle(look.textSecondary)
+                }
             }
             .accessibilityIdentifier("exerciseSetupLoadType")
             LookRow("Presets", subtitle: presetLine, symbol: "slider.horizontal.3",

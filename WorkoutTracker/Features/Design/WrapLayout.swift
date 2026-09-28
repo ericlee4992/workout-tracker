@@ -27,7 +27,10 @@ struct WrapLayout: Layout {
         var x: CGFloat = 0, y: CGFloat = 0, lineHeight: CGFloat = 0, widest: CGFloat = 0
         for subview in subviews {
             let size = subview.sizeThatFits(.unspecified)
-            if x > 0, x + size.width > width {
+            // Half a point of slack: a parent that hands back the width this layout measured
+            // (rounded to pixels) must get the same lines, or a line wraps that was counted as
+            // one and overlaps what follows (Floodlight ticket 08, the catalog row at AX sizes).
+            if x > 0, x + size.width > width + 0.5 {
                 x = 0
                 y += lineHeight + lineSpacing
                 lineHeight = 0
