@@ -108,7 +108,12 @@ struct StartWorkoutView: View {
                     onWorkoutStarted(workout)
                 }
             }
-            .fullScreenCover(isPresented: $showingAIRoutine) { AIRoutineSheet(gym: selectedGym, onSelectGym: select) }
+            .fullScreenCover(isPresented: $showingAIRoutine) {
+                // Floodlight ticket 10: a saved template's tile opens it here once the cover has gone.
+                AIRoutineSheet(gym: selectedGym, onSelectGym: select, onOpenTemplate: { template in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { viewingTemplate = template }
+                })
+            }
             .sheet(isPresented: $showingCardioPicker) {
                 CardioActivityPicker { activity in
                     showingCardioPicker = false

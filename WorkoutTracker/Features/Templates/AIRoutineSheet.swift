@@ -1,248 +1,196 @@
 import SwiftUI
 import SwiftData
 
+/// Ask AI for Templates (Floodlight ticket 10): a full-screen stepped flow — goals → equipment →
+/// generating (or error) → your week (→ edit session) → saved — replacing the single form. The
+/// request, eligibility (`RoutineAvailability`), consent flag, Terra call, validation and atomic
+/// save are unchanged (D56–D58). Cancel while generating stops it and closes; leaving an unsaved
+/// week asks first (ticket 10, decision 3). Machines scanned or added here are saved at once and
+/// survive cancelling the routine.
 struct AIRoutineSheet: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name) private var gyms: [Gym]
     @Query(filter: #Predicate<MachineInstance> { !$0.archived }) private var machines: [MachineInstance]
+    @Query private var allPreferences: [AppPreferences]
+    @Query private var templates: [WorkoutTemplate]
     @State var gym: Gym?
     var onSelectGym: (Gym?) -> Void = { _ in }
+    /// A saved template's tile: close the flow and open it on the Workout tab.
+    var onOpenTemplate: (WorkoutTemplate) -> Void = { _ in }
+
+    @State private var model = AIRoutineFlowModel()
+    @State private var path: [UUID] = []
+    @AppStorage(TerraAccess.routineConsentKey) private var consent = false
+    @State private var keyHint: String? = AskAIKeyStore.read().map(AskAIKeyHint.masked)
+    @State private var showingSettings = false
     @State private var showingNewGym = false
     @State private var scanningGym: Gym?
     @State private var manualGymPending: Gym?
     @State private var manualGym: Gym?
+    @State private var confirmingLeave: AIRoutineLeave?
 
     private var availableMachines: [MachineInstance] {
         guard let gym, !gym.archived else { return [] }
         return machines.filter { $0.gym?.id == gym.id }
     }
-    @AppStorage(TerraAccess.routineConsentKey) private var consent = false
-    private enum InputFocus: Hashable { case goals, height, weight }
-    @FocusState private var inputFocus: InputFocus?
-    @State private var goals = ""
-    @State private var experience = "Beginner"
-    @State private var days = 3
-    @State private var minutes = 45
-    @State private var height = ""
-    @State private var weight = ""
-    @State private var extras: Set<RoutineEquipment> = []
-    @State private var cardio: Set<CardioActivity> = []
-    @State private var routine: AIRoutine?
-    @State private var sentRequest: AIRoutineRequest?
-    @State private var busy = false
-    @State private var saved = false
-    @State private var error: String?
-    @State private var settings = false
-    @State private var task: Task<Void, Never>?
-    @State private var token: UUID?
 
     private var options: [RoutineExerciseOption] {
-        RoutineAvailability.exercises(exercises, machines: availableMachines, extras: extras)
+        RoutineAvailability.exercises(exercises, machines: availableMachines, extras: model.extras)
     }
-    var body: some View {
-        NavigationStack {
-            Group {
-                if TerraAccess.client == nil && !TerraAccess.fixture {
-                    Form {
-                        Text("Add your OpenAI API key to create routines with Terra.")
-                        Button("Open AI Settings") { settings = true }.accessibilityIdentifier("routineAISettings")
-                    }
-                } else if busy {
-                    VStack(spacing: 20) {
-                        ProgressView("Building your week…")
-                        Button("Back to preferences") { cancel() }
-                    }.frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if routine != nil {
-                    preview
-                } else { inputs }
-            }
-            .navigationTitle(routine == nil ? "Ask AI" : "Your week")
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") { inputFocus = nil }.accessibilityIdentifier("dismissRoutineKeyboard")
-                }
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { cancel(); dismiss() } }
-                if routine != nil {
-                    ToolbarItem(placement: .confirmationAction) { Button("Save templates") { save() }.disabled(saved).accessibilityIdentifier("saveAIRoutine") }
-                }
-            }
-            .sheet(isPresented: $settings) { AskAISettingsSheet() }
-            .sheet(isPresented: $showingNewGym) {
-                GymEditorSheet(onSave: { created in gym = created; onSelectGym(created) })
-            }
-            .sheet(item: $scanningGym, onDismiss: {
-                if let pending = manualGymPending { manualGymPending = nil; manualGym = pending }
-            }) { gym in
-                // Floodlight ticket 07 (user decision 1): the scan adds the machine itself;
-                // "Choose a catalog model" opens the machine form once the scan has closed.
-                IdentifyEquipmentSheet(addingTo: gym, onManual: { manualGymPending = gym })
-            }
-            .sheet(item: $manualGym) { gym in
-                MachineEditorSheet(gym: gym)
-            }
-            .onDisappear { cancel() }
-            .onChange(of: consent) { _, permitted in if !permitted { cancel(); routine = nil } }
-        }
-    }
-    private var inputs: some View {
-        Form {
-            Section("Goals") {
-                TextField("What would you like to work toward?", text: $goals, axis: .vertical)
-                    .lineLimit(3...6).focused($inputFocus, equals: .goals).accessibilityIdentifier("routineGoals")
-                Picker("Experience", selection: $experience) { ForEach(["Beginner", "Intermediate", "Experienced"], id: \.self) { Text($0) } }
-                Stepper("\(days) days per week", value: $days, in: 1...7)
-                Stepper("\(minutes) minutes per session", value: $minutes, in: 15...120, step: 5)
-            }
-            Section("Optional profile") {
-                TextField("Height (cm)", text: $height).keyboardType(.decimalPad).focused($inputFocus, equals: .height)
-                TextField("Weight (kg)", text: $weight).keyboardType(.decimalPad).focused($inputFocus, equals: .weight)
-            }
-            Section(gym.map { "Equipment at \($0.name)" } ?? "Available equipment") {
-                Picker("Gym", selection: Binding(get: { gym?.id }, set: { id in
-                    gym = gyms.first { $0.id == id }
-                    onSelectGym(gym)
-                })) {
-                    Text("No gym").tag(UUID?.none)
-                    ForEach(gyms) { Text($0.name).tag(Optional($0.id)) }
-                }.accessibilityIdentifier("routineGym")
-                Button("Add Gym…", systemImage: "plus") { showingNewGym = true }
-                    .accessibilityIdentifier("routineAddGym")
-                if let gym, !gym.archived {
-                    Text("\(availableMachines.count) saved machines").foregroundStyle(Theme.secondary)
-                        .accessibilityIdentifier("routineMachineCount")
-                    Button("Scan Machine", systemImage: "camera.viewfinder") {
-                        inputFocus = nil
-                        scanningGym = gym
-                    }.accessibilityIdentifier("routineScanMachine")
-                } else {
-                    Text("Choose or add a gym to save scanned machines.").font(.footnote).foregroundStyle(Theme.secondary)
-                }
-                ForEach(RoutineEquipment.allCases) { equipment in
-                    Toggle(equipment.name, isOn: Binding(get: { extras.contains(equipment) }, set: { on in
-                        if on { extras.insert(equipment) } else { extras.remove(equipment) }
-                    })).accessibilityIdentifier("routineEquipment.\(equipment.rawValue)")
-                }
-            }
-            Section("Available cardio") {
-                ForEach(CardioActivity.allCases) { activity in
-                    Toggle(activity.name, isOn: Binding(get: { cardio.contains(activity) }, set: { on in
-                        if on { cardio.insert(activity) } else { cardio.remove(activity) }
-                    })).accessibilityIdentifier("routineCardio.\(activity.rawValue)")
-                }
-            }
-            Section {
-                if !consent && !TerraAccess.bypassesConsent {
-                    Toggle("Allow sending routine details to OpenAI", isOn: $consent).accessibilityIdentifier("allowAIRoutine")
-                    Text("Sends these goals, experience, schedule, optional height/weight, and available exercise list to OpenAI. Your Health data and workout history are not sent. OpenAI’s API data policies apply.").font(.footnote)
-                    Link("OpenAI data policies", destination: URL(string: "https://developers.openai.com/api/docs/guides/your-data")!)
-                }
-                if let error { Text(error).foregroundStyle(Theme.secondary).accessibilityIdentifier("routineAIError") }
-                Button("Generate week", systemImage: "sparkles") { generate() }
-                    .disabled((!consent && !TerraAccess.bypassesConsent) || goals.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || (options.isEmpty && cardio.isEmpty))
-                    .accessibilityIdentifier("generateAIRoutine")
-            }
-        }.scrollDismissesKeyboard(.interactively)
-    }
-    private var preview: some View {
-        List {
-            if let error { Text(error).foregroundStyle(Theme.secondary) }
-            ForEach(routine?.sessions.indices ?? 0..<0, id: \.self) { index in
-                NavigationLink {
-                    AIRoutineDayEditor(day: Binding(get: { routine!.sessions[index] }, set: { routine!.sessions[index] = $0 }), options: sentRequest?.exercises ?? [], activities: sentRequest?.cardioActivities ?? [])
-                } label: {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(routine!.sessions[index].name).font(.headline)
-                        Text("\(routine!.sessions[index].strength.count) \(routine!.sessions[index].strength.count == 1 ? "exercise" : "exercises") · \(routine!.sessions[index].cardio.count) cardio").font(.caption).foregroundStyle(Theme.secondary)
-                    }
-                }.accessibilityIdentifier("routineDay.\(index)")
-            }
-            Button("Change preferences") { routine = nil; error = nil }
-        }
-    }
-    private func cancel() { task?.cancel(); task = nil; token = nil; busy = false }
-    private func generate() {
-        guard (consent || TerraAccess.bypassesConsent), !busy else { return }
-        guard goals.count <= 1000,
-              height.isEmpty || (Double(height).map { $0.isFinite && (50...250).contains($0) } ?? false),
-              weight.isEmpty || (Double(weight).map { $0.isFinite && (20...400).contains($0) } ?? false) else {
-            error = "Use a goal under 1,000 characters and valid optional height/weight."; return
-        }
-        let request = AIRoutineRequest(goals: goals, experience: experience, days: days, minutes: minutes,
-            heightCm: Double(height), weightKg: Double(weight), exercises: options, cardioActivities: CardioActivity.allCases.filter { cardio.contains($0) })
-        sentRequest = request; error = nil; busy = true
-        let id = UUID(); token = id
-        task = Task {
-            do {
-                let result: AIRoutine
-                if TerraAccess.fixture {
-                    try await TerraAccess.fixtureDelay()
-                    result = AIRoutine(sessions: (1...request.days).map { day in
-                        AIRoutineDay(name: "Day \(day) — Fitness", strength: request.exercises.prefix(WorkoutTrackerStore.fixtureIsEnabled("-uiTestTerraFullRoutine") ? 6 : 1).map {
-                            AIRoutineStrength(exerciseID: $0.id, sets: 3, reps: 10, restSeconds: 60)
-                        }, cardio: request.cardioActivities.first.map { [AIRoutineCardio(activity: $0, minutes: 15)] } ?? [])
-                    })
-                } else {
-                    guard let client = TerraAccess.client else { throw TerraError.message("Add an OpenAI key in Settings.") }
-                    let data = try await client.complete(instructions: AIRoutine.instructions, input: AISchema.text(request), schema: AIRoutine.schema, name: "weekly_routine")
-                    result = try JSONDecoder().decode(AIRoutine.self, from: data)
-                }
-                let valid = try result.validated(for: request)
-                guard !Task.isCancelled, token == id else { return }
-                routine = valid; busy = false
-            } catch {
-                guard !Task.isCancelled, token == id else { return }
-                self.error = error.localizedDescription; busy = false
-            }
-        }
-    }
-    private func save() {
-        guard !saved, let routine, let request = sentRequest else { return }
-        saved = true
-        do {
-            try AIRoutinePersistence.save(routine, request: request, gymID: gym?.id, extras: extras, in: context.container)
-            dismiss()
-        } catch { saved = false; self.error = error.localizedDescription }
-    }
-}
 
-private struct AIRoutineDayEditor: View {
-    @Binding var day: AIRoutineDay
-    var options: [RoutineExerciseOption]
-    var activities: [CardioActivity]
+    /// What the editor and the week use: the SENT request's options (the week was built from them).
+    private var sentOptions: [RoutineExerciseOption] { model.sentRequest?.exercises ?? options }
+    private var names: [UUID: String] { Dictionary(sentOptions.map { ($0.id, $0.name) }, uniquingKeysWith: { a, _ in a }) }
+    private var groups: [UUID: String] { Dictionary(sentOptions.map { ($0.id, $0.muscleGroup) }, uniquingKeysWith: { a, _ in a }) }
+    private var machineLabels: [UUID: String] {
+        var labels: [UUID: String] = [:]
+        for machine in availableMachines.sorted(by: { $0.label < $1.label }) {
+            for id in machine.supportedExerciseIDs where labels[id] == nil { labels[id] = machine.label }
+        }
+        return labels
+    }
+
+    private var usCustomary: Bool {
+        AppUnitSystem.resolve(preference: AppPreferences.canonical(of: allPreferences)?.unitPreference) == .usCustomary
+    }
+
+    private var permitted: Bool { consent || TerraAccess.bypassesConsent }
+
     var body: some View {
-        Form {
-            TextField("Session name", text: $day.name)
-            Section("Strength") {
-                ForEach($day.strength) { $item in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Picker("Exercise", selection: $item.exerciseID) {
-                            ForEach(options.filter { option in option.id == item.exerciseID || !day.strength.contains { $0.exerciseID == option.id } }) { Text($0.name).tag($0.id) }
-                        }
-                        Stepper("\(item.sets) sets", value: $item.sets, in: 1...10)
-                        Stepper("\(item.reps) reps", value: $item.reps, in: 1...50)
-                        Stepper("\(item.restSeconds)s rest", value: $item.restSeconds, in: 0...600, step: 15)
-                        Button("Remove exercise", role: .destructive) { day.strength.removeAll { $0.id == item.id } }
-                    }
-                }.onMove { day.strength.move(fromOffsets: $0, toOffset: $1) }
-                if let first = options.first(where: { option in !day.strength.contains { $0.exerciseID == option.id } }) {
-                    Button("Add exercise") { day.strength.append(.init(exerciseID: first.id, sets: 3, reps: 10, restSeconds: 60)) }.disabled(day.strength.count >= 10)
-                }
+        NavigationStack(path: $path) {
+            ZStack {
+                look.ground.ignoresSafeArea()
+                stepView
             }
-            Section("Cardio") {
-                ForEach($day.cardio) { $item in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Picker("Activity", selection: $item.activity) { ForEach(activities) { Text($0.name).tag($0) } }
-                        Stepper("\(item.minutes) min", value: $item.minutes, in: 1...180)
-                        Button("Remove cardio", role: .destructive) { day.cardio.removeAll { $0.id == item.id } }
-                    }
-                }
-                if let first = activities.first {
-                    Button("Add cardio") { day.cardio.append(.init(activity: first, minutes: 15)) }.disabled(day.cardio.count >= 3)
-                }
+            .animation(reduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.45, dampingFraction: 0.9),
+                       value: model.step)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: UUID.self) { dayID in
+                AIDayEditor(dayID: dayID, model: model, options: model.sentRequest?.exercises ?? [],
+                            activities: model.sentRequest?.cardioActivities ?? [], names: names, groups: groups,
+                            machineLabels: machineLabels, onBack: { if !path.isEmpty { path.removeLast() } })
             }
-        }.navigationTitle("Edit session").toolbar { EditButton() }
+        }
+        // System controls (keyboard Done, menus) take the text colour: violet marks only the step's
+        // one command.
+        .tint(look.textPrimary)
+        .sensoryFeedback(trigger: model.step) { _, new in
+            switch new {
+            case .preview, .saved: .success
+            case .error: .error
+            default: nil
+            }
+        }
+        .onChange(of: model.step) { _, step in if step != .preview && !path.isEmpty { path = [] } }
+        // Withdrawing consent mid-flow stops a request and drops an unsaved week (as before).
+        .onChange(of: consent) { _, allowed in
+            if !allowed && !TerraAccess.bypassesConsent {
+                model.cancelGeneration()
+                if model.step == .preview || model.step == .error { model.back() }
+            }
+        }
+        .onDisappear { model.cancelTasks() }
+        .confirmationDialog("Discard this week?", isPresented: Binding(get: { confirmingLeave != nil },
+                                                                     set: { if !$0 { confirmingLeave = nil } }),
+                            titleVisibility: .visible, presenting: confirmingLeave) { leave in
+            Button("Discard Week", role: .destructive) { perform(leave) }
+            Button("Keep Editing", role: .cancel) {}
+        }
+        .sheet(isPresented: $showingSettings, onDismiss: { keyHint = AskAIKeyStore.read().map(AskAIKeyHint.masked) }) {
+            AskAISettingsSheet()
+        }
+        .sheet(isPresented: $showingNewGym) {
+            GymEditorSheet(onSave: { created in select(created) })
+        }
+        .sheet(item: $scanningGym, onDismiss: {
+            if let pending = manualGymPending { manualGymPending = nil; manualGym = pending }
+        }) { gym in
+            // Floodlight ticket 07 (user decision 1): the scan adds the machine itself;
+            // "Choose a catalog model" opens the machine form once the scan has closed.
+            IdentifyEquipmentSheet(addingTo: gym, onManual: { manualGymPending = gym })
+        }
+        .sheet(item: $manualGym) { gym in MachineEditorSheet(gym: gym) }
+    }
+
+    @ViewBuilder private var stepView: some View {
+        switch model.step {
+        case .goals:
+            AIGoalsStep(model: model, usCustomary: usCustomary, onCancel: close)
+                .transition(stepTransition)
+        case .equipment:
+            AIEquipmentStep(model: model, gyms: gyms, gym: gym, machines: availableMachines, options: options,
+                            consent: $consent, consentBypassed: TerraAccess.bypassesConsent, keyHint: keyHint,
+                            onSelectGym: select, onAddGym: { showingNewGym = true },
+                            onScan: { scanningGym = $0 }, onOpenSettings: { showingSettings = true },
+                            onGenerate: generate, onCancel: close)
+                .transition(stepTransition)
+        case .generating:
+            AIGeneratingStep(model: model, gymName: gym?.name, families: AIRoutineReadouts.eligibleFamilies(options),
+                             onCancel: close)
+                .transition(stepTransition)
+        case .error:
+            AIErrorStep(model: model, gymName: gym?.name, canRetry: permitted, onRetry: generate, onCancel: close)
+                .transition(stepTransition)
+        case .preview:
+            AIWeekPreview(model: model, gymName: gym?.name, names: names, groups: groups,
+                          onOpenDay: { path.append($0) }, onLeave: leave,
+                          onSave: { model.save(gymID: gym?.id, container: context.container) })
+                .transition(stepTransition)
+        case .saved:
+            let saved = model.savedTemplateIDs.compactMap { id in templates.first { $0.id == id } }
+            AISavedStep(templates: saved,
+                        runs: AIRoutineReadouts.weekFamilyCounts(model.routine?.sessions ?? [], groups: groups)
+                            .map { RingRun(family: $0.family, sets: $0.sets) },
+                        gymName: gym?.name,
+                        onOpenTemplate: { template in dismiss(); onOpenTemplate(template) },
+                        onDone: close)
+                .transition(stepTransition)
+        }
+    }
+
+    private var stepTransition: AnyTransition {
+        if reduceMotion { return .opacity }
+        return .asymmetric(insertion: .move(edge: model.forward ? .trailing : .leading).combined(with: .opacity),
+                           removal: .opacity)
+    }
+
+    // MARK: Actions
+
+    private func select(_ newGym: Gym?) {
+        gym = newGym
+        onSelectGym(newGym)
+    }
+
+    private func generate() {
+        model.generate(options: options, gymName: gym?.name, permitted: permitted)
+    }
+
+    /// Cancel: stops a running request and closes. From an unsaved week it asks first.
+    private func close() {
+        if model.hasUnsavedWeek { confirmingLeave = .close; return }
+        model.cancelTasks()
+        dismiss()
+    }
+
+    /// Back, Cancel or Change preferences from Your week: each would lose the week, so ask.
+    private func leave(_ leave: AIRoutineLeave) {
+        if model.hasUnsavedWeek { confirmingLeave = leave } else { perform(leave) }
+    }
+
+    private func perform(_ leave: AIRoutineLeave) {
+        confirmingLeave = nil
+        switch leave {
+        case .close:
+            model.cancelTasks()
+            dismiss()
+        case .back:
+            model.back()
+        case .changePreferences:
+            model.changePreferences()
+        }
     }
 }

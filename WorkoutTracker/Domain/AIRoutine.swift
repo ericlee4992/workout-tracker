@@ -121,7 +121,10 @@ struct AIRoutine: Codable, Equatable {
         return self
     }
 }
-struct AIRoutineDay: Codable, Equatable {
+struct AIRoutineDay: Codable, Equatable, Identifiable {
+    /// Local identity for the flow's navigation (the day editor is pushed by it); never sent or decoded.
+    var id = UUID()
+    private enum CodingKeys: String, CodingKey { case name, strength, cardio }
     var name: String
     var strength: [AIRoutineStrength]
     var cardio: [AIRoutineCardio]
@@ -144,12 +147,15 @@ struct AIRoutineCardio: Codable, Equatable, Identifiable {
 @MainActor
 enum AIRoutinePersistence {
     /// An isolated context makes the week's save atomic without rolling back unrelated workout edits.
-    static func save(_ routine: AIRoutine, request: AIRoutineRequest, gymID: UUID?, extras: Set<RoutineEquipment>, in container: ModelContainer) throws {
+    /// Returns the new templates' ids in session order (the flow's Saved step shows them).
+    @discardableResult
+    static func save(_ routine: AIRoutine, request: AIRoutineRequest, gymID: UUID?, extras: Set<RoutineEquipment>, in container: ModelContainer) throws -> [UUID] {
         let routine = try routine.validated(for: request, edited: true)
         let context = ModelContext(container); context.autosaveEnabled = false
         let exercises = try context.fetch(FetchDescriptor<Exercise>())
         let byID = Dictionary(exercises.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let options = Dictionary(request.exercises.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var ids: [UUID] = []
         do {
             for day in routine.sessions {
                 let template = WorkoutTemplate(name: day.name.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -159,6 +165,7 @@ enum AIRoutinePersistence {
                 let unit = AppUnitSystem.resolve(preference: preference.unitPreference).distanceUnit
                 template.plannedCardio = day.cardio.map { PlannedCardio(activity: $0.activity, minutes: $0.minutes, unit: unit) }
                 context.insert(template)
+                ids.append(template.id)
                 for (order, prescription) in day.strength.enumerated() {
                     guard let exercise = byID[prescription.exerciseID] else { throw TerraError.invalidResponse }
                     let item = TemplateItem(order: order, targetSets: prescription.sets, targetReps: prescription.reps,
@@ -170,5 +177,6 @@ enum AIRoutinePersistence {
             }
             try context.save()
         } catch { context.rollback(); throw error }
+        return ids
     }
 }
