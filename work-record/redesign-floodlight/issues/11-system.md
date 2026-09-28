@@ -17,7 +17,8 @@ stacked on the ticket-10 AI-routine tip `0fa6814` (Codex clear). Nothing merged 
    area 3: activity picker, live cardio panel, distance editor, cardio cards, the cardio-only History
    detail) never had a ticket; tickets 04 and 05 deferred its restyle to "the Cardio area". Here the cardio
    views only move from `Theme` to the Look tokens, with no layout change; ticket 12 restyles them to the
-   prototype and asks the open Anatomy-cardio question (ticket 01).
+   prototype. The Anatomy-cardio question was answered the same day in another session: "keep cardio plain
+   floodlight" (recorded in ticket 01 on `ericlee4992/redesign-floodlight`, `c9c973e`; D59).
 3. **The Live Activity follows the system appearance** (a light Lock Screen gives the Floodlight Light
    card, a dark one Floodlight dark), not the app's Appearance setting. The Dynamic Island is black in
    both.
@@ -127,18 +128,78 @@ ends it (`WorkoutActivityController`); UI-test runs post no real activity unless
 D43 heart-rate rest (cap, degrade, recovered); D22/D26/D48 rest rules; D44 absent heart rate renders as
 absent; D45 zone only with a maximum.
 
-## Verification (planned)
+## Implementation
 
-- Unit: the content-state builder (resting / ready / cardio / results, total sets, next line, previous),
-  the command centre (routes to the live screen; cold path edits the store: +15s, skip, pause/resume;
-  wrong workout is ignored).
-- UI: an in-app activity gallery (launch argument, test-only) renders the real widget views for every
-  state — captures light/dark × Default/AXL; one real Live Activity in the Simulator (a real activity
-  posted, the Lock Screen / island captured, +15s and Skip pressed on it); Z04/Z05 captures; neighbours
-  of the Theme removal per DEVELOPMENT.
+- **Shared with the widget** (`WorkoutTrackerWidget/Shared/`, compiled into the app and the widget; pbxproj
+  entries added for both targets): `WorkoutActivityAttributes.swift` — the state gained optional fields
+  (zone level, total sets, rest start, rest kind, new-best flag, rest result, the next set, cardio, the
+  workout title; an older payload still decodes) and the pure reading (`phase`, `shownResult`,
+  `headerTitle`, `restFractionLeft`); `WorkoutActivityViews.swift` — the Floodlight palette as literals
+  (light/dark, the island always dark), the card, the island regions, the commands;
+  `WorkoutActivityIntents.swift` — `WorkoutActivityIntent` (`LiveActivityIntent`, not discoverable) and the
+  bridge the app installs.
+- **Widget** (`WorkoutActivityView.swift`): only places the shared views in the Lock Screen and island slots.
+- **App**: `WorkoutActivityContent` builds the state from the store (the live screen's rules for the next set
+  and its line, `PerformanceHistory.reference` for PREVIOUS, `SetBadgeMath` for the new-best flag,
+  `RestTimerService.restPlan` for the rest kind); `WorkoutActivityCommands` applies a pressed command through
+  the same services as the in-app buttons (`RestTimerService.add/skip` + `broadcastRest`; the cardio recorder
+  when it records this workout, else `CardioSession`), posts `didApply` for the live screen, re-pushes the
+  card and **waits for the update to reach the system** before the intent returns. Installed in the app's
+  `init` (a command can be what launched the app); RootView gives it the coordinator and the controller.
+  The live screen keeps the slow part of the state cached (history queries) and refreshes heart and cardio
+  every tick, tracks how the last rest ended (recovered; expiry while on screen), and re-reads its rest on
+  `didApply`.
+- **Controller**: the content's stale date is the rest's end (the card redraws as ready without the app);
+  `settle()` awaits the last update; a start adopts this workout's card if the system still shows it (app
+  relaunch, cold background launch) and ends any card left by another workout.
+- **Gallery** (`ActivityGalleryView`, test-only, `-uiTestActivityGallery <state>`): the widget's own views for
+  15 sample states on a wallpaper, for captures at every size and appearance.
+- **Icon**: `scripts/render-app-icon.py` writes Default, Dark and Tinted; `AppIcon.appiconset` lists all three.
+- **Cleanup**: `Theme.swift`, `ButtonStyles`, `CardStyle`, `Chip` (`LegacyChip`, `UnitChip`), `EmptyState`,
+  `MuscleGroupStyle`, `ProgressRing`, `StatTile`, `ZoneColors`, `HeartRateBar`, `RestTimerBar` and
+  `HeroCapsuleLabel` deleted (nothing on screen used the last six); the cardio views, the machine sheets' empty
+  state and unit badge, RootView's tint moved to Look tokens with no layout change. `ThemeTests` →
+  `MuscleMapAssetTests`. Nothing reads `Colors/*` (deleted in the foundation). `rg "Theme\.|Legacy[A-Z]"`
+  finds nothing in the app, the widget or the tests (`LegacyStoreMigrationTests` is the store migration).
+- **Docs**: DECISIONS D59 (supersedes D54; D47 and D56 amendments), SPEC "Visual design", the ios-design skill.
 
-## Progress
+## Found on the way (failed approaches)
 
-- 2026-09-28: started in a fresh session. Verified the checkout (`0fa6814`, clean, pushed). Read STATE,
-  tickets 01 and 10, the prototype System area, the widget and the activity controller. Prototype captured
-  (dark). User decisions 1–4. Ticket written.
+- A timer `ProgressView` is a ring only inside a widget; in the app it is a spinner. The gallery draws the
+  ring's fraction at render time (`activityDrawsRingsStatically`); the widget keeps the system-ticked ring.
+- The real Lock Screen ignored `Font.system(_:weight:)`'s weight (heavy text rendered regular, the width
+  kept); `Font.system(_:).weight(_:)` renders as designed. Seen only on the real card (`sys-ui-9` vs `-10`).
+- The first press of an interactive activity is swallowed by iOS's "Allow Live Activities from …?" prompt
+  (later "Always Allow"); the real test answers it.
+- `+15s` applied but the card did not redraw: the update ran in a detached task and the intent returned first,
+  letting the app be suspended. The intent now waits for the update (`settle`). The card then redraws about a
+  second later; the test waits and reopens Notification Center before its shot.
+- The +15s assertion first measured elapsed time from the press instead of from the first reading.
+
+## Strings (as implemented)
+
+New on the Lock Screen / island (prototype): "Rest", "Next", "PREVIOUS", "Time", "Paused", "+15s", "Skip",
+"Pause", "Resume", "min", "bpm", "sets", "N/M", "NEW BEST"; the next-set line is the live rest bar's.
+VoiceOver: "Add 15 seconds", "Skip rest", "Last time …", "N of M sets", "N beats per minute[, Zone N]",
+"Superset A", "Target N minutes", the rest results ("Rested 2:00", "108 beats per minute, under 110", "4:00 cap
+reached, 128 beats per minute, over 110", "No heart rate reading, rested 2:00"). Removed: the old card's
+"N sets" line and "Zone N" capsule. No "All sets done": with no next set the card shows "18/18 sets".
+
+## Verification
+
+Runner `/tmp/wt-floodlight/sys-run.sh <name> build|test …` (derived data `/tmp/wt-floodlight/dd-sys`); logs,
+`.exit` files and result bundles `/tmp/wt-floodlight/results/sys-*`.
+
+- Prototype captures: dark and light both exit 0 (46 each). Blank or mid-animation shots were retaken with
+  SETTLE=9 (dark: Z01:cardio ×2, Z01:cardio-p2 AXL, Z01:light AXL, Z01:p2, Z02; light: Z01:cardio-target AXL);
+  all 92 have content. Noted: the prototype's light island draws dark text on black (its bug; the real island
+  is always dark).
+- `sys-build-1` (exit 65: `LookRadii` has no `inner`), `sys-build-2` exit 0 (Theme removal).
+- `sys-build-3`…`-7`: exit 0 (Live Activity, gallery, tests).
+- `sys-ui-1` (exit 65): the real card was posted and +15s tapped, but iOS's permission prompt took the tap.
+  `sys-ui-2` (exit 65): unit target did not compile (main-actor `mainContext`). `sys-ui-3` (exit 65): unit 22/22;
+  the real test failed on the elapsed-time arithmetic (the log showed the command applied). `sys-ui-4` (65):
+  same, with logging. `sys-ui-5` exit 0 but the card had not redrawn → `settle`. `sys-ui-6`/`-7` exit 0, the card
+  still raced the shot. `sys-ui-8` (65): the app did not reach the live screen in 15 s (a one-off; `-9` passed).
+  `sys-ui-9` exit 0: after Skip the card shows the ready state; after +15s the countdown moved. `sys-ui-10`
+  exit 0: heavy type on the real card.

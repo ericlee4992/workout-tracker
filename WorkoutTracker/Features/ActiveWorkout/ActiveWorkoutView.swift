@@ -711,6 +711,7 @@ struct ActiveWorkoutView: View {
         hasher.combine(degradedRestSetID)
         hasher.combine(lastRestResult)
         hasher.combine(workout.unfinishedCardio?.id)
+        hasher.combine(workout.historyTitle)
         let key = hasher.finalize()
         var state: WorkoutActivityAttributes.ContentState
         if let base = activityBase, base.key == key {

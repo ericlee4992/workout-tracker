@@ -377,6 +377,8 @@ struct ActivityCountdown: View {
     var font: Font
     var color: Color
     var alignment: Alignment = .leading
+    /// What VoiceOver says before the time ("Rest"); the time itself is the system's timer text.
+    var spokenPrefix: String = "Rest"
 
     var body: some View {
         Text(end.timeIntervalSinceNow >= 600 ? "00:00" : "0:00")
@@ -389,6 +391,9 @@ struct ActivityCountdown: View {
                     .multilineTextAlignment(alignment == .trailing ? .trailing : .leading)
             }
             .lineLimit(1)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("\(spokenPrefix), ") + Text(timerInterval: Date.now...max(end, .now), countsDown: true)
+                                + Text(" left"))
     }
 }
 
@@ -398,6 +403,8 @@ struct ActivityClock: View {
     var font: Font
     var color: Color
     var alignment: Alignment = .trailing
+    /// What VoiceOver says before the time ("Workout time", "Indoor Run").
+    var spokenPrefix: String = "Workout time"
 
     var body: some View {
         Text(Date.now.timeIntervalSince(start) >= 3000 ? "0:00:00" : "00:00")
@@ -410,6 +417,8 @@ struct ActivityClock: View {
                     .multilineTextAlignment(alignment == .trailing ? .trailing : .leading)
             }
             .lineLimit(1)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("\(spokenPrefix), ") + Text(start, style: .timer))
     }
 }
 
@@ -605,7 +614,6 @@ struct WorkoutActivityCard: View {
                 .lineLimit(typeSize > .large ? 2 : 1)
             Spacer(minLength: 8)
             ActivityClock(start: attributes.startedAt, font: ActivityType.number(.subheadline), color: palette.textSecondary)
-                .accessibilityLabel("Workout time")
         }
     }
 
@@ -619,13 +627,13 @@ struct WorkoutActivityCard: View {
                 VStack(alignment: .leading, spacing: -2) {
                     HStack(spacing: 6) {
                         Text("Rest").font(ActivityType.label).foregroundStyle(palette.textSecondary)
+                            .accessibilityHidden(true)
                         if state.restFollowsNewBest == true { ActivityNewBestMark(palette: palette) }
                     }
                     ActivityCountdown(end: end, font: ActivityType.number(.largeTitle), color: palette.textPrimary)
                 }
                 .fixedSize()
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel((state.restFollowsNewBest == true ? "New best. " : "") + "Rest")
+                .accessibilityElement(children: .combine)
                 Spacer(minLength: 4)
                 ActivityCommands(kind: .rest, workoutID: attributes.workoutID, palette: palette)
             }
@@ -684,9 +692,10 @@ struct WorkoutActivityCard: View {
                 VStack(alignment: .leading, spacing: -2) {
                     Text(cardio.isPaused ? "Paused" : cardio.activity)
                         .font(ActivityType.label).foregroundStyle(palette.textSecondary)
+                        .accessibilityHidden(!cardio.isPaused)
                     if let start = cardio.clockStart, !cardio.isPaused {
                         ActivityClock(start: start, font: ActivityType.number(.largeTitle), color: palette.textPrimary,
-                                      alignment: .leading)
+                                      alignment: .leading, spokenPrefix: cardio.activity)
                     } else {
                         Text(ActivityFormat.clock(cardio.elapsedSeconds))
                             .font(ActivityType.number(.largeTitle)).foregroundStyle(palette.textSecondary)
@@ -834,12 +843,11 @@ struct ActivityIslandCompactTrailing: View {
             case .resting:
                 if let end = state.restEndsAt {
                     ActivityCountdown(end: end, font: font, color: palette.live, alignment: .trailing)
-                        .accessibilityLabel("Rest")
                 }
             case .cardio:
                 if let cardio = state.cardio {
                     if let start = cardio.clockStart, !cardio.isPaused {
-                        ActivityClock(start: start, font: font, color: palette.live)
+                        ActivityClock(start: start, font: font, color: palette.live, spokenPrefix: "Time")
                     } else {
                         Text(ActivityFormat.clock(cardio.elapsedSeconds)).font(font).foregroundStyle(palette.textSecondary)
                     }
@@ -885,8 +893,10 @@ struct ActivityIslandExpandedTrailing: View {
                 if let cardio = state.cardio {
                     VStack(alignment: .trailing, spacing: -2) {
                         Text(cardio.isPaused ? "Paused" : "Time").font(ActivityType.label).foregroundStyle(palette.textSecondary)
+                            .accessibilityHidden(!cardio.isPaused)
                         if let start = cardio.clockStart, !cardio.isPaused {
-                            ActivityClock(start: start, font: ActivityType.number(.largeTitle), color: palette.textPrimary)
+                            ActivityClock(start: start, font: ActivityType.number(.largeTitle), color: palette.textPrimary,
+                                          spokenPrefix: "Time")
                         } else {
                             Text(ActivityFormat.clock(cardio.elapsedSeconds))
                                 .font(ActivityType.number(.largeTitle)).foregroundStyle(palette.textSecondary)
@@ -900,6 +910,7 @@ struct ActivityIslandExpandedTrailing: View {
                         HStack(spacing: 6) {
                             if state.restFollowsNewBest == true { ActivityNewBestMark(palette: palette) }
                             Text("Rest").font(ActivityType.label).foregroundStyle(palette.textSecondary)
+                                .accessibilityHidden(true)
                         }
                         ActivityCountdown(end: end, font: ActivityType.number(.largeTitle), color: palette.textPrimary,
                                           alignment: .trailing)
