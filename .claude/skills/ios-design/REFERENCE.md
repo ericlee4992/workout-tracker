@@ -1,7 +1,7 @@
 # Reference — the numbers and the tokens
 
 From Apple's Human Interface Guidelines (fetched 2026-09-11 from the `tutorials/data/design/
-human-interface-guidelines/*.json` endpoints) and this app's `Theme.swift`. Quote these; do not
+human-interface-guidelines/*.json` endpoints) and this app's Look tokens (`Features/Design/Look/`). Quote these; do not
 re-derive them.
 
 ## iOS text styles at the default (Large) size
@@ -86,42 +86,41 @@ hierarchy's order.
 - SF Symbols wherever possible; separate light/dark artwork only when an asset fails in one.
 - Same colour, same meaning, everywhere.
 
-## This app's tokens (`Features/Design/Theme.swift`, `Assets.xcassets/Colors`)
+## This app's tokens (`Features/Design/Look/Look.swift`, `FinalLook.swift`)
 
-| Token | Value | Use |
-|---|---|---|
-| `SurfaceBackground` | `#0B0D10` | every screen's ground |
-| `SurfaceCard` | `#171B21` | a card, a grouped row |
-| `SurfaceElevated` | `#222831` | a sheet, a menu |
-| `SurfaceFill` | `#2B323C` | secondary buttons, the day tile |
-| `Hairline` | white 7 % | separators and the `.card()` border; never the only line that draws a shape |
-| accent | `#FFB45E` | the one action / the live thing; `OnAccent` `#15110B` text on it |
-| `Warmup` | `#E9D875` | warmup sets |
-| `Danger` | `#FF6B76` | heart rate, destructive |
-| `UnitKg` / `UnitLb` / `UnitMixed` | `#97C7EE` / `#A8CDBF` / `#B8A1EE` | unit chips |
-| `Drop` | `#B8A1EE` | drop sets |
-| `TextPrimary` / `TextSecondary` / `TextTertiary` | `#F6F3EC` / `#B5B9C2` / `#7F8793` | text on ink |
-| Radius | card 24, inner 16, field 10 | |
-| Space | 4 / 8 / 12 / 16 / 24 | |
-| `hero` | largeTitle rounded black | one number or title per screen |
-| `stat` | title2 rounded bold | a figure |
-| `cardTitle` | headline bold | a row or card title |
-| `label` | caption2 semibold | a small label |
+Read through `@Environment(\.look)`; `Look.app(scheme)` picks the set. The measured contrast of
+every Light pair is in `FinalLook.swift`'s header.
 
-`Theme.swift` is the full inventory; this table is the part the rules name.
+| Token | Dark (`Look.floodlight`) | Light (`Look.floodlightLight`) | Use |
+|---|---|---|---|
+| `ground` | `#060708` | `#F2F3F5` | every screen's ground |
+| `surface` | `#181A1E` | `#FFFFFF` | a panel, a card, a grouped row |
+| `surfaceRaised` / `field` | `#22252A` | `#EBEDF0` | inner rows, fields, secondary fills |
+| `hairline` | white 10 % | ink 10 % | separators and panel borders; never the only line that draws a shape |
+| `action` / `live` | `#B25CFF`, `onAction` ink | `#7A2EE0`, `onAction` white | the one action / the live thing |
+| `heartRate` | `#FF4F86` | `#C41D58` | heart rate |
+| `destructive` | `#FF5E3A` | `#BF3510` | destruction |
+| `textPrimary` / `textSecondary` / `textTertiary` | `#F4F6F8` / `#A4A9B1` / `#7F858E` | `#0B0C0E` / `#555A63` / `#62676F` | text |
+| family colours | chest `#FFA03C`, back `#3D9EFF`, shoulders `#4DE0D4`, arms `#FFE15C`, legs `#84D65A` | deepened (≥ 4.7:1 on white) | the muscle families |
+| zones | `zoneRamp[0…5]` | `zoneRamp[0…5]` | heart-rate zones |
 
-Components: `.card(.standard | .elevated)`, `Chip(tint:selected:) { content }`, `UnitChip`, `StatTile`,
-`ProgressRing`, `EmptyState(title:symbol:)`, `MuscleIcon(family:)` (a two-layer muscle map from `Assets.xcassets/MuscleMaps/`) / `MuscleFamilyStrip`, `WrapLayout`,
-`.buttonStyle(.primary | .secondary)`; haptics `.setComplete`, `.restDone`, `.workoutStart`
-(`Haptics.swift`).
+Type: `look.font` — `largeTitle`/`title` Expanded Black, `heroNumber`/`statNumber`/`timer`
+Expanded Heavy with monospaced digits, `cardTitle`/`sectionTitle` Expanded Heavy, body styles
+standard width. Radii: `look.radius` (panel 16, row 10, field 8…); spacing: `look.space`.
+
+Components (`Features/Design/Look/`): surfaces `.lookSurface(_:)`, `LookPanel`; buttons
+`.lookPrimary` / `.lookSecondary`, `PillButtonStyle`, `StartCapsule`, glass chrome; `Chip`,
+`LookList` / `LookRow`, `SegmentedPills`, `NumberStepperPill`, `EmptyStateView`, `SheetHeader`;
+rings (`SetsRing`, `RestRing`, `FinishStatusRing`), charts, the week widget, muscle maps
+(`MuscleMap`, `FamilyStrip`, `FamilyTally`); live pieces (`SetRowView`, `SetMarker`, `RestBar`,
+`NewBestBadge`); `WrapLayout`; haptics `.setComplete`, `.restDone`, `.workoutStart`
+(`Haptics.swift`). The Live Activity has its own literal copy of the palette
+(`WorkoutTrackerWidget/Shared/WorkoutActivityViews.swift`: the widget cannot see `Look`).
 
 ## Captures
 
-`WorkoutTrackerUITests/RedesignScreenshotUITests.swift`; export with
-`work-record/ui-redesign/export-shots.py`; the record lives in `work-record/ui-redesign/screenshots/<ticket>/`.
-Coverage as of 2026-09-11 — default AND AccessibilityL with the same fixture and state: finish
-receipt, Exercises, Gyms + detail, History + detail (both on `-uiTestChartHistory`). Default and
-AXL in DIFFERENT states: Start (resume banner vs a template); active workout (the default
-capture has a gym, sets and rest; the AXL one in `CodexScreenshotUITests` has none of them).
-Default only: Settings, calendar, chart, the pickers and sheets. Touching a screen means
-completing its pair.
+Each Floodlight area's capture tests (`WorkoutTrackerUITests/Floodlight*UITests.swift`) shoot light and
+dark at Default and AccessibilityL with the same fixture and state; export attachments from the
+result bundle and keep them in `work-record/redesign-floodlight/captures/<ticket>/`. The prototype's
+reference shots are in `work-record/redesign-floodlight/reference/`. Touching a screen means retaking
+its captures.

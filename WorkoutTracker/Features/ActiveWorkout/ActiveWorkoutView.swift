@@ -47,6 +47,12 @@ struct ActiveWorkoutView: View {
     /// falls back, a late sample must not turn it back into a heart-rate rest
     /// and fire a "recovered" alarm over the fallback one (codex-review-2 #4).
     @State private var degradedRestSetID: UUID?
+    /// How the last rest ended, when this screen saw it end (Z03): recovered, or run out while
+    /// the screen was up. Shown on the Lock Screen card until the next set is logged.
+    @State private var lastRestResult: WorkoutActivityAttributes.RestResult?
+    /// The slow part of the card's content (next set, previous, new-best, rest kind: history
+    /// queries), rebuilt only when its inputs change — the liveness tick pushes every 2 s.
+    @State private var activityBase: (key: Int, state: WorkoutActivityAttributes.ContentState)?
     /// Drives `refreshLiveness`, so a sensor that goes quiet stops being
     /// reported as live rather than freezing on its last reading.
     private let livenessTick = Timer.publish(every: 2, on: .main, in: .common).autoconnect()
@@ -207,6 +213,7 @@ struct ActiveWorkoutView: View {
                         skip: skipRest,
                         expired: {
                             restExpiryCount += 1
+                            lastRestResult = activityState().shownResult(at: .now, isStale: true)
                             refreshRest()
                         },
                         openBest: {
@@ -387,6 +394,14 @@ struct ActiveWorkoutView: View {
                 pushActivityState()
             }
             .onChange(of: restEnd) { _, _ in pushActivityState() }
+            // +15s / Skip / Pause pressed on the Lock Screen or the island (ticket 11): the
+            // command already changed the store; read the rest back from it.
+            .onReceive(NotificationCenter.default.publisher(for: WorkoutActivityCommands.didApply)) { note in
+                guard (note.object as? UUID) == workout.id else { return }
+                if workout.restEndsAt == nil { lastRestResult = nil }
+                refreshRest()
+                pushActivityState()
+            }
             .onChange(of: entries.count) { _, _ in
                 heartRateCoordinator.cardio.sync()
             }
@@ -640,6 +655,7 @@ struct ActiveWorkoutView: View {
         case .finished(.recovered(_, let bpm)):
             do {
                 try restTimer.finishRecovered(workout, bpm: bpm)
+                lastRestResult = .recovered(bpm: bpm, targetBpm: rule.thresholdBpm)
                 // `finishRecovered` clears `restEndsAt`, so the cap alarm can
                 // no longer fire for this rest — the two endings cannot both
                 // sound.
@@ -680,27 +696,35 @@ struct ActiveWorkoutView: View {
             workoutID: workout.id,
             startedAt: workout.startedAt,
             gymName: workout.gym?.name,
-            state: WorkoutActivityAttributes.ContentState(
-                heartRateBpm: heartRate?.isStale == true ? nil : heartRate?.current?.bpm,
-                zoneLabel: heartRate?.currentZone?.label,
-                restEndsAt: restEnd,
-                completedSets: completedSetCount,
-                currentExercise: currentExerciseName))
+            state: activityState())
     }
 
-    private var completedSetCount: Int {
-        entries.reduce(0) { total, entry in
-            total + WorkoutSession.orderedSets(of: entry)
-                .filter { $0.completedAt != nil }.count
+    /// What the Lock Screen card shows now (ticket 11): the slow part from `activityBase`, the
+    /// heart reading and the cardio figures fresh.
+    private func activityState() -> WorkoutActivityAttributes.ContentState {
+        let heart = WorkoutActivityContent.Heart(
+            bpm: heartRate?.isStale == true ? nil : heartRate?.current?.bpm, zone: heartRate?.currentZone)
+        var hasher = Hasher()
+        hasher.combine(badgeInputs)
+        hasher.combine(workout.restEndsAt)
+        hasher.combine(workout.restStartedBySetID)
+        hasher.combine(degradedRestSetID)
+        hasher.combine(lastRestResult)
+        hasher.combine(workout.unfinishedCardio?.id)
+        let key = hasher.finalize()
+        var state: WorkoutActivityAttributes.ContentState
+        if let base = activityBase, base.key == key {
+            state = base.state
+        } else {
+            state = WorkoutActivityContent.make(for: workout, in: modelContext, heart: heart,
+                                                restResult: lastRestResult, degradedRestSetID: degradedRestSetID)
+            activityBase = (key, state)
         }
-    }
-
-    /// The last exercise with a completed set — what the user is working on.
-    private var currentExerciseName: String? {
-        if let cardio = workout.unfinishedCardio { return cardio.activity.name }
-        return entries.last { entry in
-            WorkoutSession.orderedSets(of: entry).contains { $0.completedAt != nil }
-        }?.snapshotExerciseName ?? entries.last?.exercise?.name
+        state.heartRateBpm = heart.bpm
+        state.zoneLabel = heart.bpm == nil ? nil : heart.zone?.label
+        state.zoneLevel = heart.bpm == nil ? nil : heart.zone?.rawValue
+        state.cardio = workout.unfinishedCardio.map { WorkoutActivityContent.cardio($0, in: workout, now: .now) }
+        return state
     }
 
     /// Drag-to-reorder. SwiftUI's own `IndexSet`/destination semantics go
@@ -825,6 +849,7 @@ struct ActiveWorkoutView: View {
     }
 
     private func updateRest(for set: SetRecord, isCompleted: Bool) {
+        lastRestResult = nil
         // D48: inside a superset, no rest until the LAST member. Moving
         // straight from A to B with no rest is the entire point of the
         // technique, so a timer firing between members would be telling the
@@ -864,6 +889,7 @@ struct ActiveWorkoutView: View {
     }
 
     private func skipRest() {
+        lastRestResult = nil
         do {
             try restTimer.skip(workout)
             restEnd = nil

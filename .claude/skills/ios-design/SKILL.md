@@ -12,11 +12,15 @@ decides what is there, in what order, and which one thing the eye lands on.
 
 - **What it is**: a private gym logger for one person. Used one-handed, mid-set, under gym lighting,
   glancing for two seconds. Every screen's job is a glance or a tap, never reading.
-- **The direction** (D54): bold, dark, card-based; ink surfaces; one warm accent, amber `#FFB45E`;
-  a fixed colour and SF Symbol per muscle group. Tokens and components in
-  `Features/Design/Theme.swift`; the full palette, sizes and names in [`REFERENCE.md`](REFERENCE.md).
-- **The copy policy**: the design adds shape, colour and motion, never words. Every visible string
-  and accessibility identifier the UI tests read stays; a new string is the user's decision.
+- **The direction** (D59, Floodlight, which replaced D54): light and dark (Settings → Appearance);
+  ink / near-white grounds, graphite / white panels; one action colour, violet "Ultra" `#B25CFF` dark /
+  `#7A2EE0` light; SF Pro Expanded for titles and figures; a muscle map in a fixed colour per muscle
+  family; the live lifting workout in Paper Club's structure. Tokens and components in
+  `Features/Design/Look/` (read through `@Environment(\.look)`); the palette, type and names in
+  [`REFERENCE.md`](REFERENCE.md).
+- **The copy policy**: no explanatory paragraphs; a new or changed string is the user's decision —
+  list it in the ticket. Every accessibility identifier the UI tests read stays (or the tests move
+  with it, said in the ticket).
 - **Reference apps** — from memory, not screenshots; say so when citing them to the user:
   - *Apple Fitness*, the Summary tab: the Move ring (three rings only with a Watch: Move,
     Exercise, Stand) and big numbers with small labels; cards only where content is a group.
@@ -61,23 +65,21 @@ decides what is there, in what order, and which one thing the eye lands on.
 
 - **One dominant treatment per screen state.** The bold element is the only CALL TO ACTION or
   figure with an accent fill or the largest content type. Excluded from that count: the
-  navigation title (chrome), and amber as a state — the selected tab, a selected chip, a
+  navigation title (chrome), and violet as a state — the selected tab, a selected chip, a
   completed set — because a state is not a call to action. A second accent-filled command or a
   second accent-coloured content title on the same screen competes, and one steps down.
 - **Cards group.** A card contains a group, or one item with internal structure (a template with
   its exercises, a stat with its label). A card around a single line of text is a box around a
   sentence: remove it. A set of like items is a list. Never a card in a card. Peer cards share a
   radius; hierarchy comes from size, position and surface, not from changing the radius.
-- **Numbers big, labels small.** A glanceable figure is `stat` (Title 2 rounded bold) or, once
-  per screen, `hero` (Large Title rounded black — the one Black weight in the app); its label is
-  Caption in secondary. Several `stat` figures on one screen are fine; one `hero` is the limit.
-- **Type is the system's.** Text styles, not point sizes: Large Title or `hero` for the screen,
-  Headline (`cardTitle`) for a row title, Body for content, Subhead/Footnote for support, Caption
-  for labels. Regular to Bold, plus `hero`'s Black; never Light. SF only; Rounded where the
-  tokens already use it.
-- **Colour carries meaning, and the same meaning everywhere.** Amber: the action or the live
-  thing, and selection. Red (`Danger`): heart rate, failure sets, destruction. Yellow: warmup.
-  `Drop`: drop sets. Unit colours: unit chips. Muscle colours: muscle groups. A colour used for
+- **Numbers big, labels small.** A glanceable figure is `look.font.statNumber` or, once per
+  screen, `heroNumber` (SF Pro Expanded Heavy); its label is Caption in secondary. Several stat
+  figures on one screen are fine; one hero is the limit.
+- **Type is the system's.** Text styles, not point sizes, through `look.font`: Expanded Black/Heavy
+  for titles and figures, standard width for body, buttons and labels. Never Light.
+- **Colour carries meaning, and the same meaning everywhere.** Violet (`look.action`/`live`): the
+  action or the live thing. `look.heartRate`: heart rate. `look.destructive`: destruction. The
+  yellow highlighter: a new best in the live workout only. Muscle-family colours: the families. A colour used for
   decoration steals from its meaning. Contrast: 4.5:1 minimum, 7:1 the target for small text —
   the measured pairs are in REFERENCE.md; `TextTertiary` is not for essential text on
   `SurfaceElevated` or `SurfaceFill`. `Hairline` (7 % white) separates and borders a filled
@@ -101,7 +103,7 @@ decides what is there, in what order, and which one thing the eye lands on.
 - **Motion answers the user.** A completed set, a started workout, a finished timer, plus the
   pulse that means "live". Under Reduce Motion each animation is suppressed or replaced by a
   crossfade — reading the setting is not honouring it.
-- **Empty is an invitation.** `EmptyState` with the existing string and one action under it.
+- **Empty is an invitation.** `EmptyStateView` with the existing string and one action under it.
 
 ## Tells
 

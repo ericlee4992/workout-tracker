@@ -62,6 +62,11 @@ struct RootView: View {
         // must bank the active workout's summary before "Finish it and start
         // new" auto-finishes that workout (codex-review 05).
         .tint(Color.accentColor)
+        // Lock-screen commands (ticket 11) act through the same coordinator and card.
+        .onAppear {
+            WorkoutActivityCommands.shared.coordinator = heartRateCoordinator
+            WorkoutActivityCommands.shared.activity = workoutActivity
+        }
         .environment(heartRateCoordinator)
         .fullScreenCover(item: $activeWorkout) { workout in
             ActiveWorkoutView(

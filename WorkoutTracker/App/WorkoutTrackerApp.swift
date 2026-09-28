@@ -23,6 +23,9 @@ struct WorkoutTrackerApp: App {
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
+        // +15s / Skip / Pause pressed on the Lock Screen card land here (ticket 11). Installed
+        // before anything else can run: a command can be what launched the app.
+        WorkoutActivityCommands.shared.install(container: modelContainer)
         // Versioned idempotent catalog seeding on every launch (D24). A
         // failure must not block launch — the catalog reconciles next run.
         do {
@@ -97,7 +100,14 @@ struct WorkoutTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            Group {
+                // Ticket 11, test-only: the Live Activity's views for captures.
+                if let state = ActivityGallery.requestedState {
+                    ActivityGalleryView(name: state)
+                } else {
+                    RootView()
+                }
+            }
                 // Settings → Appearance (System / Light / Dark) picks the scheme and the
                 // Floodlight token set (D54 reopened by the Floodlight redesign).
                 .lookLayer()

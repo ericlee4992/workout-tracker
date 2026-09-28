@@ -23,6 +23,13 @@ protocol WorkoutActivityPresenting: AnyObject {
     func start(_ attributes: WorkoutActivityAttributes, state: WorkoutActivityAttributes.ContentState)
     func update(_ state: WorkoutActivityAttributes.ContentState)
     func end()
+    /// Waits for the last update to reach the system (a lock-screen command's intent must not
+    /// return, and let the app be suspended, before the card it changed is redrawn).
+    func settle() async
+}
+
+extension WorkoutActivityPresenting {
+    func settle() async {}
 }
 
 @MainActor
@@ -66,6 +73,9 @@ final class WorkoutActivityController {
             state: state)
     }
 
+    /// Waits for the last push to reach the system.
+    func settle() async { await presenter.settle() }
+
     /// Ends the activity for this workout.
     ///
     /// Called from EVERY path that ends a workout — finish, templated finish,
@@ -97,7 +107,9 @@ enum WorkoutActivities {
         // A UI-test run must not post real Live Activities: they survive the
         // app, so a test run would litter the device's lock screen with
         // workouts that never happened.
-        WorkoutTrackerStore.isUITestReset
+        // `-uiTestRealLiveActivity` (ticket 11): the one UI test that checks the real card on
+        // the Simulator's Lock Screen and presses its buttons; it ends the activity itself.
+        WorkoutTrackerStore.isUITestReset && !ProcessInfo.processInfo.arguments.contains("-uiTestRealLiveActivity")
             ? SilentWorkoutActivityPresenter()
             : SystemWorkoutActivityPresenter()
     }
@@ -133,8 +145,11 @@ final class SilentWorkoutActivityPresenter: WorkoutActivityPresenting {
 final class SystemWorkoutActivityPresenter: WorkoutActivityPresenting {
 
     private var activity: Activity<WorkoutActivityAttributes>?
+    private var lastUpdate: Task<Void, Never>?
 
     var isActive: Bool { activity != nil }
+
+    func settle() async { await lastUpdate?.value }
 
     func start(
         _ attributes: WorkoutActivityAttributes,
@@ -144,10 +159,22 @@ final class SystemWorkoutActivityPresenter: WorkoutActivityPresenting {
         // preference, not an error — the workout runs exactly the same, it just
         // does not appear on the lock screen.
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        // Floodlight ticket 11: a relaunched app (or a lock-screen command that launched it in
+        // the background) adopts the card it already posted for this workout instead of
+        // stacking a second one, and ends any card left by a workout that is no longer live.
+        for existing in Activity<WorkoutActivityAttributes>.activities {
+            if existing.attributes.workoutID == attributes.workoutID, activity == nil {
+                activity = existing
+                update(state)
+            } else if existing.id != activity?.id {
+                Task { await existing.end(nil, dismissalPolicy: .immediate) }
+            }
+        }
+        guard activity == nil else { return }
         do {
             activity = try Activity.request(
                 attributes: attributes,
-                content: .init(state: state, staleDate: nil))
+                content: Self.content(state))
         } catch {
             // Never fatal, and never `assertionFailure`: this app installs as
             // Debug, so trapping here would turn a missing lock-screen card
@@ -158,7 +185,18 @@ final class SystemWorkoutActivityPresenter: WorkoutActivityPresenting {
 
     func update(_ state: WorkoutActivityAttributes.ContentState) {
         guard let activity else { return }
-        Task { await activity.update(.init(state: state, staleDate: nil)) }
+        let previous = lastUpdate
+        lastUpdate = Task {
+            await previous?.value
+            await activity.update(Self.content(state))
+        }
+    }
+
+    /// The content goes stale when the rest ends: the system then redraws the card (with
+    /// `isStale`) in its ready state even if the app is not running at that instant.
+    static func content(_ state: WorkoutActivityAttributes.ContentState) -> ActivityContent<WorkoutActivityAttributes.ContentState> {
+        let staleDate = state.restEndsAt.flatMap { $0 > .now ? $0 : nil }
+        return ActivityContent(state: state, staleDate: staleDate)
     }
 
     func end() {

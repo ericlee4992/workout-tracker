@@ -9,19 +9,19 @@ judgement.
 
 1. **Bold element.** The one the ticket names is the only call to action or figure with an
    accent fill or the largest content type in the capture. Not counted: the navigation title,
-   and amber as a state (selected tab, selected chip, completed set). A second one is a finding.
+   and violet as a state (selected tab, selected chip, completed set). A second one is a finding.
 2. **Placement.** The bold element sits where the ticket said (eye or thumb), and the first
    viewport holds every block the wireframe put there, in that order.
 3. **Grouping.** Every card in the capture contains a group or a structured item; no card
    around a single line; no card in a card; sets of more than three like items are lists.
-4. **Figures.** Every figure the ticket calls glanceable is `stat` or `hero`; at most one
-   `hero`; every label is smaller than its figure.
+4. **Figures.** Every figure the ticket calls glanceable is a `look.font` number
+   (`statNumber` / `heroNumber`); at most one hero; every label is smaller than its figure.
 5. **Type.** System text styles only (grep for `.system(size:`); no Light weights; one family.
-6. **Colour.** Amber only on the bold element and on states (selection, completion); red,
-   yellow, `Drop`, unit and muscle colours only for their meanings. Every text/background pair
+6. **Colour.** Violet only on the bold element and on states (selection, completion); heart,
+   destructive, the new-best highlighter and the family colours only for their meanings. Every text/background pair
    meets 4.5:1: the pairs in `REFERENCE.md`'s table by lookup, any other pair (a unit chip, a
-   muscle tile) by measuring its composited colours; `TextTertiary` carries no essential text on
-   `SurfaceElevated` or `SurfaceFill`.
+   muscle tile) by measuring its composited colours; `textTertiary` carries no essential text on a raised surface
+   unless its measured pair says so.
 7. **Controls.** ≤ 2 prominent buttons; 44 pt minimum hit regions; equal options equal size;
    no destructive primary; custom buttons have a press state; a collapsed selection control
    shows value + disclosure and is not in the primary style (segmented pickers and command

@@ -73,29 +73,34 @@ Four levels:
 - **Copy policy** (milestone 9, ticket 06): no explanatory paragraphs. A screen may carry one short line where an action has a non-obvious CONSEQUENCE — what a delete destroys, what a template omits, "only completed sets are kept" — and nothing that merely explains the screen.
 - Active workout **auto-persists every committed change** (set completion, add/delete, equipment choice, unit toggle, field commit on end-editing) — crash/force-quit loses at most in-progress keystrokes in the currently focused field. Non-negotiable.
 
-## Visual design (D54)
+## Visual design (D59, replacing D54)
 
-One system, dark only, one warm accent. The app's screens sit on ink (`SurfaceBackground`) and
-are built from cards (`.card()`), chips (`Chip`, `UnitChip`), stat tiles, progress rings,
-`EmptyState` illustrations and two button styles (`.primary` amber, `.secondary` fill); the
-editors and the Presets and Previous Performance sheets are native Forms and keep the system
-look. The accent is amber `#FFB45E` with near-black text on it, warmup is yellow so it never reads
-as the accent, heart rate is red, and the five muscle FAMILIES — chest, back, shoulders, arms,
-legs (`MuscleFamily`, the seeded groups mapped) — have a fixed colour and a muscle map
-(`MuscleGroupStyle`, `Assets.xcassets/MuscleMaps/`: a neutral body with the family's muscle
-highlighted — pecs, lats + traps, deltoids, the bicep, the quads — two template images tinted
-separately), shown only on a template (its tile and its detail) for the families its
-exercises train; an exercise row wears no icon (UI redesign ticket 11). A template tile opens the
-template — its exercises as a list — and Start, Edit and Delete (confirmed; logged workouts are
-kept) live there; a tile has no long-press menu (ticket 15: on the phone it deleted the wrong template). Motion and haptics mark the moments that
-matter (a set completed, a workout started, the rest timer). The design adds shape, colour and
-motion, never words: the copy policy and D52's plain numbers stand, and every visible string and
-accessibility identifier the UI tests read is unchanged. Layouts adapt to Dynamic Type (chips
-wrap, rows stack at accessibility sizes, tiles scale with their glyphs); the active workout, the
-finish receipt, Start, History and its detail, Gyms and its detail, and Exercises have
-AccessibilityL captures in `work-record/ui-redesign/screenshots/`. The app icon is an amber dumbbell
-on ink, rendered by `scripts/render-app-icon.py`; the Live Activity carries the same two colours
-as literals.
+Floodlight, in light and dark (Settings → Appearance: System / Light / Dark, per device). The
+tokens and components live in `Features/Design/Look/` (`Look.floodlight`, `Look.floodlightLight`;
+the measured contrast pairs are in `FinalLook.swift`): ink or near-white grounds, graphite or white
+panels with hairlines, violet "Ultra" as the one action colour (`#B25CFF` dark / `#7A2EE0` light),
+SF Pro Expanded Black/Heavy for titles and figures, segmented rings, heart rate in its own pink-red,
+and the five muscle FAMILIES — chest, back, shoulders, arms, legs (`MuscleFamily`) — as muscle maps
+(`Assets.xcassets/MuscleMaps/`: a neutral body with the family's muscle lit in the family colour),
+shown on templates, the week card and History, never as a per-exercise row icon. The live lifting
+workout keeps Paper Club's structure in Floodlight's type and violet (`Look.live(dark:)`): round set
+markers, dashed draft fields, stamp check circles, the yellow "New best" highlighter, the inverse
+rest slab and "Discard Workout…" at the end of the list. Cardio and every sheet stay plain
+Floodlight; native Forms and lists keep the system controls in Floodlight colours. A template tile
+opens the template; it has no long-press menu (ticket 15). Motion answers the user (a set
+completed, a workout started, a rest ending, a new best) and steps down under Reduce Motion. The
+copy policy stands; the redesign's new strings were approved as shown in the prototype and are
+listed per area in `work-record/redesign-floodlight/issues/`. Layouts adapt to Dynamic Type (rows
+stack at accessibility sizes, chips wrap, tiles scale); each area has light and dark Default and
+AccessibilityL captures in `work-record/redesign-floodlight/captures/`.
+
+The app icon is the dumbbell in violet on ink, with Dark and Tinted appearances
+(`scripts/render-app-icon.py`). The Live Activity follows the system appearance and carries the
+Floodlight tokens as literals (`WorkoutTrackerWidget/Shared/WorkoutActivityViews.swift`): resting
+(the draining ring, the countdown, +15s / Skip, the next set, heart and sets), ready (the next set
+to load beside last time's value, and how the last rest ended) and cardio (the target ring, the
+segment's clock, Pause / Resume, distance and pace). The buttons are App Intents that run in the
+app (`WorkoutActivityCommands`); every countdown and clock is ticked by the system (D46).
 
 ## Technical direction
 

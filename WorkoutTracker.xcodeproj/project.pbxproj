@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A11A0000000000000000B012 /* WorkoutActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11A0000000000000000B011 /* WorkoutActivityIntents.swift */; };
+		A11A0000000000000000B013 /* WorkoutActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11A0000000000000000B011 /* WorkoutActivityIntents.swift */; };
+		A11A0000000000000000B002 /* WorkoutActivityViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11A0000000000000000B001 /* WorkoutActivityViews.swift */; };
+		A11A0000000000000000B003 /* WorkoutActivityViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11A0000000000000000B001 /* WorkoutActivityViews.swift */; };
 		0285582625CF0D5F4BA029EB /* WorkoutTrackerWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9016384ED6EC97A74EC05FA2 /* WorkoutTrackerWatchApp.swift */; };
 		0B02D6A77449D4E4F090AEE8 /* WorkoutActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42B192BFCFE2A31B94E00F51 /* WorkoutActivityAttributes.swift */; };
 		242422DBDD20FA22035FF931 /* WorkoutActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0BC8AB5BE3A8AF0BE518672 /* WorkoutActivityView.swift */; };
@@ -59,6 +63,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A11A0000000000000000B011 /* WorkoutActivityIntents.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutActivityIntents.swift; sourceTree = "<group>"; };
+		A11A0000000000000000B001 /* WorkoutActivityViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WorkoutActivityViews.swift; sourceTree = "<group>"; };
 		1A0000000000000000000004 /* WorkoutTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WorkoutTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000010 /* WorkoutTrackerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WorkoutTrackerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000000000000000000020 /* WorkoutTrackerUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WorkoutTrackerUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -224,6 +230,8 @@
 			isa = PBXGroup;
 			children = (
 				42B192BFCFE2A31B94E00F51 /* WorkoutActivityAttributes.swift */,
+				A11A0000000000000000B011 /* WorkoutActivityIntents.swift */,
+				A11A0000000000000000B001 /* WorkoutActivityViews.swift */,
 			);
 			name = Shared;
 			path = Shared;
@@ -433,6 +441,8 @@
 			files = (
 				3BB25D496B8563D3ABF2FE49 /* WatchLink.swift in Sources */,
 				5E83AF159D405B4438C6C191 /* WorkoutActivityAttributes.swift in Sources */,
+				A11A0000000000000000B012 /* WorkoutActivityIntents.swift in Sources */,
+				A11A0000000000000000B002 /* WorkoutActivityViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -456,6 +466,8 @@
 			files = (
 				242422DBDD20FA22035FF931 /* WorkoutActivityView.swift in Sources */,
 				0B02D6A77449D4E4F090AEE8 /* WorkoutActivityAttributes.swift in Sources */,
+				A11A0000000000000000B013 /* WorkoutActivityIntents.swift in Sources */,
+				A11A0000000000000000B003 /* WorkoutActivityViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
