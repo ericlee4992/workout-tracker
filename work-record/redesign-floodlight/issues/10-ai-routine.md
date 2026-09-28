@@ -248,3 +248,11 @@ template editor's last row, below the old helper's tab-bar margin inside a sheet
 requires it on screen). `ai-ui-6` also passed `testUndoRestoresTheExactDay`; the retry check needed the
 slow fixture (the offline failure arrives in 0.2 s).
 
+Verification (round 2, on `ef43ae2` plus the two test fixes):
+- `ai-build-3`: exit 0 (`ai-build-2` failed on a test-only type error).
+- `ai-ui-7`: **exit 0 — 20/20**: the whole `FloodlightAIRoutineUITests` class (four capture passes, five
+  flows including the exact undo and a real retry) and all twelve `AskAIUITests` routine cases (the
+  reorder now proved with named cards).
+- Captures `../captures/10/` refreshed from `ai-ui-7` (84 PNGs); the AX undo bar shows the whole message
+  with Undo under it, the consent line names every field.
+
