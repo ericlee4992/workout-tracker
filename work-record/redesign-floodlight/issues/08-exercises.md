@@ -1,7 +1,7 @@
 # 08 — Floodlight: Exercises
 
 Type: feature (part of [01](01-implement-redesign.md), area order item 7)
-Status: in progress — implemented and verified; Codex review 08 next
+Status: resolved — Codex clear after 2 rounds (codex-review-08b.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-exercises` (scratch checkout `/tmp/wt-floodlight/exercises`),
 stacked on the ticket-07 scan tip `7655aa7` (Codex clear). Nothing merged to `main`; nothing installed.
@@ -337,3 +337,10 @@ Verification (round 2): `exercises-build-12` exit 0; `exercises-unit-4` **exit 0
   with the keyboard's Search before tapping. `exercises-ui-14`: **exit 0** — dark AXL.
 - Captures `../captures/08/` refreshed from `-ui-13` (default ×2, light AXL) and `-ui-14` (dark AXL):
   91 PNGs, adding E03 pages to the Equipment chips and E05's full ledger.
+
+Codex review 08b (round 2): **clear** ([codex-review-08b.md](../codex-review-08b.md)).
+
+Open items handed on (not ticket 08's): VoiceOver by a person, Reduce Motion at runtime and the
+drag-reorder gesture remain for the release-candidate pass (ticket 01 step 4); record user decisions
+1–4 (Exercise Detail, preset reorder kept, shortened load-type copy, body area + taken-name rule) with
+the D54 entry before merge; the two pre-existing AX AI-routine-form AskAI tests (ticket 07) are unchanged.
