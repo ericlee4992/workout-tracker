@@ -1,7 +1,7 @@
 # 08 — Floodlight: Exercises
 
 Type: feature (part of [01](01-implement-redesign.md), area order item 7)
-Status: in progress — implemented; UI verification running
+Status: in progress — implemented and verified; Codex review 08 next
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-exercises` (scratch checkout `/tmp/wt-floodlight/exercises`),
 stacked on the ticket-07 scan tip `7655aa7` (Codex clear). Nothing merged to `main`; nothing installed.
@@ -250,6 +250,40 @@ Runner `/tmp/wt-floodlight/ex-run.sh <name> build|test …` (NEW derived data `/
   map is capped at AX sizes); "Load type · Weight-ed" squeezed (the type is the row's subtitle at AX
   sizes). Also: the "Common" heading's first letter was clipped by its zero-inset list row (padded);
   the no-match capture now dismisses the keyboard first.
+- `exercises-ui-6`: **exit 0** — the four capture passes after the AX fixes.
+- `exercises-ui-7` (exit 65, **20/22**): the neighbours — ProgressChart 2/2, ProgressChartTooltip 4/4,
+  GymsFlows 4/4 (the machine page's changed rows), CoreLoop mid-workout exercise creation (the shared
+  New Exercise sheet), RedesignScreenshot test05–07 — and the six new flows on the final product code.
+  ExercisePreset 0/2: `app.buttons["Done"]` matched the sheet's Done AND the keyboard's return key
+  ("Done", the field's submit label). The sheet's Done is now `sheetDone`.
+- `exercises-ui-8` (exit 65): the four capture passes **passed** (the no-match shot now ends editing
+  and asserts Add “…” is on screen); ExercisePreset failed after the sheet closed: `exercises-ui-9`
+  showed the search field regaining focus when the sheet closed (iOS restores focus), its keyboard
+  covering the tab bar, so the Gyms tab tap was lost. The shared helper `exercisesTabRow` now ends
+  editing with Search after typing. `exercises-ui-10`: the Add tap then landed while the sheet rose
+  with the keyboard (the test settles first). Test mechanics throughout; no product change.
+- `exercises-ui-11`: **exit 0** — ExercisePreset 2/2. `exercises-ui-12`: **exit 0 — 8/8**, every other
+  user of the changed helper (ProgressChart, ProgressChartTooltip, CoreLoop creation, RedesignScreenshot
+  test05).
+- **Every targeted test has passed in its final form**: unit 15/15 (`exercises-unit-3`); the four
+  capture passes (`exercises-ui-8`); the six flows (`exercises-ui-7`, after which only the Done
+  identifier and test code changed); the neighbours (`-ui-7`, `-ui-11`, `-ui-12`).
+- Captures: `../captures/08/` (80 PNGs, from `exercises-ui-8`): E01 (list ×2, a family chosen, no
+  match), E02 (trained, paged to History; assisted; user-made; untrained), E03 (empty, taken name), E04
+  (list, duplicate, empty), E05 (unchanged, changed with the ledger) — light/dark × Default/AXL.
+  Contact sheets beside the prototype: `/tmp/wt-floodlight/results/exercises-sheets/compare-*.png`,
+  `states-light-default.png`. The prototype's light E01–E04 captures had come out blank (the variant
+  capture overlapped them); retaken, all 64 prototype PNGs now have content.
+- Not exercised: VoiceOver by a person, Reduce Motion by a test (gates read in code: the family strip's
+  entry light-up, chip and tile selection, the ledger's entrance, the preset list's insertions), the
+  drag-to-reorder gesture itself (Edit shows the handles; the move writes the same renumbering the
+  old sheet did), a real device.
+
+Scope (DEVELOPMENT: a whole area restyled plus a new screen and shared sheets — New Exercise opens
+from the mid-workout pickers; the machine page links in): build; unit tests for the new Domain
+readouts; every Exercises flow above; the neighbours that walk the tab, the progress chart, presets
+and mid-workout creation; captures light/dark × Default/AXL. Full UI suite deferred to the
+whole-redesign release candidate (ticket 01 step 4). Simulator WT-Floodlight (iOS 27.0).
 
 ## Progress
 
