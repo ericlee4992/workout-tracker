@@ -114,8 +114,11 @@ final class FloodlightExercisesUITests: XCTestCase {
         // No match: Add “…”.
         search("Zercher Squat")
         XCTAssertTrue(any("addTypedExercise").waitForExistence(timeout: 5))
-        // Keyboard down (a scroll dismisses it), so the state's action is on record at AX sizes too.
-        app.swipeDown(velocity: .slow)
+        // Keyboard down (the keyboard's Search ends editing; a short page does not scroll it away),
+        // so the state's action is on record at AX sizes too.
+        app.textFields["exerciseSearch"].typeText("\n")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(any("addTypedExercise").isHittable, "Add “…” is on screen")
         Thread.sleep(forTimeInterval: 0.6)
         shoot("floodlight-08-e01-nomatch-\(suffix)")
         clearSearch()
@@ -140,7 +143,7 @@ final class FloodlightExercisesUITests: XCTestCase {
         name.typeText("narrow grip")
         XCTAssertFalse(app.buttons["addPreset"].isEnabled, "a duplicate cannot be added")
         shoot("floodlight-08-e04-duplicate-\(suffix)")
-        app.buttons["Done"].firstMatch.tap()
+        app.buttons["sheetDone"].tap()
         XCTAssertTrue(any("preset.Narrow grip").waitForNonExistence(timeout: 5))
 
         // E05: Load Type, unchanged then changed (the ledger). At AX sizes the row can sit under the
@@ -173,7 +176,7 @@ final class FloodlightExercisesUITests: XCTestCase {
         XCTAssertTrue(any("noPresets").waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 1.0)
         shoot("floodlight-08-e04-empty-\(suffix)")
-        app.buttons["Done"].firstMatch.tap()
+        app.buttons["sheetDone"].tap()
         XCTAssertTrue(any("noPresets").waitForNonExistence(timeout: 5))
         back()
         clearSearch()

@@ -120,7 +120,8 @@ final class ExercisePresetUITests: XCTestCase {
 
         XCTAssertTrue(anyElement("preset.Wide grip").exists)
         XCTAssertTrue(anyElement("preset.Narrow grip").exists)
-        app.buttons["Done"].tap()
+        // The sheet's Done (the keyboard's return key is "Done" too).
+        app.buttons["sheetDone"].tap()
     }
 
     private func createGym() {

@@ -434,7 +434,10 @@ struct ExercisesSheetHeader: View {
     @ViewBuilder private var trailingButton: some View {
         switch trailing {
         case .done(let action):
+            // Identified: a field's keyboard return key is also "Done" (submitLabel), so tests find
+            // the sheet's own button by id.
             GlassCapsuleButton("Done", action: action)
+                .accessibilityIdentifier("sheetDone")
         case .commit(let title, let enabled, let identifier, let action):
             Button(action: action) {
                 ExercisesCommitFace(title: title, enabled: enabled, minHeight: height, horizontalPadding: 18)
