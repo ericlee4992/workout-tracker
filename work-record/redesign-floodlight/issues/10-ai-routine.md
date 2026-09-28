@@ -188,6 +188,14 @@ logs, `.exit` files and result bundles `/tmp/wt-floodlight/results/ai-*`.
   layout faults. Product change after this run: the exercise card's accessibility label is its exercise
   (a container's label was empty, so the undo/reorder tests' label checks could pass vacuously; they now
   assert a non-empty label).
+- `ai-ui-4`: **exit 0 — 13/13**: the whole `FloodlightAIRoutineUITests` class (four capture passes — both
+  AXL now through the week, the editor, the picker, the undo bar, the discard confirmation, Saved and the
+  error step — and the four flows) and the five `AskAIUITests` cases that had failed (populated-list AX,
+  missing key AX, scan during setup ×2, weekly routine AX).
+- Captures `../captures/10/` (84 PNGs, from `ai-ui-4`): A01 (empty, filled, profile), A02 (top, consent off,
+  pages), A03 at 90 %, the error step, A04 (top, pages, discard), Saved, A05 (top, open card, undo, picker,
+  pages) — light/dark × Default/AXL. Contact sheets beside the prototype:
+  `/tmp/wt-floodlight/results/ai-sheets/compare-*.png`.
 
 ## Progress
 
