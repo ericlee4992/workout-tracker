@@ -191,6 +191,24 @@ Removed: the Ask AI disclosure paragraph and "Private trial…" footer (decision
 Runner `/tmp/wt-floodlight/set-run.sh <name> build|test …` (NEW derived data `/tmp/wt-floodlight/dd-settings`);
 logs, `.exit` files and result bundles `/tmp/wt-floodlight/results/settings-*`.
 
+- `settings-build-1`: exit 0 (build-for-testing, fresh derived data).
+- `settings-ui-1` (exit 65): unit **8/8** `ExportRecordTests`; UI 3/6 — units persist, workout defaults
+  (rest pill 2:00 → 2:15, "Ask to update templates" off and kept), export failure passed. The light
+  capture showed the key field blank and no keyboard after typing. First read as a product fault (the
+  field switched to a monospaced font once text arrived, as in the prototype) — **corrected in run 2**:
+  the test confirmed the 12 typed characters were in the field while the shot was again blank; iOS
+  blanks secure-entry text and its keyboard in screenshots (capture protection). Not a fault. The field
+  keeps one font anyway (no behaviour depends on it), and the tests now assert the typed length. The
+  other two failures were test mechanics: Save key tapped while the sheet still moved with the keyboard,
+  and the share sheet's Close tapped while it rose; the tests also
+  matched the file card's own "workout-tracker-…" text as the share sheet (now `ActivityListView`).
+- `settings-ui-2` (exit 65, **9/11**): the completed-share flow passed (Cancel records nothing; Copy
+  records "0 workouts since last export" and "Last export Today · CSV" on both screens); every neighbour
+  passed — `ExportUITests`, AskAI key settings ×2 (Default, AXL), HeartRate zones row, Workout-tab
+  Appearance, RedesignScreenshot unit system ×2 and test05. Two test-mechanics failures: three swipes
+  down closed the fitted Ask AI sheet, and iOS 27's confirmation dialog has no Cancel button (a tap
+  outside cancels). Both fixed in the test.
+
 ## Progress
 
 - 2026-09-28: resumed in a fresh session; verified the branch (settings = exercises tip `bf4363b`,

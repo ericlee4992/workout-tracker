@@ -110,7 +110,9 @@ struct AskAISettingsSheet: View {
             VStack(alignment: .leading, spacing: 10) {
                 SecureField(hasKey ? "Replace the saved key" : "OpenAI API key", text: $key,
                             prompt: Text(hasKey ? "Replace the saved key" : "OpenAI API key").foregroundStyle(look.textSecondary))
-                    .font(key.isEmpty ? look.font.body : .system(.body, design: .monospaced))
+                    // One font throughout (the prototype switched to monospaced once text arrived;
+                    // a secure field shows only dots, so it bought nothing).
+                    .font(look.font.body)
                     .foregroundStyle(look.textPrimary)
                     .tint(look.actionText)
                     .textInputAutocapitalization(.never)

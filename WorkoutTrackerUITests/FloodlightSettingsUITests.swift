@@ -67,15 +67,33 @@ final class FloodlightSettingsUITests: XCTestCase {
         for _ in 0..<4 { app.swipeDown() }
     }
 
-    /// The share sheet for an export is up (it names the file).
-    private var shareSheetFile: XCUIElement {
-        app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH %@", "workout-tracker-")).firstMatch
+    /// The system share sheet (the file card also shows the file's name, so match the sheet itself).
+    private var shareSheet: XCUIElement { any("ActivityListView") }
+
+    /// Waits for the share sheet to settle, then closes it (a tap while it rises lands where Close
+    /// was not yet; settings-ui-1).
+    private func cancelShareSheet() {
+        let close = app.buttons["header.closeButton"]
+        XCTAssertTrue(close.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 1.0)
+        close.tap()
+        if !shareSheet.waitForNonExistence(timeout: 3) {
+            Thread.sleep(forTimeInterval: 1.0)
+            if close.exists { close.tap() }
+        }
+        XCTAssertTrue(shareSheet.waitForNonExistence(timeout: 5))
     }
 
-    private func cancelShareSheet() {
-        let close = app.buttons["Close"]
-        if close.waitForExistence(timeout: 3) { close.tap() } else { app.swipeDown(velocity: .fast) }
-        XCTAssertTrue(shareSheetFile.waitForNonExistence(timeout: 5))
+    /// Cancels a confirmation dialog: iOS 27 shows it without a Cancel button (a tap outside
+    /// cancels), older runtimes with one (settings-ui-2).
+    private func cancelDialog() {
+        let cancel = app.sheets.buttons["Cancel"].firstMatch
+        if cancel.exists { cancel.tap(); return }
+        let outside = app.otherElements["PopoverDismissRegion"].firstMatch
+        if outside.exists { outside.tap() } else {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()
+        }
+        XCTAssertTrue(app.sheets.firstMatch.waitForNonExistence(timeout: 5), "the dialog closed")
     }
 
     // MARK: Captures
@@ -120,9 +138,12 @@ final class FloodlightSettingsUITests: XCTestCase {
         field.typeText("sk-proj-new9")
         XCTAssertTrue(app.buttons["askAISaveKey"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.6)
+        // iOS blanks secure-entry text and its keyboard in screenshots: the shot shows Save key,
+        // not the dots.
         shoot("floodlight-09-x02-typing-\(suffix)")
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20))
-        app.swipeDown()  // the keyboard
+        XCTAssertEqual((field.value as? String)?.count, 12, "the typed key stays in the field (as dots)")
+        // Empty the field, then Return: with nothing typed, Return only ends editing.
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "\n")
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
 
         // Remove key asks first; then Off.
@@ -135,9 +156,11 @@ final class FloodlightSettingsUITests: XCTestCase {
         shoot("floodlight-09-x02-remove-\(suffix)")
         confirm.tap()
         XCTAssertTrue(remove.waitForNonExistence(timeout: 5))
-        for _ in 0..<3 { app.swipeDown() }
+        // Only as far as the key card: a swipe down at the top closes the sheet (settings-ui-2).
+        let status = any("askAIStatus")
+        for _ in 0..<3 where !(status.exists && status.isHittable) { app.swipeDown() }
         Thread.sleep(forTimeInterval: 0.8)
-        XCTAssertEqual(any("askAIStatus").label, "Ask AI, Off")
+        XCTAssertEqual(status.label, "Ask AI, Off")
         shoot("floodlight-09-x02-nokey-\(suffix)")
         done.tap()
         XCTAssertTrue(done.waitForNonExistence(timeout: 5))
@@ -152,7 +175,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         let csv = app.buttons["exportCSV"]
         page(to: app.buttons["exportJSON"], name: "floodlight-09-x03-\(suffix)")
         csv.tap()
-        XCTAssertTrue(shareSheetFile.waitForExistence(timeout: 10))
+        XCTAssertTrue(shareSheet.waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 0.8)
         shoot("floodlight-09-x03-sharing-\(suffix)")
         cancelShareSheet()
@@ -231,7 +254,12 @@ final class FloodlightSettingsUITests: XCTestCase {
         let field = app.secureTextFields["askAIKeyField"]
         field.tap()
         field.typeText("sk-test-abcd1234")
-        app.buttons["askAISaveKey"].tap()
+        XCTAssertEqual((field.value as? String)?.count, 16, "the typed key stays in the field (as dots)")
+        let save = app.buttons["askAISaveKey"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        // Let the sheet finish moving with the keyboard before the tap (settings-ui-1).
+        Thread.sleep(forTimeInterval: 1.0)
+        save.tap()
         let on = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Ask AI, On, key sk-…1234'"), object: status)
         XCTAssertEqual(XCTWaiter.wait(for: [on], timeout: 5), .completed, status.label)
         XCTAssertFalse(app.buttons["askAISaveKey"].exists, "the field is cleared after saving")
@@ -240,7 +268,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         reach(remove)
         remove.tap()
         XCTAssertTrue(app.sheets.buttons["Remove key"].firstMatch.waitForExistence(timeout: 5))
-        app.sheets.buttons["Cancel"].firstMatch.tap()
+        cancelDialog()
         XCTAssertTrue(remove.waitForExistence(timeout: 5), "Cancel keeps the key")
         Thread.sleep(forTimeInterval: 0.6)
         remove.tap()
@@ -268,17 +296,18 @@ final class FloodlightSettingsUITests: XCTestCase {
         let csv = app.buttons["exportCSV"]
         reach(csv)
         csv.tap()
-        XCTAssertTrue(shareSheetFile.waitForExistence(timeout: 10))
+        XCTAssertTrue(shareSheet.waitForExistence(timeout: 10))
         cancelShareSheet()
         XCTAssertTrue(app.buttons["exportShare"].waitForExistence(timeout: 5))
         XCTAssertEqual(pending.label, before, "a cancelled share is not a backup")
 
         app.buttons["exportShare"].tap()
-        XCTAssertTrue(shareSheetFile.waitForExistence(timeout: 10))
-        let copy = app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Copy'")).firstMatch
+        XCTAssertTrue(shareSheet.waitForExistence(timeout: 10))
+        let copy = app.cells.matching(NSPredicate(format: "label == 'Copy'")).firstMatch
         XCTAssertTrue(copy.waitForExistence(timeout: 5), "the share sheet offers Copy")
+        Thread.sleep(forTimeInterval: 1.0)
         copy.tap()
-        XCTAssertTrue(shareSheetFile.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(shareSheet.waitForNonExistence(timeout: 5))
         let recorded = XCTNSPredicateExpectation(
             predicate: NSPredicate(format: "label BEGINSWITH '0 workouts since last export' AND label CONTAINS 'Last export Today · CSV'"),
             object: pending)
@@ -301,7 +330,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         let failure = any("exportFailure")
         XCTAssertTrue(failure.waitForExistence(timeout: 5))
         XCTAssertTrue(failure.label.contains("Export failed: couldn’t save the file."), failure.label)
-        XCTAssertFalse(shareSheetFile.exists)
+        XCTAssertFalse(shareSheet.exists)
         XCTAssertFalse(app.buttons["exportShare"].exists)
     }
 }
