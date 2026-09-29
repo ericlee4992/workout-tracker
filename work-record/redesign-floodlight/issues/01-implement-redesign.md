@@ -1,7 +1,7 @@
 # 01 — Implement the Floodlight redesign in the real app
 
 Type: feature
-Status: in progress — foundation built 2026-09-26 (see Progress); areas not yet restyled
+Status: in progress — see Progress → Handoff (2026-09-26 end of session 1)
 
 ## Request and user decisions (2026-09-24 → 09-26, all explicit)
 
@@ -21,7 +21,9 @@ Status: in progress — foundation built 2026-09-26 (see Progress); areas not ye
     "Discard Workout…" at the end), re-skinned in Floodlight type (SF Pro Expanded heavy) and
     violet action (#B25CFF dark / #7A2EE0 light).
   - Cardio stays Floodlight. The user said they liked Anatomy's cardio screen best but did not
-    ask for it; offered, unanswered. Ask before changing.
+    ask for it; offered, unanswered. **Answered 2026-09-28: "keep cardio plain floodlight"** — the
+    cardio area (picker, live cardio panel, distance editor) is restyled in plain Floodlight, not
+    Anatomy's layout.
   - **Appearance setting:** Settings → Appearance: System / Light / Dark. Floodlight Light
     palette with measured contrast is in the prototype's `Look/FinalLook.swift` header.
 - **Implementer:** Claude builds, Codex independently reviews (user chose this, swapping the
@@ -136,6 +138,80 @@ prototype).
 8. Settings + export + Ask AI settings.
 9. AI routine flow.
 10. Live Activity / widget + app icon; remove `Theme`/legacy components; D54 decision record.
+
+### Session 2 — 2026-09-26/27 (checkpoint)
+
+| Branch | Tip | State |
+|---|---|---|
+| `ericlee4992/redesign-floodlight-live` | `0ca7868` | ticket 03 **Codex clear after 3 rounds** |
+| `ericlee4992/redesign-floodlight-finish` | `1c3fc99` | ticket 04 **Codex clear after 3 rounds** |
+| `ericlee4992/redesign-floodlight-history` | see `git log` | ticket 05 History **Codex clear after 3 rounds** |
+
+Both review terminals closed. Logs/results: `/tmp/wt-floodlight/results/`; ticket 03/04
+captures are committed under `../captures/03/`, `../captures/04/`. Pre-existing iOS 27 UI
+failures left: Gyms model picker (CoreLoop :252), History HR section (HeartRateSummary :66).
+Ticket 05 (History) Codex clear 2026-09-27 on its own branch from the finish tip; details and
+verification in `issues/05-history.md` (on that branch). Ticket 06 Gyms started 2026-09-27 (session 3) — see `issues/06-gyms.md` on its branch;
+user decisions: Scan becomes ticket 07, Add Machine keeps its form. Originally: ticket 06 Gyms, in a fresh
+session, on `ericlee4992/redesign-floodlight-gyms` (pushed from the history tip `646187e`; scratch
+checkout `/tmp/wt-floodlight/gyms`). Scope G01–G07 (list/empty, gym detail, a new machine detail,
+edit gym, model picker, deleted machines) plus the model-picker test (CoreLoop :252); proposal for
+the user: Scan (S01–S07) as its own ticket 07. Flag each prototype-only feature (visit stats and
+rhythm, Current badge, machine bests/last used, grouping pills, machine detail, deleted gyms with
+Restore, New Model prefill) in `issues/06-gyms.md`. D47 reopening for notes (user,
+2026-09-27) goes into DECISIONS with the D54 entry.
+
+### Session 3 — 2026-09-27 (checkpoint)
+
+Ticket 06 Gyms: **Codex clear after 3 rounds** on `ericlee4992/redesign-floodlight-gyms` (tip
+`d45d5c5`); details, user decisions (Scan → ticket 07; Add Machine keeps its form), prototype-only
+features to veto and verification in `issues/06-gyms.md`. Fixed on the way: the iOS 27 model-picker
+test (CoreLoop :252) and a clean-build failure in ticket 05's progress view (`ProgressSessionLink`).
+New fixture `-uiTestDesignGyms`. Next: **ticket 07 Scan** in a fresh session on
+`ericlee4992/redesign-floodlight-scan` (pushed from the gyms tip; scratch checkout
+`/tmp/wt-floodlight/scan`): IdentifyEquipmentSheet, ScanMachineLabelSheet, LabelCameraView,
+MachineModelCorrectionSheet (S01–S07). Then area 7 Exercises onward.
+
+### Handoff — 2026-09-26, end of session 1 (context full; continue in a new session)
+
+**Branches (all pushed to origin; stacked, each on the previous):**
+
+| Branch | Tip | Content | State |
+|---|---|---|---|
+| `ericlee4992/redesign-floodlight` | see `git log` (after `b2c0329`) | foundation `b22f2c0`, ticket 02 `934a5ba` + fixes `37f16a0`, `ed82fdb` | ticket 02 **Codex clear** (3 rounds) |
+| `ericlee4992/redesign-floodlight-live` | `9d07a9c` | ticket 03 live workout (two WIP commits + record) | implemented + tested; **Codex review not started** |
+| `ericlee4992/redesign-floodlight-finish` | `cb90a5b` | ticket 04 finish receipt WIP | builds; first batch `finish-ui-1` **14/14 passed** (4 capture runs + 10 finish flows); captures not yet reviewed |
+
+The live/finish branches were worked in scratch checkouts `/tmp/wt-floodlight/{live,finish}`
+(git worktrees of this repo; /tmp may be cleared — recreate with `git worktree add` or check the
+branches out in an Orca worktree). Logs/result bundles/captures: `/tmp/wt-floodlight/results/`,
+`/tmp/wt-floodlight/shots/` (ephemeral; ticket 02's captures are committed in
+`../captures/02/`). Simulator **WT-Floodlight** `9E822EF6-DC67-4958-AEA2-D53D2D36D674`.
+Codex review terminal: Orca "Codex review — Floodlight 02" (`term_e2829166…`) — close it or reuse.
+
+**Next steps, in order:**
+1. Ticket 03: squash the two WIP commits (optional), write `codex-review-03-prompt.md` (model on
+   `codex-review-02-prompt.md`; range `ed82fdb…` → live tip), run Codex in a visible Orca terminal,
+   iterate to clear. Ticket file: `issues/03-live-workout.md` (on the live branch).
+2. Ticket 04 (finish): the first batch passed 14/14 (log `/tmp/wt-floodlight/results/finish-ui-1.log`; re-run if /tmp is gone) — `FloodlightFinishUITests` (4 captures: finishes the `-uiTestDesignLive`
+   fixture, taps "Keep Original" on the drift dialog) and the finish flows listed in the batch
+   command (CoreLoop empty finish / View in History, HistoryTemplate, HeartRate finishing summary,
+   RedesignScreenshot test02/test03, Cardio capture+save); look at the captures against
+   `reference/captures/*/F01-final.png`; add unit tests for `FinishReceipt.build` and the new
+   `SetBadgeMath.outcomes` (previous best; history limited to sets before the workout started);
+   write `issues/04-finish.md`; Codex review. Remaining F-screen items not yet ported: the
+   heart-rate plate/zone card restyle (shared with History), cardio card restyle, reveal motion.
+3. Then areas in ticket order: History (month card + week lists, calendar, detail, edit set,
+   progress chart; fix the pre-existing History HR-section test), Gyms + scan (fix the model-picker
+   test), Exercises (fix the search-field tests; exercise detail screen from template rows),
+   Settings/export, AI routine (pre-existing AXL equipment test), cardio focus, Live Activity +
+   icon, remove `Theme`/`Legacy*`, DECISIONS entry reopening D54, full UI suite, then install.
+
+**Decisions to put to the user** (also in tickets 02/03): week starts on the phone's first
+weekday (prototype showed Monday); dropping a card into a superset joins it; Discard moved to
+"Discard Workout…" at the end of the live list; PREVIOUS short form "105 × 8"; sheets keep system
+lists in Floodlight colours rather than the prototype's custom sheets; Cardio stays Floodlight
+(Anatomy's cardio screen was offered, unanswered).
 
 ## Blockers and facts for the install
 
