@@ -241,6 +241,54 @@ Runner `/tmp/wt-floodlight/cardio-run.sh <name> build|test …` (derived data `/
   recorder's UI-test location hook). Not run here: the full UI suite (the release-candidate pass after this ticket).
   Not exercised: VoiceOver by a person, Reduce Motion at runtime, real GPS / sensors, a real device.
 
+## Codex review 12 — response (round 1)
+
+Report: [codex-review-12.md](../codex-review-12.md) — not clear; one high, five medium, two low. All accepted.
+
+1. **H — a mistyped distance expanded into a million splits / markers; a huge stored value trapped the ring.** The
+   derived views are bounded (`CardioReadout.maxSplits` = 200 units: more derives no splits and no route markers);
+   the ring's distance mode needs a count an `Int` holds, else it sweeps. The stored value is untouched. Tests:
+   999999 km → no splits; 200 km → 200; a 1e19 km ring does not trap.
+2. **M — opening Distance rewrote the stored value.** The character filter is gone: the entry is checked whole as the
+   domain reads it (`CardioFormat.isInvalidEntry`: a pasted "-1" or "1..2" is refused, "1e-06" and "12.34567" load
+   and stay); Save stays off until a real change. Only typing while focused is capped at seven characters (the big
+   field's width), never the loaded value. Tests for parse / validity.
+3. **M — editable states lost `cardioDistanceMetric`.** The distance figure always carries it (the ring when it
+   counts distance, else the Distance figure) and stays tappable; editing is a separate pencil button
+   (`cardioEditDistance`, "Edit distance": on the figure's corner, or a disc on the ring). Every state has exactly one
+   timer, one distance metric, and the edit button only when editable. UI tests count them in the indoor-unmeasured
+   and typed-distance-ring states.
+4. **M — a recorded zero read as missing.** `CardioFormat.distance(0)` is "0.00"; only nil is "—". Test.
+5. **M — the snapshot cache could put one route over another's map.** The image and the task are keyed by the
+   projection (map rect, size, appearance); a cancelled render is discarded.
+6. **M — at AccessibilityL the figures outgrew the ring's centre.** The live table and the heart plate use stat
+   numbers; the ring's centre stays the largest figure at both sizes (captures retaken).
+7. **L — a sub-metre tail dropped its time.** Its time now goes to the last split. Test (2,000.5 m, 660 s → 300 + 360).
+8. **L — cycling split labels spoke pace.** They speak the speed shown.
+
+Also from the report's notes: the replace picker asserts Start exists before asserting it is off; the planned target
+is now committed FROM THE PICKER (preselected, Start); the plate opens zone setup (Max Heart Rate); the receipt's
+distance edit opens Distance; the splits fixture adds a second segment (an Indoor Cycle), so History's cardio-only
+page shows the hero's run once and the cycle as a card. Not covered by captures: the zone-coloured heart trace (needs
+two minutes of samples; the bucket rule is unit-tested), an invalid entry in the Distance sheet (the decimal pad
+cannot type one; the rule is unit-tested).
+
+Verification (round 2, on `b4999fb` + the two fixes below):
+- `cardio-build-3` exit 0. `cardio-ui-8` (exit 65): **unit 30/30** (`CardioReadoutTests` 12 incl. the three new cases,
+  `CardioTests`, `CardioRecorderTests`); `CardioUITests` 9/9 (incl. one timer / one metric / one edit button on a typed
+  distance ring); `FloodlightCardioUITests` 6/8 — the two AccessibilityL Finished cases failed on a new assertion
+  that the History hero's run appears exactly once: scrolled to the cycle card, the lazy list had dropped the hero
+  (count 0). The check is now "at most once"; `cardio-ui-9` exit 0 (2/2).
+- Looking at the retaken captures: the cycle card's "Entered distance" label truncated in a third of the card (labels
+  now wrap to two lines); History showed an empty "Workout details" heading for a cardio-only workout with no
+  calorie or heart-rate tile (the section now hides). `cardio-ui-10` exit 0 (Finished default ×2, the label);
+  `cardio-ui-11` exit 0: the four Finished flows + `CardioUITests.testOutdoorRouteDefaultCapture`, 5/5.
+- Captures `../captures/12/` (84) refreshed: Live flows from `cardio-ui-8`, Finished flows from `cardio-ui-11`
+  (adds `H04-second-segment`).
+
+Process slip: `cardio-ui-8` was started with a shell `&` instead of the tool's background mode (the brief's rule);
+the runner survived and wrote its own `.exit`, which is what the record cites.
+
 ## Progress
 
 - 2026-09-28: resumed from STATE and ticket 01; the branch reset onto `af30f66` and force-pushed. Read ticket 11

@@ -142,7 +142,9 @@ private struct CardioFigures: View {
             HStack(spacing: 4) {
                 Image(systemName: f.symbol).font(.system(.caption2, weight: .semibold))
                     .foregroundStyle(f.id == "hr" ? look.heartRate : look.textSecondary)
-                Text(f.label).font(.caption).foregroundStyle(look.textSecondary).lineLimit(typeSize.isAccessibilitySize ? 2 : 1)
+                // Two lines: "Entered distance" in a third of the card never truncates.
+                Text(f.label).font(.caption).foregroundStyle(look.textSecondary)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                 if f.edits {
                     Image(systemName: "pencil").font(.system(.caption, weight: .bold)).foregroundStyle(look.textPrimary)
                 }

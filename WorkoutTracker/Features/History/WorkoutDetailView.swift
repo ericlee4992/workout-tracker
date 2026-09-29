@@ -258,20 +258,24 @@ struct WorkoutDetailView: View {
         }
 
         if let summary {
-            VStack(alignment: .leading, spacing: look.space.header) {
-                SectionHeader("Workout details")
-                FinishTileGrid(tiles: FinishTile.summaryTiles(summary, unit: appUnit) { kind -> String in
-                    switch kind {
-                    case .workoutTime: "historyWorkoutTime"
-                    case .totalVolume: "historyVolume"
-                    case .activeCalories: "historyActiveCalories"
-                    case .totalCalories: "historyTotalCalories"
-                    case .averageHeartRate: "historyAverageHR"
-                    case .maxHeartRate: "historyMaxHR"
-                    }
-                }.filter { heroSegment == nil || $0.tile.kind != .workoutTime })
+            let tiles = FinishTile.summaryTiles(summary, unit: appUnit) { kind -> String in
+                switch kind {
+                case .workoutTime: "historyWorkoutTime"
+                case .totalVolume: "historyVolume"
+                case .activeCalories: "historyActiveCalories"
+                case .totalCalories: "historyTotalCalories"
+                case .averageHeartRate: "historyAverageHR"
+                case .maxHeartRate: "historyMaxHR"
+                }
+            }.filter { heroSegment == nil || $0.tile.kind != .workoutTime }
+            // A cardio-only workout with no calories or heart rate has no tile left: no empty heading.
+            if !tiles.isEmpty {
+                VStack(alignment: .leading, spacing: look.space.header) {
+                    SectionHeader("Workout details")
+                    FinishTileGrid(tiles: tiles)
+                }
+                .historyPageRow(top: 26, bottom: 0)
             }
-            .historyPageRow(top: 26, bottom: 0)
 
             if let heroSegment {
                 CardioSplitsSection(segment: heroSegment)
