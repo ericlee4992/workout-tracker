@@ -1,0 +1,147 @@
+# 12 — Floodlight: Cardio (plain Floodlight)
+
+Type: feature (part of [01](01-implement-redesign.md), area order item 3 — missed in the 02–10 sequence)
+Status: in progress
+Implementer: Claude. Reviewer: Codex.
+Branch: `ericlee4992/redesign-floodlight-cardio` (scratch checkout `/tmp/wt-floodlight/cardio`), reset
+2026-09-28 from `0fa6814` onto the ticket-11 tip `af30f66` (Codex clear) and force-pushed. Nothing merged to
+`main`; nothing installed.
+
+## User decisions
+
+- **2026-09-28 (ticket 01):** "keep cardio plain floodlight" — the cardio area is restyled in plain Floodlight,
+  not the Anatomy direction's cardio screen (D59).
+- **2026-09-28 (asked in this session):**
+  1. **Choose Cardio: select, then Start.** A tap selects a tile; nothing starts until the pinned
+     "Start <activity>" capsule. The picker preselects the first unstarted planned target, else the activity
+     done most recently; nothing is preselected while a segment records (one tap on an armed Start would end
+     it). The search field goes (nine activities). Today a tap started the activity at once.
+  2. **Outdoor GPS status only on a problem.** No signal line while fixes arrive (the September 19 removal of
+     the redundant "GPS" caption stands); bars + the recorder's message while it waits ("Waiting for GPS…",
+     "Allow location to record distance and your route.", "Precise Location is off. Route accuracy is
+     limited."); the "Location unavailable." plate (with "Recording time continues.") when the location is
+     denied or GPS fails. Not the prototype's always-on "GPS" line.
+  3. **The distance ring is approved** (PROPOSED in the prototype): with no planned target and a distance, the
+     ring counts toward the next mile / km ("1.47", "of 2 mi") and Time moves into the figures; with a target,
+     the ring counts the target time ("12:40", "of 20:00"); with neither, a 60-second sweep around the clock.
+  4. **The receipt keeps its distance edit** (the prototype dropped it): the receipt's cardio card keeps the
+     tappable distance row that opens the Distance sheet.
+
+Record these with ticket 12's line in D59's list.
+
+## Scope
+
+Reference: prototype captures 2026-09-28 in `../reference/prototype-cardio/{dark,light}/`
+(`LOOKS=final APPEARANCE=dark|light AXL=1 SETTLE=5 scripts/capture.sh all … C01 C01:planned C01:replace C01:p2
+C02 C02:p2 C02:planned C02:noCardio C02:cycle C02:met C02:manual C02:ended C02:ended+p2 C02:lifting C02:noMax C03
+C04 C04:gpsLost C04:acquiring C05 C05:typed C05:invalid C05:km F02 F02:p2 H04 H04:p2 H04:p3`, dark then light).
+Real code: `WorkoutTracker/Features/Cardio/` (ticket 11 moved it to Look tokens, layout unchanged), the live
+workout's cardio focus (`ActiveWorkoutView`), the finish receipt (`WorkoutFinishedSheet`), the History detail
+(`WorkoutDetailView`).
+
+1. **C01 Choose Cardio** (sheet): Cancel · "Choose Cardio"; "Planned cardio" rows first when the workout has
+   unstarted targets; **Gym** (six) and **Outdoors** (three) as a 3-column tile grid — each tile the activity
+   disc, its name (two lines reserved), what was last done with it (distance, "3 days ago"-style label), and
+   what it records (distance or GPS glyph, heart); the recording segment's tile carries the live dot. AX sizes:
+   one tile per row. Pinned at the thumb: the consequence line while a segment records ("Starting another
+   activity ends the current cardio segment.") over **Start <activity>** / "Start Cardio" (off until chosen).
+2. **C02 live indoor cardio** (the cardio focus of the live workout; Lifting | Cardio switch unchanged): the
+   activity disc + name + the status pill ("Recording" with the live dot); **the ring** (bold element; see
+   decision 3; target met → the ring lit with a check at 12 o'clock); the figures in one hairline table (Time or
+   Distance, current and average pace — or speed for cycles — and active calories); the heart-rate plate (the
+   beating bpm, the zone meter and zone name — "Set up zones" without a maximum, opening Max Heart Rate — and the
+   last six minutes as a zone-coloured trace once two minutes exist; "Waiting for heart-rate data" while
+   recording without a reading). Pinned tray: **Pause** (filled) · End Cardio.
+3. **C03 paused:** the pill inverts to "Paused 0:42" (time since the pause); the ring's lit segments go hollow,
+   the centre goes secondary with a pause glyph over it (blinks; steady under Reduce Motion); the tray's filled
+   command is **Resume**.
+4. **C04 outdoor:** as C02 with decision 2's status; GPS lost stalls a distance ring at a slashed pin (the
+   clock runs on). **No map during the workout** (unchanged rule).
+5. **C05 Distance** (sheet, medium/large detents): Cancel · "Distance" · Save; the segment line ("Indoor Run ·
+   12:40"); one big number field ("—" when blank), the unit as pills (km | mi — relabels, never converts);
+   the invalid-entry line; **Average pace / speed** updating as you type; **Measured** (tap to use it, a check
+   when the field is blank) when the segment has a measured distance.
+6. **Ended segments** in the live cardio focus: a card per ended segment — disc, name, the active time as the
+   card's figure ("20:05 of 20:00" with a target), a small done ring (lit with a check when the target was met);
+   the figures as a hairline table; Distance ("Entered distance" once typed) opens C05. Planned target not yet
+   started, in the cardio focus with nothing recording: the empty target ring with its Start capsule and the
+   quiet facts (last time this activity was done; lifting so far). Nothing at all: the empty state with Add
+   Cardio.
+7. **The receipt's cardio card** (F02): disc, name and start time; the route (outdoor, after Finish) as a
+   greyed map snapshot with the route drawn per GPS portion, start dot and finish ring; the figures on a
+   3-column grid (Distance · Time · Average pace/speed, then Avg. heart rate · Active calories); **Splits** as
+   bars when there are two or more; the distance row (decision 4).
+8. **History:** the cardio card in a mixed workout (figures + the distance row); the **cardio-only detail (H04)**
+   — the hero: the route map (larger, with a marker per mile / km) or the activity disc, the distance as the
+   hero figure (editable), Time and pace/speed beside it; the tiles without workout time; **Splits**.
+
+Kept rules: explicit cardio Start (D57 targets and now the picker), D52 plain numbers, no visible distance-source
+or estimate captions (the source is spoken only; "Entered distance" is the one visible provenance, as today),
+manual distance for indoor cardio only when nothing measured it or it was typed (September 19), outdoor live has
+no distance editor, "Location unavailable.", routes only after Finish / in History, the recorder and fixtures'
+behaviour, the September 19 cardio decisions in D54 (now D59).
+
+## Screen jobs, bold element (ios-design steps 1–2)
+
+- **C01:** exists so the user can choose an activity and start it with the Start capsule; the eye lands on the
+  tiles, the thumb on Start (the bold element, at the thumb). Runner-up: the planned row, demoted to a row.
+- **C02 recording:** exists so the user can glance at the segment's progress; the eye lands on the ring's centre
+  (time, or distance on a distance ring). Runner-up: the figures (stat numbers, smaller). The thumb's one filled
+  command is Pause.
+- **C03 paused:** exists to say it is NOT recording and to resume in one tap; the eye lands on the inverted
+  "Paused 0:42" pill and the hollow ring; Resume is the filled command.
+- **C04 GPS lost:** exists to say distance has stopped while time continues; the eye lands on the
+  "Location unavailable." plate under the ring.
+- **C05:** exists so the user can type the machine's distance; the eye lands on the big number; Save commits.
+- **Receipt / History cardio card:** exists to show the result; the eye lands on the route (outdoor) or the
+  figures. **H04:** the route map, then the distance figure (hero number).
+
+Wireframe (C02, indoor run with a 20-min target, default size):
+
+```
+┌──────────────────────────────────────────────┐
+│ ⌄        Push Day ✎                  Finish  │  live chrome (unchanged)
+│ Iron Temple · 18:42                          │  header line, vitals (unchanged)
+│ [ Lifting | Cardio ]                         │  focus switch (unchanged)
+│ (◉) Indoor Run                 (• Recording) │  disc · name · status pill
+│            ╭──────────────╮                  │
+│           ╱  ▮▮▮▮▮▮▮▯▯▯▯   ╲                 │  THE RING (largest block, ~236 pt)
+│          │     12:40        │                │   centre: the hero figure
+│          │    of 20:00      │                │
+│           ╲                ╱                 │
+│ ┌─────────────────┬──────────────────┐       │  figures: hairline table
+│ │ Distance ✎ 1.47 mi │ Current pace 8:12 │   │   (stat numbers)
+│ ├─────────────────┼──────────────────┤       │
+│ │ Average pace 8:36 │ Active calories 142│   │
+│ └─────────────────┴──────────────────┘       │
+│ ♥ 148 bpm ▬▬▬▬ Zone 3        ~~trace~~       │  heart-rate plate
+│ ┌──────────────────────────────────────┐     │
+│ │ [ ⏸ Pause          ] [ ■ End Cardio ] │     │  pinned tray (Pause filled)
+│ └──────────────────────────────────────┘     │
+└──────────────────────────────────────────────┘
+```
+
+## Prototype features the real app lacked (approved with the prototype unless noted)
+
+- C01: tiles with last done distance/when and the records glyphs; select + Start (decision 1); planned row;
+  default choice. Dropped: the search field.
+- C02–C04: the ring and its three modes (decision 3 for distance), target-met check, the status pill with the
+  pause duration, the current-pace figure as a table cell ("—" when stale; today a footnote line), the heart-rate
+  plate with trace and zone meter, "Set up zones", the stalled ring, the GPS-lost plate's second line
+  "Recording time continues." (the recorder's GPS-failure message already says it), the ended-segment card with
+  the done ring, the planned-target hero with "Last <activity>" and "Lifting N/M sets" facts, haptics (target
+  met, each split, Pause, End).
+- C05: the big field, the live pace/speed readout, the Measured row as a choice. Removed: the instruction
+  footnote ("Enter the machine’s distance. Clear it to use the measured distance.") — the copy policy.
+- Receipt / History: the snapshot route map (greyed, drawn route, markers), Splits, the cardio-only hero.
+- Not ported: prototype capture helpers (`CardioVariants`, `CardioPauseLedger`, tapping the GPS line to
+  simulate a loss).
+
+Kept from today where the prototype differs (not a user decision; open to veto): Save on C05 stays off until
+the value or unit changes (the prototype kept it always on; an unchanged Save has nothing to record).
+
+## Progress
+
+- 2026-09-28: resumed from STATE and ticket 01; the branch reset onto `af30f66` and force-pushed. Read ticket 11
+  (workflow model), the ios-design skill, the prototype Cardio area and its Finish/History cardio pieces, the
+  real cardio views, recorder, model and tests. Prototype captures started (dark). User decisions 1–4.
