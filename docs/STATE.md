@@ -103,6 +103,7 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `/tmp/wt-floodlight/cardio-run.sh`, results `/tmp/wt-floodlight/results/rc-*` (`.log`, `.exit`, `.xcresult`). Then the
   one install (fresh backup, signing renewal — Xcode Apple ID still missing, install, launch, data-preservation check);
   ask the user before merging to `main` or touching the phone. Nothing is merged to `main`.
+  Done: `rc-unit-1` 919/919. **Running: `rc-ui-1`** (full UI suite, PID 78787, started 04:11 EDT; see the ticket).
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
