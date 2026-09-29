@@ -87,17 +87,19 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   skill. Verification: unit 906/906 (`sys-ui-28`); UI — System, Live, HeartRate, Cardio 9/9, CoreLoop, Finish, Workout
   tab (`sys-ui-17/19/22/26/27`, load-related flakes passed on rerun); captures `captures/11/` (70). Not exercised:
   VoiceOver by a person, a real device's Lock Screen / island / Watch after a lock-screen command.
-- **Ticket 12 — Cardio** (ticket 01 area order item 3): IMPLEMENTED, **Codex review 12 running** (Orca terminal
-  "Codex review — Floodlight 12", `term_e2e6af52…`; report `work-record/redesign-floodlight/codex-review-12.md`).
-  Branch `ericlee4992/redesign-floodlight-cardio` (tip `0fddd52`, pushed; stacked on the ticket-11 tip `af30f66`),
-  scratch checkout `/tmp/wt-floodlight/cardio`, runner `/tmp/wt-floodlight/cardio-run.sh` (derived data `dd-cardio`),
-  results `/tmp/wt-floodlight/results/cardio-*`. Record: `issues/12-cardio.md` on that branch. Verified: unit 27/27
-  (`CardioReadoutTests`, `CardioTests`, `CardioRecorderTests`); UI — `FloodlightCardioUITests` 8/8, `CardioUITests`
-  9/9, unit-system ×2, AskAI planned Start (`cardio-ui-2/4/6/7`, two test-side fixes rerun alone); captures
-  `captures/12/` (80). User decisions 2026-09-28: keep cardio plain Floodlight; Choose Cardio selects, then Start;
-  outdoor GPS status only on a problem; the distance ring approved; the receipt keeps its distance edit — add to
-  D59's list after clearance. After it: the release-candidate pass (full UI suite, ticket 01 step 4), then the one
-  install.
+- **Ticket 12 — Cardio** (ticket 01 area order item 3, C01–C05 + the cardio cards and the cardio-only History detail):
+  branch `ericlee4992/redesign-floodlight-cardio` (pushed, tip `796ffe5`, stacked on the ticket-11 tip `af30f66`),
+  scratch checkout `/tmp/wt-floodlight/cardio`, runner `/tmp/wt-floodlight/cardio-run.sh` (derived data `dd-cardio`).
+  **Codex clear after 3 rounds** (`codex-review-12c.md`; review terminal closed). Record: `issues/12-cardio.md` on that
+  branch. User decisions 2026-09-28 (now in D59's list): keep cardio plain Floodlight; Choose Cardio selects, then
+  Start; outdoor GPS status only on a problem; the distance ring approved; the receipt keeps its distance edit.
+  Verification: `cardio-ui-12` exit 0 — unit `CardioReadoutTests` 13/13, UI 18/18 (`FloodlightCardioUITests` 8/8,
+  `CardioUITests` 9/9, unit-system AX); earlier `cardio-ui-8` unit 30/30 (with `CardioTests`, `CardioRecorderTests`),
+  `cardio-ui-2` the AskAI planned Start; captures `captures/12/` (84). Not exercised: VoiceOver by a person, Reduce
+  Motion at runtime, real GPS / sensors, a device.
+- **Next: the release-candidate pass** (ticket 01 step 4: the full UI suite + unit tests on the ticket-12 tip, Default
+  and AccessibilityL captures already per ticket), then the one install (fresh backup, signing renewal — Xcode Apple ID
+  still missing, install, launch, data-preservation check). Nothing is merged to `main`.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
