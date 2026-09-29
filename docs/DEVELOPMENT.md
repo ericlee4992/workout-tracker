@@ -183,6 +183,13 @@ matching profiles, move them aside, then rebuild with `-allowProvisioningUpdates
 the backups if minting fails. Verify both new expiration dates; renewing only an expired
 profile lets app/widget clocks drift, and the widget can die while the app still launches.
 
+After every profile had expired (2026-09-24 → renewal 09-29), Xcode had emptied the profile
+folder and the phone had dropped its trust of the developer app: a fresh, correctly signed
+build installed but remote launch failed with "…its profile has not been explicitly trusted by
+the user" (FBSOpenApplicationErrorDomain 3). The user re-trusts it on the phone (Settings →
+General → VPN & Device Management → Developer App → Trust; needs internet). Back up before the
+install as usual; the store is not opened until a launch succeeds.
+
 ## Plists and extensions
 
 - Changing `INFOPLIST_FILE` requires a clean build and inspection of the resulting plists.

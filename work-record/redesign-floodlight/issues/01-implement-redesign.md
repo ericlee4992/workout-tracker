@@ -1,7 +1,7 @@
 # 01 — Implement the Floodlight redesign in the real app
 
 Type: feature
-Status: in progress — see Progress → Handoff (2026-09-26 end of session 1)
+Status: resolved — merged to `main` and installed 2026-09-29 (see "Delivered" below and ticket 13)
 
 ## Request and user decisions (2026-09-24 → 09-26, all explicit)
 
@@ -212,6 +212,15 @@ weekday (prototype showed Monday); dropping a card into a superset joins it; Dis
 "Discard Workout…" at the end of the live list; PREVIOUS short form "105 × 8"; sheets keep system
 lists in Floodlight colours rather than the prototype's custom sheets; Cardio stays Floodlight
 (Anatomy's cardio screen was offered, unanswered).
+
+### Delivered — 2026-09-29
+
+Plan steps 4–5 done in [ticket 13](13-release-candidate.md): full unit (919/919) and UI (227/229; the two failures
+date-dependent test defects, fixed and rerun) suites on the ticket-12 tip; Codex review 13 clear after 3 rounds.
+Installed on the phone with a fresh full backup and a 15-table data-preservation check (the one change was the
+user's own gym pick). `main` fast-forwarded to the tip that merges the cardio branch and this branch's STATE notes.
+The install blockers below are resolved: the user added their Apple ID and re-trusted the developer app on the phone;
+new app/widget profiles expire 2026-10-06. Open: the user's visual acceptance on the phone (STATE → Next action).
 
 ## Blockers and facts for the install
 
