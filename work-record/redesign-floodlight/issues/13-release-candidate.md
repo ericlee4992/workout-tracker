@@ -1,7 +1,7 @@
 # 13 — Floodlight: release-candidate pass
 
 Type: task (part of [01](01-implement-redesign.md), plan step 4; then step 5, the install)
-Status: claimed — in progress
+Status: RC pass clear (Codex 13c); install pending the user's go-ahead
 Implementer: Claude. Reviewer: Codex (for any code fix).
 Branch: `ericlee4992/redesign-floodlight-cardio` (scratch checkout `/tmp/wt-floodlight/cardio`). Tested tip:
 **`796ffe5`** (ticket 12, Codex clear; tickets 02–12 stacked beneath it, each Codex clear). Nothing merged to
@@ -141,5 +141,49 @@ Verification: `rc-fix-2` exit 0, 76/76 (runs table). Scope: the calendar change 
 screen; the fixture's dates reach every test launching `-uiTestChartHistory` — all run.
 
 
+## Codex review 13b — response (round 2)
+
+Report: [codex-review-13b.md](../codex-review-13b.md) — not clear; one medium, one low (both test-side). Round-1
+findings 1–3 resolved; no new app defect; `rc-fix-2`'s scope sufficient. Both accepted.
+
+1. **M — the tooltip drag test still named "yesterday" in seconds**, so near a DST midnight it checked the wrong day
+   and a drag that did nothing could pass. `testTappingTheChartShowsTheValueAsEntered` now reads the selection row's
+   fallback (the newest point) before the drag and waits for the row to change from it; no date is computed in the
+   test (`newestSessionDay` removed). Mutation check `rc-mutation-1`: with the drag removed the test fails there.
+2. **L — "450, lb" assumed pounds.** The class launches with `-AppleLocale en_US -AppleLanguages (en)`, so a fresh
+   store resolves its unit to lb on any simulator region (the fixture logs lb; the "lb" as-entered check relied on
+   it too). Not run on a non-US simulator; the pin is the standard launch-argument locale override.
+
+Verification: `rc-fix-3` exit 0, 4/4; `rc-mutation-1` as above.
+
+(This section was meant to land with `522c157`; a round-1 edit had replaced the `## Progress` heading it was
+inserted before, so it was silently skipped — Codex review 13c noticed. Restored here with the heading.)
+
+Codex review 13c (round 3): **clear** ([codex-review-13c.md](../codex-review-13c.md)) — standards and spec clear,
+no finding at any severity; it re-read `rc-fix-3` and `rc-mutation-1` itself.
+
+## Result
+
+**The release-candidate pass is clear** on the code of `522c157` (= `796ffe5` + the ticket-13 fixes):
+- unit: `rc-unit-1` 919/919 on `796ffe5`; the fixes' unit suites in `rc-fix-2` (53, incl. 5 new tests);
+- UI: `rc-ui-1` 227/229 on `796ffe5`, the two failures date-dependent test defects, fixed; every test affected
+  by the fixes rerun green (`rc-fix-1` 38/38, `rc-fix-2` 76/76, `rc-fix-3` 4/4);
+- one app change: `WorkoutCalendar` re-anchors its month cursor (a midnight-DST month kept today's month) — a
+  pre-existing defect, not reachable in New York;
+- Codex review 13 clear after 3 rounds.
+
+No full-suite rerun after the fixes: DEVELOPMENT (reuse unchanged tested code's results; the reviewer twice judged the
+focused scope sufficient). Not exercised: VoiceOver by a person, Reduce Motion at runtime, real GPS / sensors, a
+non-US simulator region, and the device until the install.
+
+## Progress
+
 - 2026-09-29: resumed from STATE (`1794867`) and tickets 01 / 12; branch map verified against `origin` (every
-  ticket tip as STATE lists; the cardio checkout clean at `796ffe5`). Ticket opened.
+  ticket tip as STATE lists; the cardio checkout clean at `796ffe5`). Ticket opened (`dfa8062`).
+- `rc-unit-1` 919/919 (`050e3d1`); `rc-ui-1` started 04:11. The user added their Apple ID; signing renewed with
+  `rc-device-build-1` (`832ba39`).
+- `rc-ui-1` 227/229 (08:36); both failures repeated alone; diagnosed; fixed (`fe35a34`, `rc-fix-1` 38/38); Codex
+  review 13 → `759aedf` (`rc-fix-2` 76/76) → 13b → `522c157` (`rc-fix-3` 4/4, mutation check) → 13c **clear**.
+- Next (ticket 01 step 5, with the user's go-ahead): rebuild the device binary from this tip (the build of `796ffe5`
+  predates the `WorkoutCalendar` fix) and recheck its freshness and profiles; fresh full backup of the phone's app
+  container; install; launch; data-preservation check; merge to `main`.
