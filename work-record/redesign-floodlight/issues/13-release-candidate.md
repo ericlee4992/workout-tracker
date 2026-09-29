@@ -41,6 +41,8 @@ booted (WT-iPhone, WT-Redesign, -2, -3); load at the start: 23.6 / 21.4 / 15.8 o
 
 | Run | Commit | What | Load at start | Exit | Result |
 |---|---|---|---|---|---|
+| `rc-build-1` | `796ffe5` code (`dfa8062`) | build-for-testing | 15.5 / 19.6 / 15.4 | 0 | TEST BUILD SUCCEEDED |
+| `rc-unit-1` | same | `WorkoutTrackerTests` (whole target) | 14.2 / 19.2 / 15.3 | 0 | **919/919** passed, 0 failed, 0 skipped (xcresult summary); 94 s |
 
 ## Failures and causes
 
