@@ -170,19 +170,35 @@ struct WorkoutActivityContentTests {
 
     // MARK: Commands pressed on the card
 
+    /// Records each queued beep as an absolute deadline: "in N seconds" is relative to the instant
+    /// it is queued, which a slow `handle` would otherwise blur (codex-review-11c #3).
+    final class DeadlineAlarm: RestAlarmSounding {
+        var deadlines: [Date] = []
+        var sessionOpens = 0
+        var cancellations = 0
+        func beginSession() { sessionOpens += 1 }
+        func endSession() {}
+        func scheduleBeep(inSeconds seconds: TimeInterval, pattern: RestAlarmPattern) {
+            deadlines = [Date.now.addingTimeInterval(seconds)]
+        }
+        func cancelScheduledBeep() { cancellations += 1; deadlines.removeAll() }
+        var hasQueuedBeep: Bool { !deadlines.isEmpty }
+        func sound(_ pattern: RestAlarmPattern) {}
+    }
+
     /// A command centre with a real coordinator (silent alarm), a silent card, and a recorded
     /// runtime attach — the cold-launch path cannot start HealthKit in a unit test.
     private struct Commands {
         let commands: WorkoutActivityCommands
         let notifications: FakeNotifications
-        let alarm: SilentRestAlarm
+        let alarm: DeadlineAlarm
         let presenter: SilentWorkoutActivityPresenter
         let attached: Box
     }
     final class Box { var workoutIDs: [UUID] = [] }
 
     private func commands(_ rig: Rig) -> Commands {
-        let alarm = SilentRestAlarm()
+        let alarm = DeadlineAlarm()
         let presenter = SilentWorkoutActivityPresenter()
         let attached = Box()
         let commands = WorkoutActivityCommands(
@@ -205,15 +221,12 @@ struct WorkoutActivityContentTests {
             posted = (note.object as? UUID) == rig.workout.id
         }
         defer { NotificationCenter.default.removeObserver(observer) }
-        let before = Date.now
         #expect(c.commands.perform(.addFifteen, workoutID: rig.workout.id))
-        let after = Date.now
         #expect(c.attached.workoutIDs == [rig.workout.id], "the workout's runtime is attached first (cold launch)")
         #expect(rig.workout.restEndsAt == end.addingTimeInterval(15))
         #expect(c.notifications.scheduled.last == end.addingTimeInterval(15), "the rest notification moves with it")
-        let queued = try #require(c.alarm.queued.first?.seconds, "the audible alarm is re-queued for the new end")
-        let target = end.addingTimeInterval(15)
-        #expect(queued <= target.timeIntervalSince(before) + 0.5 && queued >= target.timeIntervalSince(after) - 0.5)
+        let deadline = try #require(c.alarm.deadlines.first, "the audible alarm is re-queued for the new end")
+        #expect(abs(deadline.timeIntervalSince(end.addingTimeInterval(15))) < 0.5)
         #expect(posted, "the live screen re-reads its rest")
         #expect(c.presenter.starts == 1)
         #expect(c.presenter.lastState?.restEndsAt == end.addingTimeInterval(15), "the card is re-pushed")
@@ -227,7 +240,7 @@ struct WorkoutActivityContentTests {
         #expect(c.commands.perform(.skipRest, workoutID: rig.workout.id))
         #expect(rig.workout.restEndsAt == nil && rig.workout.restStartedBySetID == nil)
         #expect(c.notifications.cancellations == 1)
-        #expect(c.alarm.cancellations == 1 && c.alarm.queued.isEmpty, "the audible alarm is cancelled")
+        #expect(c.alarm.cancellations == 1 && c.alarm.deadlines.isEmpty, "the audible alarm is cancelled")
         #expect(c.commands.coordinator.lastRestResult == nil, "a skipped rest has no result")
         #expect(c.presenter.starts == 1, "the card was pushed")
         let state = try #require(c.presenter.lastState)
@@ -307,23 +320,19 @@ struct WorkoutActivityContentTests {
         try startRest(rig, after: rig.pressSets[1])
         let end = try #require(rig.workout.restEndsAt)
         let feed = WatchFeed()
-        let alarm = SilentRestAlarm()
-        let coordinator = WorkoutHeartRateCoordinator(alarm: alarm, makeProvider: { _ in WorkoutActivityProvider { _ in feed } })
+        let alarm = DeadlineAlarm()
+        let coordinator = WorkoutHeartRateCoordinator(alarm: alarm, makeProvider: { _ in WorkoutActivityProvider { _ in feed } },
+                                                      cardio: CardioRecorder(collectsDeviceSensors: false))
         let presenter = SilentWorkoutActivityPresenter()
         let commands = WorkoutActivityCommands(coordinator: coordinator, activity: WorkoutActivityController(presenter: presenter))
         commands.use(rig.container)
         commands.notifications = FakeNotifications()
         #expect(coordinator.workoutID == nil, "cold: no runtime yet")
-        let before = Date.now
         await commands.handle(.addFifteen, workoutID: rig.workout.id)
-        let after = Date.now
         #expect(coordinator.workoutID == rig.workout.id, "the command attached the workout's runtime")
         #expect(alarm.sessionOpens == 1)
-        // The beep is queued "in N seconds" at some instant during `handle`.
-        let queued = try #require(alarm.queued.first?.seconds, "the audible alarm is armed")
-        let target = end.addingTimeInterval(15)
-        #expect(queued <= target.timeIntervalSince(before) + 0.5 && queued >= target.timeIntervalSince(after) - 0.5,
-                "for the extended rest")
+        let deadline = try #require(alarm.deadlines.first, "the audible alarm is armed")
+        #expect(abs(deadline.timeIntervalSince(end.addingTimeInterval(15))) < 0.5, "for the extended rest")
         #expect(feed.started)
         #expect(feed.sent.last == end.addingTimeInterval(15), "the Watch hears the extended rest after its start message")
         #expect(presenter.lastState?.restEndsAt == end.addingTimeInterval(15))
@@ -338,9 +347,13 @@ struct WorkoutActivityContentTests {
     @Test func restFactsDoNotCarryIntoTheNextWorkout() async throws {
         let rig = try rig()
         let coordinator = WorkoutHeartRateCoordinator(alarm: SilentRestAlarm(),
-                                                      makeProvider: { _ in WorkoutActivityProvider { _ in WatchFeed() } })
-        coordinator.monitor(for: rig.workout, maxHeartRate: nil)
+                                                      makeProvider: { _ in WorkoutActivityProvider { _ in WatchFeed() } },
+                                                      cardio: CardioRecorder(collectsDeviceSensors: false))
+        // A relaunch: the screen restores an expired rest's result before the runtime attaches.
+        coordinator.noteRestFacts(for: rig.workout.id)
         coordinator.lastRestResult = .timer(seconds: 90)
+        coordinator.monitor(for: rig.workout, maxHeartRate: nil)
+        #expect(coordinator.lastRestResult == .timer(seconds: 90), "the first attachment keeps this workout's restored result")
         coordinator.degradedRestSetID = rig.pressSets[1].id
         coordinator.monitor(for: rig.workout, maxHeartRate: nil)
         #expect(coordinator.lastRestResult == .timer(seconds: 90), "minimise and resume keep them")
@@ -351,6 +364,62 @@ struct WorkoutActivityContentTests {
         coordinator.lastRestResult = .timer(seconds: 60)
         coordinator.end(next)
         #expect(coordinator.lastRestResult == nil, "ending the workout ends its rest facts")
+        await coordinator.settled()
+    }
+
+    /// A feed whose start can be held, like a HealthKit session waiting on collection.
+    private final class GatedFeed: HeartRateProviding {
+        var activeEnergyKilocalories: Double?
+        var basalEnergyKilocalories: Double?
+        let stream = AsyncStream<HeartRateSample> { _ in }
+        var started = false
+        private var gate: CheckedContinuation<Void, Never>?
+        private var open = false
+        func start() async -> HeartRateFeedState {
+            if !open { await withCheckedContinuation { gate = $0 } }
+            started = true
+            return .waitingForSensor
+        }
+        func release() { open = true; gate?.resume(); gate = nil }
+        func setPaused(_ paused: Bool) async {}
+        func stop() async {}
+    }
+
+    @Test func resumeOnTheCardWaitsForTheSensorsToStart() async throws {
+        let rig = try rig()
+        let segment = try CardioSession(context: rig.context).start(.indoorRun, in: rig.workout, at: .now.addingTimeInterval(-120))
+        try CardioSession(context: rig.context).pause(segment)
+        var cardioFeeds: [GatedFeed] = []
+        let workout = rig.workout
+        let coordinator = WorkoutHeartRateCoordinator(
+            alarm: DeadlineAlarm(),
+            makeProvider: { _ in
+                WorkoutActivityProvider(configuration: workout.sensorConfiguration) { phase in
+                    let feed = GatedFeed()
+                    if phase.activity == nil { feed.release() } else { cardioFeeds.append(feed) }
+                    return feed
+                }
+            },
+            cardio: CardioRecorder(collectsDeviceSensors: false))
+        let commands = WorkoutActivityCommands(coordinator: coordinator,
+                                               activity: WorkoutActivityController(presenter: SilentWorkoutActivityPresenter()))
+        commands.use(rig.container)
+        commands.notifications = FakeNotifications()
+        // The runtime is attached and settled with the segment paused: no cardio provider runs.
+        coordinator.monitor(for: rig.workout, maxHeartRate: nil)
+        await coordinator.ready()
+        #expect(cardioFeeds.isEmpty)
+        var finished = false
+        let press = Task { await commands.handle(.resumeCardio, workoutID: workout.id); finished = true }
+        for _ in 0..<50 where cardioFeeds.isEmpty { await Task.yield() }
+        let feed = try #require(cardioFeeds.first, "Resume starts the cardio provider")
+        for _ in 0..<20 { await Task.yield() }
+        #expect(!finished, "the intent has not returned while the provider is still starting")
+        #expect(segment.isRunning)
+        feed.release()
+        await press.value
+        #expect(finished && feed.started)
+        coordinator.end(rig.workout)
         await coordinator.settled()
     }
 }

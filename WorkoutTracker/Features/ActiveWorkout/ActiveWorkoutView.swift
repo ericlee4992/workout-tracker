@@ -919,6 +919,7 @@ struct ActiveWorkoutView: View {
     /// slab's expiry, a lock-screen command): say how it ended BEFORE `currentState` clears the
     /// facts it is read from (codex-review-11 #4).
     private func refreshRest() {
+        if !workout.isDeleted { heartRateCoordinator.noteRestFacts(for: workout.id) }
         if let end = workout.restEndsAt, end <= .now {
             lastRestResult = activityState().shownResult(at: .now, isStale: true)
         }

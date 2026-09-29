@@ -323,3 +323,29 @@ SwiftData objects outliving its container: the tests now end the runtime and awa
   test compared the queued beep's delay with "now" after a minute-long `handle` under the full suite (a test flaw:
   the delay is relative to when it was queued). Both +15s tests now bound it between the times before and after the
   call. `sys-unit-23`: **unit 905/905** (exit 0).
+
+## Codex review 11c — response (round 3)
+
+Report: [codex-review-11c.md](../codex-review-11c.md) — not clear; one high, one medium, one low. All accepted.
+
+1. **H1 — Resume returned before its sensors were configured.** `CardioRecorder.sync` keeps the reconfiguration it
+   starts (chained, so a pause then a resume apply in order; the generation check still drops a superseded one) and
+   exposes `configured()`; `coordinator.ready()` awaits the monitor's start AND that configuration, so the intent
+   returns only once the provider matches the segment. The coordinator's recorder is injectable. Test: a paused
+   segment with the runtime settled; Resume on the card starts a cardio provider whose start is held — `handle` has
+   not returned while it is held, and returns once released. Checked by mutation: without the new wait the test
+   fails (`sys-ui-25`).
+2. **M2 — first attachment could erase a result restored on appearance.** Rest facts carry the workout they belong
+   to: the screen's `refreshRest` marks them as its workout's (`noteRestFacts(for:)`) before it records anything;
+   attaching the SAME workout keeps them, another workout (or ending) clears them. Test: facts restored before the
+   first attachment survive it; a second workout clears them.
+3. **L3 — the loosened alarm bound.** The tests' alarm records each beep as an absolute deadline at the instant it
+   is queued; both +15s tests assert it within 0.5 s of the extended end.
+
+Verification (round 4): `sys-ui-24` exit 0 — `WorkoutActivityContentTests`, `WorkoutActivityProviderTests`,
+`CardioRecorderTests`, `WorkoutActivityTests` **37/37**.
+- `sys-ui-26` (exit 65): **unit 906/906**; UI 36/38 — `FloodlightSystemUITests`, `HeartRateUITests`, `CardioUITests`
+  passed; `CoreLoopUITests.testModelPickerFiltersAndSearchesDownToOneModel` (the gym model picker, untouched by this
+  round) and `FloodlightLiveUITests.testACompletedSetCanBeCorrectedInPlace` (a typed "102.5" arrived as "102.") failed
+  at load average ~25; both passed alone in `sys-ui-27` (exit 0, 2/2). Both passed in `sys-ui-17` and `sys-ui-22` on
+  the same screens.

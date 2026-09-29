@@ -39,6 +39,9 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
     private final class EnergyBaselines { var values: [UUID: (active: Double?, basal: Double?)] = [:] }
     @ObservationIgnored private var energyBaselines = EnergyBaselines()
     @ObservationIgnored private var checkpointSampleCount = 0
+    /// The provider reconfiguration the last `sync` started (a pause, a resume, a new segment),
+    /// so a lock-screen command can wait until the sensors match the segment (ticket 11).
+    @ObservationIgnored private var configurationTask: Task<Void, Never>?
 
     init(collectsDeviceSensors: Bool = !WorkoutTrackerStore.isUITestReset,
          clock: @escaping () -> Date = { .now }) {
@@ -53,6 +56,8 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
     deinit { timer?.invalidate() }
 
     var current: CardioSegment? { workout?.unfinishedCardio }
+    /// Waits for the sensor configuration the last change started.
+    func configured() async { await configurationTask?.value }
     var freshSpeed: Double? {
         guard current?.isRunning == true, let date = movementUpdatedAt,
               (-2...15).contains(measurementTime.timeIntervalSince(date)) else { return nil }
@@ -129,7 +134,9 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
         configurationGeneration += 1
         let generation = configurationGeneration
         if let provider = monitor?.provider as? WorkoutActivityProvider {
-            Task { [weak self] in
+            let previous = configurationTask
+            configurationTask = Task { [weak self] in
+                await previous?.value
                 guard let self, !self.shuttingDown, self.configurationGeneration == generation else { return }
                 await provider.configure(phase)
             }

@@ -21,7 +21,7 @@ import SwiftData
 @Observable
 final class WorkoutHeartRateCoordinator {
 
-    let cardio = CardioRecorder()
+    let cardio: CardioRecorder
     private(set) var workoutID: UUID?
     private(set) var monitor: HeartRateMonitor?
     private var finalizationTask: Task<Void, Never>?
@@ -56,14 +56,31 @@ final class WorkoutHeartRateCoordinator {
     /// How the last rest ended, once it has (Z03), until the next set is logged. Here for the
     /// same reason: the card keeps it across minimise, resume and lock-screen commands
     /// (codex-review-11 #4).
-    var lastRestResult: WorkoutActivityAttributes.RestResult?
+    var lastRestResult: WorkoutActivityAttributes.RestResult? {
+        didSet { if lastRestResult != nil, let workoutID { restFactsWorkoutID = workoutID } }
+    }
+    /// The workout the rest facts above belong to. Set when they are written for an attached
+    /// workout, or by `noteRestFacts(for:)` before one is attached.
+    private var restFactsWorkoutID: UUID?
+
+    /// Marks the rest facts as this workout's (the live screen writes them before its first
+    /// attachment after a relaunch).
+    func noteRestFacts(for workoutID: UUID) {
+        if restFactsWorkoutID != workoutID {
+            lastRestResult = nil
+            degradedRestSetID = nil
+        }
+        restFactsWorkoutID = workoutID
+    }
 
     /// Builds the sensor provider for a workout; tests inject a fake (the default starts
     /// HealthKit / the Watch session).
     private let makeProvider: (Workout) -> any HeartRateProviding
 
-    init(alarm: (any RestAlarmSounding)? = nil, makeProvider: ((Workout) -> any HeartRateProviding)? = nil) {
+    init(alarm: (any RestAlarmSounding)? = nil, makeProvider: ((Workout) -> any HeartRateProviding)? = nil,
+         cardio: CardioRecorder? = nil) {
         self.alarm = alarm ?? RestAlarms.make()
+        self.cardio = cardio ?? CardioRecorder()
         self.makeProvider = makeProvider ?? { workout in
             HeartRateProviders.make(workoutID: workout.id.uuidString,
                 configuration: workout.sensorConfiguration,
@@ -83,9 +100,14 @@ final class WorkoutHeartRateCoordinator {
             monitor.maxHeartRate = maxHeartRate
             return monitor
         }
-        // Another workout's rest facts must not reach this one's card (codex-review-11b #3).
-        lastRestResult = nil
-        degradedRestSetID = nil
+        // Another workout's rest facts must not reach this one's card (codex-review-11b #3). The
+        // same workout's facts, restored before its first attachment (a relaunch: the screen's
+        // `refreshRest` runs on appear, the attachment in its task), are kept (codex-review-11c #2).
+        if restFactsWorkoutID != workout.id {
+            lastRestResult = nil
+            degradedRestSetID = nil
+        }
+        restFactsWorkoutID = workout.id
         // A different workout: BANK the old one, then end its session. This
         // used to stop the old monitor and discard its samples, so "Finish it
         // and start new" — which auto-finishes the active workout in
@@ -284,8 +306,12 @@ final class WorkoutHeartRateCoordinator {
     /// Hands the audio session back when the workout ends. Holding it open for
     /// a workout nobody is doing is the audio equivalent of leaving the sensor
     /// powered.
-    /// Waits until the running monitor's providers have started.
-    func ready() async { await startTask?.value }
+    /// Waits until the running monitor's providers have started and match the workout's current
+    /// phase (a pause or resume reconfigures them asynchronously; codex-review-11c #1).
+    func ready() async {
+        await startTask?.value
+        await cardio.configured()
+    }
     /// Waits for the start and any banking still in flight (tests end a workout, then wait).
     func settled() async {
         await startTask?.value
@@ -298,6 +324,7 @@ final class WorkoutHeartRateCoordinator {
         // The workout's rest facts end with it (codex-review-11b #3).
         lastRestResult = nil
         degradedRestSetID = nil
+        restFactsWorkoutID = nil
         onSample = nil
         alarm.endSession()
     }
