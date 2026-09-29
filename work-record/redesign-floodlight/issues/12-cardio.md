@@ -223,9 +223,28 @@ Runner `/tmp/wt-floodlight/cardio-run.sh <name> build|test …` (derived data `/
 - Looked at every capture as a picture (light/dark × Default/AXL): fixed at AXL the figure labels breaking
   mid-word ("Dis-/tance": the glyph now drops at AX sizes), the Distance sheet's pace wrapping, split paces
   wrapping; the digit roll caught mid-frame (the capture-still flag now defaults on in UI-test stores).
+- `cardio-ui-4` (on `2f43dae`; exit 65): **UI 18/19** — `CardioUITests` 9/9, `RedesignScreenshotUITests` unit-system
+  2/2, `FloodlightCardioUITests` 7/8. `testFinishedDarkAccessibility` failed opening History, again alone
+  (`cardio-ui-5`): at AccessibilityL the scroll left "View in History" under the receipt's pinned header and the tap
+  hit Done (a test defect — the header is the receipt's, unchanged). The test now scrolls the link clear first;
+  `cardio-ui-6` exit 0 (that case + `testLiveLightAccessibility`, 2/2).
+- Distance sheet at AX: the readout row's title broke mid-word ("Aver-/age pace"); it now stacks title over figure.
+  `cardio-ui-7` (on `40a3c79`) exit 0: the four `FloodlightCardioUITests` Live flows + the Distance editor case, 5/5.
+- **Captures** `../captures/12/` (80): 20 states × light/dark × Default/AccessibilityL — Live flows from `cardio-ui-7`,
+  Finished flows from `cardio-ui-4` (dark AXL from `cardio-ui-6`). Compared with the prototype side by side
+  (`/tmp/wt-floodlight/results/cardio-sheets/compare-{dark,light}{,-axl}.png`).
+- **Scope rationale** (DEVELOPMENT): a screen area restyled with behaviour changes (the picker's Start, the planned
+  hero, hidden vitals in cardio focus, the cardio-only History hero) → its capture class and every flow that
+  reaches cardio: `CardioUITests` (mixed workouts, manual distance, outdoor route, indoor motion, saved-distance
+  editor), the unit-system flows (Home picker, the new cycle speed unit), the AI template's planned Start from the
+  lifting focus; domain logic → `CardioReadoutTests` + the existing `CardioTests` / `CardioRecorderTests` (the
+  recorder's UI-test location hook). Not run here: the full UI suite (the release-candidate pass after this ticket).
+  Not exercised: VoiceOver by a person, Reduce Motion at runtime, real GPS / sensors, a real device.
 
 ## Progress
 
 - 2026-09-28: resumed from STATE and ticket 01; the branch reset onto `af30f66` and force-pushed. Read ticket 11
   (workflow model), the ios-design skill, the prototype Cardio area and its Finish/History cardio pieces, the
-  real cardio views, recorder, model and tests. Prototype captures started (dark). User decisions 1–4.
+  real cardio views, recorder, model and tests. Prototype captured (dark, light). User decisions 1–4. Ticket and
+  references `db93ff4`; implementation `76eb6ae`; AX fixes `2f43dae`, `40a3c79`; captures (this commit). Next: Codex
+  review 12 (`../codex-review-12-prompt.md`).
