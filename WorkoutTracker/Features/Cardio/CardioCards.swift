@@ -326,6 +326,7 @@ struct CardioSplitsView: View {
                          : "\(CardioMath.paceText(pace)) \(CardioFormat.paceUnit(unit))")
                         .font(.system(.footnote, weight: .heavy).width(.expanded).monospacedDigit())
                         .foregroundStyle(isLit ? look.textPrimary : look.textSecondary)
+                        .fixedSize()
                         .frame(minWidth: 70, alignment: .trailing)
                 }
                 .accessibilityElement(children: .ignore)

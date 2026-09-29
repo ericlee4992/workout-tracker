@@ -75,9 +75,9 @@ extension Look {
 }
 
 extension EnvironmentValues {
-    /// True under UI-test captures: the pulse, blink and flicker rest in their full state, so a
-    /// screenshot never catches a mid-blink frame.
-    @Entry var cardioStill: Bool = false
+    /// True in UI-test stores (captures): the pulse, blink, flicker and rolling digits rest in their
+    /// final state, so a screenshot never catches a mid-blink or mid-roll frame.
+    @Entry var cardioStill: Bool = WorkoutTrackerStore.isUITestReset
 }
 
 // MARK: - Recording dot, blink
@@ -375,6 +375,7 @@ struct CardioStatCell: View {
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.cardioStill) private var still
 
     var body: some View {
         if let action = stat.action {
@@ -393,9 +394,12 @@ struct CardioStatCell: View {
         let ax = typeSize.isAccessibilitySize
         return VStack(alignment: .leading, spacing: 5) {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
-                Image(systemName: stat.symbol)
-                    .font(.system(.caption, weight: .semibold))
-                    .foregroundStyle(stat.symbolTint ?? look.textSecondary)
+                // At accessibility sizes the glyph goes: the label keeps whole words in a half-width cell.
+                if !ax {
+                    Image(systemName: stat.symbol)
+                        .font(.system(.caption, weight: .semibold))
+                        .foregroundStyle(stat.symbolTint ?? look.textSecondary)
+                }
                 Text(stat.label)
                     .font(look.cardioLabelFont)
                     .foregroundStyle(look.textSecondary)
@@ -415,7 +419,7 @@ struct CardioStatCell: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
                     .contentTransition(.numericText())
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.3), value: stat.value)
+                    .animation(reduceMotion || still ? nil : .snappy(duration: 0.3), value: stat.value)
                 if let unit = stat.unit, !noReading {
                     Text(unit).font(look.cardioUnitFont).foregroundStyle(look.textSecondary)
                         .lineLimit(1).minimumScaleFactor(0.7)

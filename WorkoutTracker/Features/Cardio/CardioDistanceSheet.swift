@@ -160,6 +160,7 @@ struct CardioDistanceSheet: View {
                         Text(rateUnit).font(look.cardioUnitFont).foregroundStyle(look.textSecondary)
                     }
                 }
+                .fixedSize() // the figure never breaks; the row's title wraps instead
             }
             if let measured = segment.automaticDistanceMeters {
                 LookRow("Measured", symbol: CardioFormat.distanceSymbol, showsChevron: false, action: {

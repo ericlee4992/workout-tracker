@@ -163,7 +163,8 @@ final class CardioUITests: XCTestCase {
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         XCTAssertTrue(any("cardioMeasuredDistance").exists)
         XCTAssertFalse(app.buttons["saveCardioDistance"].isEnabled)
-        XCTAssertTrue((field.value as? String) == "Distance" || (field.value as? String) == "")
+        // Blank: the field shows its "—" prompt (ticket 12); older builds reported the title or nothing.
+        XCTAssertTrue(["Distance", "", "—"].contains((field.value as? String) ?? ""), "\(String(describing: field.value))")
         field.tap(); field.typeText("5")
         app.buttons["km"].tap()
         XCTAssertEqual(field.value as? String, "5")

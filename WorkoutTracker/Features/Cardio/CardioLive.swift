@@ -70,6 +70,7 @@ struct CardioLiveBlock: View {
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.cardioStill) private var still
     @State private var editingDistance = false
     @ScaledMetric(relativeTo: .largeTitle) private var ringSide: CGFloat = 236
     @ScaledMetric(relativeTo: .title3) private var discSize: CGFloat = 44
@@ -194,7 +195,7 @@ struct CardioLiveBlock: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.5)
                     .contentTransition(.numericText(countsDown: false))
-                    .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: centre)
+                    .animation(reduceMotion || still ? nil : .snappy(duration: 0.25), value: centre)
                 if let caption {
                     HStack(spacing: 4) {
                         if model.targetDone { Image(systemName: "checkmark.circle.fill").foregroundStyle(look.textPrimary) }

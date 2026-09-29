@@ -51,7 +51,8 @@ final class FloodlightCardioUITests: XCTestCase {
             }
             return element.frame.minY > 100
         }
-        for _ in 0..<12 where !visible() {
+        // Lazy lists (History at AccessibilityL) load a far row only once scrolled near it.
+        for _ in 0..<24 where !visible() {
             let up = !element.exists || element.frame.minY > 100
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: up ? 0.62 : 0.38))
             let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: up ? 0.38 : 0.62))
