@@ -101,7 +101,7 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   UI suite on the ticket-12 code `796ffe5` (Default and AccessibilityL captures already per ticket). Record
   `issues/13-release-candidate.md` on the cardio branch (opened `dfa8062`, docs only); runs `rc-*` via
   `/tmp/wt-floodlight/cardio-run.sh`, results `/tmp/wt-floodlight/results/rc-*` (`.log`, `.exit`, `.xcresult`). Then the
-  one install (fresh backup, signing renewal — Xcode Apple ID still missing, install, launch, data-preservation check);
+  one install (fresh backup, install, launch, data-preservation check);
   ask the user before merging to `main` or touching the phone. Nothing is merged to `main`.
   Signing renewed 2026-09-29 (Apple ID added; app/widget profiles expire 2026-10-06 08:45 UTC; device build
   `rc-device-build-1` of `796ffe5` at `/tmp/wt-floodlight/dd-device`). Done: `rc-unit-1` 919/919. **Running: `rc-ui-1`** (full UI suite, PID 78787, started 04:11 EDT; see the ticket).
