@@ -1,7 +1,7 @@
 # 12 — Floodlight: Cardio (plain Floodlight)
 
 Type: feature (part of [01](01-implement-redesign.md), area order item 3 — missed in the 02–10 sequence)
-Status: in progress
+Status: resolved — Codex clear after 3 rounds (codex-review-12c.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-cardio` (scratch checkout `/tmp/wt-floodlight/cardio`), reset
 2026-09-28 from `0fa6814` onto the ticket-11 tip `af30f66` (Codex clear) and force-pushed. Nothing merged to
@@ -308,6 +308,12 @@ Verification (round 3, on `ddc26c0`): `cardio-build-5` exit 0; `cardio-ui-12` **
 setup, the receipt's edit, the cycle card and the Cardio section's contents), `CardioUITests` 9/9,
 `RedesignScreenshotUITests.testUnitSystemAccessibility`. Captures `../captures/12/` (84) all from this one run; at
 AccessibilityL the ring's centre is the largest figure in both appearances (`C02-*-axl`, `C02-p2-*-axl`).
+
+Codex review 12c (round 3): **clear** ([codex-review-12c.md](../codex-review-12c.md)); review terminal closed. Decisions
+recorded in D59's list ("Cardio (ticket 12)"). Open, handed on: the release-candidate pass (full UI suite, ticket 01
+step 4), then the one install. Not exercised here: VoiceOver by a person, Reduce Motion at runtime, real GPS /
+sensors and the zone-coloured heart trace on a device (unit-tested buckets), an invalid Distance entry by paste
+(unit-tested rule).
 
 Process slip: `cardio-ui-8` was started with a shell `&` instead of the tool's background mode (the brief's rule);
 the runner survived and wrote its own `.exit`, which is what the record cites.

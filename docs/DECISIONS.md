@@ -198,3 +198,12 @@ User decisions under D59, by area (each ticket has the full wording):
   workout exactly as the in-app buttons do (D46 still holds: the system ticks every countdown and clock); the Live
   Activity follows the system appearance, the island is black; the icon is the violet dumbbell; the Cardio area (missed in
   tickets 02–10) is restyled in plain Floodlight in its own ticket (12) before the release-candidate pass.
+- **Cardio (ticket 12, 2026-09-28):** plain Floodlight ("keep cardio plain floodlight", not Anatomy's cardio screen).
+  Choose Cardio **selects, then Start** (a tap no longer starts; the first unstarted planned target, else the last
+  activity, is preselected; nothing while a segment records; no search field). Outdoor live cardio shows its **GPS
+  status only on a problem** (bars + the recorder's message while it waits; the "Location unavailable." plate when
+  lost; no line while fixes arrive — the September 19 removal stands). The live ring's **distance mode** (with no
+  target, it counts toward the next mile / km, "of 2 mi") is approved. The **receipt keeps its distance edit**.
+  Adopted as implemented and open to veto: the vitals strip and the "Cardio targets" list are hidden in cardio focus
+  (the panel has its own heart plate and planned target), so the heart-rate source is not shown there; a cardio-only
+  History workout drops the Workout time tile (the hero has the time); Distance's Save stays off until a change.
