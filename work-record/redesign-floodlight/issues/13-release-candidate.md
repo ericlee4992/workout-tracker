@@ -43,15 +43,50 @@ booted (WT-iPhone, WT-Redesign, -2, -3); load at the start: 23.6 / 21.4 / 15.8 o
 |---|---|---|---|---|---|
 | `rc-build-1` | `796ffe5` code (`dfa8062`) | build-for-testing | 15.5 / 19.6 / 15.4 | 0 | TEST BUILD SUCCEEDED |
 | `rc-unit-1` | same | `WorkoutTrackerTests` (whole target) | 14.2 / 19.2 / 15.3 | 0 | **919/919** passed, 0 failed, 0 skipped (xcresult summary); 94 s |
+| `rc-ui-1` | same | `WorkoutTrackerUITests` (whole target) | 16.4 / 18.9 / 15.7 | 65 | **227/229**, 2 failed, 0 skipped; 04:12–08:36 (4 h 24 min). Failures 1–2 below |
+| `rc-ui-2` | same | the two failures, alone | 13.6 (08:36) | 65 | 0/2 — both repeat alone: not load |
+| `rc-diag-1` | same + a throwaway diagnostic test (not committed) | History row labels while scrolling | 9.7 / 13.1 / 15.2 | 0 | rows read "19, Sat, Seated Chest Press, …"; scrolling releases the rows above |
+| `rc-fix-1` | fix (working tree, then committed as below) | unit `ChartFixtureTests` (new, 3), `HeartRateSeriesTests`; UI `HistoryCalendarUITests` (3), `ProgressChartTooltipUITests` (4), `ProgressChartUITests` (2) | 14.7 (08:46) | 0 | **38/38**, 0 skipped |
 
-**Running:** `rc-ui-1` — `WorkoutTrackerUITests` (whole target) on the same code, started 2026-09-29 04:11 EDT
-(load 16.4 / 18.9 / 15.7), xcodebuild PID 78787, launched by Claude Code's background Bash (not a shell `&`); log
-`/tmp/wt-floodlight/results/rc-ui-1.log`, exit `rc-ui-1.exit`, bundle `rc-ui-1.xcresult`. Expected 2–4 h. If the
-session ends mid-run: check the `.exit` file and the xcresult summary; do not start a second run on the simulator.
+`rc-ui-1` ran as xcodebuild PID 78787 from Claude Code's background Bash (not a shell `&`). None of the known
+load flakes (Gyms model picker, FloodlightLive typing, launch on the Workout tab) appeared in it.
 
 ## Failures and causes
 
+Both are **test defects that depend on the calendar date** (both tests from ticket 05, 2026-09-27; they passed
+then). The app behaves as designed in both. Neither is load: both failed identically alone (`rc-ui-2`, load 13.6).
+
+1. **`HistoryCalendarUITests.testAnEmptyDayIsSelectableAndMonthsPage`** — "("Sep 2026") is equal to ("Sep 2026") -
+   the chevron shows the previous month". The failure recording shows "Previous month" dimmed and disabled: the
+   calendar runs from the first workout's month (`WorkoutCalendar`, `HistoryCalendarSheet` disables the chevron at
+   index 0), and the test's fixture `-uiTestChartHistory` reaches back only 28 days — on 2026-09-29 its oldest
+   session is Sep 1, so there is one month. It fails on the 29th–31st (the 29th–30th of a 30-day month). Two more
+   defects in the same test: it read the header's label right after the tap with no wait for the page to turn
+   (`waitForExistence` on an element that always exists), and on the 1st of a month the calendar opens on the
+   latest workout's month (yesterday's: the previous month), where today's cell does not exist.
+2. **`ProgressChartTooltipUITests.testHistoryOpensTheChartOnThatSessionsVariation`** — "("4") is not greater than
+   ("4") - the fixture seeds more than five sessions". The test counted the lazy History list's built rows and
+   tapped index 4 (the fixture's dumbbell session ten days back). The Floodlight History groups rows by week, each
+   with a header, under the month card; on 2026-09-29 the first four sessions span three weeks, so only four rows
+   are built at launch. On 2026-09-27 they fell in one week and five were built. The diagnostic run also showed that
+   scrolling releases the rows above, so no index is stable after a scroll.
+
 ## Fixes
+
+Commit: see Progress. Test and fixture code only; no app behaviour changes.
+
+- **Fixture** `ChartFixture` (`Domain/ChartFixture.swift`): `-uiTestChartHistoryOlderMonth` (guarded like every
+  fixture by `WorkoutTrackerStore.fixtureIsEnabled`, i.e. only with `-uiTestReset`) adds one working session forty
+  days back — an earlier calendar month on every date. A separate argument, so the four chart tests' series is
+  unchanged. `seed(in:now:includeOlderMonth:)` defaults to the argument.
+- **`HistoryCalendarUITests`** launches with that argument too; the paging test pages forward to today when the
+  calendar opened on the previous month (the 1st), and waits for the header's label to change after the tap.
+- **`ProgressChartTooltipUITests.testHistoryOpensTheChartOnThatSessionsVariation`** finds the dumbbell session's
+  row by its date prefix (`"<d>, <EEE>, "`, the app's own templates, the fixture's `now − 10 × 86,400 s`), swiping
+  until it is hittable above the tab bar, instead of by index.
+- **Unit tests** `ChartFixtureTests` (3): the fixture alone spans one month on 2026-09-29 and two with the
+  argument; forty days back is in an earlier month for every day of 2026; the extra session arrives only with its
+  argument (and the argument alone, without `-uiTestReset`, is off).
 
 ## Install (ticket 01 step 5)
 

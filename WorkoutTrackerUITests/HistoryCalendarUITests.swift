@@ -9,7 +9,9 @@ final class HistoryCalendarUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-uiTestReset", "-uiTestChartHistory"]
+        // The older-month session: the chart fixture alone spans one month on the 29th–31st, and
+        // the calendar runs only from the first workout's month (ticket 13).
+        app.launchArguments = ["-uiTestReset", "-uiTestChartHistory", "-uiTestChartHistoryOlderMonth"]
         app.launch()
     }
 
@@ -58,16 +60,21 @@ final class HistoryCalendarUITests: XCTestCase {
     func testAnEmptyDayIsSelectableAndMonthsPage() {
         app.tabBars.buttons["History"].tap()
         app.buttons["historyCalendar"].tap()
-        XCTAssertTrue(app.staticTexts.matching(identifier: "calendarMonth").firstMatch.waitForExistence(timeout: 10))
+        let month = app.staticTexts.matching(identifier: "calendarMonth").firstMatch
+        XCTAssertTrue(month.waitForExistence(timeout: 10))
+        // The calendar opens on the latest workout's month: yesterday's, which on the 1st is the
+        // previous month.
         let today = app.buttons["calendarDay.\(Self.key(.now))"]
+        if !today.waitForExistence(timeout: 5) { app.buttons["Next month"].tap() }
         XCTAssertTrue(today.waitForExistence(timeout: 5))
         today.tap()
         XCTAssertTrue(app.staticTexts["No workouts"].waitForExistence(timeout: 5), "today has no workout in the fixture")
-        let month = app.staticTexts.matching(identifier: "calendarMonth").firstMatch.label
+        let shown = month.label
         app.buttons["Previous month"].tap()
-        let previous = app.staticTexts.matching(identifier: "calendarMonth").firstMatch
-        XCTAssertTrue(previous.waitForExistence(timeout: 5))
-        XCTAssertNotEqual(previous.label, month, "the chevron shows the previous month")
+        // Wait for the page to turn; the header exists throughout, so its existence proves nothing.
+        let paged = expectation(for: NSPredicate(format: "label != %@", shown), evaluatedWith: month)
+        XCTAssertEqual(XCTWaiter.wait(for: [paged], timeout: 5), .completed,
+                       "the chevron shows the previous month (still '\(month.label)')")
     }
 
     /// An empty store: no calendar until the first workout (the user's decision, 2026-09-27);

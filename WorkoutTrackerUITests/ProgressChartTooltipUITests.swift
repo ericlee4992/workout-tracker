@@ -124,8 +124,25 @@ final class ProgressChartTooltipUITests: XCTestCase {
         app.tabBars.buttons["History"].tap()
         let rows = app.descendants(matching: .any).matching(identifier: "historyWorkoutRow")
         XCTAssertTrue(rows.firstMatch.waitForExistence(timeout: 10))
-        XCTAssertGreaterThan(rows.count, 4, "the fixture seeds more than five sessions")
-        rows.element(boundBy: 4).tap()
+        // The fixture's dumbbell session ten days ago (ChartFixture.script's (10, 45, 10, nil,
+        // .dumbbell), dated `now - 10 × 86,400 s`), found by the row's date ("19, Sat, …"). Not by
+        // position: how many rows the lazy list has built depends on the weekday (each week is a
+        // section with a header), and scrolling releases the rows above (ticket 13: failed on
+        // 2026-09-29, when only four rows were built).
+        let sessionDay = Date.now.addingTimeInterval(-10 * 86_400)
+        func formatted(_ template: String) -> String {
+            let f = DateFormatter()
+            f.setLocalizedDateFormatFromTemplate(template)
+            return f.string(from: sessionDay)
+        }
+        let row = rows.matching(NSPredicate(
+            format: "label BEGINSWITH %@", "\(formatted("d")), \(formatted("EEE")), ")).firstMatch
+        let tabBar = app.tabBars.firstMatch
+        for _ in 0..<8 where !(row.exists && row.isHittable && row.frame.maxY < tabBar.frame.minY - 8) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(row.exists, "the dumbbell session's row (\(formatted("d")), \(formatted("EEE")))")
+        row.tap()
 
         let chartButton = app.buttons["historyEntryChart"].firstMatch
         XCTAssertTrue(chartButton.waitForExistence(timeout: 10), "each exercise should offer its chart")

@@ -79,7 +79,20 @@ enum ChartFixture {
 
     /// Seeds the history. Idempotent by exercise: a second call does nothing,
     /// so a relaunch inside one test run cannot double the series.
-    static func seed(in context: ModelContext, now: Date = .now) throws {
+    /// Added to the chart fixture, one more working session FORTY days back — always in an
+    /// earlier calendar month than today, so the History calendar has a month to page to on
+    /// every date. The script's oldest day (28) shares today's month on the 29th–31st, and the
+    /// calendar runs only from the first workout's month (ticket 13: its paging test failed on
+    /// 2026-09-29). A separate argument, so the chart tests' series is unchanged.
+    static let olderMonthArgument = "-uiTestChartHistoryOlderMonth"
+    static let olderMonthSession: (daysAgo: Int, weightLb: Double, reps: Int) = (40, 90, 8)
+
+    static var includesOlderMonth: Bool {
+        WorkoutTrackerStore.fixtureIsEnabled(olderMonthArgument)
+    }
+
+    static func seed(in context: ModelContext, now: Date = .now,
+                     includeOlderMonth: Bool = includesOlderMonth) throws {
         let existing = try context.fetch(FetchDescriptor<Workout>())
         guard existing.isEmpty else { return }
         let exercises = try context.fetch(FetchDescriptor<Exercise>())
@@ -98,6 +111,10 @@ enum ChartFixture {
         let rows = script.map { ($0.daysAgo, $0.weightLb, $0.reps, $0.preset, $0.tag, SetType.working) }
             + [(warmupOnlySession.daysAgo, warmupOnlySession.weightLb, warmupOnlySession.reps,
                 nil, warmupOnlySession.tag, SetType.warmup)]
+            + (includeOlderMonth
+                ? [(olderMonthSession.daysAgo, olderMonthSession.weightLb, olderMonthSession.reps,
+                    nil, nil, SetType.working)]
+                : [])
         for (daysAgo, weightLb, reps, presetName, tag, setType) in rows {
             let date = now.addingTimeInterval(-Double(daysAgo) * 86_400)
             let workout = Workout(startedAt: date)
