@@ -48,6 +48,8 @@ booted (WT-iPhone, WT-Redesign, -2, -3); load at the start: 23.6 / 21.4 / 15.8 o
 | `rc-diag-1` | same + a throwaway diagnostic test (not committed) | History row labels while scrolling | 9.7 / 13.1 / 15.2 | 0 | rows read "19, Sat, Seated Chest Press, …"; scrolling releases the rows above |
 | `rc-fix-1` | fix (working tree, then committed as below) | unit `ChartFixtureTests` (new, 3), `HeartRateSeriesTests`; UI `HistoryCalendarUITests` (3), `ProgressChartTooltipUITests` (4), `ProgressChartUITests` (2) | 14.7 (08:46) | 0 | **38/38**, 0 skipped |
 | `rc-fix-2` | round-1 fixes (Codex review 13) | unit `ChartFixtureTests` (4), `WorkoutCalendarTests`, `HeartRateSeriesTests`, `HistoryOverviewTests`; UI — every chart-fixture or History-calendar user: `HistoryCalendarUITests` (3), `ProgressChartTooltipUITests` (4), `ProgressChartUITests` (2), `FloodlightHistoryUITests` (8), `HistoryTemplateUITests` (3), `RedesignScreenshotUITests` `test05_history` + `…LargeText`, `HeartRateSummaryUITests.testAWorkoutWithoutASeriesShowsNoChart` | 7.7 / 9.2 / 12.3 | 0 | **76/76** (23 UI + 53 unit), 0 skipped |
+| `rc-fix-3` | round-2 fixes (Codex review 13b) | `ProgressChartTooltipUITests` (4) | 20.6 (09:18) | 0 | **4/4**, 0 skipped |
+| `rc-mutation-1` | round-2 fixes with the drag removed (throwaway, restored) | `…testTappingTheChartShowsTheValueAsEntered` | — | 65 | fails at the new assertion ("…selected nothing"): the check is not vacuous |
 
 `rc-ui-1` ran as xcodebuild PID 78787 from Claude Code's background Bash (not a shell `&`). None of the known
 load flakes (Gyms model picker, FloodlightLive typing, launch on the Workout tab) appeared in it.

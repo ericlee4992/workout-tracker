@@ -11,7 +11,10 @@ final class ProgressChartTooltipUITests: XCTestCase {
         super.setUp()
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["-uiTestReset", "-uiTestChartHistory"]
+        // US English pinned: a fresh store takes its weight unit from the locale, and the tests read
+        // pounds — the unit the fixture logs, and the "450, lb" volume that finds the dumbbell session
+        // (a UK simulator would show kg; codex-review 13b).
+        app.launchArguments = ["-uiTestReset", "-uiTestChartHistory", "-AppleLocale", "en_US", "-AppleLanguages", "(en)"]
         app.launch()
     }
 
@@ -29,22 +32,27 @@ final class ProgressChartTooltipUITests: XCTestCase {
         before.lifetime = .keepAlways
         add(before)
 
+        // The row falls back to the most recent session when nothing is
+        // selected, so asserting it merely EXISTS would pass even if the
+        // gesture did nothing. Read that fallback first: the drag lands
+        // mid-series, so the row must change from it. Compared with the app's
+        // own row, not a date computed here — the fixture's clock and this one
+        // can disagree about "yesterday" (codex-review 13b).
+        let row = app.descendants(matching: .any)
+            .matching(identifier: "chartSelection").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "the selection row should exist")
+        let fallback = row.label
+
         // Press and drag across the chart. `chartXSelection` tracks a drag;
         // a single synthetic tap did not register.
         let from = chart.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.5))
         let to = chart.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5))
         from.press(forDuration: 0.4, thenDragTo: to)
 
-        let row = app.descendants(matching: .any)
-            .matching(identifier: "chartSelection").firstMatch
-        XCTAssertTrue(row.waitForExistence(timeout: 10), "the selection row should exist")
-        // The row falls back to the most recent session when nothing is
-        // selected, so asserting it merely EXISTS would pass even if the
-        // gesture did nothing. The drag landed mid-series, so the newest
-        // session is exactly what must NOT be showing.
-        XCTAssertFalse(
-            row.label.contains(newestSessionDay),
-            "the row still shows the newest session, so the drag selected nothing")
+        let selected = expectation(for: NSPredicate(format: "label != %@", fallback), evaluatedWith: row)
+        XCTAssertEqual(
+            XCTWaiter.wait(for: [selected], timeout: 5), .completed,
+            "the row still shows the newest session ('\(fallback)'), so the drag selected nothing")
 
         let after = XCTAttachment(screenshot: app.screenshot())
         after.name = "chart-tooltip"
@@ -185,12 +193,6 @@ final class ProgressChartTooltipUITests: XCTestCase {
         shot.name = "history-chart-sparse"
         shot.lifetime = .keepAlways
         add(shot)
-    }
-
-    /// The fixture's most recent session is yesterday.
-    private var newestSessionDay: String {
-        let yesterday = Date().addingTimeInterval(-86_400)
-        return yesterday.formatted(.dateTime.month(.abbreviated).day())
     }
 
     private func openProgress(for exercise: String) {
