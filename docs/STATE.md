@@ -97,9 +97,12 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `CardioUITests` 9/9, unit-system AX); earlier `cardio-ui-8` unit 30/30 (with `CardioTests`, `CardioRecorderTests`),
   `cardio-ui-2` the AskAI planned Start; captures `captures/12/` (84). Not exercised: VoiceOver by a person, Reduce
   Motion at runtime, real GPS / sensors, a device.
-- **Next: the release-candidate pass** (ticket 01 step 4: the full UI suite + unit tests on the ticket-12 tip, Default
-  and AccessibilityL captures already per ticket), then the one install (fresh backup, signing renewal — Xcode Apple ID
-  still missing, install, launch, data-preservation check). Nothing is merged to `main`.
+- **Ticket 13 — release-candidate pass** (ticket 01 step 4), **in progress 2026-09-29**: the full unit suite + the full
+  UI suite on the ticket-12 code `796ffe5` (Default and AccessibilityL captures already per ticket). Record
+  `issues/13-release-candidate.md` on the cardio branch (opened `dfa8062`, docs only); runs `rc-*` via
+  `/tmp/wt-floodlight/cardio-run.sh`, results `/tmp/wt-floodlight/results/rc-*` (`.log`, `.exit`, `.xcresult`). Then the
+  one install (fresh backup, signing renewal — Xcode Apple ID still missing, install, launch, data-preservation check);
+  ask the user before merging to `main` or touching the phone. Nothing is merged to `main`.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
