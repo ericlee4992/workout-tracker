@@ -227,4 +227,17 @@ struct CardioReadoutTests {
         #expect(CardioFormat.isInvalidEntry("1e400", unit: .km))
         #expect(!CardioFormat.isInvalidEntry("1e3", unit: .mi))
     }
+
+    @Test func anOverlongEditIsRefusedWholeNeverCutToAPrefix() {
+        // Pasting into a blank field: refused, not "1.23e-0" (1.23) nor a valid "1.23456".
+        #expect(CardioFormat.acceptEdit(from: "", to: "1.23e-06", limit: 7) == "")
+        #expect(CardioFormat.acceptEdit(from: "", to: "1.23456x", limit: 7) == "")
+        // Within the limit anything is kept as typed (the whole entry is validated separately).
+        #expect(CardioFormat.acceptEdit(from: "", to: "1e-06", limit: 7) == "1e-06")
+        #expect(CardioFormat.acceptEdit(from: "2", to: "2x", limit: 7) == "2x")
+        #expect(CardioFormat.isInvalidEntry("2x", unit: .km))
+        // A longer stored value can be edited down, never up.
+        #expect(CardioFormat.acceptEdit(from: "12.34567", to: "12.3456", limit: 7) == "12.3456")
+        #expect(CardioFormat.acceptEdit(from: "12.34567", to: "12.345678", limit: 7) == "12.34567")
+    }
 }

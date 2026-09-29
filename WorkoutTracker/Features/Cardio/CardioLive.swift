@@ -76,7 +76,10 @@ struct CardioLiveBlock: View {
     @ScaledMetric(relativeTo: .title3) private var discSize: CGFloat = 44
 
     private var ax: Bool { typeSize.isAccessibilitySize }
-    private var ringDiameter: CGFloat { ax ? 190 : min(ringSide, 300) }
+    /// At accessibility sizes the ring is 220 pt (its centre about 47 pt, an hour-long "1:04:58"
+    /// about 31 pt), and the figures' numbers are capped at xxxLarge (below it) so the ring's centre
+    /// stays the largest figure (codex-review-12 #6, 12b #2). Labels keep scaling.
+    private var ringDiameter: CGFloat { ax ? 220 : min(ringSide, 300) }
 
     private var targetMinutes: Int? {
         workout.plannedCardio.first { $0.segmentID == segment.id }?.minutes
@@ -107,7 +110,7 @@ struct CardioLiveBlock: View {
                     // Stat numbers, not big numbers: the ring's centre stays the largest figure at every
                     // size (at AccessibilityL the ring is 190 pt and its centre about 40 pt).
                     CardioStatGrid(stats: stats(active: active, model: model, paused: paused),
-                                   numberFont: look.font.statNumber, dense: ax)
+                                   numberFont: look.font.statNumber, dense: ax, capsNumbers: true)
                     CardioHeartPlate(segment: segment, recorder: recorder, monitor: monitor,
                                      editMaxHeartRate: editMaxHeartRate)
                 }
@@ -410,6 +413,7 @@ private struct CardioHeartPlate: View {
                             BeatingHeart(bpm: sample.bpm, isFresh: true, font: .system(.title3, weight: .bold))
                             Text("\(sample.bpm)")
                                 .font(look.font.statNumber)
+                                .dynamicTypeSize(...DynamicTypeSize.xxxLarge) // below the ring's centre
                                 .foregroundStyle(look.heartRate)
                                 .contentTransition(.numericText(value: Double(sample.bpm)))
                                 .lineLimit(1)

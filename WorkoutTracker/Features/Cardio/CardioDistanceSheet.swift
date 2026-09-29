@@ -94,12 +94,14 @@ struct CardioDistanceSheet: View {
                 .tint(look.actionText)
                 .accessibilityLabel("Distance")
                 .accessibilityIdentifier("cardioDistanceField")
-                .onChange(of: text) { _, new in
+                .onChange(of: text) { old, new in
                     error = nil
-                    // The big field has room for about seven characters. Only what the user types
-                    // is capped — the value loaded from the segment is never rewritten (it would
-                    // enable Save and restate a stored distance nobody touched).
-                    if focused, new.count > Self.maxTyped { text = String(new.prefix(Self.maxTyped)) }
+                    // The big field has room for about seven characters: a longer edit is refused
+                    // whole (`CardioFormat.acceptEdit`). The value loaded from the segment is never
+                    // rewritten — it would enable Save and restate a stored distance nobody touched.
+                    guard focused else { return }
+                    let accepted = CardioFormat.acceptEdit(from: old, to: new, limit: Self.maxTyped)
+                    if accepted != new { text = accepted }
                 }
             Text(unit.rawValue)
                 .font(.system(.title2, weight: .bold))

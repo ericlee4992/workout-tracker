@@ -333,6 +333,8 @@ struct WorkoutDetailView: View {
                 SectionHeader("Cardio")
                 ForEach(cardioCards) { CardioSummaryCard(segment: $0) }
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("historyCardioSection")
             .historyPageRow(top: 30, bottom: 0)
         }
 

@@ -52,6 +52,13 @@ enum CardioFormat {
         guard !cleaned.isEmpty else { return nil }
         return Double(cleaned)
     }
+    /// The big field's edit rule: an edit that would make the entry longer than `limit` is refused
+    /// WHOLE (the previous text stays) — never cut to a prefix, which could turn "1.23e-06" into
+    /// 1.23 or an invalid "1.23456x" into a valid number. Shortening is always accepted, so a longer
+    /// stored value loads and can be edited down.
+    static func acceptEdit(from old: String, to new: String, limit: Int) -> String {
+        new.count > limit && new.count > old.count ? old : new
+    }
     /// Whether a non-blank entry would be refused (`CardioSessionError.invalidDistance`).
     static func isInvalidEntry(_ text: String, unit: CardioDistanceUnit) -> Bool {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
@@ -340,6 +347,8 @@ struct CardioStatGrid: View {
     var style: Style = .panel
     var numberFont: Font?
     var dense = false
+    /// The numbers stop growing at xxxLarge (the live table, under the ring's centre).
+    var capsNumbers = false
     @Environment(\.look) private var look
 
     private var rows: [[CardioStat]] {
@@ -353,7 +362,8 @@ struct CardioStatGrid: View {
                 HStack(spacing: 0) {
                     ForEach(Array(row.enumerated()), id: \.element.id) { i, stat in
                         if i > 0 { LookDivider(vertical: true) }
-                        CardioStatCell(stat: stat, numberFont: numberFont ?? look.font.bigNumber, dense: dense)
+                        CardioStatCell(stat: stat, numberFont: numberFont ?? look.font.bigNumber, dense: dense,
+                                       capsNumbers: capsNumbers)
                             .frame(maxHeight: .infinity, alignment: .topLeading)
                     }
                     if row.count == 1 {
@@ -373,6 +383,7 @@ struct CardioStatCell: View {
     var stat: CardioStat
     var numberFont: Font
     var dense = false
+    var capsNumbers = false
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -434,6 +445,7 @@ struct CardioStatCell: View {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text(stat.value)
                     .font(numberFont)
+                    .dynamicTypeSize(...(capsNumbers ? DynamicTypeSize.xxxLarge : DynamicTypeSize.accessibility5))
                     .foregroundStyle(noReading ? look.textTertiary : (stat.dimmed ? look.textSecondary : (stat.tint ?? look.textPrimary)))
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)

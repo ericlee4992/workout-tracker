@@ -227,11 +227,16 @@ final class FloodlightCardioUITests: XCTestCase {
         shoot("H04")
         let section = any("cardioSplits"); reach(section)
         shoot("H04-splits")
-        // A second segment of a cardio-only workout is a card under the hero.
-        let cycle = any("cardioSummary.indoorCycle"); reach(cycle)
-        // At most one (the lazy list drops the hero once it has scrolled far off at AccessibilityL).
-        XCTAssertLessThanOrEqual(app.descendants(matching: .any).matching(identifier: "cardioSummary.outdoorRun").count, 1,
-                                 "the hero's run is not repeated as a card")
+        // A second segment of a cardio-only workout is a card under the hero — whole on screen (its
+        // figures reached, not just its title), and the Cardio section holds the cycle, never the run.
+        let cycleFigure = labelled("Entered distance, 1.20"); reach(cycleFigure)
+        let cycleSpeed = labelled("Average speed, 36.0"); reach(cycleSpeed)
+        XCTAssertTrue(cycleFigure.exists)
+        let cardioSection = any("historyCardioSection")
+        XCTAssertTrue(cardioSection.exists)
+        XCTAssertEqual(cardioSection.descendants(matching: .any).matching(identifier: "cardioSummary.indoorCycle").count, 1)
+        XCTAssertEqual(cardioSection.descendants(matching: .any).matching(identifier: "cardioSummary.outdoorRun").count, 0,
+                       "the hero's run is not repeated as a card")
         shoot("H04-second-segment")
     }
 }
