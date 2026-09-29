@@ -284,4 +284,64 @@ struct WorkoutActivityContentTests {
         let cardio = try #require(c.presenter.lastState?.cardio)
         #expect(!cardio.isPaused && abs(cardio.activeSeconds(at: .now) - 120) <= 2, "the clock resumes where it stopped")
     }
+
+    // MARK: Cold launch and workout boundaries (codex-review-11b)
+
+    private final class WatchFeed: HeartRateProviding, WatchRestBroadcasting {
+        var sent: [Date?] = []
+        var started = false
+        var activeEnergyKilocalories: Double?
+        var basalEnergyKilocalories: Double?
+        let stream = AsyncStream<HeartRateSample> { _ in }
+        func start() async -> HeartRateFeedState { started = true; sent.append(nil); return .waitingForSensor }
+        func setPaused(_ paused: Bool) async {}
+        func stop() async {}
+        func sendRest(endsAt: Date?) { sent.append(endsAt) }
+    }
+
+    @Test func aColdPlusFifteenAttachesTheRuntimeAndReachesTheWatch() async throws {
+        let rig = try rig()
+        try startRest(rig, after: rig.pressSets[1])
+        let end = try #require(rig.workout.restEndsAt)
+        let feed = WatchFeed()
+        let alarm = SilentRestAlarm()
+        let coordinator = WorkoutHeartRateCoordinator(alarm: alarm, makeProvider: { _ in WorkoutActivityProvider { _ in feed } })
+        let presenter = SilentWorkoutActivityPresenter()
+        let commands = WorkoutActivityCommands(coordinator: coordinator, activity: WorkoutActivityController(presenter: presenter))
+        commands.use(rig.container)
+        commands.notifications = FakeNotifications()
+        #expect(coordinator.workoutID == nil, "cold: no runtime yet")
+        await commands.handle(.addFifteen, workoutID: rig.workout.id)
+        #expect(coordinator.workoutID == rig.workout.id, "the command attached the workout's runtime")
+        #expect(alarm.sessionOpens == 1 && abs((alarm.queued.first?.seconds ?? 0) - end.addingTimeInterval(15).timeIntervalSinceNow) < 2,
+                "the audible alarm is armed for the extended rest")
+        #expect(feed.started)
+        #expect(feed.sent.last == end.addingTimeInterval(15), "the Watch hears the extended rest after its start message")
+        #expect(presenter.lastState?.restEndsAt == end.addingTimeInterval(15))
+        // A second command reuses the runtime rather than starting another.
+        await commands.handle(.skipRest, workoutID: rig.workout.id)
+        #expect(alarm.sessionOpens == 1)
+        #expect(feed.sent.last == .some(nil), "Skip reaches the Watch")
+        coordinator.end(rig.workout)
+        await coordinator.settled()
+    }
+
+    @Test func restFactsDoNotCarryIntoTheNextWorkout() async throws {
+        let rig = try rig()
+        let coordinator = WorkoutHeartRateCoordinator(alarm: SilentRestAlarm(),
+                                                      makeProvider: { _ in WorkoutActivityProvider { _ in WatchFeed() } })
+        coordinator.monitor(for: rig.workout, maxHeartRate: nil)
+        coordinator.lastRestResult = .timer(seconds: 90)
+        coordinator.degradedRestSetID = rig.pressSets[1].id
+        coordinator.monitor(for: rig.workout, maxHeartRate: nil)
+        #expect(coordinator.lastRestResult == .timer(seconds: 90), "minimise and resume keep them")
+        let next = Workout(startedAt: .now)
+        rig.context.insert(next)
+        coordinator.monitor(for: next, maxHeartRate: nil)
+        #expect(coordinator.lastRestResult == nil && coordinator.degradedRestSetID == nil, "a new workout starts clean")
+        coordinator.lastRestResult = .timer(seconds: 60)
+        coordinator.end(next)
+        #expect(coordinator.lastRestResult == nil, "ending the workout ends its rest facts")
+        await coordinator.settled()
+    }
 }

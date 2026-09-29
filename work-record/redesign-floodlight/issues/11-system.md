@@ -289,3 +289,32 @@ Verification (round 2, on `c615928` plus the cardio control fix):
   restyle is ticket 12. `sys-ui-19`: **`CardioUITests` 9/9** (exit 0).
 - Captures `../captures/11/` refreshed from `sys-ui-17` (the card at its new height; the real card after +15s and
   Skip).
+
+## Codex review 11b — response (round 2)
+
+Report: [codex-review-11b.md](../codex-review-11b.md) — not clear; one high, two medium. All accepted.
+
+1. **H1 — a cold command's rest never reached the Watch.** The monitor's providers start asynchronously, and a
+   starting Watch provider announces "no rest", so the command's `broadcastRest` was dropped. The composite
+   provider (`WorkoutActivityProvider`) now remembers the rest it was last sent and replays it (while it is still
+   in the future) to every provider once that provider has started — the cold launch and any lifting ↔ cardio phase
+   switch alike. `handle` also waits for the attached runtime's start (`coordinator.ready()`) before the intent
+   returns. The coordinator's provider factory is injectable, so the tests run the real attach: a cold +15s
+   attaches the runtime once, arms the alarm, and the Watch-like feed hears the extended rest after its start
+   message; Skip then reaches it too. The composite's replay has its own test (before start, across a phase
+   switch, not after the rest ended). Not proved by a test: the cardio recorder's sensors after a cold Resume (the
+   recorder starts real location/motion services, which a unit test cannot); the path is the recorder's own
+   `resume()` once attached, as in the live screen.
+2. **M2 — unrelated set changes cleared the fallback.** The fallback marker now stays while its rest runs (a drop
+   set, an unrelated un-completion, +15s leave it) and is dropped only once no rest runs or another set's rest
+   replaced it. (A view-level rule; covered by the heart-rate UI flows, not a unit test.)
+3. **M3 — rest facts crossed into the next workout.** The coordinator clears the rest result and the fallback when
+   it attaches a different workout and when a workout ends (`releaseAlarm`); minimise and resume keep them. Test:
+   two workouts in one coordinator.
+
+The M2 (cache) note: the cache key's superset input is view state; the builder test proves the rule the cache must
+follow, and the key now includes grouping — no view-level cache test was added.
+
+Verification (round 3): `sys-ui-21` exit 0 — `WorkoutActivityContentTests`, `WorkoutActivityProviderTests`,
+`WorkoutActivityTests`, `HeartRateRestTimerTests`, `RestAlarmTests` **51/51** (an earlier run crashed on a test's
+SwiftData objects outliving its container: the tests now end the runtime and await its banking, `settled()`).

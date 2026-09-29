@@ -859,8 +859,14 @@ struct ActiveWorkoutView: View {
 
     private func updateRest(for set: SetRecord, isCompleted: Bool) {
         lastRestResult = nil
-        // A new rest is a new rest: a fallback belonged to the one before (codex-review-11 #3).
-        degradedRestSetID = nil
+        defer {
+            // The fallback belongs to its rest: keep it while that rest runs (a drop set or an
+            // unrelated un-completion leaves it running, D26), drop it once another rest replaces it
+            // or none runs (codex-review-11b #2).
+            if let degraded = degradedRestSetID, workout.restEndsAt == nil || workout.restStartedBySetID != degraded {
+                degradedRestSetID = nil
+            }
+        }
         // D48: inside a superset, no rest until the LAST member. Moving
         // straight from A to B with no rest is the entire point of the
         // technique, so a timer firing between members would be telling the

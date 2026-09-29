@@ -25,6 +25,9 @@ final class WorkoutHeartRateCoordinator {
     private(set) var workoutID: UUID?
     private(set) var monitor: HeartRateMonitor?
     private var finalizationTask: Task<Void, Never>?
+    /// The running monitor's start (its providers), so a lock-screen command can wait for the
+    /// runtime it attached (ticket 11).
+    private var startTask: Task<Void, Never>?
     /// The workout the running monitor belongs to, so a REPLACEMENT can bank
     /// its summary before the monitor is thrown away. Weak: the coordinator
     /// outlives workouts and must not keep a deleted one alive.
@@ -55,8 +58,18 @@ final class WorkoutHeartRateCoordinator {
     /// (codex-review-11 #4).
     var lastRestResult: WorkoutActivityAttributes.RestResult?
 
-    init(alarm: (any RestAlarmSounding)? = nil) {
+    /// Builds the sensor provider for a workout; tests inject a fake (the default starts
+    /// HealthKit / the Watch session).
+    private let makeProvider: (Workout) -> any HeartRateProviding
+
+    init(alarm: (any RestAlarmSounding)? = nil, makeProvider: ((Workout) -> any HeartRateProviding)? = nil) {
         self.alarm = alarm ?? RestAlarms.make()
+        self.makeProvider = makeProvider ?? { workout in
+            HeartRateProviders.make(workoutID: workout.id.uuidString,
+                configuration: workout.sensorConfiguration,
+                initialActiveEnergy: workout.sensorActiveEnergyCheckpoint,
+                initialBasalEnergy: workout.sensorBasalEnergyCheckpoint)
+        }
     }
 
     /// The monitor for this workout, started if it is not already running.
@@ -70,6 +83,9 @@ final class WorkoutHeartRateCoordinator {
             monitor.maxHeartRate = maxHeartRate
             return monitor
         }
+        // Another workout's rest facts must not reach this one's card (codex-review-11b #3).
+        lastRestResult = nil
+        degradedRestSetID = nil
         // A different workout: BANK the old one, then end its session. This
         // used to stop the old monitor and discard its samples, so "Finish it
         // and start new" — which auto-finishes the active workout in
@@ -84,10 +100,7 @@ final class WorkoutHeartRateCoordinator {
             Task { await existing.stop() }
         }
         let fresh = HeartRateMonitor(
-            provider: HeartRateProviders.make(workoutID: workout.id.uuidString,
-                configuration: workout.sensorConfiguration,
-                initialActiveEnergy: workout.sensorActiveEnergyCheckpoint,
-                initialBasalEnergy: workout.sensorBasalEnergyCheckpoint),
+            provider: makeProvider(workout),
             initialSamples: workout.checkpointSamples)
         fresh.maxHeartRate = maxHeartRate
         // The sample tick is owned here and forwarded on, rather than being
@@ -113,7 +126,7 @@ final class WorkoutHeartRateCoordinator {
         cardio.attach(to: workout, monitor: fresh)
         let previousFinalization = finalizationTask
         let id = workout.id
-        Task { [weak self] in
+        startTask = Task { [weak self] in
             await previousFinalization?.value
             guard let self, self.workoutID == id, self.monitor === fresh else { return }
             await fresh.start()
@@ -271,9 +284,20 @@ final class WorkoutHeartRateCoordinator {
     /// Hands the audio session back when the workout ends. Holding it open for
     /// a workout nobody is doing is the audio equivalent of leaving the sensor
     /// powered.
+    /// Waits until the running monitor's providers have started.
+    func ready() async { await startTask?.value }
+    /// Waits for the start and any banking still in flight (tests end a workout, then wait).
+    func settled() async {
+        await startTask?.value
+        await finalizationTask?.value
+    }
+
     private func releaseAlarm() {
         restEndsAt = nil
         lastSoundedRestEnd = nil
+        // The workout's rest facts end with it (codex-review-11b #3).
+        lastRestResult = nil
+        degradedRestSetID = nil
         onSample = nil
         alarm.endSession()
     }

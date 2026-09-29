@@ -79,4 +79,34 @@ struct WorkoutActivityProviderTests {
         #expect(trace.live == 0)
         #expect(trace.peak == 1)
     }
+
+    /// A Watch-like feed: its start announces "no rest", as the real Watch provider does.
+    private final class WatchFeed: HeartRateProviding, WatchRestBroadcasting {
+        var sent: [Date?] = []
+        var activeEnergyKilocalories: Double?
+        var basalEnergyKilocalories: Double?
+        let stream = AsyncStream<HeartRateSample> { _ in }
+        func start() async -> HeartRateFeedState { sent.append(nil); return .waitingForSensor }
+        func setPaused(_ paused: Bool) async {}
+        func stop() async {}
+        func sendRest(endsAt: Date?) { sent.append(endsAt) }
+    }
+
+    /// Floodlight ticket 11 (codex-review-11b #1): a rest sent before any provider runs — a lock-screen
+    /// command that launched the app — reaches the Watch once one starts, after its own start message;
+    /// and a phase switch replays it to the new provider.
+    @Test func aRestSentBeforeAProviderRunsReachesItOnceStarted() async {
+        var feeds: [WatchFeed] = []
+        let provider = WorkoutActivityProvider { _ in let feed = WatchFeed(); feeds.append(feed); return feed }
+        let end = Date.now.addingTimeInterval(90)
+        provider.sendRest(endsAt: end)
+        _ = await provider.start()
+        #expect(feeds.first?.sent == [nil, end])
+        await provider.configure(.init(segmentID: UUID(), activity: .indoorRun))
+        #expect(feeds.count == 2)
+        #expect(feeds.last?.sent.last == end, "the new phase's provider hears the running rest")
+        provider.sendRest(endsAt: nil)
+        await provider.configure(.lifting)
+        #expect(feeds.last?.sent == [nil], "an ended rest is not replayed")
+    }
 }

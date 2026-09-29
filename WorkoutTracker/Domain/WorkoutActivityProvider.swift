@@ -37,6 +37,11 @@ final class WorkoutActivityProvider: HeartRateProviding, WatchRestBroadcasting, 
     private var bankedActive: Double?
     private var bankedBasal: Double?
     private var feedState: HeartRateFeedState = .idle
+    /// The rest the Watch should show. Kept here and replayed to each provider once it has
+    /// started: a rest sent while no provider is running (a lock-screen command that launched
+    /// the app, a phase switch) would otherwise be lost, and a starting Watch provider announces
+    /// "no rest" (Floodlight ticket 11, codex-review-11b #1).
+    private var restEndsAt: Date?
     let stream: AsyncStream<HeartRateSample>
     var onCardioMetrics: (() -> Void)?
     var onPhaseStarted: ((WorkoutSensorConfiguration, any HeartRateProviding) -> Void)?
@@ -117,6 +122,7 @@ final class WorkoutActivityProvider: HeartRateProviding, WatchRestBroadcasting, 
         }
         applied = next
         await provider.setPaused(next.paused)
+        if let restEndsAt, restEndsAt > .now { (provider as? WatchRestBroadcasting)?.sendRest(endsAt: restEndsAt) }
         onPhaseStarted?(next, provider)
         (provider as? CardioMetricNotifying)?.onCardioMetrics = { [weak self] in self?.onCardioMetrics?() }
         pump = Task { [weak self, weak provider] in
@@ -132,7 +138,10 @@ final class WorkoutActivityProvider: HeartRateProviding, WatchRestBroadcasting, 
         var next = desired; next.paused = paused
         await configure(next)
     }
-    func sendRest(endsAt: Date?) { (current as? WatchRestBroadcasting)?.sendRest(endsAt: endsAt) }
+    func sendRest(endsAt: Date?) {
+        restEndsAt = endsAt
+        (current as? WatchRestBroadcasting)?.sendRest(endsAt: endsAt)
+    }
     func stop() async {
         stopped = true
         await transition?.value

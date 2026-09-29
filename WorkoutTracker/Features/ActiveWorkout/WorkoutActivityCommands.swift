@@ -66,6 +66,9 @@ final class WorkoutActivityCommands {
     /// Applies a pressed command and waits until the card shows it.
     func handle(_ command: WorkoutActivityCommand, workoutID: UUID) async {
         guard perform(command, workoutID: workoutID) else { return }
+        // A runtime attached by this command starts asynchronously; the intent's return is when
+        // the system may suspend the app again. (Its providers replay the rest once running.)
+        await coordinator.ready()
         await activity.settle()
     }
 
