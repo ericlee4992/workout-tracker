@@ -108,8 +108,11 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   919/919; `rc-ui-1` full UI suite **227/229** (4 h 24 min; no known load flake appeared). The two failures repeat alone
   and are date-dependent TEST defects (the calendar paging test has no previous month on the 29th–31st; the chart test
   tapped a lazy row by index); fixed in `fe35a34` (test + a guarded fixture argument; no app behaviour change),
-  `rc-fix-1` 38/38. **Codex review 13 running** (visible Orca terminal "Codex review — Floodlight 13", report
-  `codex-review-13.md`, prompt `85a1f10`). Next: clear the review, then ask the user about merge + install.
+  `rc-fix-1` 38/38. Codex review 13 (round 1): not clear — two medium, one low, all accepted and fixed in `759aedf`,
+  incl. a pre-existing APP defect (the History calendar dropped today's month where a month begins on a DST jump at
+  midnight, e.g. America/Asuncion; not the user's zone) and fixture/test day arithmetic; `rc-fix-2` 76/76. **Codex
+  review 13b running** (same Orca terminal "Codex review — Floodlight 13"). The device build predates `759aedf`:
+  rebuild before installing. Next: clear the review, then ask the user about merge + install.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
