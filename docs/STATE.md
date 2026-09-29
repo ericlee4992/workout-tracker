@@ -104,7 +104,12 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   one install (fresh backup, install, launch, data-preservation check);
   ask the user before merging to `main` or touching the phone. Nothing is merged to `main`.
   Signing renewed 2026-09-29 (Apple ID added; app/widget profiles expire 2026-10-06 08:45 UTC; device build
-  `rc-device-build-1` of `796ffe5` at `/tmp/wt-floodlight/dd-device`). Done: `rc-unit-1` 919/919. **Running: `rc-ui-1`** (full UI suite, PID 78787, started 04:11 EDT; see the ticket).
+  `rc-device-build-1` of `796ffe5` at `/tmp/wt-floodlight/dd-device` — rebuild after any code change). Done: `rc-unit-1`
+  919/919; `rc-ui-1` full UI suite **227/229** (4 h 24 min; no known load flake appeared). The two failures repeat alone
+  and are date-dependent TEST defects (the calendar paging test has no previous month on the 29th–31st; the chart test
+  tapped a lazy row by index); fixed in `fe35a34` (test + a guarded fixture argument; no app behaviour change),
+  `rc-fix-1` 38/38. **Codex review 13 running** (visible Orca terminal "Codex review — Floodlight 13", report
+  `codex-review-13.md`, prompt `85a1f10`). Next: clear the review, then ask the user about merge + install.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
