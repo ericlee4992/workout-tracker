@@ -1,7 +1,7 @@
 # 13 — Floodlight: release-candidate pass
 
 Type: task (part of [01](01-implement-redesign.md), plan step 4; then step 5, the install)
-Status: RC pass clear (Codex 13c); install pending the user's go-ahead
+Status: resolved — RC pass clear (Codex 13c); installed and data preserved 2026-09-29; merge to `main` in progress
 Implementer: Claude. Reviewer: Codex (for any code fix).
 Branch: `ericlee4992/redesign-floodlight-cardio` (scratch checkout `/tmp/wt-floodlight/cardio`). Tested tip:
 **`796ffe5`** (ticket 12, Codex clear; tickets 02–12 stacked beneath it, each Codex clear). Nothing merged to
@@ -113,8 +113,28 @@ Commit: see Progress. Test and fixture code only; no app behaviour changes.
   same derived data and command; `WorkoutCalendar.o` recompiled 09:23, dylib 09:24; the ticket-13 string
   `uiTestChartHistoryOlderMonth` and ticket 12's `startSelectedCardio` present; `codesign --verify --deep --strict` ok;
   the same two profiles (to 2026-10-06 08:45 UTC). **This is the binary to install.**
-- **Remaining, with the user's go-ahead:** fresh full backup, install, launch, data-preservation check; merge to
-  `main` when the RC pass is clear.
+- **User's go-ahead 2026-09-29:** install, then merge. Pre-checks: phone `00008130-001E10C01E62001C` available (paired),
+  unlocked since boot, the app not running.
+- **Backup** `~/WorkoutTracker-Backups/2026-09-29-before-floodlight/` (mode 0700): `devicectl device copy from
+  --domain-type appDataContainer` exit 0 → `app-container/`, **27 files, 26,725,362 bytes**; SHA-256 manifest
+  `sha256-app-container.json`; integrity `ok` for all three databases on a separate verification copy
+  (`backup-verification.json`): **24 workouts (0 unfinished), 343 sets, 2 templates**, 101 entries, 24 machines, 4 gyms,
+  15 tables — the same as 2026-09-22 (the app could not launch after the profiles expired on 09-24).
+- **Install** of the `rc-device-build-2` product: exit 0, new bundle `4F3321DC-F8CE-4CE3-82ED-93205BC859E1`.
+- **Launch 1: refused** (exit 1, FBSOpenApplicationErrorDomain 3, "invalid code signature, inadequate entitlements or
+  its profile has not been explicitly trusted by the user"). The signature verified locally and the certificate is
+  valid to 2027-08-09: after every profile for the account had expired, the phone had dropped its trust of the
+  developer app. **The user trusted it** (Settings → General → VPN & Device Management → Developer App).
+- **Launch 2:** exit 0; the app (PID 56986) and its widget (56987) running from bundle `4F3321DC…`.
+- **Data preservation:** container copied again after launch (exit 0, `after-launch-container/`), integrity `ok`,
+  same counts; row-by-row comparison of all **15 tables** (`preservation-report.json`; `Z_OPT` ignored, `Z_ENT` by
+  entity name): every old row present and unchanged except one field pair on the single `ZAPPPREFERENCES` row —
+  `selectedGymID` Noyes Fitness Center → 312 College Ave with its `updatedAt` 09:30 EDT. The only code writing a gym
+  id is the Workout tab's gym menu (`StartWorkoutView.select`); **the user confirmed they picked it**. No schema change
+  (same tables, no new columns).
+- Logs, JSON and actual exits: `/tmp/wt-floodlight/results/install-20260929/` (ephemeral). Not checked here: the new
+  screens by the user on the phone (visual acceptance), a restore from this backup, the Live Activity / widget on the
+  Lock Screen.
 
 ## Codex review 13 — response (round 1)
 
@@ -188,6 +208,8 @@ non-US simulator region, and the device until the install.
   `rc-device-build-1` (`832ba39`).
 - `rc-ui-1` 227/229 (08:36); both failures repeated alone; diagnosed; fixed (`fe35a34`, `rc-fix-1` 38/38); Codex
   review 13 → `759aedf` (`rc-fix-2` 76/76) → 13b → `522c157` (`rc-fix-3` 4/4, mutation check) → 13c **clear**.
-- Next (ticket 01 step 5, with the user's go-ahead): rebuild the device binary from this tip (the build of `796ffe5`
+- Device binary rebuilt (`rc-device-build-2`); the user said install, then merge; backup, install, trust, launch and
+  the preservation check done (Install section). Next: merge to `main`.
+- (Superseded plan:) rebuild the device binary from this tip (the build of `796ffe5`
   predates the `WorkoutCalendar` fix) and recheck its freshness and profiles; fresh full backup of the phone's app
   container; install; launch; data-preservation check; merge to `main`.
