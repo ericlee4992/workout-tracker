@@ -349,3 +349,16 @@ Verification (round 4): `sys-ui-24` exit 0 — `WorkoutActivityContentTests`, `W
   round) and `FloodlightLiveUITests.testACompletedSetCanBeCorrectedInPlace` (a typed "102.5" arrived as "102.") failed
   at load average ~25; both passed alone in `sys-ui-27` (exit 0, 2/2). Both passed in `sys-ui-17` and `sys-ui-22` on
   the same screens.
+
+## Codex review 11d — response (round 4)
+
+Report: [codex-review-11d.md](../codex-review-11d.md) — not clear; one medium. Accepted.
+
+1. **M — replacing an attached workout wiped the new owner's rest facts.** Ownership is now established AFTER the
+   previous workout's teardown (`monitor(for:)` ends A, then `noteRestFacts(for: B)`); a teardown clears only facts
+   that belong to the ending workout (`releaseAlarm(ending:)`); the `lastRestResult` didSet that could relabel an
+   explicit owner with the attached workout is gone (every writer runs with its own workout attached or named).
+   Test extended: with A attached, B's screen restores B's result; attaching B keeps it; B's fallback survives B's
+   own refresh; ending B clears both.
+
+Verification: `sys-ui-28` exit 0 — **unit 906/906**.

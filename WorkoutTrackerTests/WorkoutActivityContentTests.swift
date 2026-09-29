@@ -365,6 +365,26 @@ struct WorkoutActivityContentTests {
         coordinator.end(next)
         #expect(coordinator.lastRestResult == nil, "ending the workout ends its rest facts")
         await coordinator.settled()
+
+        // Replacement with facts restored first (codex-review-11d #1): A is attached; B's screen
+        // restores B's result, then B's runtime replaces A's. A's teardown must not take B's facts.
+        let a = Workout(startedAt: .now.addingTimeInterval(-60))
+        let b = Workout(startedAt: .now)
+        rig.context.insert(a); rig.context.insert(b)
+        coordinator.monitor(for: a, maxHeartRate: nil)
+        coordinator.lastRestResult = .timer(seconds: 45)
+        coordinator.noteRestFacts(for: b.id)
+        #expect(coordinator.lastRestResult == nil, "B's screen does not inherit A's result")
+        coordinator.lastRestResult = .noReading(seconds: 120)
+        coordinator.monitor(for: b, maxHeartRate: nil)
+        #expect(coordinator.lastRestResult == .noReading(seconds: 120), "A's teardown keeps B's restored result")
+        let fallback = UUID()
+        coordinator.degradedRestSetID = fallback
+        coordinator.noteRestFacts(for: b.id)
+        #expect(coordinator.degradedRestSetID == fallback, "B's own facts survive B's refresh after the replacement")
+        coordinator.end(b)
+        #expect(coordinator.lastRestResult == nil && coordinator.degradedRestSetID == nil)
+        await coordinator.settled()
     }
 
     /// A feed whose start can be held, like a HealthKit session waiting on collection.
