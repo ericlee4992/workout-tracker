@@ -109,6 +109,10 @@ Commit: see Progress. Test and fixture code only; no app behaviour changes.
   04:46; ticket 12's symbols/strings present (`CardioRingModel`, `startSelectedCardio`, `historyCardioSection`,
   "Recording time continues."); HealthKit usage string, `NSSupportsLiveActivities`, widget `NSExtension` present.
   If a fix lands after this build, rebuild (the profiles are reused) and recheck.
+- **Rebuilt from the cleared tip `47a9c77` (code = `522c157`):** `rc-device-build-2` exit 0 (`** BUILD SUCCEEDED **`),
+  same derived data and command; `WorkoutCalendar.o` recompiled 09:23, dylib 09:24; the ticket-13 string
+  `uiTestChartHistoryOlderMonth` and ticket 12's `startSelectedCardio` present; `codesign --verify --deep --strict` ok;
+  the same two profiles (to 2026-10-06 08:45 UTC). **This is the binary to install.**
 - **Remaining, with the user's go-ahead:** fresh full backup, install, launch, data-preservation check; merge to
   `main` when the RC pass is clear.
 
