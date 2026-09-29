@@ -273,3 +273,19 @@ Also from the report's notes: the Skip unit test asserts a push happened (not a 
 bounds +15s from both sides and checks enough rest is left before Skip; cardio no longer pushes every tick — the
 clock start is fixed while a segment runs (active start less banked time) and the widget computes the live
 seconds (`Cardio.activeSeconds(at:)`).
+
+Verification (round 2, on `c615928` plus the cardio control fix):
+- `sys-build-8` exit 0. `sys-ui-15`: **unit 902/902** (the whole suite, including the new command tests and
+  the seeding timing test). Its UI part stalled when the machine's load average reached ~430 (other sessions'
+  simulators); stopped. Checked it was not the app: its idle CPU on the live fixture with the heart-rate fixture
+  was ~20 % on this build and ~17 % on round 1 (`6cc310d`, built separately) — the same.
+- `sys-ui-17` (exit 65): `FloodlightSystemUITests` 5/5 (every gallery state ≤ 160 pt at Default and AXL, the
+  spoken markers, the real card with the two-sided +15s bound), `FloodlightLiveUITests` 10/10, `HeartRateUITests`,
+  `CoreLoopUITests` (the lifecycle through the relocated coordinator) passed; `CardioUITests` 8/9 —
+  `testOutdoorRouteAccessibilityCapture` failed reaching the distance metric, and again alone (`sys-ui-18`).
+  Cause: ticket 11's own round-1 retokening gave the recording controls the Look's capsules, which grow with
+  Dynamic Type; stacked at AXL they covered the metrics (a layout change the ticket said it would not make).
+  The controls now keep the pre-redesign metrics (52 / 44 pt) in Look colours (`CardioControlStyle`); their
+  restyle is ticket 12. `sys-ui-19`: **`CardioUITests` 9/9** (exit 0).
+- Captures `../captures/11/` refreshed from `sys-ui-17` (the card at its new height; the real card after +15s and
+  Skip).

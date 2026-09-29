@@ -189,13 +189,36 @@ struct CardioControls: View {
             } label: {
                 Label(segment.isRunning ? "Pause" : "Resume", systemImage: segment.isRunning ? "pause.fill" : "play.fill")
                     .frame(maxWidth: .infinity)
-            }.buttonStyle(.lookPrimary).accessibilityIdentifier("cardioPauseResume")
+            }.buttonStyle(CardioControlStyle(prominent: true)).accessibilityIdentifier("cardioPauseResume")
             Button { recorder.endCardio() } label: {
                 Text("End Cardio").frame(maxWidth: .infinity)
-            }.buttonStyle(.lookSecondary).accessibilityIdentifier("endCardio")
+            }.buttonStyle(CardioControlStyle(prominent: false)).accessibilityIdentifier("endCardio")
         }
         .padding(16).lookSurface(.raised)
         .padding(.horizontal, 16).padding(.bottom, 8)
+    }
+}
+
+/// The recording controls' buttons, in the Look's colours with the pre-redesign metrics (52 / 44 pt,
+/// not scaled): the cardio area's layout is unchanged until its restyle (ticket 12). The Look's
+/// capsules grow with Dynamic Type and, stacked at accessibility sizes, covered the live metrics.
+private struct CardioControlStyle: ButtonStyle {
+    var prominent: Bool
+    @Environment(\.look) private var look
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
+        configuration.label
+            .font(.subheadline.weight(prominent ? .bold : .semibold))
+            .frame(minHeight: prominent ? 52 : 44)
+            .padding(.horizontal, prominent ? 16 : 12)
+            .foregroundStyle(prominent ? look.onAction : look.textPrimary)
+            .background(prominent ? look.action : look.pressedFill.opacity(configuration.isPressed ? 0.65 : 1), in: shape)
+            .opacity(isEnabled ? 1 : 0.35)
+            .scaleEffect(prominent && configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .animation(.snappy(duration: 0.2), value: configuration.isPressed)
     }
 }
 
