@@ -45,6 +45,15 @@ final class WorkoutHeartRateCoordinator {
     /// Forwarded to the screen when it is on screen. Nil after minimise, which
     /// is fine: the alarm above does not depend on it.
     var onSample: (() -> Void)?
+    /// The heart-rate rest that already fell back to the timer (D43). Kept on the workout's
+    /// runtime, not the screen, so a late sample after minimise and resume cannot turn it back
+    /// into a heart-rate rest, and the Lock Screen card keeps calling it a fallback
+    /// (Floodlight ticket 11, codex-review-11 #3).
+    var degradedRestSetID: UUID?
+    /// How the last rest ended, once it has (Z03), until the next set is logged. Here for the
+    /// same reason: the card keeps it across minimise, resume and lock-screen commands
+    /// (codex-review-11 #4).
+    var lastRestResult: WorkoutActivityAttributes.RestResult?
 
     init(alarm: (any RestAlarmSounding)? = nil) {
         self.alarm = alarm ?? RestAlarms.make()

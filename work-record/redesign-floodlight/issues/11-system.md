@@ -236,3 +236,40 @@ Runner `/tmp/wt-floodlight/sys-run.sh <name> build|test …` (derived data `/tmp
   (dark, light). User decisions 1–4. Ticket written (`1a9ab08`); Theme removed (`2e0a62f`); Live Activity,
   commands, icon, D59 (`c6e93af`); VoiceOver and docs (`6cc310d`). Another session recorded the same day that
   cardio stays plain Floodlight (ticket 01, `c9c973e` on the main redesign branch) — reflected in D59 and STATE.
+
+## Codex review 11 — response (round 1)
+
+Report: [codex-review-11.md](../codex-review-11.md) — not clear; one high, five medium, two low. All accepted.
+
+1. **H1 — a cold command changed the store but not the runtime.** The command centre now OWNS the workout's
+   runtime (`WorkoutHeartRateCoordinator`: the heart-rate session, the rest alarm, the Watch mirror, the cardio
+   recorder) and the card's controller, created with the app; `RootView` borrows both. Before acting, a command
+   attaches the runtime the way the live screen does on appear (`coordinator.monitor(for:maxHeartRate:)` — the
+   session, the audio session, the recorder attached; a no-op when it is already running), so +15s re-queues the
+   audible alarm and mirrors to the Watch, and Resume goes through the recorder (its sensors) even from a cold
+   background launch. `MaxHeartRateResolver.current(in:)` is shared with the live screen. Tests: a real
+   coordinator with the silent alarm; +15s asserts the re-queued beep and the attach, Skip the cancelled beep.
+2. **M2 — superset grouping left the cached next set stale.** The cache key includes each entry's id and
+   superset group. Test: grouping moves the next set to the partner ("B").
+3. **M3 — a command forgot a fallback.** The degraded-rest id moved from the screen's `@State` to the coordinator
+   (it also survives minimise and resume now — a late sample after resume could previously re-arm a heart-rate
+   rest); every state producer passes it; it is cleared when a new rest starts. Test: +15s on a fallback rest
+   pushes `.fallback`.
+4. **M4 — foregrounding after expiry erased the result.** The result lives on the coordinator; `refreshRest` —
+   the path appear, foreground, the slab's expiry and `didApply` all take — records how the rest ended before
+   `currentState` clears it, and so does the command centre. Skip on a rest that already ran out is refused (it
+   keeps its result). Test: a command on an expired rest keeps `.timer(120)`.
+5. **M5 — the card exceeded 160 pt at xLarge.** Tighter spacing (8) and padding (10), the header on one line
+   (scales to 80 %), and the Lock Screen card's type capped at Large (the island keeps xLarge). The gallery tests
+   assert every state's card is ≤ 160 pt at Default and AXL.
+6. **M6 — VoiceOver lost the next set's identity.** The marker speaks "Set 3" / "Warmup" / "Drop set" / "Failure
+   set" (", superset A"). The gallery tests assert it on the ready, superset, warm-up and result states.
+7. **L7 — the skill's reference still mandated dark only.** Rewritten for D59 (both appearances, where the
+   measured pairs are); stale token names in SKILL.md replaced.
+8. **L8 — D59 claimed ticket 11 cleared.** Now "tickets 02–10; ticket 11's review in codex-review-11*"; the receipt
+   decisions sit under "tickets 01–04".
+
+Also from the report's notes: the Skip unit test asserts a push happened (not a vacuous nil); the real-card test
+bounds +15s from both sides and checks enough rest is left before Skip; cardio no longer pushes every tick — the
+clock start is fixed while a segment runs (active start less banked time) and the widget computes the live
+seconds (`Cardio.activeSeconds(at:)`).

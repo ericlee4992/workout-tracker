@@ -52,7 +52,7 @@ decides what is there, in what order, and which one thing the eye lands on.
    missing. Select tests using [DEVELOPMENT — Verification scope](../../../docs/DEVELOPMENT.md#verification-scope).
    Done when the build is green and the affected screen/flow tests named in the ticket pass;
    record counts and why that scope is sufficient.
-6. **Capture and look.** In `RedesignScreenshotUITests`, the SAME fixture and state at the
+6. **Capture and look.** In the area's `Floodlight*UITests` class, the SAME fixture and state at the
    default size and at AccessibilityL (the project's gate; it is the first accessibility size,
    not the largest), scrolled so every block the wireframe names is on record; add the capture
    if the screen has none. Open the PNGs and look at them as pictures. Done when every string
@@ -81,8 +81,8 @@ decides what is there, in what order, and which one thing the eye lands on.
   action or the live thing. `look.heartRate`: heart rate. `look.destructive`: destruction. The
   yellow highlighter: a new best in the live workout only. Muscle-family colours: the families. A colour used for
   decoration steals from its meaning. Contrast: 4.5:1 minimum, 7:1 the target for small text —
-  the measured pairs are in REFERENCE.md; `TextTertiary` is not for essential text on
-  `SurfaceElevated` or `SurfaceFill`. `Hairline` (7 % white) separates and borders a filled
+  the measured pairs are in `FinalLook.swift` (see REFERENCE.md); `textTertiary` is not for essential
+  text on a raised surface. `hairline` (10 %) separates and borders a filled
   card; it is never the only thing that draws a shape.
 - **Controls: 44 pt hit region minimum; prominence by style, not size.** One, at most two,
   prominent buttons per view. Equal options get equal size. The primary role never destroys.

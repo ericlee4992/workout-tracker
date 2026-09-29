@@ -120,7 +120,8 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         /// Running: the instant the segment's active clock read zero (now − active time), so
         /// the system can tick it. nil while paused.
         var clockStart: Date?
-        /// The active time when the state was pushed (the frozen clock while paused).
+        /// Paused: the frozen clock. Running: the time banked before the current stretch (the
+        /// live figure is `now − clockStart`; see `activeSeconds(at:)`).
         var elapsedSeconds: Int
         var distance: String?
         var distanceUnit: String?
@@ -129,6 +130,11 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         var rateUnit: String?
         /// The planned target the segment was started from (D57), in minutes.
         var targetMinutes: Int?
+
+        func activeSeconds(at now: Date) -> Int {
+            guard let clockStart, !isPaused else { return elapsedSeconds }
+            return max(0, Int(now.timeIntervalSince(clockStart)))
+        }
     }
 
     /// Fixed for the life of the activity.

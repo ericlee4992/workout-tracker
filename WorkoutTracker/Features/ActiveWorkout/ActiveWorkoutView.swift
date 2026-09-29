@@ -46,10 +46,18 @@ struct ActiveWorkoutView: View {
     /// The rest that has already degraded to the standard timer. Once a rest
     /// falls back, a late sample must not turn it back into a heart-rate rest
     /// and fire a "recovered" alarm over the fallback one (codex-review-2 #4).
-    @State private var degradedRestSetID: UUID?
-    /// How the last rest ended, when this screen saw it end (Z03): recovered, or run out while
-    /// the screen was up. Shown on the Lock Screen card until the next set is logged.
-    @State private var lastRestResult: WorkoutActivityAttributes.RestResult?
+    /// Kept on the coordinator (the workout's runtime) since ticket 11, so it survives minimise
+    /// and lock-screen commands read it too.
+    private var degradedRestSetID: UUID? {
+        get { heartRateCoordinator.degradedRestSetID }
+        nonmutating set { heartRateCoordinator.degradedRestSetID = newValue }
+    }
+    /// How the last rest ended (Z03): recovered, or run out. Shown on the Lock Screen card until
+    /// the next set is logged. On the coordinator for the same reason.
+    private var lastRestResult: WorkoutActivityAttributes.RestResult? {
+        get { heartRateCoordinator.lastRestResult }
+        nonmutating set { heartRateCoordinator.lastRestResult = newValue }
+    }
     /// The slow part of the card's content (next set, previous, new-best, rest kind: history
     /// queries), rebuilt only when its inputs change — the liveness tick pushes every 2 s.
     @State private var activityBase: (key: Int, state: WorkoutActivityAttributes.ContentState)?
@@ -213,7 +221,6 @@ struct ActiveWorkoutView: View {
                         skip: skipRest,
                         expired: {
                             restExpiryCount += 1
-                            lastRestResult = activityState().shownResult(at: .now, isStale: true)
                             refreshRest()
                         },
                         openBest: {
@@ -712,6 +719,12 @@ struct ActiveWorkoutView: View {
         hasher.combine(lastRestResult)
         hasher.combine(workout.unfinishedCardio?.id)
         hasher.combine(workout.historyTitle)
+        // The next set follows superset grouping (D48), which `badgeInputs` does not read
+        // (codex-review-11 #2).
+        for entry in entries where !entry.isDeleted {
+            hasher.combine(entry.id)
+            hasher.combine(entry.supersetGroupID)
+        }
         let key = hasher.finalize()
         var state: WorkoutActivityAttributes.ContentState
         if let base = activityBase, base.key == key {
@@ -754,12 +767,7 @@ struct ActiveWorkoutView: View {
     /// maximum if they have entered one, otherwise 220−age flagged as an
     /// estimate, otherwise nothing at all.
     private func resolvedMaxHeartRate() -> MaxHeartRate? {
-        let rows = (try? modelContext.fetch(FetchDescriptor<AppPreferences>())) ?? []
-        guard let preferences = AppPreferences.canonical(of: rows) else { return nil }
-        return MaxHeartRateResolver.resolve(
-            measured: preferences.measuredMaxHeartRate,
-            birthDate: preferences.birthDate,
-            at: .now)
+        MaxHeartRateResolver.current(in: modelContext)
     }
 
     private func finishTapped() {
@@ -851,6 +859,8 @@ struct ActiveWorkoutView: View {
 
     private func updateRest(for set: SetRecord, isCompleted: Bool) {
         lastRestResult = nil
+        // A new rest is a new rest: a fallback belonged to the one before (codex-review-11 #3).
+        degradedRestSetID = nil
         // D48: inside a superset, no rest until the LAST member. Moving
         // straight from A to B with no rest is the entire point of the
         // technique, so a timer firing between members would be telling the
@@ -899,7 +909,13 @@ struct ActiveWorkoutView: View {
         }
     }
 
+    /// Every path that can clear an expired rest comes through here (appear, foreground, the
+    /// slab's expiry, a lock-screen command): say how it ended BEFORE `currentState` clears the
+    /// facts it is read from (codex-review-11 #4).
     private func refreshRest() {
+        if let end = workout.restEndsAt, end <= .now {
+            lastRestResult = activityState().shownResult(at: .now, isStale: true)
+        }
         do { showRestTimer(try restTimer.currentState(for: workout)) }
         catch { assertionFailure("Failed to restore rest timer: \(error)") }
     }

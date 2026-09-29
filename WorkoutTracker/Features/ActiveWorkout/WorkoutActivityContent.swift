@@ -123,8 +123,10 @@ enum WorkoutActivityContent {
             activity: segment.activity.name,
             symbol: segment.activity.symbol,
             isPaused: !segment.isRunning,
-            clockStart: segment.isRunning ? now.addingTimeInterval(-active) : nil,
-            elapsedSeconds: Int(active),
+            // Fixed while the segment runs (its active start less the time banked before it), so
+            // the 2-second tick does not push a new card for a clock the system already ticks.
+            clockStart: segment.activeStartedAt.map { $0.addingTimeInterval(-max(0, segment.accumulatedActiveSeconds)) },
+            elapsedSeconds: Int(segment.isRunning ? max(0, segment.accumulatedActiveSeconds) : active),
             distance: segment.distanceMeters.map { String(format: "%.2f", $0 / unit.metersPerUnit) },
             distanceUnit: segment.distanceMeters == nil ? nil : unit.rawValue,
             rate: rate,

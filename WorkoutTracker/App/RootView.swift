@@ -8,13 +8,15 @@ struct RootView: View {
     /// Owns the heart-rate session for whichever workout is running
     /// (codex-review-2 #2). Lives here, not on the workout screen, because
     /// minimise dismisses that screen while the workout keeps going.
-    @State private var heartRateCoordinator = WorkoutHeartRateCoordinator()
+    /// Created with the app by `WorkoutActivityCommands` (ticket 11: a lock-screen command can
+    /// arrive before this view exists) and borrowed here.
+    @State private var heartRateCoordinator = WorkoutActivityCommands.shared.coordinator
     /// Owned at the same level as the heart-rate session, and for the same
     /// reason (codex-review-2 #2): C1's minimise dismisses the workout SCREEN
     /// while the workout keeps running, so a screen-owned activity would end
     /// the moment the user left the app — which is exactly when a lock-screen
     /// card is worth having.
-    @State private var workoutActivity = WorkoutActivityController()
+    @State private var workoutActivity = WorkoutActivityCommands.shared.activity
     /// C2/A2: the finish that just happened, awaiting its confirmation sheet.
     @State private var finishConfirmation: FinishConfirmation?
     /// C2: the workout History should open — selecting the tab is not the
@@ -62,11 +64,6 @@ struct RootView: View {
         // must bank the active workout's summary before "Finish it and start
         // new" auto-finishes that workout (codex-review 05).
         .tint(Color.accentColor)
-        // Lock-screen commands (ticket 11) act through the same coordinator and card.
-        .onAppear {
-            WorkoutActivityCommands.shared.coordinator = heartRateCoordinator
-            WorkoutActivityCommands.shared.activity = workoutActivity
-        }
         .environment(heartRateCoordinator)
         .fullScreenCover(item: $activeWorkout) { workout in
             ActiveWorkoutView(

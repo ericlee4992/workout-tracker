@@ -50,6 +50,15 @@ final class FloodlightSystemUITests: XCTestCase {
             let cardio = state.hasPrefix("cardio")
             XCTAssertEqual(app.buttons["activitySkipRest"].exists, resting, "\(state): Skip")
             XCTAssertEqual(app.buttons["activityPauseResume"].exists, cardio, "\(state): Pause")
+            // The system clips the Lock Screen card at 160 pt (codex-review-11 #5).
+            let card = any("galleryLockScreen").frame
+            XCTAssertLessThanOrEqual(card.height, 160, "\(state): the card is \(card.height) pt tall")
+            // Once rest is over the next set is named, not just drawn (codex-review-11 #6).
+            let spokenMarker = ["ready": "Set 3", "superset": "Set 3, superset A", "warmup": "Warmup",
+                                "timer": "Set 3", "recovered": "Set 3"][state]
+            if let spokenMarker {
+                XCTAssertTrue(app.descendants(matching: .any)[spokenMarker].exists, "\(state): marker says \(spokenMarker)")
+            }
             Thread.sleep(forTimeInterval: 0.8)
             shoot("Z01-\(state)-\(appearance)-\(large ? "axl" : "default")")
         }
@@ -123,6 +132,9 @@ final class FloodlightSystemUITests: XCTestCase {
         // Without the command the rest would read `before − elapsed` (± a second of label
         // rounding); +15s puts it about 15 higher.
         XCTAssertGreaterThanOrEqual(after, before - elapsed + 12, "+15s on the card moved the rest (\(before) → \(after) over \(elapsed) s)")
+        XCTAssertLessThanOrEqual(after, before - elapsed + 18, "by 15 s, not more (\(before) → \(after) over \(elapsed) s)")
+        // Enough rest is left that it cannot run out on its own before Skip is pressed and read.
+        XCTAssertGreaterThan(after, 40, "the rest outlives the Skip check")
 
         // Skip on the card ends the rest in the app.
         XCUIDevice.shared.press(.home)

@@ -34,7 +34,7 @@ hierarchy's order.
   once.
 - Respect the safe area; controls float on Liquid Glass above content on iOS 26 — do not paint a
   solid bar under them.
-- Hit region 44 × 44 pt minimum (the app's `.primary` style is 52 pt tall). Buttons near each
+- Hit region 44 × 44 pt minimum (the app's `.lookPrimary` style is 56 pt tall). Buttons near each
   other: distinguish by style, not size.
 - Size classes, not device type, decide layout.
 
@@ -64,27 +64,16 @@ hierarchy's order.
   confirms; Back moves within a multi-step flow; never all three. Consider a full-screen cover
   or pushed screens for prolonged flows.
 
-## Colour and dark appearance
+## Colour and appearances
 
-- Apple asks for light and dark variants of every custom colour even in a single-appearance
-  app (Liquid Glass adaptivity). **D54 is the recorded exception**: this app ships one
-  appearance, `Any` only, and the window forces `.dark`; adding light variants means reopening
-  D54 deliberately, not drifting.
+- Apple asks for light and dark variants of every custom colour (Liquid Glass adaptivity). This app
+  has both (D59): Settings → Appearance (System / Light / Dark), `Look.app(scheme)` picks the
+  token set; a colour added to one set is added to the other.
 - Contrast: 4.5:1 is the minimum; 7:1 is the target Apple asks you to strive for on custom
-  pairs and small text. Measured pairs (sRGB asset values, WCAG relative luminance):
-
-  | Text | on Background | on Card | on Elevated | on Fill |
-  |---|---|---|---|---|
-  | `TextPrimary` | 17.6:1 | 15.6:1 | 13.4:1 | 11.7:1 |
-  | `TextSecondary` | 9.9:1 | 8.8:1 | 7.5:1 | 6.6:1 |
-  | `TextTertiary` | 5.4:1 | 4.8:1 | 4.1:1 | 3.6:1 |
-  | `OnAccent` on accent | 10.7:1 | | | |
-
-  So `TextTertiary` meets the minimum only on Background and Card; it carries no essential text
-  on Elevated or Fill. Small = Caption/Footnote sizes.
-- Dark Mode backgrounds are base and elevated: sheets and modals sit on the elevated one.
-- SF Symbols wherever possible; separate light/dark artwork only when an asset fails in one.
-- Same colour, same meaning, everywhere.
+  pairs and small text. The measured Floodlight Light pairs are in `FinalLook.swift`'s header
+  (text on ground / surface / raised; the action, heart, destructive, family and zone colours);
+  the dark set's figures are high by construction (near-white on near-black) — measure any new
+  pair, and composited colours (a tint over a surface) as composited.
 
 ## This app's tokens (`Features/Design/Look/Look.swift`, `FinalLook.swift`)
 

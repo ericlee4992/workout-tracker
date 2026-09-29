@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 // Milestone 7, ticket 01 — maximum heart rate and the five zones (D45).
 //
@@ -20,6 +21,15 @@ struct MaxHeartRate: Equatable, Sendable {
 }
 
 enum MaxHeartRateResolver {
+
+    /// The maximum the live workout uses: the preferences' measured value, else 220 − age
+    /// (estimated), else none. Shared by the live screen and lock-screen commands.
+    @MainActor
+    static func current(in context: ModelContext, at date: Date = .now) -> MaxHeartRate? {
+        let rows = (try? context.fetch(FetchDescriptor<AppPreferences>())) ?? []
+        guard let preferences = AppPreferences.canonical(of: rows) else { return nil }
+        return resolve(measured: preferences.measuredMaxHeartRate, birthDate: preferences.birthDate, at: date)
+    }
 
     /// The classic Fox formula. Population-level, not personal — hence
     /// `isEstimated`.

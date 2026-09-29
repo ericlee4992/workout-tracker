@@ -323,10 +323,21 @@ struct ActivityNextMarker: View {
                     .foregroundStyle(palette.textPrimary)
                     .frame(width: 24, height: 24)
                     .overlay { RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(palette.textPrimary, lineWidth: 1.5) }
-                    .accessibilityLabel("Superset \(letter)")
             }
         }
-        .accessibilityHidden(next.supersetLetter == nil)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Self.spoken(next))
+    }
+
+    /// "Set 3", "Warmup", "Drop set", "Failure set", with ", superset A" when paired.
+    static func spoken(_ next: WorkoutActivityAttributes.NextSet) -> String {
+        let kind = switch next.marker {
+        case "W": "Warmup"
+        case "D": "Drop set"
+        case "F": "Failure set"
+        default: "Set \(next.marker)"
+        }
+        return kind + (next.supersetLetter.map { ", superset \($0)" } ?? "")
     }
 }
 
@@ -583,12 +594,11 @@ struct WorkoutActivityCard: View {
     var attributes: WorkoutActivityAttributes
     var isStale: Bool
     var palette: ActivityPalette
-    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         let now = Date.now
         let phase = state.phase(at: now, isStale: isStale)
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 8) {
             header(phase: phase, now: now)
             switch phase {
             case .resting: restInstrument
@@ -598,9 +608,10 @@ struct WorkoutActivityCard: View {
             footer(phase: phase, now: now)
         }
         .padding(.horizontal, 14)
-        .padding(.top, 12)
-        .padding(.bottom, 13)
-        .activityTypeCap()
+        .padding(.vertical, 10)
+        // The system clips the card at 160 pt: the header never wraps, and the type stops at
+        // Large (codex-review-11 #5 measured 166 pt at xLarge with the footer stacked).
+        .dynamicTypeSize(...DynamicTypeSize.large)
         .accessibilityElement(children: .contain)
     }
 
@@ -611,7 +622,8 @@ struct WorkoutActivityCard: View {
             Text(state.headerTitle(at: now, isStale: isStale))
                 .font(ActivityType.name(.subheadline))
                 .foregroundStyle(palette.textPrimary)
-                .lineLimit(typeSize > .large ? 2 : 1)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
             Spacer(minLength: 8)
             ActivityClock(start: attributes.startedAt, font: ActivityType.number(.subheadline), color: palette.textSecondary)
         }
@@ -789,7 +801,7 @@ struct ActivityCardioRing: View {
         let symbol = cardio.isPaused ? "pause.fill" : cardio.symbol
         if let minutes = cardio.targetMinutes, minutes > 0 {
             let total = Double(minutes * 60)
-            if Double(cardio.elapsedSeconds) >= total {
+            if Double(cardio.activeSeconds(at: .now)) >= total {
                 ActivityTimerRing(fill: .fixed(1), symbol: "checkmark", tint: palette.live, track: palette.ringTrack, size: size)
             } else if let start = cardio.clockStart, !cardio.isPaused {
                 ActivityTimerRing(fill: .timer(start...start.addingTimeInterval(total), countsDown: false), symbol: symbol,

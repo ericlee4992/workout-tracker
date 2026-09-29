@@ -153,75 +153,135 @@ struct WorkoutActivityContentTests {
         #expect(state.restEndsAt == nil, "starting cardio ends the rest")
     }
 
+    // MARK: The builder, superset grouping (D48)
+
+    @Test func groupingIntoASupersetMovesTheNextSetToThePartner() throws {
+        let rig = try rig()
+        try startRest(rig, after: rig.pressSets[1])
+        #expect(WorkoutActivityContent.make(for: rig.workout, in: rig.context, heart: nil).next?.exerciseName == "Chest Press")
+        let group = UUID()
+        rig.press.supersetGroupID = group
+        rig.row.supersetGroupID = group
+        try rig.context.save()
+        let grouped = WorkoutActivityContent.make(for: rig.workout, in: rig.context, heart: nil)
+        #expect(grouped.next?.exerciseName == "Seated Row", "the partner comes next in a superset")
+        #expect(grouped.next?.supersetLetter == "B")
+    }
+
     // MARK: Commands pressed on the card
 
-    private func commands(_ rig: Rig) -> (WorkoutActivityCommands, FakeNotifications, WorkoutActivityController, SilentWorkoutActivityPresenter) {
-        let commands = WorkoutActivityCommands()
+    /// A command centre with a real coordinator (silent alarm), a silent card, and a recorded
+    /// runtime attach — the cold-launch path cannot start HealthKit in a unit test.
+    private struct Commands {
+        let commands: WorkoutActivityCommands
+        let notifications: FakeNotifications
+        let alarm: SilentRestAlarm
+        let presenter: SilentWorkoutActivityPresenter
+        let attached: Box
+    }
+    final class Box { var workoutIDs: [UUID] = [] }
+
+    private func commands(_ rig: Rig) -> Commands {
+        let alarm = SilentRestAlarm()
+        let presenter = SilentWorkoutActivityPresenter()
+        let attached = Box()
+        let commands = WorkoutActivityCommands(
+            coordinator: WorkoutHeartRateCoordinator(alarm: alarm),
+            activity: WorkoutActivityController(presenter: presenter),
+            attachRuntime: { workout, _ in attached.workoutIDs.append(workout.id) })
         commands.use(rig.container)
         let notifications = FakeNotifications()
         commands.notifications = notifications
-        let presenter = SilentWorkoutActivityPresenter()
-        let controller = WorkoutActivityController(presenter: presenter)
-        commands.activity = controller
-        return (commands, notifications, controller, presenter)
+        return Commands(commands: commands, notifications: notifications, alarm: alarm, presenter: presenter, attached: attached)
     }
 
     @Test func plusFifteenOnTheCardMovesTheRestItsAlarmAndTheCard() throws {
         let rig = try rig()
         try startRest(rig, after: rig.pressSets[1])
         let end = try #require(rig.workout.restEndsAt)
-        let (commands, notifications, controller, presenter) = commands(rig)
+        let c = commands(rig)
         var posted = false
         let observer = NotificationCenter.default.addObserver(forName: WorkoutActivityCommands.didApply, object: nil, queue: nil) { note in
             posted = (note.object as? UUID) == rig.workout.id
         }
         defer { NotificationCenter.default.removeObserver(observer) }
-        #expect(commands.perform(.addFifteen, workoutID: rig.workout.id))
+        #expect(c.commands.perform(.addFifteen, workoutID: rig.workout.id))
+        #expect(c.attached.workoutIDs == [rig.workout.id], "the workout's runtime is attached first (cold launch)")
         #expect(rig.workout.restEndsAt == end.addingTimeInterval(15))
-        #expect(notifications.scheduled.last == end.addingTimeInterval(15), "the rest notification moves with it")
+        #expect(c.notifications.scheduled.last == end.addingTimeInterval(15), "the rest notification moves with it")
+        let queued = try #require(c.alarm.queued.first, "the audible alarm is re-queued for the new end")
+        #expect(abs(queued.seconds - end.addingTimeInterval(15).timeIntervalSinceNow) < 2)
         #expect(posted, "the live screen re-reads its rest")
-        #expect(presenter.lastState?.restEndsAt == end.addingTimeInterval(15), "the card is re-pushed")
-        _ = controller
+        #expect(c.presenter.starts == 1)
+        #expect(c.presenter.lastState?.restEndsAt == end.addingTimeInterval(15), "the card is re-pushed")
     }
 
-    @Test func skipOnTheCardEndsTheRest() throws {
+    @Test func skipOnTheCardEndsTheRestItsAlarmAndItsResult() throws {
         let rig = try rig()
         try startRest(rig, after: rig.pressSets[1])
-        let (commands, notifications, controller, presenter) = commands(rig)
-        #expect(commands.perform(.skipRest, workoutID: rig.workout.id))
+        let c = commands(rig)
+        c.commands.coordinator.lastRestResult = .timer(seconds: 90)
+        #expect(c.commands.perform(.skipRest, workoutID: rig.workout.id))
         #expect(rig.workout.restEndsAt == nil && rig.workout.restStartedBySetID == nil)
-        #expect(notifications.cancellations == 1)
-        #expect(presenter.lastState?.restEndsAt == nil)
-        _ = controller
+        #expect(c.notifications.cancellations == 1)
+        #expect(c.alarm.cancellations == 1 && c.alarm.queued.isEmpty, "the audible alarm is cancelled")
+        #expect(c.commands.coordinator.lastRestResult == nil, "a skipped rest has no result")
+        #expect(c.presenter.starts == 1, "the card was pushed")
+        let state = try #require(c.presenter.lastState)
+        #expect(state.restEndsAt == nil && state.shownResult(at: .now, isStale: false) == nil)
+    }
+
+    @Test func aCommandKeepsAHeartRateRestThatFellBackAFallback() throws {
+        let rig = try rig()
+        try RestTimerService(context: rig.context).setOverride(
+            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: nil,
+            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 240)
+        try startRest(rig, after: rig.pressSets[1])
+        let c = commands(rig)
+        c.commands.coordinator.degradedRestSetID = rig.pressSets[1].id
+        #expect(c.commands.perform(.addFifteen, workoutID: rig.workout.id))
+        #expect(c.presenter.lastState?.rest == .fallback)
+    }
+
+    @Test func aCommandOnARestThatRanOutKeepsHowItEnded() throws {
+        let rig = try rig()
+        rig.workout.restStartedAt = .now.addingTimeInterval(-122)
+        rig.workout.restEndsAt = .now.addingTimeInterval(-2)
+        rig.workout.restStartedBySetID = rig.pressSets[1].id
+        try rig.context.save()
+        let c = commands(rig)
+        #expect(!c.commands.perform(.skipRest, workoutID: rig.workout.id), "nothing left to skip")
+        #expect(c.commands.coordinator.lastRestResult == .timer(seconds: 120))
+        #expect(!c.commands.perform(.addFifteen, workoutID: rig.workout.id), "no adding to a finished rest")
+        #expect(c.commands.coordinator.lastRestResult == .timer(seconds: 120), "the result survives the clearing")
     }
 
     @Test func aStaleCardCannotEditAWorkoutThatIsNotLive() throws {
         let rig = try rig()
-        let (commands, _, controller, presenter) = commands(rig)
-        #expect(!commands.perform(.addFifteen, workoutID: rig.workout.id), "no rest running")
-        #expect(!commands.perform(.skipRest, workoutID: rig.workout.id), "no rest running")
-        #expect(!commands.perform(.pauseCardio, workoutID: rig.workout.id), "no cardio running")
-        #expect(!commands.perform(.skipRest, workoutID: UUID()), "unknown workout")
+        let c = commands(rig)
+        #expect(!c.commands.perform(.addFifteen, workoutID: rig.workout.id), "no rest running")
+        #expect(!c.commands.perform(.skipRest, workoutID: rig.workout.id), "no rest running")
+        #expect(!c.commands.perform(.pauseCardio, workoutID: rig.workout.id), "no cardio running")
+        #expect(!c.commands.perform(.skipRest, workoutID: UUID()), "unknown workout")
         try startRest(rig, after: rig.pressSets[1])
         rig.workout.finishedAt = .now
         try rig.context.save()
-        #expect(!commands.perform(.skipRest, workoutID: rig.workout.id), "finished workout")
+        #expect(!c.commands.perform(.skipRest, workoutID: rig.workout.id), "finished workout")
         #expect(rig.workout.restEndsAt != nil)
-        #expect(presenter.starts == 0, "nothing pushed for a refused command")
-        _ = controller
+        #expect(c.presenter.starts == 0, "nothing pushed for a refused command")
     }
 
     @Test func pauseAndResumeOnTheCardDriveTheCardioSegment() throws {
         let rig = try rig()
         let segment = try CardioSession(context: rig.context).start(.indoorRun, in: rig.workout, at: .now.addingTimeInterval(-120))
-        let (commands, _, controller, presenter) = commands(rig)
-        #expect(!commands.perform(.resumeCardio, workoutID: rig.workout.id), "already running")
-        #expect(commands.perform(.pauseCardio, workoutID: rig.workout.id))
+        let c = commands(rig)
+        #expect(!c.commands.perform(.resumeCardio, workoutID: rig.workout.id), "already running")
+        #expect(c.commands.perform(.pauseCardio, workoutID: rig.workout.id))
         #expect(!segment.isRunning)
-        #expect(presenter.lastState?.cardio?.isPaused == true)
-        #expect(commands.perform(.resumeCardio, workoutID: rig.workout.id))
+        #expect(c.presenter.lastState?.cardio?.isPaused == true)
+        #expect(c.commands.perform(.resumeCardio, workoutID: rig.workout.id))
         #expect(segment.isRunning)
-        #expect(presenter.lastState?.cardio?.isPaused == false)
-        _ = controller
+        let cardio = try #require(c.presenter.lastState?.cardio)
+        #expect(!cardio.isPaused && abs(cardio.activeSeconds(at: .now) - 120) <= 2, "the clock resumes where it stopped")
     }
 }
