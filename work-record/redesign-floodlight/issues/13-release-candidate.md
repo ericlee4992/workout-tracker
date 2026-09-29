@@ -53,6 +53,26 @@ session ends mid-run: check the `.exit` file and the xcresult summary; do not st
 
 ## Fixes
 
+## Install (ticket 01 step 5)
+
+- **Account:** the user added their Apple ID in Xcode → Settings → Accounts (2026-09-29, ~04:45 EDT); team
+  `X68M8SR6NA` (Personal Team).
+- **Signing renewal — done 2026-09-29.** `rc-device-build-1` exit 0 (`** BUILD SUCCEEDED **`), code identical to
+  `796ffe5`: `xcodebuild … -configuration Debug -destination 'generic/platform=iOS' -allowProvisioningUpdates
+  -derivedDataPath /tmp/wt-floodlight/dd-device WT_DEVELOPMENT_TEAM=X68M8SR6NA
+  WT_BUNDLE_ID_BASE=com.ericlee4992.workouttracker build` (the Local.xcconfig values on the command line, so the
+  scratch checkout's simulator builds are unchanged). Run during `rc-ui-1` (load ~15). The profile directory had been
+  empty since 2026-09-24 03:57, so nothing needed moving aside. New profiles, both with the phone
+  `00008130-001E10C01E62001C`:
+  - app `com.ericlee4992.workouttracker` — `9919493b-3fcd-4956-a418-880cfb7df595`, expires **2026-10-06 08:45:50 UTC**;
+  - widget `….widget` — `ba4e9c29-50ac-4fa2-9979-a5ccd3951f39`, expires **2026-10-06 08:45:48 UTC**.
+- **Freshness:** product `/tmp/wt-floodlight/dd-device/Build/Products/Debug-iphoneos/WorkoutTracker.app`, dylib
+  04:46; ticket 12's symbols/strings present (`CardioRingModel`, `startSelectedCardio`, `historyCardioSection`,
+  "Recording time continues."); HealthKit usage string, `NSSupportsLiveActivities`, widget `NSExtension` present.
+  If a fix lands after this build, rebuild (the profiles are reused) and recheck.
+- **Remaining, with the user's go-ahead:** fresh full backup, install, launch, data-preservation check; merge to
+  `main` when the RC pass is clear.
+
 ## Progress
 
 - 2026-09-29: resumed from STATE (`1794867`) and tickets 01 / 12; branch map verified against `origin` (every
