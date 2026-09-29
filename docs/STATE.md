@@ -75,20 +75,22 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `FloodlightAIRoutineUITests` class + all twelve `AskAIUITests` routine cases, which include the two AX
   AI-routine-form tests ticket 07 listed as failing — now passing); captures `captures/10/` (84). Not
   exercised: VoiceOver by a person, runtime Reduce Motion, a narrow phone, a real device, a real OpenAI call.
-- **Ticket 11 — System surfaces + cleanup**: IN PROGRESS (Claude, 2026-09-28). Branch
-  `ericlee4992/redesign-floodlight-system` (pushed; tip in the ticket), scratch checkout `/tmp/wt-floodlight/system`,
-  runner `/tmp/wt-floodlight/sys-run.sh` (derived data `dd-sys`). Record: `issues/11-system.md` on that branch. User
-  decisions 2026-09-28: +15s / Skip / Pause / Resume on the Live Activity (App Intents, built); cardio is ticket 12;
-  the Live Activity follows the system appearance; the icon is the dumbbell in violet (not the prototype's lit
-  stack). Done: `Theme` and the `Legacy*` components DELETED (cardio moved to Look tokens, no layout change); the
-  Floodlight Live Activity + island, verified on a real card in the Simulator (+15s/Skip pressed on it); the icon;
-  **D59** in DECISIONS (replaces D54; lists every "record with the D54 entry" decision from tickets 01–11, incl.
-  "keep cardio plain floodlight"); SPEC and the ios-design skill. Next: the neighbour batch `sys-ui-11`, captures,
-  Codex review (prompt `codex-review-11-prompt.md`).
+- **Ticket 11 — System surfaces + cleanup** (Z01–Z05): branch `ericlee4992/redesign-floodlight-system` (pushed, tip
+  `5066647`, stacked on the ticket-10 tip `0fa6814`), scratch checkout `/tmp/wt-floodlight/system`, runner
+  `/tmp/wt-floodlight/sys-run.sh` (derived data `dd-sys`). **Codex clear after 5 rounds** (`codex-review-11e.md`; review
+  terminal closed). Record: `issues/11-system.md` on that branch. User decisions 2026-09-28: +15s / Skip / Pause /
+  Resume on the Live Activity (built: App Intents run in the app, which owns the workout runtime so a cold launch
+  moves the alarm, Watch and sensors too); cardio is ticket 12; the Live Activity follows the system appearance; the
+  icon is the dumbbell in violet with Dark / Tinted. Done: `Theme` and the `Legacy*` components DELETED; the Floodlight
+  Live Activity + island, checked on a real card in the Simulator; **D59** in DECISIONS (replaces D54; lists every
+  "record with the D54 entry" decision of tickets 01–11, incl. "keep cardio plain floodlight"); SPEC; the ios-design
+  skill. Verification: unit 906/906 (`sys-ui-28`); UI — System, Live, HeartRate, Cardio 9/9, CoreLoop, Finish, Workout
+  tab (`sys-ui-17/19/22/26/27`, load-related flakes passed on rerun); captures `captures/11/` (70). Not exercised:
+  VoiceOver by a person, a real device's Lock Screen / island / Watch after a lock-screen command.
 - **Ticket 12 — Cardio** (ticket 01 area order item 3: cardio picker, live cardio panel, distance editor): NOT
   STARTED. Missed in the 02–10 sequence. **User decision 2026-09-28: keep cardio plain Floodlight** (recorded in
   ticket 01 and D59). `Theme` is already gone (ticket 11). Branch `ericlee4992/redesign-floodlight-cardio`
-  (pushed, from `0fa6814`, no commits — move it onto the ticket-11 tip before starting), scratch checkout
+  (pushed, from `0fa6814`, no commits — move it onto the ticket-11 tip `5066647` before starting), scratch checkout
   `/tmp/wt-floodlight/cardio`, start prompt `/tmp/wt-floodlight/ticket-cardio-brief.md`. After it: add its decisions
   to D59, the release-candidate pass (full UI suite, ticket 01 step 4), then the one install.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
