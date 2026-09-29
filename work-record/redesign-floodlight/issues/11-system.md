@@ -318,3 +318,8 @@ follow, and the key now includes grouping — no view-level cache test was added
 Verification (round 3): `sys-ui-21` exit 0 — `WorkoutActivityContentTests`, `WorkoutActivityProviderTests`,
 `WorkoutActivityTests`, `HeartRateRestTimerTests`, `RestAlarmTests` **51/51** (an earlier run crashed on a test's
 SwiftData objects outliving its container: the tests now end the runtime and await its banking, `settled()`).
+- `sys-ui-22` (on `e708c9e`; exit 65 from one unit assertion): **UI 38/38** — `FloodlightSystemUITests`,
+  `FloodlightLiveUITests`, `HeartRateUITests`, `CardioUITests` 9/9, `CoreLoopUITests`; unit 904/905: the cold-launch
+  test compared the queued beep's delay with "now" after a minute-long `handle` under the full suite (a test flaw:
+  the delay is relative to when it was queued). Both +15s tests now bound it between the times before and after the
+  call. `sys-unit-23`: **unit 905/905** (exit 0).

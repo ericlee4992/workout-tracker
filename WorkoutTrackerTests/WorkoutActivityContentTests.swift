@@ -205,12 +205,15 @@ struct WorkoutActivityContentTests {
             posted = (note.object as? UUID) == rig.workout.id
         }
         defer { NotificationCenter.default.removeObserver(observer) }
+        let before = Date.now
         #expect(c.commands.perform(.addFifteen, workoutID: rig.workout.id))
+        let after = Date.now
         #expect(c.attached.workoutIDs == [rig.workout.id], "the workout's runtime is attached first (cold launch)")
         #expect(rig.workout.restEndsAt == end.addingTimeInterval(15))
         #expect(c.notifications.scheduled.last == end.addingTimeInterval(15), "the rest notification moves with it")
-        let queued = try #require(c.alarm.queued.first, "the audible alarm is re-queued for the new end")
-        #expect(abs(queued.seconds - end.addingTimeInterval(15).timeIntervalSinceNow) < 2)
+        let queued = try #require(c.alarm.queued.first?.seconds, "the audible alarm is re-queued for the new end")
+        let target = end.addingTimeInterval(15)
+        #expect(queued <= target.timeIntervalSince(before) + 0.5 && queued >= target.timeIntervalSince(after) - 0.5)
         #expect(posted, "the live screen re-reads its rest")
         #expect(c.presenter.starts == 1)
         #expect(c.presenter.lastState?.restEndsAt == end.addingTimeInterval(15), "the card is re-pushed")
@@ -311,10 +314,16 @@ struct WorkoutActivityContentTests {
         commands.use(rig.container)
         commands.notifications = FakeNotifications()
         #expect(coordinator.workoutID == nil, "cold: no runtime yet")
+        let before = Date.now
         await commands.handle(.addFifteen, workoutID: rig.workout.id)
+        let after = Date.now
         #expect(coordinator.workoutID == rig.workout.id, "the command attached the workout's runtime")
-        #expect(alarm.sessionOpens == 1 && abs((alarm.queued.first?.seconds ?? 0) - end.addingTimeInterval(15).timeIntervalSinceNow) < 2,
-                "the audible alarm is armed for the extended rest")
+        #expect(alarm.sessionOpens == 1)
+        // The beep is queued "in N seconds" at some instant during `handle`.
+        let queued = try #require(alarm.queued.first?.seconds, "the audible alarm is armed")
+        let target = end.addingTimeInterval(15)
+        #expect(queued <= target.timeIntervalSince(before) + 0.5 && queued >= target.timeIntervalSince(after) - 0.5,
+                "for the extended rest")
         #expect(feed.started)
         #expect(feed.sent.last == end.addingTimeInterval(15), "the Watch hears the extended rest after its start message")
         #expect(presenter.lastState?.restEndsAt == end.addingTimeInterval(15))
