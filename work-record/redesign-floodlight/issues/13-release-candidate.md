@@ -44,6 +44,11 @@ booted (WT-iPhone, WT-Redesign, -2, -3); load at the start: 23.6 / 21.4 / 15.8 o
 | `rc-build-1` | `796ffe5` code (`dfa8062`) | build-for-testing | 15.5 / 19.6 / 15.4 | 0 | TEST BUILD SUCCEEDED |
 | `rc-unit-1` | same | `WorkoutTrackerTests` (whole target) | 14.2 / 19.2 / 15.3 | 0 | **919/919** passed, 0 failed, 0 skipped (xcresult summary); 94 s |
 
+**Running:** `rc-ui-1` — `WorkoutTrackerUITests` (whole target) on the same code, started 2026-09-29 04:11 EDT
+(load 16.4 / 18.9 / 15.7), xcodebuild PID 78787, launched by Claude Code's background Bash (not a shell `&`); log
+`/tmp/wt-floodlight/results/rc-ui-1.log`, exit `rc-ui-1.exit`, bundle `rc-ui-1.xcresult`. Expected 2–4 h. If the
+session ends mid-run: check the `.exit` file and the xcresult summary; do not start a second run on the simulator.
+
 ## Failures and causes
 
 ## Fixes
