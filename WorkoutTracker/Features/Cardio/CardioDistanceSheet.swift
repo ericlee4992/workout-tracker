@@ -20,6 +20,8 @@ struct CardioDistanceSheet: View {
     @State private var saves = 0
     @FocusState private var focused: Bool
     @ScaledMetric(relativeTo: .largeTitle) private var numberSize: CGFloat = 54
+    @ScaledMetric(relativeTo: .body) private var glyphColumn: CGFloat = 26
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private var seconds: Double { segment.activeDuration(at: segment.endedAt ?? .now) }
     private var trimmed: String { text.trimmingCharacters(in: .whitespaces) }
@@ -149,19 +151,7 @@ struct CardioDistanceSheet: View {
         let rateUnit = usesSpeed ? CardioFormat.speedUnit(unit) : CardioFormat.paceUnit(unit)
         let usingMeasured = trimmed.isEmpty
         return LookList {
-            LookRow(usesSpeed ? "Average speed" : "Average pace", symbol: "stopwatch", showsChevron: false) {
-                HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Text(rateValue)
-                        .font(look.font.smallNumber)
-                        .foregroundStyle(rateValue == "—" ? look.textTertiary : look.textPrimary)
-                        .contentTransition(.numericText())
-                        .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: rateValue)
-                    if rateValue != "—" {
-                        Text(rateUnit).font(look.cardioUnitFont).foregroundStyle(look.textSecondary)
-                    }
-                }
-                .fixedSize() // the figure never breaks; the row's title wraps instead
-            }
+            rateRow(title: usesSpeed ? "Average speed" : "Average pace", value: rateValue, unit: rateUnit)
             if let measured = segment.automaticDistanceMeters {
                 LookRow("Measured", symbol: CardioFormat.distanceSymbol, showsChevron: false, action: {
                     text = ""
@@ -184,6 +174,37 @@ struct CardioDistanceSheet: View {
                 .accessibilityIdentifier("cardioMeasuredDistance")
             }
         }
+    }
+
+    /// What the distance makes of the segment: a row like the list's, its figure never broken — at
+    /// accessibility sizes the title goes over the figure rather than breaking mid-word beside it.
+    private func rateRow(title: String, value: String, unit: String) -> some View {
+        let figure = HStack(alignment: .firstTextBaseline, spacing: 3) {
+            Text(value)
+                .font(look.font.smallNumber)
+                .foregroundStyle(value == "—" ? look.textTertiary : look.textPrimary)
+                .contentTransition(.numericText())
+                .animation(reduceMotion ? nil : .snappy(duration: 0.25), value: value)
+            if value != "—" { Text(unit).font(look.cardioUnitFont).foregroundStyle(look.textSecondary) }
+        }
+        .fixedSize()
+        let label = Text(title).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
+        return HStack(spacing: 12) {
+            LookIcon("stopwatch", style: .body).foregroundStyle(look.textSecondary).frame(width: glyphColumn)
+            if typeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: 4) { label; figure }
+                Spacer(minLength: 0)
+            } else {
+                label
+                Spacer(minLength: 8)
+                figure
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 11)
+        .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(value == "—" ? "\(title), none" : "\(title), \(value) \(unit)")
     }
 
     private var unitIndex: Binding<Int> {

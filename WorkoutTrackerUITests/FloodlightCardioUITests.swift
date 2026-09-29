@@ -195,10 +195,15 @@ final class FloodlightCardioUITests: XCTestCase {
         shoot("F02-splits")
         // History's cardio-only detail.
         let history = app.buttons["viewFinishedWorkout"]
-        for _ in 0..<10 where !history.exists || !history.isHittable { app.swipeDown() }
+        // Clear of the receipt's pinned header ("Nice work · Done"): a link half under it is hittable,
+        // but the tap lands on Done.
+        func clear() -> Bool { history.exists && history.isHittable && history.frame.minY > 160 }
+        for _ in 0..<12 where !clear() { app.swipeDown() }
+        XCTAssertTrue(clear(), "View in History clear of the header")
         history.tap()
+        XCTAssertTrue(any("historyWorkoutName").waitForExistence(timeout: 15), "History's detail opened")
         let hero = any("cardioRoute")
-        XCTAssertTrue(hero.waitForExistence(timeout: 10))
+        XCTAssertTrue(hero.waitForExistence(timeout: 15))
         sleep(2)
         let heroDistance = app.buttons["cardioSummaryEditDistance"]
         XCTAssertTrue(heroDistance.label.hasPrefix("Distance"), heroDistance.label)

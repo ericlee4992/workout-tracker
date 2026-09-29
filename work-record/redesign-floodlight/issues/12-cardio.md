@@ -204,6 +204,26 @@ Tests moved with the structure (CardioUITests, RedesignScreenshotUITests' unit-s
 are single accessibility elements (label + value + unit), so value checks read labels; the unit pills are buttons;
 Cancel is `cardioPickerCancel`.
 
+## Verification
+
+Runner `/tmp/wt-floodlight/cardio-run.sh <name> build|test …` (derived data `/tmp/wt-floodlight/dd-cardio`); logs,
+`.exit` files and result bundles `/tmp/wt-floodlight/results/cardio-*`.
+
+- Prototype captures: dark and light both exit 0, 56 each, every PNG has content (checked by histogram and by eye).
+  In the prototype too the Simulator's route well sometimes shows the grid without map tiles (tiles load late).
+- `cardio-build-1` (exit 65: `CardioChoice` not Hashable — `PlannedCardio` is only Equatable; hashed by id),
+  `cardio-build-2` exit 0.
+- `cardio-ui-1` (exit 65): `CardioReadoutTests` 9/9; `testFinishedDark` passed; `testLiveDark` failed on an
+  over-exact assertion (the heart-rate fixture adds distance to the seeded 2.36 km; now "Distance 2.").
+- `cardio-ui-2` (on `76eb6ae`; exit 65): unit `CardioReadoutTests`, `CardioTests`, `CardioRecorderTests` 27/27;
+  UI 18/20 — `FloodlightCardioUITests` 7/8, `CardioUITests` 8/9, `RedesignScreenshotUITests` unit-system ×2,
+  `AskAIUITests.testWeeklyRoutineDefault` (the planned Start from the lifting focus) passed. Failures, both test-side:
+  the blank Distance field now reports its "—" prompt as its value; `testFinishedLightAccessibility` ran out of
+  scroll steps before the lazy History list built Splits. `cardio-ui-3` exit 0: both 2/2 alone.
+- Looked at every capture as a picture (light/dark × Default/AXL): fixed at AXL the figure labels breaking
+  mid-word ("Dis-/tance": the glyph now drops at AX sizes), the Distance sheet's pace wrapping, split paces
+  wrapping; the digit roll caught mid-frame (the capture-still flag now defaults on in UI-test stores).
+
 ## Progress
 
 - 2026-09-28: resumed from STATE and ticket 01; the branch reset onto `af30f66` and force-pushed. Read ticket 11
