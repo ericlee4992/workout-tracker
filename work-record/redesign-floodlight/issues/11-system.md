@@ -361,7 +361,7 @@ Report: [codex-review-11d.md](../codex-review-11d.md) — not clear; one medium.
    Test extended: with A attached, B's screen restores B's result; attaching B keeps it; B's fallback survives B's
    own refresh; ending B clears both.
 
-Verification: `sys-ui-28` exit 0 — **unit 906/906**.
+Verification: `sys-ui-28` exit 0 — **unit 906/906**; `sys-ui-29` exit 0 — `HeartRateUITests` + `FloodlightLiveUITests` **15/15** on the final code.
 
 Codex review 11e (round 5): **clear** ([codex-review-11e.md](../codex-review-11e.md)); review terminal closed.
 
