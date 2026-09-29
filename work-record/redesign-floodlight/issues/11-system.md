@@ -1,7 +1,7 @@
 # 11 — Floodlight: System surfaces and cleanup
 
 Type: feature (part of [01](01-implement-redesign.md), area order item 10)
-Status: in progress
+Status: resolved — Codex clear after 5 rounds (codex-review-11e.md)
 Implementer: Claude. Reviewer: Codex.
 Branch: `ericlee4992/redesign-floodlight-system` (scratch checkout `/tmp/wt-floodlight/system`),
 stacked on the ticket-10 AI-routine tip `0fa6814` (Codex clear). Nothing merged to `main`; nothing installed.
@@ -362,3 +362,13 @@ Report: [codex-review-11d.md](../codex-review-11d.md) — not clear; one medium.
    own refresh; ending B clears both.
 
 Verification: `sys-ui-28` exit 0 — **unit 906/906**.
+
+Codex review 11e (round 5): **clear** ([codex-review-11e.md](../codex-review-11e.md)); review terminal closed.
+
+Open items handed on (not ticket 11's): ticket 12 (Cardio, plain Floodlight) — its user decisions go into D59's
+list; then the release-candidate pass (full UI suite, ticket 01 step 4) and the one install. Not exercised here and
+left for that pass / the device: VoiceOver by a person, Reduce Motion at runtime, a real iPhone's Lock Screen and
+Dynamic Island (the expanded island was checked only in the gallery), the Watch mirror after a lock-screen command
+on real hardware, a cold background launch by an intent on a device (unit-tested path), the recorder's real sensors
+after a cold Resume. The flaky UI cases seen under load (the gym model picker, a typed value losing a character, a
+launch that stayed on the Workout tab) passed on rerun; watch them in the full run.
