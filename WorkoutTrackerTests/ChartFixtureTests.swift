@@ -6,7 +6,7 @@ import Testing
 // Ticket 13 (release-candidate pass): the History calendar's paging test ran on the chart
 // fixture, whose oldest session (28 days back) shares today's month on the 29th–31st — the
 // calendar then has one month and nothing to page to. `-uiTestChartHistoryOlderMonth` adds one
-// session forty days back.
+// session forty days back. Codex review 13: the sessions are calendar days back, across DST too.
 
 struct ChartFixtureTests {
 
@@ -35,16 +35,42 @@ struct ChartFixtureTests {
         #expect(try calendarMonths(seededAt: now, includeOlderMonth: true) == 2)
     }
 
-    /// Forty days back is in an earlier calendar month on every day of a year (the fixture dates
-    /// sessions `now - days × 86,400 s`), so the calendar always has a previous month.
+    /// Forty calendar days back is in an earlier calendar month on every day of a year, so the
+    /// calendar always has a previous month.
     @Test func theOlderSessionIsAlwaysInAnEarlierMonth() throws {
-        let calendar = Calendar.current
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "America/New_York"))
         let start = try #require(calendar.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: 8)))
         for offset in 0..<366 {
             let now = try #require(calendar.date(byAdding: .day, value: offset, to: start))
-            let older = now.addingTimeInterval(-Double(ChartFixture.olderMonthSession.daysAgo) * 86_400)
+            let older = ChartFixture.sessionDate(
+                daysAgo: ChartFixture.olderMonthSession.daysAgo, now: now, calendar: calendar)
             let thisMonth = try #require(calendar.dateInterval(of: .month, for: now)).start
             #expect(older < thisMonth, "\(now)")
+        }
+    }
+
+    /// codex-review 13: sessions are CALENDAR days back. Seconds arithmetic put "one day ago" on the
+    /// day before yesterday just after a spring-forward midnight, and on today late on a fall-back
+    /// day — where the calendar tests look for yesterday's session and an empty today.
+    @Test func sessionsAreCalendarDaysBackAcrossDST() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try #require(TimeZone(identifier: "America/New_York"))
+        func at(_ m: Int, _ d: Int, _ h: Int, _ min: Int) throws -> Date {
+            try #require(calendar.date(from: DateComponents(year: 2026, month: m, day: d, hour: h, minute: min)))
+        }
+        for (now, yesterday) in [(try at(3, 9, 0, 30), 8), (try at(11, 1, 23, 30), 31)] {
+            let session = ChartFixture.sessionDate(daysAgo: 1, now: now, calendar: calendar)
+            #expect(calendar.component(.day, from: session) == yesterday, "\(now)")
+            #expect(now.addingTimeInterval(-86_400) != session, "the premise: seconds arithmetic differs here")
+        }
+        // Every script day lands exactly that many calendar days back.
+        let now = try at(3, 9, 0, 30)
+        for entry in ChartFixture.script {
+            let session = ChartFixture.sessionDate(daysAgo: entry.daysAgo, now: now, calendar: calendar)
+            let days = calendar.dateComponents(
+                [.day], from: calendar.startOfDay(for: session), to: calendar.startOfDay(for: now)).day
+            #expect(days == entry.daysAgo)
         }
     }
 

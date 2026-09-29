@@ -105,6 +105,24 @@ struct WorkoutCalendarTests {
         #expect(nov.first { $0.dayOfMonth == 8 }?.isMarked == false)
     }
 
+    /// codex-review 13: in Paraguay October 2023 began with a DST jump at midnight, so its month start
+    /// is 01:00; adding a month kept that hour and the loop's cursor (1 Nov 01:00) passed the last
+    /// month's start (1 Nov 00:00) — November, today's month, was never built and Next was disabled.
+    @Test func aMonthStartingOnAMidnightDSTJumpStillReachesTodaysMonth() {
+        let c = calendar(firstWeekday: 1, tz: "America/Asuncion")
+        #expect(c.component(.hour, from: c.date(from: DateComponents(year: 2023, month: 10))!) == 1,
+                "the premise: 1 Oct 2023 has no midnight in Asuncion")
+        let today = date(2023, 11, 15, in: c)
+        let cal = WorkoutCalendar(
+            startedAt: [date(2023, 10, 15, in: c), date(2023, 11, 14, in: c)], today: today, calendar: c)
+        #expect(cal.months.count == 2)
+        #expect(cal.months.map { c.component(.month, from: $0.start) } == [10, 11])
+        let nov = cal.months.last!.cells.compactMap { $0 }
+        #expect(nov.count == 30)
+        #expect(nov.first { $0.dayOfMonth == 14 }?.isMarked == true)
+        #expect(nov.first { $0.dayOfMonth == 15 }?.isToday == true)
+    }
+
     /// codex-review 03: a marked today must be BOTH — the first view branched
     /// on marked first and today lost its highlight the moment a workout was
     /// logged, which is the most common state after finishing one.

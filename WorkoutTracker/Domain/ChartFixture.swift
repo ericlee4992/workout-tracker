@@ -77,10 +77,8 @@ enum ChartFixture {
     static let warmupOnlySession: (daysAgo: Int, weightLb: Double, reps: Int, tag: EquipmentTag) =
         (2, 45, 5, .barbell)
 
-    /// Seeds the history. Idempotent by exercise: a second call does nothing,
-    /// so a relaunch inside one test run cannot double the series.
-    /// Added to the chart fixture, one more working session FORTY days back — always in an
-    /// earlier calendar month than today, so the History calendar has a month to page to on
+    /// Added to the chart fixture, one more working session FORTY calendar days back — always in
+    /// an earlier calendar month than today, so the History calendar has a month to page to on
     /// every date. The script's oldest day (28) shares today's month on the 29th–31st, and the
     /// calendar runs only from the first workout's month (ticket 13: its paging test failed on
     /// 2026-09-29). A separate argument, so the chart tests' series is unchanged.
@@ -91,6 +89,15 @@ enum ChartFixture {
         WorkoutTrackerStore.fixtureIsEnabled(olderMonthArgument)
     }
 
+    /// `daysAgo` CALENDAR days before `now`, at the same wall-clock time. Not `now − days × 86,400 s`:
+    /// across a DST change that lands on a different calendar day near midnight, and the tests read
+    /// the fixture in calendar days ("yesterday is marked", "today has no workout") (codex-review 13).
+    static func sessionDate(daysAgo: Int, now: Date, calendar: Calendar = .current) -> Date {
+        calendar.date(byAdding: .day, value: -daysAgo, to: now) ?? now.addingTimeInterval(-Double(daysAgo) * 86_400)
+    }
+
+    /// Seeds the history. Idempotent by exercise: a second call does nothing,
+    /// so a relaunch inside one test run cannot double the series.
     static func seed(in context: ModelContext, now: Date = .now,
                      includeOlderMonth: Bool = includesOlderMonth) throws {
         let existing = try context.fetch(FetchDescriptor<Workout>())
@@ -116,7 +123,7 @@ enum ChartFixture {
                     nil, nil, SetType.working)]
                 : [])
         for (daysAgo, weightLb, reps, presetName, tag, setType) in rows {
-            let date = now.addingTimeInterval(-Double(daysAgo) * 86_400)
+            let date = sessionDate(daysAgo: daysAgo, now: now)
             let workout = Workout(startedAt: date)
             workout.finishedAt = date.addingTimeInterval(45 * 60)
             context.insert(workout)

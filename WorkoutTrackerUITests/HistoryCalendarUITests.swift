@@ -4,6 +4,10 @@ import XCTest
 /// there are marked days in the past to tap.
 final class HistoryCalendarUITests: XCTestCase {
     private var app: XCUIApplication!
+    /// The day the fixture was seeded — "today" to its sessions, whose dates count back from the
+    /// app's clock at launch. The tests read their days from this, not from `.now`, which a midnight
+    /// during the test would move (codex-review 13).
+    private var seedDay = Date.now
 
     override func setUp() {
         super.setUp()
@@ -12,7 +16,12 @@ final class HistoryCalendarUITests: XCTestCase {
         // The older-month session: the chart fixture alone spans one month on the 29th–31st, and
         // the calendar runs only from the first workout's month (ticket 13).
         app.launchArguments = ["-uiTestReset", "-uiTestChartHistory", "-uiTestChartHistoryOlderMonth"]
-        app.launch()
+        // The fixture seeds while launching; launch again (a fresh store) if a midnight passed meanwhile.
+        for _ in 0..<2 {
+            seedDay = .now
+            app.launch()
+            if Calendar.current.isDate(seedDay, inSameDayAs: .now) { break }
+        }
     }
 
     /// Open the calendar, tap yesterday (the fixture's newest session), and
@@ -32,7 +41,7 @@ final class HistoryCalendarUITests: XCTestCase {
         shot.lifetime = .keepAlways
         add(shot)
 
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: .now)!
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: seedDay)!
         let key = Self.key(yesterday)
         let day = app.buttons["calendarDay.\(key)"]
         XCTAssertTrue(day.waitForExistence(timeout: 10), "yesterday should be a marked day")
@@ -64,7 +73,7 @@ final class HistoryCalendarUITests: XCTestCase {
         XCTAssertTrue(month.waitForExistence(timeout: 10))
         // The calendar opens on the latest workout's month: yesterday's, which on the 1st is the
         // previous month.
-        let today = app.buttons["calendarDay.\(Self.key(.now))"]
+        let today = app.buttons["calendarDay.\(Self.key(seedDay))"]
         if !today.waitForExistence(timeout: 5) { app.buttons["Next month"].tap() }
         XCTAssertTrue(today.waitForExistence(timeout: 5))
         today.tap()

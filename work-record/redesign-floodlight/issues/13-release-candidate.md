@@ -47,6 +47,7 @@ booted (WT-iPhone, WT-Redesign, -2, -3); load at the start: 23.6 / 21.4 / 15.8 o
 | `rc-ui-2` | same | the two failures, alone | 13.6 (08:36) | 65 | 0/2 — both repeat alone: not load |
 | `rc-diag-1` | same + a throwaway diagnostic test (not committed) | History row labels while scrolling | 9.7 / 13.1 / 15.2 | 0 | rows read "19, Sat, Seated Chest Press, …"; scrolling releases the rows above |
 | `rc-fix-1` | fix (working tree, then committed as below) | unit `ChartFixtureTests` (new, 3), `HeartRateSeriesTests`; UI `HistoryCalendarUITests` (3), `ProgressChartTooltipUITests` (4), `ProgressChartUITests` (2) | 14.7 (08:46) | 0 | **38/38**, 0 skipped |
+| `rc-fix-2` | round-1 fixes (Codex review 13) | unit `ChartFixtureTests` (4), `WorkoutCalendarTests`, `HeartRateSeriesTests`, `HistoryOverviewTests`; UI — every chart-fixture or History-calendar user: `HistoryCalendarUITests` (3), `ProgressChartTooltipUITests` (4), `ProgressChartUITests` (2), `FloodlightHistoryUITests` (8), `HistoryTemplateUITests` (3), `RedesignScreenshotUITests` `test05_history` + `…LargeText`, `HeartRateSummaryUITests.testAWorkoutWithoutASeriesShowsNoChart` | 7.7 / 9.2 / 12.3 | 0 | **76/76** (23 UI + 53 unit), 0 skipped |
 
 `rc-ui-1` ran as xcodebuild PID 78787 from Claude Code's background Bash (not a shell `&`). None of the known
 load flakes (Gyms model picker, FloodlightLive typing, launch on the Workout tab) appeared in it.
@@ -67,8 +68,9 @@ then). The app behaves as designed in both. Neither is load: both failed identic
 2. **`ProgressChartTooltipUITests.testHistoryOpensTheChartOnThatSessionsVariation`** — "("4") is not greater than
    ("4") - the fixture seeds more than five sessions". The test counted the lazy History list's built rows and
    tapped index 4 (the fixture's dumbbell session ten days back). The Floodlight History groups rows by week, each
-   with a header, under the month card; on 2026-09-29 the first four sessions span three weeks, so only four rows
-   are built at launch. On 2026-09-27 they fell in one week and five were built. The diagnostic run also showed that
+   with a header, under the month card; on 2026-09-29 (Sunday-first weeks) the first four sessions span two weeks and the fifth
+   starts a third, so only four rows are built at launch (wording corrected after Codex review 13). On 2026-09-27
+   the first four fell in one week and five were built. The diagnostic run also showed that
    scrolling releases the rows above, so no index is stable after a scroll.
 
 ## Fixes
@@ -108,7 +110,34 @@ Commit: see Progress. Test and fixture code only; no app behaviour changes.
 - **Remaining, with the user's go-ahead:** fresh full backup, install, launch, data-preservation check; merge to
   `main` when the RC pass is clear.
 
-## Progress
+## Codex review 13 — response (round 1)
+
+Report: [codex-review-13.md](../codex-review-13.md) — not clear; two medium, one low. It confirms the diagnosis (both
+failures are test defects; the recording shows the disabled chevron with the data), the fixture's gating (cannot
+seed a real store) and that `rc-fix-1`'s scope suffices for a test-only diff. All three findings accepted.
+
+1. **M — a pre-existing app defect: a month that begins on a DST jump at midnight drops today's month.**
+   `WorkoutCalendar` built its months by adding a month to the previous start; in America/Asuncion 1 Oct 2023 has no
+   midnight, the start is 01:00, 1 Nov 01:00 passed the last month's start (00:00) and November was never built
+   (Next disabled; the list still had the workouts). The cursor is now re-anchored to its month's start each step.
+   Not reachable in the user's time zone (New York changes at 02:00); fixed because it is one line and wrong.
+   Test `WorkoutCalendarTests.aMonthStartingOnAMidnightDSTJumpStillReachesTodaysMonth` (premise asserted: the
+   month start's hour is 1).
+2. **M — the fixture counted days in seconds, the tests in calendar days.** `ChartFixture.sessionDate` now goes
+   back `daysAgo` calendar days at the same wall-clock time. Test `ChartFixtureTests.sessionsAreCalendarDaysBackAcrossDST`
+   (2026-03-09 00:30 and 2026-11-01 23:30 New York: "one day ago" is the calendar yesterday, where seconds
+   arithmetic is not; every script day is exactly its count of calendar days back); the forty-day test uses the
+   same function.
+3. **L — a midnight between the app's seeding and the test's clock.** The chart test finds the dumbbell session
+   by its content (its row ends with the volume "450, lb", unique in the fixture), not by a date. The calendar tests
+   keep the day they launched on (`seedDay`) and launch again, on a fresh store, if a midnight passed while
+   launching; their "yesterday" and "today" count from it.
+
+Also: the round-1 insertion had separated `seed`'s doc comment from `seed`; restored.
+
+Verification: `rc-fix-2` exit 0, 76/76 (runs table). Scope: the calendar change reaches every History calendar
+screen; the fixture's dates reach every test launching `-uiTestChartHistory` — all run.
+
 
 - 2026-09-29: resumed from STATE (`1794867`) and tickets 01 / 12; branch map verified against `origin` (every
   ticket tip as STATE lists; the cardio checkout clean at `796ffe5`). Ticket opened.

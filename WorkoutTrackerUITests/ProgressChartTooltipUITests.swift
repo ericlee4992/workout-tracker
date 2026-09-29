@@ -125,23 +125,18 @@ final class ProgressChartTooltipUITests: XCTestCase {
         let rows = app.descendants(matching: .any).matching(identifier: "historyWorkoutRow")
         XCTAssertTrue(rows.firstMatch.waitForExistence(timeout: 10))
         // The fixture's dumbbell session ten days ago (ChartFixture.script's (10, 45, 10, nil,
-        // .dumbbell), dated `now - 10 × 86,400 s`), found by the row's date ("19, Sat, …"). Not by
-        // position: how many rows the lazy list has built depends on the weekday (each week is a
-        // section with a header), and scrolling releases the rows above (ticket 13: failed on
-        // 2026-09-29, when only four rows were built).
-        let sessionDay = Date.now.addingTimeInterval(-10 * 86_400)
-        func formatted(_ template: String) -> String {
-            let f = DateFormatter()
-            f.setLocalizedDateFormatFromTemplate(template)
-            return f.string(from: sessionDay)
-        }
-        let row = rows.matching(NSPredicate(
-            format: "label BEGINSWITH %@", "\(formatted("d")), \(formatted("EEE")), ")).firstMatch
+        // .dumbbell)), found by its content: its row ends with the session's volume "450, lb", which no
+        // other fixture session has (the other dumbbell day is 400). Not by position: how many rows the
+        // lazy list has built depends on the weekday (each week is a section with a header), and
+        // scrolling releases the rows above (ticket 13: failed on 2026-09-29, when only four rows
+        // were built). Not by date: the app seeded from its own clock, which a midnight can separate
+        // from this one (codex-review 13).
+        let row = rows.matching(NSPredicate(format: "label ENDSWITH %@", ", 450, lb")).firstMatch
         let tabBar = app.tabBars.firstMatch
         for _ in 0..<8 where !(row.exists && row.isHittable && row.frame.maxY < tabBar.frame.minY - 8) {
             app.swipeUp()
         }
-        XCTAssertTrue(row.exists, "the dumbbell session's row (\(formatted("d")), \(formatted("EEE")))")
+        XCTAssertTrue(row.exists, "the dumbbell session's row (45 lb × 10)")
         row.tap()
 
         let chartButton = app.buttons["historyEntryChart"].firstMatch

@@ -80,8 +80,9 @@ struct WorkoutCalendar: Equatable {
 
         var months: [Month] = []
         var cursor = firstMonth
-        // Terminates because `date(byAdding: .month, 1)` strictly advances (or
-        // returns nil and breaks); future marks were clamped to today above.
+        // Terminates because `date(byAdding: .month, 1)` lands in the next month,
+        // so its month start strictly advances (or it returns nil and breaks);
+        // future marks were clamped to today above.
         // No iteration cap: one existed and could stop BEFORE today's month
         // for an ancient timestamp, which is worse than a long list
         // (codex-review 03).
@@ -90,7 +91,11 @@ struct WorkoutCalendar: Equatable {
                 starting: cursor, markedDays: markedDays,
                 today: todayStart, calendar: calendar))
             guard let next = calendar.date(byAdding: .month, value: 1, to: cursor) else { break }
-            cursor = next
+            // Re-anchored to its month's start: where a month begins on a DST jump at midnight
+            // (America/Asuncion, October 2023) the first month's start is 01:00, adding a month
+            // keeps that hour, and the cursor would pass `lastMonth` (00:00) and drop today's
+            // month (codex-review 13).
+            cursor = Self.monthStart(of: next, calendar: calendar)
         }
         self.months = months
 
