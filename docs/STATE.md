@@ -97,23 +97,17 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   `CardioUITests` 9/9, unit-system AX); earlier `cardio-ui-8` unit 30/30 (with `CardioTests`, `CardioRecorderTests`),
   `cardio-ui-2` the AskAI planned Start; captures `captures/12/` (84). Not exercised: VoiceOver by a person, Reduce
   Motion at runtime, real GPS / sensors, a device.
-- **Ticket 13 — release-candidate pass** (ticket 01 step 4), **in progress 2026-09-29**: the full unit suite + the full
-  UI suite on the ticket-12 code `796ffe5` (Default and AccessibilityL captures already per ticket). Record
-  `issues/13-release-candidate.md` on the cardio branch (opened `dfa8062`, docs only); runs `rc-*` via
-  `/tmp/wt-floodlight/cardio-run.sh`, results `/tmp/wt-floodlight/results/rc-*` (`.log`, `.exit`, `.xcresult`). Then the
-  one install (fresh backup, install, launch, data-preservation check);
-  ask the user before merging to `main` or touching the phone. Nothing is merged to `main`.
-  Signing renewed 2026-09-29 (Apple ID added; app/widget profiles expire 2026-10-06 08:45 UTC; device build
-  `rc-device-build-1` of `796ffe5` at `/tmp/wt-floodlight/dd-device` — rebuild after any code change). Done: `rc-unit-1`
-  919/919; `rc-ui-1` full UI suite **227/229** (4 h 24 min; no known load flake appeared). The two failures repeat alone
-  and are date-dependent TEST defects (the calendar paging test has no previous month on the 29th–31st; the chart test
-  tapped a lazy row by index); fixed in `fe35a34` (test + a guarded fixture argument; no app behaviour change),
-  `rc-fix-1` 38/38. Codex review 13 (round 1): not clear — two medium, one low, all accepted and fixed in `759aedf`,
-  incl. a pre-existing APP defect (the History calendar dropped today's month where a month begins on a DST jump at
-  midnight, e.g. America/Asuncion; not the user's zone) and fixture/test day arithmetic; `rc-fix-2` 76/76. Codex
-  review 13b: two test findings, fixed in `522c157` (`rc-fix-3` 4/4; a mutation check proves the drag assertion).
-  **Codex review 13c running** (same Orca terminal "Codex review — Floodlight 13"). The device build predates `759aedf`:
-  rebuild before installing. Next: clear the review, then ask the user about merge + install.
+- **Ticket 13 — release-candidate pass** (ticket 01 step 4): **CLEAR 2026-09-29** — Codex review 13 clear after 3 rounds
+  (`codex-review-13c.md`; review terminal closed). Record `issues/13-release-candidate.md` on the cardio branch (tip
+  `8fa24e9`, pushed; results `/tmp/wt-floodlight/results/rc-*`). Unit `rc-unit-1` 919/919; full UI `rc-ui-1` 227/229 on
+  `796ffe5` — both failures date-dependent TEST defects, fixed; every affected test rerun green (`rc-fix-1..3`: 38, 76, 4).
+  One app change: `WorkoutCalendar` re-anchors its month cursor (pre-existing: a month starting on a midnight DST jump,
+  e.g. America/Asuncion, dropped today's month; not reachable in New York). Signing renewed (Apple ID added; app/widget
+  profiles expire **2026-10-06 08:45 UTC**). **Binary to install:** `rc-device-build-2` of the tip, fresh and signed, at
+  `/tmp/wt-floodlight/dd-device/Build/Products/Debug-iphoneos/WorkoutTracker.app`. Phone `00008130-001E10C01E62001C`
+  available (paired) at 09:25. Same SwiftData schema as the installed build (`Models.swift` unchanged since `main`).
+  **Next — waiting for the user's go-ahead:** fresh full backup of the app container, install, launch,
+  data-preservation check; then fast-forward `main` to the cardio tip. Nothing merged; nothing installed.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
   in tickets 03/04.
