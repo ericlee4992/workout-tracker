@@ -110,8 +110,9 @@ Claude implements, Codex reviews (visible Orca terminal, one per ticket). Nothin
   tapped a lazy row by index); fixed in `fe35a34` (test + a guarded fixture argument; no app behaviour change),
   `rc-fix-1` 38/38. Codex review 13 (round 1): not clear — two medium, one low, all accepted and fixed in `759aedf`,
   incl. a pre-existing APP defect (the History calendar dropped today's month where a month begins on a DST jump at
-  midnight, e.g. America/Asuncion; not the user's zone) and fixture/test day arithmetic; `rc-fix-2` 76/76. **Codex
-  review 13b running** (same Orca terminal "Codex review — Floodlight 13"). The device build predates `759aedf`:
+  midnight, e.g. America/Asuncion; not the user's zone) and fixture/test day arithmetic; `rc-fix-2` 76/76. Codex
+  review 13b: two test findings, fixed in `522c157` (`rc-fix-3` 4/4; a mutation check proves the drag assertion).
+  **Codex review 13c running** (same Orca terminal "Codex review — Floodlight 13"). The device build predates `759aedf`:
   rebuild before installing. Next: clear the review, then ask the user about merge + install.
 - User decisions 2026-09-26: New bests one line per exercise (record scope) as in the prototype;
   zones under the heart-rate chart; AX New best replaces the Rest text (prototype). Recorded
