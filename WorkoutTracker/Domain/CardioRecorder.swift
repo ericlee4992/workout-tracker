@@ -219,7 +219,8 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
     }
     private func startMotionAndLocation(for segment: CardioSegment) {
         if segment.activity.isOutdoor {
-            guard collectsDeviceSensors else { return }
+            // UI tests collect no sensors; the capture fixture may stand in for the location status.
+            guard collectsDeviceSensors else { locationMessage = CardioDesignFixture.locationMessage; return }
             location.activityType = segment.activity == .outdoorCycle ? .otherNavigation : .fitness
             location.allowsBackgroundLocationUpdates = true
             location.showsBackgroundLocationIndicator = true

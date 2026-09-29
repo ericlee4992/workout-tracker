@@ -43,13 +43,33 @@ final class CardioUITests: XCTestCase {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
+    /// An element whose accessibility label contains `text` (figures are single elements: label + value + unit).
+    private func labelled(_ text: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
+    }
+    /// Ticket 12 (decision 1): a tile selects; the pinned Start starts.
     private func choose(_ kind: String) {
         let option = any("cardioActivity.\(kind)")
-        reach(option); option.tap()
+        XCTAssertTrue(option.waitForExistence(timeout: 5))
+        for _ in 0..<6 where !option.isHittable { app.swipeUp() }
+        option.tap()
+        XCTAssertTrue(option.isSelected)
+        app.buttons["startSelectedCardio"].tap()
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
     }
+    private func assertPaused() {
+        let status = any("cardioStatus")
+        XCTAssertTrue(status.waitForExistence(timeout: 5))
+        XCTAssertTrue(status.label.hasPrefix("Paused"), status.label)
+    }
+    /// The distance label, with no source or estimate caption (September 19).
+    private func assertPlainDistanceLabel(_ element: XCUIElement) {
+        XCTAssertTrue(element.label.hasPrefix("Distance"), element.label)
+        XCTAssertFalse(element.label.contains("estimate") || element.label.contains("GPS"), element.label)
+    }
     private func waitForAutomaticDistance() {
-        let measured = app.staticTexts.matching(NSPredicate(format: "label MATCHES %@", "[0-9]+\\.[0-9]{2}")).firstMatch
+        let measured = app.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier == 'cardioDistanceMetric' AND label MATCHES %@", ".*[0-9]+\\.[0-9]{2}.*")).firstMatch
         XCTAssertTrue(measured.waitForExistence(timeout: 10))
         reach(app.buttons["addCardio"])
         XCTAssertFalse(app.buttons["cardioEditDistance"].exists)
@@ -96,18 +116,18 @@ final class CardioUITests: XCTestCase {
         reach(app.buttons["endCardio"]); app.buttons["endCardio"].tap()
         XCTAssertTrue(any("cardioSummary.indoorRun").waitForExistence(timeout: 5))
         reach(app.buttons["cardioSummaryEditDistance"])
-        XCTAssertEqual(app.buttons["cardioSummaryEditDistance"].label, "Distance")
+        assertPlainDistanceLabel(app.buttons["cardioSummaryEditDistance"])
         addLiftingSet()
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["viewFinishedWorkout"].waitForExistence(timeout: 10))
         reach(app.buttons["cardioSummaryEditDistance"])
-        XCTAssertEqual(app.buttons["cardioSummaryEditDistance"].label, "Distance")
+        assertPlainDistanceLabel(app.buttons["cardioSummaryEditDistance"])
         openFinishedHistory()
         let summary = any("cardioSummary.indoorRun")
         reach(summary)
         XCTAssertTrue(summary.exists)
         reach(app.buttons["cardioSummaryEditDistance"])
-        XCTAssertEqual(app.buttons["cardioSummaryEditDistance"].label, "Distance")
+        assertPlainDistanceLabel(app.buttons["cardioSummaryEditDistance"])
         XCTAssertTrue(app.navigationBars.buttons.firstMatch.exists)
         shot("cardio-built-mixed-history")
     }
@@ -120,10 +140,10 @@ final class CardioUITests: XCTestCase {
         choose("indoorCycle")
         enterDistance("3")
         reach(app.buttons["cardioPauseResume"]); app.buttons["cardioPauseResume"].tap()
-        XCTAssertTrue(app.staticTexts["Paused"].exists)
+        assertPaused()
         app.buttons["minimizeWorkout"].tap()
         XCTAssertTrue(any("resumeWorkout").waitForExistence(timeout: 5)); any("resumeWorkout").tap()
-        XCTAssertTrue(app.staticTexts["Paused"].waitForExistence(timeout: 5))
+        assertPaused()
         reach(app.buttons["cardioPauseResume"]); app.buttons["cardioPauseResume"].tap()
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
@@ -141,16 +161,18 @@ final class CardioUITests: XCTestCase {
         reach(app.buttons["cardioSummaryEditDistance"]); app.buttons["cardioSummaryEditDistance"].tap()
         let field = app.textFields["cardioDistanceField"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "Measured:")).firstMatch.exists)
+        XCTAssertTrue(any("cardioMeasuredDistance").exists)
         XCTAssertFalse(app.buttons["saveCardioDistance"].isEnabled)
         XCTAssertTrue((field.value as? String) == "Distance" || (field.value as? String) == "")
         field.tap(); field.typeText("5")
-        app.segmentedControls["cardioDistanceUnit"].buttons["km"].tap()
+        app.buttons["km"].tap()
         XCTAssertEqual(field.value as? String, "5")
-        app.segmentedControls["cardioDistanceUnit"].buttons["mi"].tap()
+        app.buttons["mi"].tap()
         XCTAssertEqual(field.value as? String, "5")
         app.buttons["saveCardioDistance"].tap()
-        XCTAssertTrue(app.staticTexts["Entered distance"].waitForExistence(timeout: 5))
+        let entered = app.buttons["cardioSummaryEditDistance"]
+        XCTAssertTrue(entered.waitForExistence(timeout: 5))
+        XCTAssertTrue(entered.label.hasPrefix("Entered distance"), entered.label)
     }
 
     func testOutdoorRouteDefaultCapture() { outdoorCapture(large: false) }
@@ -163,7 +185,7 @@ final class CardioUITests: XCTestCase {
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
         shot("cardio-built-outdoor-\(large ? "axl" : "default")")
         reach(any("cardioDistanceMetric"))
-        XCTAssertTrue(app.staticTexts["0.67"].exists, "GPS fixture distance stays in the main metric")
+        XCTAssertTrue(any("cardioDistanceMetric").label.contains("0.67"), "GPS fixture distance stays in the main metric")
         reach(app.buttons["addCardio"])
         XCTAssertFalse(app.buttons["cardioEditDistance"].exists)
         XCTAssertFalse(app.staticTexts["GPS"].exists)
@@ -190,7 +212,7 @@ final class CardioUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
         reach(any("cardioDistanceMetric"))
-        XCTAssertTrue(app.staticTexts["1.00"].exists)
+        XCTAssertTrue(any("cardioDistanceMetric").label.contains("1.00"))
         shot("indoor-measured-\(large ? "axl" : "default")")
         reach(app.buttons["addCardio"])
         XCTAssertFalse(app.buttons["cardioEditDistance"].exists)
@@ -198,7 +220,7 @@ final class CardioUITests: XCTestCase {
         shot("indoor-measured-details-\(large ? "axl" : "default")")
         app.buttons["endCardio"].tap()
         reach(app.buttons["cardioSummaryEditDistance"])
-        XCTAssertEqual(app.buttons["cardioSummaryEditDistance"].label, "Distance")
+        assertPlainDistanceLabel(app.buttons["cardioSummaryEditDistance"])
     }
 
     func testCardioDefaultCaptureAndSave() { capture(large: false) }
@@ -218,7 +240,7 @@ final class CardioUITests: XCTestCase {
         shot("cardio-built-controls-\(size)")
         app.buttons["cardioPauseResume"].tap()
         app.swipeDown(); app.swipeDown()
-        XCTAssertTrue(app.staticTexts["Paused"].exists)
+        assertPaused()
         shot("cardio-built-paused-\(size)")
         app.buttons["cardioPauseResume"].tap()
         let lifting = app.segmentedControls["workoutActivityFocus"].buttons["Lifting"]
@@ -226,9 +248,10 @@ final class CardioUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Recording"].exists)
         shot("cardio-built-lifting-banner-\(size)")
         reach(app.buttons["addCardio"]); app.buttons["addCardio"].tap()
-        XCTAssertTrue(app.staticTexts["Starting another activity ends the current cardio segment."].waitForExistence(timeout: 5))
+        XCTAssertTrue(labelled("Starting another activity ends the current cardio segment.").waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["startSelectedCardio"].isEnabled, "nothing preselected while a segment records")
         shot("cardio-built-replace-picker-\(size)")
-        app.navigationBars["Choose Cardio"].buttons["Cancel"].tap()
+        app.buttons["cardioPickerCancel"].tap()
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["saveFinishedAsTemplate"].exists)

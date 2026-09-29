@@ -115,9 +115,9 @@ struct StartWorkoutView: View {
                 })
             }
             .sheet(isPresented: $showingCardioPicker) {
-                CardioActivityPicker { activity in
+                CardioActivityPicker { choice in
                     showingCardioPicker = false
-                    startRequest = WorkoutStartRequest(template: nil, cardioActivity: activity)
+                    startRequest = WorkoutStartRequest(template: nil, cardioActivity: choice.activity)
                 }
             }
             .sheet(isPresented: $showingTemplateEditor) {

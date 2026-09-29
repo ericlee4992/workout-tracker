@@ -140,6 +140,70 @@ Wireframe (C02, indoor run with a 20-min target, default size):
 Kept from today where the prototype differs (not a user decision; open to veto): Save on C05 stays off until
 the value or unit changes (the prototype kept it always on; an unchanged Save has nothing to record).
 
+## Tells (ios-design step 4)
+
+- Same container on everything: absent — the ring stands on the ground; the figures are one hairline table;
+  the heart plate, the ended cards and the planned facts are panels because each is a group.
+- Chips: absent (the status pill is a state, the zone a meter).
+- All-caps: absent.
+- Middle dots: deliberate — the planned fact values ("5.00 km · 28:40 · Sep 21") and the Distance sheet's
+  segment line are frozen stat lines.
+- Accent everywhere: absent — violet on the ring's current segment (the live thing), Pause / Resume and Start;
+  the lit segments and the recording dot are the done colour (white / ink).
+- Equal full-width blocks: absent — the ring leads; the table and the plate are smaller.
+- Control dressed as primary: absent — Start (picker) and Pause (tray) are the one filled command per state;
+  End Cardio and Add Cardio are quiet.
+- Only survives default size: answered by AccessibilityL captures (the ring shrinks to 190 pt, tiles become
+  rows, the finished figures one per row, the header's title leaves the bar).
+
+## Implementation
+
+- **Domain** `CardioReadout.swift` (pure, unit-tested in `CardioReadoutTests`): `CardioRingModel.make` (target →
+  distance → sweep), `CardioReadout.pausedSeconds` / `activeSeconds(at:)` / `splits` (route distance scaled to the
+  segment's distance, active time only, portions never joined) / `lastDone`, `CardioHeartTrace.points` (15-s buckets
+  of the last six minutes), `CardioLocationStatus.of` (decision 2).
+- **Views** `Features/Cardio/`: `CardioSupport` (formatting, the ring, disc, pulse, blink, GPS bars, the figures
+  table, the tray's style), `CardioPicker` (C01; `CardioChoice` = an activity or a planned target),
+  `CardioLive` (the cardio focus rows, the live block, status pill, heart plate and trace, ended card, planned
+  hero, the tray `CardioControls`), `CardioDistanceSheet` (C05), `CardioCards` (receipt / History card, the
+  cardio-only hero, Splits, the route snapshot `CardioRouteMap`). `CardioViews.swift` is gone.
+- **Hosts:** the live screen hides its vitals strip and the "Cardio targets" list in cardio focus (the panel has
+  its own plate and planned hero); the picker gets the recording activity and the startable targets; Home's picker
+  starts `choice.activity`; History's cardio-only workout gets `CardioHistoryHero` + Splits and its tiles drop
+  workout time; the receipt keeps `CardioSummaryCard`.
+- **Fixture** `CardioDesignFixture` (UI-test stores only): `-uiTestCardioTarget` (+`-uiTestCardioTargetMet`),
+  `-uiTestCardioPlanned`, `-uiTestCardioLost` (the recorder's location message under UI tests, where it collects
+  no sensors), `-uiTestCardioSplits`.
+
+## Strings
+
+New (prototype): "Start <activity>", "Start Cardio", "Planned cardio", "Gym", "Outdoors", "Recording", "Paused" +
+the pause time, "of 20:00", "of 2 km" (decision 3), "Current pace", "Current speed", "Time", "Entered distance"
+(now also a figure label), "Waiting for heart-rate data" (was a footnote), "Set up zones", "Recording time
+continues." (under "Location unavailable."), "Last <activity>", "Lifting", "N/M sets", "Measured", "Splits",
+"Enter distance" (History hero), VoiceOver: "Records distance and heart rate", "Records a GPS route and heart rate",
+", recording now", "Paused, for …", "target reached", "Edits the distance", "Uses the measured distance",
+"Split N, 8:43 per km", "Last 0.30 km, …", "Recorded cardio route".
+Removed: the picker's search ("Search activities"); the Distance sheet's "Measured: X" line (now the Measured row)
+and "Enter the machine’s distance. Clear it to use the measured distance."; the live "Current pace: X /km" footnote
+(now a figure); the zone capsule and the heart-rate source caption in cardio focus (the zone meter; the source is
+the live strip's, hidden in cardio focus).
+Unchanged: "Choose Cardio", "Starting another activity ends the current cardio segment.", "Location
+unavailable.", the recorder's messages, "Add cardio to this workout", "Pause", "Resume", "End Cardio",
+"Distance", "Save", "Cancel", "Average pace", "Average speed", "Avg. heart rate", "Active calories".
+
+## Identifiers
+
+Kept: `cardioActivity.<raw>`, `cardioTimer` (the ring when it counts time, else the Time figure),
+`cardioDistanceMetric` (the ring when it counts distance, else the Distance figure), `cardioEditDistance`,
+`cardioCurrentPace`, `cardioPauseResume`, `endCardio`, `cardioSummary.<raw>`, `cardioSummaryEditDistance`,
+`cardioRoute`, `cardioDistanceField`, `saveCardioDistance`, `cardioDistanceUnit`, `startPlannedCardio`, `addCardio`,
+`startCardio`, `workoutActivityFocus`. New: `startSelectedCardio`, `cardioPickerCancel`, `cardioPlanOption.<n>`,
+`cardioStatus`, `cardioLocationStatus`, `cardioHeartRate`, `cardioMeasuredDistance`, `cardioSplits`.
+Tests moved with the structure (CardioUITests, RedesignScreenshotUITests' unit-system flow): select + Start; figures
+are single accessibility elements (label + value + unit), so value checks read labels; the unit pills are buttons;
+Cancel is `cardioPickerCancel`.
+
 ## Progress
 
 - 2026-09-28: resumed from STATE and ticket 01; the branch reset onto `af30f66` and force-pushed. Read ticket 11

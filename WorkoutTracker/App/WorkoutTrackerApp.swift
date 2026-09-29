@@ -81,6 +81,11 @@ struct WorkoutTrackerApp: App {
             do { try CardioIndoorFixture.seed(in: modelContainer.mainContext) }
             catch { assertionFailure("Indoor cardio fixture failed: \(error)") }
         }
+        // The cardio area's capture states (Floodlight ticket 12; see CardioDesignFixture).
+        if CardioDesignFixture.isEnabled {
+            do { try CardioDesignFixture.seed(in: modelContainer.mainContext) }
+            catch { assertionFailure("Cardio design fixture failed: \(error)") }
+        }
         // The Settings captures (see DesignSampleFixture.seedSettings): with the saved key
         // (AskAIKeyStore), photo and routine permissions on, model details off.
         if DesignSampleFixture.settingsIsEnabled {

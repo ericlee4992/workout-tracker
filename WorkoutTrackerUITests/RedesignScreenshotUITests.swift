@@ -66,10 +66,10 @@ final class RedesignScreenshotUITests: XCTestCase {
         selectUnitSystem("Metric")
         app.navigationBars.buttons.firstMatch.tap()
         app.buttons["startCardio"].tap()
-        app.searchFields.firstMatch.tap(); app.searchFields.firstMatch.typeText("Indoor Run")
         anyElement("cardioActivity.indoorRun").tap()
+        app.buttons["startSelectedCardio"].tap()
         XCTAssertTrue(anyElement("cardioTimer").waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["km"].waitForExistence(timeout: 5))
+        XCTAssertTrue(labelled(" km").waitForExistence(timeout: 10))
         app.buttons["minimizeWorkout"].tap()
         app.buttons["openSettings"].tap()
         selectUnitSystem("U.S. customary")
@@ -77,21 +77,28 @@ final class RedesignScreenshotUITests: XCTestCase {
         let resume = anyElement("resumeWorkout")
         XCTAssertTrue(resume.waitForExistence(timeout: 10))
         resume.tap()
-        XCTAssertTrue(app.staticTexts["km"].waitForExistence(timeout: 5), "Current activity retains its chosen unit")
+        XCTAssertTrue(labelled(" km").waitForExistence(timeout: 10), "Current activity retains its chosen unit")
         app.buttons["endCardio"].tap()
         let add = app.buttons["addCardio"]
         for _ in 0..<6 where !add.exists || !add.isHittable { app.swipeUp() }
         add.tap()
-        app.searchFields.firstMatch.tap(); app.searchFields.firstMatch.typeText("Indoor Cycle")
-        anyElement("cardioActivity.indoorCycle").tap()
+        let cycle = anyElement("cardioActivity.indoorCycle")
+        XCTAssertTrue(cycle.waitForExistence(timeout: 5))
+        cycle.tap()
+        app.buttons["startSelectedCardio"].tap()
         XCTAssertTrue(anyElement("cardioTimer").waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["mi"].waitForExistence(timeout: 5))
+        XCTAssertTrue(labelled("mi/h").waitForExistence(timeout: 10))
         revealCardioSpeedUnit()
         shoot("unit-cardio-us-\(large ? "axl" : "default")")
     }
 
+    /// An element whose label contains `text` (a cardio figure is one element: label, value, unit).
+    private func labelled(_ text: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", text)).firstMatch
+    }
+
     private func revealCardioSpeedUnit() {
-        let speedUnit = app.staticTexts["mi/h"]
+        let speedUnit = labelled("mi/h")
         func visible() -> Bool {
             guard speedUnit.exists && speedUnit.isHittable else { return false }
             return speedUnit.frame.minY > 120

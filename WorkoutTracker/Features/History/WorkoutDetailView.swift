@@ -222,6 +222,10 @@ struct WorkoutDetailView: View {
     @ViewBuilder private var content: some View {
         let summary = summary
         let entries = WorkoutSession.orderedEntries(of: workout)
+        // Cardio-only (ticket 12, H04): the hero carries the segment with the route; its time is a
+        // hero figure, so the tiles start after workout time, and Splits follow them.
+        let heroSegment = entries.isEmpty
+            ? (workout.recordedCardio.first { $0.route.count > 1 } ?? workout.recordedCardio.first) : nil
         HistoryDetailHero(
             workout: workout,
             ringSets: ringSets(entries),
@@ -233,6 +237,11 @@ struct WorkoutDetailView: View {
                 renamingWorkout = true
             })
             .historyPageRow(top: 8, bottom: 6)
+
+        if let heroSegment {
+            CardioHistoryHero(segment: heroSegment)
+                .historyPageRow(top: 14, bottom: 0)
+        }
 
         if let savedTemplateName {
             // The finish sheet's confirmation line, in place of the button (ticket 13).
@@ -251,7 +260,7 @@ struct WorkoutDetailView: View {
         if let summary {
             VStack(alignment: .leading, spacing: look.space.header) {
                 SectionHeader("Workout details")
-                FinishTileGrid(tiles: FinishTile.summaryTiles(summary, unit: appUnit) { kind in
+                FinishTileGrid(tiles: FinishTile.summaryTiles(summary, unit: appUnit) { kind -> String in
                     switch kind {
                     case .workoutTime: "historyWorkoutTime"
                     case .totalVolume: "historyVolume"
@@ -260,9 +269,14 @@ struct WorkoutDetailView: View {
                     case .averageHeartRate: "historyAverageHR"
                     case .maxHeartRate: "historyMaxHR"
                     }
-                })
+                }.filter { heroSegment == nil || $0.tile.kind != .workoutTime })
             }
             .historyPageRow(top: 26, bottom: 0)
+
+            if let heroSegment {
+                CardioSplitsSection(segment: heroSegment)
+                    .historyPageRow(top: 26, bottom: 0)
+            }
 
             if let comparison = receipt?.comparison {
                 VStack(alignment: .leading, spacing: look.space.header) {
@@ -309,10 +323,11 @@ struct WorkoutDetailView: View {
         }
         .historyPageRow(top: 14, bottom: 0)
 
-        if !workout.recordedCardio.isEmpty {
+        let cardioCards = workout.recordedCardio.filter { $0.id != heroSegment?.id }
+        if !cardioCards.isEmpty {
             VStack(alignment: .leading, spacing: look.space.header) {
                 SectionHeader("Cardio")
-                ForEach(workout.recordedCardio) { CardioSummaryCard(segment: $0) }
+                ForEach(cardioCards) { CardioSummaryCard(segment: $0) }
             }
             .historyPageRow(top: 30, bottom: 0)
         }

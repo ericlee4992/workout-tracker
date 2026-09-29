@@ -121,15 +121,19 @@ struct ActiveWorkoutView: View {
                 header
                     .liveRow(top: 4, bottom: 6)
 
-                vitals
-                    .liveRow(top: 6, bottom: 8)
+                // Cardio focus draws its own heart-rate plate (ticket 12); the strip is lifting's.
+                if !cardioFocus {
+                    vitals
+                        .liveRow(top: 6, bottom: 8)
+                }
 
                 if workout.hasUnknownCardioTargets {
                     Text("Some cardio targets are unavailable in this version.")
                         .font(screenLook.font.footnote).foregroundStyle(screenLook.textSecondary)
                         .liveRow(top: 2, bottom: 6)
                 }
-                if !workout.plannedCardio.isEmpty {
+                // In cardio focus the first unstarted target is the panel's own hero (ticket 12).
+                if !workout.plannedCardio.isEmpty && !cardioFocus {
                     plannedCardio.liveRow(top: 6, bottom: 8)
                 }
                 if !workout.orderedCardio.isEmpty || cardioFocus {
@@ -142,7 +146,11 @@ struct ActiveWorkoutView: View {
                 }
 
                 if cardioFocus {
-                    CardioWorkoutSection(workout: workout, recorder: heartRateCoordinator.cardio, monitor: heartRate)
+                    CardioWorkoutSection(
+                        workout: workout, recorder: heartRateCoordinator.cardio, monitor: heartRate,
+                        editMaxHeartRate: { showMaxHeartRateSheet = true },
+                        startPlanned: startPlannedCardio,
+                        canStartPlanned: heartRate != nil)
                 } else {
                     if let cardio = workout.unfinishedCardio {
                         Button { cardioFocus = true } label: {
@@ -333,11 +341,20 @@ struct ActiveWorkoutView: View {
                     .presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $showCardioPicker) {
-                CardioActivityPicker(endsCurrentSegment: workout.unfinishedCardio != nil) { activity in
-                    heartRateCoordinator.cardio.start(activity)
-                    cardioFocus = true
-                    refreshRest()
-                    heartRateCoordinator.broadcastRest(endsAt: nil)
+                // Planned targets start only while nothing records (CardioSession refuses otherwise).
+                CardioActivityPicker(
+                    recording: workout.unfinishedCardio?.activity,
+                    plans: workout.unfinishedCardio == nil ? workout.plannedCardio.filter { workout.canStart($0) } : []
+                ) { choice in
+                    switch choice {
+                    case .plan(let target):
+                        startPlannedCardio(target)
+                    case .activity(let activity):
+                        heartRateCoordinator.cardio.start(activity)
+                        cardioFocus = true
+                        refreshRest()
+                        heartRateCoordinator.broadcastRest(endsAt: nil)
+                    }
                 }
             }
             .alert("Cardio could not be saved", isPresented: Binding(
