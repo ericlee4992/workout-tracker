@@ -23,9 +23,10 @@ extension CardioActivity {
 enum CardioFormat {
     static let distanceSymbol = "point.bottomleft.forward.to.point.topright.scurvepath"
 
-    /// Two decimals, so a live figure never jumps width: "1.47", or "—".
+    /// Two decimals, so a live figure never jumps width: "1.47"; a recorded zero is "0.00" (it is a
+    /// value, distinct from a cleared entry); only no distance at all is "—".
     static func distance(_ meters: Double?, _ unit: CardioDistanceUnit) -> String {
-        guard let meters, meters.isFinite, meters > 0 else { return "—" }
+        guard let meters, meters.isFinite, meters >= 0 else { return "—" }
         return String(format: "%.2f", meters / unit.metersPerUnit)
     }
     /// "18.4" units per hour, or "—".
@@ -44,21 +45,18 @@ enum CardioFormat {
     static func speedUnit(_ unit: CardioDistanceUnit) -> String { "\(unit.rawValue)/h" }
     /// What a distance ring counts toward: "of 2 mi" (decision 3, 2026-09-28).
     static func splitTarget(_ next: Int, _ unit: CardioDistanceUnit) -> String { "of \(next) \(unit.rawValue)" }
-    /// Keeps a typed distance to digits and one separator, at most 6 characters ("12.345").
-    static func sanitize(_ text: String) -> String {
-        var out = ""
-        var sawSeparator = false
-        for ch in text {
-            if ch.isASCII, ch.isNumber { out.append(ch) }
-            else if ch == "." || ch == ",", !sawSeparator { sawSeparator = true; out.append(ch) }
-            if out.count == 6 { break }
-        }
-        return out
-    }
+    /// A typed distance as `CardioSession.enterDistance` reads it (a comma is a decimal separator);
+    /// nil for blank. The text is never rewritten: what the user typed or stored is what is checked.
     static func parse(_ text: String) -> Double? {
-        let cleaned = text.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: ",", with: ".")
+        let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
         guard !cleaned.isEmpty else { return nil }
         return Double(cleaned)
+    }
+    /// Whether a non-blank entry would be refused (`CardioSessionError.invalidDistance`).
+    static func isInvalidEntry(_ text: String, unit: CardioDistanceUnit) -> Bool {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return false }
+        guard let value = parse(text) else { return true }
+        return !value.isFinite || value < 0 || !(value * unit.metersPerUnit).isFinite
     }
 }
 
@@ -325,8 +323,11 @@ struct CardioStat: Identifiable {
     /// A glyph after the label: "pencil" (editable), "location.slash" (GPS lost).
     var accessory: String? = nil
     var action: (() -> Void)? = nil
-    /// The UI tests' handle (`cardioDistanceMetric`, `cardioEditDistance`, …).
+    /// The UI tests' handle (`cardioDistanceMetric`, `cardioSummaryEditDistance`, …).
     var identifier: String? = nil
+    /// With an action: the figure stays its own element (`identifier`, tappable) and a separate
+    /// pencil button carries this handle — the live Distance figure (`cardioEditDistance`).
+    var editIdentifier: String? = nil
     /// Spoken after the figure (where a distance came from; never shown — September 19).
     var spokenSuffix: String? = nil
 }
@@ -378,7 +379,25 @@ struct CardioStatCell: View {
     @Environment(\.cardioStill) private var still
 
     var body: some View {
-        if let action = stat.action {
+        if let action = stat.action, let editIdentifier = stat.editIdentifier {
+            content
+                .onTapGesture(perform: action)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction(named: "Edit distance", action)
+                .accessibilityIdentifier(stat.identifier ?? "")
+                .overlay(alignment: .topTrailing) {
+                    Button(action: action) {
+                        Image(systemName: "pencil")
+                            .font(.system(.footnote, weight: .bold))
+                            .foregroundStyle(look.textPrimary)
+                            .frame(width: 44, height: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.lookPressable)
+                    .accessibilityLabel("Edit distance")
+                    .accessibilityIdentifier(editIdentifier)
+                }
+        } else if let action = stat.action {
             Button(action: action) { content }
                 .buttonStyle(.lookPressable)
                 .accessibilityHint("Edits the distance")
@@ -406,7 +425,7 @@ struct CardioStatCell: View {
                     .lineLimit(ax ? 2 : 1)
                     .minimumScaleFactor(ax ? 1 : 0.8)
                     .fixedSize(horizontal: false, vertical: ax)
-                if let accessory = stat.accessory {
+                if let accessory = stat.accessory, stat.editIdentifier == nil {
                     Image(systemName: accessory)
                         .font(.system(.caption, weight: .bold))
                         .foregroundStyle(stat.action != nil ? look.textPrimary : look.textSecondary)

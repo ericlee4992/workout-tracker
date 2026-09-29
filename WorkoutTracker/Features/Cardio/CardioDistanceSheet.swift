@@ -24,12 +24,10 @@ struct CardioDistanceSheet: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     private var seconds: Double { segment.activeDuration(at: segment.endedAt ?? .now) }
-    private var trimmed: String { text.trimmingCharacters(in: .whitespaces) }
-    private var isInvalid: Bool {
-        guard !trimmed.isEmpty else { return false }
-        guard let value = CardioFormat.parse(trimmed) else { return true }
-        return value < 0 || !value.isFinite
-    }
+    private var trimmed: String { text.trimmingCharacters(in: .whitespacesAndNewlines) }
+    /// The whole entry is checked as the domain will read it; nothing typed is filtered out
+    /// (a pasted "-1" is refused, not turned into "1").
+    private var isInvalid: Bool { CardioFormat.isInvalidEntry(text, unit: unit) }
     private var canSave: Bool { !isInvalid && (text != initialText || unit != initialUnit) }
 
     var body: some View {
@@ -98,8 +96,10 @@ struct CardioDistanceSheet: View {
                 .accessibilityIdentifier("cardioDistanceField")
                 .onChange(of: text) { _, new in
                     error = nil
-                    let clean = CardioFormat.sanitize(new)
-                    if clean != new { text = clean }
+                    // The big field has room for about seven characters. Only what the user types
+                    // is capped — the value loaded from the segment is never rewritten (it would
+                    // enable Save and restate a stored distance nobody touched).
+                    if focused, new.count > Self.maxTyped { text = String(new.prefix(Self.maxTyped)) }
                 }
             Text(unit.rawValue)
                 .font(.system(.title2, weight: .bold))
@@ -134,10 +134,12 @@ struct CardioDistanceSheet: View {
         .animation(reduceMotion ? nil : .easeOut(duration: 0.15), value: focused)
     }
 
+    private static let maxTyped = 7
+
     /// What Save would record: the typed value in the chosen unit, else the measured distance.
     private var effectiveMeters: Double? {
         if !trimmed.isEmpty {
-            guard let value = CardioFormat.parse(trimmed), value >= 0 else { return nil }
+            guard !isInvalid, let value = CardioFormat.parse(trimmed) else { return nil }
             return value * unit.metersPerUnit
         }
         return segment.automaticDistanceMeters

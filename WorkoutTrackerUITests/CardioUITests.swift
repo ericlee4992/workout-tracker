@@ -139,6 +139,13 @@ final class CardioUITests: XCTestCase {
         reach(app.buttons["addCardio"]); app.buttons["addCardio"].tap()
         choose("indoorCycle")
         enterDistance("3")
+        // A typed distance without a target: the ring counts it and stays the distance figure; the
+        // pencil is the edit button; the Time figure is the timer — one of each (codex-review-12 #3).
+        for id in ["cardioTimer", "cardioDistanceMetric", "cardioEditDistance"] {
+            XCTAssertEqual(app.descendants(matching: .any).matching(identifier: id).count, 1, id)
+        }
+        XCTAssertTrue(any("cardioDistanceMetric").label.contains("3.00 mi") || any("cardioDistanceMetric").label.contains("3.00 km"),
+                      any("cardioDistanceMetric").label)
         reach(app.buttons["cardioPauseResume"]); app.buttons["cardioPauseResume"].tap()
         assertPaused()
         app.buttons["minimizeWorkout"].tap()

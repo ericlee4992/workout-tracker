@@ -39,7 +39,10 @@ struct CardioRingModel: Equatable {
                 centre: .time(active), targetSeconds: target, nextUnit: nil,
                 targetDone: active >= target, splitIndex: 0)
         }
-        if let meters = distanceMeters, meters.isFinite, meters > 0 {
+        // A distance ring needs a whole-unit count an Int can hold; an absurd stored value (the
+        // domain accepts any finite entry) falls back to the sweep rather than trapping.
+        if let meters = distanceMeters, meters.isFinite, meters > 0,
+           meters / unit.metersPerUnit < CardioReadout.maxSplits * 1_000 {
             let units = meters / unit.metersPerUnit
             let whole = units.rounded(.down)
             return CardioRingModel(
@@ -64,6 +67,10 @@ struct CardioSplit: Equatable, Identifiable {
 }
 
 enum CardioReadout {
+    /// The most splits a view derives. A typed distance is the user's (kept as entered, D52/D15),
+    /// but a mistyped 999999 km must not expand into a million rows and markers on the main thread.
+    static let maxSplits: Double = 200
+
     /// Seconds since the running segment was paused (nil while it records or once it ended).
     /// A pause ends a segment's active interval at `lastCheckpointAt`; a relaunch that could not
     /// observe the gap pauses at the last checkpoint too (`CardioSession.recover`), so this counts
@@ -90,7 +97,8 @@ enum CardioReadout {
     /// points, or no distance: none.
     static func splits(_ segment: CardioSegment, end: Date? = nil) -> [CardioSplit] {
         let route = segment.route.sorted { $0.date < $1.date }
-        guard route.count > 1, let total = segment.distanceMeters, total > 0 else { return [] }
+        guard route.count > 1, let total = segment.distanceMeters, total.isFinite, total > 0,
+              total / segment.unit.metersPerUnit <= maxSplits else { return [] }
         var cumulative: [(meters: Double, offset: Double)] = [(0, activeSeconds(segment, at: route[0].date))]
         for i in 1..<route.count {
             let step = route[i].portion == route[i - 1].portion ? CardioMath.meters(between: route[i - 1], and: route[i]) : 0
@@ -110,14 +118,19 @@ enum CardioReadout {
             return endOffset
         }
         var result: [CardioSplit] = []
-        var start = 0.0, covered = 0.0, index = 0
+        var start = 0.0, covered = 0.0, index = 0, lastStart = 0.0
         // A tail under a metre is rounding, not a split.
         while covered < total - 1 {
             let next = min(total, covered + unitMeters)
             let finish = next >= total ? endOffset : offset(atMeters: next)
             result.append(CardioSplit(index: index, distance: (next - covered) / unitMeters,
                                       seconds: max(0, Int((finish - start).rounded()))))
+            lastStart = start
             start = finish; covered = next; index += 1
+        }
+        // …but its time is real: the last split runs to the segment's end.
+        if covered < total, !result.isEmpty {
+            result[result.count - 1].seconds = max(0, Int((endOffset - lastStart).rounded()))
         }
         return result
     }

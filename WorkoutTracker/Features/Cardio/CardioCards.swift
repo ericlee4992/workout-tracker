@@ -290,6 +290,13 @@ struct CardioSplitsView: View {
     @Environment(\.look) private var look
     @ScaledMetric(relativeTo: .footnote) private var indexColumn: CGFloat = 34
 
+    /// What the row shows, spoken: the speed for cycling, the pace otherwise.
+    private func spoken(_ pace: Double) -> String {
+        usesSpeed
+            ? "\(String(format: "%.1f", pace > 0 ? 3_600 / pace : 0)) \(unit.rawValue) per hour"
+            : "\(CardioMath.paceText(pace)) per \(unit.rawValue)"
+    }
+
     var body: some View {
         let paces = splits.compactMap(\.secondsPerUnit)
         let fastest = paces.min() ?? 1
@@ -330,9 +337,8 @@ struct CardioSplitsView: View {
                         .frame(minWidth: 70, alignment: .trailing)
                 }
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(split.isPartial
-                    ? "Last \(tail) \(unit.rawValue), \(CardioMath.paceText(pace)) per \(unit.rawValue)"
-                    : "Split \(split.index + 1), \(CardioMath.paceText(pace)) per \(unit.rawValue)\(isLit ? ", fastest" : "")")
+                .accessibilityLabel((split.isPartial ? "Last \(tail) \(unit.rawValue)" : "Split \(split.index + 1)")
+                    + ", " + spoken(pace) + (isLit ? ", fastest" : ""))
             }
         }
     }
@@ -371,12 +377,15 @@ struct CardioRouteMap: View {
                 }
                 routeLayer(size: size, rect: rect)
             }
-            .task(id: "\(points.count)-\(Int(size.width))x\(Int(size.height))-\(look.isDark)") {
+            .task(id: CardioRouteSnapshots.key(rect: rect, size: size, dark: look.isDark)) {
                 guard size.width > 1 else { return }
-                let key = CardioRouteSnapshots.key(points, size: size, dark: look.isDark)
+                // Keyed by the projection itself: two routes share a picture only if they share its bounds.
+                let key = CardioRouteSnapshots.key(rect: rect, size: size, dark: look.isDark)
                 if let cached = CardioRouteSnapshots.cache[key] { tiles = cached; return }
                 tiles = nil
-                if let image = await CardioRouteSnapshots.render(rect: rect, size: size, dark: look.isDark) {
+                let image = await CardioRouteSnapshots.render(rect: rect, size: size, dark: look.isDark)
+                guard !Task.isCancelled else { return }
+                if let image {
                     CardioRouteSnapshots.cache[key] = image
                     withAnimation(.easeOut(duration: 0.3)) { tiles = image }
                 }
@@ -431,6 +440,8 @@ struct CardioRouteMap: View {
     /// Where each whole mile / km falls along the drawn route (scaled to the recorded distance).
     private func markers(_ route: [CardioRoutePoint], size: CGSize, rect: MKMapRect) -> [CGPoint] {
         guard let step = markerMeters, step > 0, route.count > 1 else { return [] }
+        // Bounded like the splits: an absurd typed distance draws no markers rather than a million.
+        if let total = totalMeters, !(total.isFinite && total / step <= CardioReadout.maxSplits) { return [] }
         var cumulative: [Double] = [0]
         for i in 1..<route.count {
             cumulative.append(cumulative[i - 1] + (route[i].portion == route[i - 1].portion
@@ -508,9 +519,9 @@ private struct CardioMapGrid: View {
 enum CardioRouteSnapshots {
     static var cache: [String: UIImage] = [:]
 
-    static func key(_ route: [CardioRoutePoint], size: CGSize, dark: Bool) -> String {
-        let anchor = route.first.map { "\($0.latitude),\($0.longitude)" } ?? "none"
-        return "\(anchor)-\(route.count)-\(Int(size.width))x\(Int(size.height))-\(dark)"
+    static func key(rect: MKMapRect, size: CGSize, dark: Bool) -> String {
+        let r = [rect.origin.x, rect.origin.y, rect.size.width, rect.size.height].map { String(Int($0.rounded())) }
+        return r.joined(separator: ",") + "-\(Int(size.width))x\(Int(size.height))-\(dark)"
     }
 
     static func render(rect: MKMapRect, size: CGSize, dark: Bool) async -> UIImage? {

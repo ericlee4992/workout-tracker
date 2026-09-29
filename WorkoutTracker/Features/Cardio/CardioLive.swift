@@ -104,7 +104,10 @@ struct CardioLiveBlock: View {
                     locationLostPlate.transition(.opacity)
                 }
                 VStack(spacing: look.space.group) {
-                    CardioStatGrid(stats: stats(active: active, model: model, paused: paused), dense: ax)
+                    // Stat numbers, not big numbers: the ring's centre stays the largest figure at every
+                    // size (at AccessibilityL the ring is 190 pt and its centre about 40 pt).
+                    CardioStatGrid(stats: stats(active: active, model: model, paused: paused),
+                                   numberFont: look.font.statNumber, dense: ax)
                     CardioHeartPlate(segment: segment, recorder: recorder, monitor: monitor,
                                      editMaxHeartRate: editMaxHeartRate)
                 }
@@ -161,12 +164,27 @@ struct CardioLiveBlock: View {
 
     @ViewBuilder
     private func hero(active: Int, model: CardioRingModel, paused: Bool) -> some View {
-        // An editable distance ring opens the Distance sheet (its centre is the distance).
+        // An editable distance ring opens the Distance sheet (its centre is the distance): the ring
+        // stays the distance figure (`cardioDistanceMetric`), and a pencil disc on it is the edit
+        // button (`cardioEditDistance`), so both handles exist in every state.
         if model.countsDistance && distanceEditable {
-            Button { editingDistance = true } label: { ring(active: active, model: model, paused: paused, editable: true) }
-                .buttonStyle(.lookPressable)
-                .accessibilityHint("Edits the distance")
-                .accessibilityIdentifier("cardioEditDistance")
+            ring(active: active, model: model, paused: paused, editable: true)
+                .onTapGesture { editingDistance = true }
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction(named: "Edit distance") { editingDistance = true }
+                .accessibilityIdentifier("cardioDistanceMetric")
+                .overlay(alignment: .bottomTrailing) {
+                    Button { editingDistance = true } label: {
+                        Image(systemName: "pencil")
+                            .font(.system(.body, weight: .bold))
+                            .foregroundStyle(look.textPrimary)
+                            .frame(width: 44, height: 44)
+                            .background(look.surfaceRaised, in: Circle())
+                    }
+                    .buttonStyle(.lookPressable)
+                    .accessibilityLabel("Edit distance")
+                    .accessibilityIdentifier("cardioEditDistance")
+                }
         } else {
             ring(active: active, model: model, paused: paused, editable: false)
                 .accessibilityIdentifier(model.countsDistance ? "cardioDistanceMetric" : "cardioTimer")
@@ -200,7 +218,6 @@ struct CardioLiveBlock: View {
                     HStack(spacing: 4) {
                         if model.targetDone { Image(systemName: "checkmark.circle.fill").foregroundStyle(look.textPrimary) }
                         Text(caption)
-                        if editable { Image(systemName: "pencil").foregroundStyle(look.textPrimary) }
                     }
                     .font(look.cardioCaptionFont)
                     .foregroundStyle(look.textSecondary)
@@ -286,9 +303,10 @@ struct CardioLiveBlock: View {
                 symbol: CardioFormat.distanceSymbol,
                 value: CardioFormat.distance(meters, unit), unit: unit.rawValue,
                 dimmed: paused || lost,
-                accessory: lost ? "location.slash" : (editable ? "pencil" : nil),
+                accessory: lost ? "location.slash" : nil,
                 action: editable ? { editingDistance = true } : nil,
-                identifier: editable ? "cardioEditDistance" : "cardioDistanceMetric"))
+                identifier: "cardioDistanceMetric",
+                editIdentifier: editable ? "cardioEditDistance" : nil))
         }
         // A typed distance has no live speed of its own: current pace/speed is the sensors'.
         let fresh = segment.manualDistanceValue == nil ? recorder.freshSpeed : nil
@@ -391,7 +409,7 @@ private struct CardioHeartPlate: View {
                         HStack(alignment: .firstTextBaseline, spacing: 5) {
                             BeatingHeart(bpm: sample.bpm, isFresh: true, font: .system(.title3, weight: .bold))
                             Text("\(sample.bpm)")
-                                .font(look.font.bigNumber)
+                                .font(look.font.statNumber)
                                 .foregroundStyle(look.heartRate)
                                 .contentTransition(.numericText(value: Double(sample.bpm)))
                                 .lineLimit(1)

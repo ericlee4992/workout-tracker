@@ -101,11 +101,17 @@ final class FloodlightCardioUITests: XCTestCase {
         XCTAssertTrue(rowing.isSelected)
         XCTAssertEqual(startSelected.label, "Start Rowing")
         shoot("C01-rowing")
-        app.buttons["cardioPickerCancel"].tap()
-        // Start the target: recording against it; then paused.
-        toTop(); reach(start); start.tap()
+        // Back to the planned target and commit it from the picker: recording against it.
+        let planned = any("cardioPlanOption.0"); reach(planned); planned.tap()
+        XCTAssertEqual(startSelected.label, "Start Indoor Run")
+        startSelected.tap()
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 10))
         XCTAssertTrue(any("cardioTimer").label.contains("of 20:00"), any("cardioTimer").label)
+        XCTAssertFalse(start.exists, "the started target leaves the planned hero")
+        // Indoor, nothing measured yet: one timer (the ring), one distance figure, one edit button.
+        for id in ["cardioTimer", "cardioDistanceMetric", "cardioEditDistance"] {
+            XCTAssertEqual(app.descendants(matching: .any).matching(identifier: id).count, 1, id)
+        }
         let pause = app.buttons["cardioPauseResume"]
         pause.tap()
         let status = any("cardioStatus")
@@ -124,8 +130,14 @@ final class FloodlightCardioUITests: XCTestCase {
         XCTAssertTrue(any("cardioDistanceMetric").label.hasPrefix("Distance 2."), any("cardioDistanceMetric").label)
         XCTAssertFalse(app.buttons["cardioEditDistance"].exists, "measured distance has no editor")
         shoot("C02-p2")
+        // Without a maximum the plate offers zones: it opens Max Heart Rate.
+        XCTAssertTrue(labelled("Set up zones").exists || any("cardioHeartRate").label.contains("Zone"))
+        any("cardioHeartRate").tap()
+        XCTAssertTrue(app.textFields["maxHeartRateField"].waitForExistence(timeout: 5), "the plate opens zone setup")
+        app.navigationBars["Heart Rate"].buttons["Cancel"].tap()
         let addCardio = app.buttons["addCardio"]; reach(addCardio); addCardio.tap()
         XCTAssertTrue(labelled("Starting another activity ends the current cardio segment.").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["startSelectedCardio"].exists)
         XCTAssertFalse(app.buttons["startSelectedCardio"].isEnabled, "nothing preselected while recording")
         shoot("C01-replace")
         app.buttons["cardioPickerCancel"].tap()
@@ -193,6 +205,11 @@ final class FloodlightCardioUITests: XCTestCase {
         XCTAssertTrue(labelled("Split 1").exists)
         XCTAssertTrue(app.buttons["cardioSummaryEditDistance"].exists, "the receipt keeps its distance edit (decision 4)")
         shoot("F02-splits")
+        // The receipt keeps its distance edit: it opens Distance (then Cancel).
+        let receiptEdit = app.buttons["cardioSummaryEditDistance"].firstMatch; reach(receiptEdit); receiptEdit.tap()
+        XCTAssertTrue(app.textFields["cardioDistanceField"].waitForExistence(timeout: 5))
+        app.buttons["Cancel"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 5))
         // History's cardio-only detail.
         let history = app.buttons["viewFinishedWorkout"]
         // Clear of the receipt's pinned header ("Nice work · Done"): a link half under it is hittable,
@@ -205,10 +222,15 @@ final class FloodlightCardioUITests: XCTestCase {
         let hero = any("cardioRoute")
         XCTAssertTrue(hero.waitForExistence(timeout: 15))
         sleep(2)
-        let heroDistance = app.buttons["cardioSummaryEditDistance"]
+        let heroDistance = app.buttons["cardioSummaryEditDistance"].firstMatch
         XCTAssertTrue(heroDistance.label.hasPrefix("Distance"), heroDistance.label)
         shoot("H04")
         let section = any("cardioSplits"); reach(section)
         shoot("H04-splits")
+        // A second segment of a cardio-only workout is a card under the hero.
+        let cycle = any("cardioSummary.indoorCycle"); reach(cycle)
+        XCTAssertEqual(app.descendants(matching: .any).matching(identifier: "cardioSummary.outdoorRun").count, 1,
+                       "the hero's run is not repeated as a card")
+        shoot("H04-second-segment")
     }
 }

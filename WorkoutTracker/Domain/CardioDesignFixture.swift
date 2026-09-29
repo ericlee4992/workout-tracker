@@ -9,8 +9,9 @@ import SwiftData
 /// - `-uiTestCardioPlanned`: a running workout with two completed lifting sets, an ended Indoor
 ///   Walk and an unstarted 20-minute Indoor Run target; a finished Indoor Run last week.
 /// - `-uiTestCardioLost`: an Outdoor Run recording with its location unavailable.
-/// - `-uiTestCardioSplits`: a running workout whose only content is an ended 3.3 km Outdoor Run
-///   with a one-minute pause (two route portions) — Finish shows the route and splits.
+/// - `-uiTestCardioSplits`: a running workout whose only content is an ended 3.2 km Outdoor Run
+///   with a one-minute pause (two route portions) and then an ended Indoor Cycle — Finish shows the
+///   route and splits; History's cardio-only hero carries the run and the cycle is a card under it.
 @MainActor
 enum CardioDesignFixture {
     static let targetArgument = "-uiTestCardioTarget"
@@ -110,6 +111,10 @@ enum CardioDesignFixture {
         segment.averageHeartRate = 152
         segment.maxHeartRate = 171
         segment.activeEnergyKilocalories = 248
+        let cycle = try cardio.start(.indoorCycle, in: workout, at: start.addingTimeInterval(1_150), unit: .km)
+        try cardio.end(cycle, at: start.addingTimeInterval(1_270))
+        try cardio.enterDistance("1.2", unit: .km, for: cycle)
+        cycle.averageHeartRate = 131
         try context.save()
     }
 

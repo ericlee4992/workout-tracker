@@ -177,4 +177,54 @@ struct CardioReadoutTests {
         #expect(CardioLocationStatus.of(message: "Location unavailable.", outdoor: true, running: false) == .fine)
         #expect(CardioLocationStatus.of(message: "Waiting for GPS…", outdoor: false, running: true) == .fine)
     }
+
+    // MARK: codex-review-12
+
+    @Test func absurdDistancesDeriveNoSplitsAndNeverTrap() throws {
+        let store = try Store()
+        let session = CardioSession(context: store.context)
+        let workout = try WorkoutSession(context: store.context).startWorkout(at: nil, on: start)
+        let segment = try session.start(.outdoorRun, in: workout, at: start, unit: .km)
+        segment.route = route(from: start, steps: 10, metersPerStep: 100, secondsPerStep: 30)
+        try session.end(segment, at: start.addingTimeInterval(300))
+        try session.enterDistance("999999", unit: .km, for: segment)
+        #expect(CardioReadout.splits(segment).isEmpty, "a mistyped distance must not expand into rows")
+        try session.enterDistance("200", unit: .km, for: segment)
+        #expect(CardioReadout.splits(segment).count == 200)
+        // A finite but enormous stored value (the domain accepts it) must not trap the ring.
+        let huge = CardioRingModel.make(activeSeconds: 90, targetMinutes: nil, distanceMeters: 1e19 * 1_000, unit: .km)
+        #expect(huge.centre == .time(90) && !huge.countsDistance)
+    }
+
+    @Test func aSubMetreTailKeepsItsTimeInTheLastSplit() throws {
+        let store = try Store()
+        let session = CardioSession(context: store.context)
+        let workout = try WorkoutSession(context: store.context).startWorkout(at: nil, on: start)
+        let segment = try session.start(.outdoorRun, in: workout, at: start, unit: .km)
+        segment.route = route(from: start, steps: 20, metersPerStep: 100, secondsPerStep: 30)
+        try session.end(segment, at: start.addingTimeInterval(660))
+        // 2 000.5 m: two whole kilometres at 300 s each, and the last 60 s go to the second.
+        try session.enterDistance("2.0005", unit: .km, for: segment)
+        let splits = CardioReadout.splits(segment)
+        #expect(splits.count == 2)
+        #expect(splits.map(\.seconds).reduce(0, +) == 660)
+        #expect(splits.last?.seconds == 360)
+    }
+
+    @Test func aRecordedZeroIsAValueAndEntriesAreCheckedWhole() {
+        #expect(CardioFormat.distance(0, .km) == "0.00")
+        #expect(CardioFormat.distance(nil, .km) == "—")
+        #expect(CardioFormat.distance(1_500, .km) == "1.50")
+        // Stored values load unchanged and parse as the domain does.
+        #expect(CardioFormat.parse("1e-06") == 0.000001)
+        #expect(CardioFormat.parse("12.34567") == 12.34567)
+        #expect(CardioFormat.parse("2,4") == 2.4)
+        #expect(CardioFormat.parse("  ") == nil)
+        #expect(!CardioFormat.isInvalidEntry("", unit: .km))
+        #expect(!CardioFormat.isInvalidEntry("0", unit: .km))
+        #expect(CardioFormat.isInvalidEntry("-1", unit: .km))
+        #expect(CardioFormat.isInvalidEntry("1..2", unit: .km))
+        #expect(CardioFormat.isInvalidEntry("1e400", unit: .km))
+        #expect(!CardioFormat.isInvalidEntry("1e3", unit: .mi))
+    }
 }
