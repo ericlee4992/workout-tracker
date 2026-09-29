@@ -286,6 +286,29 @@ Verification (round 2, on `b4999fb` + the two fixes below):
 - Captures `../captures/12/` (84) refreshed: Live flows from `cardio-ui-8`, Finished flows from `cardio-ui-11`
   (adds `H04-second-segment`).
 
+## Codex review 12b — response (round 2)
+
+Report: [codex-review-12b.md](../codex-review-12b.md) — not clear; two medium, one low. Round-1 findings 1, 3, 4, 5,
+7, 8 resolved; 2 partly; 6 still open. All accepted.
+
+1. **M — the typing cap still cut an entry to a prefix** ("1.23e-06" → 1.23; "1.23456x" → valid). An edit that would
+   make the entry longer than seven characters is now refused whole (`CardioFormat.acceptEdit`: the previous text
+   stays; shortening is always accepted, so a longer stored value can be edited down). Unit test for both pastes,
+   in-limit edits kept as typed and validated whole, and a stored value edited down / not up.
+2. **M — at AccessibilityL the figures still overtook the ring's centre.** At accessibility sizes the ring is 220 pt
+   (centre about 47 pt; an hour-long "1:04:58" about 31 pt after its fit) and the live figures' numbers (the table
+   and the heart plate's bpm) stop growing at xxxLarge; their labels keep scaling. Deliberate: the numbers are the
+   runner-up the ticket demotes; at xxxLarge they are still larger than at Default. Captures retaken.
+3. **L — the second-segment check.** History's Cardio section is its own container (`historyCardioSection`); the test
+   reaches the cycle card's figures (its entered distance and speed) before the shot, and asserts the section holds
+   the cycle once and the run never (independent of the lazy hero).
+
+Verification (round 3, on `ddc26c0`): `cardio-build-5` exit 0; `cardio-ui-12` **exit 0** — unit `CardioReadoutTests`
+13/13; UI 18/18: `FloodlightCardioUITests` 8/8 (all four appearances × sizes, incl. the committed planned target, zone
+setup, the receipt's edit, the cycle card and the Cardio section's contents), `CardioUITests` 9/9,
+`RedesignScreenshotUITests.testUnitSystemAccessibility`. Captures `../captures/12/` (84) all from this one run; at
+AccessibilityL the ring's centre is the largest figure in both appearances (`C02-*-axl`, `C02-p2-*-axl`).
+
 Process slip: `cardio-ui-8` was started with a shell `&` instead of the tool's background mode (the brief's rule);
 the runner survived and wrote its own `.exit`, which is what the record cites.
 
