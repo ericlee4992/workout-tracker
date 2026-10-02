@@ -10,11 +10,12 @@ checked on a temporary copy: opening a store in place can checkpoint its write-a
 `--expect` compares the restore set (RESTORE_SET below) against an earlier report's manifest and fails on any
 missing or different file — the check that a restore copied exactly the backed-up bytes before the app launches.
 
-`--export` checks the capture against an independent logical baseline: a JSON export the app wrote just before
-the capture (Settings → Export → JSON, with no workout in progress). Every exported workout and set ID must be in
-the captured store, and the export's counts must equal the store's rows. Integrity, counts and a later
-comparison against the same capture cannot detect history the capture itself missed (an incomplete WAL copy
-passes them all — Codex review 01, finding 5); this check can, for everything the export covers.
+`--export` is a quick structural check against a JSON export the app wrote just before the capture (Settings →
+Export → JSON, no workout in progress): every exported workout and set **ID** must be in the captured store, and
+the export's counts must equal the store's rows. It compares no values: a capture that lost a committed *edit* (an
+incomplete WAL copy) keeps every ID and count and passes it (Codex review 01b, R2.1). The value check is the
+round trip — `simulator_export.sh` restores the capture into a disposable Simulator and the app exports it again;
+`compare_exports.py` then requires that export to equal the phone's.
 
 Exit status: 0 when every database is `ok` (and, with --expect, the restore set matches; with --export, the
 capture contains the export); 1 otherwise.

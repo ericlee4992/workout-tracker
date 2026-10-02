@@ -47,12 +47,15 @@ Two gates protect the data. **Neither is waived because the enrollment or the ex
 1. No workout in progress (the user finishes or discards it). The user exports JSON (Settings → Export → JSON)
    and closes the share sheet; the file stays in the app's `tmp/Exports/` and is captured with the container.
    Note the counts on the Export card ("N workouts · M sets").
-2. The user swipes the app away; `devicectl device info processes` shows no app process (the widget extension
-   may run: it has no App Group and cannot open the store). **The app stays closed until the gated step is
+2. The user swipes the app away; a **successful** `devicectl device info processes` query shows no app process
+   (a failed query proves nothing; the widget extension may run: it has no App Group and cannot open the store). **The app stays closed until the gated step is
    done; if it is opened, Gate S starts again.**
 3. Capture the container twice (`copy from`). Both pass `verify_container.py`; capture 2 passes `--expect`
    capture 1's report (byte-identical restore set = nothing was writing); capture 1 passes `--export` with the
-   export from step 1 (every exported workout and set ID present, counts equal). Record the report paths.
+   export from step 1 (IDs and counts); and **the round trip**: `simulator_export.sh` restores capture 1 into the
+   disposable Simulator WT-Backup-01 (a `build-for-testing` of the code the phone runs, real bundle ID) and the app
+   exports it; `compare_exports.py <phone export> <round-trip export>` must exit 0 — the only check here that
+   proves the capture holds the phone's history values. Record the report paths.
 
 **Gate P — phone copy preflight**, once per phone and Xcode version, on the installed free-team app: build a
 probe tree (a file, and a nested directory whose name contains a space, mirroring `Application Support`), `copy to`
@@ -76,8 +79,9 @@ store is not touched. Simulator `cp` and `devicectl --help` do not count as evid
 
 User present, phone unlocked, the paid move (D) not yet done. In order: **Gate S** → **Gate P** → move the two
 profiles aside; rebuild `main`'s code on the free team with `-allowProvisioningUpdates`; check **both** new expiry
-dates (about Oct 11) → install the same code over the app (same team: an in-place update) → launch →
-capture → `compare_stores.py` against Gate S (rows and preferences). Repeat the renewal weekly while waiting on
+dates (about Oct 11) → install the same code over the app (same team: an in-place update) → launch and
+inspect → **the user closes the app; a successful process query shows it gone** → capture → `compare_stores.py`
+against Gate S (rows and preferences). Repeat the renewal weekly while waiting on
 Apple, each time behind Gate S.
 
 ### B — Paid team (after enrollment approval)
@@ -118,7 +122,8 @@ with the developer only. Subtitle and tagline are recorded for ticket 08/09, not
 3. Install the paid-team development build. **Do not launch it.**
 4. Copy the restore set from the Gate S capture into the new container with the command forms Gate P proved.
    Capture the container and run `verify_container.py --expect <Gate S report>`: exit 0 before any launch.
-5. Launch. Capture after the app is closed again; `compare_stores.py <Gate S capture> <after>` must exit 0 (every
+5. Launch. Close the app and confirm it is gone with a successful process query; capture;
+   `compare_stores.py <Gate S capture> <after>` must exit 0 (every
    row and every preference). The user re-grants Health access, re-enters the OpenAI key (team-scoped Keychain;
    until ticket 06 removes it), and checks Health still lists the workouts noted in 1. Any difference stops the
    ticket for the user.
@@ -178,7 +183,8 @@ Branch `ericlee4992/beta-01-paid-team` from `main` `bab270b`. Derived data and l
   appended to the preferences plist → `--expect` exit 1.
 - **Apple Support draft:** [apple-support-request.md](../apple-support-request.md) (placeholders for name, email
   and the paid team ID; the repository is public).
-- WT-Beta01 holds a copy of the user's 09-29 data: **delete the simulator when the review is clear**.
+- The simulator (renamed **WT-Backup-01** in round 2; the round trip's disposable Simulator) holds copies of the
+  user's 09-29 data: **erase it (`xcrun simctl erase`) when the review is clear and after every later use**.
 
 ## Codex review 01 — response (round 1)
 
@@ -218,6 +224,34 @@ verified on Simulator/rehearsal copies (scratchpad `…/b01/rehearsal/`). No pho
    the rule. Also from the review's notes: D1/D5 add the Health records check (they live outside the container),
    and `compare_stores.py` now compares the preferences plist key by key (a launch changed no key in the
    rehearsals; a flipped consent fails, exit 1; a missing plist fails, exit 1).
+
+## Codex review 01b — response (round 2)
+
+Review: [codex-review-01b.md](../codex-review-01b.md) — 1–4 and 6 resolved, 5 partly; two new findings.
+
+- **R2.1 P1 — `--export` passes a lost edit.** Accepted; the response to finding 5 overclaimed. Added the value
+  check Codex suggested second: `scripts/container-tools/simulator_export.sh` restores a capture into the disposable
+  Simulator **WT-Backup-01** (refuses any simulator not named `WT-Backup*`) and runs the new
+  `WorkoutTrackerUITests/BackupExportUITests` (skipped unless the runner has `WT_BACKUP_EXPORT=1`) so the app
+  exports it; `compare_exports.py` compares that export with the phone's value by value (`exportedAt` ignored,
+  timestamps as instants, `appVersion`/`schemaVersion` must match). Gate S now requires it.
+  `verify_container.py`'s description now says `--export` checks IDs and counts only. **Codex's exact case
+  reproduced** on copies of the rehearsal capture: set Z_PK 32 checkpointed with a stale 27 reps, the correct 20
+  committed only to the WAL (4,152 bytes) while the connection stayed open; captures copied with the full WAL and
+  with the WAL cut to its 32-byte header. Results (scratchpad `…/rehearsal/wal-case/`):
+
+  | Capture | `--export` (IDs, counts) | round trip + `compare_exports.py` |
+  |---|---|---|
+  | clean rehearsal capture | exit 0 | exit 0, equal |
+  | full WAL | exit 0 | exit 0, equal (the app reads the WAL on restore) |
+  | WAL cut off | **exit 0** (the blind spot) | **exit 1**: `workouts[F6A7AB07…].entries[12CDF0DA…].sets[CE7203A7…].reps` phone 20, round trip 27 |
+
+  Every round trip: `simulator_export.sh` exit 0, the card "24 workouts · 343 sets". The guard refused
+  WT-Floodlight (exit 2). Without the variable the test reports "skipped" (`xcodebuild` exit 0), which the script
+  treats as a failure. `build-for-testing` exit 0.
+- **R2.2 P2 — phase A captured a running app.** A now reads launch and inspect → the user closes the app → a
+  successful process query → capture → compare; D5 says the same; DEVELOPMENT states that every raw capture after a
+  launch follows this rule and that a failed process query proves nothing (also in Gate S step 2).
 
 ## Acceptance
 

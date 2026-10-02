@@ -198,7 +198,14 @@ only on temporary copies: opening a store in place can checkpoint its WAL and ch
 - `verify_container.py <dir> --out r.json` — SHA-256 manifest, `integrity_check` for every database, store counts
   (workouts, unfinished, sets, templates, every entity table); exit 1 on any failure. `--expect <earlier report>`
   requires the **restore set** to match byte for byte. `--export <export.json>` requires every workout and set ID
-  of a JSON export taken just before the capture to be in the captured store, with equal counts.
+  of a JSON export taken just before the capture to be in the captured store, with equal counts (IDs and counts
+  only; no values).
+- `simulator_export.sh <capture> <out.json> <sim> <derived-data>` — restores a capture into a disposable
+  Simulator named `WT-Backup*` (it refuses any other) from a `build-for-testing` with the real bundle ID, and runs
+  `BackupExportUITests` (skipped unless `WT_BACKUP_EXPORT=1`) so the app exports it as JSON.
+  `compare_exports.py <phone export> <round-trip export>` then requires the two exports to be equal (every value;
+  `exportedAt` ignored, timestamps compared as instants, `appVersion`/`schemaVersion` must match). This is the
+  check that a capture holds the history the phone showed.
 - `compare_stores.py <old dir> <new dir>` — every entity table row by row by `Z_PK` (`Z_OPT` ignored, `Z_ENT` by
   entity name, persistent-history `A*` tables skipped) and the preferences plist key by key; exit 1 if an old row
   is missing or changed, a table or column vanished, or a preference was removed or changed. Added rows, columns
@@ -208,8 +215,10 @@ only on temporary copies: opening a store in place can checkpoint its WAL and ch
 
 **What integrity and comparison cannot prove.** A raw copy taken while the app writes can miss committed
 transactions (an incomplete WAL): the capture still passes integrity, counts, `--expect` and a later
-`compare_stores.py` against itself (Codex review 01 reproduced this). Hence the stable-copy rule below and the
-`--export` cross-check, which catches missing workouts or sets.
+`compare_stores.py` against itself, and even `--export` when the lost transaction was an edit (Codex reviews 01
+and 01b reproduced both). Hence the stable-copy rule below and the round trip (`simulator_export.sh` +
+`compare_exports.py`), which caught exactly that case in the 2026-10-02 rehearsal (a set's reps 20 on the phone
+export, 27 in a capture with its WAL cut off) while the same capture passed every other check.
 
 **Restore set** — the user's data and settings: `Library/Application Support/` (the store and its `-wal`/`-shm`),
 `Library/Preferences/<bundle-id>.plist` (`@AppStorage`: consents, appearance, last export, flags) and
@@ -218,9 +227,11 @@ altogether: Keychain items (the OpenAI key; team-scoped), Health permissions (gr
 app saved to Health (they stay in Health; check them by eye before and after).
 
 **Stable backup (Gate S).** No workout in progress; a JSON export (Settings → Export → JSON, share sheet closed:
-the file stays in `tmp/Exports/` and is captured); the app swiped away and absent from `devicectl device info
-processes`; two captures; capture 2 passes `--expect` capture 1's report; capture 1 passes `--export`. The app
-stays closed until the step the backup protects is done.
+the file stays in `tmp/Exports/` and is captured); the app swiped away and absent from a **successful**
+`devicectl device info processes` query (a failed query proves nothing); two captures; capture 2 passes `--expect`
+capture 1's report; capture 1 passes `--export`; the round trip of capture 1 passes `compare_exports.py` against
+the phone's export. The app stays closed until the step the backup protects is done. **Every raw capture after a
+launch follows the same rule:** close the app, confirm it is gone with a successful process query, then copy.
 
 **Restore into a new install** (a team change: iOS refuses to upgrade across application identifiers, so the old
 app must be deleted). Rehearsed on the Simulator 2026-10-02 with a copy of the 09-29 backup — a direct restore and
