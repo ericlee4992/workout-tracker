@@ -1,7 +1,8 @@
 # 02 — Onboarding walkthrough
 
 Type: task
-Status: in progress — UI-first prototype (three directions) for the user's choice; started 2026-10-02
+Status: in progress — **scope revised 2026-10-02**: welcome page + guided tour on sample data (spec Q8b); the
+walkthrough prototype below is superseded except its page 1
 Blocked by: — (listed after 01 for order only: it needs no server and no paid team; started while 01 waits on
 Apple's enrollment, the user's go-ahead 2026-10-02)
 Implementer: Claude (the user asked Claude to start it, 2026-10-02); Reviewer: Codex, in a visible Orca terminal.
@@ -119,3 +120,9 @@ DEVELOPMENT targeted scope: the new tests, the Settings UI tests, a launch-path 
 store; captures. No full suite.
 
 ## Comments
+
+**2026-10-02, the user, on seeing the A/B/C prototype:** "is it possible to do a tutorial something like that
+actually takes user click thru the app, so that user can see where to actually find features and know what they
+do?" Then chose: **tour on sample data** (over point-only on the real app, and learn-by-doing) and **one welcome page,
+then the tour** (over tour only, and intro pages + tour). Recorded as spec Q8b and in D60. Next: the isolation design
+(every effect outside the store), then a UI-first prototype of the tour's look on the existing sample world.

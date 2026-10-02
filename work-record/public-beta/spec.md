@@ -45,6 +45,7 @@ work for them. 03–07 each touch the server, so they run one at a time on short
 | 11 | Name | **Stacked**, App Store subtitle **"Every machine. Every gym."** (30-character limit); tagline **"Know your numbers. Every machine. Every gym."** (description, promotional text, onboarding). Changeable until the App Store submission |
 | 12 | Ticket order | As in the table above |
 | 13 | Enrollment | **Paid but still pending** at 2026-10-02 (Apple can take up to 48 h). Xcode on the Mac shows only the free team `X68M8SR6NA` |
+| 8b | Onboarding, revised 2026-10-02 after seeing the walkthrough prototype (A/B/C) | **One welcome page, then a guided tour of the real app** ("a tutorial that actually takes the user click through the app, so they can see where to find features and know what they do"): coach marks over the real screens, step by step across the tabs, **on temporary sample data** — the tester's own store and system state are never touched; skippable; replayable from Settings. Replaces Q8's swiped walkthrough |
 | 14 | Build on the developer's phone after ticket 01 | **TestFlight** (what testers get). Before a risky update, briefly install a development build from the Mac to take a full container backup; in-app Export for routine backups |
 
 ## Product contract
@@ -142,7 +143,17 @@ unless the user buys a domain) is a build setting in the app, not hard-coded in 
 
 ### Onboarding
 
-A first-launch walkthrough of four or five pages in the Floodlight look: (1) **Stacked — Know your numbers.
+**Revised 2026-10-02 (Q8b): one welcome page, then a guided tour on sample data.** The welcome page is the
+prototype's page 1 (Stacked, the tagline; later the sign-in buttons) with **Show me around** and **Skip**. The tour
+dims the real app except one highlighted control at a time, with a one-line caption and Next / Skip, switching tabs
+and opening screens itself, about 7–8 steps (gym picker, Start Lifting, a set row in a live workout, templates and Ask
+AI, a gym and Scan Machine, History and records, Exercises, Settings). It runs the real screens against a temporary
+in-memory sample store; nothing it shows or does reaches the tester's store, Health, the Lock Screen, notifications or
+settings, and the app returns to the tester's own data when it ends. Shown automatically once on a phone with no
+workouts; Settings → Show Tour replays it. Details and the isolation design: ticket 02. The text below (the original
+swiped walkthrough) is superseded.
+
+*Superseded:* A first-launch walkthrough of four or five pages in the Floodlight look: (1) **Stacked — Know your numbers.
 Every machine. Every gym.**; (2) logging a set in a live workout; (3) gyms and machines — each machine
 remembered, Scan Machine; (4) history and records; (5) AI and the account, ending with Sign in with Apple /
 Google / Not now once ticket 03/04 exist (until then "Get started"). Skip on every page. Shown automatically
