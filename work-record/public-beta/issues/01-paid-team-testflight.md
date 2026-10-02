@@ -45,9 +45,10 @@ Two gates protect the data. **Neither is waived because the enrollment or the ex
 (Codex review 01). Commands and scripts: DEVELOPMENT → *Container backup and restore*.
 
 **Gate S — stable verified backup** (`~/WorkoutTracker-Backups/<date>-<purpose>/`, mode 0700):
-1. No workout in progress (the user finishes or discards it). The user exports JSON (Settings → Export → JSON)
-   and closes the share sheet; the file stays in the app's `tmp/Exports/` and is captured with the container.
-   Note the counts on the Export card ("N workouts · M sets").
+1. No workout in progress (the user finishes or discards it). The user exports JSON (Settings → Export → JSON) and
+   **sends it to the Mac** (AirDrop, or Save to Files): the app deletes its copy when the Export screen closes
+   (`ExportView.swift:95`, `.onDisappear(perform: dropFile)`), so it is never in a capture (found 2026-10-02, phase
+   A). Note the counts on the Export card ("N workouts · M sets").
 2. The user swipes the app away; a **successful** `devicectl device info processes` query shows no app process
    (a failed query proves nothing; the widget extension may run: it has no App Group and cannot open the store). **The app stays closed until the gated step is
    done; if it is opened, Gate S starts again.**
@@ -186,6 +187,33 @@ Branch `ericlee4992/beta-01-paid-team` from `main` `bab270b`. Derived data and l
   and the paid team ID; the repository is public).
 - The simulator (renamed **WT-Backup-01** in round 2; the round trip's disposable Simulator) holds copies of the
   user's 09-29 data: **erase it (`xcrun simctl erase`) when the review is clear and after every later use**.
+
+### Phase A — 2026-10-02 ~02:40–03:50 EDT (Claude, with the user at the phone)
+
+Phone `00008130-001E10C01E62001C` available (paired), unlocked since boot; installed app 0.1.0 (1) = `522c157`'s code
+(its app code is identical to `main`'s; only the name, team setting and compliance key differ). Backup folder
+`~/WorkoutTracker-Backups/2026-10-02-phase-a/` (0700; JSON reports 0600).
+
+- **Gate S — passed.** Export card: **25 workouts · 355 sets**. First process query: query exit 0 but the app
+  **was running** → the user swiped it away → query exit 0, only the widget extension. Captures 1–2 taken (exit 0
+  each), but the app's export was not in `tmp/` (it is deleted when the Export screen closes) → **procedure
+  corrected** (send the export to the Mac); those captures moved to `superseded/`. The user AirDropped a new export
+  (`workout-tracker-2026-10-02-0342.json`) and closed the app; one process query **failed** (CoreDevice 4000,
+  connection) and was not counted; the retry succeeded with no app process. Fresh captures 1–2 (exit 0):
+  27 files, 25,393,815 bytes, integrity `ok` ×3, **25 workouts / 0 unfinished / 355 sets / 2 templates**;
+  `--export` exit 0 (0 missing workouts or sets, counts equal); capture 2 `--expect` capture 1 exit 0 (4 files
+  identical). Superseded vs fresh capture: `compare_stores.py` exit 0 (sharing changed no row or preference).
+  **Round trip** on WT-Backup-01: `simulator_export.sh` exit 0, card "25 workouts · 355 sets";
+  `compare_exports.py` **exit 0, equal**. Simulator erased afterwards (exit 0).
+- **Gate P — passed.** Directory form to `tmp/gateP/Library/Application Support`, file form to
+  `tmp/gateP/Library/Preferences/probe.plist`, `copy from --source tmp/gateP` — all exit 0; `compare_trees.py` exit 0
+  (3 files, none missing, extra or different). Working forms recorded in DEVELOPMENT. The probe stays in the app's
+  `tmp/` (iOS clears it).
+- **Renewal — blocked: Xcode has no account.** Old profiles copied to `old-profiles/`, moved aside; the clean
+  `-allowProvisioningUpdates` build failed (exit 65: "No Accounts: Add a new account in Accounts settings", no
+  profiles for app or widget). Profiles moved back; `cmp` identical to the copies; expiry still 2026-10-06 08:45 UTC.
+  Nothing was installed. **Waiting on the user to sign in to Xcode.** The app must stay closed until the
+  renewed build is installed and compared against this Gate S.
 
 ## Codex review 01 — response (round 1)
 

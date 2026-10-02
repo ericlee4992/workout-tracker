@@ -226,8 +226,9 @@ export, 27 in a capture with its WAL cut off) while the same capture passed ever
 altogether: Keychain items (the OpenAI key; team-scoped), Health permissions (granted again) and the workouts the
 app saved to Health (they stay in Health; check them by eye before and after).
 
-**Stable backup (Gate S).** No workout in progress; a JSON export (Settings → Export → JSON, share sheet closed:
-the file stays in `tmp/Exports/` and is captured); the app swiped away and absent from a **successful**
+**Stable backup (Gate S).** No workout in progress; a JSON export (Settings → Export → JSON) **sent to the Mac**
+by AirDrop or Files — the app deletes its own copy when the Export screen closes (`ExportView.swift:95`), so it is
+never inside a capture; the app swiped away and absent from a **successful**
 `devicectl device info processes` query (a failed query proves nothing); two captures; capture 2 passes `--expect`
 capture 1's report; capture 1 passes `--export`; the round trip of capture 1 passes `compare_exports.py` against
 the phone's export. The app stays closed until the step the backup protects is done. **Every raw capture after a
@@ -249,9 +250,11 @@ xcrun devicectl device copy to --device <id> --domain-type appDataContainer \
   --domain-identifier com.ericlee4992.workouttracker --source "<backup>/app-container/Library/Application Support" \
   --destination "Library/Application Support"   # likewise the Preferences plist and Documents
 ```
-These `--source`/`--destination` forms are **unconfirmed until Gate P** (ticket 01) records the working forms:
-round-trip a probe tree (a file and a nested directory with a space in its name) through the installed app's
-`tmp/` and require `compare_trees.py` exit 0. On the Simulator the same steps use `xcrun simctl get_app_container
+**Confirmed on the phone 2026-10-02 (Gate P, iOS 27.0, Xcode 27.0):** all three forms above work as written —
+`copy from --source /` returns the whole container; `copy to` with a directory source places its *contents* at
+`--destination` (no extra nesting); a file source lands at the exact destination path. Probe (a file, a nested
+directory, a plist under `Application Support`/`Preferences` mirrors) round-tripped through `tmp/gateP/`;
+`compare_trees.py` exit 0. Re-run Gate P after an Xcode or iOS major update. On the Simulator the same steps use `xcrun simctl get_app_container
 <sim> <bundle-id> data` and `cp -Rp`.
 
 **TestFlight and App Store builds cannot be copied from** (no `get-task-allow`); in-app JSON Export is the routine
