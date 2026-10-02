@@ -184,6 +184,16 @@ user's empty store (dark, light, dark AccessibilityL; captures), Skip remembered
 workouts, the tour blocks the Settings gear and the History tab and a tap on the highlight advances it, Settings →
 Show Tour runs on the sample (Iron Temple) and returns to the user's store. Captures: [captures/02/](../captures/02/).
 
+**Adjacent regression run (2026-10-02, WT-Onboarding, load 6.8 → 4.5):** scope per DEVELOPMENT (new feature at the
+app root + every screen touched): `WorkoutTrackerTests` (whole target) **930/930**; UI `FloodlightWorkoutTabUITests`
+10/10, `FloodlightSettingsUITests` 10/10, `FloodlightGymsUITests` 12/12, `FloodlightExercisesUITests` 10/10,
+`ExportUITests` 1/1, `CoreLoopUITests` 8/9, `FloodlightHistoryUITests` 6/8 (exit 65). The three failures, rerun alone
+on this branch: `CoreLoopUITests.testModelPickerFiltersAndSearchesDownToOneModel` (:274, "Picking a model should supply
+a default label") failed again; `FloodlightHistoryUITests.testCaptureHistoryLightDefault` (:100, "a multi-day series
+draws") failed again; `…DarkDefault` passed. **On `main` `68e2a99` (a temporary detached checkout, same simulator):
+all three fail at the same lines** (3/3). Not caused by ticket 02; recorded for a separate follow-up (the History
+chart passed on 2026-09-29, so likely date-dependent; the model picker is the flake STATE already lists).
+
 ## Acceptance (revised for Q8b)
 
 - [x] Captures of the welcome page and every tour step, Default and AccessibilityL, light and dark, under
@@ -192,7 +202,9 @@ Show Tour runs on the sample (Iron Temple) and returns to the user's store. Capt
       workouts never shows it; Settings → Show Tour always starts the tour (except during a workout, with a reason).
 - [x] The tour runs on an in-memory sample world, blocks every other tap, never opens a workout, the camera, AI,
       Export, a sheet or Settings, and returns to the user's own store (unit + UI tests).
-- [ ] Adjacent suites green (running); Codex review clear.
+- [x] Adjacent suites: unit **930/930**; UI 57/60 — the 3 failures are **pre-existing** (they fail identically on `main`
+      `68e2a99` without ticket 02; see below).
+- [ ] Codex review clear.
 
 ## Verification scope
 
