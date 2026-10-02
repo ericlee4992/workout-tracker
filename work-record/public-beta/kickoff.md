@@ -1,5 +1,10 @@
 # Public beta — kickoff (2026-10-01)
 
+**Planned 2026-10-01/02:** the questions below were answered one at a time with the user; the answers, the
+contract and the final ticket order are in [spec.md](spec.md), the decision is D60, the tickets are
+[issues/01…09](issues/). The ticket order below was revised there (Google sign-in, profile and the App Store got
+their own tickets).
+
 The starting brief for the public-beta effort. The first session turns it into `spec.md`, a DECISIONS entry and
 numbered tickets under `issues/`; this file stays as the record of what the user asked and decided at the start.
 
