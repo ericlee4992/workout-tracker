@@ -67,6 +67,7 @@ struct GymsView: View {
                             path.append(gym.id)
                         }
                         .accessibilityIdentifier("gymRow.\(gym.name)")
+                        .tourAnchor("tour.gymsList", when: gym.id == order.first)
                         .transition(reduceMotion ? .opacity : .scale(scale: 0.94).combined(with: .opacity))
                     }
                     MakeRow(title: "Add Gym…") { showingAddGym = true }

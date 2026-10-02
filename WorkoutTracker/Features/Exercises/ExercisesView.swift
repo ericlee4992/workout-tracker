@@ -142,6 +142,8 @@ struct ExercisesView: View {
                                 LookList(separatorInset: 14) {
                                     ForEach(section.items.compactMap { byID[$0.id] }) { exercise in
                                         row(exercise, stat: stats[exercise.id], unit: unit)
+                                            .tourAnchor("tour.exercisesList",
+                                                        when: exercise.id == sections.first?.items.first?.id)
                                     }
                                 }
                             }

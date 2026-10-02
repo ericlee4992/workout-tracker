@@ -24,6 +24,8 @@ struct RootView: View {
     @State private var historyTarget: Workout?
     /// History's empty screen asked for Start Lifting (ticket 05).
     @State private var startLiftingFromHistory = false
+    /// Public beta ticket 02: the guided tour, when one runs; it selects each step's tab.
+    @Environment(TourController.self) private var tour: TourController?
 
     enum Tab: Hashable {
         case workout, history, gyms, exercises
@@ -64,6 +66,16 @@ struct RootView: View {
         // must bank the active workout's summary before "Finish it and start
         // new" auto-finishes that workout (codex-review 05).
         .tint(Color.accentColor)
+        .overlay { TourOverlay() }
+        .onChange(of: tour?.current?.tab) { _, tab in
+            guard let tab else { return }
+            switch tab {
+            case .workout: selection = .workout
+            case .history: selection = .history
+            case .gyms: selection = .gyms
+            case .exercises: selection = .exercises
+            }
+        }
         .environment(heartRateCoordinator)
         .fullScreenCover(item: $activeWorkout) { workout in
             ActiveWorkoutView(

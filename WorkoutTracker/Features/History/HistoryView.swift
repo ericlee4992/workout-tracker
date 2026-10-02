@@ -165,6 +165,8 @@ struct HistoryView: View {
                         let sameDay = rowIndex > 0
                             && Calendar.current.isDate(rows[rowIndex - 1].startedAt, inSameDayAs: workout.startedAt)
                         row(workout, dateStyle: sameDay ? .continued : .shown)
+                            .tourAnchor("tour.historyList",
+                                        when: workout.id == sections.first?.weeks.first?.workoutIDs.first)
                             .historyPanelRow(first: rowIndex == 0, last: rowIndex == rows.count - 1,
                                              separatorInset: dynamicTypeSize.isAccessibilitySize ? 16 : 70)
                     }

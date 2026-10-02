@@ -106,6 +106,43 @@ down) — removed; Skip's hit area was 35 × 20 pt — now ≥ 44 × 44 inside t
 solid blob — replaced by the app icon's dumbbell; A's pages left the lower third empty — centred in the viewport;
 B's first page repeated its headline — now one word, STACKED.
 
+### Guided tour prototype and the isolation finding — 2026-10-02 (Claude)
+
+`Features/Onboarding/Tour.swift`: `TourStep` (8 steps, proposed captions), `TourController` (@Observable),
+`.tourAnchor(_:)` / `.tourAnchor(_:when:)` (each control reports its **global** frame into the controller — preferences
+do not leave toolbar items or full-screen covers), `TourOverlay` (dims all but the highlighted control with a violet
+outline, a measured caption card above or below it with "n of 8", **Skip Tour** and **Next / Done**; swallows every
+other tap; VoiceOver focus moves to the caption; Reduce Motion drops the animation). `RootView` draws the overlay and
+selects each step's tab; `StartWorkoutView` scrolls the highlighted control into view. Anchors: gym picker, the Start
+pair, the first template tile, Ask AI, the Settings gear, the first gym card, the first History row, the first
+Exercises row. Prototype: DEBUG launch argument `-tourPrototype` on the throwaway UI-test store
+(`-uiTestReset -uiTestDesignSample -uiTestDesignHistory -uiTestDesignGyms -uiTestDesignExercises`).
+`FloodlightTourUITests` (dark, light, dark AccessibilityL; 8 steps each, then the tour ends): **3/3 passed**; sheets in
+[captures/02-tour-prototype/](../captures/02-tour-prototype/). First run highlighted whole lists on steps 5–7 and only
+the Templates header on step 3 — retargeted to first rows / the first tile.
+
+**Isolation finding (side-effect inventory, 2026-10-02).** Every system-side guard in the app is keyed to
+`-uiTestReset`, not to the store in use. A sample store in a normal launch would still drive the real HealthKit,
+ActivityKit, notifications, Watch link, audio, location, Keychain, UserDefaults and OpenAI. Worst paths if the tour
+opened a workout screen: `coordinator.monitor(for:)` ends a running real workout's heart-rate session and saves a
+partial HKWorkout (`WorkoutHeartRateCoordinator.swift:109-110`); stop/cancel saves an HKWorkout even for a cancelled
+sample (`HealthKitHeartRateProvider.swift:138-148`, `ActiveWorkoutView.swift:852`); a new Live Activity ends the real
+card (`WorkoutActivityController.swift:165-171`); the rest notification has one fixed identifier
+(`RestTimer.swift:32-67`); Export overwrites the real "last export" (`ExportView.swift:294-295`); Ask AI / Identify use
+the real key; an unfinished sample workout is auto-opened by `RootView.recoverActiveWorkout`.
+`DesignSampleFixture.seed(in:)` has no store guard (seeds any store without workouts).
+
+**Design that follows (proposed for implementation):** the tour **points and explains; it never performs**. The
+overlay blocks every tap except Next / Skip (a tap on the highlight advances; it is not passed to the control); the
+tour itself only selects tabs, scrolls, and (if added) pushes store-only pages; **no step opens a workout, the camera,
+AI, Export, a sheet or Settings**. The sample world: a fresh **in-memory** `ModelContainer`
+(`ModelConfiguration(isStoredInMemoryOnly: true)`), catalog reconciled, `DesignSampleFixture.seed(in:)` base only (no
+live, no settings seed), created when the tour starts and released when it ends; the real `RootView` is rebuilt on
+the user's own container afterwards. Defence in depth while a tour runs: `RootView.recoverActiveWorkout` is skipped;
+`DesignSampleFixture.seed` asserts an in-memory store; the tour does not start while a real workout is running
+(it offers "Finish your workout first"). Tests: a unit test that the sample container is in-memory and the real store
+is untouched after a tour; a UI test that every non-highlighted control is blocked.
+
 ## Acceptance
 
 - [ ] User-approved captures recorded under `../captures/02/`.

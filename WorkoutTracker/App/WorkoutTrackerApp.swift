@@ -112,6 +112,19 @@ struct WorkoutTrackerApp: App {
         #endif
     }
 
+    /// Public beta ticket 02, UI first: the guided tour over the app, started at launch (DEBUG builds only;
+    /// pair with `-uiTestReset -uiTestDesignSample …` so it runs on the throwaway sample store).
+    private static let tourPrototype: TourController? = {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("-tourPrototype") else { return nil }
+        let tour = TourController()
+        tour.start()
+        return tour
+        #else
+        return nil
+        #endif
+    }()
+
     var body: some Scene {
         WindowGroup {
             Group {
@@ -121,6 +134,10 @@ struct WorkoutTrackerApp: App {
                 } else if Self.onboardingPrototype {
                     #if DEBUG
                     OnboardingPrototypeView()
+                    #endif
+                } else if let tour = Self.tourPrototype {
+                    #if DEBUG
+                    RootView().environment(tour)
                     #endif
                 } else {
                     RootView()

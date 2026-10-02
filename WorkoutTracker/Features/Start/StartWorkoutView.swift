@@ -6,6 +6,8 @@ struct StartWorkoutView: View {
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Public beta ticket 02: the guided tour, when one runs (nil otherwise).
+    @Environment(TourController.self) private var tour: TourController?
     @Query(filter: #Predicate<Gym> { !$0.archived }, sort: \Gym.name)
     private var gyms: [Gym]
     @Query(sort: \WorkoutTemplate.name) private var templates: [WorkoutTemplate]
@@ -50,12 +52,15 @@ struct StartWorkoutView: View {
 
     var body: some View {
         NavigationStack {
+          ScrollViewReader { scroller in
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
                     LookNavTitle("Workout", subtitle: WorkoutDates.homeSubtitle(.now))
                     VStack(spacing: 14) {
                         gymPicker
+                            .tourAnchor("tour.gymPicker").id("tour.gymPicker")
                         startControl
+                            .tourAnchor("tour.start").id("tour.start")
                     }
                     weekCard
                     templatesSection
@@ -65,6 +70,11 @@ struct StartWorkoutView: View {
                 .padding(.bottom, 36)
             }
             .scrollIndicators(.hidden)
+            // Public beta ticket 02: the guided tour scrolls its highlighted control into view.
+            .onChange(of: tour?.current?.anchor) { _, anchor in
+                guard let anchor, anchor.hasPrefix("tour.") else { return }
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.3)) { scroller.scrollTo(anchor, anchor: .center) }
+            }
             .onScrollGeometryChange(for: Bool.self) { geo in
                 geo.contentOffset.y + geo.contentInsets.top > (dynamicTypeSize.isAccessibilitySize ? 70 : 46)
             } action: { _, past in
@@ -97,8 +107,10 @@ struct StartWorkoutView: View {
                     }
                     .accessibilityLabel("Settings")
                     .accessibilityIdentifier("openSettings")
+                    .tourAnchor("tour.settings")
                 }
             }
+          }
             .workoutStartFlow(request: $startRequest, gym: selectedGym, onWorkoutStarted: onWorkoutStarted)
             .navigationDestination(item: $viewingTemplate) { template in
                 // The detail runs the same flow with its own dialogs; a
@@ -275,6 +287,7 @@ struct StartWorkoutView: View {
         let items = WorkoutTemplateService.orderedItems(of: template)
         let names = items.compactMap { $0.exercise?.name } + template.plannedCardio.map { $0.activity.name }
         let running = activeWorkouts.first?.sourceTemplateID == template.id
+        let first = template.id == templates.first?.id
         return TemplateTile(name: template.name,
                             families: MuscleFamily.families(of: items.map { $0.exercise?.muscleGroup }),
                             exercises: names, lastDone: stats[template.id]?.lastRun, now: .now) {
@@ -294,6 +307,8 @@ struct StartWorkoutView: View {
         }
         .accessibilityValue(running ? "In progress" : "")
         .accessibilityIdentifier("templateTile.\(template.name)")
+        .tourAnchor("tour.templates", when: first)
+        .id(first ? "tour.templates" : "template.\(template.id)")
     }
 
     private var newTemplateTile: some View {
@@ -305,11 +320,13 @@ struct StartWorkoutView: View {
     private var askAITile: some View {
         MakeTile(title: "Ask AI for Templates", symbol: "sparkles") { showingAIRoutine = true }
             .accessibilityIdentifier("askAIRoutine")
+            .tourAnchor("tour.askAI").id("tour.askAI")
     }
 
     private var askAIRow: some View {
         WorkoutMakeRow(title: "Ask AI for Templates", symbol: "sparkles") { showingAIRoutine = true }
             .accessibilityIdentifier("askAIRoutine")
+            .tourAnchor("tour.askAI").id("tour.askAI")
     }
 
     private func newTemplate() {
