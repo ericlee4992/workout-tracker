@@ -79,36 +79,93 @@ final class FloodlightTourUITests: XCTestCase {
         XCTAssertFalse(app.buttons["welcomeTour"].exists)
     }
 
-    func testTheTourBlocksEveryOtherTap() {
-        launch(freshWelcome)
-        let tour = app.buttons["welcomeTour"]
-        XCTAssertTrue(tour.waitForExistence(timeout: 15))
-        tour.tap()
-        XCTAssertTrue(app.staticTexts["1 of 8"].waitForExistence(timeout: 15))
-        // Step 1 highlights the gym picker; the Settings gear and the History tab are under the dimming.
-        app.buttons["openSettings"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        app.tabBars.buttons["History"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        Thread.sleep(forTimeInterval: 1.0)
-        XCTAssertTrue(app.staticTexts["1 of 8"].exists, "still on step 1")
-        XCTAssertFalse(app.descendants(matching: .any)["appUnitPreference"].exists, "Settings did not open")
-        // Tapping the highlighted control advances the tour; it does not open the gym menu.
-        app.buttons["gymPicker"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-        XCTAssertTrue(app.staticTexts["2 of 8"].waitForExistence(timeout: 5))
-        app.buttons["tourSkip"].tap()
-        assertBackOnTheUsersEmptyStore()
+    /// Where the real app's controls are, read before a tour hides them (the tour's sample app lays out the same).
+    private struct Spots { let start: CGRect; let settings: CGRect; let historyTab: CGRect; let gymPicker: CGRect }
+
+    private func tap(_ rect: CGRect) {
+        app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: rect.midX, dy: rect.midY)).tap()
     }
 
-    func testShowTourFromSettings() {
-        launch([])  // no welcome under -uiTestReset without -uiTestOnboarding
+    /// Launches on the user's empty store, records the spots, and starts the tour from Settings → Show Tour.
+    private func startTourFromSettings(_ extra: [String] = [], tapStartImmediately: Bool = false) -> Spots {
+        launch(extra)
         let gear = app.buttons["openSettings"]
         XCTAssertTrue(gear.waitForExistence(timeout: 15))
+        let spots = Spots(start: app.buttons["startEmptyWorkout"].frame, settings: gear.frame,
+                          historyTab: app.tabBars.buttons["History"].frame, gymPicker: app.buttons["gymPicker"].frame)
         gear.tap()
         let row = app.buttons["showTour"]
         for _ in 0..<8 where !row.isHittable { app.swipeUp() }
         XCTAssertTrue(row.isHittable)
         row.tap()
+        if tapStartImmediately { for _ in 0..<3 { tap(spots.start) } }
         XCTAssertTrue(app.staticTexts["1 of 8"].waitForExistence(timeout: 15))
-        XCTAssertTrue(app.buttons["gymPicker"].label.contains("Iron Temple"), "the tour runs on the sample world")
+        return spots
+    }
+
+    private func assertNothingEscaped() {
+        XCTAssertFalse(app.buttons["minimizeWorkout"].exists, "no workout opened")
+        XCTAssertFalse(app.descendants(matching: .any)["appUnitPreference"].exists, "Settings did not open")
+    }
+
+    func testTheAppUnderTheTourIsInert() {
+        let spots = startTourFromSettings()
+        // Disabled: VoiceOver and Full Keyboard Access can focus these but not activate them.
+        for id in ["startEmptyWorkout", "startCardio", "openSettings", "gymPicker"] {
+            let control = app.buttons[id]
+            XCTAssertTrue(control.exists && !control.isEnabled, "\(id) is disabled during the tour")
+        }
+        // Touch: Start, the gear and the History tab are under the barrier.
+        tap(spots.start); tap(spots.settings); tap(spots.historyTab)
+        Thread.sleep(forTimeInterval: 1.0)
+        XCTAssertTrue(app.staticTexts["1 of 8"].exists, "still on step 1")
+        assertNothingEscaped()
+        // A tap on the highlighted control (the gym picker) advances the tour; it does not open the gym menu.
+        tap(spots.gymPicker)
+        XCTAssertTrue(app.staticTexts["2 of 8"].waitForExistence(timeout: 5))
+        app.buttons["tourSkip"].tap()
+        assertBackOnTheUsersEmptyStore()
+    }
+
+    func testTapsAtTheVeryStartCannotEscape() {
+        _ = startTourFromSettings(tapStartImmediately: true)
+        Thread.sleep(forTimeInterval: 1.0)
+        assertNothingEscaped()
+        app.buttons["tourSkip"].tap()
+        assertBackOnTheUsersEmptyStore()
+    }
+
+    func testTourButtonsTakeTapsAtTheirEdges() {
+        _ = startTourFromSettings()
+        let next = app.buttons["tourNext"]
+        next.coordinate(withNormalizedOffset: CGVector(dx: 0.06, dy: 0.12)).tap()
+        XCTAssertTrue(app.staticTexts["2 of 8"].waitForExistence(timeout: 5), "Next near its top-left edge")
+        next.coordinate(withNormalizedOffset: CGVector(dx: 0.94, dy: 0.88)).tap()
+        XCTAssertTrue(app.staticTexts["3 of 8"].waitForExistence(timeout: 5), "Next near its bottom-right edge")
+        app.buttons["tourSkip"].coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()
+        assertBackOnTheUsersEmptyStore()
+    }
+
+    func testShowTourRefusesDuringAWorkout() {
+        launch(["-uiTestDesignSample", "-uiTestDesignLiveEmpty"])
+        let minimize = app.buttons["minimizeWorkout"]
+        XCTAssertTrue(minimize.waitForExistence(timeout: 15), "the running workout reopens")
+        minimize.tap()
+        let gear = app.buttons["openSettings"]
+        XCTAssertTrue(gear.waitForExistence(timeout: 10))
+        gear.tap()
+        let row = app.buttons["showTour"]
+        for _ in 0..<8 where !row.isHittable { app.swipeUp() }
+        row.tap()
+        XCTAssertTrue(app.alerts["Finish your workout first."].waitForExistence(timeout: 5))
+        app.alerts.buttons["OK"].tap()
+        XCTAssertFalse(app.staticTexts["1 of 8"].exists, "no tour while a workout runs")
+    }
+
+    func testShowTourFromSettings() {
+        _ = startTourFromSettings()
+        let picker = app.buttons["gymPicker"]
+        XCTAssertTrue(picker.label.contains("Iron Temple") && !picker.isEnabled, "the tour runs on the sample, inert")
         app.buttons["tourSkip"].tap()
         assertBackOnTheUsersEmptyStore()
     }

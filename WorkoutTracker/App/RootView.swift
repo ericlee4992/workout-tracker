@@ -31,6 +31,15 @@ struct RootView: View {
         case workout, history, gyms, exercises
     }
 
+    private static func tab(for step: TourStep.Tab) -> Tab {
+        switch step {
+        case .workout: .workout
+        case .history: .history
+        case .gyms: .gyms
+        case .exercises: .exercises
+        }
+    }
+
     /// The subject of the post-finish sheet. `workout` is nil when the
     /// workout was empty and got discarded (A2) — the sheet still shows, it
     /// just reports a different outcome. Identity is per-finish rather than
@@ -66,15 +75,14 @@ struct RootView: View {
         // must bank the active workout's summary before "Finish it and start
         // new" auto-finishes that workout (codex-review 05).
         .tint(Color.accentColor)
-        .overlay { TourOverlay() }
         .onChange(of: tour?.current?.tab) { _, tab in
-            guard let tab else { return }
-            switch tab {
-            case .workout: selection = .workout
-            case .history: selection = .history
-            case .gyms: selection = .gyms
-            case .exercises: selection = .exercises
-            }
+            if let tab { selection = Self.tab(for: tab) }
+        }
+        // The tab bar is UIKit and ignores `.disabled`: VoiceOver or a keyboard can still switch tabs under the tour
+        // (codex-review-02 #1). Harmless on the sample world, but the tour owns the tab: any other change snaps back.
+        .onChange(of: selection) { _, new in
+            guard let tab = tour?.current?.tab, new != Self.tab(for: tab) else { return }
+            selection = Self.tab(for: tab)
         }
         .environment(heartRateCoordinator)
         .fullScreenCover(item: $activeWorkout) { workout in

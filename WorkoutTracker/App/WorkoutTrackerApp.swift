@@ -120,10 +120,21 @@ struct WorkoutTrackerApp: App {
                 } else if let tour = onboarding.tour, let sample = onboarding.sampleContainer {
                     // The guided tour (ticket 02): the real screens on the in-memory sample world. A new identity,
                     // so the user's own RootView state is rebuilt on their store when the tour ends.
-                    RootView()
-                        .modelContainer(sample)
-                        .environment(tour)
-                        .id(ObjectIdentifier(sample))
+                    // The app underneath is inert for the whole tour, whether or not the current highlight has
+                    // reported its position (codex-review-02 #1, #4): any activation could open a workout and reach
+                    // HealthKit, the Live Activity or notifications. No touch reaches it, and every SwiftUI control in
+                    // it is disabled, so VoiceOver and a keyboard can focus but not activate them (verified in the
+                    // accessibility tree; `.accessibilityHidden` does not reach the UIKit-backed tab view, so it is
+                    // not relied on). The tab bar ignores `.disabled`; RootView snaps any tab change back.
+                    ZStack {
+                        RootView()
+                            .modelContainer(sample)
+                            .disabled(true)
+                            .allowsHitTesting(false)
+                        TourOverlay()
+                    }
+                    .environment(tour)
+                    .id(ObjectIdentifier(sample))
                 } else {
                     RootView()
                         .onAppear { onboarding.evaluateFirstLaunch(in: modelContainer.mainContext) }

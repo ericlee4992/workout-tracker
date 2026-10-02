@@ -149,6 +149,9 @@ struct HistoryView: View {
                 summary: HistoryOverviewMath.monthSummary(allFacts, month: now),
                 days: HistoryOverviewMath.days(inMonthOf: now, facts: allFacts, now: now),
                 onOpenCalendar: { showCalendar = true })
+                // Public beta ticket 02: the tour's History step. The month card, not the first workout row: it is
+                // always clear of the tab bar (codex-review-02 #3; the list could not be scrolled under the tour).
+                .tourAnchor("tour.historyList")
                 .historyPageRow(top: 16, bottom: 8)
             ForEach(Array(sections.enumerated()), id: \.element.id) { index, month in
                 if index > 0 || month.month != thisMonth {
@@ -165,8 +168,6 @@ struct HistoryView: View {
                         let sameDay = rowIndex > 0
                             && Calendar.current.isDate(rows[rowIndex - 1].startedAt, inSameDayAs: workout.startedAt)
                         row(workout, dateStyle: sameDay ? .continued : .shown)
-                            .tourAnchor("tour.historyList",
-                                        when: workout.id == sections.first?.weeks.first?.workoutIDs.first)
                             .historyPanelRow(first: rowIndex == 0, last: rowIndex == rows.count - 1,
                                              separatorInset: dynamicTypeSize.isAccessibilitySize ? 16 : 70)
                     }

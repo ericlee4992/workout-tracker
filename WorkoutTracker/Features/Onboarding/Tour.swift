@@ -97,8 +97,9 @@ extension View {
 
 // MARK: Overlay
 
-/// Dims the screen except the current step's control and shows its caption with Next and Skip. Placed over a
-/// presentation root (the tab view; later the live workout's cover). Blocks every other touch while a step shows.
+/// The tour's layer, above an inert app: dims the screen except the current step's control and shows its caption
+/// with Next and Skip Tour. It is present for the whole tour — before an anchor has reported its frame it dims
+/// everything and still offers the caption and Skip — and it is the only accessible content (an accessibility modal).
 struct TourOverlay: View {
     @Environment(TourController.self) private var tour: TourController?
     @Environment(\.look) private var look
@@ -109,21 +110,26 @@ struct TourOverlay: View {
 
     var body: some View {
         GeometryReader { proxy in
-            if let tour, let step = tour.current, let global = tour.frames[step.anchor] {
+            if let tour, let step = tour.current {
                 let origin = proxy.frame(in: .global).origin
-                let target = global.offsetBy(dx: -origin.x, dy: -origin.y).insetBy(dx: -8, dy: -8)
+                let target = tour.frames[step.anchor]
+                    .map { $0.offsetBy(dx: -origin.x, dy: -origin.y).insetBy(dx: -8, dy: -8) }
                 ZStack(alignment: .topLeading) {
                     dimming(cutout: target, size: proxy.size)
-                        .onTapGesture { }  // swallows taps outside the highlight
-                    Color.clear
-                        .contentShape(RoundedRectangle(cornerRadius: 14))
-                        .frame(width: target.width, height: target.height)
-                        .offset(x: target.minX, y: target.minY)
-                        .onTapGesture { advance(tour) }
-                        .accessibilityHidden(true)
+                        .contentShape(Rectangle())
+                        .onTapGesture { }  // swallows every tap outside the highlight
+                    if let target {
+                        Color.clear
+                            .contentShape(RoundedRectangle(cornerRadius: 14))
+                            .frame(width: target.width, height: target.height)
+                            .offset(x: target.minX, y: target.minY)
+                            .onTapGesture { advance(tour) }
+                            .accessibilityHidden(true)
+                    }
                     caption(step, tour: tour, target: target, size: proxy.size)
                 }
-                .transition(.opacity)
+                .accessibilityElement(children: .contain)
+                .accessibilityAddTraits(.isModal)
                 .animation(reduceMotion ? nil : .easeInOut(duration: 0.25), value: step.id)
                 .onAppear { captionFocused = true }
                 .onChange(of: step.id) { captionFocused = true }
@@ -136,24 +142,27 @@ struct TourOverlay: View {
         if reduceMotion { tour.next() } else { withAnimation(.easeInOut(duration: 0.25)) { tour.next() } }
     }
 
-    private func dimming(cutout: CGRect, size: CGSize) -> some View {
+    /// With no frame yet (or ever), the whole screen is dimmed: the barrier never depends on geometry.
+    private func dimming(cutout: CGRect?, size: CGSize) -> some View {
         Path { path in
             path.addRect(CGRect(origin: .zero, size: size))
-            path.addRoundedRect(in: cutout, cornerSize: CGSize(width: 14, height: 14))
+            if let cutout { path.addRoundedRect(in: cutout, cornerSize: CGSize(width: 14, height: 14)) }
         }
         .fill(Color.black.opacity(0.62), style: FillStyle(eoFill: true))
         .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(look.action, lineWidth: 2)
-                .frame(width: cutout.width, height: cutout.height)
-                .position(x: cutout.midX, y: cutout.midY)
+            if let cutout {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(look.action, lineWidth: 2)
+                    .frame(width: cutout.width, height: cutout.height)
+                    .position(x: cutout.midX, y: cutout.midY)
+            }
         }
         .accessibilityHidden(true)
     }
 
-    private func caption(_ step: TourStep, tour: TourController, target: CGRect, size: CGSize) -> some View {
+    private func caption(_ step: TourStep, tour: TourController, target: CGRect?, size: CGSize) -> some View {
         let number = (tour.index ?? 0) + 1
-        let below = target.midY < size.height * 0.55
+        let below = (target?.midY ?? 0) < size.height * 0.55
         return VStack(alignment: .leading, spacing: 12) {
             Text("\(number) of \(tour.steps.count)")
                 .font(look.font.caption)
@@ -169,19 +178,27 @@ struct TourOverlay: View {
                     .allowsHitTesting(false)
             }
             HStack {
-                Button("Skip Tour") { tour.end() }
-                    .font(look.font.subhead.weight(.semibold))
-                    .foregroundStyle(look.textSecondary)
-                    .frame(minHeight: 44)
-                    .accessibilityIdentifier("tourSkip")
+                // Labels carry their own 44-pt frame and content shape: the whole drawn button is the hit region
+                // (codex-review-02 #2).
+                Button { tour.end() } label: {
+                    Text("Skip Tour")
+                        .font(look.font.subhead.weight(.semibold))
+                        .foregroundStyle(look.textSecondary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityIdentifier("tourSkip")
                 Spacer()
-                Button(number == tour.steps.count ? "Done" : "Next") { advance(tour) }
-                    .font(look.font.subhead.weight(.semibold))
-                    .padding(.horizontal, 20)
-                    .frame(minHeight: 44)
-                    .background(look.action, in: Capsule())
-                    .foregroundStyle(look.onAction)
-                    .accessibilityIdentifier("tourNext")
+                Button { advance(tour) } label: {
+                    Text(number == tour.steps.count ? "Done" : "Next")
+                        .font(look.font.subhead.weight(.semibold))
+                        .padding(.horizontal, 20)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .background(look.action, in: Capsule())
+                        .foregroundStyle(look.onAction)
+                        .contentShape(Capsule())
+                }
+                .accessibilityIdentifier("tourNext")
             }
         }
         .padding(16)
@@ -190,8 +207,8 @@ struct TourOverlay: View {
         .padding(.horizontal, look.space.margin)
         .frame(maxWidth: .infinity)
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { captionHeight = $0 }
-        .offset(y: below ? min(target.maxY + 14, size.height - captionHeight - 24)
-                         : max(target.minY - 14 - captionHeight, 60))
-        .accessibilityElement(children: .contain)
+        .offset(y: target.map { below ? min($0.maxY + 14, size.height - captionHeight - 24)
+                                      : max($0.minY - 14 - captionHeight, 60) }
+                   ?? (size.height - captionHeight) / 2)
     }
 }

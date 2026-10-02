@@ -49,7 +49,13 @@ final class OnboardingCoordinator {
     func startTour(realContext: ModelContext) {
         defaults.set(true, forKey: Self.welcomeSeenKey)
         showsWelcome = false
-        if (try? WorkoutSession(context: realContext).resumableWorkout()) != nil {
+        // Read-only and fail-closed (codex-review-02): an unknown answer refuses rather than starting.
+        let unfinished = try? realContext.fetchCount(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt == nil }))
+        guard let unfinished else {
+            tourFailure = "The tour could not start."
+            return
+        }
+        guard unfinished == 0 else {
             tourFailure = "Finish your workout first."
             return
         }

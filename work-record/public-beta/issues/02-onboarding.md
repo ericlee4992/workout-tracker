@@ -194,6 +194,40 @@ draws") failed again; `…DarkDefault` passed. **On `main` `68e2a99` (a temporar
 all three fail at the same lines** (3/3). Not caused by ticket 02; recorded for a separate follow-up (the History
 chart passed on 2026-09-29, so likely date-dependent; the model picker is the flake STATE already lists).
 
+## Codex review 02 — response (round 1)
+
+Review: [codex-review-02.md](../codex-review-02.md) — not clear (P1 ×2, P2, P3). All accepted.
+
+1. **P1 — the app under the tour stayed actionable through accessibility.** The tour now renders as a `ZStack` in
+   `WorkoutTrackerApp`: the sample `RootView` with `.disabled(true)` and `.allowsHitTesting(false)`, and `TourOverlay`
+   above it (no longer an overlay inside `RootView`). **Verified in the accessibility tree** (a throwaway diagnostic UI
+   test, deleted): every SwiftUI control under the tour is `Disabled` — VoiceOver and Full Keyboard Access can focus
+   but not activate Start Lifting, Start Cardio, Settings, the gym picker — but `.accessibilityHidden(true)` did **not**
+   hide them (the tab view is UIKit-backed), so it is not used or claimed. The UIKit **tab bar ignores `.disabled`**
+   (its History button stayed enabled): `RootView` now snaps any tab change during a tour back to the step's tab. The
+   overlay container carries `.isModal`. Remaining, stated honestly: VoiceOver can *read* the dimmed sample content
+   (no activation); a VoiceOver tab switch is reverted at once. Tests: `testTheAppUnderTheTourIsInert` (each control
+   `exists && !isEnabled`; taps on Start, the gear and the History tab change nothing; a tap on the highlight advances).
+2. **P2 — Next / Skip Tour hit regions.** Both labels now carry `minWidth/minHeight 44`, padding and `contentShape`
+   inside the `Button`. Test `testTourButtonsTakeTapsAtTheirEdges` (Next near its top-left and bottom-right edges,
+   Skip Tour near its top edge).
+3. **P3 — the History highlight under the tab bar at AccessibilityL.** A scroll hook (`ScrollViewReader` with
+   `onChange`, then `task(id:)` with a delay and an explicit row id) did not move the `List` under the tour in four
+   attempts, so it was removed; the History step now highlights the **month summary card** at the top of History,
+   clear of the tab bar at every size (caption unchanged). This changes what step 6 points at — reported to the user.
+4. **P1 — the barrier depended on geometry.** `TourOverlay` now draws the dimming and swallows taps for the whole
+   tour; with no frame for the current anchor it dims everything and centres the caption (with Skip Tour). Geometry
+   only places the highlight and caption. Test `testTapsAtTheVeryStartCannotEscape` taps Start Lifting's spot three
+   times immediately after Show Tour: no workout opens.
+- Also from the review's notes: the "workout running?" check is now **read-only and fail-closed**
+  (`fetchCount` of unfinished workouts; an error refuses with "The tour could not start."). Test
+  `testShowTourRefusesDuringAWorkout` (a running workout, minimised; Show Tour → "Finish your workout first.").
+
+**Round-1 fix evidence (final code):** `OnboardingTests` **6/6**; `FloodlightTourUITests` **10/10** (the 7 earlier, now
+`testTheAppUnderTheTourIsInert`, plus `testTapsAtTheVeryStartCannotEscape`, `testTourButtonsTakeTapsAtTheirEdges`,
+`testShowTourRefusesDuringAWorkout`); `FloodlightHistoryUITests` 7/8 — the one failure is the pre-existing chart check
+(:100) recorded above. Captures retaken in `captures/02/` (step 6 = the month card).
+
 ## Acceptance (revised for Q8b)
 
 - [x] Captures of the welcome page and every tour step, Default and AccessibilityL, light and dark, under
