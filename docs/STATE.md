@@ -35,8 +35,8 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
 ## ACTIVE: public beta ("Stacked") — planned 2026-10-01/02, nothing implemented
 
 Worktree `/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch `ericlee4992/public-beta` (from `main`
-`9da32a9`; docs only, pushed; **not merged to `main`** — ask the user before fast-forwarding `main` to it so the
-ticket branches start from the spec). The planning session with the user is done: **[spec](../work-record/public-beta/spec.md)**
+`9da32a9`; docs only). **`main` was fast-forwarded to the planning commit `fe4a97b` on 2026-10-02 at the user's
+request** (pushed), so each ticket branch starts from `main` with the spec. The planning session with the user is done: **[spec](../work-record/public-beta/spec.md)**
 (every answer, Q1–Q14, in its *User decisions* table), decision **D60** (reopens SPEC's no-backend/no-accounts line,
 D5, D41, D53, D56, D58; pointers added to those rows and to SPEC), tickets
 [`work-record/public-beta/issues/01…09`](../work-record/public-beta/issues/). In short: the app becomes **Stacked**
