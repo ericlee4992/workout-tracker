@@ -110,7 +110,15 @@ enum DesignSampleFixture {
     ]
 
     /// Idempotent: a store that already holds a workout is left alone.
-    static func seed(in context: ModelContext, now: Date = .now) throws {
+    /// `launchVariants: false` seeds the base sample only, whatever the launch arguments say — the guided tour's
+    /// in-memory world (public beta ticket 02) must never get the live workout (it would be auto-opened and drive
+    /// HealthKit, the Live Activity and notifications) or the Settings extras.
+    static func seed(in context: ModelContext, now: Date = .now, launchVariants: Bool = true) throws {
+        let gymsIsEnabled = launchVariants && Self.gymsIsEnabled
+        let exercisesIsEnabled = launchVariants && Self.exercisesIsEnabled
+        let historyIsEnabled = launchVariants && Self.historyIsEnabled
+        let liveIsEnabled = launchVariants && Self.liveIsEnabled
+        let isEnabled = launchVariants && Self.isEnabled
         guard try context.fetch(FetchDescriptor<Workout>()).isEmpty else { return }
         let exercises = try context.fetch(FetchDescriptor<Exercise>())
         func exercise(_ name: String) -> Exercise? { exercises.first { $0.name == name } }
@@ -191,7 +199,7 @@ enum DesignSampleFixture {
         }
         try context.save()
         try GymSelection.remember(gym, in: context)
-        let barBest = ProcessInfo.processInfo.arguments.contains(barBestArgument)
+        let barBest = launchVariants && ProcessInfo.processInfo.arguments.contains(barBestArgument)
             ? exercise("Bench Press") : nil
         if liveIsEnabled, let bench = barBest {
             try logBench(bench, perSide: "22.5", at: gym, on: now.addingTimeInterval(-5 * 86_400), in: context)

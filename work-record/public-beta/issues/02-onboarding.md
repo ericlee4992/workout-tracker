@@ -143,13 +143,56 @@ the user's own container afterwards. Defence in depth while a tour runs: `RootVi
 (it offers "Finish your workout first"). Tests: a unit test that the sample container is in-memory and the real store
 is untouched after a tour; a UI test that every non-highlighted control is blocked.
 
-## Acceptance
+### Implementation — 2026-10-02 (Claude)
 
-- [ ] User-approved captures recorded under `../captures/02/`.
-- [ ] First launch on an empty store shows the walkthrough once; relaunch does not; a store with workouts never
-      shows it automatically; Settings → Show tutorial always does.
-- [ ] Skip and finishing both set the flag; nothing else changes.
-- [ ] Targeted UI tests for the gate and replay; unit test for the gate's predicate.
+The user's choices (2026-10-02): the tour on sample data; one welcome page, then the tour; keep the 8 steps with a
+non-interactive **picture of logging** on step 2; the captions as proposed.
+
+- **Removed** the A/B/C walkthrough prototype (`OnboardingView`, `OnboardingPages`, `OnboardingPrototype`, its UI
+  test) and the `-tourPrototype` flag. `OnboardingIllustration` keeps only `.welcome` and `.logging`.
+- **`WelcomeView`**: the dumbbell and the five families, **Stacked**, the tagline, **Show Me Around** (primary) and
+  **Skip**; a full-screen cover over the real app.
+- **`OnboardingCoordinator`** (app level, `@Observable`): `shouldShowWelcome` — not answered (`onboarding.welcomeSeen.v1`),
+  no workouts, and under `-uiTestReset` only with `-uiTestOnboarding` (so the ~230 existing UI tests never see it;
+  `-uiTestOnboardingFresh` clears the flag for a test); `startTour(realContext:)` refuses while a real workout runs
+  ("Finish your workout first."), else builds the sample world and starts the tour; `endTour()` drops both.
+- **`TourSampleStore.make()`**: an **in-memory** container, the bundled catalog, `ensureUnitPreference`, and
+  `DesignSampleFixture.seed(…, launchVariants: false)` — the new parameter makes the seed ignore every launch-argument
+  variant (no live workout, no Gyms/History/Exercises extras), whatever the app was launched with.
+- **`WorkoutTrackerApp`**: while a tour runs, `RootView().modelContainer(sample).environment(tour).id(sample)`;
+  otherwise the user's `RootView` with the welcome cover. `RootView.recoverActiveWorkout` does nothing in the tour.
+- **Settings → Help → Show Tour** (`showTour`), with an alert when the tour cannot start.
+- The step-2 picture is decorative, not hit-testable, and left out at accessibility sizes so the caption and its
+  buttons stay on screen.
+
+**New strings (the user approved the captions; these are new and listed for the user):** Show Me Around · Skip ·
+Help · Show Tour · Finish your workout first. · The tour could not start. · Skip Tour · Next · Done · "n of 8".
+
+**Tells (revised design).** Same container everywhere — absent (one caption card; the welcome text sits on the
+ground). Chips — absent. All-caps labels — absent. Middle dots — absent (sample "Life Fitness · Signature" in the
+picture is the app's own machine-detail format). Accent overuse — the accent is the welcome's primary button, the
+tour's Next and the highlight outline (one per step; the outline marks the step's one subject). Equal-weight blocks —
+absent. Phone-sized website — absent. Above the fold — one caption per step. Control dressed as primary — Skip / Skip
+Tour are plain text. Default-size-only — captured at AccessibilityL: every caption and button whole; **known:** at
+AccessibilityL step 6 the highlighted History row sits partly under the tab bar (History does not scroll it up).
+
+**Evidence (simulator WT-Onboarding, iOS 27):** build exit 0. `OnboardingTests` (unit) **6/6**: the welcome rule
+(5 cases), the sample world in memory with the base sample only (6 finished workouts, 0 unfinished, Iron Temple,
+3 templates), the user's on-disk store untouched by making it, the tour start/end lifecycle and the welcome flag,
+refusal while a real workout runs, Skip remembered. `FloodlightTourUITests` **7/7**: welcome + 8 steps + back on the
+user's empty store (dark, light, dark AccessibilityL; captures), Skip remembered across launches, no welcome with
+workouts, the tour blocks the Settings gear and the History tab and a tap on the highlight advances it, Settings →
+Show Tour runs on the sample (Iron Temple) and returns to the user's store. Captures: [captures/02/](../captures/02/).
+
+## Acceptance (revised for Q8b)
+
+- [x] Captures of the welcome page and every tour step, Default and AccessibilityL, light and dark, under
+      `../captures/02/`; the user saw the prototype and chose the steps, the picture and the captions.
+- [x] First launch on an empty store shows the welcome once; relaunch after an answer does not; a store with
+      workouts never shows it; Settings → Show Tour always starts the tour (except during a workout, with a reason).
+- [x] The tour runs on an in-memory sample world, blocks every other tap, never opens a workout, the camera, AI,
+      Export, a sheet or Settings, and returns to the user's own store (unit + UI tests).
+- [ ] Adjacent suites green (running); Codex review clear.
 
 ## Verification scope
 

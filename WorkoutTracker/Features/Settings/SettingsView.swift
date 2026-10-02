@@ -14,6 +14,8 @@ struct SettingsView: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query private var allPreferences: [AppPreferences]
+    /// Public beta ticket 02: Show Tour starts the guided tour (absent in previews and the tour's own world).
+    @Environment(OnboardingCoordinator.self) private var onboarding: OnboardingCoordinator?
     /// Settings → Appearance: per device, not synced (see `AppearanceSetting`).
     @AppStorage(AppearanceSetting.key) private var appearanceRaw = Appearance.system.rawValue
     @AppStorage(ExportRecord.dateKey) private var lastExportSeconds: Double?
@@ -43,6 +45,7 @@ struct SettingsView: View {
                 }
                 export
                 historyUpdate
+                help
             }
             .padding(.horizontal, look.space.margin)
             .padding(.top, 2)
@@ -156,6 +159,25 @@ struct SettingsView: View {
     }
 
     // MARK: Workout (rest defaults and the template prompt)
+
+    /// Public beta ticket 02: the guided tour again, any time (not while a workout runs — it explains why).
+    @ViewBuilder private var help: some View {
+        if let onboarding {
+            VStack(alignment: .leading, spacing: look.space.header) {
+                SectionHeader("Help")
+                LookList(separatorInset: 54) {
+                    LookRow("Show Tour", symbol: "map", action: {
+                        onboarding.startTour(realContext: modelContext)
+                    })
+                    .accessibilityIdentifier("showTour")
+                }
+            }
+            .alert(onboarding.tourFailure ?? "", isPresented: Binding(
+                get: { onboarding.tourFailure != nil }, set: { if !$0 { onboarding.tourFailure = nil } })) {
+                Button("OK", role: .cancel) {}
+            }
+        }
+    }
 
     private var workout: some View {
         VStack(alignment: .leading, spacing: look.space.header) {

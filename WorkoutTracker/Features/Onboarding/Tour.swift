@@ -15,14 +15,17 @@ struct TourStep: Identifiable, Hashable {
     let anchor: String
     /// The tab the tour selects before showing the step.
     let tab: Tab
-    /// One line (copy policy: proposed, the user's decision).
+    /// One line (the user's wording, 2026-10-02).
     let caption: String
+    /// A non-interactive picture in the caption card: the tour never opens a workout (it would reach HealthKit,
+    /// the Live Activity and notifications — ticket 02, isolation), so logging is shown, not entered.
+    var picture: OnboardingIllustration.Kind? = nil
 
     static let all: [TourStep] = [
         TourStep(id: "gym", anchor: "tour.gymPicker", tab: .workout,
                  caption: "Pick the gym you're at. Each gym keeps its own machines and numbers."),
         TourStep(id: "start", anchor: "tour.start", tab: .workout,
-                 caption: "Start a workout here — lifting or cardio."),
+                 caption: "Start a workout here — lifting or cardio.", picture: .logging),
         TourStep(id: "templates", anchor: "tour.templates", tab: .workout,
                  caption: "Templates are your routines, ready at any gym."),
         TourStep(id: "askAI", anchor: "tour.askAI", tab: .workout,
@@ -100,6 +103,7 @@ struct TourOverlay: View {
     @Environment(TourController.self) private var tour: TourController?
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.dynamicTypeSize) private var typeSize
     @AccessibilityFocusState private var captionFocused: Bool
     @State private var captionHeight: CGFloat = 180
 
@@ -159,6 +163,11 @@ struct TourOverlay: View {
                 .foregroundStyle(look.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityFocused($captionFocused)
+            // Decorative; left out at accessibility sizes so the caption and its buttons stay on screen.
+            if let picture = step.picture, !typeSize.isAccessibilitySize {
+                OnboardingIllustration(kind: picture)
+                    .allowsHitTesting(false)
+            }
             HStack {
                 Button("Skip Tour") { tour.end() }
                     .font(look.font.subhead.weight(.semibold))

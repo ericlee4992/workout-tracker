@@ -13,6 +13,11 @@ struct WorkoutTrackerApp: App {
             UserDefaults.standard.removeObject(forKey: TerraAccess.routineConsentKey)
             // Per-device facts outside the store start fresh too (ticket 09).
             ExportRecord.clear()
+            // Public beta ticket 02: a welcome test starts unanswered only when it says so, so a relaunch can
+            // check that an answered welcome stays away.
+            if ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingFresh") {
+                UserDefaults.standard.removeObject(forKey: OnboardingCoordinator.welcomeSeenKey)
+            }
         }
         do {
             // `-uiTestReset` starts from an empty throwaway store so UI tests
@@ -103,27 +108,8 @@ struct WorkoutTrackerApp: App {
         }
     }
 
-    /// Public beta ticket 02, UI first: the onboarding prototype instead of the app (DEBUG builds only).
-    private static var onboardingPrototype: Bool {
-        #if DEBUG
-        OnboardingPrototype.isRequested
-        #else
-        false
-        #endif
-    }
-
-    /// Public beta ticket 02, UI first: the guided tour over the app, started at launch (DEBUG builds only;
-    /// pair with `-uiTestReset -uiTestDesignSample …` so it runs on the throwaway sample store).
-    private static let tourPrototype: TourController? = {
-        #if DEBUG
-        guard ProcessInfo.processInfo.arguments.contains("-tourPrototype") else { return nil }
-        let tour = TourController()
-        tour.start()
-        return tour
-        #else
-        return nil
-        #endif
-    }()
+    /// First launch and the guided tour (public beta ticket 02).
+    @State private var onboarding = OnboardingCoordinator()
 
     var body: some Scene {
         WindowGroup {
@@ -131,20 +117,25 @@ struct WorkoutTrackerApp: App {
                 // Ticket 11, test-only: the Live Activity's views for captures.
                 if let state = ActivityGallery.requestedState {
                     ActivityGalleryView(name: state)
-                } else if Self.onboardingPrototype {
-                    #if DEBUG
-                    OnboardingPrototypeView()
-                    #endif
-                } else if let tour = Self.tourPrototype {
-                    #if DEBUG
-                    RootView().environment(tour)
-                    #endif
+                } else if let tour = onboarding.tour, let sample = onboarding.sampleContainer {
+                    // The guided tour (ticket 02): the real screens on the in-memory sample world. A new identity,
+                    // so the user's own RootView state is rebuilt on their store when the tour ends.
+                    RootView()
+                        .modelContainer(sample)
+                        .environment(tour)
+                        .id(ObjectIdentifier(sample))
                 } else {
                     RootView()
+                        .onAppear { onboarding.evaluateFirstLaunch(in: modelContainer.mainContext) }
+                        .fullScreenCover(isPresented: $onboarding.showsWelcome) {
+                            WelcomeView(onTour: { onboarding.startTour(realContext: modelContainer.mainContext) },
+                                        onSkip: { onboarding.skipWelcome() })
+                        }
                 }
             }
                 // Settings → Appearance (System / Light / Dark) picks the scheme and the
                 // Floodlight token set (D54 reopened by the Floodlight redesign).
+                .environment(onboarding)
                 .lookLayer()
         }
         .modelContainer(modelContainer)

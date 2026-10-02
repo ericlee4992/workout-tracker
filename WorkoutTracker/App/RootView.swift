@@ -111,7 +111,9 @@ struct RootView: View {
     /// Relaunch resumes the newest active workout; older strays are
     /// auto-finished by the service (exactly-one-active invariant).
     private func recoverActiveWorkout() {
-        guard activeWorkout == nil else { return }
+        // Never in the guided tour's sample world (ticket 02): opening a workout drives HealthKit, the Live
+        // Activity and notifications, which the tour must not touch. Its sample has no unfinished workout anyway.
+        guard tour == nil, activeWorkout == nil else { return }
         activeWorkout = try? WorkoutSession(context: modelContext).resumableWorkout()
     }
 
