@@ -1,8 +1,8 @@
 # 01 — Paid team, data move and TestFlight
 
 Type: task
-Status: in progress — **Prepare done and Codex clear (4 rounds) 2026-10-02**; not merged to `main` (awaiting the
-user's go-ahead); phases B–E wait on Apple's enrollment approval (pending at 2026-10-02); phase A (free renewal) is
+Status: in progress — **Prepare done and Codex clear (4 rounds) 2026-10-02**; merged to `main` (`907b81b`, fast-forward, the
+user's go-ahead 2026-10-02); phases B–E wait on Apple's enrollment approval (pending at 2026-10-02); phase A (free renewal) is
 due Oct 4, by Oct 5 18:00 EDT at the latest
 Blocked by: —
 Implementer: Claude (the signing, phone and App Store Connect steps need this session's tooling and the user).
@@ -280,8 +280,7 @@ session's scratchpad (`…/b01/`) and Codex's `/tmp/wt-beta01-codex-review*/` (m
 
 ## Acceptance
 
-- [ ] Config diff merged after Codex clear — **clear 2026-10-02** (clean build, built plists and Release launch in
-      Simulator done); merge awaits the user.
+- [x] Config diff merged after Codex clear — clear 2026-10-02; fast-forwarded into `main` `907b81b`.
 - [x] Restore rehearsed on the Simulator with a passing row-by-row comparison.
 - [ ] The app never stopped opening because of an expired profile.
 - [ ] Paid team ID recorded; App IDs registered on it **with the original bundle IDs**.

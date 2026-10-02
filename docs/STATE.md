@@ -42,8 +42,8 @@ workouts stay on the phone; a Cloudflare Worker + D1 server; all AI on the user'
 off switch, no key on phones); onboarding; in-app feedback; the user on internal TestFlight now.
 
 **Ticket 01** ([01](../work-record/public-beta/issues/01-paid-team-testflight.md)) — worktree
-`/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch **`ericlee4992/beta-01-paid-team`** (pushed; not
-merged). **Implemented and verified locally (Prepare):** team from `Config/Local.xcconfig` (pbxproj and the
+`/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch **`ericlee4992/beta-01-paid-team`**; Prepare was
+**fast-forwarded into `main` (`907b81b`) on 2026-10-02 at the user's go-ahead** (pushed). **Implemented and verified locally (Prepare):** team from `Config/Local.xcconfig` (pbxproj and the
 installer), home-screen name Stacked, `ITSAppUsesNonExemptEncryption`; `scripts/container-tools/`
 (`verify_container.py` with `--expect`/`--export`, `compare_stores.py` with preferences, `compare_trees.py`);
 DEVELOPMENT → *Container backup and restore* (Gate S stable backup, Gate P phone copy preflight, the TestFlight
@@ -62,11 +62,10 @@ moves by Gate S → delete → install → restore → compare.
 
 ## Next action
 
-1. **Ask the user** to fast-forward `main` to `ericlee4992/beta-01-paid-team` (Prepare, Codex clear).
-2. **Phase A by 2026-10-05 18:00 EDT at the latest** (plan: Oct 4), unless D is done: Gate S → Gate P → free
+1. **Phase A by 2026-10-05 18:00 EDT at the latest** (plan: Oct 4), unless D is done: Gate S → Gate P → free
    renewal → install → compare. Needs the user and the unlocked phone.
-3. When Apple approves the enrollment: ticket 01 phases B–E (gated as in the ticket; the user approves the delete).
-4. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone (feedback as
+2. When Apple approves the enrollment: ticket 01 phases B–E (gated as in the ticket; the user approves the delete).
+3. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone (feedback as
    tickets under `work-record/redesign-floodlight/`). Not yet exercised anywhere: VoiceOver by a person, Reduce
    Motion at runtime, real GPS and sensors on the redesigned cardio screens, Lock Screen commands on a device, a
    restore from a backup on a phone (Simulator only so far), a non-US simulator region.
