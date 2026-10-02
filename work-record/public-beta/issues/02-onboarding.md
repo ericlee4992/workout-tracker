@@ -1,8 +1,8 @@
 # 02 — Onboarding walkthrough
 
 Type: task
-Status: in progress — **scope revised 2026-10-02**: welcome page + guided tour on sample data (spec Q8b); the
-walkthrough prototype below is superseded except its page 1
+Status: in progress — implemented and **Codex clear (2 rounds) 2026-10-02**; not merged to `main` (awaiting the
+user's go-ahead). Scope revised 2026-10-02: welcome page + guided tour on sample data (spec Q8b)
 Blocked by: — (listed after 01 for order only: it needs no server and no paid team; started while 01 waits on
 Apple's enrollment, the user's go-ahead 2026-10-02)
 Implementer: Claude (the user asked Claude to start it, 2026-10-02); Reviewer: Codex, in a visible Orca terminal.
@@ -228,6 +228,12 @@ Review: [codex-review-02.md](../codex-review-02.md) — not clear (P1 ×2, P2, P
 `testShowTourRefusesDuringAWorkout`); `FloodlightHistoryUITests` 7/8 — the one failure is the pre-existing chart check
 (:100) recorded above. Captures retaken in `captures/02/` (step 6 = the month card).
 
+**Round 2 (codex-review-02b): clear.** The P3 note — `Tour.swift`'s comment still called the overlay "the only
+accessible content" — is corrected (the overlay is the only *activatable* content; the app underneath stays readable to
+VoiceOver). Comment-only change after the tested build. During round 2 Codex asked to drive the desktop (Orca computer
+use) to test VoiceOver paths; one read-only window listing was approved, further desktop control was declined (it would
+drive the user's screen) and the review was relaunched for source and command-line evidence only.
+
 ## Acceptance (revised for Q8b)
 
 - [x] Captures of the welcome page and every tour step, Default and AccessibilityL, light and dark, under
@@ -238,7 +244,10 @@ Review: [codex-review-02.md](../codex-review-02.md) — not clear (P1 ×2, P2, P
       Export, a sheet or Settings, and returns to the user's own store (unit + UI tests).
 - [x] Adjacent suites: unit **930/930**; UI 57/60 — the 3 failures are **pre-existing** (they fail identically on `main`
       `68e2a99` without ticket 02; see below).
-- [ ] Codex review clear.
+- [x] Codex review clear — [codex-review-02b.md](../codex-review-02b.md), round 2, 2026-10-02 (all four round-1
+      findings resolved; one P3 comment fixed afterwards). Stated limits: no live VoiceOver / Full Keyboard Access /
+      Reduce Motion session, no accessible tab switch at runtime, no forced missing-geometry or scene-restoration run,
+      no production-service spies, no device check.
 
 ## Verification scope
 

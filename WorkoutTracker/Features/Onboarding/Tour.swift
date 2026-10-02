@@ -99,7 +99,9 @@ extension View {
 
 /// The tour's layer, above an inert app: dims the screen except the current step's control and shows its caption
 /// with Next and Skip Tour. It is present for the whole tour — before an anchor has reported its frame it dims
-/// everything and still offers the caption and Skip — and it is the only accessible content (an accessibility modal).
+/// everything and still offers the caption and Skip. It is the only *activatable* content: the app underneath is
+/// disabled (VoiceOver can still read it; `.accessibilityHidden` does not reach the UIKit-backed tab view), and this
+/// layer carries the modal trait.
 struct TourOverlay: View {
     @Environment(TourController.self) private var tour: TourController?
     @Environment(\.look) private var look

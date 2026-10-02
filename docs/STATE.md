@@ -32,7 +32,7 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   is unchanged. Older backups (Sep 17/18/20/22) remain.
 - Phone: iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
 
-## ACTIVE: public beta ("Stacked") — ticket 01 Prepare Codex clear; phases A–E next
+## ACTIVE: public beta ("Stacked") — ticket 01 phase A done, B–E wait on Apple; ticket 02 Codex clear, unmerged
 
 Planned 2026-10-01/02 with the user: **[spec](../work-record/public-beta/spec.md)** (answers Q1–Q14), decision
 **D60** (reopens SPEC's no-backend/no-accounts line, D5, D41, D53, D56, D58), tickets
@@ -62,6 +62,18 @@ place (home-screen name **Stacked**), every row and preference preserved. Profil
 Personal Team again. The paid enrollment was **pending** on 2026-10-02. The bundle ID is probably held by the free Personal
 Team (the user chose to keep it and ask Apple Support if refused). iOS cannot upgrade across teams, so the data
 moves by Gate S → delete → install → restore → compare.
+
+**Ticket 02 (onboarding)** — branch **`ericlee4992/beta-02-onboarding`** (pushed; **not merged** — ask the user). The
+user changed the plan after seeing a walkthrough prototype: **one welcome page, then a guided tour of the real app on a
+temporary in-memory sample world** (spec Q8b, D60). Implemented: `Features/Onboarding/` (WelcomeView, Tour,
+OnboardingCoordinator, TourSampleStore), Settings → Help → Show Tour, the welcome only on a fresh phone with no workouts
+(never on the user's phone; never in UI tests unless `-uiTestOnboarding`). The app under the tour is disabled and
+untouchable; the tour never opens a workout, camera, AI, Export, a sheet or Settings. **Codex clear after 2 rounds.**
+Tests: unit 930/930 (whole target, before the round-1 fixes) + `OnboardingTests` 6/6; `FloodlightTourUITests` 10/10;
+adjacent UI suites 57/60 then History 7/8 — **3 pre-existing UI failures** (two History chart captures at
+`FloodlightHistoryUITests.swift:100`, likely date-dependent; the CoreLoop model picker at :274) **fail identically on
+`main`** without ticket 02: a separate follow-up. Simulator **WT-Onboarding** `2CEC4AD8-F702-421F-B3B2-D68C302A3453`
+(sample data only).
 
 ## Next action
 
