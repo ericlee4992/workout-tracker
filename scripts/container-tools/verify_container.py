@@ -77,7 +77,10 @@ def check_database(root, rel):
     with tempfile.TemporaryDirectory() as scratch:
         connection = sqlite3.connect(copy_database(root, rel, scratch))
         try:
-            result = {"path": rel, "integrity": [r[0] for r in connection.execute("pragma integrity_check")]}
+            try:
+                result = {"path": rel, "integrity": [r[0] for r in connection.execute("pragma integrity_check")]}
+            except sqlite3.DatabaseError as error:
+                return {"path": rel, "integrity": [f"unreadable: {error}"]}
             if rel == STORE:
                 result["workouts"] = connection.execute("select count(*) from ZWORKOUT").fetchone()[0]
                 result["unfinished"] = connection.execute(
@@ -132,7 +135,9 @@ def main():
     args = parser.parse_args()
 
     files = manifest(args.container)
-    databases = [check_database(args.container, rel) for rel in files if rel.endswith(DB_SUFFIXES)]
+    # tmp/ holds no user data and may hold anything (Gate P's probe once carried a text file named a.store).
+    databases = [check_database(args.container, rel) for rel in files
+                 if rel.endswith(DB_SUFFIXES) and not rel.startswith("tmp/")]
     report = {"container": os.path.abspath(args.container), "files": len(files),
               "bytes": sum(f["bytes"] for f in files.values()), "databases": databases, "manifest": files}
     ok = bool(databases) and all(d["integrity"] == ["ok"] for d in databases)

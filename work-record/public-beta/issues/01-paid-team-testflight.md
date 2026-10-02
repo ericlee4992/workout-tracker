@@ -212,8 +212,23 @@ Phone `00008130-001E10C01E62001C` available (paired), unlocked since boot; insta
 - **Renewal — blocked: Xcode has no account.** Old profiles copied to `old-profiles/`, moved aside; the clean
   `-allowProvisioningUpdates` build failed (exit 65: "No Accounts: Add a new account in Accounts settings", no
   profiles for app or widget). Profiles moved back; `cmp` identical to the copies; expiry still 2026-10-06 08:45 UTC.
-  Nothing was installed. **Waiting on the user to sign in to Xcode.** The app must stay closed until the
-  renewed build is installed and compared against this Gate S.
+  Nothing was installed at that point.
+- **Renewal — done.** The user signed in to Xcode (Personal Team only: the paid enrollment is still pending). A
+  generic build then failed (exit 65, "Your team has no devices…": the re-added account had lost the phone's
+  registration); a build for the connected phone with `-allowProvisioningUpdates -allowProvisioningDeviceRegistration`
+  succeeded (exit 0, `main` `b83cf39`'s code) and minted app profile `94352a8e…` and widget profile `db7bc7bd…`,
+  **both expiring 2026-10-09 07:52 UTC (03:52 EDT)**, team `X68M8SR6NA`. Built app: display name **Stacked**,
+  `application-identifier` `X68M8SR6NA.com.ericlee4992.workouttracker` (widget `….widget`), embedded profiles as above,
+  `codesign --verify --deep --strict` ok, dylib 03:53, compliance key, Health string and widget `NSExtension` present.
+- **Install and preservation.** Process query exit 0, no app process → `devicectl device install app` exit 0,
+  outcome success, bundle `D8F460EF-7E07-42B2-9BEC-F6053D9C6B40` (in-place update) → launch exit 0 → the user
+  checked History and closed the app → query exit 0, no app process → `copy from` exit 0 (`after-renewal/`) →
+  `verify_container.py` exit 0 (integrity `ok` ×3; 25 / 0 / 355 / 2) → `compare_stores.py capture-1 after-renewal`
+  **exit 0: 15 tables, no missing, changed or added rows, no preference changed.**
+- **Script fix found here:** `verify_container.py` crashed on Gate P's probe (`tmp/gateP/…/a.store`, a text file).
+  It now skips `tmp/` (never user data) and reports an unreadable database as a failure instead of raising (tested:
+  a non-SQLite `Cache.db` outside `tmp/` → exit 1). Lesson for Gate P: do not give probe files database names.
+- The phone app now shows **Stacked** on the home screen. The old free profiles are kept in `old-profiles/`.
 
 ## Codex review 01 — response (round 1)
 

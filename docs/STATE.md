@@ -55,15 +55,18 @@ in the Orca terminal "Codex review — beta 01". **Not done:** phases A–E (pho
 **WT-Backup-01** `A3D88C6F-6426-427A-9A0E-CF11A93798B1` (Gate S's disposable round-trip Simulator) was erased after the
 clearance (exit 0); erase it after every later use (it receives copies of the user's data). Evidence under this session's scratchpad `…/scratchpad/b01/` (ephemeral; results are in the ticket).
 
-**Phone facts are unchanged:** the free-team build from 2026-09-29 is installed; profiles expire **2026-10-06
-04:45 EDT**. The paid enrollment was **pending** on 2026-10-02. The bundle ID is probably held by the free Personal
+**Phone (2026-10-02, ticket 01 phase A):** Gate S and Gate P passed (25 workouts, 355 sets; backup
+`~/WorkoutTracker-Backups/2026-10-02-phase-a/`); the free signing was renewed and `main` `b83cf39`'s code installed in
+place (home-screen name **Stacked**), every row and preference preserved. Profiles now expire **2026-10-09 03:52 EDT**
+(07:52 UTC). The Apple ID is signed in to Xcode again (it had been signed out); the phone is registered to the
+Personal Team again. The paid enrollment was **pending** on 2026-10-02. The bundle ID is probably held by the free Personal
 Team (the user chose to keep it and ask Apple Support if refused). iOS cannot upgrade across teams, so the data
 moves by Gate S → delete → install → restore → compare.
 
 ## Next action
 
-1. **Phase A by 2026-10-05 18:00 EDT at the latest** (plan: Oct 4), unless D is done: Gate S → Gate P → free
-   renewal → install → compare. Needs the user and the unlocked phone.
+1. **Phase A done 2026-10-02.** If the paid move (D) is not done by then, renew again **before 2026-10-09 03:52 EDT**
+   (plan: Oct 7–8), behind Gate S as in the ticket.
 2. When Apple approves the enrollment: ticket 01 phases B–E (gated as in the ticket; the user approves the delete).
 3. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone (feedback as
    tickets under `work-record/redesign-floodlight/`). Not yet exercised anywhere: VoiceOver by a person, Reduce
