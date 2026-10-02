@@ -1,6 +1,7 @@
 # Current project state
 
-Updated **2026-09-29** after the Floodlight redesign was merged and installed. The previous STATE (the per-ticket
+Updated **2026-09-29** after the Floodlight redesign was merged and installed; audited **2026-10-01** (nothing
+changed on the phone or in the code since). The previous STATE (the per-ticket
 redesign handoff, the September 22 installation, the AI/cardio open items) is archived byte-for-byte:
 [STATE before Floodlight merge](archive/STATE-2026-09-29-before-floodlight-merge.md). Verify Git on resume.
 
@@ -61,4 +62,10 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   and their derived data, results and captures under `/tmp/wt-floodlight/`; the prototype worktree
   `…/workspaces/Health App/redesign-prototype`. Simulator **WT-Floodlight** `9E822EF6-DC67-4958-AEA2-D53D2D36D674`
   (iOS 27); WT-iPhone27 / WT-iPhone kept for regression and compatibility.
-- The Graft index was not rebuilt after the redesign (`graft build` refreshes it).
+- The Graft index is a git-ignored local cache per checkout: rebuilt in this worktree 2026-10-01 (graft 0.18.0); the
+  main checkout's is older (`graft build` refreshes it).
+- **Branches on origin with commits not in `main`, all deliberately unmerged records** (nothing else is unmerged):
+  `ericlee4992/redesign-visual-proposal` (4, the superseded 09-24 visual proposal, the main checkout's branch),
+  `ericlee4992/cardio-design-prototype` (3, 09-17 cardio prototypes), `ericlee4992/finish-summary-second-pass` (3,
+  09-17 finish-summary exploration), `ericlee4992/review-cardio-implementation` (3, 09-18 review records),
+  `ui-redesign-16-active-workout` (1, a ticket-16 docs note). Every `redesign-floodlight*` branch is in `main`.

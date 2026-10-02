@@ -1,7 +1,7 @@
 # 13 — Floodlight: release-candidate pass
 
 Type: task (part of [01](01-implement-redesign.md), plan step 4; then step 5, the install)
-Status: resolved — RC pass clear (Codex 13c); installed and data preserved 2026-09-29; merge to `main` in progress
+Status: resolved — RC pass clear (Codex 13c); installed and data preserved 2026-09-29; merged to `main` (`4765b76`)
 Implementer: Claude. Reviewer: Codex (for any code fix).
 Branch: `ericlee4992/redesign-floodlight-cardio` (scratch checkout `/tmp/wt-floodlight/cardio`). Tested tip:
 **`796ffe5`** (ticket 12, Codex clear; tickets 02–12 stacked beneath it, each Codex clear). Nothing merged to
@@ -209,7 +209,11 @@ non-US simulator region, and the device until the install.
 - `rc-ui-1` 227/229 (08:36); both failures repeated alone; diagnosed; fixed (`fe35a34`, `rc-fix-1` 38/38); Codex
   review 13 → `759aedf` (`rc-fix-2` 76/76) → 13b → `522c157` (`rc-fix-3` 4/4, mutation check) → 13c **clear**.
 - Device binary rebuilt (`rc-device-build-2`); the user said install, then merge; backup, install, trust, launch and
-  the preservation check done (Install section). Next: merge to `main`.
+  the preservation check done (Install section).
+- Merged 2026-09-29: the Orca worktree branch's STATE notes merged into the cardio branch (`957189c`, docs only), the
+  Orca branch fast-forwarded to it, the delivery docs committed (`4765b76`: STATE rewritten, the old one archived,
+  ticket 01 resolved, DEVELOPMENT's re-trust note), and `main` fast-forwarded `a0364f2` → `4765b76` and pushed
+  (confirmed on origin). Code identical to the tested and installed `522c157`.
 - (Superseded plan:) rebuild the device binary from this tip (the build of `796ffe5`
   predates the `WorkoutCalendar` fix) and recheck its freshness and profiles; fresh full backup of the phone's app
   container; install; launch; data-preservation check; merge to `main`.
