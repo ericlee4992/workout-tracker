@@ -49,7 +49,8 @@ installer), home-screen name Stacked, `ITSAppUsesNonExemptEncryption`; `scripts/
 DEVELOPMENT → *Container backup and restore* (Gate S stable backup, Gate P phone copy preflight, the TestFlight
 backup bridge); the restore rehearsed on the Simulator with negatives; the Apple Support draft (send only after the
 gates). **Codex review 01: not clear** (2 P2, 4 P1); **round 2 (01b): not clear** (1 P1, 1 P2) — both addressed (the
-Simulator export round trip, `compare_exports.py`, `simulator_export.sh`, `BackupExportUITests`); **round 3 pending**
+Simulator export round trip, `compare_exports.py`, `simulator_export.sh`, `BackupExportUITests`); **round 3 (01c): not
+clear** (1 P2: date-shaped text normalized) — addressed (schema-path timestamps only); **round 4 pending**
 in the Orca terminal "Codex review — beta 01". **Not done:** phases A–E (phone, Apple account). Simulator
 **WT-Backup-01** `A3D88C6F-6426-427A-9A0E-CF11A93798B1` (Gate S's disposable round-trip Simulator) holds copies of the
 user's 09-29 data — erase it (`xcrun simctl erase`) once the review is clear and after every later use. Evidence under this session's scratchpad `…/scratchpad/b01/` (ephemeral; results are in the ticket).

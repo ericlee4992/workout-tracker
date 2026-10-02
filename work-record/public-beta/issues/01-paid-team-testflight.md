@@ -253,6 +253,22 @@ Review: [codex-review-01b.md](../codex-review-01b.md) — 1–4 and 6 resolved, 
   successful process query → capture → compare; D5 says the same; DEVELOPMENT states that every raw capture after a
   launch follows this rule and that a failed process query proves nothing (also in Gate S step 2).
 
+## Codex review 01c — response (round 3)
+
+Review: [codex-review-01c.md](../codex-review-01c.md) — R2.1 and R2.2 resolved (Codex reran its own lost-edit
+case through WT-Backup-01: complete WAL equal, truncated WAL fails with reps 20 vs 120). One new P2.
+
+- **P2 — date-shaped user text was normalized.** Accepted. `compare_exports.py` no longer normalizes by string
+  shape: only the export schema's timestamp fields (`TIMESTAMP_PATHS`, taken from every `dateFormat` call in
+  `ExportCollector.swift`; JSON keys equal the Swift property names — no `CodingKeys`) are compared as instants;
+  notes, names and every other string are literal; an unparseable value in a timestamp field stays literal instead
+  of raising. A timestamp field missing from the list can only cause a false failure, never hide a change. Cases on
+  copies of the real app export, all as required: identical exit 0; Codex's notes `2026-10-02T08:00:00-04:00` vs
+  `2026-10-02T12:00:00Z` **exit 1**; identical notes `2026-99-02T08:00:00Z` **exit 0** (no traceback); equivalent
+  offsets exit 0 for `startedAt`, a set's `completedAt`, `preferences.birthDate`, a cardio segment's `startedAt` and
+  an interval's `end`; a changed `startedAt`, a changed gym name and a changed `appVersion` exit 1; a changed
+  `exportedAt` exit 0. The real round trips still give: clean 0, full WAL 0, truncated WAL 1.
+
 ## Acceptance
 
 - [ ] Config diff merged after Codex clear (clean build, built plists and Release launch in Simulator: done).

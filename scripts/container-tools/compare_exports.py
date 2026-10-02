@@ -8,8 +8,10 @@ that capture is restored into a disposable Simulator (`simulator_export.sh`). Eq
 holds the same history the phone showed: every exported workout, entry, set, template, gym, machine, exercise,
 model, memory, override and preference **value**, not only IDs and counts.
 
-Normalization, and nothing else: `exportedAt` is ignored (it is the export's own clock); timestamps are compared
-as instants (the export writes local time with an offset, and the two devices' time zones may differ). Floats are
+Normalization, and nothing else: `exportedAt` is ignored (it is the export's own clock); the fields the export
+schema writes as timestamps (TIMESTAMP_PATHS, from every `dateFormat` call in ExportCollector.swift) are compared as
+instants (the export writes local time with an offset, and the two devices' time zones may differ). Every other
+string — notes, names, labels — is compared literally, even if it looks like a date (Codex review 01c). Floats are
 compared exactly — the same code wrote both files. `appVersion` and `schemaVersion` must match: a different build
 could export differently, and that must be judged by a person, not normalized away.
 
@@ -25,17 +27,47 @@ import re
 import sys
 
 IGNORED_TOP_LEVEL = {"exportedAt"}
-TIMESTAMP = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$")
+
+# Schema paths of the export's timestamp fields: `[]` is any array element, `*` any dictionary value. Mirrors every
+# `dateFormat.string`/`optionalString` call in WorkoutTracker/Domain/ExportCollector.swift (export schema 11); a new
+# timestamp field the list lacks is compared literally, which can only cause a false failure, never hide a change.
+TIMESTAMP_PATHS = {
+    "$.preferences.birthDate", "$.preferences.updatedAt",
+    "$.preferences.dumbbellHistoryMovedAt", "$.preferences.dumbbellHistoryCheckedAt",
+    "$.workouts[].startedAt", "$.workouts[].finishedAt", "$.workouts[].historyEditedAt",
+    "$.workouts[].entries[].snapshotCapturedAt", "$.workouts[].entries[].reclassifiedAt",
+    "$.workouts[].entries[].sets[].completedAt",
+    "$.workouts[].sensorCheckpoint.samples[].date",
+    "$.workouts[].cardioSegments[].startedAt", "$.workouts[].cardioSegments[].endedAt",
+    "$.workouts[].cardioSegments[].activeStartedAt", "$.workouts[].cardioSegments[].lastCheckpointAt",
+    "$.workouts[].cardioSegments[].intervals[].start", "$.workouts[].cardioSegments[].intervals[].end",
+    "$.workouts[].cardioSegments[].distanceSpans[].start", "$.workouts[].cardioSegments[].distanceSpans[].updatedAt.*",
+    "$.workouts[].cardioSegments[].route[].date",
+    "$.gymExerciseMemory[].updatedAt", "$.exerciseRestOverrides[].updatedAt",
+}
+TIMESTAMP_SHAPE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$")
 
 
-def normalize(value):
-    if isinstance(value, str) and TIMESTAMP.match(value):
-        instant = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return ("instant", instant.astimezone(datetime.timezone.utc).isoformat())
+def instant(value):
+    """A timestamp field's value as a UTC instant; anything unparseable stays literal (and so must match exactly)."""
+    if not isinstance(value, str) or not TIMESTAMP_SHAPE.match(value):
+        return value
+    try:
+        moment = datetime.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return value
+    return ("instant", moment.astimezone(datetime.timezone.utc).isoformat())
+
+
+def normalize(value, schema_path="$"):
+    if schema_path in TIMESTAMP_PATHS:
+        return instant(value)
     if isinstance(value, dict):
-        return {k: normalize(v) for k, v in value.items()}
+        if schema_path + ".*" in TIMESTAMP_PATHS:
+            return {k: instant(v) for k, v in value.items()}
+        return {k: normalize(v, f"{schema_path}.{k}") for k, v in value.items()}
     if isinstance(value, list):
-        return [normalize(v) for v in value]
+        return [normalize(v, schema_path + "[]") for v in value]
     return value
 
 
