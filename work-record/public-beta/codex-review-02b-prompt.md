@@ -10,3 +10,10 @@ restoration) and anything the fixes broke. Same rules as before; only simulator 
 (2CEC4AD8-F702-421F-B3B2-D68C302A3453) if you run anything. Write work-record/public-beta/codex-review-02b.md:
 each round-1 finding resolved / partly / not, new findings with severity and file:line, last line exactly
 "Verdict: clear" or "Verdict: not clear".
+
+Context for a fresh session: round 1 is work-record/public-beta/codex-review-02.md (your own earlier report).
+Do NOT use desktop/computer control (no `orca computer …` commands): it would drive the user's Mac screen. Review from
+the source and command-line tools only (xcodebuild/simctl on WT-Onboarding; do not add test files; you may read the
+existing result bundles and logs under
+/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-public-beta/d61f90bf-e3f8-44b7-845e-3831238bedab/scratchpad/b02/,
+e.g. t7.xcresult and t7.log for the final run). Record any runtime path you could not exercise as a stated limit.
