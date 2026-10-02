@@ -70,10 +70,18 @@ to the paid team).
 
 - The main checkout `/Users/ericlee06/orca/projects/Health App` is on `ericlee4992/redesign-visual-proposal`
   (a separate Codex session's visual proposal, superseded by the Floodlight decision; not merged).
-- Scratch checkouts `/tmp/wt-floodlight/{base,live,finish,history,gyms,scan,exercises,settings,ai-routine,system,cardio}`
-  and their derived data, results and captures under `/tmp/wt-floodlight/`; the prototype worktree
-  `…/workspaces/Health App/redesign-prototype`. Simulator **WT-Floodlight** `9E822EF6-DC67-4958-AEA2-D53D2D36D674`
-  (iOS 27); WT-iPhone27 / WT-iPhone kept for regression and compatibility.
+- **Worktree clean-up 2026-10-01 (user's choice):** removed every clean, pushed or merged checkout — the eleven
+  `/tmp/wt-floodlight/*` scratch checkouts and sixteen older Orca worktrees (ai-gym-and-routines, ai-template-followup,
+  cardio-*, codex-project-setup, compact-start-outdoor, finish-summary-*, restore-start-capsules,
+  review-cardio-implementation, session-handoff*, sets-completion-ring, verification-policy); their branches remain in
+  Git and on origin. `/tmp/wt-floodlight/` keeps `results/` (test logs, xcresults), `shots/`, the runner scripts and
+  `dd-device/` (the binary installed on 2026-09-29); the other derived data was deleted.
+- **Kept for a later look (not removed):** worktrees whose branches exist only on this Mac, some with uncommitted
+  files — `ai-schema-baseline`, `ai-template-followup-review`, `cardio-api-research`, `redesign-prototype` (the
+  tappable Simulator prototype of the Floodlight look; one uncommitted file), and the `review-*` checkouts (Codex/Claude
+  review reports, some untracked). Save or push before removing any of them. `redesign-floodlight` (the redesign's
+  Orca worktree, identical to `main`) can be closed once no session runs in it. Simulator **WT-Floodlight**
+  `9E822EF6-DC67-4958-AEA2-D53D2D36D674` (iOS 27); WT-iPhone27 / WT-iPhone kept for regression and compatibility.
 - The Graft index is a git-ignored local cache per checkout: rebuilt in this worktree 2026-10-01 (graft 0.18.0); the
   main checkout's is older (`graft build` refreshes it).
 - **Branches on origin with commits not in `main`, all deliberately unmerged records** (nothing else is unmerged):
