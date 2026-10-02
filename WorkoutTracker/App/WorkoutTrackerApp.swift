@@ -103,12 +103,25 @@ struct WorkoutTrackerApp: App {
         }
     }
 
+    /// Public beta ticket 02, UI first: the onboarding prototype instead of the app (DEBUG builds only).
+    private static var onboardingPrototype: Bool {
+        #if DEBUG
+        OnboardingPrototype.isRequested
+        #else
+        false
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
                 // Ticket 11, test-only: the Live Activity's views for captures.
                 if let state = ActivityGallery.requestedState {
                     ActivityGalleryView(name: state)
+                } else if Self.onboardingPrototype {
+                    #if DEBUG
+                    OnboardingPrototypeView()
+                    #endif
                 } else {
                     RootView()
                 }
