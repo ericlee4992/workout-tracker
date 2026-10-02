@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Verify a copied app data container (public beta ticket 01, DEVELOPMENT → Container backup and restore).
 
-    verify_container.py <container-dir> [--out report.json] [--expect other-report.json]
+    verify_container.py <container-dir> [--out report.json] [--expect other-report.json] [--export export.json]
 
 Writes a report with a SHA-256 manifest of every file, SQLite `integrity_check` for every database, and the
 store's row counts (workouts, unfinished workouts, sets, templates, and every entity table). Databases are
@@ -10,7 +10,14 @@ checked on a temporary copy: opening a store in place can checkpoint its write-a
 `--expect` compares the restore set (RESTORE_SET below) against an earlier report's manifest and fails on any
 missing or different file — the check that a restore copied exactly the backed-up bytes before the app launches.
 
-Exit status: 0 when every database is `ok` (and, with --expect, the restore set matches); 1 otherwise.
+`--export` checks the capture against an independent logical baseline: a JSON export the app wrote just before
+the capture (Settings → Export → JSON, with no workout in progress). Every exported workout and set ID must be in
+the captured store, and the export's counts must equal the store's rows. Integrity, counts and a later
+comparison against the same capture cannot detect history the capture itself missed (an incomplete WAL copy
+passes them all — Codex review 01, finding 5); this check can, for everything the export covers.
+
+Exit status: 0 when every database is `ok` (and, with --expect, the restore set matches; with --export, the
+capture contains the export); 1 otherwise.
 """
 import argparse
 import hashlib
@@ -20,6 +27,7 @@ import shutil
 import sqlite3
 import sys
 import tempfile
+import uuid
 
 STORE = "Library/Application Support/default.store"
 DB_SUFFIXES = (".store", ".sqlite", ".db")
@@ -82,11 +90,43 @@ def check_database(root, rel):
     return result
 
 
+EXPORT_COUNTS = {"workouts": "ZWORKOUT", "entries": "ZEXERCISEENTRY", "sets": "ZSETRECORD", "gyms": "ZGYM",
+                 "machines": "ZMACHINEINSTANCE", "templates": "ZWORKOUTTEMPLATE", "presets": "ZEXERCISEPRESET",
+                 "cardioSegments": "ZCARDIOSEGMENT"}
+
+
+def check_export(root, export_path):
+    """Compare the capture with a JSON export (ExportSnapshot): IDs present, counts equal."""
+    with open(export_path) as handle:
+        snapshot = json.load(handle)
+    exported_workouts = {w["id"].upper() for w in snapshot["workouts"]}
+    exported_sets = {s["id"].upper() for w in snapshot["workouts"] for e in w["entries"] for s in e["sets"]}
+    with tempfile.TemporaryDirectory() as scratch:
+        connection = sqlite3.connect(copy_database(root, STORE, scratch))
+        try:
+            def ids(table):
+                return {str(uuid.UUID(bytes=r[0])).upper() for r in connection.execute(f"select ZID from {table}")}
+            stored_workouts, stored_sets = ids("ZWORKOUT"), ids("ZSETRECORD")
+            rows = {t: connection.execute(f"select count(*) from {t}").fetchone()[0] for t in EXPORT_COUNTS.values()}
+        finally:
+            connection.close()
+    count_mismatches = {k: [snapshot["counts"][k], rows[t]] for k, t in EXPORT_COUNTS.items()
+                        if snapshot["counts"].get(k) is not None and snapshot["counts"][k] != rows[t]}
+    result = {"export": os.path.abspath(export_path), "exportedAt": snapshot.get("exportedAt"),
+              "workouts_missing_from_capture": sorted(exported_workouts - stored_workouts),
+              "sets_missing_from_capture": sorted(exported_sets - stored_sets),
+              "count_mismatches_export_vs_capture": count_mismatches}
+    result["ok"] = not (result["workouts_missing_from_capture"] or result["sets_missing_from_capture"]
+                        or count_mismatches)
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("container")
     parser.add_argument("--out")
     parser.add_argument("--expect", help="an earlier report whose restore-set files must match byte for byte")
+    parser.add_argument("--export", help="a JSON export taken just before the capture; the capture must contain it")
     parser.add_argument("--bundle-id", default="com.ericlee4992.workouttracker")
     args = parser.parse_args()
 
@@ -108,6 +148,13 @@ def main():
         report["restore_set_check"] = {"expected": len(expected), "mismatched_or_missing": mismatches,
                                        "unexpected": extra}
         ok = ok and not mismatches and not extra
+
+    if args.export:
+        try:
+            report["export_check"] = check_export(args.container, args.export)
+        except (sqlite3.Error, OSError, KeyError, ValueError) as error:
+            report["export_check"] = {"ok": False, "error": f"{type(error).__name__}: {error}"}
+        ok = ok and report["export_check"]["ok"]
 
     report["ok"] = ok
     if args.out:

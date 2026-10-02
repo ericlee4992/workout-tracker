@@ -189,7 +189,9 @@ The phone holds the only copy of the developer's history (24 workouts, 343 sets,
   other and keeps the container.
 - **TestFlight builds cannot be backed up by container copy** (no `get-task-allow`). On a TestFlight build, the
   developer uses in-app Export routinely; before any risky update (a schema change, a migration), a development
-  build is installed first to take the full container backup (Q14). An Import feature is not planned yet; add
+  build **of the exact commit of the installed TestFlight build** is installed over it **without launching**, with
+  TestFlight's Automatic Updates off, to take the full container backup (Q14; DEVELOPMENT → *Container backup and
+  restore*, "backup bridge"). New code must never open the store before that backup. An Import feature is not planned yet; add
   a ticket if the user wants backups without the Mac.
 - No SwiftData schema change is planned in this effort: account, session and training profile live on the
   server and in the Keychain / `@AppStorage`, not in the store. A ticket that finds it needs one follows

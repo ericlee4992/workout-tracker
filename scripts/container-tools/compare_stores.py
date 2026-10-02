@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Row-by-row preservation check between two copies of the app's store (public beta ticket 01).
 
-    compare_stores.py <old-container-dir> <new-container-dir> [--out report.json]
+    compare_stores.py <old-container-dir> <new-container-dir> [--out report.json] [--bundle-id <id>]
 
 Compares every entity table (Z* except Z_* bookkeeping) of `Library/Application Support/default.store` in the
 old copy with the new copy, matching rows by Z_PK. `Z_OPT` (SwiftData's optimistic-lock counter) is ignored, and
@@ -11,12 +11,18 @@ as changed data. Persistent-history tables (A*) are not compared: iOS appends to
 Reports, per table: rows missing from the new copy, rows whose values changed (with the columns), rows added,
 and columns removed or added. Both stores are opened on temporary copies.
 
-Exit status: 0 when every old row is present and unchanged and no table or column disappeared; 1 otherwise.
+It also compares the app's preferences (`Library/Preferences/<bundle-id>.plist`: consents, appearance, last
+export and other `@AppStorage` flags) key by key. A launch changed no key in the 2026-10-02 rehearsals, so a
+missing or changed key fails; an added key is listed.
+
+Exit status: 0 when every old row is present and unchanged, no table or column disappeared, and no preference
+was removed or changed; 1 otherwise.
 New rows or columns alone do not fail the check, but they are listed for a person to judge.
 """
 import argparse
 import json
 import os
+import plistlib
 import sys
 import tempfile
 
@@ -79,14 +85,35 @@ def compare(old, new):
     return report
 
 
+def compare_preferences(old_dir, new_dir, bundle_id):
+    path = f"Library/Preferences/{bundle_id}.plist"
+    old_path, new_path = os.path.join(old_dir, path), os.path.join(new_dir, path)
+    if not os.path.exists(old_path):
+        return {"path": path, "old_present": False, "ok": True}
+    if not os.path.exists(new_path):
+        return {"path": path, "old_present": True, "new_present": False, "ok": False}
+    with open(old_path, "rb") as a, open(new_path, "rb") as b:
+        old, new = plistlib.load(a), plistlib.load(b)
+    result = {"path": path, "keys_old": len(old), "keys_new": len(new),
+              "missing_keys": sorted(set(old) - set(new)), "added_keys": sorted(set(new) - set(old)),
+              "changed_keys": {k: [show(old[k]), show(new[k])] for k in sorted(set(old) & set(new))
+                               if old[k] != new[k]}}
+    result["ok"] = not result["missing_keys"] and not result["changed_keys"]
+    return result
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("old")
     parser.add_argument("new")
     parser.add_argument("--out")
+    parser.add_argument("--bundle-id", default="com.ericlee4992.workouttracker")
     args = parser.parse_args()
     with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
         report = compare(load(args.old, a), load(args.new, b))
+    report["preferences"] = compare_preferences(args.old, args.new, args.bundle_id)
+    report["every_old_row_preserved_and_preferences_kept"] = (report["every_old_row_preserved"]
+                                                             and report["preferences"]["ok"])
     if args.out:
         with open(args.out, "w") as handle:
             json.dump(report, handle, indent=2)
@@ -95,8 +122,9 @@ def main():
                   or e["added_columns"]}
     print(json.dumps({"tables_compared": len(report["tables"]), "missing_tables": report["missing_tables"],
                       "new_tables": report["new_tables"], "differences": noteworthy,
-                      "every_old_row_preserved": report["every_old_row_preserved"]}, indent=2))
-    return 0 if report["every_old_row_preserved"] else 1
+                      "every_old_row_preserved": report["every_old_row_preserved"],
+                      "preferences": report["preferences"]}, indent=2))
+    return 0 if report["every_old_row_preserved_and_preferences_kept"] else 1
 
 
 if __name__ == "__main__":

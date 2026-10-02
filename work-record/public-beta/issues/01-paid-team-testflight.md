@@ -40,46 +40,67 @@ the app is in use: the current profiles expire **2026-10-06 08:45 UTC (04:45 EDT
 
 ## Plan and stop points
 
-### Prepare (now; no phone, no Apple account changes)
+Two gates protect the data. **Neither is waived because the enrollment or the expiry deadline is close**
+(Codex review 01). Commands and scripts: DEVELOPMENT → *Container backup and restore*.
 
-1. Config diff on the branch: the four `DEVELOPMENT_TEAM` lines → `$(WT_DEVELOPMENT_TEAM)`; app
-   `INFOPLIST_KEY_CFBundleDisplayName = Stacked`; `ITSAppUsesNonExemptEncryption = NO` (HTTPS only);
-   build number left at 1 — no upload exists yet, and App Store Connect needs it unique per version only — each
-   upload passes `CURRENT_PROJECT_VERSION=<n>` on the archive command and records `n` here. Clean build; inspect the built app's and widget's
-   Info.plist (DEVELOPMENT → *Plists and extensions*): display name, encryption key, HealthKit and camera usage
-   strings, `NSExtension`, background modes. Release build launches in the Simulator; UI-test fixture flags
-   (`AskAI.fixtureIsEnabled`, `TerraAccess.fixture`) are off without their launch arguments.
-2. **Rehearse the restore on the Simulator:** seed a store, `simctl` copy the data container out, uninstall,
-   reinstall without launching, copy the container in, launch, compare row by row. Records the exact file set
-   (`Library/Application Support` store and `-wal`/`-shm`, `Library/Preferences/<bundle-id>.plist`, `Documents`)
-   and proves the store opens from restored files.
-3. Draft the Apple Developer Support request (release `com.ericlee4992.workouttracker` and
-   `com.ericlee4992.workouttracker.widget` — and `.watchkitapp` if registered — from Personal Team `X68M8SR6NA`
-   to the paid team) so it can be sent the moment a refusal appears. The user sends it; an agent cannot.
-4. Codex reviews the diff and this procedure (B–E) to "clear".
+**Gate S — stable verified backup** (`~/WorkoutTracker-Backups/<date>-<purpose>/`, mode 0700):
+1. No workout in progress (the user finishes or discards it). The user exports JSON (Settings → Export → JSON)
+   and closes the share sheet; the file stays in the app's `tmp/Exports/` and is captured with the container.
+   Note the counts on the Export card ("N workouts · M sets").
+2. The user swipes the app away; `devicectl device info processes` shows no app process (the widget extension
+   may run: it has no App Group and cannot open the store). **The app stays closed until the gated step is
+   done; if it is opened, Gate S starts again.**
+3. Capture the container twice (`copy from`). Both pass `verify_container.py`; capture 2 passes `--expect`
+   capture 1's report (byte-identical restore set = nothing was writing); capture 1 passes `--export` with the
+   export from step 1 (every exported workout and set ID present, counts equal). Record the report paths.
+
+**Gate P — phone copy preflight**, once per phone and Xcode version, on the installed free-team app: build a
+probe tree (a file, and a nested directory whose name contains a space, mirroring `Application Support`), `copy to`
+the app container's `tmp/`, `copy from` it back, and require `compare_trees.py` exit 0; record the exact working
+command forms for the restore (directory to `Library/Application Support`, file to `Library/Preferences`). The
+store is not touched. Simulator `cp` and `devicectl --help` do not count as evidence.
+
+### Prepare (no phone, no Apple account changes) — done 2026-10-02, see Progress
+
+1. Config diff: the four `DEVELOPMENT_TEAM` lines → `$(WT_DEVELOPMENT_TEAM)`; app
+   `INFOPLIST_KEY_CFBundleDisplayName = Stacked`; `ITSAppUsesNonExemptEncryption = NO` (HTTPS only); the
+   installer writes the team into `Local.xcconfig`, never the project. Build number left at 1 — no upload exists
+   yet, and App Store Connect needs it unique per version only — each upload passes `CURRENT_PROJECT_VERSION=<n>`
+   on the archive command and records `n` **and the exact commit** here (the bridge in E needs that commit).
+   Clean build; built plists inspected (DEVELOPMENT → *Plists and extensions*); Release launches in the Simulator.
+2. Restore rehearsed on the Simulator (direct restore and the full cycle), with negative checks.
+3. Apple Developer Support request drafted ([apple-support-request.md](../apple-support-request.md)).
+4. Codex review to "clear".
 
 ### A — Safety-net renewal of the free signing (Oct 4; no later than Oct 5 18:00 EDT)
 
-Skip only if D has already finished. User present, phone unlocked. DEVELOPMENT → *Provisioning expiry*: fresh
-full container backup with verification (SHA-256 manifest, integrity check on copies, row counts); move the two
-profiles aside; rebuild `main`'s code on the free team with `-allowProvisioningUpdates`; check **both** new
-expiry dates (about Oct 11); install; launch; preservation check. While the phone is connected, **confirm the
-`devicectl copy to`/`copy from` path forms** for phase D with a harmless file in the installed app's `tmp/`
-(DEVELOPMENT → *Container backup and restore*); the store is not touched. Repeat weekly while waiting on Apple. If
-Apple Support releases the IDs, the free profile can stop working before D — the phone keeps the data, and the
-latest backup stands ready.
+User present, phone unlocked, the paid move (D) not yet done. In order: **Gate S** → **Gate P** → move the two
+profiles aside; rebuild `main`'s code on the free team with `-allowProvisioningUpdates`; check **both** new expiry
+dates (about Oct 11) → install the same code over the app (same team: an in-place update) → launch →
+capture → `compare_stores.py` against Gate S (rows and preferences). Repeat the renewal weekly while waiting on
+Apple, each time behind Gate S.
 
 ### B — Paid team (after enrollment approval)
 
 1. The user confirms approval; the paid team appears in Xcode → Settings → Accounts for the same Apple ID.
-   Record its Team ID in STATE (not secret) and set `WT_DEVELOPMENT_TEAM` in this checkout's
-   `Local.xcconfig` (git-ignored).
+   Record its Team ID in STATE (not secret) and set `WT_DEVELOPMENT_TEAM` in this checkout's `Local.xcconfig`
+   (git-ignored).
 2. A development build for the paid team with `-allowProvisioningUpdates` registers the App IDs, the HealthKit
-   capability and the phone's UDID. **If refused ("not available"): stop.** The user sends the support request
-   from Prepare 3; continue A's weekly renewals until the IDs are free; then retry. **Do not change the bundle
-   ID** (Q1).
-3. Check the built app and widget: team prefix in `application-identifier`, HealthKit entitlements, profile
-   expiry about a year out, `get-task-allow` true (development).
+   capability and the phone's UDID. **If refused ("not available"): stop.** **Do not change the bundle ID** (Q1).
+   Before the user sends the Support request — which asks Apple to delete App IDs, and Apple states that deleting
+   an App ID invalidates its profiles — all of these must hold:
+   - Gate P recorded (from A, or run now);
+   - Gate S completed **the same day**, and the app kept closed from then on, or the user accepts that anything
+     logged after that backup may have to be re-entered;
+   - the user's recorded acceptance that the app may stop opening until D is finished.
+   Then the user sends it. Apple's answer and timing are not guaranteed (the forum threads report past users'
+   experiences, including initial refusals). Continue A's weekly renewals until Apple acts.
+3. If the Personal Team's IDs are deleted before D: check whether the free app still launches and whether
+   `copy from` still works. If a current Gate S backup can be taken, take it; **if not, stop and ask the user** —
+   never silently substitute an older backup.
+4. Check the built app and widget: the signed `application-identifier` values themselves (an App ID prefix is not
+   always the Team ID, Apple QA1879), HealthKit entitlements, profile expiry about a year out, `get-task-allow`
+   true (development).
 
 ### C — App Store Connect record
 
@@ -89,33 +110,37 @@ with the developer only. Subtitle and tagline are recorded for ticket 08/09, not
 
 ### D — Move the data to the paid-team build (irreversible step; ask first)
 
-1. Fresh full container backup of the installed free-team app to `~/WorkoutTracker-Backups/<date>-before-paid-team/`
-   (mode 0700), verified as on 2026-09-29: SHA-256 manifest, SQLite `integrity_check` on the copies, counts of
-   workouts, sets and templates, zero unfinished workouts.
-2. **The user approves the delete** after seeing the backup's verification. The user deletes the app on the
-   phone (or `devicectl device uninstall app`).
+1. **Gate S immediately before the delete**, to `~/WorkoutTracker-Backups/<date>-before-paid-team/`. Gate P must
+   be on record. The user also notes how many of this app's workouts Health shows (Health → Sources), since Health
+   records live outside the container.
+2. **The user approves the delete** after seeing both gate reports. The user deletes the app on the phone (or
+   `devicectl device uninstall app`). The app stays closed throughout.
 3. Install the paid-team development build. **Do not launch it.**
-4. Copy the backup's container files into the new app's container (`devicectl device copy to …
-   --domain-type appDataContainer --domain-identifier com.ericlee4992.workouttracker`), the file set from the
-   rehearsal. Copy the container out again and compare checksums with the backup before launching.
-5. Launch. The user re-grants Health access and re-enters the OpenAI key (team-scoped Keychain; until ticket
-   06 removes it). Copy the container out and run the row-by-row preservation comparison of every table
-   against the backup (the 2026-09-29 method). Expect no differences except launch-time bookkeeping already
-   seen on 09-29; any other difference stops the ticket for the user.
-6. If 3–5 fail: the backup is intact; reinstall and repeat 4, or stop and ask. Nothing is deleted from the
-   backup folder.
+4. Copy the restore set from the Gate S capture into the new container with the command forms Gate P proved.
+   Capture the container and run `verify_container.py --expect <Gate S report>`: exit 0 before any launch.
+5. Launch. Capture after the app is closed again; `compare_stores.py <Gate S capture> <after>` must exit 0 (every
+   row and every preference). The user re-grants Health access, re-enters the OpenAI key (team-scoped Keychain;
+   until ticket 06 removes it), and checks Health still lists the workouts noted in 1. Any difference stops the
+   ticket for the user.
+6. If 3–5 fail: the backup is intact; uninstall the new app (it holds only a copy), reinstall, repeat 4 — or stop
+   and ask. Nothing is ever deleted from the backup folder.
 
 ### E — TestFlight
 
-1. Release archive on the paid team; upload to App Store Connect (`xcodebuild -exportArchive` with an
-   `app-store-connect` export and upload destination, or Xcode Organizer). Wait for processing; the internal
-   group receives the build.
-2. Before installing it over the development build: a last full container backup (Q14 — TestFlight builds cannot
-   be copied from).
-3. The user installs from the TestFlight app. It must update in place (same team, same identifier). Launch;
-   check the visible counts (History) and run an in-app Export; compare the export's workouts, sets and
-   templates with the backup counts.
-4. The Live Activity and widget appear in a short workout; the home-screen name reads "Stacked".
+1. Release archive on the paid team from a recorded commit; upload to App Store Connect (`xcodebuild
+   -exportArchive` with an `app-store-connect` export and upload destination, or Xcode Organizer). Record the
+   build number and commit. Compare the archived app's signed `application-identifier` with the development
+   build's: they must be equal, or the TestFlight install will not update in place — stop.
+2. **Gate S** (the last container backup a development build allows), then install from TestFlight with the app
+   closed. If the TestFlight app offers only delete-and-install, stop.
+3. Launch; Export JSON; the export's counts equal Gate S's. In TestFlight, **turn off Automatic Updates** for
+   Stacked (a later build must never install before its backup).
+4. **Prove the backup bridge once:** build a development build from **the same commit** as the TestFlight build;
+   with the app closed, install it over the TestFlight build **without launching**; if installation needs a
+   delete, stop (the TestFlight build and its data stay). Capture; `verify_container.py --export` with step 3's
+   export must pass. Then reinstall the same TestFlight build from the TestFlight app, launch, check counts. This
+   establishes the rule in DEVELOPMENT; until it passes, the rule is unproven.
+5. The Live Activity and widget appear in a short workout; the home-screen name reads "Stacked".
 
 ## Progress
 
@@ -154,6 +179,45 @@ Branch `ericlee4992/beta-01-paid-team` from `main` `bab270b`. Derived data and l
 - **Apple Support draft:** [apple-support-request.md](../apple-support-request.md) (placeholders for name, email
   and the paid team ID; the repository is public).
 - WT-Beta01 holds a copy of the user's 09-29 data: **delete the simulator when the review is clear**.
+
+## Codex review 01 — response (round 1)
+
+Review: [codex-review-01.md](../codex-review-01.md) — not clear (2 P2, 4 P1). All six accepted; fixes below,
+verified on Simulator/rehearsal copies (scratchpad `…/b01/rehearsal/`). No phone or Apple-account step was taken.
+
+1. **P2 installer writes a literal team** — `scripts/install-on-device.sh` `write_team_id` now upserts
+   `WT_DEVELOPMENT_TEAM` in `Config/Local.xcconfig` (adds `WT_BUNDLE_ID_BASE` only if absent) and never touches
+   the project; the bundle-ID notes no longer suggest editing the project. Tested on a temporary directory: new
+   file created; an existing file's team replaced in place, bundle ID kept, idempotent on a second run; the
+   project file byte-identical. `bash -n` ok. `-showBuildSettings` still resolves `DEVELOPMENT_TEAM = X68M8SR6NA`
+   from this checkout's `Local.xcconfig`.
+2. **P2 STATE stale** — STATE now names the branch, what is implemented and verified, review status, phases A–E
+   not done, the deadline, the evidence location and the WT-Beta01 clean-up; phone facts kept separate.
+3. **P1 Support request before a fresh backup** — B2 now requires Gate P on record, a same-day Gate S with the app
+   kept closed (or the user's acceptance of re-entry), and the user's acceptance that the app may stop opening;
+   B3 handles IDs deleted before D (check launch and copy access; fresh Gate S or stop — never an older backup).
+   The Support draft carries the same preconditions, cites Apple's App ID deletion page, and no longer promises
+   Apple's answer.
+4. **P1 device preflight bypassable / probe unchecked** — Gate P is now unconditional before B2's request and
+   D2's delete, round-trips a file **and** a nested directory with a space in its name, and is checked with the
+   new `compare_trees.py` (exact paths and hashes), not `--expect`. Tests: identical trees exit 0; a changed byte,
+   a missing file and an extra file each exit 1 (below).
+5. **P1 backups not from a stopped, stable app** — Gate S: no workout in progress, a JSON export first, the app
+   swiped away and absent from the process list, two captures that must be byte-identical (`--expect`), and the
+   new `verify_container.py --export` cross-check against the app's own export (every workout and set ID present,
+   counts equal). DEVELOPMENT states what integrity/comparison cannot prove. Evidence with a **real export written
+   by the app** (a throwaway UI test, deleted, never committed, tapped Export → JSON on the rehearsal store; the card
+   read "24 workouts · 343 sets"): capture passes `--export` (exit 0; IDs matched, so the UUID byte order is right);
+   a second capture passes `--expect` the first (exit 0); a capture missing one set fails (exit 1, names set
+   `954C5A24-…`, sets 343 vs 342) — the shape of Codex's truncated-WAL case; an empty store fails cleanly (exit 1,
+   no traceback).
+6. **P1 TestFlight bridge could run new code first** — the bridge is now: Automatic Updates off; a development
+   build of the **exact commit of the installed TestFlight build** (each upload records its commit); installed over
+   it **without launching**; stop if a delete is demanded; Gate S captures with `--export`. E4 proves it once on
+   the phone; E1 compares the archived and development `application-identifier` values (QA1879). Spec and D60 carry
+   the rule. Also from the review's notes: D1/D5 add the Health records check (they live outside the container),
+   and `compare_stores.py` now compares the preferences plist key by key (a launch changed no key in the
+   rehearsals; a flipped consent fails, exit 1; a missing plist fails, exit 1).
 
 ## Acceptance
 

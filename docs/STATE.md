@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-10-02** after the public-beta planning session (docs only). The Floodlight redesign was merged and
+Updated **2026-10-02** during public-beta ticket 01 (Prepare implemented; Codex review in progress). The Floodlight redesign was merged and
 installed 2026-09-29; nothing changed on the phone or in the code since. The previous STATE (the per-ticket
 redesign handoff, the September 22 installation, the AI/cardio open items) is archived byte-for-byte:
 [STATE before Floodlight merge](archive/STATE-2026-09-29-before-floodlight-merge.md). Verify Git on resume.
@@ -32,40 +32,43 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   is unchanged. Older backups (Sep 17/18/20/22) remain.
 - Phone: iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
 
-## ACTIVE: public beta ("Stacked") — planned 2026-10-01/02, nothing implemented
+## ACTIVE: public beta ("Stacked") — ticket 01 Prepare implemented, in Codex review
 
-Worktree `/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch `ericlee4992/public-beta` (from `main`
-`9da32a9`; docs only). **`main` was fast-forwarded to the planning commit `fe4a97b` on 2026-10-02 at the user's
-request** (pushed), so each ticket branch starts from `main` with the spec. The planning session with the user is done: **[spec](../work-record/public-beta/spec.md)**
-(every answer, Q1–Q14, in its *User decisions* table), decision **D60** (reopens SPEC's no-backend/no-accounts line,
-D5, D41, D53, D56, D58; pointers added to those rows and to SPEC), tickets
-[`work-record/public-beta/issues/01…09`](../work-record/public-beta/issues/). In short: the app becomes **Stacked**
-("Every machine. Every gym."); optional accounts (Apple + Google, no SDKs) holding identity and a training profile,
-workouts stay on the phone; a Cloudflare Worker + D1 server; all three AI flows through it on the user's key
-(60/10/60 per person per day, off switch, phone key field removed); onboarding walkthrough; in-app feedback; the user
-on internal TestFlight now, friends as external testers after tickets 02–07.
+Planned 2026-10-01/02 with the user: **[spec](../work-record/public-beta/spec.md)** (answers Q1–Q14), decision
+**D60** (reopens SPEC's no-backend/no-accounts line, D5, D41, D53, D56, D58), tickets
+[`work-record/public-beta/issues/01…09`](../work-record/public-beta/issues/). The planning is on `main` (`bab270b`,
+fast-forwarded at the user's request). In short: Stacked; optional Apple/Google accounts with a training profile,
+workouts stay on the phone; a Cloudflare Worker + D1 server; all AI on the user's key through it (60/10/60 a day,
+off switch, no key on phones); onboarding; in-app feedback; the user on internal TestFlight now.
 
-**Ticket 01 is time-critical** ([01](../work-record/public-beta/issues/01-paid-team-testflight.md)): free-team
-profiles expire **2026-10-06 04:45 EDT**. The paid enrollment was **still pending** on 2026-10-02 (Xcode shows only
-team `X68M8SR6NA`). The bundle ID is probably held by the free Personal Team; the user chose to keep it and ask
-Apple Support to release it if refused. A team change cannot install over the app, so the data moves by
-backup → delete → install → container restore → row-by-row check (rehearse on the Simulator first). Afterwards the
-phone runs TestFlight builds; full container backups need a development build installed briefly.
+**Ticket 01** ([01](../work-record/public-beta/issues/01-paid-team-testflight.md)) — worktree
+`/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch **`ericlee4992/beta-01-paid-team`** (pushed; not
+merged). **Implemented and verified locally (Prepare):** team from `Config/Local.xcconfig` (pbxproj and the
+installer), home-screen name Stacked, `ITSAppUsesNonExemptEncryption`; `scripts/container-tools/`
+(`verify_container.py` with `--expect`/`--export`, `compare_stores.py` with preferences, `compare_trees.py`);
+DEVELOPMENT → *Container backup and restore* (Gate S stable backup, Gate P phone copy preflight, the TestFlight
+backup bridge); the restore rehearsed on the Simulator with negatives; the Apple Support draft (send only after the
+gates). **Codex review 01: not clear** (2 P2, 4 P1) — all addressed in the ticket's response; **round 2 pending**
+in the Orca terminal "Codex review — beta 01". **Not done:** phases A–E (phone, Apple account). Simulator
+**WT-Beta01** `A3D88C6F-6426-427A-9A0E-CF11A93798B1` holds a copy of the user's 09-29 data — delete it once the review
+is clear. Evidence under this session's scratchpad `…/scratchpad/b01/` (ephemeral; results are in the ticket).
+
+**Phone facts are unchanged:** the free-team build from 2026-09-29 is installed; profiles expire **2026-10-06
+04:45 EDT**. The paid enrollment was **pending** on 2026-10-02. The bundle ID is probably held by the free Personal
+Team (the user chose to keep it and ask Apple Support if refused). iOS cannot upgrade across teams, so the data
+moves by Gate S → delete → install → restore → compare.
 
 ## Next action
 
-1. **Ticket 01, Prepare** (no phone needed): config diff (`DEVELOPMENT_TEAM` → `$(WT_DEVELOPMENT_TEAM)`, display
-   name Stacked, `ITSAppUsesNonExemptEncryption = NO`, build number), Simulator restore rehearsal, the Apple Support
-   message draft, Codex review of the diff and the move procedure.
-2. **Phase A by 2026-10-05 18:00 EDT at the latest** (plan: Oct 4), unless the paid-team move is already done:
-   renew the free signing with a fresh verified backup (DEVELOPMENT → Provisioning expiry). Needs the user and the
-   unlocked phone.
-3. When Apple approves the enrollment: ticket 01 phases B–E (paid team, App Store Connect record "Stacked", the
-   data move — the user approves the delete — then the TestFlight build).
+1. **Codex review 01, round 2** → fix until "clear" → merge `ericlee4992/beta-01-paid-team` into `main` only with the
+   user's go-ahead → delete WT-Beta01.
+2. **Phase A by 2026-10-05 18:00 EDT at the latest** (plan: Oct 4), unless D is done: Gate S → Gate P → free
+   renewal → install → compare. Needs the user and the unlocked phone.
+3. When Apple approves the enrollment: ticket 01 phases B–E (gated as in the ticket; the user approves the delete).
 4. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone (feedback as
    tickets under `work-record/redesign-floodlight/`). Not yet exercised anywhere: VoiceOver by a person, Reduce
    Motion at runtime, real GPS and sensors on the redesigned cardio screens, Lock Screen commands on a device, a
-   restore from a backup (ticket 01 rehearses one), a non-US simulator region.
+   restore from a backup on a phone (Simulator only so far), a non-US simulator region.
 
 ## Still open from before the redesign (unchanged; details in the archived STATE)
 

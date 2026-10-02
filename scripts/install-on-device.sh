@@ -230,21 +230,25 @@ repair_wwdr_chain() {
   rm -f "$cer"
 }
 
-# write_team_id TEAMID — upsert DEVELOPMENT_TEAM beside every automatic
-# signing block in the Xcode project. Idempotent; leaves the test target
-# (which has signing disabled) untouched.
+# write_team_id TEAMID — upsert WT_DEVELOPMENT_TEAM in the git-ignored
+# Config/Local.xcconfig, which every signed target reads through
+# DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)". Never writes the team into the
+# Xcode project: a literal there overrides Local.xcconfig, so a later team
+# change (free → paid, public beta ticket 01) would silently keep signing with
+# the old team. Idempotent; leaves an existing WT_BUNDLE_ID_BASE alone.
 write_team_id() {
   local team="$1" tmp
+  local local_cfg="$PROJECT_DIR/Config/Local.xcconfig"
+  [[ -f "$local_cfg" ]] || printf '// Per-developer signing identity (gitignored). See Local.xcconfig.example.\n' > "$local_cfg"
   tmp=$(mktemp)
   awk -v team="$team" '
-    /^[[:space:]]*DEVELOPMENT_TEAM = /{ next }
+    /^[[:space:]]*WT_DEVELOPMENT_TEAM[[:space:]]*=/{ if (!done) print "WT_DEVELOPMENT_TEAM = " team; done = 1; next }
     { print }
-    /^[[:space:]]*CODE_SIGN_STYLE = Automatic;/{
-      match($0, /^[[:space:]]*/)
-      print substr($0, 1, RLENGTH) "DEVELOPMENT_TEAM = " team ";"
-    }
-  ' "$PROJECT_FILE" > "$tmp" && mv "$tmp" "$PROJECT_FILE"
-  printf '  %s✓ wrote%s DEVELOPMENT_TEAM = %s into the Xcode project\n' "$GREEN" "$RESET" "$team"
+    END { if (!done) print "WT_DEVELOPMENT_TEAM = " team }
+  ' "$local_cfg" > "$tmp" && mv "$tmp" "$local_cfg"
+  grep -qE '^[[:space:]]*WT_BUNDLE_ID_BASE[[:space:]]*=' "$local_cfg" \
+    || printf 'WT_BUNDLE_ID_BASE = com.ericlee4992.workouttracker\n' >> "$local_cfg"
+  printf '  %s✓ wrote%s WT_DEVELOPMENT_TEAM = %s into Config/Local.xcconfig\n' "$GREEN" "$RESET" "$team"
 }
 
 # first_connected_device — "UDID<TAB>Name" of a connected iPhone, if any.
@@ -345,7 +349,8 @@ while [[ ! "$TEAM_ID" =~ ^[A-Z0-9]{10}$ ]]; do
 done
 write_team_id "$TEAM_ID"
 note "Bundle ID is com.ericlee4992.workouttracker — must be globally unique."
-note "If Xcode later says it is taken, change it in the project and re-run."
+note "It comes from WT_BUNDLE_ID_BASE in Config/Local.xcconfig. Changing it starts a new,"
+note "empty app on the phone — see DEVELOPMENT → Container backup and restore first."
 pause "Press Enter to continue"
 
 # ── 3 ─────────────────────────────────────────────────────────────────────
@@ -413,7 +418,8 @@ else
     note "Settings ▸ Privacy & Security ▸ Developer Mode ▸ ON, let it restart, re-run this script."
   elif grep -qE "bundle identifier .* is not available|already in use" "$BUILD_LOG"; then
     warn "That bundle ID is taken by another Apple account."
-    note "Change PRODUCT_BUNDLE_IDENTIFIER in the project, then re-run."
+    note "Do not just change WT_BUNDLE_ID_BASE: a new ID is a new, empty app on the phone."
+    note "See DEVELOPMENT → Container backup and restore and public-beta ticket 01."
   elif grep -q "No profiles for" "$BUILD_LOG"; then
     warn "Xcode couldn't create a provisioning profile."
     note "Check Xcode ▸ Settings ▸ Accounts still shows your Apple ID and team."

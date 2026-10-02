@@ -3,6 +3,12 @@
 For ticket 01, phase B. **Send only if the paid team is refused the bundle ID** ("An App ID with Identifier
 'com.ericlee4992.workouttracker' is not available"). The user sends it; an agent cannot.
 
+**Not before all of these (ticket 01, B2):** the phone copy preflight (Gate P) is recorded; a stable verified
+backup (Gate S) was taken the same day and the app kept closed since, or the user accepts re-entering anything
+logged after it; and the user accepts that the app may stop opening until the move (D) is done. The request asks
+Apple to delete App IDs, and [Apple states](https://developer.apple.com/help/account/identifiers/delete-an-app-id/)
+that deleting an App ID invalidates its provisioning profiles. Apple's response and timing are not guaranteed.
+
 **Where:** developer.apple.com/contact → *Membership and Account* → *Development and Technical* (or
 *Certificates, Identifiers & Profiles*) → email or a call-back. Signed in with the Apple ID that owns both
 teams. Fill in the paid Team ID once Apple has approved the enrollment.
@@ -36,6 +42,6 @@ needed. Thank you.
 
 ---
 
-After Apple confirms: retry the paid-team build (ticket 01, B2). Expect the free-team app on the phone to stop
-launching once its App ID is deleted; its data stays in the container and the latest verified backup is ready
-for phase D.
+After Apple confirms: retry the paid-team build (ticket 01, B2). The free-team app may stop launching once its App
+ID is deleted. Check whether it still launches and whether its container can still be copied; take a fresh Gate S
+backup if possible, and if not, stop and ask the user (ticket 01, B3) — never silently use an older backup.

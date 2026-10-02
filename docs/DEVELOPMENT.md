@@ -192,44 +192,64 @@ install as usual; the store is not opened until a launch succeeds.
 
 ## Container backup and restore
 
-`scripts/container-tools/` checks a copied app data container (public beta ticket 01). Both scripts work on
-temporary copies of the databases: opening a store in place can checkpoint its WAL and change the backup.
+`scripts/container-tools/` checks copied app data containers (public beta ticket 01). The scripts open databases
+only on temporary copies: opening a store in place can checkpoint its WAL and change the backup.
 
-- `verify_container.py <dir> --out report.json` — SHA-256 manifest, `integrity_check` for every database,
-  store counts (workouts, unfinished, sets, templates, every entity table). Exit 1 on any failure.
-  `--expect <earlier report>` also requires the **restore set** to match that report byte for byte.
-- `compare_stores.py <old dir> <new dir> --out report.json` — row by row over all entity tables by `Z_PK`,
-  `Z_OPT` ignored, `Z_ENT` compared by entity name; exit 1 if any old row is missing or changed or a table or
-  column vanished. A person judges any difference (on 2026-09-29 the only one was the user's own gym pick).
+- `verify_container.py <dir> --out r.json` — SHA-256 manifest, `integrity_check` for every database, store counts
+  (workouts, unfinished, sets, templates, every entity table); exit 1 on any failure. `--expect <earlier report>`
+  requires the **restore set** to match byte for byte. `--export <export.json>` requires every workout and set ID
+  of a JSON export taken just before the capture to be in the captured store, with equal counts.
+- `compare_stores.py <old dir> <new dir>` — every entity table row by row by `Z_PK` (`Z_OPT` ignored, `Z_ENT` by
+  entity name, persistent-history `A*` tables skipped) and the preferences plist key by key; exit 1 if an old row
+  is missing or changed, a table or column vanished, or a preference was removed or changed. Added rows, columns
+  or keys pass but are listed for a person to judge. Same-schema restores only; not a migration comparator.
+- `compare_trees.py <expected> <actual> [--within <path>]` — exact tree equality (paths and hashes), for the phone
+  copy preflight. The restore-set filter does not cover `tmp/`; never use `--expect` for a probe.
+
+**What integrity and comparison cannot prove.** A raw copy taken while the app writes can miss committed
+transactions (an incomplete WAL): the capture still passes integrity, counts, `--expect` and a later
+`compare_stores.py` against itself (Codex review 01 reproduced this). Hence the stable-copy rule below and the
+`--export` cross-check, which catches missing workouts or sets.
 
 **Restore set** — the user's data and settings: `Library/Application Support/` (the store and its `-wal`/`-shm`),
 `Library/Preferences/<bundle-id>.plist` (`@AppStorage`: consents, appearance, last export, flags) and
-`Documents/`. Caches, snapshots, saved state and HTTP storage are rebuilt by iOS and are not restored. Not in the
-container at all: Keychain items (the OpenAI key; team-scoped) and Health permissions (granted again).
+`Documents/`. Caches, snapshots, saved state and HTTP storage are rebuilt by iOS. Outside the container
+altogether: Keychain items (the OpenAI key; team-scoped), Health permissions (granted again) and the workouts the
+app saved to Health (they stay in Health; check them by eye before and after).
 
-**Restore into a new install** (a team change: iOS refuses to upgrade across team IDs, so the old app must be
-deleted). Rehearsed on the Simulator 2026-10-02 with a copy of the 09-29 backup, both a direct restore and the
-full cycle; every row of 15 tables preserved; damage (a deleted set, a changed preferences byte) fails both
-checks. Order: (1) back up the installed app and verify it; (2) the user approves and deletes the app; (3) install
-the new build and **do not launch it** — the store must not be created first; (4) copy the restore set into the
-new container; (5) copy the container out again and run `verify_container.py --expect <backup report>`; (6)
-launch; (7) copy out and `compare_stores.py <backup> <after>`.
+**Stable backup (Gate S).** No workout in progress; a JSON export (Settings → Export → JSON, share sheet closed:
+the file stays in `tmp/Exports/` and is captured); the app swiped away and absent from `devicectl device info
+processes`; two captures; capture 2 passes `--expect` capture 1's report; capture 1 passes `--export`. The app
+stays closed until the step the backup protects is done.
+
+**Restore into a new install** (a team change: iOS refuses to upgrade across application identifiers, so the old
+app must be deleted). Rehearsed on the Simulator 2026-10-02 with a copy of the 09-29 backup — a direct restore and
+the full cycle; every row of 15 tables and every preference kept; deleted rows, a changed consent, a changed
+preferences byte and a capture missing a set all fail. Order: Gate S → the user approves and deletes the app →
+install the new build and **do not launch it** (the store must not be created first) → copy the restore set in →
+capture and `verify_container.py --expect <Gate S report>` → launch → close → capture → `compare_stores.py`.
 
 On the phone (development-signed builds only; `get-task-allow`):
 ```sh
+xcrun devicectl device info processes --device <id> | grep -i workouttracker   # must print nothing
 xcrun devicectl device copy from --device <id> --domain-type appDataContainer \
   --domain-identifier com.ericlee4992.workouttracker --source / --destination <backup>/app-container
 xcrun devicectl device copy to --device <id> --domain-type appDataContainer \
   --domain-identifier com.ericlee4992.workouttracker --source "<backup>/app-container/Library/Application Support" \
   --destination "Library/Application Support"   # likewise the Preferences plist and Documents
 ```
-The `--source`/`--destination` path forms on the phone are **unconfirmed**: confirm them before the delete by
-copying a harmless file into the installed app's `tmp/` and back, and check the result with the scripts.
-On the Simulator the same steps use `xcrun simctl get_app_container <sim> <bundle-id> data` and `cp -Rp`.
+These `--source`/`--destination` forms are **unconfirmed until Gate P** (ticket 01) records the working forms:
+round-trip a probe tree (a file and a nested directory with a space in its name) through the installed app's
+`tmp/` and require `compare_trees.py` exit 0. On the Simulator the same steps use `xcrun simctl get_app_container
+<sim> <bundle-id> data` and `cp -Rp`.
 
-**TestFlight and App Store builds cannot be copied from** (no `get-task-allow`). Before a risky update on a
-phone running TestFlight, install a development build from the same team over it (same identifier, container
-kept), take the backup, then continue; in-app Export is the routine backup.
+**TestFlight and App Store builds cannot be copied from** (no `get-task-allow`); in-app JSON Export is the routine
+backup there. Before a risky update (a schema change, a migration) on a phone running TestFlight, use the
+**backup bridge**: turn off TestFlight's Automatic Updates for the app; build a development build from **the exact
+commit of the installed TestFlight build** (recorded per upload in the ticket and STATE) — never the new code, whose
+first launch could migrate or repair the store before the backup; with the app closed, install it over the
+TestFlight build **without launching**; if installation demands a delete, stop; take Gate S's captures with
+`--export`; then install the new build. Proven once in ticket 01 phase E; until then, unproven.
 
 ## Plists and extensions
 
