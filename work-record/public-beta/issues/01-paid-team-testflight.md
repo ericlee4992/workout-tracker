@@ -1,8 +1,8 @@
 # 01 — Paid team, data move and TestFlight
 
 Type: task
-Status: needs-info — waiting on Apple's enrollment approval (paid, pending at 2026-10-02); phase A can run
-without it
+Status: in progress — **Prepare done 2026-10-02 except the Codex review**; phases B–E wait on Apple's enrollment
+approval (pending at 2026-10-02); phase A (free renewal) is due Oct 4, by Oct 5 18:00 EDT at the latest
 Blocked by: —
 Implementer: Claude (the signing, phone and App Store Connect steps need this session's tooling and the user).
 Reviewer: Codex, in a visible Orca terminal, for the config diff **and for this procedure before the delete
@@ -44,7 +44,8 @@ the app is in use: the current profiles expire **2026-10-06 08:45 UTC (04:45 EDT
 
 1. Config diff on the branch: the four `DEVELOPMENT_TEAM` lines → `$(WT_DEVELOPMENT_TEAM)`; app
    `INFOPLIST_KEY_CFBundleDisplayName = Stacked`; `ITSAppUsesNonExemptEncryption = NO` (HTTPS only);
-   `CURRENT_PROJECT_VERSION` raised for the first upload. Clean build; inspect the built app's and widget's
+   build number left at 1 — no upload exists yet, and App Store Connect needs it unique per version only — each
+   upload passes `CURRENT_PROJECT_VERSION=<n>` on the archive command and records `n` here. Clean build; inspect the built app's and widget's
    Info.plist (DEVELOPMENT → *Plists and extensions*): display name, encryption key, HealthKit and camera usage
    strings, `NSExtension`, background modes. Release build launches in the Simulator; UI-test fixture flags
    (`AskAI.fixtureIsEnabled`, `TerraAccess.fixture`) are off without their launch arguments.
@@ -62,7 +63,9 @@ the app is in use: the current profiles expire **2026-10-06 08:45 UTC (04:45 EDT
 Skip only if D has already finished. User present, phone unlocked. DEVELOPMENT → *Provisioning expiry*: fresh
 full container backup with verification (SHA-256 manifest, integrity check on copies, row counts); move the two
 profiles aside; rebuild `main`'s code on the free team with `-allowProvisioningUpdates`; check **both** new
-expiry dates (about Oct 11); install; launch; preservation check. Repeat weekly while waiting on Apple. If
+expiry dates (about Oct 11); install; launch; preservation check. While the phone is connected, **confirm the
+`devicectl copy to`/`copy from` path forms** for phase D with a harmless file in the installed app's `tmp/`
+(DEVELOPMENT → *Container backup and restore*); the store is not touched. Repeat weekly while waiting on Apple. If
 Apple Support releases the IDs, the free profile can stop working before D — the phone keeps the data, and the
 latest backup stands ready.
 
@@ -114,10 +117,48 @@ with the developer only. Subtitle and tagline are recorded for ticket 08/09, not
    templates with the backup counts.
 4. The Live Activity and widget appear in a short workout; the home-screen name reads "Stacked".
 
+## Progress
+
+### Prepare — 2026-10-02 (Claude)
+
+Branch `ericlee4992/beta-01-paid-team` from `main` `bab270b`. Derived data and logs in this session's scratchpad
+(`…/scratchpad/b01/`, ephemeral); exit codes below are the commands' own (no pipeline masking).
+
+- **Config diff:** `project.pbxproj` — the four `DEVELOPMENT_TEAM = X68M8SR6NA` → `"$(WT_DEVELOPMENT_TEAM)"`; app
+  Debug and Release `INFOPLIST_KEY_CFBundleDisplayName = Stacked`. `Config/WorkoutTracker-Info.plist` —
+  `ITSAppUsesNonExemptEncryption = false` (with the reason). No code reads the app's name (checked app, widget and
+  tests). `Config/Local.xcconfig` copied from the main checkout (git-ignored; still the free team).
+- **Clean device build** (Debug, generic iOS, free team from `Local.xcconfig`, no `-allowProvisioningUpdates`):
+  exit 0, CLEAN and BUILD SUCCEEDED. Built app: `CFBundleIdentifier` com.ericlee4992.workouttracker, display name
+  **Stacked**, `ITSAppUsesNonExemptEncryption` false, 0.1.0 (1), `NSSupportsLiveActivities`, Health and camera
+  usage strings, `UIBackgroundModes` [audio, workout-processing, location]; entitlements
+  `X68M8SR6NA.com.ericlee4992.workouttracker`, HealthKit ×3, `get-task-allow`. Widget: `.widget`, "Workout",
+  `com.apple.widgetkit-extension`, same team. Profiles unchanged (2026-10-06T08:45:50Z / :48Z).
+  `codesign --verify --deep --strict` ok. So the team now comes only from `Local.xcconfig`.
+- **Simulator Release build with no team** (`WT_DEVELOPMENT_TEAM=` and the example bundle ID, as CI builds):
+  exit 0; installed on the new simulator **WT-Beta01** `A3D88C6F-6426-427A-9A0E-CF11A93798B1` (iPhone 17 Pro Max,
+  iOS 27.0); launched and stayed running (PID 71448); empty Workout tab rendered. The AI fixtures need two launch
+  arguments together (`WorkoutTrackerStore.fixtureIsEnabled`), which a TestFlight install cannot pass.
+- **Scripts** `scripts/container-tools/verify_container.py` and `compare_stores.py` (DEVELOPMENT → *Container
+  backup and restore*). Validated on the 09-29 backup: 27 files, 26,725,362 bytes, 24 workouts / 0 unfinished /
+  343 sets / 2 templates, 15 tables — as recorded on 09-29; backup vs after-launch reports exactly the known
+  `ZAPPPREFERENCES` gym pick (exit 1, correctly). The original store's SHA-256 was unchanged afterwards.
+- **Restore rehearsal R1** (Debug Simulator build with the real bundle ID, installed, never launched; the 09-29
+  backup's restore set copied in): pre-launch `--expect` check exit 0 (4 files, none mismatched or extra);
+  launched — the user's gym, Pull/Push templates shown; compare backup vs after-launch: **15 tables, no
+  differences, every old row preserved**, exit 0.
+- **Rehearsal R2, the full phase-D cycle:** back up the installed app (verify exit 0) → uninstall → install
+  (new container) → restore → pre-launch check exit 0 → launch → compare exit 0, no differences.
+- **Negative checks:** one set row deleted from a copy → compare exit 1 naming `ZSETRECORD` row 32; one byte
+  appended to the preferences plist → `--expect` exit 1.
+- **Apple Support draft:** [apple-support-request.md](../apple-support-request.md) (placeholders for name, email
+  and the paid team ID; the repository is public).
+- WT-Beta01 holds a copy of the user's 09-29 data: **delete the simulator when the review is clear**.
+
 ## Acceptance
 
-- [ ] Config diff merged after Codex clear; clean build; built plists checked; Release launch in Simulator.
-- [ ] Restore rehearsed on the Simulator with a passing row-by-row comparison.
+- [ ] Config diff merged after Codex clear (clean build, built plists and Release launch in Simulator: done).
+- [x] Restore rehearsed on the Simulator with a passing row-by-row comparison.
 - [ ] The app never stopped opening because of an expired profile.
 - [ ] Paid team ID recorded; App IDs registered on it **with the original bundle IDs**.
 - [ ] App Store Connect record "Stacked" (or the user's chosen fallback); internal group with the developer.

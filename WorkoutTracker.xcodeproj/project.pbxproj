@@ -630,12 +630,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/WorkoutTracker.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = X68M8SR6NA;
+				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/WorkoutTracker-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Stacked;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph equipment or its label. With your permission, AI identification sends the photo to OpenAI; the app does not save it.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate is shown live during a workout and summarised when you finish. It is read on device and never leaves it.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Workouts you log are saved to Health so your rings and history stay accurate.";
@@ -664,12 +665,13 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = Config/WorkoutTracker.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = X68M8SR6NA;
+				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/WorkoutTracker-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = Stacked;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph equipment or its label. With your permission, AI identification sends the photo to OpenAI; the app does not save it.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate is shown live during a workout and summarised when you finish. It is read on device and never leaves it.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Workouts you log are saved to Health so your rings and history stay accurate.";
@@ -789,7 +791,7 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = X68M8SR6NA;
+				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Workout;
 				INFOPLIST_FILE = "Config/WorkoutTrackerWidget-Info.plist";
@@ -812,7 +814,7 @@
 			buildSettings = {
 				CLANG_ENABLE_OBJC_WEAK = NO;
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = X68M8SR6NA;
+				DEVELOPMENT_TEAM = "$(WT_DEVELOPMENT_TEAM)";
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Workout;
 				INFOPLIST_FILE = "Config/WorkoutTrackerWidget-Info.plist";

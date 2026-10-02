@@ -190,6 +190,47 @@ the user" (FBSOpenApplicationErrorDomain 3). The user re-trusts it on the phone 
 General → VPN & Device Management → Developer App → Trust; needs internet). Back up before the
 install as usual; the store is not opened until a launch succeeds.
 
+## Container backup and restore
+
+`scripts/container-tools/` checks a copied app data container (public beta ticket 01). Both scripts work on
+temporary copies of the databases: opening a store in place can checkpoint its WAL and change the backup.
+
+- `verify_container.py <dir> --out report.json` — SHA-256 manifest, `integrity_check` for every database,
+  store counts (workouts, unfinished, sets, templates, every entity table). Exit 1 on any failure.
+  `--expect <earlier report>` also requires the **restore set** to match that report byte for byte.
+- `compare_stores.py <old dir> <new dir> --out report.json` — row by row over all entity tables by `Z_PK`,
+  `Z_OPT` ignored, `Z_ENT` compared by entity name; exit 1 if any old row is missing or changed or a table or
+  column vanished. A person judges any difference (on 2026-09-29 the only one was the user's own gym pick).
+
+**Restore set** — the user's data and settings: `Library/Application Support/` (the store and its `-wal`/`-shm`),
+`Library/Preferences/<bundle-id>.plist` (`@AppStorage`: consents, appearance, last export, flags) and
+`Documents/`. Caches, snapshots, saved state and HTTP storage are rebuilt by iOS and are not restored. Not in the
+container at all: Keychain items (the OpenAI key; team-scoped) and Health permissions (granted again).
+
+**Restore into a new install** (a team change: iOS refuses to upgrade across team IDs, so the old app must be
+deleted). Rehearsed on the Simulator 2026-10-02 with a copy of the 09-29 backup, both a direct restore and the
+full cycle; every row of 15 tables preserved; damage (a deleted set, a changed preferences byte) fails both
+checks. Order: (1) back up the installed app and verify it; (2) the user approves and deletes the app; (3) install
+the new build and **do not launch it** — the store must not be created first; (4) copy the restore set into the
+new container; (5) copy the container out again and run `verify_container.py --expect <backup report>`; (6)
+launch; (7) copy out and `compare_stores.py <backup> <after>`.
+
+On the phone (development-signed builds only; `get-task-allow`):
+```sh
+xcrun devicectl device copy from --device <id> --domain-type appDataContainer \
+  --domain-identifier com.ericlee4992.workouttracker --source / --destination <backup>/app-container
+xcrun devicectl device copy to --device <id> --domain-type appDataContainer \
+  --domain-identifier com.ericlee4992.workouttracker --source "<backup>/app-container/Library/Application Support" \
+  --destination "Library/Application Support"   # likewise the Preferences plist and Documents
+```
+The `--source`/`--destination` path forms on the phone are **unconfirmed**: confirm them before the delete by
+copying a harmless file into the installed app's `tmp/` and back, and check the result with the scripts.
+On the Simulator the same steps use `xcrun simctl get_app_container <sim> <bundle-id> data` and `cp -Rp`.
+
+**TestFlight and App Store builds cannot be copied from** (no `get-task-allow`). Before a risky update on a
+phone running TestFlight, install a development build from the same team over it (same identifier, container
+kept), take the backup, then continue; in-app Export is the routine backup.
+
 ## Plists and extensions
 
 - Changing `INFOPLIST_FILE` requires a clean build and inspection of the resulting plists.

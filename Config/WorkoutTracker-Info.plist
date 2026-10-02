@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Public beta ticket 01 (D60): export compliance for App Store Connect.
+	     The app's only encryption is the system's HTTPS (URLSession), which is
+	     exempt; without this key every TestFlight upload stops at a manual
+	     compliance question before testers can install it. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Record distance, pace and your route during outdoor cardio workouts.</string>
 	<key>NSMotionUsageDescription</key>
