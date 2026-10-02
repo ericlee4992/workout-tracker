@@ -1,8 +1,9 @@
 # 01 — Paid team, data move and TestFlight
 
 Type: task
-Status: in progress — **Prepare done 2026-10-02 except the Codex review**; phases B–E wait on Apple's enrollment
-approval (pending at 2026-10-02); phase A (free renewal) is due Oct 4, by Oct 5 18:00 EDT at the latest
+Status: in progress — **Prepare done and Codex clear (4 rounds) 2026-10-02**; not merged to `main` (awaiting the
+user's go-ahead); phases B–E wait on Apple's enrollment approval (pending at 2026-10-02); phase A (free renewal) is
+due Oct 4, by Oct 5 18:00 EDT at the latest
 Blocked by: —
 Implementer: Claude (the signing, phone and App Store Connect steps need this session's tooling and the user).
 Reviewer: Codex, in a visible Orca terminal, for the config diff **and for this procedure before the delete
@@ -269,9 +270,18 @@ case through WT-Backup-01: complete WAL equal, truncated WAL fails with reps 20 
   an interval's `end`; a changed `startedAt`, a changed gym name and a changed `appVersion` exit 1; a changed
   `exportedAt` exit 0. The real round trips still give: clean 0, full WAL 0, truncated WAL 1.
 
+## Codex review 01d — clear (round 4)
+
+[codex-review-01d.md](../codex-review-01d.md): all findings of 01, 01b and 01c resolved, no new ones; all 22
+timestamp paths checked against `ExportCollector.swift`/`ExportSnapshot.swift`; 63 targeted checks with the expected
+exit codes. The clearance covers Prepare and the reviewed procedure, not phases A–E. Afterwards: WT-Backup-01 erased
+(`xcrun simctl erase`, exit 0); the review terminal closed. Copies of the user's 09-29 data remain only in this
+session's scratchpad (`…/b01/`) and Codex's `/tmp/wt-beta01-codex-review*/` (mode 0700), both ephemeral.
+
 ## Acceptance
 
-- [ ] Config diff merged after Codex clear (clean build, built plists and Release launch in Simulator: done).
+- [ ] Config diff merged after Codex clear — **clear 2026-10-02** (clean build, built plists and Release launch in
+      Simulator done); merge awaits the user.
 - [x] Restore rehearsed on the Simulator with a passing row-by-row comparison.
 - [ ] The app never stopped opening because of an expired profile.
 - [ ] Paid team ID recorded; App IDs registered on it **with the original bundle IDs**.

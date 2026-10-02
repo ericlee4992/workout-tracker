@@ -32,7 +32,7 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   is unchanged. Older backups (Sep 17/18/20/22) remain.
 - Phone: iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
 
-## ACTIVE: public beta ("Stacked") — ticket 01 Prepare implemented, in Codex review
+## ACTIVE: public beta ("Stacked") — ticket 01 Prepare Codex clear; phases A–E next
 
 Planned 2026-10-01/02 with the user: **[spec](../work-record/public-beta/spec.md)** (answers Q1–Q14), decision
 **D60** (reopens SPEC's no-backend/no-accounts line, D5, D41, D53, D56, D58), tickets
@@ -50,10 +50,10 @@ DEVELOPMENT → *Container backup and restore* (Gate S stable backup, Gate P pho
 backup bridge); the restore rehearsed on the Simulator with negatives; the Apple Support draft (send only after the
 gates). **Codex review 01: not clear** (2 P2, 4 P1); **round 2 (01b): not clear** (1 P1, 1 P2) — both addressed (the
 Simulator export round trip, `compare_exports.py`, `simulator_export.sh`, `BackupExportUITests`); **round 3 (01c): not
-clear** (1 P2: date-shaped text normalized) — addressed (schema-path timestamps only); **round 4 pending**
+clear** (1 P2: date-shaped text normalized) — addressed; **round 4 (01d): clear**. The review terminal is closed
 in the Orca terminal "Codex review — beta 01". **Not done:** phases A–E (phone, Apple account). Simulator
-**WT-Backup-01** `A3D88C6F-6426-427A-9A0E-CF11A93798B1` (Gate S's disposable round-trip Simulator) holds copies of the
-user's 09-29 data — erase it (`xcrun simctl erase`) once the review is clear and after every later use. Evidence under this session's scratchpad `…/scratchpad/b01/` (ephemeral; results are in the ticket).
+**WT-Backup-01** `A3D88C6F-6426-427A-9A0E-CF11A93798B1` (Gate S's disposable round-trip Simulator) was erased after the
+clearance (exit 0); erase it after every later use (it receives copies of the user's data). Evidence under this session's scratchpad `…/scratchpad/b01/` (ephemeral; results are in the ticket).
 
 **Phone facts are unchanged:** the free-team build from 2026-09-29 is installed; profiles expire **2026-10-06
 04:45 EDT**. The paid enrollment was **pending** on 2026-10-02. The bundle ID is probably held by the free Personal
@@ -62,8 +62,7 @@ moves by Gate S → delete → install → restore → compare.
 
 ## Next action
 
-1. **Codex review 01, round 2** → fix until "clear" → merge `ericlee4992/beta-01-paid-team` into `main` only with the
-   user's go-ahead → erase WT-Backup-01.
+1. **Ask the user** to fast-forward `main` to `ericlee4992/beta-01-paid-team` (Prepare, Codex clear).
 2. **Phase A by 2026-10-05 18:00 EDT at the latest** (plan: Oct 4), unless D is done: Gate S → Gate P → free
    renewal → install → compare. Needs the user and the unlocked phone.
 3. When Apple approves the enrollment: ticket 01 phases B–E (gated as in the ticket; the user approves the delete).
