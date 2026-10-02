@@ -32,6 +32,18 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   is unchanged. Older backups (Sep 17/18/20/22) remain.
 - Phone: iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
 
+## ACTIVE (2026-10-01): public beta — planning
+
+Worktree `/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch `ericlee4992/public-beta` (from `main`
+`9da32a9`). The user joined the paid Apple Developer Program and wants testers using the app: **real accounts** with a
+profile page, AI under the user's own key (through a server; no monthly budget set — few testers), an onboarding
+tutorial, an in-app feedback section, TestFlight now, the App Store later. **Read
+[the kickoff](../work-record/public-beta/kickoff.md) first:** the user's decisions so far, the locked decisions it reopens
+(SPEC's no backend/accounts line, D41, D53/D56/D58), the planning questions, the paid-team/bundle-ID data risk, and a
+proposed ticket order. Next: a planning session with the user → `work-record/public-beta/spec.md`, a DECISIONS entry,
+`issues/01…`. Nothing implemented yet. The free-team profiles still expire 2026-10-06 04:45 EDT (ticket 01 moves signing
+to the paid team).
+
 ## Next action
 
 1. **The user's visual acceptance of the redesign on the phone:** every area in its real data, light and dark,
