@@ -68,4 +68,10 @@ workout history or readings from Apple Health" instead of "Health data are not s
 not just Apple unreachable (#3); manual D1 exports' retention and the deletion of downloaded feedback copies (signed in
 too) added to the deletion text as placeholders and to release gate 3 (#4).
 
+### Codex review 08c — round 3: clear
+
+Report [codex-review-08c.md](../codex-review-08c.md) (HEAD `d08306f`): **Verdict: clear** for the unpublished draft;
+all four round-2 findings closed. Not a clearance of the release gates or of publication: the user's details and
+decisions, the wired build, the deployed checks and the user's approval of the wording remain (draft → *Release gates*).
+
 ## Comments

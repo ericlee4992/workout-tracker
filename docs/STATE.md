@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-10-03** at the handoff after the public-beta session (tickets 01 Prepare + phase A, 02, 03 server half).
+Updated **2026-10-03** (late) after the session that did tickets 07, 06's server half, 05's mock + server side and the 08 policy draft.
 The previous STATE (the per-ticket
 redesign handoff, the September 22 installation, the AI/cardio open items) is archived byte-for-byte:
 [STATE before Floodlight merge](archive/STATE-2026-09-29-before-floodlight-merge.md). Verify Git on resume.
@@ -35,9 +35,10 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
 ## ACTIVE: public beta ("Stacked") — handoff of 2026-10-03
 
 **Checkout:** Orca worktree `/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch
-**`ericlee4992/beta-05-profile`** — ticket 05 (approved mock + server side), off `main` `d761301` (07 and 06's server
-half merged at the user's go-ahead, 2026-10-03); **Codex clear (3 rounds)** — waiting for the user's go-ahead to merge. Every earlier ticket branch is merged
-into `main`; only this branch holds unmerged work (ticket 05). `Config/Local.xcconfig` (git-ignored) is present in this checkout (free team).
+**`ericlee4992/beta-08-privacy-draft`** — the ticket 08 privacy-policy draft (docs only), off `main` `7c70d14`; Codex
+clear (3 rounds); waiting for the user's go-ahead to merge. Tickets 07, 06 (server half) and 05 (mock + server side)
+were merged into `main` at the user's go-ahead on 2026-10-03; no other branch holds unmerged public-beta work.
+`Config/Local.xcconfig` (git-ignored) is present in this checkout (free team).
 
 Plan: **[spec](../work-record/public-beta/spec.md)** (the user's answers Q1–Q14 and Q8b), decision **D60**, tickets
 [`work-record/public-beta/issues/01…09`](../work-record/public-beta/issues/). Stacked; optional Apple/Google accounts with
@@ -52,8 +53,8 @@ a training profile, workouts stay on the phone; a Cloudflare Worker + D1 server;
 | 04 Google sign-in | Held: needs the user's Google Cloud project/OAuth client (and 03's app half). |
 | 07 feedback | **Merged** (`60ebd25`, 2026-10-03; Codex clear, 3 rounds): form + copy approved by the user (captures `captures/07/`), server `POST /v1/feedback` + R2 + limits + deletion queue, app client and form. Not deployed; the row is hidden until `WT_SERVER_URL` is set; signed-in sending waits on 03's app half. |
 | 06 AI proxy | **Server half merged** (`d761301`; Codex clear, 4 rounds): `/v1/ai/{scan-machine,routine-week,model-exercises}`, `/v1/ai/usage`, limits, off switch (`scripts/ai.mjs`), counts-only logs. Open: app switch (after 03's app half); before external testers, a deployed CPU check of a max-size scan and an adversarial check (ticket 06 acceptance). |
-| 05 profile | **Mock approved by the user** (captures `captures/05/`; Ask AI gets a "Save to my training profile" switch, on by default); server side (`GET/PUT /v1/profile` training, units as entered) on the branch above; **Codex clear (3 rounds)**, waiting for the user's go-ahead to merge. Wiring waits on 03's app half. |
-| 08 external testers | A privacy-policy + App Privacy draft is written (not committed yet; goes on its own branch after 05's review) — needs the user's name, support email, date, feedback retention and age statement. |
+| 05 profile | **Merged** (`7c70d14`; Codex clear, 3 rounds): mock approved by the user (captures `captures/05/`; Ask AI gets a "Save to my training profile" switch, on by default), server side (`GET/PUT /v1/profile` training, units as entered). Wiring waits on 03's app half. |
+| 08 external testers | **Privacy-policy + App Privacy draft** (`work-record/public-beta/privacy-policy-draft.md`) on the branch above, Codex clear (3 rounds), unpublished. Needs the user's legal name, support email, date, age statement, feedback/download/export retention and two App Privacy choices; then the draft's release gates. |
 | 09 App Store | Not started. |
 
 **The user's order for the next work (2026-10-03)** — all doable before Apple approves; each on its own branch off
@@ -97,14 +98,17 @@ evidence is ephemeral; every result is recorded in the tickets.
 
 ## Next action
 
-1. **Ticket 05** on `ericlee4992/beta-05-profile`: Codex clear; merge at the user's go-ahead.
-2. **Ticket 08 draft**: commit the privacy-policy draft on `ericlee4992/beta-08-privacy-draft`, Codex checks it against
-   the code; the user fills in the placeholders and approves the wording.
-3. **Renewal before 2026-10-09 03:52 EDT** if Apple has not approved (Oct 7–8); ticket 01 B–E once it has.
-4. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone (feedback as
-   tickets under `work-record/redesign-floodlight/`). Not yet exercised anywhere: VoiceOver by a person, Reduce
-   Motion at runtime, real GPS and sensors on the redesigned cardio screens, Lock Screen commands on a device, a
-   restore from a backup on a phone (Simulator only so far), a non-US simulator region.
+1. **Ticket 08 draft** on `ericlee4992/beta-08-privacy-draft`: merge at the user's go-ahead (docs only).
+2. **The user's order is done** (07 → 06 server half → 05 mockups + server side, 08 policy draft). What remains needs
+   the user or Apple: **Apple's enrollment** (then 01 B–E, 03's app half — which unblocks 05's wiring, 06's app switch,
+   signed-in feedback — and 04 with a Google OAuth client); **the first Cloudflare deploy** (`server/README.md`: D1,
+   `wrangler r2 bucket create stacked-feedback`, secrets incl. `OPENAI_API_KEY`; then the deployed checks in ticket 06's
+   acceptance and the privacy draft's gates); **the privacy-policy decisions** (ticket 08).
+3. **Renewal before 2026-10-09 03:52 EDT** if Apple has not approved (Oct 7–8), with the user and the phone (Gate S,
+   ticket 01 phase A).
+4. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone. Not yet exercised
+   anywhere: VoiceOver by a person, Reduce Motion at runtime, real GPS and sensors on the redesigned cardio screens,
+   Lock Screen commands on a device, a restore from a backup on a phone, a non-US simulator region.
 
 ## Found 2026-10-02 (pre-existing, not caused by the public-beta work)
 
