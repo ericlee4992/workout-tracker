@@ -1,7 +1,7 @@
 # 03 — Server foundation and Sign in with Apple
 
 Type: task
-Status: in progress — **server half implemented and Codex clear (4 rounds) 2026-10-02**, not merged (awaiting the
+Status: in progress — **server half implemented, Codex clear (4 rounds), merged to `main` 2026-10-02** (the
 user's go-ahead); not deployed; the app half waits on the paid team (ticket 01, B)
 Blocked by: 01 (the paid team is required for the Sign in with Apple capability)
 Implementer: Claude (the user's go-ahead to start the server half, 2026-10-02); Reviewer: Codex.
