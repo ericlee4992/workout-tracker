@@ -39,7 +39,7 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   account; one whose token was stored and then claimed by a deletion ends `409 reauthorize` (ask Apple again).
 - **Feedback** (ticket 07): text and details in D1, the screenshot in R2 (`stacked-feedback`, typed by its own bytes,
   never the declared type). Per New York day: 10 signed-out submissions per address, 30 per account, 500 in all
-  (`429 rate_limited`). The address is never stored: the counter key is an HMAC of the day and the address under a key
+  (`429 rate_limited`; the global one `429 feedback_full`). The address is never stored: the counter key is an HMAC of the day and the address under a key
   derived from `TOKEN_ENC_KEY` (so signed-out feedback needs that secret). A session that is sent must be valid (`401`).
   The hourly cron deletes screenshots no row refers to (after an hour) and old counters.
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB); Apple's key set is cached for

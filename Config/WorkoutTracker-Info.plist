@@ -8,6 +8,10 @@
 	     compliance question before testers can install it. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Public beta ticket 07: the server's base URL from the WT_SERVER_URL build setting (Config/Shared.xcconfig);
+	     empty when the build has none. Read by ServerConfig.baseURL. -->
+	<key>WTServerURL</key>
+	<string>$(WT_SERVER_URL)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Record distance, pace and your route during outdoor cardio workouts.</string>
 	<key>NSMotionUsageDescription</key>

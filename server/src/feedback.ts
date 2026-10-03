@@ -132,7 +132,8 @@ export async function submitFeedback(request: Request, env: Env, deps: Deps, acc
   if (!limitKey) throw new AuthError("server_not_configured", 503);
   const limit = accountID ? ACCOUNT_DAILY_LIMIT : SIGNED_OUT_DAILY_LIMIT;
   if ((await bump(env, limitKey, day)) > limit) throw new AuthError("rate_limited", 429);
-  if ((await bump(env, "global", day)) > GLOBAL_DAILY_LIMIT) throw new AuthError("rate_limited", 429);
+  // Its own code, so the app does not tell one tester they sent too many when everyone did.
+  if ((await bump(env, "global", day)) > GLOBAL_DAILY_LIMIT) throw new AuthError("feedback_full", 429);
 
   const id = newID(deps.random);
   let key: string | null = null;

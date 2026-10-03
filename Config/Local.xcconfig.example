@@ -8,3 +8,6 @@
 
 WT_DEVELOPMENT_TEAM = ABCDE12345
 WT_BUNDLE_ID_BASE = com.yourname.workouttracker
+
+// WT_SERVER_URL — optional: the server the app talks to (see Shared.xcconfig).
+// WT_SERVER_URL = http:/$()/127.0.0.1:8787

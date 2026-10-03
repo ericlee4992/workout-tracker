@@ -197,7 +197,7 @@ describe("rate limits", () => {
     await env.DB.prepare("INSERT INTO feedback_limits (key, day, count) VALUES ('global', ?, ?)")
       .bind(newYorkDay(h.clock.now), GLOBAL_DAILY_LIMIT).run();
     const response = await h.feedback({ ip: "192.0.2.1" });
-    expect([response.status, await errorOf(response)]).toEqual([429, "rate_limited"]);
+    expect([response.status, await errorOf(response)]).toEqual([429, "feedback_full"]);
     expect(await objects()).toEqual([]);
   });
 

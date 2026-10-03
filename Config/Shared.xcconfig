@@ -14,5 +14,11 @@
 WT_DEVELOPMENT_TEAM =
 WT_BUNDLE_ID_BASE = com.example.workouttracker
 
+// The app's server (public beta, D60), read at runtime from Info.plist `WTServerURL`. Blank = no server: Send
+// Feedback stays hidden. xcconfig treats `//` as a comment, so write a URL as `https:/$()/host`, e.g.
+// `WT_SERVER_URL = http:/$()/127.0.0.1:8787` for `wrangler dev` in the Simulator. Set it in Local.xcconfig until the
+// production URL exists; then the production value moves here.
+WT_SERVER_URL =
+
 // Last, so a developer's own values win over the defaults above.
 #include? "Local.xcconfig"

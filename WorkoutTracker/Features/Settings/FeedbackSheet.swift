@@ -66,9 +66,18 @@ struct FeedbackSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: look.space.section - 4) {
                 if let failure {
-                    SettingsNotice(symbol: "exclamationmark.triangle.fill", text: failure, emphasized: true)
-                        .foregroundStyle(look.destructive)
-                        .accessibilityIdentifier("feedbackFailure")
+                    // Not a SettingsNotice: that sets its own (neutral) colour, and this line is a failure.
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill").font(.system(.footnote, weight: .bold))
+                        Text(failure)
+                            .font(.system(.footnote, weight: .semibold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    .foregroundStyle(look.destructive)
+                    .padding(.horizontal, 4)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("feedbackFailure")
                 }
                 SegmentedPills(FeedbackCategory.allCases.map(\.label), selection: Binding(
                     get: { FeedbackCategory.allCases.firstIndex(of: category) ?? 0 },
@@ -205,7 +214,7 @@ struct FeedbackSheet: View {
             LookList {
                 detailRow("App", details.app)
                 detailRow("iOS", details.system)
-                detailRow("iPhone", details.model)
+                detailRow("iPhone", DeviceModelName.name(for: details.model))
                 detailRow("Account", details.account ?? "Not signed in")
             }
             .accessibilityIdentifier("feedbackDetails")
@@ -350,13 +359,19 @@ struct FeedbackDetails: Equatable {
     var appVersion: String
     var build: String
     var systemVersion: String
-    /// The hardware identifier (for example `iPhone16,2`), shown as sent rather than translated.
+    /// The hardware identifier (for example `iPhone16,2`): sent as is, shown by its name (`DeviceModelName`).
     var model: String
     /// The signed-in account's name and email; nil signed out.
     var account: String?
 
     var app: String { "Stacked \(appVersion) (\(build))" }
     var system: String { systemVersion }
+
+    /// What the form shows and sends on this phone (the account arrives with ticket 03's app half); the capture
+    /// fixture's fixed values under `-uiTestReset`.
+    static var forThisPhone: FeedbackDetails {
+        WorkoutTrackerStore.isUITestReset ? FeedbackSample.fixed(.current()) : .current()
+    }
 
     static func current(account: String? = nil) -> FeedbackDetails {
         let info = Bundle.main.infoDictionary ?? [:]
@@ -411,6 +426,38 @@ struct FeedbackScreenshot {
     }
 }
 
+// MARK: - Sending
+
+enum FeedbackSender {
+    /// Whether this build can send feedback: a server is configured, or a UI test stands in for it.
+    static var isAvailable: Bool { WorkoutTrackerStore.isUITestReset || ServerConfig.baseURL != nil }
+
+    /// The sheet's sender: the UI-test stub under `-uiTestReset` (the app cannot reach a server in tests), otherwise
+    /// the server. Signed out until ticket 03's app half supplies the session.
+    static func make(details: FeedbackDetails) -> (FeedbackDraft) async -> FeedbackSendResult {
+        // `-uiTestRealServer`: the Simulator smoke test sends to the build's server (a local `wrangler dev`).
+        if WorkoutTrackerStore.isUITestReset && !ProcessInfo.processInfo.arguments.contains("-uiTestRealServer") {
+            return FeedbackSample.stubSend
+        }
+        guard let baseURL = ServerConfig.baseURL else {
+            return { _ in .failed(FeedbackClientError.unreachable.message(signedIn: false)) }
+        }
+        let client = FeedbackClient(baseURL: baseURL, sessionToken: nil)
+        return { draft in
+            let submission = FeedbackSubmission(
+                category: draft.category.rawValue, message: draft.message, appVersion: details.appVersion,
+                build: details.build, systemVersion: details.systemVersion, model: details.model,
+                jpeg: draft.screenshot?.data)
+            do {
+                try await client.send(submission)
+                return .sent
+            } catch {
+                return .failed((error as? FeedbackClientError ?? .unreachable).message(signedIn: client.sessionToken != nil))
+            }
+        }
+    }
+}
+
 // MARK: - UI-test and capture seams
 
 enum FeedbackSample {
@@ -419,15 +466,14 @@ enum FeedbackSample {
 
     static var isFilled: Bool { WorkoutTrackerStore.isUITestReset && ProcessInfo.processInfo.arguments.contains(filledArgument) }
 
-    static var details: FeedbackDetails {
-        var details = FeedbackDetails.current(account: isFilled ? "Alex Kim · alex@example.com" : nil)
-        if WorkoutTrackerStore.isUITestReset {
-            // Fixed values, so captures do not change with the build machine.
-            details.appVersion = "0.1.0"
-            details.build = "1"
-            details.systemVersion = "27.0"
-            details.model = "iPhone16,2"
-        }
+    /// The capture fixture's details: fixed, so captures do not change with the build machine; signed in when filled.
+    static func fixed(_ details: FeedbackDetails) -> FeedbackDetails {
+        var details = details
+        details.account = isFilled ? "Alex Kim · alex@example.com" : nil
+        details.appVersion = "0.1.0"
+        details.build = "1"
+        details.systemVersion = "27.0"
+        details.model = "iPhone16,2"
         return details
     }
 
@@ -472,5 +518,5 @@ enum FeedbackSample {
 }
 
 #Preview("Empty") {
-    FeedbackSheet(details: FeedbackSample.details, send: FeedbackSample.stubSend)
+    FeedbackSheet(details: FeedbackSample.fixed(.current()), send: FeedbackSample.stubSend)
 }

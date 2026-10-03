@@ -22,9 +22,9 @@ final class FloodlightFeedbackUITests: XCTestCase {
         app.descendants(matching: .any).matching(identifier: id).firstMatch
     }
 
-    private func openForm(appearance: String, large: Bool, filled: Bool) {
+    private func openForm(appearance: String, large: Bool, filled: Bool, extra: [String] = []) {
         app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-appearance", appearance]
-            + (filled ? ["-uiTestFeedbackSample"] : [])
+            + (filled ? ["-uiTestFeedbackSample"] : []) + extra
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
         app.tabBars.buttons["Workout"].tap()
@@ -83,5 +83,53 @@ final class FloodlightFeedbackUITests: XCTestCase {
         shoot("feedback-sent-\(suffix)")
         app.buttons["feedbackDone"].tap()
         XCTAssertTrue(app.buttons["sendFeedback"].waitForExistence(timeout: 5), "Done returns to Settings")
+    }
+
+    // MARK: Flows
+
+    private func typeMessage(_ text: String) {
+        let field = any("feedbackMessage")
+        field.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 1.0)
+        field.typeText(text)
+    }
+
+    func testTypingEnablesSendAndAFailedSendKeepsTheDraft() {
+        openForm(appearance: "dark", large: false, filled: false, extra: ["-uiTestFeedbackFail"])
+        let send = app.buttons["feedbackSend"]
+        XCTAssertFalse(send.isEnabled)
+        typeMessage("   ")
+        XCTAssertFalse(send.isEnabled, "whitespace is not a message")
+        typeMessage("Rest timer drifts")
+        XCTAssertTrue(send.isEnabled)
+        app.buttons["Idea"].tap()
+        XCTAssertTrue(app.buttons["Idea"].isSelected)
+        send.tap()
+        XCTAssertTrue(any("feedbackFailure").waitForExistence(timeout: 5))
+        XCTAssertEqual(any("feedbackFailure").label, "Couldn't send. Check your connection and try again.")
+        XCTAssertTrue((any("feedbackMessage").value as? String ?? "").contains("Rest timer drifts"), "the draft stays")
+        XCTAssertTrue(app.buttons["Idea"].isSelected, "the category stays")
+        XCTAssertTrue(send.isEnabled, "it can be sent again")
+        shoot("feedback-failed-dark-default")
+    }
+
+    func testRemovingTheScreenshotOffersAddAgain() {
+        openForm(appearance: "light", large: false, filled: true)
+        XCTAssertTrue(any("feedbackScreenshot").exists)
+        app.buttons["feedbackRemoveScreenshot"].tap()
+        XCTAssertTrue(any("feedbackAddScreenshot").waitForExistence(timeout: 3))
+        XCTAssertFalse(any("feedbackScreenshot").exists)
+        XCTAssertTrue(app.staticTexts["iPhone 15 Pro Max"].exists, "the phone is shown by name")
+    }
+
+    /// Sends for real to the build's server (WT_SERVER_URL, a local `wrangler dev`). Opt-in: run with
+    /// TEST_RUNNER_WT_FEEDBACK_SMOKE=1; the developer then reads it with `node scripts/feedback.mjs list --local`.
+    func testSmokeSendsToTheBuildsServer() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["WT_FEEDBACK_SMOKE"] == "1", "opt-in smoke test")
+        openForm(appearance: "dark", large: false, filled: true, extra: ["-uiTestRealServer"])
+        app.buttons["feedbackSend"].tap()
+        XCTAssertTrue(any("feedbackSent").waitForExistence(timeout: 20),
+                      "sent; failure line: \(any("feedbackFailure").exists ? any("feedbackFailure").label : "none")")
     }
 }

@@ -1,7 +1,7 @@
 # 07 — Feedback section
 
 Type: task
-Status: in progress — form mocked (captures in `../captures/07/`), awaiting the user's approval; server next
+Status: implemented (server + app); Codex review 07 round 1 next. Form approved by the user 2026-10-03
 Blocked by: — (03's server half is merged; feedback works signed out, so 03's app half is not needed)
 Implementer: Claude; Reviewer: Codex (as for 01–03).
 Branch: `ericlee4992/beta-07-feedback` off `main`.
@@ -69,7 +69,12 @@ or what would you change?**; **Add Screenshot**, **Screenshot**, **Remove**; sec
 **App / iOS / iPhone / Account** and **Not signed in**; **Goes only to Stacked's developer.**; **Sent**, **Thanks —
 every message is read.** Errors: **Couldn't send. Check your connection and try again.**; **Couldn't read that
 image. Try another.**; **That image is too large to send. Try a screenshot.**; rate limit (signed out) **You've
-sent 10 today. Try again tomorrow.** The phone model is shown as sent, the hardware identifier (`iPhone16,2`).
+sent 10 today. Try again tomorrow.** (30 signed in); added at implementation for the global cap: **Couldn't send
+right now. Try again tomorrow.**
+
+**The user's decisions (2026-10-03, after the captures):** the form and copy **approved as shown**; the phone shown by
+its **readable name** ("iPhone 15 Pro Max"; the server keeps the identifier; a model newer than the app's table shows
+its identifier); the category **starts on Bug**.
 
 **Tells.**
 - Same container on everything — absent: the message is a field, the screenshot a row/tile, the details one list;
@@ -112,5 +117,52 @@ Send Feedback opens it. **No networking yet.** Capture test `FloodlightFeedbackU
 signed in with a screenshot, sent; light/dark × Default/AccessibilityL) on **WT-Onboarding**: **4/4 passed**
 (`xcodebuild test` exit 0); 18 captures in [captures/07/](../captures/07/). First pass's Sent state was a bare
 check at the top of an empty sheet — now centred with a disc; retaken.
+
+### Server — 2026-10-03 (Claude)
+
+`server/src/feedback.ts` (route logic), `server/src/http.ts` (the shared JSON/body helpers moved out of `index.ts`;
+`readBodyBytes(request, limit)` now takes the route's limit), `migrations/0003_feedback.sql` (`feedback`,
+`feedback_limits`), `wrangler.jsonc` (R2 binding `FEEDBACK` → bucket `stacked-feedback`; the cron also sweeps).
+- `POST /v1/feedback`, multipart; body cut off at 5 MB + 64 KB while streaming; message 1–4,000 graphemes (as Swift
+  counts), no control characters but tab/newlines; detail fields pattern-checked; screenshot JPEG/PNG by its own magic
+  bytes, ≤ 5 MB, one at most; R2 key `feedback/<id>.jpg|png`. Validation before any quota is spent.
+- Limits per New York day: **10 signed out per address, 30 per account, 500 globally** (the last two are
+  implementation choices beyond the spec, against a flood filling R2; global → `429 feedback_full`). The address
+  counter key is an HMAC of `day|address` under a key derived from `TOKEN_ENC_KEY`: not reversible by enumerating
+  IPv4, unlinkable across days; no address is stored. Signed-out feedback therefore needs `TOKEN_ENC_KEY` (503
+  otherwise). A sent-but-invalid bearer is `401`, never filed as signed out.
+- Signed-in insert only while the account exists (`INSERT … SELECT … WHERE EXISTS`); otherwise the R2 object is
+  deleted at once and the request is `401`.
+- **Deletion:** `claimDeletion`'s one transaction now also selects the account's screenshot keys and deletes its
+  feedback rows and counter; the R2 objects are deleted right after; a failure is left to the hourly sweep, which
+  deletes objects with no row once older than an hour (the grace covers an upload whose row is still being written).
+- `server/scripts/feedback.mjs list | show <id> | screenshot <id>` (`--local` for `wrangler dev`); screenshots save to
+  the git-ignored `server/.feedback/`. README: endpoint, limits, R2 bucket creation in the first-deploy steps, reading.
+- **Tests: 82/82** (`npx vitest run`, 34 new in `test/feedback.test.ts`), `tsc --noEmit` clean. Mutation checks: with
+  the R2 delete at deletion removed, the cascade test fails; with the limits loosened, 4 rate-limit tests fail.
+- Local smoke (`wrangler dev`, throwaway `TOKEN_ENC_KEY` in the git-ignored `.dev.vars`): curl posts with and without
+  a screenshot → 201; `feedback.mjs list/show/screenshot --local` read them back; the fetched file is byte-identical.
+
+### App — 2026-10-03 (Claude)
+
+- `WT_SERVER_URL` build setting (Config/Shared.xcconfig, blank; `Local.xcconfig` overrides, `https:/$()/host` for
+  xcconfig's `//` comment) → Info.plist `WTServerURL` → `ServerConfig.baseURL`. **Blank hides Send Feedback** — so on
+  a build without a deployed server (today's) the row is absent; under `-uiTestReset` the stub stands in.
+- `Domain/FeedbackClient.swift`: `FeedbackSubmission.multipart`, `FeedbackClient.send` (typed errors mapped to the
+  approved lines), `DeviceModelName` (iPhone 11 → 17e; source everymac.com, checked 2026-10-03).
+- `FeedbackSheet`: the live sender (signed out until 03's app half supplies the session), failure line in the
+  destructive colour (first capture showed it neutral: `SettingsNotice` sets its own colour — replaced).
+  `-uiTestRealServer` (only with `-uiTestReset`) lets the smoke test use the build's server.
+- **Unit: `FeedbackTests` 8/8** (multipart fields and bytes, route/headers signed in and out, error mapping and copy,
+  send through a URLProtocol stub incl. no network, server-URL parsing incl. the `//` trap, model names, **the
+  re-encode drops GPS and EXIF lens data**, garbage refused).
+- **UI: `FloodlightFeedbackUITests` + `FloodlightSettingsUITests` (the touched Settings screen): 17 run, 16 passed,
+  1 skipped (the opt-in smoke), exit 0** on WT-Onboarding; the failure-capture test rerun after the colour fix,
+  passed. Captures retaken (19) in [captures/07/](../captures/07/) — now with "iPhone 15 Pro Max" and the failure line.
+- **Simulator → local server smoke:** `WT_SERVER_URL=http://127.0.0.1:8799`, `TEST_RUNNER_WT_FEEDBACK_SMOKE=1`,
+  `testSmokeSendsToTheBuildsServer` passed; `feedback.mjs list/show --local` showed it (bug, iPhone16,2, 33 KB
+  screenshot); the fetched JPEG has no location (`mdls` latitude null). ATS needed no exception for `127.0.0.1`.
+- **Not yet possible:** signed-in sending from the app (needs 03's app half and the paid team); the phone (needs a
+  deployed server and the user's go-ahead); the deployed R2/D1 (the user's first deploy).
 
 ## Comments

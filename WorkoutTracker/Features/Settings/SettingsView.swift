@@ -71,7 +71,8 @@ struct SettingsView: View {
         }
         .navigationDestination(isPresented: $showExport) { ExportView() }
         .sheet(isPresented: $showFeedback) {
-            FeedbackSheet(details: FeedbackSample.details, initial: FeedbackSample.draft, send: FeedbackSample.stubSend)
+            let details = FeedbackDetails.forThisPhone
+            FeedbackSheet(details: details, initial: FeedbackSample.draft, send: FeedbackSender.make(details: details))
         }
     }
 
@@ -165,8 +166,9 @@ struct SettingsView: View {
     // MARK: Workout (rest defaults and the template prompt)
 
     /// Public beta ticket 02: the guided tour again, any time (not while a workout runs — it explains why).
-    /// Ticket 07: Send Feedback (works signed out).
+    /// Ticket 07: Send Feedback (works signed out). Neither row may exist (a preview without a server): no section then.
     @ViewBuilder private var help: some View {
+        if onboarding != nil || FeedbackSender.isAvailable {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Help")
             LookList(separatorInset: 54) {
@@ -176,13 +178,17 @@ struct SettingsView: View {
                     })
                     .accessibilityIdentifier("showTour")
                 }
-                LookRow("Send Feedback", symbol: "bubble.left.and.text.bubble.right", action: { showFeedback = true })
-                    .accessibilityIdentifier("sendFeedback")
+                // Hidden in a build without a server (WT_SERVER_URL blank) rather than failing on Send.
+                if FeedbackSender.isAvailable {
+                    LookRow("Send Feedback", symbol: "bubble.left.and.text.bubble.right", action: { showFeedback = true })
+                        .accessibilityIdentifier("sendFeedback")
+                }
             }
         }
         .alert(onboarding?.tourFailure ?? "", isPresented: Binding(
             get: { onboarding?.tourFailure != nil }, set: { if !$0 { onboarding?.tourFailure = nil } })) {
             Button("OK", role: .cancel) {}
+        }
         }
     }
 
