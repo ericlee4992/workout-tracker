@@ -32,7 +32,7 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   is unchanged. Older backups (Sep 17/18/20/22) remain.
 - Phone: iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
 
-## ACTIVE: public beta ("Stacked") — ticket 01 phase A done, B–E wait on Apple; ticket 02 Codex clear, unmerged
+## ACTIVE: public beta ("Stacked") — ticket 01 phase A done, B–E wait on Apple; ticket 02 merged
 
 Planned 2026-10-01/02 with the user: **[spec](../work-record/public-beta/spec.md)** (answers Q1–Q14), decision
 **D60** (reopens SPEC's no-backend/no-accounts line, D5, D41, D53, D56, D58), tickets
@@ -63,7 +63,8 @@ Personal Team again. The paid enrollment was **pending** on 2026-10-02. The bund
 Team (the user chose to keep it and ask Apple Support if refused). iOS cannot upgrade across teams, so the data
 moves by Gate S → delete → install → restore → compare.
 
-**Ticket 02 (onboarding)** — branch **`ericlee4992/beta-02-onboarding`** (pushed; **not merged** — ask the user). The
+**Ticket 02 (onboarding)** — branch `ericlee4992/beta-02-onboarding`, **fast-forwarded into `main` (`4823d46`) on
+2026-10-02 at the user's go-ahead** (pushed). Not yet on the phone (it reaches the phone with ticket 01's TestFlight build). The
 user changed the plan after seeing a walkthrough prototype: **one welcome page, then a guided tour of the real app on a
 temporary in-memory sample world** (spec Q8b, D60). Implemented: `Features/Onboarding/` (WelcomeView, Tour,
 OnboardingCoordinator, TourSampleStore), Settings → Help → Show Tour, the welcome only on a fresh phone with no workouts

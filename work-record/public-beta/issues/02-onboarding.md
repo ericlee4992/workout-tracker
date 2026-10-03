@@ -1,8 +1,8 @@
 # 02 — Onboarding walkthrough
 
 Type: task
-Status: in progress — implemented and **Codex clear (2 rounds) 2026-10-02**; not merged to `main` (awaiting the
-user's go-ahead). Scope revised 2026-10-02: welcome page + guided tour on sample data (spec Q8b)
+Status: resolved — implemented, **Codex clear (2 rounds)**, merged to `main` (`4823d46`, fast-forward, the user's
+go-ahead) 2026-10-02. Scope revised 2026-10-02: welcome page + guided tour on sample data (spec Q8b)
 Blocked by: — (listed after 01 for order only: it needs no server and no paid team; started while 01 waits on
 Apple's enrollment, the user's go-ahead 2026-10-02)
 Implementer: Claude (the user asked Claude to start it, 2026-10-02); Reviewer: Codex, in a visible Orca terminal.
