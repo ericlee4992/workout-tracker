@@ -155,6 +155,20 @@ findings. All accepted.
 
 **Evidence:** `tsc` exit 0; `vitest` **46/46**; `scripts/test-check-secrets.sh` **14/14**; `--all` clean.
 
+## Codex review 03c — response (round 3)
+
+Review: [codex-review-03c.md](../codex-review-03c.md) — round-2 #1, #2, #4, #5, #6 resolved, #3 partly; one P2.
+
+1. **P2 a claimed token reused by the sign-in retry** — the retry loop is gone. A sign-in stores its token (on the
+   existing identity, or via create-or-find); only when the identity was already gone *before* storing may a new
+   account hold the token. Once stored, a vanished account at the session insert means a deletion claimed this token
+   too: the request ends `409 reauthorize` (the app starts a fresh Apple authorization). `Deps.pause` is a test-only
+   seam (absent in production) awaited just before the session insert. Tests (both revoke outcomes): pause → deletion
+   runs → sign-in answers 409 `reauthorize`; no account, identity or session is recreated; with Apple accepting, the
+   revoked token is exactly T2; with Apple failing, T2 stays queued and no active identity holds it.
+
+**Evidence:** `tsc` exit 0; `vitest` **48/48**; scanner tests 14/14 unchanged.
+
 ## Acceptance
 
 - [ ] Server tests green; `wrangler dev` smoke from the Simulator: sign in, rename, sign out, delete.

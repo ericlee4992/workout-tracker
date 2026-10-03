@@ -236,6 +236,31 @@ describe("#5 deletion survives Apple being down", () => {
     expect(await Promise.all(queued.results.map((r) => decryptToken(h.env, r.token_enc)))).toEqual(["refresh-NEW"]);
   });
 
+  for (const revokeWorks of [true, false]) {
+    it(`a sign-in interrupted by a deletion after storing its token must reauthorize (03c #1, revoke ${revokeWorks ? "ok" : "fails"})`, async () => {
+      await h.signIn();
+      const accountID = (await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>())!.id;
+      h.apple.nextRefreshToken = "refresh-T2";
+      h.apple.revokeStatus = revokeWorks ? 200 : 500;
+      let outcome: unknown;
+      const { createHandler } = await import("../src/index");
+      const paused = createHandler({ ...h.deps, pause: async () => { outcome = await deleteAccountRevokingApple(h.env, h.deps, accountID); } });
+      const body = { identityToken: await h.idToken(), authorizationCode: h.apple.issueCode("001234.apple-user"), nonce: NONCE };
+      const response = await paused(new Request("https://stacked.test/v1/auth/apple", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }), h.env);
+      expect(outcome).toEqual({ deleted: true, appleRevocation: revokeWorks ? "done" : "pending" });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({ error: "reauthorize" });
+      // No account, identity or session was recreated from the claimed token.
+      expect([await count("accounts"), await count("identities"), await count("sessions")]).toEqual([0, 0, 0]);
+      const queued = await env.DB.prepare("SELECT token_enc FROM pending_revocations").all<{ token_enc: string }>();
+      expect(await Promise.all(queued.results.map((r) => decryptToken(h.env, r.token_enc)))).toEqual(revokeWorks ? [] : ["refresh-T2"]);
+      if (revokeWorks) {
+        expect(h.apple.calls.filter((c) => c.url.endsWith("/auth/revoke")).map((c) => c.body.get("token"))).toEqual(["refresh-T2"]);
+      }
+    });
+  }
+
   it("a sign-in after the claim cannot write into the deleted account; it gets a new one (03b #3)", async () => {
     await h.signIn();
     const accountID = (await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>())!.id;

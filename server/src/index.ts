@@ -82,17 +82,18 @@ async function signInWithApple(request: Request, env: Env, deps: Deps): Promise<
   const refreshToken = await exchangeAppleCode(String(body.authorizationCode ?? ""), identity.subject, env, deps);
   // Apple gives the name only on the first authorization, to the app; the app forwards it.
   const name = cleanName([body.givenName, body.familyName].filter((p) => typeof p === "string").join(" "));
-  // Twice at most: if the account is deleted between finding it and the session (codex-review-03b #3), the second
-  // pass finds nothing and makes a new account holding this sign-in's token — the deletion stays complete.
-  for (let attempt = 0; attempt < 2; attempt++) {
-    let account = await findAccountByIdentity(env, "apple", identity.subject);
-    if (!account || !(await updateRefreshToken(env, deps, "apple", identity.subject, refreshToken))) {
-      account = await createOrFindAccount(env, deps, "apple", identity.subject, name, identity.email, refreshToken);
-    }
-    const session = await createSession(env, deps, account.id);
-    if (session) return json({ session: session.token, expiresAt: session.expiresAt, profile: profile(account) });
+  // Store this sign-in's token on the user's identity. If the identity is already gone (deleted before this point), the
+  // token was never stored or claimed, so a new account may hold it.
+  let account = await findAccountByIdentity(env, "apple", identity.subject);
+  if (!account || !(await updateRefreshToken(env, deps, "apple", identity.subject, refreshToken))) {
+    account = await createOrFindAccount(env, deps, "apple", identity.subject, name, identity.email, refreshToken);
   }
-  throw new AuthError("try_again", 409);
+  await deps.pause?.("before-session");
+  const session = await createSession(env, deps, account.id);
+  // From here the token is stored; if a deletion claimed the account meanwhile, it also claimed this token for
+  // revocation. Never reuse it for another account (codex-review-03c #1): the app must ask Apple again.
+  if (!session) throw new AuthError("reauthorize", 409);
+  return json({ session: session.token, expiresAt: session.expiresAt, profile: profile(account) });
 }
 
 async function authenticated(request: Request, env: Env, deps: Deps) {

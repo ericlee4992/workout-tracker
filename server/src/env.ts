@@ -18,6 +18,8 @@ export interface Deps {
   now: () => number;
   fetch: typeof fetch;
   random: (length: number) => Uint8Array;
+  /** Test seam only (absent in production): awaited at named points so a test can interleave another request. */
+  pause?: (point: "before-session") => Promise<void>;
 }
 
 export const liveDeps: Deps = {

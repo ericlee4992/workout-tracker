@@ -34,7 +34,8 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   until revoked, so a dropped one may still be live). Answers: `"done"`; `"pending"` — **the app then tells the user,
   at once, how to stop it themselves**: iOS Settings → Apple Account → Sign in with Apple → Stacked (Apple TN3194);
   `"manual"` — no token was ever kept, only that route. A deletion that lost the race to another gets `409
-  deletion_in_progress` (never a made-up outcome); a sign-in that lands after the claim gets a new account.
+  deletion_in_progress` (never a made-up outcome). A sign-in that finds the identity already deleted makes a new
+  account; one whose token was stored and then claimed by a deletion ends `409 reauthorize` (ask Apple again).
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB; Apple's key set is cached for
   an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
 - Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.
