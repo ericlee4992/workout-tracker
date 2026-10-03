@@ -1,5 +1,7 @@
 import { AuthError, exchangeAppleCode, revokeAppleToken, verifyAppleIdentityToken } from "./apple";
 import { liveDeps, type Deps, type Env } from "./env";
+import { deleteScreenshots, submitFeedback, sweepFeedback } from "./feedback";
+import { bearer, failure, json, readJSON } from "./http";
 import { privacyPage, supportPage } from "./pages";
 import {
   accountForToken, claimDeletion, createOrFindAccount, createSession, decryptToken, deleteSession,
@@ -7,59 +9,7 @@ import {
   retryPendingRevocationLater, setDisplayName, updateRefreshToken, type Account,
 } from "./store";
 
-const MAX_BODY_BYTES = 64 * 1024;
 const MAX_NAME_LENGTH = 50;
-
-function json(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
-  });
-}
-
-function failure(code: string, status: number): Response {
-  return json({ error: code }, status);
-}
-
-/**
- * Reads at most MAX_BODY_BYTES **bytes** from the stream, cancelling it as soon as the limit is passed
- * (codex-review-03 #2: `request.text()` buffered a chunked body of any size first, and measured UTF-16 units).
- */
-async function readBodyText(request: Request): Promise<string> {
-  const declared = Number(request.headers.get("content-length") ?? "0");
-  if (declared > MAX_BODY_BYTES) throw new AuthError("body_too_large", 413);
-  if (!request.body) return "";
-  const reader = request.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > MAX_BODY_BYTES) {
-      await reader.cancel();
-      throw new AuthError("body_too_large", 413);
-    }
-    chunks.push(value);
-  }
-  const bytes = new Uint8Array(total);
-  let offset = 0;
-  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
-  return new TextDecoder().decode(bytes);
-}
-
-async function readJSON(request: Request): Promise<Record<string, unknown>> {
-  const text = await readBodyText(request);
-  let body: unknown;
-  try { body = JSON.parse(text); } catch { throw new AuthError("malformed_json", 400); }
-  if (typeof body !== "object" || body === null || Array.isArray(body)) throw new AuthError("malformed_json", 400);
-  return body as Record<string, unknown>;
-}
-
-function bearer(request: Request): string | null {
-  const header = request.headers.get("authorization") ?? "";
-  const match = /^Bearer ([A-Za-z0-9_-]+)$/.exec(header);
-  return match ? match[1]! : null;
-}
 
 /** A display name as given: trimmed, 1–50 characters, no control characters; null when absent or unusable. */
 export function cleanName(value: unknown): string | null {
@@ -117,6 +67,7 @@ async function authenticated(request: Request, env: Env, deps: Deps) {
 export async function deleteAccountRevokingApple(env: Env, deps: Deps, accountID: string) {
   const claim = await claimDeletion(env, deps, accountID);
   if (!claim.won) return null;
+  await deleteScreenshots(env, claim.screenshots);
   let pending = 0;
   for (const sealed of claim.queued) {
     const plain = await decryptToken(env, sealed);
@@ -177,6 +128,12 @@ export function createHandler(deps: Deps) {
           await setDisplayName(env, account.id, name);
           return json(profile({ ...account, display_name: name }));
         }
+        case "POST /v1/feedback": {
+          // Works signed out; a bearer that is sent must be valid (the app then knows its session ended).
+          const accountID = bearer(request) || request.headers.has("authorization")
+            ? (await authenticated(request, env, deps)).account.id : null;
+          return json(await submitFeedback(request, env, deps, accountID), 201);
+        }
         case "DELETE /v1/account": {
           const { account } = await authenticated(request, env, deps);
           const outcome = await deleteAccountRevokingApple(env, deps, account.id);
@@ -201,5 +158,6 @@ export default {
   fetch: (request: Request, env: Env) => handle(request, env),
   scheduled: async (_controller: ScheduledController, env: Env, ctx: ExecutionContext) => {
     ctx.waitUntil(runPendingRevocations(env, liveDeps));
+    ctx.waitUntil(sweepFeedback(env, liveDeps));
   },
 } satisfies ExportedHandler<Env>;

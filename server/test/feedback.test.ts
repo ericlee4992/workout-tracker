@@ -1,0 +1,282 @@
+import { env } from "cloudflare:test";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  ACCOUNT_DAILY_LIMIT, characterCount, GLOBAL_DAILY_LIMIT, MAX_FEEDBACK_BODY_BYTES, MAX_MESSAGE_LENGTH,
+  MAX_SCREENSHOT_BYTES, newYorkDay, ORPHAN_GRACE_MS, SIGNED_OUT_DAILY_LIMIT, sweepFeedback,
+} from "../src/feedback";
+import { count, harness, JPEG, PNG, type Harness } from "./helpers";
+
+// Public beta ticket 07: POST /v1/feedback.
+let h: Harness;
+beforeEach(async () => {
+  h = await harness();
+});
+
+interface Row {
+  id: string; account_id: string | null; category: string; message: string; app_version: string; build: string;
+  system_version: string; model: string; screenshot_key: string | null; screenshot_type: string | null;
+  screenshot_bytes: number | null; created_at: number;
+}
+const rows = async () => (await env.DB.prepare("SELECT * FROM feedback ORDER BY created_at, id").all<Row>()).results;
+const objects = async () => (await env.FEEDBACK.list()).objects.map((o) => o.key);
+const errorOf = async (response: Response) => ((await response.json()) as { error: string }).error;
+
+/** A JPEG-headed buffer of `size` bytes. */
+function jpegOfSize(size: number): Uint8Array {
+  const bytes = new Uint8Array(size);
+  bytes.set(JPEG.subarray(0, 4));
+  return bytes;
+}
+
+describe("storing feedback", () => {
+  it("stores a signed-out submission with its details and no account", async () => {
+    const response = await h.feedback({ fields: { category: "idea", message: "  Add supersets.\n" } });
+    expect(response.status).toBe(201);
+    const { id } = (await response.json()) as { id: string };
+    const [row] = await rows();
+    expect(row).toMatchObject({
+      id, account_id: null, category: "idea", message: "Add supersets.", app_version: "0.1.0", build: "1",
+      system_version: "27.0", model: "iPhone16,2", screenshot_key: null, created_at: h.clock.now,
+    });
+    expect(await objects()).toEqual([]);
+  });
+
+  it("stores the account of a signed-in submission", async () => {
+    const { session } = await h.signIn();
+    const account = await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>();
+    expect((await h.feedback({ token: session })).status).toBe(201);
+    expect((await rows())[0]!.account_id).toBe(account!.id);
+  });
+
+  it("keeps the IP address nowhere: not in the row, not readable in the counter", async () => {
+    await h.feedback({ ip: "198.51.100.23" });
+    const stored = JSON.stringify([await rows(), (await env.DB.prepare("SELECT * FROM feedback_limits").all()).results]);
+    expect(stored).not.toContain("198.51.100.23");
+    expect(stored).toMatch(/"ip:[0-9a-f]{64}"/);
+  });
+
+  it("stores a JPEG or PNG screenshot in R2 under the row's key, typed by its own bytes", async () => {
+    expect((await h.feedback({ screenshot: { bytes: JPEG } })).status).toBe(201);
+    expect((await h.feedback({ screenshot: { bytes: PNG, type: "image/jpeg", name: "x.jpg" } })).status).toBe(201);
+    const [jpeg, png] = (await rows()).sort((a, b) => (a.screenshot_type! < b.screenshot_type! ? -1 : 1));
+    expect(jpeg).toMatchObject({ screenshot_type: "image/jpeg", screenshot_bytes: JPEG.byteLength });
+    expect(jpeg!.screenshot_key).toBe(`feedback/${jpeg!.id}.jpg`);
+    expect(png).toMatchObject({ screenshot_type: "image/png", screenshot_key: `feedback/${png!.id}.png` });
+    const object = await env.FEEDBACK.get(jpeg!.screenshot_key!);
+    expect(new Uint8Array(await object!.arrayBuffer())).toEqual(JPEG);
+    expect(object!.httpMetadata?.contentType).toBe("image/jpeg");
+  });
+});
+
+describe("validation", () => {
+  const invalid: [string, Parameters<Harness["feedback"]>[0], number, string][] = [
+    ["an unknown category", { fields: { category: "praise" } }, 400, "invalid_category"],
+    ["no category", { fields: { category: null } }, 400, "invalid_category"],
+    ["no message", { fields: { message: null } }, 400, "invalid_message"],
+    ["a blank message", { fields: { message: " \n\t " } }, 400, "invalid_message"],
+    ["a message with a control character", { fields: { message: "hi\u0000there" } }, 400, "invalid_message"],
+    ["a message over 4,000 characters", { fields: { message: "a".repeat(MAX_MESSAGE_LENGTH + 1) } }, 400, "invalid_message"],
+    ["no app version", { fields: { appVersion: null } }, 400, "invalid_details"],
+    ["a model with markup", { fields: { model: "<script>" } }, 400, "invalid_details"],
+    ["a too-long build", { fields: { build: "1".repeat(33) } }, 400, "invalid_details"],
+    ["a screenshot sent as text", { screenshot: "not a file" }, 400, "invalid_screenshot"],
+    ["a GIF", { screenshot: { bytes: new TextEncoder().encode("GIF89a....."), type: "image/gif" } }, 400, "invalid_screenshot"],
+    ["a 'JPEG' that is HTML", { screenshot: { bytes: new TextEncoder().encode("<html></html>"), type: "image/jpeg" } }, 400, "invalid_screenshot"],
+  ];
+  for (const [name, options, status, code] of invalid) {
+    it(`refuses ${name}, storing nothing and spending no quota`, async () => {
+      const response = await h.feedback(options);
+      expect([response.status, await errorOf(response)]).toEqual([status, code]);
+      expect([await count("feedback"), await count("feedback_limits"), (await objects()).length]).toEqual([0, 0, 0]);
+    });
+  }
+
+  it("accepts exactly 4,000 characters, counted as the app counts them (an emoji is one)", async () => {
+    const message = "💪🏽".repeat(MAX_MESSAGE_LENGTH);
+    expect(characterCount(message)).toBe(MAX_MESSAGE_LENGTH);
+    expect((await h.feedback({ fields: { message } })).status).toBe(201);
+  });
+
+  it("refuses a body that is not multipart", async () => {
+    const response = await h.call("POST", "/v1/feedback", { body: { category: "bug", message: "hi" } });
+    expect([response.status, await errorOf(response)]).toEqual([415, "unsupported_media_type"]);
+  });
+
+  it("refuses two screenshots", async () => {
+    const form = new FormData();
+    for (const [k, v] of Object.entries({ category: "bug", message: "m", appVersion: "1", build: "1", systemVersion: "27.0", model: "x" })) form.append(k, v);
+    form.append("screenshot", new File([JPEG], "a.jpg"));
+    form.append("screenshot", new File([JPEG], "b.jpg"));
+    const { createHandler } = await import("../src/index");
+    const response = await createHandler(h.deps)(new Request("https://stacked.test/v1/feedback", { method: "POST", body: form }), h.env);
+    expect([response.status, await errorOf(response)]).toEqual([400, "invalid_screenshot"]);
+    expect(await objects()).toEqual([]);
+  });
+
+  it("refuses an invalid or expired session instead of filing it as signed out", async () => {
+    const bad = await h.feedback({ token: "x".repeat(43) });
+    expect([bad.status, await errorOf(bad)]).toEqual([401, "unauthorized"]);
+    const malformed = await h.feedback({ authorization: "Basic abc" });
+    expect(malformed.status).toBe(401);
+    expect(await count("feedback")).toBe(0);
+  });
+});
+
+describe("size limits", () => {
+  it("accepts a screenshot of exactly 5 MB", async () => {
+    expect((await h.feedback({ screenshot: { bytes: jpegOfSize(MAX_SCREENSHOT_BYTES) } })).status).toBe(201);
+    expect((await rows())[0]!.screenshot_bytes).toBe(MAX_SCREENSHOT_BYTES);
+  });
+
+  it("refuses a screenshot one byte over 5 MB", async () => {
+    const response = await h.feedback({ screenshot: { bytes: jpegOfSize(MAX_SCREENSHOT_BYTES + 1) } });
+    expect([response.status, await errorOf(response)]).toEqual([413, "screenshot_too_large"]);
+    expect([await count("feedback"), (await objects()).length]).toEqual([0, 0]);
+  });
+
+  it("stops reading a body past the route's limit, declared or streamed", async () => {
+    const big = jpegOfSize(MAX_FEEDBACK_BODY_BYTES + 1);
+    const declared = await h.feedback({ screenshot: { bytes: big } });
+    expect([declared.status, await errorOf(declared)]).toEqual([413, "body_too_large"]);
+    let sent = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (sent > MAX_FEEDBACK_BODY_BYTES * 3) { controller.close(); return; }
+        controller.enqueue(new Uint8Array(256 * 1024));
+        sent += 256 * 1024;
+      },
+    });
+    const { createHandler } = await import("../src/index");
+    const streamed = await createHandler(h.deps)(new Request("https://stacked.test/v1/feedback", {
+      method: "POST", headers: { "content-type": "multipart/form-data; boundary=x" }, body: stream,
+      // @ts-expect-error -- workerd needs this for a streamed request body
+      duplex: "half",
+    }), h.env);
+    expect(streamed.status).toBe(413);
+    expect(sent).toBeLessThan(MAX_FEEDBACK_BODY_BYTES * 2);
+  });
+
+  it("the JSON routes keep their 64 KB limit", async () => {
+    const { session } = await h.signIn();
+    const response = await h.call("PUT", "/v1/profile", { token: session, raw: JSON.stringify({ displayName: "a".repeat(70 * 1024) }) });
+    expect(response.status).toBe(413);
+  });
+});
+
+describe("rate limits", () => {
+  it(`allows ${SIGNED_OUT_DAILY_LIMIT} signed-out submissions a day per address, then refuses; another address is separate`, async () => {
+    for (let i = 0; i < SIGNED_OUT_DAILY_LIMIT; i++) expect((await h.feedback({ ip: "203.0.113.9" })).status).toBe(201);
+    const over = await h.feedback({ ip: "203.0.113.9" });
+    expect([over.status, await errorOf(over)]).toEqual([429, "rate_limited"]);
+    expect((await h.feedback({ ip: "203.0.113.10" })).status).toBe(201);
+    expect(await count("feedback")).toBe(SIGNED_OUT_DAILY_LIMIT + 1);
+  });
+
+  it("resets at midnight in New York, not UTC", async () => {
+    h.clock.now = Date.UTC(2026, 9, 3, 3, 30);  // 23:30 EDT on Oct 2
+    expect(newYorkDay(h.clock.now)).toBe("2026-10-02");
+    for (let i = 0; i < SIGNED_OUT_DAILY_LIMIT; i++) await h.feedback();
+    expect((await h.feedback()).status).toBe(429);
+    h.clock.now = Date.UTC(2026, 9, 3, 3, 59);  // still Oct 2 in New York, although Oct 3 in UTC
+    expect((await h.feedback()).status).toBe(429);
+    h.clock.now = Date.UTC(2026, 9, 3, 4, 1);   // 00:01 EDT on Oct 3
+    expect((await h.feedback()).status).toBe(201);
+  });
+
+  it(`limits a signed-in account to ${ACCOUNT_DAILY_LIMIT} a day, whatever the address`, async () => {
+    const { session } = await h.signIn();
+    for (let i = 0; i < ACCOUNT_DAILY_LIMIT; i++) {
+      expect((await h.feedback({ token: session, ip: `198.51.100.${i}` })).status).toBe(201);
+    }
+    expect((await h.feedback({ token: session, ip: "198.51.100.200" })).status).toBe(429);
+    // Signed-out sending from the same address is its own budget.
+    expect((await h.feedback({ ip: "198.51.100.0" })).status).toBe(201);
+  });
+
+  it(`stops everyone after ${GLOBAL_DAILY_LIMIT} submissions in a day`, async () => {
+    await env.DB.prepare("INSERT INTO feedback_limits (key, day, count) VALUES ('global', ?, ?)")
+      .bind(newYorkDay(h.clock.now), GLOBAL_DAILY_LIMIT).run();
+    const response = await h.feedback({ ip: "192.0.2.1" });
+    expect([response.status, await errorOf(response)]).toEqual([429, "rate_limited"]);
+    expect(await objects()).toEqual([]);
+  });
+
+  it("signed-out feedback fails closed without the server key (no reversible address hash is ever stored)", async () => {
+    const { createHandler } = await import("../src/index");
+    const keyless = { ...h.env, TOKEN_ENC_KEY: undefined };
+    const form = new FormData();
+    for (const [k, v] of Object.entries({ category: "bug", message: "m", appVersion: "1", build: "1", systemVersion: "27.0", model: "x" })) form.append(k, v);
+    const refused = await createHandler(h.deps)(new Request("https://stacked.test/v1/feedback", { method: "POST", body: form }), keyless);
+    expect([refused.status, await errorOf(refused)]).toEqual([503, "server_not_configured"]);
+  });
+});
+
+describe("account deletion covers feedback", () => {
+  it("deletes the account's rows, screenshots and counter; signed-out feedback and other accounts' stay", async () => {
+    const mine = await h.signIn("001234.apple-user");
+    const theirs = await h.signIn("009999.other-user");
+    await h.feedback({ token: mine.session, screenshot: { bytes: JPEG } });
+    await h.feedback({ token: mine.session });
+    await h.feedback({ token: theirs.session, screenshot: { bytes: PNG } });
+    await h.feedback({ screenshot: { bytes: JPEG } });
+    expect([await count("feedback"), (await objects()).length]).toEqual([4, 3]);
+
+    const response = await h.call("DELETE", "/v1/account", { token: mine.session });
+    expect(response.status).toBe(200);
+    const left = await rows();
+    expect(left).toHaveLength(2);
+    const myAccount = await env.DB.prepare("SELECT COUNT(*) AS n FROM feedback_limits WHERE key LIKE 'account:%'").first<{ n: number }>();
+    expect(myAccount!.n).toBe(1);  // only the other account's counter
+    expect((await objects()).sort()).toEqual(left.map((r) => r.screenshot_key!).sort());
+  });
+
+  it("a submission racing the deletion stores nothing (its session or its account is gone)", async () => {
+    const { session } = await h.signIn();
+    const account = await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>();
+    // The deletion lands between authentication and the insert: simulate by deleting, then submitting directly.
+    const { submitFeedback } = await import("../src/feedback");
+    await h.call("DELETE", "/v1/account", { token: session });
+    const form = new FormData();
+    for (const [k, v] of Object.entries({ category: "bug", message: "m", appVersion: "1", build: "1", systemVersion: "27.0", model: "x" })) form.append(k, v);
+    form.append("screenshot", new File([JPEG], "a.jpg"));
+    await expect(submitFeedback(new Request("https://stacked.test/v1/feedback", { method: "POST", body: form }), h.env, h.deps, account!.id))
+      .rejects.toMatchObject({ code: "unauthorized" });
+    expect([await count("feedback"), (await objects()).length]).toEqual([0, 0]);
+  });
+
+  it("a screenshot whose R2 delete fails at deletion is removed by the sweep", async () => {
+    const { session } = await h.signIn();
+    await h.feedback({ token: session, screenshot: { bytes: JPEG } });
+    const failing = { ...h.env, FEEDBACK: { ...h.env.FEEDBACK, delete: async () => { throw new Error("R2 down"); } } as unknown as R2Bucket };
+    const { createHandler } = await import("../src/index");
+    const response = await createHandler(h.deps)(
+      new Request("https://stacked.test/v1/account", { method: "DELETE", headers: { authorization: `Bearer ${session}` } }), failing);
+    expect(response.status).toBe(200);
+    expect(await count("feedback")).toBe(0);
+    expect((await objects()).length).toBe(1);  // left behind
+    h.clock.now = Date.now() + ORPHAN_GRACE_MS + 60_000;  // R2 stamps uploads with the real clock
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1 });
+    expect(await objects()).toEqual([]);
+  });
+});
+
+describe("the hourly sweep", () => {
+  it("leaves screenshots with rows, and young orphans (their row may be on its way)", async () => {
+    await h.feedback({ screenshot: { bytes: JPEG } });
+    await env.FEEDBACK.put("feedback/young-orphan.jpg", JPEG);
+    h.clock.now = Date.now() + ORPHAN_GRACE_MS / 2;
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 0 });
+    expect((await objects()).length).toBe(2);
+    h.clock.now = Date.now() + ORPHAN_GRACE_MS + 60_000;
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1 });
+    expect(await objects()).toEqual([(await rows())[0]!.screenshot_key]);
+  });
+
+  it("removes counters from earlier days", async () => {
+    await h.feedback();
+    expect(await count("feedback_limits")).toBe(2);  // the address and the global counter
+    h.clock.now += 24 * 60 * 60 * 1000;
+    await sweepFeedback(h.env, h.deps);
+    expect(await count("feedback_limits")).toBe(0);
+  });
+});

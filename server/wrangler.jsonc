@@ -6,7 +6,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-22",
   "observability": { "enabled": true },
-  // Hourly: retry Apple token revocations that failed during an account deletion (codex-review-03 #5).
+  // Hourly: retry Apple token revocations that failed during an account deletion (codex-review-03 #5); sweep feedback
+  // screenshots left without a row and old feedback rate-limit counters (ticket 07).
   "triggers": { "crons": ["23 * * * *"] },
   "vars": {
     // Sign in with Apple's audience: the app's bundle ID (D60: kept as is).
@@ -14,6 +15,10 @@
     // The paid team's ID (not secret); set when Apple approves the enrollment (ticket 01).
     "APPLE_TEAM_ID": ""
   },
+  // Feedback screenshots (ticket 07). Created by `wrangler r2 bucket create stacked-feedback` before the first deploy.
+  "r2_buckets": [
+    { "binding": "FEEDBACK", "bucket_name": "stacked-feedback" }
+  ],
   "d1_databases": [
     {
       "binding": "DB",

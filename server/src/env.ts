@@ -1,6 +1,8 @@
 /** Bindings and settings (wrangler.jsonc `vars`; secrets via `wrangler secret put`). */
 export interface Env {
   DB: D1Database;
+  /** Feedback screenshots (R2). */
+  FEEDBACK: R2Bucket;
   /** Sign in with Apple audience: the app's bundle ID. */
   APPLE_CLIENT_ID: string;
   /** The paid Apple Developer team ID (not secret). */

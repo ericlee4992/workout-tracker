@@ -18,7 +18,8 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 | `POST /v1/auth/apple` | `{ identityToken, authorizationCode, nonce, givenName?, familyName? }` → `{ session, expiresAt, profile }` |
 | `POST /v1/auth/signout` | ends this session |
 | `GET /v1/profile`, `PUT /v1/profile` | `{ displayName, email, provider, memberSince }`; PUT `{ displayName }` (1–50 characters) |
-| `DELETE /v1/account` | deletes every row now; revokes Apple's tokens → `{ deleted, appleRevocation: "done" \| "pending" \| "manual" }` |
+| `DELETE /v1/account` | deletes every row now (feedback and its screenshots too); revokes Apple's tokens → `{ deleted, appleRevocation: "done" \| "pending" \| "manual" }` |
+| `POST /v1/feedback` | multipart: `category` (bug/idea/other), `message` (1–4,000 characters), `appVersion`, `build`, `systemVersion`, `model`, optional `screenshot` (JPEG/PNG ≤ 5 MB) → `201 { id }`; signed in or out |
 | `GET /privacy`, `GET /support`, `GET /v1/health` | pages / liveness |
 
 Signed-in calls send `Authorization: Bearer <session>`. Sessions last 90 days and renew with use; only their SHA-256
@@ -36,7 +37,12 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   `"manual"` — no token was ever kept, only that route. A deletion that lost the race to another gets `409
   deletion_in_progress` (never a made-up outcome). A sign-in that finds the identity already deleted makes a new
   account; one whose token was stored and then claimed by a deletion ends `409 reauthorize` (ask Apple again).
-- **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB; Apple's key set is cached for
+- **Feedback** (ticket 07): text and details in D1, the screenshot in R2 (`stacked-feedback`, typed by its own bytes,
+  never the declared type). Per New York day: 10 signed-out submissions per address, 30 per account, 500 in all
+  (`429 rate_limited`). The address is never stored: the counter key is an HMAC of the day and the address under a key
+  derived from `TOKEN_ENC_KEY` (so signed-out feedback needs that secret). A session that is sent must be valid (`401`).
+  The hourly cron deletes screenshots no row refers to (after an hour) and old counters.
+- **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB); Apple's key set is cached for
   an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
 - Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.
 
@@ -54,6 +60,7 @@ npm run migrate:local && npm run dev    # http://localhost:8787 — sign-in need
 
 1. Create a free Cloudflare account; `npx wrangler login`.
 2. `npx wrangler d1 create stacked` and put the printed `database_id` in `wrangler.jsonc`; then `npm run migrate:remote`.
+   `npx wrangler r2 bucket create stacked-feedback` (feedback screenshots; R2 must be enabled on the account once).
 3. In the Apple Developer portal (paid team): enable **Sign in with Apple** for `com.ericlee4992.workouttracker`,
    create a **Sign in with Apple key**, download its `.p8` once. Set `APPLE_TEAM_ID` in `wrangler.jsonc`.
 4. Secrets, typed or piped locally — never in chat, never in the repository:
@@ -66,3 +73,15 @@ npm run migrate:local && npm run dev    # http://localhost:8787 — sign-in need
    the stored refresh tokens).
 5. `npm run deploy` — the user approves the first production deploy. The URL (`https://stacked-server.<you>.workers.dev`)
    becomes the app's server build setting.
+
+## Reading feedback
+
+```sh
+cd server
+node scripts/feedback.mjs list [--limit 20]          # newest first: ID, time (New York), category, 📎 = screenshot, sender
+node scripts/feedback.mjs show <id>                  # the whole message and its details
+node scripts/feedback.mjs screenshot <id>            # saves it to server/.feedback/ (git-ignored); --out <dir> elsewhere
+```
+
+Add `--local` to read `wrangler dev`'s local copies. The Cloudflare dashboard (D1 → stacked → `feedback`; R2 →
+stacked-feedback) shows the same. Feedback is tester data: keep it out of the repository, issues and chats.

@@ -2,6 +2,7 @@
 declare namespace Cloudflare {
   interface Env {
     DB: D1Database;
+    FEEDBACK: R2Bucket;
     APPLE_CLIENT_ID: string;
     APPLE_TEAM_ID: string;
     APPLE_KEY_ID?: string;

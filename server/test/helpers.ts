@@ -110,14 +110,31 @@ export interface Harness {
   signIn: (subject?: string, extra?: Record<string, unknown>) => Promise<{ session: string; profile: Record<string, unknown> }>;
   /** The router's `deps` (for calling exported functions like the scheduled retry directly). */
   deps: Deps;
+  /** POST /v1/feedback as multipart: the given fields over valid defaults (null drops a field). */
+  feedback: (options?: FeedbackOptions) => Promise<Response>;
 }
+
+export interface FeedbackOptions {
+  fields?: Record<string, string | null>;
+  screenshot?: { bytes: Uint8Array; type?: string; name?: string } | string;
+  token?: string;
+  /** Sent as an Authorization header verbatim. */
+  authorization?: string;
+  ip?: string;
+}
+
+export const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46, 0x00, 0x01, 0xff, 0xd9]);
+export const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d]);
 
 export const NONCE = "raw-nonce-0123456789abcdef";
 
 export async function harness(): Promise<Harness> {
   resetAppleKeyCache();
   // The pool keeps one D1 per test file: start every test from empty tables (children first).
-  await env.DB.batch(["pending_revocations", "sessions", "identities", "accounts"].map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
+  await env.DB.batch(["feedback", "feedback_limits", "pending_revocations", "sessions", "identities", "accounts"]
+    .map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
+  const stored = await env.FEEDBACK.list();
+  if (stored.objects.length > 0) await env.FEEDBACK.delete(stored.objects.map((o) => o.key));
   const clock = { now: Date.UTC(2026, 9, 2, 12) };
   const { apple, fetch: fakeFetch, privateKeyPEM } = await makeFakeApple(clock);
   let counter = 0;
@@ -156,7 +173,24 @@ export async function harness(): Promise<Harness> {
     if (response.status !== 200) throw new Error(`sign-in failed ${response.status} ${await response.text()}`);
     return response.json() as Promise<{ session: string; profile: Record<string, unknown> }>;
   };
-  return { apple, env: testEnv, clock, call, idToken, signIn, deps };
+  const feedback: Harness["feedback"] = (options = {}) => {
+    const form = new FormData();
+    const fields: Record<string, string | null> = {
+      category: "bug", message: "The rest timer kept counting.", appVersion: "0.1.0", build: "1",
+      systemVersion: "27.0", model: "iPhone16,2", ...options.fields,
+    };
+    for (const [name, value] of Object.entries(fields)) if (value !== null) form.append(name, value);
+    if (typeof options.screenshot === "string") form.append("screenshot", options.screenshot);
+    else if (options.screenshot) {
+      form.append("screenshot", new File([options.screenshot.bytes], options.screenshot.name ?? "shot.jpg",
+        { type: options.screenshot.type ?? "image/jpeg" }));
+    }
+    const headers: Record<string, string> = { "cf-connecting-ip": options.ip ?? "203.0.113.7" };
+    if (options.token) headers.authorization = `Bearer ${options.token}`;
+    if (options.authorization !== undefined) headers.authorization = options.authorization;
+    return handle(new Request("https://stacked.test/v1/feedback", { method: "POST", headers, body: form }), testEnv);
+  };
+  return { apple, env: testEnv, clock, call, idToken, signIn, deps, feedback };
 }
 
 export async function count(table: string): Promise<number> {

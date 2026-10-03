@@ -124,12 +124,15 @@ export interface DeletionClaim {
   queued: string[];
   /** Apple identities that never kept a token: manual revocation only. */
   missing: number;
+  /** R2 keys of the account's feedback screenshots, whose rows this deletion removed (ticket 07): delete them next. */
+  screenshots: string[];
 }
 
 /**
  * Claims the deletion in ONE transaction (codex-review-03b #2, #3): reads the account's current Apple tokens, moves
  * them to `pending_revocations` (due after the first backoff, so the cron does not race the immediate attempt), and
- * deletes sessions, identities and the account. A sign-in that stored a newer token before this point is captured;
+ * deletes sessions, identities, the account's feedback and its feedback counter (ticket 07), and the account. A sign-in
+ * that stored a newer token before this point is captured;
  * one after it finds no account and makes a new one; a second deletion finds nothing to delete and loses.
  */
 export async function claimDeletion(env: Env, deps: Deps, accountID: string): Promise<DeletionClaim> {
@@ -140,13 +143,20 @@ export async function claimDeletion(env: Env, deps: Deps, accountID: string): Pr
       "INSERT OR IGNORE INTO pending_revocations (token_enc, created_at, attempts, next_attempt_at) " +
       "SELECT refresh_token_enc, ?, 1, ? FROM identities WHERE account_id = ? AND provider = 'apple' AND refresh_token_enc IS NOT NULL")
       .bind(now, now + backoff(1), accountID),
+    env.DB.prepare("SELECT screenshot_key FROM feedback WHERE account_id = ? AND screenshot_key IS NOT NULL").bind(accountID),
+    env.DB.prepare("DELETE FROM feedback WHERE account_id = ?").bind(accountID),
+    env.DB.prepare("DELETE FROM feedback_limits WHERE key = ?").bind(`account:${accountID}`),
     env.DB.prepare("DELETE FROM sessions WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM identities WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM accounts WHERE id = ?").bind(accountID),
   ]);
   const tokens = (results[0]!.results as { refresh_token_enc: string | null }[]).map((r) => r.refresh_token_enc);
-  const won = (results[4]!.meta.changes ?? 0) > 0;
-  return { won, queued: tokens.filter((t): t is string => t !== null), missing: tokens.filter((t) => t === null).length };
+  const screenshots = (results[2]!.results as { screenshot_key: string }[]).map((r) => r.screenshot_key);
+  const won = (results[results.length - 1]!.meta.changes ?? 0) > 0;
+  return {
+    won, queued: tokens.filter((t): t is string => t !== null), missing: tokens.filter((t) => t === null).length,
+    screenshots,
+  };
 }
 
 export interface PendingRevocation { token_enc: string; created_at: number; attempts: number }
