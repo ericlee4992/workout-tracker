@@ -94,6 +94,17 @@ the user's Cloudflare account, D1 creation, secrets, the first deploy (steps in 
    Motion at runtime, real GPS and sensors on the redesigned cardio screens, Lock Screen commands on a device, a
    restore from a backup on a phone (Simulator only so far), a non-US simulator region.
 
+## Found 2026-10-02 (pre-existing, not caused by the public-beta work)
+
+- **iOS CI ("Tests" workflow) fails on every `main` run since the Floodlight merge `4765b76` (2026-09-29):** the build
+  stops compiling `WorkoutTracker/Features/ActiveWorkout/LiveSetRow.swift` on the `macos-26` runner (Xcode 26); the same
+  code builds and tests locally on Xcode 27. A runner-image/SDK mismatch to look at with the deferred hosted-CI work.
+  The new "Server" workflow (secret scan + server tests, Linux) passed on `e455222`.
+- **Three UI tests fail on `main` too** (ticket 02's regression run): `FloodlightHistoryUITests` light/dark captures at
+  `:100` ("a multi-day series draws", likely date-dependent since the month changed) and
+  `CoreLoopUITests.testModelPickerFiltersAndSearchesDownToOneModel` (:274, the known model-picker flake). A small
+  follow-up ticket.
+
 ## Still open from before the redesign (unchanged; details in the archived STATE)
 
 - [AI ticket 06 — private device acceptance](../work-record/ai-gym/issues/06-device-acceptance.md): after the
