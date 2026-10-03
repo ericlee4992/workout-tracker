@@ -3,6 +3,7 @@ import { AuthError, exchangeAppleCode, revokeAppleToken, verifyAppleIdentityToke
 import { liveDeps, type Deps, type Env } from "./env";
 import { deleteClaimedScreenshots, submitFeedback, sweepFeedback } from "./feedback";
 import { bearer, failure, json, readJSON } from "./http";
+import { cleanTraining, readTraining, writeTraining } from "./training";
 import { privacyPage, supportPage } from "./pages";
 import {
   accountForToken, claimDeletion, createOrFindAccount, createSession, decryptToken, deleteSession,
@@ -22,6 +23,11 @@ export function cleanName(value: unknown): string | null {
 
 function profile(account: Account, provider = "apple") {
   return { displayName: account.display_name, email: account.email, provider, memberSince: account.created_at };
+}
+
+/** The profile with its training profile (ticket 05). */
+async function fullProfile(env: Env, account: Account) {
+  return { ...profile(account), training: await readTraining(env, account.id) };
 }
 
 async function signInWithApple(request: Request, env: Env, deps: Deps): Promise<Response> {
@@ -119,15 +125,21 @@ export function createHandler(deps: Deps) {
         }
         case "GET /v1/profile": {
           const { account } = await authenticated(request, env, deps);
-          return json(profile(account));
+          return json(await fullProfile(env, account));
         }
         case "PUT /v1/profile": {
+          // Either or both: `displayName`; `training` (an object to save, null to remove). Both are checked before
+          // either is written, so a refused request changes nothing.
           const { account } = await authenticated(request, env, deps);
           const body = await readJSON(request);
-          const name = cleanName(body.displayName);
-          if (!name) return failure("invalid_display_name", 400);
-          await setDisplayName(env, account.id, name);
-          return json(profile({ ...account, display_name: name }));
+          const hasName = "displayName" in body, hasTraining = "training" in body;
+          if (!hasName && !hasTraining) return failure("invalid_display_name", 400);
+          const name = hasName ? cleanName(body.displayName) : null;
+          if (hasName && !name) return failure("invalid_display_name", 400);
+          const training = hasTraining && body.training !== null ? cleanTraining(body.training) : null;
+          if (name) await setDisplayName(env, account.id, name);
+          if (hasTraining) await writeTraining(env, deps, account.id, training);
+          return json(await fullProfile(env, name ? { ...account, display_name: name } : account));
         }
         case "GET /v1/ai/usage": {
           const { account } = await authenticated(request, env, deps);

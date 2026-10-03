@@ -22,7 +22,7 @@ struct AIRoutineSheet: View {
     /// A saved template's tile: close the flow and open it on the Workout tab.
     var onOpenTemplate: (WorkoutTemplate) -> Void = { _ in }
 
-    @State private var model = AIRoutineFlowModel()
+    @State private var model = ProfileSample.prefilledRoutineModel()
     @State private var path: [UUID] = []
     @AppStorage(TerraAccess.routineConsentKey) private var consent = false
     @State private var keyHint: String? = AskAIKeyStore.read().map(AskAIKeyHint.masked)

@@ -24,6 +24,9 @@ struct AIGoalsStep: View {
                 experience.padding(.top, look.space.section)
                 schedule.padding(.top, look.space.section)
                 profile.padding(.top, look.space.section)
+                if ProfileSample.prefillsAskAI {
+                    saveToProfile.padding(.top, look.space.group)
+                }
             }
             .padding(.horizontal, look.space.margin)
             .padding(.bottom, 24)
@@ -161,6 +164,25 @@ struct AIGoalsStep: View {
                 .foregroundStyle(look.textSecondary)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    // MARK: Save to the training profile (ticket 05 mock: the user decides whether this exists)
+
+    @State private var savesToProfile = true
+
+    private var saveToProfile: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            LookList(separatorInset: 54) {
+                SettingsRow("Save to my training profile", symbol: "person.crop.circle", trailingStaysInline: true) {
+                    Toggle(isOn: $savesToProfile) { Text("Save to my training profile") }
+                        .toggleStyle(.settings)
+                        .fixedSize()
+                        .accessibilityIdentifier("routineSaveToProfile")
+                }
+            }
+            SettingsNotice(symbol: "person.text.rectangle", text: "Filled in from your training profile.")
+                .padding(.top, 2)
+        }
     }
 
     // MARK: Optional profile

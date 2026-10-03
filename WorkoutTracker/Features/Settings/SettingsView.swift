@@ -25,6 +25,7 @@ struct SettingsView: View {
     @State private var showAskAISheet = false
     @State private var showExport = false
     @State private var showFeedback = false
+    @State private var showProfile = false
     /// Re-read when the Ask AI sheet closes; the keychain is not observable.
     @State private var askAIOn = AskAIKeyStore.read() != nil
     @State private var counts: ExportCounts?
@@ -37,6 +38,12 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: look.space.section) {
                 LookNavTitle("Settings")
+                // Public beta ticket 05 (UI-first): the Account row; sample data only until 03's app half.
+                if ProfileSample.showsAccountRow {
+                    SettingsAccountRow(profile: ProfileSample.profile) {
+                        if ProfileSample.profile != nil { showProfile = true }
+                    }
+                }
                 units
                 appearance
                 workout
@@ -70,6 +77,11 @@ struct SettingsView: View {
             AskAISettingsSheet()
         }
         .navigationDestination(isPresented: $showExport) { ExportView() }
+        .navigationDestination(isPresented: $showProfile) {
+            if let profile = ProfileSample.profile {
+                ProfileScreen(profile: profile, usCustomary: unitSystem == .usCustomary)
+            }
+        }
         .sheet(isPresented: $showFeedback) {
             let details = FeedbackDetails.forThisPhone
             FeedbackSheet(details: details, initial: FeedbackSample.draft, send: FeedbackSender.make(details: details))
