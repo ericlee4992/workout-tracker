@@ -24,6 +24,7 @@ struct SettingsView: View {
     @State private var showMaxHeartRateSheet = false
     @State private var showAskAISheet = false
     @State private var showExport = false
+    @State private var showFeedback = false
     /// Re-read when the Ask AI sheet closes; the keychain is not observable.
     @State private var askAIOn = AskAIKeyStore.read() != nil
     @State private var counts: ExportCounts?
@@ -69,6 +70,9 @@ struct SettingsView: View {
             AskAISettingsSheet()
         }
         .navigationDestination(isPresented: $showExport) { ExportView() }
+        .sheet(isPresented: $showFeedback) {
+            FeedbackSheet(details: FeedbackSample.details, initial: FeedbackSample.draft, send: FeedbackSample.stubSend)
+        }
     }
 
     // MARK: Units (the bold element)
@@ -161,21 +165,24 @@ struct SettingsView: View {
     // MARK: Workout (rest defaults and the template prompt)
 
     /// Public beta ticket 02: the guided tour again, any time (not while a workout runs — it explains why).
+    /// Ticket 07: Send Feedback (works signed out).
     @ViewBuilder private var help: some View {
-        if let onboarding {
-            VStack(alignment: .leading, spacing: look.space.header) {
-                SectionHeader("Help")
-                LookList(separatorInset: 54) {
+        VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader("Help")
+            LookList(separatorInset: 54) {
+                if let onboarding {
                     LookRow("Show Tour", symbol: "map", action: {
                         onboarding.startTour(realContext: modelContext)
                     })
                     .accessibilityIdentifier("showTour")
                 }
+                LookRow("Send Feedback", symbol: "bubble.left.and.text.bubble.right", action: { showFeedback = true })
+                    .accessibilityIdentifier("sendFeedback")
             }
-            .alert(onboarding.tourFailure ?? "", isPresented: Binding(
-                get: { onboarding.tourFailure != nil }, set: { if !$0 { onboarding.tourFailure = nil } })) {
-                Button("OK", role: .cancel) {}
-            }
+        }
+        .alert(onboarding?.tourFailure ?? "", isPresented: Binding(
+            get: { onboarding?.tourFailure != nil }, set: { if !$0 { onboarding?.tourFailure = nil } })) {
+            Button("OK", role: .cancel) {}
         }
     }
 
