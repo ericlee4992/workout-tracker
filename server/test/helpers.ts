@@ -167,8 +167,29 @@ export async function harness(): Promise<Harness> {
       if (url !== "https://api.openai.com/v1/responses") return fakeFetch(input, init);
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       openai.calls.push({ body, authorization: new Headers(init?.headers).get("authorization") });
-      if (openai.gate) await openai.gate;
-      return openai.respond(body);
+      // Honours the abort signal, as fetch does, for headers that are slow to come.
+      const aborted = new Promise<never>((_, reject) => {
+        const signal = init?.signal;
+        if (signal?.aborted) reject(signal.reason);
+        signal?.addEventListener("abort", () => reject(signal.reason));
+      });
+      if (openai.gate) await Promise.race([openai.gate, aborted]);
+      const response = await Promise.race([Promise.resolve(openai.respond(body)), aborted]);
+      if (!response.body || !init?.signal) return response;
+      // …and for a body still streaming in when the deadline passes.
+      const signal = init.signal;
+      const reader = response.body.getReader();
+      const guarded = new ReadableStream<Uint8Array>({
+        async pull(controller) {
+          try {
+            const { done, value } = await Promise.race([reader.read(), aborted]);
+            if (done) controller.close(); else controller.enqueue(value);
+          } catch (error) {
+            controller.error(signal.aborted ? signal.reason : error);
+          }
+        },
+      });
+      return new Response(guarded, { status: response.status, headers: response.headers });
     },
     random: (n) => { const bytes = crypto.getRandomValues(new Uint8Array(n)); bytes[0] = counter++ % 256; return bytes; },
   };

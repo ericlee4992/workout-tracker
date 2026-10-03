@@ -23,7 +23,12 @@ export const attemptCap = (flow: Flow) => DAILY_LIMITS[flow] * 2;
 
 const UUID = /^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$/;
 const MAX_EXERCISES = 300;
-const MAX_JPEG_BYTES = 3 * 1024 * 1024;
+/** The app sends ≤ 1568 px at quality 0.85 (EquipmentPhoto.jpeg), typically well under 1 MB; 2 MB bounds the CPU spent
+ *  parsing and re-serializing the request on Workers Free (codex-review-06). */
+export const MAX_JPEG_BYTES = 2 * 1024 * 1024;
+const MAX_JPEG_SIDE = 4096;
+/** The bounded JPEG parse reads markers within this many leading bytes (the app's re-encoded JPEG has no large EXIF). */
+const JPEG_HEADER_SCAN_BYTES = 64 * 1024;
 const CARDIO = ["indoorWalk", "indoorRun", "indoorCycle", "elliptical", "rowing", "stairStepper",
   "outdoorWalk", "outdoorRun", "outdoorCycle"];
 const LOAD_TYPES = ["weighted", "bodyweight", "bodyweightPlus", "assisted"];
@@ -98,6 +103,8 @@ const proposalSchema = (ids: string[]): Schema => ({
 });
 
 interface Prepared {
+  /** The reply's bounds, as the app enforces them (codex-review-06 #6): an out-of-bounds reply is ai_invalid. */
+  check: (result: Record<string, unknown>) => boolean;
   instructions: string;
   schema: Schema;
   schemaName: string;
@@ -113,9 +120,14 @@ function bad(): never {
   throw new AuthError("invalid_input", 400);
 }
 
-function text(value: unknown, max: number, { optional = false, allowEmpty = false } = {}): string {
+/**
+ * A string field. Single-line unless `multiline` (codex-review-06 #6): a name or plate line cannot carry a line break, so
+ * it cannot fabricate another row or section of the model's input; it stays one value inside its own row.
+ */
+function text(value: unknown, max: number, { optional = false, allowEmpty = false, multiline = false } = {}): string {
   if (value === undefined || value === null) { if (optional) return ""; bad(); }
   if (typeof value !== "string" || value.length > max || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) bad();
+  if (!multiline && /[\r\n\u2028\u2029]/.test(value)) bad();
   if (!allowEmpty && value.trim().length === 0) bad();
   return value;
 }
@@ -155,13 +167,51 @@ function uniqueIDs(ids: string[]) {
   if (new Set(ids).size !== ids.length) bad();
 }
 
-/** The JPEG's base64, checked to be a JPEG of at most 3 MB. */
-function jpeg(value: unknown): string {
-  if (typeof value !== "string" || value.length > Math.ceil(MAX_JPEG_BYTES / 3) * 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) bad();
-  let head: string;
-  try { head = atob(value.slice(0, 8)); } catch { bad(); }
-  if (head.charCodeAt(0) !== 0xff || head.charCodeAt(1) !== 0xd8 || head.charCodeAt(2) !== 0xff) bad();
-  return value;
+function decodeBase64(chunk: string): Uint8Array {
+  const binary = atob(chunk);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
+/**
+ * The JPEG's base64, checked in full (codex-review-06 #1): canonical base64 (length a multiple of 4, padding only at
+ * the end), at most 2 MB decoded, starting with SOI and an intact marker sequence up to a frame header whose
+ * dimensions are 1–4096 px (a bounded parse of the first 64 KB), and ending with EOI. Not a full decode: OpenAI does
+ * that; this refuses garbage before it costs an attempt or an upstream call.
+ */
+export function jpeg(value: unknown): string {
+  if (typeof value !== "string" || value.length === 0 || value.length % 4 !== 0 ||
+      value.length > Math.ceil(MAX_JPEG_BYTES / 3) * 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) bad();
+  const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+  if ((value.length / 4) * 3 - padding > MAX_JPEG_BYTES) bad();
+  let head: Uint8Array, tail: Uint8Array;
+  try {
+    // A whole number of 4-character groups (else atob refuses the slice of any JPEG over 64 KB).
+    head = decodeBase64(value.slice(0, Math.min(value.length, Math.floor(JPEG_HEADER_SCAN_BYTES / 3) * 4)));
+    tail = decodeBase64(value.slice(-4));
+  } catch { bad(); }
+  const end = tail.length;
+  if (end < 2 || tail[end - 2] !== 0xff || tail[end - 1] !== 0xd9) bad();
+  if (head[0] !== 0xff || head[1] !== 0xd8) bad();
+  // Walk the marker segments after SOI to the first frame header (SOF0–SOF15 except DHT C4, JPG C8, DAC CC).
+  let i = 2;
+  for (;;) {
+    if (i + 4 > head.length || head[i] !== 0xff) bad();
+    const marker = head[i + 1]!;
+    if (marker === 0xff) { i++; continue; }             // fill byte
+    if (marker === 0xd8 || marker === 0xd9 || marker === 0xda) bad();  // SOI/EOI/SOS before a frame header
+    const length = (head[i + 2]! << 8) | head[i + 3]!;
+    if (length < 2) bad();
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      if (i + 9 > head.length || length < 8) bad();
+      const height = (head[i + 5]! << 8) | head[i + 6]!;
+      const width = (head[i + 7]! << 8) | head[i + 8]!;
+      if (height < 1 || width < 1 || height > MAX_JPEG_SIDE || width > MAX_JPEG_SIDE) bad();
+      return value;
+    }
+    i += 2 + length;
+  }
 }
 
 export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
@@ -172,7 +222,9 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
         return { id: uuid(r.id), name: text(r.name, 100), loadType: oneOf(r.loadType, LOAD_TYPES) };
       });
       uniqueIDs(exercises.map((e) => e.id));
+      const ids = new Set(exercises.map((e) => e.id));
       return {
+        check: (r) => checkScan(r, ids),
         instructions: SCAN_INSTRUCTIONS, schema: SCAN_SCHEMA, schemaName: "equipment_identity",
         text: exercises.map((e) => `${e.id} | ${e.name} | ${e.loadType}`).join("\n"),
         jpegBase64: jpeg(input.jpeg), maxOutputTokens: 8000, reasoningEffort: "medium",
@@ -181,7 +233,10 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
     case "routine-week": {
       const exercises = list(input.exercises, 0, MAX_EXERCISES).map((e) => {
         const r = record(e);
-        const option: Record<string, unknown> = { id: uuid(r.id), name: text(r.name, 100), muscleGroup: text(r.muscleGroup, 60) };
+        // An exercise without a muscle group arrives as "" (RoutineAvailability; codex-review-06 #4).
+        const option: Record<string, unknown> = {
+          id: uuid(r.id), name: text(r.name, 100), muscleGroup: text(r.muscleGroup, 60, { allowEmpty: true }),
+        };
         if (r.equipment !== undefined && r.equipment !== null) option.equipment = oneOf(r.equipment, EQUIPMENT);
         return option;
       });
@@ -190,7 +245,7 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
       if (new Set(cardio).size !== cardio.length || exercises.length + cardio.length === 0) bad();
       // Re-serialized from the checked fields only (unknown keys are dropped), as the app's JSONEncoder sent it.
       const request: Record<string, unknown> = {
-        goals: text(input.goals, 1000), experience: oneOf(input.experience, ["Beginner", "Intermediate", "Experienced"]),
+        goals: text(input.goals, 1000, { multiline: true }), experience: oneOf(input.experience, ["Beginner", "Intermediate", "Experienced"]),
         days: intIn(input.days, 1, 7), minutes: intIn(input.minutes, 10, 240),
       };
       const height = numberIn(input.heightCm, 50, 260);
@@ -199,7 +254,9 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
       if (weight !== null) request.weightKg = weight;
       request.exercises = exercises;
       request.cardioActivities = cardio;
+      const ids = new Set(exercises.map((e) => e.id as string));
       return {
+        check: (r) => checkRoutine(r, ids, new Set(cardio), request.days as number),
         instructions: ROUTINE_INSTRUCTIONS, schema: ROUTINE_SCHEMA, schemaName: "weekly_routine",
         text: JSON.stringify(request), maxOutputTokens: 8000, reasoningEffort: "medium",
       };
@@ -214,7 +271,9 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
         return { id: uuid(r.id), name: text(r.name, 100), muscleGroup: text(r.muscleGroup, 60, { optional: true, allowEmpty: true }) };
       });
       uniqueIDs(candidates.map((c) => c.id));
+      const ids = new Set(candidates.map((c) => c.id));
       return {
+        check: (r) => checkProposals(r, ids),
         instructions: PROPOSAL_INSTRUCTIONS, schema: proposalSchema(candidates.map((c) => c.id)),
         schemaName: "exercise_proposals",
         text: `Plate: ${brand} ${model} ${lines.join(" / ")}\n` +
@@ -225,15 +284,57 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
   }
 }
 
+// MARK: Reply bounds (mirroring the app's validated(...) checks; the app still checks everything itself)
+
+const isString = (v: unknown, max: number) => typeof v === "string" && v.length <= max;
+const isInt = (v: unknown, min: number, max: number) => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
+const idsWithin = (v: unknown, allowed: Set<string>, max: number) =>
+  Array.isArray(v) && v.length <= max && new Set(v).size === v.length &&
+  v.every((id) => typeof id === "string" && allowed.has(id.toUpperCase()));
+
+function checkScan(r: Record<string, unknown>, ids: Set<string>): boolean {
+  return ["specific", "generic", "uncertain"].includes(r.identity as string) && isString(r.label, 100) &&
+    isString(r.manufacturer, 100) && isString(r.modelName, 150) && isString(r.visibleText, 1000) &&
+    idsWithin(r.exerciseIDs, ids, 6);
+}
+
+function checkRoutine(r: Record<string, unknown>, ids: Set<string>, cardio: Set<string>, days: number): boolean {
+  const sessions = r.sessions;
+  if (!Array.isArray(sessions) || sessions.length !== days) return false;
+  return sessions.every((day: Record<string, unknown>) => {
+    const strength = day?.strength, blocks = day?.cardio;
+    return isString(day?.name, 80) && Array.isArray(strength) && strength.length <= 10 &&
+      Array.isArray(blocks) && blocks.length <= 3 &&
+      idsWithin(strength.map((s: Record<string, unknown>) => s?.exerciseID), ids, 10) &&
+      strength.every((s: Record<string, unknown>) => isInt(s.sets, 1, 10) && isInt(s.reps, 1, 50) && isInt(s.restSeconds, 0, 600)) &&
+      blocks.every((c: Record<string, unknown>) => cardio.has(c?.activity as string) && isInt(c?.minutes, 1, 180));
+  });
+}
+
+function checkProposals(r: Record<string, unknown>, ids: Set<string>): boolean {
+  const proposals = r.proposals;
+  return Array.isArray(proposals) && proposals.length <= 6 &&
+    idsWithin(proposals.map((p: Record<string, unknown>) => p?.exercise_id), ids, 6) &&
+    proposals.every((p: Record<string, unknown>) => isString(p.reason, 300));
+}
+
 /** The body the server sends OpenAI (Responses API), as the app's TerraClient built it. */
 export function openAIRequestBody(p: Prepared): Record<string, unknown> {
   const content: Record<string, unknown>[] = [{ type: "input_text", text: p.text }];
-  if (p.jpegBase64) content.push({ type: "input_image", image_url: `data:image/jpeg;base64,${p.jpegBase64}`, detail: "high" });
+  if (p.jpegBase64) content.push({ type: "input_image", image_url: `data:image/jpeg;base64,${IMAGE_SLOT}`, detail: "high" });
   return {
     model: MODEL, store: false, instructions: p.instructions, reasoning: { effort: p.reasoningEffort },
     max_output_tokens: p.maxOutputTokens, input: [{ role: "user", content }],
     text: { format: { type: "json_schema", name: p.schemaName, strict: true, schema: p.schema } },
   };
+}
+
+const IMAGE_SLOT = "__STACKED_IMAGE__";
+
+/** The JSON sent upstream; the JPEG's base64 (JSON-safe characters only, checked) is spliced in, not re-stringified. */
+export function openAIRequestJSON(p: Prepared): string {
+  const json = JSON.stringify(openAIRequestBody(p));
+  return p.jpegBase64 ? json.replace(IMAGE_SLOT, p.jpegBase64) : json;
 }
 
 // MARK: Limits, the off switch, accounting
@@ -245,19 +346,24 @@ export async function isPaused(env: Env, accountID: string): Promise<boolean> {
   return row?.paused === 1;
 }
 
+/** The off switch inside the reservation (codex-review-06 #5): admission, not just arrival, is where it applies. */
+const NOT_PAUSED = "NOT EXISTS (SELECT 1 FROM ai_settings WHERE key = 'paused' AND value = '1') " +
+  "AND NOT EXISTS (SELECT 1 FROM ai_account_pauses WHERE account_id = ?1)";
+
 /**
- * Reserves a slot atomically: only while the account exists, successes + in-flight < the limit, and attempts < twice
- * it. Throws the reason when refused.
+ * Reserves a slot atomically — the admission point: only while the account exists, AI is not paused (globally or for
+ * it), successes + in-flight < the limit, and attempts < twice it. Throws the reason when refused.
  */
 async function reserve(env: Env, accountID: string, day: string, flow: Flow) {
   const limit = DAILY_LIMITS[flow];
   const row = await env.DB.prepare(
     "INSERT INTO ai_usage (account_id, day, flow, successes, attempts, in_flight) " +
-    "SELECT ?1, ?2, ?3, 0, 1, 1 WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?1) " +
+    `SELECT ?1, ?2, ?3, 0, 1, 1 WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?1) AND ${NOT_PAUSED} ` +
     "ON CONFLICT(account_id, day, flow) DO UPDATE SET attempts = attempts + 1, in_flight = in_flight + 1 " +
-    "WHERE successes + in_flight < ?4 AND attempts < ?5 RETURNING attempts")
+    `WHERE successes + in_flight < ?4 AND attempts < ?5 AND ${NOT_PAUSED} RETURNING attempts`)
     .bind(accountID, day, flow, limit, attemptCap(flow)).first<{ attempts: number }>();
   if (row) return;
+  if (await isPaused(env, accountID)) throw new AuthError("ai_paused", 503);
   const current = await env.DB.prepare("SELECT successes, attempts, in_flight FROM ai_usage WHERE account_id = ? AND day = ? AND flow = ?")
     .bind(accountID, day, flow).first<{ successes: number; attempts: number; in_flight: number }>();
   if (!current) throw new AuthError("unauthorized", 401);  // the account was deleted meanwhile
@@ -314,9 +420,9 @@ class ReplyError extends Error {
   constructor(readonly status: "refused" | "invalid", readonly tokens: Outcome["tokens"]) { super(status); }
 }
 
-/** Per-flow request body caps: a scan carries one JPEG (≤ 3 MB, base64); the others only text. */
-const BODY_LIMITS: Record<Flow, number> = {
-  "scan-machine": 4 * 1024 * 1024 + 64 * 1024, "routine-week": 256 * 1024, "model-exercises": 128 * 1024,
+/** Per-flow request body caps: a scan carries one JPEG (≤ 2 MB decoded, ≈ 2.7 MB as base64); the others only text. */
+export const BODY_LIMITS: Record<Flow, number> = {
+  "scan-machine": 3 * 1024 * 1024, "routine-week": 256 * 1024, "model-exercises": 128 * 1024,
 };
 
 export function isFlow(value: string): value is Flow {
@@ -341,26 +447,33 @@ export async function proxyAI(request: Request, env: Env, deps: Deps, accountID:
   await reserve(env, accountID, day, flow);
   let outcome: Outcome = { status: "network" };
   try {
-    let response: Response;
+    // One deadline and one transport classifier across the headers AND the body (codex-review-06 #2): a timeout or
+    // a dropped connection while the reply streams in is ai_timeout / ai_unavailable, never ai_invalid.
+    let status: number;
+    let raw: string;
     try {
-      response = await deps.fetch(OPENAI_URL, {
+      const response = await deps.fetch(OPENAI_URL, {
         method: "POST",
         headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, "content-type": "application/json" },
-        body: JSON.stringify(openAIRequestBody(prepared)),
-        signal: AbortSignal.timeout(OPENAI_TIMEOUT_MS),
+        body: openAIRequestJSON(prepared),
+        signal: AbortSignal.timeout(deps.openAITimeoutMs ?? OPENAI_TIMEOUT_MS),
       });
+      status = response.status;
+      raw = await response.text();
     } catch (error) {
-      outcome = { status: error instanceof Error && error.name === "TimeoutError" ? "timeout" : "network" };
-      throw new AuthError(outcome.status === "timeout" ? "ai_timeout" : "ai_unavailable", 503);
+      const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError");
+      outcome = { status: timedOut ? "timeout" : "network" };
+      throw new AuthError(timedOut ? "ai_timeout" : "ai_unavailable", 503);
     }
-    if (!response.ok) {
-      outcome = { status: `upstream_${response.status}` };
+    if (status < 200 || status >= 300) {
+      outcome = { status: `upstream_${status}` };
       throw new AuthError("ai_unavailable", 503);
     }
     let body: unknown;
-    try { body = await response.json(); } catch { body = null; }
+    try { body = JSON.parse(raw); } catch { body = null; }
     try {
       const { result, tokens } = readReply(body);
+      if (!prepared.check(result as Record<string, unknown>)) throw new ReplyError("invalid", tokens);
       outcome = { status: "ok", tokens };
       return { result };
     } catch (error) {

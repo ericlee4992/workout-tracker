@@ -20,7 +20,7 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 | `POST /v1/auth/signout` | ends this session |
 | `GET /v1/profile`, `PUT /v1/profile` | `{ displayName, email, provider, memberSince }`; PUT `{ displayName }` (1–50 characters) |
 | `DELETE /v1/account` | deletes every row now (feedback and its screenshots too); revokes Apple's tokens → `{ deleted, appleRevocation: "done" \| "pending" \| "manual" }` |
-| `POST /v1/ai/scan-machine` | `{ exercises: [{ id, name, loadType }], jpeg: <base64, ≤ 3 MB> }` → `{ result }` (the model's JSON) |
+| `POST /v1/ai/scan-machine` | `{ exercises: [{ id, name, loadType }], jpeg: <base64 of a JPEG ≤ 2 MB, ≤ 4096 px a side> }` → `{ result }` (the model's JSON) |
 | `POST /v1/ai/routine-week` | the app's routine request `{ goals, experience, days, minutes, heightCm?, weightKg?, exercises, cardioActivities }` → `{ result }` |
 | `POST /v1/ai/model-exercises` | `{ plate: { brand, model, lines }, candidates: [{ id, name, muscleGroup? }] }` → `{ result }` |
 | `GET /v1/ai/usage` | `{ day, resetsAt, paused, flows: { <flow>: { used, limit } } }` |
@@ -54,14 +54,21 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   call; with the revocation retry, now 20 a run, at most 33 of Workers Free's 50 per invocation).
 - **AI** (ticket 06; signed in only): the server owns each flow's instructions, JSON schema, model (`gpt-5.6-terra`),
   `store: false`, reasoning effort and output cap; the app sends only checked, bounded structured input (unknown fields
-  are dropped) and validates every reply itself. Limits per account per New York day: 60 scans, 10 routine weeks, 60
+  are dropped; names and plate lines are single-line, so they cannot fabricate rows; the JPEG's structure is checked)
+  and still validates every reply itself; the server also refuses replies outside the flow's bounds (IDs not offered,
+  counts, lengths — a proposal's reason ≤ 300 characters). **What this does and does not guarantee:** a tester cannot
+  change the model, its parameters, instructions or output schema, and gets at most a bounded, schema-shaped reply a
+  limited number of times a day. Text a tester types into an allowed field (goals, a plate, an exercise name) still
+  reaches the model as data and could steer an answer within those bounds; that is accepted for the beta, with the
+  adversarial check in ticket 06's acceptance run against the deployed server before external testers. Limits per account per New York day: 60 scans, 10 routine weeks, 60
   exercise suggestions — successes count; attempts stop at twice that; requests in flight hold a slot. Errors:
   `429 ai_limit | ai_attempts | ai_busy`, `503 ai_paused | ai_unavailable | ai_timeout | server_not_configured`,
   `502 ai_refused | ai_invalid`. Kept per request: account, flow, time, status, latency and token counts (90 days) —
   never the input, photo or reply, and nothing of them is logged. Account deletion deletes all of it.
 - **Off switch:** `node scripts/ai.mjs pause` (everyone) or `pause --account <id>`; `resume`; `status`. It is a D1 row,
   read on every request: effective at once, no app build or deploy.
-- **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB); Apple's key set is cached for
+- **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB;
+  `/v1/ai/scan-machine` 3 MB — a 2 MB JPEG is about 2.7 MB as base64; `routine-week` 256 KB; `model-exercises` 128 KB); Apple's key set is cached for
   an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
 - Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.
 
