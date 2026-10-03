@@ -32,11 +32,13 @@ CREATE TABLE feedback_limits (
 -- Screenshots to delete from R2 (codex-review-07 #3, #5). Account deletion queues its keys (due at once) in the same
 -- transaction that deletes the rows; an upload queues its key BEFORE the R2 put (due an hour later) and the row insert
 -- removes it in the same batch, so an object whose row never landed is still found. The hourly cron deletes due keys
--- in bounded batches — no R2 listing, a fixed number of queries per run whatever the bucket holds.
+-- in bounded batches — no R2 listing, a fixed number of queries per run whatever the bucket holds. A job is never
+-- changed in place: re-queueing a key replaces its row (a new id), so a sweep that read the old job cannot clear it.
 CREATE TABLE screenshot_deletions (
-  key TEXT PRIMARY KEY,               -- R2 key (feedback/<id>.jpg|png)
+  id INTEGER PRIMARY KEY AUTOINCREMENT,  -- never reused (codex-review-07b #2): the sweep deletes exactly the ids it read
+  key TEXT NOT NULL UNIQUE,           -- R2 key (feedback/<id>.jpg|png)
   due_at INTEGER NOT NULL,            -- ms since 1970
   claim TEXT                          -- the account deletion that queued it (its immediate attempt clears its own keys)
 );
-CREATE INDEX screenshot_deletions_due ON screenshot_deletions(due_at, key);
+CREATE INDEX screenshot_deletions_due ON screenshot_deletions(due_at, id);
 CREATE INDEX screenshot_deletions_claim ON screenshot_deletions(claim);

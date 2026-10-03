@@ -64,6 +64,8 @@ struct FeedbackSheet: View {
             failure = nil
             attachment.select { try? await item.loadTransferable(type: Data.self) }
         }
+        // Capture fixture: a pick that never finishes loading (`-uiTestFeedbackLoading`).
+        .onAppear { if FeedbackSample.startsLoading { attachment.select { try? await Task.sleep(for: .seconds(3600)); return nil } } }
         // A refused image clears the picker's selection, so choosing it again (or another) is a change.
         .onChange(of: attachment.problem) { _, problem in if problem != nil { pick = nil } }
     }
@@ -213,25 +215,44 @@ struct FeedbackSheet: View {
         .accessibilityIdentifier("feedbackScreenshot")
     }
 
-    /// While the picked photo loads (an iCloud original can take a while): Send waits; Remove cancels it.
+    /// While the picked photo loads (an iCloud original can take a while): Send waits; Remove cancels it. At
+    /// accessibility sizes the spinner and Remove go under the label (codex-review-07b #1).
     private var loading: some View {
-        LookList(separatorInset: 54) {
-            LookRow("Loading Screenshot…", symbol: "photo", showsChevron: false) {
-                HStack(spacing: 12) {
-                    ProgressView()
-                    Button(action: removeScreenshot) {
-                        Text("Remove")
-                            .font(.system(.subheadline, weight: .semibold))
-                            .foregroundStyle(look.destructive)
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Remove screenshot")
-                    .accessibilityIdentifier("feedbackRemoveScreenshot")
-                }
+        let ax = typeSize.isAccessibilitySize
+        let controls = HStack(spacing: 12) {
+            // Neutral: violet marks the action (Send), and loading is not one.
+            ProgressView().tint(look.textSecondary)
+            if ax { Spacer(minLength: 0) }
+            Button(action: removeScreenshot) {
+                Text("Remove")
+                    .font(.system(.subheadline, weight: .semibold))
+                    .foregroundStyle(look.destructive)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Remove screenshot")
+            .accessibilityIdentifier("feedbackRemoveScreenshot")
+        }
+        let label = HStack(spacing: 12) {
+            LookIcon("photo", style: .body)
+                .foregroundStyle(look.textSecondary)
+            Text("Loading Screenshot…")
+                .font(.system(.body, weight: .semibold))
+                .foregroundStyle(look.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        return Group {
+            if ax {
+                VStack(alignment: .leading, spacing: 6) { label; controls }
+            } else {
+                HStack(spacing: 12) { label; Spacer(minLength: 8); controls }
             }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+        .lookSurface(.tile)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("feedbackScreenshotLoading")
     }
@@ -533,6 +554,10 @@ enum FeedbackSample {
     static let filledArgument = "-uiTestFeedbackSample"
 
     static var isFilled: Bool { WorkoutTrackerStore.isUITestReset && ProcessInfo.processInfo.arguments.contains(filledArgument) }
+    /// `-uiTestFeedbackLoading` (with the sample): the screenshot is still loading — Send waits, Remove cancels.
+    static var startsLoading: Bool {
+        isFilled && ProcessInfo.processInfo.arguments.contains("-uiTestFeedbackLoading")
+    }
 
     /// The capture fixture's details: fixed, so captures do not change with the build machine; signed in when filled.
     static func fixed(_ details: FeedbackDetails) -> FeedbackDetails {
@@ -552,7 +577,7 @@ enum FeedbackSample {
             category: .bug,
             message: "The rest timer kept counting after I finished the workout. It showed 3:10 on the Lock Screen "
                 + "until I opened the app again.",
-            screenshot: try? shot.get())
+            screenshot: startsLoading ? nil : try? shot.get())
     }
 
     /// A stand-in screenshot drawn from the palette (no asset, no user data).

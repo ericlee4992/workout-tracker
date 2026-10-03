@@ -83,6 +83,16 @@ final class FloodlightFeedbackUITests: XCTestCase {
         shoot("feedback-sent-\(suffix)")
         app.buttons["feedbackDone"].tap()
         XCTAssertTrue(app.buttons["sendFeedback"].waitForExistence(timeout: 5), "Done returns to Settings")
+
+        // A screenshot still loading (codex-review-07b #1): Send waits; Remove cancels the load and frees Send.
+        app.terminate()
+        openForm(appearance: appearance, large: large, filled: true, extra: ["-uiTestFeedbackLoading"])
+        XCTAssertTrue(any("feedbackScreenshotLoading").waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["feedbackSend"].isEnabled, "Send waits for the screenshot")
+        shoot("feedback-loading-\(suffix)")
+        app.buttons["feedbackRemoveScreenshot"].tap()
+        XCTAssertTrue(any("feedbackAddScreenshot").waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["feedbackSend"].isEnabled, "Remove frees Send")
     }
 
     // MARK: Flows

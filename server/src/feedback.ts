@@ -19,6 +19,8 @@ export const GLOBAL_DAILY_LIMIT = 500;
 export const UPLOAD_GRACE_MS = 60 * 60 * 1000;
 /** R2's most keys per delete call (Workers API), and so the sweep's batch. */
 export const R2_DELETE_BATCH = 1_000;
+/** D1 binds at most 100 parameters per statement. */
+const SWEEP_IDS_PER_STATEMENT = 100;
 
 const CATEGORIES = new Set(["bug", "idea", "other"]);
 const DETAIL_PATTERNS: Record<string, RegExp> = {
@@ -221,8 +223,8 @@ export async function deleteClaimedScreenshots(env: Env, claim: string) {
 
 /**
  * The hourly clean-up, bounded whatever the bucket holds (codex-review-07 #3): at most one batch of due keys — those
- * a deletion queued and uploads whose row never landed — in one R2 call and three D1 queries; the rest wait for the
- * next run, oldest first. Old rate-limit counters are removed separately, so one failing never blocks the other.
+ * a deletion queued and uploads whose row never landed — in one R2 call and at most 11 D1 statements (one read, ≤ 10
+ * deletes) plus the counter clean-up; the rest wait for the next run, oldest first. Old rate-limit counters are removed separately, so one failing never blocks the other.
  */
 export async function sweepFeedback(env: Env, deps: Deps) {
   const now = deps.now();
@@ -230,19 +232,22 @@ export async function sweepFeedback(env: Env, deps: Deps) {
   try {
     // A key whose row exists is never deleted from R2 (defence in depth: the insert un-queues it atomically).
     const due = (await env.DB.prepare(
-      "SELECT d.rowid AS rid, d.key, d.due_at, EXISTS (SELECT 1 FROM feedback f WHERE f.screenshot_key = d.key) AS live " +
-      "FROM screenshot_deletions d WHERE d.due_at <= ? ORDER BY d.due_at, d.key LIMIT ?")
-      .bind(now, R2_DELETE_BATCH).all<{ rid: number; key: string; due_at: number; live: number }>()).results;
+      "SELECT d.id, d.key, EXISTS (SELECT 1 FROM feedback f WHERE f.screenshot_key = d.key) AS live " +
+      "FROM screenshot_deletions d WHERE d.due_at <= ? ORDER BY d.due_at, d.id LIMIT ?")
+      .bind(now, R2_DELETE_BATCH).all<{ id: number; key: string; live: number }>()).results;
     if (due.length > 0) {
       const doomed = due.filter((r) => !r.live).map((r) => r.key);
       if (await deleteObjects(env, doomed)) {
-        // Exactly the rows read (D1 binds at most 100 parameters, so not by key list): up to the last in the read order,
-        // and no row inserted since the read — a new row's rowid is above every existing one.
-        const last = due[due.length - 1]!;
-        const maxRowID = Math.max(...due.map((r) => r.rid));
-        await env.DB.prepare(
-          "DELETE FROM screenshot_deletions WHERE rowid <= ? AND (due_at < ? OR (due_at = ? AND key <= ?))")
-          .bind(maxRowID, last.due_at, last.due_at, last.key).run();
+        // Exactly the jobs read, by id (never reused; a re-queued key has a new one), in statements of at most
+        // SWEEP_IDS_PER_STATEMENT (D1 binds at most 100 parameters): ≤ 10 statements in one batch.
+        const ids = due.map((r) => r.id);
+        const statements: D1PreparedStatement[] = [];
+        for (let i = 0; i < ids.length; i += SWEEP_IDS_PER_STATEMENT) {
+          const slice = ids.slice(i, i + SWEEP_IDS_PER_STATEMENT);
+          statements.push(env.DB.prepare(`DELETE FROM screenshot_deletions WHERE id IN (${slice.map(() => "?").join(", ")})`)
+            .bind(...slice));
+        }
+        await env.DB.batch(statements);
         removed = doomed.length;
       }
     }

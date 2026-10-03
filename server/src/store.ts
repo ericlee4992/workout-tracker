@@ -145,9 +145,9 @@ export async function claimDeletion(env: Env, deps: Deps, accountID: string): Pr
       "SELECT refresh_token_enc, ?, 1, ? FROM identities WHERE account_id = ? AND provider = 'apple' AND refresh_token_enc IS NOT NULL")
       .bind(now, now + backoff(1), accountID),
     env.DB.prepare(
-      "INSERT INTO screenshot_deletions (key, due_at, claim) " +
-      "SELECT screenshot_key, ?, ? FROM feedback WHERE account_id = ? AND screenshot_key IS NOT NULL " +
-      "ON CONFLICT(key) DO UPDATE SET due_at = excluded.due_at, claim = excluded.claim")
+      // REPLACE, not update: a re-queued key gets a new id, so a sweep holding the old one cannot clear it (07b #2).
+      "INSERT OR REPLACE INTO screenshot_deletions (key, due_at, claim) " +
+      "SELECT screenshot_key, ?, ? FROM feedback WHERE account_id = ? AND screenshot_key IS NOT NULL")
       .bind(now, claim, accountID),
     env.DB.prepare("DELETE FROM feedback WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM feedback_limits WHERE key = ?").bind(`account:${accountID}`),

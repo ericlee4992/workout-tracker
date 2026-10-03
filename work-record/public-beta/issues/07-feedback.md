@@ -1,7 +1,7 @@
 # 07 — Feedback section
 
 Type: task
-Status: Codex review 07 round 1 not clear (5 findings) → all fixed; round 2 next. Form approved by the user 2026-10-03
+Status: Codex review 07 round 2 not clear (2 findings) → fixed; round 3 next. Form approved by the user 2026-10-03
 Blocked by: — (03's server half is merged; feedback works signed out, so 03's app half is not needed)
 Implementer: Claude; Reviewer: Codex (as for 01–03).
 Branch: `ericlee4992/beta-07-feedback` off `main`.
@@ -199,5 +199,27 @@ a single unbatched delete fails the 1,001 test. App `FeedbackTests` **13/13**; w
 two tests fail. `FloodlightFeedbackUITests` rerun on the changed sheet: **7 run, 6 passed, 1 skipped (opt-in smoke),
 exit 0**. The captured states show no pixel change (the loading row is a new state, not captured: PhotosPicker cannot
 be driven in UI tests; it is covered by the unit tests).
+
+## Codex review 07b — response (round 2)
+
+Report [codex-review-07b.md](../codex-review-07b.md) (HEAD `e593861`): **not clear**, 2 findings; both accepted. Codex
+confirmed round 1's five fixes and reran server 87/87 and `FeedbackTests` 13/13.
+
+1. **P2 the loading state not reflowed, captured, or approved** — the loading row is its own view: at accessibility
+   sizes the spinner and Remove go under the label; the spinner is neutral (`textSecondary`), since violet marks the
+   action. Fixture `-uiTestFeedbackLoading` (with the sample, under `-uiTestReset`) starts a pick that never finishes;
+   each capture test now shoots it (light/dark × Default/AccessibilityL), asserts Send is disabled, taps Remove and
+   asserts Add Screenshot returns and Send is enabled. **The user approved "Loading Screenshot…" (2026-10-03).**
+2. **P1 rowid reuse in the sweep's clean-up** — Codex reproduced it: SQLite reuses an implicit rowid when the queue
+   empties, so the order/rowid-bounded delete could clear a job queued during the sweep. Now `screenshot_deletions`
+   has `id INTEGER PRIMARY KEY AUTOINCREMENT` (never reused; `key` UNIQUE); a job is never changed in place —
+   claimDeletion re-queues with `INSERT OR REPLACE` (a new id) — and the sweep deletes **exactly the ids it read**,
+   ≤ 100 per statement in one batch (≤ 12 statements a run; with the revocation retry's ≤ 21, under 50). Tests:
+   Codex's interleaving (A read, A cleared by its claim, B queued at the same due time ordered first, B's immediate
+   delete failed → B survives and the next sweep deletes it); a live key read by the sweep and re-queued by a deletion
+   meanwhile survives for the next run; the 2,501-job test now bounds each run at ≤ 12 statements. Mutation: an
+   order-based delete fails both race tests. Server **88/88**, `tsc` clean. App: `FeedbackTests` **13/13** and
+`FloodlightFeedbackUITests` **6 passed, 1 skipped (opt-in smoke)**, one run, exit 0; captures retaken (23, now with
+`feedback-loading-*`).
 
 ## Comments

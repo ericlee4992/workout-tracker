@@ -367,7 +367,7 @@ describe("the hourly sweep", () => {
     expect(await queued()).toEqual([]);
   });
 
-  it("is bounded: a few queries and one R2 call per run, continuing where it stopped (07 #3)", async () => {
+  it("is bounded: at most 12 statements and one R2 call per run, continuing where it stopped (07 #3)", async () => {
     await env.DB.prepare(
       "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 2501) " +
       "INSERT INTO screenshot_deletions (key, due_at) SELECT 'feedback/k' || printf('%05d', i) || '.jpg', i FROM n").run();
@@ -380,20 +380,44 @@ describe("the hourly sweep", () => {
       await sweepFeedback(bounded, h.deps);
       perRun.push(counter.statements - before);
     }
-    expect(perRun.every((n) => n <= 3)).toBe(true);
+    expect(Math.max(...perRun)).toBeLessThanOrEqual(12);  // read + ≤ 10 deletes + counters; revocations stay ≤ 21
     expect(fake.deletes.map((d) => d.length)).toEqual([1000, 1000, 501]);
     expect(fake.deletes.flat()).toContain("feedback/k02501.jpg");  // the last, beyond two runs' budgets
     expect(await queued()).toEqual([]);
   });
 
-  it("a key queued while the sweep runs is not dropped unswept", async () => {
-    await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES ('feedback/a.jpg', 5)").run();
-    const late = { ...h.env, FEEDBACK: { async delete() {
-      // Queued between the sweep's read and its clean-up, due earlier than the batch's last key.
-      await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES ('feedback/0.jpg', 1)").run();
+  it("a job queued while the sweep runs survives it, even on a reused-looking position (07b #2)", async () => {
+    // Codex's interleaving: the sweep reads A; A's own clean-up empties the queue; another deletion queues B, due at the
+    // same time and ordered before A; B's immediate delete failed. The sweep must clear A's job only.
+    await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at, claim) VALUES ('feedback/a.jpg', 5, 'c1')").run();
+    const interleaved = { ...h.env, FEEDBACK: { async delete() {
+      await env.DB.prepare("DELETE FROM screenshot_deletions WHERE claim = 'c1'").run();
+      await env.DB.prepare("INSERT OR REPLACE INTO screenshot_deletions (key, due_at, claim) VALUES ('feedback/0.jpg', 5, 'c2')").run();
     } } as unknown as R2Bucket };
-    await sweepFeedback(late, h.deps);
+    await sweepFeedback(interleaved, h.deps);
     expect(await queued()).toEqual(["feedback/0.jpg"]);
+    const fake = fakeBucket();
+    await sweepFeedback({ ...h.env, FEEDBACK: fake.bucket }, h.deps);
+    expect(fake.deletes.flat()).toEqual(["feedback/0.jpg"]);
+    expect(await queued()).toEqual([]);
+  });
+
+  it("a key re-queued by a deletion while the sweep held its old job is kept for the next run", async () => {
+    // Read while its row was live (so not deleted from R2); then the account is deleted and the key re-queued, as
+    // claimDeletion does (INSERT OR REPLACE: a new id).
+    await h.feedback({ screenshot: { bytes: JPEG } });
+    const key = (await rows())[0]!.screenshot_key!;
+    await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES (?, 0)").bind(key).run();
+    await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES ('feedback/orphan.jpg', 0)").run();
+    const requeue = { ...h.env, FEEDBACK: { async delete(keys: string[]) {
+      expect(keys).toEqual(["feedback/orphan.jpg"]);  // the live key is not deleted
+      await env.DB.prepare("DELETE FROM feedback").run();
+      await env.DB.prepare("INSERT OR REPLACE INTO screenshot_deletions (key, due_at, claim) VALUES (?, 1, 'c3')").bind(key).run();
+    } } as unknown as R2Bucket };
+    await sweepFeedback(requeue, h.deps);
+    expect(await queued()).toEqual([key]);
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1 });
+    expect(await objects()).toEqual([]);
   });
 
   it("removes counters from earlier days, even when the screenshot sweep fails", async () => {
