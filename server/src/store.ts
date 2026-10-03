@@ -34,6 +34,30 @@ export async function createAccount(env: Env, deps: Deps, provider: string, subj
   return account;
 }
 
+/**
+ * Create-or-find for a first sign-in (codex-review-03 #4): two first sign-ins for the same user can both find no
+ * account; the loser's identity insert hits the primary key after its single-use code is already exchanged. Instead
+ * of failing, it signs in to the winner's account and keeps its own (newer) refresh token. If the winner's account
+ * was deleted in between, the lookup finds nothing and a fresh account is created — the deletion stays complete.
+ */
+export async function createOrFindAccount(env: Env, deps: Deps, provider: string, subject: string,
+                                          displayName: string | null, email: string | null,
+                                          refreshToken: string): Promise<Account> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      return await createAccount(env, deps, provider, subject, displayName, email, refreshToken);
+    } catch (error) {
+      if (!/UNIQUE|PRIMARY KEY|constraint/i.test(error instanceof Error ? error.message : "")) throw error;
+      const existing = await findAccountByIdentity(env, provider, subject);
+      if (existing) {
+        await updateRefreshToken(env, deps, provider, subject, refreshToken);
+        return existing;
+      }
+    }
+  }
+  throw new Error("account creation kept conflicting");
+}
+
 /** Keeps the newest refresh token (each authorization code exchange issues one) so deletion revokes a live one. */
 export async function updateRefreshToken(env: Env, deps: Deps, provider: string, subject: string, refreshToken: string) {
   if (!env.TOKEN_ENC_KEY) return;
@@ -81,24 +105,55 @@ export async function setDisplayName(env: Env, accountID: string, name: string) 
   await env.DB.prepare("UPDATE accounts SET display_name = ? WHERE id = ?").bind(name, accountID).run();
 }
 
-/** Apple refresh tokens to revoke before the rows go. */
-export async function appleRefreshTokens(env: Env, accountID: string): Promise<string[]> {
-  if (!env.TOKEN_ENC_KEY) return [];
-  const rows = await env.DB.prepare(
-    "SELECT refresh_token_enc FROM identities WHERE account_id = ? AND provider = 'apple' AND refresh_token_enc IS NOT NULL")
-    .bind(accountID).all<{ refresh_token_enc: string }>();
-  const tokens: string[] = [];
-  for (const row of rows.results) {
-    try { tokens.push(await decrypt(row.refresh_token_enc, env.TOKEN_ENC_KEY)); } catch { /* undecryptable: nothing to revoke */ }
-  }
-  return tokens;
+/** The account's Apple identities: the encrypted refresh token, or null where none was ever kept. */
+export async function appleIdentityTokens(env: Env, accountID: string): Promise<(string | null)[]> {
+  const rows = await env.DB.prepare("SELECT refresh_token_enc FROM identities WHERE account_id = ? AND provider = 'apple'")
+    .bind(accountID).all<{ refresh_token_enc: string | null }>();
+  return rows.results.map((r) => r.refresh_token_enc);
 }
 
-/** Deletes every row of the account. Explicit per table (not only the cascade), in one batch. */
-export async function deleteAccount(env: Env, accountID: string) {
+export async function decryptToken(env: Env, sealed: string): Promise<string | null> {
+  if (!env.TOKEN_ENC_KEY) return null;
+  try { return await decrypt(sealed, env.TOKEN_ENC_KEY); } catch { return null; }
+}
+
+/** First retry an hour after the failure, doubling up to a day; given up after 30 days. */
+export const PENDING_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+function backoff(attempts: number): number {
+  return Math.min(60 * 60 * 1000 * 2 ** Math.max(0, attempts - 1), 24 * 60 * 60 * 1000);
+}
+
+/**
+ * Deletes every row of the account in one batch — sessions, identities, the account — and, in the same batch, queues
+ * the still-unrevoked Apple tokens (ciphertext as stored, no account link). Explicit per table, not only the cascade.
+ */
+export async function deleteAccount(env: Env, deps: Deps, accountID: string, unrevoked: string[]) {
+  const now = deps.now();
+  const queue = await Promise.all(unrevoked.map(async (sealed) =>
+    env.DB.prepare("INSERT OR IGNORE INTO pending_revocations (token_hash, token_enc, created_at, attempts, next_attempt_at) VALUES (?, ?, ?, 1, ?)")
+      .bind(await sha256Hex(sealed), sealed, now, now + backoff(1))));
   await env.DB.batch([
+    ...queue,
     env.DB.prepare("DELETE FROM sessions WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM identities WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM accounts WHERE id = ?").bind(accountID),
   ]);
+}
+
+export interface PendingRevocation { token_hash: string; token_enc: string; created_at: number; attempts: number }
+
+export async function duePendingRevocations(env: Env, now: number, limit = 50): Promise<PendingRevocation[]> {
+  const rows = await env.DB.prepare(
+    "SELECT token_hash, token_enc, created_at, attempts FROM pending_revocations WHERE next_attempt_at <= ? ORDER BY next_attempt_at LIMIT ?")
+    .bind(now, limit).all<PendingRevocation>();
+  return rows.results;
+}
+
+export async function finishPendingRevocation(env: Env, tokenHash: string) {
+  await env.DB.prepare("DELETE FROM pending_revocations WHERE token_hash = ?").bind(tokenHash).run();
+}
+
+export async function retryPendingRevocationLater(env: Env, now: number, row: PendingRevocation) {
+  await env.DB.prepare("UPDATE pending_revocations SET attempts = ?, next_attempt_at = ? WHERE token_hash = ?")
+    .bind(row.attempts + 1, now + backoff(row.attempts + 1), row.token_hash).run();
 }

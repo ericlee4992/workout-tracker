@@ -2,8 +2,9 @@ import { AuthError, exchangeAppleCode, revokeAppleToken, verifyAppleIdentityToke
 import { liveDeps, type Deps, type Env } from "./env";
 import { privacyPage, supportPage } from "./pages";
 import {
-  accountForToken, appleRefreshTokens, createAccount, createSession, deleteAccount, deleteSession,
-  findAccountByIdentity, setDisplayName, updateRefreshToken, type Account,
+  accountForToken, appleIdentityTokens, createOrFindAccount, createSession, decryptToken, deleteAccount, deleteSession,
+  duePendingRevocations, finishPendingRevocation, findAccountByIdentity, PENDING_MAX_AGE_MS,
+  retryPendingRevocationLater, setDisplayName, updateRefreshToken, type Account,
 } from "./store";
 
 const MAX_BODY_BYTES = 64 * 1024;
@@ -19,11 +20,35 @@ function failure(code: string, status: number): Response {
   return json({ error: code }, status);
 }
 
+/**
+ * Reads at most MAX_BODY_BYTES **bytes** from the stream, cancelling it as soon as the limit is passed
+ * (codex-review-03 #2: `request.text()` buffered a chunked body of any size first, and measured UTF-16 units).
+ */
+async function readBodyText(request: Request): Promise<string> {
+  const declared = Number(request.headers.get("content-length") ?? "0");
+  if (declared > MAX_BODY_BYTES) throw new AuthError("body_too_large", 413);
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > MAX_BODY_BYTES) {
+      await reader.cancel();
+      throw new AuthError("body_too_large", 413);
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  return new TextDecoder().decode(bytes);
+}
+
 async function readJSON(request: Request): Promise<Record<string, unknown>> {
-  const length = Number(request.headers.get("content-length") ?? "0");
-  if (length > MAX_BODY_BYTES) throw new AuthError("body_too_large", 413);
-  const text = await request.text();
-  if (text.length > MAX_BODY_BYTES) throw new AuthError("body_too_large", 413);
+  const text = await readBodyText(request);
   let body: unknown;
   try { body = JSON.parse(text); } catch { throw new AuthError("malformed_json", 400); }
   if (typeof body !== "object" || body === null || Array.isArray(body)) throw new AuthError("malformed_json", 400);
@@ -54,14 +79,14 @@ async function signInWithApple(request: Request, env: Env, deps: Deps): Promise<
   const body = await readJSON(request);
   const identity = await verifyAppleIdentityToken(String(body.identityToken ?? ""), String(body.nonce ?? ""), env, deps);
   // Fail closed: an account whose Apple tokens cannot be revoked at deletion must not be created (guideline 5.1.1(v)).
-  const refreshToken = await exchangeAppleCode(String(body.authorizationCode ?? ""), env, deps);
+  const refreshToken = await exchangeAppleCode(String(body.authorizationCode ?? ""), identity.subject, env, deps);
   let account = await findAccountByIdentity(env, "apple", identity.subject);
   if (account) {
     await updateRefreshToken(env, deps, "apple", identity.subject, refreshToken);
   } else {
     // Apple gives the name only on the first authorization, to the app; the app forwards it.
     const name = cleanName([body.givenName, body.familyName].filter((p) => typeof p === "string").join(" "));
-    account = await createAccount(env, deps, "apple", identity.subject, name, identity.email, refreshToken);
+    account = await createOrFindAccount(env, deps, "apple", identity.subject, name, identity.email, refreshToken);
   }
   const session = await createSession(env, deps, account.id);
   return json({ session: session.token, expiresAt: session.expiresAt, profile: profile(account) });
@@ -72,6 +97,48 @@ async function authenticated(request: Request, env: Env, deps: Deps) {
   const found = token ? await accountForToken(env, deps, token) : null;
   if (!found) throw new AuthError("unauthorized", 401);
   return found;
+}
+
+/**
+ * Account deletion (guideline 5.1.1(v); codex-review-03 #5). Every account row goes now, in one batch, whatever Apple
+ * answers. Apple's tokens are revoked first; one that cannot be revoked now (Apple down, a timeout, the key missing or
+ * wrong) is queued — encrypted, unlinked — and retried hourly. `appleRevocation`: "done", "pending" (queued; the app
+ * says so), or "manual" (no token was ever kept: the user stops Sign in with Apple in iOS Settings, Apple TN3194).
+ */
+export async function deleteAccountRevokingApple(env: Env, deps: Deps, accountID: string) {
+  const sealed = await appleIdentityTokens(env, accountID);
+  const unrevoked: string[] = [];
+  let missing = false;
+  for (const token of sealed) {
+    if (token === null) { missing = true; continue; }
+    const plain = await decryptToken(env, token);
+    if (plain === null || !(await revokeAppleToken(plain, env, deps))) unrevoked.push(token);
+  }
+  await deleteAccount(env, deps, accountID, unrevoked);
+  const appleRevocation = missing ? "manual" : unrevoked.length > 0 ? "pending" : "done";
+  return { deleted: true, appleRevocation };
+}
+
+/** The hourly retry of queued revocations (wrangler.jsonc `triggers.crons`). */
+export async function runPendingRevocations(env: Env, deps: Deps) {
+  const now = deps.now();
+  let revoked = 0, retried = 0, abandoned = 0;
+  for (const row of await duePendingRevocations(env, now)) {
+    const plain = await decryptToken(env, row.token_enc);
+    if (plain !== null && (await revokeAppleToken(plain, env, deps))) {
+      await finishPendingRevocation(env, row.token_hash);
+      revoked++;
+    } else if (now - row.created_at >= PENDING_MAX_AGE_MS) {
+      // Apple refresh tokens are long gone by then too; the user's fallback is iOS Settings (TN3194).
+      await finishPendingRevocation(env, row.token_hash);
+      abandoned++;
+    } else {
+      await retryPendingRevocationLater(env, now, row);
+      retried++;
+    }
+  }
+  if (revoked + retried + abandoned > 0) console.log("pending revocations", { revoked, retried, abandoned });
+  return { revoked, retried, abandoned };
 }
 
 export function createHandler(deps: Deps) {
@@ -103,12 +170,7 @@ export function createHandler(deps: Deps) {
         }
         case "DELETE /v1/account": {
           const { account } = await authenticated(request, env, deps);
-          // Revoke first (Apple requires it), then delete every row whatever Apple answered: the user's deletion
-          // request is honoured even if Apple is unreachable; the answer is reported, not hidden.
-          const tokens = await appleRefreshTokens(env, account.id);
-          const results = await Promise.all(tokens.map((t) => revokeAppleToken(t, env, deps)));
-          await deleteAccount(env, account.id);
-          return json({ deleted: true, appleRevoked: results.length > 0 && results.every(Boolean) });
+          return json(await deleteAccountRevokingApple(env, deps, account.id));
         }
         default:
           return failure("not_found", 404);
@@ -126,4 +188,7 @@ const handle = createHandler(liveDeps);
 
 export default {
   fetch: (request: Request, env: Env) => handle(request, env),
+  scheduled: async (_controller: ScheduledController, env: Env, ctx: ExecutionContext) => {
+    ctx.waitUntil(runPendingRevocations(env, liveDeps));
+  },
 } satisfies ExportedHandler<Env>;

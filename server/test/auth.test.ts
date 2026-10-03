@@ -10,8 +10,9 @@ beforeEach(async () => {
   h = await harness();
 });
 
-async function signInWith(token: string, nonce = NONCE, code = "code-1") {
-  return h.call("POST", "/v1/auth/apple", { body: { identityToken: token, authorizationCode: code, nonce } });
+async function signInWith(token: string, nonce = NONCE, code?: string) {
+  const authorizationCode = code ?? h.apple.issueCode("001234.apple-user");
+  return h.call("POST", "/v1/auth/apple", { body: { identityToken: token, authorizationCode, nonce } });
 }
 
 describe("Sign in with Apple — identity token checks", () => {
@@ -163,7 +164,7 @@ describe("Account deletion", () => {
     await h.signIn("user-a");
     await h.signIn("user-b");
     const response = await h.call("DELETE", "/v1/account", { token: mine.session });
-    expect(await response.json()).toEqual({ deleted: true, appleRevoked: true });
+    expect(await response.json()).toEqual({ deleted: true, appleRevocation: "done" });
     const revoke = h.apple.calls.find((c) => c.url.endsWith("/auth/revoke"));
     expect(revoke?.body.get("token")).toBe("refresh-1");
     expect(revoke?.body.get("token_type_hint")).toBe("refresh_token");
@@ -174,12 +175,13 @@ describe("Account deletion", () => {
     expect(await count("accounts")).toBe(1);
   });
 
-  it("deletes the rows even when Apple refuses the revocation, and says so", async () => {
+  it("deletes the rows even when Apple refuses the revocation, and queues it", async () => {
     const { session } = await h.signIn();
     h.apple.revokeStatus = 500;
     const response = await h.call("DELETE", "/v1/account", { token: session });
-    expect(await response.json()).toEqual({ deleted: true, appleRevoked: false });
-    expect(await count("accounts")).toBe(0);
+    expect(await response.json()).toEqual({ deleted: true, appleRevocation: "pending" });
+    expect([await count("accounts"), await count("identities"), await count("sessions")]).toEqual([0, 0, 0]);
+    expect(await count("pending_revocations")).toBe(1);
   });
 
   it("signing in again after deletion makes a new, empty account", async () => {

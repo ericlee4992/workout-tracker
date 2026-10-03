@@ -5,8 +5,11 @@ Apple, sessions, the profile name, sign-out and account deletion — and placeho
 Later tickets add Google sign-in (04), the training profile (05), the AI proxy (06) and feedback (07).
 
 **This repository is public.** Secrets live only in Cloudflare (`wrangler secret put`) and, for local runs, in the
-git-ignored `.dev.vars`. `scripts/check-secrets.sh` (repository root) rejects key-shaped text; CI runs it on every push
-to `main`, and `git config core.hooksPath scripts/git-hooks` turns it on before every commit.
+git-ignored `.dev.vars`. `scripts/check-secrets.sh` (repository root) rejects key-shaped text — PEM keys (also escaped
+in strings), `sk-…`, AWS, GitHub and Google key shapes, and this project's secret names assigned a value — reporting
+only file, line and detector, never the text. `scripts/test-check-secrets.sh` is its regression test. CI runs both on
+every push to `main` (after publication, in this no-PR workflow), so turn on the pre-commit hook:
+`git config core.hooksPath scripts/git-hooks`. It cannot catch every possible secret format; review what you commit.
 
 ## Endpoints
 
@@ -15,13 +18,22 @@ to `main`, and `git config core.hooksPath scripts/git-hooks` turns it on before 
 | `POST /v1/auth/apple` | `{ identityToken, authorizationCode, nonce, givenName?, familyName? }` → `{ session, expiresAt, profile }` |
 | `POST /v1/auth/signout` | ends this session |
 | `GET /v1/profile`, `PUT /v1/profile` | `{ displayName, email, provider, memberSince }`; PUT `{ displayName }` (1–50 characters) |
-| `DELETE /v1/account` | revokes Apple's tokens, deletes every row → `{ deleted, appleRevoked }` |
+| `DELETE /v1/account` | deletes every row now; revokes Apple's tokens → `{ deleted, appleRevocation: "done" \| "pending" \| "manual" }` |
 | `GET /privacy`, `GET /support`, `GET /v1/health` | pages / liveness |
 
 Signed-in calls send `Authorization: Bearer <session>`. Sessions last 90 days and renew with use; only their SHA-256
-is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires) is stored AES-GCM encrypted. Sign-in
-fails closed: if the server cannot exchange the code or store the token, no account is created. Errors are
-`{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.
+is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires) is stored AES-GCM encrypted.
+
+- **Sign-in fails closed:** the identity token Apple returns from the code exchange must name the same user as the
+  sign-in's identity token, or nothing is created (`code_identity_mismatch`); if the server cannot exchange the code
+  or keep the token, no account is created.
+- **Deletion:** every account row goes at once. Apple's tokens are revoked first; one that cannot be revoked now (Apple
+  down, a timeout, the key unavailable) is queued in `pending_revocations` — encrypted, linked to no account — and the
+  hourly cron retries it with backoff for up to 30 days (`"pending"`). `"manual"` means no token was kept: the user
+  stops Sign in with Apple in iOS Settings → Apple Account → Sign in with Apple (Apple TN3194); the app says so.
+- **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB; Apple's key set is cached for
+  an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
+- Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.
 
 ## Develop and test
 

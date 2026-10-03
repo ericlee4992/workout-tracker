@@ -10,10 +10,22 @@ export interface FakeApple {
   kid: string;
   sign: (claims: Record<string, unknown>, options?: { forged?: boolean; kid?: string; alg?: string }) => Promise<string>;
   calls: { url: string; body: URLSearchParams }[];
+  /** Fetches of Apple's key set. */
+  keyFetches: number;
+  /** Keys served besides the original (a rotation). */
+  extraKeys: JsonWebKey[];
   tokenStatus: number;
   revokeStatus: number;
+  /** Throw from the revoke endpoint (a network failure / timeout). */
+  revokeThrows: boolean;
   nextRefreshToken: string;
+  /** Replaces the token endpoint's JSON answer (malformed-answer tests). */
+  tokenBody?: (subject: string) => Promise<unknown>;
   esPublicKey: CryptoKey;
+  /** A single-use authorization code for `subject`, as Apple issues one per authorization. */
+  issueCode: (subject: string) => string;
+  /** An Apple key pair outside the published set, with its public JWK (for rotation tests). */
+  rotatedKey: () => Promise<{ kid: string; privateKey: CryptoKey; jwk: JsonWebKey }>;
 }
 
 async function rsaPair() {
@@ -22,7 +34,7 @@ async function rsaPair() {
     true, ["sign", "verify"]) as Promise<CryptoKeyPair>;
 }
 
-export async function makeFakeApple(): Promise<{ apple: FakeApple; fetch: typeof fetch; privateKeyPEM: string }> {
+export async function makeFakeApple(clock: { now: number } = { now: Date.now() }): Promise<{ apple: FakeApple; fetch: typeof fetch; privateKeyPEM: string }> {
   const published = await rsaPair();
   const forged = await rsaPair();
   const jwk = (await crypto.subtle.exportKey("jwk", published.publicKey)) as JsonWebKey;
@@ -33,8 +45,21 @@ export async function makeFakeApple(): Promise<{ apple: FakeApple; fetch: typeof
   for (const byte of pkcs8) b64 += String.fromCharCode(byte);
   const privateKeyPEM = `-----BEGIN PRIVATE KEY-----\n${btoa(b64)}\n-----END PRIVATE KEY-----`;
 
+  const codes = new Map<string, { subject: string; used: boolean }>();
+  let codeCounter = 0;
   const apple: FakeApple = {
-    kid, calls: [], tokenStatus: 200, revokeStatus: 200, nextRefreshToken: "refresh-1", esPublicKey: es.publicKey,
+    kid, calls: [], keyFetches: 0, extraKeys: [], tokenStatus: 200, revokeStatus: 200, revokeThrows: false,
+    nextRefreshToken: "refresh-1", esPublicKey: es.publicKey,
+    issueCode(subject) {
+      const code = `code-${++codeCounter}`;
+      codes.set(code, { subject, used: false });
+      return code;
+    },
+    async rotatedKey() {
+      const pair = await rsaPair();
+      const jwkOut = (await crypto.subtle.exportKey("jwk", pair.publicKey)) as JsonWebKey;
+      return { kid: "ROTATED2", privateKey: pair.privateKey, jwk: { ...jwkOut, kid: "ROTATED2", alg: "RS256", use: "sig" } as JsonWebKey };
+    },
     async sign(claims, options = {}) {
       const header = { alg: options.alg ?? "RS256", kid: options.kid ?? kid };
       const enc = (v: unknown) => base64UrlEncode(utf8(JSON.stringify(v)));
@@ -47,16 +72,25 @@ export async function makeFakeApple(): Promise<{ apple: FakeApple; fetch: typeof
   const fakeFetch: typeof fetch = async (input, init) => {
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     if (url === "https://appleid.apple.com/auth/keys") {
-      return Response.json({ keys: [{ ...jwk, kid, alg: "RS256", use: "sig" }] });
+      apple.keyFetches++;
+      return Response.json({ keys: [{ ...jwk, kid, alg: "RS256", use: "sig" }, ...apple.extraKeys] });
     }
     const body = new URLSearchParams(String(init?.body ?? ""));
     apple.calls.push({ url, body });
     if (url === "https://appleid.apple.com/auth/token") {
-      return apple.tokenStatus === 200
-        ? Response.json({ access_token: "a", refresh_token: apple.nextRefreshToken, id_token: "x", token_type: "Bearer" })
-        : new Response("{}", { status: apple.tokenStatus });
+      if (apple.tokenStatus !== 200) return new Response("{}", { status: apple.tokenStatus });
+      const grant = codes.get(body.get("code") ?? "");
+      if (!grant || grant.used) return Response.json({ error: "invalid_grant" }, { status: 400 });  // single-use
+      grant.used = true;
+      if (apple.tokenBody) return Response.json(await apple.tokenBody(grant.subject));
+      const now = Math.floor(clock.now / 1000);
+      const idToken = await apple.sign({ iss: "https://appleid.apple.com", aud: CLIENT_ID, iat: now, exp: now + 600, sub: grant.subject });
+      return Response.json({ access_token: "a", refresh_token: apple.nextRefreshToken, id_token: idToken, token_type: "Bearer" });
     }
-    if (url === "https://appleid.apple.com/auth/revoke") return new Response(null, { status: apple.revokeStatus });
+    if (url === "https://appleid.apple.com/auth/revoke") {
+      if (apple.revokeThrows) throw new Error("network down");
+      return new Response(null, { status: apple.revokeStatus });
+    }
     throw new Error(`unexpected fetch ${url}`);
   };
   return { apple, fetch: fakeFetch, privateKeyPEM };
@@ -71,6 +105,8 @@ export interface Harness {
   call: (method: string, path: string, options?: { body?: unknown; token?: string; raw?: string }) => Promise<Response>;
   idToken: (overrides?: Record<string, unknown>, nonce?: string, options?: Parameters<FakeApple["sign"]>[1]) => Promise<string>;
   signIn: (subject?: string, extra?: Record<string, unknown>) => Promise<{ session: string; profile: Record<string, unknown> }>;
+  /** The router's `deps` (for calling exported functions like the scheduled retry directly). */
+  deps: Deps;
 }
 
 export const NONCE = "raw-nonce-0123456789abcdef";
@@ -78,9 +114,9 @@ export const NONCE = "raw-nonce-0123456789abcdef";
 export async function harness(): Promise<Harness> {
   resetAppleKeyCache();
   // The pool keeps one D1 per test file: start every test from empty tables (children first).
-  await env.DB.batch(["sessions", "identities", "accounts"].map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
-  const { apple, fetch: fakeFetch, privateKeyPEM } = await makeFakeApple();
+  await env.DB.batch(["pending_revocations", "sessions", "identities", "accounts"].map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
   const clock = { now: Date.UTC(2026, 9, 2, 12) };
+  const { apple, fetch: fakeFetch, privateKeyPEM } = await makeFakeApple(clock);
   let counter = 0;
   const deps: Deps = {
     now: () => clock.now,
@@ -112,12 +148,12 @@ export async function harness(): Promise<Harness> {
   };
   const signIn: Harness["signIn"] = async (subject = "001234.apple-user", extra = {}) => {
     const response = await call("POST", "/v1/auth/apple", {
-      body: { identityToken: await idToken({ sub: subject }), authorizationCode: "code-1", nonce: NONCE, ...extra },
+      body: { identityToken: await idToken({ sub: subject }), authorizationCode: apple.issueCode(subject), nonce: NONCE, ...extra },
     });
     if (response.status !== 200) throw new Error(`sign-in failed ${response.status} ${await response.text()}`);
     return response.json() as Promise<{ session: string; profile: Record<string, unknown> }>;
   };
-  return { apple, env: testEnv, clock, call, idToken, signIn };
+  return { apple, env: testEnv, clock, call, idToken, signIn, deps };
 }
 
 export async function count(table: string): Promise<number> {

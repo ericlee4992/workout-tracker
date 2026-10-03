@@ -1,31 +1,45 @@
 #!/bin/bash
-# Rejects key-shaped strings before they reach this PUBLIC repository (public beta ticket 03).
-#   scripts/check-secrets.sh --staged   the staged changes (the pre-commit hook)
+# Rejects key-shaped text before it reaches this PUBLIC repository (public beta ticket 03; codex-review-03 #6–#8).
+#   scripts/check-secrets.sh --staged   the staged version of every staged file (the pre-commit hook)
 #   scripts/check-secrets.sh --all      every tracked file (CI)
-# Patterns: PEM private keys with content, OpenAI / Anthropic / Cloudflare / AWS / GitHub / Google style keys, and
-# a filled-in .dev.vars value. A match prints the file and line and exits 1; there is no allowlist — remove the secret.
+# A match prints FILE:LINE and the detector's name — never the matched text (CI logs are public) — and exits 1.
+# There is no allowlist: remove the secret. Regression test: scripts/test-check-secrets.sh.
 set -euo pipefail
 mode="${1:---staged}"
-patterns=(
-  '-----BEGIN [A-Z ]*PRIVATE KEY-----[[:space:]]*$'
-  '(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}'
-  '(^|[^A-Za-z0-9_-])sk-ant-[A-Za-z0-9_-]{20,}'
-  '(^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}'
-  '(^|[^A-Za-z0-9])gh[pousr]_[A-Za-z0-9]{30,}'
-  '(^|[^A-Za-z0-9])AIza[0-9A-Za-z_-]{35}'
-  '(APPLE_PRIVATE_KEY|TOKEN_ENC_KEY|APPLE_KEY_ID|CLOUDFLARE_API_TOKEN|OPENAI_API_KEY)=[^[:space:]]{8,}'
+detectors=(
+  "private-key|-----BEGIN [A-Z ]*PRIVATE KEY-----([[:space:]]*\$|\\\\n[A-Za-z0-9+/=]{16,}|[A-Za-z0-9+/=]{40,})"
+  "sk-api-key|(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}"
+  "aws-key|(^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}"
+  "github-token|(^|[^A-Za-z0-9])gh[pousr]_[A-Za-z0-9]{30,}"
+  "google-key|(^|[^A-Za-z0-9])AIza[0-9A-Za-z_-]{35}"
+  "named-secret|(APPLE_PRIVATE_KEY|TOKEN_ENC_KEY|APPLE_KEY_ID|CLOUDFLARE_API_TOKEN|OPENAI_API_KEY)[\"']?[[:space:]]*[:=][[:space:]]*[\"']?[A-Za-z0-9+/_=-]{16,}"
 )
-joined=$(IFS='|'; echo "${patterns[*]}")
+found=0
+# One `git grep` per detector over every file at once. `--cached` reads the staged (index) version of each file, so
+# the pre-commit check sees exactly what will be committed — whole files, no diff parsing (codex-review-03 #7).
+scan() {  # args: extra git-grep options and pathspecs
+  local entry name regex hit
+  for entry in "${detectors[@]}"; do
+    name="${entry%%|*}"; regex="${entry#*|}"
+    while IFS= read -r hit; do
+      [[ -n "$hit" ]] || continue
+      echo "  ${hit}  [$name]" >&2   # FILE:LINE only — the matched text is never printed (codex-review-03 #8)
+      found=1
+    done < <(git grep -nIE -e "$regex" "$@" 2>/dev/null | cut -d: -f1,2 || true)
+  done
+}
+
 case "$mode" in
   --staged)
-    hits=$(git diff --cached -U0 --no-color | grep -E '^\+[^+]' | grep -En -e "$joined" || true) ;;
+    staged=()
+    while IFS= read -r -d '' file; do staged+=("$file"); done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+    [[ ${#staged[@]} -gt 0 ]] && scan --cached -- "${staged[@]}" ;;
   --all)
-    hits=$(git ls-files -z | xargs -0 grep -EnI -e "$joined" -- 2>/dev/null || true) ;;
+    scan ;;
   *) echo "usage: $0 --staged|--all" >&2; exit 2 ;;
 esac
-if [[ -n "$hits" ]]; then
-  echo "Possible secret — refusing (this repository is public):" >&2
-  echo "$hits" | cut -c1-160 >&2
+if [[ $found -ne 0 ]]; then
+  echo "Possible secret above — refusing (this repository is public). The matched text is not shown." >&2
   exit 1
 fi
 echo "check-secrets: clean ($mode)"

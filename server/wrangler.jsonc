@@ -6,6 +6,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-22",
   "observability": { "enabled": true },
+  // Hourly: retry Apple token revocations that failed during an account deletion (codex-review-03 #5).
+  "triggers": { "crons": ["23 * * * *"] },
   "vars": {
     // Sign in with Apple's audience: the app's bundle ID (D60: kept as is).
     "APPLE_CLIENT_ID": "com.ericlee4992.workouttracker",

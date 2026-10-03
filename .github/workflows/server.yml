@@ -13,6 +13,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - run: scripts/test-check-secrets.sh
       - run: scripts/check-secrets.sh --all
 
   server-tests:

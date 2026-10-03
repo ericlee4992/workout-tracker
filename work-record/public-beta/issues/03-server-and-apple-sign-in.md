@@ -86,6 +86,47 @@ removing the nonce check fails exactly the nonce test; removing the audience che
 **Not done (needs the user / the paid team):** the Cloudflare account, D1 creation, secrets, deploy; the app half
 (capability, account client, Settings Account row, onboarding sign-in).
 
+## Codex review 03 — response (round 1)
+
+Review: [codex-review-03.md](../codex-review-03.md) — not clear (P1 ×2, P2 ×5, P3). All accepted.
+
+1. **P1 code ↔ identity binding** — `exchangeAppleCode(code, expectedSubject, …)` verifies the `id_token` Apple returns
+   (same checks as the sign-in token, minus the nonce) and requires its `sub` to equal the sign-in token's, else
+   `401 code_identity_mismatch` before any database write; a missing/empty/oversize refresh token or a bad/unsigned/
+   wrong-audience `id_token` → 502. The fake Apple now binds each code to its user, makes codes single-use and returns a
+   signed `id_token`. Tests: A's token + B's code → 401, nothing stored; a reused code → 502; four malformed answers → 502;
+   tokens without numeric `iat`/`exp` → 401. Mutation: removing the subject check fails exactly the A/B test.
+2. **P2 body limit** — the body is read from the stream counting bytes and cancelled past 64 KB. Tests: 80 KB of `é`
+   (40 k characters) → 413; a stream without Content-Length is cut off (≤ 64 KB + 3 chunks pulled of 1 MB); exactly
+   64 KB is read and judged (401).
+3. **P2 JWKS refetches** — one cached key set per hour; concurrent fetches share one request; an unknown `kid` forces a
+   refetch at most once per 5 minutes; every Apple call has a 5 s timeout. Tests: after warming, 5 sequential + 3
+   concurrent bogus `kid`s → exactly 1 extra fetch; a rotated key is accepted after the cooldown. Mutation: removing the
+   cooldown fails exactly that test.
+4. **P2 first-sign-in race** — `createOrFindAccount`: on the identity primary-key conflict it joins the winner's
+   account and keeps its own newer refresh token; if the winner was deleted meanwhile it creates afresh. Tests: two
+   simultaneous first sign-ins → one account, two sessions; the deterministic loser path joins the winner.
+5. **P2 deletion with Apple down** — every account row is deleted at once in one batch, and in the same batch an
+   unrevoked token is queued in `pending_revocations` (migration 0002: ciphertext, SHA-256 key for idempotence, no
+   account link); the hourly cron (`triggers.crons`) retries with backoff (1 h doubling to 24 h) and drops it after 30
+   days. The answer is `appleRevocation: "done" | "pending" | "manual"` (manual = no token kept → iOS Settings, TN3194),
+   documented in README and the spec. Tests: outage → pending → still down → revoked when back; key unavailable at
+   deletion → revoked once restored; tampered ciphertext → retried, dropped after 30 days; no token → manual; two
+   simultaneous deletions → nothing left, queued once.
+6. **P1 scanner false negatives** — detectors now catch PEM headers followed by escaped `\n` + base64 or inline base64,
+   and the project's secret names with optional quote, spaces and `:`/`=` (value ≥ 16 key characters).
+7. **P2 staged diff parsing** — `--staged` runs `git grep --cached` over the staged files: the index version, whole
+   files, no diff parsing; `--all` runs `git grep` over the tree (2,749 files in ~1 s).
+8. **P3 printed secrets** — reports `FILE:LINE [detector]` only.
+   `scripts/test-check-secrets.sh` (in CI): 12 cases — an `sk-` key, a `+`-prefixed line, PEM alone and escaped,
+   named secrets in JSON / spaced / `.dev.vars`, four look-alikes that must pass (CSS `mask-image`, code `btoa(…)`,
+   an empty example, the PEM regex in source), and `--all` finding a committed key without printing it. Its synthetic
+   secrets are assembled at run time. Two of my own bugs found on the way: the first rewrite lost its "found" flag in
+   a pipeline subshell, and put the pattern after `--`; both caught by this test.
+
+**Evidence after the fixes:** `tsc --noEmit` exit 0; `vitest run` **42/42** (26 + 16 in `test/hardening.test.ts`);
+mutations as above; `scripts/test-check-secrets.sh` exit 0 (12/12); `scripts/check-secrets.sh --all` clean.
+
 ## Acceptance
 
 - [ ] Server tests green; `wrangler dev` smoke from the Simulator: sign in, rename, sign out, delete.
