@@ -59,4 +59,13 @@ unlinked revocation retries and the iOS Settings remedy (#12); AI daily counts ~
 session expiry vs record removal (#14); manufacturer/model in the suggestion payload (#15); D1 Time Travel, backups
 and downloaded screenshots (#16); release gates collected at the end (#17).
 
+### Codex review 08b — response (round 2)
+
+Report [codex-review-08b.md](../codex-review-08b.md) (HEAD `f9c70fb`): **not clear**, 4 findings (2 × P3, 2 × P2);
+round 1 otherwise confirmed. Taken: the label reader vs AI identification (#1); "does not automatically include your
+workout history or readings from Apple Health" instead of "Health data are not sent" (#2); a failed revocation's token
+"kept separately from your deleted account record, solely to retry" — not "no longer linked to you" — and any failure,
+not just Apple unreachable (#3); manual D1 exports' retention and the deletion of downloaded feedback copies (signed in
+too) added to the deletion text as placeholders and to release gate 3 (#4).
+
 ## Comments

@@ -35,9 +35,9 @@ and your settings — is stored in the app on your iPhone. I don't receive it, a
   and indoor cardio may use motion data. The route stays in the app. To draw the map behind a route, the app asks
   Apple Maps for map imagery of the area around it; Apple's handling of that request is covered by Apple's privacy
   policy, and I receive nothing from it.
-- **Camera and photos.** You can photograph a machine or its label, or choose a photo, to identify it. Reading the
-  label happens on your iPhone; the app does not keep the photo. A photo is sent anywhere only if you use AI
-  identification (below).
+- **Camera and photos.** You can photograph a machine or its label, or choose a photo, to identify it. The app's own
+  label reader works on your iPhone, and the app does not keep the photo. AI identification sends the photo for
+  processing, as described below; a photo leaves your iPhone only then.
 - **Your exports.** Settings → Export makes a file of your workout data: JSON (the fullest record, including heart-rate
   series and routes) or CSV (a table of sets and cardio). You choose where it goes; that destination may be another
   app or service with its own policy.
@@ -80,8 +80,8 @@ remembers it; you can turn each permission off in Settings → Ask AI. Nothing i
 - **What is sent:** for machine identification, the photo (re-encoded on your iPhone without its location or camera
   details) and the app's list of exercises; for exercise suggestions, the machine's manufacturer and model as you
   typed them, any text read from its label, and the list of exercises; for templates, your goals, experience,
-  schedule, optional height and weight, and the exercises and cardio available to you. Your workout history and
-  Health data are not sent.
+  schedule, optional height and weight, and the exercises and cardio available to you. The app does not automatically
+  include your workout history or readings from Apple Health.
 - **Where it goes:** to my server, which passes it to OpenAI to produce the answer and returns the answer to you. My
   server does not store the photo, what you sent or the answer, and does not log them. My requests ask OpenAI not to
   store them for later use (`store: false`); OpenAI may still keep API data for up to 30 days to monitor for abuse,
@@ -120,10 +120,12 @@ websites.
 - **Your account:** Profile → Delete Account deletes from my live database, at once, your account, sessions, training
   profile, AI records, and the feedback you sent while signed in. The feedback's screenshots are deleted right after;
   if that fails, an hourly job retries until they are gone. Stacked's Sign in with Apple access is revoked with Apple;
-  if Apple can't be reached, the encrypted token is kept, no longer linked to you, and retried for up to 30 days, and
-  the app tells you how to stop Sign in with Apple yourself in iOS Settings → Apple Account → Sign in with Apple. Your
-  workouts on your iPhone are not touched. The database's recovery history (above) still holds deleted rows until it
-  expires [and a restore from it or from a backup re-applies deletions made since — describe the procedure].
+  if revocation fails, I keep the encrypted token separately from your deleted account record, solely to retry
+  revocation for up to 30 days, and the app tells you how to stop Sign in with Apple yourself in iOS Settings → Apple
+  Account → Sign in with Apple. Downloaded copies of your feedback screenshots are deleted too [describe how]. Your
+  workouts on your iPhone are not touched. The database's recovery history (above) [and any database exports I make —
+  state their retention] still hold deleted rows until they expire [and a restore re-applies deletions made since —
+  describe the procedure].
 - **Feedback sent while signed out** isn't linked to an account; email me what you sent and roughly when, and I will
   delete it, including any copy I downloaded.
 - **On your iPhone:** delete the app (see *What stays on your iPhone* for what that does and doesn't remove).
@@ -186,8 +188,9 @@ when answering).
    DECISIONS. The Health usage string should name the energy and distance reads.
 3. **The server, deployed:** check a Workers Logs invocation record (does it hold the client IP or headers?) and either
    describe it here or turn invocation logs off; confirm the Cloudflare plan's log retention and D1 Time Travel
-   window; write the D1 export/backup procedure (ticket 08) so a restore re-applies deletions; check that the hourly
-   job runs (prune, sweep, revocation retries).
+   window; write the D1 export/backup procedure (ticket 08) with the exports' retention, access and deletion, so a
+   restore re-applies deletions; decide how downloaded feedback copies (signed in or out) are removed when their
+   sender's account is deleted or they ask; check that the hourly job runs (prune, sweep, revocation retries).
 4. **The pages:** replace `server/src/pages.ts`'s placeholders with the approved policy and a support page.
 5. **Review:** Codex rechecks every statement against the release build and the deployed server; the user approves
    the wording.
