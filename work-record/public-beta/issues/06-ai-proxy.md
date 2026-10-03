@@ -1,7 +1,7 @@
 # 06 — AI through the server
 
 Type: task
-Status: server half — Codex review 06 round 2 not clear (6 findings) → fixed; round 3 next. The app switch waits on
+Status: server half — Codex review 06 round 3 not clear (2 × P3) → fixed; round 4 next. The app switch waits on
 03's app half (the paid team).
 Blocked by: 03
 Implementer: Claude (server half, the user's order 2026-10-03); Reviewer: Codex.
@@ -167,5 +167,18 @@ Verification: server **166/166**, `tsc` clean. Mutations, each failing its tests
 no entropy-data check; returning at the frame header; no canonical-bits check; no duration check; case-sensitive ID
 uniqueness; UTF-16 lengths. A plain `json.replace(slot, …)` survives — equivalent given the random slot (the defence
 is that user text cannot know the slot; the exact-anchor match is belt and braces).
+
+## Codex review 06c — response (round 3)
+
+Report [codex-review-06c.md](../codex-review-06c.md) (HEAD `13fa4eb`): **not clear**, two P3s, no P0–P2; Codex confirmed
+round 2's fixes (JPEG tail, walk and canonical bits; the image anchor; reply parity; graphemes; spec/README).
+1. **P3 the duration "boundary" test did not test the boundary** (1,395 s vs 3,375 s and 1,350 s). Now Codex's case: a
+   10-minute request (750 s allowed), 2 sets × 45 + 540 s rest + 60 + 1 min of cardio = 750 → accepted (success
+   counted), rest 541 → 751 → ai_invalid (attempt counted, no success, slot released).
+2. **P3 reasons capped before trimming** — trimmed first (as the app's parse trims), then cut to 300 characters. Test:
+   300 spaces + "Chest press" → "Chest press"; whitespace only → ""; padded 300 characters → the 300 characters.
+Server **167/167**, `tsc` clean; mutations `<=` → `<` in the duration check and dropping the trim each fail their test.
+Codex's caution recorded: the JPEG check is a bounded preflight (structure and sizes), not a decode; malformed
+compressed data can still fail upstream (as an attempt).
 
 ## Comments

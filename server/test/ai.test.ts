@@ -575,14 +575,17 @@ describe("round 2 (codex-review-06b)", () => {
     expect(await errorOf(await ai("scan-machine"))).toBe("ai_invalid");
   });
 
-  it("#4 a routine exactly at the app's duration tolerance passes; one second over fails", async () => {
-    // 45 min × 75 s = 3375 s. One exercise: 3 sets × 45 + 2 × rest + 60.
-    const request = { ...inputs["routine-week"], days: 1, minutes: 45, cardioActivities: [] };
-    const withRest = (rest: number) => ({ sessions: [{ name: "Day 1", strength: [{ exerciseID: A, sets: 3, reps: 10, restSeconds: rest }], cardio: [] }] });
-    h.openai.respond = () => openAIReply(withRest(600));  // 135 + 1200 + 60 = 1395 ≤ 3375
+  it("#4 a routine exactly at the app's duration tolerance passes; one second over fails (codex-review-06c #1)", async () => {
+    // 10 min × 75 s = 750 s allowed. 2 sets × 45 + 1 × rest + 60 (transition) + 1 min of cardio.
+    const request = { ...inputs["routine-week"], days: 1, minutes: 10, cardioActivities: ["indoorRun"] };
+    const withRest = (rest: number) => ({ sessions: [{ name: "Day 1",
+      strength: [{ exerciseID: A, sets: 2, reps: 10, restSeconds: rest }], cardio: [{ activity: "indoorRun", minutes: 1 }] }] });
+    h.openai.respond = () => openAIReply(withRest(540));    // 90 + 540 + 60 + 60 = 750 — exactly the allowance
     expect((await ai("routine-week", request)).status).toBe(200);
-    const tight = { ...request, minutes: 18 };              // 18 × 75 = 1350 < 1395
-    expect(await errorOf(await ai("routine-week", tight))).toBe("ai_invalid");
+    expect(await usageRow("routine-week")).toEqual({ successes: 1, attempts: 1, in_flight: 0 });
+    h.openai.respond = () => openAIReply(withRest(541));    // 751 — one second over
+    expect(await errorOf(await ai("routine-week", request))).toBe("ai_invalid");
+    expect(await usageRow("routine-week")).toEqual({ successes: 1, attempts: 2, in_flight: 0 });
   });
 
   it("#5 counts characters as the app does: 60 decomposed accented letters and astral emoji fit an 80 limit", async () => {
@@ -612,5 +615,17 @@ describe("round 2 (codex-review-06b)", () => {
     const { result } = (await response.json()) as { result: { proposals: { exercise_id: string; reason: string }[] } };
     expect(result.proposals.map((p) => p.exercise_id)).toEqual(ids.slice(0, 6));
     expect(result.proposals[0]!.reason).toBe("x".repeat(300));
+  });
+
+  it("reasons are trimmed before the cap, as the app trims (codex-review-06c #2)", async () => {
+    const ids = Array.from({ length: 3 }, () => crypto.randomUUID().toUpperCase());
+    const request = { ...inputs["model-exercises"], candidates: ids.map((id, i) => ({ id, name: `E${i}` })) };
+    h.openai.respond = () => openAIReply({ proposals: [
+      { exercise_id: ids[0], reason: " ".repeat(300) + "Chest press" },
+      { exercise_id: ids[1], reason: "\n \t " },
+      { exercise_id: ids[2], reason: "  " + "y".repeat(300) + "\n" },
+    ] });
+    const { result } = (await (await ai("model-exercises", request)).json()) as { result: { proposals: { reason: string }[] } };
+    expect(result.proposals.map((p) => p.reason)).toEqual(["Chest press", "", "y".repeat(300)]);
   });
 });

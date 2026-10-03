@@ -354,7 +354,8 @@ function cleanProposals(r: Record<string, unknown>, ids: Set<string>): Record<st
     if (!id || !ids.has(id) || seen.has(id)) continue;
     seen.add(id);
     proposals.push({ exercise_id: entry.exercise_id as string,
-      reason: firstCharacters(typeof entry.reason === "string" ? entry.reason : "", 300) });
+      // Trimmed first, as the app trims (codex-review-06c #2), then capped.
+      reason: firstCharacters(typeof entry.reason === "string" ? entry.reason.trim() : "", 300) });
     if (proposals.length === 6) break;
   }
   return { proposals };
