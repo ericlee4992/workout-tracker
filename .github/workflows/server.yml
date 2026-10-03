@@ -1,0 +1,33 @@
+name: Server
+
+# Public beta ticket 03: the secret scan over every tracked file (this repository is public) and the server's tests
+# (Cloudflare Workers runtime, local D1, a fake Apple). Linux runner; no secrets are needed or available.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/check-secrets.sh --all
+
+  server-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx vitest run

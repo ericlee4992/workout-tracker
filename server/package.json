@@ -1,0 +1,23 @@
+{
+  "name": "stacked-server",
+  "private": true,
+  "description": "Stacked's backend (public beta ticket 03): accounts, sessions, and later the AI proxy and feedback. Cloudflare Workers + D1.",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "deploy": "wrangler deploy",
+    "migrate:local": "wrangler d1 migrations apply stacked --local",
+    "migrate:remote": "wrangler d1 migrations apply stacked --remote"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.22.0",
+    "@cloudflare/workers-types": "^5.20261003.1",
+    "@vitest/runner": "~4.1.0",
+    "@vitest/snapshot": "~4.1.0",
+    "typescript": "^7.0.2",
+    "vitest": "~4.1.0",
+    "wrangler": "^4.147.0"
+  }
+}

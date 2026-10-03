@@ -1,0 +1,24 @@
+// Stacked's backend (public beta ticket 03). Secrets are NOT here — this repository is public. Set them with
+// `wrangler secret put` (see README): APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "stacked-server",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-22",
+  "observability": { "enabled": true },
+  "vars": {
+    // Sign in with Apple's audience: the app's bundle ID (D60: kept as is).
+    "APPLE_CLIENT_ID": "com.ericlee4992.workouttracker",
+    // The paid team's ID (not secret); set when Apple approves the enrollment (ticket 01).
+    "APPLE_TEAM_ID": ""
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "stacked",
+      // Filled in by `wrangler d1 create stacked` before the first deploy (README). Local dev and tests ignore it.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

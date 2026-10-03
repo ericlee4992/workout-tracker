@@ -1,0 +1,3 @@
+#!/bin/bash
+# Opt-in: `git config core.hooksPath scripts/git-hooks` (affects every checkout of this repository).
+exec "$(git rev-parse --show-toplevel)/scripts/check-secrets.sh" --staged
