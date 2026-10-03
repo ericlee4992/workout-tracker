@@ -36,8 +36,8 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
 
 **Checkout:** Orca worktree `/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch
 **`ericlee4992/beta-05-profile`** — ticket 05 (approved mock + server side), off `main` `d761301` (07 and 06's server
-half merged at the user's go-ahead, 2026-10-03); Codex review 05 in progress. Earlier branches are fully in `main`. The old `ericlee4992/beta-07-feedback` branch is fully in `main`. Every earlier ticket branch is
-merged; nothing unmerged holds work. `Config/Local.xcconfig` (git-ignored) is present in this checkout (free team).
+half merged at the user's go-ahead, 2026-10-03); Codex review 05 in progress. Every earlier ticket branch is merged
+into `main`; only this branch holds unmerged work (ticket 05). `Config/Local.xcconfig` (git-ignored) is present in this checkout (free team).
 
 Plan: **[spec](../work-record/public-beta/spec.md)** (the user's answers Q1–Q14 and Q8b), decision **D60**, tickets
 [`work-record/public-beta/issues/01…09`](../work-record/public-beta/issues/). Stacked; optional Apple/Google accounts with

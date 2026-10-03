@@ -124,6 +124,27 @@ describe("the training profile", () => {
     expect(await count("training_profiles")).toBe(0);
   });
 
+  it("the route answers 401 when the account is deleted between authentication and the save", async () => {
+    const { createHandler } = await import("../src/index");
+    // The deletion lands just before the batch runs.
+    const racing = { ...h.env, DB: new Proxy(h.env.DB, {
+      get(target, prop) {
+        if (prop === "batch") return async (statements: D1PreparedStatement[]) => {
+          await h.call("DELETE", "/v1/account", { token: session });
+          return target.batch(statements);
+        };
+        const value = Reflect.get(target, prop);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    }) };
+    const response = await createHandler(h.deps)(new Request("https://stacked.test/v1/profile", {
+      method: "PUT", headers: { authorization: `Bearer ${session}`, "content-type": "application/json" },
+      body: JSON.stringify({ displayName: "Gone", training }),
+    }), racing);
+    expect([response.status, await errorOf(response)]).toEqual([401, "unauthorized"]);
+    expect([await count("accounts"), await count("training_profiles")]).toEqual([0, 0]);
+  });
+
   it("a save racing the account's deletion writes nothing", async () => {
     const { writeTraining } = await import("../src/training");
     const account = await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>();

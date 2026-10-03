@@ -13,6 +13,9 @@ struct TrainingProfileEditor: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var draft: TrainingProfile
+    /// Height and weight as typed, staged together (codex-review-05b): the measurements come from these strings.
+    @State private var height: MeasureDraft
+    @State private var weight: MeasureDraft
     private let original: TrainingProfile
     @FocusState private var focus: Field?
 
@@ -21,13 +24,28 @@ struct TrainingProfileEditor: View {
     init(profile: TrainingProfile?, usCustomary: Bool, onSave: @escaping (TrainingProfile) -> Void) {
         let start = profile ?? .empty
         _draft = State(initialValue: start)
+        // The stored unit, else the app's (D52: a stored value is never shown converted).
+        _height = State(initialValue: MeasureDraft(start.height, kind: .height,
+                                                   imperial: start.height.map { $0.unit == .inches } ?? usCustomary))
+        _weight = State(initialValue: MeasureDraft(start.weight, kind: .weight,
+                                                   imperial: start.weight.map { $0.unit == .lb } ?? usCustomary))
         original = start
         self.usCustomary = usCustomary
         self.onSave = onSave
     }
 
+    /// The profile Save would commit; nil while a height or weight entry is not a valid number.
+    private var staged: TrainingProfile? {
+        guard case .some(let h) = height.measure, case .some(let w) = weight.measure else { return nil }
+        var profile = draft
+        profile.height = h
+        profile.weight = w
+        return profile
+    }
+
     private var canSave: Bool {
-        !draft.goals.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && draft.isValid && draft != original
+        guard let staged else { return false }
+        return staged.isValid && staged != original
     }
 
     var body: some View {
@@ -50,7 +68,7 @@ struct TrainingProfileEditor: View {
         }
         .lookSheetGround()
         .presentationDragIndicator(.visible)
-        .interactiveDismissDisabled(draft != original)
+        .interactiveDismissDisabled(staged != original)
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
@@ -60,8 +78,8 @@ struct TrainingProfileEditor: View {
     }
 
     private func save() {
-        guard canSave else { return }
-        var saved = draft
+        guard canSave, let staged else { return }
+        var saved = staged
         saved.goals = saved.goals.trimmingCharacters(in: .whitespacesAndNewlines)
         onSave(saved)
         dismiss()
@@ -193,69 +211,41 @@ struct TrainingProfileEditor: View {
         .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
     }
 
-    /// The unit a height field uses: the stored one, else the app's.
-    private var heightInInches: Bool { draft.height.map { $0.unit == .inches } ?? usCustomary }
-    private var weightInPounds: Bool { draft.weight.map { $0.unit == .lb } ?? usCustomary }
-
-    /// Values show and save as typed, decimals included (codex-review-05 #2): no rounding on display or save. Each field
-    /// keeps its own text while typing (so "82." can become "82.5"); the draft follows every edit.
+    /// Values show and save exactly as typed (codex-review-05, 05b): feet and inches are read together; an entry that
+    /// is not a number Save can store exactly (more than two decimals, 12 inches or more) shows in the destructive
+    /// colour and keeps Save off.
     @ViewBuilder private var heightFields: some View {
-        if heightInInches {
-            let total = draft.height?.value
-            MeasureField(initial: total.map { String(Int($0 / 12)) } ?? "", unit: "ft", decimal: false,
-                         accessibility: "Height, feet", identifier: "trainingHeightFeet", focus: $focus, field: .heightA) { text in
-                let inches = draft.height.map { $0.value - Double(Int($0.value / 12) * 12) } ?? 0
-                draft.height = AIProfileUnits.parse(text).map { BodyMeasure(value: Double($0 * 12) + inches, unit: .inches) }
-            }
-            MeasureField(initial: total.map { BodyMeasure.number($0 - Double(Int($0 / 12) * 12)) } ?? "", unit: "in", decimal: true,
-                         accessibility: "Height, inches", identifier: "trainingHeightInches", focus: $focus, field: .heightB) { text in
-                let wholeFeet = draft.height.map { Double(Int($0.value / 12) * 12) } ?? 0
-                let inches = min(11.99, BodyMeasure.parse(text) ?? 0)
-                draft.height = BodyMeasure(value: wholeFeet + inches, unit: .inches)
-            }
+        let invalid = height.measure == nil
+        if height.imperial {
+            MeasureField(text: $height.first, unit: "ft", decimal: false, invalid: invalid,
+                         accessibility: "Height, feet", identifier: "trainingHeightFeet", focus: $focus, field: .heightA)
+            MeasureField(text: $height.second, unit: "in", decimal: true, invalid: invalid,
+                         accessibility: "Height, inches", identifier: "trainingHeightInches", focus: $focus, field: .heightB)
         } else {
-            MeasureField(initial: draft.height.map { BodyMeasure.number($0.value) } ?? "", unit: "cm", decimal: true,
-                         accessibility: "Height, centimetres", identifier: "trainingHeight", focus: $focus, field: .heightA) { text in
-                draft.height = BodyMeasure.parse(text).map { BodyMeasure(value: $0, unit: .cm) }
-            }
+            MeasureField(text: $height.first, unit: "cm", decimal: true, invalid: invalid,
+                         accessibility: "Height, centimetres", identifier: "trainingHeight", focus: $focus, field: .heightA)
         }
     }
 
     private var weightField: some View {
-        MeasureField(initial: draft.weight.map { BodyMeasure.number($0.value) } ?? "", unit: weightInPounds ? "lb" : "kg",
-                     decimal: true, accessibility: "Weight, \(weightInPounds ? "pounds" : "kilograms")",
-                     identifier: "trainingWeight", focus: $focus, field: .weight) { text in
-            draft.weight = BodyMeasure.parse(text).map { BodyMeasure(value: $0, unit: weightInPounds ? .lb : .kg) }
-        }
+        MeasureField(text: $weight.first, unit: weight.imperial ? "lb" : "kg", decimal: true, invalid: weight.measure == nil,
+                     accessibility: "Weight, \(weight.imperial ? "pounds" : "kilograms")",
+                     identifier: "trainingWeight", focus: $focus, field: .weight)
     }
 }
 
-/// A short number field with its unit (as Ask AI's profile fields), holding its own text while typing.
+/// A short number field with its unit (as Ask AI's profile fields); its text is the editor's staged text.
 private struct MeasureField<F: Hashable>: View {
-    var initial: String
+    @Binding var text: String
     var unit: String
-    var decimal = false
+    var decimal: Bool
+    var invalid: Bool
     var accessibility: String
     var identifier: String
     var focus: FocusState<F?>.Binding
     var field: F
-    var onEdit: (String) -> Void
-    @State private var text: String
     @Environment(\.look) private var look
     @ScaledMetric(relativeTo: .headline) private var width: CGFloat = 58
-
-    init(initial: String, unit: String, decimal: Bool, accessibility: String, identifier: String,
-         focus: FocusState<F?>.Binding, field: F, onEdit: @escaping (String) -> Void) {
-        self.initial = initial
-        self.unit = unit
-        self.decimal = decimal
-        self.accessibility = accessibility
-        self.identifier = identifier
-        self.focus = focus
-        self.field = field
-        self.onEdit = onEdit
-        _text = State(initialValue: initial)
-    }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
@@ -263,14 +253,14 @@ private struct MeasureField<F: Hashable>: View {
                 .keyboardType(decimal ? .decimalPad : .numberPad)
                 .multilineTextAlignment(.center)
                 .font(look.font.fieldNumber)
-                .foregroundStyle(look.textPrimary)
+                .foregroundStyle(invalid ? look.destructive : look.textPrimary)
                 .focused(focus, equals: field)
                 .frame(width: width)
                 .frame(minHeight: 44)
                 .lookSurface(.field)
                 .accessibilityLabel(accessibility)
+                .accessibilityValue(invalid ? "\(text), not a valid entry" : text)
                 .accessibilityIdentifier(identifier)
-                .onChange(of: text) { _, new in onEdit(new) }
             Text(unit)
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(look.textSecondary)

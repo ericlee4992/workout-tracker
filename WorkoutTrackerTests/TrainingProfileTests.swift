@@ -21,13 +21,61 @@ struct TrainingProfileTests {
         #expect(BodyMeasure(value: 70.5, unit: .inches).display == "5 ft 10.5 in")
         #expect(BodyMeasure(value: 177.25, unit: .cm).display == "177.25 cm")
         #expect(BodyMeasure(value: 180, unit: .lb).display == "180 lb")
-        #expect(BodyMeasure.parse("82.5") == 82.5)
-        #expect(BodyMeasure.parse("82,5") == 82.5)
-        #expect(BodyMeasure.parse("82.") == 82)
-        #expect(BodyMeasure.parse(".5") == 0.5)
-        #expect(BodyMeasure.parse("82.567") == 82.56)
-        #expect(BodyMeasure.parse("") == nil)
-        #expect(BodyMeasure.parse("abc") == nil)
+        #expect(BodyMeasure(value: 82.567, unit: .kg).display == "82.567 kg", "a server value's precision is kept")
+    }
+
+    @Test func typedNumbersAreReadStrictlyNeverTruncated() {
+        #expect(TypedNumber("82.5") == .value(82.5))
+        #expect(TypedNumber("82,25") == .value(82.25))
+        #expect(TypedNumber("180") == .value(180))
+        #expect(TypedNumber("  ") == .empty)
+        for bad in ["82.567", "82.", ".5", "abc", "1.2.3", "12345", "-5"] {
+            #expect(TypedNumber(bad) == .invalid, "\(bad)")
+        }
+        #expect(TypedNumber("5.5", decimals: false) == .invalid)
+    }
+
+    @Test func feetAndInchesAreReadTogether() {
+        var h = MeasureDraft(BodyMeasure(value: 70.5, unit: .inches), kind: .height, imperial: true)
+        #expect([h.first, h.second] == ["5", "10.5"])
+        // Replace the feet: the inches shown are the inches saved (codex-review-05b #1).
+        h.first = ""
+        h.first = "6"
+        #expect(h.measure == .some(BodyMeasure(value: 82.5, unit: .inches)))
+        // Replace the inches, keeping the feet.
+        h.second = "3"
+        #expect(h.measure == .some(BodyMeasure(value: 75, unit: .inches)))
+        // 12 inches or more is not an entry (never clamped or carried).
+        h.second = "12"
+        #expect(h.measure == nil)
+        h.second = "11.99"
+        #expect(h.measure == .some(BodyMeasure(value: 83.99, unit: .inches)))
+        // Clearing both clears the height.
+        h.first = ""; h.second = ""
+        #expect(h.measure == .some(nil))
+    }
+
+    @Test func anUntouchedFieldKeepsTheStoredValueExactly() {
+        let stored = BodyMeasure(value: 82.567, unit: .kg)   // more decimals than the editor accepts
+        var w = MeasureDraft(stored, kind: .weight, imperial: false)
+        #expect(w.first == "82.567")
+        #expect(w.measure == .some(stored), "an unrelated edit and save keep it")
+        w.first = "82.567"                                    // retyped identically: still the stored value
+        #expect(w.measure == .some(stored))
+        w.first = "82.5671"
+        #expect(w.measure == nil, "typed precision beyond two decimals is refused, not truncated")
+        w.first = "90"
+        #expect(w.measure == .some(BodyMeasure(value: 90, unit: .kg)))
+    }
+
+    @Test func emptyMeasuresTakeTheAppsUnits() {
+        var h = MeasureDraft(nil, kind: .height, imperial: false)
+        h.first = "178.5"
+        #expect(h.measure == .some(BodyMeasure(value: 178.5, unit: .cm)))
+        var w = MeasureDraft(nil, kind: .weight, imperial: true)
+        #expect(w.measure == .some(nil))
+        w.first = "180"
+        #expect(w.measure == .some(BodyMeasure(value: 180, unit: .lb)))
     }
 
     @Test func goalChecksMatchTheServer() {

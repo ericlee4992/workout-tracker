@@ -68,18 +68,88 @@ struct BodyMeasure: Codable, Equatable {
         }
     }
 
-    /// The value without a trailing ".0", up to two decimals (as typed), in the POSIX locale (the field's).
+    /// The value as entered, without a trailing ".0" — every stored decimal shown (up to six, beyond anything the
+    /// editor accepts), in the POSIX locale (the field's).
     static func number(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(0...2)).grouping(.never).locale(Locale(identifier: "en_US_POSIX")))
+        value.formatted(.number.precision(.fractionLength(0...6)).grouping(.never).locale(Locale(identifier: "en_US_POSIX")))
+    }
+}
+
+/// A typed number, read strictly (codex-review-05b #2): what is accepted is exactly what is saved, never truncated or
+/// clamped; anything else is `.invalid` and keeps Save off.
+enum TypedNumber: Equatable {
+    case empty
+    case value(Double)
+    case invalid
+
+    /// Up to four digits, optionally a point or comma and one or two decimals ("82", "82.5", "82,25", "0.5").
+    init(_ text: String, decimals: Bool = true) {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty { self = .empty; return }
+        let pattern = decimals ? #"^\d{1,4}([.,]\d{1,2})?$"# : #"^\d{1,4}$"#
+        guard trimmed.range(of: pattern, options: .regularExpression) != nil,
+              let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else { self = .invalid; return }
+        self = .value(value)
+    }
+}
+
+/// The editor's staged text for one measurement (codex-review-05b #1): feet and inches kept together, the measurement
+/// derived from both current strings. A field left as it was keeps the stored value exactly, whatever its precision.
+struct MeasureDraft: Equatable {
+    enum Kind { case height, weight }
+    let kind: Kind
+    /// Height in feet + inches, weight in pounds (else cm / kg).
+    let imperial: Bool
+    var first: String
+    var second: String
+    private let original: BodyMeasure?
+    private let originalTexts: [String]
+
+    init(_ measure: BodyMeasure?, kind: Kind, imperial: Bool) {
+        self.kind = kind
+        self.imperial = imperial
+        original = measure
+        switch (kind, imperial, measure) {
+        case (.height, true, let m?):
+            let feet = Int(m.value / 12)
+            first = String(feet)
+            second = BodyMeasure.number(m.value - Double(feet * 12))
+        case (_, _, let m?):
+            first = BodyMeasure.number(m.value)
+            second = ""
+        default:
+            first = ""
+            second = ""
+        }
+        originalTexts = [first, second]
     }
 
-    /// A typed number ("82.5", "82,5"): digits and one decimal separator, at most two decimals; nil when empty.
-    static func parse(_ text: String) -> Double? {
-        let cleaned = text.replacingOccurrences(of: ",", with: ".").filter { $0.isNumber || $0 == "." }
-        let parts = cleaned.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
-        guard let whole = parts.first, !(whole.isEmpty && parts.count == 1) else { return nil }
-        let fraction = parts.count > 1 ? String(parts[1].filter(\.isNumber).prefix(2)) : ""
-        return Double("\(whole.isEmpty ? "0" : String(whole.prefix(4))).\(fraction.isEmpty ? "0" : fraction)")
+    /// The measurement to save: `.some(nil)` when cleared, nil (the outer optional) when the text is not a valid entry.
+    var measure: BodyMeasure?? {
+        if [first, second] == originalTexts { return .some(original) }
+        let unit: BodyMeasure.Unit = switch (kind, imperial) {
+        case (.height, true): .inches
+        case (.height, false): .cm
+        case (.weight, true): .lb
+        case (.weight, false): .kg
+        }
+        if kind == .height && imperial {
+            let feet = TypedNumber(first, decimals: false), inches = TypedNumber(second)
+            switch (feet, inches) {
+            case (.empty, .empty): return .some(nil)
+            case (.invalid, _), (_, .invalid): return nil
+            default:
+                let f: Double = if case .value(let v) = feet { v } else { 0 }
+                let i: Double = if case .value(let v) = inches { v } else { 0 }
+                guard i < 12 else { return nil }   // 12 or more inches is not an entry; never carried silently
+                return .some(BodyMeasure(value: f * 12 + i, unit: unit))
+            }
+        }
+        switch TypedNumber(first) {
+        case .empty: return .some(nil)
+        case .invalid: return nil
+        case .value(let v): return .some(BodyMeasure(value: v, unit: unit))
+        }
     }
 }
 

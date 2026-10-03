@@ -133,4 +133,53 @@ final class FloodlightProfileUITests: XCTestCase {
         app.buttons["trainingSave"].tap()
         XCTAssertTrue(app.staticTexts["82.5 lb"].waitForExistence(timeout: 5), "the page shows it as entered")
     }
+
+    private func openEditor() {
+        launch(appearance: "dark", large: false, flags: ["-uiTestProfileSample"])
+        openSettings()
+        any("settingsAccount").tap()
+        let edit = app.buttons["Edit"].firstMatch
+        XCTAssertTrue(edit.waitForExistence(timeout: 5))
+        edit.tap()
+        XCTAssertTrue(app.buttons["trainingSave"].waitForExistence(timeout: 5))
+        let feet = app.textFields["trainingHeightFeet"]
+        for _ in 0..<6 where !onScreen(feet, floor: app.frame.maxY - 20) {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
+        }
+    }
+
+    /// Taps at the field's trailing edge so the cursor is after the text (a tap in the middle of a one-character
+    /// field put it before, and the deletes removed nothing).
+    private func replace(_ field: XCUIElement, with text: String) {
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 0.6)
+        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 6) + text)
+    }
+
+    /// codex-review-05b #1: replacing the feet keeps the inches the editor shows; the page gets both.
+    func testReplacingFeetKeepsTheInches() {
+        openEditor()
+        replace(app.textFields["trainingHeightFeet"], with: "6")
+        XCTAssertEqual(app.textFields["trainingHeightFeet"].value as? String, "6")
+        XCTAssertEqual(app.textFields["trainingHeightInches"].value as? String, "10")
+        XCTAssertTrue(app.buttons["trainingSave"].isEnabled)
+        app.buttons["trainingSave"].tap()
+        XCTAssertTrue(app.staticTexts["6 ft 10 in"].waitForExistence(timeout: 5))
+    }
+
+    /// codex-review-05b #2: 12 inches is not an entry — Save stays off rather than saving something else; clearing
+    /// both fields clears the height.
+    func testTwelveInchesKeepsSaveOffAndClearingBothClearsTheHeight() {
+        openEditor()
+        let save = app.buttons["trainingSave"]
+        replace(app.textFields["trainingHeightInches"], with: "12")
+        XCTAssertFalse(save.isEnabled, "12 in is refused, not clamped")
+        replace(app.textFields["trainingHeightInches"], with: "")
+        replace(app.textFields["trainingHeightFeet"], with: "")
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+        XCTAssertTrue(app.staticTexts["Not set"].waitForExistence(timeout: 5), "the height was cleared")
+    }
 }

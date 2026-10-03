@@ -2,7 +2,7 @@
 
 Type: task
 Status: mock **approved by the user 2026-10-03** (and the Ask AI decision); server side implemented; Codex review 05
-round 1 not clear (2 findings) → fixed; round 2 next.
+round 2 not clear (2 findings) → fixed; round 3 next.
 Wiring (the page live, the editor saving, Ask AI prefill and save) waits on 03's app half (sign-in, the paid team).
 Blocked by: 03
 Implementer: Claude (the user's order 2026-10-03); Reviewer: Codex.
@@ -108,7 +108,7 @@ dark, approved by the user before wiring.
       `prof-all.xcresult`, exit 0 — scratchpad evidence, summarized in Progress).
 - [x] Server tests: profile validation, unit preservation, deletion (`test/profile.test.ts`; 195/195 after round 1).
 - [ ] Prefill works in Ask AI for Templates; no change when signed out.
-- [ ] Targeted unit/UI tests.
+- [x] Targeted unit/UI tests (TrainingProfileTests 9/9; FloodlightProfileUITests 7/7 across `prof2` + `dbg2`; Ask AI and Settings regression 18/18 in `reg05`).
 
 ## Verification scope
 
@@ -165,5 +165,29 @@ accepted. Codex reran 190/190 and read the recorded Xcode results (4/4 captures;
 - **Parity:** `TrainingProfile.isValid` now matches the server's goal checks (non-blank after trimming, no control
   characters but tab/newlines, ≤ 1,000 characters); test added. `TrainingProfileTests` **5/5**.
 - **Records:** README intro; acceptance boxes checked with their evidence; STATE refreshed.
+
+## Codex review 05b — response (round 2)
+
+Report [codex-review-05b.md](../codex-review-05b.md) (HEAD `3c86d78`): **not clear**, 2 P2s, both consequences of my
+round-1 field change; accepted. Codex confirmed round 1's server fix (Map lookup, finite check, one-batch PUT) and the
+goal parity, and read the recorded runs.
+1. **P2 replacing feet lost the inches shown** — the editor now stages height and weight as text in `MeasureDraft`
+   (Domain): feet and inches are read together from both current strings; clearing both clears the height.
+2. **P2 shown ≠ saved (truncation to 2 decimals, inches clamped to 11.99; 3-decimal server values rounded on display)**
+   — typed numbers are read strictly by `TypedNumber` (≤ 4 digits, optionally one or two decimals with a point or a
+   comma); anything else, and 12 inches or more, is invalid: the field turns the destructive colour (VoiceOver: "not a
+   valid entry") and Save stays off — nothing is truncated, clamped or carried. A field left as it was keeps the stored
+   value exactly (a 82.567 kg server value survives an unrelated edit and save); display shows up to six stored
+   decimals ("82.567 kg").
+- Tests: `TrainingProfileTests` **9/9** (strict reading incl. "82.567", "82.", ".5", "12345"; feet/inches replacement,
+  12 in refused, 11.99 accepted, clearing; untouched precision kept; empty fields take the app's units); UI
+  `testReplacingFeetKeepsTheInches` (5 ft 10 → 6 ft 10, the page shows "6 ft 10 in") and
+  `testTwelveInchesKeepsSaveOffAndClearingBothClearsTheHeight`; server: the route's 401 when the account is deleted
+  between authentication and the batch (**196/196**).
+- Records: STATE no longer says nothing unmerged holds work.
+- Runs: `prof2.xcresult` — `TrainingProfileTests` 9/9 and the four capture tests + the decimal test passed; the two new
+  UI tests first failed from a **test-helper** bug (a tap in the middle of the one-character feet field put the cursor
+  before the "5", so typing made "65", which the editor correctly refused); the helper now taps at the trailing edge
+  and asserts the field's value; `dbg2.xcresult`: the three editor tests **3/3** (exit 0). Captured states unchanged.
 
 ## Comments
