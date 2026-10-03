@@ -1,8 +1,8 @@
 # 05 — Profile page and training profile
 
 Type: task
-Status: mockups built 2026-10-03 (captures in `../captures/05/`), awaiting the user's approval and the Ask AI decision;
-server side next
+Status: mock **approved by the user 2026-10-03** (and the Ask AI decision); server side implemented; Codex review 05 next.
+Wiring (the page live, the editor saving, Ask AI prefill and save) waits on 03's app half (sign-in, the paid team).
 Blocked by: 03
 Implementer: Claude (the user's order 2026-10-03); Reviewer: Codex.
 Branch: `ericlee4992/beta-05-profile` off `main`.
@@ -65,10 +65,13 @@ stack as A01's do.
 total inches) for height, kg or lb for weight. An empty field takes the app's units; a stored value shows in its own
 unit even if the app's units change. Ask AI converts only for its request (cm/kg, as today).
 
-**Ask AI for Templates (the decision for the user).** Ask AI prefills from the profile. The mock shows the option
-*"Save to my training profile"* (on by default) under the optional profile with "Filled in from your training
-profile." Alternatives: the same switch off by default, or no switch (edits in Ask AI stay in that request — D58's
-default today).
+**Ask AI for Templates — decided by the user 2026-10-03: a "Save to my training profile" switch, on by default.**
+Ask AI prefills from the profile; edits made there update the profile when the request is made unless the tester
+turns the switch off (amends D58's transient default; record in DECISIONS with the wiring). Signed out, Ask AI is
+unavailable anyway (it needs the server).
+
+**The user's approval (2026-10-03):** the profile page, editor, Settings Account row and the proposed copy below,
+**as shown** in the captures.
 
 **Proposed copy (every string is the user's decision):** Settings row **Sign In** / *For AI and a training profile.*;
 page sections **Today's AI** (*Resets at midnight*; *Paused* when the off switch is on), **Machine scans**, **Template
@@ -133,5 +136,13 @@ converted only for the check); height/weight stored as entered (`cm`|`in`, `kg`|
 account exists; deletion removes it in claimDeletion's transaction. **Tests 190/190** (23 new in
 `test/profile.test.ts`); mutations — bounds ignoring the unit, the name written before validation, an unconditional
 save — each fail.
+
+### Regression and unit tests — 2026-10-03 (Claude)
+
+`TrainingProfileTests` (3: units as entered and their display/conversions, Ask AI's bounds at their edges, JSON as the
+server takes it) + `AIRoutineFlowMathTests`: **13/13**. UI regression for the touched screens —
+`FloodlightAIRoutineUITests` (AIRoutineSheet's model now comes from `ProfileSample.prefilledRoutineModel()`, a plain
+model without the flag) **8/8** and `FloodlightSettingsUITests` (the Account row slot) **10/10**: one run, 18 UI + 13
+unit, exit 0.
 
 ## Comments

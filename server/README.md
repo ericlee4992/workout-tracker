@@ -18,7 +18,7 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 |---|---|
 | `POST /v1/auth/apple` | `{ identityToken, authorizationCode, nonce, givenName?, familyName? }` → `{ session, expiresAt, profile }` |
 | `POST /v1/auth/signout` | ends this session |
-| `GET /v1/profile`, `PUT /v1/profile` | `{ displayName, email, provider, memberSince }`; PUT `{ displayName }` (1–50 characters) |
+| `GET /v1/profile`, `PUT /v1/profile` | `{ displayName, email, provider, memberSince, training }`; PUT `{ displayName?, training? }` — a name of 1–50 characters; `training` `{ goals, experience, days, minutes, height?: { value, unit: "cm"\|"in" }, weight?: { value, unit: "kg"\|"lb" } }` (Ask AI's bounds; units stored as entered) or `null` to remove it (ticket 05) |
 | `DELETE /v1/account` | deletes every row now (feedback and its screenshots too); revokes Apple's tokens → `{ deleted, appleRevocation: "done" \| "pending" \| "manual" }` |
 | `POST /v1/ai/scan-machine` | `{ exercises: [{ id, name, loadType }], jpeg: <base64 of a JPEG ≤ 2 MB, ≤ 4096 px a side> }` → `{ result }` (the model's JSON) |
 | `POST /v1/ai/routine-week` | the app's routine request `{ goals, experience, days, minutes, heightCm?, weightKg?, exercises, cardioActivities }` → `{ result }` |
