@@ -2,6 +2,7 @@
 
 Type: task
 Status: ready-for-agent (after 03)
+Next after 07 (the user's order 2026-10-03): mockups for approval + the server side now; 08's policy draft alongside
 Blocked by: 03
 Implementer: Codex (default); Reviewer: Claude — or the reverse.
 Branch: `ericlee4992/beta-05-profile` off `main`.

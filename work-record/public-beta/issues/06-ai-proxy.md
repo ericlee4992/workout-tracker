@@ -2,6 +2,7 @@
 
 Type: task
 Status: ready-for-agent (after 03)
+Next after 07 (the user's order 2026-10-03): the server half now; the app switch after 03's app half
 Blocked by: 03
 Implementer: Codex (default); Reviewer: Claude — or the reverse.
 Branch: `ericlee4992/beta-06-ai-proxy` off `main`.

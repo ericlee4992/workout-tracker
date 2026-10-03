@@ -1,9 +1,9 @@
 # 07 — Feedback section
 
 Type: task
-Status: ready-for-agent (after 03)
-Blocked by: 03
-Implementer: Codex (default); Reviewer: Claude — or the reverse.
+Status: next — the user's order of 2026-10-03 (07 → 06 server half → 05 + 08 draft); branch created, no code yet
+Blocked by: — (03's server half is merged; feedback works signed out, so 03's app half is not needed)
+Implementer: Claude; Reviewer: Codex (as for 01–03).
 Branch: `ericlee4992/beta-07-feedback` off `main`.
 Spec: [spec.md](../spec.md) → *Feedback*. Decision: D60.
 
