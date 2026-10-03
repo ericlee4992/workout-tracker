@@ -31,4 +31,15 @@ The user's friends receive Stacked by email invitation through external TestFlig
 - [ ] App Privacy answers saved; Beta App Review passed.
 - [ ] At least one external tester installed the build, signed in, and sent feedback that reached the developer.
 
+## Progress
+
+### Privacy policy and App Privacy draft — 2026-10-03 (Claude)
+
+[privacy-policy-draft.md](../privacy-policy-draft.md) on branch `ericlee4992/beta-08-privacy-draft`: the policy text
+(phone-only data, the optional account and training profile, AI through the server to OpenAI, feedback, processors,
+deletion, contact) and draft App Privacy answers, written from the code on `main` `7c70d14`. Sections that depend on
+unbuilt work are marked *(after ticket NN)*. **Waiting on the user:** legal name, support email, effective date,
+feedback retention, the age statement, and approval of the wording. Codex checks every statement against the code
+and server before publishing. Open items listed at the end of the draft.
+
 ## Comments
