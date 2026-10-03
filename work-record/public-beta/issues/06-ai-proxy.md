@@ -1,7 +1,7 @@
 # 06 — AI through the server
 
 Type: task
-Status: server half — Codex review 06 round 1 not clear (6 findings) → fixed; round 2 next. The app switch waits on
+Status: server half — Codex review 06 round 2 not clear (6 findings) → fixed; round 3 next. The app switch waits on
 03's app half (the paid team).
 Blocked by: 03
 Implementer: Claude (server half, the user's order 2026-10-03); Reviewer: Codex.
@@ -129,5 +129,43 @@ timeout misclassification) and measured 15.9–24.4 ms of Node CPU for a 3 MB sc
 Verification: server **157/157**, `tsc` clean. Mutations, each failing its tests: no pause check at admission (insert
 path); no single-line rule; no reply bounds; no EOI check; the body read outside the deadline. (Dropping the pause
 check from the upsert's UPDATE branch alone is equivalent: the INSERT … SELECT's WHERE gates the update path too.)
+
+## Codex review 06b — response (round 2)
+
+Report [codex-review-06b.md](../codex-review-06b.md) (HEAD `aaf2f79`): **not clear**, 6 findings; all accepted. Codex
+confirmed round 1's #2 (timeouts), #3 (README), #4 (muscle group) and #5 (pause at admission, including the
+UPDATE-branch equivalence) and reproduced the new findings with the actual functions.
+
+1. **P2 EOI check failed for `==`-padded JPEGs** — the last 8 base64 characters (two groups) are decoded, which
+   always hold both EOI bytes. Test: real JPEGs with COM segments giving all three length remainders, accepted and
+   forwarded unchanged.
+2. **P2 truncated frame / no scan accepted; non-canonical bits** — the marker walk now checks every segment's extent
+   (inside a 256 KB window), the frame header's precision (8/12), components (1/3/4) and length, one frame only, then
+   requires a scan header (1–4 components, length matching) with entropy data after it; and the padded final
+   group's unused bits must be zero. Tests: Codex's two exact strings, the real JPEG without its scan, a scan header
+   with no data, and a real JPEG with one unused bit flipped (decodes identically) — all refused, no slot or call.
+3. **P2 image slot captured by user text** — the slot is random per request (`deps.random`), and the splice replaces
+   the exact serialized `"image_url":"data:image/jpeg;base64,<slot>"`, requiring exactly one match (user text is
+   JSON-escaped, so it can neither contain that text unescaped nor guess the slot). Test: names
+   `__STACKED_IMAGE__`, `IMAGE` and the anchor text itself; the input text and the image URL arrive exactly.
+4. **P2 routine/scan replies the app refuses counted as successes** — `checkRoutine` now mirrors
+   `AIRoutine.validated(for:)` for a fresh reply (1–7 sessions = days; non-blank name ≤ 80; at least one activity;
+   ≤ 10 strength unique by UUID; targets; cardio ≤ 3, offered activity, 1–180 min; the session-length estimate ≤
+   minutes × 75 s); UUID uniqueness is case-insensitive for scans and routines. Tests: blank name, empty session,
+   180-minute cardio in a 45-minute request, case-variant duplicates (routine and scan) → ai_invalid, no success,
+   slot released; a routine at the duration tolerance passes and one over fails.
+5. **P2 UTF-16 lengths stricter than the app** — reply lengths are counted in graphemes (`Intl.Segmenter`, shared with
+   feedback in `src/text.ts`). Tests: 60 decomposed accented letters and 80 skin-tone emoji fit an 80 limit; 81 emoji do
+   not; 100 "é" fit a scan label. **Proposals** are now *cleaned* exactly as the app's `ExerciseProposalAPI.parse` does
+   (unknown/repeated IDs dropped, ≤ 6) instead of refused — the app accepts such replies — with reasons cut to 300
+   characters (the one deliberate server restriction, documented). Test: unknown, repeated (case variant), 8 valid
+   and a 5,000-character reason → the first six, the reason cut to 300.
+6. **P3 the spec still promised "cannot use … as a general-purpose GPT relay"** — spec → *AI through the server*
+   now states the refined guarantee and the accepted residual risk, linked to this ticket's adversarial gate.
+
+Verification: server **166/166**, `tsc` clean. Mutations, each failing its tests: decoding only the last 4 characters;
+no entropy-data check; returning at the frame header; no canonical-bits check; no duration check; case-sensitive ID
+uniqueness; UTF-16 lengths. A plain `json.replace(slot, …)` survives — equivalent given the random slot (the defence
+is that user text cannot know the slot; the exact-anchor match is belt and braces).
 
 ## Comments

@@ -123,9 +123,14 @@ unless the user buys a domain) is a build setting in the app, not hard-coded in 
   session token instead of `api.openai.com` with a device key. Flows: `scan-machine`, `routine-week`,
   `model-exercises`.
 - **The server owns each flow's instructions, JSON schema, model (`gpt-5.6-terra`), `store=false`, reasoning
-  effort and output-token cap.** The app sends only the flow's input text and, for `scan-machine`, the one
-  reencoded JPEG. A signed-in tester therefore cannot use the endpoint as a general-purpose GPT relay, and
-  prompts can be fixed without an app update. The app keeps validating every reply exactly as today (IDs,
+  effort and output-token cap.** The app sends only the flow's input — as bounded, checked structured fields
+  (ticket 06: the exercise list, the plate, the routine request) — and, for `scan-machine`, the one reencoded
+  JPEG. *Refined 2026-10-03 (ticket 06 review):* a signed-in tester therefore cannot change the model, its
+  parameters, instructions or output schema, and gets at most a bounded, schema-shaped reply (the server refuses
+  replies the app would refuse) a limited number of times a day. Text typed into an allowed field (goals, a plate, an
+  exercise name, text in a photo) still reaches the model as data and could steer an answer within those bounds;
+  that residual risk is accepted for the beta, subject to ticket 06's adversarial check on the deployed server
+  before external testers. Prompts can be fixed without an app update. The app keeps validating every reply exactly as today (IDs,
   bounds, catalog resolution, confirmation): the server is not trusted to have checked anything.
 - **Limits per account per calendar day (America/New_York):** 60 `scan-machine`, 10 `routine-week`, 60
   `model-exercises`. Successful replies count; attempts are separately capped at twice the limit so a failure

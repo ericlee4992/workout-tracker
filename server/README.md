@@ -55,8 +55,11 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
 - **AI** (ticket 06; signed in only): the server owns each flow's instructions, JSON schema, model (`gpt-5.6-terra`),
   `store: false`, reasoning effort and output cap; the app sends only checked, bounded structured input (unknown fields
   are dropped; names and plate lines are single-line, so they cannot fabricate rows; the JPEG's structure is checked)
-  and still validates every reply itself; the server also refuses replies outside the flow's bounds (IDs not offered,
-  counts, lengths — a proposal's reason ≤ 300 characters). **What this does and does not guarantee:** a tester cannot
+  and still validates every reply itself. The server also checks replies as the app does: a scan or routine the app
+  would refuse is `502 ai_invalid` (lengths counted as the app counts characters; IDs compared case-insensitively;
+  the routine's day count, targets and session-length tolerance), and exercise proposals are cleaned as the app cleans
+  them (unknown or repeated IDs dropped, six at most) with each reason cut to 300 characters — the one deliberate
+  server restriction. **What this does and does not guarantee:** a tester cannot
   change the model, its parameters, instructions or output schema, and gets at most a bounded, schema-shaped reply a
   limited number of times a day. Text a tester types into an allowed field (goals, a plate, an exercise name) still
   reaches the model as data and could steer an answer within those bounds; that is accepted for the beta, with the

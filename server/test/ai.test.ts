@@ -473,9 +473,7 @@ describe("untrusted text stays data; replies stay within the flow's bounds (code
   });
 
   const outOfBounds: [string, Flow, unknown][] = [
-    ["a 'reason' long enough to carry an essay", "model-exercises", { proposals: [{ exercise_id: A, reason: "x".repeat(301) }] }],
-    ["seven proposals", "model-exercises", { proposals: Array.from({ length: 7 }, () => ({ exercise_id: A, reason: "r" })) }],
-    ["an id that was not sent", "model-exercises", { proposals: [{ exercise_id: "00000000-0000-0000-0000-000000000000", reason: "r" }] }],
+    ["no proposals list", "model-exercises", { proposals: "none" }],
     ["visibleText over 1,000 characters", "scan-machine", { ...(replies.equipment_identity as object), visibleText: "x".repeat(1001) }],
     ["an exercise id the scan did not offer", "scan-machine", { ...(replies.equipment_identity as object), exerciseIDs: [B] }],
     ["a week of 4 sessions when 3 were asked", "routine-week", { sessions: [1, 2, 3, 4].map((d) => ({ name: `D${d}`, strength: [], cardio: [{ activity: "indoorRun", minutes: 10 }] })) }],
@@ -490,4 +488,129 @@ describe("untrusted text stays data; replies stay within the flow's bounds (code
       expect(await usageRow(flow)).toMatchObject({ successes: 0, attempts: 1 });
     });
   }
+});
+
+describe("round 2 (codex-review-06b)", () => {
+  /** The real JPEG with a COM segment of `n` payload bytes after SOI (a legal JPEG of any length). */
+  const withComment = (n: number) => {
+    const out = new Uint8Array(JPEG_BYTES.length + 4 + n);
+    out.set(JPEG_BYTES.subarray(0, 2));
+    out.set([0xff, 0xfe, (n + 2) >> 8, (n + 2) & 255], 2);
+    out.fill(0x41, 6, 6 + n);
+    out.set(JPEG_BYTES.subarray(2), 6 + n);
+    return out;
+  };
+
+  it("#1 accepts real JPEGs of every length remainder (no padding, '=', '=='), forwarded unchanged", async () => {
+    const remainders = new Set<number>();
+    for (const n of [1, 2, 3]) {
+      const bytes = withComment(n);
+      remainders.add(bytes.length % 3);
+      const value = b64(bytes);
+      expect(jpeg(value)).toBe(value);
+      h.openai.calls.length = 0;
+      expect((await ai("scan-machine", { ...inputs["scan-machine"], jpeg: value })).status).toBe(200);
+      expect((h.openai.calls[0]!.body as any).input[0].content[1].image_url).toBe(`data:image/jpeg;base64,${value}`);
+    }
+    expect(remainders).toEqual(new Set([0, 1, 2]));
+  });
+
+  it("#2 refuses a frame header with no scan, a frame segment overrunning the data, and non-canonical padding bits", async () => {
+    for (const value of ["/9j/wAD/CAABAAEA/9k=", "/9j/wAD/CAABAAEA/9l="]) {
+      const response = await ai("scan-machine", { ...inputs["scan-machine"], jpeg: value });
+      expect(response.status).toBe(400);
+    }
+    // The real JPEG with its scan header removed: frame, tables, then EOI.
+    const sos = JPEG_BYTES.findIndex((b, i) => b === 0xff && JPEG_BYTES[i + 1] === 0xda);
+    const noScan = new Uint8Array([...JPEG_BYTES.subarray(0, sos), 0xff, 0xd9]);
+    expect((await ai("scan-machine", { ...inputs["scan-machine"], jpeg: b64(noScan) })).status).toBe(400);
+    // A scan header with no entropy-coded data after it.
+    const sosLength = (JPEG_BYTES[sos + 2]! << 8) | JPEG_BYTES[sos + 3]!;
+    const emptyScan = new Uint8Array([...JPEG_BYTES.subarray(0, sos + 2 + sosLength), 0xff, 0xd9]);
+    expect((await ai("scan-machine", { ...inputs["scan-machine"], jpeg: b64(emptyScan) })).status).toBe(400);
+    // A real JPEG whose padded final group has a nonzero unused bit (decodes to the same bytes; not canonical).
+    for (const n of [1, 2, 3]) {
+      const value = b64(withComment(n));
+      const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
+      if (padding === 0) continue;
+      const at = value.length - 1 - padding;
+      const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+      const flipped = value.slice(0, at) + alphabet[alphabet.indexOf(value[at]!) | 1] + value.slice(at + 1);
+      expect(atob(flipped)).toBe(atob(value));
+      expect((await ai("scan-machine", { ...inputs["scan-machine"], jpeg: flipped })).status).toBe(400);
+    }
+    expect(h.openai.calls).toHaveLength(0);
+    expect(await count("ai_usage")).toBe(0);
+  });
+
+  it("#3 an exercise named like the image slot cannot capture the image", async () => {
+    const names = ["__STACKED_IMAGE__", "IMAGE", `"image_url":"data:image/jpeg;base64,IMAGE"`];
+    const request = { ...inputs["scan-machine"], exercises: names.map((name, i) => ({ id: [A, B, crypto.randomUUID()][i]!, name, loadType: "weighted" })) };
+    expect((await ai("scan-machine", request)).status).toBe(200);
+    const content = (h.openai.calls[0]!.body as any).input[0].content;
+    expect(content[0].text).toBe(request.exercises.map((e) => `${e.id.toUpperCase()} | ${e.name} | weighted`).join("\n"));
+    expect(content[1].image_url).toBe(`data:image/jpeg;base64,${JPEG_B64}`);
+  });
+
+  const routineDay = (d: number, extra: Record<string, unknown> = {}) =>
+    ({ name: `Day ${d}`, strength: [{ exerciseID: A, sets: 3, reps: 10, restSeconds: 60 }], cardio: [], ...extra });
+  const invalidRoutines: [string, unknown][] = [
+    ["a blank session name", { sessions: [routineDay(1, { name: "   " }), routineDay(2), routineDay(3)] }],
+    ["a session with no activity", { sessions: [routineDay(1, { strength: [] }), routineDay(2), routineDay(3)] }],
+    ["180 minutes of cardio in a 45-minute session", { sessions: [routineDay(1, { strength: [], cardio: [{ activity: "indoorRun", minutes: 180 }] }), routineDay(2), routineDay(3)] }],
+    ["the same exercise twice in a day (case variants)", { sessions: [routineDay(1, { strength: [
+      { exerciseID: A, sets: 3, reps: 10, restSeconds: 60 }, { exerciseID: A.toLowerCase(), sets: 3, reps: 10, restSeconds: 60 }] }), routineDay(2), routineDay(3)] }],
+  ];
+  for (const [name, reply] of invalidRoutines) {
+    it(`#4 refuses a routine the app would refuse: ${name} (ai_invalid, no success, slot released)`, async () => {
+      h.openai.respond = () => openAIReply(reply);
+      const response = await ai("routine-week");
+      expect([response.status, await errorOf(response)]).toEqual([502, "ai_invalid"]);
+      expect(await usageRow("routine-week")).toEqual({ successes: 0, attempts: 1, in_flight: 0 });
+    });
+  }
+
+  it("#4 refuses a scan with the same exercise twice in different case", async () => {
+    h.openai.respond = () => openAIReply({ ...(replies.equipment_identity as object), exerciseIDs: [A, A.toLowerCase()] });
+    expect(await errorOf(await ai("scan-machine"))).toBe("ai_invalid");
+  });
+
+  it("#4 a routine exactly at the app's duration tolerance passes; one second over fails", async () => {
+    // 45 min × 75 s = 3375 s. One exercise: 3 sets × 45 + 2 × rest + 60.
+    const request = { ...inputs["routine-week"], days: 1, minutes: 45, cardioActivities: [] };
+    const withRest = (rest: number) => ({ sessions: [{ name: "Day 1", strength: [{ exerciseID: A, sets: 3, reps: 10, restSeconds: rest }], cardio: [] }] });
+    h.openai.respond = () => openAIReply(withRest(600));  // 135 + 1200 + 60 = 1395 ≤ 3375
+    expect((await ai("routine-week", request)).status).toBe(200);
+    const tight = { ...request, minutes: 18 };              // 18 × 75 = 1350 < 1395
+    expect(await errorOf(await ai("routine-week", tight))).toBe("ai_invalid");
+  });
+
+  it("#5 counts characters as the app does: 60 decomposed accented letters and astral emoji fit an 80 limit", async () => {
+    const decomposed = "e\u0301".repeat(60);         // 60 characters, 120 UTF-16 units
+    const emoji = "💪🏽".repeat(80);                    // 80 characters, 320 UTF-16 units
+    for (const name of [decomposed, emoji]) {
+      h.openai.respond = () => openAIReply({ sessions: [1, 2, 3].map((d) => ({ ...routineDay(d), name: d === 1 ? name : `Day ${d}` })) });
+      expect((await ai("routine-week")).status).toBe(200);
+    }
+    h.openai.respond = () => openAIReply({ sessions: [1, 2, 3].map((d) => ({ ...routineDay(d), name: d === 1 ? "💪".repeat(81) : `Day ${d}` })) });
+    expect(await errorOf(await ai("routine-week"))).toBe("ai_invalid");
+    h.openai.respond = () => openAIReply({ ...(replies.equipment_identity as object), label: "é".repeat(100) });
+    expect((await ai("scan-machine")).status).toBe(200);
+  });
+
+  it("proposals are cleaned as the app cleans them: unknown and repeated ids dropped, six at most, reasons capped", async () => {
+    const ids = Array.from({ length: 8 }, () => crypto.randomUUID().toUpperCase());
+    const request = { ...inputs["model-exercises"], candidates: ids.map((id, i) => ({ id, name: `E${i}` })) };
+    h.openai.respond = () => openAIReply({ proposals: [
+      { exercise_id: "00000000-0000-0000-0000-000000000000", reason: "unknown" },
+      { exercise_id: ids[0], reason: "x".repeat(5000) },
+      { exercise_id: ids[0]!.toLowerCase(), reason: "repeat" },
+      ...ids.slice(1).map((id) => ({ exercise_id: id, reason: "ok" })),
+    ] });
+    const response = await ai("model-exercises", request);
+    expect(response.status).toBe(200);
+    const { result } = (await response.json()) as { result: { proposals: { exercise_id: string; reason: string }[] } };
+    expect(result.proposals.map((p) => p.exercise_id)).toEqual(ids.slice(0, 6));
+    expect(result.proposals[0]!.reason).toBe("x".repeat(300));
+  });
 });

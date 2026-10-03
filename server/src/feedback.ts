@@ -2,9 +2,10 @@ import { AuthError } from "./apple";
 import { newID } from "./crypto";
 import type { Deps, Env } from "./env";
 import { readBodyBytes } from "./http";
+import { characterCount } from "./text";
 import { newYorkDay } from "./time";
 
-export { newYorkDay };
+export { characterCount, newYorkDay };
 
 // Public beta ticket 07: POST /v1/feedback. Multipart form fields: category, message, appVersion, build,
 // systemVersion, model, and an optional `screenshot` file (JPEG or PNG, at most 5 MB). Signed in (a bearer session)
@@ -32,13 +33,6 @@ const DETAIL_PATTERNS: Record<string, RegExp> = {
   systemVersion: /^[0-9.]{1,16}$/,
   model: /^[A-Za-z0-9,._\- ]{1,40}$/,
 };
-
-/** User-perceived characters, as the app counts them (Swift `String.count`). */
-export function characterCount(text: string): number {
-  let n = 0;
-  for (const _ of new Intl.Segmenter("en", { granularity: "grapheme" }).segment(text)) n++;
-  return n;
-}
 
 /** The message as stored: trimmed; 1–4,000 characters; no control characters other than tab and line breaks. */
 export function cleanMessage(value: unknown): string | null {

@@ -1,6 +1,7 @@
 import { AuthError } from "./apple";
 import type { Deps, Env } from "./env";
 import { readBodyBytes } from "./http";
+import { characterCount, firstCharacters } from "./text";
 import { newYorkDay, nextNewYorkMidnight } from "./time";
 
 // Public beta ticket 06: the app's three AI flows through the server, on the developer's OpenAI key (D60). The server
@@ -27,8 +28,10 @@ const MAX_EXERCISES = 300;
  *  parsing and re-serializing the request on Workers Free (codex-review-06). */
 export const MAX_JPEG_BYTES = 2 * 1024 * 1024;
 const MAX_JPEG_SIDE = 4096;
-/** The bounded JPEG parse reads markers within this many leading bytes (the app's re-encoded JPEG has no large EXIF). */
-const JPEG_HEADER_SCAN_BYTES = 64 * 1024;
+/** The bounded JPEG parse reads every header segment up to the scan within this many leading bytes (the app's
+ *  re-encoded JPEG has a few hundred bytes of tables and no EXIF). */
+const JPEG_HEADER_SCAN_BYTES = 256 * 1024;
+const BASE64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 const CARDIO = ["indoorWalk", "indoorRun", "indoorCycle", "elliptical", "rowing", "stairStepper",
   "outdoorWalk", "outdoorRun", "outdoorCycle"];
 const LOAD_TYPES = ["weighted", "bodyweight", "bodyweightPlus", "assisted"];
@@ -103,8 +106,8 @@ const proposalSchema = (ids: string[]): Schema => ({
 });
 
 interface Prepared {
-  /** The reply's bounds, as the app enforces them (codex-review-06 #6): an out-of-bounds reply is ai_invalid. */
-  check: (result: Record<string, unknown>) => boolean;
+  /** The reply as passed on, or null when the app would refuse it (→ ai_invalid, not a success). */
+  check: (result: Record<string, unknown>) => Record<string, unknown> | null;
   instructions: string;
   schema: Schema;
   schemaName: string;
@@ -175,42 +178,59 @@ function decodeBase64(chunk: string): Uint8Array {
 }
 
 /**
- * The JPEG's base64, checked in full (codex-review-06 #1): canonical base64 (length a multiple of 4, padding only at
- * the end), at most 2 MB decoded, starting with SOI and an intact marker sequence up to a frame header whose
- * dimensions are 1–4096 px (a bounded parse of the first 64 KB), and ending with EOI. Not a full decode: OpenAI does
- * that; this refuses garbage before it costs an attempt or an upstream call.
+ * The JPEG's base64, checked (codex-review-06 #1, 06b #1–#2): canonical base64 (length a multiple of 4, padding only
+ * at the end, unused bits zero), at most 2 MB decoded; SOI; every header segment intact (within the first 256 KB) up
+ * to a frame header (8- or 12-bit, 1, 3 or 4 components, the segment length matching, 1–4096 px a side) and then a
+ * scan header (1–4 components, length matching) followed by entropy-coded data; EOI at the end. Not a full decode —
+ * OpenAI does that — but it refuses non-images before they cost an attempt or an upstream call.
  */
 export function jpeg(value: unknown): string {
   if (typeof value !== "string" || value.length === 0 || value.length % 4 !== 0 ||
       value.length > Math.ceil(MAX_JPEG_BYTES / 3) * 4 || !/^[A-Za-z0-9+/]+={0,2}$/.test(value)) bad();
   const padding = value.endsWith("==") ? 2 : value.endsWith("=") ? 1 : 0;
-  if ((value.length / 4) * 3 - padding > MAX_JPEG_BYTES) bad();
+  // Canonical: the bits a padded final group does not use are zero (else two strings decode to the same bytes).
+  const last = BASE64.indexOf(value[value.length - 1 - padding]!);
+  if ((padding === 1 && (last & 0b11) !== 0) || (padding === 2 && (last & 0b1111) !== 0)) bad();
+  const size = (value.length / 4) * 3 - padding;
+  if (size > MAX_JPEG_BYTES) bad();
   let head: Uint8Array, tail: Uint8Array;
   try {
-    // A whole number of 4-character groups (else atob refuses the slice of any JPEG over 64 KB).
+    // Whole 4-character groups (else atob refuses the slice of any JPEG over the window).
     head = decodeBase64(value.slice(0, Math.min(value.length, Math.floor(JPEG_HEADER_SCAN_BYTES / 3) * 4)));
-    tail = decodeBase64(value.slice(-4));
+    // The last two groups always hold both EOI bytes, whatever the padding (codex-review-06b #1).
+    tail = decodeBase64(value.slice(-Math.min(value.length, 8)));
   } catch { bad(); }
   const end = tail.length;
   if (end < 2 || tail[end - 2] !== 0xff || tail[end - 1] !== 0xd9) bad();
   if (head[0] !== 0xff || head[1] !== 0xd8) bad();
-  // Walk the marker segments after SOI to the first frame header (SOF0–SOF15 except DHT C4, JPG C8, DAC CC).
   let i = 2;
+  let frame = false;
   for (;;) {
     if (i + 4 > head.length || head[i] !== 0xff) bad();
     const marker = head[i + 1]!;
-    if (marker === 0xff) { i++; continue; }             // fill byte
-    if (marker === 0xd8 || marker === 0xd9 || marker === 0xda) bad();  // SOI/EOI/SOS before a frame header
+    if (marker === 0xff) { i++; continue; }  // fill byte
+    // Standalone markers (SOI, EOI, RSTn, TEM) cannot come before the scan.
+    if (marker === 0xd8 || marker === 0xd9 || (marker >= 0xd0 && marker <= 0xd7) || marker === 0x01) bad();
     const length = (head[i + 2]! << 8) | head[i + 3]!;
-    if (length < 2) bad();
+    const segmentEnd = i + 2 + length;
+    if (length < 2 || segmentEnd > head.length) bad();
     if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
-      if (i + 9 > head.length || length < 8) bad();
+      if (frame || length < 8) bad();
+      const precision = head[i + 4]!;
       const height = (head[i + 5]! << 8) | head[i + 6]!;
       const width = (head[i + 7]! << 8) | head[i + 8]!;
+      const components = head[i + 9]!;
+      if ((precision !== 8 && precision !== 12) || ![1, 3, 4].includes(components) || length !== 8 + 3 * components) bad();
       if (height < 1 || width < 1 || height > MAX_JPEG_SIDE || width > MAX_JPEG_SIDE) bad();
+      frame = true;
+    } else if (marker === 0xda) {
+      const components = head[i + 4]!;
+      if (!frame || components < 1 || components > 4 || length !== 6 + 2 * components) bad();
+      // Entropy-coded data must follow before the closing EOI.
+      if (size <= segmentEnd + 2) bad();
       return value;
     }
-    i += 2 + length;
+    i = segmentEnd;
   }
 }
 
@@ -224,7 +244,7 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
       uniqueIDs(exercises.map((e) => e.id));
       const ids = new Set(exercises.map((e) => e.id));
       return {
-        check: (r) => checkScan(r, ids),
+        check: (r) => (checkScan(r, ids) ? r : null),
         instructions: SCAN_INSTRUCTIONS, schema: SCAN_SCHEMA, schemaName: "equipment_identity",
         text: exercises.map((e) => `${e.id} | ${e.name} | ${e.loadType}`).join("\n"),
         jpegBase64: jpeg(input.jpeg), maxOutputTokens: 8000, reasoningEffort: "medium",
@@ -254,9 +274,9 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
       if (weight !== null) request.weightKg = weight;
       request.exercises = exercises;
       request.cardioActivities = cardio;
-      const ids = new Set(exercises.map((e) => e.id as string));
+      const ids = new Set(exercises.map((e) => e.id as string));  // uuid() upper-cases
       return {
-        check: (r) => checkRoutine(r, ids, new Set(cardio), request.days as number),
+        check: (r) => (checkRoutine(r, ids, new Set(cardio), request.days as number, request.minutes as number) ? r : null),
         instructions: ROUTINE_INSTRUCTIONS, schema: ROUTINE_SCHEMA, schemaName: "weekly_routine",
         text: JSON.stringify(request), maxOutputTokens: 8000, reasoningEffort: "medium",
       };
@@ -273,7 +293,7 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
       uniqueIDs(candidates.map((c) => c.id));
       const ids = new Set(candidates.map((c) => c.id));
       return {
-        check: (r) => checkProposals(r, ids),
+        check: (r) => cleanProposals(r, ids),
         instructions: PROPOSAL_INSTRUCTIONS, schema: proposalSchema(candidates.map((c) => c.id)),
         schemaName: "exercise_proposals",
         text: `Plate: ${brand} ${model} ${lines.join(" / ")}\n` +
@@ -284,44 +304,66 @@ export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
   }
 }
 
-// MARK: Reply bounds (mirroring the app's validated(...) checks; the app still checks everything itself)
+// MARK: Reply checks (codex-review-06 #6, 06b #4–#5)
+// Scan and routine replies get the app's own validated(...) checks, counted as the app counts (graphemes; UUIDs
+// compared case-insensitively): a reply the app would refuse is ai_invalid and no success, and one it would take is
+// never refused here. Proposals are cleaned the way the app's parse cleans them (unknown or repeated IDs dropped, at
+// most 6) and their free-text reasons capped at 300 characters — the one deliberate server restriction.
 
-const isString = (v: unknown, max: number) => typeof v === "string" && v.length <= max;
+const fits = (v: unknown, max: number) => typeof v === "string" && characterCount(v) <= max;
 const isInt = (v: unknown, min: number, max: number) => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
-const idsWithin = (v: unknown, allowed: Set<string>, max: number) =>
-  Array.isArray(v) && v.length <= max && new Set(v).size === v.length &&
-  v.every((id) => typeof id === "string" && allowed.has(id.toUpperCase()));
+const asID = (v: unknown) => (typeof v === "string" && UUID.test(v) ? v.toUpperCase() : null);
 
-function checkScan(r: Record<string, unknown>, ids: Set<string>): boolean {
-  return ["specific", "generic", "uncertain"].includes(r.identity as string) && isString(r.label, 100) &&
-    isString(r.manufacturer, 100) && isString(r.modelName, 150) && isString(r.visibleText, 1000) &&
-    idsWithin(r.exerciseIDs, ids, 6);
+/** UUIDs within `allowed`, none repeated (after normalizing case), at most `max`. */
+function idsWithin(v: unknown, allowed: Set<string>, max: number): boolean {
+  if (!Array.isArray(v) || v.length > max) return false;
+  const ids = v.map(asID);
+  return ids.every((id) => id !== null && allowed.has(id)) && new Set(ids).size === ids.length;
 }
 
-function checkRoutine(r: Record<string, unknown>, ids: Set<string>, cardio: Set<string>, days: number): boolean {
+function checkScan(r: Record<string, unknown>, ids: Set<string>): boolean {
+  return ["specific", "generic", "uncertain"].includes(r.identity as string) && fits(r.label, 100) &&
+    fits(r.manufacturer, 100) && fits(r.modelName, 150) && fits(r.visibleText, 1000) && idsWithin(r.exerciseIDs, ids, 6);
+}
+
+/** AIRoutine.validated(for:) as the app runs it on a fresh reply (not edited). */
+function checkRoutine(r: Record<string, unknown>, ids: Set<string>, cardio: Set<string>, days: number, minutes: number): boolean {
   const sessions = r.sessions;
-  if (!Array.isArray(sessions) || sessions.length !== days) return false;
+  if (!Array.isArray(sessions) || sessions.length < 1 || sessions.length > 7 || sessions.length !== days) return false;
   return sessions.every((day: Record<string, unknown>) => {
-    const strength = day?.strength, blocks = day?.cardio;
-    return isString(day?.name, 80) && Array.isArray(strength) && strength.length <= 10 &&
-      Array.isArray(blocks) && blocks.length <= 3 &&
-      idsWithin(strength.map((s: Record<string, unknown>) => s?.exerciseID), ids, 10) &&
-      strength.every((s: Record<string, unknown>) => isInt(s.sets, 1, 10) && isInt(s.reps, 1, 50) && isInt(s.restSeconds, 0, 600)) &&
-      blocks.every((c: Record<string, unknown>) => cardio.has(c?.activity as string) && isInt(c?.minutes, 1, 180));
+    const strength = day?.strength, blocks = day?.cardio, name = day?.name;
+    if (typeof name !== "string" || name.trim().length === 0 || !fits(name, 80)) return false;
+    if (!Array.isArray(strength) || !Array.isArray(blocks) || strength.length > 10 || blocks.length > 3) return false;
+    if (strength.length === 0 && blocks.length === 0) return false;
+    if (!idsWithin(strength.map((s: Record<string, unknown>) => s?.exerciseID), ids, 10)) return false;
+    if (!strength.every((s: Record<string, unknown>) => isInt(s.sets, 1, 10) && isInt(s.reps, 1, 50) && isInt(s.restSeconds, 0, 600))) return false;
+    if (!blocks.every((c: Record<string, unknown>) => cardio.has(c?.activity as string) && isInt(c?.minutes, 1, 180))) return false;
+    const estimate = strength.reduce((t: number, s: Record<string, number>) => t + s.sets! * 45 + Math.max(0, s.sets! - 1) * s.restSeconds! + 60, 0) +
+      blocks.reduce((t: number, c: Record<string, number>) => t + c.minutes! * 60, 0);
+    return estimate <= minutes * 75;
   });
 }
 
-function checkProposals(r: Record<string, unknown>, ids: Set<string>): boolean {
-  const proposals = r.proposals;
-  return Array.isArray(proposals) && proposals.length <= 6 &&
-    idsWithin(proposals.map((p: Record<string, unknown>) => p?.exercise_id), ids, 6) &&
-    proposals.every((p: Record<string, unknown>) => isString(p.reason, 300));
+/** ExerciseProposalAPI.parse's cleaning, plus the reason cap. Null when the shape is wrong. */
+function cleanProposals(r: Record<string, unknown>, ids: Set<string>): Record<string, unknown> | null {
+  if (!Array.isArray(r.proposals)) return null;
+  const seen = new Set<string>();
+  const proposals: { exercise_id: string; reason: string }[] = [];
+  for (const entry of r.proposals as Record<string, unknown>[]) {
+    const id = asID(entry?.exercise_id);
+    if (!id || !ids.has(id) || seen.has(id)) continue;
+    seen.add(id);
+    proposals.push({ exercise_id: entry.exercise_id as string,
+      reason: firstCharacters(typeof entry.reason === "string" ? entry.reason : "", 300) });
+    if (proposals.length === 6) break;
+  }
+  return { proposals };
 }
 
 /** The body the server sends OpenAI (Responses API), as the app's TerraClient built it. */
-export function openAIRequestBody(p: Prepared): Record<string, unknown> {
+export function openAIRequestBody(p: Prepared, slot = "IMAGE"): Record<string, unknown> {
   const content: Record<string, unknown>[] = [{ type: "input_text", text: p.text }];
-  if (p.jpegBase64) content.push({ type: "input_image", image_url: `data:image/jpeg;base64,${IMAGE_SLOT}`, detail: "high" });
+  if (p.jpegBase64) content.push({ type: "input_image", image_url: `data:image/jpeg;base64,${slot}`, detail: "high" });
   return {
     model: MODEL, store: false, instructions: p.instructions, reasoning: { effort: p.reasoningEffort },
     max_output_tokens: p.maxOutputTokens, input: [{ role: "user", content }],
@@ -329,12 +371,20 @@ export function openAIRequestBody(p: Prepared): Record<string, unknown> {
   };
 }
 
-const IMAGE_SLOT = "__STACKED_IMAGE__";
-
-/** The JSON sent upstream; the JPEG's base64 (JSON-safe characters only, checked) is spliced in, not re-stringified. */
-export function openAIRequestJSON(p: Prepared): string {
-  const json = JSON.stringify(openAIRequestBody(p));
-  return p.jpegBase64 ? json.replace(IMAGE_SLOT, p.jpegBase64) : json;
+/**
+ * The JSON sent upstream; the JPEG's base64 (JSON-safe characters only, checked) is spliced in rather than
+ * re-stringified (CPU). The splice point is the image_url's exact serialized form with a random slot
+ * (codex-review-06b #3): user text is JSON-escaped, so it can neither contain that unescaped key-value text nor guess
+ * the slot, and exactly one match is required.
+ */
+export function openAIRequestJSON(p: Prepared, random: (n: number) => Uint8Array): string {
+  if (!p.jpegBase64) return JSON.stringify(openAIRequestBody(p));
+  const slot = `IMG${[...random(16)].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
+  const json = JSON.stringify(openAIRequestBody(p, slot));
+  const anchor = `"image_url":"data:image/jpeg;base64,${slot}"`;
+  const at = json.indexOf(anchor);
+  if (at < 0 || json.indexOf(anchor, at + 1) >= 0) throw new Error("image slot not unique");
+  return `${json.slice(0, at)}"image_url":"data:image/jpeg;base64,${p.jpegBase64}"${json.slice(at + anchor.length)}`;
 }
 
 // MARK: Limits, the off switch, accounting
@@ -455,7 +505,7 @@ export async function proxyAI(request: Request, env: Env, deps: Deps, accountID:
       const response = await deps.fetch(OPENAI_URL, {
         method: "POST",
         headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, "content-type": "application/json" },
-        body: openAIRequestJSON(prepared),
+        body: openAIRequestJSON(prepared, deps.random),
         signal: AbortSignal.timeout(deps.openAITimeoutMs ?? OPENAI_TIMEOUT_MS),
       });
       status = response.status;
@@ -473,9 +523,10 @@ export async function proxyAI(request: Request, env: Env, deps: Deps, accountID:
     try { body = JSON.parse(raw); } catch { body = null; }
     try {
       const { result, tokens } = readReply(body);
-      if (!prepared.check(result as Record<string, unknown>)) throw new ReplyError("invalid", tokens);
+      const checked = prepared.check(result as Record<string, unknown>);
+      if (!checked) throw new ReplyError("invalid", tokens);
       outcome = { status: "ok", tokens };
-      return { result };
+      return { result: checked };
     } catch (error) {
       if (!(error instanceof ReplyError)) throw error;
       outcome = { status: error.status, tokens: error.tokens };
