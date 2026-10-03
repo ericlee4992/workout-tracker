@@ -2,7 +2,7 @@
 
 Type: task
 Status: mock **approved by the user 2026-10-03** (and the Ask AI decision); server side implemented; Codex review 05
-round 2 not clear (2 findings) → fixed; round 3 next.
+**Codex clear (round 3, 2026-10-03)**; waiting for the user's go-ahead to merge.
 Wiring (the page live, the editor saving, Ask AI prefill and save) waits on 03's app half (sign-in, the paid team).
 Blocked by: 03
 Implementer: Claude (the user's order 2026-10-03); Reviewer: Codex.
@@ -189,5 +189,11 @@ goal parity, and read the recorded runs.
   UI tests first failed from a **test-helper** bug (a tap in the middle of the one-character feet field put the cursor
   before the "5", so typing made "65", which the editor correctly refused); the helper now taps at the trailing edge
   and asserts the field's value; `dbg2.xcresult`: the three editor tests **3/3** (exit 0). Captured states unchanged.
+
+## Codex review 05c — round 3: clear
+
+Report [codex-review-05c.md](../codex-review-05c.md) (HEAD `600561b`): **Verdict: clear**, no findings; Codex reran
+196/196 and `tsc`, and read `prof2` (noting it was not wholly green: the two new tests failed there from the helper
+bug) and `dbg2` (3/3 after the fix). Open (not this stage): the live wiring after 03's app half.
 
 ## Comments
