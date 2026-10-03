@@ -1,7 +1,7 @@
 # 06 — AI through the server
 
 Type: task
-Status: server half — Codex review 06 round 3 not clear (2 × P3) → fixed; round 4 next. The app switch waits on
+Status: **server half Codex clear (round 4, 2026-10-03)**; waiting for the user's go-ahead to merge. The app switch waits on
 03's app half (the paid team).
 Blocked by: 03
 Implementer: Claude (server half, the user's order 2026-10-03); Reviewer: Codex.
@@ -180,5 +180,11 @@ round 2's fixes (JPEG tail, walk and canonical bits; the image anchor; reply par
 Server **167/167**, `tsc` clean; mutations `<=` → `<` in the duration check and dropping the trim each fail their test.
 Codex's caution recorded: the JPEG check is a bounded preflight (structure and sizes), not a decode; malformed
 compressed data can still fail upstream (as an attempt).
+
+## Codex review 06d — round 4: clear
+
+Report [codex-review-06d.md](../codex-review-06d.md) (HEAD `35c93ea`): **Verdict: clear** for the server half; both P3s
+closed; Codex reran 167/167 and `tsc`. Still open (not server-half work): the app switch (after 03's app half), the
+deployed CPU measurement of a maximum-size scan, the adversarial check before external testers, and the live flows.
 
 ## Comments

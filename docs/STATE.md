@@ -36,7 +36,7 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
 
 **Checkout:** Orca worktree `/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch
 **`ericlee4992/beta-06-ai-proxy`** — ticket 06's server half, off `main` `60ebd25` (ticket 07 merged there at the
-user's go-ahead, 2026-10-03); Codex review 06 in progress. The old `ericlee4992/beta-07-feedback` branch is fully in `main`. Every earlier ticket branch is
+user's go-ahead, 2026-10-03); **Codex clear (4 rounds)** — waiting for the user's go-ahead to merge. The old `ericlee4992/beta-07-feedback` branch is fully in `main`. Every earlier ticket branch is
 merged; nothing unmerged holds work. `Config/Local.xcconfig` (git-ignored) is present in this checkout (free team).
 
 Plan: **[spec](../work-record/public-beta/spec.md)** (the user's answers Q1–Q14 and Q8b), decision **D60**, tickets
@@ -51,7 +51,7 @@ a training profile, workouts stay on the phone; a Cloudflare Worker + D1 server;
 | 03 server + Sign in with Apple | **Server half merged** (`e455222`; Codex clear, 4 rounds; 48/48 tests; secret scan + Server CI green on GitHub). **Not deployed.** App half (capability, account client, Settings Account row, onboarding sign-in) needs the paid team. |
 | 04 Google sign-in | Held: needs the user's Google Cloud project/OAuth client (and 03's app half). |
 | 07 feedback | **Merged** (`60ebd25`, 2026-10-03; Codex clear, 3 rounds): form + copy approved by the user (captures `captures/07/`), server `POST /v1/feedback` + R2 + limits + deletion queue, app client and form. Not deployed; the row is hidden until `WT_SERVER_URL` is set; signed-in sending waits on 03's app half. |
-| 06 AI proxy | **Server half implemented** on the branch above (129/129 server tests); Codex review 06 next, then the user's go-ahead to merge. App switch waits on 03's app half. |
+| 06 AI proxy | **Server half Codex clear (4 rounds)** on the branch above (167/167): `/v1/ai/{scan-machine,routine-week,model-exercises}`, `/v1/ai/usage`, limits, off switch (`scripts/ai.mjs`), counts-only logs. Waiting for the user's go-ahead to merge. Open: app switch (after 03's app half); before external testers, a deployed CPU check of a max-size scan and an adversarial check (ticket 06 acceptance). |
 | 05 profile, 08 external testers, 09 App Store | Not started. |
 
 **The user's order for the next work (2026-10-03)** — all doable before Apple approves; each on its own branch off
@@ -95,8 +95,7 @@ evidence is ephemeral; every result is recorded in the tickets.
 
 ## Next action
 
-1. **Ticket 06 server half** on `ericlee4992/beta-06-ai-proxy`: Codex review (prompt
-   `work-record/public-beta/codex-review-06-prompt.md`, report `codex-review-06.md`) to clear, then the user's go-ahead to merge.
+1. **Ticket 06 server half** on `ericlee4992/beta-06-ai-proxy`: Codex clear; merge at the user's go-ahead.
 2. Then 05 mockups + server side and the 08 policy draft — the user's order above.
 3. **Renewal before 2026-10-09 03:52 EDT** if Apple has not approved (Oct 7–8); ticket 01 B–E once it has.
 4. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone (feedback as
