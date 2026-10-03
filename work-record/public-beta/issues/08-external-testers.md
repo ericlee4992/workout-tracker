@@ -42,4 +42,21 @@ unbuilt work are marked *(after ticket NN)*. **Waiting on the user:** legal name
 feedback retention, the age statement, and approval of the wording. Codex checks every statement against the code
 and server before publishing. Open items listed at the end of the draft.
 
+### Codex review 08 — response (round 1)
+
+Report [codex-review-08.md](../codex-review-08.md) (HEAD `4cda004`): **not clear**, 17 findings (one P1); all taken in a
+rewrite of the draft. The draft now states up front that it describes the external-test build (03/04/05/06/07 wired,
+server deployed) and is not true of today's app. Corrections: Health reads named (heart rate, active/resting energy,
+distances) and "never sent" narrowed to "not uploaded; leaves only if you send it" (#1); Apple Maps imagery requests for
+a route's area disclosed as Apple's (#2, P1); the whole text scoped to the intended build, today's direct-to-OpenAI
+flow recorded (#3); uninstall vs Health records, exports, backups and server data (#4); consent disclosures as a
+release gate across all four surfaces and the consent-flag question (#5); height/weight declared as Health (#6);
+Apple's collection/linkage definitions and OpenAI's 30-day abuse retention with the current link (#7); performance
+diagnostics, Product Personalization, purpose names corrected, the address code and logs left open (#8); Cloudflare
+logs 3 days Free / 7 Paid as placeholders pending a deployed check, no unverified "never what you sent" (#9); a
+TestFlight section (#10); export formats (#11); deletion split into immediate live deletion, screenshot retries,
+unlinked revocation retries and the iOS Settings remedy (#12); AI daily counts ~2–3 days and hourly clean-up (#13);
+session expiry vs record removal (#14); manufacturer/model in the suggestion payload (#15); D1 Time Travel, backups
+and downloaded screenshots (#16); release gates collected at the end (#17).
+
 ## Comments
