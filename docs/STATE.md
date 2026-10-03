@@ -35,8 +35,8 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
 ## ACTIVE: public beta ("Stacked") — handoff of 2026-10-03
 
 **Checkout:** Orca worktree `/Users/ericlee06/orca/workspaces/Health App/public-beta`, branch
-**`ericlee4992/beta-07-feedback`** — created for ticket 07, **no code yet**; it is `main` (`e455222`) plus two STATE-only
-commits (this handoff), pushed, **not in `main`** (they ride along with ticket 07's merge). Every earlier ticket branch is
+**`ericlee4992/beta-07-feedback`** — ticket 07 implemented (server + app), pushed, **not in `main`** (`e455222` plus
+STATE notes and ticket 07's commits); Codex review 07 in progress. Every earlier ticket branch is
 merged; nothing unmerged holds work. `Config/Local.xcconfig` (git-ignored) is present in this checkout (free team).
 
 Plan: **[spec](../work-record/public-beta/spec.md)** (the user's answers Q1–Q14 and Q8b), decision **D60**, tickets
@@ -50,7 +50,8 @@ a training profile, workouts stay on the phone; a Cloudflare Worker + D1 server;
 | 02 onboarding | **Merged** (`4823d46`; Codex clear, 2 rounds): welcome page + guided tour on an in-memory sample world; Settings → Help → Show Tour. Not on the phone yet (comes with 01's TestFlight build). |
 | 03 server + Sign in with Apple | **Server half merged** (`e455222`; Codex clear, 4 rounds; 48/48 tests; secret scan + Server CI green on GitHub). **Not deployed.** App half (capability, account client, Settings Account row, onboarding sign-in) needs the paid team. |
 | 04 Google sign-in | Held: needs the user's Google Cloud project/OAuth client (and 03's app half). |
-| 05 profile, 06 AI proxy, 07 feedback, 08 external testers, 09 App Store | Not started. |
+| 07 feedback | **Implemented 2026-10-03** on the branch above: form approved by the user (captures `captures/07/`), server `POST /v1/feedback` + R2 + limits + deletion cascade (82/82), app client and form (unit 8/8, UI 16/16, Simulator→`wrangler dev` smoke passed). Codex review 07 next; then the user's go-ahead to merge. Not deployed; the row is hidden until `WT_SERVER_URL` is set. |
+| 05 profile, 06 AI proxy, 08 external testers, 09 App Store | Not started. |
 
 **The user's order for the next work (2026-10-03)** — all doable before Apple approves; each on its own branch off
 `main` (07 on the branch above), Claude implementing, Codex reviewing to "clear", the user's go-ahead before any
@@ -93,8 +94,8 @@ evidence is ephemeral; every result is recorded in the tickets.
 
 ## Next action
 
-1. **Ticket 07 (feedback)** on `ericlee4992/beta-07-feedback`: read the ticket and spec → *Feedback*, write its design
-   section, mock the form for the user, then the server endpoint and the app.
+1. **Ticket 07 (feedback)** on `ericlee4992/beta-07-feedback`: Codex review 07 (prompt
+   `work-record/public-beta/codex-review-07-prompt.md`, report `codex-review-07.md`) to clear, then ask the user to merge.
 2. Then 06 (server half), then 05 mockups + server side and the 08 policy draft — the user's order above.
 3. **Renewal before 2026-10-09 03:52 EDT** if Apple has not approved (Oct 7–8); ticket 01 B–E once it has.
 4. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone (feedback as
