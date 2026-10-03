@@ -131,7 +131,7 @@ export const NONCE = "raw-nonce-0123456789abcdef";
 export async function harness(): Promise<Harness> {
   resetAppleKeyCache();
   // The pool keeps one D1 per test file: start every test from empty tables (children first).
-  await env.DB.batch(["feedback", "feedback_limits", "pending_revocations", "sessions", "identities", "accounts"]
+  await env.DB.batch(["feedback", "feedback_limits", "screenshot_deletions", "pending_revocations", "sessions", "identities", "accounts"]
     .map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
   const stored = await env.FEEDBACK.list();
   if (stored.objects.length > 0) await env.FEEDBACK.delete(stored.objects.map((o) => o.key));

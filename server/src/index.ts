@@ -1,6 +1,6 @@
 import { AuthError, exchangeAppleCode, revokeAppleToken, verifyAppleIdentityToken } from "./apple";
 import { liveDeps, type Deps, type Env } from "./env";
-import { deleteScreenshots, submitFeedback, sweepFeedback } from "./feedback";
+import { deleteClaimedScreenshots, submitFeedback, sweepFeedback } from "./feedback";
 import { bearer, failure, json, readJSON } from "./http";
 import { privacyPage, supportPage } from "./pages";
 import {
@@ -67,7 +67,7 @@ async function authenticated(request: Request, env: Env, deps: Deps) {
 export async function deleteAccountRevokingApple(env: Env, deps: Deps, accountID: string) {
   const claim = await claimDeletion(env, deps, accountID);
   if (!claim.won) return null;
-  await deleteScreenshots(env, claim.screenshots);
+  await deleteClaimedScreenshots(env, claim.claim);
   let pending = 0;
   for (const sealed of claim.queued) {
     const plain = await decryptToken(env, sealed);

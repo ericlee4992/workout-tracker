@@ -15,8 +15,10 @@ export const SIGNED_OUT_DAILY_LIMIT = 10;
 export const ACCOUNT_DAILY_LIMIT = 30;
 /** Everyone together: bounds what a spread-out flood can store in a day (R2's free tier is 10 GB). */
 export const GLOBAL_DAILY_LIMIT = 500;
-/** The orphan sweep leaves objects younger than this alone: their row may still be on its way. */
-export const ORPHAN_GRACE_MS = 60 * 60 * 1000;
+/** An upload's key is queued for deletion this far ahead; its row insert removes it (far past any request's life). */
+export const UPLOAD_GRACE_MS = 60 * 60 * 1000;
+/** R2's most keys per delete call (Workers API), and so the sweep's batch. */
+export const R2_DELETE_BATCH = 1_000;
 
 const CATEGORIES = new Set(["bug", "idea", "other"]);
 const DETAIL_PATTERNS: Record<string, RegExp> = {
@@ -68,13 +70,25 @@ async function addressKey(env: Env, address: string, day: string): Promise<strin
   return `ip:${[...mac].map((b) => b.toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** Counts one submission against `key` for `day`; returns the count including this one. */
+const UPSERT_COUNT = "ON CONFLICT(key) DO UPDATE SET count = CASE WHEN day = excluded.day THEN count + 1 ELSE 1 END, " +
+  "day = excluded.day RETURNING count";
+
+/** Counts one submission attempt against `key` for `day`; returns the count including this one. */
 async function bump(env: Env, key: string, day: string): Promise<number> {
-  const row = await env.DB.prepare(
-    "INSERT INTO feedback_limits (key, day, count) VALUES (?, ?, 1) " +
-    "ON CONFLICT(key) DO UPDATE SET count = CASE WHEN day = excluded.day THEN count + 1 ELSE 1 END, day = excluded.day " +
-    "RETURNING count").bind(key, day).first<{ count: number }>();
+  const row = await env.DB.prepare(`INSERT INTO feedback_limits (key, day, count) VALUES (?, ?, 1) ${UPSERT_COUNT}`)
+    .bind(key, day).first<{ count: number }>();
   return row?.count ?? Number.MAX_SAFE_INTEGER;
+}
+
+/**
+ * The account's counter, written only while the account exists (codex-review-07 #4): a request authenticated just
+ * before its account's deletion must not recreate a row naming the deleted account. Null when the account is gone.
+ */
+async function bumpAccount(env: Env, accountID: string, day: string): Promise<number | null> {
+  const row = await env.DB.prepare(
+    `INSERT INTO feedback_limits (key, day, count) SELECT ?, ?, 1 WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?) ${UPSERT_COUNT}`)
+    .bind(`account:${accountID}`, day, accountID).first<{ count: number }>();
+  return row ? row.count : null;
 }
 
 interface Parsed {
@@ -128,10 +142,16 @@ export async function submitFeedback(request: Request, env: Env, deps: Deps, acc
   const input = await parse(request);
   const now = deps.now();
   const day = newYorkDay(now);
-  const limitKey = accountID ? `account:${accountID}` : await addressKey(env, request.headers.get("cf-connecting-ip") ?? "unknown", day);
-  if (!limitKey) throw new AuthError("server_not_configured", 503);
-  const limit = accountID ? ACCOUNT_DAILY_LIMIT : SIGNED_OUT_DAILY_LIMIT;
-  if ((await bump(env, limitKey, day)) > limit) throw new AuthError("rate_limited", 429);
+  // Counted per attempt that passes validation (README): a refusal by the global limit still counts for the sender.
+  if (accountID) {
+    const used = await bumpAccount(env, accountID, day);
+    if (used === null) throw new AuthError("unauthorized", 401);
+    if (used > ACCOUNT_DAILY_LIMIT) throw new AuthError("rate_limited", 429);
+  } else {
+    const key = await addressKey(env, request.headers.get("cf-connecting-ip") ?? "unknown", day);
+    if (!key) throw new AuthError("server_not_configured", 503);
+    if ((await bump(env, key, day)) > SIGNED_OUT_DAILY_LIMIT) throw new AuthError("rate_limited", 429);
+  }
   // Its own code, so the app does not tell one tester they sent too many when everyone did.
   if ((await bump(env, "global", day)) > GLOBAL_DAILY_LIMIT) throw new AuthError("feedback_full", 429);
 
@@ -139,6 +159,8 @@ export async function submitFeedback(request: Request, env: Env, deps: Deps, acc
   let key: string | null = null;
   if (input.screenshot) {
     key = `feedback/${id}.${input.screenshot.type === "image/png" ? "png" : "jpg"}`;
+    // Queued before the put, so an object whose row never lands (a crash, a failed insert) is still deleted.
+    await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES (?, ?)").bind(key, now + UPLOAD_GRACE_MS).run();
     await env.FEEDBACK.put(key, input.screenshot.bytes, { httpMetadata: { contentType: input.screenshot.type } });
   }
   const values = [
@@ -148,53 +170,90 @@ export async function submitFeedback(request: Request, env: Env, deps: Deps, acc
   ];
   const columns = "id, account_id, category, message, app_version, build, system_version, model, " +
     "screenshot_key, screenshot_type, screenshot_bytes, created_at";
-  const result = accountID
-    ? await env.DB.prepare(`INSERT INTO feedback (${columns}) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ` +
-        "WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?)").bind(...values, accountID).run()
-    : await env.DB.prepare(`INSERT INTO feedback (${columns}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(...values).run();
-  if ((result.meta.changes ?? 0) === 0) {
-    if (key) await env.FEEDBACK.delete(key);
+  // Signed in: only while the account exists (a deletion may have committed since authentication).
+  const insert = accountID
+    ? env.DB.prepare(`INSERT INTO feedback (${columns}) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ` +
+        "WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?)").bind(...values, accountID)
+    : env.DB.prepare(`INSERT INTO feedback (${columns}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(...values);
+  // One transaction: the row and the un-queueing of its key land together or not at all.
+  const [inserted] = await env.DB.batch(key
+    ? [insert, env.DB.prepare(
+        "DELETE FROM screenshot_deletions WHERE key = ? AND EXISTS (SELECT 1 FROM feedback WHERE screenshot_key = ?)")
+        .bind(key, key)]
+    : [insert]);
+  if ((inserted!.meta.changes ?? 0) === 0) {
+    if (key) {
+      await env.FEEDBACK.delete(key);
+      await env.DB.prepare("DELETE FROM screenshot_deletions WHERE key = ?").bind(key).run();
+    }
     throw new AuthError("unauthorized", 401);
   }
   return { id };
 }
 
-/** Deletes the R2 objects of a deleted account's feedback; a failure is left for the sweep (no row points at them). */
-export async function deleteScreenshots(env: Env, keys: string[]) {
+/** Deletes `keys` from R2 in batches the API accepts; false when any batch failed (the queue keeps them). */
+async function deleteObjects(env: Env, keys: string[]): Promise<boolean> {
+  let ok = true;
+  for (let i = 0; i < keys.length; i += R2_DELETE_BATCH) {
+    try {
+      await env.FEEDBACK.delete(keys.slice(i, i + R2_DELETE_BATCH));
+    } catch {
+      ok = false;
+    }
+  }
+  return ok;
+}
+
+/**
+ * Right after an account deletion: deletes the screenshots that deletion queued. Only when every batch succeeded are
+ * the queue entries removed; otherwise the hourly sweep retries them (R2 deletes are idempotent).
+ */
+export async function deleteClaimedScreenshots(env: Env, claim: string) {
+  const rows = await env.DB.prepare("SELECT key FROM screenshot_deletions WHERE claim = ?").bind(claim).all<{ key: string }>();
+  const keys = rows.results.map((r) => r.key);
   if (keys.length === 0) return;
-  try {
-    await env.FEEDBACK.delete(keys);
-  } catch {
+  if (await deleteObjects(env, keys)) {
+    await env.DB.prepare("DELETE FROM screenshot_deletions WHERE claim = ?").bind(claim).run();
+  } else {
     console.error("feedback screenshots left for the sweep", { count: keys.length });
   }
 }
 
 /**
- * The hourly clean-up: removes screenshots no row refers to (left by a failed delete or an insert that never landed)
- * once they are older than the grace period, and counters from earlier days.
+ * The hourly clean-up, bounded whatever the bucket holds (codex-review-07 #3): at most one batch of due keys — those
+ * a deletion queued and uploads whose row never landed — in one R2 call and three D1 queries; the rest wait for the
+ * next run, oldest first. Old rate-limit counters are removed separately, so one failing never blocks the other.
  */
 export async function sweepFeedback(env: Env, deps: Deps) {
   const now = deps.now();
   let removed = 0;
-  let cursor: string | undefined;
-  do {
-    const page = await env.FEEDBACK.list({ prefix: "feedback/", cursor, limit: 500 });
-    const old = page.objects.filter((o) => now - o.uploaded.getTime() >= ORPHAN_GRACE_MS).map((o) => o.key);
-    for (let i = 0; i < old.length; i += 50) {
-      const slice = old.slice(i, i + 50);
-      const rows = await env.DB.prepare(
-        `SELECT screenshot_key FROM feedback WHERE screenshot_key IN (${slice.map(() => "?").join(", ")})`)
-        .bind(...slice).all<{ screenshot_key: string }>();
-      const kept = new Set(rows.results.map((r) => r.screenshot_key));
-      const orphans = slice.filter((k) => !kept.has(k));
-      if (orphans.length > 0) {
-        await env.FEEDBACK.delete(orphans);
-        removed += orphans.length;
+  try {
+    // A key whose row exists is never deleted from R2 (defence in depth: the insert un-queues it atomically).
+    const due = (await env.DB.prepare(
+      "SELECT d.rowid AS rid, d.key, d.due_at, EXISTS (SELECT 1 FROM feedback f WHERE f.screenshot_key = d.key) AS live " +
+      "FROM screenshot_deletions d WHERE d.due_at <= ? ORDER BY d.due_at, d.key LIMIT ?")
+      .bind(now, R2_DELETE_BATCH).all<{ rid: number; key: string; due_at: number; live: number }>()).results;
+    if (due.length > 0) {
+      const doomed = due.filter((r) => !r.live).map((r) => r.key);
+      if (await deleteObjects(env, doomed)) {
+        // Exactly the rows read (D1 binds at most 100 parameters, so not by key list): up to the last in the read order,
+        // and no row inserted since the read — a new row's rowid is above every existing one.
+        const last = due[due.length - 1]!;
+        const maxRowID = Math.max(...due.map((r) => r.rid));
+        await env.DB.prepare(
+          "DELETE FROM screenshot_deletions WHERE rowid <= ? AND (due_at < ? OR (due_at = ? AND key <= ?))")
+          .bind(maxRowID, last.due_at, last.due_at, last.key).run();
+        removed = doomed.length;
       }
     }
-    cursor = page.truncated ? page.cursor : undefined;
-  } while (cursor);
-  await env.DB.prepare("DELETE FROM feedback_limits WHERE day < ?").bind(newYorkDay(now)).run();
+  } catch (error) {
+    console.error("feedback screenshot sweep failed", error instanceof Error ? error.name : "unknown");
+  }
+  try {
+    await env.DB.prepare("DELETE FROM feedback_limits WHERE day < ?").bind(newYorkDay(now)).run();
+  } catch (error) {
+    console.error("feedback counter clean-up failed", error instanceof Error ? error.name : "unknown");
+  }
   if (removed > 0) console.log("feedback sweep", { removed });
   return { removed };
 }

@@ -1,7 +1,7 @@
 # 07 — Feedback section
 
 Type: task
-Status: implemented (server + app); Codex review 07 round 1 next. Form approved by the user 2026-10-03
+Status: Codex review 07 round 1 not clear (5 findings) → all fixed; round 2 next. Form approved by the user 2026-10-03
 Blocked by: — (03's server half is merged; feedback works signed out, so 03's app half is not needed)
 Implementer: Claude; Reviewer: Codex (as for 01–03).
 Branch: `ericlee4992/beta-07-feedback` off `main`.
@@ -164,5 +164,40 @@ check at the top of an empty sheet — now centred with a disc; retaken.
   screenshot); the fetched JPEG has no location (`mdls` latitude null). ATS needed no exception for `127.0.0.1`.
 - **Not yet possible:** signed-in sending from the app (needs 03's app half and the paid team); the phone (needs a
   deployed server and the user's go-ahead); the deployed R2/D1 (the user's first deploy).
+
+## Codex review 07 — response (round 1)
+
+Report [codex-review-07.md](../codex-review-07.md) (HEAD `df5dd71`): **not clear**, 5 findings; all accepted and fixed.
+Codex ran the server suite (82/82) and `FeedbackTests` (8/8) itself.
+
+1. **P2 photo load race** — `FeedbackAttachment` (@MainActor, @Observable) owns the slot: a pick starts a tracked load,
+   Send is disabled while it runs (a "Loading Screenshot…" row with a spinner and Remove — **new string**), a newer
+   pick or Remove bumps a generation so a superseded load's result is dropped; a refused image clears the picker's
+   selection. Tests: slow load, newer-wins over an older slower load, Remove mid-load, unreadable/failed transfer.
+2. **P3 screenshot-only draft swiped away** — `FeedbackDraft.blocksSwipeAway`: text, a screenshot or a load in flight.
+3. **P1 unbounded sweep** — no more R2 listing. A queue table `screenshot_deletions(key, due_at, claim)` (in
+   `0003_feedback.sql`; edited in place — never applied outside local test/dev databases): account deletion queues
+   its keys in the deletion transaction; an upload queues its key **before** the put (due in an hour) and the row
+   insert un-queues it in the same batch. The cron takes ≤ 1,000 due keys, skips any whose row exists, deletes them in
+   one R2 call, and clears exactly the rows it read (bounded by the last key in order and by the highest rowid read,
+   so a key queued meanwhile survives). ≤ 3 D1 statements a run; counter clean-up separately; the revocation retry
+   now takes 20 a run (was 50) so the shared scheduled invocation stays within Workers Free's 50 queries. Tests: 2,501
+   due keys cleared in 3 runs of ≤ 3 statements (1000/1000/501 R2 calls, the last key included); an upload whose
+   batch failed is deleted after its grace, not before; a queued key with a live row is never deleted; a key queued
+   during a sweep survives it; counters are cleaned even when R2 fails.
+4. **P2 counter recreated for a deleted account** — the account counter is written by `INSERT … SELECT … WHERE EXISTS
+   (account)` (upsert); null → `401`. The racing test now also checks no `account:<id>` row; a second test drops the
+   account during the upload (after the counter) and checks no row, object or queue entry remains.
+5. **P2 R2's 1,000-key limit** — `deleteObjects` deletes in batches of 1,000; the claim's queue rows are removed only
+   when every batch succeeded (otherwise the sweep retries; R2 deletes are idempotent). Test: 1,001 screenshots
+   against a fake bucket that refuses > 1,000 keys → calls of 1,000 and 1.
+
+Also: README intro updated (feedback is ticket 07, R2); limits described as **attempts** (counted once validated).
+
+Verification: server **87/87**, `tsc` clean; mutation checks — the unconditional account counter fails the race test;
+a single unbatched delete fails the 1,001 test. App `FeedbackTests` **13/13**; with the generation guard removed,
+two tests fail. `FloodlightFeedbackUITests` rerun on the changed sheet: **7 run, 6 passed, 1 skipped (opt-in smoke),
+exit 0**. The captured states show no pixel change (the loading row is a new state, not captured: PhotosPicker cannot
+be driven in UI tests; it is covered by the unit tests).
 
 ## Comments

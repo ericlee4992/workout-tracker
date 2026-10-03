@@ -1,8 +1,9 @@
 # Stacked server
 
-The app's backend (public beta, D60): a Cloudflare Worker with a D1 database. Ticket 03 adds accounts — Sign in with
-Apple, sessions, the profile name, sign-out and account deletion — and placeholder `/privacy` and `/support` pages.
-Later tickets add Google sign-in (04), the training profile (05), the AI proxy (06) and feedback (07).
+The app's backend (public beta, D60): a Cloudflare Worker with a D1 database and an R2 bucket. Ticket 03 adds accounts —
+Sign in with Apple, sessions, the profile name, sign-out and account deletion — and placeholder `/privacy` and `/support`
+pages; ticket 07 adds in-app feedback. Later tickets add Google sign-in (04), the training profile (05) and the AI
+proxy (06).
 
 **This repository is public.** Secrets live only in Cloudflare (`wrangler secret put`) and, for local runs, in the
 git-ignored `.dev.vars`. `scripts/check-secrets.sh` (repository root) rejects key-shaped text — PEM keys (also escaped
@@ -38,10 +39,15 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   deletion_in_progress` (never a made-up outcome). A sign-in that finds the identity already deleted makes a new
   account; one whose token was stored and then claimed by a deletion ends `409 reauthorize` (ask Apple again).
 - **Feedback** (ticket 07): text and details in D1, the screenshot in R2 (`stacked-feedback`, typed by its own bytes,
-  never the declared type). Per New York day: 10 signed-out submissions per address, 30 per account, 500 in all
-  (`429 rate_limited`; the global one `429 feedback_full`). The address is never stored: the counter key is an HMAC of the day and the address under a key
+  never the declared type). Per New York day: 10 signed-out attempts per address, 30 per account, 500 in all
+  (`429 rate_limited`; the global one `429 feedback_full`). An attempt counts once it passes validation, even if the
+  global limit or storage then fails it (a malformed request counts for nothing). The address is never stored: the counter key is an HMAC of the day and the address under a key
   derived from `TOKEN_ENC_KEY` (so signed-out feedback needs that secret). A session that is sent must be valid (`401`).
-  The hourly cron deletes screenshots no row refers to (after an hour) and old counters.
+  Screenshots to delete go through a queue (`screenshot_deletions`): account deletion queues its keys in the deletion
+  transaction and deletes them right after, in R2's batches of 1,000; an upload queues its key before the put and its
+  row insert removes it, so an upload whose row never landed is deleted an hour later. The hourly cron works through
+  due keys 1,000 per run (three D1 queries and one R2 call — inside Workers Free's 50 queries per invocation, shared
+  with the revocation retry, now 20 a run) and removes old counters separately.
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB); Apple's key set is cached for
   an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
 - Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.

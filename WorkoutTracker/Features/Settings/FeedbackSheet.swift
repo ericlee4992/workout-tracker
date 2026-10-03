@@ -17,7 +17,7 @@ struct FeedbackSheet: View {
 
     @State private var category = FeedbackCategory.bug
     @State private var message = ""
-    @State private var screenshot: FeedbackScreenshot?
+    @State private var attachment: FeedbackAttachment
     @State private var pick: PhotosPickerItem?
     @State private var phase = Phase.editing
     @State private var failure: String?
@@ -31,15 +31,17 @@ struct FeedbackSheet: View {
          send: @escaping (FeedbackDraft) async -> FeedbackSendResult) {
         self.details = details
         self.send = send
+        _attachment = State(initialValue: FeedbackAttachment(screenshot: initial?.screenshot))
         if let initial {
             _category = State(initialValue: initial.category)
             _message = State(initialValue: initial.message)
-            _screenshot = State(initialValue: initial.screenshot)
         }
     }
 
     private var trimmed: String { message.trimmingCharacters(in: .whitespacesAndNewlines) }
-    private var canSend: Bool { !trimmed.isEmpty && phase == .editing }
+    /// Not while a chosen photo is still loading: Send would go without it (codex-review-07 #1).
+    private var canSend: Bool { !trimmed.isEmpty && phase == .editing && !attachment.isLoading }
+    private var shownFailure: String? { failure ?? attachment.problem?.message }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,9 +57,15 @@ struct FeedbackSheet: View {
         }
         .lookSheetGround()
         .presentationDragIndicator(.visible)
-        .interactiveDismissDisabled(!trimmed.isEmpty && phase != .sent)
+        .interactiveDismissDisabled(phase != .sent && FeedbackDraft.blocksSwipeAway(message: message, attachment: attachment))
         .sensoryFeedback(.success, trigger: phase == .sent)
-        .onChange(of: pick) { _, item in load(item) }
+        .onChange(of: pick) { _, item in
+            guard let item else { return }
+            failure = nil
+            attachment.select { try? await item.loadTransferable(type: Data.self) }
+        }
+        // A refused image clears the picker's selection, so choosing it again (or another) is a change.
+        .onChange(of: attachment.problem) { _, problem in if problem != nil { pick = nil } }
     }
 
     // MARK: Form
@@ -65,7 +73,7 @@ struct FeedbackSheet: View {
     private var form: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: look.space.section - 4) {
-                if let failure {
+                if let failure = shownFailure {
                     // Not a SettingsNotice: that sets its own (neutral) colour, and this line is a failure.
                     HStack(alignment: .firstTextBaseline, spacing: 10) {
                         Image(systemName: "exclamationmark.triangle.fill").font(.system(.footnote, weight: .bold))
@@ -146,8 +154,10 @@ struct FeedbackSheet: View {
     // MARK: Screenshot
 
     @ViewBuilder private var screenshotBlock: some View {
-        if let screenshot {
+        if let screenshot = attachment.screenshot {
             attached(screenshot)
+        } else if attachment.isLoading {
+            loading
         } else {
             LookList(separatorInset: 54) {
                 PhotosPicker(selection: $pick, matching: .images, photoLibrary: .shared()) {
@@ -184,10 +194,7 @@ struct FeedbackSheet: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if !ax { Spacer(minLength: 0) }
-            Button {
-                if reduceMotion { screenshot = nil } else { withAnimation(.snappy(duration: 0.25)) { screenshot = nil } }
-                pick = nil
-            } label: {
+            Button(action: removeScreenshot) {
                 Text("Remove")
                     .font(.system(.subheadline, weight: .semibold))
                     .foregroundStyle(look.destructive)
@@ -204,6 +211,34 @@ struct FeedbackSheet: View {
         .lookSurface(.tile)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("feedbackScreenshot")
+    }
+
+    /// While the picked photo loads (an iCloud original can take a while): Send waits; Remove cancels it.
+    private var loading: some View {
+        LookList(separatorInset: 54) {
+            LookRow("Loading Screenshot…", symbol: "photo", showsChevron: false) {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    Button(action: removeScreenshot) {
+                        Text("Remove")
+                            .font(.system(.subheadline, weight: .semibold))
+                            .foregroundStyle(look.destructive)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Remove screenshot")
+                    .accessibilityIdentifier("feedbackRemoveScreenshot")
+                }
+            }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("feedbackScreenshotLoading")
+    }
+
+    private func removeScreenshot() {
+        if reduceMotion { attachment.remove() } else { withAnimation(.snappy(duration: 0.25)) { attachment.remove() } }
+        pick = nil
     }
 
     // MARK: What is sent, and to whom
@@ -294,7 +329,7 @@ struct FeedbackSheet: View {
         messageFocused = false
         failure = nil
         phase = .sending
-        let draft = FeedbackDraft(category: category, message: trimmed, screenshot: screenshot)
+        let draft = FeedbackDraft(category: category, message: trimmed, screenshot: attachment.screenshot)
         Task {
             let result = await send(draft)
             withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
@@ -304,24 +339,6 @@ struct FeedbackSheet: View {
                     failure = reason
                     phase = .editing
                 }
-            }
-        }
-    }
-
-    private func load(_ item: PhotosPickerItem?) {
-        guard let item else { return }
-        Task {
-            guard let data = try? await item.loadTransferable(type: Data.self) else {
-                failure = "Couldn't read that image. Try another."
-                return
-            }
-            switch FeedbackScreenshot.make(from: data) {
-            case .success(let shot):
-                failure = nil
-                if reduceMotion { screenshot = shot } else { withAnimation(.snappy(duration: 0.25)) { screenshot = shot } }
-            case .failure(let problem):
-                failure = problem.message
-                pick = nil
             }
         }
     }
@@ -347,6 +364,57 @@ struct FeedbackDraft {
     var category: FeedbackCategory
     var message: String
     var screenshot: FeedbackScreenshot?
+
+    /// A swipe would lose something the tester made: text, a screenshot, or one still loading (codex-review-07 #2).
+    /// Cancel still discards on purpose.
+    @MainActor static func blocksSwipeAway(message: String, attachment: FeedbackAttachment) -> Bool {
+        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || attachment.screenshot != nil || attachment.isLoading
+    }
+}
+
+/// The form's screenshot slot (codex-review-07 #1). A pick starts a load the form waits for; a newer pick or Remove
+/// supersedes it, and a superseded load's result is dropped, so what is attached is always the latest choice.
+@MainActor @Observable
+final class FeedbackAttachment {
+    private(set) var screenshot: FeedbackScreenshot?
+    private(set) var isLoading = false
+    private(set) var problem: FeedbackScreenshot.Problem?
+    private var generation = 0
+    private var task: Task<Void, Never>?
+
+    init(screenshot: FeedbackScreenshot? = nil) {
+        self.screenshot = screenshot
+    }
+
+    func select(_ load: @escaping @Sendable () async -> Data?) {
+        task?.cancel()
+        generation += 1
+        let mine = generation
+        screenshot = nil
+        problem = nil
+        isLoading = true
+        task = Task {
+            let data = await load()
+            guard !Task.isCancelled, mine == generation else { return }
+            isLoading = false
+            switch data.map(FeedbackScreenshot.make) ?? .failure(.unreadable) {
+            case .success(let shot): screenshot = shot
+            case .failure(let reason): problem = reason
+            }
+        }
+    }
+
+    func remove() {
+        task?.cancel()
+        task = nil
+        generation += 1
+        screenshot = nil
+        problem = nil
+        isLoading = false
+    }
+
+    /// Tests: waits for the current load to finish or be dropped.
+    func settle() async { await task?.value }
 }
 
 enum FeedbackSendResult: Equatable {

@@ -118,10 +118,95 @@ struct FeedbackTests {
         }
     }
 
+    // MARK: The screenshot slot (codex-review-07 #1, #2)
+
+    /// At scale 1, so the decoded width equals `width` (it tells which pick was attached).
+    private static func jpeg(_ color: UIColor, width: CGFloat) -> Data {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: CGSize(width: width, height: 20), format: format).image { context in
+            color.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: width, height: 20))
+        }.jpegData(compressionQuality: 0.9)!
+    }
+
+    @MainActor @Test func sendWaitsForAPickStillLoading() async {
+        let gate = Gate()
+        let slot = FeedbackAttachment()
+        slot.select { await gate.wait(); return Self.jpeg(.red, width: 30) }
+        #expect(slot.isLoading)
+        #expect(slot.screenshot == nil)
+        #expect(FeedbackDraft.blocksSwipeAway(message: "", attachment: slot), "a pick in flight is a draft")
+        gate.open()
+        await slot.settle()
+        #expect(!slot.isLoading)
+        #expect(slot.screenshot?.preview.size.width == 30)
+    }
+
+    @MainActor @Test func aNewerPickWinsOverAnOlderSlowerOne() async {
+        let slowA = Gate(), fastB = Gate()
+        let slot = FeedbackAttachment()
+        slot.select { await slowA.wait(); return Self.jpeg(.red, width: 11) }
+        slot.select { await fastB.wait(); return Self.jpeg(.blue, width: 22) }
+        fastB.open()
+        await slot.settle()
+        #expect(slot.screenshot?.preview.size.width == 22)
+        slowA.open()
+        await Task.yield()
+        try? await Task.sleep(for: .milliseconds(50))
+        #expect(slot.screenshot?.preview.size.width == 22, "A's late result is dropped")
+        #expect(!slot.isLoading)
+    }
+
+    @MainActor @Test func removingDuringALoadKeepsNothing() async {
+        let gate = Gate()
+        let slot = FeedbackAttachment()
+        slot.select { await gate.wait(); return Self.jpeg(.red, width: 30) }
+        slot.remove()
+        #expect(!slot.isLoading)
+        gate.open()
+        try? await Task.sleep(for: .milliseconds(50))
+        #expect(slot.screenshot == nil)
+        #expect(!FeedbackDraft.blocksSwipeAway(message: "  ", attachment: slot))
+    }
+
+    @MainActor @Test func anUnreadablePickReportsAndAttachesNothing() async {
+        let slot = FeedbackAttachment()
+        slot.select { Data("nope".utf8) }
+        await slot.settle()
+        #expect(slot.problem == .unreadable)
+        #expect(slot.screenshot == nil)
+        slot.select { nil }   // the transfer itself failed
+        await slot.settle()
+        #expect(slot.problem == .unreadable)
+    }
+
+    @MainActor @Test func aScreenshotOnlyDraftCannotBeSwipedAway() throws {
+        let shot = try FeedbackScreenshot.make(from: Self.jpeg(.red, width: 10)).get()
+        #expect(FeedbackDraft.blocksSwipeAway(message: "", attachment: FeedbackAttachment(screenshot: shot)))
+        #expect(FeedbackDraft.blocksSwipeAway(message: "hi", attachment: FeedbackAttachment()))
+        #expect(!FeedbackDraft.blocksSwipeAway(message: " \n ", attachment: FeedbackAttachment()))
+    }
+
     private func properties(of data: Data) -> [CFString: Any] {
         guard let source = CGImageSourceCreateWithData(data as CFData, nil),
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any] else { return [:] }
         return properties
+    }
+}
+
+/// A one-shot latch for ordering loads in tests.
+@MainActor private final class Gate {
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+    func wait() async {
+        if isOpen { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+    func open() {
+        isOpen = true
+        waiters.forEach { $0.resume() }
+        waiters.removeAll()
     }
 }
 

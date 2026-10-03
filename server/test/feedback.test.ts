@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   ACCOUNT_DAILY_LIMIT, characterCount, GLOBAL_DAILY_LIMIT, MAX_FEEDBACK_BODY_BYTES, MAX_MESSAGE_LENGTH,
-  MAX_SCREENSHOT_BYTES, newYorkDay, ORPHAN_GRACE_MS, SIGNED_OUT_DAILY_LIMIT, sweepFeedback,
+  MAX_SCREENSHOT_BYTES, newYorkDay, R2_DELETE_BATCH, SIGNED_OUT_DAILY_LIMIT, sweepFeedback, UPLOAD_GRACE_MS,
 } from "../src/feedback";
 import { count, harness, JPEG, PNG, type Harness } from "./helpers";
 
@@ -211,6 +211,45 @@ describe("rate limits", () => {
   });
 });
 
+
+const FIELDS = { category: "bug", message: "m", appVersion: "1", build: "1", systemVersion: "27.0", model: "x" };
+function form(withScreenshot = false): FormData {
+  const data = new FormData();
+  for (const [k, v] of Object.entries(FIELDS)) data.append(k, v);
+  if (withScreenshot) data.append("screenshot", new File([JPEG], "a.jpg"));
+  return data;
+}
+
+/** An R2 stand-in that enforces the production limit of 1,000 keys per delete and records every call. */
+function fakeBucket(options: { failDeletes?: boolean } = {}) {
+  const deletes: string[][] = [];
+  const bucket = {
+    async delete(keys: string | string[]) {
+      const list = Array.isArray(keys) ? keys : [keys];
+      if (list.length > R2_DELETE_BATCH) throw new Error(`R2 refuses ${list.length} keys`);
+      if (options.failDeletes) throw new Error("R2 down");
+      deletes.push(list);
+    },
+  } as unknown as R2Bucket;
+  return { bucket, deletes };
+}
+
+/** Counts the D1 statements prepared (each is a query against Workers Free's 50 per invocation). */
+function countingDB(db: D1Database) {
+  const counter = { statements: 0 };
+  const proxy = new Proxy(db, {
+    get(target, prop) {
+      if (prop === "prepare") return (sql: string) => { counter.statements++; return target.prepare(sql); };
+      const value = Reflect.get(target, prop);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  return { db: proxy as D1Database, counter };
+}
+
+const queued = async () => (await env.DB.prepare("SELECT key FROM screenshot_deletions ORDER BY key").all<{ key: string }>())
+  .results.map((r) => r.key);
+
 describe("account deletion covers feedback", () => {
   it("deletes the account's rows, screenshots and counter; signed-out feedback and other accounts' stay", async () => {
     const mine = await h.signIn("001234.apple-user");
@@ -220,63 +259,150 @@ describe("account deletion covers feedback", () => {
     await h.feedback({ token: theirs.session, screenshot: { bytes: PNG } });
     await h.feedback({ screenshot: { bytes: JPEG } });
     expect([await count("feedback"), (await objects()).length]).toEqual([4, 3]);
+    expect(await queued()).toEqual([]);  // every landed upload un-queued its key
 
     const response = await h.call("DELETE", "/v1/account", { token: mine.session });
     expect(response.status).toBe(200);
     const left = await rows();
     expect(left).toHaveLength(2);
-    const myAccount = await env.DB.prepare("SELECT COUNT(*) AS n FROM feedback_limits WHERE key LIKE 'account:%'").first<{ n: number }>();
-    expect(myAccount!.n).toBe(1);  // only the other account's counter
+    const counters = await env.DB.prepare("SELECT COUNT(*) AS n FROM feedback_limits WHERE key LIKE 'account:%'").first<{ n: number }>();
+    expect(counters!.n).toBe(1);  // only the other account's counter
     expect((await objects()).sort()).toEqual(left.map((r) => r.screenshot_key!).sort());
+    expect(await queued()).toEqual([]);
   });
 
-  it("a submission racing the deletion stores nothing (its session or its account is gone)", async () => {
+  it("a submission racing the deletion stores nothing — no row, no object, no counter naming the account (07 #4)", async () => {
     const { session } = await h.signIn();
     const account = await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>();
-    // The deletion lands between authentication and the insert: simulate by deleting, then submitting directly.
+    // The deletion commits between the request's authentication and its writes.
     const { submitFeedback } = await import("../src/feedback");
     await h.call("DELETE", "/v1/account", { token: session });
-    const form = new FormData();
-    for (const [k, v] of Object.entries({ category: "bug", message: "m", appVersion: "1", build: "1", systemVersion: "27.0", model: "x" })) form.append(k, v);
-    form.append("screenshot", new File([JPEG], "a.jpg"));
-    await expect(submitFeedback(new Request("https://stacked.test/v1/feedback", { method: "POST", body: form }), h.env, h.deps, account!.id))
+    await expect(submitFeedback(new Request("https://stacked.test/v1/feedback", { method: "POST", body: form(true) }), h.env, h.deps, account!.id))
       .rejects.toMatchObject({ code: "unauthorized" });
-    expect([await count("feedback"), (await objects()).length]).toEqual([0, 0]);
+    expect([await count("feedback"), (await objects()).length, (await queued()).length]).toEqual([0, 0, 0]);
+    const named = await env.DB.prepare("SELECT COUNT(*) AS n FROM feedback_limits WHERE key = ?").bind(`account:${account!.id}`).first<{ n: number }>();
+    expect(named!.n).toBe(0);
   });
 
-  it("a screenshot whose R2 delete fails at deletion is removed by the sweep", async () => {
+  it("the insert racing the deletion (after the counter) removes its object at once", async () => {
+    const { session } = await h.signIn();
+    const account = await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>();
+    const { submitFeedback } = await import("../src/feedback");
+    // The account disappears after the counter was taken: drop it when the upload starts.
+    const racing = { ...h.env, FEEDBACK: new Proxy(h.env.FEEDBACK, {
+      get(target, prop) {
+        if (prop === "put") return async (...args: Parameters<R2Bucket["put"]>) => {
+          await h.call("DELETE", "/v1/account", { token: session });
+          return target.put(...args);
+        };
+        const value = Reflect.get(target, prop);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    }) };
+    await expect(submitFeedback(new Request("https://stacked.test/v1/feedback", { method: "POST", body: form(true) }), racing, h.deps, account!.id))
+      .rejects.toMatchObject({ code: "unauthorized" });
+    expect([await count("feedback"), (await objects()).length, (await queued()).length]).toEqual([0, 0, 0]);
+  });
+
+  it("deletes more than R2's 1,000 keys per call in batches (07 #5)", async () => {
+    const { session } = await h.signIn();
+    const account = await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>();
+    await env.DB.prepare(
+      "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1001) " +
+      "INSERT INTO feedback (id, account_id, category, message, app_version, build, system_version, model, " +
+      "screenshot_key, screenshot_type, screenshot_bytes, created_at) " +
+      "SELECT 'f' || i, ?, 'bug', 'm', '1', '1', '27.0', 'x', 'feedback/f' || i || '.jpg', 'image/jpeg', 4, 0 FROM n")
+      .bind(account!.id).run();
+    const fake = fakeBucket();
+    const { createHandler } = await import("../src/index");
+    const response = await createHandler(h.deps)(new Request("https://stacked.test/v1/account",
+      { method: "DELETE", headers: { authorization: `Bearer ${session}` } }), { ...h.env, FEEDBACK: fake.bucket });
+    expect(response.status).toBe(200);
+    expect(fake.deletes.map((d) => d.length)).toEqual([1000, 1]);
+    expect(new Set(fake.deletes.flat()).size).toBe(1001);
+    expect([await count("feedback"), (await queued()).length]).toEqual([0, 0]);
+  });
+
+  it("screenshots whose R2 delete fails at deletion stay queued and the sweep deletes them", async () => {
     const { session } = await h.signIn();
     await h.feedback({ token: session, screenshot: { bytes: JPEG } });
-    const failing = { ...h.env, FEEDBACK: { ...h.env.FEEDBACK, delete: async () => { throw new Error("R2 down"); } } as unknown as R2Bucket };
     const { createHandler } = await import("../src/index");
-    const response = await createHandler(h.deps)(
-      new Request("https://stacked.test/v1/account", { method: "DELETE", headers: { authorization: `Bearer ${session}` } }), failing);
+    const response = await createHandler(h.deps)(new Request("https://stacked.test/v1/account",
+      { method: "DELETE", headers: { authorization: `Bearer ${session}` } }), { ...h.env, FEEDBACK: fakeBucket({ failDeletes: true }).bucket });
     expect(response.status).toBe(200);
     expect(await count("feedback")).toBe(0);
-    expect((await objects()).length).toBe(1);  // left behind
-    h.clock.now = Date.now() + ORPHAN_GRACE_MS + 60_000;  // R2 stamps uploads with the real clock
+    expect([(await objects()).length, (await queued()).length]).toEqual([1, 1]);
     expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1 });
-    expect(await objects()).toEqual([]);
+    expect([(await objects()).length, (await queued()).length]).toEqual([0, 0]);
   });
 });
 
 describe("the hourly sweep", () => {
-  it("leaves screenshots with rows, and young orphans (their row may be on its way)", async () => {
-    await h.feedback({ screenshot: { bytes: JPEG } });
-    await env.FEEDBACK.put("feedback/young-orphan.jpg", JPEG);
-    h.clock.now = Date.now() + ORPHAN_GRACE_MS / 2;
+  it("an upload whose row never landed is deleted once its grace has passed, not before", async () => {
+    const failing = { ...h.env, DB: new Proxy(h.env.DB, {
+      get(target, prop) {
+        if (prop === "batch") return async () => { throw new Error("D1 unavailable"); };
+        const value = Reflect.get(target, prop);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    }) };
+    const { createHandler } = await import("../src/index");
+    const response = await createHandler(h.deps)(new Request("https://stacked.test/v1/feedback",
+      { method: "POST", headers: { "cf-connecting-ip": "203.0.113.1" }, body: form(true) }), failing);
+    expect(response.status).toBe(500);
+    expect([await count("feedback"), (await objects()).length, (await queued()).length]).toEqual([0, 1, 1]);
+    h.clock.now += UPLOAD_GRACE_MS - 1000;
     expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 0 });
-    expect((await objects()).length).toBe(2);
-    h.clock.now = Date.now() + ORPHAN_GRACE_MS + 60_000;
+    h.clock.now += 2000;
     expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1 });
-    expect(await objects()).toEqual([(await rows())[0]!.screenshot_key]);
+    expect([(await objects()).length, (await queued()).length]).toEqual([0, 0]);
   });
 
-  it("removes counters from earlier days", async () => {
+  it("never deletes an object whose row exists, even if its key is queued", async () => {
+    await h.feedback({ screenshot: { bytes: JPEG } });
+    const key = (await rows())[0]!.screenshot_key!;
+    await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES (?, 0)").bind(key).run();
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 0 });
+    expect(await objects()).toEqual([key]);
+    expect(await queued()).toEqual([]);
+  });
+
+  it("is bounded: a few queries and one R2 call per run, continuing where it stopped (07 #3)", async () => {
+    await env.DB.prepare(
+      "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 2501) " +
+      "INSERT INTO screenshot_deletions (key, due_at) SELECT 'feedback/k' || printf('%05d', i) || '.jpg', i FROM n").run();
+    const fake = fakeBucket();
+    const { db, counter } = countingDB(h.env.DB);
+    const bounded = { ...h.env, DB: db, FEEDBACK: fake.bucket };
+    const perRun: number[] = [];
+    for (let run = 0; run < 3; run++) {
+      const before = counter.statements;
+      await sweepFeedback(bounded, h.deps);
+      perRun.push(counter.statements - before);
+    }
+    expect(perRun.every((n) => n <= 3)).toBe(true);
+    expect(fake.deletes.map((d) => d.length)).toEqual([1000, 1000, 501]);
+    expect(fake.deletes.flat()).toContain("feedback/k02501.jpg");  // the last, beyond two runs' budgets
+    expect(await queued()).toEqual([]);
+  });
+
+  it("a key queued while the sweep runs is not dropped unswept", async () => {
+    await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES ('feedback/a.jpg', 5)").run();
+    const late = { ...h.env, FEEDBACK: { async delete() {
+      // Queued between the sweep's read and its clean-up, due earlier than the batch's last key.
+      await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES ('feedback/0.jpg', 1)").run();
+    } } as unknown as R2Bucket };
+    await sweepFeedback(late, h.deps);
+    expect(await queued()).toEqual(["feedback/0.jpg"]);
+  });
+
+  it("removes counters from earlier days, even when the screenshot sweep fails", async () => {
     await h.feedback();
     expect(await count("feedback_limits")).toBe(2);  // the address and the global counter
+    await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES ('feedback/x.jpg', 0)").run();
     h.clock.now += 24 * 60 * 60 * 1000;
-    await sweepFeedback(h.env, h.deps);
+    await sweepFeedback({ ...h.env, FEEDBACK: fakeBucket({ failDeletes: true }).bucket }, h.deps);
     expect(await count("feedback_limits")).toBe(0);
+    expect(await queued()).toEqual(["feedback/x.jpg"]);
   });
 });
