@@ -46,8 +46,8 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   Screenshots to delete go through a queue (`screenshot_deletions`): account deletion queues its keys in the deletion
   transaction and deletes them right after, in R2's batches of 1,000; an upload queues its key before the put and its
   row insert removes it, so an upload whose row never landed is deleted an hour later. The hourly cron works through
-  due keys 1,000 per run (three D1 queries and one R2 call — inside Workers Free's 50 queries per invocation, shared
-  with the revocation retry, now 20 a run) and removes old counters separately.
+  due keys 1,000 per run (at most 12 D1 statements — one read, ≤ 10 deletes by id, the counter clean-up — and one R2
+  call; with the revocation retry, now 20 a run, at most 33 of Workers Free's 50 per invocation).
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB); Apple's key set is cached for
   an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
 - Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.

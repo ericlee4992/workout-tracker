@@ -1,7 +1,7 @@
 # 07 — Feedback section
 
 Type: task
-Status: Codex review 07 round 2 not clear (2 findings) → fixed; round 3 next. Form approved by the user 2026-10-03
+Status: **Codex clear (round 3, 2026-10-03)**; waiting for the user's go-ahead to merge. Form approved by the user 2026-10-03
 Blocked by: — (03's server half is merged; feedback works signed out, so 03's app half is not needed)
 Implementer: Claude; Reviewer: Codex (as for 01–03).
 Branch: `ericlee4992/beta-07-feedback` off `main`.
@@ -221,5 +221,17 @@ confirmed round 1's five fixes and reran server 87/87 and `FeedbackTests` 13/13.
    order-based delete fails both race tests. Server **88/88**, `tsc` clean. App: `FeedbackTests` **13/13** and
 `FloodlightFeedbackUITests` **6 passed, 1 skipped (opt-in smoke)**, one run, exit 0; captures retaken (23, now with
 `feedback-loading-*`).
+
+## Codex review 07c — round 3: clear
+
+Report [codex-review-07c.md](../codex-review-07c.md) (HEAD `c8e1234`): **Verdict: clear.** Both round-2 findings
+resolved; Codex reran server 88/88, `tsc`, `FeedbackTests` 13/13, replayed the rowid race against the fix (B survives,
+next sweep deletes it) and its own mutation (broad clean-up reproduces the leak). One non-blocking P3: the README still
+said "three D1 queries" — corrected to "at most 12 statements; 33 with the revocation retry".
+
+**Acceptance status:** captures approved ✓ (`captures/07/`, 23 files); server tests for validation, size and type
+limits, rate limits and the deletion cascade ✓; sending from the Simulator signed out and reading it with the script ✓
+(local `wrangler dev`). **Open:** signed-in sending (needs 03's app half / the paid team) and the phone (needs the
+deployed server — the user's first deploy, with `wrangler r2 bucket create stacked-feedback` — and an install).
 
 ## Comments
