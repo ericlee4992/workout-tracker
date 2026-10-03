@@ -1,8 +1,8 @@
 # 03 — Server foundation and Sign in with Apple
 
 Type: task
-Status: in progress — **server half implemented 2026-10-02** (the user's go-ahead); the app half waits on the paid
-team (ticket 01, B)
+Status: in progress — **server half implemented and Codex clear (4 rounds) 2026-10-02**, not merged (awaiting the
+user's go-ahead); not deployed; the app half waits on the paid team (ticket 01, B)
 Blocked by: 01 (the paid team is required for the Sign in with Apple capability)
 Implementer: Claude (the user's go-ahead to start the server half, 2026-10-02); Reviewer: Codex.
 Branch: `ericlee4992/beta-03-server-apple` off `main`.
@@ -168,6 +168,10 @@ Review: [codex-review-03c.md](../codex-review-03c.md) — round-2 #1, #2, #4, #5
    revoked token is exactly T2; with Apple failing, T2 stays queued and no active identity holds it.
 
 **Evidence:** `tsc` exit 0; `vitest` **48/48**; scanner tests 14/14 unchanged.
+
+**Round 4 (codex-review-03d): clear** — the round-3 finding resolved (Codex's own interleaving probes, independent of the
+test seam, and the two new tests); no new findings. The clearance covers the server implementation locally — not a
+deployment, a real Apple exchange/revocation, or the app half.
 
 ## Acceptance
 

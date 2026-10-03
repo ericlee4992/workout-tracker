@@ -32,7 +32,7 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   is unchanged. Older backups (Sep 17/18/20/22) remain.
 - Phone: iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
 
-## ACTIVE: public beta ("Stacked") — ticket 01 phase A done, B–E wait on Apple; ticket 02 merged
+## ACTIVE: public beta ("Stacked") — 01 phase A done (B–E wait on Apple); 02 merged; 03 server half Codex clear
 
 Planned 2026-10-01/02 with the user: **[spec](../work-record/public-beta/spec.md)** (answers Q1–Q14), decision
 **D60** (reopens SPEC's no-backend/no-accounts line, D5, D41, D53, D56, D58), tickets
@@ -75,6 +75,14 @@ adjacent UI suites 57/60 then History 7/8 — **3 pre-existing UI failures** (tw
 `FloodlightHistoryUITests.swift:100`, likely date-dependent; the CoreLoop model picker at :274) **fail identically on
 `main`** without ticket 02: a separate follow-up. Simulator **WT-Onboarding** `2CEC4AD8-F702-421F-B3B2-D68C302A3453`
 (sample data only).
+
+**Ticket 03 (server and Sign in with Apple)** — branch **`ericlee4992/beta-03-server-apple`** (pushed; **not merged** —
+ask the user). The **server half** is done and **Codex clear after 4 rounds**: `server/` (Cloudflare Worker + D1;
+Sign in with Apple with the exchanged identity bound to the user, sessions, profile name, sign-out, deletion claimed in
+one transaction with queued revocation and an hourly retry, stub pages; 48/48 tests in the Workers runtime with a fake
+Apple), `scripts/check-secrets.sh` + its regression test (14 cases), CI `.github/workflows/server.yml`. **Not done:**
+the user's Cloudflare account, D1 creation, secrets, the first deploy (steps in `server/README.md`); the app half
+(capability, account client, Settings Account row, onboarding sign-in) waits on the paid team.
 
 ## Next action
 
