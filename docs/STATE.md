@@ -57,24 +57,10 @@ a training profile, workouts stay on the phone; a Cloudflare Worker + D1 server;
 | 08 external testers | **Privacy-policy + App Privacy draft** (`work-record/public-beta/privacy-policy-draft.md`) on the branch above, Codex clear (3 rounds), unpublished. Needs the user's legal name, support email, date, age statement, feedback/download/export retention and two App Privacy choices; then the draft's release gates. |
 | 09 App Store | Not started. |
 
-**The user's order for the next work (2026-10-03)** — all doable before Apple approves; each on its own branch off
-`main` (07 on the branch above), Claude implementing, Codex reviewing to "clear", the user's go-ahead before any
-merge, UI-first for screens:
-1. **07 Feedback** — server `POST /v1/feedback` + the in-app Settings → Send Feedback form (works signed out). Notes from
-   planning: screenshots need a per-route body limit (~6 MB, multipart) instead of the 64 KB JSON cap; an R2 binding
-   (`FEEDBACK`); a D1 `feedback` table and a signed-out rate limit (10/day per hashed `CF-Connecting-IP`); account
-   deletion must also delete the account's feedback rows (in `claimDeletion`'s transaction) and its R2 objects (after,
-   with an orphan sweep in the hourly cron); the app re-encodes the screenshot without metadata (as D56 does for photos)
-   and shows exactly what is attached; the server URL becomes one build setting (`WT_SERVER_URL` → Info.plist); UI tests
-   need a stub flag under `-uiTestReset` (the app cannot reach a server in tests). Mock the form first (Default and
-   AccessibilityL, light and dark) for the user's approval.
-2. **06 AI proxy, server half** — `/v1/ai/{scan-machine,routine-week,model-exercises}` with the server owning each flow's
-   instructions/schema/model/`store=false`/token cap, limits 60/10/60 per account per New York day (attempts capped at
-   2×), a global and per-account off switch, counts-only logging; tested locally against a fake OpenAI. The app switches
-   over after 03's app half.
-3. **05 Profile** — mockups of the profile page and training-profile editor for the user's approval, plus the server
-   side (`PUT /v1/profile` training fields; height/weight as entered, D52). **08 prep** — a first privacy-policy draft
-   and App Privacy answers for the user to review.
+**The user's order of 2026-10-03 is complete:** 07 feedback (merged), 06 AI proxy server half (merged), 05 profile
+mockups (approved) + server side (merged), 08 privacy-policy draft (Codex clear, unpublished). Each ticket's record
+holds its design, evidence and Codex rounds. Conventions kept: one branch per ticket off `main`, Claude implementing,
+Codex reviewing to "clear" in a visible Orca terminal, the user's go-ahead before every merge, UI-first for screens.
 The user did **not** choose (for now) the pre-existing failures below.
 
 **Deadlines and the phone:** free-team profiles expire **2026-10-09 03:52 EDT** — if Apple has not approved by
