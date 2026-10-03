@@ -1,3 +1,4 @@
+import { isFlow, proxyAI, pruneAI, usage } from "./ai";
 import { AuthError, exchangeAppleCode, revokeAppleToken, verifyAppleIdentityToken } from "./apple";
 import { liveDeps, type Deps, type Env } from "./env";
 import { deleteClaimedScreenshots, submitFeedback, sweepFeedback } from "./feedback";
@@ -128,6 +129,10 @@ export function createHandler(deps: Deps) {
           await setDisplayName(env, account.id, name);
           return json(profile({ ...account, display_name: name }));
         }
+        case "GET /v1/ai/usage": {
+          const { account } = await authenticated(request, env, deps);
+          return json(await usage(env, deps, account.id));
+        }
         case "POST /v1/feedback": {
           // Works signed out; a bearer that is sent must be valid (the app then knows its session ended).
           const accountID = bearer(request) || request.headers.has("authorization")
@@ -140,8 +145,14 @@ export function createHandler(deps: Deps) {
           // Lost a race with another deletion of the same account: that request reports the real outcome.
           return outcome ? json(outcome) : failure("deletion_in_progress", 409);
         }
-        default:
+        default: {
+          const flow = /^POST \/v1\/ai\/([a-z-]+)$/.exec(route)?.[1];
+          if (flow && isFlow(flow)) {
+            const { account } = await authenticated(request, env, deps);
+            return json(await proxyAI(request, env, deps, account.id, flow));
+          }
           return failure("not_found", 404);
+        }
       }
     } catch (error) {
       if (error instanceof AuthError) return failure(error.code, error.status);
@@ -159,5 +170,6 @@ export default {
   scheduled: async (_controller: ScheduledController, env: Env, ctx: ExecutionContext) => {
     ctx.waitUntil(runPendingRevocations(env, liveDeps));
     ctx.waitUntil(sweepFeedback(env, liveDeps));
+    ctx.waitUntil(pruneAI(env, liveDeps));
   },
 } satisfies ExportedHandler<Env>;

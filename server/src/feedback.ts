@@ -2,6 +2,9 @@ import { AuthError } from "./apple";
 import { newID } from "./crypto";
 import type { Deps, Env } from "./env";
 import { readBodyBytes } from "./http";
+import { newYorkDay } from "./time";
+
+export { newYorkDay };
 
 // Public beta ticket 07: POST /v1/feedback. Multipart form fields: category, message, appVersion, build,
 // systemVersion, model, and an optional `screenshot` file (JPEG or PNG, at most 5 MB). Signed in (a bearer session)
@@ -29,12 +32,6 @@ const DETAIL_PATTERNS: Record<string, RegExp> = {
   systemVersion: /^[0-9.]{1,16}$/,
   model: /^[A-Za-z0-9,._\- ]{1,40}$/,
 };
-
-/** The calendar day in America/New_York (the app's day for every daily limit, D60). */
-export function newYorkDay(ms: number): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" })
-    .format(new Date(ms));
-}
 
 /** User-perceived characters, as the app counts them (Swift `String.count`). */
 export function characterCount(text: string): number {

@@ -2,8 +2,8 @@
 
 The app's backend (public beta, D60): a Cloudflare Worker with a D1 database and an R2 bucket. Ticket 03 adds accounts —
 Sign in with Apple, sessions, the profile name, sign-out and account deletion — and placeholder `/privacy` and `/support`
-pages; ticket 07 adds in-app feedback. Later tickets add Google sign-in (04), the training profile (05) and the AI
-proxy (06).
+pages; ticket 07 adds in-app feedback; ticket 06 the AI proxy (server half). Later tickets add Google sign-in (04) and the
+training profile (05).
 
 **This repository is public.** Secrets live only in Cloudflare (`wrangler secret put`) and, for local runs, in the
 git-ignored `.dev.vars`. `scripts/check-secrets.sh` (repository root) rejects key-shaped text — PEM keys (also escaped
@@ -20,6 +20,10 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 | `POST /v1/auth/signout` | ends this session |
 | `GET /v1/profile`, `PUT /v1/profile` | `{ displayName, email, provider, memberSince }`; PUT `{ displayName }` (1–50 characters) |
 | `DELETE /v1/account` | deletes every row now (feedback and its screenshots too); revokes Apple's tokens → `{ deleted, appleRevocation: "done" \| "pending" \| "manual" }` |
+| `POST /v1/ai/scan-machine` | `{ exercises: [{ id, name, loadType }], jpeg: <base64, ≤ 3 MB> }` → `{ result }` (the model's JSON) |
+| `POST /v1/ai/routine-week` | the app's routine request `{ goals, experience, days, minutes, heightCm?, weightKg?, exercises, cardioActivities }` → `{ result }` |
+| `POST /v1/ai/model-exercises` | `{ plate: { brand, model, lines }, candidates: [{ id, name, muscleGroup? }] }` → `{ result }` |
+| `GET /v1/ai/usage` | `{ day, resetsAt, paused, flows: { <flow>: { used, limit } } }` |
 | `POST /v1/feedback` | multipart: `category` (bug/idea/other), `message` (1–4,000 characters), `appVersion`, `build`, `systemVersion`, `model`, optional `screenshot` (JPEG/PNG ≤ 5 MB) → `201 { id }`; signed in or out |
 | `GET /privacy`, `GET /support`, `GET /v1/health` | pages / liveness |
 
@@ -48,6 +52,15 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   row insert removes it, so an upload whose row never landed is deleted an hour later. The hourly cron works through
   due keys 1,000 per run (at most 12 D1 statements — one read, ≤ 10 deletes by id, the counter clean-up — and one R2
   call; with the revocation retry, now 20 a run, at most 33 of Workers Free's 50 per invocation).
+- **AI** (ticket 06; signed in only): the server owns each flow's instructions, JSON schema, model (`gpt-5.6-terra`),
+  `store: false`, reasoning effort and output cap; the app sends only checked, bounded structured input (unknown fields
+  are dropped) and validates every reply itself. Limits per account per New York day: 60 scans, 10 routine weeks, 60
+  exercise suggestions — successes count; attempts stop at twice that; requests in flight hold a slot. Errors:
+  `429 ai_limit | ai_attempts | ai_busy`, `503 ai_paused | ai_unavailable | ai_timeout | server_not_configured`,
+  `502 ai_refused | ai_invalid`. Kept per request: account, flow, time, status, latency and token counts (90 days) —
+  never the input, photo or reply, and nothing of them is logged. Account deletion deletes all of it.
+- **Off switch:** `node scripts/ai.mjs pause` (everyone) or `pause --account <id>`; `resume`; `status`. It is a D1 row,
+  read on every request: effective at once, no app build or deploy.
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB); Apple's key set is cached for
   an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
 - Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.
@@ -74,6 +87,7 @@ npm run migrate:local && npm run dev    # http://localhost:8787 — sign-in need
    npx wrangler secret put APPLE_KEY_ID
    npx wrangler secret put APPLE_PRIVATE_KEY < AuthKey_XXXXXXXXXX.p8
    openssl rand -base64 32 | npx wrangler secret put TOKEN_ENC_KEY
+   npx wrangler secret put OPENAI_API_KEY      # the developer's OpenAI key (ticket 06); typed at the prompt
    ```
    Keep the `.p8` somewhere safe outside this folder; `TOKEN_ENC_KEY` must not change once accounts exist (it decrypts
    the stored refresh tokens).

@@ -151,6 +151,10 @@ export async function claimDeletion(env: Env, deps: Deps, accountID: string): Pr
       .bind(now, claim, accountID),
     env.DB.prepare("DELETE FROM feedback WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM feedback_limits WHERE key = ?").bind(`account:${accountID}`),
+    // Ticket 06: AI usage counts, request logs and a per-account pause (the foreign keys would cascade too).
+    env.DB.prepare("DELETE FROM ai_usage WHERE account_id = ?").bind(accountID),
+    env.DB.prepare("DELETE FROM ai_requests WHERE account_id = ?").bind(accountID),
+    env.DB.prepare("DELETE FROM ai_account_pauses WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM sessions WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM identities WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM accounts WHERE id = ?").bind(accountID),

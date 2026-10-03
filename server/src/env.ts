@@ -13,6 +13,8 @@ export interface Env {
   APPLE_PRIVATE_KEY?: string;
   /** Secret: base64 of 32 bytes; encrypts Apple refresh tokens at rest. */
   TOKEN_ENC_KEY?: string;
+  /** Secret: the developer's OpenAI key (ticket 06). Never sent to the app; without it the AI routes answer 503. */
+  OPENAI_API_KEY?: string;
 }
 
 /** What the handler takes from the outside world, so tests can replace it. */

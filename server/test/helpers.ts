@@ -112,6 +112,26 @@ export interface Harness {
   deps: Deps;
   /** POST /v1/feedback as multipart: the given fields over valid defaults (null drops a field). */
   feedback: (options?: FeedbackOptions) => Promise<Response>;
+  /** A fake OpenAI Responses endpoint (ticket 06). */
+  openai: FakeOpenAI;
+}
+
+export interface FakeOpenAI {
+  calls: { body: Record<string, unknown>; authorization: string | null }[];
+  /** The answer to the next calls; the default is a completed reply carrying `result`. */
+  respond: (body: Record<string, unknown>) => Promise<Response> | Response;
+  /** While set, each call waits for it (requests in flight). */
+  gate?: Promise<void>;
+}
+
+export const OPENAI_KEY = "fake-key";
+
+/** A completed Responses API reply whose single output_text is `result` as JSON. */
+export function openAIReply(result: unknown, usage = { input_tokens: 1200, output_tokens: 300, output_tokens_details: { reasoning_tokens: 200 } }) {
+  return Response.json({
+    status: "completed", usage,
+    output: [{ type: "reasoning", content: [] }, { type: "message", content: [{ type: "output_text", text: JSON.stringify(result) }] }],
+  });
 }
 
 export interface FeedbackOptions {
@@ -131,16 +151,25 @@ export const NONCE = "raw-nonce-0123456789abcdef";
 export async function harness(): Promise<Harness> {
   resetAppleKeyCache();
   // The pool keeps one D1 per test file: start every test from empty tables (children first).
-  await env.DB.batch(["feedback", "feedback_limits", "screenshot_deletions", "pending_revocations", "sessions", "identities", "accounts"]
+  await env.DB.batch(["ai_usage", "ai_requests", "ai_settings", "ai_account_pauses",
+    "feedback", "feedback_limits", "screenshot_deletions", "pending_revocations", "sessions", "identities", "accounts"]
     .map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
   const stored = await env.FEEDBACK.list();
   if (stored.objects.length > 0) await env.FEEDBACK.delete(stored.objects.map((o) => o.key));
   const clock = { now: Date.UTC(2026, 9, 2, 12) };
   const { apple, fetch: fakeFetch, privateKeyPEM } = await makeFakeApple(clock);
   let counter = 0;
+  const openai: FakeOpenAI = { calls: [], respond: () => openAIReply({ ok: true }) };
   const deps: Deps = {
     now: () => clock.now,
-    fetch: fakeFetch,
+    fetch: async (input, init) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url !== "https://api.openai.com/v1/responses") return fakeFetch(input, init);
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      openai.calls.push({ body, authorization: new Headers(init?.headers).get("authorization") });
+      if (openai.gate) await openai.gate;
+      return openai.respond(body);
+    },
     random: (n) => { const bytes = crypto.getRandomValues(new Uint8Array(n)); bytes[0] = counter++ % 256; return bytes; },
   };
   const testEnv: Env = {
@@ -150,6 +179,7 @@ export async function harness(): Promise<Harness> {
     APPLE_KEY_ID: "KEYID12345",
     APPLE_PRIVATE_KEY: privateKeyPEM,
     TOKEN_ENC_KEY: btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))),
+    OPENAI_API_KEY: OPENAI_KEY,
   };
   const handle = createHandler(deps);
   const call: Harness["call"] = (method, path, options = {}) => {
@@ -190,7 +220,7 @@ export async function harness(): Promise<Harness> {
     if (options.authorization !== undefined) headers.authorization = options.authorization;
     return handle(new Request("https://stacked.test/v1/feedback", { method: "POST", headers, body: form }), testEnv);
   };
-  return { apple, env: testEnv, clock, call, idToken, signIn, deps, feedback };
+  return { apple, env: testEnv, clock, call, idToken, signIn, deps, feedback, openai };
 }
 
 export async function count(table: string): Promise<number> {
