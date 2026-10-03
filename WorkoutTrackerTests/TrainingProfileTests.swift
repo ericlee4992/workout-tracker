@@ -16,6 +16,29 @@ struct TrainingProfileTests {
         #expect(BodyMeasure(value: 70, unit: .inches).kilograms.isNaN, "a height has no weight")
     }
 
+    @Test func fractionsShowAsEntered() {
+        #expect(BodyMeasure(value: 82.5, unit: .kg).display == "82.5 kg")
+        #expect(BodyMeasure(value: 70.5, unit: .inches).display == "5 ft 10.5 in")
+        #expect(BodyMeasure(value: 177.25, unit: .cm).display == "177.25 cm")
+        #expect(BodyMeasure(value: 180, unit: .lb).display == "180 lb")
+        #expect(BodyMeasure.parse("82.5") == 82.5)
+        #expect(BodyMeasure.parse("82,5") == 82.5)
+        #expect(BodyMeasure.parse("82.") == 82)
+        #expect(BodyMeasure.parse(".5") == 0.5)
+        #expect(BodyMeasure.parse("82.567") == 82.56)
+        #expect(BodyMeasure.parse("") == nil)
+        #expect(BodyMeasure.parse("abc") == nil)
+    }
+
+    @Test func goalChecksMatchTheServer() {
+        var p = base
+        for (goals, ok) in [("   ", false), ("hi\u{0}", false), ("hi\u{7F}", false), ("line one\nline two\tok", true),
+                            (String(repeating: "💪🏽", count: 1000), true), (String(repeating: "a", count: 1001), false)] {
+            p.goals = goals
+            #expect(p.isValid == ok, "\(goals.prefix(10))")
+        }
+    }
+
     @Test func boundsMatchAskAI() {
         var p = base
         #expect(p.isValid)

@@ -19,9 +19,15 @@ struct TrainingProfile: Codable, Equatable {
 
     static let empty = TrainingProfile(goals: "", experience: "Beginner", days: 3, minutes: 45)
 
-    /// Ask AI's bounds (AIRoutineFlowModel.next): a goal under 1,000 characters, 50–250 cm, 20–400 kg.
+    /// The server's checks (training.ts), which are Ask AI's bounds (AIRoutineFlowModel.next): a non-blank goal of at
+    /// most 1,000 characters without control characters (tab and line breaks allowed), 50–250 cm, 20–400 kg.
     var isValid: Bool {
-        goals.count <= Self.maxGoalLength && Self.experiences.contains(experience) && Self.dayRange.contains(days)
+        let trimmed = goals.trimmingCharacters(in: .whitespacesAndNewlines)
+        let control = trimmed.unicodeScalars.contains {
+            ($0.value < 0x20 && ![0x09, 0x0A, 0x0D].contains($0.value)) || $0.value == 0x7F
+        }
+        return !trimmed.isEmpty && !control && trimmed.count <= Self.maxGoalLength
+            && Self.experiences.contains(experience) && Self.dayRange.contains(days)
             && Self.minuteRange.contains(minutes)
             && (height.map { (50...250).contains($0.centimetres) } ?? true)
             && (weight.map { (20...400).contains($0.kilograms) } ?? true)
@@ -51,14 +57,29 @@ struct BodyMeasure: Codable, Equatable {
         }
     }
 
-    /// As shown: "178 cm", "5 ft 10 in", "82 kg", "180 lb" (whole numbers, as Ask AI's fields take them).
+    /// As entered (codex-review-05 #2): "178 cm", "82.5 kg", "180 lb", "5 ft 10.5 in" — never rounded to a
+    /// different value.
     var display: String {
         switch unit {
-        case .cm: "\(Int(value.rounded())) cm"
-        case .inches: "\(Int(value.rounded()) / 12) ft \(Int(value.rounded()) % 12) in"
-        case .kg: "\(Int(value.rounded())) kg"
-        case .lb: "\(Int(value.rounded())) lb"
+        case .cm: "\(Self.number(value)) cm"
+        case .inches: "\(Int(value / 12)) ft \(Self.number(value - Double(Int(value / 12) * 12))) in"
+        case .kg: "\(Self.number(value)) kg"
+        case .lb: "\(Self.number(value)) lb"
         }
+    }
+
+    /// The value without a trailing ".0", up to two decimals (as typed), in the POSIX locale (the field's).
+    static func number(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(0...2)).grouping(.never).locale(Locale(identifier: "en_US_POSIX")))
+    }
+
+    /// A typed number ("82.5", "82,5"): digits and one decimal separator, at most two decimals; nil when empty.
+    static func parse(_ text: String) -> Double? {
+        let cleaned = text.replacingOccurrences(of: ",", with: ".").filter { $0.isNumber || $0 == "." }
+        let parts = cleaned.split(separator: ".", maxSplits: 1, omittingEmptySubsequences: false)
+        guard let whole = parts.first, !(whole.isEmpty && parts.count == 1) else { return nil }
+        let fraction = parts.count > 1 ? String(parts[1].filter(\.isNumber).prefix(2)) : ""
+        return Double("\(whole.isEmpty ? "0" : String(whole.prefix(4))).\(fraction.isEmpty ? "0" : fraction)")
     }
 }
 

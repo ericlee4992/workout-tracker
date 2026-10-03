@@ -102,10 +102,6 @@ export async function deleteSession(env: Env, tokenHash: string) {
   await env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(tokenHash).run();
 }
 
-export async function setDisplayName(env: Env, accountID: string, name: string) {
-  await env.DB.prepare("UPDATE accounts SET display_name = ? WHERE id = ?").bind(name, accountID).run();
-}
-
 export async function decryptToken(env: Env, sealed: string): Promise<string | null> {
   if (!env.TOKEN_ENC_KEY) return null;
   try { return await decrypt(sealed, env.TOKEN_ENC_KEY); } catch { return null; }

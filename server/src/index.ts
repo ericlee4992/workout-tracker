@@ -3,12 +3,12 @@ import { AuthError, exchangeAppleCode, revokeAppleToken, verifyAppleIdentityToke
 import { liveDeps, type Deps, type Env } from "./env";
 import { deleteClaimedScreenshots, submitFeedback, sweepFeedback } from "./feedback";
 import { bearer, failure, json, readJSON } from "./http";
-import { cleanTraining, readTraining, writeTraining } from "./training";
+import { cleanTraining, readTraining, trainingStatement } from "./training";
 import { privacyPage, supportPage } from "./pages";
 import {
   accountForToken, claimDeletion, createOrFindAccount, createSession, decryptToken, deleteSession,
   duePendingRevocations, finishPendingRevocation, findAccountByIdentity, PENDING_MAX_AGE_MS,
-  retryPendingRevocationLater, setDisplayName, updateRefreshToken, type Account,
+  retryPendingRevocationLater, updateRefreshToken, type Account,
 } from "./store";
 
 const MAX_NAME_LENGTH = 50;
@@ -137,8 +137,15 @@ export function createHandler(deps: Deps) {
           const name = hasName ? cleanName(body.displayName) : null;
           if (hasName && !name) return failure("invalid_display_name", 400);
           const training = hasTraining && body.training !== null ? cleanTraining(body.training) : null;
-          if (name) await setDisplayName(env, account.id, name);
-          if (hasTraining) await writeTraining(env, deps, account.id, training);
+          // One batch (a transaction): a failure in either write leaves both unchanged (codex-review-05 #1).
+          const statements: D1PreparedStatement[] = [];
+          if (name) statements.push(env.DB.prepare("UPDATE accounts SET display_name = ? WHERE id = ?").bind(name, account.id));
+          if (hasTraining) statements.push(trainingStatement(env, deps, account.id, training));
+          const results = await env.DB.batch(statements);
+          // A save that found no account (deleted meanwhile) wrote nothing.
+          if (training !== null && hasTraining && (results[results.length - 1]!.meta.changes ?? 0) === 0) {
+            return failure("unauthorized", 401);
+          }
           return json(await fullProfile(env, name ? { ...account, display_name: name } : account));
         }
         case "GET /v1/ai/usage": {

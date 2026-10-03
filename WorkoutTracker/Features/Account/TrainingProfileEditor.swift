@@ -197,56 +197,70 @@ struct TrainingProfileEditor: View {
     private var heightInInches: Bool { draft.height.map { $0.unit == .inches } ?? usCustomary }
     private var weightInPounds: Bool { draft.weight.map { $0.unit == .lb } ?? usCustomary }
 
+    /// Values show and save as typed, decimals included (codex-review-05 #2): no rounding on display or save. Each field
+    /// keeps its own text while typing (so "82." can become "82.5"); the draft follows every edit.
     @ViewBuilder private var heightFields: some View {
         if heightInInches {
-            let total = draft.height.map { Int($0.value.rounded()) }
-            MeasureField(text: Binding(
-                get: { total.map { "\($0 / 12)" } ?? "" },
-                set: { text in
-                    let inches = (total ?? 0) % 12
-                    draft.height = AIProfileUnits.parse(text).map { BodyMeasure(value: Double($0 * 12 + inches), unit: .inches) }
-                }), unit: "ft", accessibility: "Height, feet", identifier: "trainingHeightFeet", focus: $focus, field: .heightA)
-            MeasureField(text: Binding(
-                get: { total.map { "\($0 % 12)" } ?? "" },
-                set: { text in
-                    let feet = (total ?? 0) / 12
-                    let inches = min(11, AIProfileUnits.parse(text) ?? 0)
-                    draft.height = BodyMeasure(value: Double(feet * 12 + inches), unit: .inches)
-                }), unit: "in", accessibility: "Height, inches", identifier: "trainingHeightInches", focus: $focus, field: .heightB)
+            let total = draft.height?.value
+            MeasureField(initial: total.map { String(Int($0 / 12)) } ?? "", unit: "ft", decimal: false,
+                         accessibility: "Height, feet", identifier: "trainingHeightFeet", focus: $focus, field: .heightA) { text in
+                let inches = draft.height.map { $0.value - Double(Int($0.value / 12) * 12) } ?? 0
+                draft.height = AIProfileUnits.parse(text).map { BodyMeasure(value: Double($0 * 12) + inches, unit: .inches) }
+            }
+            MeasureField(initial: total.map { BodyMeasure.number($0 - Double(Int($0 / 12) * 12)) } ?? "", unit: "in", decimal: true,
+                         accessibility: "Height, inches", identifier: "trainingHeightInches", focus: $focus, field: .heightB) { text in
+                let wholeFeet = draft.height.map { Double(Int($0.value / 12) * 12) } ?? 0
+                let inches = min(11.99, BodyMeasure.parse(text) ?? 0)
+                draft.height = BodyMeasure(value: wholeFeet + inches, unit: .inches)
+            }
         } else {
-            MeasureField(text: Binding(
-                get: { AIProfileUnits.text(draft.height?.value) },
-                set: { draft.height = AIProfileUnits.parse($0).map { BodyMeasure(value: Double($0), unit: .cm) } }),
-                unit: "cm", accessibility: "Height, centimetres", identifier: "trainingHeight", focus: $focus, field: .heightA)
+            MeasureField(initial: draft.height.map { BodyMeasure.number($0.value) } ?? "", unit: "cm", decimal: true,
+                         accessibility: "Height, centimetres", identifier: "trainingHeight", focus: $focus, field: .heightA) { text in
+                draft.height = BodyMeasure.parse(text).map { BodyMeasure(value: $0, unit: .cm) }
+            }
         }
     }
 
     private var weightField: some View {
-        MeasureField(text: Binding(
-            get: { AIProfileUnits.text(draft.weight?.value) },
-            set: { text in
-                draft.weight = AIProfileUnits.parse(text).map { BodyMeasure(value: Double($0), unit: weightInPounds ? .lb : .kg) }
-            }),
-            unit: weightInPounds ? "lb" : "kg", accessibility: "Weight, \(weightInPounds ? "pounds" : "kilograms")",
-            identifier: "trainingWeight", focus: $focus, field: .weight)
+        MeasureField(initial: draft.weight.map { BodyMeasure.number($0.value) } ?? "", unit: weightInPounds ? "lb" : "kg",
+                     decimal: true, accessibility: "Weight, \(weightInPounds ? "pounds" : "kilograms")",
+                     identifier: "trainingWeight", focus: $focus, field: .weight) { text in
+            draft.weight = BodyMeasure.parse(text).map { BodyMeasure(value: $0, unit: weightInPounds ? .lb : .kg) }
+        }
     }
 }
 
-/// A short number field with its unit (as Ask AI's profile fields).
+/// A short number field with its unit (as Ask AI's profile fields), holding its own text while typing.
 private struct MeasureField<F: Hashable>: View {
-    @Binding var text: String
+    var initial: String
     var unit: String
+    var decimal = false
     var accessibility: String
     var identifier: String
     var focus: FocusState<F?>.Binding
     var field: F
+    var onEdit: (String) -> Void
+    @State private var text: String
     @Environment(\.look) private var look
     @ScaledMetric(relativeTo: .headline) private var width: CGFloat = 58
+
+    init(initial: String, unit: String, decimal: Bool, accessibility: String, identifier: String,
+         focus: FocusState<F?>.Binding, field: F, onEdit: @escaping (String) -> Void) {
+        self.initial = initial
+        self.unit = unit
+        self.decimal = decimal
+        self.accessibility = accessibility
+        self.identifier = identifier
+        self.focus = focus
+        self.field = field
+        self.onEdit = onEdit
+        _text = State(initialValue: initial)
+    }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
             TextField("", text: $text, prompt: Text("–").foregroundStyle(look.textSecondary))
-                .keyboardType(.numberPad)
+                .keyboardType(decimal ? .decimalPad : .numberPad)
                 .multilineTextAlignment(.center)
                 .font(look.font.fieldNumber)
                 .foregroundStyle(look.textPrimary)
@@ -256,6 +270,7 @@ private struct MeasureField<F: Hashable>: View {
                 .lookSurface(.field)
                 .accessibilityLabel(accessibility)
                 .accessibilityIdentifier(identifier)
+                .onChange(of: text) { _, new in onEdit(new) }
             Text(unit)
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(look.textSecondary)

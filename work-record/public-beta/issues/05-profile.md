@@ -1,7 +1,8 @@
 # 05 — Profile page and training profile
 
 Type: task
-Status: mock **approved by the user 2026-10-03** (and the Ask AI decision); server side implemented; Codex review 05 next.
+Status: mock **approved by the user 2026-10-03** (and the Ask AI decision); server side implemented; Codex review 05
+round 1 not clear (2 findings) → fixed; round 2 next.
 Wiring (the page live, the editor saving, Ask AI prefill and save) waits on 03's app half (sign-in, the paid team).
 Blocked by: 03
 Implementer: Claude (the user's order 2026-10-03); Reviewer: Codex.
@@ -103,8 +104,9 @@ dark, approved by the user before wiring.
 
 ## Acceptance
 
-- [ ] Approved captures in `../captures/05/`.
-- [ ] Server tests: profile validation, unit preservation, deletion.
+- [x] Approved captures in `../captures/05/` (the user, 2026-10-03; `FloodlightProfileUITests` 4/4, result
+      `prof-all.xcresult`, exit 0 — scratchpad evidence, summarized in Progress).
+- [x] Server tests: profile validation, unit preservation, deletion (`test/profile.test.ts`; 195/195 after round 1).
 - [ ] Prefill works in Ask AI for Templates; no change when signed out.
 - [ ] Targeted unit/UI tests.
 
@@ -144,5 +146,24 @@ server takes it) + `AIRoutineFlowMathTests`: **13/13**. UI regression for the to
 `FloodlightAIRoutineUITests` (AIRoutineSheet's model now comes from `ProfileSample.prefilledRoutineModel()`, a plain
 model without the flag) **8/8** and `FloodlightSettingsUITests` (the Account row slot) **10/10**: one run, 18 UI + 13
 unit, exit 0.
+
+## Codex review 05 — response (round 1)
+
+Report [codex-review-05.md](../codex-review-05.md) (HEAD `5909fe2`): **not clear**, 2 findings + record notes; all
+accepted. Codex reran 190/190 and read the recorded Xcode results (4/4 captures; 31/31 regression).
+1. **P2 inherited unit names; a failed combined PUT renamed anyway** — units are looked up in a `Map` (no inherited
+   `toString`/`constructor`/`__proto__`), and a non-finite converted value is refused; PUT now commits the rename and
+   the training write in **one D1 batch** (the old `setDisplayName` helper is gone). Tests: four inherited names → 400
+   with name and profile unchanged; a training write failing at the database inside the batch → 500 with the old name
+   and profile intact. Mutations: separate writes fail the atomic test; looking units up on a plain object is caught by
+   the finite check too (two guards).
+2. **P3 fractional values rounded in the app** — `BodyMeasure.display` shows values as entered ("82.5 kg",
+   "5 ft 10.5 in", "177.25 cm"); the editor's cm, inches and weight fields take decimals (decimal pad; up to two
+   decimals; comma or point) and keep their own text while typing, so "82." can become "82.5". Tests: display and
+   parse cases (unit); `testEditorKeepsADecimalWeightAsTyped` types 82.5 lb, saves, and finds "82.5 lb" on the page (UI,
+   passed). The captured states show whole numbers and are unchanged.
+- **Parity:** `TrainingProfile.isValid` now matches the server's goal checks (non-blank after trimming, no control
+  characters but tab/newlines, ≤ 1,000 characters); test added. `TrainingProfileTests` **5/5**.
+- **Records:** README intro; acceptance boxes checked with their evidence; STATE refreshed.
 
 ## Comments

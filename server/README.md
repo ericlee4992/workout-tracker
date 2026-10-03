@@ -2,8 +2,8 @@
 
 The app's backend (public beta, D60): a Cloudflare Worker with a D1 database and an R2 bucket. Ticket 03 adds accounts —
 Sign in with Apple, sessions, the profile name, sign-out and account deletion — and placeholder `/privacy` and `/support`
-pages; ticket 07 adds in-app feedback; ticket 06 the AI proxy (server half). Later tickets add Google sign-in (04) and the
-training profile (05).
+pages; ticket 07 adds in-app feedback; ticket 06 the AI proxy (server half); ticket 05 the training profile. Ticket 04
+adds Google sign-in later.
 
 **This repository is public.** Secrets live only in Cloudflare (`wrangler secret put`) and, for local runs, in the
 git-ignored `.dev.vars`. `scripts/check-secrets.sh` (repository root) rejects key-shaped text — PEM keys (also escaped

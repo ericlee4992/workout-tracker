@@ -25,16 +25,20 @@ function invalid(): never {
   throw new AuthError("invalid_training_profile", 400);
 }
 
-function measure(value: unknown, units: Record<string, number>, min: number, max: number): Measure | null {
+function measure(value: unknown, units: ReadonlyMap<string, number>, min: number, max: number): Measure | null {
   if (value === undefined || value === null) return null;
   if (typeof value !== "object" || Array.isArray(value)) invalid();
   const { value: amount, unit } = value as Record<string, unknown>;
-  if (typeof unit !== "string" || !(unit in units)) invalid();
-  if (typeof amount !== "number" || !Number.isFinite(amount)) invalid();
-  const base = amount * units[unit]!;
-  if (base < min || base > max) invalid();
-  return { value: amount, unit };
+  // A Map, not `unit in object`: inherited names (toString, constructor, __proto__) are not units (codex-review-05 #1).
+  const factor = typeof unit === "string" ? units.get(unit) : undefined;
+  if (factor === undefined || typeof amount !== "number" || !Number.isFinite(amount)) invalid();
+  const base = amount * factor;
+  if (!Number.isFinite(base) || base < min || base > max) invalid();
+  return { value: amount, unit: unit as string };
 }
+
+const HEIGHT_UNITS: ReadonlyMap<string, number> = new Map([["cm", 1], ["in", INCH_CM]]);
+const WEIGHT_UNITS: ReadonlyMap<string, number> = new Map([["kg", 1], ["lb", POUND_KG]]);
 
 /** A training profile from a request body, or the reason it is refused. */
 export function cleanTraining(raw: unknown): TrainingProfile {
@@ -47,8 +51,8 @@ export function cleanTraining(raw: unknown): TrainingProfile {
   if (!isInt(body.days, 1, 7) || !isInt(body.minutes, 15, 120)) invalid();
   return {
     goals, experience: body.experience as TrainingProfile["experience"], days: body.days as number, minutes: body.minutes as number,
-    height: measure(body.height, { cm: 1, in: INCH_CM }, 50, 250),
-    weight: measure(body.weight, { kg: 1, lb: POUND_KG }, 20, 400),
+    height: measure(body.height, HEIGHT_UNITS, 50, 250),
+    weight: measure(body.weight, WEIGHT_UNITS, 20, 400),
   };
 }
 
@@ -67,13 +71,13 @@ export async function readTraining(env: Env, accountID: string): Promise<Trainin
   };
 }
 
-/** Saves (or, with null, removes) the account's training profile — only while the account exists. */
-export async function writeTraining(env: Env, deps: Deps, accountID: string, training: TrainingProfile | null) {
-  if (training === null) {
-    await env.DB.prepare("DELETE FROM training_profiles WHERE account_id = ?").bind(accountID).run();
-    return;
-  }
-  const result = await env.DB.prepare(
+/**
+ * The statement that saves (or, with null, removes) the account's training profile — only while the account exists.
+ * Returned, not run, so PUT /v1/profile commits it in one batch with a rename (codex-review-05 #1): both or neither.
+ */
+export function trainingStatement(env: Env, deps: Deps, accountID: string, training: TrainingProfile | null): D1PreparedStatement {
+  if (training === null) return env.DB.prepare("DELETE FROM training_profiles WHERE account_id = ?").bind(accountID);
+  return env.DB.prepare(
     "INSERT INTO training_profiles (account_id, goals, experience, days, minutes, height_value, height_unit, " +
     "weight_value, weight_unit, updated_at) SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10 " +
     "WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?1) " +
@@ -83,6 +87,11 @@ export async function writeTraining(env: Env, deps: Deps, accountID: string, tra
     "updated_at = excluded.updated_at")
     .bind(accountID, training.goals, training.experience, training.days, training.minutes,
       training.height?.value ?? null, training.height?.unit ?? null, training.weight?.value ?? null,
-      training.weight?.unit ?? null, deps.now()).run();
-  if ((result.meta.changes ?? 0) === 0) throw new AuthError("unauthorized", 401);
+      training.weight?.unit ?? null, deps.now());
+}
+
+/** Saves a training profile on its own (tests and future callers); 401 when the account is gone. */
+export async function writeTraining(env: Env, deps: Deps, accountID: string, training: TrainingProfile | null) {
+  const result = await trainingStatement(env, deps, accountID, training).run();
+  if (training !== null && (result.meta.changes ?? 0) === 0) throw new AuthError("unauthorized", 401);
 }

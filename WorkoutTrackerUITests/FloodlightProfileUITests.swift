@@ -110,4 +110,27 @@ final class FloodlightProfileUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1.0)
         pages("profile-askai-\(suffix)", until: any("routineSaveToProfile"), inSheet: true)
     }
+
+    /// codex-review-05 #2: a decimal weight is typed, saved and shown as entered, not rounded.
+    func testEditorKeepsADecimalWeightAsTyped() {
+        launch(appearance: "dark", large: false, flags: ["-uiTestProfileSample"])
+        openSettings()
+        any("settingsAccount").tap()
+        let edit = app.buttons["Edit"].firstMatch
+        XCTAssertTrue(edit.waitForExistence(timeout: 5))
+        edit.tap()
+        let weight = app.textFields["trainingWeight"]
+        XCTAssertTrue(weight.waitForExistence(timeout: 5))
+        for _ in 0..<6 where !onScreen(weight, floor: app.frame.maxY - 20) {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
+        }
+        weight.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 0.8)
+        weight.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 5) + "82.5")
+        XCTAssertEqual(weight.value as? String, "82.5", "the field keeps the decimal while typing")
+        app.buttons["trainingSave"].tap()
+        XCTAssertTrue(app.staticTexts["82.5 lb"].waitForExistence(timeout: 5), "the page shows it as entered")
+    }
 }

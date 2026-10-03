@@ -62,6 +62,11 @@ describe("the training profile", () => {
     ["a weight over 400 kg (900 lb)", { weight: { value: 900, unit: "lb" } }],
     ["a weight of NaN", { weight: { value: "NaN", unit: "kg" } }],
     ["a height without a unit", { height: { value: 180 } }],
+    // Inherited property names are not units (codex-review-05 #1).
+    ["a height in 'toString'", { height: { value: 70, unit: "toString" } }],
+    ["a weight in 'constructor'", { weight: { value: 80, unit: "constructor" } }],
+    ["a height in '__proto__'", { height: { value: 70, unit: "__proto__" } }],
+    ["a weight in 'hasOwnProperty'", { weight: { value: 80, unit: "hasOwnProperty" } }],
   ];
   for (const [name, change] of invalid) {
     it(`refuses ${name}, changing nothing`, async () => {
@@ -81,6 +86,27 @@ describe("the training profile", () => {
     ]) {
       expect((await put({ training: { ...training, ...change } })).status).toBe(200);
     }
+  });
+
+  it("a rename and a training save commit together: a failing write leaves both unchanged", async () => {
+    await put({ displayName: "Before", training });
+    const { createHandler } = await import("../src/index");
+    // The training write fails at the database (a constraint), after the rename statement in the same batch.
+    const failing = { ...h.env, DB: new Proxy(h.env.DB, {
+      get(target, prop) {
+        if (prop === "batch") return async (statements: D1PreparedStatement[]) =>
+          target.batch([...statements, target.prepare("INSERT INTO training_profiles (account_id) VALUES (NULL)")]);
+        const value = Reflect.get(target, prop);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    }) };
+    const response = await createHandler(h.deps)(new Request("https://stacked.test/v1/profile", {
+      method: "PUT", headers: { authorization: `Bearer ${session}`, "content-type": "application/json" },
+      body: JSON.stringify({ displayName: "After", training: { ...training, days: 2 } }),
+    }), failing);
+    expect(response.status).toBe(500);
+    const now = await get();
+    expect([now.displayName, now.training.days]).toEqual(["Before", training.days]);
   });
 
   it("an empty request or a bad name is refused as before", async () => {
