@@ -14,6 +14,8 @@ export interface FakeApple {
   keyFetches: number;
   /** Keys served besides the original (a rotation). */
   extraKeys: JsonWebKey[];
+  /** While set, the key-set response waits for this promise (a slow Apple). */
+  keysGate?: Promise<void>;
   tokenStatus: number;
   revokeStatus: number;
   /** Throw from the revoke endpoint (a network failure / timeout). */
@@ -73,6 +75,7 @@ export async function makeFakeApple(clock: { now: number } = { now: Date.now() }
     const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     if (url === "https://appleid.apple.com/auth/keys") {
       apple.keyFetches++;
+      if (apple.keysGate) await apple.keysGate;
       return Response.json({ keys: [{ ...jwk, kid, alg: "RS256", use: "sig" }, ...apple.extraKeys] });
     }
     const body = new URLSearchParams(String(init?.body ?? ""));

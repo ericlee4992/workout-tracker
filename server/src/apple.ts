@@ -50,6 +50,9 @@ async function fetchKeys(deps: Deps): Promise<JsonWebKey[]> {
 async function appleKeys(deps: Deps, forceRefresh = false): Promise<JsonWebKey[]> {
   const fresh = keyCache && deps.now() - keyCache.fetchedAt < KEY_CACHE_MS;
   if (fresh && !forceRefresh) return keyCache!.keys;
+  // A refresh already running answers everyone waiting for a new key (codex-review-03b #1): join it before the
+  // cooldown would hand back the old set.
+  if (forceRefresh && inflight) return inflight;
   if (fresh && forceRefresh) {
     if (deps.now() - lastForcedRefresh < FORCED_REFRESH_COOLDOWN_MS) return keyCache!.keys;
     lastForcedRefresh = deps.now();

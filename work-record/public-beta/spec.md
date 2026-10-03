@@ -73,9 +73,9 @@ The bundle ID, the stored data and the export format do not change. The App Stor
 - **Delete account** (App Store guideline 5.1.1(v)) is on the profile page, with a confirmation. It deletes
   every server row for the account (profile, training profile, sessions, usage counts, feedback and its
   screenshots) and, for Apple accounts, revokes the Apple tokens through Apple's revoke endpoint, which
-  Apple requires — a revocation that fails is queued (encrypted, unlinked) and retried hourly for up to 30 days; if
-  no token was ever kept, the app tells the user to stop Sign in with Apple in iOS Settings (Apple TN3194). The
-  phone's workouts are not touched, and the confirmation says so.
+  Apple requires — a revocation that fails is queued (encrypted, unlinked) and retried hourly for up to 30 days, and
+  the app then shows the user at once how to stop Sign in with Apple themselves in iOS Settings (Apple TN3194), the same
+  route as when no token was ever kept. The phone's workouts are not touched, and the confirmation says so.
 
 ### Profile page
 

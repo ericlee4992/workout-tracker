@@ -2,7 +2,7 @@ import { AuthError, exchangeAppleCode, revokeAppleToken, verifyAppleIdentityToke
 import { liveDeps, type Deps, type Env } from "./env";
 import { privacyPage, supportPage } from "./pages";
 import {
-  accountForToken, appleIdentityTokens, createOrFindAccount, createSession, decryptToken, deleteAccount, deleteSession,
+  accountForToken, claimDeletion, createOrFindAccount, createSession, decryptToken, deleteSession,
   duePendingRevocations, finishPendingRevocation, findAccountByIdentity, PENDING_MAX_AGE_MS,
   retryPendingRevocationLater, setDisplayName, updateRefreshToken, type Account,
 } from "./store";
@@ -80,16 +80,19 @@ async function signInWithApple(request: Request, env: Env, deps: Deps): Promise<
   const identity = await verifyAppleIdentityToken(String(body.identityToken ?? ""), String(body.nonce ?? ""), env, deps);
   // Fail closed: an account whose Apple tokens cannot be revoked at deletion must not be created (guideline 5.1.1(v)).
   const refreshToken = await exchangeAppleCode(String(body.authorizationCode ?? ""), identity.subject, env, deps);
-  let account = await findAccountByIdentity(env, "apple", identity.subject);
-  if (account) {
-    await updateRefreshToken(env, deps, "apple", identity.subject, refreshToken);
-  } else {
-    // Apple gives the name only on the first authorization, to the app; the app forwards it.
-    const name = cleanName([body.givenName, body.familyName].filter((p) => typeof p === "string").join(" "));
-    account = await createOrFindAccount(env, deps, "apple", identity.subject, name, identity.email, refreshToken);
+  // Apple gives the name only on the first authorization, to the app; the app forwards it.
+  const name = cleanName([body.givenName, body.familyName].filter((p) => typeof p === "string").join(" "));
+  // Twice at most: if the account is deleted between finding it and the session (codex-review-03b #3), the second
+  // pass finds nothing and makes a new account holding this sign-in's token — the deletion stays complete.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    let account = await findAccountByIdentity(env, "apple", identity.subject);
+    if (!account || !(await updateRefreshToken(env, deps, "apple", identity.subject, refreshToken))) {
+      account = await createOrFindAccount(env, deps, "apple", identity.subject, name, identity.email, refreshToken);
+    }
+    const session = await createSession(env, deps, account.id);
+    if (session) return json({ session: session.token, expiresAt: session.expiresAt, profile: profile(account) });
   }
-  const session = await createSession(env, deps, account.id);
-  return json({ session: session.token, expiresAt: session.expiresAt, profile: profile(account) });
+  throw new AuthError("try_again", 409);
 }
 
 async function authenticated(request: Request, env: Env, deps: Deps) {
@@ -100,22 +103,26 @@ async function authenticated(request: Request, env: Env, deps: Deps) {
 }
 
 /**
- * Account deletion (guideline 5.1.1(v); codex-review-03 #5). Every account row goes now, in one batch, whatever Apple
- * answers. Apple's tokens are revoked first; one that cannot be revoked now (Apple down, a timeout, the key missing or
- * wrong) is queued — encrypted, unlinked — and retried hourly. `appleRevocation`: "done", "pending" (queued; the app
- * says so), or "manual" (no token was ever kept: the user stops Sign in with Apple in iOS Settings, Apple TN3194).
+ * Account deletion (guideline 5.1.1(v); codex-review-03 #5, 03b #2–#4). One transaction claims it: every current Apple
+ * token moves to the revocation queue and every account row is deleted. Then each queued token is revoked now; a
+ * success leaves the queue, a failure stays for the hourly retry. `appleRevocation`:
+ * - "done": Apple accepted every token;
+ * - "pending": at least one is queued. The app tells the user deletion is complete and Apple's access is being removed,
+ *   and — because a retry can still fail for good — how to stop it themselves at once: iOS Settings → Apple Account →
+ *   Sign in with Apple → Stacked (Apple TN3194);
+ * - "manual": an identity never kept a token; only that iOS Settings route remains.
+ * Returns null when another request deleted the account first.
  */
 export async function deleteAccountRevokingApple(env: Env, deps: Deps, accountID: string) {
-  const sealed = await appleIdentityTokens(env, accountID);
-  const unrevoked: string[] = [];
-  let missing = false;
-  for (const token of sealed) {
-    if (token === null) { missing = true; continue; }
-    const plain = await decryptToken(env, token);
-    if (plain === null || !(await revokeAppleToken(plain, env, deps))) unrevoked.push(token);
+  const claim = await claimDeletion(env, deps, accountID);
+  if (!claim.won) return null;
+  let pending = 0;
+  for (const sealed of claim.queued) {
+    const plain = await decryptToken(env, sealed);
+    if (plain !== null && (await revokeAppleToken(plain, env, deps))) await finishPendingRevocation(env, sealed);
+    else pending++;
   }
-  await deleteAccount(env, deps, accountID, unrevoked);
-  const appleRevocation = missing ? "manual" : unrevoked.length > 0 ? "pending" : "done";
+  const appleRevocation = claim.missing > 0 ? "manual" : pending > 0 ? "pending" : "done";
   return { deleted: true, appleRevocation };
 }
 
@@ -126,11 +133,12 @@ export async function runPendingRevocations(env: Env, deps: Deps) {
   for (const row of await duePendingRevocations(env, now)) {
     const plain = await decryptToken(env, row.token_enc);
     if (plain !== null && (await revokeAppleToken(plain, env, deps))) {
-      await finishPendingRevocation(env, row.token_hash);
+      await finishPendingRevocation(env, row.token_enc);
       revoked++;
     } else if (now - row.created_at >= PENDING_MAX_AGE_MS) {
-      // Apple refresh tokens are long gone by then too; the user's fallback is iOS Settings (TN3194).
-      await finishPendingRevocation(env, row.token_hash);
+      // Bounded retention: Apple refresh tokens stay valid until revoked, so this one may still be live. The user was
+      // told at deletion ("pending") how to stop Sign in with Apple in iOS Settings (TN3194); that is the remedy now.
+      await finishPendingRevocation(env, row.token_enc);
       abandoned++;
     } else {
       await retryPendingRevocationLater(env, now, row);
@@ -170,7 +178,9 @@ export function createHandler(deps: Deps) {
         }
         case "DELETE /v1/account": {
           const { account } = await authenticated(request, env, deps);
-          return json(await deleteAccountRevokingApple(env, deps, account.id));
+          const outcome = await deleteAccountRevokingApple(env, deps, account.id);
+          // Lost a race with another deletion of the same account: that request reports the real outcome.
+          return outcome ? json(outcome) : failure("deletion_in_progress", 409);
         }
         default:
           return failure("not_found", 404);

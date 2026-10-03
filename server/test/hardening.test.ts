@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { FORCED_REFRESH_COOLDOWN_MS } from "../src/apple";
 import { base64UrlEncode, sha256Hex, utf8 } from "../src/crypto";
 import { runPendingRevocations } from "../src/index";
-import { createAccount, createOrFindAccount, PENDING_MAX_AGE_MS } from "../src/store";
+import { deleteAccountRevokingApple } from "../src/index";
+import { claimDeletion, createAccount, createOrFindAccount, createSession, decryptToken, PENDING_MAX_AGE_MS,
+         updateRefreshToken } from "../src/store";
 import { CLIENT_ID, count, harness, NONCE, type Harness } from "./helpers";
 
 // codex-review-03: one block per finding.
@@ -98,6 +100,32 @@ describe("#3 unknown key IDs cannot make the server hammer Apple", () => {
     expect(h.apple.keyFetches - warm).toBe(1);
   });
 
+  it("requests waiting for a rotated key all join the one refresh in flight (03b #1)", async () => {
+    await h.signIn();
+    const warm = h.apple.keyFetches;
+    const rotated = await h.apple.rotatedKey();
+    h.apple.extraKeys.push(rotated.jwk);
+    let release!: () => void;
+    h.apple.keysGate = new Promise((resolve) => { release = resolve; });
+    const now = Math.floor(h.clock.now / 1000);
+    const token = async () => {
+      const claims = { iss: "https://appleid.apple.com", aud: CLIENT_ID, iat: now, exp: now + 600, sub: "001234.apple-user",
+                       nonce: await sha256Hex(NONCE) };
+      const enc = (v: unknown) => base64UrlEncode(utf8(JSON.stringify(v)));
+      const input = `${enc({ alg: "RS256", kid: rotated.kid })}.${enc(claims)}`;
+      const sig = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5", rotated.privateKey, utf8(input)));
+      return `${input}.${base64UrlEncode(sig)}`;
+    };
+    const requests = [1, 2, 3].map(async () => h.call("POST", "/v1/auth/apple", {
+      body: { identityToken: await token(), authorizationCode: h.apple.issueCode("001234.apple-user"), nonce: NONCE } }));
+    await new Promise((r) => setTimeout(r, 50));
+    h.apple.keysGate = undefined;
+    release();
+    const statuses = (await Promise.all(requests)).map((r) => r.status);
+    expect(statuses).toEqual([200, 200, 200]);
+    expect(h.apple.keyFetches - warm).toBe(1);
+  });
+
   it("still picks up a rotated Apple key after the cooldown", async () => {
     await h.signIn();
     const rotated = await h.apple.rotatedKey();
@@ -174,12 +202,51 @@ describe("#5 deletion survives Apple being down", () => {
     expect(await (await h.call("DELETE", "/v1/account", { token: session })).json()).toEqual({ deleted: true, appleRevocation: "manual" });
   });
 
-  it("two simultaneous deletions leave nothing behind and queue nothing twice", async () => {
+  it("two simultaneous deletions: one reports the real outcome, the other never claims success (03b #2)", async () => {
     const { session } = await h.signIn();
     h.apple.revokeStatus = 500;
     const results = await Promise.all([1, 2].map(() => h.call("DELETE", "/v1/account", { token: session })));
-    expect(results.some((r) => r.status === 200)).toBe(true);
+    const bodies = await Promise.all(results.map(async (r) => ({ status: r.status, body: await r.json() })));
+    const winners = bodies.filter((b) => b.status === 200);
+    expect(winners).toEqual([{ status: 200, body: { deleted: true, appleRevocation: "pending" } }]);
+    for (const other of bodies.filter((b) => b.status !== 200)) {
+      expect([401, 409]).toContain(other.status);
+      expect(JSON.stringify(other.body)).not.toContain("done");
+    }
     expect([await count("accounts"), await count("identities"), await count("sessions"), await count("pending_revocations")])
       .toEqual([0, 0, 0, 1]);
+  });
+
+  it("a deletion that loses the claim reports the race, not success (03b #2, deterministic)", async () => {
+    const { profile } = await h.signIn();
+    const accountID = (await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>())!.id;
+    expect(profile).toBeTruthy();
+    h.apple.revokeStatus = 500;
+    expect(await deleteAccountRevokingApple(h.env, h.deps, accountID)).toEqual({ deleted: true, appleRevocation: "pending" });
+    expect(await deleteAccountRevokingApple(h.env, h.deps, accountID)).toBeNull();
+  });
+
+  it("a newer token stored before the claim is the one queued (03b #3: read T1, write T2, fail)", async () => {
+    await h.signIn();
+    const accountID = (await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>())!.id;
+    await updateRefreshToken(h.env, h.deps, "apple", "001234.apple-user", "refresh-NEW");
+    h.apple.revokeStatus = 500;
+    await deleteAccountRevokingApple(h.env, h.deps, accountID);
+    const queued = await env.DB.prepare("SELECT token_enc FROM pending_revocations").all<{ token_enc: string }>();
+    expect(await Promise.all(queued.results.map((r) => decryptToken(h.env, r.token_enc)))).toEqual(["refresh-NEW"]);
+  });
+
+  it("a sign-in after the claim cannot write into the deleted account; it gets a new one (03b #3)", async () => {
+    await h.signIn();
+    const accountID = (await env.DB.prepare("SELECT id FROM accounts").first<{ id: string }>())!.id;
+    expect((await claimDeletion(h.env, h.deps, accountID)).won).toBe(true);
+    expect(await updateRefreshToken(h.env, h.deps, "apple", "001234.apple-user", "refresh-LATE")).toBe(false);
+    expect(await createSession(h.env, h.deps, accountID)).toBeNull();
+    h.apple.nextRefreshToken = "refresh-LATE";
+    const again = await h.signIn();
+    expect(again.session).toBeTruthy();
+    const accounts = await env.DB.prepare("SELECT id FROM accounts").all<{ id: string }>();
+    expect(accounts.results.map((a) => a.id)).not.toContain(accountID);
+    expect(accounts.results.length).toBe(1);
   });
 });

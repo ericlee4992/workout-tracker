@@ -27,10 +27,14 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
 - **Sign-in fails closed:** the identity token Apple returns from the code exchange must name the same user as the
   sign-in's identity token, or nothing is created (`code_identity_mismatch`); if the server cannot exchange the code
   or keep the token, no account is created.
-- **Deletion:** every account row goes at once. Apple's tokens are revoked first; one that cannot be revoked now (Apple
-  down, a timeout, the key unavailable) is queued in `pending_revocations` — encrypted, linked to no account — and the
-  hourly cron retries it with backoff for up to 30 days (`"pending"`). `"manual"` means no token was kept: the user
-  stops Sign in with Apple in iOS Settings → Apple Account → Sign in with Apple (Apple TN3194); the app says so.
+- **Deletion:** one transaction claims it — every current Apple token moves to `pending_revocations` (encrypted, linked
+  to no account) and every account row is deleted, so a concurrent sign-in or second deletion cannot slip past it — then
+  each token is revoked and leaves the queue. One that cannot be revoked now (Apple down, a timeout, the key unavailable)
+  stays; the hourly cron retries it with backoff and drops it after 30 days (bounded retention; Apple tokens stay valid
+  until revoked, so a dropped one may still be live). Answers: `"done"`; `"pending"` — **the app then tells the user,
+  at once, how to stop it themselves**: iOS Settings → Apple Account → Sign in with Apple → Stacked (Apple TN3194);
+  `"manual"` — no token was ever kept, only that route. A deletion that lost the race to another gets `409
+  deletion_in_progress` (never a made-up outcome); a sign-in that lands after the claim gets a new account.
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB; Apple's key set is cached for
   an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
 - Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.

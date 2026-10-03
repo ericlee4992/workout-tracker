@@ -7,7 +7,7 @@
 set -euo pipefail
 mode="${1:---staged}"
 detectors=(
-  "private-key|-----BEGIN [A-Z ]*PRIVATE KEY-----([[:space:]]*\$|\\\\n[A-Za-z0-9+/=]{16,}|[A-Za-z0-9+/=]{40,})"
+  "private-key|-----BEGIN [A-Z ]*PRIVATE KEY-----([[:space:]]*\$|(\\\\r)?\\\\n[A-Za-z0-9+/=]{16,}|[[:space:]]*[A-Za-z0-9+/=]{40,})"
   "sk-api-key|(^|[^A-Za-z0-9_-])sk-[A-Za-z0-9_-]{20,}"
   "aws-key|(^|[^A-Za-z0-9])AKIA[0-9A-Z]{16}"
   "github-token|(^|[^A-Za-z0-9])gh[pousr]_[A-Za-z0-9]{30,}"
@@ -18,14 +18,17 @@ found=0
 # One `git grep` per detector over every file at once. `--cached` reads the staged (index) version of each file, so
 # the pre-commit check sees exactly what will be committed — whole files, no diff parsing (codex-review-03 #7).
 scan() {  # args: extra git-grep options and pathspecs
-  local entry name regex hit
+  local entry name regex hit out rc
   for entry in "${detectors[@]}"; do
     name="${entry%%|*}"; regex="${entry#*|}"
+    # Literal pathspecs: a staged file named like ":(glob)x" is that file, not a pattern (codex-review-03b #6).
+    if out=$(git --literal-pathspecs grep -nIE -e "$regex" "$@" 2>/dev/null); then rc=0; else rc=$?; fi
+    if [[ $rc -gt 1 ]]; then echo "check-secrets: git grep failed ($rc) — refusing rather than reporting clean" >&2; exit 2; fi
     while IFS= read -r hit; do
       [[ -n "$hit" ]] || continue
       echo "  ${hit}  [$name]" >&2   # FILE:LINE only — the matched text is never printed (codex-review-03 #8)
       found=1
-    done < <(git grep -nIE -e "$regex" "$@" 2>/dev/null | cut -d: -f1,2 || true)
+    done < <(printf '%s\n' "$out" | cut -d: -f1,2)
   done
 }
 

@@ -127,6 +127,34 @@ Review: [codex-review-03.md](../codex-review-03.md) — not clear (P1 ×2, P2 ×
 **Evidence after the fixes:** `tsc --noEmit` exit 0; `vitest run` **42/42** (26 + 16 in `test/hardening.test.ts`);
 mutations as above; `scripts/test-check-secrets.sh` exit 0 (12/12); `scripts/check-secrets.sh --all` clean.
 
+## Codex review 03b — response (round 2)
+
+Review: [codex-review-03b.md](../codex-review-03b.md) — round-1 #1, #2, #4, #7, #8 resolved; #3, #5, #6 partly; six
+findings. All accepted.
+
+1. **P2 rotation waiters** — `appleKeys`: a forced refresh joins the one in flight before the cooldown applies. Test:
+   the key-set response held open while three valid rotated-key sign-ins arrive → all 200 on exactly one fetch.
+   Mutation: removing the join fails exactly that test.
+2. **P2 concurrent deletion reporting "done"** and 3. **P2 sign-in during deletion** — deletion is now *claimed* in one
+   D1 transaction (`claimDeletion`): read the current Apple tokens, `INSERT … SELECT` them into the queue, delete sessions,
+   identities, the account; `won` = the account row was deleted by this request. Revocation happens after, removing each
+   success from the queue. A losing deletion returns `409 deletion_in_progress`. Sign-in: `updateRefreshToken` and
+   `createSession` report whether the identity / account still exist (`INSERT … WHERE EXISTS`); if not, the sign-in
+   makes a new account (twice at most, then `409 try_again`). Migration 0002 reshaped (not deployed anywhere):
+   `token_enc` is the key. Tests: simultaneous deletions → exactly one 200 "pending", the other 401/409 without "done";
+   the deterministic loser → null; a newer token written before the claim is the one queued; after the claim the token
+   update and session insert refuse and a new sign-in gets a new account.
+4. **P2 the 30-day drop** — the contract now makes manual recovery part of `"pending"`: the app shows the iOS Settings
+   route (TN3194) at once (README, spec, the handler's doc comment); the wrong "tokens long gone" comment is corrected
+   (Apple tokens stay valid until revoked). The terminal drop remains bounded retention, now stated as such.
+5. **P2 escaped CRLF PEM** — the PEM detector accepts `\r\n` as well as `\n` after the header (and whitespace before
+   inline base64). Test case added (a JSON `APPLE_PRIVATE_KEY` with an escaped-CRLF key).
+6. **P3 pathspec magic** — `git --literal-pathspecs grep`, and a `git grep` failure (exit > 1) now refuses (exit 2)
+   instead of reporting clean. Test: a staged file named `:(glob)abc.txt` holding a key is caught; the previous scanner
+   (`f1e20de`) exits 0 on the same case.
+
+**Evidence:** `tsc` exit 0; `vitest` **46/46**; `scripts/test-check-secrets.sh` **14/14**; `--all` clean.
+
 ## Acceptance
 
 - [ ] Server tests green; `wrangler dev` smoke from the Simulator: sign in, rename, sign out, delete.
