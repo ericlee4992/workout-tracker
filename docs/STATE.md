@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-10-03** (late) after the session that did tickets 07, 06's server half, 05's mock + server side and the 08 policy draft.
+Updated **2026-10-10** (re-sign + live-workout fixes session; see *NOW* below). Before that: 2026-10-03, after tickets 07, 06's server half, 05's mock + server side and the 08 policy draft.
 The previous STATE (the per-ticket
 redesign handoff, the September 22 installation, the AI/cardio open items) is archived byte-for-byte:
 [STATE before Floodlight merge](archive/STATE-2026-09-29-before-floodlight-merge.md). Verify Git on resume.
@@ -31,6 +31,33 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   change was the user's own gym pick (Noyes Fitness Center → 312 College Ave), confirmed by the user. The schema
   is unchanged. Older backups (Sep 17/18/20/22) remain.
 - Phone: iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
+
+## NOW (2026-10-10): re-sign the phone + two live-workout fixes
+
+- **Apple has not approved** (the user, 2026-10-10). Free profiles expired 2026-10-09 03:52 EDT (checked: both
+  local profiles carry that date; Xcode shows only the Personal Team identity). **Re-sign in progress, blocked on a USB
+  cable:** the phone is paired over Wi-Fi only; `devicectl device copy from` failed twice ("connection to the remote
+  device is no longer valid", CoreDeviceError -1) while a process query succeeded (no app process). Nothing captured,
+  built for device or installed yet. Backup folder `~/WorkoutTracker-Backups/2026-10-10-resign/` (0700) holds only the
+  logs of those attempts. Plan: Gate S adapted — the expired app cannot launch, so no in-app JSON export: two
+  captures (`--expect`), `compare_stores.py` against `2026-10-02-phase-a/after-renewal` (every old row kept; rows added
+  since Oct 2 listed), round trip on WT-Backup-01; then profiles aside, a build for the connected phone with
+  `-allowProvisioningUpdates -allowProvisioningDeviceRegistration`, check both new expiries, install, the user may need
+  to re-trust the developer app, launch, close, capture, compare. Build source: scratch checkout `/tmp/wt-resign`
+  (detached at `b83cf39`, the installed code, `Local.xcconfig` copied) — or `main` with the fixes below if the user
+  approves merging them first.
+- **[live-workout-fixes](../work-record/live-workout-fixes/issues/)** (the user's two requests, options chosen by the user):
+  - **01 weight box** — branch `ericlee4992/live-01-weight-unit` (this checkout): the unit is a label; `lb | kg` moves
+    to the keyboard bar. Targeted UI 17/17 + 1/1; **Codex clear (round 2)**; advisory test tweak confirmed in review 02.
+    Waiting for the user's go-ahead to merge.
+  - **02 Cancel top left** — branch `ericlee4992/live-02-discard-top-left`, scratch checkout `/tmp/wt-live02`: red Cancel
+    beside minimize, Discard row removed. Targeted UI 8/8 + 2/2. **Codex review 02 not clear: P2 waits for the user** —
+    Claude showed a trash symbol instead of the word at accessibility text sizes (the word truncated the title); the
+    user rejected a trash icon as the main design, so the user must accept or decline that exception (or ask for a
+    reflowed title). Then round 2 in the same Codex terminal (`term_4ce49246…`, Orca, this worktree).
+  - Simulator for these runs: **WT-Floodlight** `9E822EF6…` (iOS 27). `WT-iPhone` (DEVELOPMENT's example) is iOS 26.5
+    and no longer matches the destination. One `xcodebuild test` hung ~9 min after its test passed (stopped; recorded
+    in ticket 01).
 
 ## ACTIVE: public beta ("Stacked") — handoff of 2026-10-03
 
