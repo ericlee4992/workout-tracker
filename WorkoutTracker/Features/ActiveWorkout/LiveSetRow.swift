@@ -130,6 +130,9 @@ struct LiveSetRow: View {
         .toolbar {
             if focusedField != nil {
                 ToolbarItemGroup(placement: .keyboard) {
+                    // The unit switch lives here, not in the box: inside it, its 44 pt target
+                    // took taps meant for the field (live-workout-fixes 01).
+                    if focusedField == .weight { keyboardUnitPicker }
                     Spacer()
                     Button("Done") { focusedField = nil }
                         .accessibilityIdentifier("keyboardDone")
@@ -272,22 +275,20 @@ struct LiveSetRow: View {
                     .foregroundStyle(look.textPrimary)
                     .tint(look.actionText)
                     .accessibilityIdentifier("setRow.weight")
-                Button { toggleUnit() } label: {
-                    Text(unit.label)
-                        .font(.system(.caption, weight: .semibold))
-                        .foregroundStyle(look.unit(unit))
-                        // A full 44 pt target of its own; the rest of the box focuses the field.
-                        .frame(minWidth: 44, minHeight: 44, alignment: .leading)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                // The unit follows the selected bar; input remains plates per side.
-                .disabled(barWeight != nil)
-                .accessibilityIdentifier("setRow.unit")
-                .accessibilityLabel(unit.label)
-                .accessibilityHint(barWeight == nil ? "Switches the unit" : "The unit follows the bar. Change the bar to log in the other unit.")
+                    // VoiceOver reaches the switch without the keyboard bar; in bar mode the
+                    // unit follows the bar (D40), so there is no action to offer.
+                    .accessibilityActions {
+                        if barWeight == nil {
+                            Button("Switch to \(unit.toggled.label)") { toggleUnit() }
+                        }
+                    }
+                // A label, not a control: every tap in the box focuses the field. The switch
+                // is in the keyboard bar while this field is edited.
+                Text(unit.label)
+                    .font(.system(.caption, weight: .semibold))
+                    .foregroundStyle(look.unit(unit))
+                    .accessibilityIdentifier("setRow.unit")
             }
-            .padding(.leading, 6)
             .frame(maxWidth: .infinity, minHeight: 44)
             .background { SetFieldBackground(style: fieldStyle(hasValue: !weightText.isEmpty), stamp: stamp).padding(.vertical, 2) }
             .contentShape(Rectangle())
@@ -315,6 +316,22 @@ struct LiveSetRow: View {
             .frame(maxWidth: .infinity, minHeight: 44)
             .background { SetFieldBackground(style: fieldStyle(hasValue: !repsText.isEmpty), stamp: stamp).padding(.vertical, 2) }
             .accessibilityIdentifier("setRow.reps")
+    }
+
+    /// The focused weight field's unit, in the keyboard bar. Choosing the other unit is the old
+    /// toggle — the number is re-read in that unit, never converted (D9/D25); a bar fixes it (D40).
+    private var keyboardUnitPicker: some View {
+        Picker("Unit", selection: Binding(
+            get: { unit },
+            set: { if $0 != unit { toggleUnit() } }
+        )) {
+            ForEach(WeightUnit.allCases.reversed()) { Text($0.label).tag($0) }
+        }
+        .pickerStyle(.segmented)
+        .fixedSize()
+        .disabled(barWeight != nil)
+        .accessibilityIdentifier("keyboardUnit")
+        .accessibilityHint(barWeight == nil ? "" : "The unit follows the bar. Change the bar to log in the other unit.")
     }
 
     /// Bar mode: the running total before logging ("= 135 lb"), or the bar alone.

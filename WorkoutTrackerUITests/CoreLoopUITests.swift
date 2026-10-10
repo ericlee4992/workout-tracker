@@ -48,11 +48,17 @@ final class CoreLoopUITests: XCTestCase {
         reps.tap()
         reps.typeText("10")
 
-        // Unit chip: the gym default is kg; one tap makes this set lb.
-        let unitChip = app.buttons["setRow.unit"].firstMatch
-        XCTAssertEqual(unitChip.label, "kg", "Gym default unit should seed the set")
-        unitChip.tap()
-        XCTAssertEqual(unitChip.label, "lb", "Tapping the unit chip should switch the set to lb")
+        // The gym default is kg. The unit sits in the weight box as a label: a tap there edits
+        // the weight and never switches the unit (live-workout-fixes 01).
+        let unitLabel = app.staticTexts["setRow.unit"].firstMatch
+        XCTAssertEqual(unitLabel.label, "kg", "Gym default unit should seed the set")
+        unitLabel.tap()
+        XCTAssertEqual(unitLabel.label, "kg", "A tap in the weight box must not switch the unit")
+        // The switch is in the keyboard bar while the weight is edited; one tap makes this set lb.
+        let unitSwitch = app.segmentedControls["keyboardUnit"]
+        XCTAssertTrue(unitSwitch.waitForExistence(timeout: 5), "Tapping the unit should edit the weight")
+        unitSwitch.buttons["lb"].tap()
+        XCTAssertEqual(unitLabel.label, "lb", "The keyboard bar's switch should switch the set to lb")
 
         let complete = app.buttons["setRow.complete"].firstMatch
         complete.tap()
@@ -90,7 +96,7 @@ final class CoreLoopUITests: XCTestCase {
             value(of: app.textFields["setRow.reps"].firstMatch), "10",
             "Prefill should populate the reps field")
         XCTAssertEqual(
-            app.buttons["setRow.unit"].firstMatch.label, "lb",
+            app.staticTexts["setRow.unit"].firstMatch.label, "lb",
             "Prefill should keep the unit as entered last time")
 
         // The one-tap guarantee: an untouched prefilled row is logged by a
@@ -299,7 +305,8 @@ final class CoreLoopUITests: XCTestCase {
         let reps = app.textFields["setRow.reps"].firstMatch
         reps.tap()
         reps.typeText("12")
-        app.buttons["setRow.unit"].firstMatch.tap() // kg → lb, as entered
+        weight.tap()
+        app.segmentedControls["keyboardUnit"].buttons["lb"].tap() // kg → lb, as entered
         app.buttons["setRow.complete"].firstMatch.tap()
 
         app.buttons["addSet"].firstMatch.tap()
@@ -316,7 +323,7 @@ final class CoreLoopUITests: XCTestCase {
             "12",
             "The new set should inherit the last completed set's reps")
         XCTAssertEqual(
-            app.buttons.matching(identifier: "setRow.unit").element(boundBy: 1).label, "lb",
+            app.staticTexts.matching(identifier: "setRow.unit").element(boundBy: 1).label, "lb",
             "The new set should inherit the unit as entered")
 
         // Populated but uncompleted: one tap logs it, no typing.

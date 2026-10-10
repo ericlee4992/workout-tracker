@@ -39,16 +39,18 @@ final class BarbellUITests: XCTestCase {
         XCTAssertTrue(olympic.waitForExistence(timeout: 5))
         olympic.tap()
 
-        // D40: the row follows the bar into lb, and the unit badge stops being
+        // D40: the row follows the bar into lb, and the unit switch stops being
         // a tap that could reinterpret a 45 lb bar as 45 kg.
-        let unit = app.buttons["setRow.unit"].firstMatch
+        let unit = app.staticTexts["setRow.unit"].firstMatch
         XCTAssertTrue(unit.waitForExistence(timeout: 5))
         XCTAssertEqual(unit.label, "lb", "Picking an lb bar should put the row in lb")
-        XCTAssertFalse(unit.isEnabled, "The unit follows the bar in bar mode")
 
         let weight = app.textFields["setRow.weight"].firstMatch
         XCTAssertTrue(weight.waitForExistence(timeout: 5))
         weight.tap()
+        let unitSwitch = app.segmentedControls["keyboardUnit"]
+        XCTAssertTrue(unitSwitch.waitForExistence(timeout: 5))
+        XCTAssertFalse(unitSwitch.isEnabled, "The unit follows the bar in bar mode")
         weight.typeText("45")
 
         // The arithmetic the feature removes, shown before the set is logged.
@@ -126,7 +128,7 @@ final class BarbellUITests: XCTestCase {
         // old lb plate text before it can be recommitted as kg.
         chooseBar(identifier: "barOption.womens-15kg")
 
-        XCTAssertEqual(app.buttons["setRow.unit"].firstMatch.label, "kg")
+        XCTAssertEqual(app.staticTexts["setRow.unit"].firstMatch.label, "kg")
         XCTAssertTrue(
             ["", "–"].contains(weight.value as? String ?? "<missing>"),
             "lb plates must not survive as kg when equal-valued bars are switched")

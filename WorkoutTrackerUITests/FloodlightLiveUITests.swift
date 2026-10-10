@@ -38,6 +38,28 @@ final class FloodlightLiveUITests: XCTestCase {
         shoot("floodlight-03-live-\(appearance)-\(large ? "axl" : "default")")
     }
 
+    // MARK: live-workout-fixes 01 — the unit switch in the keyboard bar
+
+    func testCaptureWeightKeyboardLight() { captureWeightKeyboard("light", large: false) }
+    func testCaptureWeightKeyboardDark() { captureWeightKeyboard("dark", large: false) }
+    func testCaptureWeightKeyboardLightAccessibility() { captureWeightKeyboard("light", large: true) }
+
+    /// Set 3's draft weight being edited: a tap on its unit focuses the field, and the keyboard
+    /// bar carries lb | kg beside Done.
+    private func captureWeightKeyboard(_ appearance: String, large: Bool) {
+        launch(["-appearance", appearance]
+               + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : []))
+        let unit = app.staticTexts.matching(identifier: "setRow.unit").element(boundBy: 2)
+        XCTAssertTrue(unit.waitForExistence(timeout: 5))
+        let before = unit.label
+        unit.tap()
+        XCTAssertTrue(app.segmentedControls["keyboardUnit"].waitForExistence(timeout: 5),
+                      "a tap on the unit edits the weight")
+        XCTAssertEqual(unit.label, before, "a tap in the weight box never switches the unit")
+        Thread.sleep(forTimeInterval: 1)
+        shoot("live-fixes-01-weight-keyboard-\(appearance)-\(large ? "axl" : "default")")
+    }
+
     // MARK: Codex review 03 regressions
 
     private func any(_ id: String) -> XCUIElement {
