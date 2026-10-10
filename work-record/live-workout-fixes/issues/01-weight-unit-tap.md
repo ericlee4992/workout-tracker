@@ -1,7 +1,7 @@
 # 01 — The weight box's unit switch steals taps
 
 Type: task
-Status: implemented; targeted UI tests green (17/17); captures looked at; Codex review next
+Status: implemented; targeted UI tests green; Codex review 01 not clear (2 × P3, records) → fixed; round 2 next
 Blocked by: —
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/live-01-weight-unit` off `main`.
@@ -64,9 +64,29 @@ AccessibilityL). No domain logic changed (`toggleUnit`/`WorkoutSession` untouche
 - **Targeted UI run 2026-10-10** on WT-Floodlight (`9E822EF6…`, iPhone 15 Pro Max, iOS 27.0; `WT-iPhone` is on iOS 26.5
   and no longer matches the scheme's destination — DEVELOPMENT's example name is stale): `xcodebuild test` exit 0,
   `** TEST SUCCEEDED **`, xcresult summary **Passed, 17 passed / 0 failed / 0 skipped** — `BarbellUITests` (2),
-  the two `CoreLoopUITests` above, `FloodlightLiveUITests` (14, incl. the 3 new captures). Build part of the same run.
-- **Captures** (`live-fixes-01-weight-keyboard-{light,dark}-default`, `…-light-axl`; existing
-  `floodlight-03-live-*`): looked at. A tap on set 3's "lb" puts the caret in `110|lb`, the unit stays lb, and the
+  the two `CoreLoopUITests` above, `FloodlightLiveUITests` (13, incl. the 3 new captures). Build part of the same run.
+  Tested code `dfc86f4`. Result `…/scratchpad/live01/r1.xcresult`, log `r1.log`, status `r1.status` (session scratchpad,
+  ephemeral; the counts above are the record).
+- **Captures** ([light default](../captures/01/live-fixes-01-weight-keyboard-light-default.png),
+  [dark default](../captures/01/live-fixes-01-weight-keyboard-dark-default.png),
+  [light AccessibilityL](../captures/01/live-fixes-01-weight-keyboard-light-axl.png); existing `floodlight-03-live-*`
+  regenerated in the same run): looked at. A tap on set 3's "lb" puts the caret in `110|lb`, the unit stays lb, and the
   keyboard bar shows `lb | kg` (lb selected) left and Done right; the box's "110 lb" is centred. At AccessibilityL the
   two-line row is unchanged and the bar fits. The Simulator hides the software keyboard (hardware keyboard), so the
   bar floats at the bottom; on a phone the number pad sits under it.
+
+## Codex review 01 — response (round 1)
+
+Review: [codex-review-01.md](../codex-review-01.md) — not clear, two P3 record findings; no product defect.
+
+1. **P3 test breakdown** — 14 → 13 `FloodlightLiveUITests` (17 total was right). Fixed above.
+2. **P3 captures not preserved** — the three PNGs are now in [`captures/01/`](../captures/01/) and linked; the result,
+   log, status paths and tested commit are recorded.
+
+The review also listed runtime cases the tests did not cover (not findings). Added
+`FloodlightLiveUITests/testTheKeyboardUnitSwitchFollowsTheFocusedWeight`: switching kg mid-typing keeps "12" (no
+conversion) and the focus (typing "0" gives "120"); focusing reps removes the switch; focusing another row's weight
+shows exactly one switch, with that row's unit (lb) selected, and the switched row keeps kg. Run on WT-Floodlight:
+exit 0, `** TEST SUCCEEDED **`, xcresult **Passed 1/0/0** (`…/scratchpad/live01/r2.xcresult`). Not covered by a test:
+deleting the focused row (source: the toolbar belongs to the row's view and goes with it; `toggleUnit` and the
+commits guard `set.isDeleted`), and VoiceOver/Switch Control discovery by a person.

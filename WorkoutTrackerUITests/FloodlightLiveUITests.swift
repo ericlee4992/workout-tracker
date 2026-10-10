@@ -60,6 +60,35 @@ final class FloodlightLiveUITests: XCTestCase {
         shoot("live-fixes-01-weight-keyboard-\(appearance)-\(large ? "axl" : "default")")
     }
 
+    /// Codex review live-01: switching mid-typing keeps the typed number and the focus (typing
+    /// continues), the switch leaves with the weight's focus, and only the focused row's switch
+    /// shows — with that row's unit.
+    func testTheKeyboardUnitSwitchFollowsTheFocusedWeight() {
+        launch()
+        let weights = app.textFields.matching(identifier: "setRow.weight")
+        let units = app.staticTexts.matching(identifier: "setRow.unit")
+        let unitSwitch = app.segmentedControls["keyboardUnit"]
+        let draft = weights.element(boundBy: 2)
+        XCTAssertTrue(draft.waitForExistence(timeout: 5))
+        draft.coordinate(withNormalizedOffset: CGVector(dx: 0.97, dy: 0.5)).tap()
+        draft.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 4) + "12")
+        XCTAssertTrue(unitSwitch.waitForExistence(timeout: 5))
+        unitSwitch.buttons["kg"].tap()
+        XCTAssertEqual(units.element(boundBy: 2).label, "kg")
+        XCTAssertEqual(draft.value as? String, "12", "the typed number is kept, not converted")
+        draft.typeText("0")
+        XCTAssertEqual(draft.value as? String, "120", "the field keeps its focus after the switch")
+
+        app.textFields.matching(identifier: "setRow.reps").element(boundBy: 2).tap()
+        XCTAssertFalse(unitSwitch.waitForExistence(timeout: 2), "the switch belongs to the weight field")
+
+        weights.element(boundBy: 1).tap()
+        XCTAssertTrue(unitSwitch.waitForExistence(timeout: 5))
+        XCTAssertEqual(app.segmentedControls.matching(identifier: "keyboardUnit").count, 1, "one row's switch at a time")
+        XCTAssertTrue(unitSwitch.buttons["lb"].isSelected, "the switch shows the focused row's unit")
+        XCTAssertEqual(units.element(boundBy: 2).label, "kg", "the switched row keeps its new unit")
+    }
+
     // MARK: Codex review 03 regressions
 
     private func any(_ id: String) -> XCUIElement {
