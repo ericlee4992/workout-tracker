@@ -1,13 +1,12 @@
 import XCTest
 
 // UI-test helpers shared by the Floodlight redesign's tickets.
-// The Floodlight redesign moved discarding a workout from a toolbar Cancel to
-// "Discard Workout…" at the end of the workout list (still confirmed by the same dialog).
+// Discarding a workout: Cancel at the top left of the live workout (live-workout-fixes 02; the
+// Floodlight redesign had it as "Discard Workout…" at the end of the list), confirmed by a dialog.
 extension XCUIApplication {
     func discardActiveWorkout(file: StaticString = #filePath, line: UInt = #line) {
         let discard = buttons["discardWorkout"]
-        for _ in 0..<8 where !(discard.exists && discard.isHittable) { swipeUp() }
-        XCTAssertTrue(discard.exists && discard.isHittable, "Discard Workout… at the end of the list", file: file, line: line)
+        XCTAssertTrue(discard.waitForExistence(timeout: 5) && discard.isHittable, "Cancel at the top left", file: file, line: line)
         discard.tap()
         let confirm = buttons["Discard Workout"].firstMatch
         XCTAssertTrue(confirm.waitForExistence(timeout: 5), "the discard is confirmed", file: file, line: line)

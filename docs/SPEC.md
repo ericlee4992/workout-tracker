@@ -87,7 +87,8 @@ and the five muscle FAMILIES — chest, back, shoulders, arms, legs (`MuscleFami
 shown on templates, the week card and History, never as a per-exercise row icon. The live lifting
 workout keeps Paper Club's structure in Floodlight's type and violet (`Look.live(dark:)`): round set
 markers, dashed draft fields, stamp check circles, the yellow "New best" highlighter, the inverse
-rest slab and "Discard Workout…" at the end of the list. Cardio and every sheet stay plain
+rest slab and a red Cancel at the top left beside minimize (live-workout-fixes 02; it was "Discard
+Workout…" at the end of the list). Cardio and every sheet stay plain
 Floodlight; native Forms and lists keep the system controls in Floodlight colours. A template tile
 opens the template; it has no long-press menu (ticket 15). Motion answers the user (a set
 completed, a workout started, a rest ending, a new best) and steps down under Reduce Motion. The

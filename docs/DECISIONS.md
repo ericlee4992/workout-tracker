@@ -171,7 +171,8 @@ User decisions under D59, by area (each ticket has the full wording):
   the record from before the workout; "First time" for a first workout in a scope. Time in zones under the
   heart-rate chart. At accessibility sizes the "New best" band takes the rest text's place for its seconds.
   Adopted as implemented and open to veto (flagged, not answered): "This week" follows the phone's first weekday;
-  dropping a card into a superset joins it; Discard moved to "Discard Workout…" at the end of the live list;
+  dropping a card into a superset joins it; Discard moved to "Discard Workout…" at the end of the live list
+  (**vetoed 2026-10-10:** a red Cancel at the top left beside minimize, same dialog — live-workout-fixes 02);
   PREVIOUS reads "105 × 8" when the unit matches the row; sheets keep system lists in Floodlight colours.
 - **History (ticket 05, 2026-09-27):** notes are shown on the detail and editable there, marked as an edit —
   reopening D47 for a third non-number field, as D50 did for the name; empty History follows the prototype (no

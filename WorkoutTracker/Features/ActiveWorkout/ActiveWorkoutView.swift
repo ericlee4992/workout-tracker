@@ -204,12 +204,8 @@ struct ActiveWorkoutView: View {
                         showMachinePicker = true
                     },
                     addCardio: { showCardioPicker = true })
-                .liveRow(top: entries.isEmpty ? 10 : 18, bottom: 8)
-
-                // Discarding lives at the end of the list (the chosen live design), confirmed.
-                DestructiveRowButton("Discard Workout…") { confirmingCancel = true }
-                    .accessibilityIdentifier("discardWorkout")
-                    .liveRow(top: 14, bottom: 28)
+                // The list now ends here (Discard moved to the toolbar): the end spacing it had.
+                .liveRow(top: entries.isEmpty ? 10 : 18, bottom: 28)
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
@@ -285,6 +281,23 @@ struct ActiveWorkoutView: View {
                     }
                     .accessibilityIdentifier("minimizeWorkout")
                     .accessibilityLabel("Minimize workout")
+                }
+                // live-workout-fixes 02 (the user, 2026-10-10): Cancel sits top-left, beside
+                // minimize but in its own capsule, instead of "Discard Workout…" at the end of the
+                // list. Still confirmed by the same dialog.
+                ToolbarSpacer(.fixed, placement: .topBarLeading)
+                ToolbarItem(placement: .topBarLeading) {
+                    // At accessibility sizes the word left the title "Push D…": the trash keeps it whole.
+                    Button { confirmingCancel = true } label: {
+                        if typeSize.isAccessibilitySize {
+                            Image(systemName: "trash").font(.system(.body, weight: .semibold))
+                        } else {
+                            Text("Cancel")
+                        }
+                    }
+                    .foregroundStyle(screenLook.destructive)
+                    .accessibilityIdentifier("discardWorkout")
+                    .accessibilityLabel("Cancel workout")
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Finish") { finishTapped() }
