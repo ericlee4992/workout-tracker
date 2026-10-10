@@ -89,6 +89,22 @@ final class FloodlightLiveUITests: XCTestCase {
         XCTAssertEqual(units.element(boundBy: 2).label, "kg", "the switched row keeps its new unit")
     }
 
+    // MARK: live-workout-fixes 02 — the list ends at the add block (no Discard row)
+
+    func testCaptureListEndLight() { captureListEnd("light", large: false) }
+    func testCaptureListEndLightAccessibility() { captureListEnd("light", large: true) }
+
+    private func captureListEnd(_ appearance: String, large: Bool) {
+        launch(["-appearance", appearance]
+               + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : []))
+        let addCardio = app.buttons["addCardio"]
+        for _ in 0..<20 { app.swipeUp() }
+        XCTAssertTrue(addCardio.exists && addCardio.isHittable, "the add block ends the list, above the rest slab")
+        XCTAssertFalse(app.buttons["Discard Workout…"].exists, "no Discard row at the end")
+        Thread.sleep(forTimeInterval: 1)
+        shoot("live-fixes-02-list-end-\(appearance)-\(large ? "axl" : "default")")
+    }
+
     // MARK: Codex review 03 regressions
 
     private func any(_ id: String) -> XCUIElement {

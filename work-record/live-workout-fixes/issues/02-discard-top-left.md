@@ -1,7 +1,7 @@
 # 02 — Cancel workout at the top left
 
 Type: task
-Status: implemented; targeted UI tests green (8/8); captures looked at; Codex review next
+Status: Codex review 02 not clear — P3 fixed (list-end captures); **P2 waits for the user** (trash symbol at accessibility sizes)
 Blocked by: —
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/live-02-discard-top-left` off `main`.
@@ -63,5 +63,23 @@ Build; the tests that discard through the helper — `CoreLoopUITests/testSwipeT
 - **Captures** looked at: [light default](../captures/02/live-fixes-02-cancel-light-default.png) and
   [dark default](../captures/02/live-fixes-02-cancel-dark-default.png) — `⌄ | Cancel   Push Day ✎   Finish`, Cancel in
   the destructive colour in its own capsule, the title whole; [light AccessibilityL](../captures/02/live-fixes-02-cancel-light-axl.png)
-  — `⌄ | 🗑   Push Day ✎   Finish`, title whole. Not captured: the end of the list without the discard row (the add
-  block keeps the 28 pt end spacing; checked in source), the confirmation dialog (unchanged).
+  — `⌄ | 🗑   Push Day ✎   Finish`, title whole. Not captured: the confirmation dialog (unchanged).
+
+## Codex review 02 — response (round 1)
+
+Review: [codex-review-02.md](../codex-review-02.md) — not clear (1 P2, 1 P3); no correctness regression found; ticket
+01's advisory test tweak confirmed.
+
+1. **P2 — the trash symbol at accessibility sizes is the option the user rejected.** Accepted that this is the user's
+   call, not Claude's. Asked the user 2026-10-10: keep the symbol at accessibility sizes, or keep the word "Cancel"
+   there too (the title then truncates, "Push D…", at AccessibilityL; the full name stays reachable by tapping it to
+   rename). Codex's other route — reflowing the title onto its own line — is a larger layout change, offered if the
+   user wants neither. **Open until the user answers.** Codex's layout advice (longer titles can truncate at the
+   default size too, now that two leading items share the bar) goes to the user with the same question.
+2. **P3 — the list end was not captured.** Added `FloodlightLiveUITests/testCaptureListEndLight` and
+   `…LightAccessibility` (scroll to the end; assert Add Cardio is hittable above the rest slab and no "Discard
+   Workout…" exists): exit 0, `** TEST SUCCEEDED **`, xcresult **Passed 2/0/0** (`…/scratchpad/live02/r3.xcresult`).
+   Captures: [default](../captures/02/live-fixes-02-list-end-light-default.png),
+   [AccessibilityL](../captures/02/live-fixes-02-list-end-light-axl.png) — the add block ends the list, clear of the
+   rest slab, at both sizes.
+- The stale comment Codex noted (`FinalLook.swift:12`, "Discard Workout…" at the end) is corrected.

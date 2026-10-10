@@ -9,7 +9,7 @@ import SwiftUI
 //   in dark, `.paper` in light — round set markers, pencil→ink draft fields in dashed boxes,
 //   round check circles with the stamp + ripple, the circular outlined icon buttons, the
 //   bordered equipment row, dashed Add Set, the inverse rest slab with 48 pt +15s / Skip, the
-//   Add block and "Discard Workout…" at the end) drawn with Floodlight's palette, its violet
+//   Add block at the end; Cancel in the toolbar since live-workout-fixes 02) drawn with Floodlight's palette, its violet
 //   Ultra action and its SF Pro Expanded type. The yellow highlighter "New best" sticker is the
 //   one borrowed accent. Cardio focus and every sheet over the cover stay plain Floodlight.
 //
