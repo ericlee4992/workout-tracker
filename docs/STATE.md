@@ -89,7 +89,10 @@ evidence is ephemeral; every result is recorded in the tickets.
    signed-in feedback — and 04 with a Google OAuth client); **the first Cloudflare deploy** (`server/README.md`: D1,
    `wrangler r2 bucket create stacked-feedback`, secrets incl. `OPENAI_API_KEY`; then the deployed checks in ticket 06's
    acceptance and the privacy draft's gates); **the privacy-policy decisions** (ticket 08).
-2. **Renewal before 2026-10-09 03:52 EDT** if Apple has not approved (Oct 7–8), with the user and the phone (Gate S,
+2. **FIRST, ask the user (checked 2026-10-10): the free-team profiles expired 2026-10-09 03:52 EDT.** Did Apple
+   approve the enrollment, and was the free signing renewed? If neither, the installed app no longer launches on the
+   phone until re-signed: renew with the user and the phone per ticket 01 phase A — Gate S backup first; reinstalling
+   the same binary does not extend it. Original note: renewal before 2026-10-09 03:52 EDT if Apple has not approved (Gate S,
    ticket 01 phase A).
 3. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone. Not yet exercised
    anywhere: VoiceOver by a person, Reduce Motion at runtime, real GPS and sensors on the redesigned cardio screens,
