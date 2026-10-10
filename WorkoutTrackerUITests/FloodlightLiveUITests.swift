@@ -80,7 +80,7 @@ final class FloodlightLiveUITests: XCTestCase {
         XCTAssertEqual(draft.value as? String, "120", "the field keeps its focus after the switch")
 
         app.textFields.matching(identifier: "setRow.reps").element(boundBy: 2).tap()
-        XCTAssertFalse(unitSwitch.waitForExistence(timeout: 2), "the switch belongs to the weight field")
+        XCTAssertTrue(unitSwitch.waitForNonExistence(timeout: 5), "the switch belongs to the weight field")
 
         weights.element(boundBy: 1).tap()
         XCTAssertTrue(unitSwitch.waitForExistence(timeout: 5))

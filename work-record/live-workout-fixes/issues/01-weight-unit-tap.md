@@ -1,7 +1,7 @@
 # 01 — The weight box's unit switch steals taps
 
 Type: task
-Status: implemented; targeted UI tests green; Codex review 01 not clear (2 × P3, records) → fixed; round 2 next
+Status: **Codex clear (round 2, 2026-10-10)**; its advisory test tweak applied after clearance (below) — confirmation asked in review 02; waiting for the user's go-ahead to merge
 Blocked by: —
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/live-01-weight-unit` off `main`.
@@ -90,3 +90,13 @@ shows exactly one switch, with that row's unit (lb) selected, and the switched r
 exit 0, `** TEST SUCCEEDED **`, xcresult **Passed 1/0/0** (`…/scratchpad/live01/r2.xcresult`). Not covered by a test:
 deleting the focused row (source: the toolbar belongs to the row's view and goes with it; `toggleUnit` and the
 commits guard `set.isDeleted`), and VoiceOver/Switch Control discovery by a person.
+
+## Codex review 01b — clear (round 2)
+
+Review: [codex-review-01b.md](../codex-review-01b.md) — both P3s resolved; **Verdict: clear**. One advisory P3: the
+"switch leaves with the weight's focus" check used a negated `waitForExistence(timeout: 2)`, which does not give an
+existing picker time to disappear. Applied after clearance: `XCTAssertTrue(unitSwitch.waitForNonExistence(timeout: 5))`.
+Rerun of `testTheKeyboardUnitSwitchFollowsTheFocusedWeight` on WT-Floodlight: the log reads "passed (75.664 seconds)",
+"Executed 1 test, with 0 failures"; then `xcodebuild` did not exit for ~9 minutes after the test (no result
+summary written) and was stopped (exit 143). The pass is from the log only. Codex is asked to confirm the tweak in
+review 02.
