@@ -58,7 +58,7 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   `lb | kg` switch works on the phone (a first "nothing happens" report was withdrawn; simulator reproductions of
   plain, dumbbell and barbell-without-bar rows all switched). No SwiftData schema change between `b83cf39` and
   `main` (only Codable/plain types added), so the store opened in place.
-  **Installed build: `main` `8bc418b` (code `f6e48f3`), profiles to 2026-10-18 03:57 UTC.**
+  **Installed build: `main` `71dda6c` (code `f6e48f3`), profiles to 2026-10-18 03:57 UTC.**
   Left (low risk, next time the phone is on USB with the app closed): a post-launch capture and
   `compare_stores.py capture-2 <after>`; the phone is back on Wi-Fi, where copies fail.
 - **Re-sign again before Oct 17, 11:57 PM EDT** if Apple has not approved by then (same procedure; USB).
