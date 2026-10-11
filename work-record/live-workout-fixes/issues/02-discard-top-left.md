@@ -1,7 +1,7 @@
 # 02 — Cancel workout at the top left
 
 Type: task
-Status: Codex review 02 not clear → P3 fixed; P2 answered by the user (merge as built); Codex round 2 pending
+Status: **Codex clear (round 2)**; merged to `main` with ticket 01 at the user's go-ahead (2026-10-10)
 Blocked by: —
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/live-02-discard-top-left` off `main`.
@@ -89,3 +89,12 @@ Review: [codex-review-02.md](../codex-review-02.md) — not clear (1 P2, 1 P3); 
    [AccessibilityL](../captures/02/live-fixes-02-list-end-light-axl.png) — the add block ends the list, clear of the
    rest slab, at both sizes.
 - The stale comment Codex noted (`FinalLook.swift:12`, "Discard Workout…" at the end) is corrected.
+
+## Codex review 02b — clear; combined verification
+
+[codex-review-02b.md](../codex-review-02b.md): clear, no new findings; the rebase conflict (both tickets' test
+additions in `FloodlightLiveUITests.swift`) kept both. **Combined targeted run** of tickets 01 + 02 after the rebase
+(FloodlightLiveUITests, CoreLoopUITests, BarbellUITests, HeartRateUITests on WT-Floodlight `9E822EF6…`, iOS 27.0):
+`xcodebuild test` exit 0, `** TEST SUCCEEDED **`, xcresult **Passed, 32 passed / 0 failed / 0 skipped**
+(`…/scratchpad/merge/combined.xcresult`; session scratchpad, ephemeral). The user said to merge both into the build
+they install with the re-sign.
