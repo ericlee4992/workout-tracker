@@ -1,7 +1,7 @@
 # 02 — Cancel workout at the top left
 
 Type: task
-Status: Codex review 02 not clear — P3 fixed (list-end captures); **P2 waits for the user** (trash symbol at accessibility sizes)
+Status: Codex review 02 not clear → P3 fixed; P2 answered by the user (merge as built); Codex round 2 pending
 Blocked by: —
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/live-02-discard-top-left` off `main`.
@@ -74,8 +74,14 @@ Review: [codex-review-02.md](../codex-review-02.md) — not clear (1 P2, 1 P3); 
    call, not Claude's. Asked the user 2026-10-10: keep the symbol at accessibility sizes, or keep the word "Cancel"
    there too (the title then truncates, "Push D…", at AccessibilityL; the full name stays reachable by tapping it to
    rename). Codex's other route — reflowing the title onto its own line — is a larger layout change, offered if the
-   user wants neither. **Open until the user answers.** Codex's layout advice (longer titles can truncate at the
-   default size too, now that two leading items share the bar) goes to the user with the same question.
+   user wants neither. Codex's layout advice (longer titles can truncate at the default size too, now that two
+   leading items share the bar) went to the user with the same question.
+   **The user, 2026-10-10:** "merge both fixes into the build" — the reply to that message, which asked the
+   symbol question and whether to merge; taken as accepting the build as it stands: the word "Cancel" at default
+   sizes, the red trash symbol at accessibility sizes (an explicit exception to "Chevron + Cancel", recorded here
+   and in SPEC). A truncated long title at the default size is accepted with it; the full name stays reachable by
+   tapping the title to rename. Claude's reply tells the user it read the message this way, so they can still
+   ask for the word at all sizes.
 2. **P3 — the list end was not captured.** Added `FloodlightLiveUITests/testCaptureListEndLight` and
    `…LightAccessibility` (scroll to the end; assert Add Cardio is hittable above the rest slab and no "Discard
    Workout…" exists): exit 0, `** TEST SUCCEEDED **`, xcresult **Passed 2/0/0** (`…/scratchpad/live02/r3.xcresult`).
