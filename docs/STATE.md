@@ -49,10 +49,14 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   keyboard bar; a red Cancel beside minimize (a trash symbol at accessibility sizes — the user accepted the build as
   it stood), the Discard row gone. Codex clear on both (01 round 2, 02 round 2). Combined targeted run after the
   rebase: 32/32 on WT-Floodlight `9E822EF6…` (iOS 27; WT-iPhone is iOS 26.5 and no longer matches).
-- **Next:** build `main` for the phone (generic destination, `-allowProvisioningUpdates`), check both new profile
-  expiries and a fresh binary, install (same bundle ID: the data stays), the user may need to re-trust the developer
-  app (Settings → General → VPN & Device Management), launch, the user closes it, capture, `compare_stores.py`
-  against `capture-2`. Then STATE's installed-build facts.
+- **Built and installed `main` `71dda6c`'s code (`f6e48f3` + a STATE commit) 2026-10-10 23:58:** generic build with
+  `-allowProvisioningUpdates -allowProvisioningDeviceRegistration`, exit 0; new profiles — app and widget both expire
+  **2026-10-18 03:57 UTC (Oct 17, 11:57 PM EDT)**, both list the phone; the dylib carries `keyboardUnit` and no
+  "Discard Workout…". `devicectl device install` exit 0 (`install.log`). **Remote launch refused**: FBSOpenApplication
+  error 3, "profile has not been explicitly trusted by the user" (`launch.log`) — the same as 2026-09-29.
+  **Waiting for the user** to trust the developer app (Settings → General → VPN & Device Management → Developer App →
+  Trust; needs internet), open it, check their data, then swipe it closed. Then: process query (no app), capture,
+  `compare_stores.py capture-2 <after-install>`, STATE's installed-build facts.
 - Scratch checkouts to remove once installed: `/tmp/wt-resign` (detached `b83cf39`), `/tmp/wt-live02`.
 
 ## ACTIVE: public beta ("Stacked") — handoff of 2026-10-03
