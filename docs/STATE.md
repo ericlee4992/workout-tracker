@@ -32,7 +32,7 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   is unchanged. Older backups (Sep 17/18/20/22) remain.
 - Phone: iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
 
-## NOW (2026-10-10): re-sign the phone with the two live-workout fixes
+## NOW (2026-10-11): phone re-signed with the two live-workout fixes
 
 - **Apple has not approved** (the user, 2026-10-10). Free profiles expired 2026-10-09 03:52 EDT; Xcode has since
   emptied `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` (nothing to move aside).
@@ -54,9 +54,15 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   **2026-10-18 03:57 UTC (Oct 17, 11:57 PM EDT)**, both list the phone; the dylib carries `keyboardUnit` and no
   "Discard Workout…". `devicectl device install` exit 0 (`install.log`). **Remote launch refused**: FBSOpenApplication
   error 3, "profile has not been explicitly trusted by the user" (`launch.log`) — the same as 2026-09-29.
-  **Waiting for the user** to trust the developer app (Settings → General → VPN & Device Management → Developer App →
-  Trust; needs internet), open it, check their data, then swipe it closed. Then: process query (no app), capture,
-  `compare_stores.py capture-2 <after-install>`, STATE's installed-build facts.
+  **The user trusted it and the app runs (2026-10-11)**: they used the live workout and confirmed the keyboard-bar
+  `lb | kg` switch works on the phone (a first "nothing happens" report was withdrawn; simulator reproductions of
+  plain, dumbbell and barbell-without-bar rows all switched). No SwiftData schema change between `b83cf39` and
+  `main` (only Codable/plain types added), so the store opened in place.
+  **Installed build: `main` `8bc418b` (code `f6e48f3`), profiles to 2026-10-18 03:57 UTC.**
+  Left (low risk, next time the phone is on USB with the app closed): a post-launch capture and
+  `compare_stores.py capture-2 <after>`; the phone is back on Wi-Fi, where copies fail.
+- **Re-sign again before Oct 17, 11:57 PM EDT** if Apple has not approved by then (same procedure; USB).
+- Known, accepted: a long workout title truncates beside Cancel at the default size (seen with "Seated Che…").
 - Scratch checkouts to remove once installed: `/tmp/wt-resign` (detached `b83cf39`), `/tmp/wt-live02`.
 
 ## ACTIVE: public beta ("Stacked") — handoff of 2026-10-03
