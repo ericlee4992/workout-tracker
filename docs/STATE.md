@@ -32,32 +32,28 @@ redesign handoff, the September 22 installation, the AI/cardio open items) is ar
   is unchanged. Older backups (Sep 17/18/20/22) remain.
 - Phone: iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
 
-## NOW (2026-10-10): re-sign the phone + two live-workout fixes
+## NOW (2026-10-10): re-sign the phone with the two live-workout fixes
 
-- **Apple has not approved** (the user, 2026-10-10). Free profiles expired 2026-10-09 03:52 EDT (checked: both
-  local profiles carry that date; Xcode shows only the Personal Team identity). **Re-sign in progress, blocked on a USB
-  cable:** the phone is paired over Wi-Fi only; `devicectl device copy from` failed twice ("connection to the remote
-  device is no longer valid", CoreDeviceError -1) while a process query succeeded (no app process). Nothing captured,
-  built for device or installed yet. Backup folder `~/WorkoutTracker-Backups/2026-10-10-resign/` (0700) holds only the
-  logs of those attempts. Plan: Gate S adapted — the expired app cannot launch, so no in-app JSON export: two
-  captures (`--expect`), `compare_stores.py` against `2026-10-02-phase-a/after-renewal` (every old row kept; rows added
-  since Oct 2 listed), round trip on WT-Backup-01; then profiles aside, a build for the connected phone with
-  `-allowProvisioningUpdates -allowProvisioningDeviceRegistration`, check both new expiries, install, the user may need
-  to re-trust the developer app, launch, close, capture, compare. Build source: scratch checkout `/tmp/wt-resign`
-  (detached at `b83cf39`, the installed code, `Local.xcconfig` copied) — or `main` with the fixes below if the user
-  approves merging them first.
-- **[live-workout-fixes](../work-record/live-workout-fixes/issues/)** (the user's two requests, options chosen by the user):
-  - **01 weight box** — branch `ericlee4992/live-01-weight-unit` (this checkout): the unit is a label; `lb | kg` moves
-    to the keyboard bar. Targeted UI 17/17 + 1/1; **Codex clear (round 2)**; advisory test tweak confirmed in review 02.
-    Waiting for the user's go-ahead to merge.
-  - **02 Cancel top left** — branch `ericlee4992/live-02-discard-top-left`, scratch checkout `/tmp/wt-live02`: red Cancel
-    beside minimize, Discard row removed. Targeted UI 8/8 + 2/2. **Codex review 02 not clear: P2 waits for the user** —
-    Claude showed a trash symbol instead of the word at accessibility text sizes (the word truncated the title); the
-    user rejected a trash icon as the main design, so the user must accept or decline that exception (or ask for a
-    reflowed title). Then round 2 in the same Codex terminal (`term_4ce49246…`, Orca, this worktree).
-  - Simulator for these runs: **WT-Floodlight** `9E822EF6…` (iOS 27). `WT-iPhone` (DEVELOPMENT's example) is iOS 26.5
-    and no longer matches the destination. One `xcodebuild test` hung ~9 min after its test passed (stopped; recorded
-    in ticket 01).
+- **Apple has not approved** (the user, 2026-10-10). Free profiles expired 2026-10-09 03:52 EDT; Xcode has since
+  emptied `~/Library/Developer/Xcode/UserData/Provisioning Profiles/` (nothing to move aside).
+- **Backup done (Gate S adapted; the expired app cannot launch, so no in-app JSON export)** in
+  `~/WorkoutTracker-Backups/2026-10-10-resign/` over USB: a successful process query with no app process
+  (`processes-before.json`, 476 processes); `capture-1` and `capture-2` (`verify_container.py` ok; capture 2
+  `--expect` capture 1: restore set 4/4 identical); `compare_stores.py` against `2026-10-02-phase-a/after-renewal`
+  (`since-10-02.txt`): **no old row missing**; added rows only (29 workouts vs 25, 393 sets vs 355) and ordinary
+  changed fields (preferences' selected gym, gym-exercise memory timestamps/machine) — exit 1 only for those
+  changes. Round trip of capture 1 on WT-Backup-01 (build-for-testing of `b83cf39`, the installed code): exit 0,
+  29 workouts · 393 sets (`roundtrip-export.json`). **WT-Backup-01 erased.** Failed Wi-Fi logs in `superseded-wifi/`.
+- **[live-workout-fixes](../work-record/live-workout-fixes/issues/) 01 + 02 merged to `main` (`f6e48f3`)** at the
+  user's go-ahead ("merge both fixes into the build"): the weight box's unit is a label with `lb | kg` in the
+  keyboard bar; a red Cancel beside minimize (a trash symbol at accessibility sizes — the user accepted the build as
+  it stood), the Discard row gone. Codex clear on both (01 round 2, 02 round 2). Combined targeted run after the
+  rebase: 32/32 on WT-Floodlight `9E822EF6…` (iOS 27; WT-iPhone is iOS 26.5 and no longer matches).
+- **Next:** build `main` for the phone (generic destination, `-allowProvisioningUpdates`), check both new profile
+  expiries and a fresh binary, install (same bundle ID: the data stays), the user may need to re-trust the developer
+  app (Settings → General → VPN & Device Management), launch, the user closes it, capture, `compare_stores.py`
+  against `capture-2`. Then STATE's installed-build facts.
+- Scratch checkouts to remove once installed: `/tmp/wt-resign` (detached `b83cf39`), `/tmp/wt-live02`.
 
 ## ACTIVE: public beta ("Stacked") — handoff of 2026-10-03
 
