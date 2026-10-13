@@ -3,7 +3,7 @@
 Type: task
 Status: in progress — Prepare merged (Codex clear, 4 rounds); phase A done; **phase B done 2026-10-13: the paid team
 kept the Team ID `X68M8SR6NA`, so the app ID is unchanged and D's delete/restore is not needed** (see Progress → Phase B);
-**C done 2026-10-13** (record \"Stacked: Gym Log\", internal group); next an in-place install of a year-long development build, then E
+**C done 2026-10-13** (record "Stacked: Gym Log", internal group); next an in-place install of a year-long development build, then E
 Blocked by: —
 Implementer: Claude (the signing, phone and App Store Connect steps need this session's tooling and the user).
 Reviewer: Codex, in a visible Orca terminal, for the config diff **and for this procedure before the delete
