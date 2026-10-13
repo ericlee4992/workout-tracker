@@ -108,5 +108,5 @@ this change does not touch those paths.
 `UIBackgroundModes` `["audio","location"]`; the dylib carries the new log line); app closed (successful process
 query, no app process; `procs3.txt`). **Install NOT done:** `devicectl device install` exit 1 — "The tunnel connection
 failed … Operation timed out" (`install3.log`, `install3.status`); the phone then showed "unavailable". The phone
-still runs `7af1445` (round 1's fix, without the round-2 identity change). (A first version of this entry, committed
-in `0a1f0b4`-era wording, said exit 0 before the result was read; corrected.)
+still runs `7af1445` (round 1's fix, without the round-2 identity change). (The first version of this entry, in `f5ef000`,
+said exit 0 before the result was read; corrected.)
