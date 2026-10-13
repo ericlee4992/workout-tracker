@@ -103,3 +103,7 @@ lock-screen Live Activity visible: (1) lifting, timed rest, workout minimized, p
 AirPod out and put it back (a route change) — no second beep; (4) the next rest beeps too; (5) once with another app
 in front. Then Cancel the test workout. Cardio, interruption-during-rest and HR-recovery scenarios are not re-run;
 this change does not touch those paths.
+
+**Installed for the phone check:** clean device build of `fd88791` (`device3.log`, `device3.status` exit 0; built
+`UIBackgroundModes` `["audio","location"]`; the dylib carries the new log line), app closed (successful process
+query, no app process; `procs3.txt`), `devicectl device install` exit 0 (`install3.log`, `install3.status`).
