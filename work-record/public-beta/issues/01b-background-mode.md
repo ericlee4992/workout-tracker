@@ -1,7 +1,7 @@
 # 01b — Remove `workout-processing` so TestFlight accepts the app
 
 Type: bug (release blocker for ticket 01 phase E)
-Status: **Codex clear (round 4)**; `fd88791` installed; waiting for the user's phone check (and the user's acceptance that live background heart rate stays unverified) before merge and upload
+Status: **Done** — Codex clear (round 4); phone check passed on `fd88791` (the user, 2026-10-13); merged to `main` for the TestFlight upload (ticket 01 phase E)
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/beta-01b-background-mode` off `main`.
 
@@ -137,3 +137,13 @@ product as `device3.*`. The phone check runs on this build.
 the code and documentation, not installation, phone acceptance or upload readiness. The ticket's original pre-upload
 requirement that heart rate keeps updating while locked is **not satisfied** by retention evidence: before the upload
 the user either observes live delivery (Console.app) or accepts it as unverified.
+
+## Phone check — passed (the user, 2026-10-13)
+
+On the installed `fd88791`, the corrected check above (beep while minimized and locked, 3+ minutes locked after it,
+AirPod out/in after a beep, the next rest, another app in front). The user's report, verbatim: "it works. You don't
+have to accept it as \"not verified\". it's verified." Recorded as the user's verification of the phone check and of
+heart rate continuing while locked; the observation method for heart rate was not stated, and Claude collected no
+`RestAlarm` log of its own. The earlier build's report ("it works"; heart rate kept updating during a rest with a
+sensor on, "Yes") is kept above. Pre-existing and still open: the minimized Live Activity's heart-rate number gets no
+recurring update (R3-P1), a later ticket.

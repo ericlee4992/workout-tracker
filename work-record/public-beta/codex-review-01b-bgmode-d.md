@@ -1,7 +1,8 @@
 # Codex review — public beta 01b, round 4
 
 Reviewed `git diff 110ed0b..HEAD` on `ericlee4992/beta-01b-background-mode`, HEAD
-`9c3e19be507f295a8b600bc538c8e67b200fb8f1`. Working tree was clean. The diff contains only
+`f43a700f38d4a59aff887894af80f7a7250af38e`, including the installation retry recorded during
+review. The working tree was clean before this report. The diff contains only
 the previous review, this round's prompt, and the ticket response. Product code, configuration
 and tests are unchanged from round 3. No builds, tests, simulators or device operations were
 run; only this report was written. Ticket review links resolve and the diff passes whitespace checks.
@@ -13,9 +14,12 @@ invalid minimized Live Activity observation, and distinguishes chart retention f
 sample delivery. Optional debug-log streaming is proposed evidence collection, not a claim
 that verification occurred.
 
-The ticket continues to distinguish successful build from failed installation: `fd88791` is
-built, its install failed, and the phone still runs `7af1445`. The revised check requires the
-newest build to be installed first; it does not assert that installation succeeded.
+The ticket distinguishes the failed initial installation from the successful retry. The new
+`f43a700` entry records `fd88791` installed using the previously built product. I inspected
+`install4.status` (`install=0`) and `install4.log` in the ticket's artifact root: the receipt
+identifies `com.ericlee4992.workouttracker` at bundle location
+`6C62F28F-1043-4F6A-BE52-3024BF4963DF/WorkoutTracker.app`. `procs4.txt` contains no main app
+process. The phone is now recorded on `fd88791`, superseding the earlier `7af1445` install.
 
 ## Spec
 
@@ -31,11 +35,11 @@ round 3. No new spec finding arose from this documentation-only change.
 ## Clearance boundary
 
 This clears the implementation and corrected review documentation. It does **not** certify
-installation, phone acceptance, or upload readiness. The previously inspected 31/31 unit result
+phone acceptance or upload readiness. The previously inspected 31/31 unit result
 and successful device build remain the code-verification evidence; they were not rerun here.
 
-The final build still needs successful installation and the pending alarm/route/subsequent-rest
-phone checks. Timely background heart-rate delivery remains **unverified**. Calling log
+Installation now has a successful receipt; the alarm/route/subsequent-rest phone checks remain
+pending. Timely background heart-rate delivery remains **unverified**. Calling log
 collection optional neither proves nor waives the ticket's original pre-upload HR requirement;
 retention evidence must not be reported as satisfying it. No upload was performed or approved
 by this review.
