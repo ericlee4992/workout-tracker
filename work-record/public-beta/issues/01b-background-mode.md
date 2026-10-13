@@ -110,3 +110,19 @@ query, no app process; `procs3.txt`). **Install NOT done:** `devicectl device in
 failed … Operation timed out" (`install3.log`, `install3.status`); the phone then showed "unavailable". The phone
 still runs `7af1445` (round 1's fix, without the round-2 identity change). (The first version of this entry, in `f5ef000`,
 said exit 0 before the result was read; corrected.)
+
+## Codex review 01b — response (round 3)
+
+Review: [codex-review-01b-bgmode-c.md](../codex-review-01b-bgmode-c.md) — not clear: R2-P1, R2-S1 and S2 resolved;
+one open P2 (R3-P1): the Live Activity is not a valid live-delivery observation — minimizing removes
+`ActiveWorkoutView`, whose liveness tick is the only recurring `pushActivityState()` caller, so the lock-screen number
+does not update while minimized even if samples arrive (pre-existing; not this ticket's fix).
+
+**Accepted. Phone check, corrected (replaces the round-2 plan):** the newest build installed, launched by hand,
+heart-rate source on: (1) lifting, timed rest, workout minimized, phone locked — the beep sounds; (2) stay locked 3+
+minutes after it; (3) after a beep, an AirPod out and back (route change) — no second beep; (4) the next rest beeps;
+(5) once with another app in front; then Cancel the test workout. The heart-rate chart afterwards is **retention
+evidence only**. **Timely background heart-rate delivery is recorded as UNVERIFIED** for this ticket: the only
+observation of sample arrival is the `RestAlarm` "sample tick" log at debug level, which needs Console.app streaming
+from the phone with debug messages on — offered to the user as optional, not required. The Live Activity not
+updating while minimized is noted as a pre-existing gap for later (not fixed here).
