@@ -1,9 +1,9 @@
 # 01 — Paid team, data move and TestFlight
 
 Type: task
-Status: in progress — **Prepare done and Codex clear (4 rounds) 2026-10-02**; merged to `main` (`907b81b`, fast-forward, the
-user's go-ahead 2026-10-02); phases B–E wait on Apple's enrollment approval (pending at 2026-10-02); phase A (free renewal) is
-due Oct 4, by Oct 5 18:00 EDT at the latest
+Status: in progress — Prepare merged (Codex clear, 4 rounds); phase A done; **phase B done 2026-10-13: the paid team
+kept the Team ID `X68M8SR6NA`, so the app ID is unchanged and D's delete/restore is not needed** (see Progress → Phase B);
+next C (App Store Connect record), then an in-place install of a year-long development build, then E
 Blocked by: —
 Implementer: Claude (the signing, phone and App Store Connect steps need this session's tooling and the user).
 Reviewer: Codex, in a visible Orca terminal, for the config diff **and for this procedure before the delete
@@ -229,6 +229,27 @@ Phone `00008130-001E10C01E62001C` available (paired), unlocked since boot; insta
   It now skips `tmp/` (never user data) and reports an unreadable database as a failure instead of raising (tested:
   a non-SQLite `Cache.db` outside `tmp/` → exit 1). Lesson for Gate P: do not give probe files database names.
 - The phone app now shows **Stacked** on the home screen. The old free profiles are kept in `old-profiles/`.
+
+### Phase B — 2026-10-13 (Claude; the user confirmed approval and that Xcode shows the paid team)
+
+- The user's Team ID from the membership page: **`X68M8SR6NA` — the same ID as the former Personal Team** (an
+  individual enrollment converted the team in place). Xcode's cached team list still says "Personal Team",
+  `isFreeProvisioningTeam = 1` (stale until Xcode refreshes); Apple's answer below is the evidence.
+- Development build of `main` `f952262` (generic iOS, `-allowProvisioningUpdates`, no Local.xcconfig change): first
+  run reused the 7-day profiles (`6f1d1aea…`, `97bb280c…`, to 2026-10-18). Backed them up to
+  `~/WorkoutTracker-Backups/2026-10-13-paid-team/profiles-aside/` and moved them aside; the rebuild (exit 0, BUILD
+  SUCCEEDED) minted `c8b27150…` (app) and `0e309c14…` (widget): "iOS Team Provisioning Profile", team "Eunchan Lee",
+  **expiring 2027-10-13T04:33Z** — a paid-team profile (free ones last 7 days). No "not available": the App IDs were
+  already this team's.
+- The signed build (B4): app `application-identifier` **`X68M8SR6NA.com.ericlee4992.workouttracker`**, widget
+  `X68M8SR6NA.com.ericlee4992.workouttracker.widget` — **identical to the installed free-team build's**; HealthKit
+  (+ background delivery) present; `get-task-allow` true; the profile lists the phone (`00008130-001E10C01E62001C`);
+  the signing identity is the same Apple Development certificate (D8VDZ3SN79).
+- **Consequence for the plan:** iOS's upgrade check compares the application identifier, which did not change, so a
+  paid-team build installs **over** the current app and keeps its container, like every weekly renewal did. Phase D
+  (backup → delete → install → restore) is not needed; the Keychain (OpenAI key, team-scoped) and Health permissions
+  stay too. What remains of D is an ordinary install behind Gate S. E's in-place TestFlight install still needs its
+  `application-identifier` check (E1) and its Gate S (E2). The Support request (B2) is moot.
 
 ## Codex review 01 — response (round 1)
 
