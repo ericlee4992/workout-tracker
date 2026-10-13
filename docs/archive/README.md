@@ -8,6 +8,7 @@ Stable decisions remain in [DECISIONS](../DECISIONS.md), detailed ticket records
 
 | Snapshot | Provenance |
 |---|---|
+| [STATE before TestFlight](STATE-2026-10-13-before-testflight.md) | Byte-for-byte copy at `936b18f`; Floodlight delivery, the Oct 10–11 free re-sign with live-workout fixes 01/02, the Oct 3 public-beta handoff |
 | [STATE before Floodlight merge](STATE-2026-09-29-before-floodlight-merge.md) | Byte-for-byte copy at `957189c`; the per-ticket Floodlight redesign handoff (tickets 02–13, branch map, user decisions), the September 22 installation and the AI/cardio open items |
 | [STATE before September 24 handoff](STATE-2026-09-24-before-session-handoff.md) | Byte-for-byte copy at `40f3f65`; September 22 installation and full prior verification/context |
 | [STATE before AI follow-up installation](STATE-2026-09-22-before-followup-install.md) | Byte-for-byte copy at `7e96a82`; verified/merged follow-up awaiting installation |

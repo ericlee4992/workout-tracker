@@ -3,7 +3,9 @@
 Type: task
 Status: in progress — Prepare merged (Codex clear, 4 rounds); phase A done; **phase B done 2026-10-13: the paid team
 kept the Team ID `X68M8SR6NA`, so the app ID is unchanged and D's delete/restore is not needed** (see Progress → Phase B);
-**C done 2026-10-13** (record "Stacked: Gym Log", internal group); next an in-place install of a year-long development build, then E
+**C done 2026-10-13** (record "Stacked: Gym Log", internal group); year-long development build installed in place and
+checked; **E step 1 done 2026-10-13: build 0.1.0 (1) from `main` `936b18f` uploaded** (after ticket 01b removed the
+rejected background mode); next: Apple's processing, add the build to "Developer", Gate S, the TestFlight install
 Blocked by: —
 Implementer: Claude (the signing, phone and App Store Connect steps need this session's tooling and the user).
 Reviewer: Codex, in a visible Orca terminal, for the config diff **and for this procedure before the delete
@@ -274,6 +276,33 @@ Phone `00008130-001E10C01E62001C` available (paired), unlocked since boot; insta
 - Installed the phase B build (`main` `f952262`, profiles to 2027-10-13): `devicectl device install` exit 0; remote
   launch exit 0 (no trust prompt this time). Next: the user checks their data and closes the app; capture and
   `compare_stores.py capture-2 <after>`.
+
+- **After the user's check (2026-10-13):** the user confirmed their data was all there (30 workouts) and closed the
+  app. Successful process query, no app process (`processes-after.json`); capture `after-install` (`after-install.log`
+  "File received from Device", `after-install-verify.txt` ok); `compare_stores.py capture-2 after-install`
+  (`after-install-compare.txt`): 15 tables, **every old row preserved**, no differences, preferences identical.
+  **Installed: `main` `f952262` (code `f6e48f3`), profiles to 2027-10-13T04:33Z.** Superseded on the phone by ticket
+  01b's test builds (`2b8d5fc`, `7af1445`, then `fd88791`; see that ticket).
+
+### Phase E — 2026-10-13 (Claude)
+
+- **First upload refused** (build 0.1.0 (1) of `main` `f952262`, archive/export exit 0, Apple Distribution, App
+  Store profile, `application-identifier` `X68M8SR6NA.com.ericlee4992.workouttracker` equal to the development
+  build's): "Invalid Info.plist value. The Info.plist key UIBackgroundModes contains an invalid value:
+  'workout-processing'" (ID `MTCLDKI2RRIKIBM5LOO4LSCBU4`). Fixed by
+  [ticket 01b](01b-background-mode.md) (Codex clear round 4; phone check passed, the user), merged to `main` with
+  this ticket's B/C records and the server's D1 id: `main` **`936b18f`** (pushed; its app code equals the phone's
+  `fd88791`).
+- **Step 1 — uploaded.** In `/tmp/wt-live02` (detached at `936b18f`, `Config/Local.xcconfig` with the paid team):
+  `xcodebuild archive` Release, generic iOS, exit 0 (`** ARCHIVE SUCCEEDED **`); version **0.1.0 (1)**;
+  `UIBackgroundModes` `["audio","location"]`. Export (`app-store-connect`, automatic signing) exit 0; the IPA's
+  signature: `Apple Distribution: … (X68M8SR6NA)`, `application-identifier`
+  `X68M8SR6NA.com.ericlee4992.workouttracker` (equal to the development build's — the E1 check), `get-task-allow`
+  false. Upload (`destination` upload) **exit 0, "Upload succeeded"**, "Uploaded package is processing". Build
+  number 1 was not refused (the refused first upload did not use it up). Artifacts (session scratchpad, ephemeral):
+  `…/scratchpad/tf/archive2.*`, `export2.*`, `upload2.*`, `Stacked-0.1.0-1-936b18f.xcarchive`.
+- Next: Apple's processing → the build appears in TestFlight (answer the export-compliance question if asked) → add it
+  to "Developer" by hand → steps 2–5.
 
 ## Codex review 01 — response (round 1)
 
