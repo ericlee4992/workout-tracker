@@ -36,3 +36,12 @@ plist); a clean device build whose built `Info.plist` lacks the mode; the user's
 heart rate); then the TestFlight upload must pass validation.
 
 ## Evidence
+- Unit run (`BackgroundModesTests` + `RestAlarmTests`, WT-Floodlight `9E822EF6…`, iOS 27): `xcodebuild test` exit 0,
+  `** TEST SUCCEEDED **`, xcresult **Passed 16/0/0** (`…/scratchpad/bm/unit.xcresult`, ephemeral).
+- Clean device build (fresh derived data, commit `2b8d5fc`): exit 0; built `Info.plist` `UIBackgroundModes` =
+  `["audio","location"]`; HealthKit and camera usage strings present; profile to 2027-10-13. Installed over the app
+  with the app closed (successful process query, no app process): `devicectl device install` exit 0.
+- **The user's phone check, 2026-10-13:** asked to start a workout, log a set, lock the phone (then once with another
+  app open), and listen for the rest-end beep; also to check heart rate if a source was on. Reply: "it works." —
+  taken as the beep sounding with the app in the background. Heart rate in the background was not reported
+  separately.
