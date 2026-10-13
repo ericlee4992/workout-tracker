@@ -1,8 +1,8 @@
 # 03 — Server foundation and Sign in with Apple
 
 Type: task
-Status: in progress — **server half implemented, Codex clear (4 rounds), merged to `main` 2026-10-02** (the
-user's go-ahead); not deployed; the app half waits on the paid team (ticket 01, B)
+Status: in progress — server half merged (Codex clear, 4 rounds); **deployed 2026-10-13** with all secrets
+(see *First deploy*); next the app half (branch `ericlee4992/beta-03-deploy`)
 Blocked by: 01 (the paid team is required for the Sign in with Apple capability)
 Implementer: Claude (the user's go-ahead to start the server half, 2026-10-02); Reviewer: Codex.
 Branch: `ericlee4992/beta-03-server-apple` off `main`.
@@ -172,6 +172,29 @@ Review: [codex-review-03c.md](../codex-review-03c.md) — round-2 #1, #2, #4, #5
 **Round 4 (codex-review-03d): clear** — the round-3 finding resolved (Codex's own interleaving probes, independent of the
 test seam, and the two new tests); no new findings. The clearance covers the server implementation locally — not a
 deployment, a real Apple exchange/revocation, or the app half.
+
+## First deploy — 2026-10-13 (Claude, with the user)
+
+- Cloudflare (earlier the same day, with the user): `wrangler login`; D1 `stacked` (`3652ad5c-…`), migrations
+  0001–0005 applied remotely; R2 `stacked-feedback`.
+- **Apple Developer portal:** Sign In with Apple enabled on App ID `com.ericlee4992.workouttracker` as a primary App
+  ID (Claude, at the user's "yes"; the first save did not take — Claude misread the checkbox's `value="on"` as its
+  checked state and reported success; caught when the key page still showed "no identifiers"; saved again and
+  verified on a fresh load: ticked, Save disabled). The user created the **Sign in with Apple key** themselves and
+  keeps the `.p8` outside the repository (`~/WorkoutTracker-Backups/keys/`, 0600 in a 0700 folder).
+- `APPLE_TEAM_ID` = `X68M8SR6NA` in `wrangler.jsonc` (not secret).
+- Before deploying: `tsc --noEmit` exit 0; `vitest run` **196/196** (5 files); `wrangler deploy --dry-run` bindings
+  DB, FEEDBACK, APPLE_CLIENT_ID, APPLE_TEAM_ID.
+- **`npm run deploy` (the user: "yes") exit 0:** wrangler 4.147.0 registered the account's workers.dev subdomain;
+  **`https://stacked-server.stacked-server.workers.dev`**, cron `23 * * * *`, version `6cfac3a8-2f32-4ee1-b48d-e9c86eeb1381`.
+- **Secrets:** `APPLE_KEY_ID` piped by Claude (an identifier, not secret; deliberately not committed);
+  `APPLE_PRIVATE_KEY` (from the `.p8`), `TOKEN_ENC_KEY` (`openssl rand -base64 32`, never displayed) and
+  `OPENAI_API_KEY` (piped from `~/.config/workouttracker/openai.env`) **run by the user** — values never in chat or
+  the repository. (A first OpenAI attempt failed harmlessly: the pasted line wrapped and wrangler printed its help;
+  the second went through a scratch script holding only the command.) `wrangler secret list`: the four names.
+- **Live smoke:** `/v1/health` 200 `{"ok":true}`; `/privacy`, `/support` 200; `/v1/profile`, `/v1/ai/usage` 401
+  without a session; unknown path 404; `POST /v1/auth/apple` with empty or garbage tokens → `invalid_token` (no longer
+  `server_not_configured`: the secrets are loaded). A real Apple sign-in waits on the app half.
 
 ## Acceptance
 
