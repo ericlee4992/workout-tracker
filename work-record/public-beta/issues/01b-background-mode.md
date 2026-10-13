@@ -61,8 +61,8 @@ Review: [codex-review-01b-bgmode.md](../codex-review-01b-bgmode.md) — not clea
    **Fixed:** the queued track's player has a delegate (`TrackEndObserver`); when it finishes, the alarm clears the
    track and its deadline and restarts the loop (`SystemRestAlarm.scheduledTrackFinished`). Clearing the deadline
    also fixes a second pre-existing defect it found adjacent: an interruption or route change *after* a beep rebuilt
-   the old deadline as an immediate second beep. Not unit-testable (the tests use a fake alarm; `AVAudioPlayer`
-   completion needs a device): the phone check below covers it.
+   the old deadline as an immediate second beep. Not covered by the existing fake-alarm tests (round 2 adds state
+   tests); the delegate's arrival after real playback is a device question.
 2. **P2 / S1 — comments credited the wrong mechanism.** Corrected in the plist, `BackgroundModesTests`,
    `RestAlarmTests` and this ticket: the fix that held is the rest track queued at the rest's start (D46); the loop is
    for between rests; background heart rate without the removed mode is a device question. "Asserted below" no
@@ -72,9 +72,34 @@ Review: [codex-review-01b-bgmode.md](../codex-review-01b-bgmode.md) — not clea
 **Unit run after the fix** (`BackgroundModesTests`, `RestAlarmTests`, `RestAlarmOwnershipTests`,
 `ScheduledRestBeepTests`): exit 0, `** TEST SUCCEEDED **`, **Passed 27/0/0** (`…/scratchpad/bm/unit2.xcresult`).
 
-**Phone check scope (Codex's list, cut to what this change touches — the user's call to widen it):** one lifting
-workout, phone locked and workout minimized, heart-rate source on: a timed rest's beep, then **3+ minutes locked after
-the beep**, then reopen and check the heart-rate chart for that interval has readings throughout, not a gap; once
-more with another app in front. Indoor cardio, interruption and HR-recovery scenarios are not re-run: this change does
-not touch them, and they ran on this path before. Background delivery is judged from the saved chart, which can hide
-delay; recorded as such.
+## Codex review 01b — response (round 2)
+
+Review: [codex-review-01b-bgmode-b.md](../codex-review-01b-bgmode-b.md) — not clear (three P2); round 1's S1/P2
+resolved, P1's ordinary path fixed.
+
+1. **R2-P1 — identity across the main-actor hop.** The delegate now passes the finished `AVAudioPlayer` itself into
+   the main-actor task (holding it alive) and `scheduledTrackFinished` compares with `===`; no `ObjectIdentifier`.
+   New `QueuedTrackCompletionTests` (real `SystemRestAlarm`, fresh instance; the handler called directly): the
+   finished track clears itself and its deadline and restarts the loop; a replaced track's late completion leaves
+   the new track and deadline alone; a cancelled track's late completion changes nothing; a completion after
+   `endSession` does not reopen audio. `isSessionOpen`, `keepAlive`, `scheduled`, `scheduledEndsAt` became
+   `private(set)` for these tests; `scheduledTrackFinished` internal. Not confirmed: whether the simulator opened the
+   audio session in these runs (the "loop playing again" check is conditional on it).
+2. **R2-S1 — scope rationale.** Corrected: the route/interruption path reads the deadline this change clears, so the
+   phone check includes a route change after a beep (below).
+3. **R2-P2 — the chart is not live evidence.** The phone check uses the lock-screen Live Activity, whose heart-rate
+   number only the running app can update: it must change during the locked minutes after the beep. If the user
+   cannot observe that, timely background delivery stays unverified (the chart shows retention only).
+
+**Unit run after round 2** (`BackgroundModesTests`, `RestAlarmTests`, `RestAlarmOwnershipTests`,
+`ScheduledRestBeepTests`, `QueuedTrackCompletionTests`): exit 0, `** TEST SUCCEEDED **`, **Passed 31/0/0**; the four
+new tests listed as passed in the xcresult. Artifacts:
+`/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-public-beta/0dc39eb1-054d-49da-bf79-784fabae4a4e/scratchpad/bm/`
+(`unit3.xcresult`, `unit3.log`, `unit3.status`; earlier `unit2.*`, `device2.log`, `install2.log` for `7af1445`).
+
+**Phone check (narrowed, per round 2):** the newest build (identity below), launched by hand, heart-rate source on,
+lock-screen Live Activity visible: (1) lifting, timed rest, workout minimized, phone locked — the beep sounds; (2)
+**3+ minutes locked after the beep, the Live Activity's heart rate keeps changing**; (3) after that beep, take an
+AirPod out and put it back (a route change) — no second beep; (4) the next rest beeps too; (5) once with another app
+in front. Then Cancel the test workout. Cardio, interruption-during-rest and HR-recovery scenarios are not re-run;
+this change does not touch those paths.

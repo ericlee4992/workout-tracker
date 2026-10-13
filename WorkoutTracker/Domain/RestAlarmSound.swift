@@ -68,21 +68,21 @@ final class SystemRestAlarm: RestAlarmSounding {
     /// failure that looks exactly like the bug this file exists to fix.
     private var player: AVAudioPlayer?
     private var cache: [RestAlarmPattern: Data] = [:]
-    private var isSessionOpen = false
+    private(set) var isSessionOpen = false
     /// Loops inaudible audio for the whole workout. THIS is what keeps the app
     /// alive in the background — see `beginSession`.
-    private var keepAlive: AVAudioPlayer?
+    private(set) var keepAlive: AVAudioPlayer?
     /// The pre-rendered [silence][beep] track for the current rest.
-    private var scheduled: AVAudioPlayer?
+    private(set) var scheduled: AVAudioPlayer?
     /// When that track is due to beep. Kept so an interruption can rebuild it
     /// for the REMAINING time rather than losing the rest's alarm entirely.
-    private var scheduledEndsAt: Date?
+    private(set) var scheduledEndsAt: Date?
     private var scheduledPattern: RestAlarmPattern = .cap
     private var observers: [NSObjectProtocol] = []
     private var unduckTask: Task<Void, Never>?
     /// Hears the queued track end, so the keep-alive takes over again.
-    private lazy var trackEnd = TrackEndObserver { [weak self] id in
-        self?.scheduledTrackFinished(id)
+    private lazy var trackEnd = TrackEndObserver { [weak self] player in
+        self?.scheduledTrackFinished(player)
     }
 
     func beginSession() {
@@ -236,8 +236,13 @@ final class SystemRestAlarm: RestAlarmSounding {
     /// there — heart-rate samples, timers and all (Codex review 01b, 2026-10-13).
     /// Clearing the deadline also stops an interruption or a route change after the
     /// beep from rebuilding it as an immediate second beep.
-    private func scheduledTrackFinished(_ id: ObjectIdentifier) {
-        guard let scheduled, ObjectIdentifier(scheduled) == id else { return }
+    ///
+    /// Compared by identity against the finished player itself, held across the
+    /// main-actor hop: a track cancelled or replaced meanwhile must not clear the
+    /// new rest's beep (Codex review 01b round 2 — an `ObjectIdentifier` alone is
+    /// only valid while its object lives, and a replacement can reuse the address).
+    func scheduledTrackFinished(_ player: AVAudioPlayer) {
+        guard let scheduled, scheduled === player else { return }
         self.scheduled = nil
         scheduledEndsAt = nil
         guard isSessionOpen else { return }
@@ -356,14 +361,15 @@ enum RestAlarmDecision {
 
 /// `AVAudioPlayerDelegate` needs an `NSObject`; the alarm itself is a plain class.
 private final class TrackEndObserver: NSObject, AVAudioPlayerDelegate {
-    private let onFinish: @MainActor (ObjectIdentifier) -> Void
+    private let onFinish: @MainActor (AVAudioPlayer) -> Void
 
-    init(onFinish: @escaping @MainActor (ObjectIdentifier) -> Void) {
+    init(onFinish: @escaping @MainActor (AVAudioPlayer) -> Void) {
         self.onFinish = onFinish
     }
 
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
-        let id = ObjectIdentifier(player)
-        Task { @MainActor in self.onFinish(id) }
+        // The task holds `player`, so the identity check on the main actor compares a
+        // live object, never a reused address.
+        Task { @MainActor in self.onFinish(player) }
     }
 }

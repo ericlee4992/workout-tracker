@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Testing
 
@@ -299,5 +300,65 @@ struct ScheduledRestBeepTests {
         coordinator.armForTesting(restEndsAt: end)
         coordinator.evaluateAlarmForTesting(now: end.addingTimeInterval(1))
         #expect(alarm.sounded.isEmpty, "queued track owns this beep; sounding again doubles it")
+    }
+}
+
+/// Public beta 01b (Codex review rounds 1–2): when a rest's queued track ends, the
+/// keep-alive takes over again — and only for the track that actually finished.
+/// Runs the real `SystemRestAlarm` (a fresh instance, not `shared`) and calls the
+/// completion handler directly: the delegate's arrival needs real playback to the
+/// end, but what it does on arrival is plain state.
+@MainActor
+struct QueuedTrackCompletionTests {
+
+    private func alarmWithQueuedTrack() -> (SystemRestAlarm, AVAudioPlayer?) {
+        let alarm = SystemRestAlarm()
+        alarm.beginSession()
+        alarm.scheduleBeep(inSeconds: 60, pattern: .cap)
+        return (alarm, alarm.scheduled)
+    }
+
+    @Test func theFinishedTrackHandsBackToTheKeepAlive() {
+        let (alarm, track) = alarmWithQueuedTrack()
+        defer { alarm.endSession() }
+        guard let track else { Issue.record("no queued track"); return }
+        #expect(alarm.keepAlive?.isPlaying != true, "the queued track replaces the loop while it plays")
+        alarm.scheduledTrackFinished(track)
+        #expect(alarm.scheduled == nil)
+        #expect(alarm.scheduledEndsAt == nil, "a later interruption must not rebuild a beep that already played")
+        if alarm.isSessionOpen {
+            #expect(alarm.keepAlive?.isPlaying == true, "nothing plays between the beep and the next set otherwise")
+        }
+    }
+
+    @Test func aReplacedTracksLateCompletionLeavesTheNewRestAlone() {
+        let (alarm, old) = alarmWithQueuedTrack()
+        defer { alarm.endSession() }
+        guard let old else { Issue.record("no queued track"); return }
+        alarm.scheduleBeep(inSeconds: 75, pattern: .cap)   // +15 s: cancels and requeues
+        let new = alarm.scheduled
+        alarm.scheduledTrackFinished(old)
+        #expect(new != nil && alarm.scheduled === new, "a stale completion must not drop the new rest's beep")
+        #expect(alarm.scheduledEndsAt != nil)
+    }
+
+    @Test func aCancelledTracksLateCompletionChangesNothing() {
+        let (alarm, old) = alarmWithQueuedTrack()
+        defer { alarm.endSession() }
+        guard let old else { Issue.record("no queued track"); return }
+        alarm.cancelScheduledBeep()
+        let loop = alarm.keepAlive
+        alarm.scheduledTrackFinished(old)
+        #expect(alarm.scheduled == nil)
+        #expect(alarm.keepAlive === loop, "the loop cancel restarted is left as it is")
+    }
+
+    @Test func aCompletionAfterTheWorkoutEndedDoesNotReopenAudio() {
+        let (alarm, old) = alarmWithQueuedTrack()
+        guard let old else { alarm.endSession(); Issue.record("no queued track"); return }
+        alarm.endSession()
+        alarm.scheduledTrackFinished(old)
+        #expect(!alarm.isSessionOpen)
+        #expect(alarm.keepAlive == nil, "an ended workout must not start the loop again")
     }
 }
