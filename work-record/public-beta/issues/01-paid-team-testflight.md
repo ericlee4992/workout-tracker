@@ -262,6 +262,19 @@ Phone `00008130-001E10C01E62001C` available (paired), unlocked since boot; insta
   so each build is added to the group by hand, after its backup; tester: the user's account (Account Holder, Admin).
   1 tester, 0 builds.
 
+### In-place install of the year-long development build — 2026-10-13 (Claude, the phone on USB)
+
+- Backup `~/WorkoutTracker-Backups/2026-10-13-paid-team/` (0700): successful process query, 482 processes, only the
+  widget extension running (`processes-before.json`); `capture-1`/`capture-2` exit 0; `verify_container.py` ok;
+  capture 2 `--expect` capture 1 ok (restore set identical); `compare_stores.py 2026-10-10-resign/capture-2 capture-2`
+  **exit 0** — every row and preference kept since the Oct 10 install and its first launches (this also closes the
+  Oct 10 post-launch check), added: 1 workout, 1 cardio segment. No JSON export / round trip: the build's code equals
+  the installed code (`f6e48f3`; `f952262` adds docs only) and the app ID is unchanged, so the install does not touch
+  the store; the captures are the fallback.
+- Installed the phase B build (`main` `f952262`, profiles to 2027-10-13): `devicectl device install` exit 0; remote
+  launch exit 0 (no trust prompt this time). Next: the user checks their data and closes the app; capture and
+  `compare_stores.py capture-2 <after>`.
+
 ## Codex review 01 — response (round 1)
 
 Review: [codex-review-01.md](../codex-review-01.md) — not clear (2 P2, 4 P1). All six accepted; fixes below,
