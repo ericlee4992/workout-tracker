@@ -1,11 +1,9 @@
 # 01 — Paid team, data move and TestFlight
 
 Type: task
-Status: in progress — Prepare merged (Codex clear, 4 rounds); phase A done; **phase B done 2026-10-13: the paid team
-kept the Team ID `X68M8SR6NA`, so the app ID is unchanged and D's delete/restore is not needed** (see Progress → Phase B);
-**C done 2026-10-13** (record "Stacked: Gym Log", internal group); year-long development build installed in place and
-checked; **E step 1 done 2026-10-13: build 0.1.0 (1) from `main` `936b18f` uploaded** (after ticket 01b removed the
-rejected background mode); next: Apple's processing, add the build to "Developer", Gate S, the TestFlight install
+Status: **Done 2026-10-13** — paid team (B), App Store Connect record "Stacked: Gym Log" (C), TestFlight build 0.1.0 (1)
+from `main` `936b18f` installed in place from TestFlight with every row kept (E; step 4 skipped by the user, the
+TestFlight container being directly copyable); D not needed
 Blocked by: —
 Implementer: Claude (the signing, phone and App Store Connect steps need this session's tooling and the user).
 Reviewer: Codex, in a visible Orca terminal, for the config diff **and for this procedure before the delete
@@ -328,7 +326,13 @@ Phone `00008130-001E10C01E62001C` available (paired), unlocked since boot; insta
   Mode on and is registered to the team; iOS 27.0) or whether it holds for App Store builds or other phones. If it
   holds for later TestFlight builds, a direct capture replaces the backup bridge (step 4) for this phone; the user
   decides whether step 4 still runs.
-- Next: step 5 (Live Activity and widget in a short workout; name "Stacked" — already seen); the user's choice on step 4.
+- **Step 4 skipped (the user, 2026-10-13: "skip step 4")**, on Claude's recommendation: the direct capture above makes
+  the bridge unnecessary on this phone. Before each later TestFlight update: Gate S by direct capture (two captures,
+  `--export`, round trip), first confirming the copy still works for the installed build; the bridge is the fallback
+  if it stops working. The bridge stays unproven.
+- **Step 5 (the user):** "live activity shows" in a short workout; the home-screen name reads "Stacked" (the orange
+  TestFlight dot before it). The widget was not reported on.
+- **Phase E done. Installed: TestFlight 0.1.0 (1) = `main` `936b18f`**, Automatic Updates off.
 
 ## Codex review 01 — response (round 1)
 

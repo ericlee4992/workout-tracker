@@ -4,30 +4,28 @@ Updated **2026-10-13** (paid team, App Store Connect record, server resources, t
 The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is archived
 byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: TestFlight build 0.1.0 (1) uploaded, processing at Apple
+## NOW: the phone runs the TestFlight build; ticket 01 done
 
-- **`main` = `936b18f`** (pushed; origin confirmed): Floodlight + live-workout fixes 01/02 + public-beta 01 B/C
-  records + the server's D1 id + **ticket 01b** (the `workout-processing` background mode removed; the post-beep
-  keep-alive restart). Merged by fast-forward at the user's go-ahead ("merge into main once Codex clears");
-  `beta-deploy-01` and `beta-01b-background-mode` were rebased onto it first (force-with-lease pushed).
-- **Uploaded 2026-10-13 ~03:02 EDT:** version 0.1.0 build 1 from `936b18f`, "Upload succeeded"; evidence in
-  [ticket 01 → Phase E](../work-record/public-beta/issues/01-paid-team-testflight.md). Not yet seen in App Store
-  Connect (processing). **This branch** `ericlee4992/beta-01e-testflight` holds this STATE and the phase E record.
-- **Next (ticket 01 phase E):** the build appears in TestFlight → answer export compliance if asked → add it to the
-  internal group **"Developer"** by hand (automatic distribution is off) → **Gate S over USB** (app closed) → the
-  user installs from the TestFlight app with the app closed (stop if it offers only delete-and-install) → launch,
-  Export JSON, counts equal Gate S → the user turns **off TestFlight Automatic Updates** → the backup-bridge proof
-  (E4) → Live Activity, widget, home-screen name "Stacked".
+- **`main` = `936b18f`** (pushed): everything through ticket 01b. **This branch** `ericlee4992/beta-01e-testflight`
+  holds ticket 01's phase E record and this STATE (docs only; not yet in `main` — merge at the user's go-ahead).
+- **Installed from TestFlight 2026-10-13 ~04:35 EDT: Stacked 0.1.0 (1) = `main` `936b18f`**, in place, Automatic
+  Updates **off**. Gate S before it and a direct capture after it are identical (every row, every preference);
+  the exports match (31 workouts, 411 sets). Evidence: [ticket 01 → Phase E](../work-record/public-beta/issues/01-paid-team-testflight.md).
+- **This phone can copy the TestFlight build's container over USB** (unexpected; DEVELOPMENT says it cannot). The
+  user skipped the backup-bridge proof; before each TestFlight update: confirm the copy still works, then Gate S by
+  direct capture. Update DEVELOPMENT's TestFlight paragraph accordingly (not done yet).
+- **Next build to testers:** bump the build number (2, 3, …) in the project, archive from a recorded `main` commit,
+  upload, Gate S, add to "Developer" by hand, the user installs from TestFlight.
 
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
-- **Installed: `fd88791`** (ticket 01b's last test build; app code identical to `main` `936b18f`), development
-  signing on the **paid team** — profiles app `c8b27150…`, widget `0e309c14…`, both to **2027-10-13T04:33Z** (no
-  weekly re-sign any more). Phone check passed (the user, 2026-10-13: beep while locked/minimized, no repeat after an
+- **Installed: TestFlight 0.1.0 (1)** from `main` `936b18f` (expires ~2027-01-11, 90 days after upload). Development
+  builds, if ever needed, sign on the **paid team** — profiles app `c8b27150…`, widget `0e309c14…`, both to
+  **2027-10-13T04:33Z**. Phone check passed (the user, 2026-10-13: beep while locked/minimized, no repeat after an
   AirPod route change, next rest beeps, heart rate verified by the user).
-- **Latest verified backup:** `~/WorkoutTracker-Backups/2026-10-13-paid-team/` — `capture-2` before the year-long
-  install and `after-install` after the user's check (every old row preserved; 30 workouts). Captures need USB;
+- **Latest verified backup:** `~/WorkoutTracker-Backups/2026-10-13-testflight/` — Gate S (`capture-1/2`,
+  `phone-export.json`, round trip exit 0) and `tf-capture` after the TestFlight install (identical); 31 workouts. Captures need USB;
   Wi-Fi copies fail. The app stays closed during a capture; a failed process query proves nothing.
 - Known, accepted: a long workout title truncates beside Cancel (seen with "Seated Che…"). Pre-existing, open: the
   minimized workout's Live Activity heart rate gets no recurring update (ticket 01b, R3-P1).
@@ -43,7 +41,7 @@ terms themselves; Claude never enters credentials.
 
 | Ticket | State (evidence in each ticket) |
 |---|---|
-| 01 paid team + TestFlight | **B done** (paid team kept Team ID `X68M8SR6NA`; app IDs unchanged, so **D's delete/restore is not needed**). **C done**: App Store Connect app **"Stacked: Gym Log"** (Apple ID `6822152192`, SKU `stacked-ios`; "Stacked" was taken; home-screen name stays "Stacked"), TestFlight internal group "Developer", automatic distribution off, the user as tester. Year-long dev build installed in place and checked. **E: build 1 uploaded**; steps 2–5 next (see NOW). |
+| 01 paid team + TestFlight | **Done.** **B done** (paid team kept Team ID `X68M8SR6NA`; app IDs unchanged, so **D's delete/restore is not needed**). **C done**: App Store Connect app **"Stacked: Gym Log"** (Apple ID `6822152192`, SKU `stacked-ios`; "Stacked" was taken; home-screen name stays "Stacked"), TestFlight internal group "Developer", automatic distribution off, the user as tester. Year-long dev build installed in place and checked. **E done**: build 1 installed from TestFlight (step 4 skipped by the user). |
 | 01b background mode | **Done, merged** (`936b18f`): Codex clear round 4; unit 31/31; phone check passed. |
 | 02 onboarding | Merged (`4823d46`). On the phone since the paid-team build; reaches testers with TestFlight. |
 | 03 server + Sign in with Apple | Server half merged. **Cloudflare (2026-10-13):** wrangler logged in; D1 `stacked` (`3652ad5c-7c0b-4b75-874b-6ab2ad7ce8ec`, in `server/wrangler.jsonc`), migrations 0001–0005 applied remotely; R2 bucket `stacked-feedback`. **Not deployed.** Left (server/README "First deploy"): Sign in with Apple key (.p8) and the capability on the bundle ID, `APPLE_TEAM_ID`, `wrangler secret put` APPLE_KEY_ID / APPLE_PRIVATE_KEY / TOKEN_ENC_KEY / OPENAI_API_KEY (the user types them), `npm run deploy` with the user's approval. App half next (unblocks 05, 06's app switch, signed-in 07). |
@@ -56,7 +54,7 @@ terms themselves; Claude never enters credentials.
 
 ## Next action
 
-1. Ticket 01 phase E (see NOW). Check App Store Connect for the processed build; the tab is open in the user's Chrome.
+1. Merge `ericlee4992/beta-01e-testflight` (docs) at the user's go-ahead; update DEVELOPMENT's TestFlight paragraph.
 2. Server first deploy (03), then 03's app half → 05/06/07 wiring; 04 later; 08 answers; 09.
 3. Clean-up when E is done: scratch checkouts `/tmp/wt-resign` (detached `b83cf39`) and `/tmp/wt-live02` (detached
    `936b18f`, holds the paid-team `Config/Local.xcconfig`; used for archiving).
