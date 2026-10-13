@@ -46,11 +46,13 @@
 		<!-- No `workout-processing` (removed 2026-10-13, public beta 01b): App Store
 		     Connect rejects it for an iPhone app ("UIBackgroundModes contains an
 		     invalid value: 'workout-processing'"), so no TestFlight build can carry
-		     it. It was added 2026-08-25 when the screen-off rest alarm was silent,
-		     but the fix that worked was the looping inaudible track under `audio`
-		     (RestAlarmSound.startKeepAlive): playing audio keeps the process, the
-		     workout session and the queued beep alive. The phone check of that is
-		     ticket 01b, before the first TestFlight upload. -->
+		     it. It was added 2026-08-25 among the attempts at the silent screen-off
+		     alarm; the design that worked queues each rest's [silence][beep] track
+		     when the rest starts, so nothing has to run at the deadline (D46). The
+		     `audio` mode plays that track and, between rests, an inaudible loop
+		     (RestAlarmSound). Whether heart-rate samples keep arriving in the
+		     background without the removed mode is a device question, recorded in
+		     ticket 01b. -->
 		<string>location</string>
 	</array>
 </dict>

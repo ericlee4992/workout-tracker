@@ -154,10 +154,11 @@ private extension Data {
 /// in the app. It doesn't work with screen off or when I'm on another app."
 ///
 /// Three causes, and these cover the two that live in code. The third — iOS
-/// suspending the backgrounded app, so no samples arrived at all — is answered by
-/// the `audio` background mode and its keep-alive track, asserted against the
-/// built app in `BackgroundModesTests` (`workout-processing`, tried then, is
-/// rejected by App Store Connect and was removed 2026-10-13).
+/// suspending the backgrounded app, so no samples arrived at all — was answered
+/// by queuing the beep as audio when the rest starts (D46; `ScheduledRestBeepTests`
+/// below). The plist's `audio` mode is checked in `BackgroundModesTests`;
+/// `workout-processing`, tried then, is rejected by App Store Connect and was
+/// removed 2026-10-13.
 @MainActor
 struct RestAlarmOwnershipTests {
 

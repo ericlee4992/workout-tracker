@@ -80,6 +80,10 @@ final class SystemRestAlarm: RestAlarmSounding {
     private var scheduledPattern: RestAlarmPattern = .cap
     private var observers: [NSObjectProtocol] = []
     private var unduckTask: Task<Void, Never>?
+    /// Hears the queued track end, so the keep-alive takes over again.
+    private lazy var trackEnd = TrackEndObserver { [weak self] id in
+        self?.scheduledTrackFinished(id)
+    }
 
     func beginSession() {
         do {
@@ -211,6 +215,7 @@ final class SystemRestAlarm: RestAlarmSounding {
                 silenceSeconds: seconds, pattern: pattern)
             let player = try AVAudioPlayer(data: track)
             player.volume = 1
+            player.delegate = trackEnd
             player.prepareToPlay()
             player.play()
             scheduled = player
@@ -224,6 +229,20 @@ final class SystemRestAlarm: RestAlarmSounding {
             restAlarmLog.error("could not queue beep: \(error.localizedDescription, privacy: .public)")
             startKeepAlive()
         }
+    }
+
+    /// The queued track ends with its beep and nothing follows it: without this the
+    /// app plays no audio from the beep until the next set, and iOS may suspend it
+    /// there — heart-rate samples, timers and all (Codex review 01b, 2026-10-13).
+    /// Clearing the deadline also stops an interruption or a route change after the
+    /// beep from rebuilding it as an immediate second beep.
+    private func scheduledTrackFinished(_ id: ObjectIdentifier) {
+        guard let scheduled, ObjectIdentifier(scheduled) == id else { return }
+        self.scheduled = nil
+        scheduledEndsAt = nil
+        guard isSessionOpen else { return }
+        if keepAlive?.isPlaying != true { startKeepAlive() }
+        restAlarmLog.notice("queued beep played, keep-alive back=\(self.keepAlive?.isPlaying == true)")
     }
 
     var hasQueuedBeep: Bool { scheduled?.isPlaying == true }
@@ -332,5 +351,19 @@ enum RestAlarmDecision {
         guard let restEndsAt else { return false }
         guard now >= restEndsAt else { return false }
         return lastSounded != restEndsAt
+    }
+}
+
+/// `AVAudioPlayerDelegate` needs an `NSObject`; the alarm itself is a plain class.
+private final class TrackEndObserver: NSObject, AVAudioPlayerDelegate {
+    private let onFinish: @MainActor (ObjectIdentifier) -> Void
+
+    init(onFinish: @escaping @MainActor (ObjectIdentifier) -> Void) {
+        self.onFinish = onFinish
+    }
+
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        let id = ObjectIdentifier(player)
+        Task { @MainActor in self.onFinish(id) }
     }
 }

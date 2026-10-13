@@ -8,9 +8,10 @@ import Testing
 /// WHY THIS EXISTS: on 2026-08-25 the rest alarm beeped only while the app was
 /// on screen: iOS suspended the backgrounded app, so no samples arrived, the
 /// sample-driven alarm never fired, and every SwiftUI timer had stopped too.
-/// The fix that held is the `audio` mode with a looping inaudible track; the
-/// `workout-processing` mode added at the time was removed on 2026-10-13
-/// because App Store Connect rejects it for an iPhone app.
+/// The fix that held queues each rest's [silence][beep] track when the rest
+/// starts, played under the `audio` mode (D46); the `workout-processing` mode
+/// added among the attempts was removed on 2026-10-13 because App Store Connect
+/// rejects it for an iPhone app.
 ///
 /// Nothing in the codebase could catch that. Worse, two build-setting traps had
 /// already been hit in two days:
@@ -40,9 +41,9 @@ struct BackgroundModesTests {
 
     /// App Store Connect rejects an iPhone app whose `UIBackgroundModes` lists
     /// `workout-processing` ("contains an invalid value", 2026-10-13), so no
-    /// TestFlight or App Store build can carry it. What keeps the rest alarm alive
-    /// with the screen off is the `audio` mode's looping inaudible track
-    /// (`RestAlarmSound.startKeepAlive`), asserted below.
+    /// TestFlight or App Store build can carry it. The screen-off rest alarm needs
+    /// the `audio` mode (the next test); whether the app keeps running between
+    /// rests is device behavior no plist test can show (ticket 01b).
     @Test func noModeTheAppStoreRejects() {
         #expect(
             !backgroundModes.contains("workout-processing"),
