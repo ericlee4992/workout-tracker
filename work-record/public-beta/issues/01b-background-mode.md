@@ -126,3 +126,7 @@ evidence only**. **Timely background heart-rate delivery is recorded as UNVERIFI
 observation of sample arrival is the `RestAlarm` "sample tick" log at debug level, which needs Console.app streaming
 from the phone with debug messages on — offered to the user as optional, not required. The Live Activity not
 updating while minimized is noted as a pre-existing gap for later (not fixed here).
+
+**Installed `fd88791` (2026-10-13, retry over USB):** app closed (successful process query, no app process;
+`procs4.txt`); `devicectl device install` **exit 0** (`install4.log`, `install4.status`), the same `dd-device`
+product as `device3.*`. The phone check runs on this build.
