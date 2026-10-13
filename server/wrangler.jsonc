@@ -12,8 +12,8 @@
   "vars": {
     // Sign in with Apple's audience: the app's bundle ID (D60: kept as is).
     "APPLE_CLIENT_ID": "com.ericlee4992.workouttracker",
-    // The paid team's ID (not secret); set when Apple approves the enrollment (ticket 01).
-    "APPLE_TEAM_ID": ""
+    // The paid team's ID (not secret; it is in every signed build): the issuer of the client-secret JWT.
+    "APPLE_TEAM_ID": "X68M8SR6NA"
   },
   // Feedback screenshots (ticket 07). Created by `wrangler r2 bucket create stacked-feedback` before the first deploy.
   "r2_buckets": [
