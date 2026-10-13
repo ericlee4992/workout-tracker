@@ -312,8 +312,23 @@ Phone `00008130-001E10C01E62001C` available (paired), unlocked since boot; insta
   (`since-after-install.txt`): no row missing; added 1 workout, 6 entries, 18 sets, 1 rest override, 2 gym memories;
   changed: selected gym, 5 gym-memory timestamps (one machine), the `onboarding.welcomeSeen.v1` preference — ordinary
   use (exit 1 only for those).
-- **Build 1 added to "Developer"** by hand (status "Testing"). Next: the user installs from the TestFlight app with
-  the app closed; launch; Export JSON; counts equal Gate S (31 workouts, 411 sets); Automatic Updates off; E4; E5.
+- **Build 1 added to "Developer"** by hand (status "Testing"); the tester status became "Invited"; the user accepted
+  the email invitation in TestFlight.
+- **Step 2/3 — installed from TestFlight (the user, ~04:35 EDT), in place.** No delete was offered or needed.
+  `devicectl device info apps` (`apps-after-tf.json`): Stacked 0.1.0 (1), a new bundle location `4FE5EF58-…` (was
+  `6C62F28F-…`, ticket 01b's `fd88791`). The user confirmed the TestFlight markers: the orange dot before the
+  home-screen name "Stacked", TestFlight shows **Open**; **Automatic Updates turned off** (the user). After launch,
+  the app's JSON export (`tf-export.json`, 04:37) vs Gate S's (`phone-export.json`): `compare_exports.py` **exit 0**
+  — 31 workouts, 411 sets, 122 entries, 62 exercises, 23 models, 25 machines, 4 gyms, 2 templates.
+- **Finding: this TestFlight build's container can be copied over USB** (contradicts DEVELOPMENT's "TestFlight and
+  App Store builds cannot be copied from"; devicectl reports `containerAccessible: true`). The app closed (successful
+  process query, 530 processes, only the widget; `processes-tf-closed.json`): `copy from --source /` exit 0
+  (`tf-capture`), `verify_container.py --export tf-export.json` ok, `compare_stores.py capture-2 tf-capture` **exit 0**
+  — every row of 15 tables and every preference identical to Gate S. Not established: why (this phone has Developer
+  Mode on and is registered to the team; iOS 27.0) or whether it holds for App Store builds or other phones. If it
+  holds for later TestFlight builds, a direct capture replaces the backup bridge (step 4) for this phone; the user
+  decides whether step 4 still runs.
+- Next: step 5 (Live Activity and widget in a short workout; name "Stacked" — already seen); the user's choice on step 4.
 
 ## Codex review 01 — response (round 1)
 
