@@ -24,7 +24,7 @@
       "binding": "DB",
       "database_name": "stacked",
       // Filled in by `wrangler d1 create stacked` before the first deploy (README). Local dev and tests ignore it.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "3652ad5c-7c0b-4b75-874b-6ab2ad7ce8ec",
       "migrations_dir": "migrations"
     }
   ]
