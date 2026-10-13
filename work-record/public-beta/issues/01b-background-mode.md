@@ -1,7 +1,7 @@
 # 01b — Remove `workout-processing` so TestFlight accepts the app
 
 Type: bug (release blocker for ticket 01 phase E)
-Status: implemented; waiting for the user's phone check and Codex review
+Status: **Codex clear (round 4)**; `fd88791` installed; waiting for the user's phone check (and the user's acceptance that live background heart rate stays unverified) before merge and upload
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/beta-01b-background-mode` off `main`.
 
@@ -130,3 +130,10 @@ updating while minimized is noted as a pre-existing gap for later (not fixed her
 **Installed `fd88791` (2026-10-13, retry over USB):** app closed (successful process query, no app process;
 `procs4.txt`); `devicectl device install` **exit 0** (`install4.log`, `install4.status`), the same `dd-device`
 product as `device3.*`. The phone check runs on this build.
+
+## Codex review 01b — clear (round 4)
+
+[codex-review-01b-bgmode-d.md](../codex-review-01b-bgmode-d.md): clear — R3-P1 resolved; no open findings. It clears
+the code and documentation, not installation, phone acceptance or upload readiness. The ticket's original pre-upload
+requirement that heart rate keeps updating while locked is **not satisfied** by retention evidence: before the upload
+the user either observes live delivery (Console.app) or accepts it as unverified.
