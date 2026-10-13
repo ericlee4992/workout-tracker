@@ -301,8 +301,19 @@ Phone `00008130-001E10C01E62001C` available (paired), unlocked since boot; insta
   false. Upload (`destination` upload) **exit 0, "Upload succeeded"**, "Uploaded package is processing". Build
   number 1 was not refused (the refused first upload did not use it up). Artifacts (session scratchpad, ephemeral):
   `…/scratchpad/tf/archive2.*`, `export2.*`, `upload2.*`, `Stacked-0.1.0-1-936b18f.xcarchive`.
-- Next: Apple's processing → the build appears in TestFlight (answer the export-compliance question if asked) → add it
-  to "Developer" by hand → steps 2–5.
+- **Processed** (App Store Connect: "Ready to Submit", expires in 90 days; no export-compliance question asked).
+- **Step 2 — Gate S** in `~/WorkoutTracker-Backups/2026-10-13-testflight/` (0700), the phone on USB (wired): the
+  user's JSON export written 03:51:44 EDT, no workout in progress (`phone-export.json`); the app closed — successful
+  process query, 434 processes, only the widget extension (`processes-before.json`); `capture-1`/`capture-2` exit 0;
+  `verify_container.py` ok on both, capture 2 `--expect` capture 1 ok, capture 1 `--export phone-export.json` ok (no
+  workout or set missing, no count mismatch); round trip of capture 1 on WT-Backup-01 (build-for-testing of
+  `936b18f`, exit 0): 31 workouts · 411 sets, `compare_exports.py phone-export.json roundtrip-export.json` **exit 0**
+  (4 gyms, 25 machines, 2 templates). **WT-Backup-01 erased.** Against `2026-10-13-paid-team/after-install`
+  (`since-after-install.txt`): no row missing; added 1 workout, 6 entries, 18 sets, 1 rest override, 2 gym memories;
+  changed: selected gym, 5 gym-memory timestamps (one machine), the `onboarding.welcomeSeen.v1` preference — ordinary
+  use (exit 1 only for those).
+- **Build 1 added to "Developer"** by hand (status "Testing"). Next: the user installs from the TestFlight app with
+  the app closed; launch; Export JSON; counts equal Gate S (31 workouts, 411 sets); Automatic Updates off; E4; E5.
 
 ## Codex review 01 — response (round 1)
 
