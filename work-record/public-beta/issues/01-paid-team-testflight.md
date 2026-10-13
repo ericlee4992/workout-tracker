@@ -3,7 +3,7 @@
 Type: task
 Status: in progress — Prepare merged (Codex clear, 4 rounds); phase A done; **phase B done 2026-10-13: the paid team
 kept the Team ID `X68M8SR6NA`, so the app ID is unchanged and D's delete/restore is not needed** (see Progress → Phase B);
-next C (App Store Connect record), then an in-place install of a year-long development build, then E
+**C done 2026-10-13** (record \"Stacked: Gym Log\", internal group); next an in-place install of a year-long development build, then E
 Blocked by: —
 Implementer: Claude (the signing, phone and App Store Connect steps need this session's tooling and the user).
 Reviewer: Codex, in a visible Orca terminal, for the config diff **and for this procedure before the delete
@@ -250,6 +250,17 @@ Phone `00008130-001E10C01E62001C` available (paired), unlocked since boot; insta
   (backup → delete → install → restore) is not needed; the Keychain (OpenAI key, team-scoped) and Health permissions
   stay too. What remains of D is an ordinary install behind Gate S. E's in-place TestFlight install still needs its
   `application-identifier` check (E1) and its Gate S (E2). The Support request (B2) is moot.
+
+### Phase C — 2026-10-13 (Claude in the user's Chrome, at the user's go-ahead)
+
+- The user accepted the App Store Connect Terms of Service themselves (Claude did not tick it).
+- New App: iOS, English (U.S.), bundle ID `com.ericlee4992.workouttracker` (the app's own, not the widget's), SKU
+  `stacked-ios`, Full Access. **"Stacked" was refused** ("already being used"); Claude stopped and asked; the user
+  chose **"Stacked: Gym Log"** (spec → *Name* updated). Created: app ID `6822152192`, "iOS 1.0 Prepare for
+  Submission".
+- TestFlight → internal group **"Developer"** with **automatic distribution off** (Apple: cannot be changed later),
+  so each build is added to the group by hand, after its backup; tester: the user's account (Account Holder, Admin).
+  1 tester, 0 builds.
 
 ## Codex review 01 — response (round 1)
 

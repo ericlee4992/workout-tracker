@@ -54,7 +54,8 @@ work for them. 03–07 each touch the server, so they run one at a time on short
 
 The home-screen name becomes **Stacked** (`CFBundleDisplayName`; the widget keeps its own "Workout" label).
 The bundle ID, the stored data and the export format do not change. The App Store Connect record uses
-"Stacked"; if the name is taken there, ask the user for the next choice (do not pick one).
+"Stacked"; if the name is taken there, ask the user for the next choice (do not pick one). **2026-10-13:** "Stacked"
+was taken; the user chose **"Stacked: Gym Log"** as the App Store name. The home-screen name stays "Stacked".
 
 ### Accounts
 
