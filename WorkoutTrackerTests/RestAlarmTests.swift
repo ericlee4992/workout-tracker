@@ -153,10 +153,11 @@ private extension Data {
 /// The bug the user hit in a real gym, 2026-08-25: "the alarm only beeps when
 /// in the app. It doesn't work with screen off or when I'm on another app."
 ///
-/// Three causes, and these cover the two that live in code. The third —
-/// `UIBackgroundModes` missing `workout-processing`, so iOS suspended the
-/// workout session and no samples arrived at all — is a build setting, asserted
-/// against the built app in `BackgroundModesTests`.
+/// Three causes, and these cover the two that live in code. The third — iOS
+/// suspending the backgrounded app, so no samples arrived at all — is answered by
+/// the `audio` background mode and its keep-alive track, asserted against the
+/// built app in `BackgroundModesTests` (`workout-processing`, tried then, is
+/// rejected by App Store Connect and was removed 2026-10-13).
 @MainActor
 struct RestAlarmOwnershipTests {
 

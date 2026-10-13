@@ -6,10 +6,11 @@ import Testing
 /// Asserts the built app's `Info.plist`, not the source.
 ///
 /// WHY THIS EXISTS: on 2026-08-25 the rest alarm beeped only while the app was
-/// on screen. The cause was not in any Swift file — `UIBackgroundModes` was
-/// missing `workout-processing`, so iOS suspended the `HKWorkoutSession` the
-/// moment the app backgrounded. No samples arrived, so the sample-driven alarm
-/// never fired, and every SwiftUI timer had stopped too.
+/// on screen: iOS suspended the backgrounded app, so no samples arrived, the
+/// sample-driven alarm never fired, and every SwiftUI timer had stopped too.
+/// The fix that held is the `audio` mode with a looping inaudible track; the
+/// `workout-processing` mode added at the time was removed on 2026-10-13
+/// because App Store Connect rejects it for an iPhone app.
 ///
 /// Nothing in the codebase could catch that. Worse, two build-setting traps had
 /// already been hit in two days:
@@ -37,12 +38,15 @@ struct BackgroundModesTests {
         infoPlist["UIBackgroundModes"] as? [String] ?? []
     }
 
-    /// Without this the workout session is suspended when the app backgrounds,
-    /// and a backgrounded app is where a lifter spends most of every rest.
-    @Test func theWorkoutSessionKeepsRunningInTheBackground() {
+    /// App Store Connect rejects an iPhone app whose `UIBackgroundModes` lists
+    /// `workout-processing` ("contains an invalid value", 2026-10-13), so no
+    /// TestFlight or App Store build can carry it. What keeps the rest alarm alive
+    /// with the screen off is the `audio` mode's looping inaudible track
+    /// (`RestAlarmSound.startKeepAlive`), asserted below.
+    @Test func noModeTheAppStoreRejects() {
         #expect(
-            backgroundModes.contains("workout-processing"),
-            "UIBackgroundModes is \(backgroundModes) — without workout-processing iOS suspends HKWorkoutSession and the rest alarm goes silent the moment the user leaves the app")
+            !backgroundModes.contains("workout-processing"),
+            "UIBackgroundModes is \(backgroundModes) — App Store Connect refuses the upload with workout-processing in an iPhone app")
     }
 
     /// Without this the alarm cannot start playing while backgrounded, which is

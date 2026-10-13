@@ -43,19 +43,14 @@
 	<array>
 		<!-- Plays the rest alarm while the app is backgrounded. -->
 		<string>audio</string>
-		<!-- Keeps the HKWorkoutSession RUNNING while the app is backgrounded,
-		     which on iOS it does not do without this.
-
-		     Found the hard way, 2026-08-25: with `audio` alone the alarm beeped
-		     only while the app was on screen. iOS suspends the workout session
-		     when the app backgrounds, so no samples arrive, so the sample-driven
-		     alarm never fires — and every SwiftUI timer has stopped too.
-
-		     The local notification kept firing throughout, which is what made
-		     this hard to see: a UNTimeIntervalNotificationTrigger is scheduled
-		     with the system in advance and fires whether or not the app is
-		     running. The notification arriving never proved the app was alive. -->
-		<string>workout-processing</string>
+		<!-- No `workout-processing` (removed 2026-10-13, public beta 01b): App Store
+		     Connect rejects it for an iPhone app ("UIBackgroundModes contains an
+		     invalid value: 'workout-processing'"), so no TestFlight build can carry
+		     it. It was added 2026-08-25 when the screen-off rest alarm was silent,
+		     but the fix that worked was the looping inaudible track under `audio`
+		     (RestAlarmSound.startKeepAlive): playing audio keeps the process, the
+		     workout session and the queued beep alive. The phone check of that is
+		     ticket 01b, before the first TestFlight upload. -->
 		<string>location</string>
 	</array>
 </dict>
