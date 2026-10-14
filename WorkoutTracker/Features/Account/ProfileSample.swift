@@ -53,24 +53,60 @@ enum ProfileSample {
         days: 4, minutes: 45, height: BodyMeasure(value: 70, unit: .inches), weight: BodyMeasure(value: 180, unit: .lb))
 }
 
-/// The pushed screen: the page plus its sheets, on the sample value (edits stay in memory). Ticket 03's mock adds
-/// the delete confirmation and, after it, the follow-up that shows the iOS Settings route (the "pending" answer).
+/// The pushed screen: the page plus its sheets and alerts, on the account store (ticket 03's wiring; the sample
+/// store under the UI-first flags). Signing out or deleting leaves the page; Settings shows the follow-up after a
+/// deletion that needs the iOS Settings step (the page is gone by then).
 struct ProfileScreen: View {
-    @State var profile: AccountProfile
+    @Environment(AccountStore.self) private var account
+    @Environment(\.dismiss) private var dismiss
     var usCustomary: Bool
+    var onAppleStep: () -> Void
     @State private var editing = false
-    @State private var deletedNeedsAppleStep = false
+    @State private var renaming = false
+    @State private var newName = ""
+    @State private var problem: String?
 
     var body: some View {
-        ProfileView(profile: profile, onEditTraining: { editing = true }, onDelete: { deletedNeedsAppleStep = true })
-            .sheet(isPresented: $editing) {
-                TrainingProfileEditor(profile: profile.training, usCustomary: usCustomary) { profile.training = $0 }
+        Group {
+            if let profile = account.profile {
+                ProfileView(profile: profile,
+                            onEditTraining: { editing = true },
+                            onEditName: { newName = profile.displayName; renaming = true },
+                            onSignOut: { Task { await account.signOut(); dismiss() } },
+                            onDelete: { Task { await delete() } })
+                    .sheet(isPresented: $editing) {
+                        TrainingProfileEditor(profile: profile.training, usCustomary: usCustomary) { training in
+                            Task { if !(await account.saveTraining(training)) { problem = AccountDisplayCopy.saveFailed } }
+                        }
+                    }
+            } else {
+                Color.clear.onAppear { dismiss() }
             }
-            .alert(AccountDeletionCopy.doneTitle, isPresented: $deletedNeedsAppleStep) {
-                Button("OK") {}
-            } message: {
-                Text(AccountDeletionCopy.stopUsingApple)
+        }
+        .task { await account.refresh() }
+        .alert(AccountDisplayCopy.nameTitle, isPresented: $renaming) {
+            TextField(AccountDisplayCopy.nameTitle, text: $newName)
+                .textContentType(.name)
+            Button("Cancel", role: .cancel) {}
+            Button("Save") {
+                let name = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty, name != account.profile?.displayName else { return }
+                Task { if !(await account.rename(String(name.prefix(50)))) { problem = AccountDisplayCopy.saveFailed } }
             }
+        }
+        .alert(problem ?? "", isPresented: Binding(get: { problem != nil }, set: { if !$0 { problem = nil } })) {
+            Button("OK") {}
+        }
+    }
+
+    private func delete() async {
+        switch await account.deleteAccount() {
+        case .deleted: dismiss()
+        case .deletedNeedsAppleStep:
+            onAppleStep()
+            dismiss()
+        case .failed(let message): problem = message
+        }
     }
 }
 

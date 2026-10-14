@@ -88,7 +88,7 @@ final class FloodlightAccountUITests: XCTestCase {
         app.terminate()
 
         // The welcome page with Sign in with Apple, and after signing in there.
-        launch(appearance: appearance, large: large, flags: ["-uiTestOnboarding", "-uiTestOnboardingFresh"], design: false)
+        launch(appearance: appearance, large: large, flags: ["-uiTestOnboarding", "-uiTestOnboardingFresh", "-uiTestProfileSignedOut"], design: false)
         XCTAssertTrue(app.buttons["welcomeTour"].waitForExistence(timeout: 15))
         XCTAssertTrue(any("signInWithApple").waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.8)

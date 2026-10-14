@@ -110,6 +110,10 @@ struct WorkoutTrackerApp: App {
 
     /// First launch and the guided tour (public beta ticket 02).
     @State private var onboarding = OnboardingCoordinator()
+    /// Public beta ticket 03: the signed-in state (signed out unless a session is in the keychain).
+    @State private var account = AccountStore.forThisApp()
+    /// The tour's stand-in: no server, so the tour never shows the tester's own account (it runs on sample data).
+    @State private var tourAccount = AccountStore(client: nil)
 
     var body: some Scene {
         WindowGroup {
@@ -134,6 +138,7 @@ struct WorkoutTrackerApp: App {
                         TourOverlay()
                     }
                     .environment(tour)
+                    .environment(tourAccount)
                     .id(ObjectIdentifier(sample))
                 } else {
                     RootView()
@@ -141,8 +146,17 @@ struct WorkoutTrackerApp: App {
                         .fullScreenCover(isPresented: $onboarding.showsWelcome) {
                             WelcomeView(onTour: { onboarding.startTour(realContext: modelContainer.mainContext) },
                                         onSkip: { onboarding.skipWelcome() },
-                                        signedInName: ProfileSample.welcomeSignedInName)
+                                        showsSignIn: account.isAvailable,
+                                        signedInName: ProfileSample.welcomeSignedInName
+                                            ?? (account.isSignedIn ? account.profile?.displayName ?? AccountDisplayCopy.unnamed : nil),
+                                        signInFailure: account.signInFailure,
+                                        signingIn: account.signingIn,
+                                        onAppleRequest: account.prepare,
+                                        onAppleCompletion: { result in Task { await account.complete(result) } })
                         }
+                        .environment(account)
+                        // A stored session is checked and its profile fetched once per launch.
+                        .task { await account.refresh() }
                 }
             }
                 // Settings → Appearance (System / Light / Dark) picks the scheme and the

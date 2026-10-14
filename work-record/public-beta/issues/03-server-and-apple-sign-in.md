@@ -1,8 +1,9 @@
 # 03 — Server foundation and Sign in with Apple
 
 Type: task
-Status: in progress — server half merged (Codex clear, 4 rounds); **deployed 2026-10-13** with all secrets
-(see *First deploy*); next the app half (branch `ericlee4992/beta-03-deploy`)
+Status: in progress — server half merged (Codex clear, 4 rounds) and **deployed 2026-10-13**; **app half
+implemented** (mock approved by the user; unit 43/43, UI 37/37 + 1 opt-in skip); Codex review of the app half next,
+then the phone (branch `ericlee4992/beta-03-deploy`)
 Blocked by: 01 (the paid team is required for the Sign in with Apple capability)
 Implementer: Claude (the user's go-ahead to start the server half, 2026-10-02); Reviewer: Codex.
 Branch: `ericlee4992/beta-03-server-apple` off `main`.
@@ -250,6 +251,50 @@ AccessibilityL (24). Sample flags: `-uiTestProfileSignedOut` (row → sheet), `-
 removed from the sign-in sheet **and** from the Settings row signed out (it now reads "Sign In" alone; ticket 05's
 `profile-settings-signedout-*` captures show the older row). Everything else above approved as shown. Recaptured
 (`FloodlightAccountUITests` 4/4); `../captures/03/` holds the approved versions.
+
+## App half — implementation (2026-10-13, Claude)
+
+- `Domain/AccountClient.swift`: the account endpoints (sign-in, sign-out, profile GET/PUT, usage, delete) over
+  `URLSession`, typed failures (`unauthorized` on any 401, `reauthorize`, `deletionInProgress`, `unreachable` for no
+  answer / 408 / 429 / 5xx, `refused(code)`); `SignInNonce` (32 random bytes base64url; SHA-256 lowercase hex to
+  Apple, the raw value to the server — server `apple.ts:105`); `AccountSessionStore` (keychain, generic password,
+  `AfterFirstUnlockThisDeviceOnly`; in memory under `-uiTestReset`). Dates are the server's milliseconds.
+- `Features/Account/AccountStore.swift`: the app-wide `@Observable` state. Signed out unless a token is in the
+  keychain. Sign-in stores the token only after the server's answer; a keychain write that fails ends the server's
+  session and reports a failure. Apple's cancel shows nothing. Every async answer is applied only if the token is
+  still the same one. A 401 anywhere signs the phone out; offline keeps the session. Sign-out forgets locally first,
+  then tells the server. Deletion: `done` → page closes; `pending`/`manual` → Settings shows the approved iOS Settings
+  follow-up after the page closes; `409 deletion_in_progress` → signed out, the follow-up (another request has the
+  real outcome); **401 → "You've been signed out. Sign in again to delete your account."** (nothing was deleted, so
+  never "Account Deleted"); offline → "Couldn't delete your account. Check your connection and try again."
+- Wiring: the app makes one store (`AccountStore.forThisApp()`: the build's server; under `-uiTestReset` the sample
+  store when a ProfileSample flag asks, else no server) and refreshes it once per launch; **the guided tour gets a
+  server-less store** so its sample Settings never shows the tester's account. Settings shows the Account row only
+  when the build has a server (`WT_SERVER_URL`); signed out → the sign-in sheet; signed in → the profile page
+  (`ProfileScreen`: rename by an alert with a text field, training save via `PUT /v1/profile`, sign out, delete).
+  The welcome page shows Apple's button only with a server, the progress line while signing in, the failure line,
+  then "Signed in as …". Feedback sends the session when signed in.
+- `Config/WorkoutTracker.entitlements`: `com.apple.developer.applesignin` = `[Default]`. `Config/Shared.xcconfig`:
+  `WT_SERVER_URL = https://stacked-server.stacked-server.workers.dev` (Local.xcconfig can still override for `wrangler
+  dev`). This also turns on Settings → Send Feedback in normal builds (ticket 07's row, hidden until a server existed).
+- **New strings beyond the approved mock (the user's decision):** *Signed In* (the Settings row while a stored
+  session's profile loads), *Your Account* / *Not shared* (no name / no email on the server), the rename alert
+  **Name** with **Cancel / Save**, *Couldn't save. Check your connection and try again.*, the two deletion failures
+  above, *Signing in…* on the welcome page (the sheet's approved line).
+- Known, not in this ticket: a feedback send with an expired session gets the server's 401 and shows the generic
+  "Couldn't send" line without signing out; the next profile refresh signs out. The AI flows still use the on-device
+  key until ticket 06's app switch.
+
+**Verification (targeted, DEVELOPMENT):** device-independent build `build2.log` **BUILD SUCCEEDED** (no warnings in the
+changed files). Unit `unit1.xcresult`: **43/43** — AccountTests 15 (requests, nonce vector, failure mapping, profile
+and usage parsing, update bodies, deletion answers incl. an unknown one → cautious, no connection; the store:
+sign-in keeps the token then loads, a refused keychain write is not a sign-in and ends the server session, failure
+lines, 401 signs out vs. offline keeps, sign-out offline, deletion outcomes incl. 401 → never "deleted"),
+FeedbackTests 13, OnboardingTests 6, TrainingProfileTests 9. UI `ui1.xcresult`: **37 passed, 0 failed, 1 skipped**
+(the opt-in live-server feedback smoke) — FloodlightAccount 4, Profile 7, Settings 10, Tour 10, Feedback 7.
+Artifacts: `…/scratchpad/03/` (session scratchpad, ephemeral). **Not yet verified:** a real Apple sign-in, the
+server's code exchange, rename/training save, sign-out and deletion with revocation — on the phone (TestFlight
+build 2 proposed).
 
 ## Acceptance
 

@@ -27,6 +27,8 @@ struct SettingsView: View {
     @State private var showFeedback = false
     @State private var showProfile = false
     @State private var showSignIn = false
+    @State private var showAppleStep = false
+    @Environment(AccountStore.self) private var account
     /// Re-read when the Ask AI sheet closes; the keychain is not observable.
     @State private var askAIOn = AskAIKeyStore.read() != nil
     @State private var counts: ExportCounts?
@@ -39,10 +41,17 @@ struct SettingsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: look.space.section) {
                 LookNavTitle("Settings")
-                // Public beta ticket 05 (UI-first): the Account row; sample data only until 03's app half.
-                if ProfileSample.showsAccountRow {
-                    SettingsAccountRow(profile: ProfileSample.profile) {
-                        if ProfileSample.profile != nil { showProfile = true } else { showSignIn = true }
+                // Public beta tickets 05/03: the Account row — shown when this build has a server (or a sample flag).
+                if account.isAvailable {
+                    SettingsAccountRow(profile: account.profile, signedIn: account.isSignedIn) {
+                        if account.profile != nil {
+                            showProfile = true
+                        } else if account.isSignedIn {
+                            Task { await account.refresh() }   // still loading (or offline): try again
+                        } else {
+                            account.signInFailure = nil
+                            showSignIn = true
+                        }
                     }
                 }
                 units
@@ -79,17 +88,21 @@ struct SettingsView: View {
         }
         .navigationDestination(isPresented: $showExport) { ExportView() }
         .navigationDestination(isPresented: $showProfile) {
-            if let profile = ProfileSample.profile {
-                ProfileScreen(profile: profile, usCustomary: unitSystem == .usCustomary)
-            }
+            ProfileScreen(usCustomary: unitSystem == .usCustomary, onAppleStep: { showAppleStep = true })
         }
         .sheet(isPresented: $showSignIn) {
-            // Ticket 03's mock: Apple's button is live but nothing is sent until the wiring.
-            SignInSheet(failure: ProfileSample.signInFailure, onRequest: { _ in }, onCompletion: { _ in })
+            SignInSheet(failure: account.signInFailure ?? ProfileSample.signInFailure, busy: account.signingIn,
+                        onRequest: account.prepare,
+                        onCompletion: { result in Task { if await account.complete(result) { showSignIn = false } } })
+        }
+        .alert(AccountDeletionCopy.doneTitle, isPresented: $showAppleStep) {
+            Button("OK") {}
+        } message: {
+            Text(AccountDeletionCopy.stopUsingApple)
         }
         .sheet(isPresented: $showFeedback) {
             let details = FeedbackDetails.forThisPhone
-            FeedbackSheet(details: details, initial: FeedbackSample.draft, send: FeedbackSender.make(details: details))
+            FeedbackSheet(details: details, initial: FeedbackSample.draft, send: FeedbackSender.make(details: details, sessionToken: account.token))
         }
     }
 

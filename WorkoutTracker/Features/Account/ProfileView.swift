@@ -206,6 +206,8 @@ struct ProfileView: View {
 /// The row at the top of Settings (spec → Profile page): the name and email signed in; "Sign In" alone signed out.
 struct SettingsAccountRow: View {
     var profile: AccountProfile?
+    /// Signed in while the profile is still loading: "Signed In" rather than "Sign In".
+    var signedIn = false
     var action: () -> Void
     @Environment(\.look) private var look
     @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 48
@@ -215,7 +217,7 @@ struct SettingsAccountRow: View {
             HStack(spacing: 14) {
                 ZStack {
                     Circle().fill(look.surfaceRaised)
-                    if let profile {
+                    if let profile, !Self.initials(profile.displayName).isEmpty {
                         Text(Self.initials(profile.displayName))
                             .font(.system(.headline, design: .rounded, weight: .bold))
                             .foregroundStyle(look.textPrimary)
@@ -228,7 +230,7 @@ struct SettingsAccountRow: View {
                 .frame(width: disc, height: disc)
                 .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(profile?.displayName ?? "Sign In")
+                    Text(profile?.displayName ?? (signedIn ? AccountDisplayCopy.loading : "Sign In"))
                         .font(.system(.body, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
                     // Signed out: the title alone (the user removed "For AI and a training profile.", 2026-10-13).

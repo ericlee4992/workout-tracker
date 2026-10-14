@@ -522,8 +522,8 @@ enum FeedbackSender {
     static var isAvailable: Bool { WorkoutTrackerStore.isUITestReset || ServerConfig.baseURL != nil }
 
     /// The sheet's sender: the UI-test stub under `-uiTestReset` (the app cannot reach a server in tests), otherwise
-    /// the server. Signed out until ticket 03's app half supplies the session.
-    static func make(details: FeedbackDetails) -> (FeedbackDraft) async -> FeedbackSendResult {
+    /// the server, with the session when signed in (ticket 03).
+    static func make(details: FeedbackDetails, sessionToken: String? = nil) -> (FeedbackDraft) async -> FeedbackSendResult {
         // `-uiTestRealServer`: the Simulator smoke test sends to the build's server (a local `wrangler dev`).
         if WorkoutTrackerStore.isUITestReset && !ProcessInfo.processInfo.arguments.contains("-uiTestRealServer") {
             return FeedbackSample.stubSend
@@ -531,7 +531,7 @@ enum FeedbackSender {
         guard let baseURL = ServerConfig.baseURL else {
             return { _ in .failed(FeedbackClientError.unreachable.message(signedIn: false)) }
         }
-        let client = FeedbackClient(baseURL: baseURL, sessionToken: nil)
+        let client = FeedbackClient(baseURL: baseURL, sessionToken: sessionToken)
         return { draft in
             let submission = FeedbackSubmission(
                 category: draft.category.rawValue, message: draft.message, appVersion: details.appVersion,

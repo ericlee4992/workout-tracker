@@ -108,6 +108,8 @@ enum AccountDeletionCopy {
     static let confirm = "Delete Account"
 
     static let doneTitle = "Account Deleted"
+    static let failed = "Couldn't delete your account. Check your connection and try again."
+    static let signedOut = "You've been signed out. Sign in again to delete your account."
     static let stopUsingApple = "One more step: in the Settings app, tap your name, then Sign-In & Security, "
         + "Sign in with Apple, Stacked, and stop using it."
 }

@@ -8,8 +8,12 @@ import SwiftUI
 struct WelcomeView: View {
     var onTour: () -> Void
     var onSkip: () -> Void
-    /// The name once signed in on this page; nil shows Apple's button.
+    /// False in a build without a server (and in UI tests without a sample flag): no sign-in on this page.
+    var showsSignIn = false
+    /// The name once signed in; nil shows Apple's button.
     var signedInName: String? = nil
+    var signInFailure: String? = nil
+    var signingIn = false
     var onAppleRequest: (ASAuthorizationAppleIDRequest) -> Void = { _ in }
     var onAppleCompletion: (Result<ASAuthorization, any Error>) -> Void = { _ in }
     @Environment(\.look) private var look
@@ -42,8 +46,24 @@ struct WelcomeView: View {
                     SettingsNotice(symbol: "checkmark", text: "Signed in as \(signedInName).", emphasized: true)
                         .frame(minHeight: 44)
                         .accessibilityIdentifier("welcomeSignedIn")
-                } else {
+                } else if signingIn {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Signing in…")
+                            .font(look.font.body.weight(.semibold))
+                            .foregroundStyle(look.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                } else if showsSignIn {
                     AppleSignInButton(onRequest: onAppleRequest, onCompletion: onAppleCompletion)
+                    if let signInFailure {
+                        Text(signInFailure)
+                            .font(look.font.footnote)
+                            .foregroundStyle(look.destructive)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("signInFailure")
+                    }
                 }
                 Button(action: onSkip) {
                     Text("Skip")
