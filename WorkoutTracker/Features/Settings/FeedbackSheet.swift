@@ -456,10 +456,10 @@ struct FeedbackDetails: Equatable {
     var app: String { "Stacked \(appVersion) (\(build))" }
     var system: String { systemVersion }
 
-    /// What the form shows and sends on this phone (the account arrives with ticket 03's app half); the capture
+    /// What the form shows and sends on this phone, with the signed-in account's line (ticket 03); the capture
     /// fixture's fixed values under `-uiTestReset`.
-    static var forThisPhone: FeedbackDetails {
-        WorkoutTrackerStore.isUITestReset ? FeedbackSample.fixed(.current()) : .current()
+    static func forThisPhone(account: String?) -> FeedbackDetails {
+        WorkoutTrackerStore.isUITestReset ? FeedbackSample.fixed(.current()) : .current(account: account)
     }
 
     static func current(account: String? = nil) -> FeedbackDetails {
@@ -522,8 +522,11 @@ enum FeedbackSender {
     static var isAvailable: Bool { WorkoutTrackerStore.isUITestReset || ServerConfig.baseURL != nil }
 
     /// The sheet's sender: the UI-test stub under `-uiTestReset` (the app cannot reach a server in tests), otherwise
-    /// the server, with the session when signed in (ticket 03).
-    static func make(details: FeedbackDetails, sessionToken: String? = nil) -> (FeedbackDraft) async -> FeedbackSendResult {
+    /// the server, with the session when signed in (ticket 03). A session the server refuses is handed to
+    /// `onUnauthorized` (the account signs out) and the tester is told; the draft stays.
+    static func make(details: FeedbackDetails, sessionToken: String? = nil,
+                     onUnauthorized: @escaping @MainActor (String) -> Void = { _ in })
+        -> (FeedbackDraft) async -> FeedbackSendResult {
         // `-uiTestRealServer`: the Simulator smoke test sends to the build's server (a local `wrangler dev`).
         if WorkoutTrackerStore.isUITestReset && !ProcessInfo.processInfo.arguments.contains("-uiTestRealServer") {
             return FeedbackSample.stubSend
@@ -541,7 +544,9 @@ enum FeedbackSender {
                 try await client.send(submission)
                 return .sent
             } catch {
-                return .failed((error as? FeedbackClientError ?? .unreachable).message(signedIn: client.sessionToken != nil))
+                let failure = error as? FeedbackClientError ?? .unreachable
+                if failure == .unauthorized, let token = client.sessionToken { await onUnauthorized(token) }
+                return .failed(failure.message(signedIn: client.sessionToken != nil))
             }
         }
     }

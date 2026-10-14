@@ -28,6 +28,7 @@ struct SettingsView: View {
     @State private var showProfile = false
     @State private var showSignIn = false
     @State private var showAppleStep = false
+    @State private var deletionSignedOut = false
     @Environment(AccountStore.self) private var account
     /// Re-read when the Ask AI sheet closes; the keychain is not observable.
     @State private var askAIOn = AskAIKeyStore.read() != nil
@@ -44,10 +45,9 @@ struct SettingsView: View {
                 // Public beta tickets 05/03: the Account row — shown when this build has a server (or a sample flag).
                 if account.isAvailable {
                     SettingsAccountRow(profile: account.profile, signedIn: account.isSignedIn) {
-                        if account.profile != nil {
+                        if account.isSignedIn {
+                            // The page works without a loaded profile too: Try Again and Sign Out (offline at launch).
                             showProfile = true
-                        } else if account.isSignedIn {
-                            Task { await account.refresh() }   // still loading (or offline): try again
                         } else {
                             account.signInFailure = nil
                             showSignIn = true
@@ -88,7 +88,13 @@ struct SettingsView: View {
         }
         .navigationDestination(isPresented: $showExport) { ExportView() }
         .navigationDestination(isPresented: $showProfile) {
-            ProfileScreen(usCustomary: unitSystem == .usCustomary, onAppleStep: { showAppleStep = true })
+            ProfileScreen(usCustomary: unitSystem == .usCustomary) { outcome in
+                switch outcome {
+                case .deletedNeedsAppleStep: showAppleStep = true
+                case .signedOut: deletionSignedOut = true
+                default: break
+                }
+            }
         }
         .sheet(isPresented: $showSignIn) {
             SignInSheet(failure: account.signInFailure ?? ProfileSample.signInFailure, busy: account.signingIn,
@@ -100,9 +106,17 @@ struct SettingsView: View {
         } message: {
             Text(AccountDeletionCopy.stopUsingApple)
         }
+        // Shown here, not on the page: the page closes when the session ends (codex-review-03-app #5).
+        .alert(AccountDeletionCopy.signedOut, isPresented: $deletionSignedOut) {
+            Button("OK") {}
+        }
         .sheet(isPresented: $showFeedback) {
-            let details = FeedbackDetails.forThisPhone
-            FeedbackSheet(details: details, initial: FeedbackSample.draft, send: FeedbackSender.make(details: details, sessionToken: account.token))
+            // Rebuilt on every change of the account: the footer and the session sent always agree (codex-review-03-app
+            // #1); a refused session signs out and the form, its draft kept, then says "Not signed in" (#2).
+            let details = FeedbackDetails.forThisPhone(account: account.feedbackAccountLine)
+            FeedbackSheet(details: details, initial: FeedbackSample.draft,
+                          send: FeedbackSender.make(details: details, sessionToken: account.token,
+                                                    onUnauthorized: { account.invalidate(token: $0) }))
         }
     }
 

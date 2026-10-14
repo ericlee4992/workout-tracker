@@ -145,15 +145,17 @@ struct AccountTests {
     /// Answers by route: sign-in, profile, usage, sign-out, delete.
     private func serve(signIn: (Int, Any) = (200, ["session": "s1", "expiresAt": 1.0e12, "profile": [:]]),
                        profile: (Int, Any) = (200, AccountTests.profileJSON),
-                       delete: (Int, Any) = (200, ["deleted": true, "appleRevocation": "done"])) -> SignOutLog {
+                       usage: (Int, Any) = (200, AccountTests.usageJSON),
+                       delete: (Int, Any) = (200, ["deleted": true, "appleRevocation": "done"]),
+                       onDelete: @escaping @Sendable () -> Void = {}) -> SignOutLog {
         let log = SignOutLog()
         AccountStub.respond = { request in
             let answer: (Int, Any) = switch (request.httpMethod ?? "", request.url?.path ?? "") {
             case ("POST", "/v1/auth/apple"): signIn
             case ("GET", "/v1/profile"): profile
-            case ("GET", "/v1/ai/usage"): (200, AccountTests.usageJSON)
+            case ("GET", "/v1/ai/usage"): usage
             case ("POST", "/v1/auth/signout"): { log.count += 1; return (200, ["ok": true]) }()
-            case ("DELETE", "/v1/account"): delete
+            case ("DELETE", "/v1/account"): { onDelete(); return delete }()
             default: (404, ["error": "not_found"])
             }
             return (answer.0, AccountTests.json(answer.1))
@@ -226,17 +228,90 @@ struct AccountTests {
         let (pending, _) = store(token: "t")
         #expect(await pending.deleteAccount() == .deletedNeedsAppleStep)
 
-        // An expired session deleted nothing: signed out, and the message says so (never "Account Deleted").
+        // An expired session deleted nothing: signed out, and reported as such (never "Account Deleted").
         _ = serve(delete: (401, ["error": "unauthorized"]))
         let (expired, expiredBox) = store(token: "t")
-        #expect(await expired.deleteAccount() == .failed(AccountDeletionCopy.signedOut))
+        #expect(await expired.deleteAccount() == .signedOut)
         #expect(expiredBox.token == nil)
+
+        _ = serve(delete: (409, ["error": "deletion_in_progress"]))
+        let (racing, racingBox) = store(token: "t")
+        #expect(await racing.deleteAccount() == .deletedNeedsAppleStep)
+        #expect(racingBox.token == nil)
 
         // Offline: nothing deleted, still signed in.
         AccountStub.respond = nil
         let (offline, offlineBox) = store(token: "t")
         #expect(await offline.deleteAccount() == .failed(AccountDeletionCopy.failed))
         #expect(offline.isSignedIn && offlineBox.token == "t")
+    }
+
+    // MARK: codex-review-03-app
+
+    /// #4: a deletion answered after the phone signed out and in again must not forget the new session.
+    @MainActor @Test func aLateDeletionAnswerLeavesANewerSessionAlone() async {
+        let (store, box) = store(token: "old")
+        let gate = Gate()
+        _ = serve(delete: (200, ["deleted": true, "appleRevocation": "done"]), onDelete: { gate.wait() })
+        defer { AccountStub.respond = nil }
+        async let outcome = store.deleteAccount()
+        await gate.untilEntered()
+        await store.signOut()
+        #expect(await store.signIn(credential))   // the stub's sign-in answers "s1"
+        gate.release()
+        #expect(await outcome == .superseded)
+        #expect(store.isSignedIn && box.token == "s1")
+    }
+
+    /// #6: a 401 from usage wins over the profile failing for another reason.
+    @MainActor @Test func usageRefusalSignsOutEvenWhenTheProfileFails() async {
+        _ = serve(profile: (503, ["error": "unavailable"]), usage: (401, ["error": "unauthorized"]))
+        defer { AccountStub.respond = nil }
+        let (store, box) = store(token: "t")
+        await store.refresh()
+        #expect(!store.isSignedIn && box.token == nil)
+    }
+
+    /// #3 (part): the profile shows when only usage fails; a failed profile load is reported for the page.
+    @MainActor @Test func theProfileLoadsWithoutUsageAndAFailedLoadIsReported() async {
+        _ = serve(usage: (503, ["error": "unavailable"]))
+        let (partial, _) = store(token: "t")
+        await partial.refresh()
+        #expect(partial.profile?.displayName == "Alex Kim" && partial.profile?.aiUsage.isEmpty == true)
+        #expect(!partial.loadFailed)
+
+        AccountStub.respond = nil
+        let (offline, _) = store(token: "t")
+        await offline.refresh()
+        #expect(offline.isSignedIn && offline.profile == nil && offline.loadFailed)
+        #expect(offline.feedbackAccountLine == AccountDisplayCopy.loading)
+    }
+
+    /// #1/#2: the feedback line follows the session; a refused session is forgotten only if it is still current.
+    @MainActor @Test func feedbackLineAndInvalidation() async {
+        _ = serve()
+        defer { AccountStub.respond = nil }
+        let (store, box) = store()
+        #expect(store.feedbackAccountLine == nil)
+        _ = await store.signIn(credential)
+        #expect(store.feedbackAccountLine == "Alex Kim · alex@privaterelay.appleid.com")
+        store.invalidate(token: "someone-else")
+        #expect(store.isSignedIn)
+        store.invalidate(token: "s1")
+        #expect(!store.isSignedIn && box.token == nil && store.feedbackAccountLine == nil)
+    }
+}
+
+/// Holds a stubbed request until the test releases it, so a session can change while the request is out.
+private final class Gate: @unchecked Sendable {
+    private let entered = DispatchSemaphore(value: 0)
+    private let released = DispatchSemaphore(value: 0)
+    func wait() { entered.signal(); released.wait() }
+    func release() { released.signal() }
+    func untilEntered() async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async { self.entered.wait(); continuation.resume() }
+        }
     }
 }
 
@@ -274,10 +349,14 @@ private final class AccountStub: URLProtocol, @unchecked Sendable {
             client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
             return
         }
-        let (status, body) = respond(request)
-        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: nil)!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: body)
-        client?.urlProtocolDidFinishLoading(self)
+        // Answered off the loading thread, so a held request (Gate) does not stall the others.
+        let request = self.request
+        DispatchQueue.global().async { [self] in
+            let (status, body) = respond(request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: nil)!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: body)
+            client?.urlProtocolDidFinishLoading(self)
+        }
     }
 }

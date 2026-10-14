@@ -54,6 +54,8 @@ enum FeedbackClientError: Error, Equatable {
     case full
     case screenshotTooLarge
     case screenshotUnreadable
+    /// The session sent was refused (expired, or its account deleted): the app signs out (ticket 03).
+    case unauthorized
     /// Anything else the server refused (a malformed request: a bug, not the tester's doing).
     case refused
 
@@ -63,6 +65,7 @@ enum FeedbackClientError: Error, Equatable {
         case .unreachable, .refused: "Couldn't send. Check your connection and try again."
         case .dailyLimit: "You've sent \(signedIn ? 30 : 10) today. Try again tomorrow."
         case .full: "Couldn't send right now. Try again tomorrow."
+        case .unauthorized: "You've been signed out. Send again to send it without your account."
         case .screenshotTooLarge: "That image is too large to send. Try a screenshot."
         case .screenshotUnreadable: "Couldn't read that image. Try another."
         }
@@ -97,6 +100,7 @@ struct FeedbackClient: Sendable {
     static func error(status: Int, body: Data) -> FeedbackClientError {
         let code = (try? JSONSerialization.jsonObject(with: body) as? [String: Any])?["error"] as? String
         switch (status, code) {
+        case (401, _): return .unauthorized
         case (429, "feedback_full"): return .full
         case (429, _): return .dailyLimit
         case (413, "screenshot_too_large"): return .screenshotTooLarge

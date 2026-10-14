@@ -1,7 +1,7 @@
 import XCTest
 
 // Public beta ticket 03 (UI-first): the sign-in sheet from Settings (and its failure line), the delete-account
-// confirmation and its follow-up, and the welcome page with Sign in with Apple (and after signing in) — on sample
+// confirmation and its follow-up, the account page when the profile could not load, and the welcome page with Sign in with Apple (and after signing in) — on sample
 // data, in light and dark at Default and AccessibilityL.
 final class FloodlightAccountUITests: XCTestCase {
     private var app: XCUIApplication!
@@ -85,6 +85,20 @@ final class FloodlightAccountUITests: XCTestCase {
         XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.8)
         shoot("account-delete-done-\(suffix)")
+        app.terminate()
+
+        // Signed in, but the profile could not load (offline at launch): Try Again and Sign Out stay reachable, and
+        // Sign Out returns the row to "Sign In" (codex-review-03-app #3).
+        launch(appearance: appearance, large: large, flags: ["-uiTestAccountUnavailable"])
+        openSettings()
+        XCTAssertTrue(app.staticTexts["Signed In"].exists, "the row while the profile is unavailable")
+        any("settingsAccount").tap()
+        XCTAssertTrue(any("accountUnavailable").waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 0.8)
+        shoot("account-unavailable-\(suffix)")
+        any("profileSignOut").tap()
+        XCTAssertTrue(any("settingsAccount").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Sign In"].waitForExistence(timeout: 5), "signed out after Sign Out")
         app.terminate()
 
         // The welcome page with Sign in with Apple, and after signing in there.

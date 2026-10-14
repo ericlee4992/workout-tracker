@@ -296,6 +296,46 @@ Artifacts: `…/scratchpad/03/` (session scratchpad, ephemeral). **Not yet verif
 server's code exchange, rename/training save, sign-out and deletion with revocation — on the phone (TestFlight
 build 2 proposed).
 
+## Codex review 03 app half — response (round 1)
+
+Review: [codex-review-03-app.md](../codex-review-03-app.md) — not clear (Standards 1 P3; Spec 6 P2). All accepted.
+
+- **S1 (comments):** `DeleteOutcome` now distinguishes `deleted`, `deletedNeedsAppleStep`, `signedOut` (a 401: nothing
+  deleted, signed out), `failed` (still signed in) and `superseded`; the `client` comment separates a server-less
+  build/tour/UI-test store from the UI-first sample store.
+- **#1 feedback footer:** `FeedbackDetails.forThisPhone(account:)` takes `AccountStore.feedbackAccountLine` ("Name ·
+  email", or "Signed In" while the profile loads; nil signed out). Settings rebuilds the sheet's details and sender
+  from the store on every change, so the line shown and the session sent always agree.
+- **#2 feedback 401:** `FeedbackClientError.unauthorized` (401); the sender calls `onUnauthorized(token)` →
+  `AccountStore.invalidate(token:)`, which forgets the session only if it is still the current one. The draft stays;
+  the line reads *You've been signed out. Send again to send it without your account.* (new string) and the footer
+  then says "Not signed in", so a second Send goes signed out, as disclosed.
+- **#3 offline cold launch:** tapping the row signed in always opens the page; without a profile it shows
+  `AccountUnavailableView` — title *Signed In*, a progress line while loading or *Couldn't load your account. Check
+  your connection.*, then **Try Again** and **Sign Out** (new strings). `refresh()` no longer needs both calls: the
+  profile shows without the AI figures (keeping the previous figures if any) when only usage fails; `loadFailed`
+  marks a failed profile load.
+- **#4 late deletion:** `deleteAccount()` captures the token and returns `.superseded` — no `forget()`, no UI — when
+  the session changed while the request was out. Test `aLateDeletionAnswerLeavesANewerSessionAlone` holds the
+  DELETE (a gate in the stub), signs out and in again, then releases it: outcome `superseded`, the new token kept.
+  **Mutation:** removing the guard fails exactly that test (2 issues, `mut.log`).
+- **#5 the 401 explanation:** deletion outcomes that end the session go to Settings (`onDeleteOutcome`), which owns
+  both follow-ups — the iOS Settings step and *You've been signed out. Sign in again to delete your account.* — so
+  they survive the page closing. Offline failure stays on the page (still signed in).
+- **#6 mixed failures:** profile and usage are awaited as separate `Result`s; a 401 from either signs out, winning
+  over a transient failure of the other (test `usageRefusalSignsOutEvenWhenTheProfileFails`).
+
+**Evidence:** unit `unit3.xcresult` **47/47** (AccountTests 19 incl. the four new cases and 409/401 deletion checks;
+FeedbackTests 13 with the 401 mapping and line; Onboarding 6; TrainingProfile 9). A first attempt at the gate test hung
+because the stub answered on URLSession's loading thread (the held DELETE blocked the sign-in); the stub now answers on
+a global queue. **UI:** `ui2.xcresult` 34 passed, 3 failed, 1 skipped (the opt-in smoke). The failures:
+`FloodlightAccountUITests.testCaptureAccountDarkAccessibility` — its launch died ("Mach error -308, server died") at
+21:45:26, the moment the stale hung unit run finished on the same simulator; `FloodlightProfileUITests
+.testTwelveInchesKeepsSaveOffAndClearingBothClearsTheHeight` and `FloodlightSettingsUITests
+.testCaptureSettingsLightAccessibility` — screens this round did not change, both passed in `ui1`. Rerun alone,
+serially (`ui3.xcresult`): **3/3 passed**, so no product failure. Unit rerun clean (`unit3.xcresult`): 47/47. New
+capture `account-unavailable-*` (the offline page; Sign Out returns the row to "Sign In").
+
 ## Acceptance
 
 - [ ] Server tests green; `wrangler dev` smoke from the Simulator: sign in, rename, sign out, delete.

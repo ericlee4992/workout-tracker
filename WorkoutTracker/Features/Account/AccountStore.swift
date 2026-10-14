@@ -19,21 +19,32 @@ final class AccountStore {
     }
 
     enum DeleteOutcome: Equatable {
-        /// Every server row is gone and Apple's tokens are revoked.
+        /// Every server row is gone and Apple's tokens are revoked; signed out.
         case deleted
-        /// Deleted; the user must stop Sign in with Apple in iOS Settings (Apple TN3194).
+        /// Deleted (or being deleted by another request); signed out; the user must stop Sign in with Apple in iOS
+        /// Settings (Apple TN3194).
         case deletedNeedsAppleStep
-        /// Nothing was deleted (or it is unknown): the message says so; still signed in.
+        /// The server refused the session (expired, or the account was deleted elsewhere): nothing was deleted by
+        /// this request; signed out. Never reported as a deletion.
+        case signedOut
+        /// No answer or a server failure: nothing is known to be deleted; still signed in; the message says so.
         case failed(String)
+        /// The session changed while the request was out (signed out, or signed in again): the answer is about a
+        /// session that is no longer this phone's, so nothing is changed or shown.
+        case superseded
     }
 
-    /// Nil in a build without a server (and in UI tests): no Account row, no sign-in anywhere.
+    /// The server's client; nil in a build without a server (no Account row, no sign-in anywhere) and for the tour's
+    /// and UI tests' stores (the UI-first sample store is the exception: nil client, `isAvailable` via `sample`).
     let client: AccountClient?
     private let slot: TokenSlot
 
     private(set) var token: String?
-    /// The last profile fetched for this session; nil while loading or signed out.
+    /// The last profile fetched for this session; nil while loading, after a failed load, or signed out.
     private(set) var profile: AccountProfile?
+    /// The last load of a signed-in session's profile failed (offline or a server failure): the profile page offers
+    /// Try Again and Sign Out instead of the profile.
+    private(set) var loadFailed = false
     private(set) var signingIn = false
     /// The sign-in sheet's / welcome page's one line after a failed attempt.
     var signInFailure: String?
@@ -51,18 +62,20 @@ final class AccountStore {
         token = client == nil ? nil : slot.read()
     }
 
-    private init(sampleProfile: AccountProfile?) {
+    private init(sampleProfile: AccountProfile?, unavailable: Bool = false) {
         client = nil
         slot = TokenSlot(read: { nil }, write: { _ in }, delete: {})
         sample = true
         profile = sampleProfile
-        token = sampleProfile == nil ? nil : "sample"
+        token = sampleProfile == nil && !unavailable ? nil : "sample"
+        loadFailed = unavailable
     }
 
     /// The app's instance: the configured server, except under `-uiTestReset`, where the sample flags decide.
     static func forThisApp() -> AccountStore {
         if WorkoutTrackerStore.isUITestReset {
-            return ProfileSample.showsAccountRow ? AccountStore(sampleProfile: ProfileSample.profile)
+            return ProfileSample.showsAccountRow
+                ? AccountStore(sampleProfile: ProfileSample.profile, unavailable: ProfileSample.unavailable)
                 : AccountStore(client: nil)
         }
         return AccountStore(client: ServerConfig.baseURL.map { AccountClient(baseURL: $0) })
@@ -127,20 +140,40 @@ final class AccountStore {
 
     // MARK: Signed in
 
-    /// Fetches the profile and today's AI use. A session the server no longer knows signs the app out.
+    /// Fetches the profile and today's AI use, each judged on its own: a 401 from either signs the phone out (it wins
+    /// over a transient failure of the other); the profile shows without the AI figures if only usage fails.
     func refresh() async {
         guard let client, let token else { return }
-        do {
-            async let fetchedProfile = client.profile(token: token)
-            async let fetchedUsage = client.usage(token: token)
-            let (account, usage) = try await (fetchedProfile, fetchedUsage)
-            guard token == self.token else { return }   // signed out or replaced meanwhile
-            profile = Self.display(account, usage: usage)
-        } catch {
-            // A session the server refuses is over; offline or a server failure keeps the session and whatever was
-            // shown, and the next visit tries again.
-            if (error as? AccountClient.Failure) == .unauthorized, token == self.token { forget() }
+        async let profileResult = Self.attempt { () async throws(AccountClient.Failure) in try await client.profile(token: token) }
+        async let usageResult = Self.attempt { () async throws(AccountClient.Failure) in try await client.usage(token: token) }
+        let (account, usage) = await (profileResult, usageResult)
+        guard token == self.token else { return }   // signed out or replaced meanwhile
+        if case .failure(.unauthorized) = account { forget(); return }
+        if case .failure(.unauthorized) = usage { forget(); return }
+        guard case .success(let fetched) = account else {
+            // Offline or a server failure: keep the session and whatever was shown; the page offers Try Again.
+            loadFailed = profile == nil
+            return
         }
+        var shown = Self.display(fetched, usage: try? usage.get())
+        if case .failure = usage, let previous = profile {
+            shown.aiUsage = previous.aiUsage
+            shown.aiResetsAt = previous.aiResetsAt
+            shown.aiPaused = previous.aiPaused
+        }
+        profile = shown
+        loadFailed = false
+    }
+
+    nonisolated private static func attempt<T: Sendable>(
+        _ body: @Sendable () async throws(AccountClient.Failure) -> T
+    ) async -> Result<T, AccountClient.Failure> {
+        do { return .success(try await body()) } catch { return .failure(error) }
+    }
+
+    /// A request elsewhere (feedback) found this session refused: forget it, unless it was already replaced.
+    func invalidate(token refused: String) {
+        if refused == token { forget() }
     }
 
     func rename(_ name: String) async -> Bool {
@@ -178,7 +211,7 @@ final class AccountStore {
     /// Ends the session on the server when it can; the phone forgets it either way (a session left on the server
     /// expires unused in 90 days).
     func signOut() async {
-        if sample { return }
+        if sample { forget(); return }
         guard let token else { return }
         forget()
         try? await client?.signOut(token: token)
@@ -188,20 +221,23 @@ final class AccountStore {
         // The mock shows the follow-up (the "pending" answer) and keeps the sample page behind it.
         if sample { return .deletedNeedsAppleStep }
         guard let client, let token else { return .failed(AccountDeletionCopy.failed) }
-        do {
-            let revocation = try await client.deleteAccount(token: token)
+        let answer: Result<AccountClient.AppleRevocation, AccountClient.Failure>
+        do { answer = .success(try await client.deleteAccount(token: token)) } catch { answer = .failure(error) }
+        // A session replaced meanwhile (signed out, or signed in again) must not be forgotten for this answer.
+        guard token == self.token else { return .superseded }
+        switch answer {
+        case .success(let revocation):
             forget()
             return revocation == .done ? .deleted : .deletedNeedsAppleStep
-        } catch .unauthorized {
-            // The session ended (expired, or the account was deleted elsewhere): nothing here was deleted, so say so.
+        case .failure(.unauthorized):
             forget()
-            return .failed(AccountDeletionCopy.signedOut)
-        } catch .deletionInProgress {
+            return .signedOut
+        case .failure(.deletionInProgress):
             // Another request is deleting this account now; it gets the real revocation outcome, so this one gives
             // the cautious instruction.
             forget()
             return .deletedNeedsAppleStep
-        } catch {
+        case .failure:
             return .failed(AccountDeletionCopy.failed)
         }
     }
@@ -210,6 +246,14 @@ final class AccountStore {
         slot.delete()
         token = nil
         profile = nil
+        loadFailed = false
+    }
+
+    /// The feedback form's "Account" line: who the feedback is sent as.
+    var feedbackAccountLine: String? {
+        guard isSignedIn else { return nil }
+        guard let profile else { return AccountDisplayCopy.loading }
+        return "\(profile.displayName) · \(profile.email)"
     }
 
     // MARK: Display
@@ -240,4 +284,7 @@ enum AccountDisplayCopy {
     static let loading = "Signed In"
     static let nameTitle = "Name"
     static let saveFailed = "Couldn't save. Check your connection and try again."
+    /// The profile page when a signed-in session's profile could not be loaded.
+    static let unavailable = "Couldn't load your account. Check your connection."
+    static let tryAgain = "Try Again"
 }

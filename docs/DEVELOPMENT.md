@@ -81,7 +81,17 @@ Read `** TEST SUCCEEDED **`, the actual exit status, and the summary from
 does not establish that `xcodebuild` succeeded. A missing shell continuation once turned a
 focused run into the entire suite. Avoid broad `pkill` patterns that can kill another run.
 
-Run suites serially on a simulator. Two historical heart-rate tests used to flake under
+**Parallel UI runs (the user's choice, 2026-10-13):** a UI selection of more than a few classes runs on simulator
+clones, about half the wall time — add `-parallel-testing-enabled YES -parallel-testing-worker-count 3` to the
+`xcodebuild test` command with the usual single `-destination`. Xcode clones that simulator per worker ("Clone 1 of
+WT-Floodlight") and deletes the clones afterwards; classes are spread across them, each clone with its own app data
+and defaults, so a class must not depend on another class having run first. Three workers fit this Mac (16 GB, 10
+cores); use 2 if anything else heavy is running. Unit tests stay serial (they are fast, and parallel unit runs in one
+process would race shared stubs). If a failure appears only in a parallel run, rerun that class alone, serially,
+before diagnosing it — load is the first suspect. Give every run its own log, status and result path (a stale earlier
+run once overwrote a later run's `unit2.log`/`unit2.status` in ticket 03).
+
+Run suites serially on a simulator otherwise. Two historical heart-rate tests used to flake under
 load due to wall-clock staleness; cardio ticket 06 now injects fixed clocks in them and tests
 expiry by advancing time. For new timing failures, rerun affected tests without competing work,
 then the selected regression scope before treating them as product failures. Persistent timing

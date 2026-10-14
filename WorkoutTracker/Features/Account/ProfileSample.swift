@@ -8,12 +8,14 @@ import SwiftUI
 /// - `-uiTestProfileSignedOut`: the Settings row signed out ("Sign In"); tapping it opens the sign-in sheet (ticket 03).
 /// - `-uiTestSignInFailed`: the sign-in sheet shows its failure line (ticket 03's mock).
 /// - `-uiTestWelcomeSignedIn`: the welcome page after signing in there (ticket 03's mock).
+/// - `-uiTestAccountUnavailable`: signed in, but the profile could not be loaded (offline at launch).
 enum ProfileSample {
     private static func flag(_ name: String) -> Bool {
         WorkoutTrackerStore.isUITestReset && ProcessInfo.processInfo.arguments.contains(name)
     }
 
-    static var showsAccountRow: Bool { signedIn || flag("-uiTestProfileSignedOut") }
+    static var showsAccountRow: Bool { signedIn || unavailable || flag("-uiTestProfileSignedOut") }
+    static var unavailable: Bool { flag("-uiTestAccountUnavailable") }
     static var signedIn: Bool { flag("-uiTestProfileSample") || flag("-uiTestProfileNoTraining") }
     static var signInFailure: String? { flag("-uiTestSignInFailed") ? SignInFailure.unreachable : nil }
     static var welcomeSignedInName: String? { flag("-uiTestWelcomeSignedIn") ? "Alex Kim" : nil }
@@ -54,13 +56,14 @@ enum ProfileSample {
 }
 
 /// The pushed screen: the page plus its sheets and alerts, on the account store (ticket 03's wiring; the sample
-/// store under the UI-first flags). Signing out or deleting leaves the page; Settings shows the follow-up after a
-/// deletion that needs the iOS Settings step (the page is gone by then).
+/// store under the UI-first flags). Signed in without a loaded profile (offline at launch), it offers Try Again and
+/// Sign Out (codex-review-03-app #3). Signing out or a deletion leaves the page; a deletion's follow-up (the iOS
+/// Settings step, or "signed out, nothing deleted") is shown by Settings, which outlives the page.
 struct ProfileScreen: View {
     @Environment(AccountStore.self) private var account
     @Environment(\.dismiss) private var dismiss
     var usCustomary: Bool
-    var onAppleStep: () -> Void
+    var onDeleteOutcome: (AccountStore.DeleteOutcome) -> Void
     @State private var editing = false
     @State private var renaming = false
     @State private var newName = ""
@@ -72,13 +75,16 @@ struct ProfileScreen: View {
                 ProfileView(profile: profile,
                             onEditTraining: { editing = true },
                             onEditName: { newName = profile.displayName; renaming = true },
-                            onSignOut: { Task { await account.signOut(); dismiss() } },
+                            onSignOut: signOut,
                             onDelete: { Task { await delete() } })
                     .sheet(isPresented: $editing) {
                         TrainingProfileEditor(profile: profile.training, usCustomary: usCustomary) { training in
                             Task { if !(await account.saveTraining(training)) { problem = AccountDisplayCopy.saveFailed } }
                         }
                     }
+            } else if account.isSignedIn {
+                AccountUnavailableView(loading: !account.loadFailed,
+                                       onTryAgain: { Task { await account.refresh() } }, onSignOut: signOut)
             } else {
                 Color.clear.onAppear { dismiss() }
             }
@@ -99,14 +105,59 @@ struct ProfileScreen: View {
         }
     }
 
+    private func signOut() {
+        Task { await account.signOut(); dismiss() }
+    }
+
     private func delete() async {
-        switch await account.deleteAccount() {
-        case .deleted: dismiss()
-        case .deletedNeedsAppleStep:
-            onAppleStep()
-            dismiss()
+        let outcome = await account.deleteAccount()
+        switch outcome {
         case .failed(let message): problem = message
+        case .superseded: break
+        case .deleted, .deletedNeedsAppleStep, .signedOut:
+            onDeleteOutcome(outcome)
+            dismiss()
         }
+    }
+}
+
+/// The profile page while a signed-in session's profile is loading, or after its load failed: the account's
+/// commands stay reachable offline (Sign Out forgets the session on this phone either way).
+struct AccountUnavailableView: View {
+    var loading: Bool
+    var onTryAgain: () -> Void
+    var onSignOut: () -> Void
+    @Environment(\.look) private var look
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: look.space.section) {
+                LookNavTitle(AccountDisplayCopy.loading)
+                if loading {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Loading…")
+                            .font(look.font.body.weight(.semibold))
+                            .foregroundStyle(look.textSecondary)
+                    }
+                } else {
+                    SettingsNotice(symbol: "wifi.exclamationmark", text: AccountDisplayCopy.unavailable)
+                        .accessibilityIdentifier("accountUnavailable")
+                }
+                LookList {
+                    LookRow(AccountDisplayCopy.tryAgain, symbol: "arrow.clockwise", showsChevron: false, action: onTryAgain)
+                        .accessibilityIdentifier("accountTryAgain")
+                    LookDivider().padding(.leading, 16)
+                    LookRow("Sign Out", symbol: "rectangle.portrait.and.arrow.right", showsChevron: false,
+                            action: onSignOut)
+                        .accessibilityIdentifier("profileSignOut")
+                }
+            }
+            .padding(.horizontal, look.space.margin)
+            .padding(.top, 2)
+            .padding(.bottom, 40)
+        }
+        .lookScreenBackground()
     }
 }
 
