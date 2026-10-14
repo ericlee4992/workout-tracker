@@ -7,6 +7,11 @@ struct AIGoalsStep: View {
     @Bindable var model: AIRoutineFlowModel
     /// Height in ft + in and weight in lb (ticket 10, decision 4).
     var usCustomary: Bool
+    /// Ticket 05: signed in, "Save to my training profile" (on by default); `prefilled` adds the line saying the form
+    /// came from the profile.
+    var showsSaveToProfile = false
+    var prefilled = false
+    @Binding var savesToProfile: Bool
     var onCancel: () -> Void
 
     @Environment(\.look) private var look
@@ -24,7 +29,7 @@ struct AIGoalsStep: View {
                 experience.padding(.top, look.space.section)
                 schedule.padding(.top, look.space.section)
                 profile.padding(.top, look.space.section)
-                if ProfileSample.prefillsAskAI {
+                if showsSaveToProfile {
                     saveToProfile.padding(.top, look.space.group)
                 }
             }
@@ -166,9 +171,7 @@ struct AIGoalsStep: View {
         .accessibilityElement(children: .combine)
     }
 
-    // MARK: Save to the training profile (ticket 05 mock: the user decides whether this exists)
-
-    @State private var savesToProfile = true
+    // MARK: Save to the training profile (ticket 05, the user's decision 2026-10-03: a switch, on by default)
 
     private var saveToProfile: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -180,8 +183,10 @@ struct AIGoalsStep: View {
                         .accessibilityIdentifier("routineSaveToProfile")
                 }
             }
-            SettingsNotice(symbol: "person.text.rectangle", text: "Filled in from your training profile.")
-                .padding(.top, 2)
+            if prefilled {
+                SettingsNotice(symbol: "person.text.rectangle", text: "Filled in from your training profile.")
+                    .padding(.top, 2)
+            }
         }
     }
 

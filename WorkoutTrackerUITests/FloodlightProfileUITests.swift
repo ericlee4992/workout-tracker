@@ -101,7 +101,7 @@ final class FloodlightProfileUITests: XCTestCase {
         app.terminate()
 
         // Ask AI for Templates prefilled from the profile, with the option the user decides on.
-        launch(appearance: appearance, large: large, flags: ["-uiTestProfileSample", "-uiTestProfilePrefill"])
+        launch(appearance: appearance, large: large, flags: ["-uiTestProfileSample"])
         let ask = app.buttons["askAIRoutine"]
         XCTAssertTrue(ask.waitForExistence(timeout: 15))
         for _ in 0..<8 where !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
@@ -109,6 +109,86 @@ final class FloodlightProfileUITests: XCTestCase {
         XCTAssertTrue(any("routineGoals").waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 1.0)
         pages("profile-askai-\(suffix)", until: any("routineSaveToProfile"), inSheet: true)
+    }
+
+    // MARK: Ticket 05 — Ask AI prefilled, and the save switch
+
+    private func openAskAI() {
+        app.tabBars.buttons["Workout"].tap()
+        let ask = app.buttons["askAIRoutine"]
+        XCTAssertTrue(ask.waitForExistence(timeout: 15))
+        for _ in 0..<8 where !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+        ask.tap()
+        XCTAssertTrue(any("routineGoals").waitForExistence(timeout: 10))
+    }
+
+    private func onFlowScreen(_ element: XCUIElement) -> Bool {
+        let next = app.buttons["routineNext"]
+        let floor = next.exists ? next.frame.minY - 12 : app.frame.maxY - 30
+        return element.exists && element.isHittable && element.frame.minY > 150 && element.frame.maxY < floor
+    }
+
+    private func reachInFlow(_ element: XCUIElement) {
+        for _ in 0..<10 where !onFlowScreen(element) {
+            let down = element.exists && element.frame.minY <= 150
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.35 : 0.6))
+                .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.6 : 0.35)))
+        }
+        XCTAssertTrue(onFlowScreen(element), "reached \(element)")
+    }
+
+    /// Generate week (the Terra fixture answers), then back to the profile page's schedule line.
+    private func generateThenReadSchedule() -> Bool {
+        app.buttons["routineNext"].tap()
+        let dumbbells = any("routineEquipment.dumbbells")
+        XCTAssertTrue(dumbbells.waitForExistence(timeout: 5))
+        let generate = app.buttons["generateAIRoutine"]
+        for _ in 0..<8 where !(dumbbells.isHittable && dumbbells.frame.maxY < generate.frame.minY - 12) { app.swipeUp() }
+        dumbbells.tap()
+        generate.tap()
+        XCTAssertTrue(any("routineDay.0").waitForExistence(timeout: 12))
+        any("routineCancel").tap()
+        let discard = app.buttons["Discard Week"].firstMatch
+        XCTAssertTrue(discard.waitForExistence(timeout: 5))
+        discard.tap()
+        XCTAssertTrue(any("routineDay.0").waitForNonExistence(timeout: 5))
+        openSettings()
+        any("settingsAccount").tap()
+        XCTAssertTrue(any("profileTraining").waitForExistence(timeout: 5))
+        return app.staticTexts["3 days · 45 min"].exists
+    }
+
+    /// Ticket 05: Ask AI opens filled in from the training profile, with the switch on; a changed day count is saved
+    /// to the profile when the week is requested.
+    func testAskAIPrefillsAndSavesToTheTrainingProfile() {
+        launch(appearance: "light", large: false, flags: ["-uiTestProfileSample"])
+        openAskAI()
+        let goals = app.textViews["routineGoals"].exists ? app.textViews["routineGoals"] : app.textFields["routineGoals"]
+        XCTAssertEqual(goals.value as? String, "Build strength. Get back to a bodyweight pull-up by spring.")
+        XCTAssertTrue(any("routineDays.4").isSelected || any("routineDays.4").exists)
+        let toggle = app.switches["routineSaveToProfile"].firstMatch
+        reachInFlow(toggle)
+        XCTAssertEqual(toggle.value as? String, "1", "on by default")
+        XCTAssertTrue(app.staticTexts["Filled in from your training profile."].exists)
+        let three = any("routineDays.3")
+        reachInFlow(three)
+        three.tap()
+        XCTAssertTrue(generateThenReadSchedule(), "the profile now says 3 days")
+    }
+
+    /// …and with the switch off the profile is left as it was.
+    func testAskAIWithTheSwitchOffLeavesTheProfile() {
+        launch(appearance: "light", large: false, flags: ["-uiTestProfileSample"])
+        openAskAI()
+        let three = any("routineDays.3")
+        reachInFlow(three)
+        three.tap()
+        let toggle = app.switches["routineSaveToProfile"].firstMatch
+        reachInFlow(toggle)
+        toggle.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        XCTAssertEqual(toggle.value as? String, "0")
+        XCTAssertFalse(generateThenReadSchedule(), "still 4 days")
+        XCTAssertTrue(app.staticTexts["4 days · 45 min"].exists)
     }
 
     /// codex-review-05 #2: a decimal weight is typed, saved and shown as entered, not rounded.

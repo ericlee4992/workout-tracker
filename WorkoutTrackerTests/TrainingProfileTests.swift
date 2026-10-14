@@ -117,4 +117,54 @@ struct TrainingProfileTests {
         #expect((json["weight"] as? [String: Any])?["value"] as? Double == 82.5)
         #expect(try JSONDecoder().decode(TrainingProfile.self, from: JSONEncoder().encode(p)) == p)
     }
+
+    // MARK: Ticket 05 — Ask AI's form to the training profile
+
+    private let saved = TrainingProfile(goals: "Pull-up by spring", experience: "Intermediate", days: 4, minutes: 45,
+                                        height: BodyMeasure(value: 70.5, unit: .inches),
+                                        weight: BodyMeasure(value: 180.4, unit: .lb))
+
+    @MainActor @Test func aFormLeftAsPrefilledIsTheProfileUnchanged() {
+        for usCustomary in [true, false] {
+            let model = AIRoutineFlowModel()
+            model.prefill(from: saved)
+            #expect(model.heightCm == saved.height?.centimetres && model.weightKg == saved.weight?.kilograms)
+            // Unchanged: the profile's own decimals and units, whatever the app's units (D52).
+            #expect(model.trainingProfile(prefilled: saved, usCustomary: usCustomary) == saved)
+        }
+    }
+
+    @MainActor @Test func changedMeasuresAreSavedAsTypedInTheAppsUnits() {
+        let model = AIRoutineFlowModel()
+        model.prefill(from: saved)
+        model.goals = "  Pull-up by summer \n"
+        model.days = 3
+        model.heightCm = AIProfileUnits.centimetres(feet: 5, inches: 11)        // typed 5 ft 11 in
+        model.weightKg = AIProfileUnits.kilograms(pounds: 175)                  // typed 175 lb
+        let us = model.trainingProfile(prefilled: saved, usCustomary: true)
+        #expect(us.goals == "Pull-up by summer")
+        #expect(us.days == 3)
+        #expect(us.height == BodyMeasure(value: 71, unit: .inches))
+        #expect(us.weight == BodyMeasure(value: 175, unit: .lb))
+        #expect(us.isValid)
+
+        let metric = AIRoutineFlowModel()
+        metric.prefill(from: saved)
+        metric.heightCm = 181                                                  // typed 181 cm
+        metric.weightKg = nil                                                  // cleared
+        let m = metric.trainingProfile(prefilled: saved, usCustomary: false)
+        #expect(m.height == BodyMeasure(value: 181, unit: .cm))
+        #expect(m.weight == nil)
+        #expect(m.days == saved.days && m.goals == saved.goals)
+    }
+
+    @MainActor @Test func aFormWithoutAProfileMakesOne() {
+        let model = AIRoutineFlowModel()
+        model.goals = "Get fitter"
+        model.weightKg = 80
+        let p = model.trainingProfile(prefilled: nil, usCustomary: false)
+        #expect(p == TrainingProfile(goals: "Get fitter", experience: "Beginner", days: 3, minutes: 45, height: nil,
+                                     weight: BodyMeasure(value: 80, unit: .kg)))
+        #expect(p.isValid)
+    }
 }

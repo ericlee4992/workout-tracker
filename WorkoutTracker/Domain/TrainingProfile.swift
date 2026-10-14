@@ -19,6 +19,33 @@ struct TrainingProfile: Codable, Equatable {
 
     static let empty = TrainingProfile(goals: "", experience: "Beginner", days: 3, minutes: 45)
 
+    /// Ticket 05 ("Save to my training profile", decided 2026-10-03): the profile Ask AI's form describes. Ask AI holds
+    /// height and weight in cm/kg, typed as whole numbers in the app's units; the profile keeps them as entered (D52).
+    /// So a measurement left as it was prefilled keeps the profile's own value and unit — never rewritten — and one
+    /// changed or added is saved as typed: inches/pounds (US customary) or cm/kg, whole numbers. Cleared → removed.
+    static func fromAskAI(goals: String, experience: String, days: Int, minutes: Int, heightCm: Double?, weightKg: Double?,
+                          prefilled: TrainingProfile?, usCustomary: Bool) -> TrainingProfile {
+        func same(_ a: Double?, _ b: Double?) -> Bool {
+            switch (a, b) {
+            case (nil, nil): true
+            case (let x?, let y?): abs(x - y) < 0.001
+            default: false
+            }
+        }
+        let height: BodyMeasure? = same(heightCm, prefilled?.height?.centimetres) ? prefilled?.height
+            : heightCm.map { cm in
+                usCustomary ? BodyMeasure(value: Double((cm / 2.54).rounded()), unit: .inches)
+                    : BodyMeasure(value: cm.rounded(), unit: .cm)
+            }
+        let weight: BodyMeasure? = same(weightKg, prefilled?.weight?.kilograms) ? prefilled?.weight
+            : weightKg.map { kg in
+                usCustomary ? BodyMeasure(value: AIProfileUnits.pounds(kg: kg).rounded(), unit: .lb)
+                    : BodyMeasure(value: kg.rounded(), unit: .kg)
+            }
+        return TrainingProfile(goals: goals.trimmingCharacters(in: .whitespacesAndNewlines), experience: experience,
+                               days: days, minutes: minutes, height: height, weight: weight)
+    }
+
     /// The server's checks (training.ts), which are Ask AI's bounds (AIRoutineFlowModel.next): a non-blank goal of at
     /// most 1,000 characters without control characters (tab and line breaks allowed), 50–250 cm, 20–400 kg.
     var isValid: Bool {

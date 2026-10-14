@@ -9,6 +9,7 @@ import SwiftUI
 /// - `-uiTestSignInFailed`: the sign-in sheet shows its failure line (ticket 03's mock).
 /// - `-uiTestWelcomeSignedIn`: the welcome page after signing in there (ticket 03's mock).
 /// - `-uiTestAccountUnavailable`: signed in, but the profile could not be loaded (offline at launch).
+/// Ask AI for Templates is filled in from the sample's training profile whenever it is signed in (ticket 05).
 enum ProfileSample {
     private static func flag(_ name: String) -> Bool {
         WorkoutTrackerStore.isUITestReset && ProcessInfo.processInfo.arguments.contains(name)
@@ -34,22 +35,6 @@ enum ProfileSample {
                 .init(flow: "model-exercises", title: "Exercise suggestions", used: 0, limit: 60),
             ],
             aiResetsAt: AIResetCopy.nextReset(), aiPaused: flag("-uiTestAIPaused"))
-    }
-
-    /// `-uiTestProfilePrefill` (with the sample): Ask AI opens prefilled from the profile and offers "Save to my
-    /// training profile" — the option the user decides on in ticket 05's mock.
-    static var prefillsAskAI: Bool { flag("-uiTestProfilePrefill") && profile?.training != nil }
-
-    @MainActor static func prefilledRoutineModel() -> AIRoutineFlowModel {
-        let model = AIRoutineFlowModel()
-        guard prefillsAskAI else { return model }
-        model.goals = training.goals
-        model.experience = training.experience
-        model.days = training.days
-        model.minutes = training.minutes
-        model.heightCm = training.height?.centimetres
-        model.weightKg = training.weight?.kilograms
-        return model
     }
 
     static let training = TrainingProfile(

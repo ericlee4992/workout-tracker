@@ -158,6 +158,22 @@ final class AIRoutineFlowModel {
         }
     }
 
+    /// Ticket 05: Ask AI opens filled in from the signed-in tester's training profile.
+    func prefill(from training: TrainingProfile) {
+        goals = training.goals
+        experience = training.experience
+        days = training.days
+        minutes = training.minutes
+        heightCm = training.height?.centimetres
+        weightKg = training.weight?.kilograms
+    }
+
+    /// The training profile this form describes (`TrainingProfile.fromAskAI`).
+    func trainingProfile(prefilled: TrainingProfile?, usCustomary: Bool) -> TrainingProfile {
+        .fromAskAI(goals: goals, experience: experience, days: days, minutes: minutes, heightCm: heightCm,
+                   weightKg: weightKg, prefilled: prefilled, usCustomary: usCustomary)
+    }
+
     /// Returns once the generation in flight (if any) has landed or been dropped — for tests that order a reply
     /// against a session change.
     func generationFinished() async { await task?.value }

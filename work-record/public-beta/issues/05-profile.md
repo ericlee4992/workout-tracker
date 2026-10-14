@@ -3,7 +3,7 @@
 Type: task
 Status: mock **approved by the user 2026-10-03** (and the Ask AI decision); server side implemented; Codex review 05
 **Codex clear (round 3, 2026-10-03)**; merged. The page and editor went live with 03's app half (2026-10-13).
-**Left:** Ask AI prefill from the training profile and the "Save to my training profile" switch (on by default) —
+**Ask AI prefill and the save switch wired 2026-10-14 (in review).** Was left: Ask AI prefill from the training profile and the "Save to my training profile" switch (on by default) —
 third in the agreed order, after 06 and 10 (STATE); the user noticed the missing prefill on build 2.
 Blocked by: — (03 done 2026-10-13)
 Implementer: Claude (the user's order 2026-10-03); Reviewer: Codex.
@@ -108,7 +108,7 @@ dark, approved by the user before wiring.
 - [x] Approved captures in `../captures/05/` (the user, 2026-10-03; `FloodlightProfileUITests` 4/4, result
       `prof-all.xcresult`, exit 0 — scratchpad evidence, summarized in Progress).
 - [x] Server tests: profile validation, unit preservation, deletion (`test/profile.test.ts`; 195/195 after round 1).
-- [ ] Prefill works in Ask AI for Templates; no change when signed out.
+- [x] Prefill works in Ask AI for Templates; no change when signed out (2026-10-14; see *Ask AI prefill and save switch*).
 - [x] Targeted unit/UI tests (TrainingProfileTests 9/9; FloodlightProfileUITests 7/7 across `prof2` + `dbg2`; Ask AI and Settings regression 18/18 in `reg05`).
 
 ## Verification scope
@@ -196,5 +196,26 @@ goal parity, and read the recorded runs.
 Report [codex-review-05c.md](../codex-review-05c.md) (HEAD `600561b`): **Verdict: clear**, no findings; Codex reran
 196/196 and `tsc`, and read `prof2` (noting it was not wholly green: the two new tests failed there from the helper
 bug) and `dbg2` (3/3 after the fix). Open (not this stage): the live wiring after 03's app half.
+
+## Ask AI prefill and save switch — 2026-10-14 (Claude)
+
+Branch `ericlee4992/beta-05-askai-prefill` off `ericlee4992/beta-10-model-sol` (main `507c1dd` + docs). The approved mock
+(2026-10-03) wired to the real account:
+- **Prefill:** `AIRoutineSheet` fills the form from `account.profile.training` when it is known — on appear, or when the
+  profile loads later — and only while the form is untouched (never over anything typed). `AIRoutineFlowModel.prefill`.
+- **Switch:** "Save to my training profile" shows signed in (on by default); "Filled in from your training profile."
+  only when prefilled. On Generate week with the switch on, the form is saved (`account.saveTraining`) if it differs
+  from the profile and is valid by the server's bounds; a failed save does not hold up the request.
+- **Units (D52):** `TrainingProfile.fromAskAI` — a height/weight left as prefilled keeps the profile's own value and
+  unit (decimals included); one changed or added is saved as typed in the app's units (whole inches/pounds or cm/kg);
+  cleared → removed. Goals trimmed.
+- The sample flag `-uiTestProfilePrefill` and `ProfileSample.prefilledRoutineModel` are gone: the signed-in sample
+  store now drives the real path. DECISIONS D58 amended with the wiring.
+
+**Verification:** build ✔; unit tests **995/995** (`/tmp/wt-floodlight/results/05/unit1.xcresult`; 3 new in
+`TrainingProfileTests`: unchanged form = the profile exactly (US and metric apps), changed measures as typed, a form with
+no profile makes one). UI: `testAskAIPrefillsAndSavesToTheTrainingProfile` (prefilled goals, switch on, the line; 4 →
+3 days, Generate week → the profile page says "3 days · 45 min") and `testAskAIWithTheSwitchOffLeavesTheProfile` (still
+4 days) **2/2** (`ui1.xcresult`). Regression `ui2`: FloodlightProfile, FloodlightAIRoutine, FloodlightAIAccess.
 
 ## Comments

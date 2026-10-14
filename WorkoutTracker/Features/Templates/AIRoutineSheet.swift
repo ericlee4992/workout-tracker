@@ -22,7 +22,10 @@ struct AIRoutineSheet: View {
     /// A saved template's tile: close the flow and open it on the Workout tab.
     var onOpenTemplate: (WorkoutTemplate) -> Void = { _ in }
 
-    @State private var model = ProfileSample.prefilledRoutineModel()
+    @State private var model = AIRoutineFlowModel()
+    /// Ticket 05: the training profile the form was filled in from (nil: not prefilled), and the save switch.
+    @State private var prefilledFrom: TrainingProfile?
+    @State private var savesToProfile = true
     @State private var path: [UUID] = []
     @AppStorage(TerraAccess.routineConsentKey) private var consent = false
     @Environment(AccountStore.self) private var account
@@ -108,6 +111,10 @@ struct AIRoutineSheet: View {
             if !allowed && !TerraAccess.bypassesConsent { model.cancelGeneration() }
         }
         .onDisappear { model.cancelTasks() }
+        // Ticket 05: filled in from the training profile once it is known (it may load after the sheet opens), never
+        // over anything the tester has already typed or chosen.
+        .onAppear(perform: prefillIfUntouched)
+        .onChange(of: account.profile?.training) { _, _ in prefillIfUntouched() }
         // A week still being generated when the session ends or changes is abandoned (codex-review-06-app F2).
         .onChange(of: account.token) { _, _ in model.cancelGeneration() }
         // A refused session signs out here too (the server client's 401 does the same); the steps then offer Sign In.
@@ -138,7 +145,8 @@ struct AIRoutineSheet: View {
     @ViewBuilder private var stepView: some View {
         switch model.step {
         case .goals:
-            AIGoalsStep(model: model, usCustomary: usCustomary, onCancel: close)
+            AIGoalsStep(model: model, usCustomary: usCustomary, showsSaveToProfile: account.isSignedIn,
+                        prefilled: prefilledFrom != nil, savesToProfile: $savesToProfile, onCancel: close)
                 .transition(stepTransition)
         case .equipment:
             AIEquipmentStep(model: model, gyms: gyms, gym: gym, machines: availableMachines, options: options,
@@ -187,7 +195,26 @@ struct AIRoutineSheet: View {
         onSelectGym(newGym)
     }
 
+    private func prefillIfUntouched() {
+        guard prefilledFrom == nil, model.step == .goals, let training = account.profile?.training else { return }
+        let untouched = AIRoutineFlowModel()
+        guard model.goals == untouched.goals, model.experience == untouched.experience, model.days == untouched.days,
+              model.minutes == untouched.minutes, model.heightCm == nil, model.weightKg == nil else { return }
+        model.prefill(from: training)
+        prefilledFrom = training
+    }
+
+    /// Ticket 05: with the switch on, the request also saves the form to the training profile — only when it differs,
+    /// is valid by the server's bounds, and the tester is signed in. A failed save does not hold up the request.
+    private func saveToProfileIfAsked() {
+        guard savesToProfile, account.isSignedIn else { return }
+        let profile = model.trainingProfile(prefilled: prefilledFrom ?? account.profile?.training, usCustomary: usCustomary)
+        guard profile.isValid, profile != account.profile?.training else { return }
+        Task { _ = await account.saveTraining(profile) }
+    }
+
     private func generate() {
+        saveToProfileIfAsked()
         model.generate(options: options, gymName: gym?.name, permitted: permitted, client: TerraAccess.client(account),
                        session: .bind(account))
     }
