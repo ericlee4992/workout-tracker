@@ -1,23 +1,24 @@
 # Current project state
 
-Updated **2026-10-14** (paused during 04; 06 and 05 merged; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-14** (04 in review round 2; 06 and 05 merged; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: paused (the user's battery, 2026-10-14) — ticket 04 Google sign-in, code done, review not finished
+## NOW: ticket 04 Google sign-in — Codex round-1 findings fixed; round 2 running; Google Cloud setup next
 
 - **`main` = `1be0768`** (pushed): 06 and 05 merged (Codex clear), 10 closed without change. **TestFlight 0.1.0 (3)
   from `1be0768` uploaded 11:59 EDT** — the user adds it to "Developer" and installs; then the phone checks in tickets 06
   (each AI flow once) and 05 (Ask AI filled in; a changed day count saved).
-- **Branch `ericlee4992/beta-04-google`** (pushed, HEAD `7037466`, clean): server `POST /v1/auth/google` (218/218), app
-  wiring without the SDK (PKCE iOS client), the approved "Sign in with Google" button. Waits for the user's **Google Cloud
-  setup** (steps in the ticket) to get the client ID.
-- **Stopped mid-way (rerun on resume):** Codex's review (prompt `work-record/public-beta/codex-review-04-prompt.md`;
-  report `codex-review-04.md` not written; Codex terminal "Re-review ticket 05…" was interrupted — Codex's weekly budget
-  is low); the UI regression `FloodlightGoogleUITests` + `FloodlightAccountUITests` (`/tmp/wt-floodlight/results/04/ui1`,
-  killed). Unit: 1011 run — 1009 passed; the 2 failures were a wrong RFC 7636 constant in the test, fixed → Google +
-  Account suites 27/27.
-- **Next:** rerun the UI regression and Codex review to "clear"; the user's Google Cloud setup (Chrome-guided); client
-  ID in `Config/Shared.xcconfig` + `server/wrangler.jsonc`; server redeploy (go-ahead); Simulator sign-in; merge; then 11.
+- **Branch `ericlee4992/beta-04-google`** (pushed): server `POST /v1/auth/google`, app wiring without the SDK (PKCE iOS
+  client), the approved "Sign in with Google" button. Codex round 1 (`codex-review-04.md`) was **not clear (5
+  findings); all fixed** (`f879314`, `ef9372c`, `27dbf45`; details in the ticket). Server 221/221; unit Google +
+  Account 32/32; UI FloodlightGoogle + FloodlightAccount 8/8; captures 4/4.
+- **Waiting on the user:** OK for the button's label in Google Sans Medium with Google's iOS spacing (a look change from
+  the approved mock, made for Codex's branding finding; before/after shown 2026-10-14); then the **Google Cloud setup**
+  (steps in the ticket) for the client ID.
+- **Running:** Codex round 2 — Orca terminal "Review 04 round 2" (`term_67e73784-…`), prompt
+  `work-record/public-beta/codex-review-04b-prompt.md`, report `codex-review-04b.md` (watch for its `Verdict:` line).
+- **Next:** round 2 to "clear"; Google Cloud setup (Chrome-guided); client ID in `Config/Shared.xcconfig` +
+  `server/wrangler.jsonc`; server redeploy (go-ahead); Simulator sign-in/out/delete; merge (go-ahead); then 11.
 - **Workers Free:** scans use 15–45 ms CPU vs 10 ms (all succeeded); revisit before 08 (the user's call).
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `6450e294` seen in the logs on 2026-10-14).
   Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
