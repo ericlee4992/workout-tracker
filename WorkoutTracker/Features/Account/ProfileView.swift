@@ -203,7 +203,7 @@ struct ProfileView: View {
 
 // MARK: - Settings → Account row
 
-/// The row at the top of Settings (spec → Profile page): the name and email signed in; "Sign In" signed out.
+/// The row at the top of Settings (spec → Profile page): the name and email signed in; "Sign In" alone signed out.
 struct SettingsAccountRow: View {
     var profile: AccountProfile?
     var action: () -> Void
@@ -231,10 +231,13 @@ struct SettingsAccountRow: View {
                     Text(profile?.displayName ?? "Sign In")
                         .font(.system(.body, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
-                    Text(profile?.email ?? "For AI and a training profile.")
-                        .font(look.font.footnote)
-                        .foregroundStyle(look.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                    // Signed out: the title alone (the user removed "For AI and a training profile.", 2026-10-13).
+                    if let email = profile?.email {
+                        Text(email)
+                            .font(look.font.footnote)
+                            .foregroundStyle(look.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
                 Spacer(minLength: 8)
                 Image(systemName: "chevron.right")

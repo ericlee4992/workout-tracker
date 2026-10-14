@@ -22,8 +22,9 @@ struct AppleSignInButton: View {
 }
 
 /// Settings → Account, signed out (the user's choice, 2026-10-13: a small sheet rather than Apple's sheet at once —
-/// Google's button joins this one in ticket 04). What signing in is for, the two facts that make it safe to say yes,
-/// and Apple's button in the thumb's reach. The sheet only shows, so it offers Close (no staged edits).
+/// Google's button joins this one in ticket 04). The title, the two facts that make it safe to say yes, and Apple's
+/// button in the thumb's reach (the user removed "For AI and a training profile.", 2026-10-13). The sheet only
+/// shows, so it offers Close (no staged edits).
 struct SignInSheet: View {
     /// One line under the button when the last attempt failed.
     var failure: String?
@@ -53,10 +54,6 @@ struct SignInSheet: View {
                         .font(look.font.largeTitle)
                         .foregroundStyle(look.textPrimary)
                         .accessibilityAddTraits(.isHeader)
-                    Text("For AI and a training profile.")
-                        .font(look.font.title3)
-                        .foregroundStyle(look.textSecondary)
-                        .fixedSize(horizontal: false, vertical: true)
                     VStack(alignment: .leading, spacing: 10) {
                         SettingsNotice(symbol: "checkmark", text: "Your workouts stay on this iPhone.", emphasized: true)
                         SettingsNotice(symbol: "checkmark", text: "Delete your account any time.", emphasized: true)

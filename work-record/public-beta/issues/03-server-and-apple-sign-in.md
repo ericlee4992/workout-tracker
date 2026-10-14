@@ -226,7 +226,7 @@ Sign-in sheet (medium detent)          Welcome
 └──────────────────────────────┘
 ```
 
-**Proposed copy (the user's decision):** sheet **Sign In**, *For AI and a training profile.*, *Your workouts stay on
+**Approved copy:** sheet **Sign In**, *Your workouts stay on
 this iPhone.*, *Delete your account any time.*, **Close**, *Signing in…*; failures *Can't reach Stacked right now. Try
 again later.* / *Couldn't sign in. Try again.*; welcome *Signed in as {name}.*; delete **Delete your account?** /
 *Your name, email, training profile and feedback are deleted from Stacked's server. Your workouts on this iPhone
@@ -245,6 +245,11 @@ goes to the large detent).
 failure line, delete confirmation and follow-up, welcome before and after signing in — light/dark × Default/
 AccessibilityL (24). Sample flags: `-uiTestProfileSignedOut` (row → sheet), `-uiTestSignInFailed`,
 `-uiTestWelcomeSignedIn`; nothing is sent yet (Apple's button is live but its handlers are empty).
+
+**The user's approval (2026-10-13):** "just get rid of phrases 'for ai and training profile'. Rest looks good." —
+removed from the sign-in sheet **and** from the Settings row signed out (it now reads "Sign In" alone; ticket 05's
+`profile-settings-signedout-*` captures show the older row). Everything else above approved as shown. Recaptured
+(`FloodlightAccountUITests` 4/4); `../captures/03/` holds the approved versions.
 
 ## Acceptance
 
