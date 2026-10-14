@@ -67,4 +67,30 @@ floodlight/results/04/cap2.xcresult`).
 **New string:** "Sign in with Google" (Google's own wording, matching "Sign in with Apple"). **For the user:** at
 AccessibilityL the welcome page's tagline now starts under the buttons until scrolled (four controls at the bottom).
 
+**The user approved the mock and "Sign in with Google" as shown (2026-10-14)**, including the welcome page at
+AccessibilityL; the Google Cloud setup later.
+
+**App wiring (done; needs only the client ID).** `Domain/GoogleOAuth.swift` (pure, unit-tested): PKCE S256, the
+authorization URL (`openid email profile`, `prompt=select_account`, `state`, `nonce` = SHA-256 of the raw nonce), the
+reversed-client-ID redirect `com.googleusercontent.apps.<id>:/oauth2redirect`, the callback (this attempt's state only;
+`access_denied` = cancelled), the code exchange (no client secret: the verifier), the answer → ID token only.
+`Features/Account/GoogleSignIn.swift`: `ASWebAuthenticationSession` (callback `.customScheme`, no URL type needed) and
+the token call. `AccountStore.signInWithGoogle()`: page → code → ID token → `POST /v1/auth/google` → the shared
+`adopt` path Apple uses (keychain, profile); closing Google's page is not an error; "Signing in…" from the page opening
+(no second session). `AccountClient.signInWithGoogle`. Nothing of Google's is kept.
+
+### Google Cloud setup (the user's steps, Claude guiding in Chrome)
+
+1. console.cloud.google.com → new project **Stacked** (the user's Google account).
+2. **Google Auth Platform → Get started:** app name **Stacked**, user support email (the user's), audience **External**,
+   contact email; the user accepts Google's API Services User Data Policy.
+3. **Audience:** publishing status **Testing**; add the user's Google account (and later testers') as test users — up to
+   100; moving to production is ticket 08 (basic scopes only: no verification review expected).
+4. **Data access:** scopes `openid`, `email`, `profile` (non-sensitive).
+5. **Clients → Create client → iOS:** name "Stacked iOS", bundle ID `com.ericlee4992.workouttracker`, team ID
+   `X68M8SR6NA` → the **client ID** (not secret).
+Then Claude: `WT_GOOGLE_CLIENT_ID` in `Config/Shared.xcconfig`, `GOOGLE_CLIENT_ID` in `server/wrangler.jsonc` `vars`;
+redeploy the server (the user's go-ahead); sign in, out and delete with a Google account on the Simulator; the phone
+with the next TestFlight build.
+
 ## Comments

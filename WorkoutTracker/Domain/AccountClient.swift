@@ -68,6 +68,11 @@ struct AccountClient: Sendable {
         return request("POST", "v1/auth/apple", json: body)
     }
 
+    /// Ticket 04: `POST /v1/auth/google` — Google's ID token and the raw nonce whose SHA-256 the authorization carried.
+    func googleSignInRequest(idToken: String, rawNonce: String) -> URLRequest {
+        request("POST", "v1/auth/google", json: ["idToken": idToken, "nonce": rawNonce])
+    }
+
     func request(_ method: String, _ path: String, token: String? = nil, json: Any? = nil) -> URLRequest {
         var request = URLRequest(url: baseURL.appending(path: path))
         request.httpMethod = method
@@ -84,7 +89,14 @@ struct AccountClient: Sendable {
     // MARK: Calls
 
     func signIn(_ credential: AppleCredential) async throws(Failure) -> SignIn {
-        let object = try await call(signInRequest(credential))
+        try Self.signIn(from: await call(signInRequest(credential)))
+    }
+
+    func signInWithGoogle(idToken: String, rawNonce: String) async throws(Failure) -> SignIn {
+        try Self.signIn(from: await call(googleSignInRequest(idToken: idToken, rawNonce: rawNonce)))
+    }
+
+    static func signIn(from object: [String: Any]) throws(Failure) -> SignIn {
         guard let token = object["session"] as? String, !token.isEmpty,
               let expires = object["expiresAt"] as? Double else { throw .refused("malformed") }
         return SignIn(session: token, expiresAt: Date(timeIntervalSince1970: expires / 1000))

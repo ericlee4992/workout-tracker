@@ -123,8 +123,14 @@ final class AccountStore {
         guard let client, !signingIn else { return false }
         signingIn = true
         defer { signingIn = false }
+        return await adopt { () async throws(AccountClient.Failure) in try await client.signIn(credential) }
+    }
+
+    /// The server's sign-in answer → the token in the keychain → the profile (Apple and Google alike).
+    private func adopt(_ call: () async throws(AccountClient.Failure) -> AccountClient.SignIn) async -> Bool {
+        guard let client else { return false }
         do {
-            let result = try await client.signIn(credential)
+            let result = try await call()
             do { try slot.write(result.session) } catch {
                 // Not kept, so not signed in: end the server's session rather than strand it.
                 try? await client.signOut(token: result.session)
@@ -138,6 +144,42 @@ final class AccountStore {
         } catch {
             signInFailure = error == .unreachable ? SignInFailure.unreachable : SignInFailure.generic
             return false
+        }
+    }
+
+    // MARK: Google (ticket 04)
+
+    /// Google's page (PKCE, the iOS client) → the code exchanged with Google → the ID token to the server. Closing
+    /// Google's page is the person's choice, not a failure; nothing of Google's is kept. True when signed in.
+    func signInWithGoogle() async -> Bool {
+        if sample {
+            guard ProfileSample.signsInAtOnce else { return false }
+            completeSampleSignIn()
+            return true
+        }
+        guard let client, !signingIn, let clientID = GoogleSignIn.clientID else { return false }
+        signInFailure = nil
+        // From the page opening on: a second tap cannot start another (the sheet shows "Signing in…").
+        signingIn = true
+        defer { signingIn = false }
+        let oauth = GoogleOAuth(clientID: clientID)
+        let attempt = GoogleOAuth.Attempt.make()
+        let code: String
+        do {
+            let callback = try await GoogleSignIn.authorize(oauth, attempt)
+            code = try oauth.code(from: callback, attempt: attempt)
+        } catch {
+            if error != .cancelled { signInFailure = SignInFailure.generic }
+            return false
+        }
+        let idToken: String
+        do { idToken = try await GoogleSignIn.idToken(oauth, code: code, attempt: attempt, session: client.session) }
+        catch {
+            signInFailure = error == .unreachable ? SignInFailure.unreachable : SignInFailure.generic
+            return false
+        }
+        return await adopt { () async throws(AccountClient.Failure) in
+            try await client.signInWithGoogle(idToken: idToken, rawNonce: attempt.rawNonce)
         }
     }
 
@@ -173,9 +215,6 @@ final class AccountStore {
     ) async -> Result<T, AccountClient.Failure> {
         do { return .success(try await body()) } catch { return .failure(error) }
     }
-
-    /// Ticket 04, UI-first stage: Google's sign-in is wired once the user approves the mock (no client ID yet).
-    func signInWithGoogle() async -> Bool { false }
 
     /// UI tests only (`-uiTestSampleSignIn` on the sample store): a sign-in that succeeds at once with a new session —
     /// Apple's own sheet cannot be driven in a UI test (ticket 06: refused session → sign in → AI usable again).
