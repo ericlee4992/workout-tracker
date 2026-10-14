@@ -331,7 +331,7 @@ final class AccountStore {
             // the cautious instruction — to an Apple account, or one whose provider is unknown. A Google account has
             // no Apple authorization to stop and no Google token kept anywhere (codex-review-04 Spec #1).
             forgetIfCurrent(token)
-            return provider == "google" ? .deleted : .deletedNeedsAppleStep
+            return provider?.lowercased() == "google" ? .deleted : .deletedNeedsAppleStep   // shown as "Google"
         case .failure:
             return .failed(AccountDeletionCopy.failed)
         }

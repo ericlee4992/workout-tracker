@@ -304,7 +304,7 @@ struct AccountTests {
         defer { AccountStub.respond = nil }
         let (store, box) = store(token: "t")
         await store.refresh()
-        #expect(store.profile?.provider == "google")
+        #expect(store.profile?.provider == "Google")
         async let outcome = store.deleteAccount()
         await gate.untilEntered()
         _ = serve(profile: (401, ["error": "unauthorized"]), delete: (409, ["error": "deletion_in_progress"]))
@@ -328,7 +328,7 @@ struct AccountTests {
         let (store, box) = store()
         #expect(await store.completeGoogleSignIn(googleOAuth, code: "c", attempt: .make(), client: client))
         #expect(box.token == "s1" && store.isSignedIn && store.signInFailure == nil)
-        #expect(store.profile?.provider == "google")
+        #expect(store.profile?.provider == "Google")
     }
 
     /// Spec #2: Google's token endpoint failing is not "Can't reach Stacked"; the server failing still is.
