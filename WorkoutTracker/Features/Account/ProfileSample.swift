@@ -68,7 +68,10 @@ struct ProfileScreen: View {
                             onDelete: { Task { await delete() } })
                     .sheet(isPresented: $editing) {
                         TrainingProfileEditor(profile: profile.training, usCustomary: usCustomary) { training in
-                            Task { if !(await account.saveTraining(training)) { problem = AccountDisplayCopy.saveFailed } }
+                            // Through the same ordered queue as Ask AI's saves (codex-review-05e E2).
+                            guard let session = account.token else { problem = AccountDisplayCopy.saveFailed; return }
+                            let save = account.queueTrainingSave(training, session: session)
+                            Task { if !(await save.value) { problem = AccountDisplayCopy.saveFailed } }
                         }
                     }
             } else if account.isSignedIn {

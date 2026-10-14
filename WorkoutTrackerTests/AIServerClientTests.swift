@@ -279,26 +279,28 @@ struct AIServerClientTests {
         TrainingProfile(goals: goals, experience: "Beginner", days: 3, minutes: 45)
     }
 
-    /// A server that keeps the profile: GET returns it, PUT stores the body's training and echoes it; every PUT's goal
-    /// is logged in arrival order. `holdFirstPut` holds the first PUT until the test releases it.
-    private func profileServer(holdFirstPut gate: Gate?, failPuts: Bool = false) -> SentBox {
+    /// A server that keeps the profile: GET returns it, PUT stores the body's training (or its removal) and echoes the
+    /// profile; every PUT's goal ("nil" for a removal) is logged in arrival order. `gate` holds the first PUT.
+    private func profileServer(holdFirstPut gate: Gate?, failPuts: Bool = false, initial: String? = nil) -> SentBox {
         let log = SentBox()
-        let state = SentBox()
         let first = SentBox()
+        final class Stored: @unchecked Sendable { var training: Any = NSNull() }
+        let stored = Stored()
+        if let initial { stored.training = ["goals": initial, "experience": "Beginner", "days": 3, "minutes": 45] }
         AIStub.respond = { request in
             switch (request.httpMethod, request.url?.path) {
             case ("GET", "/v1/profile"):
-                return (200, Self.json(["provider": "apple", "memberSince": 1.0e12]))
+                return (200, Self.json(["provider": "apple", "memberSince": 1.0e12, "training": stored.training]))
             case ("GET", "/v1/ai/usage"):
                 return (200, Self.json(Self.usageJSON))
             case ("PUT", "/v1/profile"):
                 let body = Self.object(AIStub.body(request))
-                let training = body["training"] as? [String: Any] ?? [:]
                 if let gate, first.paths.isEmpty { first.append("held"); gate.hold() }
-                log.append((training["goals"] as? String ?? "?") + "@" + (request.value(forHTTPHeaderField: "Authorization") ?? ""))
+                let training = body["training"] as? [String: Any]
+                log.append((training?["goals"] as? String ?? "nil") + "@" + (request.value(forHTTPHeaderField: "Authorization") ?? ""))
                 if failPuts { return (503, Self.json(["error": "unavailable"])) }
-                state.set(Self.json(training))
-                return (200, Self.json(["provider": "apple", "memberSince": 1.0e12, "training": training]))
+                stored.training = training ?? NSNull()
+                return (200, Self.json(["provider": "apple", "memberSince": 1.0e12, "training": stored.training]))
             default:
                 return (404, Data())
             }
@@ -343,6 +345,68 @@ struct AIServerClientTests {
         _ = await a.value
         #expect(await b.value == false)
         #expect(log.paths == ["A@Bearer tok-1"], "B was never sent, and never under tok-2")
+    }
+
+    /// codex-review-05e E1: four → three (held) → four again: the second is still saved, after the first, so the
+    /// newest request wins — "unchanged" is judged after the earlier save has settled.
+    @MainActor @Test func aFormChangedAndChangedBackIsSavedInOrder() async {
+        let gate = Gate()
+        let log = profileServer(holdFirstPut: gate, initial: "four")
+        let (store, _) = account("tok-1")
+        await store.refresh()
+        #expect(store.profile?.training?.goals == "four")
+        let three = store.queueTrainingSave(Self.training("three"), session: "tok-1")
+        await gate.untilHeld()
+        let four = store.queueTrainingSave(Self.training("four"), session: "tok-1")
+        gate.release()
+        #expect(await three.value)
+        #expect(await four.value)
+        #expect(log.paths == ["three@Bearer tok-1", "four@Bearer tok-1"])
+        #expect(store.profile?.training?.goals == "four")
+    }
+
+    /// …and a save equal to the settled profile sends nothing.
+    @MainActor @Test func aSaveEqualToTheSettledProfileSendsNothing() async {
+        let log = profileServer(holdFirstPut: nil)
+        let (store, _) = account("tok-1")
+        await store.refresh()
+        #expect(await store.queueTrainingSave(Self.training("A"), session: "tok-1").value)
+        #expect(await store.queueTrainingSave(Self.training("A"), session: "tok-1").value)
+        #expect(log.paths == ["A@Bearer tok-1"])
+    }
+
+    /// codex-review-05e E2: the profile editor's save (here a removal) queues behind a held Ask AI save and wins.
+    @MainActor @Test func anEditorSaveQueuesBehindAnAskAISave() async {
+        let gate = Gate()
+        let log = profileServer(holdFirstPut: gate)
+        let (store, _) = account("tok-1")
+        await store.refresh()
+        let ask = store.queueTrainingSave(Self.training("from Ask AI"), session: "tok-1")
+        await gate.untilHeld()
+        let editor = store.queueTrainingSave(nil, session: "tok-1")
+        gate.release()
+        #expect(await ask.value)
+        #expect(await editor.value)
+        #expect(log.paths == ["from Ask AI@Bearer tok-1", "nil@Bearer tok-1"])
+        #expect(store.profile != nil && store.profile?.training == nil)
+    }
+
+    /// codex-review-05e E3: only the latest request's save is reported on Your week.
+    @MainActor @Test func onlyTheLatestRequestsSaveIsReported() {
+        let model = AIRoutineFlowModel()
+        let older = model.beginProfileSave(sending: true)
+        let newer = model.beginProfileSave(sending: true)
+        model.finishProfileSave(older, saved: false)
+        #expect(!model.profileSaveFailed, "an older failure does not mark the newer week")
+        model.finishProfileSave(newer, saved: true)
+        #expect(!model.profileSaveFailed)
+        let failing = model.beginProfileSave(sending: true)
+        model.finishProfileSave(failing, saved: false)
+        #expect(model.profileSaveFailed)
+        let none = model.beginProfileSave(sending: false)
+        #expect(!model.profileSaveFailed, "a request that saves nothing clears the line")
+        model.finishProfileSave(none, saved: false)
+        #expect(!model.profileSaveFailed)
     }
 
     @MainActor @Test func aFailedTrainingSaveReportsFalse() async {

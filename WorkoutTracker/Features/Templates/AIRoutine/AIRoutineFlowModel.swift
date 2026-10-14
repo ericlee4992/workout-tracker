@@ -39,8 +39,23 @@ final class AIRoutineFlowModel {
     private(set) var edited = false
     /// The training profile the form was filled in from; nil when it was not prefilled.
     private(set) var prefilledFrom: TrainingProfile?
-    /// "Save to my training profile" failed for the last request; the week still arrives (Your week says so).
-    var profileSaveFailed = false
+    /// "Save to my training profile" failed for the latest request; the week still arrives (Your week says so).
+    private(set) var profileSaveFailed = false
+    /// The latest request's save: an earlier one finishing later changes nothing (codex-review-05e E3).
+    private var latestProfileSave: UUID?
+
+    /// A new request: its save (if any) is the one whose outcome Your week reports.
+    func beginProfileSave(sending: Bool) -> UUID {
+        let id = UUID()
+        latestProfileSave = sending ? id : nil
+        profileSaveFailed = false
+        return id
+    }
+
+    func finishProfileSave(_ id: UUID, saved: Bool) {
+        guard id == latestProfileSave else { return }
+        profileSaveFailed = !saved
+    }
     private var prefilling = false
     private var heightEdited = false
     private var weightEdited = false

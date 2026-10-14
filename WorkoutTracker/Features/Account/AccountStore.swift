@@ -208,14 +208,17 @@ final class AccountStore {
     /// The training saves Ask AI queues (ticket 05's switch), in the order they were requested.
     private var trainingSaves: Task<Bool, Never>?
 
-    /// Ticket 05 (codex-review-05d F1): Ask AI's "Save to my training profile". Saves run one after another in the
-    /// order requested — across Ask AI sheets — so an older form can never overwrite a newer one on the server or here;
-    /// each is sent only under the session it was requested in (signed out or replaced before it starts: not sent).
-    func queueTrainingSave(_ training: TrainingProfile, session: String) -> Task<Bool, Never> {
+    /// Ticket 05 (codex-review-05d F1, 05e E1/E2): every training-profile write — Ask AI's "Save to my training
+    /// profile" and the profile page's editor. Saves run one after another in the order requested, across sheets, so
+    /// an older form never overwrites a newer one on the server or here; each is sent only under the session it was
+    /// requested in (signed out or replaced before it starts: not sent). Whether a save is needed is decided inside the
+    /// queue, once the earlier saves have settled — a form changed and changed back is still saved after the change.
+    func queueTrainingSave(_ training: TrainingProfile?, session: String) -> Task<Bool, Never> {
         let previous = trainingSaves
         let task = Task { @MainActor [weak self] () -> Bool in
             _ = await previous?.value
             guard let self else { return false }
+            if self.token == session, let current = self.profile, current.training == training { return true }
             return await self.saveTraining(training, session: session)
         }
         trainingSaves = task

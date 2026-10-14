@@ -203,13 +203,16 @@ struct AIRoutineSheet: View {
     /// is valid by the server's bounds, and the tester is signed in; queued in order under this session (F1). A failed
     /// save does not hold up the request; Your week says so (F2).
     private func saveToProfileIfAsked() {
-        model.profileSaveFailed = false
-        guard savesToProfile, let session = account.token else { return }
         let profile = model.trainingProfile(usCustomary: usCustomary)
-        guard profile.isValid, profile != account.profile?.training else { return }
+        guard savesToProfile, let session = account.token, profile.isValid else {
+            _ = model.beginProfileSave(sending: false)
+            return
+        }
+        // Whether it differs from the saved profile is decided in the queue, after earlier saves (E1).
+        let id = model.beginProfileSave(sending: true)
         let save = account.queueTrainingSave(profile, session: session)
         let model = model
-        Task { if !(await save.value) { model.profileSaveFailed = true } }
+        Task { model.finishProfileSave(id, saved: await save.value) }
     }
 
     private func generate() {
