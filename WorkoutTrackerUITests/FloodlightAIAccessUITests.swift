@@ -198,6 +198,41 @@ final class FloodlightAIAccessUITests: XCTestCase {
         shoot("ai06-scan-expired-light-default")
     }
 
+    /// codex-review-06-app-c C2: refused once, then signed in again (the sample sign-in stands in for Apple's sheet):
+    /// Scan Machine returns to a usable camera — no stale "Sign in to use AI." — and identifies; Ask AI for Templates
+    /// offers Generate week again with the choices kept, and the week arrives.
+    func testSigningInAfterARefusedSessionMakesAIUsable() {
+        let flags = ["-uiTestProfileSample", "-uiTestTerraExpiredOnce", "-uiTestSampleSignIn"]
+        launch(appearance: "light", large: false, flags: flags)
+        openScan()
+        let shutter = app.buttons["scanShutter"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 5))
+        shutter.tap()
+        let signIn = app.buttons["scannerSignIn"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 10))
+        signIn.tap()
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10), "the camera is back once signed in")
+        XCTAssertFalse(any("scanAIError").exists, "no stale error")
+        XCTAssertFalse(app.staticTexts["Sign in to use AI."].exists)
+        shutter.tap()
+        XCTAssertTrue(app.buttons["scanUseCandidate"].waitForExistence(timeout: 12), "the scan identifies")
+        app.terminate()
+
+        launch(appearance: "light", large: false, flags: flags)
+        openRoutineEquipment()
+        let dumbbells = any("routineEquipment.dumbbells")
+        for _ in 0..<8 where !onScreen(dumbbells, floor: app.buttons["generateAIRoutine"].frame.minY - 12) { app.swipeUp() }
+        dumbbells.tap()
+        app.buttons["generateAIRoutine"].tap()
+        let routineSignIn = app.buttons["routineSignIn"]
+        XCTAssertTrue(routineSignIn.waitForExistence(timeout: 10))
+        routineSignIn.tap()
+        let retry = app.buttons["routineRetry"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 10), "Generate week once signed in")
+        retry.tap()
+        XCTAssertTrue(any("routineDay.0").waitForExistence(timeout: 12), "the week arrives")
+    }
+
     func testCaptureNewModelLightDefault() { captureNewModel(appearance: "light", large: false) }
     func testCaptureNewModelLightAccessibility() { captureNewModel(appearance: "light", large: true) }
     func testCaptureNewModelDarkDefault() { captureNewModel(appearance: "dark", large: false) }

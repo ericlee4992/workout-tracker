@@ -124,6 +124,9 @@ struct AccountSignInSheet: View {
         SignInSheet(failure: account.signInFailure ?? ProfileSample.signInFailure, busy: account.signingIn,
                     onRequest: account.prepare,
                     onCompletion: { result in Task { if await account.complete(result) { dismiss() } } })
-            .onAppear { account.signInFailure = nil }
+            .onAppear {
+                account.signInFailure = nil
+                if ProfileSample.signsInAtOnce { account.completeSampleSignIn(); dismiss() }
+            }
     }
 }

@@ -375,3 +375,24 @@ F2's scan portion confirmed closed; two P2s, both accepted.
 Verification: build ✔ (`build5.log`, derived data `dd-06app-c`); unit tests **992/992** (`unit4.xcresult`). The
 round-1 UI re-run (`ui2`) was stopped unfinished because it tested pre-round-2 code; **`ui3`** re-runs the same five
 classes on this build.
+
+## Codex review 06-app-c — response (round 3)
+
+Report [codex-review-06-app-c.md](../codex-review-06-app-c.md) (HEAD `8ec380e`): **not clear** — B1 and B2 confirmed closed;
+two P3s, both accepted (C2 is the B3 Codex added to its round-2 report while round 2 was being answered).
+- **C2** — Scan Machine keeps no error for a refused session: it signs that session out, clears the photo and the
+  busy state, and shows its sign-in step; once signed in again the camera is ready. UI test
+  `testSigningInAfterARefusedSessionMakesAIUsable` (fixture `-uiTestTerraExpiredOnce`: only the first request is
+  refused; `-uiTestSampleSignIn`: the sign-in sheet signs the sample store in at once — `AccountStore
+  .completeSampleSignIn()`, sample store and UI-test launches only — because Apple's sheet cannot be driven): scan →
+  sign-in step → Sign In → the camera with no stale line → identifies; Ask AI for Templates → Sign In → Generate week
+  → the week arrives.
+- **C1** — the race tests are ordered by events, not sleeps: the stub answers off its loading thread, a `Gate` holds the
+  reply until the test releases it and reports its arrival, and `AIRoutineFlowModel.generationFinished()` awaits the
+  landing. `aWeekWhoseSessionEndsWhileOutIsDropped`: held reply → session ended → released → landed → nothing
+  changed. `aRefusalNamesOnlyTheSessionItRefused`: held 401 → signed out and in again with `tok-2` → released → landed
+  → `tok-2` still signed in, nothing named.
+
+Verification: build ✔ (`build6.log`, derived data `dd-06app-d`); unit tests **992/992** (`unit5.xcresult`); the two
+session UI tests **2/2** (`ui4.xcresult`, WT-iPhone27). `ui3` (the five classes on the round-2 build) is still running;
+round 3's changes are the scan's refused-session branch, the sample sign-in hook and tests.

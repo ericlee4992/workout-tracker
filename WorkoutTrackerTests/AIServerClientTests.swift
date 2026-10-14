@@ -204,17 +204,20 @@ struct AIServerClientTests {
     }
 
     /// codex-review-06-app F2/B1: a week whose session ends while it is out is dropped where it lands — without the
-    /// sheet's token hook (which only runs later) — and the late reply changes nothing.
+    /// sheet's token hook (which only runs later) — and the late reply changes nothing. The reply is held until the
+    /// session has ended (codex-review-06-app-c C1).
     @MainActor @Test func aWeekWhoseSessionEndsWhileOutIsDropped() async throws {
         let week: [String: Any] = ["sessions": [["name": "Day 1", "strength": [], "cardio": [["activity": "outdoorWalk", "minutes": 20]]]]]
-        AIStub.respond = { _ in Thread.sleep(forTimeInterval: 0.5); return (200, Self.json(["result": week])) }
+        let gate = Gate()
+        AIStub.respond = { _ in gate.hold(); return (200, Self.json(["result": week])) }
         let (store, _) = account("tok-1")
         let model = routineModel()
         model.generate(options: [], gymName: nil, permitted: true, client: client(), session: .bind(store))
-        try await Task.sleep(for: .milliseconds(150))   // the request is out
+        await gate.untilHeld()                          // the request is at the server
         store.invalidate(token: "tok-1")
         #expect(!store.isSignedIn)
-        try await Task.sleep(for: .milliseconds(900))
+        gate.release()
+        await model.generationFinished()                // the reply has landed (and been dropped)
         #expect(model.routine == nil)
         #expect(model.step != .preview)
         #expect(model.error == nil)
@@ -243,24 +246,27 @@ struct AIServerClientTests {
         #expect(model.refusedSession == "tok-1")
         #expect(model.error == "Sign in to use AI.")
 
+        let gate = Gate()
         AIStub.respond = { request in
             switch request.url?.path {
             case "/v1/auth/apple": return (200, Self.json(["session": "tok-2", "expiresAt": 1.0e13, "profile": [:]]))
             case "/v1/profile": return (200, Self.json(["provider": "apple", "memberSince": 1.0e12]))
             case "/v1/ai/usage": return (200, Self.json(Self.usageJSON))
-            default: Thread.sleep(forTimeInterval: 0.5); return (401, Self.json(["error": "unauthorized"]))
+            default: gate.hold(); return (401, Self.json(["error": "unauthorized"]))
             }
         }
         let (replaced, stored) = account("tok-1")
         let late = routineModel()
         late.generate(options: [], gymName: nil, permitted: true, client: client(), session: .bind(replaced))
-        try await Task.sleep(for: .milliseconds(100))   // the request is out
+        await gate.untilHeld()                          // the old request is at the server
+        // Signed out and in again while it is out; only then does its 401 arrive (codex-review-06-app-c C1).
         replaced.invalidate(token: "tok-1")
         let signedIn = await replaced.signIn(.init(identityToken: "id", authorizationCode: "code",
                                                    rawNonce: "raw-nonce-0123456789", givenName: nil, familyName: nil))
         #expect(signedIn)
         #expect(replaced.token == "tok-2")
-        try await Task.sleep(for: .milliseconds(900))
+        gate.release()
+        await late.generationFinished()
         #expect(late.refusedSession == nil)
         #expect(late.error == nil)
         #expect(replaced.token == "tok-2")
@@ -325,6 +331,19 @@ struct AIServerClientTests {
     }
 }
 
+/// Holds one stub reply until the test releases it, and tells the test when the request has arrived.
+private final class Gate: @unchecked Sendable {
+    private let arrived = DispatchSemaphore(value: 0)
+    private let released = DispatchSemaphore(value: 0)
+    func hold() { arrived.signal(); released.wait() }
+    func release() { released.signal() }
+    func untilHeld() async {
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async { self.arrived.wait(); continuation.resume() }
+        }
+    }
+}
+
 /// What the stub was sent, across its queue.
 private final class SentBox: @unchecked Sendable {
     private let lock = NSLock()
@@ -369,10 +388,14 @@ private final class AIStub: URLProtocol, @unchecked Sendable {
             client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
             return
         }
-        let (status, body) = respond(request)
-        let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: nil)!
-        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: body)
-        client?.urlProtocolDidFinishLoading(self)
+        // Answered off the loading thread, so a held reply (Gate) does not stall the others.
+        let request = self.request
+        DispatchQueue.global().async { [self] in
+            let (status, body) = respond(request)
+            let response = HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: "HTTP/1.1", headerFields: nil)!
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: body)
+            client?.urlProtocolDidFinishLoading(self)
+        }
     }
 }

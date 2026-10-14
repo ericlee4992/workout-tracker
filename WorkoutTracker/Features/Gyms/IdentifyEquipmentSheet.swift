@@ -327,7 +327,12 @@ struct IdentifyEquipmentSheet: View {
             } catch {
                 guard !Task.isCancelled, requestID == id, session.isCurrent() else { return }
                 // Refused session: signed out, so the sheet shows its sign-in step (the client's 401 does the same).
-                if case AIServerError.signedOut = error, let refused = session.token { account.invalidate(token: refused) }
+                // No error is kept for it: once signed in again the camera is ready (codex-review-06-app-c C2).
+                if case AIServerError.signedOut = error, let refused = session.token {
+                    account.invalidate(token: refused)
+                    busy = false; photo = nil
+                    return
+                }
                 identifyError = error.localizedDescription; busy = false
             }
         }

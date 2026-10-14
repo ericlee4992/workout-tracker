@@ -158,6 +158,10 @@ final class AIRoutineFlowModel {
         }
     }
 
+    /// Returns once the generation in flight (if any) has landed or been dropped — for tests that order a reply
+    /// against a session change.
+    func generationFinished() async { await task?.value }
+
     /// The server call (or the UI-test fixture's stand-in).
     private static func requestRoutine(_ request: AIRoutineRequest, client: AIServerClient?) async throws -> AIRoutine {
         if TerraAccess.fixture {

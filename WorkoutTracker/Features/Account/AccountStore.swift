@@ -174,6 +174,14 @@ final class AccountStore {
         do { return .success(try await body()) } catch { return .failure(error) }
     }
 
+    /// UI tests only (`-uiTestSampleSignIn` on the sample store): a sign-in that succeeds at once with a new session —
+    /// Apple's own sheet cannot be driven in a UI test (ticket 06: refused session → sign in → AI usable again).
+    func completeSampleSignIn() {
+        guard sample else { return }
+        token = "sample-\(UUID().uuidString.prefix(8))"
+        profile = ProfileSample.profile
+    }
+
     /// A request elsewhere (feedback) found this session refused: forget it, unless it was already replaced.
     func invalidate(token refused: String) {
         if refused == token { forget() }
