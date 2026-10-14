@@ -29,8 +29,8 @@ final class AccountStore {
         case signedOut
         /// No answer or a server failure: nothing is known to be deleted; still signed in; the message says so.
         case failed(String)
-        /// The session changed while the request was out (signed out, or signed in again): the answer is about a
-        /// session that is no longer this phone's, so nothing is changed or shown.
+        /// A newer session replaced this one while the request was out (signed out and in again), or another deletion
+        /// request is already out: nothing is changed or shown here.
         case superseded
     }
 
@@ -40,11 +40,14 @@ final class AccountStore {
     private let slot: TokenSlot
 
     private(set) var token: String?
-    /// The last profile fetched for this session; nil while loading, after a failed load, or signed out.
+    /// The last profile fetched for this session; nil while the first load runs, when it failed, or signed out. A
+    /// later refresh that fails keeps the profile already shown.
     private(set) var profile: AccountProfile?
-    /// The last load of a signed-in session's profile failed (offline or a server failure): the profile page offers
+    /// Loading failed with no profile to show (offline or a server failure at the first load): the profile page offers
     /// Try Again and Sign Out instead of the profile.
     private(set) var loadFailed = false
+    /// A deletion request is out: a second one is not sent (codex-review-03-app-b #1).
+    private(set) var deleting = false
     private(set) var signingIn = false
     /// The sign-in sheet's / welcome page's one line after a failed attempt.
     var signInFailure: String?
@@ -221,25 +224,34 @@ final class AccountStore {
         // The mock shows the follow-up (the "pending" answer) and keeps the sample page behind it.
         if sample { return .deletedNeedsAppleStep }
         guard let client, let token else { return .failed(AccountDeletionCopy.failed) }
+        guard !deleting else { return .superseded }   // the request already out reports the outcome
+        deleting = true
+        defer { deleting = false }
         let answer: Result<AccountClient.AppleRevocation, AccountClient.Failure>
         do { answer = .success(try await client.deleteAccount(token: token)) } catch { answer = .failure(error) }
-        // A session replaced meanwhile (signed out, or signed in again) must not be forgotten for this answer.
-        guard token == self.token else { return .superseded }
+        // Only a genuinely newer session is left alone (signed out and in again meanwhile). A session merely ended
+        // meanwhile — by a refresh's 401 after the server claimed the deletion, or by Sign Out — still gets this
+        // answer: the account's deletion and its iOS Settings step must reach the user (codex-review-03-app-b #1).
+        if let current = self.token, current != token { return .superseded }
         switch answer {
         case .success(let revocation):
-            forget()
+            forgetIfCurrent(token)
             return revocation == .done ? .deleted : .deletedNeedsAppleStep
         case .failure(.unauthorized):
-            forget()
+            forgetIfCurrent(token)
             return .signedOut
         case .failure(.deletionInProgress):
             // Another request is deleting this account now; it gets the real revocation outcome, so this one gives
             // the cautious instruction.
-            forget()
+            forgetIfCurrent(token)
             return .deletedNeedsAppleStep
         case .failure:
             return .failed(AccountDeletionCopy.failed)
         }
+    }
+
+    private func forgetIfCurrent(_ token: String) {
+        if self.token == token { forget() }
     }
 
     private func forget() {

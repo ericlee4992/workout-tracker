@@ -263,6 +263,27 @@ struct AccountTests {
         #expect(store.isSignedIn && box.token == "s1")
     }
 
+    /// Round 2 #1: the session ends while the deletion is out (a refresh's 401 after the server claimed it): the
+    /// deletion's answer still reaches the user, with the iOS Settings step; a second deletion is not sent.
+    @MainActor @Test func aDeletionStillReportsWhenItsSessionEndsMeanwhile() async {
+        let (store, box) = store(token: "old")
+        let gate = Gate()
+        let deletes = SignOutLog()
+        _ = serve(profile: (401, ["error": "unauthorized"]),
+                  delete: (200, ["deleted": true, "appleRevocation": "pending"]),
+                  onDelete: { deletes.count += 1; gate.wait() })
+        defer { AccountStub.respond = nil }
+        async let outcome = store.deleteAccount()
+        await gate.untilEntered()
+        #expect(await store.deleteAccount() == .superseded, "no second DELETE while one is out")
+        await store.refresh()                       // the claimed session is refused → signed out
+        #expect(!store.isSignedIn && box.token == nil)
+        gate.release()
+        #expect(await outcome == .deletedNeedsAppleStep)
+        #expect(deletes.count == 1)
+        #expect(!store.deleting)
+    }
+
     /// #6: a 401 from usage wins over the profile failing for another reason.
     @MainActor @Test func usageRefusalSignsOutEvenWhenTheProfileFails() async {
         _ = serve(profile: (503, ["error": "unavailable"]), usage: (401, ["error": "unauthorized"]))

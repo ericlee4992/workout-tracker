@@ -311,8 +311,8 @@ Review: [codex-review-03-app.md](../codex-review-03-app.md) — not clear (Stand
   the line reads *You've been signed out. Send again to send it without your account.* (new string) and the footer
   then says "Not signed in", so a second Send goes signed out, as disclosed.
 - **#3 offline cold launch:** tapping the row signed in always opens the page; without a profile it shows
-  `AccountUnavailableView` — title *Signed In*, a progress line while loading or *Couldn't load your account. Check
-  your connection.*, then **Try Again** and **Sign Out** (new strings). `refresh()` no longer needs both calls: the
+  `AccountUnavailableView` — title *Signed In*, *Loading…* with a spinner while loading or *Couldn't load your
+  account. Check your connection.*, then **Try Again** and **Sign Out** (new strings). `refresh()` no longer needs both calls: the
   profile shows without the AI figures (keeping the previous figures if any) when only usage fails; `loadFailed`
   marks a failed profile load.
 - **#4 late deletion:** `deleteAccount()` captures the token and returns `.superseded` — no `forget()`, no UI — when
@@ -335,6 +335,28 @@ a global queue. **UI:** `ui2.xcresult` 34 passed, 3 failed, 1 skipped (the opt-i
 .testCaptureSettingsLightAccessibility` — screens this round did not change, both passed in `ui1`. Rerun alone,
 serially (`ui3.xcresult`): **3/3 passed**, so no product failure. Unit rerun clean (`unit3.xcresult`): 47/47. New
 capture `account-unavailable-*` (the offline page; Sign Out returns the row to "Sign In").
+
+## Codex review 03 app half — response (round 2)
+
+Review: [codex-review-03-app-b.md](../codex-review-03-app-b.md) — not clear: round-1 #1–#3, #5, #6 resolved, #4
+resolved for its case; one new P2 and two P3. All accepted.
+
+- **P2 — a session ended during the deletion swallowed the Apple step.** `deleteAccount()` now returns `superseded`
+  only when a *different, non-nil* session is current (a genuine sign-out-and-in); a session merely ended meanwhile
+  (a refresh's 401 after the server's claim, or Sign Out) still gets the answer, so `pending`/`manual` reach Settings'
+  follow-up. Forgetting goes through `forgetIfCurrent`, so a newer session is still never touched. A `deleting` flag
+  stops a second DELETE while one is out (the second call returns `superseded` without a request). The page's Task
+  outlives the page, and `onDeleteOutcome` writes Settings' state, so the follow-up shows even after the page closed.
+  Test `aDeletionStillReportsWhenItsSessionEndsMeanwhile`: DELETE held (`pending`), a second delete refused, a
+  refresh's 401 signs out, release → `deletedNeedsAppleStep`, exactly one DELETE sent.
+  **Evidence:** unit `unit4.xcresult` **48/48** (AccountTests 20). **Mutation** (`mut2.log`): restoring the round-1 rule
+  (`guard token == self.token else { return .superseded }`) fails exactly the new test while
+  `aLateDeletionAnswerLeavesANewerSessionAlone` still passes; the file was restored and checked (no marker; the real
+  rule present). xcodebuild hung after reporting that run and was stopped by its PID (exit 143). No UI change in this
+  round, so no UI rerun (ui2 + ui3 stand).
+- **P3 — "Loading…"** is now listed (round-1 #3 above).
+- **P3 — comments:** `profile` / `loadFailed` say a later failed refresh keeps the profile shown and `loadFailed`
+  means "failed with no profile to show"; `superseded` describes both cases.
 
 ## Acceptance
 
