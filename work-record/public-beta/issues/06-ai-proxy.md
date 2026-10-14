@@ -396,3 +396,26 @@ two P3s, both accepted (C2 is the B3 Codex added to its round-2 report while rou
 Verification: build ✔ (`build6.log`, derived data `dd-06app-d`); unit tests **992/992** (`unit5.xcresult`); the two
 session UI tests **2/2** (`ui4.xcresult`, WT-iPhone27). `ui3` (the five classes on the round-2 build) is still running;
 round 3's changes are the scan's refused-session branch, the sample sign-in hook and tests.
+
+## Codex review 06-app-d — round 4: clear
+
+Report [codex-review-06-app-d.md](../codex-review-06-app-d.md): **Verdict: clear** — C1 and C2 closed, no findings; the
+sample sign-in confirmed reachable only with `-uiTestReset` + `-uiTestSampleSignIn` on the sample store.
+
+### UI verification (final)
+
+- **`ui3`** (the five affected classes — FloodlightAIAccess, FloodlightAIRoutine, FloodlightScan, AskAI,
+  FloodlightSettings — on the round-2 build, 3 workers): **77/79**. Every ticket-06 test passed, including all four
+  `FloodlightAIAccessUITests` capture variants and the split New Model captures (light/dark × Default/AccessibilityL).
+  Two failures, both explained:
+  - `AskAIUITests.testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce` ("the dragged exercise leads the session") —
+    **pre-existing: it fails identically on unchanged `main` `0998e40`, 2 of 2 runs** (`drag-main1/2.xcresult`, a
+    temporary detached checkout, since removed). Not caused by this ticket; listed in STATE with the other `main`
+    UI failures.
+  - `FloodlightSettingsUITests.testCaptureSettingsLightAccessibility` (and, in `ui1`, the dark AX variant): the
+    test's `reach` swiped up only, and at AccessibilityL one swipe carried the Ask AI card past the top (seen in the
+    run's screen recording). **Test-helper fix** (after Codex's clear; test code only): shorter drags, back down when
+    past. **`ui5`: FloodlightSettingsUITests 10/10** on the final build (`dd-06app-e`, WT-iPhone27).
+- **`ui4`**: the two session UI tests 2/2 on the round-3 build. Earlier: `ui1` (pre-fix, eight classes incl.
+  FloodlightProfile, FloodlightGyms, ScanMachineLabel) 97/99 with the same two failures.
+- Unit tests 992/992 (`unit5`). Phone smoke of each flow: open (TestFlight build 3).

@@ -12,9 +12,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   Unit tests 986/986. Deployed checks done with a temporary test account (deleted): a max-size scan uses 43–45 ms CPU,
   an app-sized scan 15–16 ms — over Workers Free's 10 ms, yet all succeeded; **the user chose to stay on Free for now
   and revisit before external testers (08)**. Adversarial inputs stayed on task. Paused/limit/401 answer correctly.
-- **Running:** the targeted UI run (`/tmp/wt-floodlight/results/06app/ui1.*`, run script `run.sh` there) and Codex's
-  review in the Orca terminal "Review 06 app half" (report `work-record/public-beta/codex-review-06-app.md`).
-- **Next:** resolve findings to "clear", ask the user before merging, then ticket 10 (research already done: OpenAI
+- **Codex clear (round 4)**; unit 992/992; targeted UI 77/79 + Settings 10/10 after a test-helper fix — the one other
+  failure also fails on `main` (below). Evidence in `/tmp/wt-floodlight/results/06app/`; details in the ticket.
+- **Next:** the user's go-ahead to merge, then ticket 10 (research already done: OpenAI
   lists `gpt-6.1-sol` at $2 / $0.10 cached / $10 vs Terra $2 / $0.20 / $12 — cheaper; Responses API, `medium` effort,
   structured outputs and images supported). The phone's live smoke of 06 waits for TestFlight build 3 (after 05).
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `6450e294` seen in the logs on 2026-10-14).
@@ -106,6 +106,9 @@ Simulators: **WT-Floodlight** `9E822EF6-DC67-4958-AEA2-D53D2D36D674` (iOS 27; ta
   stops compiling `WorkoutTracker/Features/ActiveWorkout/LiveSetRow.swift` on the `macos-26` runner (Xcode 26); the same
   code builds and tests locally on Xcode 27. A runner-image/SDK mismatch to look at with the deferred hosted-CI work.
   The new "Server" workflow (secret scan + server tests, Linux) passed on `e455222`.
+- **`AskAIUITests.testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce` fails on `main`** (found 2026-10-14 in ticket 06's
+  runs; fails identically on `0998e40`, 2 of 2): the reorder drag does not move the exercise ("the dragged exercise
+  leads the session"). Same follow-up ticket as below.
 - **Three UI tests fail on `main` too** (ticket 02's regression run): `FloodlightHistoryUITests` light/dark captures at
   `:100` ("a multi-day series draws", likely date-dependent since the month changed) and
   `CoreLoopUITests.testModelPickerFiltersAndSearchesDownToOneModel` (:274, the known model-picker flake). A small
