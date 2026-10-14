@@ -1,9 +1,9 @@
 # 03 — Server foundation and Sign in with Apple
 
 Type: task
-Status: in progress — server half merged (Codex clear, 4 rounds) and **deployed 2026-10-13**; **app half
-implemented** (mock approved by the user; unit 43/43, UI 37/37 + 1 opt-in skip); Codex review of the app half next,
-then the phone (branch `ericlee4992/beta-03-deploy`)
+Status: in progress — server half merged and **deployed 2026-10-13**; **app half Codex clear (round 3)**; next:
+the phone (TestFlight build 2) for a real Apple sign-in, rename, sign-out and deletion (branch
+`ericlee4992/beta-03-deploy`)
 Blocked by: 01 (the paid team is required for the Sign in with Apple capability)
 Implementer: Claude (the user's go-ahead to start the server half, 2026-10-02); Reviewer: Codex.
 Branch: `ericlee4992/beta-03-server-apple` off `main`.
@@ -357,6 +357,12 @@ resolved for its case; one new P2 and two P3. All accepted.
 - **P3 — "Loading…"** is now listed (round-1 #3 above).
 - **P3 — comments:** `profile` / `loadFailed` say a later failed refresh keeps the profile shown and `loadFailed`
   means "failed with no profile to show"; `superseded` describes both cases.
+
+## Codex review 03 app half — clear (round 3)
+
+[codex-review-03-app-c.md](../codex-review-03-app-c.md): **clear** — the round-2 P2 and both P3s resolved; no new
+findings. It clears the app implementation, not the phone checks (real Apple sign-in, rename/training save,
+sign-out, deletion and revocation) or installation.
 
 ## Acceptance
 
