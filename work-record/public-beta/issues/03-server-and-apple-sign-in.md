@@ -376,7 +376,14 @@ sign-out, deletion and revocation) or installation.
 - **No Gate S for this update (the user, 2026-10-13: "yes skip the backup")**: `git diff 936b18f 5836b68 --
   WorkoutTracker` adds no SwiftData model, attribute, relationship or migration (Domain: `AccountClient.swift` new,
   `FeedbackClient.swift` +4); the new rule is in DEVELOPMENT → *When a backup is required*.
-- Next: add build 2 to "Developer"; the user installs and runs the checks.
+- Build 2 processed ("Ready to Submit") and added to "Developer" by hand (status "Testing").
+- **The user installed build 2, signed in with Apple and sent feedback (2026-10-13 23:31 EDT).** Read back from the
+  production D1 with `node scripts/feedback.mjs list|show`: category other, "From: <the user's name and Apple
+  email>", app 0.1.0 (2), iOS 27.0, iPhone16,2, no screenshot. This shows end to end: Apple's sign-in → the server's
+  token verification and code exchange → an account with the first-sign-in name → the session in the keychain →
+  feedback sent with the bearer and attributed to the account. (The script's first `list` failed with a wrangler
+  API error 7403 on the account; an immediate rerun and a direct `wrangler d1 execute` succeeded — transient.)
+- Still to report from the phone: rename, sign out and in again, deletion (optional).
 
 ## Acceptance
 
