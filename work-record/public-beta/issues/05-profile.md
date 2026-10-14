@@ -3,7 +3,7 @@
 Type: task
 Status: mock **approved by the user 2026-10-03** (and the Ask AI decision); server side implemented; Codex review 05
 **Codex clear (round 3, 2026-10-03)**; merged. The page and editor went live with 03's app half (2026-10-13).
-**Ask AI prefill and the save switch wired 2026-10-14 (in review).** Was left: Ask AI prefill from the training profile and the "Save to my training profile" switch (on by default) —
+**Ask AI prefill and the save switch: Codex clear (round 3), merged 2026-10-14; ships in TestFlight build 3.** Was left: Ask AI prefill from the training profile and the "Save to my training profile" switch (on by default) —
 third in the agreed order, after 06 and 10 (STATE); the user noticed the missing prefill on build 2.
 Blocked by: — (03 done 2026-10-13)
 Implementer: Claude (the user's order 2026-10-03); Reviewer: Codex.
@@ -265,7 +265,7 @@ FloodlightAIRoutine, FloodlightAIAccess on the round-1 build): **28/28**. The ti
 
 Report [codex-review-05f.md](../codex-review-05f.md): **Verdict: clear** — E1–E3 closed, no findings; every
 training-profile write goes through the queue. **`ui5`: FloodlightProfileUITests 10/10** on the final build (`dd-05c`),
-including the captures and the three ticket-05 flow tests. Waiting: the user's approval of "Couldn't save to your
-training profile." and the merge.
+including the captures and the three ticket-05 flow tests. **The user approved "Couldn't save to your training profile." as
+written and the merge with TestFlight build 3 (2026-10-14).**
 
 ## Comments
