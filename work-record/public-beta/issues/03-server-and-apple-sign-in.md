@@ -1,9 +1,8 @@
 # 03 — Server foundation and Sign in with Apple
 
 Type: task
-Status: in progress — server half merged and **deployed 2026-10-13**; **app half Codex clear (round 3)**; next:
-the phone (TestFlight build 2) for a real Apple sign-in, rename, sign-out and deletion (branch
-`ericlee4992/beta-03-deploy`)
+Status: **Done 2026-10-13** — server deployed; app half Codex clear (round 3); TestFlight build 0.1.0 (2) on the
+phone; the user: "I confirm 03 works"
 Blocked by: 01 (the paid team is required for the Sign in with Apple capability)
 Implementer: Claude (the user's go-ahead to start the server half, 2026-10-02); Reviewer: Codex.
 Branch: `ericlee4992/beta-03-server-apple` off `main`.
@@ -383,7 +382,9 @@ sign-out, deletion and revocation) or installation.
   token verification and code exchange → an account with the first-sign-in name → the session in the keychain →
   feedback sent with the bearer and attributed to the account. (The script's first `list` failed with a wrangler
   API error 7403 on the account; an immediate rerun and a direct `wrangler d1 execute` succeeded — transient.)
-- Still to report from the phone: rename, sign out and in again, deletion (optional).
+- **The user, 2026-10-13: "I confirm 03 works."** Recorded as the user's acceptance of the phone checks; which of
+  rename, sign-out/in and deletion were exercised was not itemised, so Apple-token revocation on a real deletion is
+  not separately evidenced (the server half's tests cover it against a fake Apple).
 
 ## Acceptance
 
