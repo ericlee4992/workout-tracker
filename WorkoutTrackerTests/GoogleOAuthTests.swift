@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import UIKit
 @testable import WorkoutTracker
 
 /// Public beta ticket 04: Google's OAuth for an iOS client without Google's SDK — PKCE, the authorization URL, the
@@ -57,6 +58,26 @@ struct GoogleOAuthTests {
         }
     }
 
+    /// codex-review-04 Standards #1: only exactly the redirect URI, and the state checked before a code or an error.
+    @Test func theCallbackMustReturnToTheRedirectURIWithThisAttemptsState() throws {
+        let scheme = oauth.callbackScheme
+        #expect(try oauth.code(from: URL(string: "\(scheme.uppercased()):/oauth2redirect?state=state-123&code=c")!,
+                               attempt: attempt) == "c", "a URL scheme is case-insensitive")
+        for wrong in ["\(scheme):/wrong-path?state=state-123&code=c",
+                      "\(scheme):/oauth2redirect/extra?state=state-123&code=c",
+                      "\(scheme)://evil.example/oauth2redirect?state=state-123&code=c",
+                      "\(scheme)://user@/oauth2redirect?state=state-123&code=c",
+                      "\(scheme):oauth2redirect?state=state-123&code=c",
+                      "\(scheme):/oauth2redirect",
+                      // An error is believed only with this attempt's state: a forged "access_denied" is no cancel.
+                      "\(scheme):/oauth2redirect?error=access_denied",
+                      "\(scheme):/oauth2redirect?error=access_denied&state=other"] {
+            #expect(throws: GoogleOAuth.Failure.invalid, "\(wrong)") {
+                try oauth.code(from: URL(string: wrong)!, attempt: attempt)
+            }
+        }
+    }
+
     @Test func theExchangeSendsTheVerifierAndNoSecret() throws {
         let request = oauth.tokenRequest(code: "4/0A+b&c=d", attempt: attempt)
         #expect(request.url == GoogleOAuth.tokenEndpoint)
@@ -69,6 +90,8 @@ struct GoogleOAuthTests {
         #expect(form == ["code": "4/0A+b&c=d", "client_id": oauth.clientID, "code_verifier": attempt.verifier,
                          "grant_type": "authorization_code", "redirect_uri": oauth.redirectURI])
         #expect(!body.contains("client_secret"))
+        // A form body reads `+` as a space: the code's `+` must travel as %2B (URLComponents above would not notice).
+        #expect(body.contains("code=4/0A%2Bb%26c%3Dd"))
     }
 
     @Test func theAnswerYieldsOnlyTheIDToken() throws {
@@ -94,5 +117,12 @@ struct GoogleOAuthTests {
         let data = try #require(request.httpBody)
         let body = try #require(try JSONSerialization.jsonObject(with: data) as? [String: String])
         #expect(body == ["idToken": "h.p.s", "nonce": "raw-nonce-0123456789abcdef"])
+    }
+
+    /// codex-review-04 Standards #3: the button's Google Sans Medium is in the app, or SwiftUI quietly falls back to
+    /// the system font.
+    @Test @MainActor func theButtonsFontIsBundled() throws {
+        let font = try #require(UIFont(name: GoogleSignInButton.fontName, size: 20))
+        #expect(font.fontName == GoogleSignInButton.fontName)
     }
 }

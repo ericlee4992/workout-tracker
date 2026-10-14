@@ -16,6 +16,12 @@
 	     sign-in. Read by GoogleSignIn.clientID. -->
 	<key>WTGoogleClientID</key>
 	<string>$(WT_GOOGLE_CLIENT_ID)</string>
+	<!-- Public beta ticket 04 (codex-review-04 Standards #3): the "Sign in with Google" label in Google Sans Medium, as
+	     Google's branding guidelines specify — a renamed 21 KB subset under the OFL (Resources/Fonts). -->
+	<key>UIAppFonts</key>
+	<array>
+		<string>StackedSignInLabel-Medium.ttf</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Record distance, pace and your route during outdoor cardio workouts.</string>
 	<key>NSMotionUsageDescription</key>

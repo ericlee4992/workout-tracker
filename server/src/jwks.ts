@@ -28,12 +28,14 @@ export function keySet(url: string, timeoutMs: number, unavailable: () => Error)
   async function keys(deps: Deps, forceRefresh = false): Promise<JsonWebKey[]> {
     const fresh = cache && deps.now() - cache.fetchedAt < KEY_CACHE_MS;
     if (fresh && !forceRefresh) return cache!.keys;
-    if (forceRefresh && inflight) return inflight;
-    if (fresh && forceRefresh) {
+    // A refresh already running answers a forced one too, past the cooldown; otherwise a forced refresh of a fresh set
+    // is rate-limited.
+    if (fresh && forceRefresh && !inflight) {
       if (deps.now() - lastForcedRefresh < FORCED_REFRESH_COOLDOWN_MS) return cache!.keys;
       lastForcedRefresh = deps.now();
     }
     inflight ??= fetchKeys(deps).finally(() => { inflight = undefined; });
+    // Every waiter, not only the one that started the fetch, gets the provider's 503 (codex-review-04 Standards #2).
     try {
       return await inflight;
     } catch {

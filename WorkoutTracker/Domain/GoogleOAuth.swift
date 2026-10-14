@@ -76,13 +76,20 @@ struct GoogleOAuth: Equatable, Sendable {
         case unreachable
     }
 
-    /// The authorization code from Google's redirect, if it is this attempt's (state) and not an error.
+    /// The authorization code from Google's redirect. The callback must come back to exactly `redirectURI` and carry
+    /// this attempt's state before anything in it is believed — a code or an error alike (RFC 8252 §8.9–8.10;
+    /// codex-review-04 Standards #1).
     func code(from callback: URL, attempt: Attempt) throws(Failure) -> String {
-        guard callback.scheme == callbackScheme,
-              let items = URLComponents(url: callback, resolvingAgainstBaseURL: false)?.queryItems else { throw .invalid }
+        guard let parts = URLComponents(url: callback, resolvingAgainstBaseURL: false),
+              let expected = URLComponents(string: redirectURI),
+              parts.scheme?.lowercased() == expected.scheme?.lowercased(),
+              parts.percentEncodedHost ?? "" == "", parts.port == nil, parts.user == nil, parts.password == nil,
+              parts.percentEncodedPath == expected.percentEncodedPath,
+              let items = parts.queryItems else { throw .invalid }
         let value = { (name: String) in items.first { $0.name == name }?.value }
+        guard value("state") == attempt.state else { throw .invalid }
         if let error = value("error") { throw error == "access_denied" ? .cancelled : .invalid }
-        guard value("state") == attempt.state, let code = value("code"), !code.isEmpty else { throw .invalid }
+        guard let code = value("code"), !code.isEmpty else { throw .invalid }
         return code
     }
 

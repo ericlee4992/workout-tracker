@@ -78,6 +78,44 @@ describe("Google sign-in — ID token checks", () => {
   });
 });
 
+// codex-review-04 Standards #2: requests that join a key refresh already running get the provider's 503 when it fails,
+// like the request that started it — never a 500.
+describe("a failed key refresh answers every waiter with the provider's 503", () => {
+  const gated = () => {
+    let release!: () => void;
+    return { gate: new Promise<void>((resolve) => { release = resolve; }), release: () => release() };
+  };
+
+  it("Google", async () => {
+    expect((await signInWith(await h.googleToken())).status).toBe(200);   // a warm cache
+    const { gate, release } = gated();
+    h.google.keysGate = gate;
+    h.google.keysStatus = 500;
+    const requests = [1, 2, 3].map(async (i) => signInWith(await h.googleToken({}, NONCE, { kid: `ROTATED-${i}` })));
+    await new Promise((r) => setTimeout(r, 50));
+    release();
+    const answers = await Promise.all(requests);
+    expect(answers.map((r) => r.status)).toEqual([503, 503, 503]);
+    for (const answer of answers) expect(await answer.json()).toEqual({ error: "google_keys_unavailable" });
+    expect(h.google.keyFetches).toBe(2);
+  });
+
+  it("Apple (unchanged from before the shared cache)", async () => {
+    await h.signIn();
+    const { gate, release } = gated();
+    h.apple.keysGate = gate;
+    h.apple.keysStatus = 500;
+    const requests = [1, 2, 3].map(async (i) => h.call("POST", "/v1/auth/apple", {
+      body: { identityToken: await h.idToken({}, NONCE, { kid: `ROTATED-${i}` }), authorizationCode: "c", nonce: NONCE } }));
+    await new Promise((r) => setTimeout(r, 50));
+    release();
+    const answers = await Promise.all(requests);
+    expect(answers.map((r) => r.status)).toEqual([503, 503, 503]);
+    for (const answer of answers) expect(await answer.json()).toEqual({ error: "apple_keys_unavailable" });
+    expect(h.apple.keyFetches).toBe(2);
+  });
+});
+
 describe("Google sign-in — accounts", () => {
   it("signs the same Google person in to the same account", async () => {
     await signInWith(await h.googleToken());
@@ -86,6 +124,12 @@ describe("Google sign-in — accounts", () => {
     expect([await count("accounts"), await count("identities"), await count("sessions")]).toEqual([1, 1, 2]);
     // The name is the first sign-in's (editable on the profile page), not overwritten by a later token.
     expect(((await again.json()) as { profile: { displayName: string } }).profile.displayName).toBe("Alex Kim");
+  });
+
+  it("two simultaneous first sign-ins of one Google person share one account (no provider token to keep)", async () => {
+    const [a, b] = await Promise.all([signInWith(await h.googleToken()), signInWith(await h.googleToken())]);
+    expect([a.status, b.status]).toEqual([200, 200]);
+    expect([await count("accounts"), await count("identities"), await count("sessions")]).toEqual([1, 1, 2]);
   });
 
   it("does not link an Apple and a Google sign-in with the same email", async () => {

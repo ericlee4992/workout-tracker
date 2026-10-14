@@ -23,13 +23,19 @@ struct AppleSignInButton: View {
 
 /// Public beta ticket 04: Google's sign-in button without Google's SDK, drawn to Google's published iOS branding — a
 /// pill in Google's light (white, #747775 border, #1F1F1F text) or dark (#131314, #8E918F border, #E3E3E3 text) theme
-/// with Google's own "G" (from Google's sign-in asset package, unmodified) and its wording "Sign in with Google". The
-/// same height as Apple's button beside it and below it (Apple's guideline: Sign in with Apple at least as prominent).
+/// with Google's own "G" (from Google's sign-in asset package, unmodified), its wording "Sign in with Google" in Google
+/// Sans Medium and its iOS 12-point logo-to-label gap. The same height as Apple's button beside it and below it (Apple's
+/// guideline: Sign in with Apple at least as prominent). The one place the app departs from the system font: a
+/// provider's brand rule (codex-review-04 Standards #3); the label still scales with Dynamic Type.
 struct GoogleSignInButton: View {
+    /// Google Sans Medium, subset and renamed under the OFL (Resources/Fonts, Info.plist `UIAppFonts`).
+    static let fontName = "StackedSignInLabel-Medium"
+
     var action: () -> Void
     @Environment(\.colorScheme) private var colorScheme
     @ScaledMetric(relativeTo: .headline) private var height: CGFloat = 56
     @ScaledMetric(relativeTo: .headline) private var logo: CGFloat = 20
+    @ScaledMetric(relativeTo: .headline) private var gap: CGFloat = 12
     /// Scales with the button, as Apple's label does beside it.
     @ScaledMetric(relativeTo: .headline) private var textSize: CGFloat = 20
 
@@ -37,14 +43,15 @@ struct GoogleSignInButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 10) {
+            HStack(spacing: gap) {
                 Image("GoogleG")
                     .resizable()
                     .interpolation(.high)
                     .frame(width: logo, height: logo)
                     .accessibilityHidden(true)
                 Text("Sign in with Google")
-                    .font(.system(size: textSize, weight: .medium))
+                    // Already scaled (`textSize`), so the font itself does not scale again.
+                    .font(.custom(Self.fontName, fixedSize: textSize))
                     .foregroundStyle(dark ? Color(red: 0xE3 / 255, green: 0xE3 / 255, blue: 0xE3 / 255)
                                           : Color(red: 0x1F / 255, green: 0x1F / 255, blue: 0x1F / 255))
                     .lineLimit(1)

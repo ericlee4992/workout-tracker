@@ -17,6 +17,8 @@ export interface FakeApple {
   extraKeys: JsonWebKey[];
   /** While set, the key-set response waits for this promise (a slow Apple). */
   keysGate?: Promise<void>;
+  /** The key-set endpoint's status (non-200: a failing Apple). */
+  keysStatus: number;
   tokenStatus: number;
   revokeStatus: number;
   /** Throw from the revoke endpoint (a network failure / timeout). */
@@ -51,7 +53,7 @@ export async function makeFakeApple(clock: { now: number } = { now: Date.now() }
   const codes = new Map<string, { subject: string; used: boolean }>();
   let codeCounter = 0;
   const apple: FakeApple = {
-    kid, calls: [], keyFetches: 0, extraKeys: [], tokenStatus: 200, revokeStatus: 200, revokeThrows: false,
+    kid, calls: [], keyFetches: 0, extraKeys: [], keysStatus: 200, tokenStatus: 200, revokeStatus: 200, revokeThrows: false,
     nextRefreshToken: "refresh-1", esPublicKey: es.publicKey,
     issueCode(subject) {
       const code = `code-${++codeCounter}`;
@@ -77,6 +79,7 @@ export async function makeFakeApple(clock: { now: number } = { now: Date.now() }
     if (url === "https://appleid.apple.com/auth/keys") {
       apple.keyFetches++;
       if (apple.keysGate) await apple.keysGate;
+      if (apple.keysStatus !== 200) return new Response("{}", { status: apple.keysStatus });
       return Response.json({ keys: [{ ...jwk, kid, alg: "RS256", use: "sig" }, ...apple.extraKeys] });
     }
     const body = new URLSearchParams(String(init?.body ?? ""));
@@ -108,15 +111,19 @@ export interface FakeGoogle {
   kid: string;
   sign: (claims: Record<string, unknown>, options?: { forged?: boolean; kid?: string; alg?: string }) => Promise<string>;
   keyFetches: number;
+  /** While set, the key-set response waits for this promise (a slow Google). */
+  keysGate?: Promise<void>;
+  /** The key-set endpoint's status (non-200: a failing Google). */
+  keysStatus: number;
 }
 
-async function makeFakeGoogle(): Promise<{ google: FakeGoogle; keys: () => Response }> {
+async function makeFakeGoogle(): Promise<{ google: FakeGoogle; keys: () => Promise<Response> }> {
   const published = await rsaPair();
   const forged = await rsaPair();
   const jwk = (await crypto.subtle.exportKey("jwk", published.publicKey)) as JsonWebKey;
   const kid = "GOOGLEKID1";
   const google: FakeGoogle = {
-    kid, keyFetches: 0,
+    kid, keyFetches: 0, keysStatus: 200,
     async sign(claims, options = {}) {
       const header = { alg: options.alg ?? "RS256", kid: options.kid ?? kid, typ: "JWT" };
       const enc = (v: unknown) => base64UrlEncode(utf8(JSON.stringify(v)));
@@ -126,8 +133,10 @@ async function makeFakeGoogle(): Promise<{ google: FakeGoogle; keys: () => Respo
       return `${input}.${base64UrlEncode(signature)}`;
     },
   };
-  const keys = () => {
+  const keys = async () => {
     google.keyFetches++;
+    if (google.keysGate) await google.keysGate;
+    if (google.keysStatus !== 200) return new Response("{}", { status: google.keysStatus });
     return Response.json({ keys: [{ ...jwk, kid, alg: "RS256", use: "sig" }] });
   };
   return { google, keys };

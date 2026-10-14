@@ -172,10 +172,18 @@ final class AccountStore {
             if error != .cancelled { signInFailure = SignInFailure.generic }
             return false
         }
+        return await completeGoogleSignIn(oauth, code: code, attempt: attempt, client: client)
+    }
+
+    /// After Google's page: the code exchanged with Google, then the ID token to the server (tested without a browser).
+    func completeGoogleSignIn(_ oauth: GoogleOAuth, code: String, attempt: GoogleOAuth.Attempt,
+                              client: AccountClient) async -> Bool {
         let idToken: String
         do { idToken = try await GoogleSignIn.idToken(oauth, code: code, attempt: attempt, session: client.session) }
         catch {
-            signInFailure = error == .unreachable ? SignInFailure.unreachable : SignInFailure.generic
+            // Only Google was contacted so far: Stacked's "Can't reach" line would blame the wrong service
+            // (codex-review-04 Spec #2).
+            signInFailure = SignInFailure.generic
             return false
         }
         return await adopt { () async throws(AccountClient.Failure) in
@@ -301,6 +309,8 @@ final class AccountStore {
         if sample { return .deletedNeedsAppleStep }
         guard let client, let token else { return .failed(AccountDeletionCopy.failed) }
         guard !deleting else { return .superseded }   // the request already out reports the outcome
+        // Read before the request: a refresh's 401 meanwhile clears the profile (codex-review-04 Spec #1).
+        let provider = profile?.provider
         deleting = true
         defer { deleting = false }
         let answer: Result<AccountClient.AppleRevocation, AccountClient.Failure>
@@ -318,9 +328,10 @@ final class AccountStore {
             return .signedOut
         case .failure(.deletionInProgress):
             // Another request is deleting this account now; it gets the real revocation outcome, so this one gives
-            // the cautious instruction.
+            // the cautious instruction — to an Apple account, or one whose provider is unknown. A Google account has
+            // no Apple authorization to stop and no Google token kept anywhere (codex-review-04 Spec #1).
             forgetIfCurrent(token)
-            return .deletedNeedsAppleStep
+            return provider == "google" ? .deleted : .deletedNeedsAppleStep
         case .failure:
             return .failed(AccountDeletionCopy.failed)
         }

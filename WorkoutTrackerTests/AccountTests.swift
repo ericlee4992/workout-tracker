@@ -147,11 +147,13 @@ struct AccountTests {
                        profile: (Int, Any) = (200, AccountTests.profileJSON),
                        usage: (Int, Any) = (200, AccountTests.usageJSON),
                        delete: (Int, Any) = (200, ["deleted": true, "appleRevocation": "done"]),
+                       googleToken: (Int, Any) = (200, ["id_token": "h.p.s", "access_token": "a"]),
                        onDelete: @escaping @Sendable () -> Void = {}) -> SignOutLog {
         let log = SignOutLog()
         AccountStub.respond = { request in
             let answer: (Int, Any) = switch (request.httpMethod ?? "", request.url?.path ?? "") {
-            case ("POST", "/v1/auth/apple"): signIn
+            case ("POST", "/v1/auth/apple"), ("POST", "/v1/auth/google"): signIn
+            case ("POST", "/token"): googleToken
             case ("GET", "/v1/profile"): profile
             case ("GET", "/v1/ai/usage"): usage
             case ("POST", "/v1/auth/signout"): { log.count += 1; return (200, ["ok": true]) }()
@@ -282,6 +284,66 @@ struct AccountTests {
         #expect(await outcome == .deletedNeedsAppleStep)
         #expect(deletes.count == 1)
         #expect(!store.deleting)
+    }
+
+    // MARK: codex-review-04
+
+    private static var googleProfileJSON: [String: Any] {
+        var json = profileJSON
+        json["provider"] = "google"
+        json["email"] = "alex@gmail.com"
+        return json
+    }
+
+    /// Spec #1: a Google account that loses a deletion race is not told to stop using Sign in with Apple — even when a
+    /// refresh's 401 cleared the profile while the request was out. An Apple account still is.
+    @MainActor @Test func aGoogleAccountLosingADeletionRaceGetsNoAppleStep() async {
+        let gate = Gate()
+        _ = serve(profile: (200, AccountTests.googleProfileJSON),
+                  delete: (409, ["error": "deletion_in_progress"]), onDelete: { gate.wait() })
+        defer { AccountStub.respond = nil }
+        let (store, box) = store(token: "t")
+        await store.refresh()
+        #expect(store.profile?.provider == "google")
+        async let outcome = store.deleteAccount()
+        await gate.untilEntered()
+        _ = serve(profile: (401, ["error": "unauthorized"]), delete: (409, ["error": "deletion_in_progress"]))
+        await store.refresh()
+        #expect(store.profile == nil && box.token == nil)
+        gate.release()
+        #expect(await outcome == .deleted)
+
+        _ = serve(delete: (409, ["error": "deletion_in_progress"]))
+        let (apple, _) = self.store(token: "t")
+        await apple.refresh()
+        #expect(await apple.deleteAccount() == .deletedNeedsAppleStep)
+    }
+
+    private var googleOAuth: GoogleOAuth { GoogleOAuth(clientID: "123456789-abcdef.apps.googleusercontent.com") }
+
+    /// After Google's page, the whole path without a browser: Google's token answer → the server → signed in.
+    @MainActor @Test func googleSignInExchangesTheCodeThenSignsIn() async {
+        _ = serve(profile: (200, AccountTests.googleProfileJSON))
+        defer { AccountStub.respond = nil }
+        let (store, box) = store()
+        #expect(await store.completeGoogleSignIn(googleOAuth, code: "c", attempt: .make(), client: client))
+        #expect(box.token == "s1" && store.isSignedIn && store.signInFailure == nil)
+        #expect(store.profile?.provider == "google")
+    }
+
+    /// Spec #2: Google's token endpoint failing is not "Can't reach Stacked"; the server failing still is.
+    @MainActor @Test func aFailedGoogleExchangeDoesNotBlameStacked() async {
+        defer { AccountStub.respond = nil }
+        for answer: (Int, Any) in [(503, ["error": "unavailable"]), (400, ["error": "invalid_grant"])] {
+            _ = serve(googleToken: answer)
+            let (store, box) = store()
+            #expect(!(await store.completeGoogleSignIn(googleOAuth, code: "c", attempt: .make(), client: client)))
+            #expect(store.signInFailure == SignInFailure.generic && box.token == nil)
+        }
+        _ = serve(signIn: (503, ["error": "server_not_configured"]))
+        let (down, _) = store()
+        #expect(!(await down.completeGoogleSignIn(googleOAuth, code: "c", attempt: .make(), client: client)))
+        #expect(down.signInFailure == SignInFailure.unreachable)
     }
 
     /// #6: a 401 from usage wins over the profile failing for another reason.
