@@ -273,6 +273,86 @@ struct AIServerClientTests {
         #expect(stored() == "tok-2")
     }
 
+    // MARK: Ticket 05 — Ask AI's training-profile saves (codex-review-05d F1/F2)
+
+    private static func training(_ goals: String) -> TrainingProfile {
+        TrainingProfile(goals: goals, experience: "Beginner", days: 3, minutes: 45)
+    }
+
+    /// A server that keeps the profile: GET returns it, PUT stores the body's training and echoes it; every PUT's goal
+    /// is logged in arrival order. `holdFirstPut` holds the first PUT until the test releases it.
+    private func profileServer(holdFirstPut gate: Gate?, failPuts: Bool = false) -> SentBox {
+        let log = SentBox()
+        let state = SentBox()
+        let first = SentBox()
+        AIStub.respond = { request in
+            switch (request.httpMethod, request.url?.path) {
+            case ("GET", "/v1/profile"):
+                return (200, Self.json(["provider": "apple", "memberSince": 1.0e12]))
+            case ("GET", "/v1/ai/usage"):
+                return (200, Self.json(Self.usageJSON))
+            case ("PUT", "/v1/profile"):
+                let body = Self.object(AIStub.body(request))
+                let training = body["training"] as? [String: Any] ?? [:]
+                if let gate, first.paths.isEmpty { first.append("held"); gate.hold() }
+                log.append((training["goals"] as? String ?? "?") + "@" + (request.value(forHTTPHeaderField: "Authorization") ?? ""))
+                if failPuts { return (503, Self.json(["error": "unavailable"])) }
+                state.set(Self.json(training))
+                return (200, Self.json(["provider": "apple", "memberSince": 1.0e12, "training": training]))
+            default:
+                return (404, Data())
+            }
+        }
+        return log
+    }
+
+    @MainActor @Test func trainingSavesLandInTheOrderRequested() async throws {
+        let gate = Gate()
+        let log = profileServer(holdFirstPut: gate)
+        let (store, _) = account("tok-1")
+        await store.refresh()
+        let a = store.queueTrainingSave(Self.training("A"), session: "tok-1")
+        await gate.untilHeld()                                     // A is at the server
+        let b = store.queueTrainingSave(Self.training("B"), session: "tok-1")
+        try await Task.sleep(for: .milliseconds(200))              // B must wait behind A, not overtake it
+        #expect(log.paths.isEmpty)
+        gate.release()
+        #expect(await a.value)
+        #expect(await b.value)
+        #expect(log.paths == ["A@Bearer tok-1", "B@Bearer tok-1"])
+        #expect(store.profile?.training?.goals == "B")
+    }
+
+    @MainActor @Test func aQueuedSaveIsNotSentUnderAReplacementSession() async throws {
+        let gate = Gate()
+        let log = profileServer(holdFirstPut: gate)
+        let (store, _) = account("tok-1")
+        await store.refresh()
+        let a = store.queueTrainingSave(Self.training("A"), session: "tok-1")
+        await gate.untilHeld()
+        let b = store.queueTrainingSave(Self.training("B"), session: "tok-1")
+        // Signed out and in again (tok-2) before B starts.
+        store.invalidate(token: "tok-1")
+        AIStub.respond = { [respond = AIStub.respond] request in
+            request.url?.path == "/v1/auth/apple"
+                ? (200, Self.json(["session": "tok-2", "expiresAt": 1.0e13, "profile": [:]])) : respond!(request)
+        }
+        #expect(await store.signIn(.init(identityToken: "id", authorizationCode: "code", rawNonce: "raw-nonce-0123456789",
+                                         givenName: nil, familyName: nil)))
+        gate.release()
+        _ = await a.value
+        #expect(await b.value == false)
+        #expect(log.paths == ["A@Bearer tok-1"], "B was never sent, and never under tok-2")
+    }
+
+    @MainActor @Test func aFailedTrainingSaveReportsFalse() async {
+        _ = profileServer(holdFirstPut: nil, failPuts: true)
+        let (store, _) = account("tok-1")
+        await store.refresh()
+        #expect(await store.queueTrainingSave(Self.training("A"), session: "tok-1").value == false)
+        #expect(store.isSignedIn, "a server failure does not sign out")
+    }
+
     /// codex-review-06-app F5: every line as Scan Machine's error step and the routine's error step show it.
     @Test func everyServerLineReadsInBothErrorSteps() {
         let reset = AIResetCopy.nextReset()

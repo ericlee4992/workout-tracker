@@ -19,6 +19,8 @@ enum ProfileSample {
     static var unavailable: Bool { flag("-uiTestAccountUnavailable") }
     /// `-uiTestSampleSignIn`: the sign-in sheet signs the sample store in at once (ticket 06's recovery test).
     static var signsInAtOnce: Bool { flag("-uiTestSampleSignIn") }
+    /// `-uiTestProfileSaveFails`: the sample's training-profile saves fail (Ask AI's switch, ticket 05).
+    static var trainingSaveFails: Bool { flag("-uiTestProfileSaveFails") }
     static var signedIn: Bool { flag("-uiTestProfileSample") || flag("-uiTestProfileNoTraining") }
     static var signInFailure: String? { flag("-uiTestSignInFailed") ? SignInFailure.unreachable : nil }
     static var welcomeSignedInName: String? { flag("-uiTestWelcomeSignedIn") ? "Alex Kim" : nil }

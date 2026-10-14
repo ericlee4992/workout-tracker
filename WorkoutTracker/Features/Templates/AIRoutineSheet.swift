@@ -23,8 +23,7 @@ struct AIRoutineSheet: View {
     var onOpenTemplate: (WorkoutTemplate) -> Void = { _ in }
 
     @State private var model = AIRoutineFlowModel()
-    /// Ticket 05: the training profile the form was filled in from (nil: not prefilled), and the save switch.
-    @State private var prefilledFrom: TrainingProfile?
+    /// Ticket 05: "Save to my training profile", on by default.
     @State private var savesToProfile = true
     @State private var path: [UUID] = []
     @AppStorage(TerraAccess.routineConsentKey) private var consent = false
@@ -146,7 +145,7 @@ struct AIRoutineSheet: View {
         switch model.step {
         case .goals:
             AIGoalsStep(model: model, usCustomary: usCustomary, showsSaveToProfile: account.isSignedIn,
-                        prefilled: prefilledFrom != nil, savesToProfile: $savesToProfile, onCancel: close)
+                        prefilled: model.prefilledFrom != nil, savesToProfile: $savesToProfile, onCancel: close)
                 .transition(stepTransition)
         case .equipment:
             AIEquipmentStep(model: model, gyms: gyms, gym: gym, machines: availableMachines, options: options,
@@ -195,22 +194,22 @@ struct AIRoutineSheet: View {
         onSelectGym(newGym)
     }
 
+    /// The model refuses once the tester has changed anything (or after the Goals step).
     private func prefillIfUntouched() {
-        guard prefilledFrom == nil, model.step == .goals, let training = account.profile?.training else { return }
-        let untouched = AIRoutineFlowModel()
-        guard model.goals == untouched.goals, model.experience == untouched.experience, model.days == untouched.days,
-              model.minutes == untouched.minutes, model.heightCm == nil, model.weightKg == nil else { return }
-        model.prefill(from: training)
-        prefilledFrom = training
+        if let training = account.profile?.training { model.prefill(from: training) }
     }
 
     /// Ticket 05: with the switch on, the request also saves the form to the training profile — only when it differs,
-    /// is valid by the server's bounds, and the tester is signed in. A failed save does not hold up the request.
+    /// is valid by the server's bounds, and the tester is signed in; queued in order under this session (F1). A failed
+    /// save does not hold up the request; Your week says so (F2).
     private func saveToProfileIfAsked() {
-        guard savesToProfile, account.isSignedIn else { return }
-        let profile = model.trainingProfile(prefilled: prefilledFrom ?? account.profile?.training, usCustomary: usCustomary)
+        model.profileSaveFailed = false
+        guard savesToProfile, let session = account.token else { return }
+        let profile = model.trainingProfile(usCustomary: usCustomary)
         guard profile.isValid, profile != account.profile?.training else { return }
-        Task { _ = await account.saveTraining(profile) }
+        let save = account.queueTrainingSave(profile, session: session)
+        let model = model
+        Task { if !(await save.value) { model.profileSaveFailed = true } }
     }
 
     private func generate() {

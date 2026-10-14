@@ -26,13 +26,26 @@ final class AIRoutineFlowModel {
     /// Forward steps slide in from the trailing edge, back steps from the leading edge.
     var forward = true
 
-    // The request
-    var goals = ""
-    var experience = "Beginner"
-    var days = 3
-    var minutes = 45
-    var heightCm: Double?
-    var weightKg: Double?
+    // The request. Every change the tester makes is recorded (ticket 05, codex-review-05d F3/F4): a training profile
+    // prefills only an untouched form, and a measurement keeps its stored value and unit only if it was prefilled and
+    // never changed — decided by what happened, not by comparing numbers.
+    var goals = "" { didSet { noteEdit() } }
+    var experience = "Beginner" { didSet { noteEdit() } }
+    var days = 3 { didSet { noteEdit() } }
+    var minutes = 45 { didSet { noteEdit() } }
+    var heightCm: Double? { didSet { noteEdit(); if !prefilling { heightEdited = true } } }
+    var weightKg: Double? { didSet { noteEdit(); if !prefilling { weightEdited = true } } }
+    /// The tester has changed the form (typing then clearing counts).
+    private(set) var edited = false
+    /// The training profile the form was filled in from; nil when it was not prefilled.
+    private(set) var prefilledFrom: TrainingProfile?
+    /// "Save to my training profile" failed for the last request; the week still arrives (Your week says so).
+    var profileSaveFailed = false
+    private var prefilling = false
+    private var heightEdited = false
+    private var weightEdited = false
+
+    private func noteEdit() { if !prefilling { edited = true } }
     var extras: Set<RoutineEquipment> = []
     var cardio: Set<CardioActivity> = []
 
@@ -158,20 +171,33 @@ final class AIRoutineFlowModel {
         }
     }
 
-    /// Ticket 05: Ask AI opens filled in from the signed-in tester's training profile.
-    func prefill(from training: TrainingProfile) {
+    /// Ticket 05: Ask AI opens filled in from the signed-in tester's training profile — once, on the Goals step, and
+    /// only before the tester's first change (a profile that loads late never overwrites what they did).
+    @discardableResult
+    func prefill(from training: TrainingProfile) -> Bool {
+        guard !edited, prefilledFrom == nil, step == .goals else { return false }
+        prefilling = true
+        defer { prefilling = false }
         goals = training.goals
         experience = training.experience
         days = training.days
         minutes = training.minutes
         heightCm = training.height?.centimetres
         weightKg = training.weight?.kilograms
+        prefilledFrom = training
+        heightEdited = false
+        weightEdited = false
+        return true
     }
 
-    /// The training profile this form describes (`TrainingProfile.fromAskAI`).
-    func trainingProfile(prefilled: TrainingProfile?, usCustomary: Bool) -> TrainingProfile {
+    /// The training profile this form describes (`TrainingProfile.fromAskAI`): a measurement prefilled and never
+    /// changed is the stored one, exactly; any other is as typed.
+    func trainingProfile(usCustomary: Bool) -> TrainingProfile {
         .fromAskAI(goals: goals, experience: experience, days: days, minutes: minutes, heightCm: heightCm,
-                   weightKg: weightKg, prefilled: prefilled, usCustomary: usCustomary)
+                   weightKg: weightKg,
+                   keptHeight: prefilledFrom.flatMap { heightEdited ? nil : .some($0.height) },
+                   keptWeight: prefilledFrom.flatMap { weightEdited ? nil : .some($0.weight) },
+                   usCustomary: usCustomary)
     }
 
     /// Returns once the generation in flight (if any) has landed or been dropped — for tests that order a reply

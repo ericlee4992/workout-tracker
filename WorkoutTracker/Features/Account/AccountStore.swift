@@ -194,15 +194,38 @@ final class AccountStore {
         }
     }
 
-    func saveTraining(_ training: TrainingProfile?) async -> Bool {
-        if sample { profile?.training = training; return true }
-        return await save { (client, token) async throws(AccountClient.Failure) in
+    func saveTraining(_ training: TrainingProfile?, session: String? = nil) async -> Bool {
+        if sample {
+            guard session == nil || session == token, !ProfileSample.trainingSaveFails else { return false }
+            profile?.training = training
+            return true
+        }
+        return await save(session: session) { (client, token) async throws(AccountClient.Failure) in
             try await client.update(token: token, training: .some(training))
         }
     }
 
-    private func save(_ call: (AccountClient, String) async throws(AccountClient.Failure) -> AccountClient.Profile) async -> Bool {
-        guard let client, let token else { return false }
+    /// The training saves Ask AI queues (ticket 05's switch), in the order they were requested.
+    private var trainingSaves: Task<Bool, Never>?
+
+    /// Ticket 05 (codex-review-05d F1): Ask AI's "Save to my training profile". Saves run one after another in the
+    /// order requested — across Ask AI sheets — so an older form can never overwrite a newer one on the server or here;
+    /// each is sent only under the session it was requested in (signed out or replaced before it starts: not sent).
+    func queueTrainingSave(_ training: TrainingProfile, session: String) -> Task<Bool, Never> {
+        let previous = trainingSaves
+        let task = Task { @MainActor [weak self] () -> Bool in
+            _ = await previous?.value
+            guard let self else { return false }
+            return await self.saveTraining(training, session: session)
+        }
+        trainingSaves = task
+        return task
+    }
+
+    /// `session`: the request is sent only if that is still the current session, and under it.
+    private func save(session: String? = nil,
+                      _ call: (AccountClient, String) async throws(AccountClient.Failure) -> AccountClient.Profile) async -> Bool {
+        guard let client, let token, session == nil || session == token else { return false }
         do {
             let saved = try await call(client, token)
             guard token == self.token, var shown = profile else { return true }

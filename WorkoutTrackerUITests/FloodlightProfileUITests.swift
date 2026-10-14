@@ -165,7 +165,7 @@ final class FloodlightProfileUITests: XCTestCase {
         openAskAI()
         let goals = app.textViews["routineGoals"].exists ? app.textViews["routineGoals"] : app.textFields["routineGoals"]
         XCTAssertEqual(goals.value as? String, "Build strength. Get back to a bodyweight pull-up by spring.")
-        XCTAssertTrue(any("routineDays.4").isSelected || any("routineDays.4").exists)
+        XCTAssertEqual(any("routineDays").value as? String, "4", "the profile's four days")
         let toggle = app.switches["routineSaveToProfile"].firstMatch
         reachInFlow(toggle)
         XCTAssertEqual(toggle.value as? String, "1", "on by default")
@@ -189,6 +189,25 @@ final class FloodlightProfileUITests: XCTestCase {
         XCTAssertEqual(toggle.value as? String, "0")
         XCTAssertFalse(generateThenReadSchedule(), "still 4 days")
         XCTAssertTrue(app.staticTexts["4 days · 45 min"].exists)
+    }
+
+    /// codex-review-05d F2: a failed profile save does not hold up the week, and Your week says so.
+    func testAFailedProfileSaveIsShownWithTheWeek() {
+        launch(appearance: "light", large: false, flags: ["-uiTestProfileSample", "-uiTestProfileSaveFails"])
+        openAskAI()
+        let three = any("routineDays.3")
+        reachInFlow(three)
+        three.tap()
+        app.buttons["routineNext"].tap()
+        let dumbbells = any("routineEquipment.dumbbells")
+        XCTAssertTrue(dumbbells.waitForExistence(timeout: 5))
+        let generate = app.buttons["generateAIRoutine"]
+        for _ in 0..<8 where !(dumbbells.isHittable && dumbbells.frame.maxY < generate.frame.minY - 12) { app.swipeUp() }
+        dumbbells.tap()
+        generate.tap()
+        XCTAssertTrue(any("routineDay.0").waitForExistence(timeout: 12), "the week still arrives")
+        XCTAssertTrue(any("routineProfileSaveFailed").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Couldn't save to your training profile."].exists)
     }
 
     /// codex-review-05 #2: a decimal weight is typed, saved and shown as entered, not rounded.

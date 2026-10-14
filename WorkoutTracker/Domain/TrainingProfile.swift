@@ -21,27 +21,20 @@ struct TrainingProfile: Codable, Equatable {
 
     /// Ticket 05 ("Save to my training profile", decided 2026-10-03): the profile Ask AI's form describes. Ask AI holds
     /// height and weight in cm/kg, typed as whole numbers in the app's units; the profile keeps them as entered (D52).
-    /// So a measurement left as it was prefilled keeps the profile's own value and unit — never rewritten — and one
-    /// changed or added is saved as typed: inches/pounds (US customary) or cm/kg, whole numbers. Cleared → removed.
+    /// `keptHeight`/`keptWeight` is `.some(stored)` for a measurement prefilled and never changed — kept exactly, value
+    /// and unit — and nil for one changed, added or never prefilled, which is saved as typed: inches/pounds (US
+    /// customary) or cm/kg, whole numbers. Cleared → removed. Which applies is the form's record of edits, not a
+    /// comparison of numbers (codex-review-05d F3).
     static func fromAskAI(goals: String, experience: String, days: Int, minutes: Int, heightCm: Double?, weightKg: Double?,
-                          prefilled: TrainingProfile?, usCustomary: Bool) -> TrainingProfile {
-        func same(_ a: Double?, _ b: Double?) -> Bool {
-            switch (a, b) {
-            case (nil, nil): true
-            case (let x?, let y?): abs(x - y) < 0.001
-            default: false
-            }
+                          keptHeight: BodyMeasure??, keptWeight: BodyMeasure??, usCustomary: Bool) -> TrainingProfile {
+        let height: BodyMeasure? = keptHeight ?? heightCm.map { cm in
+            usCustomary ? BodyMeasure(value: Double((cm / 2.54).rounded()), unit: .inches)
+                : BodyMeasure(value: cm.rounded(), unit: .cm)
         }
-        let height: BodyMeasure? = same(heightCm, prefilled?.height?.centimetres) ? prefilled?.height
-            : heightCm.map { cm in
-                usCustomary ? BodyMeasure(value: Double((cm / 2.54).rounded()), unit: .inches)
-                    : BodyMeasure(value: cm.rounded(), unit: .cm)
-            }
-        let weight: BodyMeasure? = same(weightKg, prefilled?.weight?.kilograms) ? prefilled?.weight
-            : weightKg.map { kg in
-                usCustomary ? BodyMeasure(value: AIProfileUnits.pounds(kg: kg).rounded(), unit: .lb)
-                    : BodyMeasure(value: kg.rounded(), unit: .kg)
-            }
+        let weight: BodyMeasure? = keptWeight ?? weightKg.map { kg in
+            usCustomary ? BodyMeasure(value: AIProfileUnits.pounds(kg: kg).rounded(), unit: .lb)
+                : BodyMeasure(value: kg.rounded(), unit: .kg)
+        }
         return TrainingProfile(goals: goals.trimmingCharacters(in: .whitespacesAndNewlines), experience: experience,
                                days: days, minutes: minutes, height: height, weight: weight)
     }

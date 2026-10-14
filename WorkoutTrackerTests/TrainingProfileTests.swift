@@ -124,45 +124,77 @@ struct TrainingProfileTests {
                                         height: BodyMeasure(value: 70.5, unit: .inches),
                                         weight: BodyMeasure(value: 180.4, unit: .lb))
 
+    @MainActor private func prefilled(_ profile: TrainingProfile) -> AIRoutineFlowModel {
+        let model = AIRoutineFlowModel()
+        #expect(model.prefill(from: profile))
+        #expect(!model.edited)
+        return model
+    }
+
     @MainActor @Test func aFormLeftAsPrefilledIsTheProfileUnchanged() {
         for usCustomary in [true, false] {
-            let model = AIRoutineFlowModel()
-            model.prefill(from: saved)
+            let model = prefilled(saved)
             #expect(model.heightCm == saved.height?.centimetres && model.weightKg == saved.weight?.kilograms)
             // Unchanged: the profile's own decimals and units, whatever the app's units (D52).
-            #expect(model.trainingProfile(prefilled: saved, usCustomary: usCustomary) == saved)
+            #expect(model.trainingProfile(usCustomary: usCustomary) == saved)
         }
     }
 
     @MainActor @Test func changedMeasuresAreSavedAsTypedInTheAppsUnits() {
-        let model = AIRoutineFlowModel()
-        model.prefill(from: saved)
+        let model = prefilled(saved)
         model.goals = "  Pull-up by summer \n"
         model.days = 3
         model.heightCm = AIProfileUnits.centimetres(feet: 5, inches: 11)        // typed 5 ft 11 in
         model.weightKg = AIProfileUnits.kilograms(pounds: 175)                  // typed 175 lb
-        let us = model.trainingProfile(prefilled: saved, usCustomary: true)
+        let us = model.trainingProfile(usCustomary: true)
         #expect(us.goals == "Pull-up by summer")
         #expect(us.days == 3)
         #expect(us.height == BodyMeasure(value: 71, unit: .inches))
         #expect(us.weight == BodyMeasure(value: 175, unit: .lb))
         #expect(us.isValid)
 
-        let metric = AIRoutineFlowModel()
-        metric.prefill(from: saved)
+        let metric = prefilled(saved)
         metric.heightCm = 181                                                  // typed 181 cm
         metric.weightKg = nil                                                  // cleared
-        let m = metric.trainingProfile(prefilled: saved, usCustomary: false)
+        let m = metric.trainingProfile(usCustomary: false)
         #expect(m.height == BodyMeasure(value: 181, unit: .cm))
         #expect(m.weight == nil)
         #expect(m.days == saved.days && m.goals == saved.goals)
+    }
+
+    /// codex-review-05d F3: a near-integer stored value replaced with the integer is a change — saved as typed.
+    @MainActor @Test func replacingANearlyEqualValueIsStillAChange() {
+        let stored = TrainingProfile(goals: "Strength", experience: "Beginner", days: 3, minutes: 45,
+                                     weight: BodyMeasure(value: 80.0005, unit: .kg))
+        let model = prefilled(stored)
+        model.weightKg = 80                                                    // typed 80 kg
+        #expect(model.trainingProfile(usCustomary: false).weight == BodyMeasure(value: 80, unit: .kg))
+    }
+
+    /// codex-review-05d F3/F4: a profile that loads after the tester typed fills nothing in and is no baseline.
+    @MainActor @Test func aProfileArrivingAfterAnEditFillsNothingIn() {
+        let model = AIRoutineFlowModel()
+        model.weightKg = 80                                                    // typed 80 kg before the profile loaded
+        #expect(!model.prefill(from: saved))
+        #expect(model.goals == "" && model.days == 3 && model.weightKg == 80)
+        #expect(model.prefilledFrom == nil)
+        #expect(model.trainingProfile(usCustomary: false).weight == BodyMeasure(value: 80, unit: .kg))
+
+        let cleared = AIRoutineFlowModel()
+        cleared.goals = "Get"                                                  // typed, then cleared
+        cleared.goals = ""
+        #expect(!cleared.prefill(from: saved), "typing then clearing is an edit")
+        let reverted = AIRoutineFlowModel()
+        reverted.days = 5
+        reverted.days = 3                                                      // back to the default
+        #expect(!reverted.prefill(from: saved))
     }
 
     @MainActor @Test func aFormWithoutAProfileMakesOne() {
         let model = AIRoutineFlowModel()
         model.goals = "Get fitter"
         model.weightKg = 80
-        let p = model.trainingProfile(prefilled: nil, usCustomary: false)
+        let p = model.trainingProfile(usCustomary: false)
         #expect(p == TrainingProfile(goals: "Get fitter", experience: "Beginner", days: 3, minutes: 45, height: nil,
                                      weight: BodyMeasure(value: 80, unit: .kg)))
         #expect(p.isValid)

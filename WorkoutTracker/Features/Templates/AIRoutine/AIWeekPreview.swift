@@ -50,6 +50,15 @@ struct AIWeekPreview: View {
         }
         .safeAreaBar(edge: .bottom) {
             AIBottomBar {
+                if model.profileSaveFailed {
+                    // Ticket 05 (codex-review-05d F2): the week arrived, the training profile was not updated.
+                    Text("Couldn't save to your training profile.")
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textSecondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityIdentifier("routineProfileSaveFailed")
+                }
                 if let error = model.error {
                     Text(error)
                         .font(look.font.footnote)

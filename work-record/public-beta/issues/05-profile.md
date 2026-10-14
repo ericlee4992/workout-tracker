@@ -218,4 +218,31 @@ no profile makes one). UI: `testAskAIPrefillsAndSavesToTheTrainingProfile` (pref
 3 days, Generate week → the profile page says "3 days · 45 min") and `testAskAIWithTheSwitchOffLeavesTheProfile` (still
 4 days) **2/2** (`ui1.xcresult`). Regression `ui2`: FloodlightProfile, FloodlightAIRoutine, FloodlightAIAccess.
 
+## Codex review 05d — response (round 1)
+
+Report [codex-review-05d.md](../codex-review-05d.md): **not clear** — four P2s and one P3, all accepted.
+- **F3/F4 — edits are recorded, not inferred.** `AIRoutineFlowModel` notes every change the tester makes (`didSet` on
+  goals, experience, days, minutes, height, weight; prefill itself does not count): `edited`, and per measurement
+  whether it changed. `prefill(from:)` runs once, on the Goals step, only before the first change (typing then
+  clearing, or changing a choice and back, counts). `trainingProfile(usCustomary:)` keeps a stored measurement exactly
+  only if it was prefilled and never changed; otherwise it is saved as typed (`TrainingProfile.fromAskAI(…, keptHeight:,
+  keptWeight:)` — no numeric comparison). A profile that loads after an edit fills nothing in and is no baseline.
+- **F1 — ordered, session-bound saves.** `AccountStore.queueTrainingSave(_:session:)`: saves run one after another in
+  request order across Ask AI sheets, and each is sent only if its session is still current, and under it
+  (`saveTraining(_:session:)` → `save(session:)` checks before sending).
+- **F2 — a failed save is shown.** The week still arrives; Your week shows **"Couldn't save to your training profile."**
+  above Save templates (*a new string — the user's to approve*), id `routineProfileSaveFailed`. Sample flag
+  `-uiTestProfileSaveFails` (reset-only) makes the sample's saves fail.
+- **S1** — the prefill test asserts the day picker's value is 4 before editing.
+
+Tests: `TrainingProfileTests` — a near-integer stored value replaced by the integer is saved as typed; a profile arriving
+after an edit fills nothing in (also typed-then-cleared and changed-and-back); the earlier cases on the new API.
+`AIServerClientTests` — `trainingSavesLandInTheOrderRequested` (A held at the server; B waits; A then B; the store shows
+B), `aQueuedSaveIsNotSentUnderAReplacementSession` (signed out and in with tok-2 while A is held: B never sent),
+`aFailedTrainingSaveReportsFalse`. UI `testAFailedProfileSaveIsShownWithTheWeek`.
+
+Verification: build ✔ (`build3.log`, `dd-05b`); unit tests **1000/1000** (`unit2.xcresult`); the three ticket 05 UI tests
+**3/3** (`ui3.xcresult`). The broader regression `ui2` (FloodlightProfile, FloodlightAIRoutine, FloodlightAIAccess) runs on
+the round-0 build.
+
 ## Comments
