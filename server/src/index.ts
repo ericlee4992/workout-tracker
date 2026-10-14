@@ -1,5 +1,6 @@
 import { isFlow, proxyAI, pruneAI, usage } from "./ai";
 import { AuthError, exchangeAppleCode, revokeAppleToken, verifyAppleIdentityToken } from "./apple";
+import { verifyGoogleIdentityToken } from "./google";
 import { liveDeps, type Deps, type Env } from "./env";
 import { deleteClaimedScreenshots, submitFeedback, sweepFeedback } from "./feedback";
 import { bearer, failure, json, readJSON } from "./http";
@@ -7,7 +8,7 @@ import { cleanTraining, readTraining, trainingStatement } from "./training";
 import { privacyPage, supportPage } from "./pages";
 import {
   accountForToken, claimDeletion, createOrFindAccount, createSession, decryptToken, deleteSession,
-  duePendingRevocations, finishPendingRevocation, findAccountByIdentity, PENDING_MAX_AGE_MS,
+  duePendingRevocations, finishPendingRevocation, findAccountByIdentity, PENDING_MAX_AGE_MS, providerFor,
   retryPendingRevocationLater, updateRefreshToken, type Account,
 } from "./store";
 
@@ -25,9 +26,22 @@ function profile(account: Account, provider = "apple") {
   return { displayName: account.display_name, email: account.email, provider, memberSince: account.created_at };
 }
 
-/** The profile with its training profile (ticket 05). */
+/** The profile with its sign-in provider (ticket 04) and training profile (ticket 05). */
 async function fullProfile(env: Env, account: Account) {
-  return { ...profile(account), training: await readTraining(env, account.id) };
+  return { ...profile(account, await providerFor(env, account.id)), training: await readTraining(env, account.id) };
+}
+
+/** Ticket 04: Google sign-in — `{ idToken, nonce }` (the raw nonce). No Google token is kept; same session rules. */
+async function signInWithGoogle(request: Request, env: Env, deps: Deps): Promise<Response> {
+  const body = await readJSON(request);
+  const identity = await verifyGoogleIdentityToken(String(body.idToken ?? ""), String(body.nonce ?? ""), env, deps);
+  const account = await findAccountByIdentity(env, "google", identity.subject)
+    ?? await createOrFindAccount(env, deps, "google", identity.subject, cleanName(identity.name), identity.email, null);
+  await deps.pause?.("before-session");
+  const session = await createSession(env, deps, account.id);
+  // Deleted between the lookup and here: nothing was kept; the app asks the person to sign in again.
+  if (!session) throw new AuthError("reauthorize", 409);
+  return json({ session: session.token, expiresAt: session.expiresAt, profile: profile(account, "google") });
 }
 
 async function signInWithApple(request: Request, env: Env, deps: Deps): Promise<Response> {
@@ -118,6 +132,7 @@ export function createHandler(deps: Deps) {
         case "GET /support": return supportPage();
         case "GET /v1/health": return json({ ok: true });
         case "POST /v1/auth/apple": return await signInWithApple(request, env, deps);
+        case "POST /v1/auth/google": return await signInWithGoogle(request, env, deps);
         case "POST /v1/auth/signout": {
           const { tokenHash } = await authenticated(request, env, deps);
           await deleteSession(env, tokenHash);

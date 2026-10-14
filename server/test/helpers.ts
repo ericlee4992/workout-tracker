@@ -1,5 +1,6 @@
 import { env } from "cloudflare:test";
 import { resetAppleKeyCache } from "../src/apple";
+import { GOOGLE_KEYS_URL, resetGoogleKeyCache } from "../src/google";
 import { base64UrlEncode, sha256Hex, utf8 } from "../src/crypto";
 import type { Deps, Env } from "../src/env";
 import { createHandler } from "../src/index";
@@ -100,9 +101,43 @@ export async function makeFakeApple(clock: { now: number } = { now: Date.now() }
 }
 
 export const CLIENT_ID = "com.ericlee4992.workouttracker";
+export const GOOGLE_CLIENT_ID = "123456789-test.apps.googleusercontent.com";
+
+/** A fake Google (ticket 04): its own RSA signing key and an unpublished one for forgeries, and its key-set endpoint. */
+export interface FakeGoogle {
+  kid: string;
+  sign: (claims: Record<string, unknown>, options?: { forged?: boolean; kid?: string; alg?: string }) => Promise<string>;
+  keyFetches: number;
+}
+
+async function makeFakeGoogle(): Promise<{ google: FakeGoogle; keys: () => Response }> {
+  const published = await rsaPair();
+  const forged = await rsaPair();
+  const jwk = (await crypto.subtle.exportKey("jwk", published.publicKey)) as JsonWebKey;
+  const kid = "GOOGLEKID1";
+  const google: FakeGoogle = {
+    kid, keyFetches: 0,
+    async sign(claims, options = {}) {
+      const header = { alg: options.alg ?? "RS256", kid: options.kid ?? kid, typ: "JWT" };
+      const enc = (v: unknown) => base64UrlEncode(utf8(JSON.stringify(v)));
+      const input = `${enc(header)}.${enc(claims)}`;
+      const signature = new Uint8Array(await crypto.subtle.sign("RSASSA-PKCS1-v1_5",
+        options.forged ? forged.privateKey : published.privateKey, utf8(input)));
+      return `${input}.${base64UrlEncode(signature)}`;
+    },
+  };
+  const keys = () => {
+    google.keyFetches++;
+    return Response.json({ keys: [{ ...jwk, kid, alg: "RS256", use: "sig" }] });
+  };
+  return { google, keys };
+}
 
 export interface Harness {
   apple: FakeApple;
+  google: FakeGoogle;
+  /** A Google ID token for this sign-in (the iOS client's audience, a verified email, the nonce). */
+  googleToken: (overrides?: Record<string, unknown>, nonce?: string, options?: Parameters<FakeGoogle["sign"]>[1]) => Promise<string>;
   env: Env;
   clock: { now: number };
   call: (method: string, path: string, options?: { body?: unknown; token?: string; raw?: string }) => Promise<Response>;
@@ -150,6 +185,7 @@ export const NONCE = "raw-nonce-0123456789abcdef";
 
 export async function harness(): Promise<Harness> {
   resetAppleKeyCache();
+  resetGoogleKeyCache();
   // The pool keeps one D1 per test file: start every test from empty tables (children first).
   await env.DB.batch(["training_profiles", "ai_usage", "ai_requests", "ai_settings", "ai_account_pauses",
     "feedback", "feedback_limits", "screenshot_deletions", "pending_revocations", "sessions", "identities", "accounts"]
@@ -158,12 +194,14 @@ export async function harness(): Promise<Harness> {
   if (stored.objects.length > 0) await env.FEEDBACK.delete(stored.objects.map((o) => o.key));
   const clock = { now: Date.UTC(2026, 9, 2, 12) };
   const { apple, fetch: fakeFetch, privateKeyPEM } = await makeFakeApple(clock);
+  const { google, keys: googleKeys } = await makeFakeGoogle();
   let counter = 0;
   const openai: FakeOpenAI = { calls: [], respond: () => openAIReply({ ok: true }) };
   const deps: Deps = {
     now: () => clock.now,
     fetch: async (input, init) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url === GOOGLE_KEYS_URL) return googleKeys();
       if (url !== "https://api.openai.com/v1/responses") return fakeFetch(input, init);
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       openai.calls.push({ body, authorization: new Headers(init?.headers).get("authorization") });
@@ -201,6 +239,7 @@ export async function harness(): Promise<Harness> {
     APPLE_PRIVATE_KEY: privateKeyPEM,
     TOKEN_ENC_KEY: btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))),
     OPENAI_API_KEY: OPENAI_KEY,
+    GOOGLE_CLIENT_ID,
   };
   const handle = createHandler(deps);
   const call: Harness["call"] = (method, path, options = {}) => {
@@ -215,6 +254,14 @@ export async function harness(): Promise<Harness> {
     return apple.sign({
       iss: "https://appleid.apple.com", aud: CLIENT_ID, iat: now, exp: now + 600, sub: "001234.apple-user",
       email: "relay@privaterelay.appleid.com", nonce: await sha256Hex(nonce), ...overrides,
+    }, options);
+  };
+  const googleToken: Harness["googleToken"] = async (overrides = {}, nonce = NONCE, options) => {
+    const now = Math.floor(clock.now / 1000);
+    return google.sign({
+      iss: "https://accounts.google.com", aud: GOOGLE_CLIENT_ID, azp: GOOGLE_CLIENT_ID, iat: now, exp: now + 3600,
+      sub: "109876543210987654321", email: "alex@gmail.com", email_verified: true, name: "Alex Kim",
+      nonce: await sha256Hex(nonce), ...overrides,
     }, options);
   };
   const signIn: Harness["signIn"] = async (subject = "001234.apple-user", extra = {}) => {
@@ -241,7 +288,7 @@ export async function harness(): Promise<Harness> {
     if (options.authorization !== undefined) headers.authorization = options.authorization;
     return handle(new Request("https://stacked.test/v1/feedback", { method: "POST", headers, body: form }), testEnv);
   };
-  return { apple, env: testEnv, clock, call, idToken, signIn, deps, feedback, openai };
+  return { apple, google, googleToken, env: testEnv, clock, call, idToken, signIn, deps, feedback, openai };
 }
 
 export async function count(table: string): Promise<number> {

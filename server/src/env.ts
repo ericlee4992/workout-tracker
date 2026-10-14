@@ -13,6 +13,9 @@ export interface Env {
   APPLE_PRIVATE_KEY?: string;
   /** Secret: base64 of 32 bytes; encrypts Apple refresh tokens at rest. */
   TOKEN_ENC_KEY?: string;
+  /** Ticket 04: Google sign-in's audience — the iOS OAuth client ID (not secret; wrangler.jsonc `vars`). Unset: the
+   *  Google route answers 503 server_not_configured. */
+  GOOGLE_CLIENT_ID?: string;
   /** Secret: the developer's OpenAI key (ticket 06). Never sent to the app; without it the AI routes answer 503. */
   OPENAI_API_KEY?: string;
 }

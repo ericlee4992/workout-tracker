@@ -17,6 +17,7 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 | | |
 |---|---|
 | `POST /v1/auth/apple` | `{ identityToken, authorizationCode, nonce, givenName?, familyName? }` → `{ session, expiresAt, profile }` |
+| `POST /v1/auth/google` | `{ idToken, nonce }` (ticket 04: the app's own PKCE code exchange for the iOS client; the raw nonce) → `{ session, expiresAt, profile }`. Checks Google's signature, issuer, audience/`azp` = `GOOGLE_CLIENT_ID`, expiry, nonce; keeps a verified email only; no Google token is stored. `503 server_not_configured` until `GOOGLE_CLIENT_ID` is set in `wrangler.jsonc` `vars` |
 | `POST /v1/auth/signout` | ends this session |
 | `GET /v1/profile`, `PUT /v1/profile` | `{ displayName, email, provider, memberSince, training }`; PUT `{ displayName?, training? }` — a name of 1–50 characters; `training` `{ goals, experience, days, minutes, height?: { value, unit: "cm"\|"in" }, weight?: { value, unit: "kg"\|"lb" } }` (Ask AI's bounds; units stored as entered) or `null` to remove it (ticket 05) |
 | `DELETE /v1/account` | deletes every row now (feedback and its screenshots too); revokes Apple's tokens → `{ deleted, appleRevocation: "done" \| "pending" \| "manual" }` |

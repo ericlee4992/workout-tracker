@@ -1,6 +1,7 @@
 import { importES256PrivateKey, sha256Hex } from "./crypto";
 import type { Deps, Env } from "./env";
 import { decodeJWT, signES256, verifyRS256 } from "./jwt";
+import { keySet } from "./jwks";
 
 export const APPLE_ISSUER = "https://appleid.apple.com";
 export const APPLE_KEYS_URL = "https://appleid.apple.com/auth/keys";
@@ -21,48 +22,11 @@ export interface AppleIdentity {
 /** Every call to Apple gives up after this long, so a slow Apple cannot hold requests open. */
 export const APPLE_TIMEOUT_MS = 5000;
 
-/**
- * Apple's signing keys, per isolate: cached for an hour; concurrent fetches share one request; and an unknown `kid`
- * (key rotation — or anyone sending a bogus token) forces a refetch at most once per five minutes
- * (codex-review-03 #3: without the cooldown every junk token cost an outbound fetch).
- */
-let keyCache: { keys: JsonWebKey[]; fetchedAt: number } | undefined;
-let inflight: Promise<JsonWebKey[]> | undefined;
-let lastForcedRefresh = Number.NEGATIVE_INFINITY;
-const KEY_CACHE_MS = 60 * 60 * 1000;
-export const FORCED_REFRESH_COOLDOWN_MS = 5 * 60 * 1000;
+const appleKeys = keySet(APPLE_KEYS_URL, APPLE_TIMEOUT_MS, () => new AuthError("apple_keys_unavailable", 503));
+export { FORCED_REFRESH_COOLDOWN_MS } from "./jwks";
 
 export function resetAppleKeyCache() {
-  keyCache = undefined;
-  inflight = undefined;
-  lastForcedRefresh = Number.NEGATIVE_INFINITY;
-}
-
-async function fetchKeys(deps: Deps): Promise<JsonWebKey[]> {
-  const response = await deps.fetch(APPLE_KEYS_URL, { signal: AbortSignal.timeout(APPLE_TIMEOUT_MS) });
-  if (!response.ok) throw new AuthError("apple_keys_unavailable", 503);
-  const body = (await response.json()) as { keys?: JsonWebKey[] };
-  if (!Array.isArray(body.keys)) throw new AuthError("apple_keys_unavailable", 503);
-  keyCache = { keys: body.keys, fetchedAt: deps.now() };
-  return body.keys;
-}
-
-async function appleKeys(deps: Deps, forceRefresh = false): Promise<JsonWebKey[]> {
-  const fresh = keyCache && deps.now() - keyCache.fetchedAt < KEY_CACHE_MS;
-  if (fresh && !forceRefresh) return keyCache!.keys;
-  // A refresh already running answers everyone waiting for a new key (codex-review-03b #1): join it before the
-  // cooldown would hand back the old set.
-  if (forceRefresh && inflight) return inflight;
-  if (fresh && forceRefresh) {
-    if (deps.now() - lastForcedRefresh < FORCED_REFRESH_COOLDOWN_MS) return keyCache!.keys;
-    lastForcedRefresh = deps.now();
-  }
-  inflight ??= fetchKeys(deps).finally(() => { inflight = undefined; });
-  try {
-    return await inflight;
-  } catch (error) {
-    throw error instanceof AuthError ? error : new AuthError("apple_keys_unavailable", 503);
-  }
+  appleKeys.reset();
 }
 
 /**
@@ -79,8 +43,7 @@ async function verifyAppleToken(token: string, env: Env, deps: Deps): Promise<Re
   }
   const kid = parts.header.kid;
   if (parts.header.alg !== "RS256" || typeof kid !== "string") throw new AuthError(invalid);
-  let jwk = (await appleKeys(deps)).find((k) => (k as { kid?: string }).kid === kid);
-  if (!jwk) jwk = (await appleKeys(deps, true)).find((k) => (k as { kid?: string }).kid === kid);
+  const jwk = await appleKeys.find(deps, kid);
   if (!jwk || !(await verifyRS256(parts, jwk))) throw new AuthError(invalid);
 
   const claims = parts.payload;

@@ -42,14 +42,17 @@ export async function createAccount(env: Env, deps: Deps, provider: string, subj
  */
 export async function createOrFindAccount(env: Env, deps: Deps, provider: string, subject: string,
                                           displayName: string | null, email: string | null,
-                                          refreshToken: string): Promise<Account> {
+                                          refreshToken: string | null): Promise<Account> {
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       return await createAccount(env, deps, provider, subject, displayName, email, refreshToken);
     } catch (error) {
       if (!/UNIQUE|PRIMARY KEY|constraint/i.test(error instanceof Error ? error.message : "")) throw error;
       const existing = await findAccountByIdentity(env, provider, subject);
-      if (existing && (await updateRefreshToken(env, deps, provider, subject, refreshToken))) return existing;
+      // Google keeps no token (ticket 04): the winner's account is simply the one to sign in to.
+      if (existing && (refreshToken === null || (await updateRefreshToken(env, deps, provider, subject, refreshToken)))) {
+        return existing;
+      }
     }
   }
   throw new Error("account creation kept conflicting");
@@ -96,6 +99,13 @@ export async function accountForToken(env: Env, deps: Deps, token: string): Prom
   }
   const { expires_at: _e, last_used_at: _l, ...account } = row;
   return { account, tokenHash };
+}
+
+/** The provider the account signs in with ("apple" | "google"; one identity per account in the beta). */
+export async function providerFor(env: Env, accountID: string): Promise<string> {
+  const row = await env.DB.prepare("SELECT provider FROM identities WHERE account_id = ? ORDER BY created_at LIMIT 1")
+    .bind(accountID).first<{ provider: string }>();
+  return row?.provider ?? "apple";
 }
 
 export async function deleteSession(env: Env, tokenHash: string) {
