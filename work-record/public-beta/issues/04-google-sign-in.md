@@ -97,4 +97,34 @@ with the next TestFlight build.
 (`FloodlightGoogleUITests` + `FloodlightAccountUITests`, `/tmp/wt-floodlight/results/04/ui1`) were stopped unfinished —
 rerun both. Unit tests: 1009/1011 then the test's RFC constant fixed → GoogleOAuthTests + AccountTests 27/27.
 
+**Codex round 1 (`codex-review-04.md`, finished 14:26 after the pause): not clear, 5 findings — all fixed (`f879314`,
+`ef9372c`, `27dbf45`).**
+- Standards #1 (P2) callback: `GoogleOAuth.code` now matches the whole redirect URI (scheme case-insensitively, no
+  host/port/user, path `/oauth2redirect`) and checks state before reading a code *or* an error (a stateless
+  `access_denied` is invalid, not a cancel). Tests: wrong path/host/user, missing/wrong state with an error.
+- Standards #2 (P3) `jwks.ts`: requests joining a refresh in flight now pass through the same `unavailable()` mapping →
+  every waiter gets `503 apple_keys_unavailable` / `google_keys_unavailable`. New concurrency tests for both providers
+  (fakes gained `keysGate`/`keysStatus`) fail against the old code (checked) and pass now. Also added: two simultaneous
+  first Google sign-ins → one account (null-token race).
+- Standards #3 (P3) branding: the label is Google Sans Medium — Google Fonts' OFL `GoogleSans[GRAD,opsz,wght].ttf`
+  instanced at wght 500/opsz 18/GRAD 0, subset to Basic Latin + "…", **renamed** `StackedSignInLabel-Medium` (Google's
+  TRADEMARKS.md: no "Google Sans" name on a modified version), 21 KB, with its licence
+  (`WorkoutTracker/Resources/Fonts/`, Info.plist `UIAppFonts`); Google's iOS 12 pt logo gap and 16 pt side padding
+  (the padding fixed the label touching the border at AccessibilityL). Unit test: the font loads by name. **A look change
+  to the approved button — before/after captures shown to the user (`scratchpad/font-compare`, from `shots2` vs
+  `shots4`); awaiting their OK.**
+- Spec #1 (P2) deletion race: `deleteAccount` reads the profile's provider before the request; a Google account losing
+  the race gets `.deleted`, not the Apple step (Apple or unknown keeps the cautious step). The store's provider is the
+  *displayed* "Google" — compared case-insensitively (the first version compared "google" and the new test caught it).
+- Spec #2 (P3): a failed Google token exchange shows the generic "Couldn't sign in. Try again." (no new string), not
+  "Can't reach Stacked…"; the server failing still says Stacked. `completeGoogleSignIn` split out so the whole
+  post-browser path is unit-tested (token answer → server → signed in) with the URL stub. The form test now asserts `%2B`.
+
+**Verification (2026-10-14, after the fixes):** server `npx vitest run` **221/221**, `tsc --noEmit` clean.
+`build6.log` TEST BUILD SUCCEEDED (font and `UIAppFonts` confirmed in the built app). Unit GoogleOAuthTests +
+AccountTests **32/32** (`unit4.xcresult`, at `ef9372c`'s code). UI regression FloodlightGoogleUITests +
+FloodlightAccountUITests **8/8** (`ui2.xcresult`, `f879314` — the later commits change a store comparison and padding,
+neither in a UI test's path except the captures); captures FloodlightGoogleUITests **4/4** at `27dbf45`
+(`cap3.xcresult`, exported `shots4/`). The earlier `ui1` run was killed and is superseded.
+
 ## Comments
