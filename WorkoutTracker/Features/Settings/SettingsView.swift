@@ -26,6 +26,7 @@ struct SettingsView: View {
     @State private var showExport = false
     @State private var showFeedback = false
     @State private var showProfile = false
+    @State private var showSignIn = false
     /// Re-read when the Ask AI sheet closes; the keychain is not observable.
     @State private var askAIOn = AskAIKeyStore.read() != nil
     @State private var counts: ExportCounts?
@@ -41,7 +42,7 @@ struct SettingsView: View {
                 // Public beta ticket 05 (UI-first): the Account row; sample data only until 03's app half.
                 if ProfileSample.showsAccountRow {
                     SettingsAccountRow(profile: ProfileSample.profile) {
-                        if ProfileSample.profile != nil { showProfile = true }
+                        if ProfileSample.profile != nil { showProfile = true } else { showSignIn = true }
                     }
                 }
                 units
@@ -81,6 +82,10 @@ struct SettingsView: View {
             if let profile = ProfileSample.profile {
                 ProfileScreen(profile: profile, usCustomary: unitSystem == .usCustomary)
             }
+        }
+        .sheet(isPresented: $showSignIn) {
+            // Ticket 03's mock: Apple's button is live but nothing is sent until the wiring.
+            SignInSheet(failure: ProfileSample.signInFailure, onRequest: { _ in }, onCompletion: { _ in })
         }
         .sheet(isPresented: $showFeedback) {
             let details = FeedbackDetails.forThisPhone

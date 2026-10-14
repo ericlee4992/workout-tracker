@@ -11,11 +11,13 @@ struct ProfileView: View {
     var onEditTraining: () -> Void = {}
     var onEditName: () -> Void = {}
     var onSignOut: () -> Void = {}
+    /// Called once the confirmation is answered with Delete Account (ticket 03).
     var onDelete: () -> Void = {}
 
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var titleVisible = false
+    @State private var confirmingDelete = false
 
     var body: some View {
         ScrollView {
@@ -30,8 +32,16 @@ struct ProfileView: View {
                                 action: onSignOut)
                             .accessibilityIdentifier("profileSignOut")
                     }
-                    DestructiveRowButton("Delete Account…", action: onDelete)
+                    DestructiveRowButton("Delete Account…") { confirmingDelete = true }
                         .accessibilityIdentifier("profileDeleteAccount")
+                        // On the row, so iOS 26's popover points at the command that raised it.
+                        .confirmationDialog(AccountDeletionCopy.title, isPresented: $confirmingDelete,
+                                            titleVisibility: .visible) {
+                            Button(AccountDeletionCopy.confirm, role: .destructive, action: onDelete)
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text(AccountDeletionCopy.message)
+                        }
                 }
             }
             .padding(.horizontal, look.space.margin)

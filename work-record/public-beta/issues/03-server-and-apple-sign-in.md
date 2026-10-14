@@ -196,6 +196,56 @@ deployment, a real Apple exchange/revocation, or the app half.
   without a session; unknown path 404; `POST /v1/auth/apple` with empty or garbage tokens → `invalid_token` (no longer
   `server_not_configured`: the secrets are loaded). A real Apple sign-in waits on the app half.
 
+## App half — design (UI-first, ios-design steps 1–4)
+
+**The user's choices (2026-10-13, from previews):** the welcome page keeps **Show Me Around** as the one primary
+command with **Sign in with Apple under it** and Skip last ("Under the tour", over "Sign-in first" and "At the end of
+the tour"); Settings → Sign In opens **a small sign-in sheet** (over going straight to Apple's sheet; Google's button
+joins it in 04).
+
+**Job, state, bold element.**
+- *Sign-in sheet:* exists so the tester can sign in with one tap knowing what it is for; the eye lands on **Apple's
+  button** in the thumb's reach. Runner-up: "Sign In" (the title). Show-only → Close, no Cancel/Save.
+- *Welcome page:* unchanged job (take the tour); Apple's button is second, under it; once signed in it gives way to
+  "Signed in as …" and the tour / Skip choice stays.
+- *Delete confirmation:* an action-sheet popover on the Delete Account… row (iOS 26 points it at its source;
+  attached to the page it pointed at the middle — fixed); then, when Apple's revocation is pending or impossible, an
+  alert with the iOS Settings route (TN3194).
+
+```
+Sign-in sheet (medium detent)          Welcome
+┌──────────────────────────────┐       ┌──────────────────────────────┐
+│                       (Close)│       │        (illustration)        │
+│ Sign In                      │       │ Stacked                      │
+│ For AI and a training profile│       │ Know your numbers. …         │
+│ ✓ Your workouts stay on this │       │ [      Show Me Around      ] │ ← primary
+│   iPhone.                    │       │ [   Sign in with Apple    ] │ ← Apple's, capsule
+│ ✓ Delete your account any …  │       │             Skip             │
+│ [   Sign in with Apple    ] │ ←bold └──────────────────────────────┘
+│ (failure line, destructive)  │
+└──────────────────────────────┘
+```
+
+**Proposed copy (the user's decision):** sheet **Sign In**, *For AI and a training profile.*, *Your workouts stay on
+this iPhone.*, *Delete your account any time.*, **Close**, *Signing in…*; failures *Can't reach Stacked right now. Try
+again later.* / *Couldn't sign in. Try again.*; welcome *Signed in as {name}.*; delete **Delete your account?** /
+*Your name, email, training profile and feedback are deleted from Stacked's server. Your workouts on this iPhone
+stay.* / **Delete Account** / **Cancel**; after it **Account Deleted** / *One more step: in the Settings app, tap your
+name, then Sign-In & Security, Sign in with Apple, Stacked, and stop using it.* / **OK**. Apple's button label is
+Apple's ("Sign in with Apple").
+
+**Tells.** Same container on everything — absent (the sheet has no cards; facts are notice lines). Chips — absent.
+All-caps — absent. Middle dots — absent. Accent overuse — the violet is only the tour button; Apple's button is
+black/white by Apple's rules. Equal-weight stacked blocks — deliberate on the welcome page: two full-width buttons,
+distinguished by colour and order (the user's choice). Phone-sized website — absent. More than the job above the
+fold — absent. A control dressed as primary — absent. Layout only at default — AccessibilityL captured (the sheet
+goes to the large detent).
+
+**Mock captures** (`../captures/03/`, `FloodlightAccountUITests` 4/4 on WT-Floodlight, iOS 27): sign-in sheet and its
+failure line, delete confirmation and follow-up, welcome before and after signing in — light/dark × Default/
+AccessibilityL (24). Sample flags: `-uiTestProfileSignedOut` (row → sheet), `-uiTestSignInFailed`,
+`-uiTestWelcomeSignedIn`; nothing is sent yet (Apple's button is live but its handlers are empty).
+
 ## Acceptance
 
 - [ ] Server tests green; `wrangler dev` smoke from the Simulator: sign in, rename, sign out, delete.

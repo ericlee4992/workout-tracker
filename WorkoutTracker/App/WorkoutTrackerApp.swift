@@ -140,7 +140,8 @@ struct WorkoutTrackerApp: App {
                         .onAppear { onboarding.evaluateFirstLaunch(in: modelContainer.mainContext) }
                         .fullScreenCover(isPresented: $onboarding.showsWelcome) {
                             WelcomeView(onTour: { onboarding.startTour(realContext: modelContainer.mainContext) },
-                                        onSkip: { onboarding.skipWelcome() })
+                                        onSkip: { onboarding.skipWelcome() },
+                                        signedInName: ProfileSample.welcomeSignedInName)
                         }
                 }
             }
