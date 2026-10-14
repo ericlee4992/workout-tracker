@@ -92,9 +92,9 @@ struct AnthropicExerciseProposer: ExerciseProposer {
 
 /// Who answers an ask, and whether one is possible at all.
 enum AskAI {
-    /// UI-test stand-in: a stub transcriber and a stub key, so the sheet's
-    /// Ask AI path runs end to end in the Simulator with no key and no
-    /// network. Obeys the fixture rule (`WorkoutTrackerStore.fixtureIsEnabled`).
+    /// UI-test stand-in: stub answers, so the sheet's Ask AI path runs end to
+    /// end in the Simulator signed out and with no network. Obeys the fixture
+    /// rule (`WorkoutTrackerStore.fixtureIsEnabled`).
     static let fixtureArgument = "-uiTestAskAI"
     /// With the fixture: the ask fails as if offline / as a refusal.
     static let offlineArgument = "-uiTestAskAIOffline"

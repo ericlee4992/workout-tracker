@@ -155,6 +155,93 @@ struct AIServerClientTests {
         #expect(TerraAccess.client(account)?.token == nil)
     }
 
+    /// codex-review-06-app F3: the over-limit follow-up's 401 is a refused session like the POST's.
+    @Test func aSessionRefusedByTheUsageFollowUpSignsOut() async {
+        let refused = SentBox()
+        AIStub.respond = { request in
+            request.url?.path == "/v1/ai/usage" ? (401, Self.json(["error": "unauthorized"]))
+                : (429, Self.json(["error": "ai_limit"]))
+        }
+        await #expect(throws: AIServerError.signedOut) {
+            try await client(onUnauthorized: { refused.append($0) }).complete(.scanMachine, json: [:])
+        }
+        #expect(refused.paths == ["tok-1"])
+    }
+
+    /// …and a newer session (signed out and in again meanwhile) is left alone.
+    @MainActor @Test func aRefusalOfAnOlderSessionLeavesTheNewOneSignedIn() async throws {
+        var stored: String? = "tok-2"
+        let account = AccountStore(client: AccountClient(baseURL: base),
+                                   slot: .init(read: { stored }, write: { stored = $0 }, delete: { stored = nil }))
+        AIStub.respond = { request in
+            request.url?.path == "/v1/ai/usage" ? (401, Self.json(["error": "unauthorized"]))
+                : (429, Self.json(["error": "ai_limit"]))
+        }
+        let old = AIServerClient(baseURL: base, token: "tok-1", session: AIStub.session(), onUnauthorized: { refused in
+            Task { @MainActor in account.invalidate(token: refused) }
+        })
+        await #expect(throws: AIServerError.signedOut) { try await old.complete(.scanMachine, json: [:]) }
+        for _ in 0..<20 { await Task.yield() }
+        #expect(account.isSignedIn)
+        #expect(stored == "tok-2")
+    }
+
+    /// codex-review-06-app F2: a week still out when the session ends is dropped (the sheet cancels the generation
+    /// when the account's token changes); the reply that arrives later changes nothing.
+    @MainActor @Test func aWeekStillOutWhenTheSessionEndsIsDropped() async throws {
+        let week: [String: Any] = ["sessions": [["name": "Day 1", "strength": [], "cardio": [["activity": "outdoorWalk", "minutes": 20]]]]]
+        AIStub.respond = { _ in Thread.sleep(forTimeInterval: 0.4); return (200, Self.json(["result": week])) }
+        let model = AIRoutineFlowModel()
+        model.goals = "Build strength."
+        model.days = 1
+        model.cardio = [.outdoorWalk]
+        model.step = .equipment
+        model.generate(options: [], gymName: nil, permitted: true, client: client())
+        #expect(model.step == .generating)
+        model.cancelGeneration()
+        try await Task.sleep(for: .milliseconds(900))
+        #expect(model.step == .equipment)
+        #expect(model.routine == nil)
+        #expect(model.error == nil)
+    }
+
+    @MainActor @Test func aRefusedSessionIsFlaggedForTheSheetToSignOut() async throws {
+        let model = AIRoutineFlowModel()
+        model.goals = "Build strength."
+        model.cardio = [.outdoorWalk]
+        model.step = .equipment
+        model.generate(options: [], gymName: nil, permitted: true, client: nil)
+        for _ in 0..<50 where model.step != .error { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(model.step == .error)
+        #expect(model.signedOut)
+        #expect(model.error == "Sign in to use AI.")
+    }
+
+    /// codex-review-06-app F5: every line as Scan Machine's error step and the routine's error step show it.
+    @Test func everyServerLineReadsInBothErrorSteps() {
+        let reset = AIResetCopy.nextReset()
+        let lines: [AIServerError] = [.signedOut, .limit(.scanMachine, 60, resetsAt: reset), .attempts(resetsAt: reset),
+                                      .busy, .paused, .offline, .timedOut, .unavailable, .refused, .invalid,
+                                      .rejected("x")]
+        for line in lines {
+            let text = line.localizedDescription
+            let scan = ScanErrorText.shown(text)
+            #expect(!scan.localizedCaseInsensitiveContains("continue manually"), "\(scan)")
+            let routine = AIRoutineErrorText.split(text)
+            #expect(!(routine.next ?? "").localizedCaseInsensitiveContains("continue manually"), "\(text)")
+            #expect(!routine.what.localizedCaseInsensitiveContains("continue manually"), "\(text)")
+        }
+        #expect(ScanErrorText.shown(AIServerError.rejected("x").localizedDescription)
+                == "AI couldn't take this request. Choose a catalog model.")
+        #expect(ScanErrorText.shown(AIServerError.paused.localizedDescription)
+                == "AI is paused right now. You can choose a catalog model.")
+        #expect(AIRoutineErrorText.split(AIServerError.paused.localizedDescription) == ("AI is paused right now.", nil))
+        #expect(AIRoutineErrorText.split(AIServerError.rejected("x").localizedDescription)
+                == ("AI couldn't take this request.", nil))
+        #expect(AIRoutineErrorText.split(AIServerError.attempts(resetsAt: reset).localizedDescription).next?
+                .hasPrefix("Try again after ") == true)
+    }
+
     @Test func transportFailuresReadAsOfflineOrSlowAndCancellationStaysCancellation() {
         #expect(AIServerClient.transportError(URLError(.timedOut)) as? AIServerError == .timedOut)
         #expect(AIServerClient.transportError(URLError(.notConnectedToInternet)) as? AIServerError == .offline)

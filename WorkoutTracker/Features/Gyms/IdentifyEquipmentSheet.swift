@@ -163,6 +163,8 @@ struct IdentifyEquipmentSheet: View {
         }
         .onAppear { if consent || TerraAccess.bypassesConsent { start() } }
         .onDisappear { cancel() }
+        // Signed out or another session meanwhile: a request still out is abandoned, not shown later.
+        .onChange(of: account.token) { _, _ in if busy { cancel(); photo = nil } }
         .onChange(of: consent) { _, allowed in if !allowed { cancel(); proposal = nil } }
         // Editing maker/model can move the answer to another catalog row (or none): the unedited
         // name follows it, so both modes save the name the result shows (codex-review-07).
@@ -293,6 +295,8 @@ struct IdentifyEquipmentSheet: View {
         let jpeg = EquipmentPhoto.jpeg(image)
         let candidates = exercises.filter(\.isSeeded).map { (id: $0.id, name: $0.name, loadType: $0.loadType.rawValue) }
         let client = TerraAccess.client(account)
+        // The reply belongs to this session: one that ends or is replaced meanwhile drops it (codex-review-06-app F2).
+        let session = account.token
         let allowed = Set(exercises.filter(\.isSeeded).map(\.id))
         let fixtureID = exercises.first { $0.name == "Seated Chest Press" }?.id ?? exercises.first?.id
         work = Task {
@@ -317,11 +321,13 @@ struct IdentifyEquipmentSheet: View {
                                                          json: AIServerClient.scanBody(exercises: candidates, jpeg: jpeg))
                     answer = try JSONDecoder().decode(EquipmentIdentification.self, from: data).validated(allowed: allowed)
                 }
-                guard !Task.isCancelled, requestID == id else { return }
+                guard !Task.isCancelled, requestID == id, account.token == session else { return }
                 aiLabel = answer.label
                 proposal = prefilled(answer); genericChosen = false; busy = false
             } catch {
-                guard !Task.isCancelled, requestID == id else { return }
+                guard !Task.isCancelled, requestID == id, account.token == session else { return }
+                // Refused session: signed out, so the sheet shows its sign-in step (the client's 401 does the same).
+                if case AIServerError.signedOut = error, let session { account.invalidate(token: session) }
                 identifyError = error.localizedDescription; busy = false
             }
         }

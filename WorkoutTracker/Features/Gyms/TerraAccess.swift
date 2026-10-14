@@ -35,6 +35,7 @@ enum TerraAccess {
     static var fixtureFailure: AIServerError? {
         let arguments = ProcessInfo.processInfo.arguments
         if arguments.contains("-uiTestTerraOffline") { return .offline }
+        if arguments.contains("-uiTestTerraExpired") { return .signedOut }
         if arguments.contains("-uiTestTerraPaused") { return .paused }
         if arguments.contains("-uiTestTerraLimit") { return .limit(.scanMachine, 60, resetsAt: AIResetCopy.nextReset()) }
         if arguments.contains("-uiTestTerraRoutineLimit") { return .limit(.routineWeek, 10, resetsAt: AIResetCopy.nextReset()) }

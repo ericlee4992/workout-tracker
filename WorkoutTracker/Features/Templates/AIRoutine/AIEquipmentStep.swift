@@ -232,8 +232,8 @@ struct AIEquipmentStep: View {
             }
             if !consent {
                 // One consequence line (was three sentences). It names everything the request sends
-                // (`AIRoutineRequest`; codex-review-10 L1).
-                Text("Sends your goals, experience, schedule, optional profile, exercise list and chosen cardio — not Health data or history.")
+                // (`AIRoutineRequest`; codex-review-10 L1) and where it goes (ticket 06: the server, then OpenAI).
+                Text("Sends your goals, experience, schedule, optional profile, exercise list and chosen cardio through Stacked’s server to OpenAI — not Health data or history.")
                     .font(look.font.footnote)
                     .foregroundStyle(look.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)

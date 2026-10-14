@@ -87,17 +87,29 @@ struct AIServerClient: Sendable {
         let code = object?["error"] as? String
         if status == 401 { onUnauthorized(token) }
         if status == 429 && code == "ai_limit" {
-            // The limit and the reset time come from the usage endpoint; without them the line still reads.
-            let usage = await self.usage()
+            // The limit and the reset time come from the usage endpoint; without them the line still reads. A session
+            // refused there is refused like the POST's (codex-review-06-app F3).
+            let usage = try await self.usage()
             throw AIServerError.limit(flow, usage?.flows[flow.rawValue]?.limit, resetsAt: usage?.resetsAt ?? AIResetCopy.nextReset())
         }
         throw Self.error(status: status, code: code, flow: flow)
     }
 
-    private func usage() async -> AccountClient.Usage? {
+    /// Today's use, or nil when it cannot be read; a 401 signs out and throws `signedOut`.
+    private func usage() async throws -> AccountClient.Usage? {
         var client = AccountClient(baseURL: baseURL)
         client.session = session
-        return try? await client.usage(token: token)
+        do {
+            let usage = try await client.usage(token: token)
+            try Task.checkCancellation()
+            return usage
+        } catch AccountClient.Failure.unauthorized {
+            onUnauthorized(token)
+            throw AIServerError.signedOut
+        } catch is AccountClient.Failure {
+            try Task.checkCancellation()
+            return nil
+        }
     }
 
     static func error(status: Int, code: String?, flow: AIFlow) -> AIServerError {

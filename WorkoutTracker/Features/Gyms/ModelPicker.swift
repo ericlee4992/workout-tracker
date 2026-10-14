@@ -592,6 +592,8 @@ struct AddModelSheet: View {
             }
             .onChange(of: exerciseConsent) { _, allowed in if !allowed { abandonProposal() } }
             .sheet(isPresented: $signingIn) { AccountSignInSheet() }
+            // A suggestion still out when the session ends or changes is abandoned (codex-review-06-app F2).
+            .onChange(of: account.token) { _, _ in abandonProposal() }
             .navigationTitle("New Model")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -778,6 +780,7 @@ struct AddModelSheet: View {
                 }
                 proposalNote = nil
             case .failure(let error):
+                if case AIServerError.signedOut = error, let token = account.token { account.invalidate(token: token) }
                 proposalNote = error.localizedDescription
             }
         }

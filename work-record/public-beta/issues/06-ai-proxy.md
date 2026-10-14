@@ -322,3 +322,35 @@ and on-topic, no prompt text, no poem/joke/code):
 
 Still open for this ticket: the targeted UI run (below), Codex review, and **the phone's live smoke of each flow**
 — it needs a build with this branch (TestFlight build 3, after 05's rest in the agreed order).
+
+## Codex review 06-app — response (round 1)
+
+Report [codex-review-06-app.md](../codex-review-06-app.md) (HEAD `39455dd`): **not clear** — S1 (P3) and F1–F5 (four
+P2, one P3); all accepted.
+- **S1** — the three comments about the removed key (Settings' Ask AI card, `AskAI`'s fixture, `DesignSampleFixture`)
+  now describe account-backed AI and the permission fixtures.
+- **F1** — the routine's error step is account-aware (`AIErrorStep.aiReady`/`onSignIn`): signed out it offers **Sign
+  In** (an approved string, id `routineSignIn`) instead of a Generate week that cannot work; once signed in it offers
+  Generate week again with the preferences kept. A refused session flags `AIRoutineFlowModel.signedOut`, on which the
+  sheet invalidates that session (the client's 401 does the same for the real server; the flag also covers the
+  fixture). UI test `testRefusedSessionOffersSignIn` (fixture flag `-uiTestTerraExpired`): routine → Sign In, the
+  sign-in sheet, Back keeps the choices and still offers Sign In; Scan Machine → its sign-in step. A completed Apple
+  sign-in cannot be driven in a UI test (Apple's sheet); the return is the observable account state — Settings,
+  the steps and `TerraAccess.ready` all read `account.token`.
+- **F2** — each request is bound to its session: Scan Machine captures `account.token` and drops a reply (success or
+  failure) when it changed, and cancels a request still out when the token changes; Ask AI for Templates cancels the
+  generation (`cancelGeneration`) and New Model abandons the suggestion on any token change. Unit test
+  `aWeekStillOutWhenTheSessionEndsIsDropped` (a 0.4 s reply after the cancel changes nothing).
+- **F3** — the over-limit follow-up's `GET /v1/ai/usage` 401 now calls `onUnauthorized` and throws `signedOut`;
+  other usage failures keep the fallback line; cancellation is checked after that await. Tests
+  `aSessionRefusedByTheUsageFollowUpSignsOut`, `aRefusalOfAnOlderSessionLeavesTheNewOneSignedIn`.
+- **F4** — the routine consent line now names the server: "Sends your goals, experience, schedule, optional profile,
+  exercise list and chosen cardio **through Stacked’s server to OpenAI** — not Health data or history." (*a changed
+  string — the user's to confirm; the same wording as the approved New Model line*).
+- **F5** — `ScanErrorText.shown` (moved to the domain) rewrites "Continue manually" and "continue manually"; the
+  routine split drops a second sentence that only says to continue manually. Test
+  `everyServerLineReadsInBothErrorSteps` runs every `AIServerError` line through both.
+
+Verification: build ✔ (`build4.log`, separate derived data `dd-06app-b` so the running UI run is untouched); unit tests
+**991/991** (`unit3.xcresult`). UI: the first targeted run (`ui1`) is on the pre-fix build; the affected classes are
+re-run on this build (`ui2`).

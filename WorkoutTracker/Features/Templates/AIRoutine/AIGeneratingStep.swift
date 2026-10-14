@@ -226,7 +226,11 @@ struct AIErrorStep: View {
     var model: AIRoutineFlowModel
     var gymName: String?
     var canRetry: Bool
+    /// Signed in (ticket 06): otherwise the step offers Sign In, and Generate week again once signed in — the
+    /// preferences are kept (codex-review-06-app F1).
+    var aiReady: Bool
     var onRetry: () -> Void
+    var onSignIn: () -> Void
     var onCancel: () -> Void
     @Environment(\.look) private var look
     @ScaledMetric(relativeTo: .largeTitle) private var ringSize: CGFloat = 150
@@ -243,8 +247,12 @@ struct AIErrorStep: View {
         .safeAreaBar(edge: .top) { AITopBar(step: 2, divider: false, onCancel: onCancel) }
         .safeAreaBar(edge: .bottom) {
             AIBottomBar(fade: false) {
-                AIPrimaryButton("Generate week", symbol: "sparkles", isEnabled: canRetry, identifier: "routineRetry",
-                                disabledHint: "Allow sending routine details to OpenAI first.", action: onRetry)
+                if aiReady {
+                    AIPrimaryButton("Generate week", symbol: "sparkles", isEnabled: canRetry, identifier: "routineRetry",
+                                    disabledHint: "Allow sending routine details to OpenAI first.", action: onRetry)
+                } else {
+                    AIPrimaryButton("Sign In", symbol: "person.crop.circle", identifier: "routineSignIn", action: onSignIn)
+                }
                 Button("Back to preferences") { model.back() }
                     .buttonStyle(.lookSecondary)
                     .accessibilityIdentifier("routineErrorBack")

@@ -108,6 +108,12 @@ struct AIRoutineSheet: View {
             if !allowed && !TerraAccess.bypassesConsent { model.cancelGeneration() }
         }
         .onDisappear { model.cancelTasks() }
+        // A week still being generated when the session ends or changes is abandoned (codex-review-06-app F2).
+        .onChange(of: account.token) { _, _ in model.cancelGeneration() }
+        // A refused session signs out here too (the server client's 401 does the same); the steps then offer Sign In.
+        .onChange(of: model.signedOut) { _, refused in
+            if refused, let token = account.token { account.invalidate(token: token) }
+        }
         .confirmationDialog("Discard this week?", isPresented: Binding(get: { confirmingLeave != nil },
                                                                      set: { if !$0 { confirmingLeave = nil } }),
                             titleVisibility: .visible, presenting: confirmingLeave) { leave in
@@ -148,7 +154,8 @@ struct AIRoutineSheet: View {
                              onCancel: close)
                 .transition(stepTransition)
         case .error:
-            AIErrorStep(model: model, gymName: gym?.name, canRetry: permitted, onRetry: generate, onCancel: close)
+            AIErrorStep(model: model, gymName: gym?.name, canRetry: permitted, aiReady: TerraAccess.ready(account),
+                        onRetry: generate, onSignIn: { signingIn = true }, onCancel: close)
                 .transition(stepTransition)
         case .preview:
             AIWeekPreview(model: model, gymName: gym?.name, names: names, groups: groups,

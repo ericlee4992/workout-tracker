@@ -153,9 +153,21 @@ enum AIRoutineErrorText {
     /// "Could not reach OpenAI. Check your connection or continue manually." → ("Could not reach
     /// OpenAI.", "Check your connection."): what happened, what to do. The error step offers no
     /// manual path, so "or continue manually" is dropped from what it shows.
+    /// A second sentence that only says to continue manually is dropped too (ticket 06's paused and refused lines).
     static func split(_ message: String) -> (what: String, next: String?) {
         let shown = message.replacingOccurrences(of: " or continue manually.", with: ".")
         guard let range = shown.range(of: ". ") else { return (shown, nil) }
-        return (String(shown[..<range.lowerBound]) + ".", String(shown[range.upperBound...]))
+        let next = String(shown[range.upperBound...])
+        return (String(shown[..<range.lowerBound]) + ".",
+                ["Continue manually.", "You can continue manually."].contains(next) ? nil : next)
+    }
+}
+
+enum ScanErrorText {
+    /// Scan Machine's error copy, its last clause matched to the button beside it ("Choose a catalog model"),
+    /// whether the clause starts its sentence or not.
+    static func shown(_ message: String) -> String {
+        message.replacingOccurrences(of: "Continue manually", with: "Choose a catalog model")
+            .replacingOccurrences(of: "continue manually", with: "choose a catalog model")
     }
 }

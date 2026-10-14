@@ -165,6 +165,39 @@ final class FloodlightAIAccessUITests: XCTestCase {
         shoot("ai06-routine-limit-\(suffix)")
     }
 
+    /// codex-review-06-app F1: a session the server refuses signs the phone out; the routine's error step then offers
+    /// Sign In (not a Generate week that cannot work), and Scan Machine returns to its sign-in step.
+    func testRefusedSessionOffersSignIn() {
+        launch(appearance: "light", large: false, flags: ["-uiTestProfileSample", "-uiTestTerraExpired"])
+        openRoutineEquipment()
+        let dumbbells = any("routineEquipment.dumbbells")
+        for _ in 0..<8 where !onScreen(dumbbells, floor: app.buttons["generateAIRoutine"].frame.minY - 12) { app.swipeUp() }
+        dumbbells.tap()
+        app.buttons["generateAIRoutine"].tap()
+        let signIn = app.buttons["routineSignIn"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["routineRetry"].exists, "no Generate week while signed out")
+        XCTAssertTrue(app.staticTexts["Sign in to use AI."].exists)
+        shoot("ai06-routine-expired-light-default")
+        signIn.tap()
+        XCTAssertTrue(any("signInWithApple").waitForExistence(timeout: 5))
+        app.buttons["signInClose"].tap()
+        XCTAssertTrue(any("signInWithApple").waitForNonExistence(timeout: 5))
+        // Back to preferences keeps the choices and still offers Sign In.
+        app.buttons["routineErrorBack"].tap()
+        XCTAssertTrue(app.buttons["routineSignIn"].waitForExistence(timeout: 5))
+        XCTAssertTrue(any("routineEquipment.dumbbells").isSelected)
+        app.terminate()
+
+        launch(appearance: "light", large: false, flags: ["-uiTestProfileSample", "-uiTestTerraExpired"])
+        openScan()
+        let shutter = app.buttons["scanShutter"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 5))
+        shutter.tap()
+        XCTAssertTrue(app.buttons["scannerSignIn"].waitForExistence(timeout: 10))
+        shoot("ai06-scan-expired-light-default")
+    }
+
     func testCaptureNewModelLightDefault() { captureNewModel(appearance: "light", large: false) }
     func testCaptureNewModelLightAccessibility() { captureNewModel(appearance: "light", large: true) }
     func testCaptureNewModelDarkDefault() { captureNewModel(appearance: "dark", large: false) }

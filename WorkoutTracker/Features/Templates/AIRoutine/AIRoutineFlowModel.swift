@@ -48,6 +48,8 @@ final class AIRoutineFlowModel {
     private(set) var progressText = ""
     /// The generation's failure (the error step) or a save's (Your week).
     var error: String?
+    /// The last generation failed because the server refused the session (the sheet then signs out).
+    private(set) var signedOut = false
     /// Goals step: the request's limits, checked at Next.
     var inputError: String?
     private(set) var saving = false
@@ -115,6 +117,7 @@ final class AIRoutineFlowModel {
         sentRequest = request
         routine = nil
         error = nil
+        signedOut = false
         forward = true
         step = .generating
         let first = AIRoutineStages.stage(at: 0, gymName: gymName)
@@ -146,6 +149,7 @@ final class AIRoutineFlowModel {
                 guard let self, !Task.isCancelled, self.token == id else { return }
                 self.stageTask?.cancel()
                 self.error = error.localizedDescription
+                if case AIServerError.signedOut = error { self.signedOut = true }
                 self.forward = true
                 self.step = .error
             }

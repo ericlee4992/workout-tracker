@@ -578,9 +578,7 @@ struct ScanErrorStep: View {
     @State private var failures = 0
 
     /// The error copy, its last clause matched to the button beside it.
-    private var shownMessage: String {
-        message.replacingOccurrences(of: "continue manually", with: "choose a catalog model")
-    }
+    private var shownMessage: String { ScanErrorText.shown(message) }
 
     var body: some View {
         VStack(spacing: 0) {

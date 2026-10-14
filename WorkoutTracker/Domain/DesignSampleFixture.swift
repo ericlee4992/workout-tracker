@@ -40,7 +40,7 @@ enum DesignSampleFixture {
     /// 185 bpm (the zone ramp), a one-time dumbbell history note, an export completed five days ago
     /// as CSV (so the Export screen has workouts before and after its mark), and two short extra
     /// workouts yesterday (three that day: the tally's stacked marks). The app also
-    /// saves an Ask AI key and turns on two of the three permissions (`WorkoutTrackerApp`).
+    /// turns on two of the three AI permissions (`WorkoutTrackerApp`).
     static let settingsArgument = "-uiTestDesignSettings"
     static var settingsIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(settingsArgument)

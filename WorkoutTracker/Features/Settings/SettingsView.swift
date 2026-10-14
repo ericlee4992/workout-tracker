@@ -346,8 +346,8 @@ struct SettingsView: View {
     // MARK: Ask AI
 
     /// "Ask AI" (was "Ask AI about plates": the sheet covers scanning, routines and model
-    /// suggestions). One status; the key and the three permissions live in the sheet.
-    /// Ticket 06: AI runs on the server, signed in (D60) — no key on the phone.
+    /// suggestions). One status — On, Sign In or Paused; the account status, today's use and the three
+    /// permissions live in the sheet. Ticket 06: AI runs on the server, signed in (D60) — no key on the phone.
     private var askAIStatus: String {
         guard TerraAccess.ready(account) else { return "Sign In" }
         return account.profile?.aiPaused == true ? "Paused" : "On"
