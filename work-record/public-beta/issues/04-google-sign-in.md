@@ -93,4 +93,8 @@ Then Claude: `WT_GOOGLE_CLIENT_ID` in `Config/Shared.xcconfig`, `GOOGLE_CLIENT_I
 redeploy the server (the user's go-ahead); sign in, out and delete with a Google account on the Simulator; the phone
 with the next TestFlight build.
 
+**Paused 2026-10-14 (the user's battery).** Codex's review (`codex-review-04-prompt.md`) and the UI regression
+(`FloodlightGoogleUITests` + `FloodlightAccountUITests`, `/tmp/wt-floodlight/results/04/ui1`) were stopped unfinished —
+rerun both. Unit tests: 1009/1011 then the test's RFC constant fixed → GoogleOAuthTests + AccountTests 27/27.
+
 ## Comments

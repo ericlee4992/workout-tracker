@@ -1,18 +1,24 @@
 # Current project state
 
-Updated **2026-10-14** (06 and 05 merged; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-14** (paused during 04; 06 and 05 merged; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: TestFlight build 3 uploaded — the phone check next; then 04 (2026-10-14)
+## NOW: paused (the user's battery, 2026-10-14) — ticket 04 Google sign-in, code done, review not finished
 
-- **`main` = `1be0768`** (pushed): tickets 06 (AI through the server) and 05 (Ask AI prefill + save switch) merged, both
-  Codex clear; ticket 10 closed without change (the user kept Terra). This record is on `ericlee4992/beta-04-google`.
-- **Build 0.1.0 (3) from `1be0768` uploaded 11:59 EDT** — processing. Next for the user: add it to the "Developer" group
-  (by hand), install from TestFlight, then the phone checks in tickets 06 (each AI flow once) and 05 (Ask AI filled in;
-  a changed day count saved to the profile). The first launch deletes the old OpenAI key (intended).
-- **Workers Free:** scans use 15–45 ms CPU vs its 10 ms (all succeeded); the user's call: revisit before 08.
-- **Next ticket: 04 Google sign-in** — the user first creates the Google Cloud project and iOS OAuth client (Claude guides
-  in Chrome; the user accepts terms and enters credentials).
+- **`main` = `1be0768`** (pushed): 06 and 05 merged (Codex clear), 10 closed without change. **TestFlight 0.1.0 (3)
+  from `1be0768` uploaded 11:59 EDT** — the user adds it to "Developer" and installs; then the phone checks in tickets 06
+  (each AI flow once) and 05 (Ask AI filled in; a changed day count saved).
+- **Branch `ericlee4992/beta-04-google`** (pushed, HEAD `7037466`, clean): server `POST /v1/auth/google` (218/218), app
+  wiring without the SDK (PKCE iOS client), the approved "Sign in with Google" button. Waits for the user's **Google Cloud
+  setup** (steps in the ticket) to get the client ID.
+- **Stopped mid-way (rerun on resume):** Codex's review (prompt `work-record/public-beta/codex-review-04-prompt.md`;
+  report `codex-review-04.md` not written; Codex terminal "Re-review ticket 05…" was interrupted — Codex's weekly budget
+  is low); the UI regression `FloodlightGoogleUITests` + `FloodlightAccountUITests` (`/tmp/wt-floodlight/results/04/ui1`,
+  killed). Unit: 1011 run — 1009 passed; the 2 failures were a wrong RFC 7636 constant in the test, fixed → Google +
+  Account suites 27/27.
+- **Next:** rerun the UI regression and Codex review to "clear"; the user's Google Cloud setup (Chrome-guided); client
+  ID in `Config/Shared.xcconfig` + `server/wrangler.jsonc`; server redeploy (go-ahead); Simulator sign-in; merge; then 11.
+- **Workers Free:** scans use 15–45 ms CPU vs 10 ms (all succeeded); revisit before 08 (the user's call).
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `6450e294` seen in the logs on 2026-10-14).
   Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
   `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8`
@@ -62,7 +68,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 | 01b background mode | **Done**, merged. |
 | 02 onboarding | **Done**, merged; on the phone. |
 | 03 server + Sign in with Apple | **Done 2026-10-13**: deployed; app half Codex clear (round 3); build 2 verified by the user. |
-| 04 Google sign-in | Ready; 4th in order; needs the user's Google OAuth client. |
+| 04 Google sign-in | **Code done** (server + app; mock approved); review and the user's Google client ID pending. |
 | 05 profile | **Done in code** (merged `1be0768`, Codex clear); phone check with build 3. |
 | 06 AI proxy | **Merged**; deployed checks done; build 3 uploaded — phone smoke next. |
 | 07 feedback | **Done**; live since build 2. |
