@@ -1,18 +1,18 @@
 # Current project state
 
-Updated **2026-10-14** (ticket 06 merged; ticket 10 closed without change; 05 next; TestFlight build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-14** (06 and 05 merged; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: ticket 05 rest next (2026-10-14)
+## NOW: TestFlight build 3 uploaded — the phone check next; then 04 (2026-10-14)
 
-- **`main` = `507c1dd`** (pushed): ticket 06's app half merged (Codex clear, round 4; the user's go-ahead).
-  `ericlee4992/beta-10-model-sol` holds docs only (ticket 10's record, this STATE) — merge with 05's branch.
-- **06 left:** the phone's live smoke of each AI flow with TestFlight build 3 (after 05). The user keeps Workers Free
-  for now (scans use 15–45 ms CPU vs its 10 ms); revisit before external testers (08).
-- **10 closed without change:** Sol is cheaper per token but not per request here (scans/suggestions the same, Ask AI
-  weeks ~25 % dearer) and 2–3× slower; **the user kept Terra**. Measurements in the ticket.
-- **Next:** 05 rest — Ask AI prefill from the training profile + the "Save to my training profile" switch (approved
-  mock 2026-10-03) → TestFlight build 3 (with 06's phone smoke).
+- **`main` = `1be0768`** (pushed): tickets 06 (AI through the server) and 05 (Ask AI prefill + save switch) merged, both
+  Codex clear; ticket 10 closed without change (the user kept Terra). This record is on `ericlee4992/beta-04-google`.
+- **Build 0.1.0 (3) from `1be0768` uploaded 11:59 EDT** — processing. Next for the user: add it to the "Developer" group
+  (by hand), install from TestFlight, then the phone checks in tickets 06 (each AI flow once) and 05 (Ask AI filled in;
+  a changed day count saved to the profile). The first launch deletes the old OpenAI key (intended).
+- **Workers Free:** scans use 15–45 ms CPU vs its 10 ms (all succeeded); the user's call: revisit before 08.
+- **Next ticket: 04 Google sign-in** — the user first creates the Google Cloud project and iOS OAuth client (Claude guides
+  in Chrome; the user accepts terms and enters credentials).
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `6450e294` seen in the logs on 2026-10-14).
   Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
   `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8`
@@ -24,8 +24,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 1. **06 app half** — AI through the server: remove the OpenAI key screen, sign-in required for AI, daily limits;
    then the deployed max-size-scan CPU check and the adversarial check. *(Merged 2026-10-14; phone smoke with build 3.)* [ticket](../work-record/public-beta/issues/06-ai-proxy.md)
 2. **10** — GPT-6.1 Sol. *Closed 2026-10-14 without change: not cheaper per request, slower; the user kept Terra.* [ticket](../work-record/public-beta/issues/10-model-sol.md)
-3. **05 rest** — Ask AI prefill from the training profile + "Save to my training profile" switch (on by default)
-   → **TestFlight build 3**. [ticket](../work-record/public-beta/issues/05-profile.md)
+3. **05 rest** — Ask AI prefill + "Save to my training profile". *Merged; build 3 uploaded 2026-10-14.* [ticket](../work-record/public-beta/issues/05-profile.md)
 4. **04** — Google sign-in; the user creates the Google Cloud project/iOS OAuth client first (Claude guides in Chrome).
 5. **11** — automatic safety copy of each tester's data before a store-changing update → **build 4**.
    Design questions are in the [ticket](../work-record/public-beta/issues/11-safety-copy.md).
@@ -38,11 +37,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
+- **Uploaded, not yet installed: 0.1.0 (3) = `main` `1be0768`** (2026-10-14).
 - **Installed: TestFlight Stacked 0.1.0 (2) = `main` `5836b68`** (uploaded 2026-10-13 23:17 EDT, in place over build 1;
   Automatic Updates **off**). No Gate S before it — no store change in `936b18f..5836b68` (the backup rule below).
   The user verified real Apple sign-in and signed-in feedback ("I confirm 03 works"); account deletion/Apple
   revocation was not separately itemised. Still uses the on-device OpenAI key for AI until 06's app half ships.
-- **Builds:** bump the build number (next **3**; 10 occurrences in `project.pbxproj`), archive from a recorded `main`
+- **Builds:** bump the build number (next **4**; 10 occurrences in `project.pbxproj`), archive from a recorded `main`
   commit in `/tmp/wt-live02` (holds the paid-team `Config/Local.xcconfig`; `git checkout --detach <commit>` there),
   upload, add to internal group "Developer" by hand, the user installs from TestFlight. Auto-updates stay off.
 - **Backups (the user, 2026-10-13: "yes skip the backup"):** Gate S only when an update changes what the phone stores
@@ -63,8 +63,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 | 02 onboarding | **Done**, merged; on the phone. |
 | 03 server + Sign in with Apple | **Done 2026-10-13**: deployed; app half Codex clear (round 3); build 2 verified by the user. |
 | 04 Google sign-in | Ready; 4th in order; needs the user's Google OAuth client. |
-| 05 profile | Page live since build 2; Ask AI prefill + save switch left (3rd). |
-| 06 AI proxy | **Merged** (`507c1dd`); deployed checks done; phone smoke with build 3. |
+| 05 profile | **Done in code** (merged `1be0768`, Codex clear); phone check with build 3. |
+| 06 AI proxy | **Merged**; deployed checks done; build 3 uploaded — phone smoke next. |
 | 07 feedback | **Done**; live since build 2. |
 | 08 external testers | Privacy draft merged, unpublished; waits on the user's answers (6th). |
 | 09 App Store | Not started. |

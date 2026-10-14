@@ -188,6 +188,19 @@ Report [codex-review-06d.md](../codex-review-06d.md) (HEAD `35c93ea`): **Verdict
 closed; Codex reran 167/167 and `tsc`. Still open (not server-half work): the app switch (after 03's app half), the
 deployed CPU measurement of a maximum-size scan, the adversarial check before external testers, and the live flows.
 
+## TestFlight build 0.1.0 (3) — uploaded 2026-10-14 (with ticket 05)
+
+- The user's go-ahead to merge 05 and upload. `main` **`1be0768`** (06 + 05 + build number 3), pushed.
+- Archive in `/tmp/wt-live02` detached at `1be0768`: exit 0; `CFBundleVersion` 3, version 0.1.0, `WTServerURL` production,
+  display name Stacked, Sign in with Apple entitlement. **Upload exit 0, "Upload succeeded"** (11:59 EDT). Artifacts in
+  the session scratchpad `tf/` (`archive.*`, `upload.*`, `Stacked-0.1.0-3-1be0768.xcarchive`).
+- **No Gate S** (the user's rule): `git diff 5836b68 1be0768 -- WorkoutTracker` adds no SwiftData model, attribute,
+  relationship, migration or settings key. The update does delete the old OpenAI key from the phone's keychain at first
+  launch (`LegacyOpenAIKey.purge`) — intended; the user was told before the upload.
+- **Phone smoke (open):** signed in — Settings → Ask AI shows On and today's use, no key field; one Scan Machine; one Ask
+  AI week; one New Model suggestion (Read Label → create new → Suggest exercises with AI); each counted on the profile
+  page. Then the server logs (`node scripts/ai.mjs status`) show the three requests.
+
 ## Comments
 
 ## App half — UI-first stage (2026-10-14, Claude)
