@@ -186,35 +186,85 @@ struct AIServerClientTests {
         #expect(stored == "tok-2")
     }
 
-    /// codex-review-06-app F2: a week still out when the session ends is dropped (the sheet cancels the generation
-    /// when the account's token changes); the reply that arrives later changes nothing.
-    @MainActor @Test func aWeekStillOutWhenTheSessionEndsIsDropped() async throws {
-        let week: [String: Any] = ["sessions": [["name": "Day 1", "strength": [], "cardio": [["activity": "outdoorWalk", "minutes": 20]]]]]
-        AIStub.respond = { _ in Thread.sleep(forTimeInterval: 0.4); return (200, Self.json(["result": week])) }
+    @MainActor private func account(_ token: String?) -> (AccountStore, () -> String?) {
+        final class Box { var token: String?; init(_ t: String?) { token = t } }
+        let box = Box(token)
+        let store = AccountStore(client: AccountClient(baseURL: base, session: AIStub.session()),
+                                 slot: .init(read: { box.token }, write: { box.token = $0 }, delete: { box.token = nil }))
+        return (store, { box.token })
+    }
+
+    @MainActor private func routineModel() -> AIRoutineFlowModel {
         let model = AIRoutineFlowModel()
         model.goals = "Build strength."
         model.days = 1
         model.cardio = [.outdoorWalk]
         model.step = .equipment
-        model.generate(options: [], gymName: nil, permitted: true, client: client())
-        #expect(model.step == .generating)
-        model.cancelGeneration()
+        return model
+    }
+
+    /// codex-review-06-app F2/B1: a week whose session ends while it is out is dropped where it lands — without the
+    /// sheet's token hook (which only runs later) — and the late reply changes nothing.
+    @MainActor @Test func aWeekWhoseSessionEndsWhileOutIsDropped() async throws {
+        let week: [String: Any] = ["sessions": [["name": "Day 1", "strength": [], "cardio": [["activity": "outdoorWalk", "minutes": 20]]]]]
+        AIStub.respond = { _ in Thread.sleep(forTimeInterval: 0.5); return (200, Self.json(["result": week])) }
+        let (store, _) = account("tok-1")
+        let model = routineModel()
+        model.generate(options: [], gymName: nil, permitted: true, client: client(), session: .bind(store))
+        try await Task.sleep(for: .milliseconds(150))   // the request is out
+        store.invalidate(token: "tok-1")
+        #expect(!store.isSignedIn)
         try await Task.sleep(for: .milliseconds(900))
-        #expect(model.step == .equipment)
         #expect(model.routine == nil)
+        #expect(model.step != .preview)
         #expect(model.error == nil)
     }
 
-    @MainActor @Test func aRefusedSessionIsFlaggedForTheSheetToSignOut() async throws {
-        let model = AIRoutineFlowModel()
-        model.goals = "Build strength."
-        model.cardio = [.outdoorWalk]
-        model.step = .equipment
-        model.generate(options: [], gymName: nil, permitted: true, client: nil)
+    /// …and the same reply for a session still current lands (the binding does not drop good answers).
+    @MainActor @Test func aWeekForTheCurrentSessionLands() async throws {
+        let week: [String: Any] = ["sessions": [["name": "Day 1", "strength": [], "cardio": [["activity": "outdoorWalk", "minutes": 20]]]]]
+        AIStub.respond = { _ in (200, Self.json(["result": week])) }
+        let (store, _) = account("tok-1")
+        let model = routineModel()
+        model.generate(options: [], gymName: nil, permitted: true, client: client(), session: .bind(store))
+        for _ in 0..<50 where model.step != .preview { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(model.step == .preview)
+        #expect(model.routine?.sessions.count == 1)
+    }
+
+    /// codex-review-06-app B2: a refusal names the session it refused — which the sheet signs out — and a refusal
+    /// arriving after the session was replaced (signed out and in again) names nothing, so the newer session stays.
+    @MainActor @Test func aRefusalNamesOnlyTheSessionItRefused() async throws {
+        let (store, _) = account("tok-1")
+        let model = routineModel()
+        model.generate(options: [], gymName: nil, permitted: true, client: nil, session: .bind(store))
         for _ in 0..<50 where model.step != .error { try await Task.sleep(for: .milliseconds(20)) }
         #expect(model.step == .error)
-        #expect(model.signedOut)
+        #expect(model.refusedSession == "tok-1")
         #expect(model.error == "Sign in to use AI.")
+
+        AIStub.respond = { request in
+            switch request.url?.path {
+            case "/v1/auth/apple": return (200, Self.json(["session": "tok-2", "expiresAt": 1.0e13, "profile": [:]]))
+            case "/v1/profile": return (200, Self.json(["provider": "apple", "memberSince": 1.0e12]))
+            case "/v1/ai/usage": return (200, Self.json(Self.usageJSON))
+            default: Thread.sleep(forTimeInterval: 0.5); return (401, Self.json(["error": "unauthorized"]))
+            }
+        }
+        let (replaced, stored) = account("tok-1")
+        let late = routineModel()
+        late.generate(options: [], gymName: nil, permitted: true, client: client(), session: .bind(replaced))
+        try await Task.sleep(for: .milliseconds(100))   // the request is out
+        replaced.invalidate(token: "tok-1")
+        let signedIn = await replaced.signIn(.init(identityToken: "id", authorizationCode: "code",
+                                                   rawNonce: "raw-nonce-0123456789", givenName: nil, familyName: nil))
+        #expect(signedIn)
+        #expect(replaced.token == "tok-2")
+        try await Task.sleep(for: .milliseconds(900))
+        #expect(late.refusedSession == nil)
+        #expect(late.error == nil)
+        #expect(replaced.token == "tok-2")
+        #expect(stored() == "tok-2")
     }
 
     /// codex-review-06-app F5: every line as Scan Machine's error step and the routine's error step show it.

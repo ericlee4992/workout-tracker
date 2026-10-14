@@ -354,3 +354,24 @@ P2, one P3); all accepted.
 Verification: build ✔ (`build4.log`, separate derived data `dd-06app-b` so the running UI run is untouched); unit tests
 **991/991** (`unit3.xcresult`). UI: the first targeted run (`ui1`) is on the pre-fix build; the affected classes are
 re-run on this build (`ui2`).
+
+## Codex review 06-app-b — response (round 2)
+
+Report [codex-review-06-app-b.md](../codex-review-06-app-b.md) (HEAD `2149588`): **not clear** — S1, F1, F3, F4, F5 and
+F2's scan portion confirmed closed; two P2s, both accepted.
+- **B1 (F2 for routine and New Model)** — `AISessionBinding` (`TerraAccess.swift`): the session token a request was
+  sent with and a synchronous `isCurrent()` against the account. Scan, Ask AI for Templates
+  (`AIRoutineFlowModel.generate(…, session:)`, checked in both the success and failure branches) and New Model
+  (checked before any tick or note lands) drop a reply whose session ended or was replaced, whether or not the
+  views' token `onChange` hooks (kept, for prompt cancellation) have run. Tests:
+  `aWeekWhoseSessionEndsWhileOutIsDropped` (a real `AccountStore` invalidated while a 0.5 s reply is out; no hook),
+  `aWeekForTheCurrentSessionLands` (the binding does not drop good answers).
+- **B2** — a refusal now names the session it refused: `AIRoutineFlowModel.refusedSession` (was a Boolean) is the
+  bound token, which the sheet invalidates; New Model and Scan invalidate their bound token; a refusal for a
+  replaced session is dropped by the binding, so it names nothing. Test `aRefusalNamesOnlyTheSessionItRefused`
+  (the refused token named; then a 401 arriving after a real sign-out and sign-in with `tok-2` leaves `tok-2` signed
+  in).
+
+Verification: build ✔ (`build5.log`, derived data `dd-06app-c`); unit tests **992/992** (`unit4.xcresult`). The
+round-1 UI re-run (`ui2`) was stopped unfinished because it tested pre-round-2 code; **`ui3`** re-runs the same five
+classes on this build.

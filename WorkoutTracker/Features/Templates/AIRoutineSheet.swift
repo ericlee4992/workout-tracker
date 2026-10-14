@@ -111,8 +111,8 @@ struct AIRoutineSheet: View {
         // A week still being generated when the session ends or changes is abandoned (codex-review-06-app F2).
         .onChange(of: account.token) { _, _ in model.cancelGeneration() }
         // A refused session signs out here too (the server client's 401 does the same); the steps then offer Sign In.
-        .onChange(of: model.signedOut) { _, refused in
-            if refused, let token = account.token { account.invalidate(token: token) }
+        .onChange(of: model.refusedSession) { _, refused in
+            if let refused { account.invalidate(token: refused) }
         }
         .confirmationDialog("Discard this week?", isPresented: Binding(get: { confirmingLeave != nil },
                                                                      set: { if !$0 { confirmingLeave = nil } }),
@@ -188,7 +188,8 @@ struct AIRoutineSheet: View {
     }
 
     private func generate() {
-        model.generate(options: options, gymName: gym?.name, permitted: permitted, client: TerraAccess.client(account))
+        model.generate(options: options, gymName: gym?.name, permitted: permitted, client: TerraAccess.client(account),
+                       session: .bind(account))
     }
 
     /// Cancel: stops a running request and closes. From an unsaved week it asks first.

@@ -48,8 +48,8 @@ final class AIRoutineFlowModel {
     private(set) var progressText = ""
     /// The generation's failure (the error step) or a save's (Your week).
     var error: String?
-    /// The last generation failed because the server refused the session (the sheet then signs out).
-    private(set) var signedOut = false
+    /// The session the server refused on the last generation, if it is still current (the sheet signs it out).
+    private(set) var refusedSession: String?
     /// Goals step: the request's limits, checked at Next.
     var inputError: String?
     private(set) var saving = false
@@ -107,8 +107,10 @@ final class AIRoutineFlowModel {
 
     /// Sends the request (options = what the AI may use at this gym). The wait shows timed stages
     /// (decision 1); the week appears as soon as the reply arrives.
-    /// `client` is the signed-in session's (nil signed out: the request fails with "Sign in to use AI.").
-    func generate(options: [RoutineExerciseOption], gymName: String?, permitted: Bool, client: AIServerClient?) {
+    /// `client` is the signed-in session's (nil signed out: the request fails with "Sign in to use AI."); `session`
+    /// binds the reply to that session — one that ended or was replaced meanwhile drops it.
+    func generate(options: [RoutineExerciseOption], gymName: String?, permitted: Bool, client: AIServerClient?,
+                  session: AISessionBinding = .unbound) {
         guard permitted, hasGoals, !options.isEmpty || !cardio.isEmpty else { return }
         cancelTasks()
         let request = AIRoutineRequest(goals: goals, experience: experience, days: days, minutes: minutes,
@@ -117,7 +119,7 @@ final class AIRoutineFlowModel {
         sentRequest = request
         routine = nil
         error = nil
-        signedOut = false
+        refusedSession = nil
         forward = true
         step = .generating
         let first = AIRoutineStages.stage(at: 0, gymName: gymName)
@@ -139,17 +141,17 @@ final class AIRoutineFlowModel {
             do {
                 let result = try await Self.requestRoutine(request, client: client)
                 let valid = try result.validated(for: request)
-                guard let self, !Task.isCancelled, self.token == id else { return }
+                guard let self, !Task.isCancelled, self.token == id, session.isCurrent() else { return }
                 self.stageTask?.cancel()
                 self.progress = 1
                 self.routine = valid
                 self.forward = true
                 self.step = .preview
             } catch {
-                guard let self, !Task.isCancelled, self.token == id else { return }
+                guard let self, !Task.isCancelled, self.token == id, session.isCurrent() else { return }
                 self.stageTask?.cancel()
                 self.error = error.localizedDescription
-                if case AIServerError.signedOut = error { self.signedOut = true }
+                if case AIServerError.signedOut = error { self.refusedSession = session.token }
                 self.forward = true
                 self.step = .error
             }

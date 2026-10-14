@@ -1,6 +1,22 @@
 import Foundation
 import SwiftUI
 
+/// The account session an AI request was sent with, and whether it is still the current one: a reply or a refusal
+/// for an ended or replaced session changes nothing, and a refusal signs out only the session it refused
+/// (codex-review-06-app F2, B1, B2). Checked synchronously where the result lands, not only by a view's `onChange`.
+struct AISessionBinding {
+    let token: String?
+    let isCurrent: @MainActor () -> Bool
+
+    @MainActor static func bind(_ account: AccountStore) -> AISessionBinding {
+        let token = account.token
+        return AISessionBinding(token: token, isCurrent: { [weak account] in account?.token == token })
+    }
+
+    /// No account involved (tests of the model alone).
+    static let unbound = AISessionBinding(token: nil, isCurrent: { true })
+}
+
 /// Consent is local to this installation and can be revoked in Settings.
 /// Permission to send a photograph does not authorize sending a routine profile.
 enum TerraAccess {

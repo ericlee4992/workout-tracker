@@ -758,6 +758,7 @@ struct AddModelSheet: View {
         let plate = PlateDescription(
             brand: trimmedManufacturer, model: trimmedModelName, lines: plateLines)
         proposing = true
+        let session = AISessionBinding.bind(account)
         proposalTask = Task {
             let outcome: Result<[ExerciseProposal], Error>
             do {
@@ -770,6 +771,8 @@ struct AddModelSheet: View {
             guard !Task.isCancelled else { return }
             proposalTask = nil
             proposing = false
+            // Signed out or replaced meanwhile: nothing from this suggestion lands (codex-review-06-app B1).
+            guard session.isCurrent() else { return }
             switch outcome {
             case .success(let proposals) where proposals.isEmpty:
                 proposalNote = "AI could not tell which exercises this machine serves."
@@ -780,7 +783,7 @@ struct AddModelSheet: View {
                 }
                 proposalNote = nil
             case .failure(let error):
-                if case AIServerError.signedOut = error, let token = account.token { account.invalidate(token: token) }
+                if case AIServerError.signedOut = error, let refused = session.token { account.invalidate(token: refused) }
                 proposalNote = error.localizedDescription
             }
         }
