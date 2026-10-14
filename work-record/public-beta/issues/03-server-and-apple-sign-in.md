@@ -373,7 +373,10 @@ sign-out, deletion and revocation) or installation.
   `X68M8SR6NA.com.ericlee4992.workouttracker`. Export exit 0 (IPA: same app ID, `get-task-allow` false, Sign in with
   Apple kept). **Upload exit 0, "Upload succeeded"** (23:17 EDT). Artifacts `…/scratchpad/tf/archive3.*`, `export3.*`,
   `upload3.*`.
-- Next: Gate S (USB, the user's JSON export), add build 2 to "Developer", the user installs and runs the checks.
+- **No Gate S for this update (the user, 2026-10-13: "yes skip the backup")**: `git diff 936b18f 5836b68 --
+  WorkoutTracker` adds no SwiftData model, attribute, relationship or migration (Domain: `AccountClient.swift` new,
+  `FeedbackClient.swift` +4); the new rule is in DEVELOPMENT → *When a backup is required*.
+- Next: add build 2 to "Developer"; the user installs and runs the checks.
 
 ## Acceptance
 

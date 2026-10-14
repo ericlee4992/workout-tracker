@@ -267,6 +267,14 @@ directory, a plist under `Application Support`/`Preferences` mirrors) round-trip
 `compare_trees.py` exit 0. Re-run Gate P after an Xcode or iOS major update. On the Simulator the same steps use `xcrun simctl get_app_container
 <sim> <bundle-id> data` and `cp -Rp`.
 
+**When a backup is required (the user, 2026-10-13: "yes skip the backup").** Gate S runs before an update only when
+the update changes what the phone stores — a SwiftData model, schema or migration change (`@Model`, `@Attribute`,
+`@Relationship`, `VersionedSchema`/`SchemaMigrationPlan`), a change to how existing rows or preferences are rewritten,
+or anything else that touches the store on first launch. Every other update installs without one; check the diff
+against the installed build's commit and record the finding in the ticket. Testers cannot back up, so their safety
+comes from the app: migrations tested against a copy of real data, the developer installing each build first, iOS's
+own backup, and (planned before external testers) an automatic in-app safety copy before a migration.
+
 **TestFlight and App Store builds cannot be copied from** (no `get-task-allow`); in-app JSON Export is the routine
 backup there. Before a risky update (a schema change, a migration) on a phone running TestFlight, use the
 **backup bridge**: turn off TestFlight's Automatic Updates for the app; build a development build from **the exact
