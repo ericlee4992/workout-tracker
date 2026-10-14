@@ -245,4 +245,20 @@ Verification: build ✔ (`build3.log`, `dd-05b`); unit tests **1000/1000** (`uni
 **3/3** (`ui3.xcresult`). The broader regression `ui2` (FloodlightProfile, FloodlightAIRoutine, FloodlightAIAccess) runs on
 the round-0 build.
 
+## Codex review 05e — response (round 2)
+
+Report [codex-review-05e.md](../codex-review-05e.md): **not clear** — S1, F3, F4 and F1's session binding confirmed closed;
+two P2s and a P3, all accepted.
+- **E1** — "unchanged" is now judged inside the queue, after the earlier saves have settled (`queueTrainingSave` skips
+  only when the settled profile already equals the form); the sheet no longer compares with the last completed profile.
+  Test `aFormChangedAndChangedBackIsSavedInOrder` (four → three held → four: both sent, in order; the profile ends
+  four) and `aSaveEqualToTheSettledProfileSendsNothing`.
+- **E2** — the profile page's editor saves through the same queue (its failure line kept). Test
+  `anEditorSaveQueuesBehindAnAskAISave` (a held Ask AI save, then an editor removal: both in order; the removal wins).
+- **E3** — only the latest request's save is reported (`beginProfileSave`/`finishProfileSave` with an identity; a request
+  that saves nothing clears the line). Test `onlyTheLatestRequestsSaveIsReported`.
+
+Verification: build ✔ (`build4.log`, `dd-05c`); unit tests **1004/1004** (`unit3.xcresult`). `ui4` (FloodlightProfile,
+FloodlightAIRoutine, FloodlightAIAccess on the round-1 build): **28/28**. The ticket-05 UI tests re-run on this build: `ui5`.
+
 ## Comments
