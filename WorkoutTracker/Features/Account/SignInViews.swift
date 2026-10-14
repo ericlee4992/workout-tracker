@@ -113,3 +113,17 @@ enum AccountDeletionCopy {
     static let stopUsingApple = "One more step: in the Settings app, tap your name, then Sign-In & Security, "
         + "Sign in with Apple, Stacked, and stop using it."
 }
+
+/// The sign-in sheet on the app's account store: closes once signed in. Settings' Account row and every AI entry point
+/// signed out (ticket 06: AI needs an account) open this one.
+struct AccountSignInSheet: View {
+    @Environment(AccountStore.self) private var account
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        SignInSheet(failure: account.signInFailure ?? ProfileSample.signInFailure, busy: account.signingIn,
+                    onRequest: account.prepare,
+                    onCompletion: { result in Task { if await account.complete(result) { dismiss() } } })
+            .onAppear { account.signInFailure = nil }
+    }
+}

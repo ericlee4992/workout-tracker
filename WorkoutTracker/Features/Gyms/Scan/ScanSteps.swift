@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 // Floodlight redesign ticket 07 — the Scan Machine sheet's steps other than the result:
-// consent (S02, before the camera — user decision 2), no key, camera (S01), identifying (S03),
+// consent (S02, before the camera — user decision 2), sign in (ticket 06), camera (S01), identifying (S03),
 // error (S03 failure) and Added. The sheet (IdentifyEquipmentSheet) owns every piece of state;
 // these only draw it and call back.
 
@@ -83,7 +83,7 @@ struct ScanConsentStep: View {
             .padding(.top, 26)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Each photo and the exercise catalog are sent to OpenAI")
+        .accessibilityLabel("Each photo and the exercise catalog are sent through Stacked’s server to OpenAI")
     }
 
     private var photoWidth: CGFloat { typeSize.isAccessibilitySize ? 96 : 128 }
@@ -95,9 +95,9 @@ struct ScanConsentStep: View {
             LookDivider().padding(.leading, 62)
             ScanFactRow(symbol: "list.bullet.rectangle", sent: true, text: "The exercise catalog")
             LookDivider().padding(.leading, 62)
-            ScanFactRow(symbol: "square.and.arrow.down.badge.xmark", sent: false, text: "Photo not saved by the app")
+            ScanFactRow(symbol: "square.and.arrow.down.badge.xmark", sent: false, text: "Photo not saved by the app or Stacked’s server")
             LookDivider().padding(.leading, 62)
-            ScanFactRow(symbol: "key", sent: false, text: "Billed to your OpenAI API key")
+            ScanFactRow(symbol: "person.crop.circle", sent: false, text: "Up to 60 scans a day with your account")
             LookDivider()
             Link(destination: Self.policyURL) {
                 HStack(spacing: 6) {
@@ -204,11 +204,11 @@ private struct ScanFlowConnector: View {
 
 // MARK: - No key
 
-/// Without a key nothing can be identified: the key is the step's subject, "Open AI Settings"
-/// the one filled command, the catalog the way out.
-struct ScanNoKeyStep: View {
+/// Signed out nothing can be identified (ticket 06: AI needs an account, D60): signing in is the step's subject,
+/// "Sign In" the one filled command, the catalog the way out.
+struct ScanSignInStep: View {
     var onCancel: () -> Void
-    var onSettings: () -> Void
+    var onSignIn: () -> Void
     var onManual: () -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -218,9 +218,9 @@ struct ScanNoKeyStep: View {
             ScanTopBar(title: "Scan Machine", onCancel: onCancel)
             ScanPagedScroll(centered: true) {
                 VStack(spacing: 22) {
-                    ScanGlyphDisc(symbol: "key.fill", size: typeSize.isAccessibilitySize ? 88 : 108,
+                    ScanGlyphDisc(symbol: "person.crop.circle", size: typeSize.isAccessibilitySize ? 88 : 108,
                                   glyphFont: .system(size: typeSize.isAccessibilitySize ? 34 : 42, weight: .semibold))
-                    Text("Add your OpenAI API key to identify equipment with Terra.")
+                    Text("Sign in to identify equipment with AI.")
                         .font(look.font.title2)
                         .foregroundStyle(look.textPrimary)
                         .multilineTextAlignment(.center)
@@ -230,8 +230,8 @@ struct ScanNoKeyStep: View {
                 .padding(.horizontal, look.space.margin + 8)
             } bar: {
                 ScanBottomBar {
-                    ScanPrimaryButton("Open AI Settings", symbol: "key", action: onSettings)
-                        .accessibilityIdentifier("scannerAISettings")
+                    ScanPrimaryButton("Sign In", symbol: "person.crop.circle", action: onSignIn)
+                        .accessibilityIdentifier("scannerSignIn")
                     Button("Choose a catalog model", action: onManual)
                         .buttonStyle(.lookSecondary)
                         .accessibilityIdentifier("scanManual")

@@ -31,7 +31,7 @@ enum ProfileSample {
                 .init(flow: "routine-week", title: "Template weeks", used: 2, limit: 10),
                 .init(flow: "model-exercises", title: "Exercise suggestions", used: 0, limit: 60),
             ],
-            aiResetsAt: .now, aiPaused: false)
+            aiResetsAt: AIResetCopy.nextReset(), aiPaused: flag("-uiTestAIPaused"))
     }
 
     /// `-uiTestProfilePrefill` (with the sample): Ask AI opens prefilled from the profile and offers "Save to my

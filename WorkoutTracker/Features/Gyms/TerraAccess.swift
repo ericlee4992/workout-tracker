@@ -9,12 +9,29 @@ enum TerraAccess {
     static let routineConsentKey = "openai.routineConsent.v1"
     static var fixture: Bool { WorkoutTrackerStore.fixtureIsEnabled("-uiTestTerra") }
     static var bypassesConsent: Bool { fixture && !ProcessInfo.processInfo.arguments.contains("-uiTestTerraNeedsConsent") }
+
+    /// Ticket 06: AI needs a signed-in account (D60). The UI-test fixture answers locally, signed out too — unless a
+    /// sample account is in play (`ProfileSample`), which then decides, so the signed-out screens can be driven.
+    @MainActor static func ready(_ account: AccountStore) -> Bool {
+        account.isSignedIn || (fixture && !account.isAvailable)
+    }
+
+    /// UI-first stage only: the old transport until the server client is wired.
     static var client: TerraClient? { AskAIKeyStore.read().map { TerraClient(key: $0) } }
+
     static func fixtureDelay() async throws {
-        let slow = ProcessInfo.processInfo.arguments.contains("-uiTestTerraSlow")
-        try await Task.sleep(for: .milliseconds(slow ? 4000 : 200))
-        if ProcessInfo.processInfo.arguments.contains("-uiTestTerraOffline") {
-            throw TerraError.message("Could not reach OpenAI. Check your connection or continue manually.")
-        }
+        let arguments = ProcessInfo.processInfo.arguments
+        try await Task.sleep(for: .milliseconds(arguments.contains("-uiTestTerraSlow") ? 4000 : 200))
+        if let failure = fixtureFailure { throw failure }
+    }
+
+    /// The fixture's failures, one flag each, for the captures and the error-copy tests.
+    static var fixtureFailure: AIServerError? {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-uiTestTerraOffline") { return .offline }
+        if arguments.contains("-uiTestTerraPaused") { return .paused }
+        if arguments.contains("-uiTestTerraLimit") { return .limit(.scanMachine, 60, resetsAt: AIResetCopy.nextReset()) }
+        if arguments.contains("-uiTestTerraRoutineLimit") { return .limit(.routineWeek, 10, resetsAt: AIResetCopy.nextReset()) }
+        return nil
     }
 }

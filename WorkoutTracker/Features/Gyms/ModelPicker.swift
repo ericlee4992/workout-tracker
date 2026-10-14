@@ -479,6 +479,8 @@ struct AddModelSheet: View {
     /// (codex-review-05b).
     @AppStorage(TerraAccess.exerciseConsentKey) private var exerciseConsent = false
     @State private var confirmSendModel = false
+    @Environment(AccountStore.self) private var account
+    @State private var signingIn = false
     @State private var proposalTask: Task<Void, Never>?
 
     var body: some View {
@@ -515,7 +517,8 @@ struct AddModelSheet: View {
                 // Ticket 06 (D53's rules): one tap, one call, the app's own
                 // exercise list in and ids from it out; the ticks stay the
                 // user's to change, and nothing is saved until Add.
-                if !plateLines.isEmpty, AskAI.isAvailable {
+                if !plateLines.isEmpty {
+                    let ready = AskAI.isAvailable(account)
                     Section {
                         if proposing {
                             HStack(spacing: 10) {
@@ -525,7 +528,9 @@ struct AddModelSheet: View {
                             .accessibilityIdentifier("newModelSuggestStatus")
                         } else {
                             Button {
-                                if exerciseConsent || AskAI.fixtureIsEnabled { suggestExercises() }
+                                // Ticket 06: signed out, the tap signs in first (AI needs an account).
+                                if !ready { signingIn = true }
+                                else if exerciseConsent || AskAI.fixtureIsEnabled { suggestExercises() }
                                 else { confirmSendModel = true }
                             } label: {
                                 Label("Suggest exercises with AI", systemImage: "sparkles")
@@ -536,8 +541,11 @@ struct AddModelSheet: View {
                         if let proposalNote {
                             Text(proposalNote)
                                 .accessibilityIdentifier("newModelSuggestNote")
+                        } else if !ready {
+                            Text(AIServerError.signedOut.errorDescription ?? "")
+                                .accessibilityIdentifier("newModelSuggestSignIn")
                         } else {
-                            Text("Sends the manufacturer and model above, the plate's text and this exercise list (names and muscle groups) to OpenAI (GPT-5.6 Terra), with your key; it picks from the list and you keep the final say.")
+                            Text("Sends the manufacturer and model above, the plate's text and this exercise list (names and muscle groups) through Stacked’s server to OpenAI; it picks from the list and you keep the final say.")
                         }
                     }
                     .lookListRows()
@@ -580,9 +588,10 @@ struct AddModelSheet: View {
                 Button("Allow and send") { exerciseConsent = true; suggestExercises() }
                 Button("Cancel", role: .cancel) {}
             } message: {
-                Text("Sends the typed manufacturer/model, plate text and exercise names to OpenAI. You can revoke this in Settings. OpenAI API data policies apply.")
+                Text("Sends the typed manufacturer/model, plate text and exercise names through Stacked’s server to OpenAI. You can revoke this in Settings. OpenAI API data policies apply.")
             }
             .onChange(of: exerciseConsent) { _, allowed in if !allowed { abandonProposal() } }
+            .sheet(isPresented: $signingIn) { AccountSignInSheet() }
             .navigationTitle("New Model")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

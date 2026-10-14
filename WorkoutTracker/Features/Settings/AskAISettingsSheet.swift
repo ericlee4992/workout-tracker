@@ -1,31 +1,25 @@
 import SwiftUI
 
-/// X02 Ask AI settings (Floodlight ticket 09): where the OpenAI key goes (D56–D58) and the three
-/// permissions. Key first — the prerequisite: a card whose status is the bold element, "On" with
-/// the key's last four characters (user decision 3) or "Off"; the field is full width and **Save
-/// key** (the one filled command) appears only once something is typed. Then one "Send to OpenAI"
-/// header over the three permissions — what is sent · the feature that sends it — and the policy
-/// link. Each permission stays independent and revocable, and is still asked for at the point of
-/// use. Remove key is a quiet destructive row at the end and asks first. Toggles apply at once, so
-/// the only chrome is Done. The disclosure paragraph is gone (decision 4).
+/// X02 Ask AI settings (Floodlight ticket 09; public beta ticket 06). AI runs on the developer's server for a
+/// signed-in account (D60): no key on the phone. The status card is the bold element — "On" with who is signed in,
+/// "Off" with Sign In (the one filled command) when signed out, or "Paused" (the server's off switch). Signed in,
+/// today's use against each limit follows (the profile page's tiles). Then one "Send to OpenAI" header over the three
+/// permissions — what is sent · the feature that sends it — the policy link, and the line naming the server.
+/// Each permission stays independent and revocable, and is still asked for at the point of use. Toggles apply at
+/// once, so the only chrome is Done.
 struct AskAISettingsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.look) private var look
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var key = ""
-    @State private var savedKey = AskAIKeyStore.read()
-    @State private var failure: String?
-    @State private var confirmRemove = false
-    @State private var savedTick = 0
+    @Environment(AccountStore.self) private var account
     @State private var headerHeight: CGFloat = 0
     @State private var bodyHeight: CGFloat = 0
-    @FocusState private var keyFocused: Bool
+    @State private var signingIn = false
     @AppStorage(TerraAccess.exerciseConsentKey) private var exerciseConsent = false
     @AppStorage(TerraAccess.photoConsentKey) private var photoConsent = false
     @AppStorage(TerraAccess.routineConsentKey) private var routineConsent = false
 
-    private var hasKey: Bool { savedKey != nil }
-    private var canSave: Bool { !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    private var ready: Bool { TerraAccess.ready(account) }
+    private var paused: Bool { ready && account.profile?.aiPaused == true }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,31 +27,24 @@ struct AskAISettingsSheet: View {
                 .exercisesMeasureHeight($headerHeight)
             ScrollView {
                 VStack(alignment: .leading, spacing: 30) {
-                    keyCard
-                    permissions
-                    if hasKey {
-                        DestructiveRowButton("Remove key") { confirmRemove = true }
-                            .accessibilityIdentifier("askAIRemoveKey")
-                            .transition(.opacity)
+                    statusCard
+                    if ready, let profile = account.profile, !profile.aiUsage.isEmpty {
+                        AIUsageTiles(usage: profile.aiUsage, paused: profile.aiPaused, resetsAt: profile.aiResetsAt,
+                                     idPrefix: "askAIUse")
                     }
+                    permissions
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.top, 10)
                 .padding(.bottom, 28)
-                .animation(reduceMotion ? nil : .spring(response: 0.38, dampingFraction: 0.84), value: hasKey)
             }
             .scrollIndicators(.hidden)
-            .scrollDismissesKeyboard(.interactively)
             .exercisesMeasureContent($bodyHeight)
         }
         .exercisesSheetChrome(fitted: headerHeight + bodyHeight)
-        .sensoryFeedback(.success, trigger: savedTick)
-        .confirmationDialog("Remove the saved key?", isPresented: $confirmRemove, titleVisibility: .visible) {
-            Button("Remove key", role: .destructive, action: remove)
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Ask AI turns off until you add a key.")
-        }
+        .sheet(isPresented: $signingIn) { AccountSignInSheet() }
+        // Today's figures and the off switch, fresh each time the sheet opens.
+        .task { await account.refresh() }
     }
 
     // MARK: Header
@@ -70,7 +57,6 @@ struct AskAISettingsSheet: View {
                 .accessibilityAddTraits(.isHeader)
             HStack {
                 Spacer()
-                // Identified: the key field's return key is also "Done".
                 GlassCapsuleButton("Done") { dismiss() }
                     .accessibilityIdentifier("askAIDone")
             }
@@ -80,66 +66,42 @@ struct AskAISettingsSheet: View {
         .padding(.bottom, 10)
     }
 
-    // MARK: Key (the bold element)
+    // MARK: Status (the bold element)
 
-    private var keyCard: some View {
+    private var status: String { !ready ? "Off" : paused ? "Paused" : "On" }
+
+    private var statusLine: String {
+        if !ready { return AIServerError.signedOut.errorDescription ?? "" }
+        if paused { return AIServerError.paused.errorDescription ?? "" }
+        return account.profile.map { "Signed in as \($0.displayName)" } ?? AccountDisplayCopy.loading
+    }
+
+    private var statusCard: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .center, spacing: 14) {
-                IconDisc(symbol: "sparkles", size: 52, context: hasKey ? .onSurface : .make)
-                    .celebrate(savedTick)
+                IconDisc(symbol: "sparkles", size: 52, context: ready && !paused ? .onSurface : .make)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(hasKey ? "On" : "Off")
+                    Text(status)
                         .font(look.font.bigNumber)
-                        .foregroundStyle(hasKey ? look.textPrimary : look.textSecondary)
+                        .foregroundStyle(ready && !paused ? look.textPrimary : look.textSecondary)
                         .contentTransition(.opacity)
-                    if let savedKey {
-                        Text(AskAIKeyHint.masked(savedKey))
-                            .font(.system(.subheadline, design: .monospaced, weight: .semibold))
-                            .foregroundStyle(look.textSecondary)
-                            .accessibilityIdentifier("askAIKeyHint")
-                    }
+                    Text(statusLine)
+                        .font(look.font.subhead)
+                        .foregroundStyle(look.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 0)
             }
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(savedKey.map { "Ask AI, On, key \(AskAIKeyHint.masked($0))" } ?? "Ask AI, Off")
+            .accessibilityLabel("Ask AI, \(status), \(statusLine)")
             .accessibilityIdentifier("askAIStatus")
-
-            LookDivider()
-
-            VStack(alignment: .leading, spacing: 10) {
-                SecureField(hasKey ? "Replace the saved key" : "OpenAI API key", text: $key,
-                            prompt: Text(hasKey ? "Replace the saved key" : "OpenAI API key").foregroundStyle(look.textSecondary))
-                    // One font throughout (the prototype switched to monospaced once text arrived;
-                    // a secure field shows only dots, so it bought nothing).
-                    .font(look.font.body)
-                    .foregroundStyle(look.textPrimary)
-                    .tint(look.actionText)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .focused($keyFocused)
-                    .submitLabel(.done)
-                    .onSubmit(save)
-                    .padding(.horizontal, 14)
-                    .frame(minHeight: 50)
-                    .lookSurface(.field)
-                    .accessibilityIdentifier("askAIKeyField")
-                if canSave {
-                    Button(action: save) {
-                        Label("Save key", systemImage: "key.fill")
-                    }
-                    .buttonStyle(.lookPrimary)
-                    .accessibilityIdentifier("askAISaveKey")
-                    .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
+            if !ready {
+                Button { signingIn = true } label: {
+                    Label("Sign In", systemImage: "person.crop.circle")
                 }
-                if let failure {
-                    SettingsNotice(symbol: "exclamationmark.triangle.fill", text: failure, emphasized: true)
-                        .foregroundStyle(look.destructive)
-                } else {
-                    SettingsNotice(symbol: "lock.fill", text: "Kept in this phone’s keychain only.")
-                }
+                .buttonStyle(.lookPrimary)
+                .accessibilityIdentifier("askAISignIn")
             }
-            .animation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.85), value: canSave)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -169,6 +131,8 @@ struct AskAISettingsSheet: View {
                 }
                 .buttonStyle(.lookPressable)
             }
+            SettingsNotice(symbol: "server.rack", text: "Sent through Stacked’s server, which keeps counts, never your photos or text.")
+                .padding(.top, 2)
         }
     }
 
@@ -179,29 +143,5 @@ struct AskAISettingsSheet: View {
                 .toggleStyle(.settings)
                 .fixedSize()
         }
-    }
-
-    // MARK: Actions
-
-    private func save() {
-        guard canSave else { return }
-        do {
-            try AskAIKeyStore.write(key)
-            let stored = AskAIKeyStore.read()
-            if reduceMotion { savedKey = stored } else { withAnimation(.snappy) { savedKey = stored } }
-            key = ""
-            keyFocused = false
-            failure = nil
-            savedTick += 1
-        } catch {
-            failure = error.localizedDescription
-        }
-    }
-
-    private func remove() {
-        AskAIKeyStore.delete()
-        if reduceMotion { savedKey = nil } else { withAnimation(.snappy) { savedKey = nil } }
-        key = ""
-        failure = nil
     }
 }

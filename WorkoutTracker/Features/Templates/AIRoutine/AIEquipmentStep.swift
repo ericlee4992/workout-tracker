@@ -13,11 +13,13 @@ struct AIEquipmentStep: View {
     @Binding var consent: Bool
     /// The fixture skips the consent gate (`TerraAccess.bypassesConsent`).
     var consentBypassed: Bool
-    var keyHint: String?
+    /// Signed in (ticket 06: AI needs an account), or the fixture.
+    var aiReady: Bool
     var onSelectGym: (Gym?) -> Void
     var onAddGym: () -> Void
     var onScan: (Gym) -> Void
     var onOpenSettings: () -> Void
+    var onSignIn: () -> Void
     var onGenerate: () -> Void
     var onCancel: () -> Void
 
@@ -217,7 +219,7 @@ struct AIEquipmentStep: View {
                 .frame(minHeight: 50)
                 .accessibilityIdentifier("allowAIRoutine")
                 // Same label as the Settings row (X01).
-                LookRow("Ask AI", symbol: "key", value: keyHint ?? "No key", action: onOpenSettings)
+                LookRow("Ask AI", symbol: "sparkles", value: aiReady ? "On" : "Sign In", action: onOpenSettings)
                     .accessibilityIdentifier("routineAskAIRow")
             }
             .overlay {
@@ -258,8 +260,8 @@ struct AIEquipmentStep: View {
     private func bottomBar(_ proxy: ScrollViewProxy) -> some View {
         let families = AIRoutineReadouts.eligibleFamilies(options)
         return AIBottomBar {
-            if keyHint == nil && !TerraAccess.fixture {
-                Text("Add your OpenAI API key to create routines.")
+            if !aiReady {
+                Text("Sign in to create routines with AI.")
                     .font(look.font.footnote)
                     .foregroundStyle(look.textSecondary)
                     .multilineTextAlignment(.center)
@@ -274,9 +276,9 @@ struct AIEquipmentStep: View {
                 counts
             }
             .accessibilityElement(children: .combine)
-            if keyHint == nil && !TerraAccess.fixture {
-                // No key yet: the one thing to do.
-                AIPrimaryButton("Ask AI Settings", symbol: "key", identifier: "routineAISettings", action: onOpenSettings)
+            if !aiReady {
+                // Signed out: the one thing to do.
+                AIPrimaryButton("Sign In", symbol: "person.crop.circle", identifier: "routineSignIn", action: onSignIn)
             } else {
                 AIPrimaryButton("Generate week", symbol: "sparkles", isEnabled: canGenerate, identifier: "generateAIRoutine",
                                 disabledHint: permitted ? "Choose equipment or cardio first."

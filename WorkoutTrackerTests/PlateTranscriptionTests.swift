@@ -182,11 +182,10 @@ struct PlateTranscriptionTests {
         #expect(preselected.modelName == "Eagle NX Overhead Press")
     }
 
-    @Test func noKeyMeansNoAsk() {
-        // Outside the fixture the transcriber exists only when a key does;
-        // the unit test process has neither, so nothing is offered.
+    /// Ticket 06: outside the fixture an ask needs a signed-in account; the
+    /// unit test process has neither, so nothing is offered.
+    @MainActor @Test func signedOutMeansNoAsk() {
         #expect(AskAI.fixtureIsEnabled == false)
-        #expect(AskAIKeyStore.read() == nil)
-        #expect(AskAI.isAvailable == false)
+        #expect(AskAI.isAvailable(AccountStore(client: nil)) == false)
     }
 }

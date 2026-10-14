@@ -189,3 +189,61 @@ closed; Codex reran 167/167 and `tsc`. Still open (not server-half work): the ap
 deployed CPU measurement of a maximum-size scan, the adversarial check before external testers, and the live flows.
 
 ## Comments
+
+## App half — UI-first stage (2026-10-14, Claude)
+
+Branch `ericlee4992/beta-06-ai-proxy-app` off `main` `0998e40` (the user fast-forwarded `main` to the 03 handoff first).
+The views now read the account (`TerraAccess.ready(account)`: signed in, or the UI-test fixture with no sample account);
+the old device-key transport is still in place until the strings are approved, then replaced by the server client.
+
+**Screens (job · bold element):**
+- *Settings → Ask AI card:* trailing value On / **Sign In** / Paused (was On / Off).
+- *Ask AI sheet (X02):* exists so the tester sees whether AI works for them and signs in in one tap; the eye lands on the
+  status ("On" / "Off" / "Paused"). Signed out, **Sign In** is the one filled command (in the card). Signed in, today's use
+  follows — the profile page's tiles, shared as `AIUsageTiles`. The key card, Save key, the keychain line and Remove key
+  are gone. Permissions unchanged, plus one line naming the server.
+- *Scan Machine:* the no-key step becomes a sign-in step (Sign In filled, Choose a catalog model secondary). Consent's
+  facts: the photo not saved by the app *or the server*; "Up to 60 scans a day with your account" replaces the billing line.
+- *Ask AI for Templates, Equipment:* the Ask AI row shows On / Sign In (was the key's last four / "No key"); signed out
+  the bar offers **Sign In** instead of Ask AI Settings.
+- *New Model:* "Suggest exercises with AI" now shows signed out too; its footer says "Sign in to use AI." and the tap
+  opens sign-in. Signed in, the footer and the consent alert name the server.
+- *Errors:* the server's refusals in words (below); the routine error step's split (what / what next) still holds.
+
+Tells: no new card, chip or caps label; the status card keeps X02's composition; the tiles are the profile's own.
+
+**New or changed strings (for the user's decision):**
+
+| Where | Now | Was |
+|---|---|---|
+| Settings card value | On · **Sign In** · **Paused** | On · Off |
+| Ask AI sheet status | On · Off · **Paused** | On · Off |
+| … status line | **Signed in as ‹name›** · **Sign in to use AI.** · **AI is paused right now. You can continue manually.** | the key's last four |
+| … button | **Sign In** | Save key / Remove key |
+| … under the permissions | **Sent through Stacked’s server, which keeps counts, never your photos or text.** | Kept in this phone’s keychain only. |
+| … Today's AI | the profile's tiles; **Resets at midnight** (a phone outside New York's time zone shows its local time, e.g. "Resets at 9:00 PM") | — |
+| Scan consent fact | **Photo not saved by the app or Stacked’s server** | Photo not saved by the app |
+| Scan consent fact | **Up to 60 scans a day with your account** | Billed to your OpenAI API key |
+| Scan sign-in step | **Sign in to identify equipment with AI.** · **Sign In** | Add your OpenAI API key to identify equipment with Terra. · Open AI Settings |
+| Templates row value | On · **Sign In** | sk-…abcd · No key |
+| Templates bar | **Sign in to create routines with AI.** · **Sign In** | Add your OpenAI API key to create routines. · Ask AI Settings |
+| New Model footer (signed out) | **Sign in to use AI.** | (section hidden) |
+| New Model footer | …this exercise list (names and muscle groups) **through Stacked’s server to OpenAI**; it picks… | …to OpenAI (GPT-5.6 Terra), with your key; it picks… |
+| New Model alert | …exercise names **through Stacked’s server to OpenAI**. You can revoke… | …exercise names to OpenAI. You can revoke… |
+| Error: session ended | **Sign in to use AI.** | Check your OpenAI key and model access in Settings. |
+| Error: over the limit | **You've used today's 60 machine scans. They reset at midnight.** (10 template weeks / 60 exercise suggestions; the spec's wording) | OpenAI usage is limited. Check API credits or try again later. |
+| Error: attempt cap | **Too many AI tries today. Try again after midnight or continue manually.** | — |
+| Error: busy | **Another AI request is still running. Try again in a moment.** | — |
+| Error: paused | **AI is paused right now. You can continue manually.** (the spec's wording) | — |
+| Error: offline | Could not reach **the server**. Check your connection or continue manually. | Could not reach OpenAI. … |
+| Error: timeout | **AI** took too long. Try again. | OpenAI took too long. Try again. |
+| Error: server/OpenAI failing | **AI is unavailable right now. Try again later.** | OpenAI is unavailable (‹status›). Try again later. |
+| Error: request refused by the server (an app bug) | **AI couldn't take this request. Continue manually.** | — |
+
+Unchanged: the refusal and invalid-result lines. Scan Machine's error step already turns "continue manually" into
+"choose a catalog model". After an over-limit or paused error the steps still offer their retry (harmless: the server
+refuses again without counting).
+
+**Captures:** `FloodlightAIAccessUITests` (new; 4 tests, light/dark × Default/AccessibilityL) on the sample account and the
+Terra fixture with new fixture flags `-uiTestTerraLimit`, `-uiTestTerraRoutineLimit`, `-uiTestTerraPaused`,
+`-uiTestAIPaused`. Light Default passed (255 s; `/tmp/wt-floodlight/results/06app/cap-ld.xcresult`).

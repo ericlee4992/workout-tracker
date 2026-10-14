@@ -61,35 +61,7 @@ struct ProfileView: View {
     // MARK: Today's AI (the bold element)
 
     private var aiUse: some View {
-        let layout = typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(alignment: .top, spacing: 10))
-        return VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("Today's AI", trailing: profile.aiPaused ? "Paused" : "Resets at midnight")
-            layout {
-                ForEach(profile.aiUsage) { use in
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(alignment: .firstTextBaseline, spacing: 3) {
-                            Text("\(use.used)")
-                                .font(look.font.statNumber)
-                                .foregroundStyle(look.textPrimary)
-                            Text("/ \(use.limit)")
-                                .font(.system(.subheadline, weight: .semibold))
-                                .foregroundStyle(look.textSecondary)
-                        }
-                        Text(use.title)
-                            .font(look.font.footnote)
-                            .foregroundStyle(look.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(14)
-                    .frame(maxWidth: .infinity, minHeight: typeSize.isAccessibilitySize ? nil : 92, alignment: .topLeading)
-                    .lookSurface(.stat)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(use.title), \(use.used) of \(use.limit) used today")
-                    .accessibilityIdentifier("profileAIUse.\(use.flow)")
-                }
-            }
-        }
+        AIUsageTiles(usage: profile.aiUsage, paused: profile.aiPaused, resetsAt: profile.aiResetsAt, idPrefix: "profileAIUse")
     }
 
     // MARK: Training profile
@@ -256,5 +228,48 @@ struct SettingsAccountRow: View {
 
     static func initials(_ name: String) -> String {
         name.split(separator: " ").prefix(2).compactMap(\.first).map(String.init).joined().uppercased()
+    }
+}
+
+/// Today's AI use against each limit (the profile page's bold element; also Settings → Ask AI, ticket 06): three
+/// figures, side by side, stacked at accessibility sizes.
+struct AIUsageTiles: View {
+    var usage: [AccountProfile.AIUsage]
+    var paused: Bool
+    var resetsAt: Date
+    var idPrefix: String
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(alignment: .top, spacing: 10))
+        VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader("Today's AI", trailing: paused ? "Paused" : AIResetCopy.resets(at: resetsAt))
+            layout {
+                ForEach(usage) { use in
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .firstTextBaseline, spacing: 3) {
+                            Text("\(use.used)")
+                                .font(look.font.statNumber)
+                                .foregroundStyle(look.textPrimary)
+                            Text("/ \(use.limit)")
+                                .font(.system(.subheadline, weight: .semibold))
+                                .foregroundStyle(look.textSecondary)
+                        }
+                        Text(use.title)
+                            .font(look.font.footnote)
+                            .foregroundStyle(look.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(14)
+                    .frame(maxWidth: .infinity, minHeight: typeSize.isAccessibilitySize ? nil : 92, alignment: .topLeading)
+                    .lookSurface(.stat)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("\(use.title), \(use.used) of \(use.limit) used today")
+                    .accessibilityIdentifier("\(idPrefix).\(use.flow)")
+                }
+            }
+        }
     }
 }

@@ -108,9 +108,11 @@ enum AskAI {
         WorkoutTrackerStore.fixtureIsEnabled(fixtureArgument)
     }
 
-    /// True when the sheet may offer the button: a key is stored (or the
-    /// fixture stands in for one).
-    static var isAvailable: Bool { AskAIKeyStore.read() != nil || fixtureIsEnabled }
+    /// True when a suggestion can be sent: signed in (ticket 06, D60), or
+    /// a fixture stands in.
+    @MainActor static func isAvailable(_ account: AccountStore) -> Bool {
+        fixtureIsEnabled || TerraAccess.ready(account)
+    }
 
     static var transcriber: PlateTranscriber? {
         if fixtureIsEnabled { return StubPlateTranscriber(failure: stubFailure) }

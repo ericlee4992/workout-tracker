@@ -5,7 +5,7 @@ import UIKit
 /// One photograph, one Terra request, then an editable proposal (D56).
 ///
 /// Floodlight redesign ticket 07: one "Scan Machine" sheet driven by its step — consent (before
-/// the camera, user decision 2) → no key → camera → identifying → error / result → added. Two
+/// the camera, user decision 2) → sign in (ticket 06) → camera → identifying → error / result → added. Two
 /// ways in (user decision 1): **add** mode (the gym page's Scan Machine, AI routine setup) saves
 /// the confirmed machine itself and shows the Added step; **fill-form** mode (the machine form's
 /// "Scan equipment…") hands the confirmed proposal back to the form and saves nothing here.
@@ -21,13 +21,14 @@ struct IdentifyEquipmentSheet: View {
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @Query private var models: [EquipmentModel]
     @AppStorage(TerraAccess.photoConsentKey) private var consent = false
+    @Environment(AccountStore.self) private var account
     /// The gym the machine is for: add mode saves there; both modes check it for duplicates.
     var gym: Gym?
     var mode: Mode
-    /// "Choose a catalog model" (no key, error): add mode hands over to the machine form.
+    /// "Choose a catalog model" (signed out, error): add mode hands over to the machine form.
     var onManual: (() -> Void)?
 
-    @State private var showingSettings = false
+    @State private var signingIn = false
     @State private var showingLibrary = false
     @State private var started = false
     @State private var captureID: UUID?
@@ -67,11 +68,11 @@ struct IdentifyEquipmentSheet: View {
         self.onManual = onManual
     }
 
-    enum Step: Hashable { case consent, noKey, camera, identifying, error, result, added }
+    enum Step: Hashable { case consent, signIn, camera, identifying, error, result, added }
 
     private var step: Step {
         if !consent && !TerraAccess.bypassesConsent { return .consent }
-        if TerraAccess.client == nil && !TerraAccess.fixture { return .noKey }
+        if !TerraAccess.ready(account) { return .signIn }
         if added != nil { return .added }
         if busy { return .identifying }
         if identifyError != nil { return .error }
@@ -91,8 +92,8 @@ struct IdentifyEquipmentSheet: View {
                         start()
                     }
                     .transition(stepTransition)
-                case .noKey:
-                    ScanNoKeyStep(onCancel: close, onSettings: { showingSettings = true }, onManual: chooseManually)
+                case .signIn:
+                    ScanSignInStep(onCancel: close, onSignIn: { signingIn = true }, onManual: chooseManually)
                         .transition(stepTransition)
                 case .camera:
                     ScanCameraStep(gymName: gym?.name, machineCount: machineCount, started: started,
@@ -153,7 +154,7 @@ struct IdentifyEquipmentSheet: View {
         .lookSheetGround()
         .presentationBackground(step == .camera ? Color.black : look.groundSheet)
         .interactiveDismissDisabled(step == .result || step == .identifying)
-        .sheet(isPresented: $showingSettings, onDismiss: { start() }) { AskAISettingsSheet() }
+        .sheet(isPresented: $signingIn, onDismiss: { start() }) { AccountSignInSheet() }
         .sheet(isPresented: $showingLibrary) {
             ImagePicker(source: .photoLibrary) { image in
                 showingLibrary = false

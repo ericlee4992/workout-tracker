@@ -30,8 +30,6 @@ struct SettingsView: View {
     @State private var showAppleStep = false
     @State private var deletionSignedOut = false
     @Environment(AccountStore.self) private var account
-    /// Re-read when the Ask AI sheet closes; the keychain is not observable.
-    @State private var askAIOn = AskAIKeyStore.read() != nil
     @State private var counts: ExportCounts?
     @State private var countFailure: String?
     @State private var titleVisible = false
@@ -49,7 +47,6 @@ struct SettingsView: View {
                             // The page works without a loaded profile too: Try Again and Sign Out (offline at launch).
                             showProfile = true
                         } else {
-                            account.signInFailure = nil
                             showSignIn = true
                         }
                     }
@@ -83,9 +80,7 @@ struct SettingsView: View {
         // moment the number is looked at; logging happens in a full-screen cover.
         .task(id: showExport) { if !showExport { refreshCounts() } }
         .sheet(isPresented: $showMaxHeartRateSheet) { MaxHeartRateSheet() }
-        .sheet(isPresented: $showAskAISheet, onDismiss: { askAIOn = AskAIKeyStore.read() != nil }) {
-            AskAISettingsSheet()
-        }
+        .sheet(isPresented: $showAskAISheet) { AskAISettingsSheet() }
         .navigationDestination(isPresented: $showExport) { ExportView() }
         .navigationDestination(isPresented: $showProfile) {
             ProfileScreen(usCustomary: unitSystem == .usCustomary) { outcome in
@@ -96,11 +91,7 @@ struct SettingsView: View {
                 }
             }
         }
-        .sheet(isPresented: $showSignIn) {
-            SignInSheet(failure: account.signInFailure ?? ProfileSample.signInFailure, busy: account.signingIn,
-                        onRequest: account.prepare,
-                        onCompletion: { result in Task { if await account.complete(result) { showSignIn = false } } })
-        }
+        .sheet(isPresented: $showSignIn) { AccountSignInSheet() }
         .alert(AccountDeletionCopy.doneTitle, isPresented: $showAppleStep) {
             Button("OK") {}
         } message: {
@@ -356,6 +347,12 @@ struct SettingsView: View {
 
     /// "Ask AI" (was "Ask AI about plates": the sheet covers scanning, routines and model
     /// suggestions). One status; the key and the three permissions live in the sheet.
+    /// Ticket 06: AI runs on the server, signed in (D60) — no key on the phone.
+    private var askAIStatus: String {
+        guard TerraAccess.ready(account) else { return "Sign In" }
+        return account.profile?.aiPaused == true ? "Paused" : "On"
+    }
+
     private var askAI: some View {
         SettingsCardButton { showAskAISheet = true } label: {
             HStack(alignment: .center, spacing: 12) {
@@ -367,7 +364,7 @@ struct SettingsView: View {
                     .font(.system(.body, weight: .semibold))
                     .foregroundStyle(look.textPrimary)
                 Spacer(minLength: 8)
-                Text(askAIOn ? "On" : "Off")
+                Text(askAIStatus)
                     .font(look.font.subhead)
                     .foregroundStyle(look.textSecondary)
                     .contentTransition(.opacity)
@@ -380,7 +377,7 @@ struct SettingsView: View {
             .frame(minHeight: 58)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(askAIOn ? "Ask AI, On" : "Ask AI, Off")
+        .accessibilityLabel("Ask AI, \(askAIStatus)")
         .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("askAISettings")
     }
