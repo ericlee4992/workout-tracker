@@ -364,6 +364,17 @@ resolved for its case; one new P2 and two P3. All accepted.
 findings. It clears the app implementation, not the phone checks (real Apple sign-in, rename/training save,
 sign-out, deletion and revocation) or installation.
 
+## Phone check — TestFlight build 0.1.0 (2) (2026-10-13)
+
+- The user's go-ahead ("yes") to merge and upload. `main` fast-forwarded to **`5836b68`** (this branch + build number 2)
+  and pushed; origin confirmed.
+- Archive in `/tmp/wt-live02` detached at `5836b68`: exit 0; built `CFBundleVersion` 2, `WTServerURL` the production
+  Worker, entitlement `com.apple.developer.applesignin` `[Default]`, `application-identifier`
+  `X68M8SR6NA.com.ericlee4992.workouttracker`. Export exit 0 (IPA: same app ID, `get-task-allow` false, Sign in with
+  Apple kept). **Upload exit 0, "Upload succeeded"** (23:17 EDT). Artifacts `…/scratchpad/tf/archive3.*`, `export3.*`,
+  `upload3.*`.
+- Next: Gate S (USB, the user's JSON export), add build 2 to "Developer", the user installs and runs the checks.
+
 ## Acceptance
 
 - [ ] Server tests green; `wrangler dev` smoke from the Simulator: sign in, rename, sign out, delete.
