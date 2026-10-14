@@ -1,22 +1,18 @@
 # Current project state
 
-Updated **2026-10-14** (ticket 06's app half implemented and in review; TestFlight build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-14** (ticket 06 merged; ticket 10 closed without change; 05 next; TestFlight build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: ticket 06 app half — implemented, under review (2026-10-14)
+## NOW: ticket 05 rest next (2026-10-14)
 
-- **`main` = `0998e40`** (pushed; the user fast-forwarded it to the 03 handoff). Work is on
-  **`ericlee4992/beta-06-ai-proxy-app`** (pushed). The user approved the screens and every new string.
-- **Done:** the three AI flows go through the server signed in (`Domain/AIServerClient.swift`); the OpenAI key field,
-  `AskAIKeyStore`, `TerraClient` and the app's prompt copies are gone; a launch purge deletes an old keychain key.
-  Unit tests 986/986. Deployed checks done with a temporary test account (deleted): a max-size scan uses 43–45 ms CPU,
-  an app-sized scan 15–16 ms — over Workers Free's 10 ms, yet all succeeded; **the user chose to stay on Free for now
-  and revisit before external testers (08)**. Adversarial inputs stayed on task. Paused/limit/401 answer correctly.
-- **Codex clear (round 4)**; unit 992/992; targeted UI 77/79 + Settings 10/10 after a test-helper fix — the one other
-  failure also fails on `main` (below). Evidence in `/tmp/wt-floodlight/results/06app/`; details in the ticket.
-- **Next:** the user's go-ahead to merge, then ticket 10 (research already done: OpenAI
-  lists `gpt-6.1-sol` at $2 / $0.10 cached / $10 vs Terra $2 / $0.20 / $12 — cheaper; Responses API, `medium` effort,
-  structured outputs and images supported). The phone's live smoke of 06 waits for TestFlight build 3 (after 05).
+- **`main` = `507c1dd`** (pushed): ticket 06's app half merged (Codex clear, round 4; the user's go-ahead).
+  `ericlee4992/beta-10-model-sol` holds docs only (ticket 10's record, this STATE) — merge with 05's branch.
+- **06 left:** the phone's live smoke of each AI flow with TestFlight build 3 (after 05). The user keeps Workers Free
+  for now (scans use 15–45 ms CPU vs its 10 ms); revisit before external testers (08).
+- **10 closed without change:** Sol is cheaper per token but not per request here (scans/suggestions the same, Ask AI
+  weeks ~25 % dearer) and 2–3× slower; **the user kept Terra**. Measurements in the ticket.
+- **Next:** 05 rest — Ask AI prefill from the training profile + the "Save to my training profile" switch (approved
+  mock 2026-10-03) → TestFlight build 3 (with 06's phone smoke).
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `6450e294` seen in the logs on 2026-10-14).
   Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
   `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8`
@@ -26,9 +22,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## Agreed order to external testers (the user, 2026-10-13)
 
 1. **06 app half** — AI through the server: remove the OpenAI key screen, sign-in required for AI, daily limits;
-   then the deployed max-size-scan CPU check and the adversarial check. *(In review, above.)* [ticket](../work-record/public-beta/issues/06-ai-proxy.md)
-2. **10** — GPT-6.1 Sol (the user: cheaper than 5.6 Terra). Verify ID/price/parameters first; stop if dearer.
-   Server constant + redeploy; the app's direct-key constant too. [ticket](../work-record/public-beta/issues/10-model-sol.md)
+   then the deployed max-size-scan CPU check and the adversarial check. *(Merged 2026-10-14; phone smoke with build 3.)* [ticket](../work-record/public-beta/issues/06-ai-proxy.md)
+2. **10** — GPT-6.1 Sol. *Closed 2026-10-14 without change: not cheaper per request, slower; the user kept Terra.* [ticket](../work-record/public-beta/issues/10-model-sol.md)
 3. **05 rest** — Ask AI prefill from the training profile + "Save to my training profile" switch (on by default)
    → **TestFlight build 3**. [ticket](../work-record/public-beta/issues/05-profile.md)
 4. **04** — Google sign-in; the user creates the Google Cloud project/iOS OAuth client first (Claude guides in Chrome).
@@ -69,11 +64,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 | 03 server + Sign in with Apple | **Done 2026-10-13**: deployed; app half Codex clear (round 3); build 2 verified by the user. |
 | 04 Google sign-in | Ready; 4th in order; needs the user's Google OAuth client. |
 | 05 profile | Page live since build 2; Ask AI prefill + save switch left (3rd). |
-| 06 AI proxy | Server half deployed; app half implemented, in review (1st); phone smoke with build 3. |
+| 06 AI proxy | **Merged** (`507c1dd`); deployed checks done; phone smoke with build 3. |
 | 07 feedback | **Done**; live since build 2. |
 | 08 external testers | Privacy draft merged, unpublished; waits on the user's answers (6th). |
 | 09 App Store | Not started. |
-| 10 model Sol | Ready (2nd). |
+| 10 model Sol | **Closed, no change** (the user kept Terra after measurements). |
 | 11 safety copy | Ready (5th); design questions first. |
 
 ## Working conventions (in force)

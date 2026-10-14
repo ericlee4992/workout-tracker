@@ -1,9 +1,9 @@
 # 06 — AI through the server
 
 Type: task
-Status: **server half Codex clear (round 4, 2026-10-03), merged and deployed** (2026-10-13, with ticket 03). **Next: the app
-half** — the app sends AI requests through the server, the on-device key screen goes, AI needs sign-in, daily limits
-shown; then the deployed max-size-scan CPU check and the adversarial check. First in the agreed order (STATE).
+Status: **server half** Codex clear (round 4, 2026-10-03), deployed 2026-10-13. **App half Codex clear (round 4,
+2026-10-14), merged to `main` `507c1dd` (the user's go-ahead).** Deployed CPU and adversarial checks done (the user keeps
+Workers Free for now; revisit before 08). **Left: the phone's live smoke of each flow with TestFlight build 3.**
 Blocked by: — (03 done 2026-10-13)
 Implementer: Claude (server half, the user's order 2026-10-03); Reviewer: Codex.
 Branch: `ericlee4992/beta-06-ai-proxy` off `main`.
