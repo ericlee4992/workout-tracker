@@ -1,8 +1,9 @@
 # 04 — Google sign-in
 
 Type: task
-Status: ready-for-agent (after 03)
-Blocked by: 03
+Status: ready-for-agent — fourth in the agreed order (STATE). Needs the user's Google Cloud project and iOS OAuth
+client first (~20 min; Claude guides in Chrome, the user signs in and accepts terms).
+Blocked by: — (03 done 2026-10-13)
 Implementer: Codex (default); Reviewer: Claude — or the reverse.
 Branch: `ericlee4992/beta-04-google` off `main`.
 Spec: [spec.md](../spec.md) → *Accounts*. Decision: D60.

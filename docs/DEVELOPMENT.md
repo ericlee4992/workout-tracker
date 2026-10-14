@@ -275,8 +275,10 @@ against the installed build's commit and record the finding in the ticket. Teste
 comes from the app: migrations tested against a copy of real data, the developer installing each build first, iOS's
 own backup, and (planned before external testers) an automatic in-app safety copy before a migration.
 
-**TestFlight and App Store builds cannot be copied from** (no `get-task-allow`); in-app JSON Export is the routine
-backup there. Before a risky update (a schema change, a migration) on a phone running TestFlight, use the
+**TestFlight and App Store builds were expected not to be copyable** (no `get-task-allow`), yet on 2026-10-13 a direct
+`devicectl … copy from` of the installed TestFlight build 0.1.0 (1) on this phone (iOS 27.0) worked and matched Gate S
+row for row (ticket 01 → Phase E). Before relying on it for a store-changing update, re-run the copy and compare; if it
+fails, fall back to the bridge below. In-app JSON Export remains the routine backup. Before a risky update (a schema change, a migration) on a phone running TestFlight, use the
 **backup bridge**: turn off TestFlight's Automatic Updates for the app; build a development build from **the exact
 commit of the installed TestFlight build** (recorded per upload in the ticket and STATE) — never the new code, whose
 first launch could migrate or repair the store before the backup; with the app closed, install it over the

@@ -1,7 +1,7 @@
 # 07 — Feedback section
 
 Type: task
-Status: **Codex clear (round 3, 2026-10-03)**; waiting for the user's go-ahead to merge. Form approved by the user 2026-10-03
+Status: **Done** — Codex clear (round 3, 2026-10-03), merged; live since build 2 (`WT_SERVER_URL` set, ticket 03); signed-in feedback read back from production 2026-10-13. Form approved by the user 2026-10-03
 Blocked by: — (03's server half is merged; feedback works signed out, so 03's app half is not needed)
 Implementer: Claude; Reviewer: Codex (as for 01–03).
 Branch: `ericlee4992/beta-07-feedback` off `main`.

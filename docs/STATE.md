@@ -1,70 +1,98 @@
 # Current project state
 
-Updated **2026-10-13** (paid team, App Store Connect record, server resources, ticket 01b, first TestFlight upload).
-The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is archived
-byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
+Updated **2026-10-14** (ticket 03 done and deployed, TestFlight build 2 on the phone, the agreed order for the rest of
+the beta). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: the phone runs the TestFlight build; ticket 01 done
+## NOW: start ticket 06's app half (nothing in progress)
 
-- **`main` = `936b18f`** (pushed): everything through ticket 01b. **This branch** `ericlee4992/beta-01e-testflight`
-  holds ticket 01's phase E record and this STATE (docs only; not yet in `main` — merge at the user's go-ahead).
-- **Installed from TestFlight 2026-10-13 ~04:35 EDT: Stacked 0.1.0 (1) = `main` `936b18f`**, in place, Automatic
-  Updates **off**. Gate S before it and a direct capture after it are identical (every row, every preference);
-  the exports match (31 workouts, 411 sets). Evidence: [ticket 01 → Phase E](../work-record/public-beta/issues/01-paid-team-testflight.md).
-- **This phone can copy the TestFlight build's container over USB** (unexpected; DEVELOPMENT says it cannot). The
-  user skipped the backup-bridge proof; before each TestFlight update: confirm the copy still works, then Gate S by
-  direct capture. Update DEVELOPMENT's TestFlight paragraph accordingly (not done yet).
-- **Next build to testers:** bump the build number (2, 3, …) in the project, archive from a recorded `main` commit,
-  upload, Gate S, add to "Developer" by hand, the user installs from TestFlight.
+- **`main` = `d6ebaba`** (pushed). This handoff (docs only) is on `ericlee4992/beta-03-deploy`, one commit ahead and
+  pushed; fast-forward `main` to it at the user's go-ahead, then branch 06 off `main`. Every other `beta-*` branch is
+  in `main`; nothing is uncommitted or running.
+- **Server live:** https://stacked-server.stacked-server.workers.dev (Cloudflare Worker, first deploy version
+  `6cfac3a8-2f32-4ee1-b48d-e9c86eeb1381`, cron `23 * * * *`). Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY,
+  TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID` `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple
+  `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8` (0600, never committed). Feedback is read with
+  `node scripts/feedback.mjs list|show` (a transient wrangler error 7403 once; retry).
+- **Next:** new branch `ericlee4992/beta-06-ai-proxy-app` off `main`, then the agreed order below. UI-first: show
+  captures (Default and AccessibilityL, light and dark) and list every new string for the user before wiring.
+
+## Agreed order to external testers (the user, 2026-10-13; "go" not yet given for 06)
+
+1. **06 app half** — AI through the server: remove the OpenAI key screen, sign-in required for AI, daily limits;
+   then the deployed max-size-scan CPU check and the adversarial check. [ticket](../work-record/public-beta/issues/06-ai-proxy.md)
+2. **10** — GPT-6.1 Sol (the user: cheaper than 5.6 Terra). Verify ID/price/parameters first; stop if dearer.
+   Server constant + redeploy; the app's direct-key constant too. [ticket](../work-record/public-beta/issues/10-model-sol.md)
+3. **05 rest** — Ask AI prefill from the training profile + "Save to my training profile" switch (on by default)
+   → **TestFlight build 3**. [ticket](../work-record/public-beta/issues/05-profile.md)
+4. **04** — Google sign-in; the user creates the Google Cloud project/iOS OAuth client first (Claude guides in Chrome).
+5. **11** — automatic safety copy of each tester's data before a store-changing update → **build 4**.
+   Design questions are in the [ticket](../work-record/public-beta/issues/11-safety-copy.md).
+6. **08** — external testers: privacy policy at `/privacy` and `/support`, App Privacy answers, external group, beta
+   description, feedback email, Beta App Review, invites. **The user still owes:** legal name, support email,
+   effective date, feedback retention (suggested 1 year), age statement (suggested "not for under 13"). Server
+   hygiene: verify AI limits in production, rehearse the off switch, write down the D1 backup procedure. A
+   release-candidate test pass.
 
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
-- **Installed: TestFlight 0.1.0 (1)** from `main` `936b18f` (expires ~2027-01-11, 90 days after upload). Development
-  builds, if ever needed, sign on the **paid team** — profiles app `c8b27150…`, widget `0e309c14…`, both to
-  **2027-10-13T04:33Z**. Phone check passed (the user, 2026-10-13: beep while locked/minimized, no repeat after an
-  AirPod route change, next rest beeps, heart rate verified by the user).
-- **Latest verified backup:** `~/WorkoutTracker-Backups/2026-10-13-testflight/` — Gate S (`capture-1/2`,
-  `phone-export.json`, round trip exit 0) and `tf-capture` after the TestFlight install (identical); 31 workouts. Captures need USB;
-  Wi-Fi copies fail. The app stays closed during a capture; a failed process query proves nothing.
-- Known, accepted: a long workout title truncates beside Cancel (seen with "Seated Che…"). Pre-existing, open: the
-  minimized workout's Live Activity heart rate gets no recurring update (ticket 01b, R3-P1).
+- **Installed: TestFlight Stacked 0.1.0 (2) = `main` `5836b68`** (uploaded 2026-10-13 23:17 EDT, in place over build 1;
+  Automatic Updates **off**). No Gate S before it — no store change in `936b18f..5836b68` (the backup rule below).
+  The user verified real Apple sign-in and signed-in feedback ("I confirm 03 works"); account deletion/Apple
+  revocation was not separately itemised. Still uses the on-device OpenAI key for AI until 06's app half ships.
+- **Builds:** bump the build number (next **3**; 10 occurrences in `project.pbxproj`), archive from a recorded `main`
+  commit in `/tmp/wt-live02` (holds the paid-team `Config/Local.xcconfig`; `git checkout --detach <commit>` there),
+  upload, add to internal group "Developer" by hand, the user installs from TestFlight. Auto-updates stay off.
+- **Backups (the user, 2026-10-13: "yes skip the backup"):** Gate S only when an update changes what the phone stores
+  — [DEVELOPMENT → When a backup is required](DEVELOPMENT.md). Otherwise check the diff against the installed commit
+  and record it in the ticket. A direct USB copy of the TestFlight container worked once (2026-10-13); re-check before
+  relying on it.
+- **Latest backup:** `~/WorkoutTracker-Backups/2026-10-13-testflight/` (31 workouts, 411 sets; round trip exit 0).
+  Captures need USB; the app stays closed; a failed process query proves nothing. Erase WT-Backup-01 after every use.
+- Known: a long workout title truncates beside Cancel. Open: the minimized Live Activity's heart rate gets no
+  recurring update (01b R3-P1); the home-screen widget was not checked on the TestFlight build.
 
-## ACTIVE: public beta ("Stacked")
-
-Plan: **[spec](../work-record/public-beta/spec.md)**, decision **D60**, tickets
-[`work-record/public-beta/issues/`](../work-record/public-beta/issues/). Conventions: one branch per ticket off `main`;
-Claude implements, Codex reviews to "clear" in a visible Orca terminal (watch the report file); the user's go-ahead
-before every merge; `scripts/check-secrets.sh --staged` before every commit (public repo); secrets typed or piped by
-the user locally, never in chat or the repo; decline desktop control (`orca computer …`); the user accepts legal
-terms themselves; Claude never enters credentials.
+## Tickets
 
 | Ticket | State (evidence in each ticket) |
 |---|---|
-| 01 paid team + TestFlight | **Done.** **B done** (paid team kept Team ID `X68M8SR6NA`; app IDs unchanged, so **D's delete/restore is not needed**). **C done**: App Store Connect app **"Stacked: Gym Log"** (Apple ID `6822152192`, SKU `stacked-ios`; "Stacked" was taken; home-screen name stays "Stacked"), TestFlight internal group "Developer", automatic distribution off, the user as tester. Year-long dev build installed in place and checked. **E done**: build 1 installed from TestFlight (step 4 skipped by the user). |
-| 01b background mode | **Done, merged** (`936b18f`): Codex clear round 4; unit 31/31; phone check passed. |
-| 02 onboarding | Merged (`4823d46`). On the phone since the paid-team build; reaches testers with TestFlight. |
-| 03 server + Sign in with Apple | Server half merged. **Cloudflare (2026-10-13):** wrangler logged in; D1 `stacked` (`3652ad5c-7c0b-4b75-874b-6ab2ad7ce8ec`, in `server/wrangler.jsonc`), migrations 0001–0005 applied remotely; R2 bucket `stacked-feedback`. **Not deployed.** Left (server/README "First deploy"): Sign in with Apple key (.p8) and the capability on the bundle ID, `APPLE_TEAM_ID`, `wrangler secret put` APPLE_KEY_ID / APPLE_PRIVATE_KEY / TOKEN_ENC_KEY / OPENAI_API_KEY (the user types them), `npm run deploy` with the user's approval. App half next (unblocks 05, 06's app switch, signed-in 07). |
-| 04 Google sign-in | Held: the user's Google Cloud OAuth client; after 03's app half. |
-| 05 profile | Merged (mock approved + server side); wiring waits on 03's app half. |
-| 06 AI proxy | Server half merged; app switch after 03; deployed CPU/adversarial checks before external testers. |
-| 07 feedback | Merged; row hidden until `WT_SERVER_URL` is set. |
-| 08 external testers | Privacy draft merged, unpublished; needs the user's answers (legal name, support email, retention, App Privacy choices). |
+| 01 paid team + TestFlight | **Done** (App Store Connect "Stacked: Gym Log", Apple ID `6822152192`; group "Developer"). |
+| 01b background mode | **Done**, merged. |
+| 02 onboarding | **Done**, merged; on the phone. |
+| 03 server + Sign in with Apple | **Done 2026-10-13**: deployed; app half Codex clear (round 3); build 2 verified by the user. |
+| 04 Google sign-in | Ready; 4th in order; needs the user's Google OAuth client. |
+| 05 profile | Page live since build 2; Ask AI prefill + save switch left (3rd). |
+| 06 AI proxy | Server half deployed; **app half next** (1st). |
+| 07 feedback | **Done**; live since build 2. |
+| 08 external testers | Privacy draft merged, unpublished; waits on the user's answers (6th). |
 | 09 App Store | Not started. |
+| 10 model Sol | Ready (2nd). |
+| 11 safety copy | Ready (5th); design questions first. |
 
-## Next action
+## Working conventions (in force)
 
-1. Merge `ericlee4992/beta-01e-testflight` (docs) at the user's go-ahead; update DEVELOPMENT's TestFlight paragraph.
-2. Server first deploy (03), then 03's app half → 05/06/07 wiring; 04 later; 08 answers; 09.
-3. Clean-up when E is done: scratch checkouts `/tmp/wt-resign` (detached `b83cf39`) and `/tmp/wt-live02` (detached
-   `936b18f`, holds the paid-team `Config/Local.xcconfig`; used for archiving).
-4. Still waiting on the user from before: visual acceptance of the Floodlight redesign on the phone. Not yet exercised
-   anywhere: VoiceOver by a person, Reduce Motion at runtime, real GPS and sensors on the redesigned cardio screens,
-   Lock Screen commands on a device, a restore from a backup on a phone, a non-US simulator region.
+One branch per ticket off `main`; Claude implements, Codex reviews to "clear" in a visible Orca terminal
+(`orca terminal create --worktree current --title … --command 'codex "$(cat <prompt>)"'`; watch the report file for the
+`Verdict:` line, not Orca's idle state). The user's go-ahead before every merge (`git merge --ff-only`, push, confirm
+the remote). `scripts/check-secrets.sh --staged` before every commit (public repo). Secrets are typed or piped by the
+user locally, never in chat or the repo; never ask for the OpenAI key. Decline desktop control (`orca computer …`); the
+user accepts legal terms and Claude never enters credentials. Multi-class UI runs use
+`-parallel-testing-enabled YES -parallel-testing-worker-count 3`; unit tests serial; every run gets unique
+log/status/result paths; read the results before recording them. Show screenshots in Preview and by file. At each
+ticket's end: update STATE and the ticket and give the user a resume prompt.
 
 Simulators: **WT-Floodlight** `9E822EF6-DC67-4958-AEA2-D53D2D36D674` (iOS 27; targeted runs), **WT-Onboarding**
 `2CEC4AD8-F702-421F-B3B2-D68C302A3453` (sample data only), **WT-Backup-01** `A3D88C6F-6426-427A-9A0E-CF11A93798B1`
 (Gate S round trips; erase after every use).
+
+## Still waiting on the user / not yet exercised
+
+- Visual acceptance of the Floodlight redesign on the phone. Not exercised anywhere: VoiceOver by a person, Reduce
+  Motion at runtime, real GPS and sensors on the redesigned cardio screens, Lock Screen commands on a device, a restore
+  from a backup on a phone, a non-US simulator region.
+- Scratch to remove when no longer needed (ask first): `/tmp/wt-resign` (detached `b83cf39`); `/tmp/wt-live02` is the
+  archive checkout — keep it. The Codex terminal "Review 03 app half" can be closed.
 
 ## Found 2026-10-02 (pre-existing, not caused by the public-beta work)
 

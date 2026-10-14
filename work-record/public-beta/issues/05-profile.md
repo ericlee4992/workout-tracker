@@ -2,9 +2,10 @@
 
 Type: task
 Status: mock **approved by the user 2026-10-03** (and the Ask AI decision); server side implemented; Codex review 05
-**Codex clear (round 3, 2026-10-03)**; waiting for the user's go-ahead to merge.
-Wiring (the page live, the editor saving, Ask AI prefill and save) waits on 03's app half (sign-in, the paid team).
-Blocked by: 03
+**Codex clear (round 3, 2026-10-03)**; merged. The page and editor went live with 03's app half (2026-10-13).
+**Left:** Ask AI prefill from the training profile and the "Save to my training profile" switch (on by default) —
+third in the agreed order, after 06 and 10 (STATE); the user noticed the missing prefill on build 2.
+Blocked by: — (03 done 2026-10-13)
 Implementer: Claude (the user's order 2026-10-03); Reviewer: Codex.
 Branch: `ericlee4992/beta-05-profile` off `main`.
 Spec: [spec.md](../spec.md) → *Profile page*. Decisions: D60 (amends D58), D52, D59.

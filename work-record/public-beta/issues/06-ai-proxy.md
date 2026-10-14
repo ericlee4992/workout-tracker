@@ -1,9 +1,10 @@
 # 06 — AI through the server
 
 Type: task
-Status: **server half Codex clear (round 4, 2026-10-03)**; waiting for the user's go-ahead to merge. The app switch waits on
-03's app half (the paid team).
-Blocked by: 03
+Status: **server half Codex clear (round 4, 2026-10-03), merged and deployed** (2026-10-13, with ticket 03). **Next: the app
+half** — the app sends AI requests through the server, the on-device key screen goes, AI needs sign-in, daily limits
+shown; then the deployed max-size-scan CPU check and the adversarial check. First in the agreed order (STATE).
+Blocked by: — (03 done 2026-10-13)
 Implementer: Claude (server half, the user's order 2026-10-03); Reviewer: Codex.
 Branch: `ericlee4992/beta-06-ai-proxy` off `main`.
 Spec: [spec.md](../spec.md) → *AI through the server*. Decisions: D60 (reopens D53, D56, D58 key rules).
