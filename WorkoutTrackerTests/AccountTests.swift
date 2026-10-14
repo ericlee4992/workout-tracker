@@ -135,7 +135,7 @@ struct AccountTests {
         let box = Box(token: token)
         let slot = AccountStore.TokenSlot(
             read: { box.token },
-            write: { if writeFails { throw AskAIKeyStore.KeychainError(status: -25300) }; box.token = $0 },
+            write: { if writeFails { throw AccountSessionStore.KeychainError(status: -25300) }; box.token = $0 },
             delete: { box.token = nil })
         return (AccountStore(client: client, slot: slot), box)
     }

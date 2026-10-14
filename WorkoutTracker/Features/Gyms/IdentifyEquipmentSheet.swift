@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import UIKit
 
-/// One photograph, one Terra request, then an editable proposal (D56).
+/// One photograph, one AI request through the app's server (D56, D60), then an editable proposal.
 ///
 /// Floodlight redesign ticket 07: one "Scan Machine" sheet driven by its step — consent (before
 /// the camera, user decision 2) → sign in (ticket 06) → camera → identifying → error / result → added. Two
@@ -291,7 +291,8 @@ struct IdentifyEquipmentSheet: View {
         photo = image
         let id = UUID(); requestID = id
         let jpeg = EquipmentPhoto.jpeg(image)
-        let candidates = exercises.filter(\.isSeeded).map { "\($0.id.uuidString) | \($0.name) | \($0.loadType.rawValue)" }.joined(separator: "\n")
+        let candidates = exercises.filter(\.isSeeded).map { (id: $0.id, name: $0.name, loadType: $0.loadType.rawValue) }
+        let client = TerraAccess.client(account)
         let allowed = Set(exercises.filter(\.isSeeded).map(\.id))
         let fixtureID = exercises.first { $0.name == "Seated Chest Press" }?.id ?? exercises.first?.id
         work = Task {
@@ -310,9 +311,10 @@ struct IdentifyEquipmentSheet: View {
                         answer = EquipmentIdentification(identity: "generic", label: "Chest press", manufacturer: "", modelName: "", visibleText: "", exerciseIDs: fixtureID.map { [$0] } ?? [])
                     }
                 } else {
-                    guard let client = TerraAccess.client, let jpeg else { throw TerraError.invalidResponse }
-                    let data = try await client.complete(instructions: EquipmentIdentification.instructions, input: candidates,
-                                                         schema: EquipmentIdentification.schema, name: "equipment_identity", jpeg: jpeg)
+                    guard let client else { throw AIServerError.signedOut }
+                    guard let jpeg else { throw AIServerError.invalid }
+                    let data = try await client.complete(.scanMachine,
+                                                         json: AIServerClient.scanBody(exercises: candidates, jpeg: jpeg))
                     answer = try JSONDecoder().decode(EquipmentIdentification.self, from: data).validated(allowed: allowed)
                 }
                 guard !Task.isCancelled, requestID == id else { return }

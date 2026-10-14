@@ -217,7 +217,7 @@ enum AccountSessionStore {
         attributes[kSecValueData as String] = Data(token.utf8)
         attributes[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         let status = SecItemAdd(attributes as CFDictionary, nil)
-        guard status == errSecSuccess else { throw AskAIKeyStore.KeychainError(status: status) }
+        guard status == errSecSuccess else { throw KeychainError(status: status) }
     }
 
     static func delete() {
@@ -229,5 +229,10 @@ enum AccountSessionStore {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: service,
          kSecAttrAccount as String: account]
+    }
+
+    struct KeychainError: Error, LocalizedError {
+        let status: OSStatus
+        var errorDescription: String? { "Could not save the sign-in to the keychain (\(status))." }
     }
 }

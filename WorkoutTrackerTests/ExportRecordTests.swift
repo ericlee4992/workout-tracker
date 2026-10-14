@@ -109,10 +109,4 @@ struct ExportRecordTests {
         ExportRecord.clear(defaults)
         #expect(ExportRecord.read(defaults) == nil)
     }
-
-    @Test func keyHintShowsTheLastFourOnly() {
-        #expect(AskAIKeyHint.masked("sk-proj-7Hq2c9Tza1b2") == "sk-…a1b2")
-        #expect(AskAIKeyHint.masked("  abcdefgh1234\n") == "…1234")
-        #expect(AskAIKeyHint.masked("short") == "…")
-    }
 }

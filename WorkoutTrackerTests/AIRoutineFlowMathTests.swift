@@ -98,8 +98,8 @@ struct AIRoutineFlowMathTests {
     }
 
     @Test func errorTextSplitsWhatFromWhatToDo() {
-        let offline = AIRoutineErrorText.split("Could not reach OpenAI. Check your connection or continue manually.")
-        #expect(offline.what == "Could not reach OpenAI.")
+        let offline = AIRoutineErrorText.split(AIServerError.offline.localizedDescription)
+        #expect(offline.what == "Could not reach the server.")
         #expect(offline.next == "Check your connection.")
         #expect(AIRoutineErrorText.split("AI returned an invalid session.").next == nil)
     }

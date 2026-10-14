@@ -86,11 +86,11 @@ struct ExerciseProposalTests {
         }
     }
 
-    @Test func theStubOnlyEverAnswersFromTheListItWasSent() async throws {
+    @MainActor @Test func theStubOnlyEverAnswersFromTheListItWasSent() async throws {
         let stub = StubExerciseProposer(failure: nil)
         let proposals = try await stub.propose(plate: plate, candidates: candidates)
         #expect(proposals.map(\.id) == [shoulder.id])
         #expect(try await stub.propose(plate: plate, candidates: []).isEmpty)
-        #expect(AskAI.proposer == nil, "no key → no proposer, like no transcriber")
+        #expect(AskAI.proposer(AccountStore(client: nil)) == nil, "signed out → no proposer (ticket 06)")
     }
 }

@@ -163,9 +163,16 @@ final class FloodlightAIAccessUITests: XCTestCase {
         XCTAssertTrue(any("routineRetry").waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 0.8)
         shoot("ai06-routine-limit-\(suffix)")
-        app.terminate()
+    }
 
-        // New Model from a read plate, signed out: the suggestion asks to sign in.
+    func testCaptureNewModelLightDefault() { captureNewModel(appearance: "light", large: false) }
+    func testCaptureNewModelLightAccessibility() { captureNewModel(appearance: "light", large: true) }
+    func testCaptureNewModelDarkDefault() { captureNewModel(appearance: "dark", large: false) }
+    func testCaptureNewModelDarkAccessibility() { captureNewModel(appearance: "dark", large: true) }
+
+    /// New Model from a read plate, signed out: the suggestion asks to sign in.
+    private func captureNewModel(appearance: String, large: Bool) {
+        let suffix = "\(appearance)-\(large ? "axl" : "default")"
         launch(appearance: appearance, large: large, flags: ["-uiTestProfileSignedOut", "-uiTestScanFixture"])
         app.tabBars.buttons["Gyms"].tap()
         let iron = any("gymRow.Iron Temple")
@@ -187,9 +194,11 @@ final class FloodlightAIAccessUITests: XCTestCase {
         let bar = app.buttons["scanUseCandidate"]
         for _ in 0..<8 where !(create.isHittable && (!bar.exists || create.frame.maxY < bar.frame.minY - 20)) { app.swipeUp() }
         create.tap()
-        let suggest = app.buttons["newModelSuggestExercises"]
-        XCTAssertTrue(suggest.waitForExistence(timeout: 5))
-        for _ in 0..<8 where !onScreen(any("newModelSuggestSignIn"), floor: app.frame.maxY - 30) { app.swipeUp() }
+        // A Form's rows exist once scrolled into view (the section starts below the fold at AX sizes).
+        XCTAssertTrue(app.navigationBars["New Model"].waitForExistence(timeout: 5))
+        let note = any("newModelSuggestSignIn")
+        for _ in 0..<10 where !onScreen(note, floor: app.frame.maxY - 30) { app.swipeUp(); Thread.sleep(forTimeInterval: 0.4) }
+        XCTAssertTrue(app.buttons["newModelSuggestExercises"].exists && note.exists)
         Thread.sleep(forTimeInterval: 0.6)
         shoot("ai06-newmodel-signedout-\(suffix)")
     }

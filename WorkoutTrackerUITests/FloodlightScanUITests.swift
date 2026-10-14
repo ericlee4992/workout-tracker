@@ -1,7 +1,7 @@
 import XCTest
 
 // Floodlight redesign ticket 07: the Scan sheets — Scan Machine (consent, camera, identifying,
-// the result for each identity, the error, no key, Change exercises, Added), Read Label
+// the result for each identity, the error, sign in (public beta 06), Change exercises, Added), Read Label
 // (viewfinder, results) and Correct Model — on record in light and dark at Default and
 // AccessibilityL on the design sample's Iron Temple; plus the direct-add and correction flows.
 final class FloodlightScanUITests: XCTestCase {
@@ -148,7 +148,7 @@ final class FloodlightScanUITests: XCTestCase {
         XCTAssertTrue(any("scanMachine").waitForExistence(timeout: 5))
     }
 
-    // MARK: The other identities, the error, no key, Change exercises
+    // MARK: The other identities, the error, sign in (public beta 06), Change exercises
 
     func testCaptureOutcomesLightDefault() { captureOutcomes(appearance: "light", large: false) }
     func testCaptureOutcomesLightAccessibility() { captureOutcomes(appearance: "light", large: true) }
@@ -213,16 +213,16 @@ final class FloodlightScanUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1.0)
         shoot("floodlight-07-error-\(suffix)")
 
-        // No key: consent first, then the key step (no Terra fixture, no key stored).
+        // Signed out (ticket 06): consent first, then the sign-in step (no Terra fixture, no account).
         launch([], appearance: appearance, large: large)
         openScan()
-        // Photo consent may already be stored on this simulator; the key step follows it either way.
+        // Photo consent may already be stored on this simulator; the sign-in step follows it either way.
         let allow = app.buttons["allowAIPhotos"]
         if allow.waitForExistence(timeout: 5) { allow.tap() }
-        XCTAssertTrue(app.buttons["scannerAISettings"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["scannerSignIn"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["scanManual"].exists)
         Thread.sleep(forTimeInterval: 0.8)
-        shoot("floodlight-07-nokey-\(suffix)")
+        shoot("floodlight-07-signin-\(suffix)")
         // Choose a catalog model hands over to the machine form.
         app.buttons["scanManual"].tap()
         XCTAssertTrue(app.textFields["machineLabel"].waitForExistence(timeout: 5))

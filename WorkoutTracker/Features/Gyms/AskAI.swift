@@ -1,7 +1,7 @@
 import Foundation
 
 /// Historical plate-reader compatibility for the explicit on-device scanner's test fixtures.
-/// Production AI recognition is IdentifyEquipmentSheet → TerraClient (D56); no Anthropic key is read.
+/// Production AI recognition is IdentifyEquipmentSheet → AIServerClient (D56, D60); no key is read.
 protocol PlateTranscriber: Sendable {
     func transcribe(jpeg: Data) async throws -> PlateTranscription
 }
@@ -119,11 +119,11 @@ enum AskAI {
         return nil // Replaced by consent-gated IdentifyEquipmentSheet; no legacy network calls.
     }
 
-    /// Ticket 06: the create-new sheet's "Suggest exercises with AI".
-    static var proposer: ExerciseProposer? {
+    /// Ticket 06: the create-new sheet's "Suggest exercises with AI" —
+    /// through the server for the signed-in session (public beta 06).
+    @MainActor static func proposer(_ account: AccountStore) -> ExerciseProposer? {
         if fixtureIsEnabled || TerraAccess.fixture { return StubExerciseProposer(failure: stubFailure) }
-        guard let key = AskAIKeyStore.read() else { return nil }
-        return TerraExerciseProposer(client: TerraClient(key: key))
+        return TerraAccess.client(account).map(ServerExerciseProposer.init(client:))
     }
 
     private static var stubFailure: PlateTranscriptionError? {
@@ -179,14 +179,14 @@ struct StubExerciseProposer: ExerciseProposer {
     }
 }
 
-/// Compatibility for manual catalog creation: the remaining exercise suggestion also uses Terra.
-struct TerraExerciseProposer: ExerciseProposer {
-    let client: TerraClient
+/// The server's `model-exercises` flow: the plate and the app's list in, ids from that list out — then the same
+/// parse as ever (unknown and repeated ids dropped, at most six), whatever the server checked.
+struct ServerExerciseProposer: ExerciseProposer {
+    let client: AIServerClient
     func propose(plate: PlateDescription, candidates: [ExerciseCandidate]) async throws -> [ExerciseProposal] {
         guard !candidates.isEmpty else { return [] }
-        let text = "Plate: \(plate.brand) \(plate.model) \(plate.lines.joined(separator: " / "))\n" + candidates.map { "\($0.id) | \($0.name) | \($0.muscleGroup ?? "-")" }.joined(separator: "\n")
-        let data = try await client.complete(instructions: ExerciseProposalAPI.prompt, input: text,
-            schema: ExerciseProposalAPI.schema(candidateIDs: candidates.map(\.id.uuidString)), name: "exercise_proposals")
+        let data = try await client.complete(.modelExercises,
+                                             json: AIServerClient.modelExercisesBody(plate: plate, candidates: candidates))
         let wrapped = try JSONSerialization.data(withJSONObject: ["content": [["type": "text", "text": String(decoding: data, as: UTF8.self)]]])
         return try ExerciseProposalAPI.parse(wrapped, candidates: candidates)
     }

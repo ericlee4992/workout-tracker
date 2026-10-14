@@ -98,22 +98,6 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertTrue(app.sheets.firstMatch.waitForNonExistence(timeout: 5), "the dialog closed")
     }
 
-    /// Types into the secure key field once the keyboard is up and the sheet has stopped moving:
-    /// the sheet grows to full height as the keyboard rises, and keys typed during that move were
-    /// lost (settings-ui-6, seen in its screen recording). Verifies the length and retypes once.
-    private func typeKey(_ field: XCUIElement, _ text: String) {
-        field.tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 1.2)
-        field.typeText(text)
-        if (field.value as? String)?.count != text.count {
-            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 30))
-            Thread.sleep(forTimeInterval: 0.8)
-            field.typeText(text)
-        }
-        XCTAssertEqual((field.value as? String)?.count, text.count, "the typed key stays in the field (as dots)")
-    }
-
     // MARK: Captures
 
     func testCaptureSettingsLightDefault() { capture(appearance: "light", large: false) }
@@ -138,48 +122,18 @@ final class FloodlightSettingsUITests: XCTestCase {
         shoot("floodlight-09-x01-metric-\(suffix)")
         app.buttons["appUnitPreference.usCustomary"].tap()
 
-        // X02 with a key: the key card, then (AX) down to Remove key.
+        // X02 (ticket 06: no key; this store has no account): Off with Sign In, then the permissions.
         let askAI = app.buttons["askAISettings"]
         reach(askAI)
+        XCTAssertEqual(askAI.label, "Ask AI, Sign In")
         askAI.tap()
         let done = app.buttons["askAIDone"]
         XCTAssertTrue(done.waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 1.0)
-        XCTAssertTrue(any("askAIKeyHint").exists, "the saved key's hint is shown")
+        XCTAssertEqual(any("askAIStatus").label, "Ask AI, Off, Sign in to use AI.")
+        XCTAssertTrue(app.buttons["askAISignIn"].exists)
         shoot("floodlight-09-x02-\(suffix)-1")
-        page(to: app.buttons["askAIRemoveKey"], name: "floodlight-09-x02-\(suffix)")
-
-        // Typing a replacement: Save key appears.
-        let field = app.secureTextFields["askAIKeyField"]
-        for _ in 0..<4 where !field.isHittable { app.swipeDown() }
-        typeKey(field, "sk-proj-new9")
-        XCTAssertTrue(app.buttons["askAISaveKey"].waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 0.6)
-        // iOS blanks secure-entry text and its keyboard in screenshots: the shot shows Save key,
-        // not the dots.
-        shoot("floodlight-09-x02-typing-\(suffix)")
-        // Empty the field, then Return: with nothing typed, Return only ends editing.
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 20) + "\n")
-        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
-
-        // Remove key asks first; then Off.
-        let remove = app.buttons["askAIRemoveKey"]
-        reach(remove)
-        remove.tap()
-        let confirm = app.sheets.buttons["Remove key"].firstMatch
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 0.8)
-        shoot("floodlight-09-x02-remove-\(suffix)")
-        confirm.tap()
-        XCTAssertTrue(remove.waitForNonExistence(timeout: 5))
-        // Only as far as the key card: a swipe down at the top closes the sheet (settings-ui-2).
-        // "Off" below the sheet's header, not scrolled under it (codex-review-09).
-        let status = any("askAIStatus")
-        for _ in 0..<3 where !(status.exists && status.frame.minY > done.frame.maxY) { app.swipeDown() }
-        XCTAssertTrue(status.frame.minY > done.frame.maxY, "Off is on screen")
-        Thread.sleep(forTimeInterval: 0.8)
-        XCTAssertEqual(status.label, "Ask AI, Off")
-        shoot("floodlight-09-x02-nokey-\(suffix)")
+        page(to: app.links.firstMatch, name: "floodlight-09-x02-\(suffix)")
         done.tap()
         XCTAssertTrue(done.waitForNonExistence(timeout: 5))
 
@@ -258,50 +212,33 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertEqual(any("globalWorkingRest").value as? String, "2:15")
     }
 
-    /// Save shows On with the key's last four; Remove asks first, Cancel keeps it.
-    func testAskAIKeySaveAndRemove() {
-        launch(settingsFixture: false)
+    /// Ticket 06: no key anywhere. Signed out the row and the sheet say Sign In, which opens the sign-in sheet; signed
+    /// in they say On with who is signed in and today's use.
+    func testAskAIFollowsTheAccount() {
+        launch(extra: ["-uiTestProfileSignedOut"], settingsFixture: false)
         let row = app.buttons["askAISettings"]
         reach(row)
-        XCTAssertEqual(row.label, "Ask AI, Off")
+        XCTAssertEqual(row.label, "Ask AI, Sign In")
         row.tap()
         let status = any("askAIStatus")
         XCTAssertTrue(status.waitForExistence(timeout: 5))
-        XCTAssertEqual(status.label, "Ask AI, Off")
-        XCTAssertFalse(app.buttons["askAISaveKey"].exists, "no Save key until something is typed")
-        let field = app.secureTextFields["askAIKeyField"]
-        typeKey(field, "sk-test-abcd1234")
-        let save = app.buttons["askAISaveKey"]
-        XCTAssertTrue(save.waitForExistence(timeout: 5))
-        // Let the sheet finish moving with the keyboard before the tap (settings-ui-1).
-        Thread.sleep(forTimeInterval: 1.0)
-        save.tap()
-        let on = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Ask AI, On, key sk-…1234'"), object: status)
-        XCTAssertEqual(XCTWaiter.wait(for: [on], timeout: 5), .completed, status.label)
-        XCTAssertFalse(app.buttons["askAISaveKey"].exists, "the field is cleared after saving")
-        // Settings' row refreshes On when the sheet closes (codex-review-09).
+        XCTAssertEqual(status.label, "Ask AI, Off, Sign in to use AI.")
+        XCTAssertFalse(app.secureTextFields.firstMatch.exists, "no key field")
+        app.buttons["askAISignIn"].tap()
+        XCTAssertTrue(any("signInWithApple").waitForExistence(timeout: 5))
+        app.buttons["signInClose"].tap()
+        XCTAssertTrue(any("signInWithApple").waitForNonExistence(timeout: 5))
         app.buttons["askAIDone"].tap()
-        let rowOn = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Ask AI, On'"), object: row)
-        XCTAssertEqual(XCTWaiter.wait(for: [rowOn], timeout: 5), .completed, row.label)
+        app.terminate()
+
+        launch(extra: ["-uiTestProfileSample"], settingsFixture: false)
+        reach(row)
+        XCTAssertEqual(row.label, "Ask AI, On")
         row.tap()
         XCTAssertTrue(status.waitForExistence(timeout: 5))
-        XCTAssertEqual(status.label, "Ask AI, On, key sk-…1234", "the key is still saved on reopening")
-
-        let remove = app.buttons["askAIRemoveKey"]
-        reach(remove)
-        remove.tap()
-        XCTAssertTrue(app.sheets.buttons["Remove key"].firstMatch.waitForExistence(timeout: 5))
-        cancelDialog()
-        XCTAssertTrue(remove.waitForExistence(timeout: 5), "Cancel keeps the key")
-        Thread.sleep(forTimeInterval: 0.6)
-        remove.tap()
-        let confirm = app.sheets.buttons["Remove key"].firstMatch
-        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
-        confirm.tap()
-        let off = XCTNSPredicateExpectation(predicate: NSPredicate(format: "label == 'Ask AI, Off'"), object: status)
-        XCTAssertEqual(XCTWaiter.wait(for: [off], timeout: 5), .completed)
-        app.buttons["askAIDone"].tap()
-        XCTAssertEqual(row.label, "Ask AI, Off")
+        XCTAssertEqual(status.label, "Ask AI, On, Signed in as Alex Kim")
+        XCTAssertFalse(app.buttons["askAISignIn"].exists)
+        XCTAssertEqual(any("askAIUse.scan-machine").label, "Machine scans, 12 of 60 used today")
     }
 
     /// A cancelled share records nothing; a completed one (Copy) moves the mark to now.

@@ -749,7 +749,7 @@ struct AddModelSheet: View {
     /// leaves the sheet exactly as it was, with a note under the button.
     private func suggestExercises() {
         guard exerciseConsent || AskAI.fixtureIsEnabled else { return }
-        guard !proposing, let proposer = AskAI.proposer else { return }
+        guard !proposing, let proposer = AskAI.proposer(account) else { signingIn = !AskAI.isAvailable(account); return }
         let candidates = exercises.map {
             ExerciseCandidate(id: $0.id, name: $0.name, muscleGroup: $0.muscleGroup)
         }

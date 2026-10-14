@@ -104,14 +104,3 @@ enum BackupStatus {
         return Tally(marks: marks, span: span, exportDay: exportDay, start: start, end: today)
     }
 }
-
-/// The saved key as the Ask AI sheet shows it (ticket 09, user decision 3):
-/// the last four characters only, never more.
-enum AskAIKeyHint {
-    static func masked(_ key: String) -> String {
-        let trimmed = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count >= 8 else { return "…" }
-        let tail = String(trimmed.suffix(4))
-        return (trimmed.hasPrefix("sk-") ? "sk-…" : "…") + tail
-    }
-}

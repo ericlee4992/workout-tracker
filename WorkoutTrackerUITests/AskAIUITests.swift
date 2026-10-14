@@ -14,7 +14,7 @@ final class AskAIUITests: XCTestCase {
         for _ in 0..<20 {
             // The Ask AI flow (Floodlight ticket 10) pins its own bars: under its top bar and above its
             // step command, not the navigation bar and tab bar.
-            let pinned = ["routineNext", "generateAIRoutine", "routineAISettings", "saveAIRoutine"]
+            let pinned = ["routineNext", "generateAIRoutine", "routineSignIn", "saveAIRoutine"]
                 .map { app.buttons[$0] }.first { $0.exists && element.identifier != $0.identifier }
             let flowTop = app.buttons["routineCancel"].exists ? app.buttons["routineCancel"].frame.maxY + 56 : 0
             let top = max(app.navigationBars.firstMatch.frame.maxY + 8, flowTop)
@@ -474,24 +474,30 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["New Model"].exists)
     }
 
-    func testMissingKeyHasReachableSettings() { keySettings(large: false) }
-    func testMissingKeySettingsAccessibility() { keySettings(large: true) }
-    private func keySettings(large: Bool) {
+    func testSignedOutRoutineOffersSignIn() { signedOutRoutine(large: false) }
+    func testSignedOutRoutineAccessibility() { signedOutRoutine(large: true) }
+    /// Public beta ticket 06: no key anywhere. Signed out, Equipment offers Sign In instead of Generate (the sign-in
+    /// sheet), and its Ask AI row opens the Ask AI sheet — Sign In and the permissions, no key field.
+    private func signedOutRoutine(large: Bool) {
         app.launchArguments = ["-uiTestReset"] + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : [])
         app.launch(); app.tabBars.buttons["Workout"].tap()
         reach(app.buttons["askAIRoutine"]); app.buttons["askAIRoutine"].tap()
-        // Floodlight ticket 10: the flow opens without a key; Equipment offers Ask AI Settings instead of Generate.
         typeGoals("Build strength"); toEquipment()
-        let settings = app.buttons["routineAISettings"]; XCTAssertTrue(settings.waitForExistence(timeout: 5)); settings.tap()
+        let signIn = app.buttons["routineSignIn"]; XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["generateAIRoutine"].exists)
+        signIn.tap()
+        XCTAssertTrue(any("signInWithApple").waitForExistence(timeout: 5))
+        app.buttons["signInClose"].tap()
+        XCTAssertTrue(any("signInWithApple").waitForNonExistence(timeout: 5))
+        let row = any("routineAskAIRow"); reach(row); row.tap()
         // Floodlight ticket 09: the sheet opens at its content height (full height at AX sizes).
         let done = app.buttons["askAIDone"]
         let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in done.exists && done.isHittable }, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed)
-        shot("ai-key-settings-overview-\(large ? "axl" : "default")")
+        XCTAssertTrue(app.buttons["askAISignIn"].exists)
+        shot("ai-settings-signedout-\(large ? "axl" : "default")")
         reach(app.switches["Send equipment photos to OpenAI"].firstMatch)
-        shot("ai-key-settings-permissions-\(large ? "axl" : "default")")
-        let key = app.secureTextFields["askAIKeyField"]; reach(key)
-        XCTAssertTrue(key.exists)
-        shot("ai-key-settings-key-\(large ? "axl" : "default")")
+        shot("ai-settings-permissions-\(large ? "axl" : "default")")
+        XCTAssertFalse(app.secureTextFields.firstMatch.exists, "no key field")
     }
 }

@@ -233,7 +233,7 @@ export, 27 in a capture with its WAL cut off) while the same capture passed ever
 **Restore set** — the user's data and settings: `Library/Application Support/` (the store and its `-wal`/`-shm`),
 `Library/Preferences/<bundle-id>.plist` (`@AppStorage`: consents, appearance, last export, flags) and
 `Documents/`. Caches, snapshots, saved state and HTTP storage are rebuilt by iOS. Outside the container
-altogether: Keychain items (the OpenAI key; team-scoped), Health permissions (granted again) and the workouts the
+altogether: Keychain items (the sign-in session; team-scoped — the OpenAI key is gone since public beta 06), Health permissions (granted again) and the workouts the
 app saved to Health (they stay in Health; check them by eye before and after).
 
 **Stable backup (Gate S).** No workout in progress; a JSON export (Settings → Export → JSON) **sent to the Mac**

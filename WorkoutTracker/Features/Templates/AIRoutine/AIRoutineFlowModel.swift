@@ -105,7 +105,8 @@ final class AIRoutineFlowModel {
 
     /// Sends the request (options = what the AI may use at this gym). The wait shows timed stages
     /// (decision 1); the week appears as soon as the reply arrives.
-    func generate(options: [RoutineExerciseOption], gymName: String?, permitted: Bool) {
+    /// `client` is the signed-in session's (nil signed out: the request fails with "Sign in to use AI.").
+    func generate(options: [RoutineExerciseOption], gymName: String?, permitted: Bool, client: AIServerClient?) {
         guard permitted, hasGoals, !options.isEmpty || !cardio.isEmpty else { return }
         cancelTasks()
         let request = AIRoutineRequest(goals: goals, experience: experience, days: days, minutes: minutes,
@@ -133,7 +134,7 @@ final class AIRoutineFlowModel {
         }
         task = Task { [weak self] in
             do {
-                let result = try await Self.requestRoutine(request)
+                let result = try await Self.requestRoutine(request, client: client)
                 let valid = try result.validated(for: request)
                 guard let self, !Task.isCancelled, self.token == id else { return }
                 self.stageTask?.cancel()
@@ -151,8 +152,8 @@ final class AIRoutineFlowModel {
         }
     }
 
-    /// The Terra call (or the UI-test fixture's stand-in).
-    private static func requestRoutine(_ request: AIRoutineRequest) async throws -> AIRoutine {
+    /// The server call (or the UI-test fixture's stand-in).
+    private static func requestRoutine(_ request: AIRoutineRequest, client: AIServerClient?) async throws -> AIRoutine {
         if TerraAccess.fixture {
             try await TerraAccess.fixtureDelay()
             let full = WorkoutTrackerStore.fixtureIsEnabled("-uiTestTerraFullRoutine")
@@ -162,9 +163,8 @@ final class AIRoutineFlowModel {
                 }, cardio: request.cardioActivities.first.map { [AIRoutineCardio(activity: $0, minutes: 15)] } ?? [])
             })
         }
-        guard let client = TerraAccess.client else { throw TerraError.message("Add an OpenAI key in Settings.") }
-        let data = try await client.complete(instructions: AIRoutine.instructions, input: AISchema.text(request),
-                                             schema: AIRoutine.schema, name: "weekly_routine")
+        guard let client else { throw AIServerError.signedOut }
+        let data = try await client.complete(.routineWeek, encodable: request)
         return try JSONDecoder().decode(AIRoutine.self, from: data)
     }
 

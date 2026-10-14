@@ -18,6 +18,9 @@ struct WorkoutTrackerApp: App {
             if ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingFresh") {
                 UserDefaults.standard.removeObject(forKey: OnboardingCoordinator.welcomeSeenKey)
             }
+        } else {
+            // Public beta ticket 06: AI runs on the server; a key saved by an older build is removed.
+            LegacyOpenAIKey.purge()
         }
         do {
             // `-uiTestReset` starts from an empty throwaway store so UI tests
@@ -91,8 +94,8 @@ struct WorkoutTrackerApp: App {
             do { try CardioDesignFixture.seed(in: modelContainer.mainContext) }
             catch { assertionFailure("Cardio design fixture failed: \(error)") }
         }
-        // The Settings captures (see DesignSampleFixture.seedSettings): with the saved key
-        // (AskAIKeyStore), photo and routine permissions on, model details off.
+        // The Settings captures (see DesignSampleFixture.seedSettings): photo and routine
+        // permissions on, model details off.
         if DesignSampleFixture.settingsIsEnabled {
             do { try DesignSampleFixture.seedSettings(in: modelContainer.mainContext) }
             catch { assertionFailure("Settings fixture failed: \(error)") }

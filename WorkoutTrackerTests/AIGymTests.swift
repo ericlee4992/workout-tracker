@@ -121,44 +121,15 @@ struct AIGymTests {
         set.type = .warmup
         #expect(try rest.durationSeconds(for: set) == AppPreferences.canonical(in: context).globalWarmupRestSeconds)
     }
-    @Test func transportErrorsDoNotLeakProviderBodiesAndCancellationStaysCancellation() {
-        #expect(TerraClient.statusError(401).localizedDescription.contains("key"))
-        #expect(TerraClient.statusError(429).localizedDescription.contains("credits"))
-        #expect(TerraClient.transportError(URLError(.timedOut)).localizedDescription.contains("too long"))
-        #expect(TerraClient.transportError(URLError(.cancelled)) is CancellationError)
-    }
-
     @Test func liveTerraResponseReplaysThroughProductionValidation() throws {
+        // The server returns the model's JSON as `result`; the app's validation is unchanged (ticket 06).
         let file = try #require(Bundle(for: BundleMarker.self).url(forResource: "TerraRoutineSmoke", withExtension: "json"))
         let sample = try JSONDecoder().decode(LiveRoutineSample.self, from: Data(contentsOf: file))
-        let data = try JSONSerialization.data(withJSONObject: ["status": "completed", "output": [["content": [["type": "output_text", "text": sample.text]]]]])
-        let routine = try JSONDecoder().decode(AIRoutine.self, from: TerraClient.output(from: data))
+        let routine = try JSONDecoder().decode(AIRoutine.self, from: Data(sample.text.utf8))
         #expect(try routine.validated(for: sample.request).sessions.count == 3)
     }
     private struct LiveRoutineSample: Decodable { var request: AIRoutineRequest; var text: String }
 
-    @Test func terraRequestDoesNotStoreOrExposeCredentialsInBody() throws {
-        let request = try TerraClient(key: "test-only-secret").request(instructions: "Identify", input: "Catalog", schema: EquipmentIdentification.schema, name: "equipment", jpeg: Data([1, 2]))
-        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer test-only-secret")
-        let data = try #require(request.httpBody)
-        let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        #expect(json["model"] as? String == "gpt-5.6-terra")
-        #expect(json["store"] as? Bool == false)
-        #expect(!String(decoding: data, as: UTF8.self).contains("test-only-secret"))
-        #expect(request.timeoutInterval == 60)
-    }
-    @Test func incompleteAndRefusedResponsesCannotProduceProposals() throws {
-        for response: [String: Any] in [
-            ["status": "incomplete", "output": []],
-            ["status": "completed", "output": [["content": [["type": "refusal", "refusal": "no"]]]]],
-            ["status": "completed", "output": []]
-        ] {
-            let data = try JSONSerialization.data(withJSONObject: response)
-            #expect(throws: (any Error).self) { try TerraClient.output(from: data) }
-        }
-        let valid = try JSONSerialization.data(withJSONObject: ["status": "completed", "output": [["content": [["type": "output_text", "text": "{}"]]]]])
-        #expect(try TerraClient.output(from: valid) == Data("{}".utf8))
-    }
     @Test func modelResponseCannotClaimUserEditedTheLabel() throws {
         let json = Data(#"{"identity":"generic","label":"Press","manufacturer":"","modelName":"","visibleText":"","exerciseIDs":[],"labelWasEdited":true}"#.utf8)
         let decoded = try JSONDecoder().decode(EquipmentIdentification.self, from: json)

@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 /// Public beta ticket 06 (app half): the three AI flows go to the app's server, signed in (D60). The server owns each
 /// flow's instructions, schema, model and limits (server/README → AI); the app sends only the flow's input and keeps
@@ -14,6 +15,111 @@ enum AIFlow: String, CaseIterable, Sendable {
         case .scanMachine: "machine scans"
         case .routineWeek: "template weeks"
         case .modelExercises: "exercise suggestions"
+        }
+    }
+}
+
+/// `POST /v1/ai/{flow}` with the session; the answer's `result` (the model's JSON, checked by the server against the
+/// app's own bounds) comes back as bytes for the caller's decoder and validation. Nothing here logs the token, the
+/// input or the reply.
+struct AIServerClient: Sendable {
+    let baseURL: URL
+    let token: String
+    var session: URLSession = .shared
+    /// Called with the refused session on a 401, so the app signs out (feedback does the same).
+    var onUnauthorized: @Sendable (String) -> Void = { _ in }
+    /// Longer than the server's own 60 s OpenAI deadline, so its `ai_timeout` arrives rather than ours.
+    static let timeout: TimeInterval = 75
+
+    // MARK: Inputs (server/README → AI)
+
+    /// Scan Machine: the seeded exercises and the one re-encoded JPEG.
+    static func scanBody(exercises: [(id: UUID, name: String, loadType: String)], jpeg: Data) -> [String: Any] {
+        ["exercises": exercises.map { ["id": $0.id.uuidString, "name": $0.name, "loadType": $0.loadType] },
+         "jpeg": jpeg.base64EncodedString()]
+    }
+
+    /// New Model: the plate as typed and read, and the app's exercise list.
+    static func modelExercisesBody(plate: PlateDescription, candidates: [ExerciseCandidate]) -> [String: Any] {
+        ["plate": ["brand": plate.brand, "model": plate.model, "lines": plate.lines],
+         "candidates": candidates.map { candidate -> [String: Any] in
+             var row: [String: Any] = ["id": candidate.id.uuidString, "name": candidate.name]
+             if let group = candidate.muscleGroup { row["muscleGroup"] = group }
+             return row
+         }]
+    }
+
+    func request(_ flow: AIFlow, body: Data) -> URLRequest {
+        var request = URLRequest(url: baseURL.appending(path: "v1/ai/\(flow.rawValue)"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = Self.timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.httpBody = body
+        return request
+    }
+
+    func complete(_ flow: AIFlow, json: [String: Any]) async throws -> Data {
+        guard let body = try? JSONSerialization.data(withJSONObject: json) else { throw AIServerError.rejected("encoding") }
+        return try await complete(flow, body: body)
+    }
+
+    func complete(_ flow: AIFlow, encodable: some Encodable) async throws -> Data {
+        guard let body = try? JSONEncoder().encode(encodable) else { throw AIServerError.rejected("encoding") }
+        return try await complete(flow, body: body)
+    }
+
+    func complete(_ flow: AIFlow, body: Data) async throws -> Data {
+        try Task.checkCancellation()
+        let data: Data
+        let response: URLResponse
+        do { (data, response) = try await session.data(for: request(flow, body: body)) }
+        catch let error as URLError { throw Self.transportError(error) }
+        try Task.checkCancellation()
+        guard let status = (response as? HTTPURLResponse)?.statusCode else { throw AIServerError.invalid }
+        let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        if (200..<300).contains(status) {
+            guard let result = object?["result"] as? [String: Any],
+                  let bytes = try? JSONSerialization.data(withJSONObject: result) else { throw AIServerError.invalid }
+            return bytes
+        }
+        let code = object?["error"] as? String
+        if status == 401 { onUnauthorized(token) }
+        if status == 429 && code == "ai_limit" {
+            // The limit and the reset time come from the usage endpoint; without them the line still reads.
+            let usage = await self.usage()
+            throw AIServerError.limit(flow, usage?.flows[flow.rawValue]?.limit, resetsAt: usage?.resetsAt ?? AIResetCopy.nextReset())
+        }
+        throw Self.error(status: status, code: code, flow: flow)
+    }
+
+    private func usage() async -> AccountClient.Usage? {
+        var client = AccountClient(baseURL: baseURL)
+        client.session = session
+        return try? await client.usage(token: token)
+    }
+
+    static func error(status: Int, code: String?, flow: AIFlow) -> AIServerError {
+        switch (status, code) {
+        case (401, _): .signedOut
+        case (429, "ai_limit"): .limit(flow, nil, resetsAt: AIResetCopy.nextReset())
+        case (429, "ai_attempts"): .attempts(resetsAt: AIResetCopy.nextReset())
+        case (429, _): .busy
+        case (503, "ai_paused"): .paused
+        case (503, "ai_timeout"), (504, _), (408, _): .timedOut
+        case (502, "ai_refused"): .refused
+        case (502, "ai_invalid"): .invalid
+        case (500..., _): .unavailable
+        default: .rejected(code ?? "status_\(status)")
+        }
+    }
+
+    static func transportError(_ error: URLError) -> any Error {
+        switch error.code {
+        case .cancelled: CancellationError()
+        case .timedOut: AIServerError.timedOut
+        default: AIServerError.offline
         }
     }
 }
@@ -57,6 +163,16 @@ enum AIServerError: LocalizedError, Equatable {
         case .invalid: "AI returned an incomplete or invalid result. Try again or continue manually."
         case .rejected: "AI couldn't take this request. Continue manually."
         }
+    }
+}
+
+/// The developer's old OpenAI key (D53–D58, before ticket 06) in this phone's keychain: removed once at launch, so no
+/// key is left on any phone after the update.
+enum LegacyOpenAIKey {
+    static func purge() {
+        SecItemDelete([kSecClass as String: kSecClassGenericPassword,
+                       kSecAttrService as String: (Bundle.main.bundleIdentifier ?? "workouttracker") + ".askai",
+                       kSecAttrAccount as String: "openai-api-key"] as CFDictionary)
     }
 }
 

@@ -39,7 +39,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
 
     /// The pinned bars: content must be between the top bar and the bottom bar to be tapped.
     private func visible(_ element: XCUIElement) -> Bool {
-        let bottom = [any("routineNext"), any("generateAIRoutine"), any("routineAISettings"), any("saveAIRoutine")]
+        let bottom = [any("routineNext"), any("generateAIRoutine"), any("routineSignIn"), any("saveAIRoutine")]
             .first { $0.exists }.map { $0.frame.minY - 12 } ?? app.frame.maxY - 30
         guard element.exists && element.isHittable && element.frame.minY > 150 else { return false }
         // A card taller than the space between the bars (a session at AX sizes) counts once its
@@ -265,7 +265,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         any("generateAIRoutine").tap()
         let error = any("routineAIError")
         XCTAssertTrue(error.waitForExistence(timeout: 10))
-        XCTAssertTrue(error.label.contains("Could not reach OpenAI."), error.label)
+        XCTAssertTrue(error.label.contains("Could not reach the server."), error.label)
         // Retry sends again: the wait shows, then (still offline) the error returns (codex-review-10 L4).
         any("routineRetry").tap()
         XCTAssertTrue(any("routineProgress").waitForExistence(timeout: 3), "retry started a new request")

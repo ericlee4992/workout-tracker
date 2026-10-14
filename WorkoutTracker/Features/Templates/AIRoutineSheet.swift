@@ -181,7 +181,7 @@ struct AIRoutineSheet: View {
     }
 
     private func generate() {
-        model.generate(options: options, gymName: gym?.name, permitted: permitted)
+        model.generate(options: options, gymName: gym?.name, permitted: permitted, client: TerraAccess.client(account))
     }
 
     /// Cancel: stops a running request and closes. From an unsaved week it asks first.

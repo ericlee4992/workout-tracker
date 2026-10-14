@@ -16,8 +16,14 @@ enum TerraAccess {
         account.isSignedIn || (fixture && !account.isAvailable)
     }
 
-    /// UI-first stage only: the old transport until the server client is wired.
-    static var client: TerraClient? { AskAIKeyStore.read().map { TerraClient(key: $0) } }
+    /// The server client for this session; nil signed out. A 401 signs the phone out (only if that session is still the
+    /// current one), so every AI entry point then shows Sign In.
+    @MainActor static func client(_ account: AccountStore) -> AIServerClient? {
+        guard let baseURL = account.client?.baseURL, let token = account.token else { return nil }
+        return AIServerClient(baseURL: baseURL, token: token, onUnauthorized: { [weak account] refused in
+            Task { @MainActor in account?.invalidate(token: refused) }
+        })
+    }
 
     static func fixtureDelay() async throws {
         let arguments = ProcessInfo.processInfo.arguments
