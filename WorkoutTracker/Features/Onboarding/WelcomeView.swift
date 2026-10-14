@@ -16,6 +16,8 @@ struct WelcomeView: View {
     var signingIn = false
     var onAppleRequest: (ASAuthorizationAppleIDRequest) -> Void = { _ in }
     var onAppleCompletion: (Result<ASAuthorization, any Error>) -> Void = { _ in }
+    /// Ticket 04: Google's button under Apple's; nil in a build without a Google client ID.
+    var onGoogle: (() -> Void)? = nil
     @Environment(\.look) private var look
 
     var body: some View {
@@ -56,6 +58,7 @@ struct WelcomeView: View {
                     .frame(maxWidth: .infinity, minHeight: 56)
                 } else if showsSignIn {
                     AppleSignInButton(onRequest: onAppleRequest, onCompletion: onAppleCompletion)
+                    if let onGoogle { GoogleSignInButton(action: onGoogle) }
                     if let signInFailure {
                         Text(signInFailure)
                             .font(look.font.footnote)

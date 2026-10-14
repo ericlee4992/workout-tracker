@@ -155,7 +155,8 @@ struct WorkoutTrackerApp: App {
                                         signInFailure: account.signInFailure,
                                         signingIn: account.signingIn,
                                         onAppleRequest: account.prepare,
-                                        onAppleCompletion: { result in Task { await account.complete(result) } })
+                                        onAppleCompletion: { result in Task { await account.complete(result) } },
+                                        onGoogle: GoogleSignIn.isAvailable ? { Task { await account.signInWithGoogle() } } : nil)
                         }
                         .environment(account)
                         // A stored session is checked and its profile fetched once per launch.

@@ -174,6 +174,9 @@ final class AccountStore {
         do { return .success(try await body()) } catch { return .failure(error) }
     }
 
+    /// Ticket 04, UI-first stage: Google's sign-in is wired once the user approves the mock (no client ID yet).
+    func signInWithGoogle() async -> Bool { false }
+
     /// UI tests only (`-uiTestSampleSignIn` on the sample store): a sign-in that succeeds at once with a new session —
     /// Apple's own sheet cannot be driven in a UI test (ticket 06: refused session → sign in → AI usable again).
     func completeSampleSignIn() {

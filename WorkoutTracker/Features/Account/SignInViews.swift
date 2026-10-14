@@ -21,6 +21,47 @@ struct AppleSignInButton: View {
     }
 }
 
+/// Public beta ticket 04: Google's sign-in button without Google's SDK, drawn to Google's published iOS branding — a
+/// pill in Google's light (white, #747775 border, #1F1F1F text) or dark (#131314, #8E918F border, #E3E3E3 text) theme
+/// with Google's own "G" (from Google's sign-in asset package, unmodified) and its wording "Sign in with Google". The
+/// same height as Apple's button beside it and below it (Apple's guideline: Sign in with Apple at least as prominent).
+struct GoogleSignInButton: View {
+    var action: () -> Void
+    @Environment(\.colorScheme) private var colorScheme
+    @ScaledMetric(relativeTo: .headline) private var height: CGFloat = 56
+    @ScaledMetric(relativeTo: .headline) private var logo: CGFloat = 20
+    /// Scales with the button, as Apple's label does beside it.
+    @ScaledMetric(relativeTo: .headline) private var textSize: CGFloat = 20
+
+    private var dark: Bool { colorScheme == .dark }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 10) {
+                Image("GoogleG")
+                    .resizable()
+                    .interpolation(.high)
+                    .frame(width: logo, height: logo)
+                    .accessibilityHidden(true)
+                Text("Sign in with Google")
+                    .font(.system(size: textSize, weight: .medium))
+                    .foregroundStyle(dark ? Color(red: 0xE3 / 255, green: 0xE3 / 255, blue: 0xE3 / 255)
+                                          : Color(red: 0x1F / 255, green: 0x1F / 255, blue: 0x1F / 255))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+            .background(Capsule().fill(dark ? Color(red: 0x13 / 255, green: 0x13 / 255, blue: 0x14 / 255) : .white))
+            .overlay(Capsule().strokeBorder(dark ? Color(red: 0x8E / 255, green: 0x91 / 255, blue: 0x8F / 255)
+                                                 : Color(red: 0x74 / 255, green: 0x77 / 255, blue: 0x75 / 255), lineWidth: 1))
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.lookPressable)
+        .accessibilityLabel("Sign in with Google")
+        .accessibilityIdentifier("signInWithGoogle")
+    }
+}
+
 /// Settings → Account, signed out (the user's choice, 2026-10-13: a small sheet rather than Apple's sheet at once —
 /// Google's button joins this one in ticket 04). The title, the two facts that make it safe to say yes, and Apple's
 /// button in the thumb's reach (the user removed "For AI and a training profile.", 2026-10-13). The sheet only
@@ -32,6 +73,8 @@ struct SignInSheet: View {
     var busy = false
     var onRequest: (ASAuthorizationAppleIDRequest) -> Void
     var onCompletion: (Result<ASAuthorization, any Error>) -> Void
+    /// Ticket 04: Google's button under Apple's; nil in a build without a Google client ID.
+    var onGoogle: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.look) private var look
@@ -77,6 +120,7 @@ struct SignInSheet: View {
                     .accessibilityIdentifier("signInBusy")
                 } else {
                     AppleSignInButton(onRequest: onRequest, onCompletion: onCompletion)
+                    if let onGoogle { GoogleSignInButton(action: onGoogle) }
                 }
                 if let failure {
                     Text(failure)
@@ -123,7 +167,8 @@ struct AccountSignInSheet: View {
     var body: some View {
         SignInSheet(failure: account.signInFailure ?? ProfileSample.signInFailure, busy: account.signingIn,
                     onRequest: account.prepare,
-                    onCompletion: { result in Task { if await account.complete(result) { dismiss() } } })
+                    onCompletion: { result in Task { if await account.complete(result) { dismiss() } } },
+                    onGoogle: GoogleSignIn.isAvailable ? { Task { if await account.signInWithGoogle() { dismiss() } } } : nil)
             .onAppear {
                 account.signInFailure = nil
                 if ProfileSample.signsInAtOnce { account.completeSampleSignIn(); dismiss() }

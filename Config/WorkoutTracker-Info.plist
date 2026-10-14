@@ -12,6 +12,10 @@
 	     empty when the build has none. Read by ServerConfig.baseURL. -->
 	<key>WTServerURL</key>
 	<string>$(WT_SERVER_URL)</string>
+	<!-- Public beta ticket 04: the Google iOS OAuth client ID (not secret) from WT_GOOGLE_CLIENT_ID; empty = no Google
+	     sign-in. Read by GoogleSignIn.clientID. -->
+	<key>WTGoogleClientID</key>
+	<string>$(WT_GOOGLE_CLIENT_ID)</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Record distance, pace and your route during outdoor cardio workouts.</string>
 	<key>NSMotionUsageDescription</key>
