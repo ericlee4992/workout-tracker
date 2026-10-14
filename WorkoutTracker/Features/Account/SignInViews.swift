@@ -36,6 +36,8 @@ struct GoogleSignInButton: View {
     @ScaledMetric(relativeTo: .headline) private var height: CGFloat = 56
     @ScaledMetric(relativeTo: .headline) private var logo: CGFloat = 20
     @ScaledMetric(relativeTo: .headline) private var gap: CGFloat = 12
+    /// Google's iOS side padding: the label shrinks before it reaches the border (AccessibilityL).
+    @ScaledMetric(relativeTo: .headline) private var side: CGFloat = 16
     /// Scales with the button, as Apple's label does beside it.
     @ScaledMetric(relativeTo: .headline) private var textSize: CGFloat = 20
 
@@ -57,6 +59,7 @@ struct GoogleSignInButton: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
+            .padding(.horizontal, side)
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
             .background(Capsule().fill(dark ? Color(red: 0x13 / 255, green: 0x13 / 255, blue: 0x14 / 255) : .white))
             .overlay(Capsule().strokeBorder(dark ? Color(red: 0x8E / 255, green: 0x91 / 255, blue: 0x8F / 255)
