@@ -1,26 +1,32 @@
 # Current project state
 
-Updated **2026-10-14** (ticket 03 done and deployed, TestFlight build 2 on the phone, the agreed order for the rest of
-the beta). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-14** (ticket 06's app half implemented and in review; TestFlight build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: start ticket 06's app half (nothing in progress)
+## NOW: ticket 06 app half — implemented, under review (2026-10-14)
 
-- **`main` = `d6ebaba`** (pushed). This handoff (docs only) is on `ericlee4992/beta-03-deploy`, one commit ahead and
-  pushed; fast-forward `main` to it at the user's go-ahead, then branch 06 off `main`. Every other `beta-*` branch is
-  in `main`; nothing is uncommitted or running.
-- **Server live:** https://stacked-server.stacked-server.workers.dev (Cloudflare Worker, first deploy version
-  `6cfac3a8-2f32-4ee1-b48d-e9c86eeb1381`, cron `23 * * * *`). Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY,
-  TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID` `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple
-  `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8` (0600, never committed). Feedback is read with
-  `node scripts/feedback.mjs list|show` (a transient wrangler error 7403 once; retry).
-- **Next:** new branch `ericlee4992/beta-06-ai-proxy-app` off `main`, then the agreed order below. UI-first: show
-  captures (Default and AccessibilityL, light and dark) and list every new string for the user before wiring.
+- **`main` = `0998e40`** (pushed; the user fast-forwarded it to the 03 handoff). Work is on
+  **`ericlee4992/beta-06-ai-proxy-app`** (pushed). The user approved the screens and every new string.
+- **Done:** the three AI flows go through the server signed in (`Domain/AIServerClient.swift`); the OpenAI key field,
+  `AskAIKeyStore`, `TerraClient` and the app's prompt copies are gone; a launch purge deletes an old keychain key.
+  Unit tests 986/986. Deployed checks done with a temporary test account (deleted): a max-size scan uses 43–45 ms CPU,
+  an app-sized scan 15–16 ms — over Workers Free's 10 ms, yet all succeeded; **the user chose to stay on Free for now
+  and revisit before external testers (08)**. Adversarial inputs stayed on task. Paused/limit/401 answer correctly.
+- **Running:** the targeted UI run (`/tmp/wt-floodlight/results/06app/ui1.*`, run script `run.sh` there) and Codex's
+  review in the Orca terminal "Review 06 app half" (report `work-record/public-beta/codex-review-06-app.md`).
+- **Next:** resolve findings to "clear", ask the user before merging, then ticket 10 (research already done: OpenAI
+  lists `gpt-6.1-sol` at $2 / $0.10 cached / $10 vs Terra $2 / $0.20 / $12 — cheaper; Responses API, `medium` effort,
+  structured outputs and images supported). The phone's live smoke of 06 waits for TestFlight build 3 (after 05).
+- **Server:** https://stacked-server.stacked-server.workers.dev (version `6450e294` seen in the logs on 2026-10-14).
+  Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
+  `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8`
+  (0600, never committed). Feedback: `node scripts/feedback.mjs list|show`. Cloudflare blocks Python's default
+  user agent (error 1010) — send a curl-like `User-Agent` from scripts.
 
-## Agreed order to external testers (the user, 2026-10-13; "go" not yet given for 06)
+## Agreed order to external testers (the user, 2026-10-13)
 
 1. **06 app half** — AI through the server: remove the OpenAI key screen, sign-in required for AI, daily limits;
-   then the deployed max-size-scan CPU check and the adversarial check. [ticket](../work-record/public-beta/issues/06-ai-proxy.md)
+   then the deployed max-size-scan CPU check and the adversarial check. *(In review, above.)* [ticket](../work-record/public-beta/issues/06-ai-proxy.md)
 2. **10** — GPT-6.1 Sol (the user: cheaper than 5.6 Terra). Verify ID/price/parameters first; stop if dearer.
    Server constant + redeploy; the app's direct-key constant too. [ticket](../work-record/public-beta/issues/10-model-sol.md)
 3. **05 rest** — Ask AI prefill from the training profile + "Save to my training profile" switch (on by default)
@@ -63,7 +69,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 | 03 server + Sign in with Apple | **Done 2026-10-13**: deployed; app half Codex clear (round 3); build 2 verified by the user. |
 | 04 Google sign-in | Ready; 4th in order; needs the user's Google OAuth client. |
 | 05 profile | Page live since build 2; Ask AI prefill + save switch left (3rd). |
-| 06 AI proxy | Server half deployed; **app half next** (1st). |
+| 06 AI proxy | Server half deployed; app half implemented, in review (1st); phone smoke with build 3. |
 | 07 feedback | **Done**; live since build 2. |
 | 08 external testers | Privacy draft merged, unpublished; waits on the user's answers (6th). |
 | 09 App Store | Not started. |
