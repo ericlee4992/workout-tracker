@@ -261,4 +261,11 @@ two P2s and a P3, all accepted.
 Verification: build ✔ (`build4.log`, `dd-05c`); unit tests **1004/1004** (`unit3.xcresult`). `ui4` (FloodlightProfile,
 FloodlightAIRoutine, FloodlightAIAccess on the round-1 build): **28/28**. The ticket-05 UI tests re-run on this build: `ui5`.
 
+## Codex review 05f — round 3: clear
+
+Report [codex-review-05f.md](../codex-review-05f.md): **Verdict: clear** — E1–E3 closed, no findings; every
+training-profile write goes through the queue. **`ui5`: FloodlightProfileUITests 10/10** on the final build (`dd-05c`),
+including the captures and the three ticket-05 flow tests. Waiting: the user's approval of "Couldn't save to your
+training profile." and the merge.
+
 ## Comments
