@@ -50,9 +50,11 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   derived from `TOKEN_ENC_KEY` (so signed-out feedback needs that secret). A session that is sent must be valid (`401`).
   Screenshots to delete go through a queue (`screenshot_deletions`): account deletion queues its keys in the deletion
   transaction and deletes them right after, in R2's batches of 1,000; an upload queues its key before the put and its
-  row insert removes it, so an upload whose row never landed is deleted an hour later. The hourly cron works through
-  due keys 1,000 per run (at most 12 D1 statements — one read, ≤ 10 deletes by id, the counter clean-up — and one R2
-  call; with the revocation retry, now 20 a run, at most 33 of Workers Free's 50 per invocation).
+  row insert removes it, so an upload whose row never landed is deleted an hour later. The hourly cron first expires
+  feedback older than a year (ticket 08: ≤ 1,000 rows a run, their screenshots queued due at once), then works through
+  due keys 1,000 per run (at most 14 D1 statements — the expiry's two, one read, ≤ 10 deletes by id, the counter
+  clean-up — and one R2 call; with the revocation retry, now 20 a run, and the AI prune's two, at most 37 of Workers
+  Free's 50 per invocation).
 - **AI** (ticket 06; signed in only): the server owns each flow's instructions, JSON schema, model (`gpt-5.6-terra`),
   `store: false`, reasoning effort and output cap; the app sends only checked, bounded structured input (unknown fields
   are dropped; names and plate lines are single-line, so they cannot fabricate rows; the JPEG's structure is checked)
@@ -123,9 +125,16 @@ The database has two safety nets; neither covers the feedback screenshots in R2 
   ```
   The export briefly blocks the database while it runs (a moment at beta size). Wrangler also prints a one-hour
   download link to the same file: treat it like the file — it is every account's email, profile and feedback. An
-  export keeps deleted accounts' data for as long as the file is kept; delete old exports (the retention period is the
-  privacy policy's, ticket 08). To restore from one: create a new database, `npx wrangler d1 execute <new> --remote
-  --file "$D/stacked.sql"`, point `database_id` in `wrangler.jsonc` at it and deploy (the user approves each step).
+  export keeps deleted accounts' data for as long as the file is kept, so **delete every export 30 days after it was
+  made** (`rm -r ~/WorkoutTracker-Backups/server/<date>-<reason>`; the privacy policy promises it — the user,
+  ticket 08). To restore from one: create a new database, `npx wrangler d1 execute <new> --remote --file
+  "$D/stacked.sql"`, point `database_id` in `wrangler.jsonc` at it and deploy (the user approves each step).
+- **Deletions survive a restore** (the privacy policy promises it). Before pointing the server at restored data —
+  from an export or a Time Travel bookmark — take the newest state that can still be read (the live database, or a
+  Time Travel bookmark just before the fault) and delete from the restored copy every `accounts` and `feedback` row
+  that is absent there: anything the copy has that the newest state lacks was deleted (or expired) since. An account
+  goes with its sessions, identities, training profile and AI rows (as `claimDeletion` does); a feedback row goes with
+  its R2 screenshot, if that still exists.
 
 Rehearsed 2026-10-15: an export of production (13 tables, 7.9 KB) restored with integrity `ok` and every row count
 equal to production; an export with one table's rows removed is reported as a mismatch (exit 1).
@@ -136,8 +145,13 @@ equal to production; an export with one table's rows removed is reported as a mi
 cd server
 node scripts/feedback.mjs list [--limit 20]          # newest first: ID, time (New York), category, 📎 = screenshot, sender
 node scripts/feedback.mjs show <id>                  # the whole message and its details
-node scripts/feedback.mjs screenshot <id>            # saves it to server/.feedback/ (git-ignored); --out <dir> elsewhere
+node scripts/feedback.mjs screenshot <id>            # saves it to server/.feedback/ (git-ignored), nowhere else
+node scripts/feedback.mjs delete <id>                # a tester asked: the row, its R2 screenshot and any download
 ```
+
+Every production run first deletes downloaded screenshots older than 30 days or whose feedback no longer exists. The
+server deletes feedback and its screenshot a year after it was sent (the hourly job). Both are privacy-policy promises
+(ticket 08).
 
 Add `--local` to read `wrangler dev`'s local copies. The Cloudflare dashboard (D1 → stacked → `feedback`; R2 →
 stacked-feedback) shows the same. Feedback is tester data: keep it out of the repository, issues and chats.

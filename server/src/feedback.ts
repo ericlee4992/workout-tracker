@@ -23,6 +23,9 @@ export const GLOBAL_DAILY_LIMIT = 500;
 export const UPLOAD_GRACE_MS = 60 * 60 * 1000;
 /** R2's most keys per delete call (Workers API), and so the sweep's batch. */
 export const R2_DELETE_BATCH = 1_000;
+/** Feedback and its screenshot are deleted this long after they were sent (the user, ticket 08; the privacy policy
+ *  promises it, so removing this clean-up makes the published policy false). */
+export const FEEDBACK_RETENTION_MS = 365 * 24 * 60 * 60 * 1000;
 /** D1 binds at most 100 parameters per statement. */
 const SWEEP_IDS_PER_STATEMENT = 100;
 
@@ -213,13 +216,30 @@ export async function deleteClaimedScreenshots(env: Env, claim: string) {
 }
 
 /**
- * The hourly clean-up, bounded whatever the bucket holds (codex-review-07 #3): at most one batch of due keys — those
- * a deletion queued and uploads whose row never landed — in one R2 call and at most 11 D1 statements (one read, ≤ 10
- * deletes) plus the counter clean-up; the rest wait for the next run, oldest first. Old rate-limit counters are removed separately, so one failing never blocks the other.
+ * The hourly clean-up, bounded whatever the bucket holds (codex-review-07 #3): feedback past its retention (two
+ * statements, at most one R2 batch of rows); then at most one batch of due keys — those a deletion or the retention
+ * queued and uploads whose row never landed — in one R2 call and at most 11 D1 statements (one read, ≤ 10 deletes)
+ * plus the counter clean-up; the rest wait for the next run, oldest first. Old rate-limit counters are removed separately, so one failing never blocks the other.
  */
 export async function sweepFeedback(env: Env, deps: Deps) {
   const now = deps.now();
-  let removed = 0;
+  let removed = 0, expired = 0;
+  try {
+    // Retention first, so this run's screenshot sweep deletes what it queues: in one transaction, the oldest expired
+    // rows (at most one R2 batch) queue their screenshots, due now, and are deleted. Both statements pick the same rows.
+    const oldest = "SELECT id FROM feedback WHERE created_at < ? ORDER BY created_at, id LIMIT ?";
+    const cutoff = now - FEEDBACK_RETENTION_MS;
+    const results = await env.DB.batch([
+      env.DB.prepare(
+        "INSERT OR REPLACE INTO screenshot_deletions (key, due_at) " +
+        `SELECT screenshot_key, ? FROM feedback WHERE screenshot_key IS NOT NULL AND id IN (${oldest})`)
+        .bind(now, cutoff, R2_DELETE_BATCH),
+      env.DB.prepare(`DELETE FROM feedback WHERE id IN (${oldest})`).bind(cutoff, R2_DELETE_BATCH),
+    ]);
+    expired = results[1]!.meta.changes ?? 0;
+  } catch (error) {
+    console.error("feedback expiry failed", error instanceof Error ? error.name : "unknown");
+  }
   try {
     // A key whose row exists is never deleted from R2 (defence in depth: the insert un-queues it atomically).
     const due = (await env.DB.prepare(
@@ -250,6 +270,6 @@ export async function sweepFeedback(env: Env, deps: Deps) {
   } catch (error) {
     console.error("feedback counter clean-up failed", error instanceof Error ? error.name : "unknown");
   }
-  if (removed > 0) console.log("feedback sweep", { removed });
-  return { removed };
+  if (removed + expired > 0) console.log("feedback sweep", { removed, expired });
+  return { removed, expired };
 }

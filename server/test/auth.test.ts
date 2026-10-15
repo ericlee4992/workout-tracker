@@ -194,11 +194,15 @@ describe("Account deletion", () => {
 });
 
 describe("Pages and routing", () => {
-  it("serves the stub privacy and support pages and 404s the rest", async () => {
+  it("serves the privacy and support pages and 404s the rest", async () => {
     for (const path of ["/privacy", "/support"]) {
       const response = await h.call("GET", path);
       expect(response.status).toBe(200);
       expect(response.headers.get("content-type")).toContain("text/html");
+      const text = await response.text();
+      expect(text).toContain("ericlee4992@gmail.com");
+      // Ticket 08: no draft placeholder other than the effective date, which `npm run deploy` refuses to publish.
+      expect(text.replaceAll("[effective date]", "")).not.toMatch(/\[[^\]]*\]/);
     }
     expect((await h.call("GET", "/nope")).status).toBe(404);
     expect((await h.call("GET", "/v1/auth/apple")).status).toBe(404);

@@ -637,10 +637,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/WorkoutTracker-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Stacked;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph equipment or its label. With your permission, AI identification sends the photo to OpenAI; the app does not save it.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate is shown live during a workout and summarised when you finish. It is read on device and never leaves it.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph equipment or its label. With your permission, AI identification sends the photo through Stacked’s server to OpenAI; the app does not save it.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate, active and resting energy, and distance are shown live during a workout and summarised when you finish. Stacked does not upload them; they leave your iPhone only in an export or feedback you send.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Workouts you log are saved to Health so your rings and history stay accurate.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose an equipment photo. With your permission, AI identification sends it to OpenAI; the app does not save it.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose an equipment photo. With your permission, AI identification sends it through Stacked’s server to OpenAI; the app does not save it.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -672,10 +672,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Config/WorkoutTracker-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = Stacked;
-				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph equipment or its label. With your permission, AI identification sends the photo to OpenAI; the app does not save it.";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate is shown live during a workout and summarised when you finish. It is read on device and never leaves it.";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Photograph equipment or its label. With your permission, AI identification sends the photo through Stacked’s server to OpenAI; the app does not save it.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate, active and resting energy, and distance are shown live during a workout and summarised when you finish. Stacked does not upload them; they leave your iPhone only in an export or feedback you send.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Workouts you log are saved to Health so your rings and history stay accurate.";
-				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose an equipment photo. With your permission, AI identification sends it to OpenAI; the app does not save it.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Choose an equipment photo. With your permission, AI identification sends it through Stacked’s server to OpenAI; the app does not save it.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   ACCOUNT_DAILY_LIMIT, characterCount, GLOBAL_DAILY_LIMIT, MAX_FEEDBACK_BODY_BYTES, MAX_MESSAGE_LENGTH,
-  MAX_SCREENSHOT_BYTES, newYorkDay, R2_DELETE_BATCH, SIGNED_OUT_DAILY_LIMIT, sweepFeedback, UPLOAD_GRACE_MS,
+  FEEDBACK_RETENTION_MS, MAX_SCREENSHOT_BYTES, newYorkDay, R2_DELETE_BATCH, SIGNED_OUT_DAILY_LIMIT, sweepFeedback, UPLOAD_GRACE_MS,
 } from "../src/feedback";
 import { count, harness, JPEG, PNG, type Harness } from "./helpers";
 
@@ -332,7 +332,7 @@ describe("account deletion covers feedback", () => {
     expect(response.status).toBe(200);
     expect(await count("feedback")).toBe(0);
     expect([(await objects()).length, (await queued()).length]).toEqual([1, 1]);
-    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1 });
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1, expired: 0 });
     expect([(await objects()).length, (await queued()).length]).toEqual([0, 0]);
   });
 });
@@ -352,9 +352,9 @@ describe("the hourly sweep", () => {
     expect(response.status).toBe(500);
     expect([await count("feedback"), (await objects()).length, (await queued()).length]).toEqual([0, 1, 1]);
     h.clock.now += UPLOAD_GRACE_MS - 1000;
-    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 0 });
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 0, expired: 0 });
     h.clock.now += 2000;
-    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1 });
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1, expired: 0 });
     expect([(await objects()).length, (await queued()).length]).toEqual([0, 0]);
   });
 
@@ -362,12 +362,12 @@ describe("the hourly sweep", () => {
     await h.feedback({ screenshot: { bytes: JPEG } });
     const key = (await rows())[0]!.screenshot_key!;
     await env.DB.prepare("INSERT INTO screenshot_deletions (key, due_at) VALUES (?, 0)").bind(key).run();
-    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 0 });
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 0, expired: 0 });
     expect(await objects()).toEqual([key]);
     expect(await queued()).toEqual([]);
   });
 
-  it("is bounded: at most 12 statements and one R2 call per run, continuing where it stopped (07 #3)", async () => {
+  it("is bounded: at most 14 statements and one R2 call per run, continuing where it stopped (07 #3)", async () => {
     await env.DB.prepare(
       "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 2501) " +
       "INSERT INTO screenshot_deletions (key, due_at) SELECT 'feedback/k' || printf('%05d', i) || '.jpg', i FROM n").run();
@@ -380,7 +380,7 @@ describe("the hourly sweep", () => {
       await sweepFeedback(bounded, h.deps);
       perRun.push(counter.statements - before);
     }
-    expect(Math.max(...perRun)).toBeLessThanOrEqual(12);  // read + ≤ 10 deletes + counters; revocations stay ≤ 21
+    expect(Math.max(...perRun)).toBeLessThanOrEqual(14);  // expiry 2 + read + ≤ 10 deletes + counters; revocations stay ≤ 21
     expect(fake.deletes.map((d) => d.length)).toEqual([1000, 1000, 501]);
     expect(fake.deletes.flat()).toContain("feedback/k02501.jpg");  // the last, beyond two runs' budgets
     expect(await queued()).toEqual([]);
@@ -416,7 +416,7 @@ describe("the hourly sweep", () => {
     } } as unknown as R2Bucket };
     await sweepFeedback(requeue, h.deps);
     expect(await queued()).toEqual([key]);
-    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1 });
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1, expired: 0 });
     expect(await objects()).toEqual([]);
   });
 
@@ -428,5 +428,47 @@ describe("the hourly sweep", () => {
     await sweepFeedback({ ...h.env, FEEDBACK: fakeBucket({ failDeletes: true }).bucket }, h.deps);
     expect(await count("feedback_limits")).toBe(0);
     expect(await queued()).toEqual(["feedback/x.jpg"]);
+  });
+});
+
+describe("feedback retention (ticket 08: one year)", () => {
+  it("deletes feedback and its screenshot a year after it was sent, in the same run, and keeps newer feedback", async () => {
+    await h.feedback({ screenshot: { bytes: JPEG } });
+    await h.feedback();
+    h.clock.now += 24 * 60 * 60 * 1000;
+    await h.feedback({ screenshot: { bytes: PNG } });
+    const newer = (await rows())[2]!;
+    h.clock.now += FEEDBACK_RETENTION_MS - 24 * 60 * 60 * 1000;
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 0, expired: 0 });  // exactly a year: not yet
+    h.clock.now += 1;
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1, expired: 2 });
+    expect((await rows()).map((r) => r.id)).toEqual([newer.id]);
+    expect(await objects()).toEqual([newer.screenshot_key]);
+    expect(await queued()).toEqual([]);
+  });
+
+  it("leaves the expired screenshot queued when R2 fails, and a later run deletes it", async () => {
+    await h.feedback({ screenshot: { bytes: JPEG } });
+    h.clock.now += FEEDBACK_RETENTION_MS + 1;
+    expect(await sweepFeedback({ ...h.env, FEEDBACK: fakeBucket({ failDeletes: true }).bucket }, h.deps))
+      .toEqual({ removed: 0, expired: 1 });
+    expect([await count("feedback"), (await objects()).length, (await queued()).length]).toEqual([0, 1, 1]);
+    expect(await sweepFeedback(h.env, h.deps)).toEqual({ removed: 1, expired: 0 });
+    expect([(await objects()).length, (await queued()).length]).toEqual([0, 0]);
+  });
+
+  it("expires at most one R2 batch of rows a run, oldest first", async () => {
+    await env.DB.prepare(
+      "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 1001) " +
+      "INSERT INTO feedback (id, category, message, app_version, build, system_version, model, screenshot_key, created_at) " +
+      "SELECT printf('f%05d', i), 'bug', 'x', '0.1.0', '1', '27.0', 'iPhone16,2', 'feedback/f' || printf('%05d', i) || '.jpg', i FROM n")
+      .run();
+    h.clock.now = FEEDBACK_RETENTION_MS + 2000;
+    const fake = fakeBucket();
+    expect(await sweepFeedback({ ...h.env, FEEDBACK: fake.bucket }, h.deps)).toEqual({ removed: 1000, expired: 1000 });
+    expect((await rows()).map((r) => r.id)).toEqual(["f01001"]);
+    expect(await sweepFeedback({ ...h.env, FEEDBACK: fake.bucket }, h.deps)).toEqual({ removed: 1, expired: 1 });
+    expect(fake.deletes.map((d) => d.length)).toEqual([1000, 1]);
+    expect([await count("feedback"), (await queued()).length]).toEqual([0, 0]);
   });
 });

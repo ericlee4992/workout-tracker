@@ -1,7 +1,7 @@
 # 08 — External testers
 
 Type: task
-Status: ready-for-human (mostly App Store Connect and policy work with the user)
+Status: in progress — policy pages built, in review (2026-10-15)
 Blocked by: 02, 04, 05, 06, 07
 Implementer: Claude with the user; Reviewer: Codex for the privacy policy against the code and the server.
 Branch: `ericlee4992/beta-08-external` off `main`.
@@ -90,5 +90,31 @@ kept — the policy's deletion text depends on it.
 
 **The user skipped (2026-10-15: "Skip both steps")** the production off-switch rehearsal and hitting the AI daily
 limits on the live server; the server's unit tests cover both. Server hygiene is otherwise done.
+
+### Privacy terms, pages and enforcement — 2026-10-15 (Claude)
+
+**The user's answers (D61):** feedback kept 1 year; "not directed to children under 13"; manual exports kept 30 days;
+**Workers Free for now** ("if something fails because of it, let me know" — check Workers metrics for exceeded-CPU
+errors after the final test pass and report); support email the personal Gmail; effective date = the day it goes
+live; legal name = the Apple Developer team's, read from build 4's provisioning profile: **Eunchan Lee**.
+
+**Found:** a stored Workers Logs invocation record (dashboard, `PUT /v1/profile`, 2026-10-15 05:05) holds
+`cf-connecting-ip`/`x-real-ip`, city, postcode, latitude/longitude, ISP, ASN, user agent and TLS fingerprints
+(authorization masked). The server's own `ai request` line holds only flow/status/latency/tokens and script metadata.
+Turned off invocation logs and traces (`wrangler.jsonc`) rather than disclose that.
+
+**Built (not deployed):** one-year feedback expiry in the hourly `sweepFeedback` (≤ 1,000 rows a run, screenshots
+queued due at once, same-run R2 delete; tests for the boundary, R2 failure and batching); `scripts/feedback.mjs`
+deletes downloads older than 30 days or whose feedback is gone, keeps downloads only in `server/.feedback`, and gains
+`delete <id>` for signed-out requests; server/README: export retention, re-deleting after a restore, the cron budget
+(≤ 37 of Free's 50). `server/src/pages.ts`: the policy (from the cleared draft plus D61, Free-plan figures, logs) and a
+support page; `npm run deploy` refuses while `POLICY_EFFECTIVE_DATE` is a placeholder. App: camera/photo usage strings
+name Stacked's server; the Health read string names energy and distance and drops "never leaves it" (build 5).
+
+**Verified:** server `vitest` 6 files / 224 tests passed; `tsc --noEmit` exit 0; `wrangler deploy --dry-run` accepted
+the config; `npm run predeploy` exit 1 with the placeholder (as intended); `xcodebuild … iphonesimulator Debug build`
+exit 0, built Info.plist carries the new strings. **Pending:** Codex review; the user's approval of the wording; deploy
+(with the date) and confirm an hourly run; build 5; App Privacy answers; external group; Beta App Review; the final
+test pass including New Model → Suggest exercises with AI.
 
 ## Comments

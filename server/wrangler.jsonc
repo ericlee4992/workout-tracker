@@ -5,7 +5,11 @@
   "name": "stacked-server",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-22",
-  "observability": { "enabled": true },
+  // Workers Logs keep only the server's own console lines (counts, outcomes, error names). Invocation logs are off:
+  // checked 2026-10-15 (ticket 08), each stored the client IP, its city/postcode/coordinates, network provider and
+  // user agent — the privacy policy says these logs hold none of that, so turning them on makes it false. Traces off
+  // for the same reason.
+  "observability": { "enabled": true, "logs": { "invocation_logs": false }, "traces": { "enabled": false } },
   // Hourly: retry Apple token revocations that failed during an account deletion (codex-review-03 #5); sweep feedback
   // screenshots left without a row and old feedback rate-limit counters (ticket 07).
   "triggers": { "crons": ["23 * * * *"] },

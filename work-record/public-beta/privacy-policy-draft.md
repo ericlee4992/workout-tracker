@@ -1,5 +1,9 @@
 # Stacked — privacy policy and App Privacy answers (DRAFT for the user's review)
 
+> **2026-10-15: the policy text now lives in [`server/src/pages.ts`](../../server/src/pages.ts)** (with the support
+> page), filled with the user's answers (D61). The policy section below is the Codex-cleared round-3 draft, kept for the
+> review diff; edit `pages.ts`, not this. The App Privacy answers and release gates below are current.
+
 Ticket 08 prep, written 2026-10-03 by Claude from the code and server on `main` `7c70d14`; revised the same day after
 Codex review 08 (17 findings, all taken — see the ticket). **Not published.** Every sentence is the user's to approve;
 the reviewer checks it against the code and the server again before it goes live at the Worker's `/privacy`.
@@ -168,14 +172,25 @@ For the external-test build described above. Nothing is used for tracking.
 | Location | No | routes stay in the app (Apple Maps imagery requests are Apple's) | — | — |
 | Tracking | No | — | — | — |
 
-Open for the answers: whether the daily network-address code (anti-abuse, removed after the day) and Cloudflare's
-request logs are disclosed as Identifiers/Diagnostics once the deployed log fields are known; how TestFlight's
-crash and usage data are treated (Apple collects them for the developer; confirm against Apple's current guidance
-when answering).
+Open for the answers: whether the daily network-address code (anti-abuse, a one-way hash kept until the New York day
+ends) is disclosed — Cloudflare's invocation logs, which stored the IP and its location, are now off (D61), and the
+server's own log lines hold no IP or account; how TestFlight's crash and usage data are treated (Apple collects them
+for the developer; confirm against Apple's current guidance when answering). The Customer Support linkage of
+signed-out feedback is still to decide.
 
 ---
 
 ## Release gates before publishing
+
+**Status 2026-10-15 (Claude, branch `ericlee4992/beta-08-testers`):** gate 1 answered (D61) except the effective date,
+set at deploy (`npm run deploy` refuses the placeholder); one-year feedback expiry built (`sweepFeedback`), downloaded
+screenshots and TestFlight copies 30 days (`scripts/feedback.mjs` clean-up; the TestFlight one is a manual promise).
+Gate 2: the in-app disclosures were done in 06; the camera, photo and Health usage strings now name the server and the
+energy/distance reads (needs build 5); consent flags unchanged by D60. Gate 3: an invocation record was checked in the
+dashboard (IP, city, postcode, coordinates, ISP, user agent; authorization masked) and invocation logs and traces are
+turned off in `wrangler.jsonc`; Free plan: logs 3 days, Time Travel 7; exports 30 days and restore re-deletion written
+in server/README. Gate 4: `pages.ts` written. Gate 5: Codex review and the user's approval pending; the hourly job's
+production run is to be confirmed after deploy.
 
 1. **The user's details:** legal name, support email, effective date, age statement, feedback retention (and implement
    any automatic retention the policy promises — none exists today), and retention for downloaded screenshots and
