@@ -214,7 +214,8 @@ The phone holds the only copy of the developer's history (24 workouts, 343 sets,
   a ticket if the user wants backups without the Mac.
 - No SwiftData schema change is planned in this effort: account, session and training profile live on the
   server and in the Keychain / `@AppStorage`, not in the store. A ticket that finds it needs one follows
-  DEVELOPMENT's migration rules and stops for approval.
+  DEVELOPMENT's migration rules and stops for approval — and builds ticket 11's automatic safety copy into the same
+  release (deferred until then by the user, 2026-10-14; `StoreFormatGuardTests` fails on any format change).
 
 ## Engineering constraints
 

@@ -30,8 +30,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 2. **10** — GPT-6.1 Sol. *Closed 2026-10-14 without change: not cheaper per request, slower; the user kept Terra.* [ticket](../work-record/public-beta/issues/10-model-sol.md)
 3. **05 rest** — Ask AI prefill + "Save to my training profile". *Merged; build 3 uploaded 2026-10-14.* [ticket](../work-record/public-beta/issues/05-profile.md)
 4. **04** — Google sign-in; the user creates the Google Cloud project/iOS OAuth client first (Claude guides in Chrome).
-5. **11** — automatic safety copy of each tester's data before a store-changing update → **build 4**.
-   Design questions are in the [ticket](../work-record/public-beta/issues/11-safety-copy.md).
+5. **11** — automatic safety copy before a store-changing update. *Deferred by the user 2026-10-14: built with the
+   first format change; `StoreFormatGuardTests` guards against an accidental one.* [ticket](../work-record/public-beta/issues/11-safety-copy.md)
 6. **08** — external testers: privacy policy at `/privacy` and `/support`, App Privacy answers, external group, beta
    description, feedback email, Beta App Review, invites. **The user still owes:** legal name, support email,
    effective date, feedback retention (suggested 1 year), age statement (suggested "not for under 13"). Server

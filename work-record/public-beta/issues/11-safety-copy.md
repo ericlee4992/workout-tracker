@@ -1,10 +1,10 @@
 # 11 — Automatic safety copy before an update changes stored data
 
 Type: task
-Status: ready-for-agent — the user's request, 2026-10-13
+Status: **deferred** (the user, 2026-10-14) — build together with the first update that changes the stored data format
 Blocked by: —
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
-Branch: `ericlee4992/beta-11-safety-copy` off `main`.
+Branch (when built): `ericlee4992/beta-11-safety-copy` off `main`. The guard: `ericlee4992/beta-11-schema-guard`.
 Spec: [spec.md](../spec.md) → *Data safety*. Related: DEVELOPMENT → *When a backup is required*; D28 (export).
 
 ## Why (the user, 2026-10-13)
@@ -37,5 +37,32 @@ data on the phone, so a failed or wrong migration can be undone — without the 
 - [ ] Restoring the copy brings back every row (`compare_stores.py` against the pre-update capture).
 - [ ] The copy never leaves the phone; old copies are pruned as decided.
 - [ ] Codex clear.
+
+## Decision — 2026-10-14: deferred; a format guard now
+
+Asked the four design questions (location, copies kept, in-app restore/share, a recovery screen instead of the launch
+crash), the user asked "is that really necessary?". Claude's assessment, accepted ("yes, go ahead"):
+
+- No stored-format change is planned (spec → *Data safety*: account, session and training profile live on the server and
+  in the Keychain / `@AppStorage`).
+- The copy needs nothing on testers' phones in advance: the store-changing build itself copies the store before its
+  first open. So it can be built in that same release.
+- The real risk is an *accidental* format change. **`WorkoutTrackerTests/StoreFormatGuardTests`** pins the fingerprint
+  of the shipped format — SHA-256 over Core Data's per-entity version hashes from
+  `NSManagedObjectModel.makeManagedObjectModel(for: WorkoutTrackerStore.modelTypes)`, the hashes that decide whether
+  SwiftData migrates — and fails with instructions to build this ticket first. A second test shows one more model changes
+  the fingerprint. The pinned value `9569f6fd…` is every TestFlight build's format: no `@Model` file changed since build 1
+  (`936b18f`; `git diff --stat 936b18f..HEAD` on the four `@Model` files is empty).
+
+Facts for when it is built (found 2026-10-14): no `VersionedSchema`/migration plan (SwiftData's automatic migration);
+no Import (the JSON export cannot be restored in the app), so the copy that matters is the store files; restoring an old
+copy under the same build re-runs the same migration, so restore is for a fixed build or sending to the developer;
+`WorkoutTrackerApp.init` `fatalError`s when the store will not open (a crash on every launch) — the recovery screen
+question. The exact "would this open migrate?" check: the store's metadata vs the model
+(`NSPersistentStoreCoordinator.metadataForPersistentStore` + `isConfiguration(withName:compatibleWithStoreMetadata:)`).
+
+**Verification:** StoreFormatGuardTests + SchemaTests 5/5 (`/tmp/wt-floodlight/results/11/guard2.xcresult`); with a
+placeholder value the guard failed with the current fingerprint in its message (`guard1.log`). Note: `xcodebuild`
+did not exit after a run with failures (both times today) — the result is in the log; kill it after the verdict line.
 
 ## Comments

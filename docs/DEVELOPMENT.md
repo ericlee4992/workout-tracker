@@ -273,7 +273,9 @@ the update changes what the phone stores — a SwiftData model, schema or migrat
 or anything else that touches the store on first launch. Every other update installs without one; check the diff
 against the installed build's commit and record the finding in the ticket. Testers cannot back up, so their safety
 comes from the app: migrations tested against a copy of real data, the developer installing each build first, iOS's
-own backup, and (planned before external testers) an automatic in-app safety copy before a migration.
+own backup, and an automatic in-app safety copy before a migration — **built together with the first store-changing
+update** (ticket 11, deferred by the user 2026-10-14). `StoreFormatGuardTests` pins the shipped format's fingerprint
+(Core Data's entity version hashes) and fails on any format change, pointing to ticket 11.
 
 **TestFlight and App Store builds were expected not to be copyable** (no `get-task-allow`), yet on 2026-10-13 a direct
 `devicectl … copy from` of the installed TestFlight build 0.1.0 (1) on this phone (iOS 27.0) worked and matched Gate S
