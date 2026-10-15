@@ -22,6 +22,8 @@ The user's friends receive Stacked by email invitation through external TestFlig
   Beta App Review; email invitations to the user's list of testers.
 - Readiness pass before the first external build: DEVELOPMENT's escalation rule for a release candidate decides
   whether the full UI suite runs over 02–07 together; record the choice and results.
+  **Includes the phone check of New Model → "Suggest exercises with AI"** (the `model-exercises` flow), which the
+  user left out of build 4's check (2026-10-15: "include it as 08's final test"); confirm the request on the server.
 - Server hygiene before strangers use it: AI limits verified in production, the off switch rehearsed, D1 backup
   (export) procedure written down.
 

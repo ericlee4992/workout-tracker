@@ -13,7 +13,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Phone check of build 4 (2026-10-15):** the user: "I tried the features. they seem to work." Production D1 shows a
   Google identity (account `5efc7cb3…`, separate from the Apple one, by design) with a saved training profile
   (05, 09:05 UTC), one Ask AI week (`routine-week`, ok, 9.6 s) and one Scan Machine (`scan-machine`, ok, 3.9 s), no
-  stuck in-flight slots. **No New Model suggestion (`model-exercises`) request reached the server** — asked the user.
+  stuck in-flight slots. New Model → Suggest exercises with AI (`model-exercises`) was not tried; the user moved it
+  to 08's final test pass.
 - **Next:** ticket 08 (external testers) — the user still owes the answers listed below; revisit Workers Free vs Paid;
   testers' Google accounts must be Google test users until the Google sign-in screen is published (08).
 - **Workers Free:** scans use 15–45 ms CPU vs 10 ms (all succeeded); revisit before 08 (the user's call).
