@@ -126,7 +126,8 @@ describe("Google sign-in — accounts", () => {
     expect(((await again.json()) as { profile: { displayName: string } }).profile.displayName).toBe("Alex Kim");
   });
 
-  it("two simultaneous first sign-ins of one Google person share one account (no provider token to keep)", async () => {
+  // Overlapping, not a forced conflict: no barrier makes both identity lookups miss (codex-review-04b).
+  it("two overlapping first sign-ins of one Google person end on one account", async () => {
     const [a, b] = await Promise.all([signInWith(await h.googleToken()), signInWith(await h.googleToken())]);
     expect([a.status, b.status]).toEqual([200, 200]);
     expect([await count("accounts"), await count("identities"), await count("sessions")]).toEqual([1, 1, 2]);

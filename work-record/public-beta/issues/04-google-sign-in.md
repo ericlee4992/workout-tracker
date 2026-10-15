@@ -127,4 +127,9 @@ FloodlightAccountUITests **8/8** (`ui2.xcresult`, `f879314` — the later commit
 neither in a UI test's path except the captures); captures FloodlightGoogleUITests **4/4** at `27dbf45`
 (`cap3.xcresult`, exported `shots4/`). The earlier `ui1` run was killed and is superseded.
 
+**The user kept the new look (Google Sans Medium, Google's iOS spacing), 2026-10-14.** **Codex round 2
+(`codex-review-04b.md`): clear** — all five resolved, nothing new. Its notes, handled: the OFL text's CRLF/trailing
+whitespace normalised (`git diff --check` clean); the overlapping-Google-sign-ins test renamed — it shows overlapping
+sign-ins end on one account, not a forced creation conflict. Open: the client ID, live sign-in/out/delete.
+
 ## Comments
