@@ -76,4 +76,16 @@ Report [codex-review-08c.md](../codex-review-08c.md) (HEAD `d08306f`): **Verdict
 all four round-2 findings closed. Not a clearance of the release gates or of publication: the user's details and
 decisions, the wired build, the deployed checks and the user's approval of the wording remain (draft → *Release gates*).
 
+### Server hygiene: D1 backup procedure — 2026-10-15 (Claude)
+
+Written in [server/README → Backups and restore](../../../server/README.md#backups-and-restore-ticket-08), with
+`server/scripts/check-export.sh` (restores an export into a throwaway SQLite file; compares every table's row count
+with production; integrity and foreign-key checks; read-only on production). Time Travel retention (7 days Free / 30
+Paid) checked against Cloudflare's D1 docs. **Rehearsed:** `wrangler d1 export stacked --remote` →
+`~/WorkoutTracker-Backups/server/2026-10-15-rehearsal/stacked.sql` (0600, 7,904 bytes, SHA-256 `d48c6cf5…e3e`, only the
+user's own two accounts); the check passed (13 tables equal, integrity `ok`, exit 0); the same export with
+`training_profiles` rows removed failed (exit 1). Not rehearsed: a Time Travel restore or a restore into a new remote
+database (both replace or repoint live data; the user approves). **New for the user:** how long manual exports are
+kept — the policy's deletion text depends on it. Remaining hygiene: AI limits in production, the off switch.
+
 ## Comments

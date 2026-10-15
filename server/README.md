@@ -105,6 +105,31 @@ npm run migrate:local && npm run dev    # http://localhost:8787 — sign-in need
 5. `npm run deploy` — the user approves the first production deploy. The URL (`https://stacked-server.<you>.workers.dev`)
    becomes the app's server build setting.
 
+## Backups and restore (ticket 08)
+
+The database has two safety nets; neither covers the feedback screenshots in R2 (`stacked-feedback`).
+
+- **D1 Time Travel** (automatic, nothing to run): any minute of the last 7 days on Workers Free, 30 on Paid.
+  `npx wrangler d1 time-travel info stacked [--timestamp=<ISO time>]` shows the bookmark for a moment;
+  `npx wrangler d1 time-travel restore stacked --timestamp=<ISO time>` **replaces the live database** with it — every
+  account, sign-in and feedback row written since is lost. The user approves a restore; it is the first choice after a
+  bad migration or a bad write.
+- **A manual export** before a migration or anything risky, and kept outside the repository:
+  ```sh
+  cd server
+  D=~/WorkoutTracker-Backups/server/$(date +%F)-<reason>; mkdir -p "$D"; chmod 700 "$D"
+  (umask 077; npx wrangler d1 export stacked --remote --output "$D/stacked.sql" -y)
+  scripts/check-export.sh "$D/stacked.sql"     # restores it into a throwaway file; row counts vs production
+  ```
+  The export briefly blocks the database while it runs (a moment at beta size). Wrangler also prints a one-hour
+  download link to the same file: treat it like the file — it is every account's email, profile and feedback. An
+  export keeps deleted accounts' data for as long as the file is kept; delete old exports (the retention period is the
+  privacy policy's, ticket 08). To restore from one: create a new database, `npx wrangler d1 execute <new> --remote
+  --file "$D/stacked.sql"`, point `database_id` in `wrangler.jsonc` at it and deploy (the user approves each step).
+
+Rehearsed 2026-10-15: an export of production (13 tables, 7.9 KB) restored with integrity `ok` and every row count
+equal to production; an export with one table's rows removed is reported as a mismatch (exit 1).
+
 ## Reading feedback
 
 ```sh

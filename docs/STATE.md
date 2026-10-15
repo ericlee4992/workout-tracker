@@ -15,6 +15,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   (05, 09:05 UTC), one Ask AI week (`routine-week`, ok, 9.6 s) and one Scan Machine (`scan-machine`, ok, 3.9 s), no
   stuck in-flight slots. New Model → Suggest exercises with AI (`model-exercises`) was not tried; the user moved it
   to 08's final test pass.
+- **08 progress (2026-10-15):** D1 backup procedure written (server/README) and rehearsed with a real export
+  ([ticket](../work-record/public-beta/issues/08-external-testers.md)); off switch and AI limits still to check.
 - **Next:** ticket 08 (external testers) — the user still owes the answers listed below; revisit Workers Free vs Paid;
   testers' Google accounts must be Google test users until the Google sign-in screen is published (08).
 - **Workers Free:** scans use 15–45 ms CPU vs 10 ms (all succeeded); revisit before 08 (the user's call).
