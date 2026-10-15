@@ -1,20 +1,22 @@
 # Current project state
 
-Updated **2026-10-14** (04 merged; 11 deferred with a guard; 06 and 05 merged; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-14** (build 4 uploaded; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: 04 merged; 11 deferred with a store-format guard (Codex clear); merge and TestFlight build 4 next
+## NOW: TestFlight build 4 uploaded (04 Google sign-in); phone checks next; then ticket 08
 
-- **`main` = `ba6cc20`** (pushed): 06, 05 and **04 (Google sign-in) merged**; 10 closed without change. The production
-  server runs 04's code (version `0f2b49c4`, Google configured). TestFlight 0.1.0 (3) from `1be0768` uploaded 2026-10-14
-  (the user adds it to "Developer" and installs; phone checks in tickets 06 and 05).
-- **Ticket 11 deferred by the user (2026-10-14):** the automatic safety copy is built with the first update that
-  changes stored data. Branch `ericlee4992/beta-11-schema-guard` adds `StoreFormatGuardTests` (structure fingerprint
-  with indexes, stored enum raw values, JSON payload samples) and the build number **4**. Codex round 1 not clear (the
-  guard missed payloads/enums/indexes) → round 2 (missing enums, production paths) → round 3 (three P3 wording/evidence
-  items) → all fixed → **round 4 clear**. Full unit suite at `86d8ab7`: 1020/1020.
-- **Next:** merge (go-ahead) → archive and upload **TestFlight build 4** from `main` (carries
-  04; no store change since build 1, so no Gate S) → the phone's Google sign-in check → ticket 08.
+- **`main` = `5a4ca0c`** (pushed): 06, 05, 04 merged; 11 deferred with `StoreFormatGuardTests` (Codex clear, round 4);
+  10 closed. Production server version `0f2b49c4` (04's code, Google configured).
+- **TestFlight 0.1.0 (4) from `5a4ca0c` uploaded 2026-10-14 23:04 EDT** (archive `scratchpad/tf/Stacked-0.1.0-4-5a4ca0c`,
+  checked: build 4, `WTGoogleClientID`, production `WTServerURL`, the font, team X68M8SR6NA). No Gate S: no stored-format
+  change since build 1. Build 3 (`1be0768`) was uploaded earlier the same day but never installed.
+- **The user, on the phone:** add build 4 to "Developer" in App Store Connect, install over build 2, then: **04** Sign in
+  with Google (the user's Gmail is the Google test user) and sign out/in; **06** Settings → Ask AI shows On and today's
+  use, one Scan Machine, one Ask AI week, one New Model suggestion (`node scripts/ai.mjs status`); **05** Ask AI opens
+  filled in from the training profile and a changed day count is saved to it. Signing in with Google creates a second
+  account (no linking with the Apple one, by design).
+- **Next:** ticket 08 (external testers) — the user still owes the answers listed below; revisit Workers Free vs Paid;
+  testers' Google accounts must be Google test users until the Google sign-in screen is published (08).
 - **Workers Free:** scans use 15–45 ms CPU vs 10 ms (all succeeded); revisit before 08 (the user's call).
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `0f2b49c4`, deployed 2026-10-14 from the 04 branch: adds Google).
   Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
@@ -41,12 +43,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
-- **Uploaded, not yet installed: 0.1.0 (3) = `main` `1be0768`** (2026-10-14).
+- **Uploaded, not yet installed: 0.1.0 (4) = `main` `5a4ca0c`** (2026-10-14 23:04 EDT; supersedes build 3 = `1be0768`).
 - **Installed: TestFlight Stacked 0.1.0 (2) = `main` `5836b68`** (uploaded 2026-10-13 23:17 EDT, in place over build 1;
   Automatic Updates **off**). No Gate S before it — no store change in `936b18f..5836b68` (the backup rule below).
   The user verified real Apple sign-in and signed-in feedback ("I confirm 03 works"); account deletion/Apple
   revocation was not separately itemised. Still uses the on-device OpenAI key for AI until 06's app half ships.
-- **Builds:** bump the build number (next **4**; 10 occurrences in `project.pbxproj`), archive from a recorded `main`
+- **Builds:** bump the build number (next **5**; 10 occurrences in `project.pbxproj`), archive from a recorded `main`
   commit in `/tmp/wt-live02` (holds the paid-team `Config/Local.xcconfig`; `git checkout --detach <commit>` there),
   upload, add to internal group "Developer" by hand, the user installs from TestFlight. Auto-updates stay off.
 - **Backups (the user, 2026-10-13: "yes skip the backup"):** Gate S only when an update changes what the phone stores
