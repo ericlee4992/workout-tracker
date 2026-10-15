@@ -12,7 +12,8 @@ import Testing
 //
 // 1. Structure — Core Data's per-entity version hashes (what decides whether SwiftData migrates the store on open), plus
 //    any indexes, which those hashes leave out.
-// 2. Stored enum values — the raw strings in rows; renaming or removing one makes old rows unreadable.
+// 2. Stored enum values — the raw strings in rows (enum-typed properties, `*RawValue` columns and enum strings written
+//    into plain String columns); renaming or removing one makes old rows unreadable.
 // 3. JSON payloads inside `Data` attributes (cardio intervals, route, distance spans; planned cardio) — the column is
 //    unchanged when its JSON changes, so fixed samples in today's format must still decode.
 //
@@ -81,7 +82,14 @@ struct StoreFormatGuardTests {
         "CardioDistanceUnit": ["km", "mi"],
         "CardioDistanceSource": ["healthKit", "phoneMotion", "gps", "mixed"],
         "HeartRateSource": ["airPods", "watch", "otherMonitor", "fixture"],
+        // Stored through plain String columns: `WorkoutTemplate.confirmedEquipment` (AIRoutinePersistence.save) and
+        // `AppPreferences.exerciseBrowseMuscleGroup` (ExercisesView.choose).
+        "RoutineEquipment": ["dumbbells", "bench", "adjustableBench", "barbellRack", "cable", "smith", "pullupBar",
+                             "dipStation"],
+        "MuscleFamily": ["Chest", "Back", "Shoulders", "Arms", "Legs"],
     ]
+    // Not pinned: `AppPreferences.modelBrowseMuscleGroup` holds a catalog body-area name (the shipped catalog, D24); an
+    // unknown one only resets that browse filter.
 
     private static func rawValues<T: CaseIterable & RawRepresentable>(_: T.Type) -> [String] where T.RawValue == String {
         T.allCases.map(\.rawValue)
@@ -95,74 +103,96 @@ struct StoreFormatGuardTests {
             "CatalogGrouping": Self.rawValues(CatalogGrouping.self), "MachineGrouping": Self.rawValues(MachineGrouping.self),
             "RestMode": Self.rawValues(RestMode.self), "CardioActivity": Self.rawValues(CardioActivity.self),
             "CardioDistanceUnit": Self.rawValues(CardioDistanceUnit.self),
-            // Not CaseIterable: each shipped value must still be accepted.
-            "CardioDistanceSource": Self.shippedRawValues["CardioDistanceSource"]!
-                .filter { CardioDistanceSource(rawValue: $0) != nil },
+            "CardioDistanceSource": Self.rawValues(CardioDistanceSource.self),
             "HeartRateSource": Self.rawValues(HeartRateSource.self),
+            "RoutineEquipment": Self.rawValues(RoutineEquipment.self), "MuscleFamily": Self.rawValues(MuscleFamily.self),
         ]
+        #expect(Set(current.keys) == Set(Self.shippedRawValues.keys))
         for (name, shipped) in Self.shippedRawValues {
             #expect(Set(current[name] ?? []) == Set(shipped), """
                 \(name)'s stored values changed (\(shipped) → \(current[name] ?? [])). Rows on testers' phones hold the \
                 old strings. Review with ticket 11 (\(ticket)) before shipping, then update `shippedRawValues`.
                 """)
         }
-        #expect(CardioDistanceSource.mixed.rawValue == "mixed", "a value outside the list would go unnoticed")
     }
 
     // MARK: 3. JSON payloads in Data attributes
 
-    /// Fixed samples in the format the app writes today (`JSONEncoder` defaults: dates as seconds since 2001).
-    /// They must keep decoding to the same values: these are what `intervalsData`, `routeData`, `distanceSpansData` and
-    /// `cardioPlanData` hold on testers' phones.
-    @Test func storedCardioPayloadsStillDecode() throws {
+    /// Fixed samples in the format the app writes today (`JSONEncoder` defaults: dates as seconds since 2001; nil
+    /// optionals left out). Read and written through the app's own storage paths — `CardioSegment.intervals`, `route`,
+    /// `distanceSpans`, and `plannedCardio` on both `WorkoutTemplate` and `Workout` (codex-review-11b #2): old rows must
+    /// still read back the same values, and today's writer must still produce this shape.
+    @MainActor @Test func storedCardioPayloadsReadAndWriteThroughTheAppsPaths() throws {
+        let context = ModelContext(try ModelContainer(
+            for: WorkoutTrackerStore.schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)]))
         let start = Date(timeIntervalSinceReferenceDate: 700_000_000)
         let portion = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
         let point = UUID(uuidString: "AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE")!
         let plan = UUID(uuidString: "99999999-8888-7777-6666-555555555555")!
-        let segment = UUID(uuidString: "12345678-1234-1234-1234-123456789ABC")!
+        let plan2 = UUID(uuidString: "99999999-8888-7777-6666-444444444444")!
+        let segmentID = UUID(uuidString: "12345678-1234-1234-1234-123456789ABC")!
 
+        let workout = Workout(startedAt: start)
+        context.insert(workout)
+        let segment = CardioSegment(activity: .outdoorRun, order: 0, workout: workout, at: start, unit: .km)
+        context.insert(segment)
+
+        // Intervals.
         let intervals = #"[{"start":700000000,"end":700000060}]"#
-        #expect(try decode([CardioInterval].self, intervals)
-                == [CardioInterval(start: start, end: start.addingTimeInterval(60))])
+        let intervalValues = [CardioInterval(start: start, end: start.addingTimeInterval(60))]
+        segment.intervalsData = Data(intervals.utf8)
+        #expect(segment.intervals == intervalValues)
+        segment.intervals = intervalValues
+        try expectShape(segment.intervalsData, intervals)
 
+        // Route.
         let route = #"[{"id":"AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE","latitude":40.75,"longitude":-73.99,"date":700000005,"accuracy":5,"portion":"11111111-2222-3333-4444-555555555555"}]"#
-        #expect(try decode([CardioRoutePoint].self, route) == [CardioRoutePoint(
-            id: point, latitude: 40.75, longitude: -73.99, date: start.addingTimeInterval(5), accuracy: 5, portion: portion)])
+        let routeValues = [CardioRoutePoint(id: point, latitude: 40.75, longitude: -73.99, date: start.addingTimeInterval(5),
+                                            accuracy: 5, portion: portion)]
+        segment.routeData = Data(route.utf8)
+        #expect(segment.route == routeValues)
+        segment.route = routeValues
+        try expectShape(segment.routeData, route)
 
-        let spans = #"[{"start":700000000,"readings":{"gps":1200.5},"updatedAt":{"gps":700000100},"selectedSourceRawValue":"gps"}]"#
-        #expect(try decode([CardioDistanceSpan].self, spans) == [CardioDistanceSpan(
-            start: start, readings: ["gps": 1200.5], updatedAt: ["gps": start.addingTimeInterval(100)],
-            selectedSourceRawValue: "gps")])
+        // Distance spans: one with a selected source, one without (the key is then absent).
+        let spans = #"[{"start":700000000,"readings":{"gps":1200.5},"updatedAt":{"gps":700000100},"selectedSourceRawValue":"gps"},{"start":700000200,"readings":{},"updatedAt":{}}]"#
+        let spanValues = [
+            CardioDistanceSpan(start: start, readings: ["gps": 1200.5], updatedAt: ["gps": start.addingTimeInterval(100)],
+                               selectedSourceRawValue: "gps"),
+            CardioDistanceSpan(start: start.addingTimeInterval(200)),
+        ]
+        segment.distanceSpansData = Data(spans.utf8)
+        #expect(segment.distanceSpans == spanValues)
+        segment.distanceSpans = spanValues
+        try expectShape(segment.distanceSpansData, spans)
 
-        let planned = #"[{"activity":"outdoorRun","distance":5,"id":"99999999-8888-7777-6666-555555555555","minutes":30,"segmentID":"12345678-1234-1234-1234-123456789ABC","unit":"km"}]"#
-        #expect(CardioPlanStorage.read(Data(planned.utf8)) == [PlannedCardio(
-            id: plan, activity: .outdoorRun, minutes: 30, distance: 5, unit: .km, segmentID: segment)])
-        #expect(!CardioPlanStorage.hasUnknown(Data(planned.utf8)))
-
-        // Today's encoder writes the same shape (keys and value forms), so the samples stay representative.
-        for (value, sample) in [
-            (try encodeObject([CardioInterval(start: start, end: start.addingTimeInterval(60))]), intervals),
-            (try encodeObject([CardioRoutePoint(id: point, latitude: 40.75, longitude: -73.99,
-                                                date: start.addingTimeInterval(5), accuracy: 5, portion: portion)]), route),
-            (try encodeObject([CardioDistanceSpan(start: start, readings: ["gps": 1200.5],
-                                                  updatedAt: ["gps": start.addingTimeInterval(100)],
-                                                  selectedSourceRawValue: "gps")]), spans),
-            (try encodeObject([PlannedCardio(id: plan, activity: .outdoorRun, minutes: 30, distance: 5, unit: .km,
-                                             segmentID: segment)]), planned),
-        ] {
-            #expect(value == (try JSONSerialization.jsonObject(with: Data(sample.utf8)) as? NSArray), """
-                A stored JSON payload's format changed. Old rows on testers' phones keep the old form: keep decoding \
-                it (and review with ticket 11, \(ticket)) before updating this sample.
-                """)
+        // Planned cardio on both owners: one full target, one without distance or segment.
+        let planned = #"[{"activity":"outdoorRun","distance":5,"id":"99999999-8888-7777-6666-555555555555","minutes":30,"segmentID":"12345678-1234-1234-1234-123456789ABC","unit":"km"},{"activity":"rowing","id":"99999999-8888-7777-6666-444444444444","minutes":10,"unit":"mi"}]"#
+        let planValues = [
+            PlannedCardio(id: plan, activity: .outdoorRun, minutes: 30, distance: 5, unit: .km, segmentID: segmentID),
+            PlannedCardio(id: plan2, activity: .rowing, minutes: 10, distance: nil, unit: .mi, segmentID: nil),
+        ]
+        let template = WorkoutTemplate(name: "Guard")
+        context.insert(template)
+        for owner in ["template", "workout"] {
+            if owner == "template" { template.cardioPlanData = Data(planned.utf8) } else { workout.cardioPlanData = Data(planned.utf8) }
+            let read = owner == "template" ? template.plannedCardio : workout.plannedCardio
+            #expect(read == planValues, "\(owner)")
+            #expect(!(owner == "template" ? template.hasUnknownCardioTargets : workout.hasUnknownCardioTargets))
+            if owner == "template" { template.cardioPlanData = nil; template.plannedCardio = planValues }
+            else { workout.cardioPlanData = nil; workout.plannedCardio = planValues }
+            try expectShape(owner == "template" ? template.cardioPlanData : workout.cardioPlanData, planned)
         }
     }
 
-    private func decode<T: Decodable>(_ type: T.Type, _ json: String) throws -> T {
-        try JSONDecoder().decode(type, from: Data(json.utf8))
-    }
-
-    private func encodeObject<T: Encodable>(_ value: T) throws -> NSArray? {
-        try JSONSerialization.jsonObject(with: JSONEncoder().encode(value)) as? NSArray
+    /// The written bytes have the sample's keys and values (key order is not part of the format).
+    private func expectShape(_ written: Data?, _ sample: String) throws {
+        let data = try #require(written)
+        #expect(try JSONSerialization.jsonObject(with: data) as? NSArray
+                == JSONSerialization.jsonObject(with: Data(sample.utf8)) as? NSArray, """
+            A stored JSON payload's format changed. Old rows on testers' phones keep the old form: keep reading it (and \
+            review with ticket 11, \(ticket)) before updating this sample.
+            """)
     }
 }
 

@@ -27,7 +27,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
    then the deployed max-size-scan CPU check and the adversarial check. *(Merged 2026-10-14; phone smoke with build 3.)* [ticket](../work-record/public-beta/issues/06-ai-proxy.md)
 2. **10** — GPT-6.1 Sol. *Closed 2026-10-14 without change: not cheaper per request, slower; the user kept Terra.* [ticket](../work-record/public-beta/issues/10-model-sol.md)
 3. **05 rest** — Ask AI prefill + "Save to my training profile". *Merged; build 3 uploaded 2026-10-14.* [ticket](../work-record/public-beta/issues/05-profile.md)
-4. **04** — Google sign-in; the user creates the Google Cloud project/iOS OAuth client first (Claude guides in Chrome).
+4. **04** — Google sign-in. *Merged 2026-10-14 (Codex clear round 2); Google Cloud project Stacked set up; server
+   deployed; Simulator sign-in/out/delete passed. Phone check with build 4.* [ticket](../work-record/public-beta/issues/04-google-sign-in.md)
 5. **11** — automatic safety copy before a store-changing update. *Deferred by the user 2026-10-14: built with the
    first format change; `StoreFormatGuardTests` guards against an accidental one.* [ticket](../work-record/public-beta/issues/11-safety-copy.md)
 6. **08** — external testers: privacy policy at `/privacy` and `/support`, App Privacy answers, external group, beta
@@ -64,7 +65,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 | 01b background mode | **Done**, merged. |
 | 02 onboarding | **Done**, merged; on the phone. |
 | 03 server + Sign in with Apple | **Done 2026-10-13**: deployed; app half Codex clear (round 3); build 2 verified by the user. |
-| 04 Google sign-in | **Code done** (server + app; mock approved); review and the user's Google client ID pending. |
+| 04 Google sign-in | **Merged** `ba6cc20` (Codex clear); client ID configured, server deployed, Simulator passed; phone with build 4. |
 | 05 profile | **Done in code** (merged `1be0768`, Codex clear); phone check with build 3. |
 | 06 AI proxy | **Merged**; deployed checks done; build 3 uploaded — phone smoke next. |
 | 07 feedback | **Done**; live since build 2. |

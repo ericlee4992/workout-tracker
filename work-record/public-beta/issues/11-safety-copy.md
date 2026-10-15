@@ -69,7 +69,7 @@ did not exit after a run with failures (both times today) — the result is in t
 **Codex round 1 (`codex-review-11.md`): not clear — fixed.** #1 (P2): the structure fingerprint alone missed stored
 data that is not table structure. The guard now has three layers: the structure fingerprint (plus indexes, which Core
 Data's hash excludes; none exist, so the pin is unchanged); every stored enum's raw values pinned (12 types — renaming or
-removing one strands old rows; adding one is unreadable by an older build); fixed JSON samples of the five `Data`
+removing one strands old rows; adding one is unreadable by an older build; round 2 adds RoutineEquipment and MuscleFamily → 14); fixed JSON samples of the five `Data`
 payloads (`intervalsData`, `routeData`, `distanceSpansData`, both `cardioPlanData`) that must decode, and today's encoder
 must still write their shape. First-launch row rewrites remain outside any test (DEVELOPMENT says so). The failure
 message no longer claims a migration "will" happen; the probe goes through the same fingerprint function. #2 (P3):
@@ -77,5 +77,18 @@ STATE's stale "design questions first" lines updated.
 Verification: StoreFormatGuardTests 4/4 (`guard3.xcresult`). Mutation check (`mut.log`, reverted): `WeightUnit.kg` stored
 as "KG" and `CardioInterval.start` encoded as "begin" → the enum and payload tests failed, the structure test passed (the
 gap the review found).
+
+**Codex round 2 (`codex-review-11b.md`): not clear — fixed.** #1 (P2) two enums stored through plain String columns were
+missing: `RoutineEquipment` (`WorkoutTemplate.confirmedEquipment`) and `MuscleFamily`
+(`AppPreferences.exerciseBrowseMuscleGroup`) — added (14 types; `AppPreferences.modelBrowseMuscleGroup` holds a catalog
+body-area name, D24, and is documented as not pinned). #2 (P2) the payload checks now read and write through the app's
+own paths (`CardioSegment.intervals`/`route`/`distanceSpans`, `plannedCardio` on both `WorkoutTemplate` and `Workout`) in
+an in-memory store, with samples that omit optional keys (a span without a selected source, a plan without distance or
+segment). #3 (P2) `CardioDistanceSource` is now `CaseIterable` (production, no behaviour change) so an added source is
+seen. #4 (P3) the spec no longer says "any format change". #5 (P3) STATE's ticket-04 lines updated to merged.
+Verification: StoreFormatGuardTests 4/4 (`guard4.xcresult`). Mutation (`mut3.log`, reverted): the `intervals` getter
+decoding dates as seconds since 1970 → the payload test failed at the production read. An added `CardioDistanceSource`
+case does not compile without handling (`mut2.log`: an exhaustive `switch` at Cardio.swift:37), and `CaseIterable` lists
+it for the enum test.
 
 ## Comments

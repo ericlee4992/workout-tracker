@@ -30,7 +30,8 @@ enum CardioDistanceUnit: String, Codable, CaseIterable, Identifiable, Sendable {
     static var localeDefault: Self { AppUnitSystem.resolve(preference: nil).distanceUnit }
 }
 
-enum CardioDistanceSource: String, Codable, Sendable {
+// CaseIterable so the store-format guard sees an added source (codex-review-11b #3).
+enum CardioDistanceSource: String, Codable, CaseIterable, Sendable {
     case healthKit, phoneMotion, gps, mixed
     var label: String {
         switch self {

@@ -215,7 +215,9 @@ The phone holds the only copy of the developer's history (24 workouts, 343 sets,
 - No SwiftData schema change is planned in this effort: account, session and training profile live on the
   server and in the Keychain / `@AppStorage`, not in the store. A ticket that finds it needs one follows
   DEVELOPMENT's migration rules and stops for approval — and builds ticket 11's automatic safety copy into the same
-  release (deferred until then by the user, 2026-10-14; `StoreFormatGuardTests` fails on any format change).
+  release (deferred until then by the user, 2026-10-14). `StoreFormatGuardTests` fails when the store's structure,
+  a stored enum value or a stored JSON payload's format changes; first-launch rewrites of existing rows still need review
+  by hand (DEVELOPMENT → *When a backup is required*).
 
 ## Engineering constraints
 
