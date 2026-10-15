@@ -144,4 +144,11 @@ proposed terms (logs off, session prune, download and restore commitments, with 
 await the user's approval with the wording (#8). The 08d tally corrected to 5 × P2, 2 × P3. Verified: server 225
 tests passed, `tsc` exit 0; `prune --local` removed files 15 and 20 days old and kept one 14 days old.
 
+### Codex review 08f — round 6: clear
+
+Report [codex-review-08f.md](../codex-review-08f.md) (HEAD `c7d47dd`): **Verdict: clear**, no open findings; 08e #1,
+#2 and #8 closed. Clearance covers the source, wording and written procedures — not the user's approval, deployment,
+the operating cadence, a rehearsed restore, build 5 or the App Privacy answers. **Next:** the user reads the pages
+and approves the wording and Claude's proposed terms (D61); then, on the user's go-ahead, merge, set the date, deploy.
+
 ## Comments
