@@ -13,7 +13,10 @@
     // Sign in with Apple's audience: the app's bundle ID (D60: kept as is).
     "APPLE_CLIENT_ID": "com.ericlee4992.workouttracker",
     // The paid team's ID (not secret; it is in every signed build): the issuer of the client-secret JWT.
-    "APPLE_TEAM_ID": "X68M8SR6NA"
+    "APPLE_TEAM_ID": "X68M8SR6NA",
+    // Ticket 04: the Google iOS OAuth client (project "Stacked", not secret; the same ID is in the app's
+    // WT_GOOGLE_CLIENT_ID): the ID token's required `aud`/`azp`.
+    "GOOGLE_CLIENT_ID": "469208403829-t81d4qhqr5p4amtlm0s47mo8p25bsf3b.apps.googleusercontent.com"
   },
   // Feedback screenshots (ticket 07). Created by `wrangler r2 bucket create stacked-feedback` before the first deploy.
   "r2_buckets": [

@@ -22,7 +22,7 @@ WT_SERVER_URL = https:/$()/stacked-server.stacked-server.workers.dev
 
 // Google sign-in (public beta ticket 04): the iOS OAuth client ID, `<number>-<id>.apps.googleusercontent.com` — not
 // secret. Blank = no Google button anywhere. Set once the Google Cloud client exists.
-WT_GOOGLE_CLIENT_ID =
+WT_GOOGLE_CLIENT_ID = 469208403829-t81d4qhqr5p4amtlm0s47mo8p25bsf3b.apps.googleusercontent.com
 
 // Last, so a developer's own values win over the defaults above.
 #include? "Local.xcconfig"
