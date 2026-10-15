@@ -24,12 +24,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **08 progress (2026-10-15):** D1 backup procedure rehearsed; the user skipped the live off-switch and AI-limit
   checks; the user answered every privacy question and approved the pages and Claude's proposed terms (D61);
   deployed. **Workers Free for now** — tell the user if Free causes a failure (check Workers metrics for exceeded-CPU
-  errors after the final test pass). [Ticket](../work-record/public-beta/issues/08-external-testers.md).
+  errors after the final test pass: server/README → Checking for Workers Free failures). [Ticket](../work-record/public-beta/issues/08-external-testers.md).
 - **Branch:** `ericlee4992/beta-08-testers` (pushed; `main` fast-forwarded to it at `0191b3f`); continue 08 on it.
 - **Codex:** one session for every review (AGENTS.md): Orca terminal **"Codex review"**
   (`term_be05cca0-da6f-4532-b4bd-c8cf220eebe8`). 08 pages and enforcement: rounds 4–6, **round 6 clear**
   (`work-record/public-beta/codex-review-08f.md`, HEAD `c7d47dd`). Reuse it for later rounds.
-- **Next (08):** confirm one hourly run on `8e0434be` → **build 5** from `main` (new usage strings; bump to 5) →
+- **Next (08):** (hourly run on `8e0434be` confirmed 19:23 EDT) **build 5** from `main` (new usage strings; bump to 5) →
   App Privacy answers (draft table; open items in the draft) → external group, beta description, what-to-test,
   feedback email → Beta App Review → final test pass incl. New Model → Suggest exercises with AI → invites. Google
   testers must be Google test users until the consent screen is published.

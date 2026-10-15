@@ -153,6 +153,20 @@ The database has two safety nets; neither covers the feedback screenshots in R2 
 Rehearsed 2026-10-15: an export of production (13 tables, 7.9 KB) restored with integrity `ok` and every row count
 equal to production; an export with one table's rows removed is reported as a mismatch (exit 1).
 
+## Checking for Workers Free failures (ticket 08)
+
+The user kept Workers Free (D61) and asked to be told if it causes a failure. Invocation logs are off, so use the
+analytics API (wrangler's own login can read it); any `status` other than `success` — notably `exceededCpu` — is a
+failure to report:
+
+```sh
+T=$(grep -E '^oauth_token' ~/Library/Preferences/.wrangler/config/default.toml | cut -d'"' -f2)
+curl -s -A curl/8 https://api.cloudflare.com/client/v4/graphql -H "Authorization: Bearer $T" -H 'content-type: application/json' \
+  -d '{"query":"query{viewer{accounts(filter:{accountTag:\"d4c369014a3ec67425d0914615bc02ff\"}){workersInvocationsAdaptive(limit:100,filter:{scriptName:\"stacked-server\",datetime_geq:\"<ISO start>\"}){sum{requests errors}quantiles{cpuTimeP50 cpuTimeP99}dimensions{status scriptVersion}}}}}"}'
+```
+
+`cpuTime*` is in microseconds (Free's limit is 10 ms = 10,000).
+
 ## Reading feedback
 
 ```sh

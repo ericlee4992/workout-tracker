@@ -163,6 +163,8 @@ SHA-256 `d48c6cf5…`, same as the rehearsal — no data change): `check-export.
 list`). Live: `/privacy` 200 (effective October 15, 2026, Eunchan Lee, the email ×4, the age line, the delete path; no
 brackets) and `/support` 200; `/v1/profile` without a token 401. For about a minute some requests got the old
 version (edge propagation); then 20 of 20 served the new pages. `HEAD /support` returns 404 (only GET is routed) —
-harmless for browsers. Policy acceptance item 1 met. Pending: one hourly run on `8e0434be`.
+harmless for browsers. Policy acceptance item 1 met. **Hourly run confirmed:** Workers analytics (GraphQL
+`workersInvocationsAdaptive`) shows 23:23 UTC (19:23 EDT) on `8e0434be`: 1 invocation, `success`, 0 errors, CPU P50
+3.4 ms. The same query is in server/README for the Workers Free failure check.
 
 ## Comments
