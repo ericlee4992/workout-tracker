@@ -7,10 +7,12 @@
 //   node scripts/feedback.mjs show <id> [--local]
 //   node scripts/feedback.mjs screenshot <id> [--local]
 //   node scripts/feedback.mjs delete <id> [--local]      (a tester's request; asks nothing, so check the ID first)
+//   node scripts/feedback.mjs prune [--local]            (only the download clean-up)
 //
-// Every production run first deletes downloaded screenshots older than 30 days or whose feedback no longer exists
-// (deleted on request, with its account, or after the server's one-year retention). The privacy policy promises this
-// (ticket 08): keep downloads in server/.feedback, never elsewhere, and keep this clean-up.
+// Every run first deletes downloaded screenshots older than 30 days and, in production, those whose feedback no longer
+// exists (deleted on request, with its account, or after the server's one-year retention). The privacy policy promises
+// copies are gone within 30 days (ticket 08): keep downloads in server/.feedback (--local: .feedback-local), never
+// elsewhere, keep this clean-up, and run `prune` at least every 30 days while any download exists (README).
 //
 // Feedback is tester data: do not paste it into the repository, an issue, or a chat.
 import { execFileSync } from "node:child_process";
@@ -27,7 +29,8 @@ const option = (name, fallback) => {
   return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
 };
 const where = flag("--local") ? "--local" : "--remote";
-const downloads = path.join(serverDir, ".feedback");
+// Separate folders, so a production run never prunes local downloads and a local key never touches a production copy.
+const downloads = path.join(serverDir, where === "--remote" ? ".feedback" : ".feedback-local");
 const DOWNLOAD_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
@@ -57,25 +60,35 @@ function who(row) {
   return row.email ? `${row.display_name ?? "(no name)"} <${row.email}>` : "signed out";
 }
 
-/** Downloaded screenshots past 30 days, or whose feedback row is gone. Production only: local keys are another set. */
+/**
+ * Downloaded screenshots past 30 days — always, even when the database cannot be reached — and then, in production,
+ * those whose feedback row is gone. If that query fails, the unexpired files are kept (nothing proves them deleted).
+ */
 function pruneDownloads() {
-  if (where !== "--remote") return;
   let files;
   try { files = readdirSync(downloads); } catch { return; }
-  if (files.length === 0) return;
-  const live = new Set(query("SELECT screenshot_key FROM feedback WHERE screenshot_key IS NOT NULL")
-    .map((r) => path.basename(r.screenshot_key)));
   const cutoff = Date.now() - DOWNLOAD_RETENTION_MS;
+  const remove = (name, why) => {
+    rmSync(path.join(downloads, name), { force: true });
+    console.error(`Deleted the downloaded copy ${name} (${why})`);
+  };
+  const kept = [];
   for (const name of files) {
-    const file = path.join(downloads, name);
-    if (!live.has(name) || statSync(file).mtimeMs < cutoff) {
-      rmSync(file, { force: true });
-      console.error(`Deleted the downloaded copy ${name}`);
-    }
+    if (statSync(path.join(downloads, name)).mtimeMs < cutoff) remove(name, "30 days"); else kept.push(name);
   }
+  if (kept.length === 0 || where !== "--remote") return;
+  let live;
+  try {
+    live = new Set(query("SELECT screenshot_key FROM feedback WHERE screenshot_key IS NOT NULL")
+      .map((r) => path.basename(r.screenshot_key)));
+  } catch {
+    console.error("Could not check downloaded copies against the database; kept them for the next run.");
+    return;
+  }
+  for (const name of kept) if (!live.has(name)) remove(name, "its feedback is gone");
 }
 
-if (["list", "show", "screenshot", "delete"].includes(command)) pruneDownloads();
+if (["list", "show", "screenshot", "delete", "prune"].includes(command)) pruneDownloads();
 
 switch (command) {
   case "list": {
@@ -124,7 +137,9 @@ switch (command) {
     console.log(`Deleted feedback ${id}${row.screenshot_key ? " and its screenshot" : ""}.`);
     break;
   }
+  case "prune":
+    break;
   default:
-    console.error("Usage: node scripts/feedback.mjs list [--limit N] | show <id> | screenshot <id> | delete <id>  [--local]");
+    console.error("Usage: node scripts/feedback.mjs list [--limit N] | show <id> | screenshot <id> | delete <id> | prune  [--local]");
     process.exit(2);
 }

@@ -117,4 +117,20 @@ exit 0, built Info.plist carries the new strings. **Pending:** Codex review; the
 (with the date) and confirm an hourly run; build 5; App Privacy answers; external group; Beta App Review; the final
 test pass including New Model → Suggest exercises with AI.
 
+### Codex review 08d — response (round 4)
+
+Report [codex-review-08d.md](../codex-review-08d.md) (HEAD `6865caf`): **not clear**, 7 findings (4 × P2, 3 × P3); the
+expiry's correctness/atomicity, the 37-statement budget, the log configuration and the console lines were confirmed.
+Taken: download clean-up prunes by age first and independently of the database, keeps unexpired files when the
+liveness query fails, has a `prune` command, and README makes "run it at least every 30 days while a download exists"
+an operating rule; the policy now promises only "within 30 days" (#1). The restore promise is now honest — deleted data
+may reappear; re-delete what can be identified and email testers about the rest — and README's procedure orders pause,
+evidence export, restore into a new database, reconciliation of accounts/feedback/sessions/profiles/retention, check,
+resume (#2). `--local` downloads in `server/.feedback-local` (#3). "Change or clear" → "change; deleting your account
+removes it" (no clear action exists) (#4). New hourly `pruneSessions` (expired sessions; test) and sign-out wording
+"if your iPhone can reach my server" (#5). Support page: "your account and the data linked to it", with the exceptions
+pointed to (#6). Delete path: "in Settings, tap your name or email at the top, then Delete Account…" (#7). Also from the
+notes: "about a year … hourly clean-up job (retries)", and logs described as diagnostic details with per-request
+logging off. Server: 225 tests passed, `tsc` exit 0; `prune --local` removed only a file older than 30 days.
+
 ## Comments

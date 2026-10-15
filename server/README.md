@@ -53,8 +53,8 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   row insert removes it, so an upload whose row never landed is deleted an hour later. The hourly cron first expires
   feedback older than a year (ticket 08: ≤ 1,000 rows a run, their screenshots queued due at once), then works through
   due keys 1,000 per run (at most 14 D1 statements — the expiry's two, one read, ≤ 10 deletes by id, the counter
-  clean-up — and one R2 call; with the revocation retry, now 20 a run, and the AI prune's two, at most 37 of Workers
-  Free's 50 per invocation).
+  clean-up — and one R2 call; with the revocation retry, now 20 a run, the AI prune's two and the expired-session
+  prune's one, at most 38 of Workers Free's 50 per invocation).
 - **AI** (ticket 06; signed in only): the server owns each flow's instructions, JSON schema, model (`gpt-5.6-terra`),
   `store: false`, reasoning effort and output cap; the app sends only checked, bounded structured input (unknown fields
   are dropped; names and plate lines are single-line, so they cannot fabricate rows; the JPEG's structure is checked)
@@ -129,12 +129,21 @@ The database has two safety nets; neither covers the feedback screenshots in R2 
   made** (`rm -r ~/WorkoutTracker-Backups/server/<date>-<reason>`; the privacy policy promises it — the user,
   ticket 08). To restore from one: create a new database, `npx wrangler d1 execute <new> --remote --file
   "$D/stacked.sql"`, point `database_id` in `wrangler.jsonc` at it and deploy (the user approves each step).
-- **Deletions survive a restore** (the privacy policy promises it). Before pointing the server at restored data —
-  from an export or a Time Travel bookmark — take the newest state that can still be read (the live database, or a
-  Time Travel bookmark just before the fault) and delete from the restored copy every `accounts` and `feedback` row
-  that is absent there: anything the copy has that the newest state lacks was deleted (or expired) since. An account
-  goes with its sessions, identities, training profile and AI rows (as `claimDeletion` does); a feedback row goes with
-  its R2 screenshot, if that still exists.
+- **Before any restore** (the privacy policy says deleted data may reappear after one, that the developer deletes
+  again what can be identified and tells testers): restoring brings back rows deleted after the backup — accounts,
+  feedback, sessions, profile edits — and a Time Travel restore **overwrites the live database in place**. So, in
+  order, with the user approving each step:
+  1. Pause AI for everyone (the off switch) so fewer writes land meanwhile.
+  2. Export the current database first (the procedure above), even if it is damaged: it is the evidence of what was
+     deleted or changed since the backup. Note the Time Travel bookmark of "now" (`time-travel info`).
+  3. Restore into a **new** database where possible (export → new database), not over the live one.
+  4. In the restored copy, delete every `accounts` row absent from the evidence (with its sessions, identities,
+     training profile and AI rows, as `claimDeletion` does), every `feedback` row absent from it (and its R2
+     screenshot), every expired session, and re-run the retention clean-ups (feedback older than a year, AI records,
+     counters). Where an account's training profile differs, take the evidence's version.
+  5. Check with `scripts/check-export.sh`-style counts, then point `database_id` at it, deploy, and lift the pause.
+  6. Whatever could not be reconciled (no usable evidence for a period): email the affected testers what may have
+     come back so they can delete it again. Record the restore in the ticket.
 
 Rehearsed 2026-10-15: an export of production (13 tables, 7.9 KB) restored with integrity `ok` and every row count
 equal to production; an export with one table's rows removed is reported as a mismatch (exit 1).
@@ -149,9 +158,11 @@ node scripts/feedback.mjs screenshot <id>            # saves it to server/.feedb
 node scripts/feedback.mjs delete <id>                # a tester asked: the row, its R2 screenshot and any download
 ```
 
-Every production run first deletes downloaded screenshots older than 30 days or whose feedback no longer exists. The
-server deletes feedback and its screenshot a year after it was sent (the hourly job). Both are privacy-policy promises
-(ticket 08).
+Every run first deletes downloaded screenshots older than 30 days (whether or not the database can be reached) and,
+in production, those whose feedback no longer exists; `--local` downloads go to `server/.feedback-local`. **While any
+download exists, run `node scripts/feedback.mjs prune` at least every 30 days** — the privacy policy promises copies
+are gone within 30 days (ticket 08). The server deletes feedback and its screenshot about a year after it was sent
+(the hourly job; a failed screenshot delete is retried).
 
 Add `--local` to read `wrangler dev`'s local copies. The Cloudflare dashboard (D1 → stacked → `feedback`; R2 →
 stacked-feedback) shows the same. Feedback is tester data: keep it out of the repository, issues and chats.

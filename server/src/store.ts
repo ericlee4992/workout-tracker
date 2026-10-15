@@ -108,6 +108,16 @@ export async function providerFor(env: Env, accountID: string): Promise<string> 
   return row?.provider ?? "apple";
 }
 
+/** Hourly (ticket 08): expired sessions whose token was never presented again — e.g. a sign-out that could not reach
+ *  the server. The privacy policy promises their removal; one statement. */
+export async function pruneSessions(env: Env, deps: Deps) {
+  try {
+    await env.DB.prepare("DELETE FROM sessions WHERE expires_at <= ?").bind(deps.now()).run();
+  } catch (error) {
+    console.error("session prune failed", error instanceof Error ? error.name : "unknown");
+  }
+}
+
 export async function deleteSession(env: Env, tokenHash: string) {
   await env.DB.prepare("DELETE FROM sessions WHERE token_hash = ?").bind(tokenHash).run();
 }

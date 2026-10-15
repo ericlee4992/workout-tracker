@@ -8,7 +8,7 @@ import { cleanTraining, readTraining, trainingStatement } from "./training";
 import { privacyPage, supportPage } from "./pages";
 import {
   accountForToken, claimDeletion, createOrFindAccount, createSession, decryptToken, deleteSession,
-  duePendingRevocations, finishPendingRevocation, findAccountByIdentity, PENDING_MAX_AGE_MS, providerFor,
+  duePendingRevocations, finishPendingRevocation, findAccountByIdentity, PENDING_MAX_AGE_MS, providerFor, pruneSessions,
   retryPendingRevocationLater, updateRefreshToken, type Account,
 } from "./store";
 
@@ -205,5 +205,6 @@ export default {
     ctx.waitUntil(runPendingRevocations(env, liveDeps));
     ctx.waitUntil(sweepFeedback(env, liveDeps));
     ctx.waitUntil(pruneAI(env, liveDeps));
+    ctx.waitUntil(pruneSessions(env, liveDeps));
   },
 } satisfies ExportedHandler<Env>;

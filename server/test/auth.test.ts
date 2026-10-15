@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { beforeEach, describe, expect, it } from "vitest";
 import { base64UrlDecode, decrypt, utf8 } from "../src/crypto";
 import { decodeJWT } from "../src/jwt";
-import { SESSION_LIFETIME_MS } from "../src/store";
+import { pruneSessions, SESSION_LIFETIME_MS } from "../src/store";
 import { CLIENT_ID, count, harness, NONCE, type Harness } from "./helpers";
 
 let h: Harness;
@@ -147,6 +147,19 @@ describe("Sessions, profile, sign-out", () => {
     h.clock.now += 91 * 86_400_000;
     expect((await h.call("GET", "/v1/profile", { token: session })).status).toBe(401);
     expect(await count("sessions")).toBe(0);
+  });
+
+  it("the hourly prune removes sessions that expired without being presented again, and keeps live ones (08)", async () => {
+    await h.signIn();
+    h.clock.now += 10 * 86_400_000;
+    const { session } = await h.signIn();
+    h.clock.now += SESSION_LIFETIME_MS - 10 * 86_400_000 - 1;
+    await pruneSessions(h.env, h.deps);
+    expect(await count("sessions")).toBe(2);
+    h.clock.now += 1;  // the first one's expiry
+    await pruneSessions(h.env, h.deps);
+    expect(await count("sessions")).toBe(1);
+    expect((await h.call("GET", "/v1/profile", { token: session })).status).toBe(200);
   });
 
   it("signs out one session only", async () => {

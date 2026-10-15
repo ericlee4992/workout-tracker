@@ -70,11 +70,11 @@ when you joined;</li>
 <li>for Sign in with Apple, a token Apple issues, stored encrypted and used only to revoke Stacked’s access when you
 delete your account;</li>
 <li>your sign-in sessions: a one-way fingerprint of each, with when it was created, last used and expires. A session
-stops working after 90 days without use; its record is removed when you sign out, delete your account, or next
-present an expired session;</li>
+stops working after 90 days without use. Its record is removed when you sign out (if your iPhone can reach my server
+at that moment), when you delete your account, or by an hourly clean-up once it has expired;</li>
 <li>your <strong>training profile</strong> if you fill it in: goals, experience, days per week, minutes per session,
-and optionally height and weight, as you entered them. It fills in Ask AI for Templates, and you can change or clear
-it.</li>
+and optionally height and weight, as you entered them. It fills in Ask AI for Templates. You can change it at any
+time; deleting your account removes it.</li>
 </ul>
 <p>These stay until you change them or delete your account.</p>
 
@@ -106,17 +106,18 @@ it to fix and improve the app. Feedback sent while signed out is not attached to
 show may still identify you. To limit abuse, a signed-out submission is counted under a one-way code made from your
 network address and the date; the address itself is not stored in my database, and the code is removed after that day
 ends (New York time).</p>
-<p>Feedback and its screenshot are deleted automatically one year after you send them. If I download a screenshot to
-look at it, my copy is deleted within 30 days, or sooner if the feedback itself is deleted.</p>
+<p>Feedback and its screenshot are deleted automatically about a year after you send them, by an hourly clean-up
+job (if deleting a screenshot fails, the job retries). If I download a screenshot to look at it, I delete my copy
+within 30 days.</p>
 
 <h2>Who processes data for me</h2>
 <ul>
 <li><strong>Cloudflare</strong> runs my server and stores its database and feedback screenshots (Cloudflare Workers,
 D1 and R2). As with any web host, Cloudflare handles your network address to deliver requests and protect the service,
-under its own privacy policy. The logs my server keeps there, for 3 days, contain only lines my server writes —
-for example which AI feature was used, whether it worked, how long it took and how many tokens it used, and the kind
-of any error — not your network address, location, account or what you sent. The database also keeps a recovery
-history for 7 days.</li>
+under its own privacy policy. My server’s logs there are kept for 3 days and hold diagnostic details — for example
+which AI feature was used, whether it worked, how long it took and how many tokens it used, and the kind of any error.
+I have turned off Cloudflare’s per-request logging, so they do not hold your network address, location, account or
+what you sent. The database also keeps a recovery history for 7 days.</li>
 <li><strong>OpenAI</strong> processes AI requests as described above.</li>
 <li><strong>Apple</strong> provides Sign in with Apple, TestFlight and map imagery; <strong>Google</strong> provides
 Google sign-in.</li>
@@ -126,16 +127,17 @@ websites.</p>
 
 <h2 id="deleting">Deleting your data</h2>
 <ul>
-<li><strong>Your account:</strong> Profile → Delete Account deletes from my live database, at once, your account,
-sessions, training profile, AI records, and the feedback you sent while signed in. The feedback’s screenshots are
-deleted right after; if that fails, an hourly job retries until they are gone, and any copy I downloaded is deleted
-too. Stacked’s Sign in with Apple access is revoked with Apple; if revocation fails, I keep the encrypted token
+<li><strong>Your account:</strong> in Settings, tap your name or email at the top, then Delete Account…. This deletes from
+my live database, at once, your account, sessions, training profile, AI records, and the feedback you sent while
+signed in. The feedback’s screenshots are deleted right after; if that fails, an hourly job retries until they are
+gone. Any copy I downloaded is deleted within 30 days. Stacked’s Sign in with Apple access is revoked with Apple; if revocation fails, I keep the encrypted token
 separately from your deleted account record, solely to retry revocation for up to 30 days, and the app tells you how
 to stop Sign in with Apple yourself in iOS Settings → Apple Account → Sign in with Apple. Your workouts on your iPhone
 are not touched.</li>
 <li><strong>Backups:</strong> deleted data can remain for up to 7 days in the database’s recovery history, and for up
 to 30 days in a copy of the database I make before risky maintenance; I delete those copies after 30 days. If I ever
-restore the database from a backup, I first delete from it everything that was deleted since the backup was made.</li>
+have to restore the database from one of these, data deleted after it was made could reappear. I would delete again
+everything I can identify as deleted since then, and tell testers by email about anything I could not.</li>
 <li><strong>Feedback sent while signed out</strong> isn’t linked to an account; email me what you sent and roughly
 when, and I will delete it, including any copy I downloaded.</li>
 <li><strong>On your iPhone:</strong> delete the app (see <em>What stays on your iPhone</em> for what that does and
@@ -165,8 +167,10 @@ open Stacked in the TestFlight app and tap Send Beta Feedback.</li>
 <h2>Your data</h2>
 <ul>
 <li>Your workouts are stored only on your iPhone. Settings → Export saves a copy as JSON or CSV.</li>
-<li>An account is optional and needed only for the AI features. To delete it and everything my server holds about
-you: Profile → Delete Account.</li>
+<li>An account is optional and needed only for the AI features. To delete your account and the data linked to it
+from my server: in Settings, tap your name or email at the top, then Delete Account…. The privacy policy explains what can
+remain for a while (backups, a pending Sign in with Apple revocation) and how to have feedback you sent while signed
+out deleted.</li>
 <li>To stop sending data to OpenAI, turn off the permissions in Settings → Ask AI.</li>
 </ul>
 <p>Details: the <a href="/privacy">privacy policy</a>.</p>
