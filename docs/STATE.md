@@ -5,17 +5,21 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: ticket 08 — privacy pages live; build 5 and App Store Connect next
 
-- **`main` = `0191b3f`** (pushed 2026-10-15): 08's privacy/support pages and their enforcement merged (Codex clear,
-  round 6; the user approved the wording). Before that `5a4ca0c`: 06, 05, 04 merged; 11 deferred; 10 closed.
+- **`main` = `1ce3424`** (pushed 2026-10-15): build number 5 on top of `0191b3f` (08's privacy/support pages and their
+  enforcement; Codex clear round 6; the user approved the wording). Before that `5a4ca0c`: 06, 05, 04; 11 deferred.
+- **TestFlight 0.1.0 (5) from `1ce3424` uploaded 2026-10-15 19:36 EDT** (archive
+  `scratchpad/tf/Stacked-0.1.0-5-1ce3424.xcarchive` of session 34187b7c; checked: build 5 incl. the widget, production
+  `WTServerURL`, `WTGoogleClientID`, the new camera/photo/Health strings, the font, team X68M8SR6NA). Only
+  `project.pbxproj` changed since build 4 — no Gate S. Not yet added to the "Developer" group or installed.
+- **Archive checkout:** `/tmp/wt-live02` lost its `.git` file to macOS's temp clean-up (prunable; left untouched).
+  Builds now archive from `/Users/ericlee06/orca/workspaces/Health App/release-build` (detached; `git checkout --detach
+  <main commit>`; `Config/Local.xcconfig` copied in, identical to wt-live02's).
 - **Production server version `8e0434be`** (deployed 2026-10-15 19:08 EDT from `0191b3f`): `/privacy` and
   `/support` live (effective October 15, 2026), invocation logs/traces off, one-year feedback expiry, hourly
   expired-session prune. No migration.
 - **Data clean-up promises (D61):** delete `~/WorkoutTracker-Backups/server/2026-10-15-rehearsal` and
   `…/2026-10-15-pre-08-deploy` **by 2026-11-14** (exports: 30 days). While any download is in `server/.feedback`, run
   `node scripts/feedback.mjs prune` at least every 15 days (none downloaded so far).
-- **TestFlight 0.1.0 (4) from `5a4ca0c` uploaded 2026-10-14 23:04 EDT** (archive `scratchpad/tf/Stacked-0.1.0-4-5a4ca0c`,
-  checked: build 4, `WTGoogleClientID`, production `WTServerURL`, the font, team X68M8SR6NA). No Gate S: no stored-format
-  change since build 1. Build 3 (`1be0768`) was uploaded earlier the same day but never installed.
 - **Phone check of build 4 (2026-10-15):** the user: "I tried the features. they seem to work." Production D1 shows a
   Google identity (account `5efc7cb3…`, separate from the Apple one, by design) with a saved training profile
   (05, 09:05 UTC), one Ask AI week (`routine-week`, ok, 9.6 s) and one Scan Machine (`scan-machine`, ok, 3.9 s), no
@@ -29,8 +33,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Codex:** one session for every review (AGENTS.md): Orca terminal **"Codex review"**
   (`term_be05cca0-da6f-4532-b4bd-c8cf220eebe8`). 08 pages and enforcement: rounds 4–6, **round 6 clear**
   (`work-record/public-beta/codex-review-08f.md`, HEAD `c7d47dd`). Reuse it for later rounds.
-- **Next (08):** (hourly run on `8e0434be` confirmed 19:23 EDT) **build 5** from `main` (new usage strings; bump to 5) →
-  App Privacy answers (draft table; open items in the draft) → external group, beta description, what-to-test,
+- **Next (08):** the user adds build 5 to "Developer" and installs it → App Store Connect entries from
+  [app-store-connect-08.md](../work-record/public-beta/app-store-connect-08.md): App Privacy answers (draft table; open items in the draft) → external group, beta description, what-to-test,
   feedback email → Beta App Review → final test pass incl. New Model → Suggest exercises with AI → invites. Google
   testers must be Google test users until the consent screen is published.
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `8e0434be`, above; previously `0f2b49c4`).
@@ -62,8 +66,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   Automatic Updates **off**). No Gate S before it — no store change in `936b18f..5836b68` (the backup rule below).
   The user verified real Apple sign-in and signed-in feedback ("I confirm 03 works"); account deletion/Apple
   revocation was not separately itemised. Still uses the on-device OpenAI key for AI until 06's app half ships.
-- **Builds:** bump the build number (next **5**; 10 occurrences in `project.pbxproj`), archive from a recorded `main`
-  commit in `/tmp/wt-live02` (holds the paid-team `Config/Local.xcconfig`; `git checkout --detach <commit>` there),
+- **Builds:** bump the build number (next **6**; 10 occurrences in `project.pbxproj`), archive from a recorded `main`
+  commit in `…/Health App/release-build` (holds the paid-team `Config/Local.xcconfig`; `git checkout --detach <commit>` there),
   upload, add to internal group "Developer" by hand, the user installs from TestFlight. Auto-updates stay off.
 - **Backups (the user, 2026-10-13: "yes skip the backup"):** Gate S only when an update changes what the phone stores
   — [DEVELOPMENT → When a backup is required](DEVELOPMENT.md). Otherwise check the diff against the installed commit

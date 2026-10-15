@@ -167,4 +167,15 @@ harmless for browsers. Policy acceptance item 1 met. **Hourly run confirmed:** W
 `workersInvocationsAdaptive`) shows 23:23 UTC (19:23 EDT) on `8e0434be`: 1 invocation, `success`, 0 errors, CPU P50
 3.4 ms. The same query is in server/README for the Workers Free failure check.
 
+### Build 5 — 2026-10-15 (Claude, the user's "yes")
+
+Build number 5 committed and `main` fast-forwarded to `1ce3424` (pushed). Since build 4 (`5a4ca0c`) only
+`project.pbxproj` changed (usage strings, build number): no stored-format change, no Gate S. `/tmp/wt-live02` had lost
+its `.git` file (macOS temp clean-up), so the archive came from a new detached worktree
+`/Users/ericlee06/orca/workspaces/Health App/release-build` at `1ce3424` with the identical `Config/Local.xcconfig`.
+`xcodebuild … Release generic/platform=iOS archive` exit 0; the archive's app and widget are build 5, production
+`WTServerURL`, `WTGoogleClientID`, the new camera/photo/Health strings, the font, team X68M8SR6NA. Upload
+(`-exportArchive`, destination upload) exit 0, "Upload succeeded" 19:36 EDT. App Store Connect entries to paste:
+[app-store-connect-08.md](../app-store-connect-08.md).
+
 ## Comments
