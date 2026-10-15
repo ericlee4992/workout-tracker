@@ -99,4 +99,7 @@ cleared — catalog changes need review by hand); the build-1 evidence names the
 pin comment says builds 1–3 shipped, 4 planned; STATE refreshed. Codex's optional strengthening taken: each segment
 payload's backing `Data` is cleared before its setter runs. Full unit suite at `86d8ab7`: 1020/1020; guard after these edits 4/4 (`guard5.xcresult`).
 
+
+**Codex round 4 (`codex-review-11d.md`): clear.** The guard branch is ready to merge with build number 4.
+
 ## Comments
