@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-10-15** (build 4 installed and phone-checked; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; 08 started). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-15** (build 4 installed and phone-checked; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; 08: privacy pages built, Codex round 4). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: build 4 on the phone and checked; ticket 08 next
@@ -15,17 +15,22 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   (05, 09:05 UTC), one Ask AI week (`routine-week`, ok, 9.6 s) and one Scan Machine (`scan-machine`, ok, 3.9 s), no
   stuck in-flight slots. New Model → Suggest exercises with AI (`model-exercises`) was not tried; the user moved it
   to 08's final test pass.
-- **08 progress (2026-10-15):** D1 backup procedure written (server/README) and rehearsed with a real export
-  ([ticket](../work-record/public-beta/issues/08-external-testers.md)). The user skipped the off-switch and live
-  AI-limit checks (unit-tested). New decision owed: how long manual exports are kept (suggested 30 days).
-- **Branch:** `ericlee4992/beta-08-testers` (off `main` `5a4ca0c`, pushed; not merged): STATE/ticket updates, the
-  D1 backup section in `server/README.md`, `server/scripts/check-export.sh`, the one-Codex-session rule in AGENTS.md.
-  The privacy draft (`work-record/public-beta/privacy-policy-draft.md`, Codex clear round 3) is already in `main`.
-- **Codex:** reuse one Codex terminal for every review round and ticket (the user, 2026-10-15; AGENTS.md). No Codex
-  terminal is open now; the first 08 review creates it. Codex weekly budget was low (under 25% on 2026-10-14).
-- **Next:** ticket 08 (external testers) — the user still owes the answers listed below; revisit Workers Free vs Paid;
-  testers' Google accounts must be Google test users until the Google sign-in screen is published (08).
-- **Workers Free:** scans use 15–45 ms CPU vs 10 ms (all succeeded); revisit before 08 (the user's call).
+- **08 progress (2026-10-15):** D1 backup procedure written and rehearsed; the user skipped the live off-switch and
+  AI-limit checks. **The user answered every privacy question (D61):** Eunchan Lee, ericlee4992@gmail.com, effective
+  the day it goes live, feedback 1 year, not for under 13, exports 30 days, **Workers Free for now** (tell the user if
+  Free causes a failure: check Workers metrics for exceeded-CPU errors after the final test pass). Built on the branch,
+  **not deployed**: `server/src/pages.ts` (policy + support), one-year feedback expiry in the hourly job, Workers
+  invocation logs/traces off (a stored record held IP + city/postcode/coordinates), the feedback tool's 30-day download
+  clean-up and `delete <id>`, README export/restore rules, and the camera/photo/Health usage strings (need **build 5**).
+  `npm run deploy` refuses until `POLICY_EFFECTIVE_DATE` is set. [Ticket](../work-record/public-beta/issues/08-external-testers.md).
+- **Branch:** `ericlee4992/beta-08-testers` (off `main` `5a4ca0c`, pushed; not merged).
+- **Codex:** one session for every review (AGENTS.md): Orca terminal **"Codex review"**
+  (`term_be05cca0-da6f-4532-b4bd-c8cf220eebe8`), round 4 of 08 running 2026-10-15 → report
+  `work-record/public-beta/codex-review-08d.md`. Reuse it for later rounds.
+- **Next:** Codex round 4 to clear → the user approves the wording → (go-ahead) merge, set the date, deploy, check
+  `/privacy`, `/support` and one hourly run → build 5 → App Privacy answers → external group, beta description,
+  what-to-test → Beta App Review → final test pass incl. New Model → Suggest exercises with AI → invites. Google
+  testers must be Google test users until the consent screen is published.
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `0f2b49c4`, deployed 2026-10-14 from the 04 branch: adds Google).
   Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
   `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8`
@@ -43,10 +48,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 5. **11** — automatic safety copy before a store-changing update. *Deferred by the user 2026-10-14: built with the
    first format change; `StoreFormatGuardTests` guards against an accidental one.* [ticket](../work-record/public-beta/issues/11-safety-copy.md)
 6. **08** — external testers: privacy policy at `/privacy` and `/support`, App Privacy answers, external group, beta
-   description, feedback email, Beta App Review, invites. **The user still owes:** legal name, support email,
-   effective date, feedback retention (suggested 1 year), age statement (suggested "not for under 13"). Server
-   hygiene: verify AI limits in production, rehearse the off switch, write down the D1 backup procedure. A
-   release-candidate test pass.
+   description, feedback email, Beta App Review, invites. *In progress: answers in (D61), pages built, in review.*
+   A release-candidate test pass.
 
 ## The phone
 
