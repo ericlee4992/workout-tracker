@@ -3,8 +3,8 @@
 // (wrangler.jsonc), the 30-day download and export clean-ups (scripts/feedback.mjs, README). Change those and this
 // text together, and have the reviewer recheck it. Source draft: work-record/public-beta/privacy-policy-draft.md.
 
-/** Set to the day the policy goes live (the user, 2026-10-15); a test fails while it is a placeholder. */
-export const POLICY_EFFECTIVE_DATE = "[effective date]";
+/** The day the policy went live (the user, 2026-10-15). Change it with the text; `npm run deploy` refuses a placeholder. */
+export const POLICY_EFFECTIVE_DATE = "October 15, 2026";
 export const DEVELOPER_NAME = "Eunchan Lee";
 export const SUPPORT_EMAIL = "ericlee4992@gmail.com";
 

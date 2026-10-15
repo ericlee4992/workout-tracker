@@ -151,4 +151,12 @@ Report [codex-review-08f.md](../codex-review-08f.md) (HEAD `c7d47dd`): **Verdict
 the operating cadence, a rehearsed restore, build 5 or the App Privacy answers. **Next:** the user reads the pages
 and approves the wording and Claude's proposed terms (D61); then, on the user's go-ahead, merge, set the date, deploy.
 
+### Approval and release — 2026-10-15 (Claude)
+
+**The user approved the wording and Claude's proposed terms ("Approve as written") and gave the go-ahead to merge and
+deploy.** Pre-deploy export `~/WorkoutTracker-Backups/server/2026-10-15-pre-08-deploy/stacked.sql` (0600, 7,904 bytes,
+SHA-256 `d48c6cf5…`, same as the rehearsal — no data change): `check-export.sh` OK (restores cleanly, counts match).
+**Delete both exports (this and `2026-10-15-rehearsal`) by 2026-11-14** (D61). Effective date set to October 15,
+2026; `npm run predeploy` passes; server 225 tests passed, `tsc` exit 0.
+
 ## Comments
