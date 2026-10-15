@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-10-15** (build 4 installed and phone-checked; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-15** (build 4 installed and phone-checked; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; 08 started). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: build 4 on the phone and checked; ticket 08 next
@@ -16,7 +16,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   stuck in-flight slots. New Model → Suggest exercises with AI (`model-exercises`) was not tried; the user moved it
   to 08's final test pass.
 - **08 progress (2026-10-15):** D1 backup procedure written (server/README) and rehearsed with a real export
-  ([ticket](../work-record/public-beta/issues/08-external-testers.md)); off switch and AI limits still to check.
+  ([ticket](../work-record/public-beta/issues/08-external-testers.md)). The user skipped the off-switch and live
+  AI-limit checks (unit-tested). New decision owed: how long manual exports are kept (suggested 30 days).
+- **Branch:** `ericlee4992/beta-08-testers` (off `main` `5a4ca0c`, pushed; not merged): STATE/ticket updates, the
+  D1 backup section in `server/README.md`, `server/scripts/check-export.sh`, the one-Codex-session rule in AGENTS.md.
+  The privacy draft (`work-record/public-beta/privacy-policy-draft.md`, Codex clear round 3) is already in `main`.
+- **Codex:** reuse one Codex terminal for every review round and ticket (the user, 2026-10-15; AGENTS.md). No Codex
+  terminal is open now; the first 08 review creates it. Codex weekly budget was low (under 25% on 2026-10-14).
 - **Next:** ticket 08 (external testers) — the user still owes the answers listed below; revisit Workers Free vs Paid;
   testers' Google accounts must be Google test users until the Google sign-in screen is published (08).
 - **Workers Free:** scans use 15–45 ms CPU vs 10 ms (all succeeded); revisit before 08 (the user's call).

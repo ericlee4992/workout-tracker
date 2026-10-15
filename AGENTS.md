@@ -55,6 +55,9 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 - Codex is the default implementer; Claude independently reviews (T6). If Claude implements,
   Codex reviews. The author does not supply the independent clearance. Give the reviewer the
   ticket, diff, relevant decisions, and evidence; resolve findings and re-review fixes.
+- Run Codex in a visible Orca terminal and keep **one Codex session** for every review round and ticket: check
+  `orca terminal list` and send the next prompt to the idle Codex terminal (`orca terminal send`). Open a new one only
+  when that terminal is gone, stuck in an approval/interrupted state, near its context limit, or in another worktree.
 - Use short-lived branches off `main`. When agents are active simultaneously, use separate
   checkouts; use `orca-cli` for Orca-managed worktrees and terminals.
 - Commit on the branch and push it. Once the required verification and review are clear,

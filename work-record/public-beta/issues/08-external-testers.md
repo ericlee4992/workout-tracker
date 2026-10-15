@@ -86,6 +86,9 @@ Paid) checked against Cloudflare's D1 docs. **Rehearsed:** `wrangler d1 export s
 user's own two accounts); the check passed (13 tables equal, integrity `ok`, exit 0); the same export with
 `training_profiles` rows removed failed (exit 1). Not rehearsed: a Time Travel restore or a restore into a new remote
 database (both replace or repoint live data; the user approves). **New for the user:** how long manual exports are
-kept — the policy's deletion text depends on it. Remaining hygiene: AI limits in production, the off switch.
+kept — the policy's deletion text depends on it.
+
+**The user skipped (2026-10-15: "Skip both steps")** the production off-switch rehearsal and hitting the AI daily
+limits on the live server; the server's unit tests cover both. Server hygiene is otherwise done.
 
 ## Comments
