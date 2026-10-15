@@ -1,20 +1,19 @@
 # Current project state
 
-Updated **2026-10-14** (build 4 uploaded; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-15** (build 4 installed and phone-checked; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: TestFlight build 4 uploaded (04 Google sign-in); phone checks next; then ticket 08
+## NOW: build 4 on the phone and checked; ticket 08 next
 
 - **`main` = `5a4ca0c`** (pushed): 06, 05, 04 merged; 11 deferred with `StoreFormatGuardTests` (Codex clear, round 4);
   10 closed. Production server version `0f2b49c4` (04's code, Google configured).
 - **TestFlight 0.1.0 (4) from `5a4ca0c` uploaded 2026-10-14 23:04 EDT** (archive `scratchpad/tf/Stacked-0.1.0-4-5a4ca0c`,
   checked: build 4, `WTGoogleClientID`, production `WTServerURL`, the font, team X68M8SR6NA). No Gate S: no stored-format
   change since build 1. Build 3 (`1be0768`) was uploaded earlier the same day but never installed.
-- **The user, on the phone:** add build 4 to "Developer" in App Store Connect, install over build 2, then: **04** Sign in
-  with Google (the user's Gmail is the Google test user) and sign out/in; **06** Settings → Ask AI shows On and today's
-  use, one Scan Machine, one Ask AI week, one New Model suggestion (`node scripts/ai.mjs status`); **05** Ask AI opens
-  filled in from the training profile and a changed day count is saved to it. Signing in with Google creates a second
-  account (no linking with the Apple one, by design).
+- **Phone check of build 4 (2026-10-15):** the user: "I tried the features. they seem to work." Production D1 shows a
+  Google identity (account `5efc7cb3…`, separate from the Apple one, by design) with a saved training profile
+  (05, 09:05 UTC), one Ask AI week (`routine-week`, ok, 9.6 s) and one Scan Machine (`scan-machine`, ok, 3.9 s), no
+  stuck in-flight slots. **No New Model suggestion (`model-exercises`) request reached the server** — asked the user.
 - **Next:** ticket 08 (external testers) — the user still owes the answers listed below; revisit Workers Free vs Paid;
   testers' Google accounts must be Google test users until the Google sign-in screen is published (08).
 - **Workers Free:** scans use 15–45 ms CPU vs 10 ms (all succeeded); revisit before 08 (the user's call).
@@ -43,8 +42,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
-- **Uploaded, not yet installed: 0.1.0 (4) = `main` `5a4ca0c`** (2026-10-14 23:04 EDT; supersedes build 3 = `1be0768`).
-- **Installed: TestFlight Stacked 0.1.0 (2) = `main` `5836b68`** (uploaded 2026-10-13 23:17 EDT, in place over build 1;
+- **Installed: TestFlight Stacked 0.1.0 (4) = `main` `5a4ca0c`** (uploaded 2026-10-14 23:04 EDT, installed over build 2
+  by 2026-10-15; build 3 = `1be0768` never installed). Uses AI through the server; no on-device OpenAI key.
+- **Previously: TestFlight Stacked 0.1.0 (2) = `main` `5836b68`** (uploaded 2026-10-13 23:17 EDT, in place over build 1;
   Automatic Updates **off**). No Gate S before it — no store change in `936b18f..5836b68` (the backup rule below).
   The user verified real Apple sign-in and signed-in feedback ("I confirm 03 works"); account deletion/Apple
   revocation was not separately itemised. Still uses the on-device OpenAI key for AI until 06's app half ships.
