@@ -3,7 +3,7 @@
 Updated **2026-10-14** (04 merged; 11 deferred with a guard; 06 and 05 merged; 10 closed; TestFlight build 3 uploaded; build 2 on the phone). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: 04 merged; 11 deferred with a store-format guard (Codex round 2 pending); then TestFlight build 4
+## NOW: 04 merged; 11 deferred with a store-format guard (Codex round 4 pending); then TestFlight build 4
 
 - **`main` = `ba6cc20`** (pushed): 06, 05 and **04 (Google sign-in) merged**; 10 closed without change. The production
   server runs 04's code (version `0f2b49c4`, Google configured). TestFlight 0.1.0 (3) from `1be0768` uploaded 2026-10-14
@@ -11,8 +11,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Ticket 11 deferred by the user (2026-10-14):** the automatic safety copy is built with the first update that
   changes stored data. Branch `ericlee4992/beta-11-schema-guard` adds `StoreFormatGuardTests` (structure fingerprint
   with indexes, stored enum raw values, JSON payload samples) and the build number **4**. Codex round 1 not clear (the
-  guard missed payloads/enums/indexes; stale STATE) → fixed → round 2 to run. Full unit suite at `052c212`: 1018/1018.
-- **Next:** Codex round 2 to "clear" → merge (go-ahead) → archive and upload **TestFlight build 4** from `main` (carries
+  guard missed payloads/enums/indexes) → round 2 (missing enums, production paths) → round 3 (three P3 wording/evidence
+  items) → all fixed → round 4 to run. Full unit suite at `86d8ab7`: 1020/1020.
+- **Next:** Codex round 4 to "clear" → merge (go-ahead) → archive and upload **TestFlight build 4** from `main` (carries
   04; no store change since build 1, so no Gate S) → the phone's Google sign-in check → ticket 08.
 - **Workers Free:** scans use 15–45 ms CPU vs 10 ms (all succeeded); revisit before 08 (the user's call).
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `0f2b49c4`, deployed 2026-10-14 from the 04 branch: adds Google).

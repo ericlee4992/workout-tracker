@@ -52,8 +52,9 @@ crash), the user asked "is that really necessary?". Claude's assessment, accepte
   `NSManagedObjectModel.makeManagedObjectModel(for: WorkoutTrackerStore.modelTypes)`, the hashes that decide whether
   SwiftData migrates — and fails with instructions to build this ticket first. A second test shows one more model changes
   the fingerprint. The pinned value `9569f6fd…` is every TestFlight build's format: no production `@Model` file changed since build 1
-  (`936b18f`; `git diff --stat 936b18f..HEAD` on Models.swift, Cardio.swift and WorkoutSensorSample.swift — the three
-  production model files — is empty; equal source, not a measurement of each shipped binary).
+  (`936b18f`) at the time — `git diff 936b18f..052c212` on Models.swift, Cardio.swift and WorkoutSensorSample.swift (the
+  three production model files) was empty. Since then the only change is round 2's `CardioDistanceSource: CaseIterable`
+  conformance (no stored property, codec or raw value). Equal source, not a measurement of each shipped binary.
 
 Facts for when it is built (found 2026-10-14): no `VersionedSchema`/migration plan (SwiftData's automatic migration);
 no Import (the JSON export cannot be restored in the app), so the copy that matters is the store files; restoring an old
@@ -78,7 +79,7 @@ Verification: StoreFormatGuardTests 4/4 (`guard3.xcresult`). Mutation check (`mu
 as "KG" and `CardioInterval.start` encoded as "begin" → the enum and payload tests failed, the structure test passed (the
 gap the review found).
 
-**Codex round 2 (`codex-review-11b.md`): not clear — fixed.** #1 (P2) two enums stored through plain String columns were
+**Codex round 2 (`codex-review-11b.md`): not clear — fixed (the failure message's migration claim completed in round 3).** #1 (P2) two enums stored through plain String columns were
 missing: `RoutineEquipment` (`WorkoutTemplate.confirmedEquipment`) and `MuscleFamily`
 (`AppPreferences.exerciseBrowseMuscleGroup`) — added (14 types; `AppPreferences.modelBrowseMuscleGroup` holds a catalog
 body-area name, D24, and is documented as not pinned). #2 (P2) the payload checks now read and write through the app's
@@ -90,5 +91,12 @@ Verification: StoreFormatGuardTests 4/4 (`guard4.xcresult`). Mutation (`mut3.log
 decoding dates as seconds since 1970 → the payload test failed at the production read. An added `CardioDistanceSource`
 case does not compile without handling (`mut2.log`: an exhaustive `switch` at Cardio.swift:37), and `CaseIterable` lists
 it for the enum test.
+
+**Codex round 3 (`codex-review-11c.md`): not clear, three P3 — fixed.** The structure failure message now states a
+changed pinned contract ("may change how … data is stored"), not a certain migration; the `modelBrowseMuscleGroup`
+exclusion now describes the real behaviour (a renamed catalog area stays saved and hides categorized models until
+cleared — catalog changes need review by hand); the build-1 evidence names the one later conformance-only change, and the
+pin comment says builds 1–3 shipped, 4 planned; STATE refreshed. Codex's optional strengthening taken: each segment
+payload's backing `Data` is cleared before its setter runs. Full unit suite at `86d8ab7`: 1020/1020; guard after these edits 4/4 (`guard5.xcresult`).
 
 ## Comments

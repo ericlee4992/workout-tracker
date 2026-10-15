@@ -10,6 +10,7 @@ import Testing
 // opens the old store, so nothing has to ship earlier. These guards make such a change hard to ship unnoticed. Three
 // layers, because the store holds more than its table structure (codex-review-11 #1):
 //
+// Pinned contracts and payload samples, not a proof that every stored change is caught:
 // 1. Structure — Core Data's per-entity version hashes (what decides whether SwiftData migrates the store on open), plus
 //    any indexes, which those hashes leave out.
 // 2. Stored enum values — the raw strings in rows (enum-typed properties, `*RawValue` columns and enum strings written
@@ -26,9 +27,10 @@ struct StoreFormatGuardTests {
 
     // MARK: 1. Structure
 
-    /// The structural format of every TestFlight build so far (1–4): no production `@Model` file (Models.swift,
-    /// Cardio.swift, WorkoutSensorSample.swift) changed since build 1 (`936b18f`) — equal source, not a measurement of
-    /// each shipped binary.
+    /// The structural format of TestFlight builds 1–3 and of build 4 (planned): since build 1 (`936b18f`) the production
+    /// model files (Models.swift, Cardio.swift, WorkoutSensorSample.swift) changed only by `CardioDistanceSource`'s
+    /// `CaseIterable` conformance — no stored property, codec or raw value. Equal source, not a measurement of each
+    /// shipped binary.
     static let shippedFingerprint = "9569f6fdb6ee5ee8c69173946f9cd5d62c0b09787a961bc10340b83b23fefeba"
 
     static func fingerprint(of types: [any PersistentModel.Type] = WorkoutTrackerStore.modelTypes) throws -> String {
@@ -50,8 +52,8 @@ struct StoreFormatGuardTests {
     @Test func theStoredStructureIsTheShippedOne() throws {
         let current = try Self.fingerprint()
         #expect(current == Self.shippedFingerprint, """
-            The store's structure differs from what testers' phones hold, so their only copy of their training data \
-            would go through a migration on the next update. Stop before shipping: build ticket 11 (\(ticket): an \
+            The store's pinned structure (entity version hashes and indexes) differs from what shipped builds use, so \
+            the update may change how testers' only copy of their data is stored. Stop before shipping: build ticket 11 (\(ticket): an \
             automatic copy of the store before the first open with the new format), follow DEVELOPMENT's migration \
             rules (a legacy-store fixture from the installed commit), get the user's approval, and only then set \
             `shippedFingerprint` to \(current).
@@ -88,8 +90,9 @@ struct StoreFormatGuardTests {
                              "dipStation"],
         "MuscleFamily": ["Chest", "Back", "Shoulders", "Arms", "Legs"],
     ]
-    // Not pinned: `AppPreferences.modelBrowseMuscleGroup` holds a catalog body-area name (the shipped catalog, D24); an
-    // unknown one only resets that browse filter.
+    // Not pinned: `AppPreferences.modelBrowseMuscleGroup` holds a catalog body-area name — catalog vocabulary (D24), not a
+    // closed enum. A renamed area stays saved and keeps hiding categorized models until the user clears the filter, so a
+    // catalog change to body areas needs review by hand.
 
     private static func rawValues<T: CaseIterable & RawRepresentable>(_: T.Type) -> [String] where T.RawValue == String {
         T.allCases.map(\.rawValue)
@@ -142,6 +145,7 @@ struct StoreFormatGuardTests {
         let intervalValues = [CardioInterval(start: start, end: start.addingTimeInterval(60))]
         segment.intervalsData = Data(intervals.utf8)
         #expect(segment.intervals == intervalValues)
+        segment.intervalsData = nil   // so a setter that stopped writing is caught
         segment.intervals = intervalValues
         try expectShape(segment.intervalsData, intervals)
 
@@ -151,6 +155,7 @@ struct StoreFormatGuardTests {
                                             accuracy: 5, portion: portion)]
         segment.routeData = Data(route.utf8)
         #expect(segment.route == routeValues)
+        segment.routeData = nil
         segment.route = routeValues
         try expectShape(segment.routeData, route)
 
@@ -163,6 +168,7 @@ struct StoreFormatGuardTests {
         ]
         segment.distanceSpansData = Data(spans.utf8)
         #expect(segment.distanceSpans == spanValues)
+        segment.distanceSpansData = nil
         segment.distanceSpans = spanValues
         try expectShape(segment.distanceSpansData, spans)
 
