@@ -119,7 +119,7 @@ test pass including New Model → Suggest exercises with AI.
 
 ### Codex review 08d — response (round 4)
 
-Report [codex-review-08d.md](../codex-review-08d.md) (HEAD `6865caf`): **not clear**, 7 findings (4 × P2, 3 × P3); the
+Report [codex-review-08d.md](../codex-review-08d.md) (HEAD `6865caf`): **not clear**, 7 findings (5 × P2, 2 × P3); the
 expiry's correctness/atomicity, the 37-statement budget, the log configuration and the console lines were confirmed.
 Taken: download clean-up prunes by age first and independently of the database, keeps unexpired files when the
 liveness query fails, has a `prune` command, and README makes "run it at least every 30 days while a download exists"
@@ -132,5 +132,16 @@ removes it" (no clear action exists) (#4). New hourly `pruneSessions` (expired s
 pointed to (#6). Delete path: "in Settings, tap your name or email at the top, then Delete Account…" (#7). Also from the
 notes: "about a year … hourly clean-up job (retries)", and logs described as diagnostic details with per-request
 logging off. Server: 225 tests passed, `tsc` exit 0; `prune --local` removed only a file older than 30 days.
+
+### Codex review 08e — response (round 5)
+
+Report [codex-review-08e.md](../codex-review-08e.md) (HEAD `f14607e`): **not clear**; 08d #3–#7 closed, two open and
+one new. Taken: downloads are pruned at 15 days or more (inclusive) and README requires `prune` at least every 15 days
+while a download exists, so none outlives 30 (#1). Restore: delete every restored session (everyone signs in again),
+take evidence twice (before the restore and immediately before switching), email testers about anything in the
+unidentifiable gap; the policy adds "sign everyone out" (#2). D61 rewritten: the user's answers separated from Claude's
+proposed terms (logs off, session prune, download and restore commitments, with what each narrowed and why), which
+await the user's approval with the wording (#8). The 08d tally corrected to 5 × P2, 2 × P3. Verified: server 225
+tests passed, `tsc` exit 0; `prune --local` removed files 15 and 20 days old and kept one 14 days old.
 
 ## Comments

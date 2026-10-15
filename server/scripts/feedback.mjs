@@ -9,10 +9,10 @@
 //   node scripts/feedback.mjs delete <id> [--local]      (a tester's request; asks nothing, so check the ID first)
 //   node scripts/feedback.mjs prune [--local]            (only the download clean-up)
 //
-// Every run first deletes downloaded screenshots older than 30 days and, in production, those whose feedback no longer
+// Every run first deletes downloaded screenshots 15 days old or more and, in production, those whose feedback no longer
 // exists (deleted on request, with its account, or after the server's one-year retention). The privacy policy promises
 // copies are gone within 30 days (ticket 08): keep downloads in server/.feedback (--local: .feedback-local), never
-// elsewhere, keep this clean-up, and run `prune` at least every 30 days while any download exists (README).
+// elsewhere, keep this clean-up, and run `prune` at least every 15 days while any download exists (README).
 //
 // Feedback is tester data: do not paste it into the repository, an issue, or a chat.
 import { execFileSync } from "node:child_process";
@@ -31,7 +31,8 @@ const option = (name, fallback) => {
 const where = flag("--local") ? "--local" : "--remote";
 // Separate folders, so a production run never prunes local downloads and a local key never touches a production copy.
 const downloads = path.join(serverDir, where === "--remote" ? ".feedback" : ".feedback-local");
-const DOWNLOAD_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
+/** Half the policy's 30 days, inclusive: with `prune` run at least every 15 days, no copy outlives 30 (08e #1). */
+const DOWNLOAD_PRUNE_AGE_MS = 15 * 24 * 60 * 60 * 1000;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 function wrangler(...rest) {
@@ -61,20 +62,20 @@ function who(row) {
 }
 
 /**
- * Downloaded screenshots past 30 days — always, even when the database cannot be reached — and then, in production,
+ * Downloaded screenshots 15 days old or more — always, even when the database cannot be reached — and then, in production,
  * those whose feedback row is gone. If that query fails, the unexpired files are kept (nothing proves them deleted).
  */
 function pruneDownloads() {
   let files;
   try { files = readdirSync(downloads); } catch { return; }
-  const cutoff = Date.now() - DOWNLOAD_RETENTION_MS;
+  const cutoff = Date.now() - DOWNLOAD_PRUNE_AGE_MS;
   const remove = (name, why) => {
     rmSync(path.join(downloads, name), { force: true });
     console.error(`Deleted the downloaded copy ${name} (${why})`);
   };
   const kept = [];
   for (const name of files) {
-    if (statSync(path.join(downloads, name)).mtimeMs < cutoff) remove(name, "30 days"); else kept.push(name);
+    if (statSync(path.join(downloads, name)).mtimeMs <= cutoff) remove(name, "15 days"); else kept.push(name);
   }
   if (kept.length === 0 || where !== "--remote") return;
   let live;

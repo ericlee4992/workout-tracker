@@ -137,7 +137,8 @@ are not touched.</li>
 <li><strong>Backups:</strong> deleted data can remain for up to 7 days in the database’s recovery history, and for up
 to 30 days in a copy of the database I make before risky maintenance; I delete those copies after 30 days. If I ever
 have to restore the database from one of these, data deleted after it was made could reappear. I would delete again
-everything I can identify as deleted since then, and tell testers by email about anything I could not.</li>
+everything I can identify as deleted since then, sign everyone out, and tell testers by email about anything I could
+not identify.</li>
 <li><strong>Feedback sent while signed out</strong> isn’t linked to an account; email me what you sent and roughly
 when, and I will delete it, including any copy I downloaded.</li>
 <li><strong>On your iPhone:</strong> delete the app (see <em>What stays on your iPhone</em> for what that does and

@@ -133,17 +133,22 @@ The database has two safety nets; neither covers the feedback screenshots in R2 
   again what can be identified and tells testers): restoring brings back rows deleted after the backup — accounts,
   feedback, sessions, profile edits — and a Time Travel restore **overwrites the live database in place**. So, in
   order, with the user approving each step:
-  1. Pause AI for everyone (the off switch) so fewer writes land meanwhile.
-  2. Export the current database first (the procedure above), even if it is damaged: it is the evidence of what was
-     deleted or changed since the backup. Note the Time Travel bookmark of "now" (`time-travel info`).
+  1. Pause AI for everyone (the off switch) so fewer writes land meanwhile. Sign-out, account deletion and profile
+     edits stay possible, so the evidence is taken twice (steps 2 and 5).
+  2. Export the current database (the procedure above), even if it is damaged: evidence A of what was deleted or
+     changed since the backup. Note the Time Travel bookmark of "now" (`time-travel info`).
   3. Restore into a **new** database where possible (export → new database), not over the live one.
-  4. In the restored copy, delete every `accounts` row absent from the evidence (with its sessions, identities,
-     training profile and AI rows, as `claimDeletion` does), every `feedback` row absent from it (and its R2
-     screenshot), every expired session, and re-run the retention clean-ups (feedback older than a year, AI records,
-     counters). Where an account's training profile differs, take the evidence's version.
-  5. Check with `scripts/check-export.sh`-style counts, then point `database_id` at it, deploy, and lift the pause.
-  6. Whatever could not be reconciled (no usable evidence for a period): email the affected testers what may have
-     come back so they can delete it again. Record the restore in the ticket.
+  4. In the restored copy: delete **every** `sessions` row (everyone signs in again — no signed-out session can come
+     back); delete every `accounts` row absent from the evidence (with its identities, training profile, feedback,
+     screenshots and AI rows, as `claimDeletion` does) and every `feedback` row absent from it (and its R2
+     screenshot); where a training profile differs or is missing, take the evidence's version; re-run the retention
+     clean-ups (feedback older than a year, AI records, counters).
+  5. Immediately before switching, export the live database again (evidence B) and repeat step 4's account,
+     feedback and profile comparison against B; then check counts (`scripts/check-export.sh`-style), point
+     `database_id` at it, deploy, and lift the pause.
+  6. Changes in the minutes between B and the switch, or any period with no usable evidence, cannot be identified:
+     email the affected testers (or all, if unknown) what may have come back so they can delete it again. Record the
+     restore in the ticket.
 
 Rehearsed 2026-10-15: an export of production (13 tables, 7.9 KB) restored with integrity `ok` and every row count
 equal to production; an export with one table's rows removed is reported as a mismatch (exit 1).
@@ -158,10 +163,10 @@ node scripts/feedback.mjs screenshot <id>            # saves it to server/.feedb
 node scripts/feedback.mjs delete <id>                # a tester asked: the row, its R2 screenshot and any download
 ```
 
-Every run first deletes downloaded screenshots older than 30 days (whether or not the database can be reached) and,
+Every run first deletes downloaded screenshots 15 days old or more (whether or not the database can be reached) and,
 in production, those whose feedback no longer exists; `--local` downloads go to `server/.feedback-local`. **While any
-download exists, run `node scripts/feedback.mjs prune` at least every 30 days** — the privacy policy promises copies
-are gone within 30 days (ticket 08). The server deletes feedback and its screenshot about a year after it was sent
+download exists, run `node scripts/feedback.mjs prune` at least every 15 days** — so no copy outlives the 30 days the
+privacy policy promises (ticket 08); a session that downloads a screenshot records the next prune date in STATE. The server deletes feedback and its screenshot about a year after it was sent
 (the hourly job; a failed screenshot delete is retried).
 
 Add `--local` to read `wrangler dev`'s local copies. The Cloudflare dashboard (D1 → stacked → `feedback`; R2 →
