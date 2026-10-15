@@ -51,8 +51,9 @@ crash), the user asked "is that really necessary?". Claude's assessment, accepte
   of the shipped format — SHA-256 over Core Data's per-entity version hashes from
   `NSManagedObjectModel.makeManagedObjectModel(for: WorkoutTrackerStore.modelTypes)`, the hashes that decide whether
   SwiftData migrates — and fails with instructions to build this ticket first. A second test shows one more model changes
-  the fingerprint. The pinned value `9569f6fd…` is every TestFlight build's format: no `@Model` file changed since build 1
-  (`936b18f`; `git diff --stat 936b18f..HEAD` on the four `@Model` files is empty).
+  the fingerprint. The pinned value `9569f6fd…` is every TestFlight build's format: no production `@Model` file changed since build 1
+  (`936b18f`; `git diff --stat 936b18f..HEAD` on Models.swift, Cardio.swift and WorkoutSensorSample.swift — the three
+  production model files — is empty; equal source, not a measurement of each shipped binary).
 
 Facts for when it is built (found 2026-10-14): no `VersionedSchema`/migration plan (SwiftData's automatic migration);
 no Import (the JSON export cannot be restored in the app), so the copy that matters is the store files; restoring an old
@@ -64,5 +65,17 @@ question. The exact "would this open migrate?" check: the store's metadata vs th
 **Verification:** StoreFormatGuardTests + SchemaTests 5/5 (`/tmp/wt-floodlight/results/11/guard2.xcresult`); with a
 placeholder value the guard failed with the current fingerprint in its message (`guard1.log`). Note: `xcodebuild`
 did not exit after a run with failures (both times today) — the result is in the log; kill it after the verdict line.
+
+**Codex round 1 (`codex-review-11.md`): not clear — fixed.** #1 (P2): the structure fingerprint alone missed stored
+data that is not table structure. The guard now has three layers: the structure fingerprint (plus indexes, which Core
+Data's hash excludes; none exist, so the pin is unchanged); every stored enum's raw values pinned (12 types — renaming or
+removing one strands old rows; adding one is unreadable by an older build); fixed JSON samples of the five `Data`
+payloads (`intervalsData`, `routeData`, `distanceSpansData`, both `cardioPlanData`) that must decode, and today's encoder
+must still write their shape. First-launch row rewrites remain outside any test (DEVELOPMENT says so). The failure
+message no longer claims a migration "will" happen; the probe goes through the same fingerprint function. #2 (P3):
+STATE's stale "design questions first" lines updated.
+Verification: StoreFormatGuardTests 4/4 (`guard3.xcresult`). Mutation check (`mut.log`, reverted): `WeightUnit.kg` stored
+as "KG" and `CardioInterval.start` encoded as "begin" → the enum and payload tests failed, the structure test passed (the
+gap the review found).
 
 ## Comments

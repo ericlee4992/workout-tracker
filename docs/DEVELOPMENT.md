@@ -275,7 +275,9 @@ against the installed build's commit and record the finding in the ticket. Teste
 comes from the app: migrations tested against a copy of real data, the developer installing each build first, iOS's
 own backup, and an automatic in-app safety copy before a migration — **built together with the first store-changing
 update** (ticket 11, deferred by the user 2026-10-14). `StoreFormatGuardTests` pins the shipped format's fingerprint
-(Core Data's entity version hashes) and fails on any format change, pointing to ticket 11.
+(Core Data's entity version hashes plus indexes), every stored enum's raw values and samples of the JSON payloads kept in
+`Data` attributes, and fails on a change, pointing to ticket 11. It cannot see code that rewrites existing rows on first
+launch (repairs, backfills, seeding): those still need this review by hand.
 
 **TestFlight and App Store builds were expected not to be copyable** (no `get-task-allow`), yet on 2026-10-13 a direct
 `devicectl … copy from` of the installed TestFlight build 0.1.0 (1) on this phone (iOS 27.0) worked and matched Gate S
