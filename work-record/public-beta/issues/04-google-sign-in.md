@@ -132,4 +132,21 @@ neither in a UI test's path except the captures); captures FloodlightGoogleUITes
 whitespace normalised (`git diff --check` clean); the overlapping-Google-sign-ins test renamed — it shows overlapping
 sign-ins end on one account, not a forced creation conflict. Open: the client ID, live sign-in/out/delete.
 
+**Google Cloud setup done (2026-10-14, the user in Chrome with Claude guiding; the user accepted Google's API Services
+User Data Policy).** Project **Stacked** (`stacked-511700`); Google Auth Platform: app name Stacked, support and contact
+email the user's Gmail (the user's choice; changeable for 08), External, **Testing**, test user the user's Gmail (1/100);
+scopes `openid`, `email`, `profile` only; iOS client **"Stacked iOS"** (bundle `com.ericlee4992.workouttracker`, team
+`X68M8SR6NA`, no App Check): client ID `469208403829-t81d4qhqr5p4amtlm0s47mo8p25bsf3b.apps.googleusercontent.com` (not
+secret) → `WT_GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_ID` (`f9953a0`).
+
+**Server deployed from the branch with the user's go-ahead (2026-10-14): version `0f2b49c4`.** Smoke: a fake Google token
+→ 401 `invalid_token` (configured, not 503); Apple unchanged (401 `invalid_token` for a fake token). No migration.
+
+**Simulator acceptance (WT-Floodlight, Debug build `build7.log` with the client ID; the user signed in with their own
+Google account — Claude entered no credentials): passed.** The real (non-mock) welcome page shows the Google button;
+sign-in → "Signed in as Eric Lee."; production D1 then had one `google` identity with `refresh_token_enc` NULL. The user
+confirmed Settings → Account, sign-out and sign-in again (same account), and **Delete Account** all worked; D1 afterwards:
+0 Google identities, the Apple account and its one session untouched, 0 pending revocations. The phone check comes with
+the next TestFlight build.
+
 ## Comments
