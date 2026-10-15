@@ -1,12 +1,18 @@
 # Current project state
 
-Updated **2026-10-15** (build 4 installed and phone-checked; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; 08: privacy pages built, Codex clear, awaiting the user's approval). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-15** (build 4 installed and phone-checked; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; 08: privacy pages live, server 8e0434be). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: build 4 on the phone and checked; ticket 08 next
+## NOW: ticket 08 — privacy pages live; build 5 and App Store Connect next
 
-- **`main` = `5a4ca0c`** (pushed): 06, 05, 04 merged; 11 deferred with `StoreFormatGuardTests` (Codex clear, round 4);
-  10 closed. Production server version `0f2b49c4` (04's code, Google configured).
+- **`main` = `0191b3f`** (pushed 2026-10-15): 08's privacy/support pages and their enforcement merged (Codex clear,
+  round 6; the user approved the wording). Before that `5a4ca0c`: 06, 05, 04 merged; 11 deferred; 10 closed.
+- **Production server version `8e0434be`** (deployed 2026-10-15 19:08 EDT from `0191b3f`): `/privacy` and
+  `/support` live (effective October 15, 2026), invocation logs/traces off, one-year feedback expiry, hourly
+  expired-session prune. No migration.
+- **Data clean-up promises (D61):** delete `~/WorkoutTracker-Backups/server/2026-10-15-rehearsal` and
+  `…/2026-10-15-pre-08-deploy` **by 2026-11-14** (exports: 30 days). While any download is in `server/.feedback`, run
+  `node scripts/feedback.mjs prune` at least every 15 days (none downloaded so far).
 - **TestFlight 0.1.0 (4) from `5a4ca0c` uploaded 2026-10-14 23:04 EDT** (archive `scratchpad/tf/Stacked-0.1.0-4-5a4ca0c`,
   checked: build 4, `WTGoogleClientID`, production `WTServerURL`, the font, team X68M8SR6NA). No Gate S: no stored-format
   change since build 1. Build 3 (`1be0768`) was uploaded earlier the same day but never installed.
@@ -15,26 +21,22 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   (05, 09:05 UTC), one Ask AI week (`routine-week`, ok, 9.6 s) and one Scan Machine (`scan-machine`, ok, 3.9 s), no
   stuck in-flight slots. New Model → Suggest exercises with AI (`model-exercises`) was not tried; the user moved it
   to 08's final test pass.
-- **08 progress (2026-10-15):** D1 backup procedure written and rehearsed; the user skipped the live off-switch and
-  AI-limit checks. **The user answered every privacy question (D61):** Eunchan Lee, ericlee4992@gmail.com, effective
-  the day it goes live, feedback 1 year, not for under 13, exports 30 days, **Workers Free for now** (tell the user if
-  Free causes a failure: check Workers metrics for exceeded-CPU errors after the final test pass). Built on the branch,
-  **not deployed**: `server/src/pages.ts` (policy + support), one-year feedback expiry in the hourly job, Workers
-  invocation logs/traces off (a stored record held IP + city/postcode/coordinates), the feedback tool's 30-day download
-  clean-up and `delete <id>`, README export/restore rules, and the camera/photo/Health usage strings (need **build 5**).
-  `npm run deploy` refuses until `POLICY_EFFECTIVE_DATE` is set. [Ticket](../work-record/public-beta/issues/08-external-testers.md).
-- **Branch:** `ericlee4992/beta-08-testers` (off `main` `5a4ca0c`, pushed; not merged).
+- **08 progress (2026-10-15):** D1 backup procedure rehearsed; the user skipped the live off-switch and AI-limit
+  checks; the user answered every privacy question and approved the pages and Claude's proposed terms (D61);
+  deployed. **Workers Free for now** — tell the user if Free causes a failure (check Workers metrics for exceeded-CPU
+  errors after the final test pass). [Ticket](../work-record/public-beta/issues/08-external-testers.md).
+- **Branch:** `ericlee4992/beta-08-testers` (pushed; `main` fast-forwarded to it at `0191b3f`); continue 08 on it.
 - **Codex:** one session for every review (AGENTS.md): Orca terminal **"Codex review"**
   (`term_be05cca0-da6f-4532-b4bd-c8cf220eebe8`). 08 pages and enforcement: rounds 4–6, **round 6 clear**
   (`work-record/public-beta/codex-review-08f.md`, HEAD `c7d47dd`). Reuse it for later rounds.
-- **Next:** the user approves the wording and Claude's proposed terms (D61) → (go-ahead) merge, set the date, deploy, check
-  `/privacy`, `/support` and one hourly run → build 5 → App Privacy answers → external group, beta description,
-  what-to-test → Beta App Review → final test pass incl. New Model → Suggest exercises with AI → invites. Google
+- **Next (08):** confirm one hourly run on `8e0434be` → **build 5** from `main` (new usage strings; bump to 5) →
+  App Privacy answers (draft table; open items in the draft) → external group, beta description, what-to-test,
+  feedback email → Beta App Review → final test pass incl. New Model → Suggest exercises with AI → invites. Google
   testers must be Google test users until the consent screen is published.
-- **Server:** https://stacked-server.stacked-server.workers.dev (version `0f2b49c4`, deployed 2026-10-14 from the 04 branch: adds Google).
+- **Server:** https://stacked-server.stacked-server.workers.dev (version `8e0434be`, above; previously `0f2b49c4`).
   Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
   `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8`
-  (0600, never committed). Feedback: `node scripts/feedback.mjs list|show`. Cloudflare blocks Python's default
+  (0600, never committed). Feedback: `node scripts/feedback.mjs list|show|screenshot|delete|prune`. Cloudflare blocks Python's default
   user agent (error 1010) — send a curl-like `User-Agent` from scripts.
 
 ## Agreed order to external testers (the user, 2026-10-13)

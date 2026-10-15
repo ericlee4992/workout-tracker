@@ -29,7 +29,7 @@ The user's friends receive Stacked by email invitation through external TestFlig
 
 ## Acceptance
 
-- [ ] Policy and support pages live and approved by the user.
+- [x] Policy and support pages live and approved by the user (2026-10-15, version `8e0434be`).
 - [ ] App Privacy answers saved; Beta App Review passed.
 - [ ] At least one external tester installed the build, signed in, and sent feedback that reached the developer.
 
@@ -158,5 +158,11 @@ deploy.** Pre-deploy export `~/WorkoutTracker-Backups/server/2026-10-15-pre-08-d
 SHA-256 `d48c6cf5…`, same as the rehearsal — no data change): `check-export.sh` OK (restores cleanly, counts match).
 **Delete both exports (this and `2026-10-15-rehearsal`) by 2026-11-14** (D61). Effective date set to October 15,
 2026; `npm run predeploy` passes; server 225 tests passed, `tsc` exit 0.
+**Merged and deployed (the user's go-ahead):** `main` fast-forwarded to `0191b3f` and pushed (origin confirmed);
+`npm run deploy` (predeploy guard passed) → version `8e0434be` at 2026-10-15 19:08 EDT, 100% (`wrangler deployments
+list`). Live: `/privacy` 200 (effective October 15, 2026, Eunchan Lee, the email ×4, the age line, the delete path; no
+brackets) and `/support` 200; `/v1/profile` without a token 401. For about a minute some requests got the old
+version (edge propagation); then 20 of 20 served the new pages. `HEAD /support` returns 404 (only GET is routed) —
+harmless for browsers. Policy acceptance item 1 met. Pending: one hourly run on `8e0434be`.
 
 ## Comments
