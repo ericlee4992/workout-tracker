@@ -13,5 +13,6 @@ Spec: [spec.md](../spec.md). Decision: D60.
 - An AI spending cap once testers become the public (no budget is set for the beta, 2026-10-01).
 - Whether history sync/backup (iCloud) or Import is needed before launch.
 - App Review notes: a demo account for sign-in, HealthKit use, AI consent flows.
+- The marketing website and domain: [12](12-marketing-website.md) (Marketing URL in App Store Connect).
 
 ## Comments

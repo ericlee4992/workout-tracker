@@ -21,6 +21,7 @@ the app from an onboarding walkthrough, and send feedback from inside the app. T
 | 07 | [Feedback section](issues/07-feedback.md) | 03 |
 | 08 | [External testers](issues/08-external-testers.md) | 02, 04, 05, 06, 07 |
 | 09 | [App Store launch](issues/09-app-store-launch.md) (later; stub) | 08 |
+| 12 | [Marketing website](issues/12-marketing-website.md) (later; stub — added 2026-10-15) | 08 |
 
 The order is the user's choice (Q12): the deadline first; onboarding needs no server; the server before
 anything that uses it; external testers last, because friends invited earlier would get an app whose AI cannot

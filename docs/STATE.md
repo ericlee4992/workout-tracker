@@ -59,6 +59,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
    description, feedback email, Beta App Review, invites. *In progress: answers in (D61), pages built, in review.*
    A release-candidate test pass.
 
+**Later (after the beta):** [09 App Store launch](../work-record/public-beta/issues/09-app-store-launch.md);
+[12 marketing website](../work-record/public-beta/issues/12-marketing-website.md) (the user, 2026-10-15) — with a
+domain of the user's own, which also allows Google branding verification.
+
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
