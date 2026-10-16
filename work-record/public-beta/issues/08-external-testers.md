@@ -178,4 +178,15 @@ its `.git` file (macOS temp clean-up), so the archive came from a new detached w
 (`-exportArchive`, destination upload) exit 0, "Upload succeeded" 19:36 EDT. App Store Connect entries to paste:
 [app-store-connect-08.md](../app-store-connect-08.md).
 
+### App Store Connect — 2026-10-15 (Claude in Chrome with the user)
+
+Build 5 installed on the user's phone ("Build 5 is in my phone"). The user accepted the updated Apple Developer Program
+License Agreement. **Test Information** (TestFlight): Claude typed the fields from
+[app-store-connect-08.md](../app-store-connect-08.md); the user added the phone number and saved. **App Privacy**
+(Distribution): Claude entered the privacy URL and the 11 data types (each linked, not tracking; purposes as in the
+file; the feedback limiter not declared — the user's choice); read back from the page; **the user published**.
+**External group "Friends"** created; build 5 selected; the add-build dialog had "Sign-in required" ticked although the
+Test Information page had it unticked — Claude unticked it; What to Test typed; "Automatically notify testers" on.
+Submit for Review left to the user. No testers invited yet.
+
 ## Comments

@@ -10,7 +10,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **TestFlight 0.1.0 (5) from `1ce3424` uploaded 2026-10-15 19:36 EDT** (archive
   `scratchpad/tf/Stacked-0.1.0-5-1ce3424.xcarchive` of session 34187b7c; checked: build 5 incl. the widget, production
   `WTServerURL`, `WTGoogleClientID`, the new camera/photo/Health strings, the font, team X68M8SR6NA). Only
-  `project.pbxproj` changed since build 4 — no Gate S. Not yet added to the "Developer" group or installed.
+  `project.pbxproj` changed since build 4 — no Gate S. In "Developer"; **installed on the phone 2026-10-15**.
 - **Archive checkout:** `/tmp/wt-live02` lost its `.git` file to macOS's temp clean-up (prunable; left untouched).
   Builds now archive from `/Users/ericlee06/orca/workspaces/Health App/release-build` (detached; `git checkout --detach
   <main commit>`; `Config/Local.xcconfig` copied in, identical to wt-live02's).
@@ -33,10 +33,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Codex:** one session for every review (AGENTS.md): Orca terminal **"Codex review"**
   (`term_be05cca0-da6f-4532-b4bd-c8cf220eebe8`). 08 pages and enforcement: rounds 4–6, **round 6 clear**
   (`work-record/public-beta/codex-review-08f.md`, HEAD `c7d47dd`). Reuse it for later rounds.
-- **Next (08):** the user adds build 5 to "Developer" and installs it → App Store Connect entries from
-  [app-store-connect-08.md](../work-record/public-beta/app-store-connect-08.md): App Privacy answers (draft table; open items in the draft) → external group, beta description, what-to-test,
-  feedback email → Beta App Review → final test pass incl. New Model → Suggest exercises with AI → invites. Google
-  testers must be Google test users until the consent screen is published.
+- **Next (08):** App Store Connect done 2026-10-15 except the user's **Submit for Review** of build 5 in external group
+  "Friends" (Test Information saved, App Privacy published, licence accepted) → Beta App Review → invite testers
+  (email or public link; the user's list) → final test pass incl. New Model → Suggest exercises with AI (confirm
+  `model-exercises` on the server) → Workers Free check → acceptance: one external tester installs, signs in, sends
+  feedback. Google testers must be Google test users until the consent screen is published.
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `8e0434be`, above; previously `0f2b49c4`).
   Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
   `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8`
@@ -60,7 +61,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
-- **Installed: TestFlight Stacked 0.1.0 (4) = `main` `5a4ca0c`** (uploaded 2026-10-14 23:04 EDT, installed over build 2
+- **Installed: TestFlight Stacked 0.1.0 (5) = `main` `1ce3424`** (uploaded 2026-10-15 19:36 EDT, installed 2026-10-15;
+  only usage strings and the build number changed since build 4, no Gate S).
+- **Previously: TestFlight Stacked 0.1.0 (4) = `main` `5a4ca0c`** (uploaded 2026-10-14 23:04 EDT, installed over build 2
   by 2026-10-15; build 3 = `1be0768` never installed). Uses AI through the server; no on-device OpenAI key.
 - **Previously: TestFlight Stacked 0.1.0 (2) = `main` `5836b68`** (uploaded 2026-10-13 23:17 EDT, in place over build 1;
   Automatic Updates **off**). No Gate S before it — no store change in `936b18f..5836b68` (the backup rule below).
