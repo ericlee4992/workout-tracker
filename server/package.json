@@ -1,7 +1,7 @@
 {
   "name": "stacked-server",
   "private": true,
-  "description": "Stacked's backend (public beta ticket 03): accounts, sessions, and later the AI proxy and feedback. Cloudflare Workers + D1.",
+  "description": "Stacked's backend: accounts (Apple, Google), sessions, training profile, AI proxy, feedback, privacy and support pages. Cloudflare Workers + D1 + R2.",
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",

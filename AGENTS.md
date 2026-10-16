@@ -21,6 +21,11 @@
 | Acceptance criteria, progress, failed approaches, review findings, test evidence | The relevant ticket and review files in `work-record/` |
 | Build, test, install, and troubleshooting procedures | [DEVELOPMENT](docs/DEVELOPMENT.md) |
 | Previous handoffs | [Archive index](docs/archive/README.md); historical evidence, not current instructions |
+| Public overview: what the app does, its release status, build steps, folder layout | [README](README.md) (and [server/README](server/README.md) for the server) |
+
+The repository is public and its README is the front page: when a ticket changes what the app does, its release
+status, the build/test steps or the folder layout, update README (and its screenshots when screens changed visibly)
+on the same branch before merging. Keep personal details, tester data and secrets out of it.
 
 Keep STATE as a short current handoff. Update existing facts instead of prepending another
 session transcript. At meaningful checkpoints and before ending a session, record the exact

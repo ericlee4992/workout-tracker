@@ -1,9 +1,9 @@
 # Stacked server
 
-The app's backend (public beta, D60): a Cloudflare Worker with a D1 database and an R2 bucket. Ticket 03 adds accounts —
-Sign in with Apple, sessions, the profile name, sign-out and account deletion — and placeholder `/privacy` and `/support`
-pages; ticket 07 adds in-app feedback; ticket 06 the AI proxy (server half); ticket 05 the training profile. Ticket 04
-adds Google sign-in later.
+The app's backend (public beta, D60): a Cloudflare Worker with a D1 database and an R2 bucket, live at
+https://stacked-server.stacked-server.workers.dev. It holds accounts — Sign in with Apple (ticket 03) and Google
+(ticket 04), sessions, the profile name, sign-out and account deletion — the training profile (ticket 05), the AI proxy
+with daily limits (ticket 06), in-app feedback (ticket 07), and the privacy policy and support pages (ticket 08).
 
 **This repository is public.** Secrets live only in Cloudflare (`wrangler secret put`) and, for local runs, in the
 git-ignored `.dev.vars`. `scripts/check-secrets.sh` (repository root) rejects key-shaped text — PEM keys (also escaped

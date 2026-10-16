@@ -6,7 +6,7 @@
 
 A private, native iPhone workout logger built by a solo developer for their own use. It matches Strong-style fast logging, with two differentiators no mainstream tracker has:
 
-> **Public beta planned (D60, 2026-10-01):** the app becomes **Stacked** for invited TestFlight testers, with optional accounts (Sign in with Apple and Google), a profile with a saved training profile, AI on the developer's key through the developer's server with per-account limits, onboarding and in-app feedback; workouts stay on the phone. Contract: [public-beta spec](../work-record/public-beta/spec.md). Until those tickets land, this file describes the shipped app.
+> **Public beta (D60, planned 2026-10-01; built by 2026-10-15, external TestFlight testing under ticket 08):** the app is **Stacked** for invited TestFlight testers, with optional accounts (Sign in with Apple and Google), a profile with a saved training profile, AI on the developer's key through the developer's server with per-account limits, onboarding and in-app feedback; workouts stay on the phone. Contract: [public-beta spec](../work-record/public-beta/spec.md); that spec governs accounts, AI, onboarding and feedback, and this file the rest of the app.
 
 1. **Equipment-aware taxonomy** — the same exercise on different hardware is not comparable, so history and PRs anchor to equipment context.
 2. **Honest kg/lb handling** — units chosen per set, defaulted by context, preserved as entered, never silently conflated.
