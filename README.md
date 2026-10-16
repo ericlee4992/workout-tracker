@@ -9,10 +9,11 @@ working name, Workout Tracker.)
 I move around a lot, and every gym has different equipment. In other trackers I had to log
 everything under a generic "chest press" or "shoulder press", so a 60 kg set on one gym's
 plate-loaded press and a 60 kg set on another's cable machine looked identical in my history
-and nothing was comparable. Stacked anchors every set to a specific machine at a specific gym.
-Previous performance, prefilled sets and records are per machine first, per equipment model
-second, and per exercise only as a last resort — each layer labelled so you know what you're
-comparing against.
+and nothing was comparable. Stacked anchors machine sets to a specific machine at a specific
+gym (free weights and bodyweight work are logged too). Previous performance and records are per
+machine first, per equipment model second, and per exercise only as a last resort — each layer
+labelled so you know what you're comparing against. Sets are prefilled only from that same
+machine.
 
 <!-- Screenshots in docs/readme/: Floodlight capture UI tests (dark, default text size, built-in sample data),
 taken 2026-10-15 and halved in size. Retake them when a shown screen changes visibly (AGENTS.md). -->
@@ -38,10 +39,12 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
   own or in the same workout as lifting.
 - **Templates.** Save a workout as a plan and start it at any gym; each exercise resolves to
   the machine you last used there.
-- **Heart rate and Apple Health.** Live bpm from AirPods or an Apple Watch, zones, calories
-  and a heart-rate rest timer; workouts are saved to Apple Health.
+- **Heart rate and Apple Health.** Live bpm from AirPods Pro 3 or a paired heart-rate monitor,
+  zones, calories and a heart-rate rest timer; workouts are saved to Apple Health. (An Apple
+  Watch companion is written but not yet built or shipped.)
 - **History.** A calendar, per-session detail with editing, records, progress charts per
-  exercise and variation, and CSV or JSON export of everything.
+  exercise and variation, and export of your workouts as JSON (the fullest record, with
+  heart-rate series and routes) or CSV (a table of sets and cardio).
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
   templates from your training profile. Each AI feature asks first and has a daily limit.
@@ -50,14 +53,17 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
 
 ## Privacy
 
-Your workouts stay on your iPhone; the server never receives them. The account, AI requests
-and feedback go through a small server of mine. The
+Your workouts are stored on your iPhone and are never uploaded automatically. What you choose
+to send — sign-in, AI requests, feedback (and anything you put in it) — goes through a small
+server of mine. The
 [privacy policy](https://stacked-server.stacked-server.workers.dev/privacy) says exactly what is
 kept and for how long; [support](https://stacked-server.stacked-server.workers.dev/support).
 
 ## Building
 
-Requires Xcode 26 or later and iOS 26. The simulator build needs no signing:
+Requires iOS 26. Builds and tests are verified with Xcode 27; Xcode 26 currently fails to
+compile one file on the hosted CI runner (an open issue in [`docs/STATE.md`](docs/STATE.md)).
+The simulator build needs no signing:
 
 ```sh
 xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
@@ -65,11 +71,13 @@ xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
 ```
 
 For a real phone, copy `Config/Local.xcconfig.example` to `Config/Local.xcconfig` with your own
-team ID and bundle-ID prefix, then run `./scripts/install-on-device.sh`. Unit tests:
+team ID and bundle-ID prefix, then run `./scripts/install-on-device.sh`. Unit tests, on any
+available iPhone simulator (`xcrun simctl list devices available`; use its ID if the name exists
+under more than one iOS version):
 
 ```sh
 xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
-  -sdk iphonesimulator -destination 'platform=iOS Simulator,name=WT-iPhone' \
+  -sdk iphonesimulator -destination 'platform=iOS Simulator,id=<simulator ID>' \
   -only-testing:WorkoutTrackerTests
 ```
 
@@ -84,13 +92,12 @@ in this repository.
 | `WorkoutTracker/` | The app: `App/`, `Domain/` (SwiftData models and pure logic), `Features/` (one folder per area: workout, cardio, gyms, exercises, templates, history, settings, account, onboarding), `Resources/` (the seeded catalog) |
 | `WorkoutTrackerTests/`, `WorkoutTrackerUITests/` | Unit tests (Swift Testing) and end-to-end UI tests (XCTest) |
 | `WorkoutTrackerWidget/` | The Live Activity: the running workout and its rest timer on the Lock Screen |
-| `WorkoutTrackerWatch/` | A placeholder Watch target; it has never been built or run |
+| `WorkoutTrackerWatch/` | An Apple Watch companion (workout session, heart rate, phone link) — written, never built or run, not in the beta |
 | `server/` | The backend: accounts (Apple, Google), the AI proxy with daily limits, feedback, the privacy and support pages |
 | `Config/`, `scripts/` | Build settings (`Local.xcconfig` is yours and git-ignored), catalog generation, device install, the secret scanner |
 | `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md` | Shared agent workflow, Claude's import of it, the domain glossary |
 | `docs/` | `SPEC.md` (product), `DECISIONS.md` (why), `STATE.md` (current work), `DEVELOPMENT.md` (runbook), `archive/` (preserved handoffs) |
 | `work-record/` | Every ticket with its acceptance criteria and resolution, every cross-review, and the screenshots each ticket was judged on |
-| `graft/` | A generated map of the code for agents |
 
 ## How it was built
 
