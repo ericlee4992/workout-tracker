@@ -187,6 +187,7 @@ License Agreement. **Test Information** (TestFlight): Claude typed the fields fr
 file; the feedback limiter not declared — the user's choice); read back from the page; **the user published**.
 **External group "Friends"** created; build 5 selected; the add-build dialog had "Sign-in required" ticked although the
 Test Information page had it unticked — Claude unticked it; What to Test typed; "Automatically notify testers" on.
-Submit for Review left to the user. No testers invited yet.
+Submit for Review left to the user; **the user submitted it** — the Friends group showed build 0.1.0 (5) "Waiting for
+Review" (2026-10-15). No testers invited yet.
 
 ## Comments
