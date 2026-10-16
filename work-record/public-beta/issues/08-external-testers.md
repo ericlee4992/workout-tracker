@@ -199,4 +199,15 @@ users" — not done: verification needs proof of owning the domain, which a `wor
 consequence is cosmetic (Google's screen may not show "Stacked"). To confirm with the first Google tester who is not a
 listed test user.
 
+
+**README brought up to date (2026-10-15/16, the user: "updating everything on my GitHub repo, such as README … so it
+reflects current state").** README rewritten (Stacked, beta status, cardio, account/AI, feedback, privacy summary, server,
+folder table, verification scope); server/README intro and package description; SPEC beta note; AGENTS.md now requires
+README updates with user-visible changes. Screenshots `docs/readme/*.png` from 9 Floodlight capture UI tests (dark,
+default size, sample data): FloodlightLive `testCaptureLiveDark`, FloodlightHistory/Gyms `…DarkDefault`, FloodlightWorkoutTab
+`testCaptureDetailAndEditorDarkDefault`, FloodlightCardio `testLiveDark`/`testFinishedDark`, FloodlightFinish
+`testCaptureReceiptDarkDefault`, FloodlightScan `testCaptureScanDarkDefault`, FloodlightAIRoutine
+`testCaptureAIRoutineDarkDefault` — **TEST SUCCEEDED, 9 tests, 0 failures** (944 s). `name=WT-iPhone` failed
+(it resolved to OS latest = 27.0; WT-iPhone runs 26.5): use `id=432F2F5D-E694-4140-99C2-B398DE9D360F`. Attachments via
+`xcrun xcresulttool export attachments`; six chosen, halved. Codex review: `codex-review-readme.md`.
 ## Comments

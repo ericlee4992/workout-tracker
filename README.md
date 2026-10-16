@@ -14,12 +14,15 @@ Previous performance, prefilled sets and records are per machine first, per equi
 second, and per exercise only as a last resort — each layer labelled so you know what you're
 comparing against.
 
+<!-- Screenshots in docs/readme/: Floodlight capture UI tests (dark, default text size, built-in sample data),
+taken 2026-10-15 and halved in size. Retake them when a shown screen changes visibly (AGENTS.md). -->
 <p>
-<img src="docs/readme/live-workout.png" width="180" alt="Logging a set during a workout">
-<img src="docs/readme/gyms.png" width="180" alt="A gym and its machines">
-<img src="docs/readme/history.png" width="180" alt="History">
-<img src="docs/readme/cardio.png" width="180" alt="A cardio session">
-<img src="docs/readme/ai-routine.png" width="180" alt="Ask AI for Templates">
+<img src="docs/readme/workout.png" width="150" alt="The Workout tab: gym, start buttons, this week and templates">
+<img src="docs/readme/live-workout.png" width="150" alt="Logging sets during a workout, with the rest timer">
+<img src="docs/readme/gyms.png" width="150" alt="A gym and its machines, with Scan Machine">
+<img src="docs/readme/cardio.png" width="150" alt="An indoor run in progress">
+<img src="docs/readme/history.png" width="150" alt="History: the month and recent workouts">
+<img src="docs/readme/ai-routine.png" width="150" alt="Ask AI's suggested week of templates">
 </p>
 
 ## What it does
