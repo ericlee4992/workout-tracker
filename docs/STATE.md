@@ -33,8 +33,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Codex:** one session for every review (AGENTS.md): Orca terminal **"Codex review"**
   (`term_be05cca0-da6f-4532-b4bd-c8cf220eebe8`). 08 pages and enforcement: rounds 4–6, **round 6 clear**
   (`work-record/public-beta/codex-review-08f.md`, HEAD `c7d47dd`). Reuse it for later rounds.
-- **Next (08):** App Store Connect done 2026-10-15; the user submitted build 5 in external group "Friends" — status
-  **Waiting for Review** (seen 2026-10-15; group has 0 testers) → Beta App Review approval → invite testers
+- **Next (08):** App Store Connect done 2026-10-15; the user submitted build 5 in external group "Friends" — **Beta
+  App Review passed** (seen 2026-10-16: status Testing, expires in 90 days; group has 0 testers) → invite testers
   (email or public link; the user's list) → final test pass incl. New Model → Suggest exercises with AI (confirm
   `model-exercises` on the server) → Workers Free check → acceptance: one external tester installs, signs in, sends
   feedback. Google sign-in **published (In production)** 2026-10-15 — any Google account can sign in; branding

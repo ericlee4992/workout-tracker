@@ -30,7 +30,7 @@ The user's friends receive Stacked by email invitation through external TestFlig
 ## Acceptance
 
 - [x] Policy and support pages live and approved by the user (2026-10-15, version `8e0434be`).
-- [ ] App Privacy answers saved; Beta App Review passed.
+- [x] App Privacy answers saved; Beta App Review passed (build 5 approved, seen 2026-10-16; expires ~2027-01-14).
 - [ ] At least one external tester installed the build, signed in, and sent feedback that reached the developer.
 
 ## Progress
@@ -210,4 +210,8 @@ default size, sample data): FloodlightLive `testCaptureLiveDark`, FloodlightHist
 `testCaptureAIRoutineDarkDefault` — **TEST SUCCEEDED, 9 tests, 0 failures** (944 s). `name=WT-iPhone` failed
 (it resolved to OS latest = 27.0; WT-iPhone runs 26.5): use `id=432F2F5D-E694-4140-99C2-B398DE9D360F`. Attachments via
 `xcrun xcresulttool export attachments`; six chosen, halved. Codex review: round 1 `codex-review-readme.md` not clear (8 findings, all fixed in `ea6edf7`); round 2 `codex-review-readme-b.md` **clear**. The user: "do both" → `main` fast-forwarded to `8a94620` (2026-10-16); GitHub description and website (privacy page) set.
+
+**Beta App Review passed (seen 2026-10-16).** App Store Connect → TestFlight → Friends: build 0.1.0 (5) status
+**Testing**, "Expires in 90 days"; group still 0 testers. Next: invite testers (email or public link).
+
 ## Comments
