@@ -37,7 +37,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Waiting for Review** (seen 2026-10-15; group has 0 testers) → Beta App Review approval → invite testers
   (email or public link; the user's list) → final test pass incl. New Model → Suggest exercises with AI (confirm
   `model-exercises` on the server) → Workers Free check → acceptance: one external tester installs, signs in, sends
-  feedback. Google testers must be Google test users until the consent screen is published.
+  feedback. Google sign-in **published (In production)** 2026-10-15 — any Google account can sign in; branding
+  unverified (Google may not show the name Stacked on its sign-in screen).
 - **Server:** https://stacked-server.stacked-server.workers.dev (version `8e0434be`, above; previously `0f2b49c4`).
   Secrets set by the user: APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY; `APPLE_TEAM_ID`
   `X68M8SR6NA` in `server/wrangler.jsonc`. The Sign in with Apple `.p8` is at `~/WorkoutTracker-Backups/keys/Auth.p8`

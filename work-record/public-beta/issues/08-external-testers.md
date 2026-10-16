@@ -190,4 +190,13 @@ Test Information page had it unticked — Claude unticked it; What to Test typed
 Submit for Review left to the user; **the user submitted it** — the Friends group showed build 0.1.0 (5) "Waiting for
 Review" (2026-10-15). No testers invited yet.
 
+**Google sign-in published (2026-10-15).** Google Auth Platform (project `stacked-511700`) → Branding: Claude entered
+the home page `https://stacked-server.stacked-server.workers.dev/support` and privacy policy `…/privacy` (the user's
+go-ahead); the user added authorised domain `stacked-server.workers.dev` (Claude's click was blocked by the permission
+check), saved, and clicked **Publish app** → Audience shows **In production**, External. No logo, no terms link,
+scopes unchanged (`openid email profile`). Branding shows "Your branding needs to be verified before it can be shown to
+users" — not done: verification needs proof of owning the domain, which a `workers.dev` address likely can't give;
+consequence is cosmetic (Google's screen may not show "Stacked"). To confirm with the first Google tester who is not a
+listed test user.
+
 ## Comments
