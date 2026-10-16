@@ -209,5 +209,5 @@ default size, sample data): FloodlightLive `testCaptureLiveDark`, FloodlightHist
 `testCaptureReceiptDarkDefault`, FloodlightScan `testCaptureScanDarkDefault`, FloodlightAIRoutine
 `testCaptureAIRoutineDarkDefault` — **TEST SUCCEEDED, 9 tests, 0 failures** (944 s). `name=WT-iPhone` failed
 (it resolved to OS latest = 27.0; WT-iPhone runs 26.5): use `id=432F2F5D-E694-4140-99C2-B398DE9D360F`. Attachments via
-`xcrun xcresulttool export attachments`; six chosen, halved. Codex review: `codex-review-readme.md`.
+`xcrun xcresulttool export attachments`; six chosen, halved. Codex review: round 1 `codex-review-readme.md` not clear (8 findings, all fixed in `ea6edf7`); round 2 `codex-review-readme-b.md` **clear**. Merge to `main` and the GitHub description wait for the user's go-ahead.
 ## Comments

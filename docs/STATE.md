@@ -59,6 +59,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
    description, feedback email, Beta App Review, invites. *In progress: answers in (D61), pages built, in review.*
    A release-candidate test pass.
 
+**README refresh (2026-10-16):** README, screenshots, server README, SPEC note, AGENTS rule — Codex **clear** (round 2);
+waiting for the user's go-ahead to fast-forward `main` and to update the GitHub repository description.
+
 **Later (after the beta):** [09 App Store launch](../work-record/public-beta/issues/09-app-store-launch.md);
 [12 marketing website](../work-record/public-beta/issues/12-marketing-website.md) (the user, 2026-10-15) — with a
 domain of the user's own, which also allows Google branding verification.
