@@ -505,7 +505,7 @@ struct ProtoPin: Identifiable {
     private var cardioReading: ProtoReading {
         let last = sessions.last!, first = sessions.first!
         let date = last.date.formatted(.dateTime.month(.abbreviated).day())
-        let approx = estimated ? "≈ " : ""
+        let approx = "" // No "≈" on indoor estimates (the user, 2026-10-17).
         switch metric {
         case "Pace":
             let pace = { (s: ProtoSession) in s.minutes * 60 / s.km }
@@ -561,7 +561,7 @@ struct ProtoPin: Identifiable {
               let fastest = sessions.min(by: { $0.minutes / $0.km < $1.minutes / $1.km }),
               let longestTime = sessions.max(by: { $0.minutes < $1.minutes }) else { return [] }
         let day = { (s: ProtoSession) in s.date.formatted(.dateTime.month(.abbreviated).day()) }
-        let approx = estimated ? "≈ " : ""
+        let approx = "" // No "≈" on indoor estimates (the user, 2026-10-17).
         let speedOrPace = usesSpeed
             ? ("Fastest average", approx + (fastest.km / (fastest.minutes / 60)).formatted(.number.precision(.fractionLength(1))) + " km/h")
             : ("Fastest pace", approx + Self.clock(fastest.minutes * 60 / fastest.km) + " /km")
@@ -573,7 +573,7 @@ struct ProtoPin: Identifiable {
     }
 
     func sessionLine(_ s: ProtoSession) -> String {
-        let approx = estimated ? "≈ " : ""
+        let approx = "" // No "≈" on indoor estimates (the user, 2026-10-17).
         let distance = approx + s.km.formatted(.number.precision(.fractionLength(1))) + " km"
         let rate = usesSpeed
             ? (s.km / (s.minutes / 60)).formatted(.number.precision(.fractionLength(1))) + " km/h"

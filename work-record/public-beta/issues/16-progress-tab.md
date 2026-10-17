@@ -107,3 +107,8 @@ label reads **"Indoor"** instead of "Estimated distance"; the **"≈" on estimat
 precision rule; asked the user). Charts: tab panels 132 → **108 pt**, the cardio screen 190 → **160 pt**; every element
 kept. AccessibilityL showed the four y-axis labels touching at 108 pt → at accessibility sizes the chart shows two y
 labels and grows 1.25× (as `HeartRateRangeChart`). Captures `captures/16/round3/`. Build **BUILD SUCCEEDED**.
+
+**Round 4 (2026-10-17).** The user: "get rid of small "≈" as well." Indoor/estimated cardio values show no "≈" (a
+deliberate exception to the no-false-precision convention, the user's decision — record in D63). The lifting **1RM**
+metric keeps its existing "≈" (an estimated one-rep max, as `ExerciseProgressView` shows it; not what was asked).
+Capture `captures/16/round3/r4-rowing-no-approx.png`. Build **BUILD SUCCEEDED**.
