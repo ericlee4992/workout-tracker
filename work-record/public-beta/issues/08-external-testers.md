@@ -214,4 +214,20 @@ default size, sample data): FloodlightLive `testCaptureLiveDark`, FloodlightHist
 **Beta App Review passed (seen 2026-10-16).** App Store Connect → TestFlight → Friends: build 0.1.0 (5) status
 **Testing**, "Expires in 90 days"; group still 0 testers. Next: invite testers (email or public link).
 
+**Status check — 2026-10-17 05:30 EDT (Claude, read-only).** App Store Connect → TestFlight → Friends: **public link
+on**, `https://testflight.apple.com/join/SWyzYCtB`, tester limit **20** (1 of 20 used). The one tester joined **through
+the public link and is "Anonymous"** (Apple shows no name or email for public-link testers): iPhone 17 Pro Max,
+iOS 27.0.1, installed 0.1.0 (5) on Oct 17, 1 session, no crashes, no TestFlight feedback (Screenshots: none) — not the
+user's phone (iPhone 15 Pro Max), so an external tester; only the user can say whom they sent the link to. Friends
+builds: **0.1.0 (6) "Testing", expires in 90 days** (submitted and through Beta App Review) and (5) "Testing".
+Production D1 (counts and times only, no content read): a **new Apple-sign-in account created 2026-10-17 03:58 EDT**
+(the third account; the user's are the Apple one of 10-14 and the Google one of 10-15) — most likely that tester
+signing in — with 0 feedback and 0 AI requests. Feedback table: still only the user's build-2 row. AI requests: two
+`routine-week`, one `scan-machine`, **no `model-exercises` yet**. So acceptance stands at: installed ✓, signed in
+(probably — the account appeared ~the install day) ✓?, feedback ✗.
+**Workers Free check (since 2026-10-15 23:00 UTC):** no `exceededCpu`; 116 `success` on `8e0434be` (CPU p50 3.1 ms,
+p99 9.4 ms) and **1 `clientDisconnected`** at 2026-10-15 20:20:32 EDT (31.4 ms CPU, 1.48 s wall — the client hung up;
+Cloudflare did not stop it for CPU). Also over 10 ms but successful: the 03:58 EDT sign-in (15.7 ms). The hourly job
+rose from 3.4 ms (10-15) to 5–9.4 ms CPU. Reported to the user; re-check after the final test pass.
+
 ## Comments

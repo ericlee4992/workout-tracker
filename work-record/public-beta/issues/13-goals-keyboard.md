@@ -314,3 +314,7 @@ Claude selected build 6 and entered What to Test: "Build 6 fixes typing your goa
 stays at the bottom, a Done button sits on top of the keyboard, and Return closes the keyboard. Otherwise as before:
 log a workout, add your gym and a machine, try a cardio session and Ask AI, and send anything odd from Settings → Send
 Feedback (a screenshot helps)." ("Automatically notify testers" on); the user clicks Submit for Review.
+
+**Build 6 out (2026-10-17 05:30 EDT, Claude).** App Store Connect: 0.1.0 (6) is in Developer and Friends, status
+**"Testing"** in Friends (submitted by the user and through Beta App Review). `xcrun devicectl device info apps` on the
+phone: Stacked **0.1.0, bundle version 6** installed. Open: the user's check of the Goals keyboard on build 6.

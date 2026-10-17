@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-10-17 ~06:00** (ticket 13 merged, build 6 uploaded; D62 + build checklist; ticket 14 opened). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-17 05:35 EDT** (build 6 in Friends and on the phone; Friends/public-link/tester check; ticket 14 opened). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: build 6 rollout; ticket 08 external-test acceptance remains open
@@ -8,13 +8,15 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Resume here (2026-10-17):** branch **`ericlee4992/beta-13-goals-keyboard`** (pushed), HEAD = `main` `f5151c2` +
   docs-only commits (ticket 13/14 notes, D62, DEVELOPMENT checklist). Fast-forward `main` to it with the user's
   go-ahead (docs only). Next build number: **7**.
-- **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6.** User's design (fixed Next, app-drawn Done,
-  Return ends editing); Codex review clear; tests 7/7 + 57/57 on iOS 27; the user confirmed the focused Weight is
-  visible on the phone. **`main` = `f5151c2`** (build number 6). Upload "Upload succeeded" 2026-10-17 05:13 EDT from
-  `release-build` at `f5151c2`; processed ("Ready to Test"). **The user added build 6 to "Developer".** Friends: Claude
-  selected build 6 and entered the What to Test note (ticket 13); **the user was to click Submit for Review — verify**
-  in App Store Connect (Friends → Builds). **Open:** install build 6 on the phone from TestFlight and check the Goals
-  keyboard; Friends' Beta App Review of build 6 (Apple emails). [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md).
+- **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6** (`main` `f5151c2`). **Checked 05:30 EDT:**
+  build 6 is in Developer and in Friends as **"Testing"** (submitted, through Beta App Review); the phone has
+  **Stacked 0.1.0 (6)** (`devicectl`). **Open:** the user's check of the Goals keyboard on build 6.
+  [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md).
+- **Friends (checked 2026-10-17 05:30 EDT):** public link **on** (`testflight.apple.com/join/SWyzYCtB`, limit 20);
+  1 tester, **Anonymous via the public link** (iPhone 17 Pro Max, iOS 27.0.1; installed build 5 on Oct 17; no
+  TestFlight feedback). D1: a new Apple account at 03:58 EDT (likely that tester), no feedback, no AI use. Workers
+  Free: no `exceededCpu`; one `clientDisconnected` (10-15 20:20 EDT, 31 ms CPU); hourly job up to 9.4 ms. Details in
+  [ticket 08](../work-record/public-beta/issues/08-external-testers.md).
 
 - **TestFlight 0.1.0 (5) from `1ce3424` uploaded 2026-10-15 19:36 EDT** (archive
   `scratchpad/tf/Stacked-0.1.0-5-1ce3424.xcarchive` of session 34187b7c; checked: build 5 incl. the widget, production
@@ -86,8 +88,8 @@ domain of the user's own, which also allows Google branding verification.
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
-- **Build 6 (`f5151c2`) added to TestFlight "Developer" 2026-10-17 — not yet confirmed installed.**
-- **Installed: TestFlight Stacked 0.1.0 (5) = `main` `1ce3424`** (uploaded 2026-10-15 19:36 EDT, installed 2026-10-15;
+- **Installed: TestFlight Stacked 0.1.0 (6) = `main` `f5151c2`** (confirmed by `devicectl` 2026-10-17 05:30 EDT).
+- **Previously: TestFlight Stacked 0.1.0 (5) = `main` `1ce3424`** (uploaded 2026-10-15 19:36 EDT, installed 2026-10-15;
   only usage strings and the build number changed since build 4, no Gate S).
 - **Previously: TestFlight Stacked 0.1.0 (4) = `main` `5a4ca0c`** (uploaded 2026-10-14 23:04 EDT, installed over build 2
   by 2026-10-15; build 3 = `1be0768` never installed). Uses AI through the server; no on-device OpenAI key.
