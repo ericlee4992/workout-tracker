@@ -18,6 +18,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   TestFlight feedback). D1: a new Apple account at 03:58 EDT (likely that tester), no feedback, no AI use. Workers
   Free: no `exceededCpu`; one `clientDisconnected` (10-15 20:20 EDT, 31 ms CPU); hourly job up to 9.4 ms. Details in
   [ticket 08](../work-record/public-beta/issues/08-external-testers.md).
+- **08 final test pass done (2026-10-17):** build 6 "works well" (the user); `model-exercises` confirmed on the server
+  (05:42 EDT, ok); Workers Free re-check clean (no `exceededCpu`); no full UI suite (the user: "not necessary").
+  **Only acceptance item left:** an external tester's feedback reaching the developer — the user asks the tester.
+  Follow-up candidate: a client disconnect can leave an AI slot held for the day and the request unlogged (ticket 08).
 
 - **TestFlight 0.1.0 (5) from `1ce3424` uploaded 2026-10-15 19:36 EDT** (archive
   `scratchpad/tf/Stacked-0.1.0-5-1ce3424.xcarchive` of session 34187b7c; checked: build 5 incl. the widget, production

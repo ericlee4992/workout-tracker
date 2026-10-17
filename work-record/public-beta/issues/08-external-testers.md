@@ -260,4 +260,13 @@ the Worker can stop before `proxyAI`'s `finally` (settle + log), leaving a held 
 day and no request row. Harmless at a limit of 60 (one slot) and gone the next day; a follow-up candidate
 (`ctx.waitUntil` for settle/log), not a beta blocker.
 
+**Suggest exercises with AI — confirmed (2026-10-17 05:42 EDT).** The user tried again: D1 `ai_requests`
+**`model-exercises` ok at 05:42:36 EDT, 2.45 s**, 5,821 input / 110 output tokens, the Google account; `ai_usage` for
+the day: 1 success, 1 attempt, 0 in flight. The earlier attempt did not reach the server (cause unknown; no trace).
+**Workers Free re-check after the pass** (since 2026-10-15 23:00 UTC): `8e0434be` 131 `success` (CPU p50 3.0 ms, p99
+9.4 ms, max 15.7 ms), 0 errors, no `exceededCpu`; still only the one `clientDisconnected` of 10-15 20:20 EDT. Nothing
+for the user to act on. **Final test pass done** (phone: build 6 "works well", Goals keyboard, Suggest exercises with
+AI; no full UI suite, the user's decision). **Remaining acceptance:** an external tester sends feedback that reaches
+the developer (the anonymous public-link tester has an account but no feedback yet).
+
 ## Comments
