@@ -1,7 +1,7 @@
 # 08 — External testers
 
 Type: task
-Status: in progress — policy pages built, in review (2026-10-15)
+Status: **done 2026-10-17** — closed by the user; acceptance item 3 waived (see the last progress note)
 Blocked by: 02, 04, 05, 06, 07
 Implementer: Claude with the user; Reviewer: Codex for the privacy policy against the code and the server.
 Branch: `ericlee4992/beta-08-external` off `main`.
@@ -31,7 +31,10 @@ The user's friends receive Stacked by email invitation through external TestFlig
 
 - [x] Policy and support pages live and approved by the user (2026-10-15, version `8e0434be`).
 - [x] App Privacy answers saved; Beta App Review passed (build 5 approved, seen 2026-10-16; expires ~2027-01-14).
-- [ ] At least one external tester installed the build, signed in, and sent feedback that reached the developer.
+- [x] ~~At least one external tester installed the build, signed in, and sent feedback that reached the developer.~~
+  **Waived by the user 2026-10-17:** feedback is general, ongoing input on the whole app, not a gate for this ticket.
+  Met in part: an external (public-link) tester installed build 5 and, very likely, signed in with Apple; the feedback
+  path itself was verified with the user's own feedback (build 2, ticket 07).
 
 ## Progress
 
@@ -268,5 +271,11 @@ the day: 1 success, 1 attempt, 0 in flight. The earlier attempt did not reach th
 for the user to act on. **Final test pass done** (phone: build 6 "works well", Goals keyboard, Suggest exercises with
 AI; no full UI suite, the user's decision). **Remaining acceptance:** an external tester sends feedback that reaches
 the developer (the anonymous public-link tester has an account but no feedback yet).
+
+**Closed (2026-10-17).** The user: "for feedbacks, i'd rather it be like a general feedback for the whole app, not
+specifically for this feedback. So you can close this ticket now." Acceptance item 3 is waived (above); the others are
+met; the final test pass is done. Carried forward: the stuck-slot-on-disconnect follow-up candidate (05:41 note), the
+D61 clean-up dates (exports by 2026-11-14; `feedback.mjs prune` every 15 days while a download exists), and the
+user's idea of a place to track feedback (proposed as a new ticket).
 
 ## Comments

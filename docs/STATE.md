@@ -3,7 +3,7 @@
 Updated **2026-10-17 05:35 EDT** (build 6 in Friends and on the phone; Friends/public-link/tester check; ticket 14 opened). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: build 6 rollout; ticket 08 external-test acceptance remains open
+## NOW: beta running (build 6); tickets 08 and 13 done
 
 - **Resume here (2026-10-17):** branch **`ericlee4992/beta-13-goals-keyboard`** (pushed); `main` fast-forwarded to
   `d0ad275` (docs only, the user's go-ahead); later commits on the branch are notes. Next build number: **7**.
@@ -20,7 +20,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   [ticket 08](../work-record/public-beta/issues/08-external-testers.md).
 - **08 final test pass done (2026-10-17):** build 6 "works well" (the user); `model-exercises` confirmed on the server
   (05:42 EDT, ok); Workers Free re-check clean (no `exceededCpu`); no full UI suite (the user: "not necessary").
-  **Only acceptance item left:** an external tester's feedback reaching the developer — the user asks the tester.
+  **Ticket 08 closed by the user 2026-10-17**: tester feedback is general, ongoing input, not a gate (item 3 waived).
   Follow-up candidate: a client disconnect can leave an AI slot held for the day and the request unlogged (ticket 08).
 
 - **TestFlight 0.1.0 (5) from `1ce3424` uploaded 2026-10-15 19:36 EDT** (archive
@@ -126,10 +126,12 @@ domain of the user's own, which also allows Google branding verification.
 | 05 profile | **Done in code** (merged `1be0768`, Codex clear); phone check with build 3. |
 | 06 AI proxy | **Merged**; deployed checks done; build 3 uploaded — phone smoke next. |
 | 07 feedback | **Done**; live since build 2. |
-| 08 external testers | Privacy draft merged, unpublished; waits on the user's answers (6th). |
+| 08 external testers | **Done 2026-10-17** (pages live, Beta App Review passed, public link, final pass; item 3 waived by the user). |
 | 09 App Store | Not started. |
 | 10 model Sol | **Closed, no change** (the user kept Terra after measurements). |
 | 11 safety copy | Deferred (the user, 2026-10-14) until the first stored-format change; guard on its branch. |
+| 13 Goals keyboard | **Done** — build 6, the user: "works well". |
+| 14 What's New | needs-triage (before the first big update). |
 
 ## Working conventions (in force)
 
