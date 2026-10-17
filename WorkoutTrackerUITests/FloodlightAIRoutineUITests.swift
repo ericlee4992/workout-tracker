@@ -106,6 +106,9 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         launch(appearance: appearance, large: large)
         goalsField.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.keyboards.firstMatch.keys.firstMatch.waitForExistence(timeout: 5),
+                      "Capture the software keyboard, not just the hardware-keyboard accessory")
+        XCTAssertGreaterThan(app.keyboards.firstMatch.frame.height, 200)
         goalsField.typeText("Build strength and stay consistent at the gym.")
         let next = app.buttons["routineNext"]
         XCTAssertTrue(next.isHittable)
@@ -121,6 +124,8 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         reach(height)
         height.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.keyboards.firstMatch.keys.firstMatch.waitForExistence(timeout: 5))
+        XCTAssertGreaterThan(app.keyboards.firstMatch.frame.height, 200)
         height.typeText("6")
         XCTAssertTrue(next.isHittable)
         XCTAssertLessThanOrEqual(height.frame.maxY, next.frame.minY, "the number field stays above Next too")

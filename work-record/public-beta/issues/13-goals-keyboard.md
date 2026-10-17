@@ -177,4 +177,15 @@ Next verification: `/tmp/wt-beta13-20261017-r5/serial.{log,status,xcresult}`; sa
 -test-repetition-relaunch-enabled YES -only-testing:WorkoutTrackerUITests/AskAIUITests/testAllThreeGeneratedTemplatesAppearWithoutRestart`.
 No code change is being made on the strength of a single parallel typing failure.
 
+**Serial rerun:** r5 finished **exit 0, TEST SUCCEEDED**, two repetitions with a fresh test process each time:
+**1 test / 0 failures** in each iteration (60.8 s and 55.3 s), with no production-code change. Keep the original
+parallel failure visible; its cause is not established.
+
+**Visual QA caught an environment gap:** the eight r4 captures showed a focused field and the floating Done accessory
+but no software keys (hardware-keyboard mode). Those captures do **not** establish the requested phone keyboard
+layout and must be replaced. Capture tests now require real key elements and keyboard height >200 pt, not merely a
+`Keyboard` element. Host Simulator preference `ConnectHardwareKeyboard` was originally **unset**; temporarily set
+to false for the corrected captures. **Restore it by deleting that key after verification.** No product-code change
+is needed for this test-environment correction unless the real-keyboard layout exposes a failure.
+
 ## Comments
