@@ -1,7 +1,7 @@
 # 16 — Progress tab: pinned exercise and cardio charts
 
 Type: feature
-Status: in progress — design first (2026-10-17)
+Status: in progress — design approved, building (2026-10-17)
 Blocked by: —
 Ships with: [14 In-app "What's New"](14-whats-new.md) — the user wants this feature announced there (D62), so 14 is
 built for the same build.
@@ -44,7 +44,7 @@ be able to choose which exercise progresses to display, and I should also be abl
 
 ## Acceptance
 
-- [ ] The user approves the design from captures/prototype.
+- [x] The user approves the design from captures/prototype ("yes, go ahead and build it", 2026-10-17; rounds 1–4).
 - [ ] Pin, unpin, reorder, change metric/variation; pins survive relaunch; a deleted exercise's pin disappears quietly.
 - [ ] Lifting cards match `ExerciseProgressView` for the same variation and metric; cardio maths unit-tested.
 - [ ] Targeted UI tests for the tab and the add flow; affected suites; Codex review clear.
@@ -112,3 +112,12 @@ labels and grows 1.25× (as `HeartRateRangeChart`). Captures `captures/16/round3
 deliberate exception to the no-false-precision convention, the user's decision — record in D63). The lifting **1RM**
 metric keeps its existing "≈" (an estimated one-rep max, as `ExerciseProgressView` shows it; not what was asked).
 Capture `captures/16/round3/r4-rowing-no-approx.png`. Build **BUILD SUCCEEDED**.
+
+**Approved and build plan (2026-10-17).** The user on keeping cardio and lifting in one list: Claude recommended one list
+(the user orders it; a split hides half or adds headers; a filter can come later); the user: "yes, go ahead and build
+it". D63 written. Build: `Domain/ProgressPins.swift` (pin model + UserDefaults store), `Domain/CardioProgress.swift`
+(per-workout cardio sessions per activity, Distance/Pace/Speed/Time series, bests, change) with unit tests; the exercise
+history read and metric formatting shared with `ExerciseProgressView` (no second copy); `Features/Progress/` (tab,
+panel, cardio progress sheet, Add Chart sheet) replacing the prototype; `-uiTestDesignProgress` fixture (cardio sessions
++ preset pins; `-uiTestReset` clears pins unless `-uiTestKeepPins`); `FloodlightProgressUITests` (captures light/dark ×
+Default/AXL; add/remove/reorder/relaunch flow). Then README/SPEC, Codex review, ticket 14.
