@@ -1,7 +1,7 @@
 # 15 — Track feedback: mark each one handled
 
 Type: task
-Status: in progress (2026-10-17)
+Status: **done 2026-10-17** — merged `07af7a6`, migration 0006 applied in production
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-15-feedback-triage` off `main` `617421b`.
@@ -41,7 +41,7 @@ does not change.
 - [x] Every new command works against `--local`; `list --open` hides handled rows; a note with quotes and SQL is
       stored verbatim.
 - [x] Server tests and typecheck pass; Codex review clear (round 2, `codex-review-15b.md`).
-- [ ] With the user's go-ahead: a D1 export before the migration (README), `npm run migrate:remote`, the user's
+- [x] With the user's go-ahead: a D1 export before the migration (README), `npm run migrate:remote`, the user's
       feedback row reads `new` in production.
 
 ## Comments
@@ -72,3 +72,11 @@ prints "wontfix … — not planned"; `reopen --local` exit 0; a U+2028 note exi
 resolved, no new ones; Codex ran `npm test` (vitest 228 passed, node 4 passed; exit 0 after Claude approved running it
 outside its sandbox — Miniflare could not bind localhost inside) and `tsc` (exit 0). Next: the user's go-ahead to merge,
 export D1, `npm run migrate:remote`.
+
+**Live (2026-10-17 ~07:25 EDT, the user's "Yes, all three").** `main` fast-forwarded `617421b..07af7a6` and pushed
+(origin confirmed). Export `~/WorkoutTracker-Backups/server/2026-10-17-pre-15-migration/stacked.sql` (0600, 9,877
+bytes, SHA-256 `0b9c2e4114926e91…`; the first attempt failed with Cloudflare "Authentication error [code: 10000]", a
+read and the retry then succeeded); `check-export.sh` **OK** (restores cleanly, every table's count matches).
+**Delete this export by 2026-11-16** (30 days, D61). `wrangler d1 migrations apply stacked --remote`: only 0006 pending
+→ ✅, exit 0. Production: the one feedback row reads `new`/NULL/NULL; index `feedback_triage` present;
+`feedback.mjs list --open` exit 0, "1 open (new)". No Worker deploy, no app build.

@@ -1,16 +1,14 @@
 # Current project state
 
-Updated **2026-10-17 05:35 EDT** (build 6 in Friends and on the phone; Friends/public-link/tester check; ticket 14 opened). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-17 07:30 EDT** (08 and 13 closed; ticket 15 feedback triage live). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-10-17):** `main` = `617421b` (pushed; tickets 08 and 13 closed). **Ticket 15 in progress** on
-  branch **`ericlee4992/beta-15-feedback-triage`** (pushed): a status (`new`/`done`/`wontfix`) and note on each feedback
-  row + `feedback.mjs done|wontfix|reopen|list --open`; built and verified (server 228 + 4 node tests, local D1); **Codex
-  review clear** (round 2, `codex-review-15b.md`). Next, with the user's go-ahead: merge, D1 export,
-  `npm run migrate:remote`. [Ticket 15](../work-record/public-beta/issues/15-feedback-triage.md).
-  Next build number: **7**.
+- **Resume here (2026-10-17):** `main` = `07af7a6`+ (pushed). Tickets 08, 13 and **15** done. **Ticket 15 live:**
+  each feedback has a status — `node scripts/feedback.mjs list --open | done <id> [note] | wontfix <id> [note] |
+  reopen <id>` (server/README → Reading feedback); migration 0006 applied in production 2026-10-17.
+  [Ticket 15](../work-record/public-beta/issues/15-feedback-triage.md). Next build number: **7**. Next feature: 14.
 - **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6** (`main` `f5151c2`). **Checked 05:30 EDT:**
   build 6 is in Developer and in Friends as **"Testing"** (submitted, through Beta App Review); the phone has
   **Stacked 0.1.0 (6)** (`devicectl`). The user: "the build 6 works well." **Ticket 13 done.**
@@ -36,7 +34,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   `/support` live (effective October 15, 2026), invocation logs/traces off, one-year feedback expiry, hourly
   expired-session prune. No migration.
 - **Data clean-up promises (D61):** delete `~/WorkoutTracker-Backups/server/2026-10-15-rehearsal` and
-  `…/2026-10-15-pre-08-deploy` **by 2026-11-14** (exports: 30 days). While any download is in `server/.feedback`, run
+  `…/2026-10-15-pre-08-deploy` **by 2026-11-14**, and `…/2026-10-17-pre-15-migration` **by 2026-11-16** (exports: 30 days). While any download is in `server/.feedback`, run
   `node scripts/feedback.mjs prune` at least every 15 days (none downloaded so far).
 - **Phone check of build 4 (2026-10-15):** the user: "I tried the features. they seem to work." Production D1 shows a
   Google identity (account `5efc7cb3…`, separate from the Apple one, by design) with a saved training profile
@@ -134,7 +132,7 @@ domain of the user's own, which also allows Google branding verification.
 | 11 safety copy | Deferred (the user, 2026-10-14) until the first stored-format change; guard on its branch. |
 | 13 Goals keyboard | **Done** — build 6, the user: "works well". |
 | 14 What's New | needs-triage (before the first big update). |
-| 15 feedback triage | Codex clear; merge + production migration after the user's go-ahead. |
+| 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
 
 ## Working conventions (in force)
 
