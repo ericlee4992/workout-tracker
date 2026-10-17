@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// A01 Ask AI step 1 (Floodlight ticket 10): goals, experience, days, minutes, optional profile.
 /// The bold element is the week's session count — seven cells lit 1…N. Everything else is a big
@@ -18,10 +19,29 @@ struct AIGoalsStep: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var focus: Field?
+    @State private var keyboardIsVisible = false
 
     private enum Field: Hashable { case goals, heightA, heightB, weight }
 
     var body: some View {
+        ScrollViewReader { proxy in
+            form
+                .onChange(of: focus) { _, field in
+                    if keyboardIsVisible, let field { proxy.scrollTo(field, anchor: .center) }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidShowNotification)) { _ in
+                    // A number field can remain below the command after the keyboard shrinks the viewport (beta 13).
+                    // Scroll against the finished keyboard layout, not the larger bounds from before it appeared.
+                    keyboardIsVisible = true
+                    if let focus { proxy.scrollTo(focus, anchor: .center) }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                    keyboardIsVisible = false
+                }
+        }
+    }
+
+    private var form: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 goalField.padding(.top, 14)
@@ -103,6 +123,7 @@ struct AIGoalsStep: View {
             .lookSurface(.field, radius: look.radius.tile - 4)
             .accessibilityLabel("Goals")
             .accessibilityIdentifier("routineGoals")
+            .id(Field.goals)
     }
 
     private var goalChips: some View {
@@ -304,6 +325,7 @@ private struct AIProfileField<F: Hashable>: View {
                 .lookSurface(.field)
                 .accessibilityLabel(accessibility)
                 .accessibilityIdentifier(identifier)
+                .id(field)
             Text(unit)
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(look.textSecondary)

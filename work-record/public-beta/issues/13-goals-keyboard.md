@@ -201,4 +201,10 @@ If this does not keep the focused measurement visible, investigate focus-scroll 
 keep a simulator snapshot mismatch as a third possibility. No domain/model changes. R8 artifacts will be under
 `/tmp/wt-beta13-20261017-r8/`.
 
+R8: build **exit 0, BUILD SUCCEEDED**; the visibility probe **exit 65, TEST FAILED, 1 test / 1 failure**. The native
+inset reserved more room but height still ended at y=596…640, below Next at y=465…521. Keep the inset for the command's
+scroll-space reservation and add explicit focus anchoring: stable field IDs and ScrollViewReader scroll to the
+focused field after `keyboardDidShow`, and when switching fields while the keyboard is visible. No delay timer or
+domain state is involved. R9 will verify this against the same strict software-keyboard probe.
+
 ## Comments
