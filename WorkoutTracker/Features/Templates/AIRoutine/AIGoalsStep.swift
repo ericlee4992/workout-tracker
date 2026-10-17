@@ -35,29 +35,32 @@ struct AIGoalsStep: View {
             }
             .padding(.horizontal, look.space.margin)
             .padding(.bottom, 24)
+            // Only the noninteractive background handles this tap: fields and controls keep their first tap.
+            .background { Color.clear.contentShape(Rectangle()).onTapGesture { focus = nil } }
         }
         .scrollDismissesKeyboard(.interactively)
-        .background(look.ground.ignoresSafeArea())
+        .background { look.ground.ignoresSafeArea().onTapGesture { focus = nil } }
+        .onChange(of: model.minutes) { _, _ in focus = nil }
+        .onChange(of: savesToProfile) { _, _ in focus = nil }
         .safeAreaBar(edge: .top) { AITopBar(step: 0, onCancel: onCancel) }
         .safeAreaBar(edge: .bottom) {
-            // While typing, the keyboard's Done takes the thumb zone; Next returns with it.
-            if focus == nil {
-                AIBottomBar {
-                    if let error = model.inputError {
-                        Text(error)
-                            .font(look.font.footnote)
-                            .foregroundStyle(look.textPrimary)
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity)
-                            .accessibilityIdentifier("routineAIError")
-                    }
-                    // With no goal yet, a tap on the off Next puts the cursor in the goal field.
-                    AIPrimaryButton("Next", symbol: "arrow.right", trailingSymbol: true, isEnabled: model.hasGoals,
-                                    identifier: "routineNext", disabledHint: "Add a goal first.",
-                                    onDisabledTap: { focus = .goals }) {
-                        focus = nil
-                        model.next()
-                    }
+            // Next stays above the keyboard: the keyboard toolbar can be missing on a phone (beta 13).
+            // Hiding this bar while focused left no reliable way to advance after typing a goal.
+            AIBottomBar {
+                if let error = model.inputError {
+                    Text(error)
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textPrimary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityIdentifier("routineAIError")
+                }
+                // With no goal yet, a tap on the off Next puts the cursor in the goal field.
+                AIPrimaryButton("Next", symbol: "arrow.right", trailingSymbol: true, isEnabled: model.hasGoals,
+                                identifier: "routineNext", disabledHint: "Add a goal first.",
+                                onDisabledTap: { focus = .goals }) {
+                    focus = nil
+                    model.next()
                 }
             }
         }
@@ -74,13 +77,25 @@ struct AIGoalsStep: View {
     // MARK: Goal
 
     private var goalField: some View {
-        TextField("", text: $model.goals,
+        TextField("", text: Binding(get: { model.goals }, set: { text in
+            // Return ends editing, as in the session-name editor. Pasted lines become words separated by spaces;
+            // a trailing Return adds no whitespace. The field still wraps long goals visually.
+            if text.contains(where: \.isNewline) {
+                model.goals = text.split(whereSeparator: \.isNewline).joined(separator: " ")
+                    .trimmingCharacters(in: .whitespaces)
+                focus = nil
+            } else {
+                model.goals = text
+            }
+        }),
                   prompt: Text("What would you like to work toward?").foregroundStyle(look.textSecondary),
                   axis: .vertical)
             .lineLimit(2...6)
             .font(.system(.body, weight: .medium))
             .foregroundStyle(look.textPrimary)
             .focused($focus, equals: .goals)
+            .submitLabel(.done)
+            .onSubmit { focus = nil }
             .padding(.horizontal, 14)
             .padding(.vertical, 13)
             .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -93,6 +108,7 @@ struct AIGoalsStep: View {
         WrapLayout(spacing: 8) {
             ForEach(Array(AIGoalPhrase.allCases.enumerated()), id: \.element) { index, phrase in
                 AIGoalChip(title: phrase.rawValue, isSelected: phrase.isIn(model.goals)) {
+                    focus = nil
                     model.goals = phrase.toggled(in: model.goals)
                 }
                 .accessibilityIdentifier("routineGoalPhrase.\(index)")
@@ -116,6 +132,7 @@ struct AIGoalsStep: View {
         ForEach(Array(AIRoutineFlowModel.experiences.enumerated()), id: \.element) { index, level in
             let selected = model.experience == level
             AISelectTile(isSelected: selected, minHeight: 84) {
+                focus = nil
                 model.experience = level
             } content: {
                 VStack(alignment: .leading, spacing: 12) {
@@ -141,7 +158,7 @@ struct AIGoalsStep: View {
     private var schedule: some View {
         VStack(alignment: .leading, spacing: 0) {
             figure(model.days, model.days == 1 ? "day per week" : "days per week")
-            AIDayCountPicker(count: model.days) { model.days = $0 }
+            AIDayCountPicker(count: model.days) { focus = nil; model.days = $0 }
                 .padding(.top, 14)
                 // The cells reach into the panel's padding so seven of them keep 44 pt targets on a
                 // 375–393 pt wide phone (codex-review-10 L3).

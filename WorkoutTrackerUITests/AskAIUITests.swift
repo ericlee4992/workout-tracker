@@ -18,8 +18,8 @@ final class AskAIUITests: XCTestCase {
                 .map { app.buttons[$0] }.first { $0.exists && element.identifier != $0.identifier }
             let flowTop = app.buttons["routineCancel"].exists ? app.buttons["routineCancel"].frame.maxY + 56 : 0
             let top = max(app.navigationBars.firstMatch.frame.maxY + 8, flowTop)
-            let bottom = app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY - 8
-                : (pinned.map { $0.frame.minY - 12 } ?? app.frame.maxY - 85)
+            let bottom = min(pinned.map { $0.frame.minY - 12 } ?? app.frame.maxY - 85,
+                             app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY - 8 : app.frame.maxY)
             if element.exists && element.isHittable && element.frame.minY >= top && element.frame.maxY <= bottom { return }
             let down = element.exists && element.frame.minY < top
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: down ? 0.4 : 0.65))
@@ -50,22 +50,10 @@ final class AskAIUITests: XCTestCase {
         let goals = routineGoals; XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap()
         _ = app.keyboards.firstMatch.waitForExistence(timeout: 3); goals.typeText(text)
         XCTAssertEqual(routineGoals.value as? String, text)
-        dismissRoutineKeyboard()
-    }
-    /// The keyboard's Done floats above the keyboard (iOS 27); while the keyboard rises a stale copy is
-    /// also in the hierarchy (AX runs tapped it, ai-ui-3). Tap the one on the settled keyboard; retry once.
-    private func dismissRoutineKeyboard() {
-        let keyboard = app.keyboards.firstMatch
-        XCTAssertTrue(keyboard.waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 1.0)
-        for _ in 0..<2 where keyboard.exists {
-            let dones = app.buttons.matching(identifier: "dismissRoutineKeyboard").allElementsBoundByIndex
-            let done = dones.first { $0.isHittable && $0.frame.maxY <= keyboard.frame.minY + 4 && $0.frame.minY > keyboard.frame.minY - 90 }
-                ?? dones.first { $0.isHittable }
-            done?.tap()
-            _ = keyboard.waitForNonExistence(timeout: 3)
-        }
-        XCTAssertFalse(keyboard.exists, "the keyboard went away")
+        // Beta 13: Return is reliable even when the floating toolbar Done is absent on a phone.
+        goals.typeText("\n")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(routineGoals.value as? String, text, "Return must not become part of the goal")
     }
     private func toEquipment() {
         let next = app.buttons["routineNext"]; XCTAssertTrue(next.waitForExistence(timeout: 5)); next.tap()

@@ -54,6 +54,68 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
     }
 
+    func testGoalsOutsideTapAndChipKeepTheFirstTap() {
+        launch()
+        // The quiet Next focuses the empty goal rather than leaving the user stuck.
+        app.buttons["routineNext"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        goalsField.typeText("Train consistently")
+        goalsField.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
+            .withOffset(CGVector(dx: -8, dy: 0)).tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(goalsField.value as? String, "Train consistently")
+
+        goalsField.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        let chip = app.buttons["routineGoalPhrase.0"]
+        XCTAssertTrue(chip.isHittable)
+        chip.tap()
+        XCTAssertTrue(chip.isSelected, "the first tap selects, not just dismisses")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertTrue((goalsField.value as? String ?? "").contains("Build strength"))
+    }
+
+    func testGoalsNumberPadDismissesOnOutsideTap() {
+        launch()
+        let height = app.textFields["routineHeightFeet"].exists
+            ? app.textFields["routineHeightFeet"] : app.textFields["routineHeight"]
+        reach(height)
+        height.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        height.typeText("6")
+        app.staticTexts["Height"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(height.value as? String, "6")
+        let weight = app.textFields["routineWeight"]
+        reach(weight)
+        weight.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        weight.typeText("180")
+        app.staticTexts["Weight"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(weight.value as? String, "180")
+    }
+
+    func testCaptureGoalsKeyboardLightDefault() { captureGoalsKeyboard(appearance: "light", large: false) }
+    func testCaptureGoalsKeyboardDarkDefault() { captureGoalsKeyboard(appearance: "dark", large: false) }
+    func testCaptureGoalsKeyboardLightAccessibility() { captureGoalsKeyboard(appearance: "light", large: true) }
+    func testCaptureGoalsKeyboardDarkAccessibility() { captureGoalsKeyboard(appearance: "dark", large: true) }
+
+    private func captureGoalsKeyboard(appearance: String, large: Bool) {
+        launch(appearance: appearance, large: large)
+        goalsField.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        goalsField.typeText("Build strength and stay consistent at the gym.")
+        let next = app.buttons["routineNext"]
+        XCTAssertTrue(next.isHittable)
+        XCTAssertLessThanOrEqual(next.frame.maxY, app.keyboards.firstMatch.frame.minY)
+        XCTAssertLessThanOrEqual(goalsField.frame.maxY, next.frame.minY, "Next must not cover the focused field")
+        Thread.sleep(forTimeInterval: 0.6)
+        shoot("beta-13-goals-keyboard-\(appearance)-\(large ? "axl" : "default")")
+        next.tap()
+        XCTAssertTrue(any("routineGym").waitForExistence(timeout: 5))
+    }
+
     private func launch(appearance: String = "light", large: Bool = false, extra: [String] = []) {
         app.launchArguments = ["-uiTestReset", "-uiTestTerra", "-uiTestTerraFullRoutine", "-uiTestDesignSample",
                                "-uiTestDesignGyms", "-appearance", appearance] + extra

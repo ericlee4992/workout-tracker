@@ -248,6 +248,23 @@ final class FloodlightProfileUITests: XCTestCase {
         }
     }
 
+    func testEditorNumberPadDismissesOnOutsideTap() {
+        openEditor()
+        let feet = app.textFields["trainingHeightFeet"]
+        replace(feet, with: "6")
+        app.staticTexts["Height"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5), "no toolbar Done is needed")
+        XCTAssertEqual(feet.value as? String, "6")
+        let weight = app.textFields["trainingWeight"]
+        for _ in 0..<6 where !onScreen(weight, floor: app.frame.maxY - 20) { app.swipeUp() }
+        replace(weight, with: "82.5")
+        app.staticTexts["Weight"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(weight.value as? String, "82.5")
+        app.buttons["trainingSave"].tap()
+        XCTAssertTrue(app.staticTexts["82.5 lb"].waitForExistence(timeout: 5))
+    }
+
     /// Taps at the field's trailing edge so the cursor is after the text (a tap in the middle of a one-character
     /// field put it before, and the deletes removed nothing).
     private func replace(_ field: XCUIElement, with text: String) {
