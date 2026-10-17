@@ -60,4 +60,47 @@ Do not depend on the keyboard toolbar on this step:
 
 ## Progress
 
+### Implementation checkpoint — 2026-10-16 (Codex)
+
+Branch `ericlee4992/beta-13-goals-keyboard`; starting HEAD `2dd305c` (the implementation prompt), regression tests
+committed as `db63d37`. The ticket's existing simulator probe already isolates focus-gated Next and Return inserting
+a newline; a new general hypothesis search is unnecessary. The two UI regressions exercise those actual paths.
+
+Planned implementation: keep the existing bottom action bar above the keyboard; Return dismisses Goals editing and
+replaces pasted line breaks with spaces. Tap-outside uses the noninteractive background rather than a gesture that
+consumes a field/control's first tap. TrainingProfileEditor needs the same fallback for its number/decimal pads.
+AIDayEditor uses steppers, not numeric text fields, and its name already handles Return. IdentifyEquipmentSheet has
+only text keyboards, no number pads; leave it and LiveSetRow unchanged.
+
+**Design:** while typing Goals, the screen lets the user advance in one tap; Next is the dominant action in the thumb
+zone, above the keyboard. The session-count figure remains content lower in the scrolling form. The nonediting
+composition is unchanged. This is the ticket's chosen one-element visibility correction, so no alternative mock is
+needed before implementation. Existing copy and identifiers stay; the keyboard return label becomes Done.
+
+```text
+Ask AI / Cancel; Goals — Equipment — Your week       [existing top chrome]
+Goals field, wrapping                              [focused field remains visible]
+Phrase chips; experience; days/minutes; measures    [scrolling form]
+Next →                                             [one primary action, above keyboard]
+Keyboard (+ existing toolbar Done when available)
+```
+
+**Design tells:** existing cards group related form inputs (deliberate); chips select goal phrases (deliberate);
+repeated all-caps labels absent; middle-dot metadata unchanged; violet marks the sole Next action and selection
+states (deliberate); equal competing command blocks absent; website-style hero/dead space absent; focused field and
+Next must remain in the keyboard viewport; pickers retain their control treatment; Default/AccessibilityL will be
+captured in both appearances. No new palette, type or motion treatment.
+
+Verification scope: simulator build, focused red/green keyboard regressions, then the requested AskAIUITests,
+FloodlightAIRoutineUITests and FloodlightProfileUITests. No domain/SwiftData changes, server calls, phone install or
+merge. Baseline build and red-test artifacts: `/tmp/wt-beta13-20261016-r1/`; derived data `/tmp/wt-beta13-dd`.
+Baseline `xcodebuild … -sdk iphonesimulator -configuration Debug -destination
+'platform=iOS Simulator,id=47D21838-69A6-4BCB-AE90-B0D9C0AAA70B' -derivedDataPath /tmp/wt-beta13-dd build`:
+**exit 0, BUILD SUCCEEDED** (`build-unrestricted.log`, `build-unrestricted.status`, `build-unrestricted.xcresult`).
+The first sandboxed attempt could not connect to CoreSimulator (exit 70); the authorized retry above passed.
+The pre-fix two-case run is active as exec session `86827` (`xcodebuild` PID `68945`), with
+`red.log`, `red.status`, `red.xcresult` in the same artifact directory. It selects
+`FloodlightAIRoutineUITests/testGoalsReturnDismissesWithoutANewline` and
+`FloodlightAIRoutineUITests/testGoalsNextAdvancesWhileTyping`, serially. Next: inspect the actual result, then fix.
+
 ## Comments

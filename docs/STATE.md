@@ -3,7 +3,13 @@
 Updated **2026-10-15** (build 4 installed and phone-checked; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; 08: privacy pages live, server 8e0434be). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: ticket 08 — privacy pages live; build 5 and App Store Connect next
+## NOW: ticket 13 keyboard fix; ticket 08 external-test acceptance remains open
+
+- **Active implementation (2026-10-16):** Codex on `ericlee4992/beta-13-goals-keyboard`, regression checkpoint
+  `db63d37` (off prompt `2dd305c`). [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md) records the
+  approved scope, keyboard design and verification. Next: baseline build/red regressions, implement, targeted UI
+  suites/captures, commit/push for Claude review. Do not merge or install. Build/test artifacts begin under
+  `/tmp/wt-beta13-20261016-r1/`; no product change or new build is installed yet.
 
 - **`main` = `1ce3424`** (pushed 2026-10-15): build number 5 on top of `0191b3f` (08's privacy/support pages and their
   enforcement; Codex clear round 6; the user approved the wording). Before that `5a4ca0c`: 06, 05, 04; 11 deferred.
