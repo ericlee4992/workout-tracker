@@ -18,8 +18,8 @@ final class AskAIUITests: XCTestCase {
                 .map { app.buttons[$0] }.first { $0.exists && element.identifier != $0.identifier }
             let flowTop = app.buttons["routineCancel"].exists ? app.buttons["routineCancel"].frame.maxY + 56 : 0
             let top = max(app.navigationBars.firstMatch.frame.maxY + 8, flowTop)
-            let bottom = min(pinned.map { $0.frame.minY - 12 } ?? app.frame.maxY - 85,
-                             app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY - 8 : app.frame.maxY)
+            let bottom = app.keyboards.firstMatch.exists ? app.keyboards.firstMatch.frame.minY - 8
+                : (pinned.map { $0.frame.minY - 12 } ?? app.frame.maxY - 85)
             if element.exists && element.isHittable && element.frame.minY >= top && element.frame.maxY <= bottom { return }
             let down = element.exists && element.frame.minY < top
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: down ? 0.4 : 0.65))

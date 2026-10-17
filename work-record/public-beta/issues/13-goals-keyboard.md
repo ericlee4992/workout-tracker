@@ -26,39 +26,72 @@ workout's set rows **does** appear on the same phone.
   its navigation bar (`AIRoutineSheet.swift` `.toolbar(.hidden, for: .navigationBar)`).
 - The probe was a throwaway UI test (not committed); its screenshots are in Claude's scratchpad only.
 
-## Decision (Claude's recommendation, option A; the user did not object — confirm at review)
+## Decision — replaced by the user, 2026-10-17
 
-Do not depend on the keyboard toolbar on this step:
+The user: "Just keep the next button at bottom at all times, and just have 'done' button appear on keyboard."
+[Replacement implementation prompt](../codex-implement-13b-prompt.md) supersedes the old decision and r9 plan.
 
-1. **Next stays visible while typing**, riding above the keyboard (the bottom `safeAreaBar` no longer hidden by focus).
-   Tapping Next ends editing and advances (as now); tapping the disabled Next still focuses the goal field.
-2. **Return ends editing** in the goal field (same pattern as the session name in `AIDayEditor.swift`: strip the
-   newline, clear focus; `.submitLabel(.done)`). Long goals still wrap; pasted newlines become spaces or are removed —
-   choose and say which.
-3. **Tapping outside a field ends editing** on the Goals step (covers the number-pad height/weight fields, which have
-   no Return key). It must not swallow taps on chips, tiles, the day picker, the minutes control or Next.
-4. Keep the keyboard Done (harmless where it appears) unless it causes duplicates.
-5. Check the other screens whose only number-pad exit is a keyboard-toolbar Done inside a hidden-navigation-bar
-   container: `AIDayEditor.swift`, `TrainingProfileEditor.swift`, `IdentifyEquipmentSheet.swift`. Where a field has
-   no Return key and the Done may be missing, add the same tap-outside fallback; report what you changed and why.
-   Leave `LiveSetRow.swift` alone (works on the phone).
+1. Next stays pinned to the screen bottom, behind the keyboard while editing; it never rides above the keyboard.
+2. Return ends goal editing, stripping the newline. Pasted newline runs become spaces; outer whitespace is trimmed.
+3. A compact trailing app-drawn Done appears directly above the keyboard while a Goals-step field is focused.
+   It clears focus and keeps `dismissRoutineKeyboard`. Remove this step's keyboard toolbar to prevent duplicates.
+4. Preserve normal ScrollView keyboard avoidance. Revert tap-outside/control dismissal, explicit focus scrolling,
+   keyboard notifications, field anchors, native inset reservation, TrainingProfileEditor and README changes.
+5. Other screens' missing keyboard-toolbar risk is a follow-up, not part of this change. TrainingProfileEditor's
+   number/decimal pads still depend on its toolbar/interactive dismissal; AIDayEditor uses numeric steppers and
+   Return for its name; IdentifyEquipmentSheet uses text keyboards. Leave LiveSetRow alone (works on the phone).
 
 ## Acceptance
 
-- [ ] On the Goals step, with the keyboard up, Next is visible and tappable; one tap advances to Equipment.
-- [ ] Return in the goal field closes the keyboard and leaves no newline in the goal.
-- [ ] Tapping empty space closes the keyboard (goal and height/weight fields); chips/tiles/controls still respond to the
-      first tap.
-- [ ] Layout at Default and AccessibilityL, light and dark: Next above the keyboard does not hide the focused field
-      (capture both sizes with the keyboard up; ios-design skill).
-- [ ] Existing Ask AI UI tests updated where they relied on Next being hidden or on the toolbar Done; a UI test covers
-      Return-dismiss and Next-while-typing.
-- [ ] `xcodebuild build` succeeds; targeted tests per DEVELOPMENT → Verification scope (AskAIUITests,
-      FloodlightAIRoutineUITests, FloodlightProfileUITests, plus any touched screen's tests) on **WT-iPhone27
-      (`47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`, iOS 27.0)**.
-- [ ] Confirmed on the user's phone in build 6.
+- [ ] Next exists at the screen bottom while editing and is hittable immediately after keyboard dismissal.
+- [ ] App-drawn Done appears once with real software keys and dismisses goal, height and weight editing.
+- [ ] Return closes goal editing without leaving a newline.
+- [ ] Focused height and weight remain hittable and above Done.
+- [ ] Goals-focused and weight-focused captures at Default/AccessibilityL, light/dark, plus keyboard-closed Next;
+      inspect the actual images.
+- [ ] Build and ticket-13 tests, then AskAIUITests, FloodlightAIRoutineUITests and FloodlightProfileUITests pass on
+      WT-iPhone27 (`47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`, iOS 27.0), software keyboard enabled.
+- [ ] Restore Simulator's originally absent `ConnectHardwareKeyboard` key by deleting it.
+- [ ] Claude independently reviews; user confirms build 6 on the phone (not authorized in this implementation).
 
 ## Progress
+
+### Replacement design — 2026-10-17 (Codex; one attempt)
+
+The user changed the design after checkpoint `3c4d4b4`; all old progress below is historical/superseded. The r9
+process is no longer running; its log ends at teardown without a final TEST line/status, so no completed verdict
+is claimed. The replacement removes all r9 scrolling/notification work and the earlier tap-outside scope.
+
+**Job/state:** while editing, the user can end editing in one tap on the compact trailing Done; the focused field
+holds attention and Next stays behind the keyboard. With the keyboard closed, Next is the sole filled command in
+the bottom thumb zone; the session-count figure remains the content's bold readout. Existing choices are unchanged.
+
+```text
+Ask AI / Cancel; Goals — Equipment — Your week   [existing chrome]
+Goals / choices / schedule / optional measures  [normally keyboard-avoiding ScrollView]
+                                      Done     [compact glass button, editing only]
+Software keyboard                              [covers fixed Next]
+Next →                                         [screen bottom; revealed when keyboard closes]
+```
+
+The user's explicit replacement design authorizes this composition. Existing Look glass chrome supplies Done's
+44-point target, type, contrast and press feedback. No new copy or identifiers. Design tells: grouped cards and
+choice chips deliberate; all-caps section labels absent; existing middle-dot metadata unchanged; violet deliberate
+for the sole primary command/selection; competing command blocks absent; website hero/dead space absent; the focused
+field stays above Done; pickers keep their control treatment; Default/AccessibilityL will be checked in both modes.
+
+Implementation: an independent keyboard-ignoring overlay pins Next; the form retains its safe-area behavior and
+uses its existing bottom safe-area bar for Done while focused. A hidden, accessibility-excluded Next-size placeholder
+reserves the existing closed-keyboard layout. No `safeAreaInset`, keyboard observation or explicit focus scrolling.
+TrainingProfileEditor, its added test, and README are reverted byte-for-byte to `2dd305c`. AskAI's exact-value wait and
+Return helper remain; its old-design scroll-helper change is reverted. Drop tap-outside/Next-while-typing tests.
+
+Verification scope is the replacement prompt's build, seven ticket-13 cases (three behavioral and four captures),
+then the three named classes. No schema, server, phone or other screen changes. One honest attempt only: a failure
+of pinned Next/app Done stops implementation with a blocker. Artifacts: `/tmp/wt-beta13-20261017-r10/`; derived data
+`/tmp/wt-beta13-dd`; test diagnostics disabled. Simulator's `ConnectHardwareKeyboard=false` is still temporary.
+
+
 
 ### Implementation checkpoint — 2026-10-16 (Codex)
 

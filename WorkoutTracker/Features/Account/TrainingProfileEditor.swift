@@ -62,15 +62,10 @@ struct TrainingProfileEditor: View {
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.bottom, 32)
-                // Number pads have no Return key; don't make dismissal depend on the keyboard toolbar (beta 13).
-                // The background yields to fields and buttons, so their first tap still edits or selects.
-                .background { Color.clear.contentShape(Rectangle()).onTapGesture { focus = nil } }
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
-            .background { look.groundSheet.onTapGesture { focus = nil } }
         }
-        .onChange(of: draft.minutes) { _, _ in focus = nil }
         .lookSheetGround()
         .presentationDragIndicator(.visible)
         .interactiveDismissDisabled(staged != original)
@@ -112,7 +107,6 @@ struct TrainingProfileEditor: View {
         WrapLayout(spacing: 8) {
             ForEach(AIGoalPhrase.allCases) { phrase in
                 AIGoalChip(title: phrase.rawValue, isSelected: phrase.isIn(draft.goals)) {
-                    focus = nil
                     draft.goals = phrase.toggled(in: draft.goals)
                 }
             }
@@ -135,7 +129,6 @@ struct TrainingProfileEditor: View {
         ForEach(Array(TrainingProfile.experiences.enumerated()), id: \.element) { index, level in
             let selected = draft.experience == level
             AISelectTile(isSelected: selected, minHeight: 84) {
-                focus = nil
                 draft.experience = level
             } content: {
                 VStack(alignment: .leading, spacing: 12) {
@@ -161,7 +154,7 @@ struct TrainingProfileEditor: View {
     private var schedule: some View {
         VStack(alignment: .leading, spacing: 0) {
             figure(draft.days, draft.days == 1 ? "day per week" : "days per week")
-            AIDayCountPicker(count: draft.days) { focus = nil; draft.days = $0 }
+            AIDayCountPicker(count: draft.days) { draft.days = $0 }
                 .padding(.top, 14)
                 .padding(.horizontal, -10)
             LookDivider().padding(.vertical, 18)
@@ -172,7 +165,6 @@ struct TrainingProfileEditor: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 14)
-        .background { Color.clear.contentShape(Rectangle()).onTapGesture { focus = nil } }
         .lookSurface(.panel)
     }
 
@@ -200,7 +192,6 @@ struct TrainingProfileEditor: View {
                 LookDivider().padding(.leading, 16)
                 row("Weight") { weightField }
             }
-            .background { Color.clear.contentShape(Rectangle()).onTapGesture { focus = nil } }
             .lookSurface(.panel)
         }
     }
