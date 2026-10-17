@@ -5,14 +5,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: ticket 13 keyboard fix; ticket 08 external-test acceptance remains open
 
-- **Ticket 13 blocked (2026-10-17):** `ericlee4992/beta-13-goals-keyboard`, final product checkpoint **`915b84e`**
-  pushed. The user's replacement design received one attempt: build passed; seven focused UI tests finished
-  **1 passed / 6 failed**, exit 65. Return passed; Done/keyboard geometry and height visibility did not clear.
-  Inspected four goal captures: software keyboard and Done are absent despite AX key assertions. Weight/closed
-  acceptance captures and the broader three-class run were not reached. Stopped as explicitly requested; no iteration.
-  [Ticket](../work-record/public-beta/issues/13-goals-keyboard.md) / [report](../work-record/public-beta/codex-implement-13.md)
-  contain evidence at `/tmp/wt-beta13-20261017-r10/`. Simulator `ConnectHardwareKeyboard` restored to **unset**.
-  Next: user direction on the blocker; do not resume r9 or merge/install this attempt. Claude review pending.
+- **Ticket 13 (2026-10-17):** branch `ericlee4992/beta-13-goals-keyboard`, user's design (fixed Next, app-drawn Done
+  above the keyboard, Return ends editing) in `915b84e` (Codex; Claude reviewed, no findings). Codex's "blocked" was
+  faulty test geometry: Claude fixed the tests; Codex review **clear** (round 2, `codex-review-13b.md`). WT-iPhone27
+  iOS 27 software keyboard: ticket tests 7/7, AskAI+FloodlightAIRoutine+FloodlightProfile **57/57**. **Next:** the user
+  checks on the phone whether a focused Weight stays visible above the number pad (simulator rendering unreliable;
+  build 5 has the same layout); then, with the user's go-ahead, fast-forward `main`, build 6, upload.
+  [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md). Simulator `ConnectHardwareKeyboard` unset.
   Main and the phone are unchanged.
 
 - **`main` = `df6f0bc`** (verified 2026-10-17): README refresh and its follow-up on top of build 5/privacy changes.
