@@ -1,15 +1,20 @@
 # Current project state
 
-Updated **2026-10-17** (build 4 installed and phone-checked; 04, 06, 05 merged; 11 deferred with a guard; 10 closed; 08: privacy pages live, server 8e0434be). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-17 ~06:00** (ticket 13 merged, build 6 uploaded; D62 + build checklist; ticket 14 opened). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: ticket 13 keyboard fix; ticket 08 external-test acceptance remains open
+## NOW: build 6 rollout; ticket 08 external-test acceptance remains open
 
+- **Resume here (2026-10-17):** branch **`ericlee4992/beta-13-goals-keyboard`** (pushed), HEAD = `main` `f5151c2` +
+  docs-only commits (ticket 13/14 notes, D62, DEVELOPMENT checklist). Fast-forward `main` to it with the user's
+  go-ahead (docs only). Next build number: **7**.
 - **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6.** User's design (fixed Next, app-drawn Done,
   Return ends editing); Codex review clear; tests 7/7 + 57/57 on iOS 27; the user confirmed the focused Weight is
   visible on the phone. **`main` = `f5151c2`** (build number 6). Upload "Upload succeeded" 2026-10-17 05:13 EDT from
-  `release-build` at `f5151c2`. **Next:** App Store Connect processing → add build 6 to "Friends" (the user submits) →
-  install on the phone and check the Goals keyboard. [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md).
+  `release-build` at `f5151c2`; processed ("Ready to Test"). **The user added build 6 to "Developer".** Friends: Claude
+  selected build 6 and entered the What to Test note (ticket 13); **the user was to click Submit for Review — verify**
+  in App Store Connect (Friends → Builds). **Open:** install build 6 on the phone from TestFlight and check the Goals
+  keyboard; Friends' Beta App Review of build 6 (Apple emails). [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md).
 
 - **TestFlight 0.1.0 (5) from `1ce3424` uploaded 2026-10-15 19:36 EDT** (archive
   `scratchpad/tf/Stacked-0.1.0-5-1ce3424.xcarchive` of session 34187b7c; checked: build 5 incl. the widget, production
@@ -33,13 +38,19 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   checks; the user answered every privacy question and approved the pages and Claude's proposed terms (D61);
   deployed. **Workers Free for now** — tell the user if Free causes a failure (check Workers metrics for exceeded-CPU
   errors after the final test pass: server/README → Checking for Workers Free failures). [Ticket](../work-record/public-beta/issues/08-external-testers.md).
-- **Branch:** `ericlee4992/beta-08-testers` (pushed; `main` fast-forwarded to it at `0191b3f`); continue 08 on it.
+- **Branch for 08:** `ericlee4992/beta-08-testers` is merged into `main`; continue 08's remaining notes on the current
+  branch (above) or a new short branch off `main`.
 - **Codex:** one session for every review (AGENTS.md): Orca terminal **"Codex review"**
   (`term_be05cca0-da6f-4532-b4bd-c8cf220eebe8`). 08 pages and enforcement: rounds 4–6, **round 6 clear**
-  (`work-record/public-beta/codex-review-08f.md`, HEAD `c7d47dd`). Reuse it for later rounds.
+  (`work-record/public-beta/codex-review-08f.md`, HEAD `c7d47dd`). Ticket 13: Codex implemented (`915b84e`), Claude
+  fixed the tests, Codex review round 2 **clear** (`codex-review-13b.md`). The session was resumed once with
+  `codex resume 01a13ef3-f80c-70b1-ab14-220e750d8afb` after an interrupt closed it; reuse that terminal. Codex's
+  sandbox cannot reach github.com (its pushes need approval); approve only commands within the task.
 - **Next (08):** App Store Connect done 2026-10-15; the user submitted build 5 in external group "Friends" — **Beta
-  App Review passed** (seen 2026-10-16: status Testing, expires in 90 days; group has 0 testers) → invite testers
-  (email or public link; the user's list) → final test pass incl. New Model → Suggest exercises with AI (confirm
+  App Review passed** (seen 2026-10-16). Invites: the user chose a **public link** (2026-10-16); Claude opened App
+  Store Connect's Public Link dialog (Open to Anyone; a tester limit recommended, e.g. 20) — **not yet confirmed by the
+  user**; check Friends → Testers → Public Link. On 2026-10-17 Friends showed **1 tester** (build 5: 2 invites,
+  1 install) — find out who/how → final test pass incl. New Model → Suggest exercises with AI (confirm
   `model-exercises` on the server) → Workers Free check → acceptance: one external tester installs, signs in, sends
   feedback. Google sign-in **published (In production)** 2026-10-15 — any Google account can sign in; branding
   unverified (Google may not show the name Stacked on its sign-in screen).
@@ -75,6 +86,7 @@ domain of the user's own, which also allows Google branding verification.
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
+- **Build 6 (`f5151c2`) added to TestFlight "Developer" 2026-10-17 — not yet confirmed installed.**
 - **Installed: TestFlight Stacked 0.1.0 (5) = `main` `1ce3424`** (uploaded 2026-10-15 19:36 EDT, installed 2026-10-15;
   only usage strings and the build number changed since build 4, no Gate S).
 - **Previously: TestFlight Stacked 0.1.0 (4) = `main` `5a4ca0c`** (uploaded 2026-10-14 23:04 EDT, installed over build 2

@@ -138,6 +138,16 @@ rerun before diagnosis.
 - Canvas artboards have rendered blank from local HTTP even for known-good files. Use a
   plain board HTML for local captures; inline mask assets as data URIs when `file://` blocks
   them. The committed screenshots are the review evidence.
+- **Keyboard behaviour (ticket 13, 2026-10-17):** test on an iOS 27 simulator (WT-iPhone27
+  `47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`) with the **software keyboard**: `defaults write com.apple.iphonesimulator
+  ConnectHardwareKeyboard -bool false` and shut the simulator down first; delete the key afterwards (it is normally
+  unset). With a hardware keyboard the simulator shows a keyboard-toolbar Done that the phone did not. App screenshots
+  omit the keyboard window: use `XCUIScreen.main.screenshot()`. Even then the iOS 27 simulator's keyboard rendering
+  and accessibility frames disagree (keyboard missing from frames, a focused field drawn behind the number pad while
+  its frame is above it, keyboard `minY` reported below the screen after typing); the keyboard's frame starts below
+  its ~44 pt suggestion strip. Read keyboard frames once settled, and confirm visual keyboard questions on the phone.
+- A stalled `simctl diagnose` child after a failing UI run can hang `xcodebuild test`; pass
+  `-collect-test-diagnostics never` for focused runs.
 
 ## Real-device installation
 
