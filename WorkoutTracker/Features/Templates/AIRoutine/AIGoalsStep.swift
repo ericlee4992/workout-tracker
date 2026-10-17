@@ -171,6 +171,7 @@ struct AIGoalsStep: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 14)
+        .background { Color.clear.contentShape(Rectangle()).onTapGesture { focus = nil } }
         .lookSurface(.panel)
     }
 
@@ -217,6 +218,8 @@ struct AIGoalsStep: View {
                 LookDivider().padding(.leading, 16)
                 profileRow("Weight") { weightField }
             }
+            // Above the panel's filled surface, below its fields: labels and gaps dismiss too.
+            .background { Color.clear.contentShape(Rectangle()).onTapGesture { focus = nil } }
             .lookSurface(.panel)
         }
     }

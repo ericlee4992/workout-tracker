@@ -112,6 +112,20 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         XCTAssertLessThanOrEqual(goalsField.frame.maxY, next.frame.minY, "Next must not cover the focused field")
         Thread.sleep(forTimeInterval: 0.6)
         shoot("beta-13-goals-keyboard-\(appearance)-\(large ? "axl" : "default")")
+
+        goalsField.typeText("\n")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        let height = app.textFields["routineHeightFeet"].exists
+            ? app.textFields["routineHeightFeet"] : app.textFields["routineHeight"]
+        reach(height)
+        height.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        height.typeText("6")
+        XCTAssertTrue(next.isHittable)
+        XCTAssertLessThanOrEqual(height.frame.maxY, next.frame.minY, "the number field stays above Next too")
+        XCTAssertLessThanOrEqual(next.frame.maxY, app.keyboards.firstMatch.frame.minY)
+        Thread.sleep(forTimeInterval: 0.6)
+        shoot("beta-13-goals-numberpad-\(appearance)-\(large ? "axl" : "default")")
         next.tap()
         XCTAssertTrue(any("routineGym").waitForExistence(timeout: 5))
     }

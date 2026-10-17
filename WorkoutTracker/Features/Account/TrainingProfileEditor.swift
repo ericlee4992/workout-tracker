@@ -172,6 +172,7 @@ struct TrainingProfileEditor: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 14)
+        .background { Color.clear.contentShape(Rectangle()).onTapGesture { focus = nil } }
         .lookSurface(.panel)
     }
 
@@ -199,6 +200,7 @@ struct TrainingProfileEditor: View {
                 LookDivider().padding(.leading, 16)
                 row("Weight") { weightField }
             }
+            .background { Color.clear.contentShape(Rectangle()).onTapGesture { focus = nil } }
             .lookSurface(.panel)
         }
     }
