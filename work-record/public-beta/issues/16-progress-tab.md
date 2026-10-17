@@ -80,3 +80,21 @@ tab "Progress"; "Add Chart"; empty "No charts yet" / "Pin an exercise or a cardi
 "Pinned"; "Most used"; "Show"; "Exercises you've logged"; "Activities you've recorded"; "Estimated distance".
 Prototype rough edges, not design: the featured chart's last date label is clipped; Add only closes the sheet.
 Build: simulator `xcodebuild build` **BUILD SUCCEEDED**.
+
+**Design round 2 (2026-10-17).** The user: "I like A's design, but I want it to be possible to pin multiple exercises,
+including cardio. It should just display the charts row by row, and you should be able to keep adding. Also, I don't
+see how you're designing the cardio progress." Prototype reworked: **every pin is A's chart panel** (title, variation ·
+metric, the latest value as `bigNumber`, the change badge, a 132-pt chart with first/last dates), one under another,
+lifting and cardio mixed; **+** and an "Add Chart" button under the last panel append; long-press a panel → Show
+(change its metric), Move Up/Down, Remove from Progress. A lifting panel opens the existing `ExerciseProgressView`; a
+cardio panel opens a **new cardio progress screen**: title + source (GPS / Estimated distance), pills Distance · Pace
+(Speed for cycling) · Time · Heart, a panel with the hero value, the change since the first session and the chart,
+then Bests (Longest distance, Fastest pace/average, Longest session) and Sessions (date; distance · time · pace · bpm).
+Cardio rules in the design: **pace is drawn with faster UP** so every chart reads "up is better", and its badge says
+"0:40 faster" rather than a signed percentage; heart rate has no better direction (no badge; the heart-rate colour;
+"N of M sessions" when some lack it); estimated distances carry "≈" and one footnote line on the cardio screen. The
+"lists are lists" tell is answered as **deliberate: the user's choice** (a chart per pin, unlimited pins). Captures:
+`captures/16/round2/` (tab top/bottom, Outdoor Run distance/pace, Rowing light, tab AccessibilityL). Build: **BUILD
+SUCCEEDED**. New strings since round 1: "Remove from Progress", "Move Up", "Move Down", "Bests", "Sessions",
+"Longest distance", "Fastest pace", "Fastest average", "Longest session", "Longest", "Fastest", "New best" (existing),
+"faster"/"slower", "bpm avg", "N of M sessions", "Distances here are estimates from your iPhone's motion sensors."
