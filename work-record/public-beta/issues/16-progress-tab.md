@@ -98,3 +98,12 @@ Cardio rules in the design: **pace is drawn with faster UP** so every chart read
 SUCCEEDED**. New strings since round 1: "Remove from Progress", "Move Up", "Move Down", "Bests", "Sessions",
 "Longest distance", "Fastest pace", "Fastest average", "Longest session", "Longest", "Fastest", "New best" (existing),
 "faster"/"slower", "bpm avg", "N of M sessions", "Distances here are estimates from your iPhone's motion sensors."
+
+**Design round 3 (2026-10-17).** The user: "For cardio, just get rid of the "Heart View". i dont think its necessary.
+Also, for indoor distances just get rid of estimate notes. And also for the charts, can you vertically shrink them just
+a little bit? … But make sure you don't remove anything." Done: cardio metrics are **Distance · Pace (Speed for cycling)
+· Time** (the per-session bpm stays in the Sessions rows); the estimate footnote is gone and indoor activities' source
+label reads **"Indoor"** instead of "Estimated distance"; the **"≈" on estimated values stays** (the project's no-false-
+precision rule; asked the user). Charts: tab panels 132 → **108 pt**, the cardio screen 190 → **160 pt**; every element
+kept. AccessibilityL showed the four y-axis labels touching at 108 pt → at accessibility sizes the chart shows two y
+labels and grows 1.25× (as `HeartRateRangeChart`). Captures `captures/16/round3/`. Build **BUILD SUCCEEDED**.

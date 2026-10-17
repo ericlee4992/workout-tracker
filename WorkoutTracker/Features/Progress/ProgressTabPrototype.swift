@@ -168,7 +168,7 @@ private struct PinPanel: View {
                     ChangeBadge(change: change, alignment: typeSize.isAccessibilitySize ? .leading : .trailing)
                 }
             }
-            ReadingChart(reading: reading, height: 132, axes: true)
+            ReadingChart(reading: reading, height: 108, axes: true)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -222,6 +222,7 @@ private struct ReadingChart: View {
     let height: CGFloat
     let axes: Bool
     @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         // Pace: faster is lower, plotted negated so every chart on the tab reads "up is better".
@@ -252,7 +253,8 @@ private struct ReadingChart: View {
         }
         .chartYAxis {
             if axes {
-                AxisMarks(position: .trailing, values: .automatic(desiredCount: 3)) { value in
+                // AX sizes: two labels, or the scaled numbers touch (as HeartRateRangeChart, the plot grows 1.25×).
+                AxisMarks(position: .trailing, values: .automatic(desiredCount: typeSize.isAccessibilitySize ? 2 : 3)) { value in
                     AxisValueLabel(horizontalSpacing: 10) {
                         if let v = value.as(Double.self) { Text(reading.axisLabel(v * sign)) }
                     }
@@ -260,7 +262,7 @@ private struct ReadingChart: View {
                 }
             }
         }
-        .frame(height: height)
+        .frame(height: typeSize.isAccessibilitySize ? height * 1.25 : height)
     }
 }
 
@@ -298,11 +300,7 @@ struct CardioProgressPrototype: View {
                             ChangeBadge(change: change, alignment: typeSize.isAccessibilitySize ? .leading : .trailing)
                         }
                     }
-                    ReadingChart(reading: reading, height: 190, axes: true)
-                    if pin.estimated {
-                        Text("Distances here are estimates from your iPhone’s motion sensors.")
-                            .font(look.font.footnote).foregroundStyle(look.textSecondary)
-                    }
+                    ReadingChart(reading: reading, height: 160, axes: true)
                 }
                 .padding(16)
                 .lookSurface(.panel)
@@ -469,7 +467,8 @@ struct ProtoPin: Identifiable {
     var sessions: [ProtoSession] = []
 
     static let liftMetrics = ["Best set", "Volume", "1RM"]
-    static func cardioMetrics(usesSpeed: Bool) -> [String] { ["Distance", usesSpeed ? "Speed" : "Pace", "Time", "Heart"] }
+    // No Heart view (the user, 2026-10-17: "I don't think it's necessary").
+    static func cardioMetrics(usesSpeed: Bool) -> [String] { ["Distance", usesSpeed ? "Speed" : "Pace", "Time"] }
     var metrics: [String] { isCardio ? Self.cardioMetrics(usesSpeed: usesSpeed) : Self.liftMetrics }
 
     // MARK: Readings
@@ -625,11 +624,11 @@ struct ProtoPin: Identifiable {
         "Outdoor Run": cardio("Outdoor Run", "GPS", "figure.run",
                               km: [4.0, 4.2, 3.8, 4.5, 4.8, 4.6, 5.0, 5.2], minutes: [25.5, 26, 22.8, 27, 28.1, 26.4, 28.8, 29.7],
                               hr: [148, 151, nil, 150, 153, 149, 152, 152], every: 4),
-        "Indoor Run": cardio("Indoor Run", "Estimated distance", "figure.run.treadmill", estimated: true,
+        "Indoor Run": cardio("Indoor Run", "Indoor", "figure.run.treadmill", estimated: true,
                              km: [3.0, 3.2, 3.5, 3.4], minutes: [20, 21, 22.5, 21.5], hr: [145, 147, 150, 146], every: 9),
-        "Rowing": cardio("Rowing", "Estimated distance", "figure.rower", estimated: true,
+        "Rowing": cardio("Rowing", "Indoor", "figure.rower", estimated: true,
                          km: [2.2, 2.0, 2.3, 2.2, 2.4], minutes: [12, 11, 12.2, 11.5, 12.4], hr: [138, nil, 141, 140, 142], every: 7),
-        "Indoor Cycle": cardio("Indoor Cycle", "Estimated distance", "figure.indoor.cycle", estimated: true, usesSpeed: true,
+        "Indoor Cycle": cardio("Indoor Cycle", "Indoor", "figure.indoor.cycle", estimated: true, usesSpeed: true,
                                km: [10.5, 11.2, 12.0], minutes: [30, 30, 32], hr: [132, 135, 137], every: 10),
     ]
 
