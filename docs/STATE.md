@@ -6,12 +6,17 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## NOW: ticket 13 keyboard fix; ticket 08 external-test acceptance remains open
 
 - **Active implementation (2026-10-16):** Codex on `ericlee4992/beta-13-goals-keyboard`, fix checkpoint
-  `e26c776` pushed (off prompt `2dd305c`). [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md) records
+  `ef6669c` pushed (off prompt `2dd305c`). [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md) records
   the scope, design, process identities and results. Builds passed; baseline UI regressions failed 2/2 as expected.
   Return/Next/first-chip pass; the measurement-panel gap found by focused tests is fixed and both number-pad tests
   pass. Full requested selection: 58/59 passed; all new regressions/capture cases passed. One immediate text-entry
-  assertion failed in AskAIUITests. Next: inspect its recording, rerun serially, inspect captures, then Claude review.
-  Do not merge or install. Artifacts: `/tmp/wt-beta13-20261016-r1/` through `r4/`; the full run uses `r4/full.*`.
+  assertion failed in AskAIUITests and passed twice serially; its recording shows the full text (AX timing).
+  Visual QA rejected hardware-keyboard captures; real software-keyboard verification exposed a focused-field
+  visibility issue. Native inset + explicit focus scroll is now in the r9 probe (exec 56317; build passed).
+  Next: finish software-keyboard verification/captures, restore Simulator's previously unset
+  `ConnectHardwareKeyboard` preference (temporarily false), then Claude review.
+  Do not merge or install. Artifacts: `/tmp/wt-beta13-20261016-r1/` through `r4/`, then
+  `/tmp/wt-beta13-20261017-r5/` through `r9/`; the full run uses `r4/full.*`.
   No new build is installed on the phone.
 
 - **`main` = `1ce3424`** (pushed 2026-10-15): build number 5 on top of `0191b3f` (08's privacy/support pages and their

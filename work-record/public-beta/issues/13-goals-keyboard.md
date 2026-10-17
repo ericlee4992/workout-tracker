@@ -207,4 +207,10 @@ scroll-space reservation and add explicit focus anchoring: stable field IDs and 
 focused field after `keyboardDidShow`, and when switching fields while the keyboard is visible. No delay timer or
 domain state is involved. R9 will verify this against the same strict software-keyboard probe.
 
+R9 is active as exec session **56317**, checked-out code **`ef6669c`** (pushed), artifacts
+`/tmp/wt-beta13-20261017-r9/{build,keyboard}.{log,status,xcresult}`. Build already passed (exit 0, BUILD SUCCEEDED).
+The eight files currently copied under `captures/13/` are the rejected r4 hardware-keyboard captures: replace them
+with verified software-keyboard captures before the final handoff. The Simulator `ConnectHardwareKeyboard=false`
+override is still active and must be restored to its original unset state after the last test.
+
 ## Comments
