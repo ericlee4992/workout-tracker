@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
-    "test": "vitest run",
+    "test": "vitest run && node --test scripts/feedback-args.node-test.mjs",
+    "test:scripts": "node --test scripts/feedback-args.node-test.mjs",
     "typecheck": "tsc --noEmit",
     "predeploy": "! grep -q 'POLICY_EFFECTIVE_DATE = \"\\[' src/pages.ts || { echo 'Set POLICY_EFFECTIVE_DATE in src/pages.ts to the day the policy goes live (ticket 08).' >&2; exit 1; }",
     "deploy": "wrangler deploy",

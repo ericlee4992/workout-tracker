@@ -55,3 +55,15 @@ open"; `done` with `fixed in build 7 — it's "quoted"'); DROP TABLE feedback; -
 without a note; `list --open` → "Nothing open."; `show` prints status, time and note; `reopen` → `new`, note cleared;
 unknown ID exit 1, two-line note and 201 characters exit 2, bad ID refused; 200 × "é" accepted (length 200, text). Sample
 rows deleted afterwards. Not done: production (needs the user's go-ahead after review).
+
+**Codex review round 1 — response.** Report [codex-review-15.md](../codex-review-15.md) (`b0b1757`): **not clear**,
+1 × P2, 1 × P3; migration, deletion paths, restore, hex injection safety and privacy (no policy change needed)
+confirmed. Both taken: (#1) `--local` is now removed before the command/ID/note are read — new
+`server/scripts/feedback-args.mjs` (`parseArgs`, `noteProblem`) used by `feedback.mjs`; this also fixes the same
+pre-existing defect for `show`/`screenshot`/`delete`. (#2) a note refuses CR, LF, VT, FF, NEL, U+2028 and U+2029.
+CLI-level tests `scripts/feedback-args.node-test.mjs` (`node --test`, outside the Workers pool): `--local` in five
+positions incl. prefix and mid-note, multiword notes, each line break, 200/201 characters incl. emoji; `npm test` now
+runs vitest then these, and the Server CI workflow runs `npm run test:scripts`. **Verified:** `npm test` exit 0 —
+vitest **228 passed**, node tests **4 pass / 0 fail**; `tsc --noEmit` exit 0. Real script on local D1 (one made-up
+row, deleted after): `--local done <id> fixed in build 7` exit 0; `wontfix --local <id> not planned` exit 0 and `show`
+prints "wontfix … — not planned"; `reopen --local` exit 0; a U+2028 note exit 2; `--local list --open` → "1 open".

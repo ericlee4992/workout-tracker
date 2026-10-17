@@ -26,3 +26,11 @@ apply migrations remotely, never deploy.
 
 Write the report to `work-record/public-beta/codex-review-15.md`: findings numbered with P1/P2/P3, file:line, failure
 scenario, and fix; end with a final line exactly `Verdict: clear` or `Verdict: not clear`. Do not commit or push.
+
+## Round 2
+
+Round 1: [codex-review-15.md](codex-review-15.md), not clear (#1 P2 `--local` position, #2 P3 Unicode separators).
+Claude's fixes: see the ticket's "round 1 — response" comment and `git diff b0b1757..HEAD -- server .github`. Check
+that both findings are closed and that nothing else regressed; rerun `npm test` (vitest + `node --test`) and `tsc`.
+Same rules: `--local` only, never production. Write `work-record/public-beta/codex-review-15b.md`, ending with exactly
+`Verdict: clear` or `Verdict: not clear`. Do not commit or push.

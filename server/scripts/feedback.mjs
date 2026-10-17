@@ -23,22 +23,22 @@ import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { noteProblem, parseArgs } from "./feedback-args.mjs";
 
 const serverDir = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const args = process.argv.slice(2);
-const command = args[0];
-const flag = (name) => args.includes(name);
+const parsed = parseArgs(process.argv.slice(2));
+const { command } = parsed;
+const flag = (name) => parsed.rest.includes(name);
 const option = (name, fallback) => {
-  const i = args.indexOf(name);
-  return i >= 0 && args[i + 1] ? args[i + 1] : fallback;
+  const i = parsed.rest.indexOf(name);
+  return i >= 0 && parsed.rest[i + 1] ? parsed.rest[i + 1] : fallback;
 };
-const where = flag("--local") ? "--local" : "--remote";
+const where = parsed.local ? "--local" : "--remote";
 // Separate folders, so a production run never prunes local downloads and a local key never touches a production copy.
 const downloads = path.join(serverDir, where === "--remote" ? ".feedback" : ".feedback-local");
 /** Half the policy's 30 days, inclusive: with `prune` run at least every 15 days, no copy outlives 30 (08e #1). */
 const DOWNLOAD_PRUNE_AGE_MS = 15 * 24 * 60 * 60 * 1000;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const MAX_NOTE_LENGTH = 200;
 const STATUS = { new: "new ", done: "done", wontfix: "won't" };
 
 function wrangler(...rest) {
@@ -51,7 +51,7 @@ function query(sql) {
 }
 
 function idArgument() {
-  const id = args[1];
+  const id = parsed.id;
   if (!id || !ID.test(id)) {
     console.error("Give the feedback ID shown by `list` (a UUID).");
     process.exit(2);
@@ -68,12 +68,10 @@ const SELECT = "SELECT f.id, f.created_at, f.category, f.message, f.app_version,
  * a hex blob cast to TEXT: nothing typed is ever quoted into the statement.
  */
 function noteSQL() {
-  const note = args.slice(2).filter((a) => a !== "--local").join(" ").trim();
+  const { note } = parsed;
   if (!note) return "NULL";
-  if (/[\r\n]/.test(note) || [...note].length > MAX_NOTE_LENGTH) {
-    console.error(`A note is one line of at most ${MAX_NOTE_LENGTH} characters.`);
-    process.exit(2);
-  }
+  const problem = noteProblem(note);
+  if (problem) { console.error(problem); process.exit(2); }
   return `CAST(X'${Buffer.from(note, "utf8").toString("hex")}' AS TEXT)`;
 }
 
