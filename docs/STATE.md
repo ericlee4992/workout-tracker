@@ -5,9 +5,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: build 6 rollout; ticket 08 external-test acceptance remains open
 
-- **Resume here (2026-10-17):** branch **`ericlee4992/beta-13-goals-keyboard`** (pushed), HEAD = `main` `f5151c2` +
-  docs-only commits (ticket 13/14 notes, D62, DEVELOPMENT checklist). Fast-forward `main` to it with the user's
-  go-ahead (docs only). Next build number: **7**.
+- **Resume here (2026-10-17):** branch **`ericlee4992/beta-13-goals-keyboard`** (pushed); `main` fast-forwarded to
+  `d0ad275` (docs only, the user's go-ahead); later commits on the branch are notes. Next build number: **7**.
+  **Running:** ticket 08's release-candidate test run (unit + full UI suite, PID 85237, started 05:33 EDT) — paths
+  and the simulator keyboard key to delete afterwards are in [ticket 08](../work-record/public-beta/issues/08-external-testers.md).
 - **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6** (`main` `f5151c2`). **Checked 05:30 EDT:**
   build 6 is in Developer and in Friends as **"Testing"** (submitted, through Beta App Review); the phone has
   **Stacked 0.1.0 (6)** (`devicectl`). **Open:** the user's check of the Goals keyboard on build 6.

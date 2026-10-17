@@ -230,4 +230,15 @@ p99 9.4 ms) and **1 `clientDisconnected`** at 2026-10-15 20:20:32 EDT (31.4 ms C
 Cloudflare did not stop it for CPU). Also over 10 ms but successful: the 03:58 EDT sign-in (15.7 ms). The hourly job
 rose from 3.4 ms (10-15) to 5–9.4 ms CPU. Reported to the user; re-check after the final test pass.
 
+**Final test pass — release-candidate run (started 2026-10-17 05:33 EDT, Claude).** `main` fast-forwarded to
+`d0ad275` (docs only; the user's "Yes, fast-forward"). Scope choice: build 6 is what external testers get, i.e. a
+major release candidate → DEVELOPMENT's full UI suite (plus unit tests), over the 02–07 + 13 code together. Checkout
+`d0ad275` (app code = build 6's `f5151c2`), WT-iPhone27 (iOS 27), software keyboard (`ConnectHardwareKeyboard` set to
+false; **delete the key after the run** — it was unset), unit tests serial, then `WorkoutTrackerUITests` with 3
+parallel workers. Detached PID **85237**; script/logs/results in `/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-public-beta/4d64fc4f-ce54-411a-8264-3205dc0deeab/scratchpad/rc08/` (`run.sh`, `unit.log/.status/.xcresult`,
+`ui.log/.status/.xcresult`, `run.log`). Known failures on `main` before this run: AskAI drag-reorder,
+FloodlightHistory light/dark `:100`, CoreLoop model-picker flake (STATE → Found 2026-10-02).
+Phone part (the user): Goals keyboard on build 6; New Model → Suggest exercises with AI (confirm `model-exercises`
+in D1); then the Workers Free re-check.
+
 ## Comments
