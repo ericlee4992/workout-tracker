@@ -5,10 +5,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-10-17):** branch **`ericlee4992/beta-13-goals-keyboard`** (pushed); `main` fast-forwarded to
-  `d0ad275` (docs only, the user's go-ahead); later commits on the branch are notes. Next build number: **7**.
-  No test run is active: the release-candidate full-suite run was **stopped at the user's request** (not needed;
-  cleaned up) — see [ticket 08](../work-record/public-beta/issues/08-external-testers.md).
+- **Resume here (2026-10-17):** `main` = `617421b` (pushed; tickets 08 and 13 closed). **Ticket 15 in progress** on
+  branch **`ericlee4992/beta-15-feedback-triage`** (pushed): a status (`new`/`done`/`wontfix`) and note on each feedback
+  row + `feedback.mjs done|wontfix|reopen|list --open`; built and verified (server 228 tests, local D1); **Codex review
+  sent** to the "Codex review" terminal → report `work-record/public-beta/codex-review-15.md`. Then, with the user's
+  go-ahead: merge, D1 export, `npm run migrate:remote`. [Ticket 15](../work-record/public-beta/issues/15-feedback-triage.md).
+  Next build number: **7**.
 - **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6** (`main` `f5151c2`). **Checked 05:30 EDT:**
   build 6 is in Developer and in Friends as **"Testing"** (submitted, through Beta App Review); the phone has
   **Stacked 0.1.0 (6)** (`devicectl`). The user: "the build 6 works well." **Ticket 13 done.**
@@ -132,6 +134,7 @@ domain of the user's own, which also allows Google branding verification.
 | 11 safety copy | Deferred (the user, 2026-10-14) until the first stored-format change; guard on its branch. |
 | 13 Goals keyboard | **Done** — build 6, the user: "works well". |
 | 14 What's New | needs-triage (before the first big update). |
+| 15 feedback triage | In progress: built, in Codex review; production migration after the user's go-ahead. |
 
 ## Working conventions (in force)
 
