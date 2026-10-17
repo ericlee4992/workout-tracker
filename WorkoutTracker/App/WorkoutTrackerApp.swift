@@ -13,6 +13,10 @@ struct WorkoutTrackerApp: App {
             UserDefaults.standard.removeObject(forKey: TerraAccess.routineConsentKey)
             // Per-device facts outside the store start fresh too (ticket 09).
             ExportRecord.clear()
+            // Public beta ticket 16: the Progress tab's pins too, unless a test relaunches to check they persist.
+            if !ProcessInfo.processInfo.arguments.contains("-uiTestKeepPins") {
+                UserDefaults.standard.removeObject(forKey: ProgressPinStore.key)
+            }
             // Public beta ticket 02: a welcome test starts unanswered only when it says so, so a relaunch can
             // check that an answered welcome stays away.
             if ProcessInfo.processInfo.arguments.contains("-uiTestOnboardingFresh") {
@@ -71,6 +75,16 @@ struct WorkoutTrackerApp: App {
         if DesignSampleFixture.isEnabled {
             do { try DesignSampleFixture.seed(in: modelContainer.mainContext) }
             catch { assertionFailure("Design sample fixture failed: \(error)") }
+        }
+        // The Progress captures' cardio and pins (public beta ticket 16).
+        if DesignSampleFixture.progressIsEnabled {
+            do {
+                try DesignSampleFixture.seedProgress(in: modelContainer.mainContext)
+                if !ProcessInfo.processInfo.arguments.contains("-uiTestKeepPins") {
+                    let exercises = try modelContainer.mainContext.fetch(FetchDescriptor<Exercise>())
+                    ProgressPinStore.save(DesignSampleFixture.progressPins(exercises: exercises))
+                }
+            } catch { assertionFailure("Progress fixture failed: \(error)") }
         }
         // One hour-long workout with a heart-rate series, for the same reason
         // (see HeartRateHistoryFixture).

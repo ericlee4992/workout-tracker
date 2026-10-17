@@ -71,8 +71,8 @@ struct RootView: View {
                 .tabItem { Label("Exercises", systemImage: "list.bullet.rectangle") }
                 .tag(Tab.exercises)
 
-            // Public beta ticket 16: the Progress tab — design prototype on sample data until the user picks a layout.
-            ProgressTabPrototype()
+            // Public beta ticket 16 (D63): the charts the user pinned, lifting and cardio.
+            ProgressTabView()
                 .tabItem { Label("Progress", systemImage: "chart.line.uptrend.xyaxis") }
                 .tag(Tab.progress)
         }

@@ -42,6 +42,66 @@ enum DesignSampleFixture {
     /// workouts yesterday (three that day: the tally's stacked marks). The app also
     /// turns on two of the three AI permissions (`WorkoutTrackerApp`).
     static let settingsArgument = "-uiTestDesignSettings"
+    /// With `-uiTestDesignProgress` too (public beta ticket 16, the Progress captures): five outdoor runs and three
+    /// rows over two weeks (GPS and phone-motion distances, heart rate on most), and four pinned charts — the chest
+    /// press and the leg press (Most used, Best set) and both activities (Distance). Pair it with
+    /// `-uiTestDesignHistory` so the lifts climb.
+    static let progressArgument = "-uiTestDesignProgress"
+    static var progressIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(progressArgument)
+    }
+
+    /// The Progress captures' cardio: (days ago, activity, km, active minutes, average bpm, distance source).
+    static let progressCardio: [(daysAgo: Int, activity: CardioActivity, km: Double, minutes: Double, bpm: Int?,
+                                 source: CardioDistanceSource)] = [
+        (13, .outdoorRun, 4.0, 25.5, 148, .gps), (10, .outdoorRun, 4.4, 27.0, 151, .gps),
+        (8, .outdoorRun, 4.2, 25.0, nil, .gps), (5, .outdoorRun, 4.8, 28.4, 150, .gps),
+        (2, .outdoorRun, 5.2, 29.7, 152, .gps),
+        (12, .rowing, 2.0, 11.0, 138, .phoneMotion), (6, .rowing, 2.2, 11.5, 141, .phoneMotion),
+        (4, .rowing, 2.4, 12.0, 142, .phoneMotion),
+    ]
+
+    /// The Progress captures' cardio workouts (`-uiTestDesignProgress`).
+    static func seedProgress(in context: ModelContext, now: Date = .now) throws {
+        let calendar = Calendar.current
+        for item in progressCardio {
+            guard let day = calendar.date(byAdding: .day, value: -item.daysAgo, to: now) else { continue }
+            let start = calendar.date(bySettingHour: 7, minute: 30, second: 0, of: day) ?? day
+            let seconds = item.minutes * 60
+            let workout = Workout(startedAt: start, finishedAt: start.addingTimeInterval(seconds + 120))
+            context.insert(workout)
+            let segment = CardioSegment(activity: item.activity, order: 0, workout: workout, at: start, unit: .km)
+            context.insert(segment)
+            segment.accumulatedActiveSeconds = seconds
+            segment.activeStartedAt = nil
+            segment.endedAt = start.addingTimeInterval(seconds)
+            segment.lastCheckpointAt = start.addingTimeInterval(seconds)
+            segment.automaticDistanceMeters = item.km * 1_000
+            segment.distanceSourceRawValue = item.source.rawValue
+            if let bpm = item.bpm {
+                segment.heartRateCount = 100
+                segment.heartRateTotal = bpm * 100
+                segment.averageHeartRate = bpm
+            }
+        }
+        try context.save()
+    }
+
+    /// The pins the Progress captures open on.
+    static func progressPins(exercises: [Exercise]) -> [ProgressPin] {
+        func lift(_ name: String) -> ProgressPin? {
+            exercises.first { $0.name == name }.map {
+                ProgressPin(subject: .lift(exerciseID: $0.id, variation: .mostUsed), metric: .bestSet)
+            }
+        }
+        return [
+            lift("Seated Chest Press"),
+            ProgressPin(subject: .cardio(activity: CardioActivity.outdoorRun.rawValue), metric: .distance),
+            lift("Leg Press"),
+            ProgressPin(subject: .cardio(activity: CardioActivity.rowing.rawValue), metric: .distance),
+        ].compactMap { $0 }
+    }
+
     static var settingsIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(settingsArgument)
     }

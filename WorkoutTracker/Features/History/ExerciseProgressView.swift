@@ -443,44 +443,17 @@ struct ExerciseProgressView: View {
         }
     }
 
-    /// Since the first session, for the metric on screen. Best set: the Domain's rule (assisted
-    /// improves downward). Volume and 1RM are weighted only, where more is better.
-    private func change(_ data: ProgressData) -> Double? {
-        switch metric {
-        case .bestSet: return ProgressSeriesMath.change(data.series)
-        case .volume:
-            return ProgressSeriesMath.change(first: data.series.points.first?.volumeKg, last: data.series.points.last?.volumeKg)
-        case .e1rm:
-            return ProgressSeriesMath.change(first: data.series.points.first?.e1rmKg, last: data.series.points.last?.e1rmKg)
-        }
+    /// Since the first session, for the metric on screen (`LiftProgressValues`, shared with the Progress tab).
+    private func change(_ data: ProgressData) -> Double? { values.change(data.series) }
+
+    private func calloutValue(_ point: ProgressPoint, data: ProgressData) -> String { values.calloutValue(point) }
+
+    /// The numbers for the metric and variation on screen — one implementation with the Progress tab (ticket 16).
+    private var values: LiftProgressValues {
+        LiftProgressValues(metric: metric, loadType: resolvedVariation.loadType, displayUnit: displayUnit)
     }
 
-    /// The metric being viewed. Best set is the number the user typed;
-    /// volume and 1RM are in the display unit, plain (D52 — the point still
-    /// records which units its contributors were entered in).
-    private func calloutValue(_ point: ProgressPoint, data: ProgressData) -> String {
-        switch metric {
-        case .bestSet:
-            return asEntered(point)
-        case .volume:
-            return WeightMath.displayLabel(kilograms: point.volumeKg, in: displayUnit)
-        case .e1rm:
-            guard let kg = point.e1rmKg else { return "—" }
-            return WeightMath.displayLabel(kilograms: kg, in: displayUnit)
-        }
-    }
-
-    /// The app's default weight unit (D2/T7 precedence, app level).
-    ///
-    /// Reported 2026-08-26: a chart of lb-logged sets plotted in kg. The series
-    /// is computed in canonical kg so mixed-unit sessions share one axis (D25),
-    /// but the AXIS should read in the unit the user thinks in.
-    private var displayUnit: WeightUnit {
-        let rows = (try? modelContext.fetch(FetchDescriptor<AppPreferences>())) ?? []
-        return UnitPrecedence.defaultUnit(
-            machineUnit: nil, gymUnit: nil,
-            appPreference: AppPreferences.canonical(of: rows)?.unitPreference)
-    }
+    private var displayUnit: WeightUnit { LiftProgressValues.displayUnit(in: modelContext) }
 
     /// What the axis measures, in the display unit, plain (D52). Assisted improves DOWNWARD:
     /// inverting the axis would hide that; the label says it instead.
@@ -494,35 +467,11 @@ struct ExerciseProgressView: View {
         }
     }
 
-    private func plotted(_ point: ProgressPoint) -> Double? {
-        let convert = { WeightMath.convert($0, from: .kg, to: displayUnit) }
-        switch metric {
-        case .bestSet:
-            // Bodyweight plots REPS, which have no unit to convert.
-            return resolvedVariation.loadType == .bodyweight ? point.bestKg : point.bestKg.map(convert)
-        case .volume: return convert(point.volumeKg)
-        case .e1rm: return point.e1rmKg.map(convert)
-        }
-    }
+    private func plotted(_ point: ProgressPoint) -> Double? { values.plotted(point) }
 
-    /// Volume and e1RM are weighted-only concepts (D20, `RecordsMath`). Offering
-    /// them for an assisted movement would draw a flat zero line and invite the
-    /// user to read meaning into it.
-    private var availableMetrics: [Metric] {
-        resolvedVariation.loadType == .weighted ? Metric.allCases : [.bestSet]
-    }
+    private var availableMetrics: [Metric] { values.availableMetrics }
 
-    /// D9/D25: show the number the user typed. The chart plots canonical kg so
-    /// mixed-unit sessions share an axis, but the text says what was entered.
-    private func asEntered(_ point: ProgressPoint) -> String {
-        // Plain bodyweight has no load to show — reps ARE the achievement.
-        if resolvedVariation.loadType == .bodyweight {
-            return point.bestReps.map { "\($0) reps" } ?? "—"
-        }
-        guard let value = point.bestValue, let unit = point.bestUnit else { return "—" }
-        let reps = point.bestReps.map { " × \($0)" } ?? ""
-        return "\(Format.weight(value)) \(unit.rawValue)\(reps)"
-    }
+    private func asEntered(_ point: ProgressPoint) -> String { values.asEntered(point) }
 
     /// Names the variation that is empty when others are not, so the state
     /// reads as "nothing HERE" rather than "nothing at all".
@@ -568,30 +517,10 @@ struct ExerciseProgressView: View {
         }
     }
 
-    /// Every finished set logged against this exercise, in SNAPSHOT terms
-    /// (D23), across all variations, with its workout. Scoping happens in the series.
+    /// Every finished set logged against this exercise, in SNAPSHOT terms (D23), across all variations, with its
+    /// workout (`ExerciseHistory`, shared with the Progress tab). Scoping happens in the series.
     private var history: [(input: RecordSetInput, workout: Workout)] {
-        let sets = (try? modelContext.fetch(FetchDescriptor<SetRecord>())) ?? []
-        return sets.compactMap { set -> (input: RecordSetInput, workout: Workout)? in
-            // Snapshot values only, and finished workouts only — an
-            // in-progress session is not history yet.
-            guard !set.isDeleted, let entry = set.entry, !entry.isDeleted,
-                  entry.snapshotExerciseID == exerciseID,
-                  let workout = entry.workout, !workout.isDeleted,
-                  workout.finishedAt != nil
-            else { return nil }
-            return (RecordSetInput(
-                loadType: entry.snapshotLoadType,
-                exerciseID: entry.snapshotExerciseID,
-                gymID: entry.snapshotGymID,
-                machineID: entry.snapshotMachineID,
-                modelID: entry.snapshotModelID,
-                freeWeightTag: entry.snapshotFreeWeightTag,
-                presetID: entry.snapshotPresetID,
-                setType: set.type, reps: set.reps,
-                weightValue: set.weightValue, weightUnit: set.weightUnit,
-                normalizedKg: set.normalizedKg, completedAt: set.completedAt), workout)
-        }
+        ExerciseHistory.items(for: exerciseID, in: modelContext)
     }
 
     /// The variation on screen, defaulting to the one with the most history.
