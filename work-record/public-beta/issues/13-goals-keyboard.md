@@ -289,3 +289,10 @@ in r2 (`** TEST SUCCEEDED **`); then AskAIUITests + FloodlightAIRoutineUITests +
 tests, with 0 failures**, `** TEST SUCCEEDED **` (6968 s). Logs in Claude's scratchpad `t13/`. Simulator
 `ConnectHardwareKeyboard` key deleted again (originally unset). Open: the user checks on the phone whether a focused
 Weight is visible above the number pad (build 5 has the same layout); Codex reviews Claude's test edits.
+
+**Codex review round 1 (`codex-review-13.md`): not clear, 2 × P2 — both fixed by Claude.** (1) Focused-field check
+restored to the whole field: `field.maxY <= Done.minY + 4` (the measured glass-edge touch is 3 pt), replacing the
+midpoint. (2) The keyboard-settling wait now fails if the keyboard never reaches the screen, and the "settled keyboard
+covers Next" assertion is back, using the keyboard top read once settled (before typing: after typing the simulator
+re-reported this keyboard at y=976, below the 932-pt screen). r3: 6 of 7 passed (the 7th was that re-report); r4: the
+fixed test passed — `** TEST SUCCEEDED **`. Product code unchanged (`915b84e`).

@@ -47,9 +47,12 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         // The quiet Next still focuses an empty goal.
         next.tap()
         assertSoftwareKeyboard()
+        // Read once settled: after typing, the simulator can report this keyboard's frame below the screen again.
+        let keyboardTop = app.keyboards.firstMatch.frame.minY
         goalsField.typeText("Get stronger")
         XCTAssertTrue(next.exists)
         XCTAssertEqual(next.frame.minY, restingFrame.minY, accuracy: 1, "Next stays at the screen bottom")
+        XCTAssertGreaterThanOrEqual(next.frame.minY, keyboardTop - 64, "the settled keyboard covers Next")
         assertFieldAboveDone(goalsField)
         app.buttons["dismissRoutineKeyboard"].tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
@@ -85,6 +88,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         // Measure only once the keyboard has risen: mid-animation its frame can still start below the screen.
         let keyboard = app.keyboards.firstMatch
         for _ in 0..<15 where keyboard.frame.minY > app.frame.maxY - 200 { Thread.sleep(forTimeInterval: 0.2) }
+        XCTAssertLessThan(keyboard.frame.minY, app.frame.maxY - 200, "the keyboard settled on screen: \(keyboard.frame)")
         Thread.sleep(forTimeInterval: 0.4)
     }
 
@@ -96,8 +100,8 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         XCTAssertTrue(field.isHittable)
         XCTAssertGreaterThan(field.frame.height, 0)
         XCTAssertGreaterThanOrEqual(field.frame.minY, app.buttons["routineCancel"].frame.maxY)
-        // The field's middle clears Done (the capsule's glass edge may touch the field's last points).
-        XCTAssertLessThan(field.frame.midY, done.frame.minY, "focused field: \(field.frame), Done: \(done.frame)")
+        // The whole field sits above Done; only the capsule's glass edge may touch its last 4 pt (measured: 3 pt).
+        XCTAssertLessThanOrEqual(field.frame.maxY, done.frame.minY + 4, "focused field: \(field.frame), Done: \(done.frame)")
         // The keyboard's reported frame starts below its suggestion strip (about 44 pt on iOS 27), so Done, which
         // sits on the visible keyboard, measures up to about 60 pt above that edge.
         XCTAssertLessThanOrEqual(done.frame.maxY, app.keyboards.firstMatch.frame.minY)
