@@ -153,4 +153,28 @@ Each focused run used this same project/scheme/SDK/configuration/destination/der
 execution, its own result path, and only the named regression methods above. No physical hardware or service API was
 used. Next: read the full result, export/look at the eight keyboard captures, and prepare the Claude review handoff.
 
+The full run completed as exec session **39408**, from pushed checkpoint **`e0848cb`** (product/test code `e26c776`),
+using **Xcode 27.1 (27A9275)** and the required iOS 27.0 simulator. Do not start another test run against these workers
+while it is active. Result/status/log are the `r4/full.*` paths above.
+
+Running process: xcodebuild PID **86636**, three workers under Xcode's private `XCTestDevices` set (not the default
+simctl device set). Parallel per-test output is buffered in the main log; live worker logs are under
+`full.xcresult/Staging/1_Test/Diagnostics/**/StandardOutputAndStandardError.txt`.
+Full result: **exit 65, TEST FAILED, 59 tests: 58 passed / 1 failed / 0 skipped**, personally checked in the main log,
+worker logs and xcresult summary (wall time 3,124.2 seconds). AskAIUITests: **31/32**; FloodlightAIRoutineUITests:
+**16/16**; FloodlightProfileUITests: **11/11**. All keyboard regressions and four new capture cases passed.
+`AskAIUITests.testAllThreeGeneratedTemplatesAppearWithoutRestart` failed at the immediate
+post-typing assertion (`"Build"` instead of `"Build strength"`). Other goal-entry cases and the previously known
+reorder/save case passed. Do not label this pre-existing or fixed without the result/serial rerun. Next after the
+full run: inspect the failure recording and rerun it serially, then inspect/export the new Goals captures.
+The run also logged missing app-animation-completion notifications; XCTest waited 60 seconds at a time and then
+continued (the passing Goals number-pad test took 654.8 seconds versus 45.6 seconds in the focused run). Do not
+confuse those test-driver waits with a measured phone response time. Invalid-frame runtime warnings also appeared
+in the pre-fix run and are unchanged.
+
+Next verification: `/tmp/wt-beta13-20261017-r5/serial.{log,status,xcresult}`; same destination/derived data and
+`-collect-test-diagnostics never`, with `-parallel-testing-enabled NO -test-iterations 2
+-test-repetition-relaunch-enabled YES -only-testing:WorkoutTrackerUITests/AskAIUITests/testAllThreeGeneratedTemplatesAppearWithoutRestart`.
+No code change is being made on the strength of a single parallel typing failure.
+
 ## Comments

@@ -9,7 +9,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   `e26c776` pushed (off prompt `2dd305c`). [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md) records
   the scope, design, process identities and results. Builds passed; baseline UI regressions failed 2/2 as expected.
   Return/Next/first-chip pass; the measurement-panel gap found by focused tests is fixed and both number-pad tests
-  pass. Next: full requested three-class UI selection, inspect captures, then commit/push for Claude review.
+  pass. Full requested selection: 58/59 passed; all new regressions/capture cases passed. One immediate text-entry
+  assertion failed in AskAIUITests. Next: inspect its recording, rerun serially, inspect captures, then Claude review.
   Do not merge or install. Artifacts: `/tmp/wt-beta13-20261016-r1/` through `r4/`; the full run uses `r4/full.*`.
   No new build is installed on the phone.
 
