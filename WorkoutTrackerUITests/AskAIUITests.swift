@@ -49,7 +49,10 @@ final class AskAIUITests: XCTestCase {
     private func typeGoals(_ text: String) {
         let goals = routineGoals; XCTAssertTrue(goals.waitForExistence(timeout: 5)); goals.tap()
         _ = app.keyboards.firstMatch.waitForExistence(timeout: 3); goals.typeText(text)
-        XCTAssertEqual(routineGoals.value as? String, text)
+        // AX can briefly report the first word while the recording already shows the complete text (beta 13).
+        // Await the exact value; never retype or advance with a partial goal.
+        let entered = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == %@", text), object: routineGoals)
+        XCTAssertEqual(XCTWaiter.wait(for: [entered], timeout: 5), .completed)
         // Beta 13: Return is reliable even when the floating toolbar Done is absent on a phone.
         goals.typeText("\n")
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))

@@ -13,8 +13,8 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         app = XCUIApplication()
     }
 
-    private func shoot(_ name: String) {
-        let shot = XCTAttachment(screenshot: app.screenshot())
+    private func shoot(_ name: String, wholeScreen: Bool = false) {
+        let shot = XCTAttachment(screenshot: wholeScreen ? XCUIScreen.main.screenshot() : app.screenshot())
         shot.name = name
         shot.lifetime = .keepAlways
         add(shot)
@@ -111,11 +111,14 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         XCTAssertGreaterThan(app.keyboards.firstMatch.frame.height, 200)
         goalsField.typeText("Build strength and stay consistent at the gym.")
         let next = app.buttons["routineNext"]
+        Thread.sleep(forTimeInterval: 0.6)
+        shoot("beta-13-goals-keyboard-\(appearance)-\(large ? "axl" : "default")", wholeScreen: true)
         XCTAssertTrue(next.isHittable)
+        XCTAssertTrue(goalsField.isHittable)
+        XCTAssertGreaterThan(goalsField.frame.height, 0)
+        XCTAssertGreaterThanOrEqual(goalsField.frame.minY, app.buttons["routineCancel"].frame.maxY)
         XCTAssertLessThanOrEqual(next.frame.maxY, app.keyboards.firstMatch.frame.minY)
         XCTAssertLessThanOrEqual(goalsField.frame.maxY, next.frame.minY, "Next must not cover the focused field")
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("beta-13-goals-keyboard-\(appearance)-\(large ? "axl" : "default")")
 
         goalsField.typeText("\n")
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
@@ -127,11 +130,14 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         XCTAssertTrue(app.keyboards.firstMatch.keys.firstMatch.waitForExistence(timeout: 5))
         XCTAssertGreaterThan(app.keyboards.firstMatch.frame.height, 200)
         height.typeText("6")
+        Thread.sleep(forTimeInterval: 0.6)
+        shoot("beta-13-goals-numberpad-\(appearance)-\(large ? "axl" : "default")", wholeScreen: true)
         XCTAssertTrue(next.isHittable)
+        XCTAssertTrue(height.isHittable, "focused height: \(height.frame), Next: \(next.frame)")
+        XCTAssertGreaterThan(height.frame.height, 0)
+        XCTAssertGreaterThanOrEqual(height.frame.minY, app.buttons["routineCancel"].frame.maxY)
         XCTAssertLessThanOrEqual(height.frame.maxY, next.frame.minY, "the number field stays above Next too")
         XCTAssertLessThanOrEqual(next.frame.maxY, app.keyboards.firstMatch.frame.minY)
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("beta-13-goals-numberpad-\(appearance)-\(large ? "axl" : "default")")
         next.tap()
         XCTAssertTrue(any("routineGym").waitForExistence(timeout: 5))
     }
