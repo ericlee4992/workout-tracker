@@ -300,3 +300,11 @@ fixed test passed — `** TEST SUCCEEDED **`. Product code unchanged (`915b84e`)
 **Review status (2026-10-17 ~04:20).** Codex round 2 (`codex-review-13b.md`): **Verdict: clear** for Claude's test
 edits. Codex's product code `915b84e` reviewed by Claude: no findings. Open before merge/build 6: the user's phone check
 (focused Weight visible above the number pad?) and the user's go-ahead to merge and upload build 6.
+
+**Phone check and build 6 (2026-10-17).** The user, on build 5 (same layout): "weight box is visible, go ahead with
+build 6." Build number 6 in `f5151c2`; simulator `xcodebuild build` **BUILD SUCCEEDED**; `main` fast-forwarded
+`df6f0bc..f5151c2` and pushed. Since build 5 (`1ce3424`) only AIGoalsStep and the build number changed in app code: no
+stored-format change, no Gate S. Archive from `release-build` detached at `f5151c2`: **ARCHIVE SUCCEEDED**; app and
+widget build 6, version 0.1.0, production `WTServerURL`, `WTGoogleClientID` present, team X68M8SR6NA. Upload
+(`-exportArchive`, destination upload) **"Upload succeeded" 05:13 EDT**, EXPORT SUCCEEDED. Next: App Store Connect
+processing; add build 6 to the "Friends" group (the user clicks submit); confirm on the phone.

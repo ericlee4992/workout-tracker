@@ -5,16 +5,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: ticket 13 keyboard fix; ticket 08 external-test acceptance remains open
 
-- **Ticket 13 (2026-10-17):** branch `ericlee4992/beta-13-goals-keyboard`, user's design (fixed Next, app-drawn Done
-  above the keyboard, Return ends editing) in `915b84e` (Codex; Claude reviewed, no findings). Codex's "blocked" was
-  faulty test geometry: Claude fixed the tests; Codex review **clear** (round 2, `codex-review-13b.md`). WT-iPhone27
-  iOS 27 software keyboard: ticket tests 7/7, AskAI+FloodlightAIRoutine+FloodlightProfile **57/57**. **Next:** the user
-  checks on the phone whether a focused Weight stays visible above the number pad (simulator rendering unreliable;
-  build 5 has the same layout); then, with the user's go-ahead, fast-forward `main`, build 6, upload.
-  [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md). Simulator `ConnectHardwareKeyboard` unset.
-  Main and the phone are unchanged.
+- **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6.** User's design (fixed Next, app-drawn Done,
+  Return ends editing); Codex review clear; tests 7/7 + 57/57 on iOS 27; the user confirmed the focused Weight is
+  visible on the phone. **`main` = `f5151c2`** (build number 6). Upload "Upload succeeded" 2026-10-17 05:13 EDT from
+  `release-build` at `f5151c2`. **Next:** App Store Connect processing → add build 6 to "Friends" (the user submits) →
+  install on the phone and check the Goals keyboard. [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md).
 
-- **`main` = `df6f0bc`** (verified 2026-10-17): README refresh and its follow-up on top of build 5/privacy changes.
 - **TestFlight 0.1.0 (5) from `1ce3424` uploaded 2026-10-15 19:36 EDT** (archive
   `scratchpad/tf/Stacked-0.1.0-5-1ce3424.xcarchive` of session 34187b7c; checked: build 5 incl. the widget, production
   `WTServerURL`, `WTGoogleClientID`, the new camera/photo/Health strings, the font, team X68M8SR6NA). Only
