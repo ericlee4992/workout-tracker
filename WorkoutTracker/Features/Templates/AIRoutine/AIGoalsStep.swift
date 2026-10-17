@@ -43,9 +43,10 @@ struct AIGoalsStep: View {
         .onChange(of: model.minutes) { _, _ in focus = nil }
         .onChange(of: savesToProfile) { _, _ in focus = nil }
         .safeAreaBar(edge: .top) { AITopBar(step: 0, onCancel: onCancel) }
-        .safeAreaBar(edge: .bottom) {
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             // Next stays above the keyboard: the keyboard toolbar can be missing on a phone (beta 13).
             // Hiding this bar while focused left no reliable way to advance after typing a goal.
+            // Reserve scroll space for the command, including when a number pad reduces the viewport.
             AIBottomBar {
                 if let error = model.inputError {
                     Text(error)

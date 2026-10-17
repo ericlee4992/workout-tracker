@@ -132,6 +132,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         height.typeText("6")
         Thread.sleep(forTimeInterval: 0.6)
         shoot("beta-13-goals-numberpad-\(appearance)-\(large ? "axl" : "default")", wholeScreen: true)
+        shoot("beta-13-goals-numberpad-application-\(appearance)-\(large ? "axl" : "default")")
         XCTAssertTrue(next.isHittable)
         XCTAssertTrue(height.isHittable, "focused height: \(height.frame), Next: \(next.frame)")
         XCTAssertGreaterThan(height.frame.height, 0)

@@ -188,4 +188,17 @@ layout and must be replaced. Capture tests now require real key elements and key
 to false for the corrected captures. **Restore it by deleting that key after verification.** No product-code change
 is needed for this test-environment correction unless the real-keyboard layout exposes a failure.
 
+R6 (`/tmp/wt-beta13-20261017-r6/keyboard.*`) passed its one default/dark capture test with software keys and a >200 pt
+keyboard, but visual review found the focused height field missing. R7 tightened the capture to require hittable,
+nonzero focused-field bounds above Next and included the exact-value-wait correction for the transient AX text.
+R7 (`/tmp/wt-beta13-20261017-r7/focused.*`) **exit 65, TEST FAILED: 2 tests / 1 failure**: the typing case passed;
+the capture failed because height was at y=669…713 while Next was at y=465…521. Full-screen and app screenshots also
+disagreed about keyboard rendering, so keep both during the diagnostic capture. Do not accept the earlier rectangle
+comparison alone as visibility evidence.
+
+Next hypothesis test: a native bottom `safeAreaInset` reserves the command's space for ScrollView keyboard avoidance.
+If this does not keep the focused measurement visible, investigate focus-scroll timing after keyboard resizing;
+keep a simulator snapshot mismatch as a third possibility. No domain/model changes. R8 artifacts will be under
+`/tmp/wt-beta13-20261017-r8/`.
+
 ## Comments
