@@ -308,3 +308,9 @@ stored-format change, no Gate S. Archive from `release-build` detached at `f5151
 widget build 6, version 0.1.0, production `WTServerURL`, `WTGoogleClientID` present, team X68M8SR6NA. Upload
 (`-exportArchive`, destination upload) **"Upload succeeded" 05:13 EDT**, EXPORT SUCCEEDED. Next: App Store Connect
 processing; add build 6 to the "Friends" group (the user clicks submit); confirm on the phone.
+
+**App Store Connect (2026-10-17).** Build 6 processed ("Ready to Test"). The user added it to **Developer**. Friends:
+Claude selected build 6 and entered What to Test: "Build 6 fixes typing your goals in Ask AI for Templates: Next now
+stays at the bottom, a Done button sits on top of the keyboard, and Return closes the keyboard. Otherwise as before:
+log a workout, add your gym and a machine, try a cardio session and Ask AI, and send anything odd from Settings → Send
+Feedback (a screenshot helps)." ("Automatically notify testers" on); the user clicks Submit for Review.

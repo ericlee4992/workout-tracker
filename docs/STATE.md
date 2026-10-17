@@ -67,6 +67,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 the user's go-ahead ("do both"): `main` fast-forwarded to `8a94620`; GitHub description "Stacked: an iPhone gym log that
 knows every machine at every gym. In TestFlight beta.", website = the privacy page.
 
+**Next feature:** [14 In-app "What's New"](../work-record/public-beta/issues/14-whats-new.md) (needs-triage; before the first big update; D62 — every build also gets a What to Test note, DEVELOPMENT → TestFlight build checklist).
 **Later (after the beta):** [09 App Store launch](../work-record/public-beta/issues/09-app-store-launch.md);
 [12 marketing website](../work-record/public-beta/issues/12-marketing-website.md) (the user, 2026-10-15) — with a
 domain of the user's own, which also allows Google branding verification.

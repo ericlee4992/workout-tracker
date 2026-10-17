@@ -178,6 +178,32 @@ Record that distinction in STATE and ask the user to open it when necessary.
 - **Certificate chain:** missing WWDR G3 can report zero signing identities despite a valid
   development certificate. The setup script checks/repairs the intermediate certificate.
 
+## TestFlight build checklist
+
+Every upload, in order (each build's record goes in its ticket and STATE; builds 5 and 6 are worked examples in
+tickets 08 and 13):
+
+1. **Ready:** the tickets in the build are reviewed clear and merged; the user said go ahead. A stored-format change
+   needs Gate S first (Container backup and restore); otherwise say "no Gate S" and why.
+2. **Release notes (D62):** draft the tester-facing **What to Test** note from the tickets since the last build —
+   plain words ("Fixed…", "New…"), then what to try — and show it to the user before uploading; the user may edit it.
+   Copy the final text into the ticket. If the build contains a **big new feature or change**, it also needs an
+   in-app **What's New** entry (ticket 14) in the same build; small fixes and small features get the note only.
+   When unsure which it is, ask the user.
+3. **Build number:** raise `CURRENT_PROJECT_VERSION` in every target (`project.pbxproj`, all occurrences), check
+   `xcodebuild build`, commit, fast-forward `main`, push.
+4. **Archive** from the detached `release-build` checkout at that `main` commit (`Config/Local.xcconfig` present):
+   `xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -configuration Release -destination
+   generic/platform=iOS -archivePath <scratch>/Stacked-<version>-<build>-<commit>.xcarchive -allowProvisioningUpdates
+   archive`. Check the archive's app and widget `CFBundleVersion`, production `WTServerURL`, `WTGoogleClientID`, team.
+5. **Upload:** `xcodebuild -exportArchive -archivePath … -exportOptionsPlist UploadOptions.plist -exportPath …
+   -allowProvisioningUpdates` (`method` app-store-connect, `destination` upload, automatic signing, the team ID,
+   `manageAppVersionAndBuildNumber` false); require "Upload succeeded".
+6. **App Store Connect** (Apple processes the build in 10–30 min): neither group adds new builds automatically.
+   **Developer** (internal) → Builds → + → the build → Add (no review). **Friends** (external) → Builds → + → the
+   build → Next → paste the What to Test note → Submit for Review. The agent may select and fill; the user clicks
+   Add / Submit.
+
 ## Provisioning expiry
 
 This project's free-account app and widget have separate seven-day profiles. A rebuild may
