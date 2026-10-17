@@ -296,3 +296,7 @@ midpoint. (2) The keyboard-settling wait now fails if the keyboard never reaches
 covers Next" assertion is back, using the keyboard top read once settled (before typing: after typing the simulator
 re-reported this keyboard at y=976, below the 932-pt screen). r3: 6 of 7 passed (the 7th was that re-report); r4: the
 fixed test passed — `** TEST SUCCEEDED **`. Product code unchanged (`915b84e`).
+
+**Review status (2026-10-17 ~04:20).** Codex round 2 (`codex-review-13b.md`): **Verdict: clear** for Claude's test
+edits. Codex's product code `915b84e` reviewed by Claude: no findings. Open before merge/build 6: the user's phone check
+(focused Weight visible above the number pad?) and the user's go-ahead to merge and upload build 6.
