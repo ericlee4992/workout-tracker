@@ -40,7 +40,7 @@ does not change.
 - [x] Migration applies locally and in tests; existing rows read `new`; an invalid status is refused.
 - [x] Every new command works against `--local`; `list --open` hides handled rows; a note with quotes and SQL is
       stored verbatim.
-- [ ] Server tests and typecheck pass; Codex review clear.
+- [x] Server tests and typecheck pass; Codex review clear (round 2, `codex-review-15b.md`).
 - [ ] With the user's go-ahead: a D1 export before the migration (README), `npm run migrate:remote`, the user's
       feedback row reads `new` in production.
 
@@ -67,3 +67,8 @@ runs vitest then these, and the Server CI workflow runs `npm run test:scripts`. 
 vitest **228 passed**, node tests **4 pass / 0 fail**; `tsc --noEmit` exit 0. Real script on local D1 (one made-up
 row, deleted after): `--local done <id> fixed in build 7` exit 0; `wontfix --local <id> not planned` exit 0 and `show`
 prints "wontfix … — not planned"; `reopen --local` exit 0; a U+2028 note exit 2; `--local list --open` → "1 open".
+
+**Codex review round 2: clear.** Report [codex-review-15b.md](../codex-review-15b.md) (HEAD `028ac39`): both findings
+resolved, no new ones; Codex ran `npm test` (vitest 228 passed, node 4 passed; exit 0 after Claude approved running it
+outside its sandbox — Miniflare could not bind localhost inside) and `tsc` (exit 0). Next: the user's go-ahead to merge,
+export D1, `npm run migrate:remote`.
