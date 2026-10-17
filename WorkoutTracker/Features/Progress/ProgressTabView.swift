@@ -199,11 +199,15 @@ struct ProgressTabView: View {
     @ViewBuilder private func menu(for pin: ProgressPin, in visible: [ProgressPin]) -> some View {
         let options = metricOptions(pin)
         if options.count > 1 {
+            // Inline under a "Show" heading: one tap to change what the panel draws.
+            Section("Show") {
             Picker("Show", selection: Binding(
                 get: { pin.shownMetric(loadType: loadType(pin)) },
                 set: { metric in save(pins.map { $0.id == pin.id ? ProgressPin(id: $0.id, subject: $0.subject, metric: metric) : $0 }) }
             )) {
                 ForEach(options, id: \.self) { Text($0.title(for: pin.activity)).tag($0) }
+            }
+            .pickerStyle(.inline)
             }
         }
         // Moves are within what is shown; a hidden pin (its exercise deleted) keeps its place in the stored list.

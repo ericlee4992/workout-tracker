@@ -45,6 +45,9 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
 - **History.** A calendar, per-session detail with editing, records, progress charts per
   exercise and variation, and export of your workouts as JSON (the fullest record, with
   heart-rate series and routes) or CSV (a table of sets and cardio).
+- **Progress.** A tab of the charts you pin — lifts per machine or weight (best set, volume,
+  1RM) and cardio activities (distance, pace or speed, time) — each with its latest value and
+  the change since your first session; tap one for the full chart, its bests and sessions.
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
   templates from your training profile. Each AI feature asks first and has a daily limit.
@@ -89,7 +92,7 @@ in this repository.
 
 | Folder | What it holds |
 |---|---|
-| `WorkoutTracker/` | The app: `App/`, `Domain/` (SwiftData models and pure logic), `Features/` (one folder per area: workout, cardio, gyms, exercises, templates, history, settings, account, onboarding), `Resources/` (the seeded catalog) |
+| `WorkoutTracker/` | The app: `App/`, `Domain/` (SwiftData models and pure logic), `Features/` (one folder per area: workout, cardio, gyms, exercises, templates, history, progress, settings, account, onboarding), `Resources/` (the seeded catalog) |
 | `WorkoutTrackerTests/`, `WorkoutTrackerUITests/` | Unit tests (Swift Testing) and end-to-end UI tests (XCTest) |
 | `WorkoutTrackerWidget/` | The Live Activity: the running workout and its rest timer on the Lock Screen |
 | `WorkoutTrackerWatch/` | An Apple Watch companion (workout session, heart rate, phone link) — written, never built or run, not in the beta |

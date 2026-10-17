@@ -80,7 +80,9 @@ struct WorkoutTrackerApp: App {
         if DesignSampleFixture.progressIsEnabled {
             do {
                 try DesignSampleFixture.seedProgress(in: modelContainer.mainContext)
-                if !ProcessInfo.processInfo.arguments.contains("-uiTestKeepPins") {
+                // `-uiTestProgressNoPins`: the data without the pins (a test that adds from empty).
+                let arguments = ProcessInfo.processInfo.arguments
+                if !arguments.contains("-uiTestKeepPins") && !arguments.contains("-uiTestProgressNoPins") {
                     let exercises = try modelContainer.mainContext.fetch(FetchDescriptor<Exercise>())
                     ProgressPinStore.save(DesignSampleFixture.progressPins(exercises: exercises))
                 }
