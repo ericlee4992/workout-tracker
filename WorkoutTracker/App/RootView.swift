@@ -28,7 +28,7 @@ struct RootView: View {
     @Environment(TourController.self) private var tour: TourController?
 
     enum Tab: Hashable {
-        case workout, history, gyms, exercises
+        case workout, history, gyms, exercises, progress
     }
 
     private static func tab(for step: TourStep.Tab) -> Tab {
@@ -70,6 +70,11 @@ struct RootView: View {
             ExercisesView()
                 .tabItem { Label("Exercises", systemImage: "list.bullet.rectangle") }
                 .tag(Tab.exercises)
+
+            // Public beta ticket 16: the Progress tab — design prototype on sample data until the user picks a layout.
+            ProgressTabPrototype()
+                .tabItem { Label("Progress", systemImage: "chart.line.uptrend.xyaxis") }
+                .tag(Tab.progress)
         }
         // The coordinator is owned here and read by the Start screen too: it
         // must bank the active workout's summary before "Finish it and start
@@ -135,6 +140,8 @@ struct RootView: View {
             selection = .gyms
         case "exercises":
             selection = .exercises
+        case "progress":
+            selection = .progress
         default:
             break
         }
