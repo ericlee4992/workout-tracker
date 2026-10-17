@@ -241,11 +241,23 @@ FloodlightHistory light/dark `:100`, CoreLoop model-picker flake (STATE → Foun
 Phone part (the user): Goals keyboard on build 6; New Model → Suggest exercises with AI (confirm `model-exercises`
 in D1); then the Workers Free re-check.
 
-**Release-candidate run stopped (2026-10-17 ~05:45 EDT).** The user: "stop it. i don't think it's necessary." Claude had
+**Release-candidate run stopped (2026-10-17 ~05:37 EDT).** The user: "stop it. i don't think it's necessary." Claude had
 started it without asking; stopped during the unit tests (process group 85237 terminated, no result recorded),
 `ConnectHardwareKeyboard` deleted again (unset, as before), WT-iPhone27 shut down, derived data removed. **Decision: no
 full UI suite for 08's readiness pass** — the per-ticket targeted runs (02–07, 13) stand; the pass is the phone checks.
 The user on build 6: "the build 6 works well." Still open: New Model → Suggest exercises with AI (D1 had no
-`model-exercises` request at 05:45 EDT), the Workers Free re-check, and the external tester's feedback.
+`model-exercises` request at 05:37 EDT), the Workers Free re-check, and the external tester's feedback.
+
+**Suggest exercises with AI — server check (2026-10-17 05:41 EDT).** The user: "I tried suggest exercises with AI,
+check the server." D1 shows **no `model-exercises` trace**: no `ai_requests` row and no `ai_usage` row for that flow
+(a request reaching the OpenAI step always creates both, success or failure). Today's only AI request is a
+`routine-week` (ok, 7.96 s) at 05:39:53 EDT from the Google account. A request refused before that step (401 signed
+out, `ai_paused`, a 400 on the body) leaves no D1 trace, and Workers analytics has no path to tell. In the app the
+button only appears once the New Model sheet has plate lines (after a scan), and asks for consent first. Asked the
+user what the screen showed. **Found:** `ai_usage` 2026-10-15 `scan-machine` has `in_flight` 1 with 2 attempts and
+only 1 logged request — matching the `clientDisconnected` invocation at 20:20 EDT that day: when the phone hangs up,
+the Worker can stop before `proxyAI`'s `finally` (settle + log), leaving a held slot for the rest of that New York
+day and no request row. Harmless at a limit of 60 (one slot) and gone the next day; a follow-up candidate
+(`ctx.waitUntil` for settle/log), not a beta blocker.
 
 ## Comments
