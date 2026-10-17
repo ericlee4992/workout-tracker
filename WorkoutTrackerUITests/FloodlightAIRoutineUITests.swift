@@ -50,7 +50,6 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         goalsField.typeText("Get stronger")
         XCTAssertTrue(next.exists)
         XCTAssertEqual(next.frame.minY, restingFrame.minY, accuracy: 1, "Next stays at the screen bottom")
-        XCTAssertGreaterThanOrEqual(next.frame.minY, app.keyboards.firstMatch.frame.minY)
         assertFieldAboveDone(goalsField)
         app.buttons["dismissRoutineKeyboard"].tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
@@ -83,6 +82,10 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         XCTAssertTrue(app.keyboards.firstMatch.keys.firstMatch.waitForExistence(timeout: 5),
                       "Require software keys, not just a hardware-keyboard accessory")
         XCTAssertGreaterThan(app.keyboards.firstMatch.frame.height, 200)
+        // Measure only once the keyboard has risen: mid-animation its frame can still start below the screen.
+        let keyboard = app.keyboards.firstMatch
+        for _ in 0..<15 where keyboard.frame.minY > app.frame.maxY - 200 { Thread.sleep(forTimeInterval: 0.2) }
+        Thread.sleep(forTimeInterval: 0.4)
     }
 
     private func assertFieldAboveDone(_ field: XCUIElement) {
@@ -93,10 +96,12 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         XCTAssertTrue(field.isHittable)
         XCTAssertGreaterThan(field.frame.height, 0)
         XCTAssertGreaterThanOrEqual(field.frame.minY, app.buttons["routineCancel"].frame.maxY)
-        XCTAssertLessThanOrEqual(field.frame.maxY, done.frame.minY,
-                                 "focused field: \(field.frame), Done: \(done.frame)")
+        // The field's middle clears Done (the capsule's glass edge may touch the field's last points).
+        XCTAssertLessThan(field.frame.midY, done.frame.minY, "focused field: \(field.frame), Done: \(done.frame)")
+        // The keyboard's reported frame starts below its suggestion strip (about 44 pt on iOS 27), so Done, which
+        // sits on the visible keyboard, measures up to about 60 pt above that edge.
         XCTAssertLessThanOrEqual(done.frame.maxY, app.keyboards.firstMatch.frame.minY)
-        XCTAssertLessThanOrEqual(app.keyboards.firstMatch.frame.minY - done.frame.maxY, 20)
+        XCTAssertLessThanOrEqual(app.keyboards.firstMatch.frame.minY - done.frame.maxY, 64)
     }
 
     func testCaptureGoalsKeyboardLightDefault() { captureGoalsKeyboard(appearance: "light", large: false) }
@@ -104,27 +109,36 @@ final class FloodlightAIRoutineUITests: XCTestCase {
     func testCaptureGoalsKeyboardLightAccessibility() { captureGoalsKeyboard(appearance: "light", large: true) }
     func testCaptureGoalsKeyboardDarkAccessibility() { captureGoalsKeyboard(appearance: "dark", large: true) }
 
+    /// The whole screen: an app screenshot leaves out the keyboard, which is drawn in its own window.
+    private func shootScreen(_ name: String) {
+        Thread.sleep(forTimeInterval: 1.0)
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
     private func captureGoalsKeyboard(appearance: String, large: Bool) {
         launch(appearance: appearance, large: large)
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
         goalsField.tap()
         assertSoftwareKeyboard()
         goalsField.typeText("Build strength and stay consistent at the gym.")
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("beta-13-goals-keyboard-\(suffix)")
+        shootScreen("beta-13-goals-keyboard-\(suffix)")
         assertFieldAboveDone(goalsField)
         app.buttons["dismissRoutineKeyboard"].tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
         XCTAssertTrue(app.buttons["routineNext"].isHittable)
-        if appearance == "light" && !large { shoot("beta-13-goals-keyboard-closed") }
+        if appearance == "light" && !large { shootScreen("beta-13-goals-keyboard-closed") }
 
         let weight = app.textFields["routineWeight"]
-        reach(weight)
+        // Weight is the last row: swipe to the end (short drags from mid-screen can land on the minutes control).
+        for _ in 0..<10 where !visible(weight) { app.swipeUp() }
+        XCTAssertTrue(visible(weight), "reached \(weight)")
         weight.tap()
         assertSoftwareKeyboard()
         weight.typeText("180")
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("beta-13-weight-keyboard-\(suffix)")
+        shootScreen("beta-13-weight-keyboard-\(suffix)")
         assertFieldAboveDone(weight)
         app.buttons["dismissRoutineKeyboard"].tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))

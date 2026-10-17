@@ -5,13 +5,15 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: ticket 13 keyboard fix; ticket 08 external-test acceptance remains open
 
-- **Active implementation (2026-10-17):** ticket 13 on `ericlee4992/beta-13-goals-keyboard`, replacement prompt
-  `3c4d4b4`. The user changed the design: fixed Next behind keyboard; compact app-drawn Done above it. Old r9 work
-  is superseded. [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md) records the new decision,
-  acceptance and historical results. Next: one replacement attempt, build + focused checks; stop on layout failure,
-  otherwise run the requested three classes and inspect captures. Artifacts `/tmp/wt-beta13-20261017-r10/`.
-  Restore the temporarily false Simulator `ConnectHardwareKeyboard` key to absent afterwards. Claude review pending.
-  Do not merge or install; the phone is unchanged.
+- **Ticket 13 blocked (2026-10-17):** `ericlee4992/beta-13-goals-keyboard`, final product checkpoint **`915b84e`**
+  pushed. The user's replacement design received one attempt: build passed; seven focused UI tests finished
+  **1 passed / 6 failed**, exit 65. Return passed; Done/keyboard geometry and height visibility did not clear.
+  Inspected four goal captures: software keyboard and Done are absent despite AX key assertions. Weight/closed
+  acceptance captures and the broader three-class run were not reached. Stopped as explicitly requested; no iteration.
+  [Ticket](../work-record/public-beta/issues/13-goals-keyboard.md) / [report](../work-record/public-beta/codex-implement-13.md)
+  contain evidence at `/tmp/wt-beta13-20261017-r10/`. Simulator `ConnectHardwareKeyboard` restored to **unset**.
+  Next: user direction on the blocker; do not resume r9 or merge/install this attempt. Claude review pending.
+  Main and the phone are unchanged.
 
 - **`main` = `df6f0bc`** (verified 2026-10-17): README refresh and its follow-up on top of build 5/privacy changes.
 - **TestFlight 0.1.0 (5) from `1ce3424` uploaded 2026-10-15 19:36 EDT** (archive
