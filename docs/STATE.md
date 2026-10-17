@@ -7,11 +7,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 - **Resume here (2026-10-17):** branch **`ericlee4992/beta-13-goals-keyboard`** (pushed); `main` fast-forwarded to
   `d0ad275` (docs only, the user's go-ahead); later commits on the branch are notes. Next build number: **7**.
-  **Running:** ticket 08's release-candidate test run (unit + full UI suite, PID 85237, started 05:33 EDT) — paths
-  and the simulator keyboard key to delete afterwards are in [ticket 08](../work-record/public-beta/issues/08-external-testers.md).
+  No test run is active: the release-candidate full-suite run was **stopped at the user's request** (not needed;
+  cleaned up) — see [ticket 08](../work-record/public-beta/issues/08-external-testers.md).
 - **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6** (`main` `f5151c2`). **Checked 05:30 EDT:**
   build 6 is in Developer and in Friends as **"Testing"** (submitted, through Beta App Review); the phone has
-  **Stacked 0.1.0 (6)** (`devicectl`). **Open:** the user's check of the Goals keyboard on build 6.
+  **Stacked 0.1.0 (6)** (`devicectl`). The user: "the build 6 works well." **Ticket 13 done.**
   [Ticket 13](../work-record/public-beta/issues/13-goals-keyboard.md).
 - **Friends (checked 2026-10-17 05:30 EDT):** public link **on** (`testflight.apple.com/join/SWyzYCtB`, limit 20);
   1 tester, **Anonymous via the public link** (iPhone 17 Pro Max, iOS 27.0.1; installed build 5 on Oct 17; no

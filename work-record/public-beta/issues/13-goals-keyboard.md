@@ -318,3 +318,5 @@ Feedback (a screenshot helps)." ("Automatically notify testers" on); the user cl
 **Build 6 out (2026-10-17 05:30 EDT, Claude).** App Store Connect: 0.1.0 (6) is in Developer and Friends, status
 **"Testing"** in Friends (submitted by the user and through Beta App Review). `xcrun devicectl device info apps` on the
 phone: Stacked **0.1.0, bundle version 6** installed. Open: the user's check of the Goals keyboard on build 6.
+
+**The user on build 6 (2026-10-17):** "the build 6 works well." Ticket 13 done.

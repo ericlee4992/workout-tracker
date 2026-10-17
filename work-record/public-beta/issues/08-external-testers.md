@@ -241,4 +241,11 @@ FloodlightHistory light/dark `:100`, CoreLoop model-picker flake (STATE → Foun
 Phone part (the user): Goals keyboard on build 6; New Model → Suggest exercises with AI (confirm `model-exercises`
 in D1); then the Workers Free re-check.
 
+**Release-candidate run stopped (2026-10-17 ~05:45 EDT).** The user: "stop it. i don't think it's necessary." Claude had
+started it without asking; stopped during the unit tests (process group 85237 terminated, no result recorded),
+`ConnectHardwareKeyboard` deleted again (unset, as before), WT-iPhone27 shut down, derived data removed. **Decision: no
+full UI suite for 08's readiness pass** — the per-ticket targeted runs (02–07, 13) stand; the pass is the phone checks.
+The user on build 6: "the build 6 works well." Still open: New Model → Suggest exercises with AI (D1 had no
+`model-exercises` request at 05:45 EDT), the Workers Free re-check, and the external tester's feedback.
+
 ## Comments
