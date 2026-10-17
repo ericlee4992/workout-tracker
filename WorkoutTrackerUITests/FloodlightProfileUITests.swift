@@ -252,13 +252,15 @@ final class FloodlightProfileUITests: XCTestCase {
         openEditor()
         let feet = app.textFields["trainingHeightFeet"]
         replace(feet, with: "6")
-        app.staticTexts["Height"].tap()
+        feet.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
+            .withOffset(CGVector(dx: -12, dy: 0)).tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5), "no toolbar Done is needed")
         XCTAssertEqual(feet.value as? String, "6")
         let weight = app.textFields["trainingWeight"]
         for _ in 0..<6 where !onScreen(weight, floor: app.frame.maxY - 20) { app.swipeUp() }
         replace(weight, with: "82.5")
-        app.staticTexts["Weight"].tap()
+        weight.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
+            .withOffset(CGVector(dx: -12, dy: 0)).tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
         XCTAssertEqual(weight.value as? String, "82.5")
         app.buttons["trainingSave"].tap()

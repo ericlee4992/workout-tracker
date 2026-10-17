@@ -91,7 +91,8 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         weight.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
         weight.typeText("180")
-        app.staticTexts["Weight"].tap()
+        weight.coordinate(withNormalizedOffset: CGVector(dx: 0, dy: 0.5))
+            .withOffset(CGVector(dx: -12, dy: 0)).tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
         XCTAssertEqual(weight.value as? String, "180")
     }
