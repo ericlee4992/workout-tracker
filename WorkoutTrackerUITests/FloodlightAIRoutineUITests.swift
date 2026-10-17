@@ -24,6 +24,36 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         app.descendants(matching: .any).matching(identifier: id).firstMatch
     }
 
+    private var goalsField: XCUIElement {
+        app.textViews["routineGoals"].exists ? app.textViews["routineGoals"] : app.textFields["routineGoals"]
+    }
+
+    // Public beta 13: neither path may depend on the keyboard toolbar appearing on the phone.
+    func testGoalsReturnDismissesWithoutANewline() {
+        launch()
+        let goals = goalsField
+        goals.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        goals.typeText("Get stronger\n")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(goalsField.value as? String, "Get stronger")
+        XCTAssertTrue(app.buttons["routineNext"].isHittable)
+    }
+
+    func testGoalsNextAdvancesWhileTyping() {
+        launch()
+        goalsField.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
+        goalsField.typeText("Get stronger")
+        let next = app.buttons["routineNext"]
+        XCTAssertTrue(next.waitForExistence(timeout: 5))
+        XCTAssertTrue(next.isHittable)
+        XCTAssertLessThanOrEqual(next.frame.maxY, app.keyboards.firstMatch.frame.minY)
+        next.tap()
+        XCTAssertTrue(any("routineGym").waitForExistence(timeout: 5))
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 5))
+    }
+
     private func launch(appearance: String = "light", large: Bool = false, extra: [String] = []) {
         app.launchArguments = ["-uiTestReset", "-uiTestTerra", "-uiTestTerraFullRoutine", "-uiTestDesignSample",
                                "-uiTestDesignGyms", "-appearance", appearance] + extra
