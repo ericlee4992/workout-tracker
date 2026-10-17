@@ -3,8 +3,11 @@
 // `wrangler dev`'s local copies). Nothing is written anywhere except a screenshot you ask for, always into
 // server/.feedback (git-ignored).
 //
-//   node scripts/feedback.mjs list [--limit 20] [--local]
+//   node scripts/feedback.mjs list [--limit 20] [--open] [--local]
 //   node scripts/feedback.mjs show <id> [--local]
+//   node scripts/feedback.mjs done <id> [note] [--local]     (handled; ticket 15)
+//   node scripts/feedback.mjs wontfix <id> [note] [--local]  (read, deliberately not acted on)
+//   node scripts/feedback.mjs reopen <id> [--local]          (back to new; clears the note)
 //   node scripts/feedback.mjs screenshot <id> [--local]
 //   node scripts/feedback.mjs delete <id> [--local]      (a tester's request; asks nothing, so check the ID first)
 //   node scripts/feedback.mjs prune [--local]            (only the download clean-up)
@@ -14,7 +17,8 @@
 // copies are gone within 30 days (ticket 08): keep downloads in server/.feedback (--local: .feedback-local), never
 // elsewhere, keep this clean-up, and run `prune` at least every 15 days while any download exists (README).
 //
-// Feedback is tester data: do not paste it into the repository, an issue, or a chat.
+// Feedback is tester data: do not paste it into the repository, an issue, or a chat. A status note (ticket 15) is the
+// developer's own words ("fixed in build 7") and lives on the feedback row, so it is deleted with it: no personal details.
 import { execFileSync } from "node:child_process";
 import { mkdirSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
@@ -34,6 +38,8 @@ const downloads = path.join(serverDir, where === "--remote" ? ".feedback" : ".fe
 /** Half the policy's 30 days, inclusive: with `prune` run at least every 15 days, no copy outlives 30 (08e #1). */
 const DOWNLOAD_PRUNE_AGE_MS = 15 * 24 * 60 * 60 * 1000;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const MAX_NOTE_LENGTH = 200;
+const STATUS = { new: "new ", done: "done", wontfix: "won't" };
 
 function wrangler(...rest) {
   return execFileSync("npx", ["wrangler", ...rest], { cwd: serverDir, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
@@ -54,8 +60,35 @@ function idArgument() {
 }
 
 const SELECT = "SELECT f.id, f.created_at, f.category, f.message, f.app_version, f.build, f.system_version, f.model, " +
-  "f.screenshot_key, f.screenshot_bytes, a.display_name, a.email " +
+  "f.screenshot_key, f.screenshot_bytes, f.triage, f.triage_note, f.triaged_at, a.display_name, a.email " +
   "FROM feedback f LEFT JOIN accounts a ON a.id = f.account_id";
+
+/**
+ * The note typed after the ID, as one SQL value. wrangler's `--command` takes no bound parameters, so the text goes in as
+ * a hex blob cast to TEXT: nothing typed is ever quoted into the statement.
+ */
+function noteSQL() {
+  const note = args.slice(2).filter((a) => a !== "--local").join(" ").trim();
+  if (!note) return "NULL";
+  if (/[\r\n]/.test(note) || [...note].length > MAX_NOTE_LENGTH) {
+    console.error(`A note is one line of at most ${MAX_NOTE_LENGTH} characters.`);
+    process.exit(2);
+  }
+  return `CAST(X'${Buffer.from(note, "utf8").toString("hex")}' AS TEXT)`;
+}
+
+function setTriage(status) {
+  const id = idArgument();
+  const note = status === "new" ? "NULL" : noteSQL();
+  const at = status === "new" ? "NULL" : Date.now();
+  if (query(`SELECT id FROM feedback WHERE id = '${id}'`).length === 0) { console.error("No such feedback."); process.exit(1); }
+  query(`UPDATE feedback SET triage = '${status}', triage_note = ${note}, triaged_at = ${at} WHERE id = '${id}'`);
+  console.log(`Feedback ${id} is now ${status}.`);
+}
+
+function when(ms) {
+  return new Date(ms).toLocaleString("en-US", { timeZone: "America/New_York" });
+}
 
 function who(row) {
   return row.email ? `${row.display_name ?? "(no name)"} <${row.email}>` : "signed out";
@@ -89,25 +122,31 @@ function pruneDownloads() {
   for (const name of kept) if (!live.has(name)) remove(name, "its feedback is gone");
 }
 
-if (["list", "show", "screenshot", "delete", "prune"].includes(command)) pruneDownloads();
+if (["list", "show", "screenshot", "delete", "done", "wontfix", "reopen", "prune"].includes(command)) pruneDownloads();
 
 switch (command) {
   case "list": {
     const limit = Number.parseInt(option("--limit", "20"), 10);
     if (!Number.isInteger(limit) || limit < 1 || limit > 500) { console.error("--limit is 1–500"); process.exit(2); }
-    for (const row of query(`${SELECT} ORDER BY f.created_at DESC LIMIT ${limit}`)) {
-      const when = new Date(row.created_at).toLocaleString("en-US", { timeZone: "America/New_York" });
+    const open = flag("--open");
+    const rows = query(`${SELECT}${open ? " WHERE f.triage = 'new'" : ""} ORDER BY f.created_at DESC LIMIT ${limit}`);
+    for (const row of rows) {
       const first = row.message.split("\n")[0];
-      console.log(`${row.id}  ${when}  ${row.category.padEnd(5)}  ${row.screenshot_key ? "📎" : "  "}  ${who(row)}`);
+      console.log(`${row.id}  ${when(row.created_at)}  ${row.category.padEnd(5)}  ${STATUS[row.triage].padEnd(5)}  ` +
+        `${row.screenshot_key ? "📎" : "  "}  ${who(row)}`);
       console.log(`    ${first.length > 100 ? `${first.slice(0, 100)}…` : first}`);
+      if (row.triage_note) console.log(`    ↳ ${row.triage_note}`);
     }
+    const [{ n }] = query("SELECT COUNT(*) AS n FROM feedback WHERE triage = 'new'");
+    console.log(rows.length === 0 && open ? "Nothing open." : `${n} open (new).`);
     break;
   }
   case "show": {
     const id = idArgument();
     const [row] = query(`${SELECT} WHERE f.id = '${id}'`);
     if (!row) { console.error("No such feedback."); process.exit(1); }
-    console.log(`${row.category} · ${new Date(row.created_at).toLocaleString("en-US", { timeZone: "America/New_York" })} (New York)`);
+    console.log(`${row.category} · ${when(row.created_at)} (New York)`);
+    console.log(`Status: ${row.triage}${row.triaged_at ? ` (${when(row.triaged_at)})` : ""}${row.triage_note ? ` — ${row.triage_note}` : ""}`);
     console.log(`From: ${who(row)}`);
     console.log(`App ${row.app_version} (${row.build}) · iOS ${row.system_version} · ${row.model}`);
     console.log(row.screenshot_key ? `Screenshot: ${row.screenshot_bytes} bytes — fetch it with \`screenshot ${row.id}\`` : "No screenshot");
@@ -138,9 +177,15 @@ switch (command) {
     console.log(`Deleted feedback ${id}${row.screenshot_key ? " and its screenshot" : ""}.`);
     break;
   }
+  case "done":
+  case "wontfix":
+  case "reopen":
+    setTriage(command === "reopen" ? "new" : command);
+    break;
   case "prune":
     break;
   default:
-    console.error("Usage: node scripts/feedback.mjs list [--limit N] | show <id> | screenshot <id> | delete <id> | prune  [--local]");
+    console.error("Usage: node scripts/feedback.mjs list [--limit N] [--open] | show <id> | screenshot <id> | delete <id> | " +
+      "done <id> [note] | wontfix <id> [note] | reopen <id> | prune  [--local]");
     process.exit(2);
 }

@@ -171,8 +171,12 @@ curl -s -A curl/8 https://api.cloudflare.com/client/v4/graphql -H "Authorization
 
 ```sh
 cd server
-node scripts/feedback.mjs list [--limit 20]          # newest first: ID, time (New York), category, 📎 = screenshot, sender
-node scripts/feedback.mjs show <id>                  # the whole message and its details
+node scripts/feedback.mjs list [--limit 20]          # newest first: ID, time (New York), category, status, 📎 = screenshot, sender
+node scripts/feedback.mjs list --open                # only the ones not yet handled (status new)
+node scripts/feedback.mjs show <id>                  # the whole message, its details and its status
+node scripts/feedback.mjs done <id> [note]           # handled, e.g. done <id> fixed in build 7
+node scripts/feedback.mjs wontfix <id> [note]        # read, deliberately not acted on
+node scripts/feedback.mjs reopen <id>                # back to new (clears the note)
 node scripts/feedback.mjs screenshot <id>            # saves it to server/.feedback/ (git-ignored), nowhere else
 node scripts/feedback.mjs delete <id>                # a tester asked: the row, its R2 screenshot and any download
 ```
@@ -182,6 +186,11 @@ in production, those whose feedback no longer exists; `--local` downloads go to 
 download exists, run `node scripts/feedback.mjs prune` at least every 15 days** — so no copy outlives the 30 days the
 privacy policy promises (ticket 08); a session that downloads a screenshot records the next prune date in STATE. The server deletes feedback and its screenshot about a year after it was sent
 (the hourly job; a failed screenshot delete is retried).
+
+**Tracking (ticket 15):** every feedback starts as `new`; check them off with `done`/`wontfix`. The status and the
+optional one-line note (≤ 200 characters, your own words, never personal details) live on the feedback row, so they are
+deleted with it — account deletion, the one-year sweep, `delete`. Work that comes out of feedback becomes a numbered
+ticket in `work-record/`, describing the problem in your own words and citing the feedback ID, never the tester.
 
 Add `--local` to read `wrangler dev`'s local copies. The Cloudflare dashboard (D1 → stacked → `feedback`; R2 →
 stacked-feedback) shows the same. Feedback is tester data: keep it out of the repository, issues and chats.

@@ -472,3 +472,29 @@ describe("feedback retention (ticket 08: one year)", () => {
     expect([await count("feedback"), (await queued()).length]).toEqual([0, 0]);
   });
 });
+
+describe("triage status (ticket 15)", () => {
+  const triage = async (id: string) => env.DB.prepare("SELECT triage, triage_note, triaged_at FROM feedback WHERE id = ?")
+    .bind(id).first<{ triage: string; triage_note: string | null; triaged_at: number | null }>();
+
+  it("starts every new submission as new, with no note", async () => {
+    const { id } = (await (await h.feedback()).json()) as { id: string };
+    expect(await triage(id)).toEqual({ triage: "new", triage_note: null, triaged_at: null });
+  });
+
+  it("refuses a status other than new, done or wontfix", async () => {
+    const { id } = (await (await h.feedback()).json()) as { id: string };
+    await expect(env.DB.prepare("UPDATE feedback SET triage = 'fixed' WHERE id = ?").bind(id).run()).rejects.toThrow();
+    await env.DB.prepare("UPDATE feedback SET triage = 'done', triage_note = CAST(X'27293B2044524F50' AS TEXT), triaged_at = 5 WHERE id = ?")
+      .bind(id).run();
+    expect(await triage(id)).toEqual({ triage: "done", triage_note: "'); DROP", triaged_at: 5 });
+  });
+
+  it("goes with the feedback when the account is deleted", async () => {
+    const { session } = await h.signIn();
+    const { id } = (await (await h.feedback({ token: session })).json()) as { id: string };
+    await env.DB.prepare("UPDATE feedback SET triage = 'done', triage_note = 'fixed in build 7' WHERE id = ?").bind(id).run();
+    expect((await h.call("DELETE", "/v1/account", { token: session })).status).toBe(200);
+    expect(await triage(id)).toBeNull();
+  });
+});
