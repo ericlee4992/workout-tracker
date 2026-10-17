@@ -98,7 +98,7 @@ Baseline `xcodebuild … -sdk iphonesimulator -configuration Debug -destination
 'platform=iOS Simulator,id=47D21838-69A6-4BCB-AE90-B0D9C0AAA70B' -derivedDataPath /tmp/wt-beta13-dd build`:
 **exit 0, BUILD SUCCEEDED** (`build-unrestricted.log`, `build-unrestricted.status`, `build-unrestricted.xcresult`).
 The first sandboxed attempt could not connect to CoreSimulator (exit 70); the authorized retry above passed.
-The pre-fix two-case run is active as exec session `86827` (`xcodebuild` PID `68945`), with
+The pre-fix two-case run completed as exec session `86827` (`xcodebuild` PID `68945`), with
 `red.log`, `red.status`, `red.xcresult` in the same artifact directory. It selects
 `FloodlightAIRoutineUITests/testGoalsReturnDismissesWithoutANewline` and
 `FloodlightAIRoutineUITests/testGoalsNextAdvancesWhileTyping`, serially.
@@ -125,11 +125,32 @@ existing README screenshots show different states and need no replacement.
 
 **Post-fix build:** `/tmp/wt-beta13-20261016-r2/build.{log,status,xcresult}` — exit **0**, `BUILD SUCCEEDED`.
 Focused five-case UI verification (`focused.{log,status,xcresult}` in that directory; exec session `4801`, xcodebuild
-PID `77990`) is running. Next-while-typing and blank-space/first-chip passed; the Goals number-pad check exposed
+PID `77990`) finished **exit 65, TEST FAILED, 5 tests / 2 failures** (log and xcresult read). Return, Next-while-typing
+and blank-space/first-chip passed; the Goals number-pad check exposed
 that the filled measurement panel intercepted taps before the outer background. The follow-up adds dismissal
 backgrounds inside both screens' filled panels, below their controls. Keep this failed approach/result as evidence.
-The capture cases now also show the height number pad at Default/AccessibilityL in both appearances, with bounds
-assertions against Next. Next: finish this result, rerun the affected checks, then all three requested classes in
-parallel with three workers and all capture cases included.
+The other failure was a test query: both the underlying profile and its editor expose a Height label. The updated
+test taps the empty gap beside the field, also directly testing the requested blank-space fallback.
+
+Checkpoint **`e26c776` pushed** (panel correction `6182045`): `/tmp/wt-beta13-20261016-r3/` contains another successful
+build (**exit 0, BUILD SUCCEEDED**) and the two affected number-pad tests (**exit 0, TEST SUCCEEDED, 2 tests / 0
+failures**, log and xcresult read). The capture cases also show the height number pad at Default/AccessibilityL in
+both appearances, with bounds assertions against Next.
+
+Next run: `/tmp/wt-beta13-20261016-r4/full.{log,status,xcresult}`, the complete requested selection, including captures:
+
+```sh
+xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -configuration Debug \
+  -destination 'platform=iOS Simulator,id=47D21838-69A6-4BCB-AE90-B0D9C0AAA70B' \
+  -derivedDataPath /tmp/wt-beta13-dd -resultBundlePath /tmp/wt-beta13-20261016-r4/full.xcresult \
+  -parallel-testing-enabled YES -parallel-testing-worker-count 3 -collect-test-diagnostics never \
+  -only-testing:WorkoutTrackerUITests/AskAIUITests \
+  -only-testing:WorkoutTrackerUITests/FloodlightAIRoutineUITests \
+  -only-testing:WorkoutTrackerUITests/FloodlightProfileUITests
+```
+
+Each focused run used this same project/scheme/SDK/configuration/destination/derived-data selection, serial UI
+execution, its own result path, and only the named regression methods above. No physical hardware or service API was
+used. Next: read the full result, export/look at the eight keyboard captures, and prepare the Claude review handoff.
 
 ## Comments
