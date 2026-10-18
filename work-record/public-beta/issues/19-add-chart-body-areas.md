@@ -1,7 +1,7 @@
 # 19 — Add Chart: logged exercises grouped by body area
 
 Type: bug / change
-Status: **ready** (2026-10-18)
+Status: **review clear** (Codex round 2, 2026-10-18) — on the branch; merge with tickets 19–22 after the user's go-ahead
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040` (tickets 19–22 together).
@@ -71,3 +71,8 @@ One finding, **P3**: README not updated for the visible change. No code or spec 
 screenshot change: none of the seven README captures shows Add Chart (`progress.png` is the tab, unchanged), and
 adding an eighth for a picker would outweigh the overview's set of main screens — the rule asks for retakes when a
 *shown* screen changes.
+
+### Codex round 2 (2026-10-18): **clear** — [codex-review-19b.md](../codex-review-19b.md)
+
+Reviewed `30cc8cf`; README-only diff, no rebuild needed (round 1's build exit 0, 29/0/0 unit tests stand). Ticket 19
+done on the branch; not merged (the user's go-ahead covers 19–22 together).
