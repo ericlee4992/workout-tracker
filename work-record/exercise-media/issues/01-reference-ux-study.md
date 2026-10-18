@@ -92,5 +92,7 @@ content — the media and muscles would become its top section rather than a new
 - Offline behaviour (does the clip play without a connection?) was not seen; the iOS screens above came from
   screenshots, which REA cannot drive or verify further.
 - Difference to note for our design: the user asked for a **pop-up** over the workout ("a window should pop up that
-  shows the form video"), where Lyfta navigates to the full page. A sheet keeps the user's place in the workout.
+  shows the form video"), where Lyfta navigates to the full page. Both keep the workout: in Lyfta the back button
+  returns to it (the user, 2026-10-18). The choice is about what the user sees — the clip alone, quickly dismissed,
+  or the whole exercise page with history — and is left to the design step.
 - The in-app web app (`my.lyfta.app`) needs an account; not used.
