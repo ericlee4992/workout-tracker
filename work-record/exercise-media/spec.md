@@ -41,6 +41,14 @@ Branch: `ericlee4992/beta-18-exercise-media` off `main` `1f0e040`.
 - Any new network flow (fetching media, YouTube) is a privacy-policy change (D61) and an App Privacy check before
   testers get it.
 
+## Decisions
+
+- **Muscle maps: our own simple drawings** (the user, 2026-10-18, over Wikimedia CC BY-SA and public-domain diagrams):
+  flat body silhouettes drawn for Stacked, owned outright, used for the exercise page's target muscles (primary /
+  secondary colours) and the browse-by-muscle grid.
+- **Animations: not decided.** Offered Gym visual purchase / free only / start free, buy later; the user asked instead
+  for free alternatives or a free way to use ExerciseDB (2026-10-18) → a second research pass (ticket 02, round 2).
+
 ## Open decisions (to ask once ticket 02 reports)
 
 1. **Primary media source** for the 90 seeded exercises — depends on ticket 02's licence findings and on whether the
