@@ -1,17 +1,17 @@
 # Current project state
 
-Updated **2026-10-18 02:05 EDT** (build 8 uploaded). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-18** (build 8 live in Developer and Friends). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-10-18):** **Build 8 uploaded 2026-10-18 02:05 EDT** from `main` **`7c81e28`** (tickets 16 Progress
-  tab + 14 What's New + 17 cardio-only pause clock, D64; Codex clear `codex-review-17b.md`). Build 7 was never given to
-  testers. **Next:** App Store Connect → Developer (internal) → Builds → + → build 8 → Add (the user clicks Add; the
-  user signs in to App Store Connect in Chrome if the session expired), the user installs and checks on the phone;
-  Friends later with the **approved** What to Test note (in
-  [ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md)). Branch `ericlee4992/beta-17-cardio-pause`
-  holds the post-merge notes (this STATE); `main` has the code. Next build number: **9**.
+- **Resume here (2026-10-18):** **Build 8 is live** (`main` **`7c81e28`**: tickets 16 Progress tab + 14 What's New + 17
+  cardio-only pause clock, D64) — **Developer** and **Friends** both show it **Testing**; the phone has **0.1.0 (8)**
+  and What's New appeared (the user). Friends: the approved note, testers notified; 3 testers (2 anonymous public-link
+  on build 6, 2 of 20 limit). Build 7 was never given to testers. Nothing in progress; next build number **9**. Open:
+  the Live Activity's cardio-only clock not checked on a device; ExerciseProgressView's metric-pill VoiceOver label
+  (ticket 16). The branch `ericlee4992/beta-17-cardio-pause` holds post-merge notes (STATE/ticket) not on `main` —
+  fast-forward `main` to it with the user's go-ahead. [Ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md).
 - **Session 2026-10-17/18 summary:** done — 08 closed (tester feedback waived as a gate), 13 done, 15 feedback triage
   live (migration 0006; export `~/WorkoutTracker-Backups/server/2026-10-17-pre-15-migration` delete by 2026-11-16),
   16 Progress tab + 14 What's New merged (Codex clear; full unit 1041 pass; Progress 7/7, What's New 5/5, Settings+Tour
@@ -106,7 +106,8 @@ domain of the user's own, which also allows Google branding verification.
 ## The phone
 
 - iPhone 15 Pro Max, iOS 27.0, UDID `00008130-001E10C01E62001C`, bundle `com.ericlee4992.workouttracker`.
-- **Installed: TestFlight Stacked 0.1.0 (6) = `main` `f5151c2`** (confirmed by `devicectl` 2026-10-17 05:30 EDT).
+- **Installed: TestFlight Stacked 0.1.0 (8) = `main` `7c81e28`** (confirmed by `devicectl` 2026-10-18).
+- **Previously: TestFlight Stacked 0.1.0 (6) = `main` `f5151c2`** (installed 2026-10-17).
 - **Previously: TestFlight Stacked 0.1.0 (5) = `main` `1ce3424`** (uploaded 2026-10-15 19:36 EDT, installed 2026-10-15;
   only usage strings and the build number changed since build 4, no Gate S).
 - **Previously: TestFlight Stacked 0.1.0 (4) = `main` `5a4ca0c`** (uploaded 2026-10-14 23:04 EDT, installed over build 2
@@ -144,10 +145,10 @@ domain of the user's own, which also allows Google branding verification.
 | 10 model Sol | **Closed, no change** (the user kept Terra after measurements). |
 | 11 safety copy | Deferred (the user, 2026-10-14) until the first stored-format change; guard on its branch. |
 | 13 Goals keyboard | **Done** — build 6, the user: "works well". |
-| 14 What's New | **Merged**; in build 8 (uploaded; keyed build ≥ 7). |
+| 14 What's New | **Done** — build 8; seen on the phone. |
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
-| 16 Progress tab | **Merged**; in build 8 (uploaded; build 7 skipped for testers). |
-| 17 cardio pause clock | **Merged** `7c81e28` (D64, Codex clear); build 8 uploaded, Developer group next. |
+| 16 Progress tab | **Done** — build 8 (build 7 skipped for testers). |
+| 17 cardio pause clock | **Done** — build 8 (Developer + Friends, 2026-10-18). |
 
 ## Working conventions (in force)
 

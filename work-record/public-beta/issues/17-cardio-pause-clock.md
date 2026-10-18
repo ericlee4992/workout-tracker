@@ -1,7 +1,7 @@
 # 17 — Cardio-only workouts: pausing pauses the workout's time; no "paused for" timer
 
 Type: bug / change
-Status: merged (`main` `7c81e28`); build 8 uploaded 2026-10-18 02:05 EDT — Developer group next
+Status: **done** — merged (`main` `7c81e28`); build 8 in Developer and Friends (Testing), 2026-10-18
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-17-cardio-pause` off `main` `ef11a8e` (build 7's code + notes).
@@ -148,3 +148,10 @@ computed properties and an optional Live Activity field only). Archive from `rel
 team X68M8SR6NA (`scratchpad/tf/Stacked-0.1.0-8-7c81e28.xcarchive` of session d9b843b3). Upload: **"Upload
 succeeded" 02:05 EDT**, EXPORT SUCCEEDED. Next: App Store Connect processing → **Developer group only**; Friends later
 with the approved note.
+
+**Build 8 delivered (2026-10-18).** Developer: the user clicked Add; the phone has **Stacked 0.1.0 (8)** (`devicectl`);
+the user: What's New appears. Friends (the user: "let's upload it to Friends now"): Claude selected build 8, pasted the
+approved What to Test note (checked in full), "Automatically notify testers" on; the user clicked Submit for Review;
+Friends showed build 8 **Testing** at once. Friends then had 3 testers: 2 anonymous public-link (iPhone 15 iOS 26.6.1
+and iPhone 17 Pro Max iOS 27.0.1, both on build 6) and the user. Not checked on a device: the Live Activity's
+cardio-only clock.
