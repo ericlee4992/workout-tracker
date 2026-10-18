@@ -50,3 +50,30 @@ sources, 2026-10-18). Claude re-checked the decisive facts itself:
   SVGs (art provenance undocumented); or our own drawings.
 - **Others:** Everkinetic (CC BY-SA 4.0, ~550 exercises, two-frame line drawings — a "start/end" pose pair);
   free-exercise-db's photos have no documented provenance (avoid). No free, well-sourced video library exists.
+
+## Round 2 — free alternatives (2026-10-18)
+
+The user asked for free alternatives or a free way to use ExerciseDB, then whether the free "hobby" plan's
+watermarked media could be reverse-engineered into our own. **Answered no** to the latter: the V2 terms forbid
+storage, bulk download and "derivative works that incorporate API content"; removing a watermark strips copyright
+management information; and the art appears to be Gym visual's. What is free: making **our own** animations of the
+movements (movements are not copyrightable; a particular render is).
+
+Findings (report section "Round 2"; Claude re-checked the dataset's LICENSE and Adobe's Mixamo FAQ):
+- **hasaneyldrm/exercises-dataset — not usable.** Its LICENSE: the MIT licence "DOES NOT cover the exercise media …
+  Cloning this repository does not grant you any license to the media; obtain your own from Gym visual."
+- **ExerciseDB free — no route.** The GIFs entered the repo after its switch from MIT to AGPL; the V1 docs say
+  non-commercial; a Kaggle "MIT" copy is resold by its author against Gym visual's licence.
+- **Wikimedia Commons — ~20 gym clips.** FitnessScape set: 9 clips at 720p, CC BY 3.0 (squat, deadlift, bench,
+  incline, row, pull-up, shoulder press, two ab moves); CDC set: 11 public-domain clips, mostly machines, 320×240.
+- **Everkinetic — corrected to ~270–293 exercises** (not ~550), two-frame line drawings, CC BY-SA 4.0. Claude's own
+  match against our 90: roughly half by manual reading (bench, rows, pulldown, leg press, curls, extensions, calves,
+  lunges, presses); weak on machine-specific lifts (pendulum/belt squat, pec deck, Viking press, neck machine).
+- **Render our own 3D loops.** Mixamo: free, royalty-free for commercial projects (Adobe FAQ), ~20 fitness motions,
+  no deadlift/bench/row, no props; a Fab barbell pack (~$18–24, commercial-app licence) adds deadlift/bench/rows;
+  raw files stay out of the public repo. CMU mocap: free but almost no gym lifts; Fit3D: non-commercial only.
+- **YouTube** — plenty of coaches/gyms post short how-tos; embed settings vary per video; link rot is real (a CDC
+  clip already deleted from YouTube).
+- **Own footage → pose → our figure** (Claude's suggestion, not researched by the agent): the user films each lift
+  once; Apple's Vision body-pose detection drives a neutral figure/silhouette rendered in Stacked's style. Fully
+  owned; covers the user's own machines.

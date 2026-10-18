@@ -409,7 +409,7 @@ in the public repo; or (b) draw our own silhouettes, traced from public-domain r
 
 | Source | Licence (primary) | Media | Notes |
 |---|---|---|---|
-| **Everkinetic** (https://github.com/everkinetic/data) | CC BY-SA 4.0 (`LICENSE.md`) | ~550 exercises × 2 frames ("relaxation" / "tension"): 1,109 SVG + 2,196 PNG | Clean vector line art, already the largest single credited source in wger. [I] Two frames can be cross-faded into a simple "animation". BY-SA as in wger. |
+| **Everkinetic** (https://github.com/everkinetic/data) | CC BY-SA 4.0 (`LICENSE.md`) | 293 exercises in `exercises.json`, 2 frames each ("relaxation" / "tension"); `dist/` has ~270 exercises as SVG + PNG pairs (corrected in round 2) | Clean vector line art, already the largest single credited source in wger. [I] Two frames can be cross-faded into a simple "animation". BY-SA as in wger. |
 | **free-exercise-db** (https://github.com/yuhonas/free-exercise-db) | Unlicense ("Open Public Domain") | 800+ exercises, ~1,750 JPG stills | Derived from https://github.com/wrkout/exercises.json (Unlicense). [I] **Image provenance is not documented.** A public-domain dedication by a repo owner only covers what they own, so I would not rely on these photos without provenance. |
 | **wrkout.xyz** | Commercial (mentioned in wrkout README: "2,500+ exercises, 10,000+ images … 3,500+ videos … can be used in commerical projects") | — | Not reviewed. Listed only as a lead. |
 | **Gym visual** | Commercial N-CRFL (section 4) | Per-item GIF/video/illustration | Cleanest route to the "ExerciseDB look". |
@@ -432,10 +432,178 @@ Self-filming (our own CC-BY or proprietary clips) or Gym visual purchases are th
 | **Muscle maps: wger / Commons SVG** | n/a | CC BY-SA 3.0 (Termininja) | Yes | Yes | Yes; our recolours → BY-SA | n/a |
 | **Muscle maps: Häggström PNGs** | n/a | Public domain | Yes | Yes | No (courtesy cite) | n/a |
 | **Muscle maps: body-highlighter SVG** | n/a | MIT (art provenance undocumented) | Yes | Yes | Keep MIT notice | n/a |
-| **Everkinetic** | CC BY-SA 4.0 | CC BY-SA 4.0 | Yes | Yes | Yes; edits → BY-SA | None (2-frame line art, ~550 exercises) |
+| **Everkinetic** | CC BY-SA 4.0 | CC BY-SA 4.0 | Yes | Yes | Yes; edits → BY-SA | None (2-frame line art, ~270–293 exercises) |
 
 ### Bottom line [I]
 1. **wger (plus Everkinetic) is the only free, clearly licensed source.** Use it now: sync to R2 and add a credits UI. It is good for names and metadata and gives partial still-image coverage, but video coverage is poor.
 2. **Do not use ExerciseDB V1 commercially, and do not build on V2.** V2's storage ban and "discontinue on termination" clause are incompatible with an offline-capable gym logger and with a free beta.
 3. **For the polished 3D animation look, license directly from Gym visual**, per item, in the exercises we actually ship. Keep the files private (R2, not the public repo), and get written confirmation of server delivery.
 4. **YouTube embeds** suit optional "watch a coach explain it" links. Keep them free to all users, online only, with privacy-policy and ToS-link updates.
+
+---
+
+# Round 2: free alternatives (researched 2026-10-18)
+
+Question: "can you find any free alternatives? or is there a way to use ExerciseDB for free?"
+Same conventions as above: **[F]** is a fact with its source, **[I]** is my inference.
+
+## R2.1 hasaneyldrm/exercises-dataset (Gym visual GIFs "with permission")
+
+### Summary
+The repo is MIT for its code and text. Its own LICENSE excludes the media, and it says plainly that the
+permission it holds **does not pass to anyone who copies the repo**. Its history makes things worse:
+- The GIFs were first taken from a Kaggle re-upload of ExerciseDB V1.
+- When AscendAPI (ExerciseDB's owner) complained, the README was changed to say "educational, non-commercial use only" and to credit AscendAPI.
+- About nine days later it was changed again to say the media are © Gym visual, "with permission".
+
+Neither the repo nor its owner shows any public statement from Gym visual. **Verdict: not a free route.**
+
+### Facts
+- [F] LICENSE, "MEDIA EXCEPTION" (https://github.com/hasaneyldrm/exercises-dataset/blob/main/LICENSE):
+  - "The MIT license above covers ONLY the code, tooling, dataset structure, and instruction text/translations".
+  - "It DOES NOT cover the exercise media … That media is © Gym visual … included here with the rights holder's written permission, at 180×180 resolution".
+  - "Its use and reuse are governed by Gym visual's Terms & Conditions … NOT by the MIT license above."
+  - "Cloning this repository does not grant you any license to the media; obtain your own from Gym visual."
+- [F] NOTICE.md: "This repository does not grant you any rights to the media beyond what Gym visual's terms allow — cloning this repo is not a license." Also: "If you want to use this media in your own project, review those terms and, where required, obtain your own license directly from Gym visual." https://github.com/hasaneyldrm/exercises-dataset/blob/main/NOTICE.md
+- [F] README: the dataset is "for educational and research purposes". The media are "© Gym visual, used with permission". https://github.com/hasaneyldrm/exercises-dataset
+- [F] The repo has no explicit "non-commercial" clause today. Commit `92e2704` (2026-06-29) had said: "Everything here is provided for **educational, non-commercial use only**", attributing media and data to "ExerciseDB v1 by AscendAPI (obtained via a Kaggle re-host)". The current history is a single squashed commit dated 2026-07-08. https://github.com/hasaneyldrm/exercises-dataset/commit/92e2704
+- [F] Issue #5 (2026-06-28), filed by `shinkaidev` (GitHub profile company "ASCEND"):
+  - The media "Filenames … match our v1 API's exerciseIds … Same ID, same media just re-hosted".
+  - "We're fine with people building on the v1 dataset — it's free and public. But right now there's no attribution to AscendAPI".
+  - The owner replied that the asset is "byte-for-byte identical (same SHA-256)" to `static.exercisedb.dev/media/EIeI8Vf.gif`.
+  - https://github.com/hasaneyldrm/exercises-dataset/issues/5
+- [F] Issue #70: asked whether the Gym visual permission covers derived data, the owner said: "I'm not in a position to authorize this use or interpret Gym Visual's permission on their behalf, so it would be best to contact Gym Visual directly." https://github.com/hasaneyldrm/exercises-dataset/issues/70
+- [F] Issue #3 "Copyright issues ?" (Play Store use) is still open. A commenter calls the setup a "copyright trap"; the maintainer has given no answer. https://github.com/hasaneyldrm/exercises-dataset/issues/3
+- [F] Gym visual's own site:
+  - It sells per item, and its "FREE" category has **5 items**: Hyperextension v2, Rectus Abdominis, Side relaxed pose, and Weighted Crunch ×2. https://gymvisual.com/14-free
+  - Its terms limit watermarked media to "evaluating/comping whether you wish to purchase a license". They may not be used "in any materials distributed outside of your company or to the public". https://gymvisual.com/content/3-terms-and-conditions-of-use
+  - I found no Gym visual page or statement about this dataset, and no free-with-credit offer.
+
+## R2.2 Any free route for ExerciseDB media?
+
+### Summary
+No free route exists. The GIFs were **never** in the ExerciseDB repo while it was MIT-licensed:
+- The repo was MIT from 2024-08-22 until 2025-08-01.
+- The 1,500 GIFs were added six minutes *after* the switch to AGPL on 2025-08-01.
+
+The MIT-era `exercises.json` (added 2025-07-09) held only text and links to `v1.cdn.exercisedb.dev`. AscendAPI's
+current V1 terms say non-commercial only, and Gym visual looks like the real copyright owner.
+
+The Kaggle copy is labelled MIT, but its author says he bought the GIFs ($1 each) and resells them on
+Gumroad, which Gym visual's licence prohibits. That copy gives no rights to the media.
+
+### Facts
+- [F] The `bootstrapping-lab/exercisedb-api` history (https://github.com/bootstrapping-lab/exercisedb-api/commits/main):
+  - LICENSE was "MIT License, Copyright (c) 2024 ExerciseDB API" up to `736813ad` (2025-08-01 15:32, "switching to AGPL-3.0").
+  - The first commit touching `media/` is `be74918e` (2025-08-01 15:38).
+  - The trees at `3c133414` and `36200115` (July 2025) and at older sampled commits contain **0 media files**.
+  - `exercises.json` at `36200115` has 1,500 records whose `gifUrl` points to `https://v1.cdn.exercisedb.dev/media/…`.
+- [F] AscendAPI's V1 terms: "Not allowed: Commercial products … or any monetised use without a paid plan". https://oss.exercisedb.dev/swagger
+- [F] Kaggle "Fitness Exercises Dataset" (omarxadel) shows **License: MIT** for `exercises.csv`. Its description says: "I bought them for $1 each so that I can give them to you with 75% off! The FULL 1324 GIFs package … from https://omarxadel.gumroad.com/l/exercisesdb". https://www.kaggle.com/datasets/omarxadel/fitness-exercises-dataset
+- [F] Gym visual's N-CRFL forbids licensees "to resell or redistribute". https://gymvisual.com/content/9-license
+- [I] A licensor cannot grant rights it doesn't hold. Even the MIT-era JSON text, which is arguably still MIT for copies made then, gives **no right to any GIF**. The instruction text in that JSON is the only thing an MIT argument could cover, and wger already gives us better-sourced text.
+
+## R2.3 Wikimedia Commons exercise animations and videos
+
+### Summary
+Licences on Commons are clear (CC BY, CC BY-SA or public domain), but gym coverage is thin and inconsistent:
+- **"Fitness animations"** is mostly bodyweight moves and clip-art loops.
+- **"Weight training animations"** has only 5 GIFs.
+- The best finds are two video series:
+  - a 9-clip **FitnessScape** set (CC BY 3.0, 720p): squat, deadlift, bench, incline press, row, pull-up, shoulder press, leg raise, hanging crunch;
+  - an 11-clip **CDC "Muscle Strengthening"** set (public domain, but only 320×240): mostly machines.
+
+### Facts
+- [F] Category:Fitness animations has 58 files. By filename, the gym-relevant ones are: deadlift ("Man Lifting Barbell Deadlift GIF Animation Loop"), dumbbells, pull-ups, muscle-up, push-ups and squats. There is no bench, row, curl, overhead press or lunge. https://commons.wikimedia.org/wiki/Category:Fitness_animations
+- [F] Category:Weight training animations has 5 GIFs: Hook grip, Preacher bench biceps curl, Power clean & jerk, Smith machine bench press, and Weighted wide-grip pull-up. Licences: 2 × CC BY-SA 3.0, 2 × public domain, 1 × CC BY-SA 4.0 (Commons API, `prop=imageinfo&iiprop=extmetadata`). https://commons.wikimedia.org/wiki/Category:Weight_training_animations
+- [F] Category:Animations of physical exercises has 7 files and 3 subcategories. https://commons.wikimedia.org/wiki/Category:Animations_of_physical_exercises
+- [F] Category:Videos of people demonstrating strength training exercises has 27 files. https://commons.wikimedia.org/wiki/Category:Videos_of_people_demonstrating_strength_training_exercises
+- [F] "… - exercise demonstration video.webm" series, 9 files (Commons search): squat, deadlift, bench press, incline press, bent-over row, pull-ups, shoulder press, leg raises, hanging crunches.
+  - Example: https://commons.wikimedia.org/wiki/File:Squat_-_exercise_demonstration_video.webm is "licensed under the Creative Commons Attribution 3.0 Unported license". Author: FitnessScape. Source: YouTube `0I6q9NqK9tM`. 7.1 s, 1280×720.
+  - The page notes the clip was "released under the Creative Commons license option on YouTube before August 2025".
+- [F] "Muscle Strengthening at the Gym - …" series, 11 hits: overhead press, chest press, arm extension, leg curl, bicep machine, leg extension, seated leg press, abdominal machine, back extension, row machine, plus one "at Home" clip.
+  - Example: https://commons.wikimedia.org/wiki/File:Muscle_Strengthening_at_the_Gym_-_Chest_Press.webm is public domain ("Centers for Disease Control and Prevention"), 35 s, **320×240**.
+  - Its YouTube source `my6FFKJD_VY` now returns 404 from YouTube oEmbed. The Commons copy remains.
+
+### What it allows for us
+- [I] Bundling or hosting these clips on R2 is fine:
+  - CC BY 3.0: credit "FitnessScape, CC BY 3.0" with a link.
+  - Public domain: no conditions.
+  - BY-SA GIFs: share-alike applies to our edits.
+- [I] Coverage: about 20 usable gym clips across two visual styles. Good for a few hero lifts, nowhere near a full library.
+
+## R2.4 Free 3D animation sources (render our own looping animations)
+
+### Summary
+- **Mixamo** is free and royalty-free for commercial projects. Its library has about 20 fitness motions, mostly CrossFit or bodyweight: air, back and overhead squat, bicep curl, front raises, push-up, sit-ups, burpee, kettlebell swing, clean and jerk, snatch, sumo high pull, plank, jumping jacks, pistol, box jump. It has **no deadlift, bench press, row, pulldown or machine work**, and no equipment props.
+- **CMU mocap** is free, including inside commercial products, but has almost no gym lifts (squats, lunges, one "weight lifting").
+- **Fit3D** has gym exercises but is **non-commercial research only**.
+- Not free but nearly so: a **Fab "Sport Gym Fitness Workout animations Barbell"** pack (50 looped barbell lifts) costs **$18.19–$23.79** under Fab's Standard License, which allows commercial projects.
+
+[I] Practical route: rig one neutral figure (Mixamo character or our own), apply Mixamo plus purchased Fab
+motions, add a simple barbell or dumbbell prop, and render short looping MP4s or sprite GIFs ourselves in
+Blender. One consistent style, owned output, offline-friendly. The cost is our time, plus about $20 per Fab pack.
+
+### Facts
+- [F] Mixamo FAQ: "Mixamo is available free and does not require any additional purchases or subscriptions." Also: "You can use both characters and animations royalty free for personal, commercial, and non-profit projects including: … Create films. Create video games." https://helpx.adobe.com/creative-cloud/faq/mixamo-faq.html
+- [F] Mixamo catalogue (public product search, read-only):
+  - "workout" returns Air Squat, Air Squat Bent Arms, Back Squat, Bicep Curl, Burpee, Clean And Jerk, Front Raises, Overhead Squat, Pistol, Snatch and Sumo High Pull.
+  - "exercise" adds Bicycle Crunch, Box Jump, Jumping Jacks, Kettlebell Swing, Push Up and Situps.
+  - "deadlift" returns 0, and "bench" returns no lifts.
+  - Endpoint: `https://www.mixamo.com/api/v1/products?type=Motion%2CMotionPack&query=…`
+- [F] CMU: "This dataset of motions is free for all uses." Also: "You may include this data in commercially-sold products, but you may not resell this data directly, even in converted form." FAQ: "The motion capture data may be copied, modified, or redistributed without permission." Sources: http://mocap.cs.cmu.edu/ and http://mocap.cs.cmu.edu/faqs.php
+  - Searching it for "squat" finds 11 mixed clips (warm-ups, alternating squats); "lunge" finds 4; "lift" finds one "weight lifting".
+- [F] Fit3D (611 sequences, "over 37 repeated exercises"): the licence is for "the sole purpose of performing non-commercial scientific research"; "Any other use, in particular any use for commercial purposes, is prohibited." Sources: https://fit3d.imar.ro/ and https://fit3d.imar.ro/legal
+- [F] Fab listing: "50 high-quality looped barbell exercise animations designed for games, fitness applications, virtual trainers … squats, deadlifts, presses, rows, lunges, cleans, snatches". Price "From $18.19 to $23.79". Licence terms: "Standard License". Format fbx. https://www.fab.com/listings/2ac3a2de-3497-47e3-9f9a-203712fbca7d
+- [F] Fab Standard License summary: you may "Commercially distribute your Projects with the Fab assets incorporated into it" and share the asset via "a private repository". You may not "Resell or redistribute the asset … on a standalone basis". https://www.fab.com/eula
+- [I] Rendered video of a Mixamo or Fab animation shipped inside the app is a "Project" or "film" use. Raw `.fbx` files must not go in the public GitHub repo; keep them private.
+
+## R2.5 YouTube channels (online only, per round 1)
+
+### Summary
+[I] Plenty of coaches, gyms and universities publish per-exercise how-to clips. Examples surfaced by search:
+- Sheffield Hallam University gym how-to guides (https://www.shu.ac.uk/gym/wellbeing-support/how-to-guides);
+- Live Active (https://liveactive.co.uk/News/y-is-for-youtube);
+- Illinois State Campus Recreation (https://news.illinoisstate.edu/tag/personal-trainer/).
+
+I could not confirm per-channel embed policies in bulk; embeddability is a per-video setting.
+- [F] The FitnessScape source clip `0I6q9NqK9tM` is embeddable: YouTube oEmbed returned 200, "Half Rack Workout | FitnessScape".
+- [F] The CDC clip `my6FFKJD_VY` has been removed (oEmbed 404). That shows the link-rot risk.
+
+[I] A curated list would need a one-off server-side check of `status.embeddable` and `madeForKids` through
+the YouTube Data API, plus periodic re-checks. All the round 1 constraints still apply: online only, never
+paywalled, no overlays.
+
+## R2.6 Other free, clearly licensed sources with real coverage
+
+- [F] **Everkinetic** (CC BY-SA 4.0): `exercises.json` lists 293 exercises, each with 2 frames ("relaxation"/"tension"). https://github.com/everkinetic/data
+  - Lift coverage by name: bench press (18 variants), squat (25), barbell/dumbbell/smith dead lifts and Romanian dead lift, bent-over row with barbell, seated cable rows, wide-grip lat pull down, shoulder press (5), leg press (2), lunges (8), pull-ups, triceps pushdowns (4), curls (many).
+  - [I] A two-frame cross-fade or flip loop is the best *free, commercial-safe* "animation" with real gym coverage. It is BY-SA, so credit is needed and our derived loops must be shared under the same licence.
+- [F] **wger**: 5 animated GIFs, plus 78 videos covering 46 exercises (round 1, section 1).
+- [I] **US federal agencies** (CDC, NIH/NIA) publish public-domain exercise videos. The CDC set above is low-resolution. NIA material was not reviewed.
+
+## R2 comparison table
+
+| Source | What it gives | Licence | Commercial app OK? | Coverage of common gym lifts | Catch |
+|---|---|---|---|---|---|
+| hasaneyldrm/exercises-dataset | 1,324 × 180×180 Gym visual GIFs + text | MIT for text; media © Gym visual, "permission" not passed on | **No** (media); text yes | High | The repo says it gives you no media rights. Earlier it said non-commercial. The GIFs originally came from ExerciseDB V1 |
+| ExerciseDB V1 (any era) | 1,500 × 180p GIFs | MIT era: no media in repo. AGPL era: docs say non-commercial | **No** | High | The probable rights owner is Gym visual; nobody has shown a licence |
+| Kaggle omarxadel | CSV (MIT) + paid GIF pack | CSV MIT; GIFs resold | **No** (GIFs) | High | Reselling Gym visual items breaches its licence |
+| Gym visual FREE category | 5 items | N-CRFL | Yes | ~None | 5 items only |
+| Commons: FitnessScape series | 9 × 720p clips | CC BY 3.0 | **Yes** | Squat, deadlift, bench, incline, row, pull-up, OHP | Only 9 exercises; real-person video, not animation |
+| Commons: CDC series | 11 × 320×240 clips | Public domain | **Yes** | Machines: chest press, row, leg press, OHP, etc. | Very low resolution; dated |
+| Commons animations | ~60 GIFs | CC BY / BY-SA / PD (per file) | Yes | Few: squat, deadlift, pull-up, curl, Smith bench | Mixed styles; mostly bodyweight or clip-art |
+| Everkinetic | 2-frame line art, ~270–293 exercises | CC BY-SA 4.0 | **Yes** | **Good**: bench, squat, deadlift, rows, pulldown, presses, curls | Not true animation; BY-SA on our derivatives |
+| Mixamo | ~20 fitness motions + rigged characters; we render | Free, royalty-free commercial (Adobe FAQ) | **Yes** | Squats, curl, front raise, push-up, KB swing, Olympic lifts. **No** bench/deadlift/row | No props; we must render ourselves |
+| CMU mocap | Raw mocap | Free for all uses, commercial products OK, no resale of the data | Yes | ~None (squats, lunges) | Little gym content |
+| Fit3D | 37 exercises of 3D data | Non-commercial research | **No** | Good | Licence bars commercial use |
+| Fab barbell pack (near-free) | 50 looped barbell animations (fbx); we render | Fab Standard License | **Yes** | **Good**: squats, deadlifts, presses, rows, lunges | ~$20; raw files must stay private |
+| YouTube embeds | Any embeddable clip | Per video; YouTube API policies | Yes, if never paywalled | Broad | Online only; link rot; per-video embed checks |
+
+## R2 verdict [I]
+- **ExerciseDB for free: no.** No version, mirror or older licence gives commercial rights to the GIFs. The same applies to hasaneyldrm and Kaggle.
+- **Free and commercial-safe today:**
+  - wger and Everkinetic stills, including 2-frame loops (BY-SA, with credits);
+  - the FitnessScape (CC BY) and CDC (PD) Commons clips for about 20 lifts;
+  - optional YouTube links or embeds.
+- **Best free route to real animations:** render our own loops. Use Mixamo (free; squats, curls, presses, Olympic lifts), add a ~$20 Fab barbell pack for deadlift, bench and rows, and use one neutral character. We own the output. This costs time, not licences.
