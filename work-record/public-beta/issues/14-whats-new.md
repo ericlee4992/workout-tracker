@@ -66,3 +66,6 @@ bottom is above Continue, asserts it, and keeps an extra `…-axl-scrolled` capt
 
 **Codex review round 2: clear.** [codex-review-14b.md](../codex-review-14b.md) (HEAD `803f425`). Remaining: merge with 16,
 build 7, and the real update path on the phone (build 6 → 7 shows the sheet once).
+
+**Merged, not uploaded (2026-10-17).** The user: "Merge only" — `main` fast-forwarded to the 14 branch tip (16 + 14);
+build 7 is not built or uploaded yet. **What to Test note approved for build 7** ("Use this note"): "Build 7 adds a Progress tab. Tap + or Add Chart to pin any lift or cardio activity — each chart shows your latest best and how far you've come. Long-press a chart to change what it shows, move it or remove it; tap it for the full chart. A short What's New page introduces it once after updating (Settings → What's New shows it again). Otherwise as before: send anything odd from Settings → Send Feedback."

@@ -176,3 +176,6 @@ class (7/7 at `399e1ad`) is not rerun for this domain-only change.
 **Codex review round 3: clear.** [codex-review-16c.md](../codex-review-16c.md) (HEAD `1631714`): #1 resolved, no new
 findings; Codex build exit 0, three unit suites 30 passed. Not exercised: Reduce Motion at runtime, the phone.
 Remaining: ship with ticket 14 in build 7 (the user's go-ahead to merge and upload).
+
+**Merged, not uploaded (2026-10-17).** The user: "Merge only" — `main` fast-forwarded to the 14 branch tip (16 + 14);
+build 7 is not built or uploaded yet. **What to Test note approved for build 7** ("Use this note"): "Build 7 adds a Progress tab. Tap + or Add Chart to pin any lift or cardio activity — each chart shows your latest best and how far you've come. Long-press a chart to change what it shows, move it or remove it; tap it for the full chart. A short What's New page introduces it once after updating (Settings → What's New shows it again). Otherwise as before: send anything odd from Settings → Send Feedback."

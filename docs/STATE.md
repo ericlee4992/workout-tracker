@@ -5,12 +5,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-10-17):** `main` = `696a395`. **Tickets 16 (Progress tab) and 14 (What's New) are built and Codex
-  clear** — branch **`ericlee4992/beta-14-whats-new`** (pushed) holds both (14 sits on 16's tip). **Next:** the user's
-  go-ahead to fast-forward `main`, bump to build **7**, archive and upload, with the What to Test note the user approves
-  (D62); then check on the phone that the update shows What's New once. No stored-format change since build 6 (pins
-  and the last-seen build are UserDefaults) → no Gate S.
-  [Ticket 16](../work-record/public-beta/issues/16-progress-tab.md), [ticket 14](../work-record/public-beta/issues/14-whats-new.md).
+- **Resume here (2026-10-17):** **`main` = tickets 16 (Progress tab) + 14 (What's New)**, both Codex clear, merged on the
+  user's "Merge only" — **build 7 not built or uploaded** (the user's choice; ask before uploading). When asked: build
+  number 7 (the What's New entry is keyed to build 7 — a different number needs `WhatsNew.entries` changed), no Gate S
+  (no stored-format change since build 6), archive from `release-build`, upload, and paste the **approved What to Test
+  note** (in [ticket 16](../work-record/public-beta/issues/16-progress-tab.md)); then on the phone check What's New shows
+  once after the update. [Ticket 14](../work-record/public-beta/issues/14-whats-new.md).
 - **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6** (`main` `f5151c2`). **Checked 05:30 EDT:**
   build 6 is in Developer and in Friends as **"Testing"** (submitted, through Beta App Review); the phone has
   **Stacked 0.1.0 (6)** (`devicectl`). The user: "the build 6 works well." **Ticket 13 done.**
@@ -133,9 +133,9 @@ domain of the user's own, which also allows Google branding verification.
 | 10 model Sol | **Closed, no change** (the user kept Terra after measurements). |
 | 11 safety copy | Deferred (the user, 2026-10-14) until the first stored-format change; guard on its branch. |
 | 13 Goals keyboard | **Done** — build 6, the user: "works well". |
-| 14 What's New | **Codex clear** (round 2); branch `ericlee4992/beta-14-whats-new`; ships in build 7 with 16. |
+| 14 What's New | **Merged** (Codex clear round 2); ships in build 7 (not yet built). |
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
-| 16 Progress tab | **Codex clear** (round 3); branch `ericlee4992/beta-16-progress-tab`; ships in build 7 with 14. |
+| 16 Progress tab | **Merged** (Codex clear round 3); ships in build 7 (not yet built). |
 
 ## Working conventions (in force)
 
