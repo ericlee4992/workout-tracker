@@ -60,3 +60,4 @@ rule and the catalog, the Add Chart flows, one Add Exercise picker flow, default
   `testCaptureProgressDarkAccessibility` — **3/3 passed**, `TEST SUCCEEDED`, exit 0.
 - Captures (`runs/shots19/19-add-chart-light-default.png`, `19-add-chart-dark-axl.png`): Chest / Back / Shoulders /
   Biceps / Triceps sections with family marks; AccessibilityL wraps names, no clipping.
+- Commit for review: `6c9e0ea` (pushed).
