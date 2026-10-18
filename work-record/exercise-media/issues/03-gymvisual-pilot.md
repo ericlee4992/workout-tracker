@@ -44,3 +44,14 @@ Each GIF purchase includes four sizes: 180, 360, 720, 1080 px.
 3. A build step copies them into the app from the private folder; builds without it show no clip.
 4. Show them in a prototype of the exercise page and the workout pop-up on the Simulator, then on the phone
    (including Airplane Mode). The user checks each one for correct form and the right machine.
+
+## Comments
+
+**Cart prepared by Claude (2026-10-18, the user's request; Gym visual allows our agent's browsing).** In the user's
+Chrome (Claude in Chrome tab "Order", gymvisual.com/quick-order): all ten items, **style "Basic grey"** for every item
+(the white-grey figure with red muscles, matching the Lyfta look; "Full color" is a skin-toned figure — checked on the
+Leg Extension preview), male versions, quantity 1 each. Cart total **$18.10** = 9 GIFs × $0.90 (75% off $3.60) +
+Viking press video $10.00; shipping/vouchers $0. Nothing purchased; no account, address or payment details entered —
+checkout is the user's (it asks to create an account). Also observed: the GIF page banner reads "$0.9 per 1 animated
+GIF after 10 items in cart" while the discount table says 75% off from 5 different items; the cart applied $0.90 at
+10 items.
