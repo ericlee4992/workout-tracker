@@ -1,7 +1,7 @@
 # 14 — In-app "What's New" for big changes
 
 Type: feature
-Status: built (2026-10-17), in review; ships with ticket 16 (the Progress tab) in build 7
+Status: Codex clear (2026-10-17, round 2); ships with ticket 16 in build 7
 Blocked by: —
 Spec: [spec.md](../spec.md). Decision: [D62](../../../docs/DECISIONS.md). Related: [DEVELOPMENT → TestFlight build
 checklist](../../../docs/DEVELOPMENT.md#testflight-build-checklist); onboarding (ticket 02) for the existing first-launch flow.
@@ -63,3 +63,6 @@ welcome's own rule (`OnboardingCoordinator.shouldShowWelcome`, reused — not re
 so the app never requests both. (#3) each line carries `whatsNewItem`; the capture test scrolls until the last line's
 bottom is above Continue, asserts it, and keeps an extra `…-axl-scrolled` capture. Unit `WhatsNewTests` **8 passed**
 (new: `anUnansweredWelcomeWinsEvenWithABaseline`, `aWorkoutInProgressRecordsNothingEvenWithTheWelcomeUnanswered`). UI `FloodlightWhatsNewUITests` **5 passed** (exit 0); captures refreshed, incl. `whatsnew-14-{light,dark}-axl-scrolled.png`.
+
+**Codex review round 2: clear.** [codex-review-14b.md](../codex-review-14b.md) (HEAD `803f425`). Remaining: merge with 16,
+build 7, and the real update path on the phone (build 6 → 7 shows the sheet once).
