@@ -15,6 +15,16 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   Chrome; Claude fills, the user clicks Add). Note: Claude pushed the notes-only `ef11a8e` to `main` without asking
   (told the user; left in place). [Ticket 16](../work-record/public-beta/issues/16-progress-tab.md),
   [ticket 14](../work-record/public-beta/issues/14-whats-new.md).
+- **Session 2026-10-17/18 summary:** done — 08 closed (tester feedback waived as a gate), 13 done, 15 feedback triage
+  live (migration 0006; export `~/WorkoutTracker-Backups/server/2026-10-17-pre-15-migration` delete by 2026-11-16),
+  16 Progress tab + 14 What's New merged (Codex clear; full unit 1041 pass; Progress 7/7, What's New 5/5, Settings+Tour
+  20/20 UI), build 7 uploaded but skipped. **Gotchas:** watch Codex approvals by the prompt's `Reason:` line (identical
+  "Yes, proceed" prompts otherwise get missed); a backgrounded xcodebuild reports the wrapper's exit — read
+  `TEST SUCCEEDED/FAILED` in the log; App Store Connect session expired in Chrome (the user signs in); the iOS 27
+  simulators are WT-Floodlight `9E822EF6-…` and WT-iPhone27 `47D21838-…` (run them in parallel for regression);
+  rm with a variable path is blocked by the safety check — overwrite instead; ExerciseProgressView's metric pills carry
+  `.accessibilityLabel("Metric")` that hides each option's name from VoiceOver (pre-existing, noted in ticket 16, not
+  fixed). Next build number: **8**.
 - **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6** (`main` `f5151c2`). **Checked 05:30 EDT:**
   build 6 is in Developer and in Friends as **"Testing"** (submitted, through Beta App Review); the phone has
   **Stacked 0.1.0 (6)** (`devicectl`). The user: "the build 6 works well." **Ticket 13 done.**
