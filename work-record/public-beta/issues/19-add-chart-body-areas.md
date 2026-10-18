@@ -37,3 +37,26 @@ them to be organized, so it's easy to navigate."
 
 ## Progress
 
+### Build (Claude, 2026-10-18)
+
+- `BodyArea.sections(of:group:)` (`Domain/CatalogBrowsing.swift`): the Add Exercise picker's grouping rule moved into
+  Domain unchanged, generic over the row type; `ExercisePickerSheet` now calls it (same output).
+- `AddChartSheet.liftingList`: one `LookSectionLabel` (family mark) + `LookList` per section; rows keep today's order
+  (most recently trained first) inside each section. The old "Exercises you've logged" header is gone.
+- Gotcha: an `accessibilityIdentifier` on the section's `VStack` overwrote every row's `addChartExercise` (3 UI tests
+  failed in `19-ui-1`); removed.
+
+### Verification (Claude, 2026-10-18; WT-iPhone27 `47D21838-…`, iOS 27, scratchpad `runs/`)
+
+Scope (DEVELOPMENT → Verification scope, "layout within one screen" + a shared helper): build, unit tests for the
+rule and the catalog, the Add Chart flows, one Add Exercise picker flow, default/AccessibilityL captures.
+
+- Unit `19-unit-1`: `BodyAreaSectionsTests` (4, new), `MuscleFamilyTests`, `CatalogBrowsingTests` — **35 tests, 3
+  suites passed**, `TEST SUCCEEDED`, exit 0.
+- UI `19-ui-1`: warm-up `CardioUITests/testSavedDistanceEditor…` passed; `FloodlightProgressUITests/
+  testChangeMoveRemoveAndRelaunch` passed; `HistoryEditFlowsUITests/testAnAbandonedAddExerciseLeavesNothing` (picker
+  sections) passed; three Add Chart tests failed on the identifier gotcha above.
+- UI `19-ui-2` after the fix: `testAddingLiftingAndCardioFromEmpty`, `testCaptureProgressLightDefault`,
+  `testCaptureProgressDarkAccessibility` — **3/3 passed**, `TEST SUCCEEDED`, exit 0.
+- Captures (`runs/shots19/19-add-chart-light-default.png`, `19-add-chart-dark-axl.png`): Chest / Back / Shoulders /
+  Biceps / Triceps sections with family marks; AccessibilityL wraps names, no clipping.

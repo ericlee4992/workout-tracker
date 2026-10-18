@@ -71,21 +71,29 @@ struct AddChartSheet: View {
         .sorted { ($0.last, $1.exercise.name) > ($1.last, $0.exercise.name) }
     }
 
+    /// Ticket 19 (the user, 2026-10-18): grouped head to toe by body area, as Add Exercise is; most recently trained
+    /// first within a section.
     @ViewBuilder private var liftingList: some View {
         let rows = logged
         if rows.isEmpty {
             EmptyStateView(symbol: "chart.xyaxis.line", title: search.isEmpty ? "No sets logged yet" : "No matches")
         } else {
-            LookList(header: "Exercises you've logged") {
-                ForEach(rows, id: \.exercise.id) { row in
-                    NavigationLink {
-                        ChooseLiftChart(exercise: row.exercise, items: row.items, entries: entries) { pin in onAdd(pin); dismiss() }
-                    } label: {
-                        LookRow(row.exercise.name, subtitle: summaries[row.exercise.id],
-                                symbol: glyph(row.items)) { EmptyView() }
+            ForEach(BodyArea.sections(of: rows) { $0.exercise.muscleGroup }, id: \.title) { section in
+                VStack(alignment: .leading, spacing: 8) {
+                    LookSectionLabel(title: section.title, family: MuscleFamily(muscleGroup: section.title))
+                        .padding(.leading, 4)
+                    LookList {
+                        ForEach(section.items, id: \.exercise.id) { row in
+                            NavigationLink {
+                                ChooseLiftChart(exercise: row.exercise, items: row.items, entries: entries) { pin in onAdd(pin); dismiss() }
+                            } label: {
+                                LookRow(row.exercise.name, subtitle: summaries[row.exercise.id],
+                                        symbol: glyph(row.items)) { EmptyView() }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("addChartExercise")
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("addChartExercise")
                 }
             }
         }

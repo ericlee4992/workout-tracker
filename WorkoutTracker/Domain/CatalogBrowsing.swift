@@ -66,6 +66,18 @@ enum BodyArea {
         "Chest", "Back", "Shoulders", "Biceps", "Triceps", "Forearms", "Neck",
         "Quads", "Hamstrings", "Glutes", "Hips", "Calves", "Core", "Full Body",
     ]
+
+    /// `items` in sections by muscle group: `order` head to toe, then any other group A–Z, then
+    /// "Uncategorized" for none. Items keep their incoming order within a section; a group with
+    /// no items has no section. The Add Exercise picker and Add Chart (ticket 19) share it.
+    static func sections<Item>(of items: [Item], group: (Item) -> String?) -> [(title: String, items: [Item])] {
+        let grouped = Dictionary(grouping: items) { group($0) ?? "" }
+        let known = order.filter { grouped[$0] != nil }
+        let others = grouped.keys.filter { !$0.isEmpty && !order.contains($0) }.sorted()
+        var result = (known + others).map { (title: $0, items: grouped[$0] ?? []) }
+        if let none = grouped[""], !none.isEmpty { result.append((title: "Uncategorized", items: none)) }
+        return result
+    }
 }
 
 // MARK: - Rows

@@ -32,13 +32,8 @@ struct ExercisePickerSheet: View {
     }
 
     /// Body areas head to toe (`BodyArea.order`), then any other group, then Uncategorized.
-    private var sections: [(title: String, exercises: [Exercise])] {
-        let grouped = Dictionary(grouping: filtered) { $0.muscleGroup ?? "" }
-        let known = BodyArea.order.filter { grouped[$0] != nil }
-        let others = grouped.keys.filter { !$0.isEmpty && !BodyArea.order.contains($0) }.sorted()
-        var result = (known + others).map { (title: $0, exercises: grouped[$0] ?? []) }
-        if let none = grouped[""], !none.isEmpty { result.append((title: "Uncategorized", exercises: none)) }
-        return result
+    private var sections: [(title: String, items: [Exercise])] {
+        BodyArea.sections(of: filtered) { $0.muscleGroup }
     }
 
     private var recent: [Exercise] {
@@ -59,7 +54,7 @@ struct ExercisePickerSheet: View {
                 }
                 ForEach(sections, id: \.title) { section in
                     Section {
-                        ForEach(section.exercises) { exercise in row(exercise, identifier: "exerciseOption.\(exercise.name)") }
+                        ForEach(section.items) { exercise in row(exercise, identifier: "exerciseOption.\(exercise.name)") }
                     } header: {
                         LookSectionLabel(title: section.title, family: MuscleFamily(muscleGroup: section.title))
                     }
