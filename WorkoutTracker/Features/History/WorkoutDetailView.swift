@@ -267,7 +267,10 @@ struct WorkoutDetailView: View {
                 case .averageHeartRate: "historyAverageHR"
                 case .maxHeartRate: "historyMaxHR"
                 }
-            }.filter { heroSegment == nil || $0.tile.kind != .workoutTime }
+            }
+            // The hero's time is the workout's only when it is the one segment; with more, the tile
+            // keeps the total active time (D64, codex-review-17 #2).
+            .filter { heroSegment == nil || workout.recordedCardio.count > 1 || $0.tile.kind != .workoutTime }
             // A cardio-only workout with no calories or heart rate has no tile left: no empty heading.
             if !tiles.isEmpty {
                 VStack(alignment: .leading, spacing: look.space.header) {

@@ -56,12 +56,24 @@ enum WorkoutActivityContent {
         return state
     }
 
+    /// The parts of a cached card that change without its key changing: the heart reading, the
+    /// cardio figures and the workout's clock (a pause or resume changes both; codex-review-17 #1).
+    static func refreshed(_ base: WorkoutActivityAttributes.ContentState, for workout: Workout, heart: Heart,
+                          now: Date = .now) -> WorkoutActivityAttributes.ContentState {
+        var state = base
+        state.heartRateBpm = heart.bpm
+        state.zoneLabel = heart.bpm == nil ? nil : heart.zone?.label
+        state.zoneLevel = heart.bpm == nil ? nil : heart.zone?.rawValue
+        state.cardio = workout.unfinishedCardio.map { cardio($0, in: workout, now: now) }
+        state.workoutClock = workoutClock(workout, now: now)
+        return state
+    }
+
     /// nil (the whole session) unless the workout is cardio-only (ticket 17, D64).
     static func workoutClock(_ workout: Workout, now: Date) -> WorkoutActivityAttributes.WorkoutClock? {
         guard workout.isCardioOnly else { return nil }
-        let open = workout.unfinishedCardio
-        if open != nil, workout.orderedCardio.count == 1 { return .hidden }
-        if let open, let start = open.activeStartedAt {
+        if workout.cardioClockIsWorkoutTime { return .hidden }
+        if let open = workout.unfinishedCardio, let start = open.activeStartedAt {
             // Every segment's active time before this stretch began: a fixed instant, so the
             // 2-second tick does not push a new card for a clock the system already ticks.
             return .running(since: start.addingTimeInterval(-workout.cardioActiveSeconds(at: start)))

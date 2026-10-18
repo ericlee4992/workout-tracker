@@ -455,9 +455,8 @@ struct ActiveWorkoutView: View {
         let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
         let completed = sets.filter { $0.completedAt != nil }.count
         let live = !workout.isDeleted
-        // Ticket 17: one cardio and no exercise → the ring on the cardio screen IS the workout's
-        // time, so the header does not repeat it. With more segments the ring is only the current one.
-        let ringIsWorkoutTime = live && workout.isCardioOnly && workout.orderedCardio.count == 1
+        // Ticket 17: the ring on the cardio screen IS the workout's time, so the header does not repeat it.
+        let ringIsWorkoutTime = live && workout.cardioClockIsWorkoutTime
         return LiveHeaderLine(
             gym: live ? (workout.gym?.name ?? "No gym") : "",
             startedAt: live ? workout.startedAt : .now,
@@ -770,11 +769,7 @@ struct ActiveWorkoutView: View {
                                                 restResult: lastRestResult, degradedRestSetID: degradedRestSetID)
             activityBase = (key, state)
         }
-        state.heartRateBpm = heart.bpm
-        state.zoneLabel = heart.bpm == nil ? nil : heart.zone?.label
-        state.zoneLevel = heart.bpm == nil ? nil : heart.zone?.rawValue
-        state.cardio = workout.unfinishedCardio.map { WorkoutActivityContent.cardio($0, in: workout, now: .now) }
-        return state
+        return WorkoutActivityContent.refreshed(state, for: workout, heart: heart)
     }
 
     /// Drag-to-reorder. SwiftUI's own `IndexSet`/destination semantics go

@@ -263,6 +263,13 @@ extension Workout {
         return !recordedCardio.isEmpty && completedSets.isEmpty
     }
 
+    /// Cardio-only with ONE segment, still open: its live clock (the ring, the Live Activity's cardio
+    /// clock) is the workout's time, so no second clock repeats it. With more segments it is only the
+    /// current one's; once it ends, it is gone (codex-review-17 #3).
+    var cardioClockIsWorkoutTime: Bool {
+        isCardioOnly && orderedCardio.count == 1 && unfinishedCardio != nil
+    }
+
     /// The cardio's active seconds at `date`, every segment's pauses excluded.
     func cardioActiveSeconds(at date: Date) -> TimeInterval {
         (finishedAt == nil ? orderedCardio : recordedCardio)

@@ -37,3 +37,11 @@ than the report; do not commit or push.
 
 Write `work-record/public-beta/codex-review-17.md`: findings numbered P1/P2/P3 with file:line, failure scenario and fix;
 end with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 2
+
+Round 1: [codex-review-17.md](codex-review-17.md), not clear (#1 cached Live Activity clock, #2 multi-segment History
+detail total, #3 header hidden after End Cardio). Claude's fixes: the ticket's "Codex round 1 — response" comment and
+`git diff fe3c071..HEAD`. Check all three are closed and nothing regressed; rerun the build and the five unit suites
+(same rules, a new result path). Write `work-record/public-beta/codex-review-17b.md`, ending with exactly
+`Verdict: clear` or `Verdict: not clear`. Do not commit or push.

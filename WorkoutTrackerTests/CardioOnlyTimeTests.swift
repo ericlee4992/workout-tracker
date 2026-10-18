@@ -127,4 +127,45 @@ struct CardioOnlyTimeTests {
         try cardio.pause(run, at: at(160))
         #expect(WorkoutActivityContent.workoutClock(workout, now: at(500)) == .stopped(seconds: 120))
     }
+
+    /// The live screen caches the card's slow part under a key that a pause does not change; the
+    /// refresh must still move the workout's clock (codex-review-17 #1).
+    @Test func aCachedCardFollowsPauseAndResume() throws {
+        let store = try Store()
+        let session = WorkoutSession(context: store.context)
+        let cardio = CardioSession(context: store.context)
+        let workout = try session.startWorkout(at: nil, on: start)
+        let walk = try cardio.start(.indoorWalk, in: workout, at: start)
+        try cardio.end(walk, at: at(60))
+        let run = try cardio.start(.indoorRun, in: workout, at: at(100))
+        let heart = WorkoutActivityContent.Heart(bpm: nil, zone: nil)
+        let recording = WorkoutActivityContent.make(for: workout, in: store.context, heart: heart, now: at(130))
+        #expect(recording.workoutClock == .running(since: at(40)))
+
+        try cardio.pause(run, at: at(160))
+        let paused = WorkoutActivityContent.refreshed(recording, for: workout, heart: heart, now: at(200))
+        #expect(paused.workoutClock == .stopped(seconds: 120))
+        #expect(paused.cardio?.isPaused == true)
+
+        try cardio.resume(run, at: at(300))
+        let resumed = WorkoutActivityContent.refreshed(paused, for: workout, heart: heart, now: at(310))
+        #expect(resumed.workoutClock == .running(since: at(180)))
+        // Unchanged ticks compare equal, so they push no new card.
+        #expect(WorkoutActivityContent.refreshed(paused, for: workout, heart: heart, now: at(312)) == resumed)
+    }
+
+    /// One segment hides the second clock only while it is open (codex-review-17 #3).
+    @Test func endingTheOnlySegmentBringsTheWorkoutClockBack() throws {
+        let store = try Store()
+        let session = WorkoutSession(context: store.context)
+        let cardio = CardioSession(context: store.context)
+        let workout = try session.startWorkout(at: nil, on: start)
+        let run = try cardio.start(.indoorRun, in: workout, at: start)
+        #expect(workout.cardioClockIsWorkoutTime)
+        try cardio.pause(run, at: at(60))
+        #expect(workout.cardioClockIsWorkoutTime, "paused is still open")
+        try cardio.end(run, at: at(90))
+        #expect(!workout.cardioClockIsWorkoutTime)
+        #expect(WorkoutActivityContent.workoutClock(workout, now: at(200)) == .stopped(seconds: 60))
+    }
 }

@@ -115,3 +115,18 @@ longer counts the pause. Otherwise as before: send anything odd from Settings �
 **Checkpoint 2026-10-18:** implementation committed `fde78f0` and pushed; Codex review round 1 sent to the "Codex
 review" terminal (`term_be05cca0-…`), prompt `codex-review-17-prompt.md`, report → `codex-review-17.md`.
 
+
+**Codex round 1 — response (Claude, 2026-10-18).** [codex-review-17.md](../codex-review-17.md), not clear; all three
+accepted and fixed:
+1. *Cached card kept a stale workout clock through pause/resume.* The live screen's refresh moved into
+   `WorkoutActivityContent.refreshed(_:for:heart:now:)` (heart, cardio and now `workoutClock`), called by
+   `ActiveWorkoutView.activityState()`. Test `aCachedCardFollowsPauseAndResume` drives a cached base through pause
+   and resume and checks unchanged ticks still compare equal.
+2. *Multi-segment History detail lost the total.* `WorkoutDetailView` drops the time tile only when the hero is the
+   workout's single recorded segment. `FloodlightCardioUITests.finished` now asserts History's `historyWorkoutTime`
+   reads 20:00 for the run + cycle.
+3. *Header stayed hidden after End Cardio.* One rule, `Workout.cardioClockIsWorkoutTime` (cardio-only, one segment,
+   still open), now drives both the header and the Live Activity's `.hidden`. Test
+   `endingTheOnlySegmentBringsTheWorkoutClockBack`; the UI test ends the segment and checks the clock is back, stopped.
+Unit: 62/62 in 6 suites, exit 0 (`unit2.log`). UI: `testFinishedLightAccessibility` passed; the other two hit the
+known `kAXErrorServerNotFound` on a fresh clone and are re-run serially on a rebooted WT-Floodlight (`ui5`).

@@ -213,6 +213,13 @@ final class FloodlightCardioUITests: XCTestCase {
         pause.tap()
         lifting.tap()
         XCTAssertTrue(ticks(any("workoutClock")), "recording again: the workout's clock runs")
+        // Ended, the ring is gone: the workout's clock comes back on the cardio screen, stopped.
+        cardioFocus()
+        let end = app.buttons["endCardio"]
+        XCTAssertTrue(end.waitForExistence(timeout: 5))
+        end.tap()
+        toTop()
+        XCTAssertFalse(ticks(any("workoutClock")), "one ended segment: the workout's time, stopped")
     }
 
     // MARK: Finished
@@ -256,6 +263,10 @@ final class FloodlightCardioUITests: XCTestCase {
         XCTAssertTrue(clear(), "View in History clear of the header")
         history.tap()
         XCTAssertTrue(any("historyWorkoutName").waitForExistence(timeout: 15), "History's detail opened")
+        // Two segments: the hero is the run alone, so the tile keeps the workout's 20:00 (D64).
+        let historyTime = any("historyWorkoutTime"); reach(historyTime)
+        XCTAssertTrue(historyTime.label.contains("20:00"), historyTime.label)
+        toTop()
         let hero = any("cardioRoute")
         XCTAssertTrue(hero.waitForExistence(timeout: 15))
         sleep(2)
