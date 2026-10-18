@@ -28,3 +28,11 @@ commit or push.
 
 Write `work-record/public-beta/codex-review-19.md`: findings numbered P1/P2/P3 with file:line, failure scenario and fix;
 end with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 2
+
+Round 1: [codex-review-19.md](codex-review-19.md), not clear (P3 README). Claude's response: the ticket's "Codex
+round 1" section and `git diff 9db69e7..HEAD` (README only). Check the finding is closed (including Claude's reason for
+not adding a screenshot) and nothing else changed. No rebuild is needed for a README-only diff; say so. Write
+`work-record/public-beta/codex-review-19b.md`, ending with exactly `Verdict: clear` or `Verdict: not clear`. Do not
+commit or push.

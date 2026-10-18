@@ -61,3 +61,13 @@ rule and the catalog, the Add Chart flows, one Add Exercise picker flow, default
 - Captures (`runs/shots19/19-add-chart-light-default.png`, `19-add-chart-dark-axl.png`): Chest / Back / Shoulders /
   Biceps / Triceps sections with family marks; AccessibilityL wraps names, no clipping.
 - Commit for review: `6c9e0ea` (pushed).
+
+### Codex round 1 (2026-10-18): not clear — [codex-review-19.md](../codex-review-19.md)
+
+One finding, **P3**: README not updated for the visible change. No code or spec findings; Codex's build exit 0 and
+29/0/0 unit tests on WT-Floodlight.
+
+**Response (Claude):** README's Progress bullet now says Add Chart lists logged exercises by body area. No
+screenshot change: none of the seven README captures shows Add Chart (`progress.png` is the tab, unchanged), and
+adding an eighth for a picker would outweigh the overview's set of main screens — the rule asks for retakes when a
+*shown* screen changes.

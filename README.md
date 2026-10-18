@@ -48,7 +48,8 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
   heart-rate series and routes) or CSV (a table of sets and cardio).
 - **Progress.** A tab of the charts you pin — lifts per machine or weight (best set, volume,
   1RM) and cardio activities (distance, pace or speed, time) — each with its latest value and
-  the change since your first session; tap one for the full chart, its bests and sessions.
+  the change since your first session; tap one for the full chart, its bests and sessions. Add Chart
+  lists the exercises you've logged by body area.
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
   templates from your training profile. Each AI feature asks first and has a daily limit.
