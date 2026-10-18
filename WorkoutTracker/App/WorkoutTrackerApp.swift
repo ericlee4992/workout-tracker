@@ -13,6 +13,8 @@ struct WorkoutTrackerApp: App {
             UserDefaults.standard.removeObject(forKey: TerraAccess.routineConsentKey)
             // Per-device facts outside the store start fresh too (ticket 09).
             ExportRecord.clear()
+            // Public beta ticket 14: What's New starts unseen (it shows in a test only when asked for).
+            UserDefaults.standard.removeObject(forKey: WhatsNew.lastSeenKey)
             // Public beta ticket 16: the Progress tab's pins too, unless a test relaunches to check they persist.
             if !ProcessInfo.processInfo.arguments.contains("-uiTestKeepPins") {
                 UserDefaults.standard.removeObject(forKey: ProgressPinStore.key)
@@ -133,6 +135,9 @@ struct WorkoutTrackerApp: App {
     @State private var account = AccountStore.forThisApp()
     /// The tour's stand-in: no server, so the tour never shows the tester's own account (it runs on sample data).
     @State private var tourAccount = AccountStore(client: nil)
+    /// Public beta ticket 14: the notes shown after an update, and the build they belong to (saved as seen on dismissal).
+    @State private var whatsNew: WhatsNewEntry?
+    @State private var whatsNewShown: Int?
 
     var body: some Scene {
         WindowGroup {
@@ -161,7 +166,14 @@ struct WorkoutTrackerApp: App {
                     .id(ObjectIdentifier(sample))
                 } else {
                     RootView()
-                        .onAppear { onboarding.evaluateFirstLaunch(in: modelContainer.mainContext) }
+                        .onAppear {
+                            onboarding.evaluateFirstLaunch(in: modelContainer.mainContext)
+                            evaluateWhatsNew()
+                        }
+                        .sheet(item: $whatsNew, onDismiss: {
+                            if let build = whatsNewShown { WhatsNew.markSeen(build) }
+                            whatsNewShown = nil
+                        }) { WhatsNewSheet(entry: $0) }
                         .fullScreenCover(isPresented: $onboarding.showsWelcome) {
                             WelcomeView(onTour: { onboarding.startTour(realContext: modelContainer.mainContext) },
                                         onSkip: { onboarding.skipWelcome() },
@@ -185,5 +197,29 @@ struct WorkoutTrackerApp: App {
                 .lookLayer()
         }
         .modelContainer(modelContainer)
+    }
+
+    /// Public beta ticket 14: decided once per appearance of the user's own app (not the tour's world). A fresh
+    /// install — the welcome page's own rule: never answered, no workout — starts at this build and sees nothing; an
+    /// update sees the newest notes it has not seen, unless a workout is in progress (then the next launch shows them).
+    private func evaluateWhatsNew() {
+        guard whatsNew == nil else { return }
+        if WorkoutTrackerStore.isUITestReset {
+            guard ProcessInfo.processInfo.arguments.contains(WhatsNew.uiTestArgument) else { return }
+            whatsNew = WhatsNew.latest
+            whatsNewShown = whatsNew?.build
+            return
+        }
+        let context = modelContainer.mainContext
+        // Fail closed: an unknown count is treated as a workout in progress (nothing shown, nothing recorded).
+        let workouts = (try? context.fetchCount(FetchDescriptor<Workout>())) ?? 1
+        let unfinished = (try? context.fetchCount(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt == nil }))) ?? 1
+        let decision = WhatsNew.decide(
+            currentBuild: WhatsNew.currentBuild, lastSeen: WhatsNew.lastSeen(),
+            freshInstall: !UserDefaults.standard.bool(forKey: OnboardingCoordinator.welcomeSeenKey) && workouts == 0,
+            workoutInProgress: unfinished > 0)
+        if let build = decision.recordNow { WhatsNew.markSeen(build) }
+        whatsNew = decision.show
+        whatsNewShown = decision.show?.build
     }
 }

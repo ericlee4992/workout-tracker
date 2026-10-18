@@ -1,7 +1,7 @@
 # 14 — In-app "What's New" for big changes
 
 Type: feature
-Status: ready — decisions in (2026-10-17); ships with ticket 16 (the Progress tab) in the next build
+Status: built (2026-10-17), in review; ships with ticket 16 (the Progress tab) in build 7
 Blocked by: —
 Spec: [spec.md](../spec.md). Decision: [D62](../../../docs/DECISIONS.md). Related: [DEVELOPMENT → TestFlight build
 checklist](../../../docs/DEVELOPMENT.md#testflight-build-checklist); onboarding (ticket 02) for the existing first-launch flow.
@@ -33,3 +33,22 @@ shows/describes the new features."
 "Pin any lift or cardio activity to the new Progress tab." / "Each chart shows your latest best and how far you've come
 since your first session." / "Long-press a chart to change what it shows, move it or remove it."; button "Continue".
 Still to design (with captures): the sheet's look; keyed per build or version; never over a live workout.
+
+**Built (2026-10-17, Claude).** Branch `ericlee4992/beta-14-whats-new` off ticket 16's tip `63a6058` (16 is not merged
+yet; both ship in build 7). `Domain/WhatsNew.swift`: the entries (build 7, the approved text), the launch rule
+`WhatsNew.decide` (fresh install = the welcome page's own rule — never answered, no workout — records the current build
+and shows nothing; an update shows the newest entry after the last build seen and at or before this one; a workout in
+progress defers it with nothing recorded; fail-closed counts), last-seen build in UserDefaults
+(`whatsNew.lastSeenBuild.v1`), saved on dismissal (Continue or a swipe) and never moving backwards.
+`Features/Onboarding/WhatsNewSheet.swift`: the title (`largeTitle`), one row per line with a glyph in a raised disc,
+Continue (`.lookPrimary`, the only prominent button). `WorkoutTrackerApp`: evaluated on the user's own RootView appear
+(never in the tour's world); `-uiTestReset` clears the last-seen build and the sheet shows in UI tests only with
+`-uiTestWhatsNew`. Settings → Help → **What's New** (newspaper glyph — sparkles mean AI here, so Add Chart's "Most used"
+moved to a star too). DEVELOPMENT's TestFlight checklist says where an entry goes; README mentions it.
+**Design notes:** the sheet follows the system What's New pattern (title, lines, one Continue at the foot); at
+AccessibilityL the third line scrolls under Continue (the content is a scroll view; nothing is truncated).
+**Verified:** build **BUILD SUCCEEDED**; `WhatsNewTests` **6 passed**; `FloodlightWhatsNewUITests` **5 passed** (captures
+light/dark × Default/AXL in `captures/14/`, looked at; Continue closes; Settings opens it again; a test launch without
+the argument never shows it); regression on WT-iPhone27 — full unit suite **1041 passed**, FloodlightSettingsUITests +
+FloodlightTourUITests **20 tests, 0 failures**. The icon swap afterwards is visual only (build passed). Not exercised:
+the real update path on a phone (build 6 → 7) — check it when build 7 installs.

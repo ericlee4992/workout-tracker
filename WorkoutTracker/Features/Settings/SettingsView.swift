@@ -25,6 +25,7 @@ struct SettingsView: View {
     @State private var showAskAISheet = false
     @State private var showExport = false
     @State private var showFeedback = false
+    @State private var showWhatsNew = false
     @State private var showProfile = false
     @State private var showSignIn = false
     @State private var showAppleStep = false
@@ -203,7 +204,7 @@ struct SettingsView: View {
     /// Public beta ticket 02: the guided tour again, any time (not while a workout runs — it explains why).
     /// Ticket 07: Send Feedback (works signed out). Neither row may exist (a preview without a server): no section then.
     @ViewBuilder private var help: some View {
-        if onboarding != nil || FeedbackSender.isAvailable {
+        if onboarding != nil || FeedbackSender.isAvailable || WhatsNew.latest != nil {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Help")
             LookList(separatorInset: 54) {
@@ -213,12 +214,20 @@ struct SettingsView: View {
                     })
                     .accessibilityIdentifier("showTour")
                 }
+                // Public beta ticket 14: the latest What's New again (the user's choice: readable from Settings).
+                if WhatsNew.latest != nil {
+                    LookRow("What's New", symbol: "newspaper", action: { showWhatsNew = true })
+                        .accessibilityIdentifier("settingsWhatsNew")
+                }
                 // Hidden in a build without a server (WT_SERVER_URL blank) rather than failing on Send.
                 if FeedbackSender.isAvailable {
                     LookRow("Send Feedback", symbol: "bubble.left.and.text.bubble.right", action: { showFeedback = true })
                         .accessibilityIdentifier("sendFeedback")
                 }
             }
+        }
+        .sheet(isPresented: $showWhatsNew) {
+            if let latest = WhatsNew.latest { WhatsNewSheet(entry: latest) }
         }
         .alert(onboarding?.tourFailure ?? "", isPresented: Binding(
             get: { onboarding?.tourFailure != nil }, set: { if !$0 { onboarding?.tourFailure = nil } })) {

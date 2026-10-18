@@ -163,7 +163,7 @@ private struct ChooseLiftChart: View {
                     let allMachines = options.allSatisfy { if case .machine = $0.key.equipment { true } else { false } }
                     LookList(header: allMachines ? "Machine" : "Equipment") {
                         LookRow("Most used", subtitle: options.first.flatMap { names[$0.key] }.map { "Now \($0)" },
-                                symbol: "sparkles", showsChevron: false, action: { select(nil) }) {
+                                symbol: "star", showsChevron: false, action: { select(nil) }) {
                             check(choice == nil)
                         }
                         .accessibilityIdentifier("addChartMostUsed")

@@ -199,7 +199,10 @@ tickets 08 and 13):
    plain words ("Fixed…", "New…"), then what to try — and show it to the user before uploading; the user may edit it.
    Copy the final text into the ticket. If the build contains a **big new feature or change**, it also needs an
    in-app **What's New** entry (ticket 14) in the same build; small fixes and small features get the note only.
-   When unsure which it is, ask the user.
+   When unsure which it is, ask the user. The entry is code: append a `WhatsNewEntry` to `WhatsNew.entries`
+   (`WorkoutTracker/Domain/WhatsNew.swift`) with **this build's number**, a title and a few lines the user approved;
+   it shows once to people updating to that build or later (not on a fresh install, not over a workout in progress)
+   and stays readable in Settings → What's New. Its capture test is `FloodlightWhatsNewUITests` (`-uiTestWhatsNew`).
 3. **Build number:** raise `CURRENT_PROJECT_VERSION` in every target (`project.pbxproj`, all occurrences), check
    `xcodebuild build`, commit, fast-forward `main`, push.
 4. **Archive** from the detached `release-build` checkout at that `main` commit (`Config/Local.xcconfig` present):

@@ -52,8 +52,9 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
   templates from your training profile. Each AI feature asks first and has a daily limit.
-- **Onboarding and feedback.** A guided tour of the real app on sample data, and
-  Settings → Send Feedback with an optional screenshot.
+- **Onboarding and feedback.** A guided tour of the real app on sample data, a one-time
+  What's New page after a big update (and in Settings), and Settings → Send Feedback with an
+  optional screenshot.
 
 ## Privacy
 
