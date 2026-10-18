@@ -64,5 +64,6 @@ Branch: `ericlee4992/beta-18-exercise-media` off `main` `1f0e040`.
 
 1. [01 Reference UX study (REA)](issues/01-reference-ux-study.md) — done for the web library.
 2. [02 Media sources and licences](issues/02-media-licensing.md) — in progress.
-3. Further tickets (data mapping, media hero on the exercise page, in-workout sheet, Exercises tab media, user clips,
+3. [03 Gym visual pilot: 10 hard exercises](issues/03-gymvisual-pilot.md) — list ready; the user buys.
+4. Further tickets (data mapping, media hero on the exercise page, in-workout sheet, Exercises tab media, user clips,
    YouTube fallback, privacy/attribution) are drafted after the decisions above.
