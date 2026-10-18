@@ -251,6 +251,30 @@ extension Workout {
     }
     var unfinishedCardio: CardioSegment? { orderedCardio.last { $0.endedAt == nil } }
     var recordedCardio: [CardioSegment] { orderedCardio.filter(\.hasRecordedActivity) }
+
+    /// Ticket 17 (D64): a workout of cardio and no exercise. Its time is the cardio's active time,
+    /// so pausing the cardio pauses the workout. Live: adding an exercise ends it, before any set
+    /// is done (the user: the whole-session clock comes back). Finished: finish deletes set-less
+    /// entries and unrecorded segments, so this agrees with History's `hasLifting`/`hasCardio`.
+    var isCardioOnly: Bool {
+        if finishedAt == nil {
+            return !orderedCardio.isEmpty && WorkoutSession.orderedEntries(of: self).isEmpty
+        }
+        return !recordedCardio.isEmpty && completedSets.isEmpty
+    }
+
+    /// The cardio's active seconds at `date`, every segment's pauses excluded.
+    func cardioActiveSeconds(at date: Date) -> TimeInterval {
+        (finishedAt == nil ? orderedCardio : recordedCardio)
+            .reduce(0) { $0 + $1.activeDuration(at: $1.endedAt ?? date) }
+    }
+
+    /// The workout's time at `date` (capped at the finish): cardio-only → the cardio's active
+    /// time; otherwise the whole session, where a cardio pause is rest like any other.
+    func trainingSeconds(at date: Date) -> TimeInterval {
+        let end = finishedAt.map { min($0, date) } ?? date
+        return isCardioOnly ? cardioActiveSeconds(at: end) : max(0, end.timeIntervalSince(startedAt))
+    }
 }
 
 enum CardioSessionError: LocalizedError {

@@ -10,6 +10,8 @@ struct TemplateStartCapsule: View {
     var title = "Start"
     var subtitle: String?
     var startedAt: Date?
+    /// The running workout's time at a date (`Workout.trainingSeconds`, ticket 17); with `startedAt`.
+    var elapsedAt: ((Date) -> TimeInterval)?
     var action: () -> Void
     @Environment(\.look) private var look
     @Environment(\.isEnabled) private var isEnabled
@@ -19,7 +21,7 @@ struct TemplateStartCapsule: View {
 
     var body: some View {
         TimelineView(.periodic(from: startedAt ?? .now, by: 1)) { context in
-            let elapsed = startedAt.map { max(0, Int(context.date.timeIntervalSince($0))) }
+            let elapsed = startedAt.map { max(0, Int(elapsedAt?(context.date) ?? context.date.timeIntervalSince($0))) }
             Button {
                 taps += 1
                 action()

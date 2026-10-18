@@ -56,6 +56,9 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         var cardio: Cardio?
         /// The workout's name (the cardio card's header).
         var workoutTitle: String?
+        /// The header clock of a cardio-only workout (ticket 17, D64); nil = the whole session,
+        /// counted from `startedAt`.
+        var workoutClock: WorkoutClock?
 
         init(heartRateBpm: Int? = nil, zoneLabel: String? = nil, restEndsAt: Date? = nil,
              completedSets: Int, currentExercise: String? = nil, zoneLevel: Int? = nil,
@@ -77,6 +80,16 @@ struct WorkoutActivityAttributes: ActivityAttributes {
             self.cardio = cardio
             self.workoutTitle = workoutTitle
         }
+    }
+
+    /// A cardio-only workout's time is its cardio's active time (D64).
+    enum WorkoutClock: Codable, Hashable {
+        /// One cardio segment, still open: the cardio clock below is the same time.
+        case hidden
+        /// Nothing records (a pause, or between segments): the time so far.
+        case stopped(seconds: Int)
+        /// Recording: ticks from the instant the workout's time read zero (fixed while it runs).
+        case running(since: Date)
     }
 
     enum RestKind: Codable, Hashable {

@@ -17,7 +17,7 @@ Also retains approved outdoor runs/rides with GPS and one saved mixed workout.
   workout open. Finish ends the workout and its unfinished segment. Cancel deletes all of it.
   Starting cardio clears an outstanding lifting rest timer/alarm.
 - Timer is cardio active time (pauses excluded). The workout header is whole-workout elapsed
-  time. A paused segment survives restart; an interrupted running segment recovers paused at
+  time — except a cardio-only workout, whose time is its cardio's active time (D64, 2026-10-18). A paused segment survives restart; an interrupted running segment recovers paused at
   its last persisted checkpoint, never pretending to have tracked while the app was dead.
 - Cardio works without wearable data. Missing HR/calories/distance/pace are absent or a dash,
   never fake zero measurements. Device loss does not discard or end the workout.

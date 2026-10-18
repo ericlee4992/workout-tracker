@@ -52,7 +52,21 @@ enum WorkoutActivityContent {
         if let segment = workout.unfinishedCardio {
             state.cardio = cardio(segment, in: workout, now: now)
         }
+        state.workoutClock = workoutClock(workout, now: now)
         return state
+    }
+
+    /// nil (the whole session) unless the workout is cardio-only (ticket 17, D64).
+    static func workoutClock(_ workout: Workout, now: Date) -> WorkoutActivityAttributes.WorkoutClock? {
+        guard workout.isCardioOnly else { return nil }
+        let open = workout.unfinishedCardio
+        if open != nil, workout.orderedCardio.count == 1 { return .hidden }
+        if let open, let start = open.activeStartedAt {
+            // Every segment's active time before this stretch began: a fixed instant, so the
+            // 2-second tick does not push a new card for a clock the system already ticks.
+            return .running(since: start.addingTimeInterval(-workout.cardioActiveSeconds(at: start)))
+        }
+        return .stopped(seconds: Int(workout.trainingSeconds(at: now)))
     }
 
     /// The cardio activity, else the last exercise with a completed set, else the last exercise

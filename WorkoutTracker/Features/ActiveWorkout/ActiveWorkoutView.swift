@@ -454,10 +454,16 @@ struct ActiveWorkoutView: View {
     private var header: some View {
         let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
         let completed = sets.filter { $0.completedAt != nil }.count
+        let live = !workout.isDeleted
+        // Ticket 17: one cardio and no exercise → the ring on the cardio screen IS the workout's
+        // time, so the header does not repeat it. With more segments the ring is only the current one.
+        let ringIsWorkoutTime = live && workout.isCardioOnly && workout.orderedCardio.count == 1
         return LiveHeaderLine(
-            gym: workout.isDeleted ? "" : (workout.gym?.name ?? "No gym"),
-            startedAt: workout.isDeleted ? .now : workout.startedAt,
-            done: completed, total: sets.count, showsSets: !cardioFocus)
+            gym: live ? (workout.gym?.name ?? "No gym") : "",
+            startedAt: live ? workout.startedAt : .now,
+            elapsedAt: { workout.isDeleted ? 0 : workout.trainingSeconds(at: $0) },
+            done: completed, total: sets.count, showsSets: !cardioFocus,
+            showsClock: !(cardioFocus && ringIsWorkoutTime))
     }
 
     /// D41: live heart rate beside the workout's calories and volume, above the exercises —

@@ -166,6 +166,7 @@ struct StartWorkoutView: View {
                     symbol: active.unfinishedCardio?.activity.symbol ?? "figure.strengthtraining.traditional",
                     detail: resumeDetail(active),
                     startedAt: active.startedAt,
+                    elapsedAt: { active.isDeleted ? 0 : active.trainingSeconds(at: $0) },
                     action: resumeActive)
                     .accessibilityIdentifier("resumeWorkout")
                     .transition(swapTransition)

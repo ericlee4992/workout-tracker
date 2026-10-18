@@ -100,7 +100,7 @@ struct CardioLiveBlock: View {
                                              distanceMeters: segment.distanceMeters, unit: segment.unit)
             let paused = !segment.isRunning
             VStack(alignment: .leading, spacing: ax ? 14 : 20) {
-                header(paused: paused, pausedFor: CardioReadout.pausedSeconds(segment, at: tick.date) ?? 0)
+                header(paused: paused)
                 hero(active: active, model: model, paused: paused)
                     .frame(maxWidth: .infinity)
                 if location == .lost {
@@ -125,16 +125,16 @@ struct CardioLiveBlock: View {
 
     // MARK: Header
 
-    private func header(paused: Bool, pausedFor: Int) -> some View {
+    private func header(paused: Bool) -> some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .center, spacing: 12) {
                 titleBlock
                 Spacer(minLength: 8)
-                CardioStatusPill(paused: paused, pausedSeconds: pausedFor).fixedSize()
+                CardioStatusPill(paused: paused).fixedSize()
             }
             VStack(alignment: .leading, spacing: 10) {
                 titleBlock
-                CardioStatusPill(paused: paused, pausedSeconds: pausedFor)
+                CardioStatusPill(paused: paused)
             }
         }
     }
@@ -338,10 +338,10 @@ struct CardioLiveBlock: View {
 
 // MARK: - Status pill
 
-/// Recording: the live dot on a quiet pill. Paused: the pill inverts and counts the pause.
+/// Recording: the live dot on a quiet pill. Paused: the pill inverts (no pause counter — the user,
+/// ticket 17: how long it has been paused is not worth the space).
 private struct CardioStatusPill: View {
     var paused: Bool
-    var pausedSeconds: Int
     @Environment(\.look) private var look
     @ScaledMetric(relativeTo: .subheadline) private var height: CGFloat = 34
 
@@ -350,7 +350,6 @@ private struct CardioStatusPill: View {
             if paused {
                 Image(systemName: "pause.fill").font(.system(.caption, weight: .heavy))
                 Text("Paused")
-                Text(Format.elapsed(seconds: pausedSeconds)).monospacedDigit()
             } else {
                 CardioPulseDot(color: look.done, size: 9).padding(.trailing, 2)
                 Text("Recording")
@@ -363,7 +362,7 @@ private struct CardioStatusPill: View {
         .background(paused ? look.textPrimary : look.surface, in: Capsule())
         .overlay { if !paused { Capsule().strokeBorder(look.hairline, lineWidth: 1) } }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(paused ? "Paused, for \(Format.spokenElapsed(seconds: pausedSeconds))" : "Recording")
+        .accessibilityLabel(paused ? "Paused" : "Recording")
         .accessibilityIdentifier("cardioStatus")
     }
 }

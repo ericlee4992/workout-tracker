@@ -115,15 +115,18 @@ final class FloodlightCardioUITests: XCTestCase {
         let pause = app.buttons["cardioPauseResume"]
         pause.tap()
         let status = any("cardioStatus")
-        XCTAssertTrue(status.label.hasPrefix("Paused"), status.label)
+        XCTAssertEqual(status.label, "Paused", "no pause counter (ticket 17)")
         XCTAssertEqual(pause.label, "Resume")
         toTop(); shoot("C03")
+        // With lifting, a cardio pause is rest: the workout's clock keeps the whole session.
+        XCTAssertTrue(ticks(any("workoutClock")), "a workout with lifting keeps counting")
 
         // Recording a target with heart rate: the ring, figures, the plate; the replace picker.
         launch(["-uiTestCardioTarget", "-uiTestHeartRate"], appearance, large: large)
         XCTAssertTrue(any("cardioTimer").waitForExistence(timeout: 15))
         XCTAssertTrue(any("cardioTimer").label.contains("of 20:00"))
         XCTAssertTrue(any("cardioStatus").label == "Recording")
+        XCTAssertFalse(any("workoutClock").exists, "cardio-only, one segment: the ring is the workout's time")
         shoot("C02")
         reach(any("cardioHeartRate"))
         // The seeded 2.36 km plus whatever the heart-rate fixture's sensor adds.
@@ -183,6 +186,35 @@ final class FloodlightCardioUITests: XCTestCase {
         shoot("C04-lost-p2")
     }
 
+    /// Whether the clock's label changes within a few seconds.
+    private func ticks(_ clock: XCUIElement) -> Bool {
+        XCTAssertTrue(clock.waitForExistence(timeout: 5))
+        let first = clock.label
+        sleep(3)
+        return clock.label != first
+    }
+
+    /// Ticket 17 (D64): a cardio-only workout's time is the cardio's active time, so pausing the
+    /// cardio stops it; resuming starts it again.
+    func testCardioOnlyPauseStopsTheWorkoutClock() {
+        launch(["-uiTestCardioTarget"], "dark", large: false)
+        let pause = app.buttons["cardioPauseResume"]
+        XCTAssertTrue(pause.waitForExistence(timeout: 15))
+        XCTAssertFalse(any("workoutClock").exists, "the ring is the workout's time")
+        pause.tap()
+        XCTAssertEqual(any("cardioStatus").label, "Paused")
+        let lifting = app.segmentedControls["workoutActivityFocus"].buttons["Lifting"]
+        lifting.tap()
+        XCTAssertFalse(ticks(any("workoutClock")), "paused cardio-only: the workout's clock stops")
+        shoot("L-cardio-only-paused")
+        cardioFocus()
+        XCTAssertTrue(pause.waitForExistence(timeout: 5))
+        XCTAssertEqual(pause.label, "Resume")
+        pause.tap()
+        lifting.tap()
+        XCTAssertTrue(ticks(any("workoutClock")), "recording again: the workout's clock runs")
+    }
+
     // MARK: Finished
 
     func testFinishedDark() { finished("dark", large: false) }
@@ -198,6 +230,11 @@ final class FloodlightCardioUITests: XCTestCase {
         shoot("C02-ended-outdoor")
         app.buttons["finishWorkout"].tap()
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10))
+        // Cardio-only: the time tile is the active time (1,080 s run + 120 s cycle), not the 21+ minutes
+        // since the start (ticket 17).
+        let time = any("summaryTime")
+        let twenty = NSPredicate(format: "label CONTAINS '20:00'")
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation(for: twenty, evaluatedWith: time)], timeout: 8), .completed, time.label)
         let route = any("cardioRoute"); reach(route)
         sleep(2) // the map snapshot fades in
         shoot("F02-route")

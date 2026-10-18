@@ -290,7 +290,8 @@ struct TemplateDetailView: View {
                 let sets = WorkoutSession.orderedEntries(of: active).flatMap { $0.sets ?? [] }
                 TemplateStartCapsule(title: "Resume workout",
                                      subtitle: sets.isEmpty ? nil : "\(sets.filter { $0.completedAt != nil }.count)/\(sets.count) sets",
-                                     startedAt: active.startedAt) {
+                                     startedAt: active.startedAt,
+                                     elapsedAt: { active.isDeleted ? 0 : active.trainingSeconds(at: $0) }) {
                     if let workout = try? WorkoutSession(context: modelContext).resumableWorkout() {
                         onWorkoutStarted(workout)
                     }

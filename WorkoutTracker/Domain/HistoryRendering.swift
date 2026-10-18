@@ -133,9 +133,10 @@ enum HistoryRendering {
 }
 
 extension Workout {
-    /// Elapsed time from start to finish; nil while the workout is active.
+    /// The workout's time (`trainingSeconds`): start to finish, or a cardio-only workout's
+    /// active time (D64); nil while the workout is active.
     var duration: TimeInterval? {
-        finishedAt.map { max(0, $0.timeIntervalSince(startedAt)) }
+        finishedAt.map(trainingSeconds(at:))
     }
 
     /// Rendered duration (E3); nil while the workout is active.

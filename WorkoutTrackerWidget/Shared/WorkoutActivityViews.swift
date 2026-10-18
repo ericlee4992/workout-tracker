@@ -625,7 +625,18 @@ struct WorkoutActivityCard: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Spacer(minLength: 8)
-            ActivityClock(start: attributes.startedAt, font: ActivityType.number(.subheadline), color: palette.textSecondary)
+            switch state.workoutClock {
+            case nil:
+                ActivityClock(start: attributes.startedAt, font: ActivityType.number(.subheadline), color: palette.textSecondary)
+            case .running(let since):
+                ActivityClock(start: since, font: ActivityType.number(.subheadline), color: palette.textSecondary)
+            case .stopped(let seconds):
+                Text(ActivityFormat.clock(seconds))
+                    .font(ActivityType.number(.subheadline)).foregroundStyle(palette.textSecondary)
+                    .accessibilityLabel("Workout time, \(ActivityFormat.clock(seconds))")
+            case .hidden:
+                EmptyView()
+            }
         }
     }
 

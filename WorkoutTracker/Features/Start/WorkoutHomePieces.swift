@@ -22,6 +22,8 @@ struct WorkoutResumeCapsule: View {
     var symbol: String
     var detail: String
     var startedAt: Date
+    /// The workout's time at a date (`Workout.trainingSeconds`, ticket 17).
+    var elapsedAt: (Date) -> TimeInterval
     var action: () -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -31,7 +33,7 @@ struct WorkoutResumeCapsule: View {
 
     var body: some View {
         TimelineView(.periodic(from: startedAt, by: 1)) { context in
-            let elapsed = max(0, Int(context.date.timeIntervalSince(startedAt)))
+            let elapsed = max(0, Int(elapsedAt(context.date)))
             Button {
                 taps += 1
                 action()

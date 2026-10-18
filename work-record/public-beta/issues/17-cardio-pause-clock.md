@@ -1,7 +1,7 @@
 # 17 — Cardio-only workouts: pausing pauses the workout's time; no "paused for" timer
 
 Type: bug / change
-Status: in progress — decided, not built (2026-10-18)
+Status: in progress — built; verification and Codex review (2026-10-18)
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-17-cardio-pause` off `main` `ef11a8e` (build 7's code + notes).
@@ -63,5 +63,43 @@ think the pause timer is necessary (like currently it shows how long it's been p
 4. Pill: "Paused" only (label "Paused"); drop `pausedSeconds` and its unit test.
 5. Captures (Floodlight cardio live paused/recording, finish, Live Activity gallery), targeted cardio UI tests, unit,
    Codex review; README/SPEC/D64; build 8 with the user's go-ahead.
+
+## Build notes (Claude, 2026-10-18)
+
+- **Rule** (`Domain/Cardio.swift`): `Workout.isCardioOnly` — live: some cardio segment and no exercise entry (adding
+  an exercise brings the whole-session clock back before any set); finished: recorded cardio and no completed set
+  (finish deletes set-less entries and unrecorded segments, so this agrees with History's facts).
+  `cardioActiveSeconds(at:)` sums every segment's active time; `trainingSeconds(at:)` = that for cardio-only, else
+  wall time (capped at `finishedAt`). Time before the first segment and between segments does not count.
+- `Workout.duration` = `trainingSeconds(at: finishedAt)` → History rows/stats line, week card, month total, template
+  stats. `WorkoutSummary.cardioOnlyTime`/`workoutTime` → the finish and History time tile; `summary.duration` stays
+  wall time for the heart-rate chart's axis.
+- Live: `LiveHeaderLine(elapsedAt:showsClock:)` — the clock is hidden in cardio focus when the workout is cardio-only
+  **with one segment** (the ring is then the same number; with two or more the ring is only the current segment, so
+  the clock stays, showing the total active time); the clock got the identifier `workoutClock`. The Resume capsules
+  (Workout tab, template detail) show `trainingSeconds`.
+- Live Activity: `ContentState.workoutClock` (`WorkoutClock`: `.hidden` / `.stopped(seconds:)` /
+  `.running(since:)`, optional so an older payload decodes) built by `WorkoutActivityContent.workoutClock`; `since` is
+  fixed while recording (every segment's active time before the current stretch), so the 2-second tick pushes no new
+  card. nil = the whole session from `startedAt` as before.
+- Pill: "Paused" only (label "Paused"); `CardioReadout.pausedSeconds` removed; its unit test became
+  `activeTimeExcludesThePause`.
+- No stored-format change (derived display only; one optional Codable field on the Live Activity state) → no Gate S.
+- Judgement call to tell the user: hiding the header clock only with a single segment (above).
+
+## Verification
+
+- Unit (WT-Floodlight, iOS 27): `CardioOnlyTimeTests` (new, 5), `CardioReadoutTests`, `CardioTests`,
+  `WorkoutActivityContentTests`, `WorkoutSummaryTests`, `WeekSummaryTests` — **60 tests in 6 suites passed**,
+  `TEST SUCCEEDED`, exit 0 (log `scratchpad/t17/unit1.log` of session d9b843b3).
+- UI (WT-Floodlight, 3 parallel workers): `FloodlightCardioUITests` (now 9: + `testCardioOnlyPauseStopsTheWorkoutClock`;
+  live asserts the pill reads exactly "Paused", no header clock for one-segment cardio-only, a lifting workout's clock
+  keeps ticking through a cardio pause; finished asserts the cardio-only time tile "20:00" = 1,080 s run + 120 s
+  cycle) and `CardioUITests` (9). Run 1 (`ui1`): 16/18 passed; the 2 failures were `kAXErrorServerNotFound` (the
+  automation session took 60 s to start, then lost the app), reproduced once on the same simulator (`ui2`); after
+  rebooting WT-Floodlight both passed (`ui3`: 2/2, `TEST SUCCEEDED`, exit 0). So 18/18 passed.
+- Captures inspected (dark default): C02 (cardio-only recording: no header clock), C03 (lifting + paused cardio:
+  "Paused" pill, whole-session clock), L-cardio-only-paused (Lifting view: clock frozen at the active time).
+- Not run: full UI suite (not warranted: change is cardio/time display); Live Activity on a device.
 
 ## Comments

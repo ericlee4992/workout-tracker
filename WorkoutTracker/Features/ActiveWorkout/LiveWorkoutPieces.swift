@@ -13,15 +13,20 @@ import SwiftUI
 struct LiveHeaderLine: View {
     var gym: String
     var startedAt: Date
+    /// The workout's time at a date (`Workout.trainingSeconds`): a cardio-only workout's stops
+    /// while its cardio is paused (ticket 17).
+    var elapsedAt: (Date) -> TimeInterval
     var done: Int
     var total: Int
     var showsSets: Bool
+    /// Off on the cardio screen of a cardio-only workout, whose ring shows the same time.
+    var showsClock = true
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         TimelineView(.periodic(from: startedAt, by: 1)) { timeline in
-            let elapsed = max(0, Int(timeline.date.timeIntervalSince(startedAt)))
+            let elapsed = max(0, Int(elapsedAt(timeline.date)))
             if typeSize.isAccessibilitySize {
                 twoLines(elapsed)
             } else {
@@ -38,7 +43,7 @@ struct LiveHeaderLine: View {
     private func line(_ elapsed: Int, clockFont: Font, word: Bool) -> some View {
         HStack(spacing: 8) {
             LiveGymTag(name: gym).fixedSize()
-            clock(elapsed, font: clockFont).fixedSize()
+            if showsClock { clock(elapsed, font: clockFont).fixedSize() }
             Spacer(minLength: 4)
             if showsSets { sets(word: word).fixedSize() }
         }
@@ -48,7 +53,7 @@ struct LiveHeaderLine: View {
         VStack(alignment: .leading, spacing: 8) {
             LiveGymTag(name: gym)
             HStack {
-                clock(elapsed, font: look.font.timer)
+                if showsClock { clock(elapsed, font: look.font.timer) }
                 Spacer(minLength: 8)
                 if showsSets { sets(word: true) }
             }
@@ -62,6 +67,7 @@ struct LiveHeaderLine: View {
             .contentTransition(.numericText(countsDown: false))
             .lineLimit(1)
             .accessibilityLabel("Elapsed \(LookFormat.spokenElapsed(elapsed))")
+            .accessibilityIdentifier("workoutClock")
     }
 
     private func sets(word: Bool) -> some View {

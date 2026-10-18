@@ -57,20 +57,14 @@ struct CardioReadoutTests {
 
     // MARK: Pause, active time
 
-    @Test func pauseDurationCountsFromThePause() throws {
+    @Test func activeTimeExcludesThePause() throws {
         let store = try Store()
         let workout = try WorkoutSession(context: store.context).startWorkout(at: nil, on: start)
         let segment = try CardioSession(context: store.context).start(.indoorRun, in: workout, at: start, unit: .km)
-        #expect(CardioReadout.pausedSeconds(segment, at: start.addingTimeInterval(30)) == nil)
         try CardioSession(context: store.context).pause(segment, at: start.addingTimeInterval(60))
-        #expect(CardioReadout.pausedSeconds(segment, at: start.addingTimeInterval(102)) == 42)
         try CardioSession(context: store.context).resume(segment, at: start.addingTimeInterval(120))
-        #expect(CardioReadout.pausedSeconds(segment, at: start.addingTimeInterval(130)) == nil)
-        // Active time excludes the pause.
         #expect(CardioReadout.activeSeconds(segment, at: start.addingTimeInterval(150)) == 90)
         #expect(CardioReadout.activeSeconds(segment, at: start.addingTimeInterval(90)) == 60)
-        try CardioSession(context: store.context).end(segment, at: start.addingTimeInterval(200))
-        #expect(CardioReadout.pausedSeconds(segment, at: start.addingTimeInterval(300)) == nil)
     }
 
     // MARK: Splits

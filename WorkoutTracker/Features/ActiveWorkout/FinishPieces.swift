@@ -108,7 +108,7 @@ extension FinishTile {
     static func summaryTiles(_ summary: WorkoutSummary, unit: WeightUnit,
                              identifier: (FinishTileKind) -> String) -> [(tile: FinishTile, id: String)] {
         var tiles: [FinishTile] = [
-            FinishTile(kind: .workoutTime, value: Format.duration(seconds: Int(summary.duration)), unit: ""),
+            FinishTile(kind: .workoutTime, value: Format.duration(seconds: Int(summary.workoutTime)), unit: ""),
         ]
         if summary.totalVolumeKg > 0 {
             let volume = WeightMath.convert(summary.totalVolumeKg, from: .kg, to: unit)

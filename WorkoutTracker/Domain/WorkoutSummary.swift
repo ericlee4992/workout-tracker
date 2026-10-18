@@ -20,6 +20,7 @@ import SwiftData
 struct WorkoutSummary: Equatable, Sendable {
     var date: Date
     var gymName: String?
+    /// Start to finish, wall time: the heart-rate chart's axis.
     var duration: TimeInterval
     var totalVolumeKg: Double
     var completedSets: Int
@@ -41,6 +42,11 @@ struct WorkoutSummary: Equatable, Sendable {
     /// a workout folded before they existed (the chart then draws from means).
     var heartRateSeriesLow: [Int] = []
     var heartRateSeriesHigh: [Int] = []
+    /// Ticket 17 (D64): a cardio-only workout's time is its cardio's active time; nil = `duration`.
+    var cardioOnlyTime: TimeInterval? = nil
+
+    /// The workout time the summary shows (its tile). Not the chart's axis, which stays `duration`.
+    var workoutTime: TimeInterval { cardioOnlyTime ?? duration }
 
     var hasHeartRate: Bool {
         averageHeartRate != nil || maxHeartRate != nil || activeEnergyKilocalories != nil
@@ -141,7 +147,8 @@ enum WorkoutSummaryBuilder {
             heartRateSeries: workout.heartRateSeries,
             heartRateSeriesIntervalSeconds: workout.heartRateSeriesIntervalSeconds,
             heartRateSeriesLow: workout.heartRateSeriesLow,
-            heartRateSeriesHigh: workout.heartRateSeriesHigh)
+            heartRateSeriesHigh: workout.heartRateSeriesHigh,
+            cardioOnlyTime: workout.isCardioOnly ? workout.trainingSeconds(at: end) : nil)
     }
 
     /// The heaviest completed set, as entered. Warmups are excluded exactly as

@@ -71,16 +71,6 @@ enum CardioReadout {
     /// but a mistyped 999999 km must not expand into a million rows and markers on the main thread.
     static let maxSplits: Double = 200
 
-    /// Seconds since the running segment was paused (nil while it records or once it ended).
-    /// A pause ends a segment's active interval at `lastCheckpointAt`; a relaunch that could not
-    /// observe the gap pauses at the last checkpoint too (`CardioSession.recover`), so this counts
-    /// from the last moment the app knows the segment was recording.
-    static func pausedSeconds(_ segment: CardioSegment, at now: Date) -> Int? {
-        guard segment.endedAt == nil, segment.activeStartedAt == nil else { return nil }
-        let since = segment.intervals.last?.end ?? segment.lastCheckpointAt
-        return max(0, Int(now.timeIntervalSince(since)))
-    }
-
     /// Active seconds at a wall-clock date: the recorded intervals up to it, plus the current one.
     static func activeSeconds(_ segment: CardioSegment, at date: Date) -> Double {
         var total = 0.0
