@@ -121,3 +121,32 @@ history read and metric formatting shared with `ExerciseProgressView` (no second
 panel, cardio progress sheet, Add Chart sheet) replacing the prototype; `-uiTestDesignProgress` fixture (cardio sessions
 + preset pins; `-uiTestReset` clears pins unless `-uiTestKeepPins`); `FloodlightProgressUITests` (captures light/dark ×
 Default/AXL; add/remove/reorder/relaunch flow). Then README/SPEC, Codex review, ticket 14.
+
+**Built (2026-10-17, Claude).** `Domain/ProgressPins.swift` (pin model; JSON in UserDefaults `progressPins.v1`; unknown
+activity decodes and is hidden; unreadable data = no pins), `Domain/CardioProgress.swift` (sessions = a finished
+workout's segments of one activity combined; distance/pace (rowing per 500 m)/speed/time; new-best and change rules;
+bests earliest-on-tie), `Domain/ExerciseHistory.swift` and `Features/History/LiftProgressValues.swift` — the history
+read and the metric numbers **moved out of `ExerciseProgressView`** (which now calls them; behaviour unchanged) so a
+panel and the exercise chart share one implementation; `Features/Progress/` (`ProgressTabView`, `ProgressPanel` +
+`ProgressPanelChart`, `CardioProgressView` sheet, `AddChartSheet`). Prototype removed. Fixture `-uiTestDesignProgress`
+(5 runs, 3 rows, 4 pins); `-uiTestReset` clears pins unless `-uiTestKeepPins`; `-uiTestProgressNoPins`.
+Changes found while building: the long-press "Show" options render **inline** (one tap) under a "Show" heading; a
+`.accessibilityLabel("Metric")` on the cardio metric pills replaced each option's name for VoiceOver — removed (the
+same modifier on `ExerciseProgressView`'s pills is pre-existing; noted for review, not changed); a variation label that
+only repeats the exercise's name (a machine labelled "Leg Press") is left out of the panel and Add Chart subtitles.
+Strings added beyond the approved list: the cardio subtitle "N sessions" (instead of "GPS"/"Indoor": the session count
+is always true), "No cardio recorded yet", "No matches", "Machine"/"Equipment" headers, "Now <label>" under Most used,
+"1RM · <day>" caption (as the exercise chart).
+**Verified so far:** build **BUILD SUCCEEDED**; unit tests ProgressPinTests + CardioProgressMathTests +
+ProgressSeriesTests **29 passed**; UI flows `testAddingLiftingAndCardioFromEmpty` and `testChangeMoveRemoveAndRelaunch`
+**passed**; captures light/dark × Default/AXL + empty **passed** (`captures/16/final/`, 32 PNGs, looked at). Rerun of
+the whole class after the subtitle change and the regression scope (full unit suite; ProgressChartUITests,
+ProgressChartTooltipUITests, FloodlightTourUITests on WT-iPhone27 — the exercise chart was refactored and the tab bar
+gained a tab) in progress.
+**Design tells (ios-design step 4):** same container on everything — deliberate: one panel per pin is the user's
+choice (round 2); chip where a caption would do — absent; all-caps labels — absent (NEW BEST is the existing badge);
+middle-dot metadata — deliberate, the subtitle "equipment · metric" and session lines; accent overuse — absent (violet
+only on the tab and the Add commit); equal-weight stacked blocks — deliberate (the user's choice, ordered by them);
+phone-sized website — absent; above-the-fold overload — absent (first panel complete in the first viewport); control
+dressed as primary — absent (Add Chart is secondary); default-size-only layout — absent (AXL captures: stacked header,
+two y labels, 1.25× plot).

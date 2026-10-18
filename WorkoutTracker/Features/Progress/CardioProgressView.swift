@@ -47,8 +47,7 @@ struct CardioProgressView: View {
                 SegmentedPills(ProgressPinMetric.cardio.map { $0.title(for: activity) }, selection: Binding(
                     get: { ProgressPinMetric.cardio.firstIndex(of: metric) ?? 0 },
                     set: { metric = ProgressPinMetric.cardio[$0]; ticks += 1 }))
-                    .accessibilityLabel("Metric")
-                    .accessibilityIdentifier("cardioProgressMetric")
+                    // No label on the control: it would replace each option's own name ("Pace") for VoiceOver.
                 chartPanel(reading)
                 bests(sessions)
                 sessionList(sessions)

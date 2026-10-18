@@ -23,6 +23,7 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
 <img src="docs/readme/gyms.png" width="150" alt="A gym and its machines, with Scan Machine">
 <img src="docs/readme/cardio.png" width="150" alt="An indoor run in progress">
 <img src="docs/readme/history.png" width="150" alt="History: the month and recent workouts">
+<img src="docs/readme/progress.png" width="150" alt="Progress: pinned charts of a lift and a run">
 <img src="docs/readme/ai-routine.png" width="150" alt="Ask AI's suggested week of templates">
 </p>
 

@@ -68,7 +68,8 @@ struct AddChartSheet: View {
                     NavigationLink {
                         ChooseLiftChart(exercise: row.exercise, items: row.items) { pin in onAdd(pin); dismiss() }
                     } label: {
-                        LookRow(row.exercise.name, subtitle: summary(row.items), symbol: glyph(row.items)) { EmptyView() }
+                        LookRow(row.exercise.name, subtitle: summary(row.items, name: row.exercise.name),
+                                symbol: glyph(row.items)) { EmptyView() }
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("addChartExercise")
@@ -77,14 +78,16 @@ struct AddChartSheet: View {
         }
     }
 
-    /// "Barbell", "Barbell · Chest Press 2", or "Barbell + 2 more": the variations the exercise was logged under.
-    private func summary(_ items: [ExerciseHistory.Item]) -> String {
+    /// "Barbell", "Barbell · Chest Press 2", or "Barbell + 2 more": the variations the exercise was logged under; nil
+    /// when the only one is a machine labelled with the exercise's own name.
+    private func summary(_ items: [ExerciseHistory.Item], name: String) -> String? {
         let ranked = ProgressSeriesMath.rankedVariations(in: items.map(\.input))
         let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
         let labels = ProgressSeriesMath.labels(for: ranked.map {
             (key: $0.key, words: ExerciseOverview.variationWords(for: $0.key, entries: entries))
         })
         let names = ranked.compactMap { labels[$0.key] }
+        if names == [name] { return nil }
         return names.count <= 2 ? names.joined(separator: " · ") : "\(names[0]) + \(names.count - 1) more"
     }
 

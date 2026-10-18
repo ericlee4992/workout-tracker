@@ -130,7 +130,8 @@ struct ProgressTabView: View {
                 let values = LiftProgressValues(metric: metric, loadType: key.loadType, displayUnit: displayUnit)
                 ProgressPanel(
                     title: name,
-                    subtitle: "\(liftLabel(key, inputs: inputs, mostUsed: variation == .mostUsed)) · \(pin.shownMetric(loadType: key.loadType).title())",
+                    subtitle: (liftLabel(key, inputs: inputs, exerciseName: name, mostUsed: variation == .mostUsed)
+                               + [pin.shownMetric(loadType: key.loadType).title()]).joined(separator: " · "),
                     glyph: glyph(key.equipment),
                     reading: .lift(series: series, recordDays: ProgressSeriesMath.recordDays(series), values: values))
             } else {
@@ -150,8 +151,10 @@ struct ProgressTabView: View {
         }
     }
 
-    /// "Most used · Chest Press 2", "Barbell": the variation's label as the exercise chart names it.
-    private func liftLabel(_ key: ProgressVariationKey, inputs: [RecordSetInput], mostUsed: Bool) -> String {
+    /// ["Most used", "Chest Press 2"], ["Barbell"]: the variation's label as the exercise chart names it — left out
+    /// when it only repeats the exercise's name (a machine labelled "Leg Press" for Leg Press).
+    private func liftLabel(_ key: ProgressVariationKey, inputs: [RecordSetInput], exerciseName: String,
+                           mostUsed: Bool) -> [String] {
         let ranked = ProgressSeriesMath.rankedVariations(in: inputs)
         let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
         var rows = ranked.map { (key: $0.key, words: ExerciseOverview.variationWords(for: $0.key, entries: entries)) }
@@ -159,7 +162,7 @@ struct ProgressTabView: View {
             rows.append((key: key, words: ExerciseOverview.variationWords(for: key, entries: entries)))
         }
         let label = ProgressSeriesMath.labels(for: rows)[key] ?? ""
-        return mostUsed ? "Most used · \(label)" : label
+        return (mostUsed ? ["Most used"] : []) + (label.isEmpty || label == exerciseName ? [] : [label])
     }
 
     private func liftMetric(_ metric: ProgressPinMetric) -> ExerciseProgressView.Metric {

@@ -1,7 +1,7 @@
 # 14 — In-app "What's New" for big changes
 
 Type: feature
-Status: needs-triage — requested by the user 2026-10-17; build it before the first update that has a big change
+Status: ready — decisions in (2026-10-17); ships with ticket 16 (the Progress tab) in the next build
 Blocked by: —
 Spec: [spec.md](../spec.md). Decision: [D62](../../../docs/DECISIONS.md). Related: [DEVELOPMENT → TestFlight build
 checklist](../../../docs/DEVELOPMENT.md#testflight-build-checklist); onboarding (ticket 02) for the existing first-launch flow.
@@ -27,3 +27,9 @@ shows/describes the new features."
 - Interaction with onboarding and with a workout in progress (never interrupt a live workout).
 
 ## Comments
+
+**The user's decisions (2026-10-17).** Shown **only on updates** (a fresh install gets the guided tour instead);
+**readable again from Settings** (a "What's New" row); this update's text **as drafted**: title "New: Progress";
+"Pin any lift or cardio activity to the new Progress tab." / "Each chart shows your latest best and how far you've come
+since your first session." / "Long-press a chart to change what it shows, move it or remove it."; button "Continue".
+Still to design (with captures): the sheet's look; keyed per build or version; never over a live workout.
