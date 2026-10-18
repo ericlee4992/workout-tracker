@@ -123,6 +123,21 @@ struct CardioProgressMathTests {
         #expect(sessions.first?.heartRate == 150)
     }
 
+    /// codex-review-16 #1: a measured 2 km / 10 min segment plus an unmeasured 10 min one is a 5:00 /km run, not 10:00.
+    /// The session's time still counts all twenty minutes; its distance is what was measured.
+    @Test func paceAndSpeedUseOnlyTheTimeThatMeasuredTheDistance() {
+        workout(day: 1, [(.outdoorRun, 2_000, 600, nil), (.outdoorRun, nil, 600, nil)])
+        workout(day: 2, [(.indoorCycle, 2_000, 600, nil), (.indoorCycle, nil, 600, nil)])
+        let run = CardioProgressMath.sessions(in: workouts, activity: .outdoorRun)
+        #expect(run.first?.seconds == 1_200)
+        #expect(run.first?.measuredSeconds == 600)
+        #expect(CardioProgressMath.value(run[0], metric: .pace, activity: .outdoorRun, unit: .km) == 300)
+        #expect(CardioProgressMath.value(run[0], metric: .time, activity: .outdoorRun, unit: .km) == 20)
+        #expect(CardioProgressMath.value(run[0], metric: .distance, activity: .outdoorRun, unit: .km) == 2)
+        let ride = CardioProgressMath.sessions(in: workouts, activity: .indoorCycle)
+        #expect(CardioProgressMath.value(ride[0], metric: .pace, activity: .indoorCycle, unit: .km) == 12)   // km/h
+    }
+
     @Test func anUnfinishedWorkoutIsNotASession() {
         workout(day: 1, finished: false, [(.outdoorRun, 2_000, 600, nil)])
         #expect(CardioProgressMath.sessions(in: workouts, activity: .outdoorRun).isEmpty)

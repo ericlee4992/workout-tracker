@@ -38,3 +38,11 @@ modify files other than the report; do not commit or push.
 
 Write `work-record/public-beta/codex-review-16.md`: findings numbered P1/P2/P3 with file:line, failure scenario and fix;
 end with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 2
+
+Round 1: [codex-review-16.md](codex-review-16.md), not clear (#1 mixed-distance pace, #2 fetches during render, #3
+Reduce Motion). Claude's fixes: the ticket's "round 1 — response" comment and `git diff d6c1f49..HEAD`. Check all three
+are closed and nothing regressed; rerun the build and the three unit suites (same rules and paths pattern, a new
+result path). Write `work-record/public-beta/codex-review-16b.md`, ending with exactly `Verdict: clear` or
+`Verdict: not clear`. Do not commit or push.

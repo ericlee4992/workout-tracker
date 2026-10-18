@@ -9,6 +9,8 @@ struct ProgressTabView: View {
     /// The pins, as `ProgressPinStore` saves them (an app setting, not workout data — D63).
     @AppStorage(ProgressPinStore.key) private var pinsData = Data()
     @State private var history: [UUID: [ExerciseHistory.Item]] = [:]
+    /// Read with the history, so variation labels never fetch while the tab renders (codex-review-16 #2).
+    @State private var entries: [ExerciseEntry] = []
     @State private var adding = false
     @State private var opened: ProgressPin?
     @State private var titleInBar = false
@@ -19,11 +21,13 @@ struct ProgressTabView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var pins: [ProgressPin] { ProgressPinStore.decode(pinsData) }
 
     private func save(_ pins: [ProgressPin]) {
-        withAnimation(.snappy(duration: 0.3)) { pinsData = ProgressPinStore.encode(pins) }
+        // Reduce Motion: panels change place without travelling (codex-review-16 #3).
+        withAnimation(reduceMotion ? nil : .snappy(duration: 0.3)) { pinsData = ProgressPinStore.encode(pins) }
     }
 
     /// A pin whose exercise no longer exists, or whose activity this build does not know, disappears quietly (D63).
@@ -108,11 +112,14 @@ struct ProgressTabView: View {
         .onChange(of: workouts.count) { _, _ in refresh() }
     }
 
-    private func refresh() { history = ExerciseHistory.all(in: modelContext) }
+    private func refresh() {
+        history = ExerciseHistory.all(in: modelContext)
+        entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
+    }
 
     // MARK: Panels
 
-    private var displayUnit: WeightUnit { LiftProgressValues.displayUnit(in: modelContext) }
+    private var displayUnit: WeightUnit { LiftProgressValues.displayUnit(preferences: preferences) }
 
     private var distanceUnit: CardioDistanceUnit {
         AppUnitSystem.resolve(preference: AppPreferences.canonical(of: preferences)?.unitPreference).distanceUnit
@@ -156,7 +163,6 @@ struct ProgressTabView: View {
     private func liftLabel(_ key: ProgressVariationKey, inputs: [RecordSetInput], exerciseName: String,
                            mostUsed: Bool) -> [String] {
         let ranked = ProgressSeriesMath.rankedVariations(in: inputs)
-        let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
         var rows = ranked.map { (key: $0.key, words: ExerciseOverview.variationWords(for: $0.key, entries: entries)) }
         if !rows.contains(where: { $0.key == key }) {
             rows.append((key: key, words: ExerciseOverview.variationWords(for: key, entries: entries)))

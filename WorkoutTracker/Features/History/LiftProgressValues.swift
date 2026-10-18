@@ -14,8 +14,12 @@ struct LiftProgressValues {
     /// Reported 2026-08-26: a chart of lb-logged sets plotted in kg. The series is computed in canonical kg so
     /// mixed-unit sessions share one axis (D25), but the AXIS should read in the unit the user thinks in.
     static func displayUnit(in context: ModelContext) -> WeightUnit {
-        let rows = (try? context.fetch(FetchDescriptor<AppPreferences>())) ?? []
-        return UnitPrecedence.defaultUnit(
+        displayUnit(preferences: (try? context.fetch(FetchDescriptor<AppPreferences>())) ?? [])
+    }
+
+    /// The same, from preferences a view already queried (no fetch per render).
+    static func displayUnit(preferences rows: [AppPreferences]) -> WeightUnit {
+        UnitPrecedence.defaultUnit(
             machineUnit: nil, gymUnit: nil,
             appPreference: AppPreferences.canonical(of: rows)?.unitPreference)
     }

@@ -14,6 +14,9 @@ struct AddChartSheet: View {
     @State private var kind = 0
     @State private var search = ""
     @State private var history: [UUID: [ExerciseHistory.Item]] = [:]
+    /// Read once when the sheet opens: rows and the variation page never fetch while typing (codex-review-16 #2).
+    @State private var entries: [ExerciseEntry] = []
+    @State private var summaries: [UUID: String] = [:]
 
     var body: some View {
         NavigationStack {
@@ -35,8 +38,18 @@ struct AddChartSheet: View {
                     Button("Cancel") { dismiss() }.accessibilityIdentifier("addChartCancel")
                 }
             }
-            .onAppear { history = ExerciseHistory.all(in: modelContext) }
+            .onAppear(perform: load)
         }
+    }
+
+    private func load() {
+        history = ExerciseHistory.all(in: modelContext)
+        entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
+        var out: [UUID: String] = [:]
+        for exercise in exercises {
+            if let items = history[exercise.id], let line = summary(items, name: exercise.name) { out[exercise.id] = line }
+        }
+        summaries = out
     }
 
     private func matches(_ name: String) -> Bool {
@@ -66,9 +79,9 @@ struct AddChartSheet: View {
             LookList(header: "Exercises you've logged") {
                 ForEach(rows, id: \.exercise.id) { row in
                     NavigationLink {
-                        ChooseLiftChart(exercise: row.exercise, items: row.items) { pin in onAdd(pin); dismiss() }
+                        ChooseLiftChart(exercise: row.exercise, items: row.items, entries: entries) { pin in onAdd(pin); dismiss() }
                     } label: {
-                        LookRow(row.exercise.name, subtitle: summary(row.items, name: row.exercise.name),
+                        LookRow(row.exercise.name, subtitle: summaries[row.exercise.id],
                                 symbol: glyph(row.items)) { EmptyView() }
                     }
                     .buttonStyle(.plain)
@@ -82,7 +95,6 @@ struct AddChartSheet: View {
     /// when the only one is a machine labelled with the exercise's own name.
     private func summary(_ items: [ExerciseHistory.Item], name: String) -> String? {
         let ranked = ProgressSeriesMath.rankedVariations(in: items.map(\.input))
-        let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
         let labels = ProgressSeriesMath.labels(for: ranked.map {
             (key: $0.key, words: ExerciseOverview.variationWords(for: $0.key, entries: entries))
         })
@@ -127,23 +139,16 @@ struct AddChartSheet: View {
 private struct ChooseLiftChart: View {
     let exercise: Exercise
     let items: [ExerciseHistory.Item]
+    let entries: [ExerciseEntry]
     let add: (ProgressPin) -> Void
-    @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
     /// nil = Most used.
     @State private var choice: ProgressVariationKey?
     @State private var metric = 0
 
-    private var ranked: [(key: ProgressVariationKey, days: Int)] {
-        ProgressSeriesMath.rankedVariations(in: items.map(\.input))
-    }
-
-    private var labels: [ProgressVariationKey: String] {
-        let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
-        return ProgressSeriesMath.labels(for: ranked.map {
-            (key: $0.key, words: ExerciseOverview.variationWords(for: $0.key, entries: entries))
-        })
-    }
+    /// Worked out once when the page opens, from the entries the sheet read.
+    @State private var ranked: [(key: ProgressVariationKey, days: Int)] = []
+    @State private var labels: [ProgressVariationKey: String] = [:]
 
     private var resolved: ProgressVariationKey? { choice ?? ranked.first?.key }
     private var metrics: [ProgressPinMetric] { ProgressPinMetric.lifting(for: resolved?.loadType ?? .weighted) }
@@ -189,6 +194,13 @@ private struct ChooseLiftChart: View {
         .lookSheetGround()
         .navigationTitle("Add Chart")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            guard ranked.isEmpty else { return }
+            ranked = ProgressSeriesMath.rankedVariations(in: items.map(\.input))
+            labels = ProgressSeriesMath.labels(for: ranked.map {
+                (key: $0.key, words: ExerciseOverview.variationWords(for: $0.key, entries: entries))
+            })
+        }
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Add") {

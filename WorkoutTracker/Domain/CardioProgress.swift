@@ -18,6 +18,9 @@ struct CardioProgressSession: Equatable, Identifiable, Sendable {
     let seconds: Double
     /// Average over every heart-rate sample of these segments; nil without any.
     let heartRate: Int?
+    /// Active seconds of only the segments that have a distance — pace and speed divide `meters` by THESE, so a run
+    /// with one unmeasured segment does not report a slower pace than it ran (codex-review-16 #1).
+    var measuredSeconds: Double? = nil
 }
 
 struct CardioProgressPoint: Equatable, Identifiable, Sendable {
@@ -46,16 +49,22 @@ enum CardioProgressMath {
             let segments = workout.recordedCardio.filter { $0.activity == activity }
             guard let first = segments.min(by: { $0.startedAt < $1.startedAt }) else { return nil }
             let distances = segments.compactMap(\.distanceMeters)
+            let measured = segments.filter { $0.distanceMeters != nil }
             let samples = segments.reduce(0) { $0 + $1.heartRateCount }
             let total = segments.reduce(0) { $0 + $1.heartRateTotal }
             return CardioProgressSession(
                 workoutID: workout.id,
                 date: first.startedAt,
                 meters: distances.isEmpty ? nil : distances.reduce(0, +),
-                seconds: segments.reduce(0) { $0 + $1.activeDuration(at: $1.endedAt ?? $1.lastCheckpointAt) },
-                heartRate: samples > 0 ? Int((Double(total) / Double(samples)).rounded()) : nil)
+                seconds: segments.reduce(0) { $0 + Self.activeSeconds($1) },
+                heartRate: samples > 0 ? Int((Double(total) / Double(samples)).rounded()) : nil,
+                measuredSeconds: measured.reduce(0) { $0 + Self.activeSeconds($1) })
         }
         .sorted { ($0.date, $0.workoutID.uuidString) < ($1.date, $1.workoutID.uuidString) }
+    }
+
+    private static func activeSeconds(_ segment: CardioSegment) -> Double {
+        segment.activeDuration(at: segment.endedAt ?? segment.lastCheckpointAt)
     }
 
     /// Activities with at least one finished session, most sessions first (ties by name) — the Add Chart list.
@@ -88,12 +97,14 @@ enum CardioProgressMath {
     static func value(_ session: CardioProgressSession, metric: ProgressPinMetric, activity: CardioActivity,
                       unit: CardioDistanceUnit) -> Double? {
         let meters = session.meters.flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
-        let seconds = session.seconds.isFinite && session.seconds >= 1 ? session.seconds : nil
+        let valid = { (s: Double) in s.isFinite && s >= 1 ? s : nil }
+        let seconds = valid(session.seconds)
         switch metric {
         case .distance:
             return meters.map { $0 / unit.metersPerUnit }
         case .pace:
-            guard let meters, let seconds else { return nil }
+            // The distance over the time that measured it (codex-review-16 #1), not the whole session's time.
+            guard let meters, let seconds = valid(session.measuredSeconds ?? session.seconds) else { return nil }
             return activity.usesSpeed
                 ? (meters / unit.metersPerUnit) / (seconds / 3600)
                 : seconds / meters * paceMeters(activity, unit: unit)

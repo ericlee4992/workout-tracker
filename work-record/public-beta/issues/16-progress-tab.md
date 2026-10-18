@@ -150,3 +150,16 @@ only on the tab and the Add commit); equal-weight stacked blocks — deliberate 
 phone-sized website — absent; above-the-fold overload — absent (first panel complete in the first viewport); control
 dressed as primary — absent (Add Chart is secondary); default-size-only layout — absent (AXL captures: stacked header,
 two y labels, 1.25× plot).
+
+**Codex review round 1 — response.** Report [codex-review-16.md](../codex-review-16.md) (HEAD `d6c1f49`): **not clear**,
+3 × P2; the extraction, pins, fixtures, cardio rules, captures and staged sheets confirmed. All taken: (#1) a session
+keeps `measuredSeconds` — the active time of only the segments with a distance — and pace/speed divide the distance by
+that, so a measured 2 km/10 min plus an unmeasured 10 min reads 5:00 /km (time still 20 min; distance what was
+measured); new test `paceAndSpeedUseOnlyTheTimeThatMeasuredTheDistance` (run and cycling). (#2) the tab reads
+`ExerciseEntry` once with the history (on appear / after sheets) and takes the display unit from its `AppPreferences`
+query (`LiftProgressValues.displayUnit(preferences:)`); Add Chart reads entries once on open, precomputes each row's
+summary, and the variation page computes its ranking and labels once from the entries it is handed — no fetch while
+rendering or typing. (#3) pin changes animate only without Reduce Motion (`accessibilityReduceMotion` → no
+animation). **Not exercised:** Reduce Motion at runtime — no test in the project switches it on (STATE already lists
+it as never exercised); the code path is a single `withAnimation(nil)`. Unit: ProgressPinTests + CardioProgressMathTests
++ ProgressSeriesTests **30 passed** (exit 0); FloodlightProgressUITests **7 tests, 0 failures** (exit 0).
