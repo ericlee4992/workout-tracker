@@ -5,13 +5,17 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-10-18):** **New feature: exercise library + form video** (the user's request, a big one) on
-  branch **`ericlee4992/beta-18-exercise-media`**: [spec draft](../work-record/exercise-media/spec.md). Done: ticket 01
-  REA study of Lyfta's public web exercise pages (the iOS screen itself not observed — Lyfta not installed). In
-  progress: ticket 02 media licences (wger, ExerciseDB V1/V2, YouTube, Gymvisual) — the user asked to hear ExerciseDB
-  V2's terms before relying on it. Next: report licences + the spec's open decisions to the user; then tickets. User
-  clips = the first stored-format change → Gate S and ticket 11 come due. Build 8 is live (Developer + Friends,
-  `main` `7c81e28` code); next build number **9**.
+- **Resume here (2026-10-18):** **Exercise library + form video** on branch **`ericlee4992/beta-18-exercise-media`**
+  (this checkout): [spec](../work-record/exercise-media/spec.md). Done: 01 REA study of Lyfta (web + the user's iOS
+  screenshots); 02 licences (wger usable but thin; ExerciseDB V1 non-commercial, V2 blocked; YouTube rules; Gym visual
+  per-item licence covers iOS apps — direct purchase is enough when files are **bundled in the app**); proposals from
+  Claude + Codex and a competitor study (Lyfta/Hevy use Gym visual codes; others film trainers; Exercise Animatic a
+  second 3D vendor). Decided: **muscle maps = our own simple drawings**. **Now: ticket 03 — the user is buying the
+  10-item Gym visual pilot** (cart prepared in Chrome, $18.10, "Basic grey"); next, the user puts the files in
+  `~/WorkoutTracker-Media/gymvisual/` (outside the repo — never commit purchased media), Claude converts to looping
+  MP4, bundles at build time from that private folder, prototypes the exercise-page media + workout pop-up. Rule:
+  read a site's terms before automated access (Gym visual allowed it, per the user). **Bug fixes the user wants run in
+  a separate session/worktree off `main`.** Build 8 live (Developer + Friends); next build number **9**.
 - **Session 2026-10-17/18 summary:** done — 08 closed (tester feedback waived as a gate), 13 done, 15 feedback triage
   live (migration 0006; export `~/WorkoutTracker-Backups/server/2026-10-17-pre-15-migration` delete by 2026-11-16),
   16 Progress tab + 14 What's New merged (Codex clear; full unit 1041 pass; Progress 7/7, What's New 5/5, Settings+Tour
