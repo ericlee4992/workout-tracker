@@ -1,7 +1,7 @@
 # 17 — Cardio-only workouts: pausing pauses the workout's time; no "paused for" timer
 
 Type: bug / change
-Status: in progress — built; verification and Codex review (2026-10-18)
+Status: Codex clear (round 2, `codex-review-17b.md`) — awaiting the user's merge go-ahead and What to Test approval (2026-10-18)
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-17-cardio-pause` off `main` `ef11a8e` (build 7's code + notes).
@@ -130,3 +130,12 @@ accepted and fixed:
    `endingTheOnlySegmentBringsTheWorkoutClockBack`; the UI test ends the segment and checks the clock is back, stopped.
 Unit: 62/62 in 6 suites, exit 0 (`unit2.log`). UI: `testFinishedLightAccessibility` passed; the other two hit the
 known `kAXErrorServerNotFound` on a fresh clone and are re-run serially on a rebooted WT-Floodlight (`ui5`).
+`ui5` (serial, rebooted) failed the same way again; a manual launch with the same arguments rendered correctly (no
+hang — the failure is XCTest's 60-second automation-session set-up, before the test touches the app, on the first
+tests a runner executes). `ui6` with a short warm-up test first (`CardioUITests/testSavedDistanceEditor…`): **3/3
+passed**, `TEST SUCCEEDED`, exit 0 — `testCardioOnlyPauseStopsTheWorkoutClock` (incl. the End Cardio check) and
+`testFinishedDark` (incl. History's 20:00 total).
+
+**Codex round 2 (2026-10-18): clear** — [codex-review-17b.md](../codex-review-17b.md), reviewed `fabde33`; its build
+exit 0 and five unit suites 56/0/0. Next: the user's go-ahead to merge into `main`, approval of the build 8 What to
+Test note above, then build 8 (number 8, archive from `release-build`, upload, Developer group first).
