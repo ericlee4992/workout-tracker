@@ -5,6 +5,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
+- **In progress (2026-10-18): build 9 bug fixes** — checkout `…/Health App/beta-19-bug-fixes`, branch
+  `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040`: tickets [19 Add Chart by body area](../work-record/public-beta/issues/19-add-chart-body-areas.md),
+  [20 delete one cardio](../work-record/public-beta/issues/20-delete-cardio-in-history.md),
+  [21 Live Activity after cancel](../work-record/public-beta/issues/21-live-activity-after-cancel.md),
+  [22 one Add Exercise button](../work-record/public-beta/issues/22-one-add-exercise-button.md), one at a time, each
+  Codex-reviewed to clear in a new Codex terminal in that worktree; ask the user before merging. Ticket 18 is reserved
+  for the exercise-media session (`…/public-beta`, `ericlee4992/beta-18-exercise-media`; do not touch it).
 - **Resume here (2026-10-18):** **Build 8 is live** (`main` **`7c81e28`**: tickets 16 Progress tab + 14 What's New + 17
   cardio-only pause clock, D64) — **Developer** and **Friends** both show it **Testing**; the phone has **0.1.0 (8)**
   and What's New appeared (the user). Friends: the approved note, testers notified; 3 testers (2 anonymous public-link
@@ -149,6 +156,7 @@ domain of the user's own, which also allows Google branding verification.
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
 | 16 Progress tab | **Done** — build 8 (build 7 skipped for testers). |
 | 17 cardio pause clock | **Done** — build 8 (Developer + Friends, 2026-10-18). |
+| 19–22 build 9 bug fixes | **In progress** on `ericlee4992/beta-19-bug-fixes` (above). |
 
 ## Working conventions (in force)
 
