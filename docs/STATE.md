@@ -115,7 +115,7 @@ domain of the user's own, which also allows Google branding verification.
   Automatic Updates **off**). No Gate S before it — no store change in `936b18f..5836b68` (the backup rule below).
   The user verified real Apple sign-in and signed-in feedback ("I confirm 03 works"); account deletion/Apple
   revocation was not separately itemised. Still uses the on-device OpenAI key for AI until 06's app half ships.
-- **Builds:** bump the build number (next **6**; 10 occurrences in `project.pbxproj`), archive from a recorded `main`
+- **Builds:** bump the build number (next **9**; 10 occurrences in `project.pbxproj`), archive from a recorded `main`
   commit in `…/Health App/release-build` (holds the paid-team `Config/Local.xcconfig`; `git checkout --detach <commit>` there),
   upload, add to internal group "Developer" by hand, the user installs from TestFlight. Auto-updates stay off.
 - **Backups (the user, 2026-10-13: "yes skip the backup"):** Gate S only when an update changes what the phone stores
