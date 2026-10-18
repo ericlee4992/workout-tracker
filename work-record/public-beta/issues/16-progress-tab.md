@@ -45,9 +45,9 @@ be able to choose which exercise progresses to display, and I should also be abl
 ## Acceptance
 
 - [x] The user approves the design from captures/prototype ("yes, go ahead and build it", 2026-10-17; rounds 1–4).
-- [ ] Pin, unpin, reorder, change metric/variation; pins survive relaunch; a deleted exercise's pin disappears quietly.
-- [ ] Lifting cards match `ExerciseProgressView` for the same variation and metric; cardio maths unit-tested.
-- [ ] Targeted UI tests for the tab and the add flow; affected suites; Codex review clear.
+- [x] Pin, unpin, reorder, change metric/variation; pins survive relaunch; a deleted exercise's pin disappears quietly (code; not a UI test).
+- [x] Lifting cards match `ExerciseProgressView` for the same variation and metric; cardio maths unit-tested.
+- [x] Targeted UI tests for the tab and the add flow; affected suites; Codex review clear (round 3, `codex-review-16c.md`).
 - [ ] Shipped in a build with ticket 14's What's New announcing it.
 
 ## Comments
@@ -172,3 +172,7 @@ chart, its change or the Fastest best. Its distance stays what was measured; its
 `aPartlyUnmeasuredSessionHasNoPaceOrSpeed` (run excluded from the pace points/change/bests; cycling speed nil). Unit
 three suites **30 passed** (exit 0). No UI code changed; the UI fixture has no partly-unmeasured session, so the UI
 class (7/7 at `399e1ad`) is not rerun for this domain-only change.
+
+**Codex review round 3: clear.** [codex-review-16c.md](../codex-review-16c.md) (HEAD `1631714`): #1 resolved, no new
+findings; Codex build exit 0, three unit suites 30 passed. Not exercised: Reduce Motion at runtime, the phone.
+Remaining: ship with ticket 14 in build 7 (the user's go-ahead to merge and upload).
