@@ -1,17 +1,17 @@
 # Current project state
 
-Updated **2026-10-18** (build 8 live in Developer and Friends). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-18** (build 8 live; exercise-media feature started). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-10-18):** **Build 8 is live** (`main` **`7c81e28`**: tickets 16 Progress tab + 14 What's New + 17
-  cardio-only pause clock, D64) — **Developer** and **Friends** both show it **Testing**; the phone has **0.1.0 (8)**
-  and What's New appeared (the user). Friends: the approved note, testers notified; 3 testers (2 anonymous public-link
-  on build 6, 2 of 20 limit). Build 7 was never given to testers. Nothing in progress; next build number **9**. Open:
-  the Live Activity's cardio-only clock not checked on a device; ExerciseProgressView's metric-pill VoiceOver label
-  (ticket 16). `main` was fast-forwarded to the branch's notes (the user, 2026-10-18), so `main` and
-  `ericlee4992/beta-17-cardio-pause` are the same; start the next ticket on a new branch off `main`. [Ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md).
+- **Resume here (2026-10-18):** **New feature: exercise library + form video** (the user's request, a big one) on
+  branch **`ericlee4992/beta-18-exercise-media`**: [spec draft](../work-record/exercise-media/spec.md). Done: ticket 01
+  REA study of Lyfta's public web exercise pages (the iOS screen itself not observed — Lyfta not installed). In
+  progress: ticket 02 media licences (wger, ExerciseDB V1/V2, YouTube, Gymvisual) — the user asked to hear ExerciseDB
+  V2's terms before relying on it. Next: report licences + the spec's open decisions to the user; then tickets. User
+  clips = the first stored-format change → Gate S and ticket 11 come due. Build 8 is live (Developer + Friends,
+  `main` `7c81e28` code); next build number **9**.
 - **Session 2026-10-17/18 summary:** done — 08 closed (tester feedback waived as a gate), 13 done, 15 feedback triage
   live (migration 0006; export `~/WorkoutTracker-Backups/server/2026-10-17-pre-15-migration` delete by 2026-11-16),
   16 Progress tab + 14 What's New merged (Codex clear; full unit 1041 pass; Progress 7/7, What's New 5/5, Settings+Tour
