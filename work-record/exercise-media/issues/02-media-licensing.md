@@ -92,8 +92,5 @@ bundle the files inside the app** (no delivery from our server), injected at bui
 (never committed to the public repo; public builds fall back to no clip). An email remains optional, only if we
 later want server delivery.
 
-**Terms caveat (Claude's own):** the same terms say "we do not allow the use of automated software or other crawling
-techniques for searching our web site and/or retrieve Media or related information". This session read a handful of
-Gym visual pages with scripted HTTP requests (licence, terms, about/FAQ, a few product pages) before reading that
-clause. No media was retrieved; no further automated access to gymvisual.com will be made — the user browses and
-buys in a normal browser.
+**Automated browsing:** Gym visual's terms restrict automated access, but Gym visual told the user (2026-10-18) that
+our research agent may browse its site automatically.
