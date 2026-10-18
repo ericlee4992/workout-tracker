@@ -1,7 +1,7 @@
 # 01 — Reference UX study: Lyfta's exercise detail screen (REA)
 
 Type: research
-Status: resolved — web library (REA) and the iOS app (the user's screenshots, 2026-10-18); in-workout entry point not seen
+Status: resolved — web library (REA) and the iOS app incl. the in-workout entry point (the user's screenshots, 2026-10-18)
 Blocked by: —
 
 ## Question
@@ -76,6 +76,12 @@ Observed by eye from the screenshots (not REA evidence). Dark theme throughout.
    likely "How to log"). Then **"Target muscles"**: front and back anatomical figures, **primary muscles orange-red,
    secondary blue**.
 
+4. **During a workout** (screenshots 04:41). The workout list shows each exercise as a row: a **small still
+   thumbnail of the render with a "?" badge**, the name, "0/3 Done", and a "•••" menu; above, Duration / Volume /
+   Sets. **Tapping the exercise opens its full exercise page** (the same About / History / Progress screen, the clip
+   autoplaying) — a push, not a pop-up. "Add exercises" opens the same two-column library grid with the body
+   silhouette filter.
+
 **Inputs for ours (added).** The muscle map (front + back, primary vs secondary colour) carries as much as the clip;
 it also replaces the web page's text profile. Browse-by-muscle uses body art, not words. YouTube is a separate,
 explicit action (a chip), not the default player. Our existing exercise page already holds the History/Progress
@@ -83,6 +89,8 @@ content — the media and muscles would become its top section rather than a new
 
 ## Gaps
 
-- **The in-workout entry point** (what tapping an exercise during a workout shows) and offline behaviour were not
-  seen; the iOS screens above came from screenshots, which REA cannot drive or verify further.
+- Offline behaviour (does the clip play without a connection?) was not seen; the iOS screens above came from
+  screenshots, which REA cannot drive or verify further.
+- Difference to note for our design: the user asked for a **pop-up** over the workout ("a window should pop up that
+  shows the form video"), where Lyfta navigates to the full page. A sheet keeps the user's place in the workout.
 - The in-app web app (`my.lyfta.app`) needs an account; not used.
