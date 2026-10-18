@@ -30,3 +30,11 @@ are optional; say if you skip them. Do not modify files other than the report; d
 
 Write `work-record/public-beta/codex-review-14.md`: findings numbered P1/P2/P3 with file:line, failure scenario and fix;
 end with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 2
+
+Round 1: [codex-review-14.md](codex-review-14.md), not clear (#1 unknown counts, #2 welcome + What's New together, #3
+AXL last line). Fixes: the ticket's "round 1 — response" and `git diff 5aff73c..HEAD`. Check all three are closed and
+nothing regressed; rerun the build and `WhatsNewTests` (new result path). Write
+`work-record/public-beta/codex-review-14b.md`, ending with exactly `Verdict: clear` or `Verdict: not clear`. Do not
+commit or push.

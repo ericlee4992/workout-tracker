@@ -39,6 +39,18 @@ final class FloodlightWhatsNewUITests: XCTestCase {
         XCTAssertTrue(any("whatsNewContinue").isHittable, "Continue is reachable")
         Thread.sleep(forTimeInterval: 1.0)
         shoot("whatsnew-14-\(appearance)-\(large ? "axl" : "default")")
+
+        // codex-review-14 #3: every line whole above Continue — scrolled into view where the text is large.
+        let items = app.descendants(matching: .any).matching(identifier: "whatsNewItem")
+        XCTAssertEqual(items.count, 3)
+        let last = items.element(boundBy: 2)
+        let continueTop = { self.any("whatsNewContinue").frame.minY }
+        for _ in 0..<4 where last.frame.maxY > continueTop() { any("whatsNewSheet").swipeUp() }
+        XCTAssertLessThanOrEqual(last.frame.maxY, continueTop(), "the last line sits wholly above Continue")
+        if large {
+            Thread.sleep(forTimeInterval: 0.8)
+            shoot("whatsnew-14-\(appearance)-axl-scrolled")
+        }
     }
 
     /// Continue closes it; Settings → What's New shows the same notes again; a launch without the argument shows none.

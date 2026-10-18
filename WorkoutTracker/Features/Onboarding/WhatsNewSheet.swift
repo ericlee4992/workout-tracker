@@ -34,6 +34,8 @@ struct WhatsNewSheet: View {
                                     .fixedSize(horizontal: false, vertical: true)
                                     .padding(.top, 10)
                             }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("whatsNewItem")
                         }
                     }
                 }

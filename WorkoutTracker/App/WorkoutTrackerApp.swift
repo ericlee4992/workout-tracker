@@ -211,12 +211,17 @@ struct WorkoutTrackerApp: App {
             return
         }
         let context = modelContainer.mainContext
-        // Fail closed: an unknown count is treated as a workout in progress (nothing shown, nothing recorded).
-        let workouts = (try? context.fetchCount(FetchDescriptor<Workout>())) ?? 1
-        let unfinished = (try? context.fetchCount(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt == nil }))) ?? 1
+        // Fail closed: both counts or no decision — nothing shown, nothing recorded (codex-review-14 #1).
+        let workouts: Int, unfinished: Int
+        do {
+            workouts = try context.fetchCount(FetchDescriptor<Workout>())
+            unfinished = try context.fetchCount(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt == nil }))
+        } catch { return }
         let decision = WhatsNew.decide(
             currentBuild: WhatsNew.currentBuild, lastSeen: WhatsNew.lastSeen(),
-            freshInstall: !UserDefaults.standard.bool(forKey: OnboardingCoordinator.welcomeSeenKey) && workouts == 0,
+            welcomeUnanswered: OnboardingCoordinator.shouldShowWelcome(
+                seen: UserDefaults.standard.bool(forKey: OnboardingCoordinator.welcomeSeenKey),
+                hasWorkouts: workouts > 0, isUITestReset: false, uiTestRequested: false),
             workoutInProgress: unfinished > 0)
         if let build = decision.recordNow { WhatsNew.markSeen(build) }
         whatsNew = decision.show

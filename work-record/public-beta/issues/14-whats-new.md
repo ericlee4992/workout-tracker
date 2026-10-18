@@ -52,3 +52,14 @@ light/dark × Default/AXL in `captures/14/`, looked at; Continue closes; Setting
 the argument never shows it); regression on WT-iPhone27 — full unit suite **1041 passed**, FloodlightSettingsUITests +
 FloodlightTourUITests **20 tests, 0 failures**. The icon swap afterwards is visual only (build passed). Not exercised:
 the real update path on a phone (build 6 → 7) — check it when build 7 installs.
+
+**Codex review round 1 — response.** Report [codex-review-14.md](../codex-review-14.md) (HEAD `5aff73c`): **not clear**,
+2 × P2, 1 × P3; the normal update path, baseline, monotonic recording, dismissal, test isolation, glyphs and docs
+confirmed. All taken: (#1) the app decides only when **both** workout counts read (otherwise nothing shown, nothing
+recorded), and a workout in progress now comes **first** in `WhatsNew.decide`, before any baseline is recorded. (#2) the
+welcome's own rule (`OnboardingCoordinator.shouldShowWelcome`, reused — not re-written) wins on every launch it applies,
+**even with a baseline**: an interrupted onboarding on build 7 then an update to build 9 shows only the welcome and records
+9; the parameter is now `welcomeUnanswered`. Presentation level: `decide` returns no entry whenever the welcome applies,
+so the app never requests both. (#3) each line carries `whatsNewItem`; the capture test scrolls until the last line's
+bottom is above Continue, asserts it, and keeps an extra `…-axl-scrolled` capture. Unit `WhatsNewTests` **8 passed**
+(new: `anUnansweredWelcomeWinsEvenWithABaseline`, `aWorkoutInProgressRecordsNothingEvenWithTheWelcomeUnanswered`). UI `FloodlightWhatsNewUITests` **5 passed** (exit 0); captures refreshed, incl. `whatsnew-14-{light,dark}-axl-scrolled.png`.

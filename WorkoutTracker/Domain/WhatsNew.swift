@@ -42,15 +42,20 @@ enum WhatsNew {
         var recordNow: Int?
     }
 
-    /// The launch-time rule. `lastSeen` nil means this build never recorded anything: a fresh install (no welcome
-    /// answered, no workout) starts at the current build; anyone else is an update from before What's New existed.
-    static func decide(entries: [WhatsNewEntry] = entries, currentBuild: Int, lastSeen: Int?, freshInstall: Bool,
+    /// The launch-time rule, in order (codex-review-14 #1, #2):
+    /// 1. A workout in progress: nothing shown, nothing recorded — the next launch decides again.
+    /// 2. The welcome page still unanswered (`OnboardingCoordinator.shouldShowWelcome`'s rule: never answered, no
+    ///    workout): the welcome owns this launch — a fresh install, or one whose onboarding was interrupted, even if
+    ///    an older build recorded a baseline. Nothing shown; this build recorded, so its notes never follow the tour.
+    /// 3. Otherwise the newest entry after the last build seen (none recorded = an update from before What's New)
+    ///    and at or before this build.
+    /// The caller decides only when it could read the store; an unknown count means no decision at all.
+    static func decide(entries: [WhatsNewEntry] = entries, currentBuild: Int, lastSeen: Int?, welcomeUnanswered: Bool,
                        workoutInProgress: Bool) -> Decision {
-        if lastSeen == nil && freshInstall { return Decision(show: nil, recordNow: currentBuild) }
+        if workoutInProgress { return Decision(show: nil, recordNow: nil) }
+        if welcomeUnanswered { return Decision(show: nil, recordNow: currentBuild) }
         let since = lastSeen ?? 0
         let pending = entries.filter { $0.build > since && $0.build <= currentBuild }.max { $0.build < $1.build }
-        // Never over a workout in progress: nothing is recorded, so the next launch shows it.
-        guard let pending, !workoutInProgress else { return Decision(show: nil, recordNow: nil) }
         return Decision(show: pending, recordNow: nil)
     }
 

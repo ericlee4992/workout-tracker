@@ -10,27 +10,41 @@ struct WhatsNewTests {
 
     /// A fresh install gets the tour, not What's New, and starts counting from its own build.
     @Test func aFreshInstallSeesNothingAndRecordsItsBuild() {
-        let d = WhatsNew.decide(entries: entries, currentBuild: 9, lastSeen: nil, freshInstall: true, workoutInProgress: false)
+        let d = WhatsNew.decide(entries: entries, currentBuild: 9, lastSeen: nil, welcomeUnanswered: true, workoutInProgress: false)
         #expect(d == .init(show: nil, recordNow: 9))
+    }
+
+    /// codex-review-14 #2: onboarding interrupted on build 7 (baseline 7 recorded, welcome never answered) and then an
+    /// update to build 9 — the welcome owns the launch; build 9's notes are not requested beside it.
+    @Test func anUnansweredWelcomeWinsEvenWithABaseline() {
+        let d = WhatsNew.decide(entries: entries, currentBuild: 9, lastSeen: 7, welcomeUnanswered: true, workoutInProgress: false)
+        #expect(d == .init(show: nil, recordNow: 9))
+    }
+
+    /// codex-review-14 #1: a workout in progress comes first — nothing shown and nothing recorded, even on a launch
+    /// that would otherwise record a baseline.
+    @Test func aWorkoutInProgressRecordsNothingEvenWithTheWelcomeUnanswered() {
+        let d = WhatsNew.decide(entries: entries, currentBuild: 9, lastSeen: nil, welcomeUnanswered: true, workoutInProgress: true)
+        #expect(d == .init(show: nil, recordNow: nil))
     }
 
     /// Updating from a build before What's New existed (nothing recorded, but not fresh) shows the newest notes.
     @Test func anUpdateFromBeforeWhatsNewShowsTheNewest() {
-        #expect(WhatsNew.decide(entries: entries, currentBuild: 7, lastSeen: nil, freshInstall: false, workoutInProgress: false)
+        #expect(WhatsNew.decide(entries: entries, currentBuild: 7, lastSeen: nil, welcomeUnanswered: false, workoutInProgress: false)
                 == .init(show: seven, recordNow: nil))
-        #expect(WhatsNew.decide(entries: entries, currentBuild: 9, lastSeen: nil, freshInstall: false, workoutInProgress: false)
+        #expect(WhatsNew.decide(entries: entries, currentBuild: 9, lastSeen: nil, welcomeUnanswered: false, workoutInProgress: false)
                 == .init(show: nine, recordNow: nil))
     }
 
     @Test func seenNotesAndFutureNotesDoNotShow() {
-        #expect(WhatsNew.decide(entries: entries, currentBuild: 8, lastSeen: 7, freshInstall: false, workoutInProgress: false).show == nil)
-        #expect(WhatsNew.decide(entries: entries, currentBuild: 6, lastSeen: 6, freshInstall: false, workoutInProgress: false).show == nil)
-        #expect(WhatsNew.decide(entries: entries, currentBuild: 9, lastSeen: 7, freshInstall: false, workoutInProgress: false).show == nine)
+        #expect(WhatsNew.decide(entries: entries, currentBuild: 8, lastSeen: 7, welcomeUnanswered: false, workoutInProgress: false).show == nil)
+        #expect(WhatsNew.decide(entries: entries, currentBuild: 6, lastSeen: 6, welcomeUnanswered: false, workoutInProgress: false).show == nil)
+        #expect(WhatsNew.decide(entries: entries, currentBuild: 9, lastSeen: 7, welcomeUnanswered: false, workoutInProgress: false).show == nine)
     }
 
     /// Never over a workout in progress, and nothing recorded, so the next launch still shows it.
     @Test func aWorkoutInProgressDefersIt() {
-        #expect(WhatsNew.decide(entries: entries, currentBuild: 7, lastSeen: 6, freshInstall: false, workoutInProgress: true)
+        #expect(WhatsNew.decide(entries: entries, currentBuild: 7, lastSeen: 6, welcomeUnanswered: false, workoutInProgress: true)
                 == .init(show: nil, recordNow: nil))
     }
 
