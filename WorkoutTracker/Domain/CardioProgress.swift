@@ -18,9 +18,10 @@ struct CardioProgressSession: Equatable, Identifiable, Sendable {
     let seconds: Double
     /// Average over every heart-rate sample of these segments; nil without any.
     let heartRate: Int?
-    /// Active seconds of only the segments that have a distance — pace and speed divide `meters` by THESE, so a run
-    /// with one unmeasured segment does not report a slower pace than it ran (codex-review-16 #1).
-    var measuredSeconds: Double? = nil
+    /// Every segment has a distance. When one does not, the session's pace and speed are unknown and are not shown:
+    /// the whole-session rate cannot be computed, and a rate over only the measured part would be presented as the
+    /// session's (codex-review-16 #1, 16b #1). Its distance is still what was measured; its time, all of it.
+    var distanceIsComplete = true
 }
 
 struct CardioProgressPoint: Equatable, Identifiable, Sendable {
@@ -49,7 +50,6 @@ enum CardioProgressMath {
             let segments = workout.recordedCardio.filter { $0.activity == activity }
             guard let first = segments.min(by: { $0.startedAt < $1.startedAt }) else { return nil }
             let distances = segments.compactMap(\.distanceMeters)
-            let measured = segments.filter { $0.distanceMeters != nil }
             let samples = segments.reduce(0) { $0 + $1.heartRateCount }
             let total = segments.reduce(0) { $0 + $1.heartRateTotal }
             return CardioProgressSession(
@@ -58,7 +58,7 @@ enum CardioProgressMath {
                 meters: distances.isEmpty ? nil : distances.reduce(0, +),
                 seconds: segments.reduce(0) { $0 + Self.activeSeconds($1) },
                 heartRate: samples > 0 ? Int((Double(total) / Double(samples)).rounded()) : nil,
-                measuredSeconds: measured.reduce(0) { $0 + Self.activeSeconds($1) })
+                distanceIsComplete: distances.count == segments.count)
         }
         .sorted { ($0.date, $0.workoutID.uuidString) < ($1.date, $1.workoutID.uuidString) }
     }
@@ -97,14 +97,13 @@ enum CardioProgressMath {
     static func value(_ session: CardioProgressSession, metric: ProgressPinMetric, activity: CardioActivity,
                       unit: CardioDistanceUnit) -> Double? {
         let meters = session.meters.flatMap { $0 > 0 && $0.isFinite ? $0 : nil }
-        let valid = { (s: Double) in s.isFinite && s >= 1 ? s : nil }
-        let seconds = valid(session.seconds)
+        let seconds = session.seconds.isFinite && session.seconds >= 1 ? session.seconds : nil
         switch metric {
         case .distance:
             return meters.map { $0 / unit.metersPerUnit }
         case .pace:
-            // The distance over the time that measured it (codex-review-16 #1), not the whole session's time.
-            guard let meters, let seconds = valid(session.measuredSeconds ?? session.seconds) else { return nil }
+            // Unknown when any part of the session went unmeasured (see `distanceIsComplete`).
+            guard session.distanceIsComplete, let meters, let seconds else { return nil }
             return activity.usesSpeed
                 ? (meters / unit.metersPerUnit) / (seconds / 3600)
                 : seconds / meters * paceMeters(activity, unit: unit)

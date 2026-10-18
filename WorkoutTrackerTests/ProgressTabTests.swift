@@ -123,19 +123,24 @@ struct CardioProgressMathTests {
         #expect(sessions.first?.heartRate == 150)
     }
 
-    /// codex-review-16 #1: a measured 2 km / 10 min segment plus an unmeasured 10 min one is a 5:00 /km run, not 10:00.
-    /// The session's time still counts all twenty minutes; its distance is what was measured.
-    @Test func paceAndSpeedUseOnlyTheTimeThatMeasuredTheDistance() {
+    /// codex-review-16 #1 / 16b #1: a measured 2 km / 10 min segment plus an unmeasured 10 min one has NO session pace
+    /// or speed — neither 10:00 /km (time it was not measured over) nor 5:00 /km presented as the session's. It stays
+    /// out of the pace chart, its change and the bests; its distance is what was measured, its time all twenty minutes.
+    @Test func aPartlyUnmeasuredSessionHasNoPaceOrSpeed() {
         workout(day: 1, [(.outdoorRun, 2_000, 600, nil), (.outdoorRun, nil, 600, nil)])
-        workout(day: 2, [(.indoorCycle, 2_000, 600, nil), (.indoorCycle, nil, 600, nil)])
+        workout(day: 2, [(.outdoorRun, 3_000, 900, nil)])
+        workout(day: 3, [(.indoorCycle, 2_000, 600, nil), (.indoorCycle, nil, 600, nil)])
         let run = CardioProgressMath.sessions(in: workouts, activity: .outdoorRun)
-        #expect(run.first?.seconds == 1_200)
-        #expect(run.first?.measuredSeconds == 600)
-        #expect(CardioProgressMath.value(run[0], metric: .pace, activity: .outdoorRun, unit: .km) == 300)
+        #expect(run.map(\.distanceIsComplete) == [false, true])
+        #expect(CardioProgressMath.value(run[0], metric: .pace, activity: .outdoorRun, unit: .km) == nil)
         #expect(CardioProgressMath.value(run[0], metric: .time, activity: .outdoorRun, unit: .km) == 20)
         #expect(CardioProgressMath.value(run[0], metric: .distance, activity: .outdoorRun, unit: .km) == 2)
+        let pace = CardioProgressMath.points(run, metric: .pace, activity: .outdoorRun, unit: .km)
+        #expect(pace.map(\.workoutID) == [run[1].workoutID])
+        #expect(CardioProgressMath.change(pace, metric: .pace, activity: .outdoorRun) == nil)
+        #expect(CardioProgressMath.bests(run, activity: .outdoorRun, unit: .km).fastest?.workoutID == run[1].workoutID)
         let ride = CardioProgressMath.sessions(in: workouts, activity: .indoorCycle)
-        #expect(CardioProgressMath.value(ride[0], metric: .pace, activity: .indoorCycle, unit: .km) == 12)   // km/h
+        #expect(CardioProgressMath.value(ride[0], metric: .pace, activity: .indoorCycle, unit: .km) == nil)  // no speed
     }
 
     @Test func anUnfinishedWorkoutIsNotASession() {

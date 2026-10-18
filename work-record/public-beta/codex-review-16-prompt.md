@@ -46,3 +46,11 @@ Reduce Motion). Claude's fixes: the ticket's "round 1 — response" comment and 
 are closed and nothing regressed; rerun the build and the three unit suites (same rules and paths pattern, a new
 result path). Write `work-record/public-beta/codex-review-16b.md`, ending with exactly `Verdict: clear` or
 `Verdict: not clear`. Do not commit or push.
+
+## Round 3
+
+Round 2: [codex-review-16b.md](codex-review-16b.md), not clear (#1 partly: the measured-segment pace presented as the
+session's). Fix: the ticket's "round 2 — response" and `git diff 399e1ad..HEAD`. Check #1 is closed with no
+regression; rerun the build and the three unit suites (new result path). Write
+`work-record/public-beta/codex-review-16c.md`, ending with exactly `Verdict: clear` or `Verdict: not clear`. Do not
+commit or push.

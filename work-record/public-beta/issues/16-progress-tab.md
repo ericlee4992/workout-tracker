@@ -163,3 +163,12 @@ rendering or typing. (#3) pin changes animate only without Reduce Motion (`acces
 animation). **Not exercised:** Reduce Motion at runtime — no test in the project switches it on (STATE already lists
 it as never exercised); the code path is a single `withAnimation(nil)`. Unit: ProgressPinTests + CardioProgressMathTests
 + ProgressSeriesTests **30 passed** (exit 0); FloodlightProgressUITests **7 tests, 0 failures** (exit 0).
+
+**Codex review round 2 — response.** Report [codex-review-16b.md](../codex-review-16b.md) (HEAD `399e1ad`): #2 and #3
+resolved; **#1 partly** — the measured-time pace was still presented as the session's ("2.0 km · 20 min · 5:00 /km").
+Taken the simpler way Codex offered: `measuredSeconds` replaced by `distanceIsComplete`; when any segment of the
+session lacks a distance, its **pace and speed are unknown and not shown** — not in the session line, the Pace/Speed
+chart, its change or the Fastest best. Its distance stays what was measured; its time all of it. Test
+`aPartlyUnmeasuredSessionHasNoPaceOrSpeed` (run excluded from the pace points/change/bests; cycling speed nil). Unit
+three suites **30 passed** (exit 0). No UI code changed; the UI fixture has no partly-unmeasured session, so the UI
+class (7/7 at `399e1ad`) is not rerun for this domain-only change.
