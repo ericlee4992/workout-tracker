@@ -19,6 +19,18 @@ apps in parallel: [codex-competitor-study.md](codex-competitor-study.md).
 they **license** those videos is an inference (consistent with Gym visual's per-item commercial licence and with
 ExerciseDB's media lineage in ticket 02), not a statement by either company.
 
+## Terms caveat (found after the visits)
+
+Codex found Boostcamp's terms forbid automated crawling and competitive research and stopped there. Checking the
+sites visited here afterwards: **JEFIT's terms** ("not to access … any of the Services through any automated means
+(including use of scripts or web crawlers)") and **StrengthLog's app terms** ("use any automated means, software,
+script, bot, scraper, agent, AI system … to access … the Service") forbid automated access; REA's headless browser
+loads count. Each was visited by a handful of page loads only; no further automated access will be made to sites
+whose terms forbid it, and the screenshots stay out of the repository. Hevy's terms forbid reverse engineering its
+software (not done) and name no crawling clause; Lyfta's fetched terms text names none. **Rule from here on: read a
+site's terms before any automated access; where it is forbidden, use first-party public statements found by ordinary
+search instead.**
+
 ## What it means for Stacked
 
 - The industry splits into two routes: **license Gym visual's 3D renders** (Lyfta, Hevy — and ExerciseDB's media
