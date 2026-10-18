@@ -10,8 +10,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   and What's New appeared (the user). Friends: the approved note, testers notified; 3 testers (2 anonymous public-link
   on build 6, 2 of 20 limit). Build 7 was never given to testers. Nothing in progress; next build number **9**. Open:
   the Live Activity's cardio-only clock not checked on a device; ExerciseProgressView's metric-pill VoiceOver label
-  (ticket 16). The branch `ericlee4992/beta-17-cardio-pause` holds post-merge notes (STATE/ticket) not on `main` —
-  fast-forward `main` to it with the user's go-ahead. [Ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md).
+  (ticket 16). `main` was fast-forwarded to the branch's notes (the user, 2026-10-18), so `main` and
+  `ericlee4992/beta-17-cardio-pause` are the same; start the next ticket on a new branch off `main`. [Ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md).
 - **Session 2026-10-17/18 summary:** done — 08 closed (tester feedback waived as a gate), 13 done, 15 feedback triage
   live (migration 0006; export `~/WorkoutTracker-Backups/server/2026-10-17-pre-15-migration` delete by 2026-11-16),
   16 Progress tab + 14 What's New merged (Codex clear; full unit 1041 pass; Progress 7/7, What's New 5/5, Settings+Tour
