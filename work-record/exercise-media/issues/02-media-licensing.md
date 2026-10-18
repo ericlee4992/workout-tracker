@@ -77,3 +77,23 @@ Findings (report section "Round 2"; Claude re-checked the dataset's LICENSE and 
 - **Own footage → pose → our figure** (Claude's suggestion, not researched by the agent): the user films each lift
   once; Apple's Vision body-pose detection drives a neutral figure/silhouette rendered in Stacked's style. Fully
   owned; covers the user's own machines.
+
+## Gym visual: buying directly, and its terms (Claude, 2026-10-18)
+
+The user asked whether an email is needed or they can just buy on the website. **Buying directly is enough**: each
+purchase carries the N-CRFL, whose permissions say the media "may be used: to illustrate and visually enhance:
+Android or iOS mobile application (apps)", and §6 grants "a non-exclusive, non-transferable right to use, modify and
+reproduce … in perpetuity". The licence is "one-person … used only by the account owner or his employee, for the
+company's own projects" — so the user's own account. Grey areas, read from gymvisual.com/content/3-terms-and-
+conditions-of-use: §6.2 forbids use "in on-demand services" (undefined; most naturally video-on-demand platforms,
+not an app illustrating its exercises), and the owner "may … restrict or remove the use of any Media for any reason"
+and revoke licences for breach (a residual risk no email removes). **Plan that stays inside the explicit grant:
+bundle the files inside the app** (no delivery from our server), injected at build time from a private location
+(never committed to the public repo; public builds fall back to no clip). An email remains optional, only if we
+later want server delivery.
+
+**Terms caveat (Claude's own):** the same terms say "we do not allow the use of automated software or other crawling
+techniques for searching our web site and/or retrieve Media or related information". This session read a handful of
+Gym visual pages with scripted HTTP requests (licence, terms, about/FAQ, a few product pages) before reading that
+clause. No media was retrieved; no further automated access to gymvisual.com will be made — the user browses and
+buys in a normal browser.
