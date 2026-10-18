@@ -69,3 +69,11 @@ build 7, and the real update path on the phone (build 6 → 7 shows the sheet on
 
 **Merged, not uploaded (2026-10-17).** The user: "Merge only" — `main` fast-forwarded to the 14 branch tip (16 + 14);
 build 7 is not built or uploaded yet. **What to Test note approved for build 7** ("Use this note"): "Build 7 adds a Progress tab. Tap + or Add Chart to pin any lift or cardio activity — each chart shows your latest best and how far you've come. Long-press a chart to change what it shows, move it or remove it; tap it for the full chart. A short What's New page introduces it once after updating (Settings → What's New shows it again). Otherwise as before: send anything odd from Settings → Send Feedback."
+
+**Build 7 (2026-10-17, the user: "make build 7 and upload it. To develop only first").** Build number 7 in `d78431f`
+(10 occurrences), simulator `xcodebuild build` **BUILD SUCCEEDED**, `main` fast-forwarded `b3f7e62..d78431f` and pushed.
+No Gate S: no stored-format change since build 6 (`f5151c2`; Models.swift/Cardio.swift untouched; pins and the
+What's New baseline are UserDefaults). Archive from `release-build` detached at `d78431f`: **ARCHIVE SUCCEEDED**; app and
+widget build 7, version 0.1.0, production `WTServerURL`, `WTGoogleClientID` present, team X68M8SR6NA. Upload
+(`-exportArchive`, destination upload) **"Upload succeeded" 23:16 EDT**, EXPORT SUCCEEDED. Next: App Store Connect
+processing, then **Developer group only** (the user's choice; Friends later), What to Test note as approved.
