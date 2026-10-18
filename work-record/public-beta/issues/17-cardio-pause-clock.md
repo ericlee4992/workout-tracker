@@ -1,7 +1,7 @@
 # 17 — Cardio-only workouts: pausing pauses the workout's time; no "paused for" timer
 
 Type: bug / change
-Status: Codex clear (round 2, `codex-review-17b.md`) — awaiting the user's merge go-ahead and What to Test approval (2026-10-18)
+Status: merged (`main` `7c81e28`); build 8 uploaded 2026-10-18 02:05 EDT — Developer group next
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-17-cardio-pause` off `main` `ef11a8e` (build 7's code + notes).
@@ -102,7 +102,7 @@ think the pause timer is necessary (like currently it shows how long it's been p
   "Paused" pill, whole-session clock), L-cardio-only-paused (Lifting view: clock frozen at the active time).
 - Not run: full UI suite (not warranted: change is cardio/time display); Live Activity on a device.
 
-## Build 8 What to Test note — draft, awaiting the user's approval
+## Build 8 What to Test note — approved by the user 2026-10-18 ("use the note as drafted")
 
 "Build 8 adds a Progress tab. Tap + or Add Chart to pin any lift or cardio activity — each chart shows your latest
 best and how far you've come. Long-press a chart to change what it shows, move it or remove it; tap it for the full
@@ -139,3 +139,12 @@ passed**, `TEST SUCCEEDED`, exit 0 — `testCardioOnlyPauseStopsTheWorkoutClock`
 **Codex round 2 (2026-10-18): clear** — [codex-review-17b.md](../codex-review-17b.md), reviewed `fabde33`; its build
 exit 0 and five unit suites 56/0/0. Next: the user's go-ahead to merge into `main`, approval of the build 8 What to
 Test note above, then build 8 (number 8, archive from `release-build`, upload, Developer group first).
+
+**Build 8 (2026-10-18, the user: "once codex clears, merge it and make build 8. Upload to developer group only
+first").** Build number 8 (10 occurrences), simulator `xcodebuild build` **BUILD SUCCEEDED**; `main` fast-forwarded
+`ef11a8e..7c81e28` and pushed (remote confirmed). No Gate S: no stored property changed since build 6/7 (ticket 17 adds
+computed properties and an optional Live Activity field only). Archive from `release-build` detached at `7c81e28`:
+**ARCHIVE SUCCEEDED**; app and widget build 8, version 0.1.0, production `WTServerURL`, `WTGoogleClientID` present,
+team X68M8SR6NA (`scratchpad/tf/Stacked-0.1.0-8-7c81e28.xcarchive` of session d9b843b3). Upload: **"Upload
+succeeded" 02:05 EDT**, EXPORT SUCCEEDED. Next: App Store Connect processing → **Developer group only**; Friends later
+with the approved note.

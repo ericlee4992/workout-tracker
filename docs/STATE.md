@@ -1,20 +1,17 @@
 # Current project state
 
-Updated **2026-10-18** (ticket 17 Codex clear; awaiting the user's merge go-ahead). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-18 02:05 EDT** (build 8 uploaded). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-10-18):** `main` = `ef11a8e` (= build 7 code `d78431f` + notes). **Build 7 uploaded 2026-10-17
-  23:16 EDT but NOT given to testers** — the user: skip 7, ship **build 8** = tickets 16 + 14 + **17**. **Ticket 17**
-  (cardio-only workouts: pausing pauses the workout's time; no "paused for" counter; D64) on branch
-  **`ericlee4992/beta-17-cardio-pause`**: **Codex clear** (round 2, `codex-review-17b.md`, code `fabde33`); unit
-  62/62, cardio UI 18/18 + the fixes' 3/3. Then: the user approves the drafted build 8 What to Test note (in
-  [ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md)) and the merge; build number **8** (10
-  occurrences), archive from `release-build`, upload, App Store Connect → **Developer only first** (the user signs in to
-  App Store Connect in Chrome; Claude fills, the user clicks Add). Note: Claude pushed the notes-only `ef11a8e` to
-  `main` without asking (told the user; left in place). [Ticket 16](../work-record/public-beta/issues/16-progress-tab.md),
-  [ticket 14](../work-record/public-beta/issues/14-whats-new.md).
+- **Resume here (2026-10-18):** **Build 8 uploaded 2026-10-18 02:05 EDT** from `main` **`7c81e28`** (tickets 16 Progress
+  tab + 14 What's New + 17 cardio-only pause clock, D64; Codex clear `codex-review-17b.md`). Build 7 was never given to
+  testers. **Next:** App Store Connect → Developer (internal) → Builds → + → build 8 → Add (the user clicks Add; the
+  user signs in to App Store Connect in Chrome if the session expired), the user installs and checks on the phone;
+  Friends later with the **approved** What to Test note (in
+  [ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md)). Branch `ericlee4992/beta-17-cardio-pause`
+  holds the post-merge notes (this STATE); `main` has the code. Next build number: **9**.
 - **Session 2026-10-17/18 summary:** done — 08 closed (tester feedback waived as a gate), 13 done, 15 feedback triage
   live (migration 0006; export `~/WorkoutTracker-Backups/server/2026-10-17-pre-15-migration` delete by 2026-11-16),
   16 Progress tab + 14 What's New merged (Codex clear; full unit 1041 pass; Progress 7/7, What's New 5/5, Settings+Tour
@@ -24,7 +21,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   simulators are WT-Floodlight `9E822EF6-…` and WT-iPhone27 `47D21838-…` (run them in parallel for regression);
   UI tests: the first tests a fresh runner executes can fail with `kAXErrorServerNotFound` after a 60 s automation set-up (not the app) — put a short warm-up test first (ticket 17); rm with a variable path is blocked by the safety check — overwrite instead; ExerciseProgressView's metric pills carry
   `.accessibilityLabel("Metric")` that hides each option's name from VoiceOver (pre-existing, noted in ticket 16, not
-  fixed). Next build number: **8**.
+  fixed). Next build number: **9**.
 - **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6** (`main` `f5151c2`). **Checked 05:30 EDT:**
   build 6 is in Developer and in Friends as **"Testing"** (submitted, through Beta App Review); the phone has
   **Stacked 0.1.0 (6)** (`devicectl`). The user: "the build 6 works well." **Ticket 13 done.**
@@ -147,10 +144,10 @@ domain of the user's own, which also allows Google branding verification.
 | 10 model Sol | **Closed, no change** (the user kept Terra after measurements). |
 | 11 safety copy | Deferred (the user, 2026-10-14) until the first stored-format change; guard on its branch. |
 | 13 Goals keyboard | **Done** — build 6, the user: "works well". |
-| 14 What's New | **Merged**; ships in build 8 (keyed build ≥ 7). |
+| 14 What's New | **Merged**; in build 8 (uploaded; keyed build ≥ 7). |
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
-| 16 Progress tab | **Merged**; ships in build 8 (build 7 uploaded, skipped for testers). |
-| 17 cardio pause clock | **Codex clear** (D64; `fabde33`); awaiting merge go-ahead; ships in build 8. |
+| 16 Progress tab | **Merged**; in build 8 (uploaded; build 7 skipped for testers). |
+| 17 cardio pause clock | **Merged** `7c81e28` (D64, Codex clear); build 8 uploaded, Developer group next. |
 
 ## Working conventions (in force)
 
