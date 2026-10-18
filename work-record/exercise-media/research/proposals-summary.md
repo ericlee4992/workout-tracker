@@ -39,3 +39,20 @@ Sources: [claude-proposals.md](claude-proposals.md) (written first) and [codex-p
 
 Meanwhile, the shared pieces (exercise-page media slot, workout pop-up, our own muscle maps, YouTube, user clips)
 can be built, since every route needs them.
+
+## Update — competitor study (2026-10-18)
+
+[claude-competitor-study.md](claude-competitor-study.md) + [codex-competitor-study.md](codex-competitor-study.md):
+apps either **license 3D renders** (Lyfta and Hevy file names carry Gym visual product codes; Liftosaur's public repo
+documents buying Gym visual illustrations) or **film real trainers** (Fitbod, Alpha Progression, MuscleWiki, JEFIT,
+StrengthLog, Gymshark). No AI or code-drawn demos were found in the sample. A second 3D vendor was found:
+**Exercise Animatic** — human 3D artists, no AI, 2,600+ animation videos; licence (re-checked by Claude) permits
+"commercial iOS and Android apps" including "free, paid and subscription-based", lifetime, resize/crop/transcode
+allowed, no attribution; forbids redistribution/standalone downloads, sublicensing, AI training; **silent on offline
+storage on devices** → ask in writing. Filmed-library vendors (ymove) and illustration vendors (WorkoutLabs) exist;
+MuscleWiki's API forbids permanent storage (unsuitable).
+
+**Updated recommendation:** ask **Gym visual and Exercise Animatic** the same short brief (exact matches for our
+machine-heavy hard cases; written permission for app bundling, delivery from our server, offline storage on phones,
+conversion to MP4), compare samples and terms, then pilot the better one. Lesson recorded: read a site's terms before
+any automated access (JEFIT's and StrengthLog's forbid it; Boostcamp's forbid competitive research).
