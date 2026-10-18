@@ -1,19 +1,20 @@
 # Current project state
 
-Updated **2026-10-17 07:30 EDT** (08 and 13 closed; ticket 15 feedback triage live). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-10-18** (ticket 17 built, in Codex review). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
 - **Resume here (2026-10-18):** `main` = `ef11a8e` (= build 7 code `d78431f` + notes). **Build 7 uploaded 2026-10-17
-  23:16 EDT but NOT given to testers** — the user: skip 7, ship **build 8** = tickets 16 + 14 + **17**. **Now: ticket 17**
-  (cardio-only workouts: pausing pauses the workout's time; remove the "paused for" counter) on branch
-  **`ericlee4992/beta-17-cardio-pause`** — decided and mapped, **not built yet**; plan and code map in
-  [ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md). Then: Codex review, a new What to Test note
-  (build 7's approved note + a line about the fix) for the user's approval, build number **8** (10 occurrences), archive
-  from `release-build`, upload, App Store Connect → **Developer only first** (the user signs in to App Store Connect in
-  Chrome; Claude fills, the user clicks Add). Note: Claude pushed the notes-only `ef11a8e` to `main` without asking
-  (told the user; left in place). [Ticket 16](../work-record/public-beta/issues/16-progress-tab.md),
+  23:16 EDT but NOT given to testers** — the user: skip 7, ship **build 8** = tickets 16 + 14 + **17**. **Ticket 17**
+  (cardio-only workouts: pausing pauses the workout's time; no "paused for" counter; D64) on branch
+  **`ericlee4992/beta-17-cardio-pause`**: **built and pushed (`fde78f0`)**; unit 60/60 and cardio UI 18/18 passed
+  (two AX-server failures cleared after rebooting WT-Floodlight); **Codex review round 1 running** (report
+  `work-record/public-beta/codex-review-17.md`). Then: the user approves the drafted build 8 What to Test note (in
+  [ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md)) and the merge; build number **8** (10
+  occurrences), archive from `release-build`, upload, App Store Connect → **Developer only first** (the user signs in to
+  App Store Connect in Chrome; Claude fills, the user clicks Add). Note: Claude pushed the notes-only `ef11a8e` to
+  `main` without asking (told the user; left in place). [Ticket 16](../work-record/public-beta/issues/16-progress-tab.md),
   [ticket 14](../work-record/public-beta/issues/14-whats-new.md).
 - **Session 2026-10-17/18 summary:** done — 08 closed (tester feedback waived as a gate), 13 done, 15 feedback triage
   live (migration 0006; export `~/WorkoutTracker-Backups/server/2026-10-17-pre-15-migration` delete by 2026-11-16),
@@ -150,7 +151,7 @@ domain of the user's own, which also allows Google branding verification.
 | 14 What's New | **Merged**; ships in build 8 (keyed build ≥ 7). |
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
 | 16 Progress tab | **Merged**; ships in build 8 (build 7 uploaded, skipped for testers). |
-| 17 cardio pause clock | Decided, not built; branch `ericlee4992/beta-17-cardio-pause`; ships in build 8. |
+| 17 cardio pause clock | **Built** `fde78f0` (D64), tests pass, Codex review round 1; ships in build 8. |
 
 ## Working conventions (in force)
 

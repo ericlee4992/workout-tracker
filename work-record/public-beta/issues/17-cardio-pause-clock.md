@@ -102,4 +102,16 @@ think the pause timer is necessary (like currently it shows how long it's been p
   "Paused" pill, whole-session clock), L-cardio-only-paused (Lifting view: clock frozen at the active time).
 - Not run: full UI suite (not warranted: change is cardio/time display); Live Activity on a device.
 
+## Build 8 What to Test note — draft, awaiting the user's approval
+
+"Build 8 adds a Progress tab. Tap + or Add Chart to pin any lift or cardio activity — each chart shows your latest
+best and how far you've come. Long-press a chart to change what it shows, move it or remove it; tap it for the full
+chart. A short What's New page introduces it once after updating (Settings → What's New shows it again). Also fixed:
+in a workout that is only cardio, pausing the cardio now pauses the workout's time too, and the Paused label no
+longer counts the pause. Otherwise as before: send anything odd from Settings → Send Feedback."
+
 ## Comments
+
+**Checkpoint 2026-10-18:** implementation committed `fde78f0` and pushed; Codex review round 1 sent to the "Codex
+review" terminal (`term_be05cca0-…`), prompt `codex-review-17-prompt.md`, report → `codex-review-17.md`.
+
