@@ -5,11 +5,15 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-10-17):** `main` = **`d78431f` = build 7** (tickets 16 Progress tab + 14 What's New). **Build 7
-  uploaded 23:16 EDT** ("Upload succeeded"; archive `scratchpad/tf/Stacked-0.1.0-7-d78431f.xcarchive` of session
-  4d64fc4f). **Next:** when processed, add it to **Developer only** (the user: "To develop only first"; Friends later)
-  with the approved What to Test note (ticket 16); the user installs and checks What's New shows once after the update,
-  then the Progress tab. Next build number: **8**. [Ticket 16](../work-record/public-beta/issues/16-progress-tab.md),
+- **Resume here (2026-10-18):** `main` = `ef11a8e` (= build 7 code `d78431f` + notes). **Build 7 uploaded 2026-10-17
+  23:16 EDT but NOT given to testers** — the user: skip 7, ship **build 8** = tickets 16 + 14 + **17**. **Now: ticket 17**
+  (cardio-only workouts: pausing pauses the workout's time; remove the "paused for" counter) on branch
+  **`ericlee4992/beta-17-cardio-pause`** — decided and mapped, **not built yet**; plan and code map in
+  [ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md). Then: Codex review, a new What to Test note
+  (build 7's approved note + a line about the fix) for the user's approval, build number **8** (10 occurrences), archive
+  from `release-build`, upload, App Store Connect → **Developer only first** (the user signs in to App Store Connect in
+  Chrome; Claude fills, the user clicks Add). Note: Claude pushed the notes-only `ef11a8e` to `main` without asking
+  (told the user; left in place). [Ticket 16](../work-record/public-beta/issues/16-progress-tab.md),
   [ticket 14](../work-record/public-beta/issues/14-whats-new.md).
 - **Ticket 13 (2026-10-17): merged and uploaded as TestFlight build 6** (`main` `f5151c2`). **Checked 05:30 EDT:**
   build 6 is in Developer and in Friends as **"Testing"** (submitted, through Beta App Review); the phone has
@@ -133,9 +137,10 @@ domain of the user's own, which also allows Google branding verification.
 | 10 model Sol | **Closed, no change** (the user kept Terra after measurements). |
 | 11 safety copy | Deferred (the user, 2026-10-14) until the first stored-format change; guard on its branch. |
 | 13 Goals keyboard | **Done** — build 6, the user: "works well". |
-| 14 What's New | **Merged**; in build 7 (uploaded 2026-10-17, Developer only). |
+| 14 What's New | **Merged**; ships in build 8 (keyed build ≥ 7). |
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
-| 16 Progress tab | **Merged**; in build 7 (uploaded 2026-10-17, Developer only). |
+| 16 Progress tab | **Merged**; ships in build 8 (build 7 uploaded, skipped for testers). |
+| 17 cardio pause clock | Decided, not built; branch `ericlee4992/beta-17-cardio-pause`; ships in build 8. |
 
 ## Working conventions (in force)
 
