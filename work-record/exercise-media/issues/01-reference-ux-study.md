@@ -1,7 +1,7 @@
 # 01 — Reference UX study: Lyfta's exercise detail screen (REA)
 
 Type: research
-Status: resolved for the web library; the iOS screen itself not observed (see Gaps)
+Status: resolved — web library (REA) and the iOS app (the user's screenshots, 2026-10-18); in-workout entry point not seen
 Blocked by: —
 
 ## Question
@@ -57,10 +57,32 @@ behind it is a question for ticket 02, not established here). A small watermark 
 - Library cards with a still frame per exercise are the "animations in the Exercises tab" analogue; animating every
   row at once would be heavy — a still per row and motion on the detail page (or on a long-press/peek) is the norm.
 
+## The iOS app (the user's three screenshots, 2026-10-18 04:38–04:39; kept outside the repo)
+
+Observed by eye from the screenshots (not REA evidence). Dark theme throughout.
+
+1. **Explore → Exercises (browse).** A search field ("Search for exercises"); a top switch Programs / Exercises /
+   Coaches; a **"Muscle Groups" grid**, three per row: a large anatomical figure (front or back as fits) with that
+   group tinted orange-red, its name below — Chest, Biceps, Triceps, Back, Shoulders, Abs, Quadriceps, Hamstrings,
+   Glutes, then more (calves, forearms, neck/traps by their art). Tab bar: Home, Explore, Workout, Library, You.
+2. **Library (all exercises).** A close button, "Library", search, filter, +. A horizontal strip of **small body
+   silhouettes** as the muscle filter (the selected one framed; a bookmark/favourites chip first). "All Exercises"
+   with a list/grid switch. **Two-column cards**: a large still 3D render of the movement on a dark tile (target
+   muscle tinted), a bookmark at top-left, a **"?"** at top-right (presumably the quick form view), then the name and
+   the muscle group. Rows are stills, not animated.
+3. **Exercise detail.** Back, the exercise name as the title, a "•••" menu; **tabs About / History / Progress**. About
+   opens with a **large white card playing the animation** (looping, autoplaying; pause at top-right, full-screen at
+   bottom-right). Below it a **horizontal row of action chips**: Favorites, **YouTube**, Share, "How to lo…" (cut off —
+   likely "How to log"). Then **"Target muscles"**: front and back anatomical figures, **primary muscles orange-red,
+   secondary blue**.
+
+**Inputs for ours (added).** The muscle map (front + back, primary vs secondary colour) carries as much as the clip;
+it also replaces the web page's text profile. Browse-by-muscle uses body art, not words. YouTube is a separate,
+explicit action (a chip), not the default player. Our existing exercise page already holds the History/Progress
+content — the media and muscles would become its top section rather than a new screen.
+
 ## Gaps
 
-- **The iOS app's own exercise detail screen was not observed** (not installed; no Mac build). The web page shares
-  the media and data, but the app's layout, in-workout entry point and offline behaviour are unknown. To close it:
-  the user installs Lyfta on the phone and shares screenshots or a screen recording of an exercise's detail and of
-  tapping an exercise during a workout; REA cannot drive an iPhone UI.
+- **The in-workout entry point** (what tapping an exercise during a workout shows) and offline behaviour were not
+  seen; the iOS screens above came from screenshots, which REA cannot drive or verify further.
 - The in-app web app (`my.lyfta.app`) needs an account; not used.
