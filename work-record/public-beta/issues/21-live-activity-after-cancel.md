@@ -1,7 +1,7 @@
 # 21 — The Live Activity stays after cancelling a workout
 
 Type: bug
-Status: **ready** (2026-10-18)
+Status: **in review** (Codex round 1, 2026-10-18)
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040` (tickets 19–22 together).
@@ -81,3 +81,4 @@ Cancel → Discard Workout ends the Lock Screen / Dynamic Island card at once, e
   `testRealLiveActivityCommandsReachTheWorkout` 3/3, `testRealLiveActivityEndsWhenTheWorkoutIsCancelled` **3/3
   passed**, `TEST SUCCEEDED`, exit 0.
 - Not checked: the phone (the user, with build 9).
+- Commit for review: `67de6eb` (pushed).
