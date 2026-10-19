@@ -5,13 +5,21 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **In progress (2026-10-18): build 9 bug fixes** — checkout `…/Health App/beta-19-bug-fixes`, branch
-  `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040`: tickets [19 Add Chart by body area](../work-record/public-beta/issues/19-add-chart-body-areas.md),
-  [20 delete one cardio](../work-record/public-beta/issues/20-delete-cardio-in-history.md),
-  [21 Live Activity after cancel](../work-record/public-beta/issues/21-live-activity-after-cancel.md),
-  [22 one Add Exercise button](../work-record/public-beta/issues/22-one-add-exercise-button.md), one at a time, each
-  Codex-reviewed to clear in a new Codex terminal in that worktree; ask the user before merging. Ticket 18 is reserved
-  for the exercise-media session (`…/public-beta`, `ericlee4992/beta-18-exercise-media`; do not touch it).
+- **PAUSED by the user (2026-10-18, late evening): build 9 bug fixes** — checkout `…/Health App/beta-19-bug-fixes`,
+  branch `ericlee4992/beta-19-bug-fixes` (pushed, tip `11c6a1c`+this note), off `main` `1f0e040`; nothing merged.
+  - [19 Add Chart by body area](../work-record/public-beta/issues/19-add-chart-body-areas.md): **Codex clear** (round 2).
+  - [20 delete one cardio](../work-record/public-beta/issues/20-delete-cardio-in-history.md): **Codex clear** (round 2).
+  - [21 Live Activity after cancel](../work-record/public-beta/issues/21-live-activity-after-cancel.md): cause confirmed
+    and fixed; Codex round 1 **not clear** (2 P2s); fixes committed **untested** (`11c6a1c`). Next: the three
+    `WorkoutActivity*` unit suites, then round 2 (ticket's "Codex round 1" section says how).
+  - [22 one Add Exercise button](../work-record/public-beta/issues/22-one-add-exercise-button.md): built (exit 0), not
+    tested, on branch **`ericlee4992/beta-22-wip`** (`436a416`, pushed; its scratch checkout is under this session's
+    `/private/tmp/…/scratchpad/wt-next`, may vanish — use the branch). Next after 21 clears: apply onto the bug-fix
+    branch, run the ticket's targeted UI list, Codex review. D65 is on that branch only.
+  - Codex: one Orca terminal **"Codex review 19-22"** (`term_941e7732-91a5-4b1b-8749-651c3cf01354`) in this worktree;
+    idle. Scratch checkouts `…/scratchpad/wt-next` and `wt-repro` (git worktrees; `git worktree prune` once gone).
+  - Ask the user before merging to `main`; these ship in **build 9**. Ticket 18 is reserved for the exercise-media
+    session (`…/public-beta`, `ericlee4992/beta-18-exercise-media`; do not touch it).
 - **Resume here (2026-10-18):** **Build 8 is live** (`main` **`7c81e28`**: tickets 16 Progress tab + 14 What's New + 17
   cardio-only pause clock, D64) — **Developer** and **Friends** both show it **Testing**; the phone has **0.1.0 (8)**
   and What's New appeared (the user). Friends: the approved note, testers notified; 3 testers (2 anonymous public-link
@@ -156,7 +164,7 @@ domain of the user's own, which also allows Google branding verification.
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
 | 16 Progress tab | **Done** — build 8 (build 7 skipped for testers). |
 | 17 cardio pause clock | **Done** — build 8 (Developer + Friends, 2026-10-18). |
-| 19–22 build 9 bug fixes | **In progress** on `ericlee4992/beta-19-bug-fixes` (above). |
+| 19–22 build 9 bug fixes | **Paused** — 19, 20 Codex clear; 21 round 2 pending; 22 WIP (above). |
 
 ## Working conventions (in force)
 
