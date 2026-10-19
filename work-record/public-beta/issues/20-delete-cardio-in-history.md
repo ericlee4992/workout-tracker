@@ -1,7 +1,7 @@
 # 20 — History: delete one cardio activity from a workout
 
 Type: bug / change
-Status: **in review** (Codex round 1, 2026-10-18)
+Status: **review clear** (Codex round 2, 2026-10-18) — on the branch; merge with tickets 19–22 after the user's go-ahead
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040` (tickets 19–22 together).
@@ -90,3 +90,7 @@ Two findings, no functional defect: **P2** no domain test deletes an activity wi
   `CardioExportTests` **6 tests, 2 suites passed**, exit 0.
 - P3: README's History bullet says editing goes down to removing one set, exercise or cardio activity. No new
   screenshot (none of the README captures shows a workout's detail).
+
+### Codex round 2 (2026-10-18): **clear** — [codex-review-20b.md](../codex-review-20b.md)
+
+Reviewed `bd7a2b9`: both findings closed; Codex's rerun 6/0/0, exit 0. Ticket 20 done on the branch; not merged.
