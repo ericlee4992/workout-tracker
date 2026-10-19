@@ -23,6 +23,9 @@ protocol WorkoutActivityPresenting: AnyObject {
     func start(_ attributes: WorkoutActivityAttributes, state: WorkoutActivityAttributes.ContentState)
     func update(_ state: WorkoutActivityAttributes.ContentState)
     func end()
+    /// Ends every workout card the app has posted, tracked or not (ticket 21): one adopted from an
+    /// earlier launch, or one whose end never reached the system.
+    func endAll()
     /// Waits for the last update to reach the system (a lock-screen command's intent must not
     /// return, and let the app be suspended, before the card it changed is redrawn).
     func settle() async
@@ -41,6 +44,12 @@ final class WorkoutActivityController {
     /// The last state pushed, so an update that changes nothing does not wake
     /// the system for no reason.
     private var lastState: WorkoutActivityAttributes.ContentState?
+    /// Workouts whose card was ended (ticket 21). A push that lands after its workout ended — the
+    /// screen's 2-second tick or a rest change while the cancelled workout's screen is still being
+    /// dismissed — must not post the card again: SwiftData reports a deleted workout as not deleted
+    /// once the deletion is saved, so the screen's own guard cannot tell. An ended workout never
+    /// runs again (finish and cancel are final), so the set only grows by one per workout.
+    private var ended: Set<UUID> = []
 
     init(presenter: (any WorkoutActivityPresenting)? = nil) {
         self.presenter = presenter ?? WorkoutActivities.make()
@@ -57,6 +66,7 @@ final class WorkoutActivityController {
         gymName: String?,
         state: WorkoutActivityAttributes.ContentState
     ) {
+        guard !ended.contains(workoutID) else { return }
         if self.workoutID == workoutID, presenter.isActive {
             guard state != lastState else { return }
             lastState = state
@@ -82,18 +92,17 @@ final class WorkoutActivityController {
     /// cancel, discard, and the "finish it and start new" recovery. A path that
     /// forgets leaves a workout on the lock screen that no longer exists.
     func end(workoutID: UUID) {
-        guard self.workoutID == workoutID else { return }
+        ended.insert(workoutID)
+        // Nothing tracked (a card from an earlier launch not adopted yet): sweep. A different
+        // workout's card is left alone — a stale id must not end the current one.
+        guard self.workoutID == workoutID || self.workoutID == nil else { return }
         endAny()
     }
 
-    /// Ends whatever is showing, whichever workout it belongs to.
+    /// Ends whatever is showing, whichever workout it belongs to, and any stray card with it.
     func endAny() {
-        guard presenter.isActive else {
-            workoutID = nil
-            lastState = nil
-            return
-        }
-        presenter.end()
+        if let workoutID { ended.insert(workoutID) }
+        presenter.endAll()
         workoutID = nil
         lastState = nil
     }
@@ -121,6 +130,7 @@ final class SilentWorkoutActivityPresenter: WorkoutActivityPresenting {
     private(set) var starts = 0
     private(set) var updates = 0
     private(set) var ends = 0
+    private(set) var sweeps = 0
     private(set) var lastState: WorkoutActivityAttributes.ContentState?
     var isActive: Bool { starts > ends }
 
@@ -138,6 +148,11 @@ final class SilentWorkoutActivityPresenter: WorkoutActivityPresenting {
     }
 
     func end() { ends += 1 }
+
+    func endAll() {
+        sweeps += 1
+        if isActive { ends += 1 }
+    }
 }
 
 /// The real thing.
@@ -206,5 +221,18 @@ final class SystemWorkoutActivityPresenter: WorkoutActivityPresenting {
         // card on the lock screen after the workout ended is the orphan this
         // controller exists to prevent, one layer down.
         Task { await activity.end(nil, dismissalPolicy: .immediate) }
+    }
+
+    func endAll() {
+        let tracked = activity
+        activity = nil
+        let posted = Activity<WorkoutActivityAttributes>.activities
+        Task {
+            for card in posted { await card.end(nil, dismissalPolicy: .immediate) }
+            // Requested this run but not yet listed by the system.
+            if let tracked, !posted.contains(where: { $0.id == tracked.id }) {
+                await tracked.end(nil, dismissalPolicy: .immediate)
+            }
+        }
     }
 }

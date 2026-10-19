@@ -733,7 +733,9 @@ struct ActiveWorkoutView: View {
     /// still shows a correct one — the trap that cost four attempts on the rest
     /// alarm does not apply here as long as nothing tries to tick it.
     private func pushActivityState() {
-        guard !workout.isDeleted, workout.finishedAt == nil else { return }
+        // Ticket 21: once a cancel's deletion is saved, SwiftData reports the workout as not deleted
+        // and not finished — only its context is gone. The controller also refuses an ended workout.
+        guard !workout.isDeleted, workout.modelContext != nil, workout.finishedAt == nil else { return }
         workoutActivity.show(
             workoutID: workout.id,
             startedAt: workout.startedAt,

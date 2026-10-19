@@ -96,6 +96,50 @@ struct WorkoutActivityTests {
         #expect(presenter.ends == 0)
     }
 
+    // MARK: - Ticket 21: the card stays gone after a cancel
+
+    /// The cancelled workout's screen is still up while it is dismissed, and its 2-second tick (or
+    /// the rest the cancel cleared) pushes again; SwiftData then reports the deleted workout as not
+    /// deleted. That late push used to post a NEW card for a workout that no longer exists.
+    @Test func aLatePushAfterTheEndDoesNotBringTheCardBack() {
+        let (controller, presenter) = rig()
+        let id = UUID()
+        controller.show(workoutID: id, startedAt: .now, gymName: nil, state: state())
+        controller.end(workoutID: id)
+        controller.show(workoutID: id, startedAt: .now, gymName: nil, state: state(sets: 4))
+        #expect(presenter.starts == 1, "an ended workout's card is never requested again")
+        #expect(!presenter.isActive)
+        #expect(controller.workoutID == nil)
+    }
+
+    @Test func endAnyAlsoRefusesTheEndedWorkoutsCard() {
+        let (controller, presenter) = rig()
+        let id = UUID()
+        controller.show(workoutID: id, startedAt: .now, gymName: nil, state: state())
+        controller.endAny()
+        controller.show(workoutID: id, startedAt: .now, gymName: nil, state: state())
+        #expect(presenter.starts == 1)
+    }
+
+    /// The next workout still gets its card.
+    @Test func aNewWorkoutAfterACancelShowsItsCard() {
+        let (controller, presenter) = rig()
+        let cancelled = UUID()
+        controller.show(workoutID: cancelled, startedAt: .now, gymName: nil, state: state())
+        controller.end(workoutID: cancelled)
+        controller.show(workoutID: UUID(), startedAt: .now, gymName: nil, state: state())
+        #expect(presenter.starts == 2)
+        #expect(presenter.isActive)
+    }
+
+    /// Ending with nothing tracked (a card left by an earlier launch, not yet adopted) sweeps every
+    /// posted card rather than doing nothing.
+    @Test func endingWithNothingTrackedSweepsStrayCards() {
+        let (controller, presenter) = rig()
+        controller.end(workoutID: UUID())
+        #expect(presenter.sweeps == 1)
+    }
+
     // MARK: - Honesty of the content
 
     /// D44's rule, carried onto the lock screen: absent means "not measured",

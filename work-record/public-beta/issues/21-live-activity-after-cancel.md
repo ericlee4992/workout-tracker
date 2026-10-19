@@ -39,3 +39,45 @@ Cancel → Discard Workout ends the Lock Screen / Dynamic Island card at once, e
 
 ## Progress
 
+### Cause (Claude, 2026-10-18) — confirmed
+
+- **Probe** (a throwaway unit test, `runs/21-probe.log`): after `WorkoutSession.cancel` (delete + save) the workout
+  reports `isDeleted=false`, `finishedAt=nil`, `modelContext=nil`. So `pushActivityState()`'s guard
+  (`!workout.isDeleted, workout.finishedAt == nil`) passes for a cancelled workout.
+- `cancelWorkout()` ends the card (`stopHeartRate` → `end(workoutID:)`, which clears the controller's tracked id),
+  then cancels (which also clears the rest, moving `restEnd`), then dismisses. Until the screen is gone, its 2-second
+  `livenessTick` and `onChange(restEnd)` still call `pushActivityState()` → `show()` sees no tracked workout and
+  **requests a new card** for the deleted workout.
+- **UI reproduction on the unfixed code** (`wt-repro`, real Live Activity on WT-iPhone27): run `21-repro` — after the
+  cancel the Lock Screen showed a new card ("Lateral Raise · 0/1 sets · Iron Temple", a fresh clock;
+  `runs/shots21r/21-after-cancel.png`); the test still passed because it only looked for the rest buttons, which a
+  card with no rest does not have. `21-repro-3` (same code) showed no card: the stray card depends on a push landing
+  during the dismissal — a race. The controller unit test below reproduces it deterministically.
+
+### Build (Claude, 2026-10-18)
+
+- `WorkoutActivityController`: remembers the workouts whose card it ended (`ended`) and refuses `show()` for them;
+  `end(workoutID:)` with nothing tracked sweeps; `endAny()` ends **every** card the app posted
+  (`presenter.endAll()`), not only the tracked one.
+- `WorkoutActivityPresenting.endAll()`: the system presenter ends every `Activity<WorkoutActivityAttributes>` plus a
+  just-requested one not yet listed; the silent presenter counts `sweeps`.
+- `ActiveWorkoutView.pushActivityState()`: also requires `workout.modelContext != nil`.
+- `RootView.recoverActiveWorkout()`: with no live workout at launch, ends any card left over (an app that quit right
+  after a cancel, before the end reached the system).
+- Tests: `WorkoutActivityTests` + 4 (late push after end, after endAny, next workout still shows, sweep with nothing
+  tracked); `FloodlightSystemUITests/testRealLiveActivityEndsWhenTheWorkoutIsCancelled` (real card, mid-rest
+  fixture, cancel, wait past the 2-second tick, no `activity-content-view` on the Lock Screen).
+
+### Verification (Claude, 2026-10-18)
+
+- Unit `21-unit-1` (WT-iPhone `432F2F5D-…`, iOS 26.5): `WorkoutActivityTests`, `WorkoutActivityProviderTests`,
+  `WorkoutActivityContentTests` — **34 tests, 3 suites passed**, exit 0.
+- Unit `21-unit-2` (WT-iPhone27, iOS 27, right after the 3-iteration UI run): 3 failures in
+  `WorkoutActivityProviderTests`/`WorkoutActivityContentTests` (Watch rest-feed ordering) after **151 s** — the
+  machine was saturated. Re-run `21-unit-3` with the fix: those two suites **21/21 passed** in 0.7 s, exit 0; the
+  same suites on the unfixed code (`21-unit-base`): 21/21. Not caused by this change (neither test touches the
+  controller's end path). `21-unit-4`: `WorkoutActivityTests` **13/13 passed** on iOS 27, exit 0.
+- UI `21-ui-1` (fixed code, real Live Activity, WT-iPhone27, `-test-iterations 3`): warm-up 3/3,
+  `testRealLiveActivityCommandsReachTheWorkout` 3/3, `testRealLiveActivityEndsWhenTheWorkoutIsCancelled` **3/3
+  passed**, `TEST SUCCEEDED`, exit 0.
+- Not checked: the phone (the user, with build 9).

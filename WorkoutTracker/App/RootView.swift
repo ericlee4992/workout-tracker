@@ -128,6 +128,9 @@ struct RootView: View {
         // Activity and notifications, which the tour must not touch. Its sample has no unfinished workout anyway.
         guard tour == nil, activeWorkout == nil else { return }
         activeWorkout = try? WorkoutSession(context: modelContext).resumableWorkout()
+        // Ticket 21: no live workout, so no card — one whose end never reached the system (the
+        // app quit right after a cancel) goes now.
+        if activeWorkout == nil { workoutActivity.endAny() }
     }
 
     // Lets scripted screenshot runs land on a specific screen:
