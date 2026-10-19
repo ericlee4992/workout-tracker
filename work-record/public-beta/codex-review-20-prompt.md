@@ -33,3 +33,11 @@ codes. UI tests are optional; say if you skip them. Do not modify files other th
 
 Write `work-record/public-beta/codex-review-20.md`: findings numbered P1/P2/P3 with file:line, failure scenario and fix;
 end with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 2
+
+Round 1: [codex-review-20.md](codex-review-20.md), not clear (P2 route/splits test, P3 README). Claude's response: the
+ticket's "Codex round 1" section and `git diff 19438e7..HEAD`. Check both are closed and nothing regressed; rerun
+`-only-testing:WorkoutTrackerTests/CardioHistoryDeleteTests -only-testing:WorkoutTrackerTests/CardioExportTests`
+(same rules, a new result path). Write `work-record/public-beta/codex-review-20b.md`, ending with exactly
+`Verdict: clear` or `Verdict: not clear`. Do not commit or push.

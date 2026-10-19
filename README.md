@@ -43,9 +43,10 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
 - **Heart rate and Apple Health.** Live bpm from AirPods Pro 3 or a paired heart-rate monitor,
   zones, calories and a heart-rate rest timer; workouts are saved to Apple Health. (An Apple
   Watch companion is written but not yet built or shipped.)
-- **History.** A calendar, per-session detail with editing, records, progress charts per
-  exercise and variation, and export of your workouts as JSON (the fullest record, with
-  heart-rate series and routes) or CSV (a table of sets and cardio).
+- **History.** A calendar, per-session detail with editing (down to removing one set, exercise or
+  cardio activity), records, progress charts per exercise and variation, and export of your
+  workouts as JSON (the fullest record, with heart-rate series and routes) or CSV (a table of
+  sets and cardio).
 - **Progress.** A tab of the charts you pin — lifts per machine or weight (best set, volume,
   1RM) and cardio activities (distance, pace or speed, time) — each with its latest value and
   the change since your first session; tap one for the full chart, its bests and sessions. Add Chart

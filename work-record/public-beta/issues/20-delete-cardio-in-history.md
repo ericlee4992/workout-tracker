@@ -76,3 +76,17 @@ History/receipt regression flows (hero, cards, splits).
 - Captures: `runs/shots20/20-mixed-{card,menu,confirm,after}-{default,axl}.png`, `20-only-content-confirm-default.png`,
   `runs/shots20f/20-mixed-confirm-final.png`.
 - Commit for review: `33db769` (pushed).
+
+### Codex round 1 (2026-10-18): not clear — [codex-review-20.md](../codex-review-20.md)
+
+Two findings, no functional defect: **P2** no domain test deletes an activity with a route and splits (acceptance 4);
+**P3** README not updated. Codex's build exit 0, unit 21/0/0 on WT-Floodlight.
+
+**Response (Claude):**
+- P2: `CardioHistoryDeleteTests/deletingAnOutdoorRunTakesItsRouteAndSplitsAndKeepsTheOther` — an Outdoor Run with a
+  61-point route and 1.8 km (splits > 1 asserted before) and an Outdoor Walk with its own route; delete the run, save,
+  read back through a **fresh context**: only the walk's segment is stored, with its route intact; the workout's
+  recorded cardio is the walk; the export counts 1 segment, the walk. `20-unit-r1`: `CardioHistoryDeleteTests` +
+  `CardioExportTests` **6 tests, 2 suites passed**, exit 0.
+- P3: README's History bullet says editing goes down to removing one set, exercise or cardio activity. No new
+  screenshot (none of the README captures shows a workout's detail).
