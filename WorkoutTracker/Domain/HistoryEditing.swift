@@ -263,6 +263,29 @@ enum HistoryEditing {
         return true
     }
 
+    /// Ticket 20 (the user, 2026-10-18): removes one recorded cardio activity from a past workout —
+    /// its time, distance, route and splits go with it; the workout's heart-rate samples and its
+    /// other content stay. Refuses a running workout (not history yet) and the workout's only
+    /// content (`isOnlyContent`): a workout with nothing left in it is deleted as a workout instead,
+    /// through the confirmation that names what goes. The caller saves.
+    @discardableResult
+    static func deleteCardio(
+        _ segment: CardioSegment, in context: ModelContext, at date: Date = .now
+    ) -> Bool {
+        guard !segment.isDeleted, let workout = segment.workout, !workout.isDeleted,
+              workout.finishedAt != nil, !isOnlyContent(segment) else { return false }
+        context.delete(segment)
+        markEdited(workout, at: date)
+        return true
+    }
+
+    /// True when deleting `segment` would leave its workout with no completed set and no other
+    /// recorded cardio.
+    static func isOnlyContent(_ segment: CardioSegment) -> Bool {
+        guard let workout = segment.workout, !workout.isDeleted else { return true }
+        return workout.completedSets.isEmpty && workout.recordedCardio.allSatisfy { $0.id == segment.id }
+    }
+
     /// Removes an entry that has been emptied by deletions.
     static func pruneIfEmpty(_ entry: ExerciseEntry, in context: ModelContext) {
         guard isEmpty(entry) else { return }
