@@ -25,7 +25,6 @@ struct ActiveWorkoutView: View {
     @State private var showExercisePicker = false
     @State private var showCardioPicker = false
     @State private var cardioFocus = false
-    @State private var showMachinePicker = false
     @State private var confirmingCancel = false
     /// Naming the workout mid-session (milestone 9, ticket 02).
     @State private var renamingWorkout = false
@@ -92,11 +91,6 @@ struct ActiveWorkoutView: View {
 
     private var entries: [ExerciseEntry] {
         workout.isDeleted ? [] : WorkoutSession.orderedEntries(of: workout)
-    }
-
-    /// Whether the machine-first path has anything to offer (D1).
-    private var hasGym: Bool {
-        !workout.isDeleted && workout.gym != nil
     }
 
     @Environment(\.look) private var appLook
@@ -193,15 +187,10 @@ struct ActiveWorkoutView: View {
                 }
 
                 LiveAddBlock(
-                    hasGym: hasGym, isResting: restEnd != nil, cardioFocus: cardioFocus,
+                    isResting: restEnd != nil, cardioFocus: cardioFocus,
                     addExercise: {
                         cardioFocus = false
                         showExercisePicker = true
-                    },
-                    addByMachine: {
-                        // Machine-first path (D7).
-                        cardioFocus = false
-                        showMachinePicker = true
                     },
                     addCardio: { showCardioPicker = true })
                 // The list now ends here (Discard moved to the toolbar): the end spacing it had.
@@ -376,13 +365,10 @@ struct ActiveWorkoutView: View {
                     Button("OK", role: .cancel) { heartRateCoordinator.cardio.errorMessage = nil }
             } message: { Text(heartRateCoordinator.cardio.errorMessage ?? "") }
             .sheet(isPresented: $showExercisePicker) {
-                ExercisePickerSheet(gym: workout.isDeleted ? nil : workout.gym) { exercise in
+                // Ticket 22: Exercises | Machines (machine-first, D7) in one sheet.
+                AddExerciseSheet(workout: workout) { exercise in
                     addEntry(for: exercise)
                 }
-            }
-            .sheet(isPresented: $showMachinePicker) {
-                AddByMachineSheet(workout: workout)
-                    .presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $showMaxHeartRateSheet) {
                 // Re-resolve on dismiss. `resolvedMaxHeartRate()` is otherwise

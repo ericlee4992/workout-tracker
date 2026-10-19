@@ -74,9 +74,12 @@ final class MachineDeletionUITests: XCTestCase {
         startEmptyWorkout()
 
         // Log one set on the machine.
-        let addByMachine = app.buttons["addByMachine"]
+        let addByMachine = app.buttons["addExercise"]
         XCTAssertTrue(addByMachine.waitForExistence(timeout: 5))
         addByMachine.tap()
+        // Ticket 22: Add by Machine is the Add Exercise sheet's Machines tab.
+        XCTAssertTrue(app.buttons["Machines"].waitForExistence(timeout: 5))
+        app.buttons["Machines"].tap()
         let option = anyElement("machineOption.\(machineLabel)")
         XCTAssertTrue(option.waitForExistence(timeout: 5))
         option.tap()
@@ -92,6 +95,9 @@ final class MachineDeletionUITests: XCTestCase {
 
         // Now delete the machine from the same sheet.
         addByMachine.tap()
+        // Ticket 22: Add by Machine is the Add Exercise sheet's Machines tab.
+        XCTAssertTrue(app.buttons["Machines"].waitForExistence(timeout: 5))
+        app.buttons["Machines"].tap()
         XCTAssertTrue(option.waitForExistence(timeout: 5))
         option.swipeLeft()
         let delete = app.buttons["deleteMachine.\(machineLabel)"]

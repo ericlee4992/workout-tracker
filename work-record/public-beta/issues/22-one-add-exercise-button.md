@@ -39,3 +39,26 @@ button?"
 
 ## Progress
 
+### Build (Claude, 2026-10-18) — WIP on `ericlee4992/beta-22-wip` (off `3e61150`, before ticket 21's round-1 fixes)
+
+- `AddExerciseSheet` (new, `Features/ActiveWorkout/`): `ExercisePickerSheet` (mode 0) or `AddByMachineSheet` (mode 1),
+  each given the switch `AddExerciseModePicker` (`SegmentedPills` "Exercises" | "Machines", id `addExerciseMode`) as
+  its first list row; opens on Exercises. The machine tab's title is "Add Exercise"; with no gym it says "Pick a gym
+  to log by machine" (`addByMachineUnavailable`) instead of the empty list and Add Machine….
+- `LiveAddBlock`: Add Exercise (primary unless resting/cardio) and Add Cardio (full-width secondary below); `hasGym`,
+  `addByMachine` and the disabled-button note removed. `ActiveWorkoutView`: one sheet (`AddExerciseSheet`),
+  `showMachinePicker`/`hasGym` removed.
+- D65 recorded in `docs/DECISIONS.md`; README "Fast logging" mentions picking by machine; comment in
+  `MachineDeletion.swift` updated.
+- UI tests: every `addByMachine` tap now taps `addExercise` then "Machines" (CoreLoop, MachineDeletion,
+  ExercisePreset, Codex/Redesign screenshot suites); CoreLoop's no-gym test checks the Machines tab's explanation;
+  `FloodlightLiveUITests` list-end captures also shoot the sheet's two tabs (`beta-22-add-{exercises,machines}-…`).
+
+### Verification so far
+
+- `build-for-testing` (`runs/22-build-1.log`, WT-iPhone27): exit 0.
+- Targeted UI run `22-ui-1` (17 tests, 3 workers) **stopped by the pause before any result** — not run.
+- **Next:** apply this branch's diff onto `ericlee4992/beta-19-bug-fixes` after ticket 21 clears (it touches
+  `ActiveWorkoutView.swift` in other hunks than 21), rerun `22-ui-1`'s list (in this ticket's history: the warm-up,
+  CoreLoop ×7, MachineDeletion, ExercisePreset, Redesign ×3, Codex screenshots ×2, FloodlightLive list end ×2), look
+  at the captures, then Codex review 22.

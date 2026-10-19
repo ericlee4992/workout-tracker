@@ -33,7 +33,8 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
   the phone and match it against a seeded catalog of 1,877 equipment models from 23
   manufacturers.
 - **Fast logging.** Set rows arrive prefilled from your last session on that machine;
-  confirming an untouched row is one tap. Weights keep the unit you entered, kg or lb, and
+  confirming an untouched row is one tap. Add Exercise picks by name or by the gym's machines (a
+  machine fills in its exercise). Weights keep the unit you entered, kg or lb, and
   are never silently converted. Supersets, presets (grips, stances), and the workout with its
   rest timer on the Lock Screen.
 - **Cardio.** Indoor machines and outdoor walks, runs and rides with a GPS route — on their

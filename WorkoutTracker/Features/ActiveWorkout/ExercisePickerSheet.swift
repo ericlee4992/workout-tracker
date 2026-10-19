@@ -15,6 +15,8 @@ struct ExercisePickerSheet: View {
     @State private var creating: NewExerciseRequest?
     /// The workout's gym: "Recent at <gym>" leads the list.
     var gym: Gym? = nil
+    /// The live workout's Exercises | Machines switch (ticket 22); nil elsewhere.
+    var mode: Binding<Int>? = nil
     var onSelect: (Exercise) -> Void
 
     /// Same multi-token matching the catalog pickers use (ticket 21), so
@@ -44,6 +46,7 @@ struct ExercisePickerSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                if let mode { AddExerciseModePicker(selection: mode) }
                 if let gym, !recent.isEmpty {
                     Section {
                         ForEach(recent) { exercise in row(exercise, identifier: "recentOption.\(exercise.name)") }

@@ -101,8 +101,22 @@ final class FloodlightLiveUITests: XCTestCase {
         for _ in 0..<20 { app.swipeUp() }
         XCTAssertTrue(addCardio.exists && addCardio.isHittable, "the add block ends the list, above the rest slab")
         XCTAssertFalse(app.buttons["Discard Workout…"].exists, "no Discard row at the end")
+        // Public beta ticket 22: two commands — Add Exercise and Add Cardio; machines are a tab of Add Exercise.
+        XCTAssertFalse(app.buttons["addByMachine"].exists, "no separate Add by Machine")
         Thread.sleep(forTimeInterval: 1)
-        shoot("live-fixes-02-list-end-\(appearance)-\(large ? "axl" : "default")")
+        let size = large ? "axl" : "default"
+        shoot("live-fixes-02-list-end-\(appearance)-\(size)")
+        app.buttons["addExercise"].tap()
+        let machines = app.buttons["Machines"]
+        XCTAssertTrue(machines.waitForExistence(timeout: 5), "Add Exercise opens with the Exercises | Machines switch")
+        XCTAssertTrue(app.buttons["Exercises"].isSelected, "it opens on Exercises")
+        Thread.sleep(forTimeInterval: 1)
+        shoot("beta-22-add-exercises-\(appearance)-\(size)")
+        machines.tap()
+        let machine = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'machineOption.'")).firstMatch
+        XCTAssertTrue(machine.waitForExistence(timeout: 5), "the Machines tab lists Iron Temple's machines")
+        Thread.sleep(forTimeInterval: 1)
+        shoot("beta-22-add-machines-\(appearance)-\(size)")
     }
 
     // MARK: Codex review 03 regressions

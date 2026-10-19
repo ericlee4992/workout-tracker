@@ -2,7 +2,7 @@ import SwiftData
 import SwiftUI
 
 /// Deleting a machine (user's word) from a gym — on the Gyms tab and on the
-/// mid-workout "Add by Machine" sheet — through one component, so the two
+/// mid-workout Add Exercise sheet's Machines tab (ticket 22) — through one component, so the two
 /// screens cannot drift: a trailing swipe action, a context-menu item, and
 /// one confirmation dialog. Underneath, D10 still holds: the machine is
 /// ARCHIVED, leaves every picker, and history keeps resolving; the gym's

@@ -588,14 +588,12 @@ private struct LiveHighlighterSwipe: View {
 
 // MARK: - Add block
 
-/// Add Exercise (the filled command unless a rest is running), Add by Machine and Add Cardio.
-/// D1 (ticket 17): with no gym, Add by Machine stays visible, disabled, and says why.
+/// Add Exercise (the filled command unless a rest is running) and Add Cardio. Public beta ticket 22: Add by
+/// Machine became the Add Exercise sheet's Machines tab (`AddExerciseSheet`), which says why when there is no gym.
 struct LiveAddBlock: View {
-    var hasGym: Bool
     var isResting: Bool
     var cardioFocus: Bool
     var addExercise: () -> Void
-    var addByMachine: () -> Void
     var addCardio: () -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -611,34 +609,10 @@ struct LiveAddBlock: View {
                 }
             }
             .accessibilityIdentifier("addExercise")
-            if typeSize.isAccessibilitySize {
-                VStack(spacing: 10) { peers }
-            } else {
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) { peers }
-                    VStack(spacing: 10) { peers }
-                }
-            }
-            if !hasGym {
-                Text("Pick a gym to log by machine")
-                    .font(look.font.caption)
-                    .foregroundStyle(look.textSecondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityIdentifier("addByMachineUnavailable")
-            }
+            Button(action: addCardio) { peerLabel("Add Cardio", symbol: "figure.run") }
+                .buttonStyle(.lookSecondary)
+                .accessibilityIdentifier("addCardio")
         }
-    }
-
-    @ViewBuilder private var peers: some View {
-        Button(action: addByMachine) { peerLabel("Add by Machine", symbol: LookIcon.machine) }
-            .buttonStyle(.lookSecondary)
-            .disabled(!hasGym)
-            .opacity(hasGym ? 1 : 0.4)
-            .accessibilityIdentifier("addByMachine")
-        Button(action: addCardio) { peerLabel("Add Cardio", symbol: "figure.run") }
-            .buttonStyle(.lookSecondary)
-            .accessibilityIdentifier("addCardio")
     }
 
     private func peerLabel(_ title: String, symbol: String) -> some View {
