@@ -1,7 +1,7 @@
 # 20 — History: delete one cardio activity from a workout
 
 Type: bug / change
-Status: **ready** (2026-10-18)
+Status: **in review** (Codex round 1, 2026-10-18)
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040` (tickets 19–22 together).
@@ -75,3 +75,4 @@ History/receipt regression flows (hero, cards, splits).
 - UI `20-final`: `testDeletingTheCardioOfAMixedWorkoutKeepsTheLifting` passed with the final copy, exit 0.
 - Captures: `runs/shots20/20-mixed-{card,menu,confirm,after}-{default,axl}.png`, `20-only-content-confirm-default.png`,
   `runs/shots20f/20-mixed-confirm-final.png`.
+- Commit for review: `33db769` (pushed).
