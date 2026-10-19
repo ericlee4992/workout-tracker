@@ -48,7 +48,8 @@ final class WorkoutActivityController {
     /// screen's 2-second tick or a rest change while the cancelled workout's screen is still being
     /// dismissed — must not post the card again: SwiftData reports a deleted workout as not deleted
     /// once the deletion is saved, so the screen's own guard cannot tell. An ended workout never
-    /// runs again (finish and cancel are final), so the set only grows by one per workout.
+    /// runs again (finish and cancel are final) unless that finish or cancel failed, which
+    /// `reopen(workoutID:)` undoes; the set grows by one per workout.
     private var ended: Set<UUID> = []
 
     init(presenter: (any WorkoutActivityPresenting)? = nil) {
@@ -97,6 +98,19 @@ final class WorkoutActivityController {
         // workout's card is left alone — a stale id must not end the current one.
         guard self.workoutID == workoutID || self.workoutID == nil else { return }
         endAny()
+    }
+
+    /// At launch (ticket 21): with no live workout, a card left over — one whose end never reached the system, the
+    /// app quit right after a cancel — goes. `nil`: the store could not say, so any card stays rather than end a
+    /// live workout's (codex-review-21 #2).
+    func reconcileAtLaunch(hasLiveWorkout: Bool?) {
+        if hasLiveWorkout == false { endAny() }
+    }
+
+    /// Lets an ended workout's card be shown again (codex-review-21 #1): its finish or cancel failed after the card
+    /// was ended, so the workout is still live.
+    func reopen(workoutID: UUID) {
+        ended.remove(workoutID)
     }
 
     /// Ends whatever is showing, whichever workout it belongs to, and any stray card with it.

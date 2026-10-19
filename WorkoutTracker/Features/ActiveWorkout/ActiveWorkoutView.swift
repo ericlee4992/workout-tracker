@@ -830,6 +830,7 @@ struct ActiveWorkoutView: View {
             stopHeartRate()
             outcome = try session.finish(workout)
         } catch {
+            reopenActivity()
             assertionFailure("Failed to finish workout: \(error)")
         }
         reportFinished(outcome)
@@ -846,6 +847,7 @@ struct ActiveWorkoutView: View {
                 outcome = try session.finish(workout)
             }
         } catch {
+            reopenActivity()
             assertionFailure("Failed to finish templated workout: \(error)")
         }
         driftTemplate = nil
@@ -870,9 +872,17 @@ struct ActiveWorkoutView: View {
         do {
             try session.cancel(workout)
         } catch {
+            reopenActivity()
             assertionFailure("Failed to cancel workout: \(error)")
         }
         dismiss()
+    }
+
+    /// Codex review 21 #1: the card was ended before a finish or cancel that then failed, so the
+    /// workout is still live — let its card come back when the workout is next shown.
+    private func reopenActivity() {
+        guard !workout.isDeleted, workout.modelContext != nil, workout.finishedAt == nil else { return }
+        workoutActivity.reopen(workoutID: workout.id)
     }
 
     private func addEntry(for exercise: Exercise) {

@@ -82,3 +82,20 @@ Cancel → Discard Workout ends the Lock Screen / Dynamic Island card at once, e
   passed**, `TEST SUCCEEDED`, exit 0.
 - Not checked: the phone (the user, with build 9).
 - Commit for review: `67de6eb` (pushed).
+
+### Codex round 1 (2026-10-18): not clear — [codex-review-21.md](../codex-review-21.md)
+
+Two **P2** lifecycle findings (Codex's build exit 0, unit 34/0/0): **#1** the card is suppressed (`ended`) before a
+finish/cancel that can still throw, so a workout left live could never show its card again; **#2** the launch sweep
+treated a failed `resumableWorkout()` (`try?` → nil) as "no live workout" and could end a live workout's card.
+
+**Response (Claude) — written, NOT yet verified (paused by the user mid-run, 2026-10-18):**
+- #1: `WorkoutActivityController.reopen(workoutID:)`; `ActiveWorkoutView.reopenActivity()` calls it in the catch of
+  `finishWorkout`, `finishTemplatedWorkout` and `cancelWorkout` when the workout is still live. Test
+  `aReopenedWorkoutShowsItsCardAgain`.
+- #2: `WorkoutActivityController.reconcileAtLaunch(hasLiveWorkout: Bool?)` sweeps only on a known `false`;
+  `RootView.recoverActiveWorkout` uses do/catch and passes `nil` on an error. Test `theLaunchSweepNeedsAKnownAbsence`.
+- **Next:** run `-only-testing:WorkoutTrackerTests/WorkoutActivityTests -only-testing:WorkoutTrackerTests/
+  WorkoutActivityProviderTests -only-testing:WorkoutTrackerTests/WorkoutActivityContentTests` (the run `21-unit-r1`
+  was stopped before it finished), then write the round-2 section of `codex-review-21-prompt.md` and send it to the
+  Codex terminal "Codex review 19-22".

@@ -132,6 +132,30 @@ struct WorkoutActivityTests {
         #expect(presenter.isActive)
     }
 
+    /// codex-review-21 #1: a finish or cancel that failed after ending the card leaves the workout live; reopening
+    /// lets its card come back when the workout is shown again.
+    @Test func aReopenedWorkoutShowsItsCardAgain() {
+        let (controller, presenter) = rig()
+        let id = UUID()
+        controller.show(workoutID: id, startedAt: .now, gymName: nil, state: state())
+        controller.end(workoutID: id)
+        controller.reopen(workoutID: id)
+        controller.show(workoutID: id, startedAt: .now, gymName: nil, state: state())
+        #expect(presenter.starts == 2)
+        #expect(presenter.isActive)
+    }
+
+    /// codex-review-21 #2: the launch sweep runs only when the store says no workout is live — never when it could
+    /// not be read, and never with a live one.
+    @Test func theLaunchSweepNeedsAKnownAbsence() {
+        let (controller, presenter) = rig()
+        controller.reconcileAtLaunch(hasLiveWorkout: nil)
+        controller.reconcileAtLaunch(hasLiveWorkout: true)
+        #expect(presenter.sweeps == 0)
+        controller.reconcileAtLaunch(hasLiveWorkout: false)
+        #expect(presenter.sweeps == 1)
+    }
+
     /// Ending with nothing tracked (a card left by an earlier launch, not yet adopted) sweeps every
     /// posted card rather than doing nothing.
     @Test func endingWithNothingTrackedSweepsStrayCards() {
