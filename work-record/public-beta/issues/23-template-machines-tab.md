@@ -130,3 +130,18 @@ navigation bar (at AccessibilityL a template tile half under the bar was "hittab
 ### Codex round 3 (2026-10-24): **clear** — [codex-review-23c.md](../codex-review-23c.md)
 
 The superseded-✓ finding is closed; Codex's rebuild exit 0. Ticket 23 done on the branch; not merged.
+
+## Build 9 (tickets 19–23) — record
+
+- **Merged** 2026-10-24 with the user's go-ahead ("Merge now"): `main` fast-forwarded `1f0e040` → `daa3cc6`, pushed.
+- **No Gate S:** no stored model, field or relationship changed in 19–23 (ticket 23 writes the existing
+  `GymExerciseMemory` rows; ticket 20 deletes existing `CardioSegment` rows).
+- **No in-app What's New** (the user, 2026-10-24: "No, the note is enough").
+- **Build number 9** in all 10 `CURRENT_PROJECT_VERSION` entries; simulator `xcodebuild build` exit 0.
+- **What to Test note — approved by the user 2026-10-24 ("Use as drafted"):**
+
+  "Build 9: during a workout, Add Exercise and Add by Machine are now one button — Add Exercise has Exercises and
+  Machines tabs (Machines works like Add by Machine did). New/Edit Template's Add Exercise has the same tabs: pick a
+  machine at your gym, or add or scan a new one, and the template starts on that machine there. Also: Add Chart groups
+  your exercises by body area; in History, a workout's cardio card has a … menu to delete just that cardio; and
+  cancelling a workout now removes its Lock Screen card. Send anything odd from Settings → Send Feedback."
