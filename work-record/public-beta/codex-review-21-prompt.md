@@ -33,3 +33,12 @@ UI tests are optional; say if you skip them. Do not modify files other than the 
 
 Write `work-record/public-beta/codex-review-21.md`: findings numbered P1/P2/P3 with file:line, failure scenario and fix;
 end with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 2
+
+Round 1: [codex-review-21.md](codex-review-21.md), not clear (two P2: suppression before a finish/cancel that can
+throw; the launch sweep on a failed recovery). Claude's response: the ticket's "Codex round 1" section and
+`git diff 3e61150..HEAD -- WorkoutTracker WorkoutTrackerTests` (the docs-only commits since are STATE and ticket 23's
+file). Check both findings are closed and nothing regressed; rerun the build and the three `WorkoutActivity*` unit
+suites (same rules, new result paths under `/tmp/codex-21/`). Write `work-record/public-beta/codex-review-21b.md`,
+ending with exactly `Verdict: clear` or `Verdict: not clear`. Do not commit or push.

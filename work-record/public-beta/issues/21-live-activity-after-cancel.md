@@ -1,7 +1,7 @@
 # 21 — The Live Activity stays after cancelling a workout
 
 Type: bug
-Status: **in review** (Codex round 1, 2026-10-18)
+Status: **in review** (Codex round 2, 2026-10-23)
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040` (tickets 19–22 together).
@@ -89,13 +89,12 @@ Two **P2** lifecycle findings (Codex's build exit 0, unit 34/0/0): **#1** the ca
 finish/cancel that can still throw, so a workout left live could never show its card again; **#2** the launch sweep
 treated a failed `resumableWorkout()` (`try?` → nil) as "no live workout" and could end a live workout's card.
 
-**Response (Claude) — written, NOT yet verified (paused by the user mid-run, 2026-10-18):**
+**Response (Claude) — written 2026-10-18 (paused before testing), verified 2026-10-23:**
 - #1: `WorkoutActivityController.reopen(workoutID:)`; `ActiveWorkoutView.reopenActivity()` calls it in the catch of
   `finishWorkout`, `finishTemplatedWorkout` and `cancelWorkout` when the workout is still live. Test
   `aReopenedWorkoutShowsItsCardAgain`.
 - #2: `WorkoutActivityController.reconcileAtLaunch(hasLiveWorkout: Bool?)` sweeps only on a known `false`;
   `RootView.recoverActiveWorkout` uses do/catch and passes `nil` on an error. Test `theLaunchSweepNeedsAKnownAbsence`.
-- **Next:** run `-only-testing:WorkoutTrackerTests/WorkoutActivityTests -only-testing:WorkoutTrackerTests/
-  WorkoutActivityProviderTests -only-testing:WorkoutTrackerTests/WorkoutActivityContentTests` (the run `21-unit-r1`
-  was stopped before it finished), then write the round-2 section of `codex-review-21-prompt.md` and send it to the
-  Codex terminal "Codex review 19-22".
+- Unit `21-unit-r2` (WT-iPhone27, iOS 27, 2026-10-23): `WorkoutActivityTests`, `WorkoutActivityProviderTests`,
+  `WorkoutActivityContentTests` — **36 tests, 3 suites passed** (34 + the 2 new), `TEST SUCCEEDED`, exit 0.
+  (`21-unit-r1`, 2026-10-18, was stopped by the pause before it finished.)

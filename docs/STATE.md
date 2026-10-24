@@ -5,7 +5,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **PAUSED by the user (2026-10-18, late evening): build 9 bug fixes** — checkout `…/Health App/beta-19-bug-fixes`,
+- **RESUMED 2026-10-23 (paused 2026-10-18): build 9 bug fixes** — checkout `…/Health App/beta-19-bug-fixes`,
   branch `ericlee4992/beta-19-bug-fixes` (pushed, tip `11c6a1c`+this note), off `main` `1f0e040`; nothing merged.
   - [19 Add Chart by body area](../work-record/public-beta/issues/19-add-chart-body-areas.md): **Codex clear** (round 2).
   - [20 delete one cardio](../work-record/public-beta/issues/20-delete-cardio-in-history.md): **Codex clear** (round 2).
@@ -16,6 +16,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
     tested, on branch **`ericlee4992/beta-22-wip`** (`436a416`, pushed; its scratch checkout is under this session's
     `/private/tmp/…/scratchpad/wt-next`, may vanish — use the branch). Next after 21 clears: apply onto the bug-fix
     branch, run the ticket's targeted UI list, Codex review. D65 is on that branch only.
+  - [23 template Exercises | Machines](../work-record/public-beta/issues/23-template-machines-tab.md) (the user,
+    2026-10-23): ready, after 22 (gym = Workout tab's selected gym + a switch; a picked machine is remembered for that
+    exercise at that gym).
   - Codex: one Orca terminal **"Codex review 19-22"** (`term_941e7732-91a5-4b1b-8749-651c3cf01354`) in this worktree;
     idle. Scratch checkouts `…/scratchpad/wt-next` and `wt-repro` (git worktrees; `git worktree prune` once gone).
   - Ask the user before merging to `main`; these ship in **build 9**. Ticket 18 is reserved for the exercise-media
@@ -164,7 +167,7 @@ domain of the user's own, which also allows Google branding verification.
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
 | 16 Progress tab | **Done** — build 8 (build 7 skipped for testers). |
 | 17 cardio pause clock | **Done** — build 8 (Developer + Friends, 2026-10-18). |
-| 19–22 build 9 bug fixes | **Paused** — 19, 20 Codex clear; 21 round 2 pending; 22 WIP (above). |
+| 19–23 build 9 bug fixes | **In progress** — 19, 20 Codex clear; 21 round 2; 22 WIP; 23 ready (above). |
 
 ## Working conventions (in force)
 
