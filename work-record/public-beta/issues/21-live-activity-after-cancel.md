@@ -1,7 +1,7 @@
 # 21 — The Live Activity stays after cancelling a workout
 
 Type: bug
-Status: **in review** (Codex round 2, 2026-10-23)
+Status: **review clear** (Codex round 2, 2026-10-23) — on the branch; phone check by the user with build 9; merge after the user's go-ahead
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040` (tickets 19–22 together).
@@ -98,3 +98,8 @@ treated a failed `resumableWorkout()` (`try?` → nil) as "no live workout" and 
 - Unit `21-unit-r2` (WT-iPhone27, iOS 27, 2026-10-23): `WorkoutActivityTests`, `WorkoutActivityProviderTests`,
   `WorkoutActivityContentTests` — **36 tests, 3 suites passed** (34 + the 2 new), `TEST SUCCEEDED`, exit 0.
   (`21-unit-r1`, 2026-10-18, was stopped by the pause before it finished.)
+
+### Codex round 2 (2026-10-23): **clear** — [codex-review-21b.md](../codex-review-21b.md)
+
+Both P2s closed; Codex's build exit 0 and the three suites 36/0/0. Ticket 21 done on the branch; not merged. The
+phone check (cancel a workout; the Lock Screen card goes and stays gone) is the user's, with build 9.

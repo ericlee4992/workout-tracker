@@ -9,7 +9,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   branch `ericlee4992/beta-19-bug-fixes` (pushed, tip `11c6a1c`+this note), off `main` `1f0e040`; nothing merged.
   - [19 Add Chart by body area](../work-record/public-beta/issues/19-add-chart-body-areas.md): **Codex clear** (round 2).
   - [20 delete one cardio](../work-record/public-beta/issues/20-delete-cardio-in-history.md): **Codex clear** (round 2).
-  - [21 Live Activity after cancel](../work-record/public-beta/issues/21-live-activity-after-cancel.md): cause confirmed
+  - [21 Live Activity after cancel](../work-record/public-beta/issues/21-live-activity-after-cancel.md): **Codex clear** (round 2, 2026-10-23); was: cause confirmed
     and fixed; Codex round 1 **not clear** (2 P2s); fixes committed **untested** (`11c6a1c`). Next: the three
     `WorkoutActivity*` unit suites, then round 2 (ticket's "Codex round 1" section says how).
   - [22 one Add Exercise button](../work-record/public-beta/issues/22-one-add-exercise-button.md): built (exit 0), not
