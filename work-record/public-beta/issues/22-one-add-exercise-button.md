@@ -1,7 +1,7 @@
 # 22 — One Add Exercise button: Exercises | Machines tabs
 
 Type: change
-Status: **in review** (Codex round 1, 2026-10-23)
+Status: **review clear** (Codex round 2, 2026-10-23) — on the branch; merge after the user's go-ahead
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040` (tickets 19–22 together).
@@ -99,3 +99,8 @@ Chart's and the picker's "Recent at …" — render as before). `22-r1` (WT-Floo
 **passed**; the machine glyph now shows beside "Machines at Iron Temple" at default and AccessibilityL
 (`runs/shots22r/beta-22-add-machines-light-{default,axl}.png`). The run's warm-up (`CardioUITests/
 testSavedDistanceEditor…`, untouched code) failed on the fresh runner — the known first-test issue it exists to absorb.
+
+### Codex round 2 (2026-10-23): **clear** — [codex-review-22b.md](../codex-review-22b.md)
+
+The header glyph is closed and `LookSectionLabel`'s other callers are unaffected; Codex's rebuild exit 0. Ticket 22
+done on the branch; not merged.
