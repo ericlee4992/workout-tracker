@@ -86,3 +86,4 @@ button?"
   `ActiveWorkoutView.swift` in other hunks than 21), rerun `22-ui-1`'s list (in this ticket's history: the warm-up,
   CoreLoop ×7, MachineDeletion, ExercisePreset, Redesign ×3, Codex screenshots ×2, FloodlightLive list end ×2), look
   at the captures, then Codex review 22.
+- Commits for review: `e33cb00` (the build) + `8657703` (test fixes, header, verification) — `git diff 2ab1711..8657703` (pushed).
