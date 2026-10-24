@@ -1,7 +1,7 @@
 # 23 — New/Edit Template: Exercises | Machines, with Add Machine and Scan
 
 Type: change
-Status: **in review** (Codex round 1, 2026-10-23)
+Status: **review clear** (Codex round 3, 2026-10-24) — on the branch; merge after the user's go-ahead
 Blocked by: 22 (shares its Exercises | Machines switch and the machine list)
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-19-bug-fixes` (tickets 19–23 together).
@@ -126,3 +126,7 @@ the exercise on Biceps Curl (the equipment part of the row's label). The test's 
 navigation bar (at AccessibilityL a template tile half under the bar was "hittable" but the tap hit the bar — `23-r3`).
 `23-r4` (WT-iPhone27): `TemplateMachinesUITests` default + AccessibilityL and the warm-up — **3/3 passed**, exit 0;
 `23-r2/r3`: `TemplateMachineChoiceTests` 4/4 and `TemplateDetailUITests/testDeletingFromTheDetail…` passed.
+
+### Codex round 3 (2026-10-24): **clear** — [codex-review-23c.md](../codex-review-23c.md)
+
+The superseded-✓ finding is closed; Codex's rebuild exit 0. Ticket 23 done on the branch; not merged.

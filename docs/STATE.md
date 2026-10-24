@@ -12,8 +12,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   [21 Live Activity after cancel](../work-record/public-beta/issues/21-live-activity-after-cancel.md) **clear** (phone
   check with build 9) · [22 one Add Exercise (Exercises | Machines)](../work-record/public-beta/issues/22-one-add-exercise-button.md)
   **clear** (D65) · [23 template Exercises | Machines + Add Machine/Scan](../work-record/public-beta/issues/23-template-machines-tab.md)
-  **in Codex review** (D66). Next: 23 to clear → ask the user before merging into `main` → build 9 (What to Test note
-  for the user's approval).
+  **clear** (D66), 2026-10-24. **All five clear; waiting for the user's go-ahead to merge into `main`**, then build 9
+  (What to Test note for the user's approval).
   - Codex: one Orca terminal "Codex review 19-22" (`term_941e7732-91a5-4b1b-8749-651c3cf01354`); its **weekly limit is
     under 5%** (2026-10-23) — if it runs out, ask the user. Kept the current model when it offered gpt-6-luna.
   - Scratch: `ericlee4992/beta-22-wip` (pushed) holds the pre-merge history of 22/23 — delete after the merge (ask);
@@ -163,7 +163,7 @@ domain of the user's own, which also allows Google branding verification.
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
 | 16 Progress tab | **Done** — build 8 (build 7 skipped for testers). |
 | 17 cardio pause clock | **Done** — build 8 (Developer + Friends, 2026-10-18). |
-| 19–23 build 9 bug fixes | **In progress** — 19–22 Codex clear; 23 in review (above). |
+| 19–23 build 9 bug fixes | **All Codex clear** (2026-10-24); merge awaits the user (above). |
 
 ## Working conventions (in force)
 
