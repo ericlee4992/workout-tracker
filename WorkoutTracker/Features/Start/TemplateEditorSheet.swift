@@ -59,6 +59,7 @@ struct TemplateEditorSheet: View {
     /// A machine picked while building the template, and what its card says ("Chest Press 2 · Iron Temple").
     struct MachineChoice: Equatable {
         var machineID: UUID
+        var gymID: UUID?
         var caption: String
     }
 
@@ -111,6 +112,7 @@ struct TemplateEditorSheet: View {
         }
         .sheet(isPresented: $showPicker) {
             TemplateExercisePicker(exercises: exercises, addedCounts: addedCounts, onAdd: addExercise,
+                                   pickedMachineIDs: Set(draft.items.compactMap { $0.machine?.machineID }),
                                    onAddMachine: addMachineExercise)
         }
         .onAppear(perform: load)
@@ -160,18 +162,25 @@ struct TemplateEditorSheet: View {
                 supersetGroupID: item.supersetGroupID, plannedRestSeconds: item.restSeconds,
                 preferredEquipmentTag: item.equipment)
         }
+        // Ticket 23 (D66): a machine picked for an exercise becomes the user's machine for it at that gym — on Save
+        // only, so Cancel leaves the gym's memory as it was. Staged, then committed by the template's own save; a
+        // failed save puts the touched rows back (codex-review-23 #3). One choice per (gym, exercise): rows of the
+        // same exercise at the same gym carry the same, latest pick (`addMachineExercise`), so row order cannot
+        // change which machine wins (codex-review-23 #2).
+        var undoMemory: () -> Void = {}
         do {
-            // Ticket 23 (D66): a machine picked for an exercise becomes the user's machine for it at that gym — on
-            // Save only, so Cancel leaves the gym's memory as it was.
-            let session = WorkoutSession(context: modelContext)
+            var picks: [(machine: MachineInstance, exercise: Exercise)] = []
+            var seen: Set<[UUID]> = []
             for item in draft.items {
-                guard let choice = item.machine, let exercise = exercise(item.exerciseID) else { continue }
+                guard let choice = item.machine, let exercise = exercise(item.exerciseID),
+                      seen.insert([choice.gymID ?? choice.machineID, item.exerciseID]).inserted else { continue }
                 let id = choice.machineID
                 if let machine = try modelContext.fetch(FetchDescriptor<MachineInstance>(
                     predicate: #Predicate { $0.id == id })).first {
-                    session.rememberMachine(machine, for: exercise)
+                    picks.append((machine, exercise))
                 }
             }
+            undoMemory = WorkoutSession(context: modelContext).stageMachineMemory(picks)
             let service = WorkoutTemplateService(context: modelContext)
             if let template {
                 try service.update(template, name: trimmedName, items: drafts, cardio: draft.cardio)
@@ -181,6 +190,7 @@ struct TemplateEditorSheet: View {
             if modelContext.hasChanges { try modelContext.save() }
             dismiss()
         } catch {
+            undoMemory()
             self.error = error.localizedDescription
         }
     }
@@ -197,9 +207,24 @@ struct TemplateEditorSheet: View {
     /// Ticket 23: from the Machines tab — the machine's exercise, with the machine to remember on Save.
     private func addMachineExercise(_ exerciseID: UUID, _ machine: MachineInstance) {
         let caption = [machine.label, machine.gym?.name].compactMap { $0 }.joined(separator: " · ")
-        let item = EditorItem(exerciseID: exerciseID, repsBySet: [10, 10, 10],
-                              machine: MachineChoice(machineID: machine.id, caption: caption))
-        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.82)) { draft.items.append(item) }
+        let choice = MachineChoice(machineID: machine.id, gymID: machine.gym?.id, caption: caption)
+        let item = EditorItem(exerciseID: exerciseID, repsBySet: [10, 10, 10], machine: choice)
+        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.82)) {
+            // One machine per exercise per gym (the memory has one row): a newer pick replaces the choice on the
+            // same exercise's earlier rows at that gym, so their captions say what they will start on.
+            draft.items = Self.choosing(choice, for: exerciseID, in: draft.items)
+            draft.items.append(item)
+        }
+    }
+
+    /// Every row of `exerciseID` already picked at `choice`'s gym takes `choice` (codex-review-23 #2).
+    static func choosing(_ choice: MachineChoice, for exerciseID: UUID, in items: [EditorItem]) -> [EditorItem] {
+        items.map { item in
+            guard item.exerciseID == exerciseID, let current = item.machine, current.gymID == choice.gymID else { return item }
+            var item = item
+            item.machine = choice
+            return item
+        }
     }
 
     private func exercise(_ id: UUID) -> Exercise? { exercises.first { $0.id == id } }
@@ -823,6 +848,8 @@ struct TemplateExercisePicker: View {
     var exercises: [Exercise]
     var addedCounts: [UUID: Int]
     var onAdd: (UUID) -> Void
+    /// Ticket 23: machines already picked in this editor (their rows show ✓).
+    var pickedMachineIDs: Set<UUID> = []
     /// Ticket 23: the Machines tab's pick — the machine's exercise, and the machine.
     var onAddMachine: (UUID, MachineInstance) -> Void
     @Environment(\.look) private var look
@@ -832,6 +859,9 @@ struct TemplateExercisePicker: View {
     @State private var local: [UUID: Int] = [:]
     /// Ticket 23: Exercises | Machines, as in the live workout (ticket 22).
     @State private var mode = 0
+    /// The Machines tab's gym and picks live here, not in the tab, so switching tabs keeps them (codex-review-23 #1).
+    @State private var machineGymID: UUID?
+    @State private var picked: Set<UUID> = []
 
     var body: some View {
         NavigationStack {
@@ -851,7 +881,7 @@ struct TemplateExercisePicker: View {
                     } else {
                         // Not lazy: the tab's navigation destination (a station's exercises) must not sit in a
                         // lazy container, where SwiftUI ignores it.
-                        TemplateMachinesTab { exerciseID, machine in
+                        TemplateMachinesTab(gymID: $machineGymID, picked: $picked) { exerciseID, machine in
                             adds += 1
                             local[exerciseID, default: 0] += 1
                             onAddMachine(exerciseID, machine)
@@ -875,7 +905,10 @@ struct TemplateExercisePicker: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .sensoryFeedback(.impact(weight: .light), trigger: adds)
-        .onAppear { local = addedCounts }
+        .onAppear {
+            local = addedCounts
+            picked = pickedMachineIDs
+        }
     }
 
     private struct Section {

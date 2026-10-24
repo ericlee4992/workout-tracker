@@ -69,4 +69,49 @@ struct TemplateMachineChoiceTests {
         try context.save()
         #expect(try lifecycle.rememberedMachine(for: press, at: gym) == nil, "an archived machine is never remembered")
     }
+
+    /// codex-review-23 #3: a template save that fails puts every touched memory row back — an existing row's values
+    /// and a newly inserted row alike — so a discarded template changes no gym's machine.
+    @Test func undoingStagedPicksRestoresTheGymsMemory() throws {
+        let store = try Store()
+        let context = store.context
+        let gym = Gym(name: "Iron Temple")
+        let press = Exercise(name: "Chest Press", isSeeded: false)
+        let row = Exercise(name: "Seated Row", isSeeded: false)
+        let a = MachineInstance(label: "A", gym: gym)
+        let b = MachineInstance(label: "B", gym: gym)
+        for object in [gym, press, row, a, b] as [any PersistentModel] { context.insert(object) }
+        let earlier = Date(timeIntervalSince1970: 1_800_000_000)
+        context.insert(GymExerciseMemory(gymID: gym.id, exerciseID: press.id, machineID: a.id, updatedAt: earlier))
+        try context.save()
+        let lifecycle = EquipmentLifecycle(context: context)
+
+        let undo = WorkoutSession(context: context).stageMachineMemory([(b, press), (a, row)])
+        #expect(try lifecycle.rememberedMachine(for: press, at: gym)?.id == b.id, "staged: the pick is in effect")
+        #expect(try lifecycle.rememberedMachine(for: row, at: gym)?.id == a.id)
+        undo()
+        try context.save()
+
+        #expect(try lifecycle.rememberedMachine(for: press, at: gym)?.id == a.id, "the existing row's machine is back")
+        #expect(try context.fetch(FetchDescriptor<GymExerciseMemory>()).first { $0.exerciseID == press.id }?.updatedAt == earlier)
+        #expect(try lifecycle.rememberedMachine(for: row, at: gym) == nil, "the inserted row is gone")
+        #expect(try context.fetch(FetchDescriptor<GymExerciseMemory>()).count == 1)
+    }
+
+    /// codex-review-23 #2: a newer pick for the same exercise at the same gym is every such row's choice, so dragging
+    /// rows cannot change which machine the template starts on; another gym's choice and another exercise are kept.
+    @Test func aNewerPickIsTheChoiceForEveryRowOfThatExerciseAtThatGym() {
+        let exercise = UUID(), other = UUID(), iron = UUID(), elsewhere = UUID()
+        let a = TemplateEditorSheet.MachineChoice(machineID: UUID(), gymID: iron, caption: "A · Iron")
+        let b = TemplateEditorSheet.MachineChoice(machineID: UUID(), gymID: iron, caption: "B · Iron")
+        let far = TemplateEditorSheet.MachineChoice(machineID: UUID(), gymID: elsewhere, caption: "C · Elsewhere")
+        let items = [
+            TemplateEditorSheet.EditorItem(exerciseID: exercise, repsBySet: [10], machine: a),
+            TemplateEditorSheet.EditorItem(exerciseID: exercise, repsBySet: [10], machine: far),
+            TemplateEditorSheet.EditorItem(exerciseID: other, repsBySet: [10], machine: a),
+            TemplateEditorSheet.EditorItem(exerciseID: exercise, repsBySet: [10]),
+        ]
+        let chosen = TemplateEditorSheet.choosing(b, for: exercise, in: items)
+        #expect(chosen.map(\.machine) == [b, far, a, nil])
+    }
 }

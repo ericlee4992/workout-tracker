@@ -78,3 +78,33 @@ template as well. probably also use one exercise button with exercises/machines 
 - Captures: `runs/shots23/beta-23-{machines,add-machine,station,editor,detail}-{default,axl}.png`,
   `runs/shots23b/beta-23-editor-{default,axl}.png` (with the glyph).
 - Commits for review: `git diff 4ceefc7..74adb88` (pushed).
+
+### Codex round 1 (2026-10-23/24): not clear — [codex-review-23.md](../codex-review-23.md)
+
+Three **P2**, one **P3**: #1 a tab switch reset the Machines tab's gym and ✓ (state lived in the recreated tab); #2
+with the same exercise picked from two machines, Save replayed rows in display order, so a drag changed the winner
+and left a caption wrong; #3 memory was written into the shared context before the template saved — a failed save
+could leave it pending for a later save; #4 the UI test's "Pec Deck" assertion was satisfied by the exercise's own
+name, "Chest Fly (Pec Deck)". Codex's build exit 0; `TemplateMachineChoiceTests` alone 2/0/0; its serial runs of
+`EquipmentLifecycleTests` stalled in `UserNotificationScheduler.cancel` (XPC) on two simulators.
+
+**Response (Claude):**
+- #1: the picker (`TemplateExercisePicker`) owns the Machines tab's gym and picks (`@Binding` into the tab); picks start
+  from the editor's current choices.
+- #2: `MachineChoice` carries its gym; a newer pick for an exercise at a gym becomes the choice of that exercise's
+  earlier rows at that gym (`TemplateEditorSheet.choosing`), so every such row — and its caption — says the same
+  machine and order cannot matter; Save takes one pick per (gym, exercise).
+- #3: `WorkoutSession.stageMachineMemory(_:)` upserts and returns an undo (an updated row's previous machine and date,
+  an inserted row deleted); the editor stages before `WorkoutTemplateService.create/update`, whose own save commits
+  template and memory together, and runs the undo on any error.
+- #4: the test reads the detail row's combined label (`templateExercise.<name>`) and requires "Pec Deck" as its own
+  comma-separated part (the equipment line), not a substring; the test also adds a second gym, switches the tab to it,
+  goes to Exercises and back, and checks the gym and the Pec Deck's ✓ are kept.
+- The stall: **pre-existing and not a hang** — on `main` (`1f0e040`, none of these tickets, `wt-main`), the same
+  serial `EquipmentLifecycleTests` on a freshly booted WT-Floodlight **passed 12/12 in 179 s** (`main-eq-serial`): each
+  fixture's finish waits on the simulator's notification service. Warm or parallel it takes under a second.
+- Tests: `TemplateMachineChoiceTests` + `undoingStagedPicksRestoresTheGymsMemory` and
+  `aNewerPickIsTheChoiceForEveryRowOfThatExerciseAtThatGym`. Run `23-r1` (WT-iPhone27): `TemplateMachineChoiceTests`
+  (4) + `EquipmentLifecycleTests` (12) **16/16**, `TemplateMachinesUITests` ×2 (with the round trip and the strict
+  equipment check), `TemplateDetailUITests/testDeletingFromTheDetail…`, `FloodlightWorkoutTabUITests/
+  testEditorSupersetStartsLinkedInTheWorkout`, warm-up — **21/21 passed**, exit 0.

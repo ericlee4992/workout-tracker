@@ -39,8 +39,25 @@ final class TemplateMachinesUITests: XCTestCase {
     func testAPickedStationMachineIsWhereTheTemplateStarts() { pickStation(large: false) }
     func testThePickAtAccessibilitySize() { pickStation(large: true) }
 
+    /// A second gym (no machines), so the Machines tab's gym menu has somewhere to switch to.
+    private func addSecondGym() {
+        app.tabBars.buttons["Gyms"].tap()
+        app.buttons["addGym"].tap()
+        let name = app.textFields["gymName"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Second Gym")
+        app.buttons["saveGym"].tap()
+        XCTAssertTrue(any("gymRow.Second Gym").waitForExistence(timeout: 5))
+    }
+
+    private func modePill(_ label: String) -> XCUIElement {
+        app.buttons.matching(identifier: "addExerciseMode").matching(NSPredicate(format: "label == %@", label)).firstMatch
+    }
+
     private func pickStation(large: Bool) {
         launch(large: large)
+        addSecondGym()
         app.tabBars.buttons["Workout"].tap()
         let new = app.buttons["New Template…"].firstMatch
         reach(new)
@@ -53,8 +70,7 @@ final class TemplateMachinesUITests: XCTestCase {
         reach(add)
         add.tap()
 
-        let pills = app.buttons.matching(identifier: "addExerciseMode")
-        let machines = pills.matching(NSPredicate(format: "label == 'Machines'")).firstMatch
+        let machines = modePill("Machines")
         XCTAssertTrue(machines.waitForExistence(timeout: 5), "the template picker has the Exercises | Machines switch")
         machines.tap()
         let gym = any("templateMachinesGym")
@@ -83,6 +99,22 @@ final class TemplateMachinesUITests: XCTestCase {
         options.firstMatch.tap()
         XCTAssertTrue(pecDeck.waitForExistence(timeout: 5), "back on the machines after the pick")
         XCTAssertEqual(pecDeck.value as? String, "Added")
+
+        // codex-review-23 #1: the gym and the ✓ survive a trip to Exercises and back.
+        for _ in 0..<8 where !gym.isHittable { app.swipeDown() }
+        gym.tap()
+        let second = app.buttons["Second Gym"].firstMatch
+        XCTAssertTrue(second.waitForExistence(timeout: 5), "the gym menu lists the second gym")
+        second.tap()
+        XCTAssertTrue(gym.label.contains("Second Gym"), gym.label)
+        modePill("Exercises").tap()
+        modePill("Machines").tap()
+        XCTAssertTrue(gym.waitForExistence(timeout: 5))
+        XCTAssertTrue(gym.label.contains("Second Gym"), "the switched gym is kept: \(gym.label)")
+        gym.tap()
+        app.buttons["Iron Temple"].firstMatch.tap()
+        reach(pecDeck)
+        XCTAssertEqual(pecDeck.value as? String, "Added", "the ✓ is kept too")
         app.buttons["templatePickerDone"].tap()
 
         // The card says where it will start; Save remembers it; the detail shows it.
@@ -93,10 +125,12 @@ final class TemplateMachinesUITests: XCTestCase {
         let tile = any("templateTile.Machine Day")
         reach(tile)
         tile.tap()
-        let row = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS %@", exercise)).firstMatch
+        // The row's equipment line is its own part of the combined label ("…, 3 sets · 10, 10, 10 reps, Pec Deck"):
+        // the exercise's name may contain "Pec Deck" too (codex-review-23 #4), so match the part, not a substring.
+        let row = any("templateExercise.\(exercise)")
         XCTAssertTrue(row.waitForExistence(timeout: 5), "\(exercise) in the template")
-        let onPecDeck = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Pec Deck'")).firstMatch
-        XCTAssertTrue(onPecDeck.waitForExistence(timeout: 5), "the template starts \(exercise) on the Pec Deck at Iron Temple")
+        XCTAssertTrue(row.label.components(separatedBy: ", ").contains("Pec Deck"),
+                      "the template starts \(exercise) on the Pec Deck at Iron Temple: \(row.label)")
         shoot("beta-23-detail")
     }
 }

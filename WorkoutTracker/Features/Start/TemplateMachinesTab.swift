@@ -7,15 +7,16 @@ import SwiftUI
 /// one-exercise machine adds its exercise; a station asks which (D7). The editor remembers the machine for that
 /// exercise at that gym when the template is saved (D66). Stays open for more, like the Exercises tab.
 struct TemplateMachinesTab: View {
+    /// Owned by the picker so a tab switch keeps them (codex-review-23 #1).
+    @Binding var gymID: UUID?
+    @Binding var picked: Set<UUID>
     var onPick: (UUID, MachineInstance) -> Void
     @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
     @Query(sort: \Gym.name) private var allGyms: [Gym]
     @Query private var allPreferences: [AppPreferences]
-    @State private var gymID: UUID?
     @State private var chooser: AddByMachineSheet.ExerciseChoice?
     @State private var addingMachine = false
-    @State private var picked: Set<UUID> = []
 
     private var gyms: [Gym] { allGyms.filter { !$0.archived } }
     private var gym: Gym? { gyms.first { $0.id == gymID } }
@@ -59,7 +60,7 @@ struct TemplateMachinesTab: View {
 
     /// The Workout tab's gym (D1 of milestone 2 ticket 17) when it has one, else the first gym.
     private func chooseInitialGym() {
-        guard gymID == nil else { return }
+        guard gymID == nil || gym == nil else { return }
         let selected = GymSelection.resolve(id: AppPreferences.canonical(of: allPreferences)?.selectedGymID, among: gyms)
         gymID = (selected ?? gyms.first)?.id
     }
