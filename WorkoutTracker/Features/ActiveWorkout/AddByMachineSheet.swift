@@ -151,7 +151,7 @@ struct AddByMachineSheet: View {
 /// Second step of the machine-first path: the exercise list for a picked
 /// machine — restricted to the model's linked exercises, or the full
 /// searchable catalog when the machine has no model.
-private struct MachineExerciseList: View {
+struct MachineExerciseList: View {
     var choice: AddByMachineSheet.ExerciseChoice
     var onSelect: (Exercise) -> Void
     @Query(sort: \Exercise.name) private var allExercises: [Exercise]
