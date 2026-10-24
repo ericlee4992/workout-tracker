@@ -882,7 +882,18 @@ struct WorkoutSession {
     private func upsertMemory(for entry: ExerciseEntry, at date: Date) {
         guard let gymID = entry.workout?.gym?.id,
               let exerciseID = entry.exercise?.id else { return }
-        let machineID = entry.machine?.id
+        upsertMemory(gymID: gymID, exerciseID: exerciseID, machineID: entry.machine?.id, at: date)
+    }
+
+    /// Ticket 23 (the user, 2026-10-23; D66): a machine picked for an exercise while building a template becomes the
+    /// user's machine for that exercise at the machine's gym — the memory a template start resolves from (D6), as
+    /// if they had logged a set on it. The caller saves.
+    func rememberMachine(_ machine: MachineInstance, for exercise: Exercise, at date: Date = .now) {
+        guard !machine.archived, let gym = machine.gym, !gym.archived else { return }
+        upsertMemory(gymID: gym.id, exerciseID: exercise.id, machineID: machine.id, at: date)
+    }
+
+    private func upsertMemory(gymID: UUID, exerciseID: UUID, machineID: UUID?, at date: Date) {
         let rows = (try? context.fetch(FetchDescriptor<GymExerciseMemory>(
             predicate: #Predicate { $0.gymID == gymID && $0.exerciseID == exerciseID }
         ))) ?? []
