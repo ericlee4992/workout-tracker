@@ -42,3 +42,11 @@ records `main` passing the same serial suite in 179 s on a cold simulator — if
 use WT-iPhone27 (`47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`, warm) or allow several minutes. Rebuild and run
 `TemplateMachineChoiceTests` (paths under `/tmp/codex-23/`). Write `work-record/public-beta/codex-review-23b.md`, ending
 with exactly `Verdict: clear` or `Verdict: not clear`. Do not commit or push.
+
+## Round 3
+
+Round 2: [codex-review-23b.md](codex-review-23b.md), not clear (P3 superseded ✓). Claude's response: the ticket's "Codex
+round 2" section and `git diff 6fa333c..HEAD`. Check the finding is closed (including "a machine still chosen by
+another row keeps its ✓") and nothing regressed; rebuild (new path under `/tmp/codex-23/`). Write
+`work-record/public-beta/codex-review-23c.md`, ending with exactly `Verdict: clear` or `Verdict: not clear`. Do not
+commit or push.

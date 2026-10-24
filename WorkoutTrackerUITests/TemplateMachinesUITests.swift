@@ -31,8 +31,13 @@ final class TemplateMachinesUITests: XCTestCase {
         app.descendants(matching: .any).matching(identifier: id).firstMatch
     }
 
+    /// Scrolls until the element is on screen below the navigation bar: at AccessibilityL a tile can be "hittable"
+    /// while its top is under the bar, where a tap lands on the bar instead.
     private func reach(_ element: XCUIElement) {
-        for _ in 0..<8 where !(element.exists && element.isHittable) { app.swipeUp() }
+        func clear() -> Bool { element.exists && element.isHittable && element.frame.minY > 120 }
+        for _ in 0..<8 where !clear() {
+            if element.exists && element.frame.minY <= 120 { app.swipeDown() } else { app.swipeUp() }
+        }
         XCTAssertTrue(element.waitForExistence(timeout: 5), "\(element) not reached")
     }
 
@@ -115,22 +120,44 @@ final class TemplateMachinesUITests: XCTestCase {
         app.buttons["Iron Temple"].firstMatch.tap()
         reach(pecDeck)
         XCTAssertEqual(pecDeck.value as? String, "Added", "the ✓ is kept too")
+
+        // codex-review-23b #1: the same exercise picked again on another machine (the model-less Biceps Curl machine
+        // offers the full catalog) — that machine becomes the choice, and the Pec Deck loses its ✓.
+        let modelless = any("machineOption.Biceps Curl")
+        for _ in 0..<8 where !(modelless.exists && modelless.isHittable) { app.swipeDown() }
+        reach(modelless)
+        modelless.tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5), "the full catalog's search")
+        search.tap()
+        search.typeText(exercise)
+        let same = app.buttons["exerciseOption.\(exercise)"].firstMatch
+        XCTAssertTrue(same.waitForExistence(timeout: 5), "\(exercise) in the full catalog")
+        same.tap()
+        XCTAssertTrue(modelless.waitForExistence(timeout: 5))
+        XCTAssertEqual(modelless.value as? String, "Added")
+        reach(pecDeck)
+        XCTAssertEqual(pecDeck.value as? String, "", "the superseded Pec Deck is no longer marked")
         app.buttons["templatePickerDone"].tap()
 
-        // The card says where it will start; Save remembers it; the detail shows it.
-        let caption = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Pec Deck · Iron Temple'")).firstMatch
-        XCTAssertTrue(caption.waitForExistence(timeout: 5), "the card names the picked machine")
+        // The cards say where they will start — both rows of the exercise on the latest pick, none still on the Pec
+        // Deck (codex-review-23 #2); Save remembers it; the detail shows it.
+        let latest = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Biceps Curl · Iron Temple'"))
+        XCTAssertTrue(latest.firstMatch.waitForExistence(timeout: 5), "the card names the picked machine")
+        // (Counting matches would count each caption's nested elements too.) The earlier row was the Pec Deck's.
+        XCTAssertFalse(app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Pec Deck · Iron Temple'")).firstMatch.exists,
+                       "the earlier row of \(exercise) now carries the latest pick too")
         shoot("beta-23-editor")
         app.buttons["Save"].tap()
         let tile = any("templateTile.Machine Day")
         reach(tile)
         tile.tap()
-        // The row's equipment line is its own part of the combined label ("…, 3 sets · 10, 10, 10 reps, Pec Deck"):
-        // the exercise's name may contain "Pec Deck" too (codex-review-23 #4), so match the part, not a substring.
+        // The row's equipment line is its own part of the combined label ("…, 3 sets · 10, 10, 10 reps, Biceps Curl"):
+        // an exercise's name can contain a machine's name too (codex-review-23 #4), so match the part, not a substring.
         let row = any("templateExercise.\(exercise)")
         XCTAssertTrue(row.waitForExistence(timeout: 5), "\(exercise) in the template")
-        XCTAssertTrue(row.label.components(separatedBy: ", ").contains("Pec Deck"),
-                      "the template starts \(exercise) on the Pec Deck at Iron Temple: \(row.label)")
+        XCTAssertTrue(row.label.components(separatedBy: ", ").contains("Biceps Curl"),
+                      "the template starts \(exercise) on the latest pick at Iron Temple: \(row.label)")
         shoot("beta-23-detail")
     }
 }

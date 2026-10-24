@@ -111,3 +111,18 @@ name, "Chest Fly (Pec Deck)". Codex's build exit 0; `TemplateMachineChoiceTests`
 - #4 negative check (`23-negative`, a scratch copy of `0b00c4e` with the editor's `stageMachineMemory` call removed,
   never committed): `testAPickedStationMachineIsWhereTheTemplateStarts` **fails** at the equipment assertion — the row
   reads "Chest Fly (Pec Deck), 3 sets · 10, 10, 10 reps" with no equipment part. With the write it passes (`23-r1`).
+
+### Codex round 2 (2026-10-24): not clear — [codex-review-23b.md](../codex-review-23b.md)
+
+All four round-1 findings **closed**; Codex's build exit 0 and `TemplateMachineChoiceTests` + `EquipmentLifecycleTests`
+serial on warm WT-iPhone27 **16/0/0**. One new **P3**: the picker's `picked` was seeded only on appear, so a machine
+superseded by a newer pick (#2's fix) kept its ✓ / "Added" while the picker stayed open.
+
+**Response (Claude):** the picker follows the editor's current choices (`.onChange(of: pickedMachineIDs)`), so a
+superseded machine loses its ✓ and one still chosen by another row keeps it. `TemplateMachinesUITests` now, after the
+round trip, picks the same exercise on the model-less "Biceps Curl" machine (full catalog, search): Biceps Curl is
+"Added", the Pec Deck is not, no card says "Pec Deck · Iron Temple" any more, and the saved template's detail starts
+the exercise on Biceps Curl (the equipment part of the row's label). The test's scroll helper now also clears the
+navigation bar (at AccessibilityL a template tile half under the bar was "hittable" but the tap hit the bar — `23-r3`).
+`23-r4` (WT-iPhone27): `TemplateMachinesUITests` default + AccessibilityL and the warm-up — **3/3 passed**, exit 0;
+`23-r2/r3`: `TemplateMachineChoiceTests` 4/4 and `TemplateDetailUITests/testDeletingFromTheDetail…` passed.

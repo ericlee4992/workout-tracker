@@ -909,6 +909,9 @@ struct TemplateExercisePicker: View {
             local = addedCounts
             picked = pickedMachineIDs
         }
+        // A newer pick can replace an earlier machine's choice (`TemplateEditorSheet.choosing`): the ✓ follows the
+        // editor's current choices, so a superseded machine loses it (codex-review-23b #1).
+        .onChange(of: pickedMachineIDs) { _, current in picked = current }
     }
 
     private struct Section {
