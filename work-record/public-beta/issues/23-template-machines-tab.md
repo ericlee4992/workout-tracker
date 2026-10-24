@@ -145,3 +145,11 @@ The superseded-✓ finding is closed; Codex's rebuild exit 0. Ticket 23 done on 
   machine at your gym, or add or scan a new one, and the template starts on that machine there. Also: Add Chart groups
   your exercises by body area; in History, a workout's cardio card has a … menu to delete just that cardio; and
   cancelling a workout now removes its Lock Screen card. Send anything odd from Settings → Send Feedback."
+- **Archive** from `…/Health App/release-build` detached at `main` `5ab7a16` (Release, generic iOS,
+  `-allowProvisioningUpdates`): `ARCHIVE SUCCEEDED`, exit 0 — scratchpad `tf/Stacked-0.1.0-9-5ab7a16.xcarchive`.
+  Checked: app 0.1.0 (9), widget 9, `WTServerURL` = production `stacked-server.stacked-server.workers.dev`,
+  `WTGoogleClientID` set, bundle `com.ericlee4992.workouttracker`, team `X68M8SR6NA`.
+- **Uploaded 2026-10-24 02:25 EDT** (`-exportArchive`, `UploadOptions.plist`: app-store-connect, upload, automatic,
+  team, `manageAppVersionAndBuildNumber` false): "Upload succeeded", `EXPORT SUCCEEDED`, exit 0.
+- **Next (App Store Connect, after Apple's processing):** Developer → Builds → + build 9 → Add; Friends → Builds → +
+  build 9 → Next → paste the note above → Submit for Review. The user clicks Add / Submit.

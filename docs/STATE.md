@@ -12,8 +12,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   [21 Live Activity after cancel](../work-record/public-beta/issues/21-live-activity-after-cancel.md) **clear** (phone
   check with build 9) · [22 one Add Exercise (Exercises | Machines)](../work-record/public-beta/issues/22-one-add-exercise-button.md)
   **clear** (D65) · [23 template Exercises | Machines + Add Machine/Scan](../work-record/public-beta/issues/23-template-machines-tab.md)
-  **clear** (D66), 2026-10-24. **All five clear; waiting for the user's go-ahead to merge into `main`**, then build 9
-  (What to Test note for the user's approval).
+  **clear** (D66), 2026-10-24. All five clear; **merged** (`main` `daa3cc6`, the user's go-ahead
+  2026-10-24) and **build 9 uploaded 2026-10-24 02:25 EDT** from `main` `5ab7a16` (note approved; no What's New; no Gate
+  S). Next: App Store Connect — add build 9 to Developer and Friends (note in [ticket 23](../work-record/public-beta/issues/23-template-machines-tab.md#build-9-tickets-1923--record));
+  the user clicks Add / Submit; then the user's phone check (incl. ticket 21's Lock Screen card after a cancel).
   - Codex: one Orca terminal "Codex review 19-22" (`term_941e7732-91a5-4b1b-8749-651c3cf01354`); its **weekly limit is
     under 5%** (2026-10-23) — if it runs out, ask the user. Kept the current model when it offered gpt-6-luna.
   - Scratch: `ericlee4992/beta-22-wip` (pushed) holds the pre-merge history of 22/23 — delete after the merge (ask);
@@ -22,7 +24,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Resume here (2026-10-18):** **Build 8 is live** (`main` **`7c81e28`**: tickets 16 Progress tab + 14 What's New + 17
   cardio-only pause clock, D64) — **Developer** and **Friends** both show it **Testing**; the phone has **0.1.0 (8)**
   and What's New appeared (the user). Friends: the approved note, testers notified; 3 testers (2 anonymous public-link
-  on build 6, 2 of 20 limit). Build 7 was never given to testers. Nothing in progress; next build number **9**. Open:
+  on build 6, 2 of 20 limit). Build 7 was never given to testers. Build 9 uploaded 2026-10-24 (tickets 19–23); next build number **10**. Open:
   the Live Activity's cardio-only clock not checked on a device; ExerciseProgressView's metric-pill VoiceOver label
   (ticket 16). `main` was fast-forwarded to the branch's notes (the user, 2026-10-18), so `main` and
   `ericlee4992/beta-17-cardio-pause` are the same; start the next ticket on a new branch off `main`. [Ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md).
@@ -163,7 +165,7 @@ domain of the user's own, which also allows Google branding verification.
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
 | 16 Progress tab | **Done** — build 8 (build 7 skipped for testers). |
 | 17 cardio pause clock | **Done** — build 8 (Developer + Friends, 2026-10-18). |
-| 19–23 build 9 bug fixes | **All Codex clear** (2026-10-24); merge awaits the user (above). |
+| 19–23 build 9 bug fixes | **Merged; build 9 uploaded** 2026-10-24 — App Store Connect groups next (above). |
 
 ## Working conventions (in force)
 
