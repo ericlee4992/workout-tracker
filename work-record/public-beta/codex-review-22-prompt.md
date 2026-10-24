@@ -35,3 +35,11 @@ inspect Claude's result bundles instead). Do not modify files other than the rep
 
 Write `work-record/public-beta/codex-review-22.md`: findings numbered P1/P2/P3 with file:line, failure scenario and fix;
 end with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 2
+
+Round 1: [codex-review-22.md](codex-review-22.md), not clear (P3 header glyph). Claude's response: the ticket's "Codex
+round 1" section and `git diff 92e1508..HEAD`. Check the finding is closed, that `LookSectionLabel`'s other callers
+(SF Symbols, muscle-family marks) are unaffected, and nothing else regressed; rebuild (new path under
+`/tmp/codex-22/`) and look at `runs/shots22r/`. Write `work-record/public-beta/codex-review-22b.md`, ending with exactly
+`Verdict: clear` or `Verdict: not clear`. Do not commit or push.

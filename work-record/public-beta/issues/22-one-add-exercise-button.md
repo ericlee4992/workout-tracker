@@ -87,3 +87,15 @@ button?"
   CoreLoop ×7, MachineDeletion, ExercisePreset, Redesign ×3, Codex screenshots ×2, FloodlightLive list end ×2), look
   at the captures, then Codex review 22.
 - Commits for review: `e33cb00` (the build) + `8657703` (test fixes, header, verification) — `git diff 2ab1711..8657703` (pushed).
+
+### Codex round 1 (2026-10-23): not clear — [codex-review-22.md](../codex-review-22.md)
+
+One **P3**: the Machines header passed `LookIcon.machine` (the app's own glyph, `"lookicon.machine"`) to
+`LookSectionLabel`, which drew it with `Image(systemName:)` — no glyph. No functional findings; Codex's build exit 0.
+
+**Response (Claude):** `LookSectionLabel` draws its symbol with `LookIcon(symbol, style: .footnote)`, which renders the
+app's glyphs and falls back to `Image(systemName:)` at the same font for an SF Symbol (so the other callers — Add
+Chart's and the picker's "Recent at …" — render as before). `22-r1` (WT-Floodlight): both list-end capture tests
+**passed**; the machine glyph now shows beside "Machines at Iron Temple" at default and AccessibilityL
+(`runs/shots22r/beta-22-add-machines-light-{default,axl}.png`). The run's warm-up (`CardioUITests/
+testSavedDistanceEditor…`, untouched code) failed on the fresh runner — the known first-test issue it exists to absorb.
