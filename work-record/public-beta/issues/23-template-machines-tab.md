@@ -77,3 +77,4 @@ template as well. probably also use one exercise button with exercises/machines 
   the 2 unit tests **passed**; the warm-up timed out on runner start (untouched code).
 - Captures: `runs/shots23/beta-23-{machines,add-machine,station,editor,detail}-{default,axl}.png`,
   `runs/shots23b/beta-23-editor-{default,axl}.png` (with the glyph).
+- Commits for review: `git diff 4ceefc7..74adb88` (pushed).
