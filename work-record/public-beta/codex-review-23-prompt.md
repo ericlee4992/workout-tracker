@@ -31,3 +31,14 @@ than the report; do not commit or push.
 
 Write `work-record/public-beta/codex-review-23.md`: findings numbered P1/P2/P3 with file:line, failure scenario and fix;
 end with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 2
+
+Round 1: [codex-review-23.md](codex-review-23.md), not clear (P2 #1 tab state, #2 row order, #3 failed-save leak; P3
+#4 test assertion). Claude's response: the ticket's "Codex round 1" section and `git diff 553a501..HEAD`. Check all
+four are closed and nothing regressed (the logged-set memory path still behaves the same; `stageMachineMemory`'s undo
+for a row touched twice; the picker's state with an Edit Template that already has picks). On the stall: the ticket
+records `main` passing the same serial suite in 179 s on a cold simulator — if you rerun `EquipmentLifecycleTests`,
+use WT-iPhone27 (`47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`, warm) or allow several minutes. Rebuild and run
+`TemplateMachineChoiceTests` (paths under `/tmp/codex-23/`). Write `work-record/public-beta/codex-review-23b.md`, ending
+with exactly `Verdict: clear` or `Verdict: not clear`. Do not commit or push.

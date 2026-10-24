@@ -108,3 +108,6 @@ name, "Chest Fly (Pec Deck)". Codex's build exit 0; `TemplateMachineChoiceTests`
   (4) + `EquipmentLifecycleTests` (12) **16/16**, `TemplateMachinesUITests` ×2 (with the round trip and the strict
   equipment check), `TemplateDetailUITests/testDeletingFromTheDetail…`, `FloodlightWorkoutTabUITests/
   testEditorSupersetStartsLinkedInTheWorkout`, warm-up — **21/21 passed**, exit 0.
+- #4 negative check (`23-negative`, a scratch copy of `0b00c4e` with the editor's `stageMachineMemory` call removed,
+  never committed): `testAPickedStationMachineIsWhereTheTemplateStarts` **fails** at the equipment assertion — the row
+  reads "Chest Fly (Pec Deck), 3 sets · 10, 10, 10 reps" with no equipment part. With the write it passes (`23-r1`).
