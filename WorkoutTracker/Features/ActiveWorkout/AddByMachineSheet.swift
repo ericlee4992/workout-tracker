@@ -78,7 +78,8 @@ struct AddByMachineSheet: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 } header: {
                     if let gym {
-                        Text("Machines at \(gym.name)")
+                        // Ticket 22: the same section label as the Exercises tab beside it.
+                        LookSectionLabel(title: "Machines at \(gym.name)", symbol: LookIcon.machine)
                     }
                 }
                 .lookListRows()

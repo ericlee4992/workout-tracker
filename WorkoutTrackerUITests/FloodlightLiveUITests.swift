@@ -107,9 +107,11 @@ final class FloodlightLiveUITests: XCTestCase {
         let size = large ? "axl" : "default"
         shoot("live-fixes-02-list-end-\(appearance)-\(size)")
         app.buttons["addExercise"].tap()
-        let machines = app.buttons["Machines"]
+        // The switch's pills carry its identifier (the tab bar also has an "Exercises" button).
+        let pills = app.buttons.matching(identifier: "addExerciseMode")
+        let machines = pills.matching(NSPredicate(format: "label == 'Machines'")).firstMatch
         XCTAssertTrue(machines.waitForExistence(timeout: 5), "Add Exercise opens with the Exercises | Machines switch")
-        XCTAssertTrue(app.buttons["Exercises"].isSelected, "it opens on Exercises")
+        XCTAssertTrue(pills.matching(NSPredicate(format: "label == 'Exercises'")).firstMatch.isSelected, "it opens on Exercises")
         Thread.sleep(forTimeInterval: 1)
         shoot("beta-22-add-exercises-\(appearance)-\(size)")
         machines.tap()

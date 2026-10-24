@@ -1,7 +1,7 @@
 # 22 — One Add Exercise button: Exercises | Machines tabs
 
 Type: change
-Status: **ready** (2026-10-18)
+Status: **in review** (Codex round 1, 2026-10-23)
 Blocked by: —
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/beta-19-bug-fixes` off `main` `1f0e040` (tickets 19–22 together).
@@ -58,6 +58,30 @@ button?"
 
 - `build-for-testing` (`runs/22-build-1.log`, WT-iPhone27): exit 0.
 - Targeted UI run `22-ui-1` (17 tests, 3 workers) **stopped by the pause before any result** — not run.
+- 2026-10-23, rebased onto `de3db7c` (clean). `22-ui-2` (same 17, 3 workers, the machine also running Codex):
+  10 passed, 8 failed. Sorted out by `22-base` (the branch WITHOUT ticket 22, WT-Floodlight, serial: the 6 failing
+  tests that exist there + warm-up **7/7 passed**) vs `22-ui-3` (ticket 22, serial): core loop, minimize, Redesign
+  test02 and both list-end captures **passed** (their `22-ui-2` failures were load: focus not taken, app not launched);
+  3 real failures remained:
+  - `ExercisePresetUITests` ×2 — **a test-rewrite bug**: the file's variable `add` names both Add by Machine and the
+    Gyms tab's Add Machine button, and the rewrite inserted "tap Machines" after both. Removed from the Gyms helper.
+  - `FloodlightLiveUITests` list end ×2 (in `22-ui-2`): `app.buttons["Exercises"]` also matched the tab bar's
+    Exercises tab — the switch's pills are now queried by their identifier `addExerciseMode`.
+  - `CoreLoopUITests/testAddSetCarriesForwardTheLastCompletedSet` — failed in `22-ui-2` ("kg" ≠ "lb") and `22-ui-3`
+    ("Add Set should append a row"), each time with another test run sharing the machine; alone it **passed** in
+    `22-ui-4` and **3/3** in `22-ui-5` (`-test-iterations 3`). Load, not this change.
+- `22-ui-4` (serial, after the preset-helper fix): warm-up, `testAddSetCarries…`, `ExercisePresetUITests` ×2 —
+  **4/4 passed**, exit 0.
+- Polish after the captures: the Machines tab's section header is now the Exercises tab's `LookSectionLabel`
+  ("Machines at Iron Temple", machine symbol) instead of the old grey list header.
+- `22-final` (serial, with that change): warm-up, `FloodlightLiveUITests` list end light default + AccessibilityL
+  (incl. the sheet's two tabs), `MachineDeletionUITests/testDeleteMidWorkout…`, `CoreLoopUITests/
+  testFinishingAnEmptyWorkout…` (no gym → the Machines tab explains), `ExercisePresetUITests` ×2 — **7/7 UI passed**
+  (with 14 unit tests in the same run), `TEST SUCCEEDED`, exit 0.
+- Captures: `runs/shots22c/live-fixes-02-list-end-light-{default,axl}.png` (two buttons) and
+  `beta-22-add-{exercises,machines}-light-{default,axl}.png` (from `22-ui-3`, before the header polish).
+- Full targeted list over the runs: CoreLoop ×7, MachineDeletion, ExercisePreset ×2, Redesign ×3, Codex screenshots
+  ×2, FloodlightLive ×2 — every one has a passing run on the final or near-final code (`22-ui-3/4/5`, `22-final`).
 - **Next:** apply this branch's diff onto `ericlee4992/beta-19-bug-fixes` after ticket 21 clears (it touches
   `ActiveWorkoutView.swift` in other hunks than 21), rerun `22-ui-1`'s list (in this ticket's history: the warm-up,
   CoreLoop ×7, MachineDeletion, ExercisePreset, Redesign ×3, Codex screenshots ×2, FloodlightLive list end ×2), look
