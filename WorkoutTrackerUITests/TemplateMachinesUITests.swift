@@ -86,7 +86,7 @@ final class TemplateMachinesUITests: XCTestCase {
         app.buttons["templatePickerDone"].tap()
 
         // The card says where it will start; Save remembers it; the detail shows it.
-        let caption = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Pec Deck · Iron Temple'")).firstMatch
+        let caption = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'Pec Deck · Iron Temple'")).firstMatch
         XCTAssertTrue(caption.waitForExistence(timeout: 5), "the card names the picked machine")
         shoot("beta-23-editor")
         app.buttons["Save"].tap()
