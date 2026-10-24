@@ -40,7 +40,7 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
 - **Cardio.** Indoor machines and outdoor walks, runs and rides with a GPS route — on their
   own or in the same workout as lifting.
 - **Templates.** Save a workout as a plan and start it at any gym; each exercise resolves to
-  the machine you last used there.
+  the machine you last used or picked for it there (a template's Add Exercise can pick, add or scan a machine).
 - **Heart rate and Apple Health.** Live bpm from AirPods Pro 3 or a paired heart-rate monitor,
   zones, calories and a heart-rate rest timer; workouts are saved to Apple Health. (An Apple
   Watch companion is written but not yet built or shipped.)

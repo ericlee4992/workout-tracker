@@ -512,10 +512,15 @@ struct TemplateEditorSheet: View {
                         }
                     }
                     if let machine = value.machine {
-                        Label(machine.caption, systemImage: LookIcon.machine)
-                            .font(look.font.footnote)
-                            .foregroundStyle(look.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+                        // `LookIcon`: the machine glyph is the app's own, not an SF Symbol (codex-review-22 #1).
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            LookIcon(LookIcon.machine, style: .footnote)
+                            Text(machine.caption)
+                                .font(look.font.footnote)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .foregroundStyle(look.textSecondary)
+                        .accessibilityElement(children: .combine)
                     }
                 }
                 .padding(.top, 12)
