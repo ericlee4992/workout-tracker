@@ -12,10 +12,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   covers iOS apps — direct purchase is enough when files are **bundled in the app**); proposals from Claude + Codex and
   a competitor study (Lyfta/Hevy use Gym visual codes; others film trainers; Exercise Animatic a second 3D vendor).
   Decided: **muscle maps = our own simple drawings**. **Now: [ticket 03](../work-record/exercise-media/issues/03-gymvisual-pilot.md)
-  — the user buys the 10-item Gym visual pilot** (cart in Chrome, $18.10, "Basic grey"; the user enters payment);
-  next, the user puts the files in `~/WorkoutTracker-Media/gymvisual/` (outside the repo — never commit purchased
-  media), Claude converts to looping MP4, bundles at build time from that private folder, prototypes the exercise-page
-  media + workout pop-up. Rule: read a site's terms before automated access (Gym visual allowed it, per the user). Bug
+  — 10-item Gym visual pilot** (cart rebuilt 2026-10-29 in Chrome, $18.10, "Basic grey"; not bought). The user is
+  now weighing **making the animations ourselves** — [Fable + Codex report](../work-record/exercise-media/research/diy-animation-summary.md)
+  (both: Blender + CC0 MPFB2 figure, agent-scripted, 3-exercise experiment; buy the pilot as benchmark). **Gym
+  visual's licence forbids AI systems processing/modifying its files** — if bought, the user runs Claude's conversion
+  script on `~/WorkoutTracker-Media/gymvisual/` (created; outside the repo — never commit purchased media); Claude
+  never opens those files. Waiting on the user's four decisions at the end of the report. Rule: read a site's terms before automated access (Gym visual allowed it, per the user). Bug
   fixes run in a separate session/worktree off `main`.
 - **In progress (2026-10-23): build 9 bug fixes** — checkout `…/Health App/beta-19-bug-fixes`, branch
   `ericlee4992/beta-19-bug-fixes` (pushed; off `main` `1f0e040`; nothing merged). Tickets, each Codex-reviewed:

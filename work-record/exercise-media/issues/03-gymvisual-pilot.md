@@ -62,3 +62,11 @@ items in a new Claude in Chrome tab ("Order", gymvisual.com/quick-order): the ni
 (SKU 885012, "Basic grey", $10.00). Total **$18.10**, shipping/vouchers $0 — read from the cart table. Nothing
 purchased; no account, address or payment details entered. The user checks out, then puts the files in
 `~/WorkoutTracker-Media/gymvisual/`.
+
+**Reconsidering (2026-10-29, the user).** The user wants to explore making the animations themselves, open-source
+assets or reverse engineering before buying; Fable and Codex (Astra) answered the same brief —
+[combined report](../research/diy-animation-summary.md). Both still recommend buying this pilot as the benchmark.
+**Licence correction:** Gym visual's "may NOT be used" list includes "to process, modify, or use for training by any
+Artificial Intelligence (AI) systems" (read 2026-10-29). So "After purchase" step 2 changes: Claude writes the
+conversion script and build step, **the user runs them**; Claude does not open, view or convert the purchased files.
+Purchase still pending the user's decision; the cart ($18.10) is open in Chrome.
