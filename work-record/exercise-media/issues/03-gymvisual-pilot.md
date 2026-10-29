@@ -55,3 +55,10 @@ Viking press video $10.00; shipping/vouchers $0. Nothing purchased; no account, 
 checkout is the user's (it asks to create an account). Also observed: the GIF page banner reads "$0.9 per 1 animated
 GIF after 10 items in cart" while the discount table says 75% off from 5 different items; the cart applied $0.90 at
 10 items.
+
+**Cart rebuilt (2026-10-29, the user's request).** The Oct 18 cart had expired (empty). Claude re-added the same ten
+items in a new Claude in Chrome tab ("Order", gymvisual.com/quick-order): the nine GIFs at $0.90 each (SKUs 002513,
+003213, 018013, 015013, 058513, 103013, 074313, 495113, 228213; "Basic grey"; quantity 1) and the Viking press video
+(SKU 885012, "Basic grey", $10.00). Total **$18.10**, shipping/vouchers $0 — read from the cart table. Nothing
+purchased; no account, address or payment details entered. The user checks out, then puts the files in
+`~/WorkoutTracker-Media/gymvisual/`.
