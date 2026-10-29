@@ -14,8 +14,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **clear** (D65) · [23 template Exercises | Machines + Add Machine/Scan](../work-record/public-beta/issues/23-template-machines-tab.md)
   **clear** (D66), 2026-10-24. All five clear; **merged** (`main` `daa3cc6`, the user's go-ahead
   2026-10-24) and **build 9 uploaded 2026-10-24 02:25 EDT** from `main` `5ab7a16` (note approved; no What's New; no Gate
-  S). Next: App Store Connect — add build 9 to Developer and Friends (note in [ticket 23](../work-record/public-beta/issues/23-template-machines-tab.md#build-9-tickets-1923--record));
-  the user clicks Add / Submit; then the user's phone check (incl. ticket 21's Lock Screen card after a cancel).
+  S). **Build 9 added to Developer and Friends by the user (2026-10-29)** (note in
+  [ticket 23](../work-record/public-beta/issues/23-template-machines-tab.md#build-9-tickets-1923--record)). Open: the
+  user's phone check of build 9 (incl. ticket 21's Lock Screen card after a cancel); delete `ericlee4992/beta-22-wip`
+  and this session's scratch checkouts (ask first).
   - Codex: one Orca terminal "Codex review 19-22" (`term_941e7732-91a5-4b1b-8749-651c3cf01354`); its **weekly limit is
     under 5%** (2026-10-23) — if it runs out, ask the user. Kept the current model when it offered gpt-6-luna.
   - Scratch: `ericlee4992/beta-22-wip` (pushed) holds the pre-merge history of 22/23 — delete after the merge (ask);
@@ -165,7 +167,7 @@ domain of the user's own, which also allows Google branding verification.
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
 | 16 Progress tab | **Done** — build 8 (build 7 skipped for testers). |
 | 17 cardio pause clock | **Done** — build 8 (Developer + Friends, 2026-10-18). |
-| 19–23 build 9 bug fixes | **Merged; build 9 uploaded** 2026-10-24 — App Store Connect groups next (above). |
+| 19–23 build 9 bug fixes | **Done** — build 9 in Developer and Friends (2026-10-29); phone check open. |
 
 ## Working conventions (in force)
 

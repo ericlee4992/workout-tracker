@@ -153,3 +153,5 @@ The superseded-✓ finding is closed; Codex's rebuild exit 0. Ticket 23 done on 
   team, `manageAppVersionAndBuildNumber` false): "Upload succeeded", `EXPORT SUCCEEDED`, exit 0.
 - **Next (App Store Connect, after Apple's processing):** Developer → Builds → + build 9 → Add; Friends → Builds → +
   build 9 → Next → paste the note above → Submit for Review. The user clicks Add / Submit.
+- **App Store Connect (the user, 2026-10-29):** "I added build 9 to both groups" — Developer and Friends (Friends with
+  the note above, through Beta App Review). Not yet checked on the phone.
