@@ -51,6 +51,16 @@ struct TemplateEditorSheet: View {
         /// nil: the exercise's own rest applies.
         var restSeconds: Int?
         var equipment: EquipmentTag?
+        /// Ticket 23: the machine picked for it on the Machines tab — remembered for the exercise at that gym when the
+        /// template is saved (D66), never stored on the template (D6: templates stay generic).
+        var machine: MachineChoice?
+    }
+
+    /// A machine picked while building the template, and what its card says ("Chest Press 2 · Iron Temple").
+    struct MachineChoice: Equatable {
+        var machineID: UUID
+        var gymID: UUID?
+        var caption: String
     }
 
     /// What a card has open below its pills: one set's stepper, or the rest adjuster.
@@ -101,7 +111,9 @@ struct TemplateEditorSheet: View {
             Button("Keep Editing", role: .cancel) {}
         }
         .sheet(isPresented: $showPicker) {
-            TemplateExercisePicker(exercises: exercises, addedCounts: addedCounts, onAdd: addExercise)
+            TemplateExercisePicker(exercises: exercises, addedCounts: addedCounts, onAdd: addExercise,
+                                   pickedMachineIDs: Set(draft.items.compactMap { $0.machine?.machineID }),
+                                   onAddMachine: addMachineExercise)
         }
         .onAppear(perform: load)
         .sensoryFeedback(.impact(weight: .medium), trigger: links)
@@ -150,15 +162,35 @@ struct TemplateEditorSheet: View {
                 supersetGroupID: item.supersetGroupID, plannedRestSeconds: item.restSeconds,
                 preferredEquipmentTag: item.equipment)
         }
+        // Ticket 23 (D66): a machine picked for an exercise becomes the user's machine for it at that gym — on Save
+        // only, so Cancel leaves the gym's memory as it was. Staged, then committed by the template's own save; a
+        // failed save puts the touched rows back (codex-review-23 #3). One choice per (gym, exercise): rows of the
+        // same exercise at the same gym carry the same, latest pick (`addMachineExercise`), so row order cannot
+        // change which machine wins (codex-review-23 #2).
+        var undoMemory: () -> Void = {}
         do {
+            var picks: [(machine: MachineInstance, exercise: Exercise)] = []
+            var seen: Set<[UUID]> = []
+            for item in draft.items {
+                guard let choice = item.machine, let exercise = exercise(item.exerciseID),
+                      seen.insert([choice.gymID ?? choice.machineID, item.exerciseID]).inserted else { continue }
+                let id = choice.machineID
+                if let machine = try modelContext.fetch(FetchDescriptor<MachineInstance>(
+                    predicate: #Predicate { $0.id == id })).first {
+                    picks.append((machine, exercise))
+                }
+            }
+            undoMemory = WorkoutSession(context: modelContext).stageMachineMemory(picks)
             let service = WorkoutTemplateService(context: modelContext)
             if let template {
                 try service.update(template, name: trimmedName, items: drafts, cardio: draft.cardio)
             } else {
                 try service.create(name: trimmedName, items: drafts, cardio: draft.cardio)
             }
+            if modelContext.hasChanges { try modelContext.save() }
             dismiss()
         } catch {
+            undoMemory()
             self.error = error.localizedDescription
         }
     }
@@ -170,6 +202,29 @@ struct TemplateEditorSheet: View {
     private func addExercise(_ exerciseID: UUID) {
         let item = EditorItem(exerciseID: exerciseID, repsBySet: [10, 10, 10])
         withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.82)) { draft.items.append(item) }
+    }
+
+    /// Ticket 23: from the Machines tab — the machine's exercise, with the machine to remember on Save.
+    private func addMachineExercise(_ exerciseID: UUID, _ machine: MachineInstance) {
+        let caption = [machine.label, machine.gym?.name].compactMap { $0 }.joined(separator: " · ")
+        let choice = MachineChoice(machineID: machine.id, gymID: machine.gym?.id, caption: caption)
+        let item = EditorItem(exerciseID: exerciseID, repsBySet: [10, 10, 10], machine: choice)
+        withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.82)) {
+            // One machine per exercise per gym (the memory has one row): a newer pick replaces the choice on the
+            // same exercise's earlier rows at that gym, so their captions say what they will start on.
+            draft.items = Self.choosing(choice, for: exerciseID, in: draft.items)
+            draft.items.append(item)
+        }
+    }
+
+    /// Every row of `exerciseID` already picked at `choice`'s gym takes `choice` (codex-review-23 #2).
+    static func choosing(_ choice: MachineChoice, for exerciseID: UUID, in items: [EditorItem]) -> [EditorItem] {
+        items.map { item in
+            guard item.exerciseID == exerciseID, let current = item.machine, current.gymID == choice.gymID else { return item }
+            var item = item
+            item.machine = choice
+            return item
+        }
     }
 
     private func exercise(_ id: UUID) -> Exercise? { exercises.first { $0.id == id } }
@@ -470,14 +525,27 @@ struct TemplateEditorSheet: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 4) {
                 dragHandle(value)
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(exercise(value.exerciseID)?.name ?? "Missing exercise")
-                        .font(Font.system(.headline, weight: .heavy).width(.expanded))
-                        .foregroundStyle(look.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let letter {
-                        TemplateSupersetTag(letter: letter)
-                            .transition(.scale.combined(with: .opacity))
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(exercise(value.exerciseID)?.name ?? "Missing exercise")
+                            .font(Font.system(.headline, weight: .heavy).width(.expanded))
+                            .foregroundStyle(look.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let letter {
+                            TemplateSupersetTag(letter: letter)
+                                .transition(.scale.combined(with: .opacity))
+                        }
+                    }
+                    if let machine = value.machine {
+                        // `LookIcon`: the machine glyph is the app's own, not an SF Symbol (codex-review-22 #1).
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            LookIcon(LookIcon.machine, style: .footnote)
+                            Text(machine.caption)
+                                .font(look.font.footnote)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .foregroundStyle(look.textSecondary)
+                        .accessibilityElement(children: .combine)
                     }
                 }
                 .padding(.top, 12)
@@ -780,20 +848,43 @@ struct TemplateExercisePicker: View {
     var exercises: [Exercise]
     var addedCounts: [UUID: Int]
     var onAdd: (UUID) -> Void
+    /// Ticket 23: machines already picked in this editor (their rows show ✓).
+    var pickedMachineIDs: Set<UUID> = []
+    /// Ticket 23: the Machines tab's pick — the machine's exercise, and the machine.
+    var onAddMachine: (UUID, MachineInstance) -> Void
     @Environment(\.look) private var look
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     @State private var adds = 0
     @State private var local: [UUID: Int] = [:]
+    /// Ticket 23: Exercises | Machines, as in the live workout (ticket 22).
+    @State private var mode = 0
+    /// The Machines tab's gym and picks live here, not in the tab, so switching tabs keeps them (codex-review-23 #1).
+    @State private var machineGymID: UUID?
+    @State private var picked: Set<UUID> = []
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: 20) {
-                    SearchFieldView(text: $query, prompt: "Search exercises")
-                    ForEach(sections, id: \.title) { section in
-                        LookList(header: section.title) {
-                            ForEach(section.exercises) { exercise in row(exercise) }
+                VStack(alignment: .leading, spacing: 20) {
+                    SegmentedPills(["Exercises", "Machines"], selection: $mode)
+                        .accessibilityIdentifier("addExerciseMode")
+                    if mode == 0 {
+                        LazyVStack(alignment: .leading, spacing: 20) {
+                            SearchFieldView(text: $query, prompt: "Search exercises")
+                            ForEach(sections, id: \.title) { section in
+                                LookList(header: section.title) {
+                                    ForEach(section.exercises) { exercise in row(exercise) }
+                                }
+                            }
+                        }
+                    } else {
+                        // Not lazy: the tab's navigation destination (a station's exercises) must not sit in a
+                        // lazy container, where SwiftUI ignores it.
+                        TemplateMachinesTab(gymID: $machineGymID, picked: $picked) { exerciseID, machine in
+                            adds += 1
+                            local[exerciseID, default: 0] += 1
+                            onAddMachine(exerciseID, machine)
                         }
                     }
                 }
@@ -814,7 +905,13 @@ struct TemplateExercisePicker: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .sensoryFeedback(.impact(weight: .light), trigger: adds)
-        .onAppear { local = addedCounts }
+        .onAppear {
+            local = addedCounts
+            picked = pickedMachineIDs
+        }
+        // A newer pick can replace an earlier machine's choice (`TemplateEditorSheet.choosing`): the ✓ follows the
+        // editor's current choices, so a superseded machine loses it (codex-review-23b #1).
+        .onChange(of: pickedMachineIDs) { _, current in picked = current }
     }
 
     private struct Section {

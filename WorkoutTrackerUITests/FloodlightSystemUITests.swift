@@ -158,4 +158,50 @@ final class FloodlightSystemUITests: XCTestCase {
         // workout's card ends any card left by another, WorkoutActivityController).
         app.terminate()
     }
+
+    /// Public beta ticket 21 (the user, 2026-10-18: "Even after cancelling a workout, the live
+    /// activity still appears"). The fixture is mid-rest, so the cancel also clears the rest — the
+    /// change that pushed a new card for the deleted workout while its screen was dismissed.
+    func testRealLiveActivityEndsWhenTheWorkoutIsCancelled() {
+        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestDesignLive", "-uiTestRealLiveActivity",
+                               "-appearance", "dark"]
+        app.launch()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 15))
+        Thread.sleep(forTimeInterval: 2)
+        XCUIDevice.shared.press(.home)
+        Thread.sleep(forTimeInterval: 1.5)
+        openNotificationCenter()
+        let allow = springboard.buttons.matching(NSPredicate(format: "label ENDSWITH 'Allow' AND NOT (label BEGINSWITH 'Don')")).firstMatch
+        if allow.waitForExistence(timeout: 2) {
+            allow.tap()
+            Thread.sleep(forTimeInterval: 1.5)
+        }
+        let skip = springboard.buttons["Skip rest"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 5), "the workout's card is up before the cancel")
+        XCTAssertTrue(springboard.otherElements["activity-content-view"].exists, "the check below can see a card")
+        shoot("21-card-before-cancel", XCUIScreen.main.screenshot())
+        closeNotificationCenter()
+
+        app.activate()
+        let cancel = app.buttons["discardWorkout"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10))
+        cancel.tap()
+        let discard = app.buttons["Discard Workout"]
+        XCTAssertTrue(discard.waitForExistence(timeout: 5))
+        discard.tap()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForNonExistence(timeout: 10), "the workout screen closed")
+        // Longer than the screen's 2-second push tick, so a late push would have landed.
+        Thread.sleep(forTimeInterval: 6)
+
+        XCUIDevice.shared.press(.home)
+        Thread.sleep(forTimeInterval: 1.5)
+        openNotificationCenter()
+        shoot("21-after-cancel", XCUIScreen.main.screenshot())
+        // Any card at all, not only a resting one: the stray card re-posted for the cancelled workout
+        // had no rest (the cancel cleared it), so it showed no +15s or Skip.
+        XCTAssertFalse(springboard.otherElements["activity-content-view"].exists, "no card for the cancelled workout")
+        XCTAssertFalse(springboard.buttons["Add 15 seconds"].exists, "no card for the cancelled workout")
+        closeNotificationCenter()
+        app.terminate()
+    }
 }

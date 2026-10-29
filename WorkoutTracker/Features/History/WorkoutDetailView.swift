@@ -25,6 +25,8 @@ struct WorkoutDetailView: View {
     @State private var showExercisePicker = false
     /// The entry a delete is proposing to remove, with all its sets.
     @State private var confirmingEntryDelete: ExerciseEntry?
+    /// Ticket 20: the cardio activity whose deletion is being confirmed.
+    @State private var confirmingCardioDelete: CardioSegment?
     /// The entry whose progress chart is open (milestone 9, ticket 01). The
     /// chart opens on THIS session's variation — snapshot type, tag and preset
     /// — rather than the most-trained one, because that is what the user is
@@ -183,6 +185,20 @@ struct WorkoutDetailView: View {
             }
         }
         .confirmationDialog(
+            "Delete this cardio?",
+            isPresented: Binding(
+                get: { confirmingCardioDelete != nil },
+                set: { if !$0 { confirmingCardioDelete = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Cardio", role: .destructive) { deleteConfirmedCardio() }
+            Button("Cancel", role: .cancel) { confirmingCardioDelete = nil }
+        } message: {
+            if let segment = confirmingCardioDelete, !segment.isDeleted {
+                Text(HistoryDeleteCopy.cardio(segment))
+            }
+        }
+        .confirmationDialog(
             "Delete this set?",
             isPresented: Binding(
                 get: { confirmingSetDelete != nil },
@@ -239,7 +255,7 @@ struct WorkoutDetailView: View {
             .historyPageRow(top: 8, bottom: 6)
 
         if let heroSegment {
-            CardioHistoryHero(segment: heroSegment)
+            CardioHistoryHero(segment: heroSegment, delete: cardioDelete(heroSegment))
                 .historyPageRow(top: 14, bottom: 0)
         }
 
@@ -334,7 +350,7 @@ struct WorkoutDetailView: View {
         if !cardioCards.isEmpty {
             VStack(alignment: .leading, spacing: look.space.header) {
                 SectionHeader("Cardio")
-                ForEach(cardioCards) { CardioSummaryCard(segment: $0) }
+                ForEach(cardioCards) { CardioSummaryCard(segment: $0, delete: cardioDelete($0)) }
             }
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("historyCardioSection")
@@ -528,6 +544,21 @@ struct WorkoutDetailView: View {
         }
     }
 
+    /// Ticket 20: the "…" on a cardio card or the hero. The workout's only content goes through
+    /// Delete Workout (its confirmation names what goes) rather than leaving an empty workout.
+    private func cardioDelete(_ segment: CardioSegment) -> CardioDeleteAction {
+        let deletesWorkout = HistoryEditing.isOnlyContent(segment)
+        return CardioDeleteAction(deletesWorkout: deletesWorkout) {
+            if deletesWorkout { confirmingDelete = true } else { confirmingCardioDelete = segment }
+        }
+    }
+
+    private func deleteConfirmedCardio() {
+        defer { confirmingCardioDelete = nil }
+        guard let segment = confirmingCardioDelete, HistoryEditing.deleteCardio(segment, in: modelContext) else { return }
+        save()
+    }
+
     private func deleteConfirmedEntry() {
         defer { confirmingEntryDelete = nil }
         guard let entry = confirmingEntryDelete else { return }
@@ -568,6 +599,19 @@ enum HistoryDeleteCopy {
             text += " \(entry.snapshotExerciseName) has no other sets, so it is removed from this workout too."
         }
         return text
+    }
+
+    /// Ticket 20: names the activity and what goes with it.
+    static func cardio(_ segment: CardioSegment) -> String {
+        let seconds = Int(segment.activeDuration(at: segment.endedAt ?? segment.lastCheckpointAt))
+        var figures = Format.elapsed(seconds: seconds)
+        if let meters = segment.distanceMeters {
+            figures += ", \(CardioFormat.distance(meters, segment.unit)) \(segment.unit.rawValue)"
+        }
+        let extras = [segment.route.count > 1 ? "route" : nil, CardioReadout.splits(segment).count > 1 ? "splits" : nil]
+            .compactMap { $0 }
+        let with = extras.isEmpty ? "" : ", with its \(extras.joined(separator: " and "))"
+        return "\(segment.activity.name) (\(figures)) is removed permanently from this workout\(with). The rest of the workout stays."
     }
 }
 

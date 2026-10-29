@@ -11,26 +11,31 @@ import SwiftUI
 struct CardioSummaryCard: View {
     var segment: CardioSegment
     var showsRoute = true
+    /// History's "…" (ticket 20); nil on the receipt.
+    var delete: CardioDeleteAction?
     @Environment(\.look) private var look
     @State private var editingDistance = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
-                CardioActivityDisc(symbol: segment.activity.symbol, size: 40)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(segment.activity.name)
-                        .font(look.font.cardTitle)
-                        .foregroundStyle(look.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(segment.startedAt.formatted(date: .omitted, time: .shortened))
-                        .font(look.font.footnote)
-                        .foregroundStyle(look.textSecondary)
+                HStack(spacing: 12) {
+                    CardioActivityDisc(symbol: segment.activity.symbol, size: 40)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(segment.activity.name)
+                            .font(look.font.cardTitle)
+                            .foregroundStyle(look.textPrimary)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(segment.startedAt.formatted(date: .omitted, time: .shortened))
+                            .font(look.font.footnote)
+                            .foregroundStyle(look.textSecondary)
+                    }
                 }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("cardioSummary.\(segment.activityRawValue)")
                 Spacer(minLength: 0)
+                if let delete { CardioDeleteMenu(action: delete, activity: segment.activityRawValue) }
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("cardioSummary.\(segment.activityRawValue)")
             if showsRoute && segment.route.count > 1 {
                 CardioRouteMap(points: segment.route).frame(height: 190)
             }
@@ -171,6 +176,8 @@ private struct CardioFigures: View {
 /// pace or speed beside it. Where the distance came from is not shown (September 19).
 struct CardioHistoryHero: View {
     var segment: CardioSegment
+    /// History's "…" (ticket 20).
+    var delete: CardioDeleteAction?
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var editingDistance = false
@@ -184,12 +191,23 @@ struct CardioHistoryHero: View {
                 CardioRouteMap(points: segment.route, markerMeters: segment.unit.metersPerUnit,
                                totalMeters: segment.distanceMeters)
                     .frame(height: min(mapHeight, 320))
+                    .overlay(alignment: .topTrailing) {
+                        if let delete {
+                            CardioDeleteMenu(action: delete, activity: segment.activityRawValue)
+                                .background(.regularMaterial, in: Circle())
+                                .padding(10)
+                        }
+                    }
             } else {
                 HStack(spacing: 12) {
-                    CardioActivityDisc(symbol: segment.activity.symbol, size: 44)
-                    Text(segment.activity.name).font(look.font.cardTitle).foregroundStyle(look.textPrimary)
+                    HStack(spacing: 12) {
+                        CardioActivityDisc(symbol: segment.activity.symbol, size: 44)
+                        Text(segment.activity.name).font(look.font.cardTitle).foregroundStyle(look.textPrimary)
+                    }
+                    .accessibilityElement(children: .combine)
+                    Spacer(minLength: 0)
+                    if let delete { CardioDeleteMenu(action: delete, activity: segment.activityRawValue) }
                 }
-                .accessibilityElement(children: .combine)
             }
             let layout = typeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 14))
@@ -257,6 +275,31 @@ struct CardioHistoryHero: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label), \(value) \(unit ?? "")")
+    }
+}
+
+/// Ticket 20 (the user, 2026-10-18): History's way to delete one cardio activity. When it is the
+/// workout's only content the same menu offers Delete Workout instead — the caller decides.
+struct CardioDeleteAction {
+    var deletesWorkout: Bool
+    var perform: () -> Void
+}
+
+/// The "…" on a History cardio card or hero, like an exercise's.
+struct CardioDeleteMenu: View {
+    var action: CardioDeleteAction
+    var activity: String
+
+    var body: some View {
+        Menu {
+            Button(action.deletesWorkout ? "Delete Workout…" : "Delete Cardio…", systemImage: "trash",
+                   role: .destructive, action: action.perform)
+                .accessibilityIdentifier("deleteHistoryCardio")
+        } label: {
+            HistoryIconFace(symbol: "ellipsis")
+        }
+        .accessibilityLabel("Cardio options")
+        .accessibilityIdentifier("historyCardioOptions.\(activity)")
     }
 }
 

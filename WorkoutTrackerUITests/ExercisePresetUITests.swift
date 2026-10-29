@@ -199,9 +199,12 @@ final class ExercisePresetUITests: XCTestCase {
     }
 
     private func addByMachine() {
-        let add = app.buttons["addByMachine"]
+        let add = app.buttons["addExercise"]
         XCTAssertTrue(add.waitForExistence(timeout: 5))
         add.tap()
+        // Ticket 22: Add by Machine is the Add Exercise sheet's Machines tab.
+        XCTAssertTrue(app.buttons["Machines"].waitForExistence(timeout: 5))
+        app.buttons["Machines"].tap()
         let machine = anyElement("machineOption.\(machineLabel)")
         XCTAssertTrue(machine.waitForExistence(timeout: 5))
         machine.tap()

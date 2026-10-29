@@ -127,7 +127,13 @@ struct RootView: View {
         // Never in the guided tour's sample world (ticket 02): opening a workout drives HealthKit, the Live
         // Activity and notifications, which the tour must not touch. Its sample has no unfinished workout anyway.
         guard tour == nil, activeWorkout == nil else { return }
-        activeWorkout = try? WorkoutSession(context: modelContext).resumableWorkout()
+        // Ticket 21: a leftover card goes only when the store says no workout is live.
+        do {
+            activeWorkout = try WorkoutSession(context: modelContext).resumableWorkout()
+            workoutActivity.reconcileAtLaunch(hasLiveWorkout: activeWorkout != nil)
+        } catch {
+            workoutActivity.reconcileAtLaunch(hasLiveWorkout: nil)
+        }
     }
 
     // Lets scripted screenshot runs land on a specific screen:

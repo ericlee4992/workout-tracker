@@ -133,9 +133,12 @@ final class RedesignScreenshotUITests: XCTestCase {
         createGym()
         addMachine()
         startEmptyWorkout()
-        let addByMachine = app.buttons["addByMachine"]
+        let addByMachine = app.buttons["addExercise"]
         XCTAssertTrue(addByMachine.waitForExistence(timeout: 10))
         addByMachine.tap()
+        // Ticket 22: Add by Machine is the Add Exercise sheet's Machines tab.
+        XCTAssertTrue(app.buttons["Machines"].waitForExistence(timeout: 5))
+        app.buttons["Machines"].tap()
         let option = anyElement("machineOption.\(machineLabel)")
         XCTAssertTrue(option.waitForExistence(timeout: 5))
         option.tap()
@@ -161,9 +164,12 @@ final class RedesignScreenshotUITests: XCTestCase {
         createGym()
         addMachine()
         startEmptyWorkout()
-        let addByMachine = app.buttons["addByMachine"]
+        let addByMachine = app.buttons["addExercise"]
         XCTAssertTrue(addByMachine.waitForExistence(timeout: 10))
         addByMachine.tap()
+        // Ticket 22: Add by Machine is the Add Exercise sheet's Machines tab.
+        XCTAssertTrue(app.buttons["Machines"].waitForExistence(timeout: 5))
+        app.buttons["Machines"].tap()
         let option = anyElement("machineOption.\(machineLabel)")
         XCTAssertTrue(option.waitForExistence(timeout: 5))
         option.tap()
@@ -197,9 +203,12 @@ final class RedesignScreenshotUITests: XCTestCase {
         createGym()
         addMachine()
         startEmptyWorkout()
-        let addByMachine = app.buttons["addByMachine"]
+        let addByMachine = app.buttons["addExercise"]
         XCTAssertTrue(addByMachine.waitForExistence(timeout: 10))
         addByMachine.tap()
+        // Ticket 22: Add by Machine is the Add Exercise sheet's Machines tab.
+        XCTAssertTrue(app.buttons["Machines"].waitForExistence(timeout: 5))
+        app.buttons["Machines"].tap()
         let option = anyElement("machineOption.\(machineLabel)")
         XCTAssertTrue(option.waitForExistence(timeout: 5))
         option.tap()

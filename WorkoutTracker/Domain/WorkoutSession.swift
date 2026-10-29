@@ -882,17 +882,58 @@ struct WorkoutSession {
     private func upsertMemory(for entry: ExerciseEntry, at date: Date) {
         guard let gymID = entry.workout?.gym?.id,
               let exerciseID = entry.exercise?.id else { return }
-        let machineID = entry.machine?.id
+        upsertMemory(gymID: gymID, exerciseID: exerciseID, machineID: entry.machine?.id, at: date)
+    }
+
+    /// Ticket 23 (the user, 2026-10-23; D66): a machine picked for an exercise while building a template becomes the
+    /// user's machine for that exercise at the machine's gym — the memory a template start resolves from (D6), as
+    /// if they had logged a set on it. The caller saves.
+    func rememberMachine(_ machine: MachineInstance, for exercise: Exercise, at date: Date = .now) {
+        guard !machine.archived, let gym = machine.gym, !gym.archived else { return }
+        upsertMemory(gymID: gym.id, exerciseID: exercise.id, machineID: machine.id, at: date)
+    }
+
+    /// The template editor's picks, staged for the save that writes the template (codex-review-23 #3): returns what
+    /// puts every touched memory row back as it was — the caller runs it when that save fails, so a template that
+    /// never saved changes no gym's machine. The caller saves.
+    func stageMachineMemory(_ picks: [(machine: MachineInstance, exercise: Exercise)], at date: Date = .now) -> () -> Void {
+        var restores: [() -> Void] = []
+        for pick in picks {
+            guard !pick.machine.archived, let gym = pick.machine.gym, !gym.archived else { continue }
+            let change = upsertMemory(gymID: gym.id, exerciseID: pick.exercise.id, machineID: pick.machine.id, at: date)
+            switch change {
+            case .updated(let row, let machineID, let updatedAt):
+                restores.append { row.machineID = machineID; row.updatedAt = updatedAt }
+            case .inserted(let row):
+                restores.append { [context] in context.delete(row) }
+            }
+        }
+        // Newest first, so a row touched twice ends with its original values.
+        return { for restore in restores.reversed() { restore() } }
+    }
+
+    /// What an upsert changed: the canonical row's previous values, or the row it inserted.
+    private enum MemoryChange {
+        case updated(GymExerciseMemory, machineID: UUID?, updatedAt: Date)
+        case inserted(GymExerciseMemory)
+    }
+
+    @discardableResult
+    private func upsertMemory(gymID: UUID, exerciseID: UUID, machineID: UUID?, at date: Date) -> MemoryChange {
         let rows = (try? context.fetch(FetchDescriptor<GymExerciseMemory>(
             predicate: #Predicate { $0.gymID == gymID && $0.exerciseID == exerciseID }
         ))) ?? []
         if let canonical = rows.canonical {
+            let previous = MemoryChange.updated(canonical, machineID: canonical.machineID, updatedAt: canonical.updatedAt)
             canonical.machineID = machineID
             canonical.updatedAt = date
+            return previous
         } else {
-            context.insert(GymExerciseMemory(
+            let row = GymExerciseMemory(
                 gymID: gymID, exerciseID: exerciseID, machineID: machineID,
-                updatedAt: date))
+                updatedAt: date)
+            context.insert(row)
+            return .inserted(row)
         }
     }
 

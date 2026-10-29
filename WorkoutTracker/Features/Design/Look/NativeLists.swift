@@ -47,7 +47,9 @@ struct LookSectionLabel: View {
             if let family {
                 Capsule().fill(look.family(family)).frame(width: 4, height: 16)
             } else if let symbol {
-                Image(systemName: symbol).font(.system(.footnote, weight: .semibold)).foregroundStyle(look.textSecondary)
+                // `LookIcon`, not `Image(systemName:)`: it also draws the app's own glyphs (`LookIcon.machine`,
+                // codex-review-22 #1); an SF Symbol renders as before.
+                LookIcon(symbol, style: .footnote).foregroundStyle(look.textSecondary)
             }
             Text(title)
                 .font(.system(.subheadline, weight: .semibold))

@@ -5,17 +5,43 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-10-18):** **Exercise library + form video** on branch **`ericlee4992/beta-18-exercise-media`**
-  (this checkout): [spec](../work-record/exercise-media/spec.md). Done: 01 REA study of Lyfta (web + the user's iOS
-  screenshots); 02 licences (wger usable but thin; ExerciseDB V1 non-commercial, V2 blocked; YouTube rules; Gym visual
-  per-item licence covers iOS apps — direct purchase is enough when files are **bundled in the app**); proposals from
-  Claude + Codex and a competitor study (Lyfta/Hevy use Gym visual codes; others film trainers; Exercise Animatic a
-  second 3D vendor). Decided: **muscle maps = our own simple drawings**. **Now: ticket 03 — the user is buying the
-  10-item Gym visual pilot** (cart prepared in Chrome, $18.10, "Basic grey"); next, the user puts the files in
-  `~/WorkoutTracker-Media/gymvisual/` (outside the repo — never commit purchased media), Claude converts to looping
-  MP4, bundles at build time from that private folder, prototypes the exercise-page media + workout pop-up. Rule:
-  read a site's terms before automated access (Gym visual allowed it, per the user). **Bug fixes the user wants run in
-  a separate session/worktree off `main`.** Build 8 live (Developer + Friends); next build number **9**.
+- **Exercise media (resumed 2026-10-29)** on branch **`ericlee4992/beta-18-exercise-media`** (checkout
+  `…/Health App/public-beta`; `main` merged in 2026-10-29, so it includes build 9):
+  [spec](../work-record/exercise-media/spec.md). Done: 01 REA study of Lyfta (web + the user's iOS screenshots); 02
+  licences (wger usable but thin; ExerciseDB V1 non-commercial, V2 blocked; YouTube rules; Gym visual per-item licence
+  covers iOS apps — direct purchase is enough when files are **bundled in the app**); proposals from Claude + Codex and
+  a competitor study (Lyfta/Hevy use Gym visual codes; others film trainers; Exercise Animatic a second 3D vendor).
+  Decided: **muscle maps = our own simple drawings**. **Now: [ticket 03](../work-record/exercise-media/issues/03-gymvisual-pilot.md)
+  — the user buys the 10-item Gym visual pilot** (cart in Chrome, $18.10, "Basic grey"; the user enters payment);
+  next, the user puts the files in `~/WorkoutTracker-Media/gymvisual/` (outside the repo — never commit purchased
+  media), Claude converts to looping MP4, bundles at build time from that private folder, prototypes the exercise-page
+  media + workout pop-up. Rule: read a site's terms before automated access (Gym visual allowed it, per the user). Bug
+  fixes run in a separate session/worktree off `main`.
+- **In progress (2026-10-23): build 9 bug fixes** — checkout `…/Health App/beta-19-bug-fixes`, branch
+  `ericlee4992/beta-19-bug-fixes` (pushed; off `main` `1f0e040`; nothing merged). Tickets, each Codex-reviewed:
+  [19 Add Chart by body area](../work-record/public-beta/issues/19-add-chart-body-areas.md) **clear** ·
+  [20 delete one cardio](../work-record/public-beta/issues/20-delete-cardio-in-history.md) **clear** ·
+  [21 Live Activity after cancel](../work-record/public-beta/issues/21-live-activity-after-cancel.md) **clear** (phone
+  check with build 9) · [22 one Add Exercise (Exercises | Machines)](../work-record/public-beta/issues/22-one-add-exercise-button.md)
+  **clear** (D65) · [23 template Exercises | Machines + Add Machine/Scan](../work-record/public-beta/issues/23-template-machines-tab.md)
+  **clear** (D66), 2026-10-24. All five clear; **merged** (`main` `daa3cc6`, the user's go-ahead
+  2026-10-24) and **build 9 uploaded 2026-10-24 02:25 EDT** from `main` `5ab7a16` (note approved; no What's New; no Gate
+  S). **Build 9 added to Developer and Friends by the user (2026-10-29)** (note in
+  [ticket 23](../work-record/public-beta/issues/23-template-machines-tab.md#build-9-tickets-1923--record)). Open: the
+  user's phone check of build 9 (incl. ticket 21's Lock Screen card after a cancel); delete `ericlee4992/beta-22-wip`
+  and this session's scratch checkouts (ask first).
+  - Codex: one Orca terminal "Codex review 19-22" (`term_941e7732-91a5-4b1b-8749-651c3cf01354`); its **weekly limit is
+    under 5%** (2026-10-23) — if it runs out, ask the user. Kept the current model when it offered gpt-6-luna.
+  - Scratch: `ericlee4992/beta-22-wip` (pushed) holds the pre-merge history of 22/23 — delete after the merge (ask);
+    its checkout `…/scratchpad/wt-22` is temporary.
+  - Ticket 18 is reserved for the exercise-media session (`…/public-beta`, `ericlee4992/beta-18-exercise-media`).
+- **Resume here (2026-10-18):** **Build 8 is live** (`main` **`7c81e28`**: tickets 16 Progress tab + 14 What's New + 17
+  cardio-only pause clock, D64) — **Developer** and **Friends** both show it **Testing**; the phone has **0.1.0 (8)**
+  and What's New appeared (the user). Friends: the approved note, testers notified; 3 testers (2 anonymous public-link
+  on build 6, 2 of 20 limit). Build 7 was never given to testers. Build 9 uploaded 2026-10-24 (tickets 19–23); next build number **10**. Open:
+  the Live Activity's cardio-only clock not checked on a device; ExerciseProgressView's metric-pill VoiceOver label
+  (ticket 16). `main` was fast-forwarded to the branch's notes (the user, 2026-10-18), so `main` and
+  `ericlee4992/beta-17-cardio-pause` are the same; start the next ticket on a new branch off `main`. [Ticket 17](../work-record/public-beta/issues/17-cardio-pause-clock.md).
 - **Session 2026-10-17/18 summary:** done — 08 closed (tester feedback waived as a gate), 13 done, 15 feedback triage
   live (migration 0006; export `~/WorkoutTracker-Backups/server/2026-10-17-pre-15-migration` delete by 2026-11-16),
   16 Progress tab + 14 What's New merged (Codex clear; full unit 1041 pass; Progress 7/7, What's New 5/5, Settings+Tour
@@ -153,6 +179,7 @@ domain of the user's own, which also allows Google branding verification.
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
 | 16 Progress tab | **Done** — build 8 (build 7 skipped for testers). |
 | 17 cardio pause clock | **Done** — build 8 (Developer + Friends, 2026-10-18). |
+| 19–23 build 9 bug fixes | **Done** — build 9 in Developer and Friends (2026-10-29); phone check open. |
 
 ## Working conventions (in force)
 

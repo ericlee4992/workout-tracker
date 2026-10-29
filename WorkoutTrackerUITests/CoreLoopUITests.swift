@@ -125,16 +125,18 @@ final class CoreLoopUITests: XCTestCase {
         app.buttons["startEmptyWorkout"].tap()
         XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
 
-        // D1: with no gym the machine-first path stays visible and explains
-        // itself instead of silently disappearing.
-        let addByMachine = app.buttons["addByMachine"]
+        // D1, moved by public beta ticket 22: with no gym the machine-first path stays
+        // visible — Add Exercise's Machines tab — and explains itself instead of
+        // silently disappearing.
+        XCTAssertFalse(app.buttons["addByMachine"].exists, "one Add Exercise button (ticket 22)")
+        app.buttons["addExercise"].tap()
+        let machines = app.buttons["Machines"]
+        XCTAssertTrue(machines.waitForExistence(timeout: 5), "the Machines tab stays without a gym")
+        machines.tap()
         XCTAssertTrue(
-            addByMachine.waitForExistence(timeout: 5),
-            "Add by Machine should stay visible without a gym")
-        XCTAssertFalse(addByMachine.isEnabled, "…but disabled")
-        XCTAssertTrue(
-            anyElement("addByMachineUnavailable").exists,
+            anyElement("addByMachineUnavailable").waitForExistence(timeout: 5),
             "…with a short explanation of why")
+        app.buttons["Cancel"].firstMatch.tap()
 
         app.buttons["finishWorkout"].tap()
         let summary = app.staticTexts["finishedSummary"]
@@ -558,11 +560,14 @@ final class CoreLoopUITests: XCTestCase {
     }
 
     private func addByMachine() {
-        let addByMachine = app.buttons["addByMachine"]
+        let addByMachine = app.buttons["addExercise"]
         XCTAssertTrue(
             addByMachine.waitForExistence(timeout: 5),
             "The active workout should offer the machine-first path at a gym")
         addByMachine.tap()
+        // Ticket 22: Add by Machine is the Add Exercise sheet's Machines tab.
+        XCTAssertTrue(app.buttons["Machines"].waitForExistence(timeout: 5))
+        app.buttons["Machines"].tap()
 
         let machine = anyElement("machineOption.\(machineLabel)")
         XCTAssertTrue(machine.waitForExistence(timeout: 5))

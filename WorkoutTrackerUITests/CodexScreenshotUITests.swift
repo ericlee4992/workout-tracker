@@ -166,11 +166,14 @@ final class CodexScreenshotUITests: XCTestCase {
     }
 
     private func addByMachine() {
-        let addByMachine = app.buttons["addByMachine"]
+        let addByMachine = app.buttons["addExercise"]
         XCTAssertTrue(
             addByMachine.waitForExistence(timeout: 5),
             "The active workout should offer the machine-first path at a gym")
         addByMachine.tap()
+        // Ticket 22: Add by Machine is the Add Exercise sheet's Machines tab.
+        XCTAssertTrue(app.buttons["Machines"].waitForExistence(timeout: 5))
+        app.buttons["Machines"].tap()
 
         let machine = anyElement("machineOption.\(machineLabel)")
         XCTAssertTrue(machine.waitForExistence(timeout: 5))

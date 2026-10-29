@@ -12,6 +12,8 @@ struct AddByMachineSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     var workout: Workout
+    /// The live workout's Exercises | Machines switch (ticket 22): this sheet is its Machines tab.
+    var mode: Binding<Int>? = nil
     @State private var chooser: ExerciseChoice?
     @State private var showingAddMachine = false
     /// Deleting a machine mid-workout (2026-09-10): the same swipe, menu and
@@ -36,6 +38,18 @@ struct AddByMachineSheet: View {
     var body: some View {
         NavigationStack {
             List {
+                if let mode { AddExerciseModePicker(selection: mode) }
+                if gym == nil {
+                    // Milestone 2 ticket 17's D1, moved here by ticket 22: no gym, no machines — say why.
+                    Text("Pick a gym to log by machine")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                        .accessibilityIdentifier("addByMachineUnavailable")
+                } else {
                 Section {
                     ForEach(machines) { machine in
                         Button {
@@ -64,13 +78,15 @@ struct AddByMachineSheet: View {
                     .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
                 } header: {
                     if let gym {
-                        Text("Machines at \(gym.name)")
+                        // Ticket 22: the same section label as the Exercises tab beside it.
+                        LookSectionLabel(title: "Machines at \(gym.name)", symbol: LookIcon.machine)
                     }
                 }
                 .lookListRows()
+                }
             }
             .lookGroupedList()
-            .navigationTitle("Add by Machine")
+            .navigationTitle(mode == nil ? "Add by Machine" : "Add Exercise")
             .navigationBarTitleDisplayMode(.inline)
             .deleteMachineConfirmation($deletingMachine) { machine in
                 do { try EquipmentLifecycle(context: modelContext).archive(machine) }
@@ -135,7 +151,7 @@ struct AddByMachineSheet: View {
 /// Second step of the machine-first path: the exercise list for a picked
 /// machine — restricted to the model's linked exercises, or the full
 /// searchable catalog when the machine has no model.
-private struct MachineExerciseList: View {
+struct MachineExerciseList: View {
     var choice: AddByMachineSheet.ExerciseChoice
     var onSelect: (Exercise) -> Void
     @Query(sort: \Exercise.name) private var allExercises: [Exercise]

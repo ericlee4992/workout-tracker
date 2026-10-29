@@ -33,22 +33,25 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
   the phone and match it against a seeded catalog of 1,877 equipment models from 23
   manufacturers.
 - **Fast logging.** Set rows arrive prefilled from your last session on that machine;
-  confirming an untouched row is one tap. Weights keep the unit you entered, kg or lb, and
+  confirming an untouched row is one tap. Add Exercise picks by name or by the gym's machines (a
+  machine fills in its exercise). Weights keep the unit you entered, kg or lb, and
   are never silently converted. Supersets, presets (grips, stances), and the workout with its
   rest timer on the Lock Screen.
 - **Cardio.** Indoor machines and outdoor walks, runs and rides with a GPS route — on their
   own or in the same workout as lifting.
 - **Templates.** Save a workout as a plan and start it at any gym; each exercise resolves to
-  the machine you last used there.
+  the machine you last used or picked for it there (a template's Add Exercise can pick, add or scan a machine).
 - **Heart rate and Apple Health.** Live bpm from AirPods Pro 3 or a paired heart-rate monitor,
   zones, calories and a heart-rate rest timer; workouts are saved to Apple Health. (An Apple
   Watch companion is written but not yet built or shipped.)
-- **History.** A calendar, per-session detail with editing, records, progress charts per
-  exercise and variation, and export of your workouts as JSON (the fullest record, with
-  heart-rate series and routes) or CSV (a table of sets and cardio).
+- **History.** A calendar, per-session detail with editing (down to removing one set, exercise or
+  cardio activity), records, progress charts per exercise and variation, and export of your
+  workouts as JSON (the fullest record, with heart-rate series and routes) or CSV (a table of
+  sets and cardio).
 - **Progress.** A tab of the charts you pin — lifts per machine or weight (best set, volume,
   1RM) and cardio activities (distance, pace or speed, time) — each with its latest value and
-  the change since your first session; tap one for the full chart, its bests and sessions.
+  the change since your first session; tap one for the full chart, its bests and sessions. Add Chart
+  lists the exercises you've logged by body area.
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
   templates from your training profile. Each AI feature asks first and has a daily limit.

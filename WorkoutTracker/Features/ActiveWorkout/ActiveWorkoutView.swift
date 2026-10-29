@@ -25,7 +25,6 @@ struct ActiveWorkoutView: View {
     @State private var showExercisePicker = false
     @State private var showCardioPicker = false
     @State private var cardioFocus = false
-    @State private var showMachinePicker = false
     @State private var confirmingCancel = false
     /// Naming the workout mid-session (milestone 9, ticket 02).
     @State private var renamingWorkout = false
@@ -92,11 +91,6 @@ struct ActiveWorkoutView: View {
 
     private var entries: [ExerciseEntry] {
         workout.isDeleted ? [] : WorkoutSession.orderedEntries(of: workout)
-    }
-
-    /// Whether the machine-first path has anything to offer (D1).
-    private var hasGym: Bool {
-        !workout.isDeleted && workout.gym != nil
     }
 
     @Environment(\.look) private var appLook
@@ -193,15 +187,10 @@ struct ActiveWorkoutView: View {
                 }
 
                 LiveAddBlock(
-                    hasGym: hasGym, isResting: restEnd != nil, cardioFocus: cardioFocus,
+                    isResting: restEnd != nil, cardioFocus: cardioFocus,
                     addExercise: {
                         cardioFocus = false
                         showExercisePicker = true
-                    },
-                    addByMachine: {
-                        // Machine-first path (D7).
-                        cardioFocus = false
-                        showMachinePicker = true
                     },
                     addCardio: { showCardioPicker = true })
                 // The list now ends here (Discard moved to the toolbar): the end spacing it had.
@@ -376,13 +365,10 @@ struct ActiveWorkoutView: View {
                     Button("OK", role: .cancel) { heartRateCoordinator.cardio.errorMessage = nil }
             } message: { Text(heartRateCoordinator.cardio.errorMessage ?? "") }
             .sheet(isPresented: $showExercisePicker) {
-                ExercisePickerSheet(gym: workout.isDeleted ? nil : workout.gym) { exercise in
+                // Ticket 22: Exercises | Machines (machine-first, D7) in one sheet.
+                AddExerciseSheet(workout: workout) { exercise in
                     addEntry(for: exercise)
                 }
-            }
-            .sheet(isPresented: $showMachinePicker) {
-                AddByMachineSheet(workout: workout)
-                    .presentationDetents([.medium, .large])
             }
             .sheet(isPresented: $showMaxHeartRateSheet) {
                 // Re-resolve on dismiss. `resolvedMaxHeartRate()` is otherwise
@@ -733,7 +719,9 @@ struct ActiveWorkoutView: View {
     /// still shows a correct one — the trap that cost four attempts on the rest
     /// alarm does not apply here as long as nothing tries to tick it.
     private func pushActivityState() {
-        guard !workout.isDeleted, workout.finishedAt == nil else { return }
+        // Ticket 21: once a cancel's deletion is saved, SwiftData reports the workout as not deleted
+        // and not finished — only its context is gone. The controller also refuses an ended workout.
+        guard !workout.isDeleted, workout.modelContext != nil, workout.finishedAt == nil else { return }
         workoutActivity.show(
             workoutID: workout.id,
             startedAt: workout.startedAt,
@@ -828,6 +816,7 @@ struct ActiveWorkoutView: View {
             stopHeartRate()
             outcome = try session.finish(workout)
         } catch {
+            reopenActivity()
             assertionFailure("Failed to finish workout: \(error)")
         }
         reportFinished(outcome)
@@ -844,6 +833,7 @@ struct ActiveWorkoutView: View {
                 outcome = try session.finish(workout)
             }
         } catch {
+            reopenActivity()
             assertionFailure("Failed to finish templated workout: \(error)")
         }
         driftTemplate = nil
@@ -868,9 +858,17 @@ struct ActiveWorkoutView: View {
         do {
             try session.cancel(workout)
         } catch {
+            reopenActivity()
             assertionFailure("Failed to cancel workout: \(error)")
         }
         dismiss()
+    }
+
+    /// Codex review 21 #1: the card was ended before a finish or cancel that then failed, so the
+    /// workout is still live — let its card come back when the workout is next shown.
+    private func reopenActivity() {
+        guard !workout.isDeleted, workout.modelContext != nil, workout.finishedAt == nil else { return }
+        workoutActivity.reopen(workoutID: workout.id)
     }
 
     private func addEntry(for exercise: Exercise) {
