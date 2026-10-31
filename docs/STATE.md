@@ -7,7 +7,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 - **Agent skills (2026-10-31):** `swiftui-pro` and `swiftdata-pro` (Paul Hudson, MIT) vendored on branch
   `ericlee4992/swift-pro-skills` (checkout `…/Health App/swift-pro-skills`, off `main` `57a5764`); project
-  overrides in AGENTS, pins in DEVELOPMENT. **Codex review clear** (round 2); next: merge on the user's go-ahead.
+  overrides in AGENTS, pins in DEVELOPMENT. **Codex clear; merged to `main` `ac7d6fc`** (2026-10-31); skills load in new sessions. Optional next: a read-only swiftdata-pro/swiftui-pro check of the existing app, findings into a ticket (not started).
   [Ticket](../work-record/agent-skills/issues/01-vendor-swift-skills.md).
 - **In progress (2026-10-23): build 9 bug fixes** — checkout `…/Health App/beta-19-bug-fixes`, branch
   `ericlee4992/beta-19-bug-fixes` (pushed; off `main` `1f0e040`; nothing merged). Tickets, each Codex-reviewed:

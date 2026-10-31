@@ -1,7 +1,7 @@
 # 01 — Add the SwiftUI Pro and SwiftData Pro agent skills
 
 Type: tooling (agent instructions only; no app code)
-Status: **review clear** (Codex round 2, 2026-10-31) — merge to `main` after the user's go-ahead
+Status: **done — merged** to `main` `ac7d6fc` (2026-10-31, the user's go-ahead)
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/swift-pro-skills` (off `main` `57a5764`), checkout `…/Health App/swift-pro-skills`.
 
@@ -18,7 +18,7 @@ Branch: `ericlee4992/swift-pro-skills` (off `main` `57a5764`), checkout `…/Hea
 - [x] AGENTS overrides for the conflicts below, in Task-specific guides.
 - [x] DEVELOPMENT records the source, pinned commits and the update procedure.
 - [x] Codex review clear (round 2).
-- [ ] Merged to `main` (the user's go-ahead).
+- [x] Merged to `main` `ac7d6fc` (the user's go-ahead, 2026-10-31).
 
 ## Conflicts found and how AGENTS resolves them
 
