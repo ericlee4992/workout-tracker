@@ -1,7 +1,7 @@
 # 01 — Add the SwiftUI Pro and SwiftData Pro agent skills
 
 Type: tooling (agent instructions only; no app code)
-Status: **implemented, awaiting Codex review** (2026-10-31)
+Status: **Codex round 1: 1 finding (P2), fixed; round 2 pending** (2026-10-31)
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/swift-pro-skills` (off `main` `57a5764`), checkout `…/Health App/swift-pro-skills`.
 
@@ -26,7 +26,7 @@ Branch: `ericlee4992/swift-pro-skills` (off `main` `57a5764`), checkout `…/Hea
 |---|---|---|
 | SwiftUI Pro: "Target Swift 6.4"; strict concurrency; "never use GCD". SwiftData Pro: "Target Swift 6.2" | `SWIFT_VERSION = 5.0` | Keep Swift 5 mode and existing concurrency style |
 | SwiftUI Pro `resizability.md`: iPhone Duo, iPad windows, size classes | iPhone portrait (AGENTS) | Only when a ticket asks |
-| SwiftData Pro `core-rules.md`: explicit delete rules, "most commonly `.cascade`" | Frozen history; `Models.swift` uses `.nullify` toward `ExerciseEntry`/`Workout` | History-preserving delete rules per DECISIONS |
+| SwiftData Pro `core-rules.md`: explicit delete rules, "most commonly `.cascade`" | Frozen history; `Models.swift` uses `.nullify` toward `ExerciseEntry`/`Workout` | Keep each relationship's existing rule: catalog/context links into history `.nullify`; owned rows `.cascade` (D47) |
 | SwiftData Pro: "nearly always … a specific migration schema" | DEVELOPMENT migration/backup checks | Schema changes follow DEVELOPMENT |
 | SwiftUI Pro `design.md`: shared constants, avoid `.caption`, hard-coded padding | `ios-design` skill | `ios-design` decides fonts, spacing, colour |
 | SwiftUI Pro `views.md`: one type per file, extract every `some View` helper | Targeted diffs per ticket | Report as separate findings, outside the ticket's diff |
@@ -53,3 +53,11 @@ Docs/agent-instructions only → DEVELOPMENT verification scope: links and consi
 Results recorded under Comments.
 
 ## Comments
+
+### Codex round 1 (2026-10-31) — [report](../codex-review-01.md)
+
+One P2: the AGENTS delete-rule override ("`.nullify` toward logged workouts and sets") was too broad — `Workout.entries`,
+`ExerciseEntry.sets` and the other owned rows deliberately `.cascade` (D47). Fixed: AGENTS now says to keep each
+relationship's rule in `Domain/Models.swift`, naming the `.nullify` catalog/context links and the `.cascade` owned rows
+(checked against every `deleteRule` in `Models.swift`). Codex otherwise confirmed: 27/27 vendored files byte-identical to
+the pinned upstream commits, no scripts/hooks, symlinks/links/anchors resolve, `git diff --check` exit 0.

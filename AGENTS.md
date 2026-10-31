@@ -91,8 +91,10 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 - **SwiftUI or SwiftData code, writing or reviewing:** the vendored `swiftui-pro` and
   `swiftdata-pro` skills apply; these project rules override them. Keep Swift 5 language mode
   and the existing concurrency style. Layout targets iPhone portrait; apply iPad, iPhone Duo and
-  resizability advice only when a ticket asks. Delete rules stay history-preserving per
-  DECISIONS (`.nullify` toward logged workouts and sets). Schema changes follow DEVELOPMENT's
+  resizability advice only when a ticket asks. Keep each relationship's delete rule in
+  `Domain/Models.swift`: catalog and context links into history (exercise, preset, machine,
+  gym) `.nullify`, so history survives; owned rows (workout → entries, cardio, sensor samples;
+  entry → sets; template → items; exercise → presets) `.cascade`. Schema changes follow DEVELOPMENT's
   migration and backup steps. `ios-design` decides fonts, spacing and colour. Report
   modernisation and file splits as separate findings, outside the ticket's diff. Pinned source
   and update steps: [DEVELOPMENT](docs/DEVELOPMENT.md#vendored-agent-skills).
