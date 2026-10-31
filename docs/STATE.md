@@ -5,6 +5,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
+- **Agent skills (2026-10-31):** `swiftui-pro` and `swiftdata-pro` (Paul Hudson, MIT) vendored on branch
+  `ericlee4992/swift-pro-skills` (checkout `…/Health App/swift-pro-skills`, off `main` `57a5764`); project
+  overrides in AGENTS, pins in DEVELOPMENT. Next: Codex review, then merge on the user's go-ahead.
+  [Ticket](../work-record/agent-skills/issues/01-vendor-swift-skills.md).
 - **In progress (2026-10-23): build 9 bug fixes** — checkout `…/Health App/beta-19-bug-fixes`, branch
   `ericlee4992/beta-19-bug-fixes` (pushed; off `main` `1f0e040`; nothing merged). Tickets, each Codex-reviewed:
   [19 Add Chart by body area](../work-record/public-beta/issues/19-add-chart-body-areas.md) **clear** ·

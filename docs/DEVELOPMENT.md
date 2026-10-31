@@ -377,6 +377,23 @@ the configured window. Restart Codex to load changed settings; check the footer 
 These settings do not replace the checkpoint workflow in AGENTS. Model limits can change;
 inspect the current model metadata before changing the window or switching models.
 
+## Vendored agent skills
+
+Two third-party skills are copied into `.claude/skills/` unchanged, with their MIT licence.
+`.agents/skills/` symlinks to them, so Claude and Codex read the same files. Project overrides
+live in AGENTS (Task-specific guides), not in the skill files, so an update stays a clean copy.
+
+| Skill | Source | Pinned commit | Upstream date |
+|---|---|---|---|
+| `swiftui-pro` | [twostraws/SwiftUI-Agent-Skill](https://github.com/twostraws/SwiftUI-Agent-Skill) | `f2920b63995263f57b3e198674e89a602efba6d2` | 2026-10-26 |
+| `swiftdata-pro` | [twostraws/SwiftData-Agent-Skill](https://github.com/twostraws/SwiftData-Agent-Skill) | `8051f177a0076e7fd45bdf4ee687b070ba58fdc6` | 2026-10-19 |
+
+Added 2026-10-31 after reading every file: plain Markdown, an icon and Codex `agents/openai.yaml`;
+no scripts or hooks. To update, clone the source, read its diff since the pinned commit, replace
+the folder contents (keep `LICENSE`), recheck the AGENTS overrides against the new text, and
+update this table. Rejected alternatives and why are in
+[the skills ticket](../work-record/agent-skills/issues/01-vendor-swift-skills.md).
+
 ## Graft code navigation
 
 Graft is development tooling, separate from the iPhone app. After the AGENTS startup reads,
