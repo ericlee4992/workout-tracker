@@ -1,7 +1,7 @@
 # 01 — Add the SwiftUI Pro and SwiftData Pro agent skills
 
 Type: tooling (agent instructions only; no app code)
-Status: **Codex round 1: 1 finding (P2), fixed; round 2 pending** (2026-10-31)
+Status: **review clear** (Codex round 2, 2026-10-31) — merge to `main` after the user's go-ahead
 Implementer: Claude; Reviewer: Codex.
 Branch: `ericlee4992/swift-pro-skills` (off `main` `57a5764`), checkout `…/Health App/swift-pro-skills`.
 
@@ -17,7 +17,7 @@ Branch: `ericlee4992/swift-pro-skills` (off `main` `57a5764`), checkout `…/Hea
 - [x] `.agents/skills/` symlinks to both, like `ios-design`, so Codex reads the same files.
 - [x] AGENTS overrides for the conflicts below, in Task-specific guides.
 - [x] DEVELOPMENT records the source, pinned commits and the update procedure.
-- [ ] Codex review clear.
+- [x] Codex review clear (round 2).
 - [ ] Merged to `main` (the user's go-ahead).
 
 ## Conflicts found and how AGENTS resolves them
@@ -61,3 +61,8 @@ One P2: the AGENTS delete-rule override ("`.nullify` toward logged workouts and 
 relationship's rule in `Domain/Models.swift`, naming the `.nullify` catalog/context links and the `.cascade` owned rows
 (checked against every `deleteRule` in `Models.swift`). Codex otherwise confirmed: 27/27 vendored files byte-identical to
 the pinned upstream commits, no scripts/hooks, symlinks/links/anchors resolve, `git diff --check` exit 0.
+
+### Codex round 2 (2026-10-31) — [report](../codex-review-01b.md)
+
+**Verdict: clear.** Checked the new wording against all 13 `deleteRule`s in `Models.swift` and D47; P2 resolved, no
+regressions, links/anchors/symlinks resolve, `git diff --check d18ae20..561dcba` exit 0. Next: merge on the user's go-ahead.
