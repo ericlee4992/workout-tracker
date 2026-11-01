@@ -5,8 +5,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
+- **Agent skills (2026-10-31):** `swiftui-pro` and `swiftdata-pro` (Paul Hudson, MIT) vendored on branch
+  `ericlee4992/swift-pro-skills` (off `main` `57a5764`; its checkout was removed 2026-11-01); project
+  overrides in AGENTS, pins in DEVELOPMENT. **Codex clear; merged to `main` `ac7d6fc`** (2026-10-31); in this branch since 2026-11-01; skills load in new sessions on a branch that contains them. Optional next: a read-only swiftdata-pro/swiftui-pro check of the existing app, findings into a ticket (not started).
+  [Ticket](../work-record/agent-skills/issues/01-vendor-swift-skills.md).
 - **Exercise media (resumed 2026-10-29)** on branch **`ericlee4992/beta-18-exercise-media`** (checkout
-  `…/Health App/public-beta`; `main` merged in 2026-10-29, so it includes build 9):
+  `…/Health App/public-beta`; `main` merged in 2026-10-29 (build 9) and 2026-11-01 (agent skills)):
   [spec](../work-record/exercise-media/spec.md). Done: 01 REA study of Lyfta (web + the user's iOS screenshots); 02
   licences (wger usable but thin; ExerciseDB V1 non-commercial, V2 blocked; YouTube rules; Gym visual per-item licence
   covers iOS apps — direct purchase is enough when files are **bundled in the app**); proposals from Claude + Codex and

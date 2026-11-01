@@ -88,6 +88,16 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
   [.agents/skills/ios-design/SKILL.md](.agents/skills/ios-design/SKILL.md), including its
   `REFERENCE.md` and `REVIEW.md` as directed. This path links to the single maintained skill in
   `.claude/skills/ios-design/`. Show real default/AccessibilityL captures for UI decisions.
+- **SwiftUI or SwiftData code, writing or reviewing:** the vendored `swiftui-pro` and
+  `swiftdata-pro` skills apply; these project rules override them. Keep Swift 5 language mode
+  and the existing concurrency style. Layout targets iPhone portrait; apply iPad, iPhone Duo and
+  resizability advice only when a ticket asks. Keep each relationship's delete rule in
+  `Domain/Models.swift`: catalog and context links into history (exercise, preset, machine,
+  gym) `.nullify`, so history survives; owned rows (workout → entries, cardio, sensor samples;
+  entry → sets; template → items; exercise → presets) `.cascade`. Schema changes follow DEVELOPMENT's
+  migration and backup steps. `ios-design` decides fonts, spacing and colour. Report
+  modernisation and file splits as separate findings, outside the ticket's diff. Pinned source
+  and update steps: [DEVELOPMENT](docs/DEVELOPMENT.md#vendored-agent-skills).
 - **Ticket creation or updates:** [issue tracker](docs/agents/issue-tracker.md);
   **triage:** [triage labels](docs/agents/triage-labels.md).
 - **Domain terminology or architectural decisions:** [domain guide](docs/agents/domain.md);
