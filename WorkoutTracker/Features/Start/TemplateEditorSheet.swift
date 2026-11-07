@@ -528,7 +528,7 @@ struct TemplateEditorSheet: View {
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text(exercise(value.exerciseID)?.name ?? "Missing exercise")
-                            .font(Font.system(.headline, weight: .heavy).width(.expanded))
+                            .font(Font.system(.headline, weight: .semibold))
                             .foregroundStyle(look.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
                         if let letter {
@@ -789,7 +789,7 @@ struct TemplateEditorSheet: View {
                         IconDisc(symbol: value.activity.symbol, size: 38, context: .onSurface)
                             .background { Circle().fill(look.surfaceRaised) }
                         Text(value.activity.name)
-                            .font(Font.system(.headline, weight: .heavy).width(.expanded))
+                            .font(Font.system(.headline, weight: .semibold))
                             .foregroundStyle(look.textPrimary)
                             .fixedSize(horizontal: false, vertical: true)
                         Image(systemName: "chevron.up.chevron.down")

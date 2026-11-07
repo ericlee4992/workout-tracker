@@ -8,7 +8,7 @@ struct MuscleMapAssetTests {
     @Test @MainActor func everyMuscleFamilyHasBothMapLayers() throws {
         let bundle = Bundle(for: AppPreferences.self)
         for family in MuscleFamily.allCases {
-            for look in [Look.floodlight, Look.floodlightLight] {
+            for look in [Look.softDark, Look.softLight] {
                 #expect(look.familyColors[family] != nil, "No \(family) colour")
             }
             for name in [family.bodyAsset, family.muscleAsset] {

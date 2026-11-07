@@ -242,7 +242,7 @@ struct ZoneLegend: View {
                     .minimumScaleFactor(0.8)
             }
             Text(zoneTime(item.seconds))
-                .font(Font.system(.subheadline, weight: .heavy).width(.expanded).monospacedDigit())
+                .font(Font.system(.subheadline, weight: .semibold).monospacedDigit())
                 .foregroundStyle(primary)
         }
         .accessibilityElement(children: .combine)
@@ -390,7 +390,7 @@ struct ComparisonBars: View {
         .frame(height: thickness)
         let figure = HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(LookFormat.groupedDecimal(value))
-                .font(look.id == .floodlight ? Font.system(.subheadline, weight: .heavy).width(.expanded).monospacedDigit()
+                .font(look.id == .floodlight ? Font.system(.subheadline, weight: .semibold).monospacedDigit()
                       : .system(.subheadline, weight: .bold).monospacedDigit())
                 .foregroundStyle(emphasized ? look.textPrimary : look.textSecondary)
             Text(unit).font(.system(.caption, weight: .semibold)).foregroundStyle(look.textSecondary)

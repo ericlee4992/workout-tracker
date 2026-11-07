@@ -191,7 +191,7 @@ struct SettingsAccountRow: View {
                     Circle().fill(look.surfaceRaised)
                     if let profile, !Self.initials(profile.displayName).isEmpty {
                         Text(Self.initials(profile.displayName))
-                            .font(.system(.headline, design: .rounded, weight: .bold))
+                            .font(.system(.headline, weight: .bold))
                             .foregroundStyle(look.textPrimary)
                     } else {
                         Image(systemName: "person.fill")

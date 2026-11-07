@@ -198,7 +198,7 @@ struct FamilyTally: View {
             MuscleMap(family: family, lit: isLit, size: size ?? 56, appearDelay: appearDelay)
             if showsCount { countLayout {
                 Text("\(sets)")
-                    .font(Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit())
+                    .font(Font.system(.headline, weight: .semibold).monospacedDigit())
                     .foregroundStyle(isLit ? look.textPrimary : look.textTertiary)
                 Text(setsWord).font(look.font.caption).foregroundStyle(look.textSecondary)
             }

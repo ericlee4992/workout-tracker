@@ -163,7 +163,7 @@ struct MachineModelCorrectionSheet: View {
 
     private func modelLine(_ name: String?, struck: Bool, emphasised: Bool = false) -> some View {
         Text(name ?? "None")
-            .font(emphasised ? .system(.title3, weight: .heavy) : .system(.body, weight: .semibold))
+            .font(emphasised ? .system(.title3, weight: .semibold) : .system(.body, weight: .semibold))
             .foregroundStyle(struck ? look.textTertiary : look.textPrimary)
             .strikethrough(struck, color: look.textTertiary)
             .fixedSize(horizontal: false, vertical: true)

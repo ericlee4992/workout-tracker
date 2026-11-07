@@ -387,7 +387,7 @@ struct SetRowView: View {
     private func field(_ value: String?, unit: String?, spoken: String, action: @escaping () -> Void,
                        unitAction: (() -> Void)?) -> some View {
         let dim = kind == .warmup && done && look.id == .floodlight
-        let valueFont = look.id == .floodlight ? Font.system(.title3, weight: .heavy).width(.expanded).monospacedDigit() : look.font.fieldNumber
+        let valueFont = look.id == .floodlight ? Font.system(.title3, weight: .semibold).monospacedDigit() : look.font.fieldNumber
         return HStack(alignment: .firstTextBaseline, spacing: 3) {
             Text(value ?? "—")
                 .font(valueFont)
@@ -554,12 +554,12 @@ struct SetMarker: View {
         }
     }
 
-    private var numberFont: Font { Font.system(.subheadline, weight: .heavy).width(.expanded).monospacedDigit() }
+    private var numberFont: Font { Font.system(.subheadline, weight: .semibold).monospacedDigit() }
 
     private var floodlight: some View {
         let shape = RoundedRectangle(cornerRadius: look.radius.marker, style: .continuous)
         return Text(label)
-            .font(kind == .warmup ? Font.system(.footnote, weight: .heavy).width(.expanded) : numberFont)
+            .font(kind == .warmup ? Font.system(.footnote, weight: .semibold) : numberFont)
             .foregroundStyle(kind == .warmup ? look.textSecondary : (done ? look.onDone : look.textPrimary))
             .lineLimit(1)
             .minimumScaleFactor(0.6)
@@ -893,6 +893,18 @@ struct RestBar: View {
     }
     private var skip: some View {
         Button("Skip", action: onSkip).buttonStyle(PillButtonStyle(prominent: true))
+            // On the ink slab the filled pill takes the action's light form: the Mono ink would
+            // vanish into the slab in light mode (D67; the prototype's `slabButtonLook`).
+            .environment(\.look, slabButtonLook)
+    }
+
+    private var slabButtonLook: Look {
+        var slabLook = look
+        if look.id.isPaperClub, let light = look.liveOnSlabOverride {
+            slabLook.action = light
+            slabLook.onAction = Color(hex: 0x0B0C0E)
+        }
+        return slabLook
     }
 
     @ViewBuilder static func slabBackground(_ look: Look) -> some View {

@@ -131,7 +131,7 @@ struct AIStepIndicator: View {
     private func label(_ index: Int) -> some View {
         let isCurrent = index == current
         return Text(Self.titles[index])
-            .font(isCurrent ? Font.system(.headline, weight: .heavy).width(.expanded) : .system(.caption, weight: .semibold))
+            .font(isCurrent ? Font.system(.headline, weight: .semibold) : .system(.caption, weight: .semibold))
             .foregroundStyle(isCurrent ? look.textPrimary : (index < current ? look.textSecondary : look.textTertiary))
             .lineLimit(1)
             .minimumScaleFactor(isCurrent ? 0.8 : 1)

@@ -7,9 +7,9 @@ import SwiftUI
 // views in its test-only activity gallery (`-uiTestActivityGallery`) so every state can be
 // captured at Default and AccessibilityL sizes in both appearances.
 //
-// The widget target has no asset catalog and cannot see the app's `Look`, so the Floodlight
-// tokens it needs are literals here (`ActivityPalette`), copied from `Look.floodlight` /
-// `Look.floodlightLight` with their measured contrast (FinalLook.swift's header).
+// The widget target has no asset catalog and cannot see the app's `Look`, so the Soft tokens
+// it needs (D67) are literals here (`ActivityPalette`), copied from `Look.softDark` /
+// `Look.softLight` with their measured contrast (FinalLook.swift's header).
 //
 // D46 still governs: every figure that moves on its own — the rest countdown, the workout and
 // cardio clocks, the rest and target rings — is a system timer (`Text(timerInterval:)`,
@@ -23,7 +23,7 @@ struct ActivityPalette {
     var edge: Color
     var textPrimary: Color
     var textSecondary: Color
-    /// Ultra: the live thing and its one command (rest ring, Skip, Pause, compact figure).
+    /// The Mono action: the live thing and its one command (rest ring, Skip, Pause, compact figure).
     var live: Color
     var onLive: Color
     var heartRate: Color
@@ -32,24 +32,24 @@ struct ActivityPalette {
     var ringTrack: Color
     var pillFill: Color
     var pillEdge: Color
-    /// The new-best mark (Floodlight: an outlined plate in the text colour, never a fill).
+    /// The new-best mark (an outlined plate in the text colour, never a fill).
     var positive: Color
     var zoneRamp: [Color]
 
-    /// Floodlight dark (`Look.floodlight`).
+    /// Soft dark (`Look.softDark`): the Mono action in flood, black under it (19.29:1).
     static let dark = ActivityPalette(
-        ground: hex(0x060708), edge: .white.opacity(0.12), textPrimary: hex(0xF4F6F8),
-        textSecondary: hex(0xA4A9B1), live: hex(0xB25CFF), onLive: hex(0x060708), heartRate: hex(0xFF4F86),
-        done: hex(0xF4F6F8), ringTrack: .white.opacity(0.16), pillFill: hex(0x222427), pillEdge: .white.opacity(0.12),
-        positive: hex(0xF4F6F8),
+        ground: hex(0x000000), edge: .white.opacity(0.12), textPrimary: hex(0xF5F5F7),
+        textSecondary: hex(0xA1A1A8), live: hex(0xF5F5F7), onLive: hex(0x000000), heartRate: hex(0xFF4F86),
+        done: hex(0xF5F5F7), ringTrack: .white.opacity(0.16), pillFill: hex(0x2C2C2E), pillEdge: .white.opacity(0.12),
+        positive: hex(0xF5F5F7),
         zoneRamp: [0x7F858E, 0x9A5270, 0xC2577F, 0xE65C8E, 0xFF77A5, 0xFFB0CA].map(hex))
 
-    /// Floodlight Light (`Look.floodlightLight`): violet #7A2EE0 6.37:1 under white, heart #C41D58.
+    /// Soft Light (`Look.softLight`): the Mono action in ink #111114 (white on it 18.85:1), heart #C41D58.
     static let light = ActivityPalette(
-        ground: hex(0xF2F3F5), edge: hex(0x0B0C0E).opacity(0.10), textPrimary: hex(0x0B0C0E),
-        textSecondary: hex(0x555A63), live: hex(0x7A2EE0), onLive: .white, heartRate: hex(0xC41D58),
-        done: hex(0x0B0C0E), ringTrack: hex(0xDCDFE4), pillFill: hex(0xE6E8EC), pillEdge: hex(0x0B0C0E).opacity(0.10),
-        positive: hex(0x0B0C0E),
+        ground: hex(0xF5F5F7), edge: hex(0x111114).opacity(0.10), textPrimary: hex(0x111114),
+        textSecondary: hex(0x5C5C62), live: hex(0x111114), onLive: .white, heartRate: hex(0xC41D58),
+        done: hex(0x111114), ringTrack: hex(0xECECF1), pillFill: hex(0xF1F1F4), pillEdge: hex(0x111114).opacity(0.12),
+        positive: hex(0x111114),
         zoneRamp: [0x62676F, 0x8E4E6C, 0xA63D69, 0xBF1F5C, 0xA0124B, 0x7A0A39].map(hex))
 
     /// The Lock Screen follows the system appearance (user decision 3); the island is always black.
@@ -67,12 +67,12 @@ struct ActivityPalette {
 // MARK: - Type
 
 enum ActivityType {
-    /// Floodlight's numerals: SF Pro Expanded Heavy, monospaced digits so ticking figures never jitter.
+    /// Soft's numerals: SF Pro Semibold, monospaced digits so ticking figures never jitter.
     static func number(_ style: Font.TextStyle) -> Font {
-        Font.system(style).weight(.heavy).width(.expanded).monospacedDigit()
+        Font.system(style).weight(.semibold).monospacedDigit()
     }
-    /// Names (the header): SF Pro Expanded Heavy.
-    static func name(_ style: Font.TextStyle) -> Font { Font.system(style).weight(.heavy).width(.expanded) }
+    /// Names (the header): SF Pro Semibold.
+    static func name(_ style: Font.TextStyle) -> Font { Font.system(style).weight(.semibold) }
     static let label = Font.system(.caption).weight(.semibold)
     static let columnHeader = Font.system(.caption2).weight(.semibold)
 }
@@ -312,14 +312,14 @@ struct ActivityNextMarker: View {
         HStack(spacing: 6) {
             let shape = RoundedRectangle(cornerRadius: 8, style: .continuous)
             Text(next.marker)
-                .font(Font.system(.subheadline).weight(.heavy).width(.expanded))
+                .font(Font.system(.subheadline).weight(.semibold))
                 .foregroundStyle(lit ? palette.onLive : palette.textPrimary)
                 .frame(width: side, height: side)
                 .background { if lit { shape.fill(palette.live) } }
                 .overlay { if !lit { shape.strokeBorder(palette.live, lineWidth: 2) } }
             if let letter = next.supersetLetter {
                 Text(letter)
-                    .font(.system(.footnote).weight(.heavy))
+                    .font(.system(.footnote).weight(.semibold))
                     .foregroundStyle(palette.textPrimary)
                     .frame(width: 24, height: 24)
                     .overlay { RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(palette.textPrimary, lineWidth: 1.5) }

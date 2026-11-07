@@ -251,7 +251,7 @@ struct GymDetailView: View {
             VStack(alignment: alignment, spacing: 3) {
                 if let best, let value = SetValue(best.best) {
                     GymBestValue(text: LookFormat.set(value, loadType: best.loadType),
-                                 font: Font.system(.subheadline, weight: .heavy).width(.expanded).monospacedDigit(),
+                                 font: Font.system(.subheadline, weight: .semibold).monospacedDigit(),
                                  prominent: false)
                         .accessibilityLabel("Best \(LookFormat.set(value, loadType: best.loadType))")
                 }

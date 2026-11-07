@@ -310,7 +310,7 @@ struct NumberStepperPill: View {
         HStack(spacing: 0) {
             stepButton("minus", enabled: value - step >= range.lowerBound) { value = max(range.lowerBound, value - step) }
             Text(format(value))
-                .font(look.id == .floodlight ? Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit() : look.font.fieldNumber)
+                .font(look.id == .floodlight ? Font.system(.headline, weight: .semibold).monospacedDigit() : look.font.fieldNumber)
                 .foregroundStyle(look.textPrimary)
                 .contentTransition(reduceMotion ? .identity : .numericText(value: Double(value)))
                 .frame(minWidth: 56)

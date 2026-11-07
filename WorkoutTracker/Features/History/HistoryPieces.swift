@@ -11,16 +11,16 @@ extension Look {
     /// Workout row titles (Headline class, the look's display face).
     var historyRowTitle: Font {
         switch id {
-        case .floodlight: Font.system(.headline, weight: .heavy).width(.expanded)
-        case .paper, .carbon: .system(.headline, design: .serif, weight: .heavy)
+        case .floodlight: Font.system(.headline, weight: .semibold)
+        case .paper, .carbon: Font.system(.headline, weight: .semibold)
         }
     }
 
     /// The day number in a row's date column.
-    var historyDayNumber: Font { Font.system(.title3, weight: .heavy).width(.expanded).monospacedDigit() }
+    var historyDayNumber: Font { Font.system(.title3, weight: .semibold).monospacedDigit() }
 
     /// A figure inside a row (volume, distance, a set's value).
-    var historyRowNumber: Font { Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit() }
+    var historyRowNumber: Font { Font.system(.headline, weight: .semibold).monospacedDigit() }
 
     /// Small labels under figures ("Workouts", "lb").
     var historyFigureLabel: Font { .system(.footnote, weight: id == .floodlight ? .regular : .semibold) }
@@ -558,7 +558,7 @@ struct HistoryPRMark: View {
             case .floodlight:
                 HStack(spacing: 3) {
                     Image(systemName: "burst.fill").font(.system(.caption2, weight: .bold))
-                    Text("\(count)").font(.system(.caption, weight: .heavy).monospacedDigit())
+                    Text("\(count)").font(.system(.caption, weight: .semibold).monospacedDigit())
                 }
                 .foregroundStyle(look.positive)
                 .padding(.horizontal, 6)

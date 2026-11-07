@@ -87,7 +87,7 @@ struct FinishHeader: View {
                 HStack(alignment: .center, spacing: 3) {
                     MuscleMap(family: count.family, lit: true, size: size)
                     Text("\(count.sets)")
-                        .font(Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit())
+                        .font(Font.system(.headline, weight: .semibold).monospacedDigit())
                         .foregroundStyle(look.family(count.family))
                         .fixedSize()
                 }
@@ -256,8 +256,8 @@ struct FinishSetValueText: View {
     @Environment(\.look) private var look
 
     var body: some View {
-        let numberFont = big ? Font.system(.title3, weight: .heavy).width(.expanded).monospacedDigit()
-                             : Font.system(.subheadline, weight: .heavy).width(.expanded).monospacedDigit()
+        let numberFont = big ? Font.system(.title3, weight: .semibold).monospacedDigit()
+                             : Font.system(.subheadline, weight: .semibold).monospacedDigit()
         VStack(alignment: alignment, spacing: 1) {
             HStack(alignment: .firstTextBaseline, spacing: 3) {
                 if loadType.takesWeight, let weight = value.weight {

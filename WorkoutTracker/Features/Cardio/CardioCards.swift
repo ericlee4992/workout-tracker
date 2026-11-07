@@ -376,7 +376,7 @@ struct CardioSplitsView: View {
                     Text(usesSpeed
                          ? "\(String(format: "%.1f", pace > 0 ? 3_600 / pace : 0)) \(CardioFormat.speedUnit(unit))"
                          : "\(CardioMath.paceText(pace)) \(CardioFormat.paceUnit(unit))")
-                        .font(.system(.footnote, weight: .heavy).width(.expanded).monospacedDigit())
+                        .font(.system(.footnote, weight: .semibold).monospacedDigit())
                         .foregroundStyle(isLit ? look.textPrimary : look.textSecondary)
                         .fixedSize()
                         .frame(minWidth: 70, alignment: .trailing)
@@ -460,7 +460,7 @@ struct CardioRouteMap: View {
             path.stroke(line, style: StrokeStyle(lineWidth: 4.5, lineCap: .round, lineJoin: .round))
             ForEach(Array(markers(route, size: size, rect: rect).enumerated()), id: \.offset) { index, point in
                 Text("\(index + 1)")
-                    .font(.system(.caption2, weight: .heavy).monospacedDigit())
+                    .font(.system(.caption2, weight: .bold).monospacedDigit())
                     .foregroundStyle(look.ground)
                     .frame(minWidth: 20, minHeight: 20)
                     .background(line, in: Circle())

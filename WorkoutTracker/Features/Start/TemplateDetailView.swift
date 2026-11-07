@@ -205,7 +205,7 @@ struct TemplateDetailView: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(item.exercise?.name ?? "Missing exercise")
-                        .font(Font.system(.headline, weight: .heavy).width(.expanded))
+                        .font(Font.system(.headline, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                     if let letter { TemplateSupersetTag(letter: letter) }

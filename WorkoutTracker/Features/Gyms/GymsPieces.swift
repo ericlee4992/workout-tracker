@@ -149,7 +149,7 @@ struct GymMonogram: View {
     var body: some View {
         let side = size * min(scale, 1.6)
         Text(Self.initials(name))
-            .font(Font.system(size: side * 0.36, weight: .black).width(.expanded))
+            .font(Font.system(size: side * 0.36, weight: .bold))
             .foregroundStyle(look.textPrimary)
             .minimumScaleFactor(0.6)
             .lineLimit(1)
@@ -242,7 +242,7 @@ struct GymStatStrip: View {
                     Text(stat.value)
                 }
             }
-            .font(stat.isWord ? Font.system(.title3, weight: .heavy).width(.expanded) : look.font.statNumber)
+            .font(stat.isWord ? Font.system(.title3, weight: .semibold) : look.font.statNumber)
             .foregroundStyle(look.textPrimary)
             .lineLimit(1)
             .minimumScaleFactor(0.6)
@@ -323,7 +323,7 @@ struct GymVisitRhythm: View {
         let shape = RoundedRectangle(cornerRadius: 5, style: .continuous)
         if count > 0 {
             Text(verbatim: "\(count)")
-                .font(Font.system(.caption2, weight: .heavy).width(.expanded).monospacedDigit())
+                .font(Font.system(.caption2, weight: .semibold).monospacedDigit())
                 .foregroundStyle(look.onDone)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(look.done, in: shape)
@@ -510,7 +510,7 @@ struct GymGroupHeader: View {
                 .fixedSize(horizontal: false, vertical: true)
             if let count {
                 Text(verbatim: "\(count)")
-                    .font(Font.system(.subheadline, weight: .heavy).width(.expanded).monospacedDigit())
+                    .font(Font.system(.subheadline, weight: .semibold).monospacedDigit())
                     .foregroundStyle(look.textTertiary)
             }
             Spacer(minLength: 0)
@@ -701,7 +701,7 @@ struct MachineBestChart: View {
                         .opacity(drawn >= CGFloat(item.id) / CGFloat(max(items.count - 1, 1)) - 0.001 ? 1 : 0)
                     if item.isRecord {
                         Text(LookFormat.setShort(item.set, loadType: series.loadType))
-                            .font(Font.system(.caption2, weight: .heavy).width(.expanded))
+                            .font(Font.system(.caption2, weight: .semibold))
                             .foregroundStyle(look.textPrimary)
                             .fixedSize()
                             .position(x: min(max(p.x, plot.minX + 26), plot.maxX - 20),

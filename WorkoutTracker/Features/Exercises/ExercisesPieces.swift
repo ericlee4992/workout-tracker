@@ -562,7 +562,7 @@ extension Look {
     /// A list row's title.
     var exercisesRowTitle: Font { .system(.body, weight: .semibold) }
     /// A number inside a row ("105 × 8").
-    var exercisesRowValue: Font { Font.system(.subheadline, weight: .heavy).width(.expanded).monospacedDigit() }
+    var exercisesRowValue: Font { Font.system(.subheadline, weight: .semibold).monospacedDigit() }
 }
 
 extension LoadType {

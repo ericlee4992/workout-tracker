@@ -315,7 +315,7 @@ struct ScanOutcomeDisc: View {
                 .background(look.done, in: Circle())
         case .several(let count):
             Text("\(count)")
-                .font(.system(size: size * 0.44, weight: .heavy).width(.expanded))
+                .font(.system(size: size * 0.44, weight: .semibold))
                 .foregroundStyle(look.textPrimary)
                 .frame(width: size, height: size)
                 .overlay { Circle().strokeBorder(look.textPrimary, lineWidth: 2) }

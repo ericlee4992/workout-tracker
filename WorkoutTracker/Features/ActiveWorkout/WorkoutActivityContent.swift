@@ -109,7 +109,7 @@ enum WorkoutActivityContent {
             value = SetValue(weight: next.weightValue, unit: next.weightUnit, reps: reps)
         }
         // The rest bar's line, Floodlight's form (the unit stays: no row to carry it here).
-        let look = Look.floodlight
+        let look = Look.softDark
         let line: String
         if let restEntryID, restEntryID != entry.id {
             line = look.nextExerciseLabel(name)

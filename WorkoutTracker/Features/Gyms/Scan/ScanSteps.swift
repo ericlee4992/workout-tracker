@@ -450,7 +450,7 @@ private struct ScanCameraContent: View {
                 Text(gymName).font(.system(.subheadline, weight: .semibold)).lineLimit(1)
                 Text("·").font(.system(.subheadline, weight: .semibold)).opacity(0.6)
                 Text("\(step.machineCount)")
-                    .font(.system(.subheadline, weight: .heavy).width(.expanded))
+                    .font(.system(.subheadline, weight: .semibold))
                     .monospacedDigit()
             }
             .foregroundStyle(look.onSlab)

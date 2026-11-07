@@ -75,7 +75,7 @@ struct LiveHeaderLine: View {
             SetsRing(done: done, total: total)
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("\(done)/\(total)")
-                    .font(Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit())
+                    .font(Font.system(.headline, weight: .semibold).monospacedDigit())
                     .foregroundStyle(look.textPrimary)
                     .contentTransition(.numericText(value: Double(done)))
                     .celebrate(done)

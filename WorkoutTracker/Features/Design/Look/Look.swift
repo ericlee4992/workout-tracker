@@ -1,27 +1,29 @@
 import SwiftUI
 
-// The visual system every screen is written against (Floodlight redesign, reopening D54).
-// Tokens are named BY MEANING, never by hue; components read `@Environment(\.look)` and
-// switch on `look.id` only where the design defines a different structural treatment.
+// The visual system every screen is written against. Tokens are named BY MEANING, never by
+// hue; components read `@Environment(\.look)` and switch on `look.id` only where the design
+// defines a different structural treatment.
 //
-// The user's chosen look ("Floodlight + Paper workout", 2026-09-26):
-// • Everywhere: Floodlight — SF Pro Expanded heavy type, flat stand panels, violet "Ultra"
-//   action. Dark (`Look.floodlight`) or light (`Look.floodlightLight`), picked by
-//   Settings → Appearance (System / Light / Dark). See FinalLook.swift for the light tokens
-//   and their measured contrast.
-// • The live lifting workout: Paper Club's STRUCTURE (round set markers, dashed draft fields,
-//   stamp check circles, outlined icon buttons, the inverse rest slab) drawn in Floodlight's
-//   palette and type (`Look.live(dark:)`). Its structural id is `.carbon` in dark and `.paper`
-//   in light; nothing else in the app uses those ids.
+// The user's chosen look ("Soft", D67, 2026-11-07; it replaces D59's Floodlight look):
+// • Everywhere: SF Pro only (bold titles, semibold figures), a light ground with a faint warm
+//   wash at the top, white cards lifted on a wide faint shadow (dark: graphite cards with a
+//   hairline on black), the Mono action (black in light, white in dark), flat buttons. Dark
+//   (`Look.softDark`) or light (`Look.softLight`, FinalLook.swift), picked by Settings →
+//   Appearance (System / Light / Dark).
+// • The live lifting workout keeps Paper Club's STRUCTURE (round set markers, dashed draft
+//   fields, stamp check circles, outlined icon buttons, the inverse rest slab) drawn in Soft's
+//   palette and type with a flat Mono action (`Look.live(dark:)`). Its structural id is
+//   `.carbon` in dark and `.paper` in light; nothing else in the app uses those ids.
+// • The structural id elsewhere is still called `.floodlight`: it names the layout family the
+//   components were built in (segmented rings, the Start capsules…), which Soft keeps.
 //
-// Source: the redesign prototype's Look/ (work-record/redesign-floodlight/reference/look-api.md).
-// The prototype's other studies (Anatomy, standalone Paper/Carbon) were not chosen and are not
-// ported.
+// Source: the approved prototype, tag design/soft-approved-2026-11-07 (DesignPrototype/Sources/
+// Look/SoftLook.swift), work-record/soft-redesign/issues/01-soft-look.md.
 
 // MARK: - Look identity
 
-/// The structural family a `Look` is drawn in (`look.id`). Floodlight everywhere; `.paper`
-/// (light) or `.carbon` (dark) inside the live lifting workout.
+/// The structural family a `Look` is drawn in (`look.id`). `.floodlight` everywhere (the layout
+/// family Soft keeps); `.paper` (light) or `.carbon` (dark) inside the live lifting workout.
 enum LookStyle: String, CaseIterable, Hashable {
     case floodlight, paper, carbon
 
@@ -107,24 +109,23 @@ struct LookFonts {
     var badge: Font
 }
 
-private enum Face { case text, expanded }
+private enum Face { case text }
 
 private func face(_ style: Font.TextStyle, _ kind: Face, _ weight: Font.Weight, mono: Bool = false) -> Font {
     var font: Font
     switch kind {
     case .text: font = .system(style, design: .default, weight: weight)
-    case .expanded: font = Font.system(style, design: .default, weight: weight).width(.expanded)
     }
     return mono ? font.monospacedDigit() : font
 }
 
 extension LookFonts {
-    /// Floodlight: SF Pro Expanded Black titles, Expanded Heavy numerals; buttons stay standard width.
-    static let floodlight = LookFonts(
-        largeTitle: face(.largeTitle, .expanded, .black),
-        title: face(.title, .expanded, .black),
-        title2: face(.title2, .expanded, .heavy),
-        title3: face(.title3, .expanded, .heavy),
+    /// Soft (D67): SF Pro only — bold titles, semibold figures, no Expanded or Black.
+    static let soft = LookFonts(
+        largeTitle: face(.largeTitle, .text, .bold),
+        title: face(.title, .text, .bold),
+        title2: face(.title2, .text, .bold),
+        title3: face(.title3, .text, .semibold),
         headline: face(.headline, .text, .semibold),
         body: face(.body, .text, .regular),
         callout: face(.callout, .text, .regular),
@@ -132,21 +133,21 @@ extension LookFonts {
         footnote: face(.footnote, .text, .regular),
         caption: face(.caption, .text, .regular),
         caption2: face(.caption2, .text, .regular),
-        heroNumber: face(.largeTitle, .expanded, .heavy, mono: true),
-        bigNumber: face(.title, .expanded, .heavy, mono: true),
-        statNumber: face(.title2, .expanded, .heavy, mono: true),
-        smallNumber: face(.title3, .expanded, .heavy, mono: true),
-        fieldNumber: face(.headline, .expanded, .heavy, mono: true),
-        timer: face(.title, .expanded, .heavy, mono: true),
-        button: face(.headline, .text, .bold),
+        heroNumber: face(.largeTitle, .text, .semibold, mono: true),
+        bigNumber: face(.title, .text, .semibold, mono: true),
+        statNumber: face(.title2, .text, .semibold, mono: true),
+        smallNumber: face(.title3, .text, .semibold, mono: true),
+        fieldNumber: face(.headline, .text, .semibold, mono: true),
+        timer: face(.title, .text, .semibold, mono: true),
+        button: face(.headline, .text, .semibold),
         tabLabel: face(.caption2, .text, .semibold),
-        navTitle: face(.headline, .expanded, .heavy),
-        sectionTitle: face(.title3, .expanded, .heavy),
-        pageSectionTitle: face(.title3, .expanded, .heavy),
-        cardTitle: face(.title3, .expanded, .heavy),
-        tileTitle: face(.headline, .expanded, .heavy),
-        columnHeader: face(.caption2, .text, .semibold),
-        badge: face(.caption, .text, .bold))
+        navTitle: face(.headline, .text, .semibold),
+        sectionTitle: face(.title3, .text, .semibold),
+        pageSectionTitle: face(.title2, .text, .bold),
+        cardTitle: face(.title3, .text, .semibold),
+        tileTitle: face(.headline, .text, .semibold),
+        columnHeader: face(.caption2, .text, .medium),
+        badge: face(.caption, .text, .semibold))
 }
 
 // MARK: - Geometry, strokes, motion
@@ -288,7 +289,7 @@ struct Look {
     var ringTrack: Color
     /// "Last time" bar in comparisons.
     var comparisonLast: Color
-    /// The live workout's hard offset shadow under the primary (clear elsewhere).
+    /// The live workout's hard offset shadow under the primary (clear in Soft: flat buttons).
     var shadowInk: Color
     /// Floating chrome tint (tab bar, toolbar buttons, rest bar).
     var glassTint: Color
@@ -328,6 +329,18 @@ struct Look {
     var dayDotPast: Color
     var dayDotFuture: Color
 
+    // Soft (D67)
+    /// The live colour on the live workout's ink rest slab (`Look.live(dark:)` sets it: the Mono
+    /// action is ink in light and would vanish there).
+    var liveOnSlabOverride: Color? = nil
+    /// Content cards (panel, card, stat, tile) sit on a wide faint shadow without an outline in
+    /// light, and on a hairline in dark.
+    var liftedCards = false
+    /// A faint warm wash at the top of every screen ground (light only; nil = none).
+    var groundWash: Color? = nil
+
+    var liveOnSlab: Color { liveOnSlabOverride ?? live }
+
     func family(_ family: MuscleFamily) -> Color { familyColors[family] ?? textSecondary }
     func familyTint(_ family: MuscleFamily) -> Color { familyTints[family] ?? surfaceRaised }
     func zone(_ zone: HeartRateZone) -> Color { zoneRamp[zone.rawValue] }
@@ -336,38 +349,41 @@ struct Look {
 
     /// The app's token set for a resolved colour scheme.
     static func app(_ scheme: ColorScheme) -> Look {
-        scheme == .light ? .floodlightLight : .floodlight
+        scheme == .light ? .softLight : .softDark
     }
 }
 
-// MARK: - Floodlight (dark)
+// MARK: - Soft (dark)
 
 extension Look {
-    static let floodlight: Look = {
-        let flood = Color(hex: 0xF4F6F8)
-        let dim = Color(hex: 0xA4A9B1)
-        let ink = Color(hex: 0x060708)
-        let ultra = Color(hex: 0xB25CFF)
+    /// Soft, dark (D67): black ground, graphite cards with a hairline, the Mono action in flood.
+    /// Text on surface #1C1C1E / raised #2C2C2E: primary #F5F5F7 15.63 · secondary #A1A1A8 6.63 /
+    /// 5.43 · tertiary #949499 5.64 / 4.62 (the prototype's #98989F / #7C7C82 deepened to pass
+    /// 4.5:1 on raised cells). onAction #000000 on #F5F5F7 19.29.
+    static let softDark: Look = {
+        let flood = Color(hex: 0xF5F5F7)
+        let dim = Color(hex: 0xA1A1A8)
+        let ink = Color(hex: 0x000000)
         return Look(
             id: .floodlight,
-            ground: Color(hex: 0x060708),
-            groundSheet: Color(hex: 0x0B0C0E),
-            surface: Color(hex: 0x181A1E),
-            surfaceSheet: Color(hex: 0x181A1E),
-            surfaceRaised: Color(hex: 0x22252A),
-            field: Color(hex: 0x22252A),
+            ground: .black,
+            groundSheet: Color(hex: 0x0E0E10),
+            surface: Color(hex: 0x1C1C1E),
+            surfaceSheet: Color(hex: 0x1C1C1E),
+            surfaceRaised: Color(hex: 0x2C2C2E),
+            field: Color(hex: 0x2C2C2E),
             pressedFill: Color(hex: 0x2A2D33),
-            hairline: .white.opacity(0.10),
+            hairline: .white.opacity(0.08),
             innerHighlight: .clear,
             dash: .white.opacity(0.28),
             outline: .clear,
             textPrimary: flood,
             textSecondary: dim,
-            textTertiary: Color(hex: 0x7F858E),
-            action: ultra,
+            textTertiary: Color(hex: 0x949499),
+            action: flood,
             onAction: ink,
-            actionText: ultra,
-            live: ultra,
+            actionText: flood,
+            live: flood,
             selection: flood,
             selectionFill: .white.opacity(0.11),
             done: flood,
@@ -384,7 +400,7 @@ extension Look {
             slabEdge: .white.opacity(0.12),
             onSlab: flood,
             onSlabSecondary: dim,
-            ringTrack: Color(hex: 0x34373D),
+            ringTrack: Color(hex: 0x2C2C2E),
             comparisonLast: Color(hex: 0x686D76),
             shadowInk: .clear,
             glassTint: Color(hex: 0x22252B).opacity(0.62),
@@ -400,9 +416,9 @@ extension Look {
             mapBody: Color(hex: 0x535862),
             mapBodyUnlit: Color(hex: 0x464A52),
             mapMuscleUnlit: Color(hex: 0x737983),
-            font: .floodlight,
-            radius: LookRadii(panel: 16, tile: 16, stat: 16, row: 10, field: 8, bar: 22, badge: 6, marker: 8, sheet: 38),
-            space: LookSpacing(section: 28, group: 12, header: 12, panelPadding: 16, grid: 12),
+            font: .soft,
+            radius: LookRadii(panel: 24, tile: 22, stat: 20, row: 14, field: 12, bar: 28, badge: 8, marker: 10, sheet: 38),
+            space: LookSpacing(section: 26, group: 12, header: 14, panelPadding: 18, grid: 12),
             stroke: LookStrokes(hairline: 1, pressable: 0, primary: 0, dashed: 1.5),
             motion: LookMotion(pressScale: 0.97, pressSink: 0, reducedPressOpacity: 0.7, segmentedRings: true,
                                stampScale: 1.55, stampRotation: -14, mapLightDuration: 0.2),
@@ -412,7 +428,8 @@ extension Look {
             pillFill: Color(hex: 0x222427),
             pillEdge: .white.opacity(0.12),
             dayDotPast: Color(hex: 0x34373D),
-            dayDotFuture: Color(hex: 0x22252A))
+            dayDotFuture: Color(hex: 0x22252A),
+            liftedCards: true)
     }()
 }
 
@@ -420,9 +437,9 @@ extension Look {
 
 extension Look {
     /// The Paper Club structure the live workout is drawn in: its radii, strokes, spacing and
-    /// motion. `Look.live(dark:)` replaces every colour and the type with Floodlight's.
+    /// motion. `Look.live(dark:)` replaces every colour and the type with Soft's.
     static func paperClubStructure(dark: Bool) -> Look {
-        var look = Look.floodlight
+        var look = Look.softDark
         look.id = dark ? .carbon : .paper
         look.colorScheme = dark ? .dark : .light
         look.radius = LookRadii(panel: 18, tile: 18, stat: 16, row: 12, field: 10, bar: 24, badge: 6, marker: 17, sheet: 36)
@@ -463,7 +480,7 @@ extension Look {
 // MARK: - Environment
 
 extension EnvironmentValues {
-    @Entry var look: Look = .floodlight
+    @Entry var look: Look = .softDark
     /// true inside a sheet: content surfaces use `surfaceSheet`.
     @Entry var lookOnSheet: Bool = false
     /// true inside an instrument slab (the live rest bar): text uses `onSlab`.
@@ -507,7 +524,7 @@ private struct LookLayerModifier: ViewModifier {
 // MARK: - Colour helper
 
 extension Color {
-    /// `Color(hex: 0xB25CFF)`.
+    /// `Color(hex: 0xF5F5F7)`.
     init(hex: UInt32, opacity: Double = 1) {
         self.init(.sRGB,
                   red: Double((hex >> 16) & 0xFF) / 255,

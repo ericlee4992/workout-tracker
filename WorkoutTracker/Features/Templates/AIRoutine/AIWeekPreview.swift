@@ -272,7 +272,7 @@ struct AIShareMaps: View {
                     MuscleMap(family: share.family, lit: true, size: min(full, 64) * (0.62 + 0.38 * fraction) * scale)
                     Text("\(share.sets)")
                         .font(fraction >= 1 && shares.contains(where: { $0.sets < top })
-                              ? look.font.fieldNumber : Font.system(.footnote, weight: .bold).width(.expanded))
+                              ? look.font.fieldNumber : Font.system(.footnote, weight: .semibold))
                         .foregroundStyle(fraction >= 1 ? look.textPrimary : look.textSecondary)
                         .monospacedDigit()
                         .fixedSize()
@@ -326,7 +326,7 @@ struct AISavedStep: View {
     /// tile; one size down it fits, so the name never splits at its dash.
     private var tileLook: Look {
         var copy = look
-        copy.font.tileTitle = Font.system(.subheadline, weight: .heavy).width(.expanded)
+        copy.font.tileTitle = Font.system(.subheadline, weight: .semibold)
         return copy
     }
 

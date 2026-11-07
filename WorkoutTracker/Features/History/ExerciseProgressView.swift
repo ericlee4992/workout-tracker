@@ -739,7 +739,7 @@ struct ProgressChangeBadge: View {
         VStack(alignment: alignment, spacing: 4) {
             HStack(spacing: 3) {
                 Image(systemName: up ? "arrow.up" : "arrow.down").font(.system(.footnote, weight: .heavy))
-                Text("\(rounded)%").font(Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit())
+                Text("\(rounded)%").font(Font.system(.headline, weight: .semibold).monospacedDigit())
             }
             .foregroundStyle(up ? look.onDone : look.textPrimary)
             .padding(.horizontal, 8).padding(.vertical, 4)

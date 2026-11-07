@@ -116,7 +116,7 @@ struct AIProgressRing: View {
                     .symbolEffect(.pulse, options: .repeating, isActive: isRunning && !reduceMotion)
                 HStack(alignment: .firstTextBaseline, spacing: 2) {
                     Text("\(Int((progress * 100).rounded()))")
-                        .font(Font.system(size: numberSize, weight: .heavy).width(.expanded).monospacedDigit())
+                        .font(Font.system(size: numberSize, weight: .semibold).monospacedDigit())
                         .foregroundStyle(look.textPrimary)
                         .contentTransition(.numericText(value: progress))
                         .animation(reduceMotion ? nil : .snappy, value: progress)

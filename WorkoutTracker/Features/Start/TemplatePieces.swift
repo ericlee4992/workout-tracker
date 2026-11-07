@@ -177,7 +177,7 @@ struct TemplateSupersetTag: View {
 
     var body: some View {
         Text(letter)
-            .font(.system(.caption, weight: .heavy))
+            .font(.system(.caption, weight: .bold))
             .foregroundStyle(look.textPrimary)
             .frame(minWidth: 22, minHeight: 20)
             .background { RoundedRectangle(cornerRadius: 5).strokeBorder(look.textPrimary, lineWidth: 1.5) }

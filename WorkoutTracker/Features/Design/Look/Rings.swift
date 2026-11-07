@@ -112,8 +112,8 @@ struct SetsRingLabel: View {
 
     private var numberFont: Font {
         switch look.id {
-        case .floodlight: Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit()
-        case .paper, .carbon: Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit()
+        case .floodlight: Font.system(.headline, weight: .semibold).monospacedDigit()
+        case .paper, .carbon: Font.system(.headline, weight: .semibold).monospacedDigit()
         }
     }
 }
@@ -266,8 +266,9 @@ struct RestRing: View {
         let side = size ?? (look.id.isPaperClub ? 58 : 56)
         let width = look.id.isPaperClub ? side * 0.103 : side * 0.09
         let color: Color = switch look.id {
+        // On the ink rest slab the Mono ink would vanish: `liveOnSlab` is flood there (D67).
         case .floodlight: isFinal ? look.done : look.live
-        case .paper, .carbon: look.live
+        case .paper, .carbon: onSlab ? look.liveOnSlab : look.live
         }
         let track: Color = look.id.isPaperClub
             ? (onSlab ? look.onSlab.opacity(0.16) : look.ringTrack)

@@ -225,7 +225,7 @@ struct ProgressWordsBadge: View {
         VStack(alignment: alignment, spacing: 4) {
             HStack(spacing: 3) {
                 Image(systemName: better ? "arrow.up" : "arrow.down").font(.system(.footnote, weight: .heavy))
-                Text(text).font(Font.system(.headline, weight: .heavy).width(.expanded).monospacedDigit())
+                Text(text).font(Font.system(.headline, weight: .semibold).monospacedDigit())
             }
             .foregroundStyle(better ? look.onDone : look.textPrimary)
             .padding(.horizontal, 8).padding(.vertical, 4)

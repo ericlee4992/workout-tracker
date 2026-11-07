@@ -71,7 +71,7 @@ extension Look {
     /// The ring's number: the look's figure face at a Dynamic-Type-scaled size (pass a size that
     /// derives from a `@ScaledMetric`).
     func cardioHeroFont(size: CGFloat) -> Font {
-        Font.system(size: size, weight: .heavy).width(.expanded).monospacedDigit()
+        Font.system(size: size, weight: .semibold).monospacedDigit()
     }
     /// Small label over a figure.
     var cardioLabelFont: Font { .footnote }
