@@ -46,7 +46,7 @@ struct LookSurface: ViewModifier {
     private var contentFill: Color { onSheet ? look.surfaceSheet : look.surface }
 
     func body(content: Content) -> some View {
-        if look.origin == .soft, [.panel, .card, .stat, .tile].contains(role) {
+        if (look.origin == .soft || (look.origin == .blend && !look.isDark)), [.panel, .card, .stat, .tile].contains(role) {
             // Soft: white cards lifted by a wide, faint shadow; no outline (dark: a hairline instead).
             let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             content

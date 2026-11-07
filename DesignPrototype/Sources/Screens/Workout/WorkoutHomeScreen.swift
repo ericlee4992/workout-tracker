@@ -28,7 +28,7 @@ struct WorkoutHomeScreen: View {
             // starts step down to a quiet pair, the other templates follow, and "This week" moves
             // to the end (it is a look back, not the reason to open the app).
             VStack(alignment: .leading, spacing: look.space.section) {
-                LookNavTitle(look.origin == .soft ? "Train" : "Workout", subtitle: WorkoutDates.homeSubtitle(store.now, look: look.id))
+                LookNavTitle(look.origin == .soft || look.origin == .blend ? "Train" : "Workout", subtitle: WorkoutDates.homeSubtitle(store.now, look: look.id))
                 VStack(spacing: 12) {
                     gymControl
                     if isLive {
@@ -39,6 +39,7 @@ struct WorkoutHomeScreen: View {
                     if !isLive { ProposedQuickStarts() }
                 }
                 templatesSection
+                if look.origin == .blend && BlendOptions.shared.tabs == .food { BlendTrainLibrary() }
                 if store.history.isEmpty && store.session == nil {
                     // First run: no scoreboard of zeros, just the week waiting for its first workout.
                     WorkoutFirstWeekCard(days: store.weekSummary.days)

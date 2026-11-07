@@ -12,6 +12,7 @@ struct SoftFood: Identifiable, Hashable {
     var carbs: Int
     var fat: Int
     var time: String
+    var meal: String = "Snack"
 }
 
 enum SoftMacro: CaseIterable, Identifiable {
@@ -48,9 +49,9 @@ final class SoftNutrition {
     let calorieGoal = 2_288
     let goals: [SoftMacro: Int] = [.protein: 149, .carbs: 261, .fat: 72]
     var today: [SoftFood] = [
-        SoftFood(name: "Greek yogurt bowl", detail: "1 bowl", calories: 320, protein: 24, carbs: 38, fat: 8, time: "8:10 AM"),
-        SoftFood(name: "Chicken rice bowl", detail: "large", calories: 640, protein: 46, carbs: 78, fat: 14, time: "12:40 PM"),
-        SoftFood(name: "Protein shake", detail: "1 scoop, oat milk", calories: 280, protein: 32, carbs: 22, fat: 6, time: "4:15 PM"),
+        SoftFood(name: "Greek yogurt bowl", detail: "1 bowl", calories: 320, protein: 24, carbs: 38, fat: 8, time: "8:10 AM", meal: "Breakfast"),
+        SoftFood(name: "Chicken rice bowl", detail: "large", calories: 640, protein: 46, carbs: 78, fat: 14, time: "12:40 PM", meal: "Lunch"),
+        SoftFood(name: "Protein shake", detail: "1 scoop, oat milk", calories: 280, protein: 32, carbs: 22, fat: 6, time: "4:15 PM", meal: "Snack"),
     ]
     let recent: [SoftFood] = [
         SoftFood(name: "Pho", detail: "large bowl", calories: 500, protein: 30, carbs: 62, fat: 12, time: ""),
@@ -77,10 +78,20 @@ final class SoftNutrition {
         }
     }
 
-    func log(_ food: SoftFood, at time: String = "Now") {
+    func log(_ food: SoftFood, at time: String = "Now", meal: String = "Snack") {
         var copy = food
         copy.time = time
+        copy.meal = meal
         withAnimation(.spring(response: 0.45, dampingFraction: 0.82)) { today.append(copy) }
+        lastLogged = copy
+    }
+
+    /// The last food added (for Undo).
+    var lastLogged: SoftFood?
+    func undoLast() {
+        guard let last = lastLogged else { return }
+        withAnimation(.snappy) { today.removeAll { $0.id == last.id } }
+        lastLogged = nil
     }
 
     private init() {}

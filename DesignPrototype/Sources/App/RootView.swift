@@ -22,6 +22,17 @@ struct RootView: View {
     }()
     @State private var softAddShown = UserDefaults.standard.bool(forKey: "softAdd")
     @State private var softCover: SoftCover? = UserDefaults.standard.string(forKey: "softCover").flatMap(SoftCover.init(rawValue:))
+    @State private var blendTab: BlendTab = {
+        switch UserDefaults.standard.string(forKey: "blendTab") {
+        case "train": .train
+        case "food": .food
+        case "progress": .progress
+        case "library": .library
+        default: .today
+        }
+    }()
+    @State private var blendListShown = UserDefaults.standard.bool(forKey: "blendList")
+    @State private var blendOptions = BlendOptions.shared
 
     var body: some View {
         @Bindable var router = router
@@ -30,12 +41,11 @@ struct RootView: View {
         .tint(look.selection)
         .overlay {
             if softAddShown {
-                SoftAddMenu(shown: $softAddShown) { choice in
-                    switch choice {
-                    case "train": selectSoft(.train)
-                    case "logFood": softCover = .logFood
-                    case "scanFood": softCover = .scanFood
-                    default: softCover = .logWeight
+                Group {
+                    if lookModel.id == .blend {
+                        BlendInkAddMenu(shown: $softAddShown, choose: chooseAdd)
+                    } else {
+                        SoftAddMenu(shown: $softAddShown, choose: chooseAdd)
                     }
                 }
                 .lookLayer(lookModel)
@@ -44,12 +54,21 @@ struct RootView: View {
         }
         .fullScreenCover(item: Binding(get: { softCover == .logWeight ? nil : softCover }, set: { softCover = $0 })) { cover in
             Group {
-                if cover == .scanFood { SoftScanFoodScreen() } else { SoftLogFoodScreen() }
+                if cover == .scanFood { SoftScanFoodScreen() }
+                else if lookModel.id == .blend { BlendLogFoodScreen() }
+                else { SoftLogFoodScreen() }
             }
             .lookLayer(lookModel)
         }
         .sheet(isPresented: Binding(get: { softCover == .logWeight }, set: { if !$0 { softCover = nil } })) {
             SoftLogWeightSheet().presentationDetents([.medium]).lookLayer(lookModel)
+        }
+        .sheet(isPresented: $blendListShown) {
+            BlendAddList { choice in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { chooseAdd(choice) }
+            }
+            .presentationDetents([.medium])
+            .lookLayer(lookModel)
         }
         .templateDriftPresenter()
         .sheet(item: rootSheet) { route in
@@ -76,7 +95,62 @@ struct RootView: View {
     // MARK: Tabs
 
     @ViewBuilder private var tabs: some View {
-        if lookModel.id == .soft { softTabs } else { classicTabs }
+        if lookModel.id == .soft { softTabs } else if lookModel.id == .blend { blendTabs } else { classicTabs }
+    }
+
+    private func chooseAdd(_ choice: String) {
+        switch choice {
+        case "train": if lookModel.id == .blend { selectBlend(.train) } else { selectSoft(.train) }
+        case "logFood": softCover = .logFood
+        case "scanFood": softCover = .scanFood
+        default: softCover = .logWeight
+        }
+    }
+
+    /// DIRECTION C "Blend": the tab set and the + follow the pill's variant switches.
+    private var blendTabs: some View {
+        @Bindable var router = router
+        return ZStack {
+            blendPage(.today) { NavigationStack(path: $router.exercisesPath) { BlendTodayScreen().routeDestinations() } }
+            blendPage(.train) { NavigationStack(path: $router.workoutPath) { WorkoutHomeScreen().routeDestinations() } }
+            blendPage(.progress) { NavigationStack(path: $router.historyPath) { BlendProgressScreen().routeDestinations() } }
+            if blendOptions.tabs == .food {
+                blendPage(.food) { NavigationStack(path: $router.gymsPath) { BlendFoodScreen().routeDestinations() } }
+            } else {
+                blendPage(.library) { NavigationStack(path: $router.gymsPath) { BlendLibraryScreen().routeDestinations() } }
+            }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            VStack(spacing: 0) {
+                if blendOptions.add == .bar && (blendTab == .today || blendTab == .progress) {
+                    BlendAddBar { blendListShown = true }
+                }
+                BlendTabBar(selection: blendTab, select: selectBlend) {
+                    withAnimation(.easeOut(duration: 0.2)) { softAddShown = true }
+                }
+            }
+        }
+        .onAppear { selectBlend(blendTab) }
+        .onChange(of: blendOptions.tabs) { _, _ in
+            if blendTab == .food || blendTab == .library { selectBlend(.today) }
+        }
+    }
+
+    private func blendPage<C: View>(_ tab: BlendTab, @ViewBuilder _ content: () -> C) -> some View {
+        content()
+            .opacity(blendTab == tab ? 1 : 0)
+            .allowsHitTesting(blendTab == tab)
+            .accessibilityHidden(blendTab != tab)
+    }
+
+    private func selectBlend(_ tab: BlendTab) {
+        blendTab = tab
+        switch tab {
+        case .today: router.tab = .exercises
+        case .train: router.tab = .workout
+        case .progress: router.tab = .history
+        case .food, .library: router.tab = .gyms
+        }
     }
 
     /// EXPLORATION (2026-11-07) — Soft: Today · Train · Progress · Profile in a floating capsule,

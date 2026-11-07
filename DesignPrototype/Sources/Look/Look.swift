@@ -13,7 +13,7 @@ import Observation
 /// launch default. Components never switch on this: they switch on `look.id` (`LookStyle`),
 /// the structural family a `Look` value is drawn in.
 enum LookID: String, CaseIterable, Identifiable, Hashable {
-    case final, floodlight, anatomy, paper, carbon, soft
+    case final, floodlight, anatomy, paper, carbon, soft, blend
 
     var id: String { rawValue }
 
@@ -26,6 +26,7 @@ enum LookID: String, CaseIterable, Identifiable, Hashable {
         case .paper: "C · Paper"
         case .carbon: "C · Carbon"
         case .soft: "Soft"
+        case .blend: "Blend"
         }
     }
 
@@ -38,16 +39,17 @@ enum LookID: String, CaseIterable, Identifiable, Hashable {
         case .paper: "C"
         case .carbon: "C·dk"
         case .soft: "S"
+        case .blend: "B·"
         }
     }
 
     /// Only the final look follows the Appearance setting; the four studies keep their finish.
-    var followsAppearance: Bool { self == .final || self == .soft }
+    var followsAppearance: Bool { self == .final || self == .soft || self == .blend }
 
     /// The fixed scheme of a study look (`final` resolves through `LookModel.appearance`).
     var fixedColorScheme: ColorScheme? {
         switch self {
-        case .final, .soft: nil
+        case .final, .soft, .blend: nil
         case .paper: .light
         default: .dark
         }
@@ -62,6 +64,7 @@ enum LookID: String, CaseIterable, Identifiable, Hashable {
         case "paper", "c", "paperclub": self = .paper
         case "carbon", "carboncopy", "c-dark", "cdark": self = .carbon
         case "soft", "s": self = .soft
+        case "blend": self = .blend
         default: return nil
         }
     }
@@ -444,6 +447,7 @@ struct Look {
         switch id {
         case .final: scheme == .light ? .finalLight : .finalDark
         case .soft: scheme == .light ? .softLight : .softDark
+        case .blend: scheme == .light ? .blendLight : .blendDark
         case .floodlight: .floodlight
         case .anatomy: .anatomy
         case .paper: .paper

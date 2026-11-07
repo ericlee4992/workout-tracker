@@ -136,7 +136,8 @@ struct LookSwitcherOverlay: View {
                     }
                     .contentTransition(.symbolEffect(.replace))
                 }
-                if lookModel.id != .soft { accentButton }
+                if lookModel.id == .final { accentButton }
+                if lookModel.id == .blend { blendMenu }
                 chromeButton(router.dynamicTypeOverride == nil ? "textformat.size.smaller" : "textformat.size.larger",
                              label: router.dynamicTypeOverride == nil ? "Large text" : "Default text") {
                     router.dynamicTypeOverride = router.dynamicTypeOverride == nil ? .accessibility1 : nil
@@ -166,10 +167,11 @@ struct LookSwitcherOverlay: View {
     /// Direction A (Floodlight, with the accent) or Direction B (Soft).
     private var lookToggle: some View {
         let soft = lookModel.id == .soft
+        let blend = lookModel.id == .blend
         return Button {
-            withAnimation(.easeInOut(duration: 0.25)) { lookModel.id = soft ? .final : .soft }
+            withAnimation(.easeInOut(duration: 0.25)) { lookModel.id = blend ? .final : (soft ? .blend : .soft) }
         } label: {
-            Text(soft ? "SOFT" : "FLOOD")
+            Text(blend ? "BLEND" : (soft ? "SOFT" : "FLOOD"))
                 .font(.system(.caption2, design: .monospaced).weight(.bold))
                 .foregroundStyle(.white)
                 .padding(.horizontal, 6)
@@ -178,6 +180,29 @@ struct LookSwitcherOverlay: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(soft ? "Look: Soft, switch to Floodlight" : "Look: Floodlight, switch to Soft")
+    }
+
+    /// Blend's variants (the user: "show me both"): tabs, the +, macros.
+    private var blendMenu: some View {
+        let o = BlendOptions.shared
+        return Menu {
+            Picker("Tabs", selection: Binding(get: { o.tabs }, set: { o.tabs = $0 })) {
+                Text("Tabs: Today · Train · Food · Progress").tag(BlendOptions.Tabs.food)
+                Text("Tabs: Today · Train · Progress · Library").tag(BlendOptions.Tabs.library)
+            }
+            Picker("Add", selection: Binding(get: { o.add }, set: { o.add = $0 })) {
+                Text("+: black circle, ink tiles").tag(BlendOptions.Add.circle)
+                Text("+: labelled Add bar, list").tag(BlendOptions.Add.bar)
+            }
+            Picker("Macros", selection: Binding(get: { o.macros }, set: { o.macros = $0 })) {
+                Text("Macros: ticked dials + P/C/F").tag(BlendOptions.Macros.dials)
+                Text("Macros: segmented bars").tag(BlendOptions.Macros.bars)
+            }
+        } label: {
+            Image(systemName: "slider.horizontal.3").font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white).frame(width: 32, height: 32).contentShape(Rectangle())
+        }
+        .accessibilityLabel("Blend options")
     }
 
     /// Cycles the proposal's accent: Mono → Sand → Violet (today's).

@@ -34,6 +34,12 @@ struct LiveWorkoutScreen: View {
             live.radius = look.radius
             return live
         }
+        // Blend (Direction C): the shipped live structure in Mono; exercise cards lifted in light.
+        if look.origin == .blend, store.session?.focus != .cardio {
+            var live = Look.finalLive(dark: look.isDark, skin: look).withAccent(.mono, live: true)
+            live.origin = .blend
+            return live
+        }
         guard look.origin == .final, store.session?.focus != .cardio else { return look }
         return (look.isDark ? Look.finalLiveDark : Look.finalLiveLight).withAccent(lookModel.accent, live: true)
     }

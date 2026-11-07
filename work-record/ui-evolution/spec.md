@@ -63,3 +63,26 @@ borrowed, not the other app's screens or branding; the content and muscle figure
 
 Open: tab structure (is Profile the right home for History/Gyms/Exercises?), the nutrition feature's scope
 (database, AI photo estimate via the existing server, barcode), and whether Soft replaces Floodlight or is a theme.
+
+## Direction C — "Blend" (exploring, 2026-11-07)
+
+From two independent proposals (`proposals/fable.md` "Floodlight, daylight"; `proposals/astra.md` "Open Floodlight"),
+both briefed to keep our identity and borrow only the reference's feeling. Prototype `-look blend` (FLOOD → SOFT →
+BLEND in the pill; the slider icon switches Blend's variants).
+
+- **Kept:** SF Pro Expanded titles and figures, ink / cool-white grounds, Mono, muscle figures, the live set table,
+  red Cancel, the finish receipt.
+- **Borrowed, in our materials:** air (cards lifted on a soft shadow in light mode only; dark keeps graphite +
+  hairline), figure-over-goal (`1,240 /2,288` in Expanded Black), the day at the top (our day tiles; ink = trained, a
+  tan underline = food logged), a "+" a thumb away.
+- **Refused:** the warm page wash, plain type, smooth icon rings, dashed day circles.
+- **Ours, new:** the cardio ring's ticked dial as the one ring type (24 ticks calories, 12 ticks per macro, only type
+  inside); nutrition is typographic (P / C / F monograms in Expanded Black) in an earthy family (protein crimson,
+  carbs tan, fat slate) that never shares a row with the muscle hues; meals as receipt rows.
+- **Variants (the user: "show me both"):** tabs Today · Train · Food · Progress (Fable; Gyms/Exercises/History under
+  Train → Library) or Today · Train · Progress · Library (Astra); the + as a black circle opening 2×2 ink slabs
+  (Fable) or a labelled "+ Add" bar on Today/Progress opening a list (Astra); macros as ticked dials (Fable) or
+  segmented bars (Astra). Food logging: one-tap + with Undo (the user's choice).
+- **Screens:** Today (day tiles, calories, macros, Training card, Meals receipt), Food (diary with P/C/F chips, saved
+  foods), Library, Progress (Body · Strength · Fuel), Log food (meal chips, search/describe, recent with one-tap +,
+  Scan / Manual / Voice), the ink quick add, Train (+ Library section), the live workout (lifted cards in light).
