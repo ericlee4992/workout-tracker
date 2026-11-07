@@ -1,10 +1,10 @@
 # S2 — Five tabs: Today · Train · History · Progress · Profile
 
 Type: change
-Status: **proposed** (2026-11-07) — awaiting the user's approval
+Status: **in review** (2026-11-07) — Codex round 1; merge waits for the deferred Phase 1 test run
 Blocked by: S1
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
-Branch (when built): `ericlee4992/soft-02-tabs` off `main`.
+Branch: `ericlee4992/soft-02-tabs`, stacked on S1 (`ericlee4992/soft-01-look`, not yet in `main`).
 Spec: [soft-redesign](../spec.md). Decisions: D68 (reopens D63's tab list and "Settings stays behind the Workout tab's
 gear").
 
@@ -56,6 +56,30 @@ changes cannot be bounded.
 
 ## Progress
 
-Not started.
+- **2026-11-07 — implemented.** `RootView`: tabs Today · Train · History · Progress · Profile (native `TabView`,
+  not the prototype's drawn bar), default Today. `Features/Train/TrainView.swift`: `TrainSection`, the segmented
+  `TrainSwitcher` in each root page's principal bar slot (`InlineTitleOrTrainSwitcher`, replacing the fading inline
+  title in StartWorkoutView, `gymsInlineTitle`, `exercisesInlineTitle`); only the chosen part exists (keeping all
+  three alive left hidden parts' navigation stacks in the accessibility tree — two `addExercise` buttons).
+  `Features/Today/`: day rings (training only; dashed past, faint ahead, a disc with a dumbbell / runner on days
+  trained), Training (Resume, or Up next = the template done longest ago with its own Start, plus Start Lifting /
+  Start Cardio — same ids as Train's), Today's log (rows open the workout in History). Profile =
+  `SettingsView(title: "Profile")`; the Workout tab's gear is gone. Tour: `TourStep.Tab.profile`, the settings step
+  shows Profile; RootView applies the tour's first step on appear (the tour's sample app is a fresh RootView).
+  Launch routes `PROTO_SCREEN=gyms|exercises|train|progress|profile`.
+- **New strings:** tab labels Today, Train, Profile; "Templates" / "Gyms" / "Exercises" (switch); Today: "This week",
+  "N workouts", "Worked out", "Training", "Up next", "Start", "Last done <date>", "Not done yet", "No templates yet",
+  "Make one in Train.", "Today's log", "Nothing logged yet today.", AX rows "Rest day" / "Ahead"; tour caption "Your
+  profile: units, appearance, AI and backups — and this tour again."; Settings' page title "Profile". Open to veto.
+- **Profile's "Training" list** (History / Gyms / Exercises) does not exist in the app (it was a prototype idea), so
+  nothing to drop.
+- **UI tests moved to the new tabs:** `WorkoutTrackerUITests/TabNavigation.swift` (`openTrain(_:)`,
+  `openProfile()`); 31 files rewritten mechanically (Workout/Gyms/Exercises tab taps, the `openSettings` gear), the
+  four per-file `tab(_:)` helpers, the tour test's spots (read on Train; `settings` = the Profile tab).
+- **Verified:** `build-for-testing` exit 0; captures Today / Train / Train→Gyms / Profile light and dark (checked);
+  UI `FloodlightTourUITests/testShowTourFromSettings`, `GymsFlowsUITests/testDeleteGymIsConfirmedAndRestorable`,
+  `CoreLoopUITests/testCoreLoopFromEmptyStoreToOneTapRepeatSet` **3/3 passed** (third run; the first two runs found
+  the tour's first tab and the duplicate `addExercise`, both fixed). The full capture + core-flow run is deferred
+  with S1's (the user).
 
 ## Comments

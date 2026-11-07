@@ -30,7 +30,7 @@ final class FloodlightExercisesUITests: XCTestCase {
                                "-uiTestDesignExercises", "-appearance", appearance]
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
-        app.tabBars.buttons["Exercises"].tap()
+        app.openTrain("Exercises")
         XCTAssertTrue(any("exerciseSearch").waitForExistence(timeout: 15))
     }
 
@@ -349,8 +349,8 @@ final class FloodlightExercisesUITests: XCTestCase {
         XCTAssertTrue(chest.waitForNonExistence(timeout: 5))
         XCTAssertTrue(any("exerciseRow.Leg Press").exists)
         XCTAssertTrue(any("exerciseFamily.Legs").isSelected)
-        app.tabBars.buttons["Workout"].tap()
-        app.tabBars.buttons["Exercises"].tap()
+        app.openTrain()
+        app.openTrain("Exercises")
         XCTAssertTrue(any("exerciseFamily.Legs").waitForExistence(timeout: 5))
         XCTAssertTrue(any("exerciseFamily.Legs").isSelected, "the family is remembered")
         any("clearExerciseFilters").tap()
@@ -360,7 +360,7 @@ final class FloodlightExercisesUITests: XCTestCase {
     /// A machine page's exercise row opens that exercise (user decision 1).
     func testMachinePageExerciseRowOpensTheExercise() {
         launch()
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         let gym = any("gymRow.Iron Temple")
         XCTAssertTrue(gym.waitForExistence(timeout: 10))
         gym.tap()

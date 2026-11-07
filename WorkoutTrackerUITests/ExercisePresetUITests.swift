@@ -102,7 +102,7 @@ final class ExercisePresetUITests: XCTestCase {
     // MARK: - Steps
 
     private func definePresets() {
-        tab("Exercises").tap()
+        app.openTrain("Exercises")
         let row = app.exercisesTabRow(exerciseName)
         XCTAssertTrue(row.waitForExistence(timeout: 5), "The seeded exercise should be listed")
         row.press(forDuration: 1.2)
@@ -129,7 +129,7 @@ final class ExercisePresetUITests: XCTestCase {
     }
 
     private func createGym() {
-        tab("Gyms").tap()
+        app.openTrain("Gyms")
         app.buttons["addGym"].tap()
         let name = app.textFields["gymName"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
@@ -173,7 +173,7 @@ final class ExercisePresetUITests: XCTestCase {
     }
 
     private func startEmptyWorkout() {
-        tab("Workout").tap()
+        app.openTrain()
         // The picker resets to "No gym" on a fresh screen, and Add by Machine
         // only lists the machines of the workout's gym.
         let picker = anyElement("gymPicker")

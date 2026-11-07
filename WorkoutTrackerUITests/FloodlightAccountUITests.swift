@@ -30,10 +30,7 @@ final class FloodlightAccountUITests: XCTestCase {
     }
 
     private func openSettings() {
-        app.tabBars.buttons["Workout"].tap()
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 15))
-        gear.tap()
+        app.openProfile()
         XCTAssertTrue(any("settingsAccount").waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 0.8)
     }

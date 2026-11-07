@@ -19,7 +19,7 @@ final class TemplateDetailUITests: XCTestCase {
     }
 
     func testDeletingFromTheDetailRemovesOnlyThatTemplate() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         XCTAssertTrue(anyElement("templateTile.Whole Body").waitForExistence(timeout: 10))
         // A second template, so there is an "other" one to keep.
         app.buttons["New Template…"].tap()
@@ -51,7 +51,7 @@ final class TemplateDetailUITests: XCTestCase {
     }
 
     func testCancellingTheDeleteKeepsTheTemplate() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let tile = anyElement("templateTile.Whole Body")
         XCTAssertTrue(tile.waitForExistence(timeout: 10))
         tile.tap()

@@ -30,10 +30,7 @@ final class FloodlightGoogleUITests: XCTestCase {
     }
 
     private func openSignInSheet() {
-        app.tabBars.buttons["Workout"].tap()
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 15))
-        gear.tap()
+        app.openProfile()
         XCTAssertTrue(any("settingsAccount").waitForExistence(timeout: 10))
         any("settingsAccount").tap()
         XCTAssertTrue(any("signInWithGoogle").waitForExistence(timeout: 5))

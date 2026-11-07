@@ -47,7 +47,7 @@ final class FloodlightGymsUITests: XCTestCase {
     private func launchSample(appearance: String, large: Bool) {
         launch(["-uiTestReset", "-uiTestDesignSample", "-uiTestDesignHistory", "-uiTestDesignGyms"],
                appearance: appearance, large: large)
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
     }
 
     /// Swipes up until `element` is on screen and clear of the bars, up to `limit` times,
@@ -202,7 +202,7 @@ final class FloodlightGymsUITests: XCTestCase {
 
     private func captureEmpty(appearance: String, large: Bool) {
         launch(["-uiTestReset"], appearance: appearance, large: large)
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         XCTAssertTrue(app.staticTexts["No gyms yet"].waitForExistence(timeout: 10))
         XCTAssertTrue(any("addGym").isHittable, "Add Gym… on screen")
         Thread.sleep(forTimeInterval: 0.6)

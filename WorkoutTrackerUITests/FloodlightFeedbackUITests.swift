@@ -27,10 +27,7 @@ final class FloodlightFeedbackUITests: XCTestCase {
             + (filled ? ["-uiTestFeedbackSample"] : []) + extra
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
-        app.tabBars.buttons["Workout"].tap()
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 15))
-        gear.tap()
+        app.openProfile()
         let row = app.buttons["sendFeedback"]
         XCTAssertTrue(any("appUnitPreference").waitForExistence(timeout: 10))
         for _ in 0..<12 where !(row.exists && row.isHittable && row.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) {

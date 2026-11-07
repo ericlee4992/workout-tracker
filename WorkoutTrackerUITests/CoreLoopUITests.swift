@@ -121,7 +121,7 @@ final class CoreLoopUITests: XCTestCase {
     /// Ticket 17 A2: Start → Finish with nothing logged leaves no trace, and
     /// says so rather than confirming a save that never happened.
     func testFinishingAnEmptyWorkoutDiscardsItAndSaysSo() {
-        tab("Workout").tap()
+        app.openTrain()
         app.buttons["startEmptyWorkout"].tap()
         XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
 
@@ -419,7 +419,7 @@ final class CoreLoopUITests: XCTestCase {
     func testCreatingAnExerciseMidWorkoutLogsASetAndReachesHistory() {
         let newExercise = "Landmine Press \(Int.random(in: 100...999))"
 
-        tab("Workout").tap()
+        app.openTrain()
         app.buttons["startEmptyWorkout"].tap()
         XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
 
@@ -469,7 +469,7 @@ final class CoreLoopUITests: XCTestCase {
         // D24: it is a user-created row and lives in the Exercises tab too.
         // The seeded catalog is long (ticket 20), so search for it rather than
         // relying on the row being on screen.
-        tab("Exercises").tap()
+        app.openTrain("Exercises")
         XCTAssertTrue(
             app.exercisesTabRow(newExercise).waitForExistence(timeout: 5),
             "A mid-workout creation should appear in the Exercises tab")
@@ -481,7 +481,7 @@ final class CoreLoopUITests: XCTestCase {
     /// minimised, the tabs are usable, and the Workout tab offers the way
     /// back in.
     func testMinimizeKeepsTheWorkoutActiveAndResumeReopensIt() {
-        tab("Workout").tap()
+        app.openTrain()
         app.buttons["startEmptyWorkout"].tap()
         XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
 
@@ -496,7 +496,7 @@ final class CoreLoopUITests: XCTestCase {
         let history = tab("History")
         XCTAssertTrue(history.isHittable, "The tab bar should be hittable once minimised")
         history.tap()
-        tab("Workout").tap()
+        app.openTrain()
 
         XCTAssertTrue(resume.waitForExistence(timeout: 5))
         resume.tap()
@@ -512,7 +512,7 @@ final class CoreLoopUITests: XCTestCase {
     // MARK: - Flow helpers
 
     private func createGym() {
-        tab("Gyms").tap()
+        app.openTrain("Gyms")
         app.buttons["addGym"].tap()
 
         let name = app.textFields["gymName"]
@@ -548,7 +548,7 @@ final class CoreLoopUITests: XCTestCase {
     }
 
     private func startEmptyWorkout() {
-        tab("Workout").tap()
+        app.openTrain()
         // Pick the gym (the picker resets to "No gym" on a fresh screen).
         let picker = anyElement("gymPicker")
         XCTAssertTrue(picker.waitForExistence(timeout: 5))

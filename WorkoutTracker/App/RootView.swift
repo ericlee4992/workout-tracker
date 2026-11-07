@@ -145,6 +145,9 @@ struct RootView: View {
             // does not fit a medium detent, and hiding the actions under it is
             // how "View in History" became unreachable.
         }
+        // The tour's sample app is a fresh RootView whose first step is already set: show its tab now (the
+        // onChange above only sees later steps). Before S2 the default tab happened to be the first step's.
+        .onAppear { if let tab = tour?.current?.tab { show(tab) } }
         .onAppear(perform: recoverActiveWorkout)
         .onAppear(perform: applyLaunchOverride)
     }

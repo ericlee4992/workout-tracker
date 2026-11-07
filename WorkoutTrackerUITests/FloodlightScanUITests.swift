@@ -31,7 +31,7 @@ final class FloodlightScanUITests: XCTestCase {
     }
 
     private func openIronTemple() {
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         let iron = any("gymRow.Iron Temple")
         XCTAssertTrue(iron.waitForExistence(timeout: 15))
         iron.tap()
@@ -328,7 +328,7 @@ final class FloodlightScanUITests: XCTestCase {
         for _ in 0..<10 where !tab.isHittable { Thread.sleep(forTimeInterval: 0.5) }
         Thread.sleep(forTimeInterval: 0.6)
         tab.tap()
-        defer { app.tabBars.buttons["Gyms"].tap() }
+        defer { app.openTrain("Gyms") }
         let rows = app.buttons.matching(identifier: "historyWorkoutRow")
         // The list's rows stay in the accessibility tree under a pushed detail, so "back on the
         // list" means no Back button: pop until there is none.

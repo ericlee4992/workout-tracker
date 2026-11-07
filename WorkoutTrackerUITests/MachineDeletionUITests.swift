@@ -123,7 +123,7 @@ final class MachineDeletionUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts[exerciseName].waitForExistence(timeout: 5), "the workout reached History with the deleted machine's entry")
 
         // The Gyms tab agrees: gone from the list, one deleted machine to restore.
-        tab("Gyms").tap()
+        app.openTrain("Gyms")
         // The tab is still on the gym's detail page from earlier; if it shows
         // the list instead, open the gym.
         let gymRow = anyElement("gymRow.\(gymName)")
@@ -149,7 +149,7 @@ final class MachineDeletionUITests: XCTestCase {
     }
 
     private func createGym() {
-        tab("Gyms").tap()
+        app.openTrain("Gyms")
         app.buttons["addGym"].tap()
         let name = app.textFields["gymName"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
@@ -185,7 +185,7 @@ final class MachineDeletionUITests: XCTestCase {
     }
 
     private func startEmptyWorkout() {
-        tab("Workout").tap()
+        app.openTrain()
         let picker = anyElement("gymPicker")
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         if !picker.label.contains(gymName) {

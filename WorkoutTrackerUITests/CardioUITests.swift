@@ -10,7 +10,7 @@ final class CardioUITests: XCTestCase {
         app.launchArguments = ["-uiTestReset"] + (sensor ? ["-uiTestHeartRate"] : [])
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
     }
     private func any(_ id: String) -> XCUIElement {
         app.descendants(matching: .any).matching(identifier: id).firstMatch

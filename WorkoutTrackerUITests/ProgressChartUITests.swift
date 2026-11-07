@@ -46,7 +46,7 @@ final class ProgressChartUITests: XCTestCase {
     // MARK: - Helpers
 
     private func openProgress(for exercise: String) {
-        app.tabBars.buttons["Exercises"].tap()
+        app.openTrain("Exercises")
         let row = app.exercisesTabRow(exercise)
         XCTAssertTrue(row.waitForExistence(timeout: 10), "\(exercise) should be listed")
         row.press(forDuration: 1.0)
@@ -57,7 +57,7 @@ final class ProgressChartUITests: XCTestCase {
     }
 
     private func logSet(weight: String, reps: String) {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let start = app.buttons["startEmptyWorkout"]
         XCTAssertTrue(start.waitForExistence(timeout: 10))
         start.tap()
@@ -85,6 +85,6 @@ final class ProgressChartUITests: XCTestCase {
         let done = app.buttons["finishedDone"].firstMatch
         XCTAssertTrue(done.waitForExistence(timeout: 10))
         done.tap()
-        XCTAssertTrue(app.tabBars.buttons["Exercises"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.tabBars.buttons["Train"].waitForExistence(timeout: 5))
     }
 }

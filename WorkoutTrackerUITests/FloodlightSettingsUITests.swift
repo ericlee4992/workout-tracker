@@ -30,10 +30,7 @@ final class FloodlightSettingsUITests: XCTestCase {
             + (settingsFixture ? ["-uiTestDesignSettings"] : []) + extra
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
-        app.tabBars.buttons["Workout"].tap()
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 15))
-        gear.tap()
+        app.openProfile()
         XCTAssertTrue(any("appUnitPreference").waitForExistence(timeout: 10))
     }
 
@@ -191,7 +188,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertNotEqual(metric.isSelected, start)
         XCTAssertEqual(us.isSelected, start)
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        app.buttons["openSettings"].tap()
+        app.openProfile()
         XCTAssertTrue(metric.waitForExistence(timeout: 5))
         XCTAssertNotEqual(metric.isSelected, start, "the unit choice persisted")
     }
@@ -213,7 +210,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         let off = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '0'"), object: ask)
         XCTAssertEqual(XCTWaiter.wait(for: [off], timeout: 5), .completed)
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        app.buttons["openSettings"].tap()
+        app.openProfile()
         reach(ask)
         XCTAssertEqual(ask.value as? String, "0")
         XCTAssertEqual(any("globalWorkingRest").value as? String, "2:15")
@@ -300,7 +297,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["exportShare"].waitForExistence(timeout: 5))
         app.tabBars.buttons["History"].tap()
         Thread.sleep(forTimeInterval: 0.8)
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         XCTAssertTrue(any("exportPending").waitForExistence(timeout: 5), "back on Export (the tab kept it)")
         XCTAssertFalse(app.buttons["exportShare"].exists, "no Share for a deleted file")
         XCTAssertFalse(any("exportFileCard").exists)

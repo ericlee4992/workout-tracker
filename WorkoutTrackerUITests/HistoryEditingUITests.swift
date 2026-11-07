@@ -90,7 +90,7 @@ final class HistoryEditingUITests: XCTestCase {
     // MARK: - Helper
 
     private func logOneWorkout(weight: String, reps: String) {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let start = app.buttons["startEmptyWorkout"]
         XCTAssertTrue(start.waitForExistence(timeout: 10))
         start.tap()

@@ -85,7 +85,7 @@ final class AskAIUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.6); discard.tap()
     }
     private func scanner() {
-        app.tabBars.buttons["Gyms"].tap(); app.buttons["addGym"].tap()
+        app.openTrain("Gyms"); app.buttons["addGym"].tap()
         let field = app.textFields["gymName"]; XCTAssertTrue(field.waitForExistence(timeout: 5)); field.tap(); field.typeText("AI Gym")
         app.buttons["saveGym"].tap()
         let row = any("gymRow.AI Gym"); XCTAssertTrue(row.waitForExistence(timeout: 5)); row.tap()
@@ -125,7 +125,7 @@ final class AskAIUITests: XCTestCase {
     func testEmptyStartScreenDrawsDefault() { emptyStartCapture(large: false) }
     func testEmptyStartScreenDrawsAccessibility() { emptyStartCapture(large: true) }
     private func emptyStartCapture(large: Bool) {
-        launch(large: large); app.tabBars.buttons["Workout"].tap()
+        launch(large: large); app.openTrain()
         let lifting = app.buttons["startEmptyWorkout"]
         XCTAssertTrue(lifting.waitForExistence(timeout: 5)); reach(lifting)
         assertDrawn("Start Lifting", in: lifting)
@@ -139,12 +139,12 @@ final class AskAIUITests: XCTestCase {
     func testAllThreeGeneratedTemplatesInPopulatedListDefault() { allThreeTemplates(populated: true) }
     func testAllThreeGeneratedTemplatesInPopulatedListAccessibility() { allThreeTemplates(populated: true, large: true) }
     private func allThreeTemplates(populated: Bool = false, large: Bool = false) {
-        launch(populated ? ["-uiTestTemplate", "-uiTestTerraFullRoutine"] : [], large: large); app.tabBars.buttons["Workout"].tap()
+        launch(populated ? ["-uiTestTemplate", "-uiTestTerraFullRoutine"] : [], large: large); app.openTrain()
         if populated {
-            app.tabBars.buttons["Gyms"].tap(); app.buttons["addGym"].tap()
+            app.openTrain("Gyms"); app.buttons["addGym"].tap()
             let name = app.textFields["gymName"]; XCTAssertTrue(name.waitForExistence(timeout: 5))
             name.tap(); name.typeText("Template Gym"); app.buttons["saveGym"].tap()
-            app.tabBars.buttons["Workout"].tap(); app.buttons["gymPicker"].tap()
+            app.openTrain(); app.buttons["gymPicker"].tap()
             app.buttons["Template Gym"].tap()
         }
         let ask = app.buttons["askAIRoutine"]; reach(ask); ask.tap()
@@ -192,7 +192,7 @@ final class AskAIUITests: XCTestCase {
     func testScanMachinesDuringRoutineSetupDefault() { scanDuringRoutine(large: false) }
     func testScanMachinesDuringRoutineSetupAccessibility() { scanDuringRoutine(large: true) }
     private func scanDuringRoutine(large: Bool) {
-        launch(large: large); app.tabBars.buttons["Workout"].tap()
+        launch(large: large); app.openTrain()
         let ask = app.buttons["askAIRoutine"]; reach(ask)
         XCTAssertEqual(ask.label, "Ask AI for Templates")
         shot("followup-start-\(large ? "axl" : "default")"); ask.tap()
@@ -237,20 +237,20 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
         for _ in 0..<6 { app.swipeDown() }
         XCTAssertTrue(app.buttons["gymPicker"].label.contains("Routine Gym"))
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         let gymRow = any("gymRow.Routine Gym"); XCTAssertTrue(gymRow.waitForExistence(timeout: 5)); gymRow.tap()
         XCTAssertEqual(app.staticTexts.matching(identifier: "Chest press").count, 2,
                        "Explicitly added machines survive cancelling the unsaved routine")
     }
 
     func testRoutineGymPickerRemembersExistingGymAndNoGym() {
-        launch(); app.tabBars.buttons["Gyms"].tap()
+        launch(); app.openTrain("Gyms")
         for name in ["First Gym", "Second Gym"] {
             app.buttons["addGym"].tap()
             let field = app.textFields["gymName"]; XCTAssertTrue(field.waitForExistence(timeout: 5))
             field.tap(); field.typeText(name); app.buttons["saveGym"].tap()
         }
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let ask = app.buttons["askAIRoutine"]; reach(ask); ask.tap()
         typeGoals("Pick a gym"); toEquipment()
         chooseGym("Second Gym")
@@ -271,7 +271,7 @@ final class AskAIUITests: XCTestCase {
 
     func testRoutineScannerConsentAndFailureKeepPreferences() {
         launch(["-uiTestTerraNeedsConsent", "-uiTestTerraOffline"])
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let ask = app.buttons["askAIRoutine"]; reach(ask); ask.tap()
         typeGoals("Keep these preferences"); toEquipment()
         choose("routineEquipment.dumbbells"); choose("routineCardio.outdoorWalk")
@@ -302,7 +302,7 @@ final class AskAIUITests: XCTestCase {
     func testWeeklyRoutineAccessibility() { routine(large: true) }
     func testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce() { routine(large: false, edit: true) }
     private func routine(large: Bool, edit: Bool = false) {
-        launch(large: large); app.tabBars.buttons["Workout"].tap()
+        launch(large: large); app.openTrain()
         let ask = app.buttons["askAIRoutine"]; reach(ask); shot("ai-start-\(large ? "axl" : "default")"); ask.tap()
         typeGoals("Build strength and endurance")
         shot("ai-routine-goals-\(large ? "axl" : "default")")
@@ -367,7 +367,7 @@ final class AskAIUITests: XCTestCase {
     func testExistingTemplateDefaultRestDefault() { defaultRestCapture(large: false) }
     func testExistingTemplateDefaultRestAccessibility() { defaultRestCapture(large: true) }
     private func defaultRestCapture(large: Bool) {
-        launch(["-uiTestTemplate"], large: large); app.tabBars.buttons["Workout"].tap()
+        launch(["-uiTestTemplate"], large: large); app.openTrain()
         let tile = app.buttons["templateTile.Whole Body"]; reach(tile); tile.tap()
         app.buttons["editTemplate"].tap()
         // The template follows the exercise's own rest: its rest chip reads "Default, m:ss".
@@ -471,7 +471,7 @@ final class AskAIUITests: XCTestCase {
     /// sheet), and its Ask AI row opens the Ask AI sheet — Sign In and the permissions, no key field.
     private func signedOutRoutine(large: Bool) {
         app.launchArguments = ["-uiTestReset"] + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : [])
-        app.launch(); app.tabBars.buttons["Workout"].tap()
+        app.launch(); app.openTrain()
         reach(app.buttons["askAIRoutine"]); app.buttons["askAIRoutine"].tap()
         typeGoals("Build strength"); toEquipment()
         let signIn = app.buttons["routineSignIn"]; XCTAssertTrue(signIn.waitForExistence(timeout: 5))

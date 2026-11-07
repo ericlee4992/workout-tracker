@@ -60,8 +60,7 @@ final class FloodlightWhatsNewUITests: XCTestCase {
         any("whatsNewContinue").tap()
         XCTAssertTrue(any("whatsNewSheet").waitForNonExistence(timeout: 5))
 
-        app.tabBars.buttons["Workout"].tap()
-        any("openSettings").tap()
+        app.openProfile()
         let row = any("settingsWhatsNew")
         for _ in 0..<6 where !row.isHittable { app.swipeUp() }
         XCTAssertTrue(row.isHittable, "What's New in Settings")
@@ -73,7 +72,7 @@ final class FloodlightWhatsNewUITests: XCTestCase {
 
         app.terminate()
         launch([])
-        XCTAssertTrue(app.tabBars.buttons["Workout"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.tabBars.buttons["Train"].waitForExistence(timeout: 15))
         Thread.sleep(forTimeInterval: 2)
         XCTAssertFalse(any("whatsNewSheet").exists, "UI tests never see it unless they ask")
     }

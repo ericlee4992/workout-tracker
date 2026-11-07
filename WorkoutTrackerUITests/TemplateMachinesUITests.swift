@@ -46,7 +46,7 @@ final class TemplateMachinesUITests: XCTestCase {
 
     /// A second gym (no machines), so the Machines tab's gym menu has somewhere to switch to.
     private func addSecondGym() {
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         app.buttons["addGym"].tap()
         let name = app.textFields["gymName"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
@@ -63,7 +63,7 @@ final class TemplateMachinesUITests: XCTestCase {
     private func pickStation(large: Bool) {
         launch(large: large)
         addSecondGym()
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let new = app.buttons["New Template…"].firstMatch
         reach(new)
         new.tap()

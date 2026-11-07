@@ -18,7 +18,7 @@ final class HeartRateUITests: XCTestCase {
     }
 
     func testLiveHeartRateAppearsAndUpdatesDuringAWorkout() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let start = app.buttons["startEmptyWorkout"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
@@ -59,7 +59,7 @@ final class HeartRateUITests: XCTestCase {
     /// D45: with no measured maximum and no date of birth, no zone is shown at
     /// all — the app does not invent a basis in order to show a badge.
     func testNoZoneIsShownWithoutABasisForOne() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         app.buttons["startEmptyWorkout"].tap()
         XCTAssertTrue(
             app.descendants(matching: .any).matching(identifier: "hrBpm").firstMatch
@@ -75,7 +75,7 @@ final class HeartRateUITests: XCTestCase {
     /// screen — the half Apple's summary cannot show beside the half this app
     /// could not.
     func testFinishingShowsASummaryOfExercisesAndHeartRate() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         app.buttons["startEmptyWorkout"].tap()
         XCTAssertTrue(
             app.descendants(matching: .any).matching(identifier: "hrBpm").firstMatch
@@ -137,7 +137,7 @@ final class HeartRateUITests: XCTestCase {
     /// workout with no basis set, and using it makes a zone appear *in the
     /// workout already running*, without leaving and re-entering the screen.
     func testZonesCanBeSetUpFromTheWorkoutScreenAndApplyImmediately() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         app.buttons["startEmptyWorkout"].tap()
         XCTAssertTrue(
             app.descendants(matching: .any).matching(identifier: "hrBpm").firstMatch
@@ -179,8 +179,8 @@ final class HeartRateUITests: XCTestCase {
     /// A date of birth is not a thing to enter mid-set, so the same screen is
     /// reachable from Settings — and independently of whether a zone exists.
     func testZonesAreReachableFromSettings() {
-        app.tabBars.buttons["Workout"].tap()
-        app.buttons["openSettings"].tap()
+        app.openTrain()
+        app.openProfile()
         let row = app.buttons["heartRateZonesSettings"].firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()

@@ -28,6 +28,8 @@ final class FloodlightTourUITests: XCTestCase {
 
     /// The user's own store is the empty UI-test store: its gym picker reads "No gym".
     private func assertBackOnTheUsersEmptyStore() {
+        // S2: the gym picker lives in Train → Templates (the tour can end on any tab).
+        app.openTrain()
         let picker = app.buttons["gymPicker"]
         XCTAssertTrue(picker.waitForExistence(timeout: 10))
         XCTAssertTrue(picker.label.contains("No gym"), "back on the user's store, not the sample (\(picker.label))")
@@ -68,13 +70,13 @@ final class FloodlightTourUITests: XCTestCase {
         assertBackOnTheUsersEmptyStore()
         app.terminate()
         launch(["-uiTestOnboarding"])  // answered: no -uiTestOnboardingFresh
-        XCTAssertTrue(app.buttons["gymPicker"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["welcomeSkip"].exists, "an answered welcome stays away")
     }
 
     func testAPhoneWithWorkoutsNeverSeesTheWelcome() {
         launch(freshWelcome + ["-uiTestDesignSample"])
-        XCTAssertTrue(app.buttons["gymPicker"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 15))
         Thread.sleep(forTimeInterval: 1.0)
         XCTAssertFalse(app.buttons["welcomeTour"].exists)
     }
@@ -86,14 +88,15 @@ final class FloodlightTourUITests: XCTestCase {
         app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx: rect.midX, dy: rect.midY)).tap()
     }
 
-    /// Launches on the user's empty store, records the spots, and starts the tour from Settings → Show Tour.
+    /// Launches on the user's empty store, records the spots, and starts the tour from Profile → Show Tour.
+    /// S2: the tour's first steps show Train → Templates, so the spots are read there; `settings` is the Profile tab.
     private func startTourFromSettings(_ extra: [String] = [], tapStartImmediately: Bool = false) -> Spots {
         launch(extra)
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 15))
-        let spots = Spots(start: app.buttons["startEmptyWorkout"].frame, settings: gear.frame,
+        app.openTrain()
+        XCTAssertTrue(app.buttons["gymPicker"].waitForExistence(timeout: 15))
+        let spots = Spots(start: app.buttons["startEmptyWorkout"].frame, settings: app.tabBars.buttons["Profile"].frame,
                           historyTab: app.tabBars.buttons["History"].frame, gymPicker: app.buttons["gymPicker"].frame)
-        gear.tap()
+        app.openProfile()
         let row = app.buttons["showTour"]
         for _ in 0..<8 where !row.isHittable { app.swipeUp() }
         XCTAssertTrue(row.isHittable)
@@ -111,11 +114,11 @@ final class FloodlightTourUITests: XCTestCase {
     func testTheAppUnderTheTourIsInert() {
         let spots = startTourFromSettings()
         // Disabled: VoiceOver and Full Keyboard Access can focus these but not activate them.
-        for id in ["startEmptyWorkout", "startCardio", "openSettings", "gymPicker"] {
+        for id in ["startEmptyWorkout", "startCardio", "gymPicker"] {
             let control = app.buttons[id]
             XCTAssertTrue(control.exists && !control.isEnabled, "\(id) is disabled during the tour")
         }
-        // Touch: Start, the gear and the History tab are under the barrier.
+        // Touch: Start, the Profile tab and the History tab are under the barrier.
         tap(spots.start); tap(spots.settings); tap(spots.historyTab)
         Thread.sleep(forTimeInterval: 1.0)
         XCTAssertTrue(app.staticTexts["1 of 8"].exists, "still on step 1")
@@ -151,9 +154,7 @@ final class FloodlightTourUITests: XCTestCase {
         let minimize = app.buttons["minimizeWorkout"]
         XCTAssertTrue(minimize.waitForExistence(timeout: 15), "the running workout reopens")
         minimize.tap()
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 10))
-        gear.tap()
+        app.openProfile()
         let row = app.buttons["showTour"]
         for _ in 0..<8 where !row.isHittable { app.swipeUp() }
         row.tap()

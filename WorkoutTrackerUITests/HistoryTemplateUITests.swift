@@ -64,7 +64,7 @@ final class HistoryTemplateUITests: XCTestCase {
         XCTAssertTrue(confirmation.waitForExistence(timeout: 5), "the detail confirms the save in place, naming the template")
         shoot("history-13-confirmation\(suffix)")
 
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let tile = app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier BEGINSWITH 'templateTile.Workout' AND identifier ENDSWITH 'From History'")).firstMatch
         XCTAssertTrue(tile.waitForExistence(timeout: 10), "the template is on the Workout tab")
@@ -78,7 +78,7 @@ final class HistoryTemplateUITests: XCTestCase {
     /// and no test had exercised it: the prefilled name, Save, the
     /// confirmation in place of the button (codex-review-13).
     func testTheFinishSheetStillSavesATemplate() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         app.buttons["startEmptyWorkout"].tap()
         app.buttons["addExercise"].tap()
         let search = app.searchFields.firstMatch

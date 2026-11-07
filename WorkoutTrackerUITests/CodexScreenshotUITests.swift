@@ -31,7 +31,7 @@ final class CodexScreenshotUITests: XCTestCase {
         capture("codex-01-root")
         createGym()
         addMachine()
-        tab("Workout").tap()
+        app.openTrain()
         anyElement("gymPicker").tap()
         tapOption(gymName)
         createTemplate()
@@ -49,7 +49,7 @@ final class CodexScreenshotUITests: XCTestCase {
     }
 
     func testBarMode() {
-        tab("Workout").tap()
+        app.openTrain()
         app.buttons["startEmptyWorkout"].tap()
         app.buttons["addExercise"].tap()
         typeInSearchField("Seated Chest")
@@ -118,7 +118,7 @@ final class CodexScreenshotUITests: XCTestCase {
     }
 
     private func createGym() {
-        tab("Gyms").tap()
+        app.openTrain("Gyms")
         app.buttons["addGym"].tap()
 
         let name = app.textFields["gymName"]
@@ -154,7 +154,7 @@ final class CodexScreenshotUITests: XCTestCase {
     }
 
     private func startEmptyWorkout() {
-        tab("Workout").tap()
+        app.openTrain()
         // Pick the gym (the picker resets to "No gym" on a fresh screen).
         let picker = anyElement("gymPicker")
         XCTAssertTrue(picker.waitForExistence(timeout: 5))

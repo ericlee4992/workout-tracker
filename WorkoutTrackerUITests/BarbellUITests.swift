@@ -138,7 +138,7 @@ final class BarbellUITests: XCTestCase {
     // MARK: - Flow helpers
 
     private func startEmptyWorkout() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let start = app.buttons["startEmptyWorkout"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()

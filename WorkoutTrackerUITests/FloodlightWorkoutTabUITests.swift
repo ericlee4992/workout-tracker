@@ -15,7 +15,7 @@ final class FloodlightWorkoutTabUITests: XCTestCase {
     private func launch(_ extra: [String] = []) {
         app.launchArguments = ["-uiTestReset"] + extra
         app.launch()
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
     }
 
     private func any(_ id: String) -> XCUIElement {
@@ -165,9 +165,7 @@ final class FloodlightWorkoutTabUITests: XCTestCase {
     func testAppearanceReachesScreensAndSheets() {
         // No `-appearance` argument here: a launch argument overrides the stored setting.
         launch(["-uiTestTemplate"])
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 10))
-        gear.tap()
+        app.openProfile()
         // The simulator runs light: System follows it; Light and Dark override it.
         for (choice, light) in [("Dark", false), ("System", true), ("Light", true), ("Dark", false)] {
             // Floodlight ticket 09: System / Light / Dark are pills inside `appearanceSetting`.

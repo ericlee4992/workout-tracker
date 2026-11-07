@@ -89,7 +89,7 @@ struct TodayView: View {
                     startedAt: active.startedAt,
                     elapsedAt: { active.isDeleted ? 0 : active.trainingSeconds(at: $0) },
                     action: resumeActive)
-                    .accessibilityIdentifier("todayResumeWorkout")
+                    .accessibilityIdentifier("resumeWorkout")
             } else {
                 if let next = upNext {
                     TodayUpNextCard(name: next.template.name,
@@ -114,10 +114,10 @@ struct TodayView: View {
         }
         .frame(maxWidth: .infinity)
         .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
-        .accessibilityIdentifier("todayStartLifting")
+        .accessibilityIdentifier("startEmptyWorkout")
         StartCapsule(title: "Start Cardio", symbol: "figure.run") { showingCardioPicker = true }
             .frame(maxWidth: .infinity)
-            .accessibilityIdentifier("todayStartCardio")
+            .accessibilityIdentifier("startCardio")
     }
 
     /// The template done longest ago leads (a never-run template counts as longest ago; ties by name).

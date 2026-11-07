@@ -154,7 +154,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
                                "-uiTestDesignGyms", "-appearance", appearance] + extra
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let ask = app.buttons["askAIRoutine"]
         XCTAssertTrue(ask.waitForExistence(timeout: 15))
         for _ in 0..<8 where !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }

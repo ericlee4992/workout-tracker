@@ -187,7 +187,7 @@ final class ScanMachineLabelUITests: XCTestCase {
     }
 
     private func createGym() {
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         app.buttons["addGym"].tap()
 
         let name = app.textFields["gymName"]

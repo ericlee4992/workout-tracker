@@ -86,7 +86,7 @@ final class WorkoutNameUITests: XCTestCase {
     }
 
     private func startWorkoutWithOneSet() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let start = app.buttons["startEmptyWorkout"]
         XCTAssertTrue(start.waitForExistence(timeout: 10))
         start.tap()

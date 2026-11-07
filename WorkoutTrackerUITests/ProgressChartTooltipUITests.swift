@@ -196,7 +196,7 @@ final class ProgressChartTooltipUITests: XCTestCase {
     }
 
     private func openProgress(for exercise: String) {
-        app.tabBars.buttons["Exercises"].tap()
+        app.openTrain("Exercises")
         let row = app.exercisesTabRow(exercise)
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.press(forDuration: 1.0)

@@ -2,8 +2,8 @@ import SwiftUI
 
 // Soft redesign S2 (D68): the Train tab holds the three training libraries behind one switch —
 // Templates | Gyms | Exercises — in place of the old Workout, Gyms and Exercises tabs. Each part
-// keeps its own navigation stack (and so its own pushed pages); the switch sits in the root
-// page's navigation bar, where the page's inline title used to fade in, so it leaves with a push.
+// has its own navigation stack; the switch sits in the root page's navigation bar, where the
+// page's inline title used to fade in, so it leaves with a push.
 
 enum TrainSection: String, CaseIterable, Identifiable, Hashable {
     case templates, gyms, exercises
@@ -29,31 +29,27 @@ struct TrainView: View {
     @Binding var startLiftingRequest: Bool
 
     var body: some View {
-        // All three stay alive (as the old tabs did), so a switch keeps each part's place and its
-        // start flow's state; only the shown part is hit-testable and visible to VoiceOver.
-        ZStack {
-            part(.templates) {
+        // Only the chosen part exists. Keeping all three alive behind opacity left the hidden parts' navigation
+        // stacks in the accessibility tree (`accessibilityHidden` does not reach a stack's UIKit pages), so
+        // VoiceOver and UI tests met two "Add Exercise" buttons. A switch therefore drops the other parts' pushed
+        // pages; the gym choice is remembered (D1) and a start request is consumed when Templates appears.
+        Group {
+            switch section {
+            case .templates:
                 StartWorkoutView(onWorkoutStarted: onWorkoutStarted, startLiftingRequest: $startLiftingRequest)
+            case .gyms:
+                GymsView()
+            case .exercises:
+                ExercisesView()
             }
-            part(.gyms) { GymsView() }
-            part(.exercises) { ExercisesView() }
         }
         .environment(\.trainSection, $section)
-    }
-
-    private func part<Content: View>(_ which: TrainSection, @ViewBuilder _ content: () -> Content) -> some View {
-        let shown = section == which
-        return content()
-            .opacity(shown ? 1 : 0)
-            .allowsHitTesting(shown)
-            .accessibilityHidden(!shown)
     }
 }
 
 /// The switch between Train's parts: a segmented control, as in the approved prototype.
 struct TrainSwitcher: View {
     @Binding var section: TrainSection
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         Picker("Train", selection: $section) {

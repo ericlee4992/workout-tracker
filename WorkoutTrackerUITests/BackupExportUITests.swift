@@ -17,8 +17,8 @@ final class BackupExportUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
-        app.tabBars.buttons["Workout"].tap()
-        app.buttons["openSettings"].tap()
+        app.openTrain()
+        app.openProfile()
 
         let card = app.buttons["exportSettings"]
         XCTAssertTrue(card.waitForExistence(timeout: 10), "The Settings screen should carry the export card")

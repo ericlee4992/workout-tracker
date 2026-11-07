@@ -36,7 +36,7 @@ final class RedesignScreenshotUITests: XCTestCase {
 
     private func captureCardioStartChoices(large: Bool) {
         launch(large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : [])
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let lifting = app.buttons["startEmptyWorkout"]
         let cardio = app.buttons["startCardio"]
         XCTAssertTrue(lifting.waitForExistence(timeout: 5))
@@ -57,8 +57,8 @@ final class RedesignScreenshotUITests: XCTestCase {
 
     private func captureUnitSystem(large: Bool) {
         launch(["-uiTestHeartRate"] + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : []))
-        app.tabBars.buttons["Workout"].tap()
-        app.buttons["openSettings"].tap()
+        app.openTrain()
+        app.openProfile()
         selectUnitSystem("Metric")
         shoot("unit-settings-metric-\(large ? "axl" : "default")")
         selectUnitSystem("U.S. customary")
@@ -71,7 +71,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(anyElement("cardioTimer").waitForExistence(timeout: 10))
         XCTAssertTrue(labelled(" km").waitForExistence(timeout: 10))
         app.buttons["minimizeWorkout"].tap()
-        app.buttons["openSettings"].tap()
+        app.openProfile()
         selectUnitSystem("U.S. customary")
         app.navigationBars["Settings"].buttons.firstMatch.tap()
         let resume = anyElement("resumeWorkout")
@@ -235,7 +235,7 @@ final class RedesignScreenshotUITests: XCTestCase {
     /// same state `test04_startLargeText` captures at AccessibilityL.
     func test04_startTemplates() {
         launch()
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let newTemplate = app.buttons["New Template…"]
         XCTAssertTrue(newTemplate.waitForExistence(timeout: 10))
         newTemplate.tap()
@@ -263,7 +263,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.launchArguments = ["-uiTestReset",
                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
         app.launch()
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let newTemplate = app.buttons["New Template…"]
         XCTAssertTrue(newTemplate.waitForExistence(timeout: 10))
         newTemplate.tap()
@@ -307,7 +307,7 @@ final class RedesignScreenshotUITests: XCTestCase {
     /// size; `test04_templateFixtureLargeText` is the same at AccessibilityL.
     func test04_templateFixture() {
         launch(["-uiTestTemplate"])
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let tile = anyElement("templateTile.Whole Body")
         XCTAssertTrue(tile.waitForExistence(timeout: 10))
         shoot("redesign-04-start-fixture")
@@ -321,7 +321,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.launchArguments = ["-uiTestReset", "-uiTestTemplate",
                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
         app.launch()
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let tile = anyElement("templateTile.Whole Body")
         XCTAssertTrue(tile.waitForExistence(timeout: 10))
         // The tile sits under the capsule at this size: scroll it up first.
@@ -353,10 +353,7 @@ final class RedesignScreenshotUITests: XCTestCase {
     /// Settings behind the gear on the Workout tab (ticket 05).
     func test05_settings() {
         launch()
-        app.tabBars.buttons["Workout"].tap()
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 10))
-        gear.tap()
+        app.openProfile()
         XCTAssertTrue(anyElement("heartRateZonesSettings").waitForExistence(timeout: 5))
         shoot("redesign-05-settings")
     }
@@ -376,7 +373,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(anyElement("historySetLine").waitForExistence(timeout: 5))
         shoot("redesign-05-detail")
 
-        app.tabBars.buttons["Exercises"].tap()
+        app.openTrain("Exercises")
         let row = app.exercisesTabRow(exerciseName)
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.press(forDuration: 1.0)
@@ -464,7 +461,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.navigationBars.buttons.matching(NSPredicate(format: "identifier != 'editGym'")).firstMatch.tap()
         XCTAssertTrue(anyElement("gymRow.\(gymName)").waitForExistence(timeout: 5))
         shoot("redesign-06-gyms")
-        app.tabBars.buttons["Exercises"].tap()
+        app.openTrain("Exercises")
         XCTAssertTrue(app.textFields["exerciseSearch"].waitForExistence(timeout: 10))
         shoot("redesign-07-exercises")
     }
@@ -492,7 +489,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.launchArguments = ["-uiTestReset",
                                "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"]
         app.launch()
-        app.tabBars.buttons["Exercises"].tap()
+        app.openTrain("Exercises")
         XCTAssertTrue(app.textFields["exerciseSearch"].waitForExistence(timeout: 10))
         shoot("redesign-07-exercises-axl")
     }
@@ -503,10 +500,10 @@ final class RedesignScreenshotUITests: XCTestCase {
         app.tabBars.buttons["History"].tap()
         XCTAssertTrue(app.staticTexts["No workouts yet"].waitForExistence(timeout: 10))
         shoot("redesign-08-empty-history")
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         XCTAssertTrue(app.buttons["addGym"].waitForExistence(timeout: 5))
         shoot("redesign-08-empty-gyms")
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 5))
         shoot("redesign-01-root")
     }
@@ -538,7 +535,7 @@ final class RedesignScreenshotUITests: XCTestCase {
     }
 
     private func createGym() {
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         app.buttons["addGym"].tap()
         let name = app.textFields["gymName"]
         XCTAssertTrue(name.waitForExistence(timeout: 5))
@@ -573,7 +570,7 @@ final class RedesignScreenshotUITests: XCTestCase {
     }
 
     private func startEmptyWorkout() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let picker = anyElement("gymPicker")
         XCTAssertTrue(picker.waitForExistence(timeout: 5))
         if !picker.label.contains(gymName) {

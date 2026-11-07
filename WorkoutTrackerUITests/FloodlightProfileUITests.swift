@@ -27,13 +27,11 @@ final class FloodlightProfileUITests: XCTestCase {
                                "-appearance", appearance] + flags
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
     }
 
     private func openSettings() {
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 15))
-        gear.tap()
+        app.openProfile()
         XCTAssertTrue(any("settingsAccount").waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 0.8)
     }
@@ -114,7 +112,7 @@ final class FloodlightProfileUITests: XCTestCase {
     // MARK: Ticket 05 — Ask AI prefilled, and the save switch
 
     private func openAskAI() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let ask = app.buttons["askAIRoutine"]
         XCTAssertTrue(ask.waitForExistence(timeout: 15))
         for _ in 0..<8 where !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }

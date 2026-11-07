@@ -11,7 +11,7 @@ final class GymsFlowsUITests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestDesignHistory", "-uiTestDesignGyms"]
         app.launch()
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
     }
 
     private func any(_ id: String) -> XCUIElement {
@@ -71,7 +71,7 @@ final class GymsFlowsUITests: XCTestCase {
         app.terminate()
         app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryXS"]
         app.launch()
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         let iron = any("gymRow.Iron Temple")
         XCTAssertTrue(iron.waitForExistence(timeout: 15))
         iron.tap()
@@ -85,11 +85,11 @@ final class GymsFlowsUITests: XCTestCase {
     /// Deleting the gym Home is set to (Iron Temple, the fixture's current gym): Home drops it at
     /// once — no relaunch — so a new workout cannot start at an archived gym (Codex review 06).
     func testDeletingTheCurrentGymClearsHomesSelection() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let picker = any("gymPicker")
         XCTAssertTrue(picker.waitForExistence(timeout: 10))
         XCTAssertTrue(picker.label.contains("Iron Temple"), "the fixture's gym is selected: \(picker.label)")
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         let iron = any("gymRow.Iron Temple")
         XCTAssertTrue(iron.waitForExistence(timeout: 10))
         iron.tap()
@@ -99,7 +99,7 @@ final class GymsFlowsUITests: XCTestCase {
         delete.tap()
         app.alerts.buttons["Delete Gym"].tap()
         XCTAssertTrue(any("deletedGyms").waitForExistence(timeout: 10))
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         XCTAssertTrue(picker.waitForExistence(timeout: 10))
         let cleared = NSPredicate(format: "label CONTAINS 'No gym'")
         XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: cleared, evaluatedWith: picker)], timeout: 5), .completed,

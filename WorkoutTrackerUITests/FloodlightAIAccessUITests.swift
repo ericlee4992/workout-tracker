@@ -50,10 +50,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
     }
 
     private func openSettings() {
-        app.tabBars.buttons["Workout"].tap()
-        let gear = app.buttons["openSettings"]
-        XCTAssertTrue(gear.waitForExistence(timeout: 15))
-        gear.tap()
+        app.openProfile()
         XCTAssertTrue(any("askAISettings").waitForExistence(timeout: 10))
     }
 
@@ -70,7 +67,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
     }
 
     private func openScan() {
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         let iron = any("gymRow.Iron Temple")
         XCTAssertTrue(iron.waitForExistence(timeout: 15))
         iron.tap()
@@ -79,7 +76,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
     }
 
     private func openRoutineEquipment() {
-        app.tabBars.buttons["Workout"].tap()
+        app.openTrain()
         let ask = app.buttons["askAIRoutine"]
         XCTAssertTrue(ask.waitForExistence(timeout: 15))
         for _ in 0..<8 where !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
@@ -242,7 +239,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
     private func captureNewModel(appearance: String, large: Bool) {
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
         launch(appearance: appearance, large: large, flags: ["-uiTestProfileSignedOut", "-uiTestScanFixture"])
-        app.tabBars.buttons["Gyms"].tap()
+        app.openTrain("Gyms")
         let iron = any("gymRow.Iron Temple")
         XCTAssertTrue(iron.waitForExistence(timeout: 15))
         iron.tap()
