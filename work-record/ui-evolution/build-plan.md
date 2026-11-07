@@ -21,6 +21,15 @@ layout **A**. Its spec, round by round: `work-record/ui-evolution/spec.md` (Dire
 | Goals | **Calculated, editable:** from body weight, height, age, sex, activity, goal (lose / maintain / gain), protein set for lifting; every number overridable |
 | Burned calories | **Show, don't add:** shown beside the budget, the goal stays fixed |
 | Recent / saved food | One-tap + with Undo (earlier answer); AI scans always go through a review screen before Log |
+| Barcode database | **Open Food Facts first, USDA FoodData Central as the fallback** (US products), through the server with a cache; not found → offer the label scan |
+| Food labels | **AI reads a photo cropped to the label** (a daily-limited flow; needs sign-in and internet) |
+| Apple Health | **All four:** read body weight, write body weight, write food totals (calories, protein, carbs, fat), read calories burned (shown, not added) |
+| Daily AI limits | **food-photo 30, food-label 30, food-describe 60** per person per day (re-measure the real cost before release) |
+| Parallel workspaces | **No:** one workspace, Phase 1 then Phase 2 (asked and decided 2026-11-07) |
+| Release | **Phases 1 and 2 ship to testers together** — no interim tester build, and no Developer-only phone build after Phase 1 |
+| Merging | **Each ticket merges into `main`** when clear (the usual flow), so `main` carries unreleased work until the release; an urgent tester fix branches from build 9's commit `5ab7a16` |
+| Prototype | **Record only:** `DesignPrototype/` never merges to `main`; ticket work starts on branches off `main` |
+| Today before nutrition | Moot (one release): Today's training parts are built in Phase 1, its food parts in Phase 2 |
 
 ## Facts that constrain the order
 
@@ -61,7 +70,7 @@ layout **A**. Its spec, round by round: `work-record/ui-evolution/spec.md` (Dire
 12. Body weight logging + Apple Health (read/write weight; maybe write dietary energy/macros) + Progress charts
     (weight, trend, calories, protein, macros) + History food line.
 
-## Open questions for the next session (ask before writing those tickets)
+## Open questions for the next session — answered 2026-11-07 (see the table above; kept for the reasoning)
 
 - **Food database for barcodes:** Open Food Facts (free, crowd-sourced, ODbL attribution, international incl.
   Korea, variable quality) vs USDA FoodData Central branded foods (free, public domain, US only) vs a paid API
