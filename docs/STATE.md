@@ -5,24 +5,21 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **UI evolution (2026-11-06, in progress):** worktree `…/workspaces/Health App/UI_design`, branch
-  `ericlee4992/UI_design`. The user ran the `impeccable` skill (installed in `~/.claude/skills/impeccable`) and asked
-  that **the project's ios-design skill not limit it** for this work. Critique of the whole app (33 screens, light/dark/
-  AccessibilityL): 25/36, snapshot `.impeccable/critique/2026-11-07T02-17-03Z__workouttracker-features.md`. The user's
-  answers: first fix = end/cancel/delete controls; direction = **evolve the look** (keep Floodlight's identity); scope =
-  all five issues; **off-limits: the live set table, the muscle figures, Settings**. The red Cancel beside minimize is
-  kept (the user's 2026-10-10 choice). **No app code changed yet — the user asked to see the design first:** a tappable
-  Simulator prototype in `DesignPrototype/` (the September RedesignPrototype restored, plus the proposal; NOW | NEW
-  switch shows real screenshots of today's app vs the proposal; Finish top/bottom switch; large-text switch).
-  Round 2 (the user's feedback): cardio Pause/End spaced and the button reads just "End"; the finish screen shows a
-  receipt-style summary (time, exercises · sets, volume, calories, heart rate) under the new bests; live buttons flat
-  (no hard offset shadow); **no purple** — accent switch Mono (recommended) / Sand / Violet (today) in the pill.
-  **2026-11-07:** the user chose Mono and asked to save it (tag `design/floodlight-mono-2026-11-07`, record
-  `work-record/ui-evolution/spec.md` Direction A) and to explore a "Soft" direction inspired by a calorie/macro
-  tracker, with calorie/macro tracking planned for the app (all-in-one). Soft is in the prototype (`-look soft`,
-  spec Direction B). **Still no app code; the user wants to see designs first.** Next: the user tries Soft and
-  compares; open questions in the spec.
-
+- **Resume here (2026-11-07) — UI evolution + nutrition: design approved, planning tickets.** Worktree
+  `…/orca/workspaces/Health App/UI_design`, branch `ericlee4992/UI_design` (pushed). **No app code changed.** The user
+  approved the **Soft** design (layout A: Today · Train · History · Progress · Profile) in the Simulator prototype
+  `DesignPrototype/` (separate Xcode project; `-look soft`), and chose for nutrition: **everything at once** (AI meal
+  photo, barcode, food label, manual/saved), **calculated editable goals**, **burned calories shown not added**.
+  **Next:** read [build plan](../work-record/ui-evolution/build-plan.md) → ask its open questions (food database,
+  label reading, Today in Phase 1, Apple Health, limits) → write the ticket files and DECISIONS entries → build in
+  order (Phase 1 look/tabs first; nutrition needs ticket 11's safety copy). Design history:
+  [spec](../work-record/ui-evolution/spec.md); proposals by Fable 5.1 and ChatGPT Astra in
+  `work-record/ui-evolution/proposals/`; critique snapshot in `.impeccable/critique/`. The user asked that the
+  project's ios-design skill **not limit** this work (impeccable skill used). Saved directions: tags
+  `design/floodlight-mono-2026-11-07`, `design/soft-2026-11-07`. Codex: Orca terminal "Astra design proposal"
+  (`term_36a683d9-11a6-437c-8c61-efd47fa69207`, GPT-6-Astra, this worktree; its 2 new hooks were left untrusted).
+  Prototype build: `xcodebuild -project DesignPrototype/RedesignPrototype.xcodeproj -scheme RedesignPrototype`, sim
+  WT-Floodlight; the user's references are in `~/Downloads/IMG_57xx.PNG` (**IMG_5751 is personal — never share**).
 - **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue
   **exercise media** in the `public-beta` worktree ("Exercise media" entry below; ticket 03 + the DIY animation report's
   four open decisions). Next steps, in order: (1) the user closes the finished `beta-19-bug-fixes` worktree in Orca
