@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Draw the app icon: the dumbbell in the Floodlight palette (D54, Floodlight redesign ticket 11 —
-the user kept the dumbbell and moved it from amber to violet).
+"""Draw the app icon: the dumbbell in Soft's Mono palette (D67; the user, 2026-11-07: "for icon make a
+mono version"). The dumbbell shape is unchanged since D54 (amber) and D59 (violet).
 
 Usage: render-app-icon.py <appiconset dir>
 Writes three 1024 x 1024 PNGs for iOS's icon appearances:
-  AppIcon.png        Default: violet #B25CFF plates, deeper violet bar, on ink #060708 (opaque;
-                     iOS masks the corners).
-  AppIcon-Dark.png   Dark: the same dumbbell on a transparent ground (iOS draws its dark tile).
+  AppIcon.png        Default: ink #111114 plates, a grey #4A4A50 bar, on white (opaque; iOS masks
+                     the corners) — the Mono action of Soft Light.
+  AppIcon-Dark.png   Dark: flood #F5F5F7 plates, a grey #A1A1A8 bar, on a transparent ground (iOS
+                     draws its dark tile) — the Mono action of Soft dark.
   AppIcon-Tinted.png Tinted: the dumbbell in greys on a transparent ground (iOS tints it; the
                      bar is darker than the plates so the shape survives the tint).
 """
@@ -15,9 +16,11 @@ import sys
 from PIL import Image, ImageDraw
 
 SIZE = 1024
-INK = (0x06, 0x07, 0x08, 255)
-VIOLET = (0xB2, 0x5C, 0xFF, 255)
-VIOLET_DEEP = (0x8E, 0x3F, 0xD6, 255)
+WHITE = (0xFF, 0xFF, 0xFF, 255)
+INK = (0x11, 0x11, 0x14, 255)
+INK_BAR = (0x4A, 0x4A, 0x50, 255)
+FLOOD = (0xF5, 0xF5, 0xF7, 255)
+FLOOD_BAR = (0xA1, 0xA1, 0xA8, 255)
 GREY_PLATE = (0xFF, 0xFF, 0xFF, 255)
 GREY_BAR = (0xA0, 0xA0, 0xA0, 255)
 
@@ -47,8 +50,8 @@ def dumbbell(ground, plate, bar):
 
 
 def main(out_dir):
-    dumbbell(INK, VIOLET, VIOLET_DEEP).convert("RGB").save(os.path.join(out_dir, "AppIcon.png"), "PNG")
-    dumbbell((0, 0, 0, 0), VIOLET, VIOLET_DEEP).save(os.path.join(out_dir, "AppIcon-Dark.png"), "PNG")
+    dumbbell(WHITE, INK, INK_BAR).convert("RGB").save(os.path.join(out_dir, "AppIcon.png"), "PNG")
+    dumbbell((0, 0, 0, 0), FLOOD, FLOOD_BAR).save(os.path.join(out_dir, "AppIcon-Dark.png"), "PNG")
     dumbbell((0, 0, 0, 0), GREY_PLATE, GREY_BAR).save(os.path.join(out_dir, "AppIcon-Tinted.png"), "PNG")
     print("wrote AppIcon.png, AppIcon-Dark.png, AppIcon-Tinted.png in", out_dir)
 

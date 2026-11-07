@@ -22,7 +22,7 @@ and dark, without changing what any screen does or where anything is. Navigation
 - **Screens restyled** (structure unchanged): Workout tab and template detail/editor, live lifting workout (set table
   skin only), cardio live and picker, finish sheet, History list/detail/calendar/edit sheets, Exercises, Gyms, Progress,
   Settings and its sheets, Account/Profile, sign-in, onboarding (welcome, tour), What's New, Scan Machine, Ask AI.
-- **App icon:** unchanged (the dumbbell, D59) unless the user asks.
+- **App icon:** the dumbbell in Mono (the user, 2026-11-07: "for icon make a mono version").
 - The Live Activity / widget: colours follow the new tokens where they read from them; no layout change.
 
 ## Acceptance
@@ -55,6 +55,19 @@ above, and the core-flow UI classes (CoreLoop, Cardio, History edit, Templates, 
 
 ## Progress
 
-Not started.
+- **2026-11-07 — implemented on `ericlee4992/soft-01-look`** (checkpoint `75460c2`): Soft tokens (`Look.softDark`
+  in Look.swift, `Look.softLight` in FinalLook.swift, replacing `Look.floodlight` / `floodlightLight`), `LookFonts.soft`
+  (SF Pro only; `LookFonts.floodlight` and the Expanded face removed), lifted cards and the warm ground wash
+  (`liftedCards`, `groundWash` in Surfaces.swift), the live workout in Soft with a flat Mono action (`Look.live`; the
+  ink rest slab's ring and Skip use `liveOnSlab`), 39 inline Expanded fonts → SF Pro semibold/bold, the Live
+  Activity palette and fonts, AccentColor, and the Mono app icon. The structural id stays `.floodlight` (the layout
+  family Soft keeps). Prototype greys failed contrast and were deepened (D67).
+- **Verified so far:** `xcodebuild build` succeeded; unit tests `SoftLookContrastTests`, `MuscleMapAssetTests`,
+  `StoreFormatGuardTests` **10/10 passed** (xcresult summary); `RedesignScreenshotUITests` test04_start,
+  test02_activeWorkoutAndFinish, test05_history, test06_gymsAndExercises **4/4 passed**, captures checked (dark).
+- **Deferred by the user (2026-11-07):** "Can we run the test after building more?" — the capture suites and the
+  core-flow UI classes (Verification scope above) run once after more of Phase 1 is built, covering S1 and the
+  following tickets together. S1 is not merged into `main` before that run and Codex's clear.
+- Not yet: light-mode and AccessibilityL captures (in the deferred run), Codex review.
 
 ## Comments
