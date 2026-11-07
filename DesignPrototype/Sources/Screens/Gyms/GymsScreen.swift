@@ -22,7 +22,8 @@ struct GymsScreen: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .lookScreenBackground()
         .proposalScreen("gyms")
-        .toolbar(.hidden, for: .navigationBar)
+        // Soft (round 3): inside Train the bar carries the Templates | Gyms | Exercises switch.
+        .toolbar(look.origin == .soft ? .visible : .hidden, for: .navigationBar)
     }
 }
 

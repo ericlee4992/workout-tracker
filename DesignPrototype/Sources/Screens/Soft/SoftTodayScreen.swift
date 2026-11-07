@@ -45,6 +45,17 @@ struct SoftTodayScreen: View {
                     .font(.system(.subheadline, weight: .medium)).foregroundStyle(look.textSecondary)
             }
             Spacer()
+            if SoftOptions.shared.layout == .foodTab {
+                // Layout B: Profile is behind the avatar.
+                NavigationLink { SoftProfileScreen() } label: {
+                    ZStack {
+                        Circle().fill(look.textPrimary)
+                        Image(systemName: "person.fill").font(.system(.body, weight: .semibold)).foregroundStyle(look.onAction)
+                    }
+                    .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Profile")
+            }
         }
         .padding(.top, 6)
     }

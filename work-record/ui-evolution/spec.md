@@ -102,3 +102,17 @@ to fit our app instead of copying the reference's layout." Kept as they were: **
   per week, training volume, running distance, body weight, weight trend, calories, protein, macros. Each card: title,
   what it measures, the figure, its change, a chart; "…" to Move Up / Remove. Add Chart: Training · Body · Nutrition.
 - **Fifth tab:** Gyms (default) or Exercises, switchable in the pill (slider icon). History stays under Profile.
+
+## Direction B, round 3 — tabs (2026-11-07)
+
+The user: "History tab is now gone. I want to keep it… the + button is only needed for logging food… at most 5
+tabs." Both layouts built (the user: "build both"; Soft's slider in the pill switches them):
+
+- **A (recommended):** Today · Train · History · Progress · Profile.
+- **B:** Today · Train · Food · History · Progress; Profile behind an avatar at the top of Today.
+- **Both:** Train's top bar carries **Templates | Gyms | Exercises** (Gyms and Exercises are no longer tabs; settings
+  move to Profile). **History** is a daily journal: each day's workouts (with their muscle families) and a food line
+  ("1,240 cal eaten · 1,048 under goal"), plus the calendar. The floating + is gone: a black **Log food** pill sits
+  above the tab bar only on Today (and on Food in B); each meal on Food has its own +.
+- Open: Profile still lists History, Gyms and Exercises under "Training" (kept as the user asked to keep Profile the
+  same; in layout A they duplicate the tabs and could go).

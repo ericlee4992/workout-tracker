@@ -395,60 +395,67 @@ struct SoftLogWeightSheet: View {
 
 // MARK: - Tab bar
 
-/// A floating capsule of four tabs (the selected one on a soft grey pill) and, beside it, the +
-/// as a black circle.
+/// The floating capsule of five tabs (the + circle is gone: food has its own pill).
 struct SoftTabBar: View {
     var selection: SoftTab
     var select: (SoftTab) -> Void
-    var add: () -> Void
     @Environment(\.look) private var look
-
     @State private var options = SoftOptions.shared
 
     private var items: [(SoftTab, String, String)] {
-        var list: [(SoftTab, String, String)] = [(.today, "Today", "house"), (.train, "Train", "dumbbell")]
-        switch options.extraTab {
-        case .gyms: list.append((.gyms, "Gyms", "building.2"))
-        case .exercises: list.append((.exercises, "Exercises", "list.bullet.rectangle"))
-        case .none: break
-        }
-        list += [(.progress, "Progress", "chart.bar"), (.profile, "Profile", "person.crop.circle")]
-        return list
+        options.layout == .foodTab
+            ? [(.today, "Today", "house"), (.train, "Train", "dumbbell"), (.food, "Food", "fork.knife"),
+               (.history, "History", "clock.arrow.circlepath"), (.progress, "Progress", "chart.bar")]
+            : [(.today, "Today", "house"), (.train, "Train", "dumbbell"), (.history, "History", "clock.arrow.circlepath"),
+               (.progress, "Progress", "chart.bar"), (.profile, "Profile", "person.crop.circle")]
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            HStack(spacing: 0) {
-                ForEach(items, id: \.0) { item in
-                    let on = item.0 == selection
-                    Button { select(item.0) } label: {
-                        VStack(spacing: 3) {
-                            Image(systemName: on ? item.2 + ".fill" : item.2)
-                                .font(.system(size: 19, weight: on ? .semibold : .regular))
-                                .frame(height: 24)
-                            Text(item.1).font(.system(size: 11, weight: on ? .semibold : .medium))
-                        }
-                        .foregroundStyle(on ? look.textPrimary : look.textSecondary)
-                        .frame(maxWidth: .infinity, minHeight: 56)
-                        .background { if on { Capsule().fill(look.textPrimary.opacity(look.isDark ? 0.14 : 0.07)).padding(3) } }
-                        .contentShape(Rectangle())
+        HStack(spacing: 0) {
+            ForEach(items, id: \.0) { item in
+                let on = item.0 == selection
+                Button { select(item.0) } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: on && item.2 != "clock.arrow.circlepath" ? item.2 + ".fill" : item.2)
+                            .font(.system(size: 19, weight: on ? .semibold : .regular))
+                            .frame(height: 24)
+                        Text(item.1).font(.system(size: 11, weight: on ? .semibold : .medium))
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(on ? .isSelected : [])
+                    .foregroundStyle(on ? look.textPrimary : look.textSecondary)
+                    .frame(maxWidth: .infinity, minHeight: 56)
+                    .background { if on { Capsule().fill(look.textPrimary.opacity(look.isDark ? 0.14 : 0.07)).padding(3) } }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
+                .accessibilityAddTraits(on ? .isSelected : [])
             }
-            .padding(4)
-            .glassEffect(.regular, in: Capsule())
-            Button(action: add) {
-                Image(systemName: "plus").font(.system(size: 24, weight: .semibold)).foregroundStyle(look.onAction)
-                    .frame(width: 62, height: 62)
-                    .background(look.action, in: Circle())
-                    .shadow(color: .black.opacity(0.18), radius: 10, y: 4)
-            }
-            .accessibilityLabel("Add")
         }
+        .padding(4)
+        .glassEffect(.regular, in: Capsule())
         .padding(.horizontal, 18)
         .padding(.bottom, 2)
         .dynamicTypeSize(...DynamicTypeSize.xxLarge)
+    }
+}
+
+/// "Log food": a black pill above the tab bar, only on the screens where food lives.
+struct SoftLogFoodPill: View {
+    var action: () -> Void
+    @Environment(\.look) private var look
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: "plus").font(.system(.subheadline, weight: .bold))
+                Text("Log food").font(.system(.headline, weight: .semibold))
+            }
+            .foregroundStyle(look.onAction)
+            .padding(.horizontal, 22).frame(minHeight: 50)
+            .background(look.action, in: Capsule())
+            .shadow(color: .black.opacity(0.16), radius: 10, y: 4)
+        }
+        .buttonStyle(.lookPressable)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.horizontal, 22)
     }
 }

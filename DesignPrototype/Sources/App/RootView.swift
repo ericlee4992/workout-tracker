@@ -15,15 +15,19 @@ struct RootView: View {
     @State private var softTab: SoftTab = {
         switch UserDefaults.standard.string(forKey: "softTab") {
         case "train": .train
-        case "gyms": .gyms
-        case "exercises": .exercises
+        case "history": .history
+        case "food": .food
         case "progress": .progress
         case "profile": .profile
         default: .today
         }
     }()
     @State private var softAddShown = UserDefaults.standard.bool(forKey: "softAdd")
-    @State private var softCover: SoftCover? = UserDefaults.standard.string(forKey: "softCover").flatMap(SoftCover.init(rawValue:))
+    @State private var softNav = SoftNav.shared
+    private var softCover: SoftCover? {
+        get { softNav.cover }
+        nonmutating set { softNav.cover = newValue }
+    }
     @State private var blendTab: BlendTab = {
         switch UserDefaults.standard.string(forKey: "blendTab") {
         case "train": .train
@@ -157,29 +161,35 @@ struct RootView: View {
         }
     }
 
-    /// EXPLORATION (2026-11-07) — Soft: Today · Train · Progress · Profile in a floating capsule,
-    /// and the + as its own black circle beside it (opens the add menu). Each tab keeps its stack.
+    /// PROPOSAL (Soft, round 3): five tabs at most, History is a tab, Gyms and Exercises live in Train,
+    /// and food is logged from a "Log food" pill shown only where food lives (Today; Food in layout B).
     private var softTabs: some View {
         @Bindable var router = router
+        let foodLayout = softOptions.layout == .foodTab
         return ZStack {
             softPage(.today) { NavigationStack(path: $router.todayPath) { SoftTodayScreen().routeDestinations() } }
-            softPage(.train) { NavigationStack(path: $router.workoutPath) { WorkoutHomeScreen().routeDestinations() } }
-            if softOptions.extraTab == .gyms {
-                softPage(.gyms) { NavigationStack(path: $router.gymsPath) { GymsScreen().routeDestinations() } }
-            } else if softOptions.extraTab == .exercises {
-                softPage(.exercises) { NavigationStack(path: $router.exercisesPath) { ExercisesScreen().routeDestinations() } }
+            softPage(.train) { NavigationStack(path: $router.workoutPath) { SoftTrainScreen().routeDestinations() } }
+            softPage(.history) { NavigationStack(path: $router.historyPath) { SoftHistoryScreen().routeDestinations() } }
+            softPage(.progress) { NavigationStack(path: $router.gymsPath) { SoftProgressBoard().routeDestinations() } }
+            if foodLayout {
+                softPage(.food) { NavigationStack(path: $router.exercisesPath) { SoftFoodScreen().routeDestinations() } }
+            } else {
+                softPage(.profile) { NavigationStack(path: $router.profilePath) { SoftProfileScreen().routeDestinations() } }
             }
-            softPage(.progress) { NavigationStack(path: $router.historyPath) { SoftProgressBoard().routeDestinations() } }
-            softPage(.profile) { NavigationStack(path: $router.profilePath) { SoftProfileScreen().routeDestinations() } }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            SoftTabBar(selection: softTab, select: selectSoft) {
-                withAnimation(.easeOut(duration: 0.2)) { softAddShown = true }
+            VStack(spacing: 8) {
+                if softTab == .today || softTab == .food {
+                    SoftLogFoodPill { softCover = .logFood }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                SoftTabBar(selection: softTab, select: selectSoft)
             }
+            .animation(.snappy, value: softTab)
         }
         .onAppear { selectSoft(softTab) }
-        .onChange(of: softOptions.extraTab) { _, _ in
-            if softTab == .gyms || softTab == .exercises { selectSoft(.today) }
+        .onChange(of: softOptions.layout) { _, _ in
+            if softTab == .food || softTab == .profile { selectSoft(.today) }
         }
     }
 
@@ -196,9 +206,9 @@ struct RootView: View {
         switch tab {
         case .today: router.pushTarget = .today
         case .train: router.tab = .workout
-        case .gyms: router.tab = .gyms
-        case .exercises: router.tab = .exercises
-        case .progress: router.tab = .history
+        case .history: router.tab = .history
+        case .progress: router.tab = .gyms
+        case .food: router.tab = .exercises
         case .profile, .add: router.pushTarget = .profile
         }
     }
@@ -270,4 +280,4 @@ extension View {
 }
 
 /// EXPLORATION (2026-11-07): the Soft look's tabs (+ opens the add menu, never a page).
-enum SoftTab: Hashable { case today, train, gyms, exercises, progress, profile, add }
+enum SoftTab: Hashable { case today, train, history, food, progress, profile, add }

@@ -74,6 +74,9 @@ struct WorkoutHomeScreen: View {
         .toolbarBackground(look.ground, for: .navigationBar)
         .toolbarBackgroundVisibility(titleInBar ? .visible : .hidden, for: .navigationBar)
         .toolbar {
+            // Soft (round 3): Train's top bar carries the Templates | Gyms | Exercises switch, and
+            // settings live in Profile.
+            if look.origin != .soft {
             ToolbarItem(placement: .principal) {
                 Text("Workout")
                     .font(look.font.navTitle)
@@ -89,6 +92,7 @@ struct WorkoutHomeScreen: View {
                         .foregroundStyle(look.textPrimary)
                 }
                 .accessibilityLabel("Settings")
+            }
             }
         }
     }

@@ -187,10 +187,9 @@ struct LookSwitcherOverlay: View {
     private var softMenu: some View {
         let o = SoftOptions.shared
         return Menu {
-            Picker("Fifth tab", selection: Binding(get: { o.extraTab }, set: { o.extraTab = $0 })) {
-                Text("5th tab: Gyms").tag(SoftOptions.ExtraTab.gyms)
-                Text("5th tab: Exercises").tag(SoftOptions.ExtraTab.exercises)
-                Text("No 5th tab").tag(SoftOptions.ExtraTab.none)
+            Picker("Tabs", selection: Binding(get: { o.layout }, set: { o.layout = $0 })) {
+                Text("A: Today · Train · History · Progress · Profile").tag(SoftOptions.Layout.profileTab)
+                Text("B: Today · Train · Food · History · Progress").tag(SoftOptions.Layout.foodTab)
             }
         } label: {
             Image(systemName: "slider.horizontal.3").font(.system(size: 13, weight: .semibold))

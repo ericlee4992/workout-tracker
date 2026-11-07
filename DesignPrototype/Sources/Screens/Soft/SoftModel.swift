@@ -217,11 +217,21 @@ struct SoftSectionTitle: View {
 }
 
 
-/// PROPOSAL (Soft, round 2): the fifth tab the pill switches (the user: "try to add Gym tab or exercises tab").
+/// PROPOSAL (Soft, round 3): the tab layout the pill switches (the user: "build both").
+/// A: Today · Train · History · Progress · Profile. B: Today · Train · Food · History · Progress
+/// (Profile behind an avatar on Today). Gyms and Exercises live inside Train in both.
 @MainActor @Observable
 final class SoftOptions {
     static let shared = SoftOptions()
-    enum ExtraTab: String { case gyms, exercises, none }
-    var extraTab: ExtraTab = ExtraTab(rawValue: UserDefaults.standard.string(forKey: "softExtra") ?? "") ?? .gyms
+    enum Layout: String { case profileTab, foodTab }
+    var layout: Layout = Layout(rawValue: UserDefaults.standard.string(forKey: "softLayout") ?? "") ?? .profileTab
+    private init() {}
+}
+
+/// The food covers, opened from anywhere (the Log food pill, a meal's +).
+@MainActor @Observable
+final class SoftNav {
+    static let shared = SoftNav()
+    var cover: SoftCover? = UserDefaults.standard.string(forKey: "softCover").flatMap(SoftCover.init(rawValue:))
     private init() {}
 }
