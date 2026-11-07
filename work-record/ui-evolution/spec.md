@@ -86,3 +86,19 @@ BLEND in the pill; the slider icon switches Blend's variants).
 - **Screens:** Today (day tiles, calories, macros, Training card, Meals receipt), Food (diary with P/C/F chips, saved
   foods), Library, Progress (Body · Strength · Fuel), Log food (meal chips, search/describe, recent with one-tap +,
   Scan / Manual / Voice), the ink quick add, Train (+ Library section), the live workout (lifted cards in light).
+
+## Direction B, round 2 — Soft as the base (2026-11-07)
+
+The user: "I actually like the cleanliness of SOFT… default to that design (its font, color, box, shape) and develop
+to fit our app instead of copying the reference's layout." Kept as they were: **Profile**, **Train**, and Today's
+**Training** card and **Today's log**. Changed:
+
+- **Today, top (redesigned, ours):** *This week* — one column per day around a baseline: training rises above it
+  (a bar in the muscle families trained, height = minutes), food hangs below it (calories against the goal, a tick
+  at goal depth); the date sits on a Mono capsule for today; one summary line. *Fuel card* — "1,048 cal left" as the
+  headline, Eaten / Burned beside it, one bar toward the goal split by the macros' calorie shares, Protein leading
+  with "47 g to go", Carbs and Fat compact. Replaces the reference-like day circles, calorie ring and macro rings.
+- **Progress:** the shipped model (pinned charts + Add Chart) with anything pinnable: exercises (best set), workouts
+  per week, training volume, running distance, body weight, weight trend, calories, protein, macros. Each card: title,
+  what it measures, the figure, its change, a chart; "…" to Move Up / Remove. Add Chart: Training · Body · Nutrition.
+- **Fifth tab:** Gyms (default) or Exercises, switchable in the pill (slider icon). History stays under Profile.

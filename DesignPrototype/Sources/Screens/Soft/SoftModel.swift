@@ -215,3 +215,13 @@ struct SoftSectionTitle: View {
         }
     }
 }
+
+
+/// PROPOSAL (Soft, round 2): the fifth tab the pill switches (the user: "try to add Gym tab or exercises tab").
+@MainActor @Observable
+final class SoftOptions {
+    static let shared = SoftOptions()
+    enum ExtraTab: String { case gyms, exercises, none }
+    var extraTab: ExtraTab = ExtraTab(rawValue: UserDefaults.standard.string(forKey: "softExtra") ?? "") ?? .gyms
+    private init() {}
+}

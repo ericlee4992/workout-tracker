@@ -403,10 +403,18 @@ struct SoftTabBar: View {
     var add: () -> Void
     @Environment(\.look) private var look
 
-    private let items: [(SoftTab, String, String)] = [
-        (.today, "Today", "house"), (.train, "Train", "dumbbell"),
-        (.progress, "Progress", "chart.bar"), (.profile, "Profile", "person.crop.circle"),
-    ]
+    @State private var options = SoftOptions.shared
+
+    private var items: [(SoftTab, String, String)] {
+        var list: [(SoftTab, String, String)] = [(.today, "Today", "house"), (.train, "Train", "dumbbell")]
+        switch options.extraTab {
+        case .gyms: list.append((.gyms, "Gyms", "building.2"))
+        case .exercises: list.append((.exercises, "Exercises", "list.bullet.rectangle"))
+        case .none: break
+        }
+        list += [(.progress, "Progress", "chart.bar"), (.profile, "Profile", "person.crop.circle")]
+        return list
+    }
 
     var body: some View {
         HStack(spacing: 10) {

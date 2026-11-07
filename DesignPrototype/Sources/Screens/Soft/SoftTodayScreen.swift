@@ -16,9 +16,10 @@ struct SoftTodayScreen: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
-                SoftWeekStrip(week: nutrition.week, todayIndex: 5, todayProgress: Double(nutrition.eaten) / Double(nutrition.calorieGoal))
-                caloriesCard
-                macroRow
+                // PROPOSAL round 2: the week balance and the fuel card (SoftTodayTop.swift) replace the
+                // reference-like day circles, calorie ring and macro ring cards.
+                SoftWeekBalance()
+                SoftFuelCard()
                 SoftSectionTitle(title: "Training").padding(.top, 8)
                 trainingCard
                 SoftSectionTitle(title: "Today's log").padding(.top, 8)

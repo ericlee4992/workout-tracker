@@ -138,6 +138,7 @@ struct LookSwitcherOverlay: View {
                 }
                 if lookModel.id == .final { accentButton }
                 if lookModel.id == .blend { blendMenu }
+                if lookModel.id == .soft { softMenu }
                 chromeButton(router.dynamicTypeOverride == nil ? "textformat.size.smaller" : "textformat.size.larger",
                              label: router.dynamicTypeOverride == nil ? "Large text" : "Default text") {
                     router.dynamicTypeOverride = router.dynamicTypeOverride == nil ? .accessibility1 : nil
@@ -180,6 +181,22 @@ struct LookSwitcherOverlay: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(soft ? "Look: Soft, switch to Floodlight" : "Look: Floodlight, switch to Soft")
+    }
+
+    /// Soft's fifth tab: Gyms, Exercises, or none.
+    private var softMenu: some View {
+        let o = SoftOptions.shared
+        return Menu {
+            Picker("Fifth tab", selection: Binding(get: { o.extraTab }, set: { o.extraTab = $0 })) {
+                Text("5th tab: Gyms").tag(SoftOptions.ExtraTab.gyms)
+                Text("5th tab: Exercises").tag(SoftOptions.ExtraTab.exercises)
+                Text("No 5th tab").tag(SoftOptions.ExtraTab.none)
+            }
+        } label: {
+            Image(systemName: "slider.horizontal.3").font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(.white).frame(width: 32, height: 32).contentShape(Rectangle())
+        }
+        .accessibilityLabel("Soft options")
     }
 
     /// Blend's variants (the user: "show me both"): tabs, the +, macros.

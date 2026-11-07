@@ -55,6 +55,11 @@ final class Router {
     var historyPath = NavigationPath()
     var gymsPath = NavigationPath()
     var exercisesPath = NavigationPath()
+    /// PROPOSAL (Soft, 2026-11-07): Today and Profile get their own stacks; `pushTarget` sends pushes there.
+    var todayPath = NavigationPath()
+    var profilePath = NavigationPath()
+    enum PushTarget { case today, profile }
+    var pushTarget: PushTarget?
 
     /// The one sheet currently shown (see SheetRoute for where it attaches).
     var sheet: SheetRoute?
@@ -79,6 +84,13 @@ final class Router {
     // MARK: Navigation used by screens
 
     func push(_ route: Route) {
+        if let pushTarget {
+            switch pushTarget {
+            case .today: todayPath.append(route)
+            case .profile: profilePath.append(route)
+            }
+            return
+        }
         switch tab {
         case .workout: workoutPath.append(route)
         case .history: historyPath.append(route)
