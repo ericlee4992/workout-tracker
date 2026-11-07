@@ -11,112 +11,148 @@ import SwiftUI
 //    shares of what was eaten; protein — the lifter's macro — leads with grams to go.
 
 struct SoftWeekBalance: View {
+    // ROUND 4 (2026-11-07, the user: "a little hard to read"): labelled rows with real numbers
+    // instead of unlabelled bars around a baseline. Train: an ink tile with the minutes and a dot per
+    // muscle family. Food: the calories (in thousands) and a thin bar toward the goal. Today's column
+    // is the one with the black date. AX sizes: one line per day.
     @Environment(Store.self) private var store
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var nutrition = SoftNutrition.shared
-    @State private var selected: Int? = nil
 
-    private let up: CGFloat = 54
-    private let down: CGFloat = 34
+    private let labelWidth: CGFloat = 50
 
     var body: some View {
         let days = store.weekSummary.days
-        let todayIndex = days.firstIndex(where: \.isToday) ?? 5
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text("This week").font(.system(.headline, weight: .semibold)).foregroundStyle(look.textPrimary)
-                Spacer()
-                HStack(spacing: 12) {
-                    legend(Circle().fill(look.family(.chest)), "Training")
-                    legend(Circle().fill(look.textPrimary.opacity(0.28)), "Food")
-                }
+                Spacer(minLength: 8)
+                Text(summary(days)).font(.system(.footnote, weight: .medium)).foregroundStyle(look.textSecondary)
+                    .lineLimit(1).minimumScaleFactor(0.8)
             }
-            HStack(alignment: .center, spacing: 0) {
-                ForEach(Array(days.enumerated()), id: \.element.id) { i, day in
-                    column(day: day, index: i, isToday: i == todayIndex)
-                        .frame(maxWidth: .infinity)
-                }
+            if typeSize.isAccessibilitySize {
+                list(days)
+            } else {
+                grid(days)
             }
-            Text(summary(days)).font(.system(.footnote, weight: .medium)).foregroundStyle(look.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(18)
         .lookSurface(.panel)
     }
 
-    private func column(day: WeekDaySummary, index: Int, isToday: Bool) -> some View {
-        let minutes = day.workouts.reduce(0) { $0 + $1.minutes }
-        let families = MuscleFamily.ordered(day.workouts.flatMap(\.families))
-        let calories: Int? = isToday ? nutrition.eaten : (index < nutrition.week.count ? nutrition.week[index] : nil)
-        return VStack(spacing: 3) {
-            // Training, above the line.
-            VStack(spacing: 2) {
-                Spacer(minLength: 0)
-                if minutes > 0 {
-                    let h = min(up, max(10, CGFloat(minutes) / 75 * up))
-                    VStack(spacing: 2) {
-                        if families.isEmpty {
-                            Rectangle().fill(look.textSecondary)
-                        } else {
-                            ForEach(families.reversed()) { f in Rectangle().fill(look.family(f)) }
-                        }
+    // MARK: Grid
+
+    private func grid(_ days: [WeekDaySummary]) -> some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 4) {
+                Color.clear.frame(width: labelWidth, height: 1)
+                ForEach(Array(days.enumerated()), id: \.element.id) { _, day in
+                    VStack(spacing: 1) {
+                        Text(day.letter).font(.system(.caption2, weight: .semibold))
+                        Text(day.date.formatted(.dateTime.day())).font(.system(.subheadline, weight: .semibold)).monospacedDigit()
                     }
-                    .frame(width: 14, height: h)
-                    .clipShape(RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    .foregroundStyle(day.isToday ? look.onAction : (day.isFuture ? look.textTertiary : look.textPrimary))
+                    .frame(maxWidth: .infinity, minHeight: 40)
+                    .background { if day.isToday { RoundedRectangle(cornerRadius: 12, style: .continuous).fill(look.action) } }
                 }
             }
-            .frame(height: up)
-            // The baseline: each column draws its share, so the line runs across the card.
-            Rectangle().fill(look.textPrimary.opacity(0.14)).frame(maxWidth: .infinity).frame(height: 1)
-            // Food, below the line.
-            VStack(spacing: 0) {
-                if let calories, !day.isFuture {
-                    let ratio = min(1.1, Double(calories) / Double(nutrition.calorieGoal))
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(isToday ? look.textPrimary : look.textPrimary.opacity(0.28))
-                        .frame(width: 14, height: max(4, down * ratio))
-                }
-                Spacer(minLength: 0)
-            }
-            .frame(height: down)
-            .overlay(alignment: .top) {
-                // The goal's depth, a short tick.
-                Rectangle().fill(look.textTertiary.opacity(day.isFuture ? 0.25 : 0.6)).frame(width: 20, height: 1).offset(y: down)
-            }
-            VStack(spacing: 1) {
-                Text(day.letter).font(.system(.caption2, weight: isToday ? .bold : .medium))
-                Text(day.date.formatted(.dateTime.day())).font(.system(.footnote, weight: isToday ? .bold : .semibold)).monospacedDigit()
-            }
-            .foregroundStyle(isToday ? look.onAction : (day.isFuture ? look.textTertiary : look.textPrimary))
-            .padding(.horizontal, 4).padding(.vertical, 3)
-            .frame(minWidth: 34, minHeight: 38)
-            .background { if isToday { Capsule().fill(look.action) } }
-            .padding(.top, 6)
+            row("Train", days) { i, day in trainCell(day) }
+            row("Food", days) { i, day in foodCell(day, index: i) }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(spoken(day: day, minutes: minutes, calories: calories, isToday: isToday))
     }
 
-    private func legend<S: View>(_ swatch: S, _ text: String) -> some View {
+    private func row<Cell: View>(_ label: String, _ days: [WeekDaySummary], @ViewBuilder cell: @escaping (Int, WeekDaySummary) -> Cell) -> some View {
         HStack(spacing: 4) {
-            swatch.frame(width: 7, height: 7)
-            Text(text).font(.system(.caption, weight: .medium)).foregroundStyle(look.textSecondary)
+            Text(label).font(.system(.footnote, weight: .semibold)).foregroundStyle(look.textSecondary)
+                .frame(width: labelWidth, alignment: .leading)
+            ForEach(Array(days.enumerated()), id: \.element.id) { i, day in
+                cell(i, day).frame(maxWidth: .infinity)
+            }
         }
+    }
+
+    @ViewBuilder private func trainCell(_ day: WeekDaySummary) -> some View {
+        let minutes = day.workouts.reduce(0) { $0 + $1.minutes }
+        let families = MuscleFamily.ordered(day.workouts.flatMap(\.families))
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        if minutes > 0 {
+            VStack(spacing: 3) {
+                Text("\(minutes)").font(.system(.subheadline, weight: .bold)).monospacedDigit()
+                    .foregroundStyle(look.onDone).minimumScaleFactor(0.7).lineLimit(1)
+                HStack(spacing: 2) {
+                    ForEach(families.prefix(3)) { f in Circle().fill(look.family(f)).frame(width: 5, height: 5) }
+                    if families.isEmpty { Circle().fill(look.onDone.opacity(0.5)).frame(width: 5, height: 5) }
+                }
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(shape.fill(look.done))
+            .accessibilityLabel("\(Format.weekday(day.date)), trained \(minutes) minutes")
+        } else {
+            Text(day.isFuture ? "" : "–").font(.system(.subheadline, weight: .medium)).foregroundStyle(look.textTertiary)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background { if day.isFuture { shape.strokeBorder(look.hairline) } else { shape.fill(look.surfaceRaised) } }
+                .accessibilityLabel("\(Format.weekday(day.date)), \(day.isFuture ? "upcoming" : "rest day")")
+        }
+    }
+
+    @ViewBuilder private func foodCell(_ day: WeekDaySummary, index: Int) -> some View {
+        let calories: Int? = day.isToday ? nutrition.eaten : (index < nutrition.week.count ? nutrition.week[index] : nil)
+        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
+        if let calories, !day.isFuture {
+            let ratio = Double(calories) / Double(nutrition.calorieGoal)
+            VStack(spacing: 5) {
+                Text(short(calories)).font(.system(.footnote, weight: .bold)).monospacedDigit()
+                    .foregroundStyle(look.textPrimary).minimumScaleFactor(0.7).lineLimit(1)
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(look.ringTrack)
+                        Capsule().fill(day.isToday ? look.textPrimary : look.textPrimary.opacity(0.55))
+                            .frame(width: geo.size.width * min(1, ratio))
+                    }
+                }
+                .frame(height: 4)
+                .padding(.horizontal, 6)
+            }
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(shape.fill(look.surfaceRaised))
+            .accessibilityLabel("\(Format.weekday(day.date)), \(calories) calories, goal \(nutrition.calorieGoal)")
+        } else {
+            Text(day.isFuture ? "" : "–").font(.system(.subheadline, weight: .medium)).foregroundStyle(look.textTertiary)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background { if day.isFuture { shape.strokeBorder(look.hairline) } else { shape.fill(look.surfaceRaised) } }
+        }
+    }
+
+    // MARK: AX list
+
+    private func list(_ days: [WeekDaySummary]) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(Array(days.enumerated()).filter { !$0.element.isFuture }, id: \.element.id) { i, day in
+                if i > 0 { LookDivider() }
+                let minutes = day.workouts.reduce(0) { $0 + $1.minutes }
+                let calories: Int? = day.isToday ? nutrition.eaten : (i < nutrition.week.count ? nutrition.week[i] : nil)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(day.isToday ? "Today" : day.date.formatted(.dateTime.weekday(.wide).day()))
+                        .font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
+                    Text([minutes > 0 ? "\(day.workouts.map(\.title).joined(separator: ", ")), \(minutes) min" : "Rest day",
+                          calories.map { "\($0.formatted()) cal" }].compactMap { $0 }.joined(separator: " · "))
+                        .font(.system(.body)).foregroundStyle(look.textSecondary)
+                }
+                .padding(.vertical, 10)
+            }
+        }
+    }
+
+    private func short(_ calories: Int) -> String {
+        calories >= 1000 ? String(format: "%.1fk", Double(calories) / 1000) : "\(calories)"
     }
 
     private func summary(_ days: [WeekDaySummary]) -> String {
-        let trained = days.filter { !$0.workouts.isEmpty }.count
+        let workouts = days.reduce(0) { $0 + $1.workouts.count }
         let logged = nutrition.week.compactMap { $0 }
         let avg = logged.isEmpty ? 0 : logged.reduce(0, +) / logged.count
-        return "\(trained) training days · \(logged.count) days logged, \(avg.formatted()) cal on average"
-    }
-
-    private func spoken(day: WeekDaySummary, minutes: Int, calories: Int?, isToday: Bool) -> String {
-        var parts = [isToday ? "Today" : Format.weekday(day.date)]
-        if minutes > 0 { parts.append("trained \(minutes) minutes") }
-        if let calories { parts.append("\(calories) calories") }
-        return parts.joined(separator: ", ")
+        return "\(workouts) workout\(workouts == 1 ? "" : "s") · \(avg.formatted()) cal avg"
     }
 }
 

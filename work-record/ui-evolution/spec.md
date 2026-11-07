@@ -116,3 +116,11 @@ tabs." Both layouts built (the user: "build both"; Soft's slider in the pill swi
   above the tab bar only on Today (and on Food in B); each meal on Food has its own +.
 - Open: Profile still lists History, Gyms and Exercises under "Training" (kept as the user asked to keep Profile the
   same; in layout A they duplicate the tabs and could go).
+
+## Direction B, round 4 — "This week" made readable (2026-11-07)
+
+The user: "redesign the This week card… a little hard to read." The baseline/bar chart is replaced by a labelled
+grid: date header (today on a black tile), a **Train** row (ink tile with the day's minutes and a dot per muscle
+family; "–" for a rest day; empty outline for days ahead) and a **Food** row (calories in thousands, "2.1k", with a
+thin bar toward the goal; today's bar ink). The header says "3 workouts · 2,211 cal avg". At AX sizes: one line per
+day ("Wednesday 23 — Leg Day, 55 min · 1,980 cal").
