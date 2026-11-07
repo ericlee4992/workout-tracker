@@ -1,7 +1,7 @@
 # S1 — Soft look app-wide
 
 Type: change
-Status: **proposed** (2026-11-07) — awaiting the user's approval
+Status: **review clear** (Codex round 1, 2026-11-07) — merge waits for the deferred Phase 1 test run (the user, 2026-11-07)
 Blocked by: —
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/soft-01-look` off `main`.
@@ -68,6 +68,11 @@ above, and the core-flow UI classes (CoreLoop, Cardio, History edit, Templates, 
 - **Deferred by the user (2026-11-07):** "Can we run the test after building more?" — the capture suites and the
   core-flow UI classes (Verification scope above) run once after more of Phase 1 is built, covering S1 and the
   following tickets together. S1 is not merged into `main` before that run and Codex's clear.
-- Not yet: light-mode and AccessibilityL captures (in the deferred run), Codex review.
+- **Codex round 1: clear** ([codex-review-s1.md](../codex-review-s1.md)): 0 findings; its own build (exit 0) and the
+  three unit suites (10/10) on WT-iPhone27. Non-blocking, to do in the deferred run: check tertiary text over the
+  warm wash in light captures (worst case ≈ 4.44:1 at the wash's peak); `SoftLookContrastTests` helper should
+  composite alpha and assert colour resolution if it ever measures translucent pairs.
+- Still open before merge: the deferred run (captures light/dark, default/AccessibilityL, incl. live rest/Skip and
+  new-best states, native sheets/menus/toggles, the activity gallery; core-flow UI classes listed in the review).
 
 ## Comments

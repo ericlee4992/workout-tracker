@@ -5,22 +5,19 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-07) — Soft redesign + nutrition: tickets written, awaiting the user's approval.** Worktree
-  `…/orca/workspaces/Health App/UI_design` (one workspace for the whole effort, D76), now on branch
-  `ericlee4992/soft-nutrition-tickets` off `main` (docs only: tickets, D67–D76, this STATE). **No app code changed.**
-  Tickets: [soft-redesign](../work-record/soft-redesign/spec.md) S1 look → S2 tabs → S3 workout → S4 History/Progress;
-  [nutrition](../work-record/nutrition/spec.md) N1 safety copy (= public-beta 11) → N2 data → N3 goals → N4 Log Food →
-  N5 Today → N6 server AI → N7 Scan Food → N8 barcode/search → N9 weight + Health → N10 charts → R combined release.
-  The user's answers are in the [build plan](../work-record/ui-evolution/build-plan.md) and D67–D76: Soft layout A;
-  everything in nutrition's first release; goals calculated + editable; burned shown not added; barcodes Open Food
-  Facts → USDA; labels by AI; Health all four; limits 30/30/60; **one combined release** (no interim builds), **each
-  ticket merges into `main`** when clear (urgent tester fix from build 9's `5ab7a16`); prototype record-only.
-  **Next:** the user approves the tickets → merge this docs branch into `main` (go-ahead) → S1 on
-  `ericlee4992/soft-01-look`. Questions saved for their tickets: N2 My meals, N3 formula, N8 name search + USDA key,
-  N1 the safety copy's design. Prototype: branch `ericlee4992/UI_design` (record), tag `design/soft-approved-2026-11-07`
-  (`git show <tag>:DesignPrototype/…`; launch `-look soft -softLayout profileTab`). Codex: Orca terminal "Astra design
-  proposal" (`term_36a683d9-11a6-437c-8c61-efd47fa69207`, this worktree) — check it is idle before reuse. The user's
-  reference screenshots are `~/Downloads/IMG_57xx.PNG` (**IMG_5751 is personal — never share or commit**).
+- **Resume here (2026-11-07) — Soft redesign Phase 1 in progress.** Worktree `…/orca/workspaces/Health App/UI_design`
+  (one workspace for the whole effort, D76). Tickets approved and in `main` (`fc2390c`): [soft-redesign](../work-record/soft-redesign/spec.md)
+  S1–S4, [nutrition](../work-record/nutrition/spec.md) N1–N10 + R; decisions D67–D76.
+  **S1 Soft look:** branch `ericlee4992/soft-01-look` (pushed) — implemented, Mono icon added (the user), Codex round
+  1 **clear**; build + 10/10 unit tests (both sides); 4 capture tests checked (dark). **Not merged:** the user deferred
+  the long test run ("run the test after building more") — capture suites (light/dark, default/AX) + core-flow UI
+  classes run once after more of Phase 1, then S1 (and the next tickets) merge to `main` in order with the user's
+  go-ahead. **Next: S2 five tabs** on `ericlee4992/soft-02-tabs`, branched from S1 (stacked; plan: the native tab
+  bar, not the prototype's drawn one). Prototype: tag `design/soft-approved-2026-11-07` (`git show <tag>:DesignPrototype/…`).
+  Codex: Orca terminal "Astra design proposal" `term_36a683d9-11a6-437c-8c61-efd47fa69207` (this worktree, GPT-6-Astra;
+  needs approval for simulator commands; reviews on WT-iPhone27 while Claude uses WT-Floodlight). This worktree has no
+  `Config/Local.xcconfig`: Debug builds install as `com.example.workouttracker`. The user's reference screenshots are
+  `~/Downloads/IMG_57xx.PNG` (**IMG_5751 is personal — never share or commit**).
 - **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue
   **exercise media** in the `public-beta` worktree ("Exercise media" entry below; ticket 03 + the DIY animation report's
   four open decisions). Next steps, in order: (1) the user closes the finished `beta-19-bug-fixes` worktree in Orca

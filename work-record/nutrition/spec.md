@@ -1,6 +1,6 @@
 # Nutrition — Phase 2 (food, goals, body weight)
 
-Status: **tickets proposed 2026-11-07 — awaiting the user's approval.** Built after Phase 1
+Status: **tickets approved 2026-11-07** — not started (after Phase 1). Built after Phase 1
 ([soft-redesign](../soft-redesign/spec.md)); both phases ship to testers together (D76).
 Decisions: D69–D76 in [DECISIONS](../../docs/DECISIONS.md#november-7--soft-redesign-and-nutrition).
 Design source: [ui-evolution spec](../ui-evolution/spec.md) Direction B rounds 2–5; the user's reference screens
