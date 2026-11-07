@@ -226,20 +226,20 @@ Simulators: **WT-Floodlight** `9E822EF6-DC67-4958-AEA2-D53D2D36D674` (iOS 27; ta
 
 ## Other sessions and scratch state (do not clean without asking)
 
-- The main checkout `/Users/ericlee06/orca/projects/Health App` is on `ericlee4992/redesign-visual-proposal`
-  (a separate Codex session's visual proposal, superseded by the Floodlight decision; not merged).
-- **Worktree clean-up 2026-10-01 (user's choice):** removed every clean, pushed or merged checkout — the eleven
-  `/tmp/wt-floodlight/*` scratch checkouts and sixteen older Orca worktrees (ai-gym-and-routines, ai-template-followup,
-  cardio-*, codex-project-setup, compact-start-outdoor, finish-summary-*, restore-start-capsules,
-  review-cardio-implementation, session-handoff*, sets-completion-ring, verification-policy); their branches remain in
-  Git and on origin. `/tmp/wt-floodlight/` keeps `results/` (test logs, xcresults), `shots/`, the runner scripts and
-  `dd-device/` (the binary installed on 2026-09-29); the other derived data was deleted.
-- **Kept for a later look (not removed):** worktrees whose branches exist only on this Mac, some with uncommitted
-  files — `ai-schema-baseline`, `ai-template-followup-review`, `cardio-api-research`, `redesign-prototype` (the
-  tappable Simulator prototype of the Floodlight look; one uncommitted file), and the `review-*` checkouts (Codex/Claude
-  review reports, some untracked). Save or push before removing any of them. `redesign-floodlight` (the redesign's
-  Orca worktree, identical to `main`) can be closed once no session runs in it. Simulator **WT-Floodlight**
-  `9E822EF6-DC67-4958-AEA2-D53D2D36D674` (iOS 27); WT-iPhone27 / WT-iPhone kept for regression and compatibility.
+- **Checkouts after the 2026-11-06 clean-up** (the user's choice; layout rule in AGENTS.md → Checkout layout): the
+  home checkout `…/orca/projects/Health App` → `main` (pending: a session was still open in it on 2026-11-06 — switch
+  it once closed; it was on `ericlee4992/redesign-visual-proposal`, kept on origin); Orca worktrees `public-beta`
+  (exercise media), `release-build` (detached, TestFlight archives) and `beta-19-bug-fixes` (finished — the user closes
+  it in Orca). **Removed 2026-11-06 with `orca worktree rm` (branches kept, every one checked at its tip):**
+  ai-schema-baseline, redesign-floodlight, ai-template-followup-review, redesign-prototype, review-finish-summary-order,
+  review-session-handoff, cardio-api-research, review-ai-gym-code, review-ai-gym-spec, review-cardio-design,
+  review-cardio-ui-refinements, review-cardio-units, review-compact-start-outdoor, review-handoff-sep20,
+  review-start-capsules, review-verification-policy. Their never-committed files (Claude review reports; the
+  `RedesignPrototype/` Simulator prototype of the Floodlight look) were first committed to their own branches —
+  **local-only branches, not on origin**; the secret scan was clean. Earlier clean-up (2026-10-01): the eleven
+  `/tmp/wt-floodlight/*` scratch checkouts and sixteen older worktrees; `/tmp/wt-floodlight/` kept `results/`,
+  `shots/`, runner scripts and `dd-device/`. Simulators: **WT-Floodlight** `9E822EF6-DC67-4958-AEA2-D53D2D36D674`
+  (iOS 27); WT-iPhone27 / WT-iPhone kept for regression and compatibility.
 - The Graft index is a git-ignored local cache per checkout: rebuilt in this worktree 2026-10-01 (graft 0.18.0); the
   main checkout's is older (`graft build` refreshes it).
 - **Branches on origin with commits not in `main`, all deliberately unmerged records** (nothing else is unmerged):

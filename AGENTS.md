@@ -63,8 +63,11 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 - Run Codex in a visible Orca terminal and keep **one Codex session** for every review round and ticket: check
   `orca terminal list` and send the next prompt to the idle Codex terminal (`orca terminal send`). Open a new one only
   when that terminal is gone, stuck in an approval/interrupted state, near its context limit, or in another worktree.
-- Use short-lived branches off `main`. When agents are active simultaneously, use separate
-  checkouts; use `orca-cli` for Orca-managed worktrees and terminals.
+- **Checkout layout** (the user, 2026-11-06): the home checkout `…/orca/projects/Health App` stays on
+  a clean `main` — update it, work elsewhere. Each task gets its own Orca worktree on a short-lived
+  branch off `main` (`orca-cli`); once that branch is merged and its record written, remove the
+  worktree with `orca worktree rm`, which keeps the branch. `…/workspaces/Health App/release-build`
+  stays as the detached archive checkout for TestFlight builds.
 - Commit on the branch and push it. Once the required verification and review are clear,
   fast-forward `main` with `git merge --ff-only <branch>` and push `main`. The repository's
   established workflow does not require a PR. Confirm the remote contains the resulting tip.
