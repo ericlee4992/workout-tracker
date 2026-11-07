@@ -33,7 +33,12 @@ Prototype: commit `743eb54`, tag `design/floodlight-mono-2026-11-07`. Launch `-a
 
 Open for this direction: Finish top vs bottom; Progress tab and History rows (badge reduction) not yet shown.
 
-## Direction B — "Soft" (exploring, 2026-11-07)
+## Direction B — "Soft" (saved 2026-11-07: "save the previous design just in case I come back to it")
+
+Prototype: commit `b92c74c`, tag `design/soft-2026-11-07`. Launch `-look soft` (or FLOOD | SOFT in the pill). The
+user later judged it too close a copy of the reference ("I didn't mean to copy the design entirely"); kept for
+reference only. Direction C (a blend that keeps our identity) is being worked out from independent proposals by
+Fable 5.1 and ChatGPT Astra (`work-record/ui-evolution/proposals/`).
 
 The user liked the feel of a calorie/macro tracker's design and plans to add calorie/macro tracking so the app is
 all-in-one. Explored in the prototype as a second look (`-look soft`; FLOOD | SOFT in the pill). The style is
