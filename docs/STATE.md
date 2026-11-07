@@ -5,6 +5,18 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
+- **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue
+  **exercise media** in the `public-beta` worktree ("Exercise media" entry below; ticket 03 + the DIY animation report's
+  four open decisions). Next steps, in order: (1) the user closes the finished `beta-19-bug-fixes` worktree in Orca
+  (merged; branch kept); (2) the user opens a new Claude tab in `…/workspaces/Health App/public-beta` — "Read STATE
+  and continue the exercise media work"; that branch is a few docs-only commits behind `main` (merge it first);
+  (3) the user's phone check of build 9 (cancel a workout → the Lock Screen card goes and stays gone, ticket 21;
+  Add Exercise Exercises | Machines; template Machines tab); (4) ask before deleting `ericlee4992/beta-22-wip`.
+  Gotchas: Codex's weekly limit was under 5% on 2026-10-23 (ask the user if reviews fail); serial unit runs on a
+  freshly booted simulator are slow (`EquipmentLifecycleTests` 179 s on `main`) — warm the simulator or allow minutes;
+  start UI runs with the warm-up test (`CardioUITests/testSavedDistanceEditor…`); never run one UI run per simulator
+  alongside another heavy run (focus/launch flakes); never `pkill` broad xcodebuild patterns (other sessions'
+  runs share the machine); `/private/tmp` scratch worktrees vanish — push WIP to a branch.
 - **Agent skills (2026-10-31):** `swiftui-pro` and `swiftdata-pro` (Paul Hudson, MIT) vendored on branch
   `ericlee4992/swift-pro-skills` (checkout `…/Health App/swift-pro-skills`, off `main` `57a5764`); project
   overrides in AGENTS, pins in DEVELOPMENT. **Codex clear; merged to `main` `ac7d6fc`** (2026-10-31); skills load in new sessions. Optional next: a read-only swiftdata-pro/swiftui-pro check of the existing app, findings into a ticket (not started).
