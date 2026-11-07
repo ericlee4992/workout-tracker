@@ -11,20 +11,17 @@ import SwiftUI
 //    shares of what was eaten; protein — the lifter's macro — leads with grams to go.
 
 struct SoftWeekBalance: View {
-    // ROUND 4 (2026-11-07, the user: "a little hard to read"): labelled rows with real numbers
-    // instead of unlabelled bars around a baseline. Train: an ink tile with the minutes and a dot per
-    // muscle family. Food: the calories (in thousands) and a thin bar toward the goal. Today's column
-    // is the one with the black date. AX sizes: one line per day.
+    // ROUND 5 (2026-11-07, the user's idea): one column per day — the date, then a ring that fills
+    // toward the calorie goal in the macros' colours, with a workout mark inside it on days you
+    // trained. A one-line key says what the ring and the mark mean. AX sizes: one row per day.
     @Environment(Store.self) private var store
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var nutrition = SoftNutrition.shared
 
-    private let labelWidth: CGFloat = 50
-
     var body: some View {
         let days = store.weekSummary.days
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .firstTextBaseline) {
                 Text("This week").font(.system(.headline, weight: .semibold)).foregroundStyle(look.textPrimary)
                 Spacer(minLength: 8)
@@ -34,125 +31,142 @@ struct SoftWeekBalance: View {
             if typeSize.isAccessibilitySize {
                 list(days)
             } else {
-                grid(days)
+                HStack(spacing: 0) {
+                    ForEach(Array(days.enumerated()), id: \.element.id) { i, day in
+                        VStack(spacing: 8) {
+                            VStack(spacing: 1) {
+                                Text(day.letter).font(.system(.caption2, weight: .semibold))
+                                Text(day.date.formatted(.dateTime.day())).font(.system(.subheadline, weight: .semibold)).monospacedDigit()
+                            }
+                            .foregroundStyle(day.isToday ? look.onAction : (day.isFuture ? look.textTertiary : look.textPrimary))
+                            .frame(width: 34, height: 40)
+                            .background { if day.isToday { Capsule().fill(look.action) } }
+                            DayRing(calories: calories(day, i), macros: macros(day), goal: nutrition.calorieGoal,
+                                    workout: workoutKind(day), future: day.isFuture, size: 40)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(spoken(day, i))
+                    }
+                }
+                key
             }
         }
         .padding(18)
         .lookSurface(.panel)
     }
 
-    // MARK: Grid
-
-    private func grid(_ days: [WeekDaySummary]) -> some View {
-        VStack(spacing: 8) {
-            HStack(spacing: 4) {
-                Color.clear.frame(width: labelWidth, height: 1)
-                ForEach(Array(days.enumerated()), id: \.element.id) { _, day in
-                    VStack(spacing: 1) {
-                        Text(day.letter).font(.system(.caption2, weight: .semibold))
-                        Text(day.date.formatted(.dateTime.day())).font(.system(.subheadline, weight: .semibold)).monospacedDigit()
-                    }
-                    .foregroundStyle(day.isToday ? look.onAction : (day.isFuture ? look.textTertiary : look.textPrimary))
-                    .frame(maxWidth: .infinity, minHeight: 40)
-                    .background { if day.isToday { RoundedRectangle(cornerRadius: 12, style: .continuous).fill(look.action) } }
-                }
+    /// The key: what the ring and the mark mean.
+    private var key: some View {
+        HStack(spacing: 14) {
+            HStack(spacing: 6) {
+                DayRing(calories: 1500, macros: (0.3, 0.47, 0.23), goal: 2000, workout: nil, future: false, size: 16, line: 2.5)
+                Text("Calories toward goal").font(.system(.caption, weight: .medium)).foregroundStyle(look.textSecondary)
             }
-            row("Train", days) { i, day in trainCell(day) }
-            row("Food", days) { i, day in foodCell(day, index: i) }
+            HStack(spacing: 6) {
+                Image(systemName: "dumbbell.fill").font(.system(size: 9, weight: .bold)).foregroundStyle(look.onAction)
+                    .frame(width: 16, height: 16).background(look.textPrimary, in: Circle())
+                Text("Worked out").font(.system(.caption, weight: .medium)).foregroundStyle(look.textSecondary)
+            }
+            Spacer(minLength: 0)
         }
+        .accessibilityHidden(true)
     }
 
-    private func row<Cell: View>(_ label: String, _ days: [WeekDaySummary], @ViewBuilder cell: @escaping (Int, WeekDaySummary) -> Cell) -> some View {
-        HStack(spacing: 4) {
-            Text(label).font(.system(.footnote, weight: .semibold)).foregroundStyle(look.textSecondary)
-                .frame(width: labelWidth, alignment: .leading)
-            ForEach(Array(days.enumerated()), id: \.element.id) { i, day in
-                cell(i, day).frame(maxWidth: .infinity)
-            }
-        }
+    private func calories(_ day: WeekDaySummary, _ i: Int) -> Int? {
+        if day.isFuture { return nil }
+        return day.isToday ? nutrition.eaten : (i < nutrition.week.count ? nutrition.week[i] : nil)
     }
 
-    @ViewBuilder private func trainCell(_ day: WeekDaySummary) -> some View {
-        let minutes = day.workouts.reduce(0) { $0 + $1.minutes }
-        let families = MuscleFamily.ordered(day.workouts.flatMap(\.families))
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        if minutes > 0 {
-            VStack(spacing: 3) {
-                Text("\(minutes)").font(.system(.subheadline, weight: .bold)).monospacedDigit()
-                    .foregroundStyle(look.onDone).minimumScaleFactor(0.7).lineLimit(1)
-                HStack(spacing: 2) {
-                    ForEach(families.prefix(3)) { f in Circle().fill(look.family(f)).frame(width: 5, height: 5) }
-                    if families.isEmpty { Circle().fill(look.onDone.opacity(0.5)).frame(width: 5, height: 5) }
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(shape.fill(look.done))
-            .accessibilityLabel("\(Format.weekday(day.date)), trained \(minutes) minutes")
-        } else {
-            Text(day.isFuture ? "" : "–").font(.system(.subheadline, weight: .medium)).foregroundStyle(look.textTertiary)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background { if day.isFuture { shape.strokeBorder(look.hairline) } else { shape.fill(look.surfaceRaised) } }
-                .accessibilityLabel("\(Format.weekday(day.date)), \(day.isFuture ? "upcoming" : "rest day")")
-        }
+    /// Calorie shares of protein / carbs / fat (today's real ones; a typical split on past days).
+    private func macros(_ day: WeekDaySummary) -> (Double, Double, Double) {
+        guard day.isToday else { return (0.31, 0.47, 0.22) }
+        let p = Double(nutrition.eaten(.protein) * 4), c = Double(nutrition.eaten(.carbs) * 4), f = Double(nutrition.eaten(.fat) * 9)
+        let sum = max(1, p + c + f)
+        return (p / sum, c / sum, f / sum)
     }
 
-    @ViewBuilder private func foodCell(_ day: WeekDaySummary, index: Int) -> some View {
-        let calories: Int? = day.isToday ? nutrition.eaten : (index < nutrition.week.count ? nutrition.week[index] : nil)
-        let shape = RoundedRectangle(cornerRadius: 10, style: .continuous)
-        if let calories, !day.isFuture {
-            let ratio = Double(calories) / Double(nutrition.calorieGoal)
-            VStack(spacing: 5) {
-                Text(short(calories)).font(.system(.footnote, weight: .bold)).monospacedDigit()
-                    .foregroundStyle(look.textPrimary).minimumScaleFactor(0.7).lineLimit(1)
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(look.ringTrack)
-                        Capsule().fill(day.isToday ? look.textPrimary : look.textPrimary.opacity(0.55))
-                            .frame(width: geo.size.width * min(1, ratio))
-                    }
-                }
-                .frame(height: 4)
-                .padding(.horizontal, 6)
-            }
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(shape.fill(look.surfaceRaised))
-            .accessibilityLabel("\(Format.weekday(day.date)), \(calories) calories, goal \(nutrition.calorieGoal)")
-        } else {
-            Text(day.isFuture ? "" : "–").font(.system(.subheadline, weight: .medium)).foregroundStyle(look.textTertiary)
-                .frame(maxWidth: .infinity, minHeight: 44)
-                .background { if day.isFuture { shape.strokeBorder(look.hairline) } else { shape.fill(look.surfaceRaised) } }
-        }
+    private func workoutKind(_ day: WeekDaySummary) -> DayRing.Mark? {
+        guard !day.workouts.isEmpty else { return nil }
+        if day.workouts.allSatisfy({ if case .cardio = $0.kind { true } else { false } }) { return .cardio }
+        return .lifting
     }
-
-    // MARK: AX list
 
     private func list(_ days: [WeekDaySummary]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(days.enumerated()).filter { !$0.element.isFuture }, id: \.element.id) { i, day in
                 if i > 0 { LookDivider() }
-                let minutes = day.workouts.reduce(0) { $0 + $1.minutes }
-                let calories: Int? = day.isToday ? nutrition.eaten : (i < nutrition.week.count ? nutrition.week[i] : nil)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(day.isToday ? "Today" : day.date.formatted(.dateTime.weekday(.wide).day()))
-                        .font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
-                    Text([minutes > 0 ? "\(day.workouts.map(\.title).joined(separator: ", ")), \(minutes) min" : "Rest day",
-                          calories.map { "\($0.formatted()) cal" }].compactMap { $0 }.joined(separator: " · "))
-                        .font(.system(.body)).foregroundStyle(look.textSecondary)
+                HStack(spacing: 14) {
+                    DayRing(calories: calories(day, i), macros: macros(day), goal: nutrition.calorieGoal,
+                            workout: workoutKind(day), future: false, size: 48)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(day.isToday ? "Today" : day.date.formatted(.dateTime.weekday(.wide).day()))
+                            .font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
+                        Text(spoken(day, i, includeDay: false)).font(.system(.body)).foregroundStyle(look.textSecondary)
+                    }
                 }
                 .padding(.vertical, 10)
             }
         }
     }
 
-    private func short(_ calories: Int) -> String {
-        calories >= 1000 ? String(format: "%.1fk", Double(calories) / 1000) : "\(calories)"
-    }
-
     private func summary(_ days: [WeekDaySummary]) -> String {
         let workouts = days.reduce(0) { $0 + $1.workouts.count }
-        let logged = nutrition.week.compactMap { $0 }
-        let avg = logged.isEmpty ? 0 : logged.reduce(0, +) / logged.count
-        return "\(workouts) workout\(workouts == 1 ? "" : "s") · \(avg.formatted()) cal avg"
+        let logged = nutrition.week.compactMap { $0 }.count
+        return "\(workouts) workout\(workouts == 1 ? "" : "s") · \(logged) days logged"
+    }
+
+    private func spoken(_ day: WeekDaySummary, _ i: Int, includeDay: Bool = true) -> String {
+        var parts: [String] = []
+        if includeDay { parts.append(day.isToday ? "Today" : Format.weekday(day.date)) }
+        parts.append(day.workouts.isEmpty ? (day.isFuture ? "Upcoming" : "Rest day") : day.workouts.map(\.title).joined(separator: ", "))
+        if let c = calories(day, i) { parts.append("\(c.formatted()) of \(nutrition.calorieGoal.formatted()) cal") }
+        else if !day.isFuture { parts.append("No food logged") }
+        return parts.joined(separator: " · ")
+    }
+}
+
+/// One day: a ring filling toward the calorie goal in the macros' colours; a workout mark inside.
+struct DayRing: View {
+    enum Mark { case lifting, cardio }
+    var calories: Int?
+    var macros: (Double, Double, Double)
+    var goal: Int
+    var workout: Mark?
+    var future: Bool
+    var size: CGFloat
+    var line: CGFloat = 4.5
+    @Environment(\.look) private var look
+
+    var body: some View {
+        ZStack {
+            if let calories, !future {
+                let filled = min(1, Double(calories) / Double(goal))
+                Circle().stroke(look.ringTrack, lineWidth: line).padding(line / 2)
+                arc(from: 0, to: filled * macros.0, SoftMacro.protein.color)
+                arc(from: filled * macros.0, to: filled * (macros.0 + macros.1), SoftMacro.carbs.color)
+                arc(from: filled * (macros.0 + macros.1), to: filled, SoftMacro.fat.color)
+            } else {
+                Circle().strokeBorder(look.textTertiary.opacity(future ? 0.25 : 0.55),
+                                      style: StrokeStyle(lineWidth: 1.5, dash: future ? [] : [3, 3]))
+            }
+            if let workout, !future {
+                Image(systemName: workout == .cardio ? "figure.run" : "dumbbell.fill")
+                    .font(.system(size: size * 0.26, weight: .bold))
+                    .foregroundStyle(look.onAction)
+                    .frame(width: size * 0.56, height: size * 0.56)
+                    .background(look.textPrimary, in: Circle())
+            }
+        }
+        .frame(width: size, height: size)
+    }
+
+    private func arc(from a: Double, to b: Double, _ color: Color) -> some View {
+        Circle()
+            .trim(from: a + (b - a > 0.02 ? 0.006 : 0), to: max(a, b))
+            .stroke(color, style: StrokeStyle(lineWidth: line, lineCap: .butt))
+            .rotationEffect(.degrees(-90))
+            .padding(line / 2)
     }
 }
 

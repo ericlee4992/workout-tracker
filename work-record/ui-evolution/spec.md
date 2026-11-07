@@ -124,3 +124,12 @@ grid: date header (today on a black tile), a **Train** row (ink tile with the da
 family; "–" for a rest day; empty outline for days ahead) and a **Food** row (calories in thousands, "2.1k", with a
 thin bar toward the goal; today's bar ink). The header says "3 workouts · 2,211 cal avg". At AX sizes: one line per
 day ("Wednesday 23 — Leg Day, 55 min · 1,980 cal").
+
+## Direction B, round 5 — "This week" as day rings (2026-11-07, the user's idea)
+
+The user: "I wouldn't know what 77, 55 mean or 2.1k… a row for each day, and below each day a ring which shows
+calories/macros, and inside the ring shows whether you worked out." Built: each day's date (today on a black
+capsule), then a ring that fills toward the calorie goal in protein · carbs · fat colours (dashed = nothing logged,
+faint = days ahead), with a black disc and a dumbbell inside on lifting days (a runner for cardio-only days). A key
+under the row: "Calories toward goal · Worked out". Header: "3 workouts · 5 days logged". AX sizes: one row per day
+with a larger ring and "Pull Day, Indoor Run · 2,140 of 2,288 cal".
