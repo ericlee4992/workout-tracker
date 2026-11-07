@@ -46,6 +46,21 @@ struct LookSurface: ViewModifier {
     private var contentFill: Color { onSheet ? look.surfaceSheet : look.surface }
 
     func body(content: Content) -> some View {
+        if look.origin == .soft, [.panel, .card, .stat, .tile].contains(role) {
+            // Soft: white cards lifted by a wide, faint shadow; no outline (dark: a hairline instead).
+            let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            content
+                .background {
+                    shape.fill(contentFill)
+                        .shadow(color: .black.opacity(look.isDark ? 0 : 0.06), radius: 18, x: 0, y: 6)
+                }
+                .overlay { if look.isDark { shape.strokeBorder(look.hairline, lineWidth: 1) } }
+        } else {
+            standard(content)
+        }
+    }
+
+    @ViewBuilder private func standard(_ content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
         switch role {
         case .glassChrome:
@@ -148,7 +163,19 @@ extension View {
 private struct ScreenGround: ViewModifier {
     @Environment(\.look) private var look
     func body(content: Content) -> some View {
-        content.background(look.ground.ignoresSafeArea())
+        content.background {
+            ZStack(alignment: .top) {
+                look.ground
+                if look.origin == .soft && !look.isDark {
+                    // Soft: a faint warm wash at the top of every screen.
+                    RadialGradient(colors: [Color(hex: 0xF7E7DA).opacity(0.75), .clear],
+                                   center: .init(x: 0.85, y: 0), startRadius: 0, endRadius: 420)
+                        .frame(height: 460)
+                        .allowsHitTesting(false)
+                }
+            }
+            .ignoresSafeArea()
+        }
     }
 }
 

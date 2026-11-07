@@ -12,11 +12,111 @@ struct RootView: View {
 
     private var liveCoverUp: Bool { store.session != nil && store.isSessionPresented }
 
+    @State private var softTab: SoftTab = {
+        switch UserDefaults.standard.string(forKey: "softTab") {
+        case "train": .train
+        case "progress": .progress
+        case "profile": .profile
+        default: .today
+        }
+    }()
+    @State private var softAddShown = UserDefaults.standard.bool(forKey: "softAdd")
+    @State private var softCover: SoftCover? = UserDefaults.standard.string(forKey: "softCover").flatMap(SoftCover.init(rawValue:))
+
     var body: some View {
         @Bindable var router = router
         let look = lookModel.look(system: systemScheme)
+        tabs
+        .tint(look.selection)
+        .overlay {
+            if softAddShown {
+                SoftAddMenu(shown: $softAddShown) { choice in
+                    switch choice {
+                    case "train": selectSoft(.train)
+                    case "logFood": softCover = .logFood
+                    case "scanFood": softCover = .scanFood
+                    default: softCover = .logWeight
+                    }
+                }
+                .lookLayer(lookModel)
+                .transition(.opacity)
+            }
+        }
+        .fullScreenCover(item: Binding(get: { softCover == .logWeight ? nil : softCover }, set: { softCover = $0 })) { cover in
+            Group {
+                if cover == .scanFood { SoftScanFoodScreen() } else { SoftLogFoodScreen() }
+            }
+            .lookLayer(lookModel)
+        }
+        .sheet(isPresented: Binding(get: { softCover == .logWeight }, set: { if !$0 { softCover = nil } })) {
+            SoftLogWeightSheet().presentationDetents([.medium]).lookLayer(lookModel)
+        }
+        .templateDriftPresenter()
+        .sheet(item: rootSheet) { route in
+            SheetContent(route: route).lookLayer(lookModel)
+        }
+        .fullScreenCover(isPresented: liveCoverBinding, onDismiss: presentFinishIfNeeded) {
+            LiveWorkoutScreen()
+                .sheet(item: coverSheet) { route in SheetContent(route: route).lookLayer(lookModel) }
+                .lookLayer(lookModel)
+                .dynamicTypeOverride(router.dynamicTypeOverride)
+        }
+        .fullScreenCover(isPresented: $router.aiRoutinePresented) {
+            AIRoutineFlowScreen()
+                .sheet(item: coverSheet) { route in SheetContent(route: route).lookLayer(lookModel) }
+                .lookLayer(lookModel)
+                .dynamicTypeOverride(router.dynamicTypeOverride)
+        }
+        .lookLayer(lookModel)
+        .dynamicTypeOverride(router.dynamicTypeOverride)
+        .animation(.easeInOut(duration: 0.25), value: lookModel.id)
+        .animation(.easeInOut(duration: 0.25), value: lookModel.appearance)
+    }
 
-        TabView(selection: $router.tab) {
+    // MARK: Tabs
+
+    @ViewBuilder private var tabs: some View {
+        if lookModel.id == .soft { softTabs } else { classicTabs }
+    }
+
+    /// EXPLORATION (2026-11-07) — Soft: Today · Train · Progress · Profile in a floating capsule,
+    /// and the + as its own black circle beside it (opens the add menu). Each tab keeps its stack.
+    private var softTabs: some View {
+        @Bindable var router = router
+        return ZStack {
+            softPage(.today) { NavigationStack(path: $router.exercisesPath) { SoftTodayScreen().routeDestinations() } }
+            softPage(.train) { NavigationStack(path: $router.workoutPath) { WorkoutHomeScreen().routeDestinations() } }
+            softPage(.progress) { NavigationStack(path: $router.historyPath) { SoftProgressScreen().routeDestinations() } }
+            softPage(.profile) { NavigationStack(path: $router.gymsPath) { SoftProfileScreen().routeDestinations() } }
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            SoftTabBar(selection: softTab, select: selectSoft) {
+                withAnimation(.easeOut(duration: 0.2)) { softAddShown = true }
+            }
+        }
+        .onAppear { selectSoft(softTab) }
+    }
+
+    private func softPage<C: View>(_ tab: SoftTab, @ViewBuilder _ content: () -> C) -> some View {
+        content()
+            .opacity(softTab == tab ? 1 : 0)
+            .allowsHitTesting(softTab == tab)
+            .accessibilityHidden(softTab != tab)
+    }
+
+    private func selectSoft(_ tab: SoftTab) {
+        softTab = tab
+        switch tab {
+        case .today: router.tab = .exercises
+        case .train: router.tab = .workout
+        case .progress: router.tab = .history
+        case .profile, .add: router.tab = .gyms
+        }
+    }
+
+    private var classicTabs: some View {
+        @Bindable var router = router
+        return TabView(selection: $router.tab) {
             Tab(AppTab.workout.label, systemImage: AppTab.workout.symbol, value: AppTab.workout) {
                 NavigationStack(path: $router.workoutPath) {
                     WorkoutHomeScreen().routeDestinations()
@@ -38,27 +138,6 @@ struct RootView: View {
                 }
             }
         }
-        .tint(look.selection)
-        .templateDriftPresenter()
-        .sheet(item: rootSheet) { route in
-            SheetContent(route: route).lookLayer(lookModel)
-        }
-        .fullScreenCover(isPresented: liveCoverBinding, onDismiss: presentFinishIfNeeded) {
-            LiveWorkoutScreen()
-                .sheet(item: coverSheet) { route in SheetContent(route: route).lookLayer(lookModel) }
-                .lookLayer(lookModel)
-                .dynamicTypeOverride(router.dynamicTypeOverride)
-        }
-        .fullScreenCover(isPresented: $router.aiRoutinePresented) {
-            AIRoutineFlowScreen()
-                .sheet(item: coverSheet) { route in SheetContent(route: route).lookLayer(lookModel) }
-                .lookLayer(lookModel)
-                .dynamicTypeOverride(router.dynamicTypeOverride)
-        }
-        .lookLayer(lookModel)
-        .dynamicTypeOverride(router.dynamicTypeOverride)
-        .animation(.easeInOut(duration: 0.25), value: lookModel.id)
-        .animation(.easeInOut(duration: 0.25), value: lookModel.appearance)
     }
 
     private var liveCoverBinding: Binding<Bool> {
@@ -100,3 +179,6 @@ extension View {
         if let size { dynamicTypeSize(size) } else { self }
     }
 }
+
+/// EXPLORATION (2026-11-07): the Soft look's tabs (+ opens the add menu, never a page).
+enum SoftTab: Hashable { case today, train, progress, profile, add }

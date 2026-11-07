@@ -13,7 +13,7 @@ import Observation
 /// launch default. Components never switch on this: they switch on `look.id` (`LookStyle`),
 /// the structural family a `Look` value is drawn in.
 enum LookID: String, CaseIterable, Identifiable, Hashable {
-    case final, floodlight, anatomy, paper, carbon
+    case final, floodlight, anatomy, paper, carbon, soft
 
     var id: String { rawValue }
 
@@ -25,6 +25,7 @@ enum LookID: String, CaseIterable, Identifiable, Hashable {
         case .anatomy: "B · Anatomy"
         case .paper: "C · Paper"
         case .carbon: "C · Carbon"
+        case .soft: "Soft"
         }
     }
 
@@ -36,16 +37,17 @@ enum LookID: String, CaseIterable, Identifiable, Hashable {
         case .anatomy: "B"
         case .paper: "C"
         case .carbon: "C·dk"
+        case .soft: "S"
         }
     }
 
     /// Only the final look follows the Appearance setting; the four studies keep their finish.
-    var followsAppearance: Bool { self == .final }
+    var followsAppearance: Bool { self == .final || self == .soft }
 
     /// The fixed scheme of a study look (`final` resolves through `LookModel.appearance`).
     var fixedColorScheme: ColorScheme? {
         switch self {
-        case .final: nil
+        case .final, .soft: nil
         case .paper: .light
         default: .dark
         }
@@ -59,6 +61,7 @@ enum LookID: String, CaseIterable, Identifiable, Hashable {
         case "anatomy", "b": self = .anatomy
         case "paper", "c", "paperclub": self = .paper
         case "carbon", "carboncopy", "c-dark", "cdark": self = .carbon
+        case "soft", "s": self = .soft
         default: return nil
         }
     }
@@ -440,6 +443,7 @@ struct Look {
     static func `for`(_ id: LookID, scheme: ColorScheme = .dark) -> Look {
         switch id {
         case .final: scheme == .light ? .finalLight : .finalDark
+        case .soft: scheme == .light ? .softLight : .softDark
         case .floodlight: .floodlight
         case .anatomy: .anatomy
         case .paper: .paper
@@ -861,4 +865,25 @@ extension Color {
         let cleaned = string.trimmingCharacters(in: CharacterSet(charactersIn: "# "))
         self.init(hex: UInt32(cleaned, radix: 16) ?? 0xFF00FF)
     }
+}
+
+// MARK: - Soft (2026-11 exploration)
+
+extension LookFonts {
+    /// Soft: SF Pro only — bold titles, semibold figures, no Expanded or Black.
+    static let soft = textRoles(
+        largeTitle: face(.largeTitle, .text, .bold),
+        title: face(.title, .text, .bold),
+        title2: face(.title2, .text, .bold),
+        title3: face(.title3, .text, .semibold),
+        numbers: .text, numberWeight: .semibold,
+        fieldNumber: face(.headline, .text, .semibold, mono: true),
+        button: face(.headline, .text, .semibold),
+        navTitle: face(.headline, .text, .semibold),
+        sectionTitle: face(.title3, .text, .semibold),
+        pageSectionTitle: face(.title2, .text, .bold),
+        cardTitle: face(.title3, .text, .semibold),
+        tileTitle: face(.headline, .text, .semibold),
+        columnHeader: face(.caption2, .text, .medium),
+        badge: face(.caption, .text, .semibold))
 }

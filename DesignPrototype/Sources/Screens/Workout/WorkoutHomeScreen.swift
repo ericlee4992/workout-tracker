@@ -28,7 +28,7 @@ struct WorkoutHomeScreen: View {
             // starts step down to a quiet pair, the other templates follow, and "This week" moves
             // to the end (it is a look back, not the reason to open the app).
             VStack(alignment: .leading, spacing: look.space.section) {
-                LookNavTitle("Workout", subtitle: WorkoutDates.homeSubtitle(store.now, look: look.id))
+                LookNavTitle(look.origin == .soft ? "Train" : "Workout", subtitle: WorkoutDates.homeSubtitle(store.now, look: look.id))
                 VStack(spacing: 12) {
                     gymControl
                     if isLive {

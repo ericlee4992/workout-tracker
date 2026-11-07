@@ -128,6 +128,7 @@ struct LookSwitcherOverlay: View {
         } else {
             HStack(spacing: 2) {
                 nowNewToggle
+                lookToggle
                 if proposal.currentKey == "live" || proposal.currentKey == "cardio" {
                     chromeButton(proposal.finishAtBottom ? "arrow.down.to.line" : "arrow.up.to.line",
                                  label: proposal.finishAtBottom ? "Finish at the bottom" : "Finish at the top") {
@@ -135,7 +136,7 @@ struct LookSwitcherOverlay: View {
                     }
                     .contentTransition(.symbolEffect(.replace))
                 }
-                accentButton
+                if lookModel.id != .soft { accentButton }
                 chromeButton(router.dynamicTypeOverride == nil ? "textformat.size.smaller" : "textformat.size.larger",
                              label: router.dynamicTypeOverride == nil ? "Large text" : "Default text") {
                     router.dynamicTypeOverride = router.dynamicTypeOverride == nil ? .accessibility1 : nil
@@ -160,6 +161,23 @@ struct LookSwitcherOverlay: View {
             .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
             .environment(\.colorScheme, .dark)
         }
+    }
+
+    /// Direction A (Floodlight, with the accent) or Direction B (Soft).
+    private var lookToggle: some View {
+        let soft = lookModel.id == .soft
+        return Button {
+            withAnimation(.easeInOut(duration: 0.25)) { lookModel.id = soft ? .final : .soft }
+        } label: {
+            Text(soft ? "SOFT" : "FLOOD")
+                .font(.system(.caption2, design: .monospaced).weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .frame(height: 32)
+                .fixedSize()
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(soft ? "Look: Soft, switch to Floodlight" : "Look: Floodlight, switch to Soft")
     }
 
     /// Cycles the proposal's accent: Mono → Sand → Violet (today's).

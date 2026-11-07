@@ -132,8 +132,8 @@ extension Look {
 
     /// The live lifting workout in the final look: Paper Club structure (Carbon's in dark,
     /// Paper's in light) with Floodlight's palette, Ultra action and Expanded type.
-    static func finalLive(dark: Bool) -> Look {
-        let skin: Look = dark ? .finalDark : .finalLight
+    static func finalLive(dark: Bool, skin given: Look? = nil) -> Look {
+        let skin: Look = given ?? (dark ? .finalDark : .finalLight)
         var look = dark ? Look.carbon : Look.paper
         look.origin = .final
         look.colorScheme = skin.colorScheme

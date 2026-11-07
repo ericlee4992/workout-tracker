@@ -17,7 +17,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   Round 2 (the user's feedback): cardio Pause/End spaced and the button reads just "End"; the finish screen shows a
   receipt-style summary (time, exercises · sets, volume, calories, heart rate) under the new bests; live buttons flat
   (no hard offset shadow); **no purple** — accent switch Mono (recommended) / Sand / Violet (today) in the pill.
-  Next: the user tries it and picks/vetoes; then tickets per issue, Claude implements, Codex reviews.
+  **2026-11-07:** the user chose Mono and asked to save it (tag `design/floodlight-mono-2026-11-07`, record
+  `work-record/ui-evolution/spec.md` Direction A) and to explore a "Soft" direction inspired by a calorie/macro
+  tracker, with calorie/macro tracking planned for the app (all-in-one). Soft is in the prototype (`-look soft`,
+  spec Direction B). **Still no app code; the user wants to see designs first.** Next: the user tries Soft and
+  compares; open questions in the spec.
 
 - **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue
   **exercise media** in the `public-beta` worktree ("Exercise media" entry below; ticket 03 + the DIY animation report's

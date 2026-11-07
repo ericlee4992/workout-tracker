@@ -23,6 +23,17 @@ struct LiveWorkoutScreen: View {
     /// The final look draws the lifting workout in Paper Club's structure, re-skinned in
     /// Floodlight (FinalLook.swift); cardio focus stays plain Floodlight. Other looks: unchanged.
     private var liveLook: Look {
+        // Soft (2026-11 exploration) keeps the same live structure, re-skinned in its own tokens.
+        if look.origin == .soft, store.session?.focus != .cardio {
+            var live = Look.finalLive(dark: look.isDark, skin: look).withAccent(.mono, live: true)
+            live.origin = .soft
+            live.font = .soft
+            live.outline = look.textPrimary.opacity(0.18)
+            live.dash = look.textPrimary.opacity(0.3)
+            live.hairline = look.textPrimary.opacity(0.08)
+            live.radius = look.radius
+            return live
+        }
         guard look.origin == .final, store.session?.focus != .cardio else { return look }
         return (look.isDark ? Look.finalLiveDark : Look.finalLiveLight).withAccent(lookModel.accent, live: true)
     }

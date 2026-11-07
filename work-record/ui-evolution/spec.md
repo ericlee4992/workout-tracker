@@ -36,4 +36,25 @@ Open for this direction: Finish top vs bottom; Progress tab and History rows (ba
 ## Direction B — "Soft" (exploring, 2026-11-07)
 
 The user liked the feel of a calorie/macro tracker's design and plans to add calorie/macro tracking so the app is
-all-in-one. Explored in the prototype as a second look; see the ticket notes as they are written.
+all-in-one. Explored in the prototype as a second look (`-look soft`; FLOOD | SOFT in the pill). The style is
+borrowed, not the other app's screens or branding; the content and muscle figures are this app's own.
+
+- **Look:** light ground `#F5F5F7` with a faint warm wash at the top; white cards (radius 24) lifted by a wide faint
+  shadow, no outlines; SF Pro only (bold titles, semibold figures); Mono action (black pills in light, white in
+  dark); quiet macro hues (protein coral, carbs amber, fat blue) only on their small icons and rings; dark variant on
+  black with graphite cards.
+- **Structure (proposal):** tabs Today · Train · Progress · Profile in a floating capsule, and a separate black **+**
+  (Start workout / Log food / Log weight / Scan food). History, Gyms and Exercises move into Profile → Training.
+- **Today:** week strip of day rings (calories vs goal; dashed = nothing logged), calories card (eaten / goal, tap
+  for "left"), Protein · Carbs · Fat cards with rings, Training (the next template with Start), Today's log (foods
+  with calories and macros, and the day's workout with calories burned).
+- **Progress:** body weight vs goal with Log weight, weight trend (90D/6M/1Y/All), calories this week vs goal,
+  Strength (each lift's best set and change; opens the exercise page).
+- **Log food:** All / My foods / My meals / Saved, "Describe what you ate", recently logged with + (adds to Today),
+  Manual Add / Voice Log. **Scan food:** camera mock with Scan food / Barcode / Food label and a result to log.
+  **Log weight:** a sheet with the figure and ± steps.
+- **Workout screens:** Train (Direction A's layout in Soft type), the live workout re-skinned (same set table), the
+  finish receipt.
+
+Open: tab structure (is Profile the right home for History/Gyms/Exercises?), the nutrition feature's scope
+(database, AI photo estimate via the existing server, barcode), and whether Soft replaces Floodlight or is a theme.
