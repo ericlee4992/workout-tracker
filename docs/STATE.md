@@ -5,6 +5,17 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
+- **UI evolution (2026-11-06, in progress):** worktree `…/workspaces/Health App/UI_design`, branch
+  `ericlee4992/UI_design`. The user ran the `impeccable` skill (installed in `~/.claude/skills/impeccable`) and asked
+  that **the project's ios-design skill not limit it** for this work. Critique of the whole app (33 screens, light/dark/
+  AccessibilityL): 25/36, snapshot `.impeccable/critique/2026-11-07T02-17-03Z__workouttracker-features.md`. The user's
+  answers: first fix = end/cancel/delete controls; direction = **evolve the look** (keep Floodlight's identity); scope =
+  all five issues; **off-limits: the live set table, the muscle figures, Settings**. The red Cancel beside minimize is
+  kept (the user's 2026-10-10 choice). **No app code changed yet — the user asked to see the design first:** a tappable
+  Simulator prototype in `DesignPrototype/` (the September RedesignPrototype restored, plus the proposal; NOW | NEW
+  switch shows real screenshots of today's app vs the proposal; Finish top/bottom switch; large-text switch).
+  Next: the user tries it and picks/vetoes; then tickets per issue, Claude implements, Codex reviews.
+
 - **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue
   **exercise media** in the `public-beta` worktree ("Exercise media" entry below; ticket 03 + the DIY animation report's
   four open decisions). Next steps, in order: (1) the user closes the finished `beta-19-bug-fixes` worktree in Orca
