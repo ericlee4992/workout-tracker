@@ -67,7 +67,10 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
   a clean `main` — update it, work elsewhere. Each task gets its own Orca worktree on a short-lived
   branch off `main` (`orca-cli`); once that branch is merged and its record written, remove the
   worktree with `orca worktree rm`, which keeps the branch. `…/workspaces/Health App/release-build`
-  stays as the detached archive checkout for TestFlight builds.
+  stays as the detached archive checkout for TestFlight builds. A session started in the home
+  checkout and given a task hands it off: it creates the task's worktree with an agent and a brief
+  (`orca worktree create … --agent claude --prompt`, per `orca-cli`'s handoff steps), tells the user
+  which workspace to open, and stops; reading files and answering questions there are fine.
 - Commit on the branch and push it. Once the required verification and review are clear,
   fast-forward `main` with `git merge --ff-only <branch>` and push `main`. The repository's
   established workflow does not require a PR. Confirm the remote contains the resulting tip.
