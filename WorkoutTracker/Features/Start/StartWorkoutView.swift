@@ -90,7 +90,7 @@ struct StartWorkoutView: View {
                 // Soft redesign S2 (D68): Train's switch (Templates | Gyms | Exercises) in the bar.
                 // Settings moved from a gear here to the Profile tab.
                 ToolbarItem(placement: .principal) {
-                    InlineTitleOrTrainSwitcher(title: "Train", visible: titleInBar)
+                    InlineTitleOrTrainSwitcher(title: "Train", visible: titleInBar, trainRoot: true)
                 }
             }
           }

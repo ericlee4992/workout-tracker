@@ -33,7 +33,7 @@ struct GymsView: View {
                 }
             }
             .lookScreenBackground()
-            .gymsInlineTitle("Gyms", visible: titleInBar)
+            .gymsInlineTitle("Gyms", visible: titleInBar, trainRoot: true)
             .navigationDestination(for: UUID.self) { gymID in
                 // A gym deleted from its own page pops back here; a stale id shows nothing.
                 if let gym = allGyms.first(where: { $0.id == gymID && !$0.archived }) {

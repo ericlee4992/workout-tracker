@@ -11,6 +11,9 @@ extension XCUIApplication {
         let tab = tabBars.buttons["Train"]
         XCTAssertTrue(tab.waitForExistence(timeout: 15), "Train tab", file: file, line: line)
         tab.tap()
+        // The switch is on Train's root pages only (codex-review-s2 #1): a page left pushed in the shown part hides
+        // it, and tapping the selected tab again pops that part back to its root.
+        if !segmentedControls["trainSwitcher"].waitForExistence(timeout: 3) { tab.tap() }
         let segment = segmentedControls["trainSwitcher"].buttons[part]
         XCTAssertTrue(segment.waitForExistence(timeout: 10), "Train → \(part)", file: file, line: line)
         if !segment.isSelected { segment.tap() }

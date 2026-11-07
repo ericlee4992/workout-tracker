@@ -157,7 +157,7 @@ final class AskAIUITests: XCTestCase {
         let done = app.buttons["routineSavedDone"]; XCTAssertTrue(done.waitForExistence(timeout: 10))
         XCTAssertTrue(any("routineSavedTitle").label.hasPrefix("3 templates saved"))
         done.tap()
-        XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.navigationBars["Train"].waitForExistence(timeout: 10))
         for day in 1...3 {
             for _ in 0..<4 { app.swipeDown() }
             let tile = app.buttons["templateTile.Day \(day) — Fitness"]
@@ -234,7 +234,7 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Seated Chest Press"].firstMatch.waitForExistence(timeout: 5))
         app.buttons["routineBack"].tap()
         discardWeekAndClose()
-        XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Train"].waitForExistence(timeout: 5))
         for _ in 0..<6 { app.swipeDown() }
         XCTAssertTrue(app.buttons["gymPicker"].label.contains("Routine Gym"))
         app.openTrain("Gyms")
@@ -257,14 +257,14 @@ final class AskAIUITests: XCTestCase {
         let scan = app.buttons["routineScanMachine"]; XCTAssertTrue(scan.waitForExistence(timeout: 5))
         XCTAssertEqual(any("routineMachineCount").label, "0 saved machines")
         app.buttons["routineCancel"].tap()
-        XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Train"].waitForExistence(timeout: 5))
         for _ in 0..<4 { app.swipeDown() }
         XCTAssertTrue(app.buttons["gymPicker"].label.contains("Second Gym"))
         reach(ask); ask.tap(); typeGoals("Pick a gym"); toEquipment(); chooseGym("No gym")
         XCTAssertFalse(scan.exists)
         XCTAssertTrue(app.staticTexts["Choose or add a gym to save scanned machines."].exists)
         app.buttons["routineCancel"].tap()
-        XCTAssertTrue(app.navigationBars["Workout"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Train"].waitForExistence(timeout: 5))
         for _ in 0..<4 { app.swipeDown() }
         XCTAssertTrue(app.buttons["gymPicker"].label.contains("No gym"))
     }

@@ -747,14 +747,16 @@ struct MachineBestChart: View {
 extension View {
     /// A pushed Gyms page's bar: the title fades into the bar once the page scrolls past its hero
     /// (as History does); the bar's ground appears with it.
-    func gymsInlineTitle(_ title: String, visible: Bool) -> some View {
-        modifier(GymsInlineTitle(title: title, visible: visible))
+    /// `trainRoot`: this is one of Train's three root pages, which shows Train's switch instead (S2).
+    func gymsInlineTitle(_ title: String, visible: Bool, trainRoot: Bool = false) -> some View {
+        modifier(GymsInlineTitle(title: title, visible: visible, trainRoot: trainRoot))
     }
 }
 
 private struct GymsInlineTitle: ViewModifier {
     var title: String
     var visible: Bool
+    var trainRoot = false
     @Environment(\.look) private var look
 
     func body(content: Content) -> some View {
@@ -766,7 +768,7 @@ private struct GymsInlineTitle: ViewModifier {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     // Soft redesign S2: inside Train, the switch takes the inline title's place.
-                    InlineTitleOrTrainSwitcher(title: title, visible: visible)
+                    InlineTitleOrTrainSwitcher(title: title, visible: visible, trainRoot: trainRoot)
                 }
             }
     }

@@ -187,7 +187,8 @@ final class FloodlightSettingsUITests: XCTestCase {
         (start ? us : metric).tap()
         XCTAssertNotEqual(metric.isSelected, start)
         XCTAssertEqual(us.isSelected, start)
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        // S2: Settings is the Profile tab's root (no Back): leave through another tab and come back.
+        app.openTrain()
         app.openProfile()
         XCTAssertTrue(metric.waitForExistence(timeout: 5))
         XCTAssertNotEqual(metric.isSelected, start, "the unit choice persisted")
@@ -209,7 +210,8 @@ final class FloodlightSettingsUITests: XCTestCase {
         ask.tap()
         let off = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '0'"), object: ask)
         XCTAssertEqual(XCTWaiter.wait(for: [off], timeout: 5), .completed)
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        // S2: Settings is the Profile tab's root (no Back): leave through another tab and come back.
+        app.openTrain()
         app.openProfile()
         reach(ask)
         XCTAssertEqual(ask.value as? String, "0")

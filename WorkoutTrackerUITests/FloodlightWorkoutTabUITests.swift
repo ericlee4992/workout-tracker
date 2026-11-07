@@ -176,7 +176,7 @@ final class FloodlightWorkoutTabUITests: XCTestCase {
         }
         // Dark stays for the pushed detail, the editor sheet, the workout's full-screen cover and
         // an alert over it.
-        app.navigationBars.buttons.element(boundBy: 0).tap()
+        app.openTrain()  // S2: Settings is the Profile tab (no Back)
         let tile = any("templateTile.Whole Body")
         XCTAssertTrue(tile.waitForExistence(timeout: 5))
         tile.tap()

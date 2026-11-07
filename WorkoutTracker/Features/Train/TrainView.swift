@@ -2,8 +2,8 @@ import SwiftUI
 
 // Soft redesign S2 (D68): the Train tab holds the three training libraries behind one switch —
 // Templates | Gyms | Exercises — in place of the old Workout, Gyms and Exercises tabs. Each part
-// has its own navigation stack; the switch sits in the root page's navigation bar, where the
-// page's inline title used to fade in, so it leaves with a push.
+// has its own navigation stack; the switch sits in the ROOT page's navigation bar, where the
+// page's inline title used to fade in, so it leaves with a push (pushed pages keep their titles).
 
 enum TrainSection: String, CaseIterable, Identifiable, Hashable {
     case templates, gyms, exercises
@@ -63,16 +63,18 @@ struct TrainSwitcher: View {
     }
 }
 
-/// A root page's principal bar item: the Train switch inside Train, otherwise the page's inline
-/// title, shown once the large title has scrolled away.
+/// A page's principal bar item: the Train switch on one of Train's three ROOT pages (`trainRoot`), otherwise the
+/// page's inline title, shown once the large title has scrolled away. Pages pushed inside Train (a gym, a machine,
+/// an exercise) share these title helpers and inherit the environment, so they must not opt in (codex-review-s2 #1).
 struct InlineTitleOrTrainSwitcher: View {
     var title: String
     var visible: Bool
+    var trainRoot = false
     @Environment(\.trainSection) private var trainSection
     @Environment(\.look) private var look
 
     var body: some View {
-        if let trainSection {
+        if trainRoot, let trainSection {
             TrainSwitcher(section: trainSection)
         } else {
             Text(title)

@@ -59,7 +59,7 @@ struct ExercisesView: View {
             })
             list(stats: stats)
                 .lookScreenBackground()
-                .exercisesInlineTitle("Exercises", visible: titleInBar)
+                .exercisesInlineTitle("Exercises", visible: titleInBar, trainRoot: true)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) { filterMenu }
                     ToolbarItem(placement: .topBarTrailing) {
@@ -427,14 +427,16 @@ struct ExercisesCatalogRow: View {
 extension View {
     /// The screen's inline title in the look's nav face, faded in once the large title has
     /// scrolled away; the bar's ground shows with it.
-    func exercisesInlineTitle(_ title: String, visible: Bool) -> some View {
-        modifier(ExercisesInlineTitle(title: title, visible: visible))
+    /// `trainRoot`: this is one of Train's three root pages, which shows Train's switch instead (S2).
+    func exercisesInlineTitle(_ title: String, visible: Bool, trainRoot: Bool = false) -> some View {
+        modifier(ExercisesInlineTitle(title: title, visible: visible, trainRoot: trainRoot))
     }
 }
 
 private struct ExercisesInlineTitle: ViewModifier {
     var title: String
     var visible: Bool
+    var trainRoot = false
     @Environment(\.look) private var look
 
     func body(content: Content) -> some View {
@@ -446,7 +448,7 @@ private struct ExercisesInlineTitle: ViewModifier {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     // Soft redesign S2: inside Train, the switch takes the inline title's place.
-                    InlineTitleOrTrainSwitcher(title: title, visible: visible)
+                    InlineTitleOrTrainSwitcher(title: title, visible: visible, trainRoot: trainRoot)
                 }
             }
     }
