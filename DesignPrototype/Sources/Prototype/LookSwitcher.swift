@@ -135,6 +135,7 @@ struct LookSwitcherOverlay: View {
                     }
                     .contentTransition(.symbolEffect(.replace))
                 }
+                accentButton
                 chromeButton(router.dynamicTypeOverride == nil ? "textformat.size.smaller" : "textformat.size.larger",
                              label: router.dynamicTypeOverride == nil ? "Large text" : "Default text") {
                     router.dynamicTypeOverride = router.dynamicTypeOverride == nil ? .accessibility1 : nil
@@ -159,6 +160,29 @@ struct LookSwitcherOverlay: View {
             .shadow(color: .black.opacity(0.35), radius: 10, y: 4)
             .environment(\.colorScheme, .dark)
         }
+    }
+
+    /// Cycles the proposal's accent: Mono → Sand → Violet (today's).
+    private var accentButton: some View {
+        let accent = lookModel.accent
+        let swatch = accent.colors(dark: true)?.action ?? Color(hex: 0xB25CFF)
+        return Button {
+            withAnimation(.easeInOut(duration: 0.25)) { lookModel.accent = accent.next }
+        } label: {
+            HStack(spacing: 4) {
+                Circle().fill(swatch).frame(width: 10, height: 10)
+                    .overlay { Circle().strokeBorder(.white.opacity(0.5), lineWidth: 1) }
+                Text(accent.label)
+                    .font(.system(.caption2, design: .monospaced).weight(.bold))
+                    .foregroundStyle(.white)
+                    .fixedSize()
+            }
+            .padding(.horizontal, 6)
+            .frame(height: 32)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Accent \(accent.label.lowercased()), change")
     }
 
     /// NOW (the shipped app's capture) | NEW (the proposal, live).

@@ -300,7 +300,19 @@ private struct LiveRestRow: View {
             withAnimation(reduceMotion ? nil : .spring(response: 0.3, dampingFraction: 0.9)) { store.skipRest() }
         }
         .buttonStyle(LivePillStyle(prominent: true, fill: fill))
+        // PROPOSAL: on the ink slab the filled pill takes the accent's light form (a dark accent
+        // would vanish into the slab in light mode).
+        .environment(\.look, slabButtonLook)
         .accessibilityLabel("Skip rest")
+    }
+
+    private var slabButtonLook: Look {
+        var l = look
+        if let light = look.liveOnSlabOverride {
+            l.action = light
+            l.onAction = Color(hex: 0x0B0C0E)
+        }
+        return l
     }
 }
 
@@ -359,7 +371,7 @@ struct LiveRestRing: View {
     var body: some View {
         let width = look.id.isPaperClub ? size * 0.103 : size * 0.09
         let done = glyph == .check
-        let color: Color = done ? (onSlab ? look.onSlab : look.done) : (look.id == .floodlight && isFinal ? look.done : look.live)
+        let color: Color = done ? (onSlab ? look.onSlab : look.done) : (look.id == .floodlight && isFinal ? look.done : (onSlab ? look.liveOnSlab : look.live))
         let track: Color = look.id.isPaperClub ? (onSlab ? look.onSlab.opacity(0.16) : look.ringTrack) : look.wash(0.12)
         let glyphColor: Color = switch look.id {
         case .floodlight: color

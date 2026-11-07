@@ -14,6 +14,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   kept (the user's 2026-10-10 choice). **No app code changed yet — the user asked to see the design first:** a tappable
   Simulator prototype in `DesignPrototype/` (the September RedesignPrototype restored, plus the proposal; NOW | NEW
   switch shows real screenshots of today's app vs the proposal; Finish top/bottom switch; large-text switch).
+  Round 2 (the user's feedback): cardio Pause/End spaced and the button reads just "End"; the finish screen shows a
+  receipt-style summary (time, exercises · sets, volume, calories, heart rate) under the new bests; live buttons flat
+  (no hard offset shadow); **no purple** — accent switch Mono (recommended) / Sand / Violet (today) in the pill.
   Next: the user tries it and picks/vetoes; then tickets per issue, Claude implements, Codex reviews.
 
 - **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue

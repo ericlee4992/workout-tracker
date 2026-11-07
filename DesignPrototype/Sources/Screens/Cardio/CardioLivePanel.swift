@@ -986,7 +986,7 @@ private struct CardioControlTray: View {
     var body: some View {
         let ax = typeSize.isAccessibilitySize
         ViewThatFits(in: .horizontal) {
-            row(icons: true, equal: ax)
+            row(icons: true, equal: true)
             row(icons: false, equal: true)
             VStack(spacing: 10) {
                 pause(icons: true)
@@ -1002,7 +1002,7 @@ private struct CardioControlTray: View {
     }
 
     private func row(icons: Bool, equal: Bool) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             pause(icons: icons)
             end(icons: icons)
                 .frame(maxWidth: equal ? .infinity : endWidth)
@@ -1037,7 +1037,8 @@ private struct CardioControlTray: View {
             }
         } label: {
             // PROPOSAL: name what ends — this activity, not the workout ("End Indoor Run").
-            label(Proposal.shared.finishAtBottom ? "End \(segment.activity.name)" : "End Cardio", symbol: "stop.fill", icons: icons)
+            // PROPOSAL: just "End" (the activity is named on the panel above).
+            label("End", symbol: "stop.fill", icons: icons)
         }
         .buttonStyle(CardioTrayButtonStyle(prominent: false))
     }

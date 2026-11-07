@@ -147,7 +147,7 @@ struct FinishSummarySheet: View {
                     ProposedBestsHero(bests: data.bests)
                         .revealWhenVisible(.bests, report: sectionVisibility)
                 }
-                if summary.saved { ProposedStatLine(tiles: summary.tiles) }
+                if summary.saved { ProposedSummaryList(summary: summary) }
                 if summary.saved { actions(data) }
             }
             if summary.saved {

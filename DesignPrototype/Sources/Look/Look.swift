@@ -359,6 +359,8 @@ struct Look {
     var actionText: Color
     /// A live instrument (rest ring, live progress).
     var live: Color
+    /// PROPOSAL: the live colour on the ink rest slab, when the accent itself is dark.
+    var liveOnSlabOverride: Color? = nil
     /// Selection as a state (selected tab, chip, segment) — glyph/label colour.
     var selection: Color
     /// Selection fill (the lozenge behind a selected tab / segment).
@@ -780,6 +782,8 @@ extension EnvironmentValues {
 @Observable
 final class LookModel {
     var id: LookID
+    /// PROPOSAL (2026-11): the accent that replaces violet (switchable in the prototype pill).
+    var accent: ProposalAccent = ProposalAccent(rawValue: UserDefaults.standard.string(forKey: "accent") ?? "") ?? .mono
     /// Settings → Appearance. Persisted; a `-appearance light|dark|system` launch argument wins.
     var appearance: Appearance {
         didSet { UserDefaults.standard.set(appearance.rawValue, forKey: Self.appearanceKey) }
@@ -804,7 +808,8 @@ final class LookModel {
 
     /// The token set, given the scheme the system resolves to when Appearance is System.
     func look(system: ColorScheme) -> Look {
-        .for(id, scheme: preferredColorScheme ?? system)
+        let base = Look.for(id, scheme: preferredColorScheme ?? system)
+        return id == .final ? base.withAccent(accent, live: false) : base
     }
 
     /// The sun / moon quick toggle: flips the final look between explicit Light and Dark.

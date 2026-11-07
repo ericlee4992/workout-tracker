@@ -17,13 +17,14 @@ struct LiveWorkoutScreen: View {
     @Environment(Router.self) private var router
     @Environment(\.look) private var look
     @State private var model = LiveScreenModel()
+    @Environment(LookModel.self) private var lookModel
     @Environment(\.accessibilityReduceMotion) private var systemReduceMotion
 
     /// The final look draws the lifting workout in Paper Club's structure, re-skinned in
     /// Floodlight (FinalLook.swift); cardio focus stays plain Floodlight. Other looks: unchanged.
     private var liveLook: Look {
         guard look.origin == .final, store.session?.focus != .cardio else { return look }
-        return look.isDark ? Look.finalLiveDark : Look.finalLiveLight
+        return (look.isDark ? Look.finalLiveDark : Look.finalLiveLight).withAccent(lookModel.accent, live: true)
     }
 
     var body: some View {
