@@ -1,7 +1,7 @@
 # 11 — Automatic safety copy before an update changes stored data
 
 Type: task
-Status: **deferred** (the user, 2026-10-14) — build together with the first update that changes the stored data format
+Status: **scheduled 2026-11-07 as [nutrition N1](../../nutrition/issues/01-safety-copy.md)** (D76) — deferred by the user 2026-10-14 until the first stored-format change, which is nutrition N2
 Blocked by: —
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/beta-11-safety-copy` off `main`. The guard: `ericlee4992/beta-11-schema-guard`.

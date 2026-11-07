@@ -1,10 +1,26 @@
 # Current project state
 
-Updated **2026-11-06** (build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-07** (Soft redesign + nutrition tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
+- **Resume here (2026-11-07) — Soft redesign + nutrition: tickets written, awaiting the user's approval.** Worktree
+  `…/orca/workspaces/Health App/UI_design` (one workspace for the whole effort, D76), now on branch
+  `ericlee4992/soft-nutrition-tickets` off `main` (docs only: tickets, D67–D76, this STATE). **No app code changed.**
+  Tickets: [soft-redesign](../work-record/soft-redesign/spec.md) S1 look → S2 tabs → S3 workout → S4 History/Progress;
+  [nutrition](../work-record/nutrition/spec.md) N1 safety copy (= public-beta 11) → N2 data → N3 goals → N4 Log Food →
+  N5 Today → N6 server AI → N7 Scan Food → N8 barcode/search → N9 weight + Health → N10 charts → R combined release.
+  The user's answers are in the [build plan](../work-record/ui-evolution/build-plan.md) and D67–D76: Soft layout A;
+  everything in nutrition's first release; goals calculated + editable; burned shown not added; barcodes Open Food
+  Facts → USDA; labels by AI; Health all four; limits 30/30/60; **one combined release** (no interim builds), **each
+  ticket merges into `main`** when clear (urgent tester fix from build 9's `5ab7a16`); prototype record-only.
+  **Next:** the user approves the tickets → merge this docs branch into `main` (go-ahead) → S1 on
+  `ericlee4992/soft-01-look`. Questions saved for their tickets: N2 My meals, N3 formula, N8 name search + USDA key,
+  N1 the safety copy's design. Prototype: branch `ericlee4992/UI_design` (record), tag `design/soft-approved-2026-11-07`
+  (`git show <tag>:DesignPrototype/…`; launch `-look soft -softLayout profileTab`). Codex: Orca terminal "Astra design
+  proposal" (`term_36a683d9-11a6-437c-8c61-efd47fa69207`, this worktree) — check it is idle before reuse. The user's
+  reference screenshots are `~/Downloads/IMG_57xx.PNG` (**IMG_5751 is personal — never share or commit**).
 - **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue
   **exercise media** in the `public-beta` worktree ("Exercise media" entry below; ticket 03 + the DIY animation report's
   four open decisions). Next steps, in order: (1) the user closes the finished `beta-19-bug-fixes` worktree in Orca
@@ -177,7 +193,7 @@ domain of the user's own, which also allows Google branding verification.
 | 08 external testers | **Done 2026-10-17** (pages live, Beta App Review passed, public link, final pass; item 3 waived by the user). |
 | 09 App Store | Not started. |
 | 10 model Sol | **Closed, no change** (the user kept Terra after measurements). |
-| 11 safety copy | Deferred (the user, 2026-10-14) until the first stored-format change; guard on its branch. |
+| 11 safety copy | **Scheduled as nutrition N1** (2026-11-07, D76); guard in `main`. |
 | 13 Goals keyboard | **Done** — build 6, the user: "works well". |
 | 14 What's New | **Done** — build 8; seen on the phone. |
 | 15 feedback triage | **Done 2026-10-17** (Codex clear round 2; merged `07af7a6`; migration 0006 live). |
