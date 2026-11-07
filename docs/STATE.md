@@ -12,8 +12,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   1 **clear**; build + 10/10 unit tests (both sides); 4 capture tests checked (dark). **Not merged:** the user deferred
   the long test run ("run the test after building more") — capture suites (light/dark, default/AX) + core-flow UI
   classes run once after more of Phase 1, then S1 (and the next tickets) merge to `main` in order with the user's
-  go-ahead. **Next: S2 five tabs** on `ericlee4992/soft-02-tabs`, branched from S1 (stacked; plan: the native tab
-  bar, not the prototype's drawn one). Prototype: tag `design/soft-approved-2026-11-07` (`git show <tag>:DesignPrototype/…`).
+  go-ahead. **S2 five tabs:** branch `ericlee4992/soft-02-tabs` (stacked on S1, pushed, `5c97a55`) — implemented,
+  UI tests moved to the new tabs (`WorkoutTrackerUITests/TabNavigation.swift`), 3 targeted UI tests pass; **Codex
+  round 1 running** (prompt `work-record/soft-redesign/codex-review-s2-prompt.md`, report `codex-review-s2.md`).
+  **Next:** S2's review → S3 workout refinements → S4 → the deferred Phase 1 run (ask the user; ~45–60 min) → merge
+  S1–S4 into `main` in order (go-ahead). Prototype: tag `design/soft-approved-2026-11-07` (`git show <tag>:DesignPrototype/…`).
   Codex: Orca terminal "Astra design proposal" `term_36a683d9-11a6-437c-8c61-efd47fa69207` (this worktree, GPT-6-Astra;
   needs approval for simulator commands; reviews on WT-iPhone27 while Claude uses WT-Floodlight). This worktree has no
   `Config/Local.xcconfig`: Debug builds install as `com.example.workouttracker`. The user's reference screenshots are
