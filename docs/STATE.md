@@ -227,8 +227,8 @@ Simulators: **WT-Floodlight** `9E822EF6-DC67-4958-AEA2-D53D2D36D674` (iOS 27; ta
 ## Other sessions and scratch state (do not clean without asking)
 
 - **Checkouts after the 2026-11-06 clean-up** (the user's choice; layout rule in AGENTS.md → Checkout layout): the
-  home checkout `…/orca/projects/Health App` → `main` (pending: a session was still open in it on 2026-11-06 — switch
-  it once closed; it was on `ericlee4992/redesign-visual-proposal`, kept on origin); Orca worktrees `public-beta`
+  home checkout `…/orca/projects/Health App` is on `main` (switched 2026-11-06; it was on
+  `ericlee4992/redesign-visual-proposal`, kept on origin); Orca worktrees `public-beta`
   (exercise media), `release-build` (detached, TestFlight archives) and `beta-19-bug-fixes` (finished — the user closes
   it in Orca). **Removed 2026-11-06 with `orca worktree rm` (branches kept, every one checked at its tip):**
   ai-schema-baseline, redesign-floodlight, ai-template-followup-review, redesign-prototype, review-finish-summary-order,
