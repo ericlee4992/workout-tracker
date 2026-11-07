@@ -55,7 +55,7 @@ struct StartWorkoutView: View {
           ScrollViewReader { scroller in
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
-                    LookNavTitle("Workout", subtitle: WorkoutDates.homeSubtitle(.now))
+                    LookNavTitle("Train", subtitle: WorkoutDates.homeSubtitle(.now))
                     VStack(spacing: 14) {
                         gymPicker
                             .tourAnchor("tour.gymPicker").id("tour.gymPicker")
@@ -81,33 +81,16 @@ struct StartWorkoutView: View {
                 withAnimation(.easeInOut(duration: 0.18)) { titleInBar = past }
             }
             .lookScreenBackground()
-            .navigationTitle("Workout")
+            .navigationTitle("Train")
             .navigationBarTitleDisplayMode(.inline)
             // Scrolled: the bar takes the solid ground, so nothing shows through under the title.
             .toolbarBackground(look.ground, for: .navigationBar)
             .toolbarBackgroundVisibility(titleInBar ? .visible : .hidden, for: .navigationBar)
             .toolbar {
+                // Soft redesign S2 (D68): Train's switch (Templates | Gyms | Exercises) in the bar.
+                // Settings moved from a gear here to the Profile tab.
                 ToolbarItem(placement: .principal) {
-                    Text("Workout")
-                        .font(look.font.navTitle)
-                        .foregroundStyle(look.textPrimary)
-                        .lineLimit(1)
-                        .opacity(titleInBar ? 1 : 0)
-                        .accessibilityHidden(!titleInBar)
-                }
-                // Ticket 05: Settings behind a gear here, not at the foot of the
-                // Gyms list (the user's choice, 2026-09-10).
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        SettingsView()
-                    } label: {
-                        Image(systemName: "gearshape")
-                            .font(.system(.body, weight: .semibold))
-                            .foregroundStyle(look.textPrimary)
-                    }
-                    .accessibilityLabel("Settings")
-                    .accessibilityIdentifier("openSettings")
-                    .tourAnchor("tour.settings")
+                    InlineTitleOrTrainSwitcher(title: "Train", visible: titleInBar)
                 }
             }
           }
@@ -164,7 +147,7 @@ struct StartWorkoutView: View {
             if let active = activeWorkouts.first, !active.isDeleted {
                 WorkoutResumeCapsule(
                     symbol: active.unfinishedCardio?.activity.symbol ?? "figure.strengthtraining.traditional",
-                    detail: resumeDetail(active),
+                    detail: Self.resumeDetail(active),
                     startedAt: active.startedAt,
                     elapsedAt: { active.isDeleted ? 0 : active.trainingSeconds(at: $0) },
                     action: resumeActive)
@@ -199,7 +182,8 @@ struct StartWorkoutView: View {
     }
 
     /// What is running: the cardio activity, or the workout's title with its set progress.
-    private func resumeDetail(_ workout: Workout) -> String {
+    /// Also Today's Resume capsule (S2).
+    static func resumeDetail(_ workout: Workout) -> String {
         if let cardio = workout.unfinishedCardio { return cardio.activity.name }
         let sets = WorkoutSession.orderedEntries(of: workout).flatMap { $0.sets ?? [] }
         let title = workout.historyTitle

@@ -8,7 +8,9 @@ import SwiftUI
 /// preference: preferences do not leave toolbar items (the Settings gear) or full-screen covers, and the tour has
 /// to reach both.
 struct TourStep: Identifiable, Hashable {
-    enum Tab: Hashable { case workout, history, gyms, exercises }
+    /// Where a step's control lives. Soft redesign S2 (D68): `workout`, `gyms` and `exercises` are the parts of
+    /// the Train tab (Templates | Gyms | Exercises); Settings lives in the Profile tab.
+    enum Tab: Hashable { case workout, history, gyms, exercises, profile }
 
     let id: String
     /// The `tourAnchor` this step highlights.
@@ -36,8 +38,8 @@ struct TourStep: Identifiable, Hashable {
                  caption: "Every workout, with your records and new bests."),
         TourStep(id: "exercises", anchor: "tour.exercisesList", tab: .exercises,
                  caption: "Every exercise, with its history on each machine."),
-        TourStep(id: "settings", anchor: "tour.settings", tab: .workout,
-                 caption: "Units, appearance, AI and backups — and this tour again."),
+        TourStep(id: "settings", anchor: "tour.settings", tab: .profile,
+                 caption: "Your profile: units, appearance, AI and backups — and this tour again."),
     ]
 }
 

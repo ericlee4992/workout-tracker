@@ -34,13 +34,17 @@ struct SettingsView: View {
     @State private var counts: ExportCounts?
     @State private var countFailure: String?
     @State private var titleVisible = false
+    /// The page's title: "Profile" as the Profile tab's root (S2, D68).
+    var title = "Settings"
 
     private var preferences: AppPreferences? { AppPreferences.canonical(of: allPreferences) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: look.space.section) {
-                LookNavTitle("Settings")
+                // Soft redesign S2 (D68): Settings is the Profile tab's page (it was behind the Workout tab's gear).
+                LookNavTitle(title)
+                    .tourAnchor("tour.settings")
                 // Public beta tickets 05/03: the Account row — shown when this build has a server (or a sample flag).
                 if account.isAvailable {
                     SettingsAccountRow(profile: account.profile, signedIn: account.isSignedIn) {
@@ -74,7 +78,7 @@ struct SettingsView: View {
             withAnimation(.easeInOut(duration: 0.18)) { titleVisible = past }
         }
         .lookScreenBackground()
-        .exercisesInlineTitle("Settings", visible: titleVisible)
+        .exercisesInlineTitle(title, visible: titleVisible)
         .sensoryFeedback(.selection, trigger: unitSystem)
         .sensoryFeedback(.selection, trigger: appearanceRaw)
         // Counted afresh on every visit (and after an export, on the way back), which is every

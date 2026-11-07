@@ -445,12 +445,8 @@ private struct ExercisesInlineTitle: ViewModifier {
             .toolbarBackgroundVisibility(visible ? .visible : .hidden, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text(title)
-                        .font(look.font.navTitle)
-                        .foregroundStyle(look.textPrimary)
-                        .lineLimit(1)
-                        .opacity(visible ? 1 : 0)
-                        .accessibilityHidden(!visible)
+                    // Soft redesign S2: inside Train, the switch takes the inline title's place.
+                    InlineTitleOrTrainSwitcher(title: title, visible: visible)
                 }
             }
     }

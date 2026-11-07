@@ -3,7 +3,9 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(\.modelContext) private var modelContext
-    @State private var selection: Tab = .workout
+    @State private var selection: Tab = .today
+    /// Soft redesign S2 (D68): the part of Train shown (Templates | Gyms | Exercises).
+    @State private var trainSection: TrainSection = .templates
     @State private var activeWorkout: Workout?
     /// Owns the heart-rate session for whichever workout is running
     /// (codex-review-2 #2). Lives here, not on the workout screen, because
@@ -27,17 +29,32 @@ struct RootView: View {
     /// Public beta ticket 02: the guided tour, when one runs; it selects each step's tab.
     @Environment(TourController.self) private var tour: TourController?
 
+    /// Soft redesign S2 (D68): Today · Train · History · Progress · Profile. Train holds the old Workout, Gyms and
+    /// Exercises tabs as its parts; Settings moved from the Workout tab's gear to Profile.
     enum Tab: Hashable {
-        case workout, history, gyms, exercises, progress
+        case today, train, history, progress, profile
     }
 
     private static func tab(for step: TourStep.Tab) -> Tab {
         switch step {
-        case .workout: .workout
+        case .workout, .gyms, .exercises: .train
         case .history: .history
+        case .profile: .profile
+        }
+    }
+
+    private static func trainSection(for step: TourStep.Tab) -> TrainSection? {
+        switch step {
+        case .workout: .templates
         case .gyms: .gyms
         case .exercises: .exercises
+        case .history, .profile: nil
         }
+    }
+
+    private func show(_ step: TourStep.Tab) {
+        selection = Self.tab(for: step)
+        if let part = Self.trainSection(for: step) { trainSection = part }
     }
 
     /// The subject of the post-finish sheet. `workout` is nil when the
@@ -51,43 +68,54 @@ struct RootView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            StartWorkoutView(onWorkoutStarted: { activeWorkout = $0 },
-                             startLiftingRequest: $startLiftingFromHistory)
-                .tabItem { Label("Workout", systemImage: "figure.strengthtraining.traditional") }
-                .tag(Tab.workout)
+            TodayView(onWorkoutStarted: { activeWorkout = $0 },
+                      onOpenWorkout: { workout in
+                          selection = .history
+                          historyTarget = workout
+                      },
+                      onOpenTrain: {
+                          trainSection = .templates
+                          selection = .train
+                      })
+                .tabItem { Label("Today", systemImage: "sun.max") }
+                .tag(Tab.today)
+
+            TrainView(section: $trainSection,
+                      onWorkoutStarted: { activeWorkout = $0 },
+                      startLiftingRequest: $startLiftingFromHistory)
+                .tabItem { Label("Train", systemImage: "figure.strengthtraining.traditional") }
+                .tag(Tab.train)
 
             HistoryView(target: $historyTarget, onStartLifting: {
-                selection = .workout
+                trainSection = .templates
+                selection = .train
                 startLiftingFromHistory = true
             })
                 .tabItem { Label("History", systemImage: "clock.arrow.circlepath") }
                 .tag(Tab.history)
 
-            GymsView()
-                .tabItem { Label("Gyms", systemImage: "building.2") }
-                .tag(Tab.gyms)
-
-            ExercisesView()
-                .tabItem { Label("Exercises", systemImage: "list.bullet.rectangle") }
-                .tag(Tab.exercises)
-
             // Public beta ticket 16 (D63): the charts the user pinned, lifting and cardio.
             ProgressTabView()
                 .tabItem { Label("Progress", systemImage: "chart.line.uptrend.xyaxis") }
                 .tag(Tab.progress)
+
+            // S2 (D68): the account and every setting, formerly behind the Workout tab's gear.
+            NavigationStack { SettingsView(title: "Profile") }
+                .tabItem { Label("Profile", systemImage: "person.crop.circle") }
+                .tag(Tab.profile)
         }
         // The coordinator is owned here and read by the Start screen too: it
         // must bank the active workout's summary before "Finish it and start
         // new" auto-finishes that workout (codex-review 05).
         .tint(Color.accentColor)
         .onChange(of: tour?.current?.tab) { _, tab in
-            if let tab { selection = Self.tab(for: tab) }
+            if let tab { show(tab) }
         }
         // The tab bar is UIKit and ignores `.disabled`: VoiceOver or a keyboard can still switch tabs under the tour
         // (codex-review-02 #1). Harmless on the sample world, but the tour owns the tab: any other change snaps back.
         .onChange(of: selection) { _, new in
             guard let tab = tour?.current?.tab, new != Self.tab(for: tab) else { return }
-            selection = Self.tab(for: tab)
+            show(tab)
         }
         .environment(heartRateCoordinator)
         .fullScreenCover(item: $activeWorkout) { workout in
@@ -143,11 +171,17 @@ struct RootView: View {
     private func applyLaunchOverride() {
         switch ProcessInfo.processInfo.environment["PROTO_SCREEN"] {
         case "gyms":
-            selection = .gyms
+            trainSection = .gyms
+            selection = .train
         case "exercises":
-            selection = .exercises
+            trainSection = .exercises
+            selection = .train
+        case "train":
+            selection = .train
         case "progress":
             selection = .progress
+        case "profile":
+            selection = .profile
         default:
             break
         }
