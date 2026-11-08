@@ -72,6 +72,12 @@ final class TodayUpNextUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Leg Day"].exists)
         app.tabBars.buttons["Today"].tap()
 
+        // Next in order after a choice continues from the chosen template: after Leg comes Push (codex-review-s5 #2;
+        // before the fix it restarted from the plan and showed Pull).
+        notToday("Next in order")
+        XCTAssertTrue(waitForLabel(upNextStart, "Start Push Day"))
+        XCTAssertTrue(app.staticTexts["Chosen for today"].exists)
+
         notToday("Back to plan")
         XCTAssertTrue(waitForLabel(upNextStart, "Start Push Day"))
         XCTAssertFalse(app.staticTexts["Chosen for today"].exists)

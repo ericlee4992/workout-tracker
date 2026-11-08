@@ -104,5 +104,13 @@ user before a run over ~20 min).
   failed again alone at `:58` (`cardioTimer` within 10 s after Start in the picker), then passed 2/2 with
   `-test-iterations 2`; the same step fails on and off for the warm-up on `main` since 02:00 (follow-up in S4) and this
   test passed on the `main` build once → intermittent, not S5; added to that follow-up.
+- **2026-11-08 — Codex round 1** ([report](../codex-review-s5.md)): 3 × P2, all accepted, fixed:
+  (1) a workout finished in this session did not advance Up next (the screen's day snapshot excluded it) —
+  `UpNextReading.make` uses the later of the snapshot and the render's clock; (2) Choose template… → Next in order
+  restarted from the plan — `UpNext.resolve` continues from the chosen template (a weekday split steps through its
+  days); (3) a future-dated finished record cancelled every choice, and expiry used start time — `isCurrent` takes the
+  latest COMPLETION not later than now. New unit tests: `UpNextTests.nextInOrderAfterAChoiceContinuesFromTheChoice`,
+  `aChoiceExpiresOnARealFinishNotOnFutureHistory`, `UpNextReadingTests.aWorkoutFinishedThisSessionAdvancesTheSuggestion`
+  — with the earlier suites **28/28**. `TodayUpNextUITests` gains Choose → Next (Leg → Push).
 
 ## Comments

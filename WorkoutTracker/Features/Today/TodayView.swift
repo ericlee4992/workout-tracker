@@ -149,18 +149,17 @@ struct TodayView: View {
     /// "Not today": skip to the next in the order (repeatable), pick any template, or go back to the plan. The choice
     /// lasts for the day and until a workout finishes (`UpNextOverride.isCurrent`).
     @ViewBuilder private func notTodayItems(_ reading: UpNextReading) -> some View {
-        let current = UpNextOverride.decode(overrideData).flatMap {
-            $0.isCurrent(now: now, lastFinishedStart: finishedWorkouts.first?.startedAt) ? $0 : nil
-        }
+        let current = reading.activeOverride
         Button("Next in order", systemImage: "forward") {
-            overrideData = UpNextOverride.encode(UpNextOverride(madeAt: .now, skip: (current?.skip ?? 0) + 1))
+            // After "Choose template…", Next continues from the chosen template (codex-review-s5 #2).
+            overrideData = UpNextOverride.encode(UpNextOverride(madeAt: .now, skip: (current?.skip ?? 0) + 1,
+                                                                chosen: current?.chosen))
         }
         .accessibilityIdentifier("todayNextInOrder")
         Menu("Choose template…", systemImage: "list.bullet") {
             ForEach(templates) { template in
                 Button(template.name) {
-                    overrideData = UpNextOverride.encode(UpNextOverride(madeAt: .now, skip: current?.skip ?? 0,
-                                                                        chosen: template.id))
+                    overrideData = UpNextOverride.encode(UpNextOverride(madeAt: .now, skip: 0, chosen: template.id))
                 }
             }
         }

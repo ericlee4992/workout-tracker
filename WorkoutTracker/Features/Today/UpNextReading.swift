@@ -10,33 +10,37 @@ struct UpNextReading {
     /// The day's "Not today" choice is in force.
     var isOverridden: Bool
     var split: MySplit
+    /// The choice in force (for the menu to continue from), nil when none.
+    var activeOverride: UpNextOverride?
 
     /// - Parameters:
     ///   - finished: finished workouts (any order).
     ///   - splitData / overrideData: the UserDefaults values (`MySplitStore.key`, `UpNextOverride.key`).
+    ///   - now: the screen's day snapshot (`refreshingNow`); `clock` is read at each render, so a workout finished in
+    ///     this session counts at once — the query re-renders the screen (codex-review-s5 #1).
     static func make(templates: [WorkoutTemplate], finished: [Workout], splitData: Data, overrideData: Data,
-                     now: Date) -> UpNextReading {
+                     now: Date, clock: Date = .now) -> UpNextReading {
+        let current = max(now, clock)
         let named = templates.map { (id: $0.id, name: $0.name) }
-        let runs = finished.compactMap { workout -> UpNext.Run? in
-            guard !workout.isDeleted, workout.finishedAt != nil, let id = workout.sourceTemplateID else { return nil }
+        let valid = finished.filter { !$0.isDeleted && $0.finishedAt != nil }
+        let runs = valid.compactMap { workout -> UpNext.Run? in
+            guard let id = workout.sourceTemplateID else { return nil }
             return UpNext.Run(templateID: id, startedAt: workout.startedAt)
         }
         let split = MySplitStore.decode(splitData).pruned(to: Set(named.map(\.id)))
-        let lastFinishedStart = finished.filter { !$0.isDeleted }.map(\.startedAt).max()
-        let choice = UpNextOverride.decode(overrideData).flatMap {
-            $0.isCurrent(now: now, lastFinishedStart: lastFinishedStart) ? $0 : nil
-        }
-        var suggestion = UpNext.suggestion(templates: named, runs: runs, split: split, now: now, skip: choice?.skip ?? 0)
-        if let chosen = choice?.chosen, named.contains(where: { $0.id == chosen }) {
-            suggestion = .template(chosen)
-        }
+        let lastFinishedAt = valid.compactMap(\.finishedAt).filter { $0 <= current }.max()
+        let stored = UpNextOverride.decode(overrideData)
+        let (suggestion, overridden) = UpNext.resolve(templates: named, runs: runs, split: split, now: current,
+                                                      override: stored, lastFinishedAt: lastFinishedAt)
         let template: WorkoutTemplate? = if case .template(let id) = suggestion {
             templates.first { $0.id == id }
         } else {
             nil
         }
-        let lastRun = template.flatMap { chosen in runs.filter { $0.templateID == chosen.id }.map(\.startedAt).max() }
-        return UpNextReading(suggestion: suggestion, template: template, lastRun: lastRun, isOverridden: choice != nil,
-                             split: split)
+        let lastRun = template.flatMap { chosen in
+            runs.filter { $0.templateID == chosen.id && $0.startedAt <= current }.map(\.startedAt).max()
+        }
+        return UpNextReading(suggestion: suggestion, template: template, lastRun: lastRun, isOverridden: overridden,
+                             split: split, activeOverride: overridden ? stored : nil)
     }
 }

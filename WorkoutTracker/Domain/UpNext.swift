@@ -41,21 +41,23 @@ enum MySplitStore {
     }
 }
 
-/// The day's "Not today" choice on Today's card. It holds for the day it was made and until a workout finishes after
+/// The day's "Not today" choice on Today's card. It holds for the day it was made and until a workout FINISHES after
 /// it (`isCurrent`), so finishing the chosen workout — or the next morning — brings the plan back.
 struct UpNextOverride: Codable, Equatable, Sendable {
     /// When the choice was made.
     var madeAt: Date
-    /// How many suggestions to skip ("Next in order", tapped repeatedly).
+    /// "Next in order" taps: steps past the plan's suggestion — or past `chosen` when one was picked.
     var skip: Int = 0
-    /// A template picked with "Choose template…" (wins over `skip`).
+    /// A template picked with "Choose template…"; "Next in order" then continues from it (codex-review-s5 #2).
     var chosen: UUID?
 
     static let key = "upNextOverride"
 
-    func isCurrent(now: Date, lastFinishedStart: Date?, calendar: Calendar = .current) -> Bool {
+    /// - Parameter lastFinishedAt: the latest COMPLETION time among finished workouts, not later than `now` — a record
+    ///   dated in the future (a clock correction, a restore) must not cancel today's choice (codex-review-s5 #3).
+    func isCurrent(now: Date, lastFinishedAt: Date?, calendar: Calendar = .current) -> Bool {
         guard calendar.isDate(madeAt, inSameDayAs: now) else { return false }
-        if let lastFinishedStart, lastFinishedStart >= madeAt { return false }
+        if let lastFinishedAt, lastFinishedAt <= now, lastFinishedAt >= madeAt { return false }
         return true
     }
 
@@ -79,6 +81,30 @@ enum UpNextSuggestion: Equatable, Sendable {
 }
 
 enum UpNext {
+    /// Today's suggestion with the day's "Not today" choice applied: a chosen template shows as is; "Next in order"
+    /// after a choice continues from the chosen template (as if it had been done; a weekday split steps through its
+    /// days instead); without a choice it skips past the plan's suggestions. `overridden` tells the card to say so.
+    static func resolve(templates: [(id: UUID, name: String)], runs: [Run], split: MySplit, now: Date,
+                        override: UpNextOverride?, lastFinishedAt: Date?,
+                        calendar: Calendar = .current) -> (suggestion: UpNextSuggestion, overridden: Bool) {
+        guard let choice = override, choice.isCurrent(now: now, lastFinishedAt: lastFinishedAt, calendar: calendar) else {
+            return (suggestion(templates: templates, runs: runs, split: split, now: now, calendar: calendar), false)
+        }
+        let ids = Set(templates.map(\.id))
+        guard let chosen = choice.chosen, ids.contains(chosen) else {
+            return (suggestion(templates: templates, runs: runs, split: split, now: now, skip: choice.skip,
+                               calendar: calendar), true)
+        }
+        if choice.skip <= 0 { return (.template(chosen), true) }
+        if case .byWeekday = split.pruned(to: ids) {
+            return (suggestion(templates: templates, runs: runs, split: split, now: now, skip: choice.skip,
+                               calendar: calendar), true)
+        }
+        let past = runs.filter { $0.startedAt <= now } + [Run(templateID: chosen, startedAt: now)]
+        return (suggestion(templates: templates, runs: past, split: split, now: now, skip: choice.skip - 1,
+                           calendar: calendar), true)
+    }
+
     /// One finished workout started from a template.
     struct Run: Equatable, Sendable {
         var templateID: UUID

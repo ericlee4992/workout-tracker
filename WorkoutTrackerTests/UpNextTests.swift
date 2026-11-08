@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import Testing
 @testable import WorkoutTracker
 
@@ -112,11 +113,80 @@ struct UpNextTests {
 
     @Test func notTodayLastsTheDayAndUntilAWorkoutFinishes() {
         let choice = UpNextOverride(madeAt: now, skip: 1)
-        #expect(choice.isCurrent(now: now.addingTimeInterval(3600), lastFinishedStart: nil, calendar: calendar))
-        #expect(!choice.isCurrent(now: now.addingTimeInterval(86_400), lastFinishedStart: nil, calendar: calendar))
-        #expect(!choice.isCurrent(now: now.addingTimeInterval(7200), lastFinishedStart: now.addingTimeInterval(60),
+        #expect(choice.isCurrent(now: now.addingTimeInterval(3600), lastFinishedAt: nil, calendar: calendar))
+        #expect(!choice.isCurrent(now: now.addingTimeInterval(86_400), lastFinishedAt: nil, calendar: calendar))
+        #expect(!choice.isCurrent(now: now.addingTimeInterval(7200), lastFinishedAt: now.addingTimeInterval(60),
                                   calendar: calendar))
-        #expect(choice.isCurrent(now: now.addingTimeInterval(7200), lastFinishedStart: now.addingTimeInterval(-60),
+        #expect(choice.isCurrent(now: now.addingTimeInterval(7200), lastFinishedAt: now.addingTimeInterval(-60),
                                  calendar: calendar))
+    }
+
+    // MARK: codex-review-s5
+
+    /// #2: Choose template… then Next in order continues from the CHOSEN template, in order and learned.
+    @Test func nextInOrderAfterAChoiceContinuesFromTheChoice() {
+        let split = MySplit.inOrder([push, pull, legs])
+        let runs = [run(legs, daysAgo: 1)]                            // plan: Push is due
+        func pick(_ o: UpNextOverride, _ s: MySplit = split, _ r: [UpNext.Run]? = nil) -> UpNextSuggestion {
+            UpNext.resolve(templates: ppl, runs: r ?? runs, split: s, now: now, override: o, lastFinishedAt: nil,
+                           calendar: calendar).suggestion
+        }
+        #expect(pick(UpNextOverride(madeAt: now, skip: 0, chosen: pull)) == .template(pull))
+        #expect(pick(UpNextOverride(madeAt: now, skip: 1, chosen: pull)) == .template(legs))
+        #expect(pick(UpNextOverride(madeAt: now, skip: 2, chosen: pull)) == .template(push))   // wraps
+        #expect(pick(UpNextOverride(madeAt: now, skip: 1, chosen: legs)) == .template(push))   // wraps from the end
+        // Learned order: after choosing Pull, next is what follows Pull (Legs).
+        #expect(pick(UpNextOverride(madeAt: now, skip: 1, chosen: pull), .off, rhythm) == .template(legs))
+        // Without a choice, Next skips past the plan's suggestion.
+        #expect(pick(UpNextOverride(madeAt: now, skip: 1)) == .template(pull))
+    }
+
+    /// #3: a finished record dated in the future does not cancel today's choice; a workout finished after the choice
+    /// does (expiry follows completion, not start).
+    @Test func aChoiceExpiresOnARealFinishNotOnFutureHistory() {
+        let choice = UpNextOverride(madeAt: now, skip: 0, chosen: pull)
+        let later = now.addingTimeInterval(1800)
+        let tomorrow = now.addingTimeInterval(86_400 + 3600)
+        #expect(choice.isCurrent(now: later, lastFinishedAt: tomorrow, calendar: calendar))
+        #expect(!choice.isCurrent(now: later, lastFinishedAt: now.addingTimeInterval(600), calendar: calendar))
+        // A workout started before the choice but finished after it ends the choice too.
+        #expect(!choice.isCurrent(now: later, lastFinishedAt: now.addingTimeInterval(60), calendar: calendar))
+        let resolved = UpNext.resolve(templates: ppl, runs: rhythm, split: .off, now: later, override: choice,
+                                      lastFinishedAt: tomorrow, calendar: calendar)
+        #expect(resolved.suggestion == .template(pull) && resolved.overridden)
+    }
+}
+
+/// #1: the shared reading counts a workout finished after the screen's day snapshot (`now`) — the render's clock wins.
+@MainActor
+struct UpNextReadingTests {
+    private func makeInMemoryContext() throws -> ModelContext {
+        let schema = WorkoutTrackerStore.schema
+        let container = try ModelContainer(
+            for: schema, configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+        return ModelContext(container)
+    }
+
+    @Test func aWorkoutFinishedThisSessionAdvancesTheSuggestion() throws {
+        let context = try makeInMemoryContext()
+        let push = WorkoutTemplate(name: "Push"), pull = WorkoutTemplate(name: "Pull"), legs = WorkoutTemplate(name: "Legs")
+        [push, pull, legs].forEach(context.insert)
+        let snapshot = Date.now.addingTimeInterval(-3600)              // the screen's `now`, an hour old
+        for (template, hoursAgo) in [(push, 30.0), (pull, 20.0), (legs, 10.0)] {
+            let start = snapshot.addingTimeInterval(-hoursAgo * 3600)
+            context.insert(Workout(startedAt: start, finishedAt: start.addingTimeInterval(3000),
+                                   sourceTemplateID: template.id, sourceTemplateName: template.name))
+        }
+        let split = MySplitStore.encode(.inOrder([push.id, pull.id, legs.id]))
+        let before = try context.fetch(FetchDescriptor<Workout>())
+        #expect(UpNextReading.make(templates: [push, pull, legs], finished: before, splitData: split, overrideData: Data(),
+                                   now: snapshot).template?.id == push.id)
+        // Push done just now, after the snapshot: the next render suggests Pull.
+        let justNow = Date.now.addingTimeInterval(-600)
+        context.insert(Workout(startedAt: justNow, finishedAt: justNow.addingTimeInterval(300),
+                               sourceTemplateID: push.id, sourceTemplateName: push.name))
+        let after = try context.fetch(FetchDescriptor<Workout>())
+        #expect(UpNextReading.make(templates: [push, pull, legs], finished: after, splitData: split, overrideData: Data(),
+                                   now: snapshot).template?.id == pull.id)
     }
 }
