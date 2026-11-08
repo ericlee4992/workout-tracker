@@ -20,8 +20,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Next (the user, 2026-11-08):** **S5 — Today's up next** (D77; [ticket](../work-record/soft-redesign/issues/05-today-up-next.md))
   on `ericlee4992/soft-05-today-up-next` (off `main` `40b30d6`), then Phase 2 from N1 (its design questions: ask the user
   before building). Testing plan agreed in outline: each ticket runs its own unit + UI tests and captures as it goes; a
-  mid-way core-flow check after N5 and the full suite at R (ask first). Proposed, not yet answered: a small unit-test
-  speed ticket (one timed full run; skip catalog seeding when hosting unit tests; keep the simulator booted).
+  mid-way core-flow check after N5 and the full suite at R (ask first). After S5: the
+  [testing-workflow ticket](../work-record/dev-speed/issues/01-testing-workflow.md) (approved 2026-11-08 — speed, quick
+  simulator exploration, test plans, flake fixes, per-ticket captures, Codex reruns less, a Verified/Not
+  verified/Known flaky block), then N1.
   **User preferences (memory):** every status update ends with a progress board (done / in progress / left); every
   multi-minute test run shows in ONE reused "Test progress" Orca tab (send the script to it; no new tab per run); ask before long runs; explain plainly; screenshots both
   SendUserFile and Preview.
