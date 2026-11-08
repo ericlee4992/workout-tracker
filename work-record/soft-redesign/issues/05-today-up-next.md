@@ -1,7 +1,7 @@
 # S5 — Today's up next: learn the split, optional "My split", no Start buttons
 
 Type: change
-Status: **review clear** (Codex round 3, 2026-11-08) — merge waits for the user's go-ahead
+Status: **done — merged into `main`** (`b3c29a9`, 2026-11-08, the user's go-ahead) after Codex round 3 clear
 Blocked by: S4 (merged)
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/soft-05-today-up-next` off `main` `40b30d6`.

@@ -5,7 +5,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-08) — Soft redesign Phase 1 DONE: S1–S4 merged into `main` `653a703`; Phase 2 next.**
+- **Resume here (2026-11-08) — Phase 1 (S1–S4) and S5 merged into `main` (`b3c29a9`); testing-workflow ticket next, then N1.**
   **Goal:** the user's approved Soft redesign (Phase 1, S1–S4 — done) then nutrition (Phase 2, N1–N10), shipped to
   testers together as one release R (D76). Tickets: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D76. One workspace for both phases:
@@ -18,8 +18,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Follow-ups (S4 ticket):** cardio warm-up test failing since 02:00 Nov 8 on `main` too (time-of-day?); Training
   Profile's Weight field half under the number pad (pre-existing); `testGoalsNumberPadsHaveAppDone` intermittent.
   **S5 — Today's up next** (D77; [ticket](../work-record/soft-redesign/issues/05-today-up-next.md)) on
-  `ericlee4992/soft-05-today-up-next` (off `main` `40b30d6`): built, tested, **Codex clear (round 3)** — merge waits for
-  the user's go-ahead. **Next:** merge S5, then Phase 2 from N1 (its design questions: ask the user
+  `ericlee4992/soft-05-today-up-next` (off `main` `40b30d6`): built, tested, **Codex clear (round 3)**, **merged into
+  `main` `b3c29a9`** (2026-11-08, the user's go-ahead). **Next:** the testing-workflow ticket, then Phase 2 from N1 (its design questions: ask the user
   before building). Testing plan agreed in outline: each ticket runs its own unit + UI tests and captures as it goes; a
   mid-way core-flow check after N5 and the full suite at R (ask first). After S5: the
   [testing-workflow ticket](../work-record/dev-speed/issues/01-testing-workflow.md) (approved 2026-11-08 — speed, quick
