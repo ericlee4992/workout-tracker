@@ -65,7 +65,7 @@ is corrected in this round.
 Claude's evidence (WT-Floodlight): unit `UpNextTests`, `UpNextReadingTests`, `WorkoutTemplateTests`,
 `TemplateDueNextTests` exit 0, **28/28**; UI serial warm-up + `TodayUpNextUITests` exit 0, **10/10**.
 
-Round 2: review `git diff bd09df9..R2_TIP -- WorkoutTracker WorkoutTrackerTests WorkoutTrackerUITests`; on WT-iPhone27
+Round 2: review `git diff bd09df9..5248d44 -- WorkoutTracker WorkoutTrackerTests WorkoutTrackerUITests`; on WT-iPhone27
 (paths `/tmp/codex-s5/round2/`) `build-for-testing` and unit `UpNextTests`, `UpNextReadingTests`. Per the
 testing-workflow ticket's rule (approved by the user 2026-11-08, `work-record/dev-speed/issues/01-testing-workflow.md`
 item 7), rerun UI only if you find a UI-behaviour concern; Claude's UI evidence is above. Write
