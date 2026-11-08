@@ -1,31 +1,25 @@
 # Current project state
 
-Updated **2026-11-07 late** (Soft redesign S1–S3 clear, S4 built; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-07, session 2** (Soft redesign S1–S3 clear, S4 tested and in Codex review; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-07, late) — Soft redesign Phase 1: S1–S3 clear, S4 built but untested.**
+- **Resume here (2026-11-07, session 2) — Soft redesign Phase 1: S1–S3 clear; S4 tested, in Codex review.**
   **Goal:** the user's approved Soft redesign (Phase 1, S1–S4) then nutrition (Phase 2, N1–N10), shipped to testers
   together as one release R (D76). Tickets: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D76 (in `main` `fc2390c`). One workspace:
   `…/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`
-  (`git show <tag>:DesignPrototype/…`; extracted copy may exist in the session scratchpad — re-extract with
-  `git archive`).
+  (`git show <tag>:DesignPrototype/…`).
   **Branches (stacked, all pushed, none in `main`):** S1 `ericlee4992/soft-01-look` (Codex clear) → S2
-  `…/soft-02-tabs` (clear, round 2) → S3 `…/soft-03-workout` (clear, round 2) → **S4 `…/soft-04-history-progress`
-  HEAD `7494632`** (checked out): History day journal + Progress training metrics (workouts/week, volume/week,
-  running distance/week; pins written in the cardio shape "training.<metric>" so pre-S4 builds skip them) + Add Chart
-  "Training"; **builds; nothing run yet**. Evidence and details: each ticket's Progress section.
-  **Next, in order:** (1) S4 checks — unit `HistoryJournalTests`, `TrainingProgressTests`, `HistoryOverviewTests`,
-  `ProgressTabTests`; UI `FloodlightHistoryUITests`, `HistoryCalendarUITests`, `HistoryEditFlowsUITests`,
-  `FloodlightProgressUITests`, `ProgressChartUITests` (serial, warm-up `CardioUITests/testSavedDistanceEditor…` first);
-  open the "Test progress" tab (`orca terminal create --title "Test progress" --command 'bash scripts/test-progress.sh
-  <log> <count> "<title>"'`); (2) export captures (`xcrun xcresulttool export attachments`), build a contact sheet,
-  check, send to the user (SendUserFile + Preview); (3) fix, update the S4 ticket (strings list is there), write
-  `work-record/soft-redesign/codex-review-s4-prompt.md` (model: S3's), send to Codex; (4) **ask the user** before the
+  `…/soft-02-tabs` (clear) → S3 `…/soft-03-workout` (clear) → **S4 `…/soft-04-history-progress`** (checked out):
+  History day journal + Progress Training charts. **Tested 2026-11-07:** unit 90/90, UI 28/28 (serial, WT-Floodlight),
+  captures checked and sent to the user; fix: Training rows show "+"; new `testTrainingCharts*` UI tests. Evidence in
+  the [S4 ticket](../work-record/soft-redesign/issues/04-history-and-progress.md). **Codex S4 round 1 sent** (prompt
+  `work-record/soft-redesign/codex-review-s4-prompt.md`, report `codex-review-s4.md`, range `55831f0..1e298e3`).
+  **Next, in order:** (1) read Codex's S4 verdict; fix findings and re-review to clear; (2) **ask the user** before the
   deferred Phase 1 run (~45–60 min: all capture suites light/dark/AX + core-flow UI classes; agreed to run after S4);
-  (5) with the user's go-ahead fast-forward `main` through S1→S4 in order and push; (6) Phase 2 starts with N1 (safety
+  (3) with the user's go-ahead fast-forward `main` through S1→S4 in order and push; (4) Phase 2 starts with N1 (safety
   copy) — its design questions are in the N1 ticket.
   **User preferences (memory):** every status update ends with a progress board (done / in progress / left); every
   multi-minute test run gets the visible "Test progress" tab; ask before long runs; explain plainly; screenshots both
