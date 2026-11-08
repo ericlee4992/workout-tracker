@@ -123,8 +123,9 @@ New metrics → `ProgressSeries` / `ProgressPins` unit tests; History, HistoryCa
 - **2026-11-08 — Codex round 3 [clear](../codex-review-s4c.md)** (the two test fixes): 0 findings; on WT-iPhone27 the
   four target tests passed (both Scan corrections, Profile decimal weight, goals number pads).
   **Follow-ups (not S1–S4; for a later ticket):** (1) the warm-up `CardioUITests/testSavedDistanceEditor…` fails at
-  `:58` (`cardioTimer` never appears) in every run since ~02:00 on 2026-11-08 — on `main` too — and passed in every run
-  the evening before; likely time-of-day dependent; it still serves as a warm-up. (2) Profile → Training Profile: the
+  `:58` (`cardioTimer` never appears within 10 s of Start) in most runs since ~02:00 on 2026-11-08 — on `main` too — and
+  passed in every run the evening before, and again in some later runs; `testCardioAccessibilityCaptureAndSave` hits the
+  same step intermittently (S5's broad check). Intermittent cardio start; it still serves as a warm-up. (2) Profile → Training Profile: the
   number pad covers the lower half of the Weight field (same on `main`). (3) `testGoalsNumberPadsHaveAppDone` is
   intermittent (failed once, passed three times).
   **Phase 1 is complete; S1–S4 wait for the user's go-ahead to fast-forward `main`.**

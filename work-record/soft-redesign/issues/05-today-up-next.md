@@ -1,7 +1,7 @@
 # S5 — Today's up next: learn the split, optional "My split", no Start buttons
 
 Type: change
-Status: **in progress** (2026-11-08) — built; tests running
+Status: **built and tested** (2026-11-08) — Codex review next
 Blocked by: S4 (merged)
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/soft-05-today-up-next` off `main` `40b30d6`.
@@ -94,5 +94,15 @@ user before a run over ~20 min).
     "Repeat <workout>" (spoken), "Start workout", "Start a workout", "Make a template, or ask AI for a week, in Train.",
     "My Split…", "My Split", "Off", "In order", "By weekday", "Order", "Week", "Add Template", "Rest", and the three
     mode explanations in `MySplitSheet`.
+- **2026-11-08 — tested (WT-Floodlight).** Unit `UpNextTests` + `WorkoutTemplateTests` + `TemplateDueNextTests`
+  25/25. `TodayUpNextUITests` serial: 9/10 → fixes (the rest-day card's id moved to its title — a container id hid the
+  "Not today" menu; My Split stacks its three modes at AX sizes; the no-templates buttons measure full width
+  (`fixedSize`) and stack instead of wrapping/truncating; AX captures scroll to the card) → each affected test
+  re-run green. Captures checked and sent to the user.
+  **Broad check (the user's go-ahead):** 18 classes — every class using `trainStartButton` + `TemplateDetailUITests` +
+  `TodayUpNextUITests`, 3 workers: **119/120**. The one failure, `CardioUITests/testCardioAccessibilityCaptureAndSave`,
+  failed again alone at `:58` (`cardioTimer` within 10 s after Start in the picker), then passed 2/2 with
+  `-test-iterations 2`; the same step fails on and off for the warm-up on `main` since 02:00 (follow-up in S4) and this
+  test passed on the `main` build once → intermittent, not S5; added to that follow-up.
 
 ## Comments
