@@ -81,5 +81,18 @@ changes cannot be bounded.
   `CoreLoopUITests/testCoreLoopFromEmptyStoreToOneTapRepeatSet` **3/3 passed** (third run; the first two runs found
   the tour's first tab and the duplicate `addExercise`, both fixed). The full capture + core-flow run is deferred
   with S1's (the user).
+- **Codex round 1: not clear** ([codex-review-s2.md](../codex-review-s2.md)) — three P2s, all fixed (`4433592` + the
+  export-test fix): (1) the switch showed on pages pushed inside Train (shared title helpers + inherited
+  environment) → `trainRoot:` opt-in at the three root call sites only, and `openTrain` re-taps the tab to pop a
+  retained push; (2) Today kept yesterday past midnight → one `now` snapshot refreshed on `NSCalendarDayChanged`,
+  significant time and time-zone changes and on activation, `TodayView.startedOnDay`; `TodayDayBoundaryTests` 3/3;
+  (3) UI tests assumed Settings' Back button / the `Workout` bar → leave Profile through a tab, wait for `Train`;
+  `testTabRoundTripDropsTheFileCard` returns to Profile (Export's tab).
+- **Verified after the fixes:** UI FloodlightSettings, AskAI, FloodlightGyms, FloodlightExercises,
+  FloodlightWorkoutTab classes + RedesignScreenshot `testUnitSystemDefault` (3 workers): **74/75** — the one failure
+  was the export round trip returning to Train (fixed); then `testTabRoundTripDropsTheFileCard` +
+  `ExportUITests/testExportSectionProducesAShareableFile`: the round trip failed once at the second share sheet's
+  Close (`cancelShareSheet`, line 83) and **passed** on the immediate re-run alone — a share-sheet timing flake; the
+  export test passed. (A run before the Orca restart was cut off and is not counted.)
 
 ## Comments

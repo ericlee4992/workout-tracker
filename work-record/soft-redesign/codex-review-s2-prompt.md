@@ -42,3 +42,16 @@ deferred (the user). Do not modify files other than the report; do not commit or
 
 Write `work-record/soft-redesign/codex-review-s2.md`: findings numbered P1/P2/P3 with file:line, failure scenario and
 fix; end with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 2
+
+Round 1: [codex-review-s2.md](codex-review-s2.md), not clear (three P2s). Claude's response: the ticket's Progress
+entries "Codex round 1" and "Verified after the fixes", and `git diff 2966c66..HEAD` (the fixes are `4433592` and the
+export-test commit after it). Check all three findings are closed and nothing regressed: the switch only on Train's
+three root pages (pushed gym / machine / exercise pages keep their titles; Settings, which shares the Exercises title
+helper, unaffected); Today's `now` snapshot and its refresh triggers (`clockChanges`, scene phase), and
+`TodayDayBoundaryTests`; the UI-test rewrites (no remaining positional Back from a tab root, no stale bar titles).
+Rebuild and run on WT-iPhone27 (paths under `/tmp/codex-s2/round2/`): `-only-testing:WorkoutTrackerTests/TodayDayBoundaryTests`,
+then UI `FloodlightSettingsUITests`, `FloodlightGymsUITests` and `FloodlightExercisesUITests` (three workers). Write
+`work-record/soft-redesign/codex-review-s2b.md`, ending with exactly `Verdict: clear` or `Verdict: not clear`. Do not
+commit or push.

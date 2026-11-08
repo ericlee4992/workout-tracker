@@ -17,7 +17,6 @@ final class BackupExportUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
-        app.openTrain()
         app.openProfile()
 
         let card = app.buttons["exportSettings"]

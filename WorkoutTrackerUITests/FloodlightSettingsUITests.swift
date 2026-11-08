@@ -299,7 +299,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["exportShare"].waitForExistence(timeout: 5))
         app.tabBars.buttons["History"].tap()
         Thread.sleep(forTimeInterval: 0.8)
-        app.openTrain()
+        app.openProfile()  // S2: Export lives in the Profile tab (it was under the Workout tab's gear)
         XCTAssertTrue(any("exportPending").waitForExistence(timeout: 5), "back on Export (the tab kept it)")
         XCTAssertFalse(app.buttons["exportShare"].exists, "no Share for a deleted file")
         XCTAssertFalse(any("exportFileCard").exists)

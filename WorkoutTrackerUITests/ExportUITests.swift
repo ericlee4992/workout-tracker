@@ -19,9 +19,8 @@ final class ExportUITests: XCTestCase {
     }
 
     func testExportSectionProducesAShareableFile() {
-        // Ticket 05: Settings is behind the gear on the Workout tab; Floodlight ticket 09 moved
-        // Export to its own screen behind Settings' export card.
-        app.openTrain()
+        // Soft redesign S2: Settings is the Profile tab (it was behind the Workout tab's gear); Floodlight
+        // ticket 09 moved Export to its own screen behind Settings' export card.
         app.openProfile()
 
         let card = app.buttons["exportSettings"]
