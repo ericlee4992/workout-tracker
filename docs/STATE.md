@@ -12,10 +12,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   1 **clear**; build + 10/10 unit tests (both sides); 4 capture tests checked (dark). **Not merged:** the user deferred
   the long test run ("run the test after building more") — capture suites (light/dark, default/AX) + core-flow UI
   classes run once after more of Phase 1, then S1 (and the next tickets) merge to `main` in order with the user's
-  go-ahead. **S2 five tabs:** `ericlee4992/soft-02-tabs` (stacked on S1, pushed) — Codex round 2 **clear**
-  (`codex-review-s2b.md`). **Next: S3 workout refinements** on `ericlee4992/soft-03-workout` (stacked on S2) → S4 →
-  the deferred Phase 1 run after S4 (the user agreed on timing; ask before starting, ~45–60 min) → merge S1–S4 into
-  `main` in order (go-ahead). Prototype: tag `design/soft-approved-2026-11-07` (`git show <tag>:DesignPrototype/…`).
+  go-ahead. **S2 five tabs:** `ericlee4992/soft-02-tabs` — Codex **clear** (round 2). **S3 workout refinements:**
+  `ericlee4992/soft-03-workout` (stacked on S2) — Codex **clear** (round 2). **Next: S4 History journal + Progress
+  metrics** on `ericlee4992/soft-04-history-progress` (stacked on S3) → the deferred Phase 1 run after S4 (the user
+  agreed on timing; ask before starting, ~45–60 min; open the "Test progress" tab with `scripts/test-progress.sh`)
+  → merge S1–S4 into `main` in order (go-ahead). UI runs: serial with the warm-up
+  `CardioUITests/testSavedDistanceEditor…` first, or 3 workers (cold clones hit `kAXErrorServerNotFound`).
+  Prototype: tag `design/soft-approved-2026-11-07` (`git show <tag>:DesignPrototype/…`).
   Codex: Orca terminal "Codex review" `term_1ae47c82-7df4-40ea-9b18-0c9321ea6c11` (this worktree, GPT-6-Astra; the
   old one died in an Orca restart; needs approval for simulator commands — if keystrokes do not land, ask the user to
   press Enter in the tab; reviews on WT-iPhone27 while Claude uses WT-Floodlight). This worktree has no

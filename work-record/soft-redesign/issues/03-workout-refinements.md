@@ -1,7 +1,7 @@
 # S3 — Workout refinements
 
 Type: change
-Status: **in review** (2026-11-07) — Codex round 1; merge waits for the deferred Phase 1 test run
+Status: **review clear** (Codex round 2, 2026-11-07) — merge waits for the deferred Phase 1 test run
 Blocked by: S2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/soft-03-workout`, stacked on S2 (S1–S2 not yet in `main`).
@@ -77,5 +77,11 @@ flows, captures.
   warm-up `CardioUITests/testSavedDistanceEditor…` first: **all 9 passed** (the warm-up itself timed out, its
   purpose). Captures checked (Train, finish default/AX light/dark, template detail, cardio ended, AX rest slab).
 - Not in scope (undecided in the prototype): Finish at the top vs bottom of the live workout.
+- **Codex round 1** ([codex-review-s3.md](../codex-review-s3.md)): **0 source findings** (standards and spec); its
+  build and 7 unit tests passed; its serial UI run 9/11 — two finish captures found 0 bests because Claude's test
+  edit swiped down four times even without a prior scroll, dismissing the sheet → fixed `1f887b7` (swipe back only
+  as far as it scrolled); Claude's serial warm-up + FloodlightFinish: 8/8 finish tests passed.
+- **Codex round 2: clear** ([codex-review-s3b.md](../codex-review-s3b.md)) — warm-up + all FloodlightFinishUITests
+  **9/9** on WT-iPhone27.
 
 ## Comments
