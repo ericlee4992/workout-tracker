@@ -1,7 +1,7 @@
 # S2 — Five tabs: Today · Train · History · Progress · Profile
 
 Type: change
-Status: **in review** (2026-11-07) — Codex round 1; merge waits for the deferred Phase 1 test run
+Status: **review clear** (Codex round 2, 2026-11-07) — merge waits for the deferred Phase 1 test run
 Blocked by: S1
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/soft-02-tabs`, stacked on S1 (`ericlee4992/soft-01-look`, not yet in `main`).
@@ -94,5 +94,8 @@ changes cannot be bounded.
   `ExportUITests/testExportSectionProducesAShareableFile`: the round trip failed once at the second share sheet's
   Close (`cancelShareSheet`, line 83) and **passed** on the immediate re-run alone — a share-sheet timing flake; the
   export test passed. (A run before the Orca restart was cut off and is not counted.)
+- **Codex round 2: clear** ([codex-review-s2b.md](../codex-review-s2b.md)) — all three findings closed; its own build,
+  `TodayDayBoundaryTests` 3/3 and UI FloodlightSettings / FloodlightGyms / FloodlightExercises **32/32** on WT-iPhone27.
+  (A new Codex terminal "Codex review" after the Orca restart closed the old one.)
 
 ## Comments

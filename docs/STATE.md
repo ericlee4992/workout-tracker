@@ -12,13 +12,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   1 **clear**; build + 10/10 unit tests (both sides); 4 capture tests checked (dark). **Not merged:** the user deferred
   the long test run ("run the test after building more") — capture suites (light/dark, default/AX) + core-flow UI
   classes run once after more of Phase 1, then S1 (and the next tickets) merge to `main` in order with the user's
-  go-ahead. **S2 five tabs:** branch `ericlee4992/soft-02-tabs` (stacked on S1, pushed, `5c97a55`) — implemented,
-  UI tests moved to the new tabs (`WorkoutTrackerUITests/TabNavigation.swift`), 3 targeted UI tests pass; **Codex
-  round 1 running** (prompt `work-record/soft-redesign/codex-review-s2-prompt.md`, report `codex-review-s2.md`).
-  **Next:** S2's review → S3 workout refinements → S4 → the deferred Phase 1 run (ask the user; ~45–60 min) → merge
-  S1–S4 into `main` in order (go-ahead). Prototype: tag `design/soft-approved-2026-11-07` (`git show <tag>:DesignPrototype/…`).
-  Codex: Orca terminal "Astra design proposal" `term_36a683d9-11a6-437c-8c61-efd47fa69207` (this worktree, GPT-6-Astra;
-  needs approval for simulator commands; reviews on WT-iPhone27 while Claude uses WT-Floodlight). This worktree has no
+  go-ahead. **S2 five tabs:** `ericlee4992/soft-02-tabs` (stacked on S1, pushed) — Codex round 2 **clear**
+  (`codex-review-s2b.md`). **Next: S3 workout refinements** on `ericlee4992/soft-03-workout` (stacked on S2) → S4 →
+  the deferred Phase 1 run after S4 (the user agreed on timing; ask before starting, ~45–60 min) → merge S1–S4 into
+  `main` in order (go-ahead). Prototype: tag `design/soft-approved-2026-11-07` (`git show <tag>:DesignPrototype/…`).
+  Codex: Orca terminal "Codex review" `term_1ae47c82-7df4-40ea-9b18-0c9321ea6c11` (this worktree, GPT-6-Astra; the
+  old one died in an Orca restart; needs approval for simulator commands — if keystrokes do not land, ask the user to
+  press Enter in the tab; reviews on WT-iPhone27 while Claude uses WT-Floodlight). This worktree has no
   `Config/Local.xcconfig`: Debug builds install as `com.example.workouttracker`. The user's reference screenshots are
   `~/Downloads/IMG_57xx.PNG` (**IMG_5751 is personal — never share or commit**).
 - **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue
