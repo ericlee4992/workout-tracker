@@ -94,6 +94,13 @@ New metrics → `ProgressSeries` / `ProgressPins` unit tests; History, HistoryCa
   Noted, not findings: five non-failing "Invalid frame dimension" runtime warnings (as in round 1; already listed in
   deferred work); clock refresh is source-reviewed, not driven by a test. **Next:** the deferred Phase 1 run (ask the
   user), then merge S1→S4.
+- **2026-11-08 — Phase 1 run started (the user: "Run it now")**, covering S1–S4 at `12c6219` (app code as `224289c`):
+  `test-without-building`, 3 workers on WT-Floodlight clones, 31 classes (~250 tests): every `Floodlight*UITests`,
+  `RedesignScreenshotUITests`, `CodexScreenshotUITests`, `CoreLoopUITests`, `CardioUITests`, `HistoryEditingUITests`,
+  `HistoryEditFlowsUITests`, `HistoryTemplateUITests`, `TemplateDetailUITests`, `TemplateMachinesUITests`,
+  `GymsFlowsUITests`, `ProgressChartUITests`, `HistoryCalendarUITests`. Script `/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/7de0aa3c-5c42-4616-b226-c172ad5bea55/scratchpad/run-p1.sh`, log `p1.log`, status
+  `p1.status`, result `p1.xcresult` (same folder; session scratch — gone after the session). Progress: Orca tab "Test
+  progress (Claude r2)". Failures get a serial focused rerun before diagnosis.
 - **Next (for the fresh session, superseded by the entry above):** run unit tests `HistoryJournalTests`, `TrainingProgressTests`,
   `HistoryOverviewTests`, `ProgressTabTests`; UI `FloodlightHistoryUITests`, `HistoryCalendarUITests`,
   `HistoryEditFlowsUITests`, `FloodlightProgressUITests`, `ProgressChartUITests` (serial with the warm-up first, or 3

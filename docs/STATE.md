@@ -18,7 +18,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   (`codex-review-s4.md`): 3 × P2 fixed in `224289c` (weekly "One session", shared `refreshingNow` clock refresh for
   Today/History/Progress, visible "…" on Progress panels); round 2 **clear** (`codex-review-s4b.md`). Evidence in the
   [S4 ticket](../work-record/soft-redesign/issues/04-history-and-progress.md).
-  **Next, in order:** (1) — done; (2) **ask the user** before the
+  **Phase 1 run started 2026-11-08** (the user's go-ahead; details and paths in the S4 ticket).
+  **Next, in order:** (1) — done; (2) the Phase 1 run (in progress) — read results, rerun failures serially, check captures, show the user; the
   deferred Phase 1 run (~45–60 min: all capture suites light/dark/AX + core-flow UI classes; agreed to run after S4);
   (3) with the user's go-ahead fast-forward `main` through S1→S4 in order and push; (4) Phase 2 starts with N1 (safety
   copy) — its design questions are in the N1 ticket.
