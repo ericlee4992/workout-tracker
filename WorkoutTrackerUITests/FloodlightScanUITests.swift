@@ -328,7 +328,9 @@ final class FloodlightScanUITests: XCTestCase {
         for _ in 0..<10 where !tab.isHittable { Thread.sleep(forTimeInterval: 0.5) }
         Thread.sleep(forTimeInterval: 0.6)
         tab.tap()
-        defer { app.openTrain("Gyms") }
+        // Back to Train with ONE tap: the page left pushed there (the machine) stays. `openTrain` would tap again when
+        // the switcher is hidden by a pushed page, popping the machine (S2; the check after Cancel needs that page).
+        defer { app.tabBars.buttons["Train"].tap() }
         let rows = app.buttons.matching(identifier: "historyWorkoutRow")
         // The list's rows stay in the accessibility tree under a pushed detail, so "back on the
         // list" means no Back button: pop until there is none.

@@ -222,7 +222,9 @@ final class FloodlightProfileUITests: XCTestCase {
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
         }
-        weight.tap()
+        // Tap the field's right side: iOS snaps a tap inside "180" to the nearer end of the word, so the field's
+        // centre can land the cursor BEFORE the digits (it did once S1's narrower digits moved the word's middle).
+        weight.coordinate(withNormalizedOffset: CGVector(dx: 0.92, dy: 0.5)).tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.8)
         weight.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 5) + "82.5")

@@ -101,6 +101,25 @@ New metrics → `ProgressSeries` / `ProgressPins` unit tests; History, HistoryCa
   `GymsFlowsUITests`, `ProgressChartUITests`, `HistoryCalendarUITests`. Script `/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/7de0aa3c-5c42-4616-b226-c172ad5bea55/scratchpad/run-p1.sh`, log `p1.log`, status
   `p1.status`, result `p1.xcresult` (same folder; session scratch — gone after the session). Progress: Orca tab "Test
   progress (Claude r2)". Failures get a serial focused rerun before diagnosis.
+- **2026-11-08 — Phase 1 run result.** 3 workers: **238/250 passed**, 11 failed, 1 skipped (exit 65). Serial rerun of
+  the 11 (warm-up first): 8 passed alone (7 Ask AI goals-keyboard captures — the clone's software keyboard never rose
+  — a typed-digit drop in `FloodlightLiveUITests`, and the known `kAXErrorServerNotFound` on a cold clone); **3 failed
+  again**. The same 3 on a build of `main` `fc2390c` (git archive, same simulator): **all passed** → caused by S1–S4,
+  diagnosed and fixed in the tests (no app change):
+  - `FloodlightScanUITests/testPastCorrectionAsksThenApplies` — `historyEquipment()` returned via `openTrain("Gyms")`,
+    which (S2) taps Train again when a pushed page hides the switcher and so popped the machine page the next step
+    needs. Now it returns with one tap on Train.
+  - `FloodlightProfileUITests/testEditorKeepsADecimalWeightAsTyped` — "82.5180": iOS snaps a tap inside "180" to the
+    nearer end of the word; S1's narrower digits put the field's centre in the word's left half, so the cursor landed
+    before the digits (main's capture: cursor after "180"; field frame identical on both). Now taps the field's right
+    side. The weight field sitting half under the number pad is the same on `main` (not S1–S4).
+  - `FloodlightAIRoutineUITests/testGoalsNumberPadsHaveAppDone` — intermittent: failed once serially (field not
+    hittable), then passed twice (debug run: field 518–562 pt, Done 559 pt, keyboard 628 pt). Watch it.
+  **Fix check (serial):** warm-up + `FloodlightScanUITests` + `FloodlightProfileUITests` + the number-pad test — 31/32,
+  the only failure the warm-up (its purpose). **Captures:** all ~777 distinct screens (25 contact sheets, light/dark ×
+  default/AXL) checked — no clipping, overlap, unreadable text or leftover Floodlight violet; live rest/Skip, new-best,
+  AX set rows, menus/sheets/toggles and the activity gallery included. The training charts were captured just after
+  midnight on Sunday Nov 8 and correctly show the new week at 0 ("This week · last week 7").
 - **Next (for the fresh session, superseded by the entry above):** run unit tests `HistoryJournalTests`, `TrainingProgressTests`,
   `HistoryOverviewTests`, `ProgressTabTests`; UI `FloodlightHistoryUITests`, `HistoryCalendarUITests`,
   `HistoryEditFlowsUITests`, `FloodlightProgressUITests`, `ProgressChartUITests` (serial with the warm-up first, or 3
