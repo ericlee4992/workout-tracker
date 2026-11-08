@@ -121,6 +121,49 @@ final class FloodlightProgressUITests: XCTestCase {
         XCTAssertTrue(added.contains("Outdoor Run") && added.contains("Pace"), added)
     }
 
+    // MARK: Training charts (Soft redesign S4)
+
+    func testTrainingChartsDarkDefault() { training(appearance: "dark", large: false) }
+    func testTrainingChartsLightAccessibility() { training(appearance: "light", large: true) }
+
+    /// From nothing: Add Chart → Training → each of the three weekly charts, in order; then open Training volume.
+    private func training(appearance: String, large: Bool) {
+        launch(Self.sample + ["-uiTestDesignProgress", "-uiTestProgressNoPins"], appearance: appearance, large: large)
+        let suffix = "\(appearance)-\(large ? "axl" : "default")"
+        XCTAssertTrue(any("progressEmptyState").waitForExistence(timeout: 15))
+        let metrics = [("workoutsPerWeek", "Workouts per week"), ("trainingVolume", "Training volume"),
+                       ("runningDistance", "Running distance")]
+        for (index, (id, title)) in metrics.enumerated() {
+            if index == 0 { app.buttons["Add Chart"].firstMatch.tap() } else { any("progressAddChart").tap() }
+            XCTAssertTrue(any("addChartKind").waitForExistence(timeout: 10))
+            app.buttons["Training"].tap()
+            let row = any("addChartTraining.\(id)")
+            XCTAssertTrue(row.waitForExistence(timeout: 5))
+            if index == 0 {
+                Thread.sleep(forTimeInterval: 0.6)
+                shoot("progress-s4-add-training-\(suffix)")
+            }
+            row.tap()
+            XCTAssertTrue(panels.element(boundBy: index).waitForExistence(timeout: 10))
+            XCTAssertTrue(waitFor { self.panels.count == index + 1 }, panelTitles().joined(separator: " | "))
+            XCTAssertTrue(panels.element(boundBy: index).label.contains(title), panels.element(boundBy: index).label)
+        }
+        Thread.sleep(forTimeInterval: 1.0)
+        shoot("progress-s4-training-tab-\(suffix)-1")
+        app.swipeUp()
+        shoot("progress-s4-training-tab-\(suffix)-2")
+        app.swipeDown(); app.swipeDown()
+
+        panels.element(boundBy: 1).tap()
+        XCTAssertTrue(app.navigationBars["Training volume"].waitForExistence(timeout: 10))
+        Thread.sleep(forTimeInterval: 0.8)
+        shoot("progress-s4-training-volume-\(suffix)-1")
+        app.swipeUp()
+        shoot("progress-s4-training-volume-\(suffix)-2")
+        app.buttons["Done"].tap()
+        XCTAssertTrue(panels.firstMatch.waitForExistence(timeout: 5))
+    }
+
     /// Long-press: Show changes the metric, Move Up reorders, Remove drops one; all three survive a relaunch.
     func testChangeMoveRemoveAndRelaunch() {
         launch(Self.sample + ["-uiTestDesignProgress"])

@@ -6,7 +6,7 @@ import SwiftUI
 
 struct AddChartSheet: View {
     let onAdd: (ProgressPin) -> Void
-    @Environment(\.dismiss) var dismiss
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
     @Query private var exercises: [Exercise]
@@ -56,7 +56,7 @@ struct AddChartSheet: View {
         summaries = out
     }
 
-    func matches(_ name: String) -> Bool {
+    private func matches(_ name: String) -> Bool {
         let query = search.trimmingCharacters(in: .whitespaces)
         return query.isEmpty || name.localizedCaseInsensitiveContains(query)
     }
@@ -160,7 +160,13 @@ extension AddChartSheet {
                         onAdd(ProgressPin(subject: .training(metric), metric: .time))
                         dismiss()
                     } label: {
-                        LookRow(metric.title, subtitle: metric.measures, symbol: metric.glyph) { EmptyView() }
+                        // A "+", not a chevron: the tap adds the chart, there is no second step.
+                        LookRow(metric.title, subtitle: metric.measures, symbol: metric.glyph, showsChevron: false) {
+                            Image(systemName: "plus.circle")
+                                .font(look.font.body)
+                                .foregroundStyle(look.textSecondary)
+                                .accessibilityHidden(true)
+                        }
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("addChartTraining.\(metric.rawValue)")

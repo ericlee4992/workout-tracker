@@ -1,7 +1,7 @@
 # S4 — History journal and Progress pin-anything (training metrics)
 
 Type: change
-Status: **proposed** (2026-11-07) — awaiting the user's approval
+Status: **built and tested** (2026-11-07) — Codex review next
 Blocked by: S2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/soft-04-history-progress` off `main`.
@@ -59,7 +59,22 @@ New metrics → `ProgressSeries` / `ProgressPins` unit tests; History, HistoryCa
     original cases' JSON unchanged. `ProgressReading.training` (this week so far; caption "This week · last week N";
     no change badge), panel case, `TrainingProgressView` (large chart + weeks list), Add Chart's third segment
     "Training". Tests: `TrainingProgressTests` (6, incl. old-JSON decode and the legacy-shape check).
-- **Next (for the fresh session):** run unit tests `HistoryJournalTests`, `TrainingProgressTests`,
+- **2026-11-07 (session 2) — tested; captures checked; ready for Codex.** Changes: `AddChartSheet` keeps `dismiss` /
+  `matches` private (a same-file extension sees them); the Training rows show a "+" instead of a chevron (one tap adds,
+  no second step); new UI tests `FloodlightProgressUITests.testTrainingChartsDarkDefault` /
+  `testTrainingChartsLightAccessibility` (add all three from empty, open Training volume, captures).
+  **Evidence (WT-Floodlight, Claude):**
+  - Unit, serial: `HistoryJournalTests`, `TrainingProgressTests`, `HistoryOverviewTests`, `ProgressPinTests`,
+    `CardioProgressMathTests`, `ProgressSeriesTests`, `ChartPresetScopingTests`, `HistoryRenderingTests` — exit 0,
+    xcresult **90/90 passed**.
+  - UI, serial (warm-up first): `FloodlightHistoryUITests`, `HistoryCalendarUITests`, `HistoryEditFlowsUITests`,
+    `FloodlightProgressUITests` (incl. the two new tests), `ProgressChartUITests` — exit 0, xcresult **28/28 passed**.
+    After the "+" change: warm-up + the two training tests — exit 0, **3/3**.
+  - Captures (History journal light/dark × default/AXL; Training add/tab/detail dark-default and light-AXL) checked:
+    figures match the sample (this week 11,240 lb = 5,620 + 5,620; last week 22,577 lb = the four Oct 26–31 workouts).
+    The detail's in-content title under the inline bar title when scrolled is the same as `CardioProgressView` (kept).
+  - Observation for the reviewer: rows no longer speak their date; the day header is a VoiceOver heading.
+- **Next (for the fresh session, superseded by the entry above):** run unit tests `HistoryJournalTests`, `TrainingProgressTests`,
   `HistoryOverviewTests`, `ProgressTabTests`; UI `FloodlightHistoryUITests`, `HistoryCalendarUITests`,
   `HistoryEditFlowsUITests`, `FloodlightProgressUITests`, `ProgressChartUITests` (serial with the warm-up first, or 3
   workers; open the "Test progress" tab); capture History + Progress (training panels) light/dark/AX and show the user;
