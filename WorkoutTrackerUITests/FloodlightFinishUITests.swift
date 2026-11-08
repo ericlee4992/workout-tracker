@@ -47,9 +47,11 @@ final class FloodlightFinishUITests: XCTestCase {
         // Soft redesign S3: View in History follows the new bests and the receipt, so at AX sizes it starts below
         // the fold — scroll to it, then back to the top for the captures.
         let viewInHistory = any("viewFinishedWorkout")
-        for _ in 0..<4 where !viewInHistory.exists { app.swipeUp() }
+        var scrolled = 0
+        while !viewInHistory.exists && scrolled < 4 { app.swipeUp(); scrolled += 1 }
         XCTAssertTrue(viewInHistory.exists, "View in History, after the bests and the receipt")
-        for _ in 0..<4 { app.swipeDown() }
+        // Back up exactly as far as it scrolled: a swipe down at the top would dismiss the sheet.
+        for _ in 0..<scrolled { app.swipeDown() }
         // Codex review 04: one line per scope, spoken with its machine / bar (the scope).
         let bests = app.descendants(matching: .any).matching(identifier: "finishNewBest")
         let best = bests.firstMatch
