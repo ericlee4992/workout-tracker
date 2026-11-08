@@ -15,7 +15,7 @@ final class DumbbellCounterpartUITests: XCTestCase {
 
     func testBenchPressOffersDumbbellBenchPressInsteadOfTheTag() {
         app.openTrain()
-        let start = app.buttons["startEmptyWorkout"]
+        let start = app.trainStartButton("startEmptyWorkout")
         XCTAssertTrue(start.waitForExistence(timeout: 10))
         start.tap()
 

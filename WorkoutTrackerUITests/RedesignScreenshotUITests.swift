@@ -37,8 +37,8 @@ final class RedesignScreenshotUITests: XCTestCase {
     private func captureCardioStartChoices(large: Bool) {
         launch(large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : [])
         app.openTrain()
-        let lifting = app.buttons["startEmptyWorkout"]
-        let cardio = app.buttons["startCardio"]
+        let lifting = app.trainStartButton("startEmptyWorkout")
+        let cardio = app.trainStartButton("startCardio")
         XCTAssertTrue(lifting.waitForExistence(timeout: 5))
         XCTAssertTrue(cardio.isHittable)
         XCTAssertEqual(lifting.frame.height, cardio.frame.height, accuracy: 1)
@@ -65,7 +65,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("unit-settings-us-\(large ? "axl" : "default")")
         selectUnitSystem("Metric")
         app.openTrain()  // S2: Profile is a tab (no Back)
-        app.buttons["startCardio"].tap()
+        app.trainStartButton("startCardio").tap()
         anyElement("cardioActivity.indoorRun").tap()
         app.buttons["startSelectedCardio"].tap()
         XCTAssertTrue(anyElement("cardioTimer").waitForExistence(timeout: 10))
@@ -504,7 +504,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(app.buttons["addGym"].waitForExistence(timeout: 5))
         shoot("redesign-08-empty-gyms")
         app.openTrain()
-        XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.trainStartButton("startEmptyWorkout").waitForExistence(timeout: 5))
         shoot("redesign-01-root")
     }
 
@@ -579,7 +579,7 @@ final class RedesignScreenshotUITests: XCTestCase {
             XCTAssertTrue(option.waitForExistence(timeout: 5))
             option.tap()
         }
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 10))
     }
 

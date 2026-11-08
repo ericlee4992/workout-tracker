@@ -182,7 +182,7 @@ final class ExercisePresetUITests: XCTestCase {
             picker.tap()
             tapOption(gymName)
         }
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
     }
 
     /// Taps an option however SwiftUI rendered it — menu item, pushed row, or

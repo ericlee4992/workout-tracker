@@ -126,10 +126,10 @@ final class AskAIUITests: XCTestCase {
     func testEmptyStartScreenDrawsAccessibility() { emptyStartCapture(large: true) }
     private func emptyStartCapture(large: Bool) {
         launch(large: large); app.openTrain()
-        let lifting = app.buttons["startEmptyWorkout"]
+        let lifting = app.trainStartButton("startEmptyWorkout")
         XCTAssertTrue(lifting.waitForExistence(timeout: 5)); reach(lifting)
         assertDrawn("Start Lifting", in: lifting)
-        let cardio = app.buttons["startCardio"]; reach(cardio); assertDrawn("Start Cardio", in: cardio)
+        let cardio = app.trainStartButton("startCardio"); reach(cardio); assertDrawn("Start Cardio", in: cardio)
         shot("followup-start-top-\(large ? "axl" : "default")")
         let ask = app.buttons["askAIRoutine"]; reach(ask); assertDrawn("Templates", in: ask)
         shot("followup-start-\(large ? "axl" : "default")")

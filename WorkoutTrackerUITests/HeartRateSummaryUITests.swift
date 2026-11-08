@@ -12,7 +12,7 @@ final class HeartRateSummaryUITests: XCTestCase {
         app.launch()
 
         app.openTrain()
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         XCTAssertTrue(app.descendants(matching: .any).matching(identifier: "hrBpm").firstMatch
             .waitForExistence(timeout: 15))
 

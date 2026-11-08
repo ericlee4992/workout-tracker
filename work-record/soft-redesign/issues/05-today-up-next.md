@@ -1,7 +1,7 @@
 # S5 — Today's up next: learn the split, optional "My split", no Start buttons
 
 Type: change
-Status: **approved** (the user, 2026-11-08) — not started
+Status: **in progress** (2026-11-08) — built; tests running
 Blocked by: S4 (merged)
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/soft-05-today-up-next` off `main` `40b30d6`.
@@ -78,6 +78,21 @@ user before a run over ~20 min).
 
 ## Progress
 
-Not started.
+- **2026-11-08 — built** (branch `ericlee4992/soft-05-today-up-next`):
+  - Domain: `Domain/UpNext.swift` (`MySplit`, `MySplitStore`, `UpNextOverride`, `UpNext.suggestion/learned/
+    nextInOrder/weekday`), `WorkoutTemplateService.repeatWorkout` + `canRepeat`. Unit: `UpNextTests` (13) and
+    `WorkoutTemplateTests.repeatStartsTheCapturedStructureWithoutATemplate` — with `TemplateDueNextTests` 25/25.
+  - UI: `Features/Today/UpNextReading.swift` (one reading for Today and Train's leading card), Today's
+    `TodayUpNextCard` (+ "Not today" menu), `TodayRestDayCard`, `TodayNoTemplateCard`; Start Lifting / Start Cardio and
+    the cardio picker removed from Today; `WorkoutStartRequest.repeating`; Train → `My Split…` (`MySplitSheet`).
+  - UI-test launches clear `mySplit` / `upNextOverride` with the pins (unless `-uiTestKeepPins`);
+    `-uiTestNoTemplates` (sample workouts without templates).
+  - UI tests: new `TodayUpNextUITests` (11); `trainStartButton(_:)` in `TabNavigation.swift` replaces 36 direct uses
+    of `startEmptyWorkout` / `startCardio` in 15 files (opens Train first when the button is not on screen).
+  - **New strings:** "Up next", "Not today", "Next in order", "Choose template…", "Back to plan", "Chosen for today",
+    "My split · Last done <date>", "My split", "Rest day", "Nothing in your split today.", "Last workout", "Repeat",
+    "Repeat <workout>" (spoken), "Start workout", "Start a workout", "Make a template, or ask AI for a week, in Train.",
+    "My Split…", "My Split", "Off", "In order", "By weekday", "Order", "Week", "Add Template", "Rest", and the three
+    mode explanations in `MySplitSheet`.
 
 ## Comments

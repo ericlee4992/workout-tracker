@@ -194,6 +194,6 @@ final class MachineDeletionUITests: XCTestCase {
             XCTAssertTrue(option.waitForExistence(timeout: 5))
             option.tap()
         }
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
     }
 }

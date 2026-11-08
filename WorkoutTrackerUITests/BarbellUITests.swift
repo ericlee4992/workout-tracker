@@ -139,7 +139,7 @@ final class BarbellUITests: XCTestCase {
 
     private func startEmptyWorkout() {
         app.openTrain()
-        let start = app.buttons["startEmptyWorkout"]
+        let start = app.trainStartButton("startEmptyWorkout")
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
         XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))

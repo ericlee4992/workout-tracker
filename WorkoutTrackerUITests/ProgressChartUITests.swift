@@ -58,7 +58,7 @@ final class ProgressChartUITests: XCTestCase {
 
     private func logSet(weight: String, reps: String) {
         app.openTrain()
-        let start = app.buttons["startEmptyWorkout"]
+        let start = app.trainStartButton("startEmptyWorkout")
         XCTAssertTrue(start.waitForExistence(timeout: 10))
         start.tap()
 

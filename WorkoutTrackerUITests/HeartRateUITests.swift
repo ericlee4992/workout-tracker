@@ -19,7 +19,7 @@ final class HeartRateUITests: XCTestCase {
 
     func testLiveHeartRateAppearsAndUpdatesDuringAWorkout() {
         app.openTrain()
-        let start = app.buttons["startEmptyWorkout"]
+        let start = app.trainStartButton("startEmptyWorkout")
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
 
@@ -60,7 +60,7 @@ final class HeartRateUITests: XCTestCase {
     /// all — the app does not invent a basis in order to show a badge.
     func testNoZoneIsShownWithoutABasisForOne() {
         app.openTrain()
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         XCTAssertTrue(
             app.descendants(matching: .any).matching(identifier: "hrBpm").firstMatch
                 .waitForExistence(timeout: 15))
@@ -76,7 +76,7 @@ final class HeartRateUITests: XCTestCase {
     /// could not.
     func testFinishingShowsASummaryOfExercisesAndHeartRate() {
         app.openTrain()
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         XCTAssertTrue(
             app.descendants(matching: .any).matching(identifier: "hrBpm").firstMatch
                 .waitForExistence(timeout: 15))
@@ -138,7 +138,7 @@ final class HeartRateUITests: XCTestCase {
     /// workout already running*, without leaving and re-entering the screen.
     func testZonesCanBeSetUpFromTheWorkoutScreenAndApplyImmediately() {
         app.openTrain()
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         XCTAssertTrue(
             app.descendants(matching: .any).matching(identifier: "hrBpm").firstMatch
                 .waitForExistence(timeout: 15))

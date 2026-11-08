@@ -24,7 +24,7 @@ final class CodexScreenshotUITests: XCTestCase {
             return false
         }
         app.launch()
-        XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.trainStartButton("startEmptyWorkout").waitForExistence(timeout: 15))
     }
 
     func testWorkoutScreens() {
@@ -50,7 +50,7 @@ final class CodexScreenshotUITests: XCTestCase {
 
     func testBarMode() {
         app.openTrain()
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         app.buttons["addExercise"].tap()
         typeInSearchField("Seated Chest")
         anyElement("exerciseOption.\(exerciseName)").tap()
@@ -63,8 +63,8 @@ final class CodexScreenshotUITests: XCTestCase {
     }
 
     func testAccessibilityWorkout() {
-        XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 5))
-        app.buttons["startEmptyWorkout"].tap()
+        XCTAssertTrue(app.trainStartButton("startEmptyWorkout").waitForExistence(timeout: 5))
+        app.trainStartButton("startEmptyWorkout").tap()
         app.buttons["addExercise"].tap()
         typeInSearchField("Seated Chest")
         anyElement("exerciseOption.\(exerciseName)").tap()
@@ -162,7 +162,7 @@ final class CodexScreenshotUITests: XCTestCase {
             picker.tap()
             tapOption(gymName)
         }
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
     }
 
     private func addByMachine() {

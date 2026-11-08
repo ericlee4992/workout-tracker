@@ -122,7 +122,7 @@ final class CoreLoopUITests: XCTestCase {
     /// says so rather than confirming a save that never happened.
     func testFinishingAnEmptyWorkoutDiscardsItAndSaysSo() {
         app.openTrain()
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
 
         // D1, moved by public beta ticket 22: with no gym the machine-first path stays
@@ -420,7 +420,7 @@ final class CoreLoopUITests: XCTestCase {
         let newExercise = "Landmine Press \(Int.random(in: 100...999))"
 
         app.openTrain()
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
 
         app.buttons["addExercise"].tap()
@@ -482,7 +482,7 @@ final class CoreLoopUITests: XCTestCase {
     /// back in.
     func testMinimizeKeepsTheWorkoutActiveAndResumeReopensIt() {
         app.openTrain()
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5))
 
         app.buttons["minimizeWorkout"].tap()
@@ -556,7 +556,7 @@ final class CoreLoopUITests: XCTestCase {
             picker.tap()
             tapOption(gymName)
         }
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
     }
 
     private func addByMachine() {

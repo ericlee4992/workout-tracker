@@ -108,7 +108,7 @@ final class CardioUITests: XCTestCase {
 
     func testCardioFirstThenLiftingSavesOneMixedWorkout() {
         launch()
-        app.buttons["startCardio"].tap()
+        app.trainStartButton("startCardio").tap()
         choose("indoorRun")
         // Wait for actual fixture distance before asserting that its old source row is gone.
         waitForAutomaticDistance()
@@ -134,7 +134,7 @@ final class CardioUITests: XCTestCase {
 
     func testLiftingFirstThenManualCardioWithoutWearable() {
         launch(sensor: false)
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         addLiftingSet()
         reach(app.buttons["addCardio"]); app.buttons["addCardio"].tap()
         choose("indoorCycle")
@@ -162,7 +162,7 @@ final class CardioUITests: XCTestCase {
 
     func testSavedDistanceEditorKeepsEnteredUnitsAndUntouchedMeasurements() {
         launch()
-        app.buttons["startCardio"].tap(); choose("indoorRun")
+        app.trainStartButton("startCardio").tap(); choose("indoorRun")
         waitForAutomaticDistance()
         app.buttons["endCardio"].tap()
         reach(app.buttons["cardioSummaryEditDistance"]); app.buttons["cardioSummaryEditDistance"].tap()
@@ -236,7 +236,7 @@ final class CardioUITests: XCTestCase {
     private func capture(large: Bool) {
         launch(large: large)
         shot("cardio-built-start-\(large ? "axl" : "default")")
-        app.buttons["startCardio"].tap()
+        app.trainStartButton("startCardio").tap()
         shot("cardio-built-picker-\(large ? "axl" : "default")")
         choose("indoorRun")
         let size = large ? "axl" : "default"

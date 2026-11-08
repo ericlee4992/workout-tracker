@@ -70,13 +70,13 @@ final class FloodlightTourUITests: XCTestCase {
         assertBackOnTheUsersEmptyStore()
         app.terminate()
         launch(["-uiTestOnboarding"])  // answered: no -uiTestOnboardingFresh
-        XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.trainStartButton("startEmptyWorkout").waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["welcomeSkip"].exists, "an answered welcome stays away")
     }
 
     func testAPhoneWithWorkoutsNeverSeesTheWelcome() {
         launch(freshWelcome + ["-uiTestDesignSample"])
-        XCTAssertTrue(app.buttons["startEmptyWorkout"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.trainStartButton("startEmptyWorkout").waitForExistence(timeout: 15))
         Thread.sleep(forTimeInterval: 1.0)
         XCTAssertFalse(app.buttons["welcomeTour"].exists)
     }
@@ -94,7 +94,7 @@ final class FloodlightTourUITests: XCTestCase {
         launch(extra)
         app.openTrain()
         XCTAssertTrue(app.buttons["gymPicker"].waitForExistence(timeout: 15))
-        let spots = Spots(start: app.buttons["startEmptyWorkout"].frame, settings: app.tabBars.buttons["Profile"].frame,
+        let spots = Spots(start: app.trainStartButton("startEmptyWorkout").frame, settings: app.tabBars.buttons["Profile"].frame,
                           historyTab: app.tabBars.buttons["History"].frame, gymPicker: app.buttons["gymPicker"].frame)
         app.openProfile()
         let row = app.buttons["showTour"]

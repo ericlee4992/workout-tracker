@@ -120,63 +120,172 @@ struct TodayDayRing: View {
     }
 }
 
-/// The template up next (the one done longest ago) with its own Start.
-struct TodayUpNextCard: View {
+/// Soft redesign S5 (D77): the template up next — learned from the user's order or their split — with its own Start and
+/// a "Not today" menu (Next in order / Choose template… / Back to plan).
+struct TodayUpNextCard<NotToday: View>: View {
     var name: String
     var families: [MuscleFamily]
-    var lastRun: Date?
+    var caption: String
     var start: () -> Void
+    @ViewBuilder var notToday: () -> NotToday
     @Environment(\.look) private var look
 
     var body: some View {
-        HStack(spacing: 14) {
-            VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
                 Text("Up next").font(look.font.footnote.weight(.medium)).foregroundStyle(look.textSecondary)
-                Text(name).font(look.font.cardTitle).foregroundStyle(look.textPrimary).lineLimit(2)
-                if !families.isEmpty { FamilyStrip(families: families, size: 26) }
-                Text(lastRunText).font(look.font.footnote).foregroundStyle(look.textSecondary)
+                Spacer(minLength: 8)
+                TodayNotTodayMenu(content: notToday)
             }
-            Spacer(minLength: 8)
-            Button("Start", action: start)
-                .font(look.font.button)
-                .foregroundStyle(look.onAction)
-                .padding(.horizontal, 20)
-                .frame(minHeight: 44)
-                .background(look.action, in: Capsule())
-                .buttonStyle(.lookPressable)
-                .accessibilityLabel("Start \(name)")
-                .accessibilityIdentifier("todayStartUpNext")
+            HStack(spacing: 14) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(name).font(look.font.cardTitle).foregroundStyle(look.textPrimary).lineLimit(2)
+                    if !families.isEmpty { FamilyStrip(families: families, size: 26) }
+                    Text(caption).font(look.font.footnote).foregroundStyle(look.textSecondary)
+                }
+                Spacer(minLength: 8)
+                Button("Start", action: start)
+                    .font(look.font.button)
+                    .foregroundStyle(look.onAction)
+                    .padding(.horizontal, 20)
+                    .frame(minHeight: 44)
+                    .background(look.action, in: Capsule())
+                    .buttonStyle(.lookPressable)
+                    .accessibilityLabel("Start \(name)")
+                    .accessibilityIdentifier("todayStartUpNext")
+            }
         }
         .padding(look.space.panelPadding)
         .lookSurface(.panel)
     }
-
-    private var lastRunText: String {
-        guard let lastRun else { return "Not done yet" }
-        return "Last done " + lastRun.formatted(.dateTime.month(.abbreviated).day())
-    }
 }
 
-/// No template yet: a quiet row into Train → Templates.
-struct TodayNoTemplateRow: View {
-    var action: () -> Void
+/// "Not today ⌄": the menu on the up-next and rest-day cards.
+struct TodayNotTodayMenu<Content: View>: View {
+    @ViewBuilder var content: () -> Content
     @Environment(\.look) private var look
 
     var body: some View {
-        Button(action: action) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("No templates yet").font(look.font.headline).foregroundStyle(look.textPrimary)
-                    Text("Make one in Train.").font(look.font.subhead).foregroundStyle(look.textSecondary)
-                }
-                Spacer()
-                Image(systemName: "chevron.right").foregroundStyle(look.textTertiary)
+        Menu(content: content) {
+            HStack(spacing: 4) {
+                Text("Not today")
+                Image(systemName: "chevron.down").font(.caption2.weight(.semibold))
             }
-            .padding(look.space.panelPadding)
-            .lookSurface(.panel)
+            .font(look.font.footnote.weight(.medium))
+            .foregroundStyle(look.textSecondary)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .accessibilityIdentifier("todayNotToday")
+    }
+}
+
+/// Soft redesign S5: the user's weekday split has nothing today.
+struct TodayRestDayCard<Items: View>: View {
+    @ViewBuilder var menu: () -> Items
+    @Environment(\.look) private var look
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text("My split").font(look.font.footnote.weight(.medium)).foregroundStyle(look.textSecondary)
+                Spacer(minLength: 8)
+                TodayNotTodayMenu(content: menu)
+            }
+            Text("Rest day").font(look.font.cardTitle).foregroundStyle(look.textPrimary)
+            Text("Nothing in your split today.").font(look.font.footnote).foregroundStyle(look.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(look.space.panelPadding)
+        .lookSurface(.panel)
+        .accessibilityIdentifier("todayRestDay")
+    }
+}
+
+/// Soft redesign S5 (D77): no templates — the last workout with Repeat, an empty Start workout, and a way into
+/// Train to make a template or Ask AI for a week. Without any workout yet: Start workout and the hint.
+struct TodayNoTemplateCard: View {
+    var lastWorkout: Workout?
+    var repeatLast: () -> Void
+    var startEmpty: () -> Void
+    var openTrain: () -> Void
+    @Environment(\.look) private var look
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let lastWorkout {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Last workout").font(look.font.footnote.weight(.medium)).foregroundStyle(look.textSecondary)
+                    Text(lastWorkout.historyTitle).font(look.font.cardTitle).foregroundStyle(look.textPrimary)
+                        .lineLimit(2)
+                    let families = families(of: lastWorkout)
+                    if !families.isEmpty { FamilyStrip(families: families, size: 26) }
+                    Text(lastWorkout.startedAt.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
+                        .font(look.font.footnote).foregroundStyle(look.textSecondary)
+                }
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) { buttons }
+                    VStack(spacing: 10) { buttons }
+                }
+            } else {
+                Text("Start a workout").font(look.font.cardTitle).foregroundStyle(look.textPrimary)
+                startButton(primary: true)
+            }
+            Button(action: openTrain) {
+                HStack(spacing: 8) {
+                    Text("Make a template, or ask AI for a week, in Train.")
+                        .font(look.font.subhead).foregroundStyle(look.textSecondary)
+                        .multilineTextAlignment(.leading)
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right").font(.footnote.weight(.semibold)).foregroundStyle(look.textTertiary)
+                }
+                .frame(minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("todayOpenTrain")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(look.space.panelPadding)
+        .lookSurface(.panel)
+    }
+
+    @ViewBuilder private var buttons: some View {
+        Button(action: repeatLast) {
+            Label("Repeat", systemImage: "arrow.counterclockwise")
+                .font(look.font.button)
+                .foregroundStyle(look.onAction)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(look.action, in: Capsule())
         }
         .buttonStyle(.lookPressable)
-        .accessibilityIdentifier("todayOpenTrain")
+        .accessibilityLabel("Repeat \(lastWorkout?.historyTitle ?? "last workout")")
+        .accessibilityIdentifier("todayRepeat")
+        startButton(primary: false)
+    }
+
+    @ViewBuilder private func startButton(primary: Bool) -> some View {
+        if primary {
+            Button(action: startEmpty) {
+                Label("Start workout", systemImage: "figure.strengthtraining.traditional")
+                    .font(look.font.button)
+                    .foregroundStyle(look.onAction)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .background(look.action, in: Capsule())
+            }
+            .buttonStyle(.lookPressable)
+            .accessibilityIdentifier("todayStartWorkout")
+        } else {
+            Button("Start workout", systemImage: "plus", action: startEmpty)
+                .buttonStyle(.lookSecondary)
+                .frame(maxWidth: .infinity)
+                .accessibilityIdentifier("todayStartWorkout")
+        }
+    }
+
+    private func families(of workout: Workout) -> [MuscleFamily] {
+        guard let input = WeekSummaryInput(workout: workout) else { return [] }
+        return MuscleFamily.allCases.filter { (input.familySets[$0] ?? 0) > 0 }
     }
 }
 

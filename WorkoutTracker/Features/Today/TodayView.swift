@@ -4,8 +4,9 @@ import SwiftUI
 import UIKit
 
 // Soft redesign S2 (D68): the Today tab — the first tab. Phase 1 shows its training parts: the week as day
-// rings (a workout mark inside on days trained), the Training card (Resume, or the template up next with Start,
-// and Start Lifting / Start Cardio), and today's workouts. The food parts — calories filling the rings, the fuel
+// rings (a workout mark inside on days trained), the Training card (Resume, or the template up next with Start —
+// S5/D77: learned from the user's order or their split, with "Not today"; without templates the last workout with
+// Repeat and Start workout; Start Lifting / Start Cardio live in Train only), and today's workouts. The food parts — calories filling the rings, the fuel
 // card, the food log and the Log food pill — arrive with nutrition N5; nothing ships to testers before then (D76).
 // Design: the approved prototype's Today (tag design/soft-approved-2026-11-07, Screens/Soft/SoftTodayScreen.swift
 // and SoftTodayTop.swift, round 5's day rings).
@@ -27,7 +28,9 @@ struct TodayView: View {
            sort: [SortDescriptor(\Workout.startedAt, order: .reverse)])
     private var finishedWorkouts: [Workout]
     @State private var startRequest: WorkoutStartRequest?
-    @State private var showingCardioPicker = false
+    /// S5 (D77): the user's split and the day's "Not today" choice — view preferences, not workout data.
+    @AppStorage(MySplitStore.key) private var splitData = Data()
+    @AppStorage(UpNextOverride.key) private var overrideData = Data()
     @State private var titleInBar = false
     /// The screen's "now", one snapshot for the header, the week and the log. Refreshed at the local day boundary,
     /// on a clock or time-zone change and when the app becomes active, so Today never keeps showing yesterday on a
@@ -71,12 +74,6 @@ struct TodayView: View {
             .exercisesInlineTitle("Today", visible: titleInBar)
             .workoutStartFlow(request: $startRequest, gym: selectedGym, onWorkoutStarted: onWorkoutStarted)
             .refreshingNow($now)
-            .sheet(isPresented: $showingCardioPicker) {
-                CardioActivityPicker { choice in
-                    showingCardioPicker = false
-                    startRequest = WorkoutStartRequest(template: nil, cardioActivity: choice.activity)
-                }
-            }
         }
     }
 
@@ -103,42 +100,75 @@ struct TodayView: View {
                     action: resumeActive)
                     .accessibilityIdentifier("resumeWorkout")
             } else {
-                if let next = upNext {
-                    TodayUpNextCard(name: next.template.name,
-                                    families: MuscleFamily.families(of: WorkoutTemplateService.orderedItems(of: next.template)
-                                        .map { $0.exercise?.muscleGroup }),
-                                    lastRun: next.lastRun,
-                                    start: { startRequest = WorkoutStartRequest(template: next.template) })
-                } else {
-                    TodayNoTemplateRow(action: onOpenTrain)
-                }
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 10) { startCapsules }
-                    VStack(spacing: 12) { startCapsules }
-                }
+                upNextPart
             }
         }
     }
 
-    @ViewBuilder private var startCapsules: some View {
-        StartCapsule(title: "Start Lifting", symbol: "figure.strengthtraining.traditional") {
-            startRequest = WorkoutStartRequest(template: nil)
-        }
-        .frame(maxWidth: .infinity)
-        .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
-        .accessibilityIdentifier("startEmptyWorkout")
-        StartCapsule(title: "Start Cardio", symbol: "figure.run") { showingCardioPicker = true }
-            .frame(maxWidth: .infinity)
-            .accessibilityIdentifier("startCardio")
+    // MARK: Up next (S5, D77)
+
+    private var reading: UpNextReading {
+        UpNextReading.make(templates: templates, finished: finishedWorkouts, splitData: splitData,
+                           overrideData: overrideData, now: now)
     }
 
-    /// The template due next (`TemplateStats.dueNext`: done longest ago, never-run first).
-    private var upNext: (template: WorkoutTemplate, lastRun: Date?)? {
-        let stats = TemplateStats.byTemplate(finishedWorkouts)
-        let lastRun = stats.compactMapValues(\.lastRun)
-        guard let id = TemplateStats.dueNext(templates.map { (id: $0.id, name: $0.name) }, lastRun: lastRun),
-              let template = templates.first(where: { $0.id == id }) else { return nil }
-        return (template, lastRun[id])
+    @ViewBuilder private var upNextPart: some View {
+        let reading = reading
+        switch reading.suggestion {
+        case .template:
+            if let template = reading.template {
+                TodayUpNextCard(
+                    name: template.name,
+                    families: MuscleFamily.families(of: WorkoutTemplateService.orderedItems(of: template)
+                        .map { $0.exercise?.muscleGroup }),
+                    caption: caption(reading),
+                    start: { startRequest = WorkoutStartRequest(template: template) },
+                    notToday: { notTodayItems(reading) })
+            }
+        case .restDay:
+            TodayRestDayCard { notTodayItems(reading) }
+        case .none:
+            TodayNoTemplateCard(
+                lastWorkout: finishedWorkouts.first { !$0.isDeleted && WorkoutTemplateService.canRepeat($0) },
+                repeatLast: {
+                    if let last = finishedWorkouts.first(where: { !$0.isDeleted && WorkoutTemplateService.canRepeat($0) }) {
+                        startRequest = WorkoutStartRequest(template: nil, repeating: last)
+                    }
+                },
+                startEmpty: { startRequest = WorkoutStartRequest(template: nil) },
+                openTrain: onOpenTrain)
+        }
+    }
+
+    private func caption(_ reading: UpNextReading) -> String {
+        if reading.isOverridden { return "Chosen for today" }
+        let last = reading.lastRun.map { "Last done " + $0.formatted(.dateTime.month(.abbreviated).day()) } ?? "Not done yet"
+        return reading.split == .off ? last : "My split · " + last
+    }
+
+    /// "Not today": skip to the next in the order (repeatable), pick any template, or go back to the plan. The choice
+    /// lasts for the day and until a workout finishes (`UpNextOverride.isCurrent`).
+    @ViewBuilder private func notTodayItems(_ reading: UpNextReading) -> some View {
+        let current = UpNextOverride.decode(overrideData).flatMap {
+            $0.isCurrent(now: now, lastFinishedStart: finishedWorkouts.first?.startedAt) ? $0 : nil
+        }
+        Button("Next in order", systemImage: "forward") {
+            overrideData = UpNextOverride.encode(UpNextOverride(madeAt: .now, skip: (current?.skip ?? 0) + 1))
+        }
+        .accessibilityIdentifier("todayNextInOrder")
+        Menu("Choose template…", systemImage: "list.bullet") {
+            ForEach(templates) { template in
+                Button(template.name) {
+                    overrideData = UpNextOverride.encode(UpNextOverride(madeAt: .now, skip: current?.skip ?? 0,
+                                                                        chosen: template.id))
+                }
+            }
+        }
+        .accessibilityIdentifier("todayChooseTemplate")
+        if reading.isOverridden {
+            Button("Back to plan", systemImage: "arrow.uturn.backward") { overrideData = Data() }
+                .accessibilityIdentifier("todayBackToPlan")
+        }
     }
 
     private func resumeActive() {

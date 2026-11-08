@@ -7,6 +7,8 @@ struct WorkoutStartRequest: Equatable {
     let id = UUID()
     var template: WorkoutTemplate?
     var cardioActivity: CardioActivity? = nil
+    /// Soft redesign S5 (D77): Today's Repeat — start with this finished workout's structure (no template).
+    var repeating: Workout? = nil
 
     static func == (lhs: WorkoutStartRequest, rhs: WorkoutStartRequest) -> Bool {
         lhs.id == rhs.id
@@ -33,6 +35,7 @@ struct WorkoutStartFlow: ViewModifier {
     @Environment(WorkoutHeartRateCoordinator.self) private var heartRateCoordinator
     @State private var pendingTemplate: WorkoutTemplate?
     @State private var pendingCardio: CardioActivity?
+    @State private var pendingRepeat: Workout?
     @State private var showingResumeDialog = false
     @State private var replacementWorkout: Workout?
     @State private var replacementSourceTemplate: WorkoutTemplate?
@@ -64,6 +67,7 @@ struct WorkoutStartFlow: ViewModifier {
                 guard let new else { return }
                 request = nil
                 pendingCardio = new.cardioActivity
+                pendingRepeat = new.repeating
                 startTapped(template: new.template)
             }
     }
@@ -91,6 +95,9 @@ struct WorkoutStartFlow: ViewModifier {
             if let template = pendingTemplate {
                 workout = try WorkoutTemplateService(context: modelContext)
                     .start(template, at: gym)
+            } else if let source = pendingRepeat, !source.isDeleted {
+                workout = try WorkoutTemplateService(context: modelContext)
+                    .repeatWorkout(source, at: gym)
             } else {
                 workout = try session.startWorkout(at: gym)
             }
@@ -99,6 +106,7 @@ struct WorkoutStartFlow: ViewModifier {
             }
             pendingCardio = nil
             pendingTemplate = nil
+            pendingRepeat = nil
             onWorkoutStarted(workout)
         } catch {
             assertionFailure("Failed to start workout: \(error)")

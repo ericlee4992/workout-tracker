@@ -35,6 +35,12 @@ struct StartWorkoutView: View {
     @State private var showingTemplateEditor = false
     @State private var showingCardioPicker = false
     @State private var showingAIRoutine = false
+    /// Soft redesign S5 (D77): the user's split and Today's "Not today" choice (view preferences), so the leading card
+    /// shows the same template as Today; `now` follows the day (`refreshingNow`).
+    @AppStorage(MySplitStore.key) private var splitData = Data()
+    @AppStorage(UpNextOverride.key) private var overrideData = Data()
+    @State private var showingMySplit = false
+    @State private var now = Date.now
     /// Scrolled past the large title: the inline "Workout" takes over in the bar.
     @State private var titleInBar = false
     /// Called with the workout to present — freshly started or resumed.
@@ -109,6 +115,10 @@ struct StartWorkoutView: View {
                     onWorkoutStarted(workout)
                 }
             }
+            .sheet(isPresented: $showingMySplit) {
+                MySplitSheet(templates: templates)
+            }
+            .refreshingNow($now)
             .fullScreenCover(isPresented: $showingAIRoutine) {
                 // Floodlight ticket 10: a saved template's tile opens it here once the cover has gone.
                 AIRoutineSheet(gym: selectedGym, onSelectGym: select, onOpenTemplate: { template in
@@ -226,12 +236,12 @@ struct StartWorkoutView: View {
 
     // MARK: Templates
 
-    /// The template due next, leading the screen while no workout runs (`TemplateStats.dueNext`).
+    /// The template up next, leading the screen while no workout runs — Today's template (S5, D77: learned order or
+    /// My split, with the day's "Not today" choice). A rest day leads with nothing.
     private var leadTemplate: WorkoutTemplate? {
         guard activeWorkouts.first == nil else { return nil }
-        let lastRun = templateStats.compactMapValues(\.lastRun)
-        guard let id = TemplateStats.dueNext(templates.map { (id: $0.id, name: $0.name) }, lastRun: lastRun) else { return nil }
-        return templates.first { $0.id == id }
+        return UpNextReading.make(templates: templates, finished: finishedWorkouts, splitData: splitData,
+                                  overrideData: overrideData, now: now).template
     }
 
     private var upNextCard: some View {
@@ -281,6 +291,8 @@ struct StartWorkoutView: View {
                     TrainMakeRow(title: "Ask AI for Templates", symbol: "sparkles") { showingAIRoutine = true }
                         .accessibilityIdentifier("askAIRoutine")
                         .tourAnchor("tour.askAI").id("tour.askAI")
+                    TrainMakeRow(title: "My Split…", symbol: "repeat") { showingMySplit = true }
+                        .accessibilityIdentifier("mySplit")
                 }
             }
         }

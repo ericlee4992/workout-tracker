@@ -18,6 +18,9 @@ struct WorkoutTrackerApp: App {
             // Public beta ticket 16: the Progress tab's pins too, unless a test relaunches to check they persist.
             if !ProcessInfo.processInfo.arguments.contains("-uiTestKeepPins") {
                 UserDefaults.standard.removeObject(forKey: ProgressPinStore.key)
+                // Soft redesign S5: My split and Today's "Not today" choice, the same kind of view preference.
+                UserDefaults.standard.removeObject(forKey: MySplitStore.key)
+                UserDefaults.standard.removeObject(forKey: UpNextOverride.key)
             }
             // Public beta ticket 02: a welcome test starts unanswered only when it says so, so a relaunch can
             // check that an answered welcome stays away.
@@ -75,7 +78,17 @@ struct WorkoutTrackerApp: App {
         // A gym, three templates and two weeks of workouts for the redesign's captures
         // (see DesignSampleFixture).
         if DesignSampleFixture.isEnabled {
-            do { try DesignSampleFixture.seed(in: modelContainer.mainContext) }
+            do {
+                try DesignSampleFixture.seed(in: modelContainer.mainContext)
+                // Soft redesign S5: `-uiTestNoTemplates` — the sample's workouts without its templates (someone who
+                // logs without templates: Today's last workout + Repeat). UI-test stores only (`isEnabled`).
+                if ProcessInfo.processInfo.arguments.contains("-uiTestNoTemplates") {
+                    for template in try modelContainer.mainContext.fetch(FetchDescriptor<WorkoutTemplate>()) {
+                        modelContainer.mainContext.delete(template)
+                    }
+                    try modelContainer.mainContext.save()
+                }
+            }
             catch { assertionFailure("Design sample fixture failed: \(error)") }
         }
         // The Progress captures' cardio and pins (public beta ticket 16).

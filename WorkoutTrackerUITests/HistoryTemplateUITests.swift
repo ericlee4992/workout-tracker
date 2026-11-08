@@ -79,7 +79,7 @@ final class HistoryTemplateUITests: XCTestCase {
     /// confirmation in place of the button (codex-review-13).
     func testTheFinishSheetStillSavesATemplate() {
         app.openTrain()
-        app.buttons["startEmptyWorkout"].tap()
+        app.trainStartButton("startEmptyWorkout").tap()
         app.buttons["addExercise"].tap()
         let search = app.searchFields.firstMatch
         XCTAssertTrue(search.waitForExistence(timeout: 5))
