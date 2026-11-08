@@ -56,4 +56,4 @@ weight join the training log; Today shows both.
 | [N10](issues/10-progress-history-nutrition.md) | Progress body/nutrition metrics, History food line | N5, N9 |
 | [R](issues/11-combined-release.md) | The combined release (Phase 1 + 2) to testers | all |
 
-Order of work: N1 → N2 → N3 → N4 → N5 → N6 → N7 → N8 → N9 → N10 → R (one ticket at a time, in this workspace).
+Order of work: S5 ([Today's up next](../soft-redesign/issues/05-today-up-next.md), before N1) → N1 → N2 → N3 → N4 → N5 → N6 → N7 → N8 → N9 → N10 → R (one ticket at a time, in this workspace).
