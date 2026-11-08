@@ -33,6 +33,8 @@ struct HistoryView: View {
     @State private var facts: [UUID: HistoryWorkoutFacts] = [:]
     /// Scrolled past the large title: the inline "History" takes over in the bar.
     @State private var titleInBar = false
+    /// The journal's "now" (Today / Yesterday, this month), kept current past midnight (codex-review-s4 #2).
+    @State private var now = Date.now
 
     init(target: Binding<Workout?> = .constant(nil), onStartLifting: @escaping () -> Void = {}) {
         _target = target
@@ -133,12 +135,12 @@ struct HistoryView: View {
         .onChange(of: target?.id) { _, _ in openTarget() }
         .onAppear(perform: rebuildFacts)
         .onChange(of: historySignature) { _, _ in rebuildFacts() }
+        .refreshingNow($now)
     }
 
     // MARK: List
 
     private var list: some View {
-        let now = Date.now
         // Soft redesign S4: a journal — months, then one section per day (the day's title above its workouts).
         let months = HistoryOverviewMath.journal(allFacts, now: now)
         let byID = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })

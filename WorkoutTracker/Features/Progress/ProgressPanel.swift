@@ -32,6 +32,9 @@ struct ProgressReading {
     /// NOT inverted (the exercise chart's rule: the label says it instead).
     var lowerIsBetter = false
     var axisLabel: (Double) -> String = { LookFormat.number($0) }
+    /// Under a lone point on a panel: a lift's or an activity's single point IS one session. A weekly training chart
+    /// sets nil — its one point is a week that may hold several workouts (codex-review-s4 #1).
+    var singleNote: String? = "One session"
 
     var state: State {
         switch points.count {
@@ -152,7 +155,7 @@ extension ProgressReading {
         return ProgressReading(
             value: text(shown(latest.value)), unit: unit, caption: caption, change: nil,
             points: points.map { Point(date: $0.weekStart, value: shown($0.value), isBest: false) },
-            axisLabel: { $0.formatted(.number.precision(.fractionLength(0...1))) })
+            axisLabel: { $0.formatted(.number.precision(.fractionLength(0...1))) }, singleNote: nil)
     }
 }
 
@@ -165,6 +168,12 @@ struct ProgressPanel: View {
     let reading: ProgressReading
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @ScaledMetric(relativeTo: .body) private var menuSize: CGFloat = ProgressPanel.menuSide
+
+    /// Soft redesign S4: the Progress tab lays the panel's "…" options menu over its top-right corner (the approved
+    /// prototype's chart card); the panel keeps that square free. The whole card still opens the chart. Side before
+    /// Dynamic Type scaling.
+    static let menuSide: CGFloat = 36
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -179,11 +188,7 @@ struct ProgressPanel: View {
                     .foregroundStyle(look.textSecondary)
                 }
                 Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.system(.footnote, weight: .bold))
-                    .foregroundStyle(look.textTertiary)
-                    .padding(.top, 6)
-                    .accessibilityHidden(true)
+                Color.clear.frame(width: menuSize, height: menuSize).accessibilityHidden(true)
             }
             switch reading.state {
             case .empty:
@@ -191,7 +196,9 @@ struct ProgressPanel: View {
                 Text("Nothing to chart here").font(look.font.subhead).foregroundStyle(look.textSecondary)
             case .single:
                 ProgressReadingValue(reading: reading, numberFont: look.font.bigNumber)
-                Text("One session").font(look.font.footnote).foregroundStyle(look.textSecondary)
+                if let note = reading.singleNote {
+                    Text(note).font(look.font.footnote).foregroundStyle(look.textSecondary)
+                }
             case .series:
                 ProgressReadingHeader(reading: reading, numberFont: look.font.bigNumber)
                 ProgressPanelChart(reading: reading, height: 108)
@@ -201,6 +208,28 @@ struct ProgressPanel: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .lookSurface(.panel)
         .contentShape(RoundedRectangle(cornerRadius: look.radius.panel, style: .continuous))
+    }
+}
+
+/// Soft redesign S4: a panel's visible "…" — the same Move / Remove (and Show) actions as its long-press menu, laid
+/// over the corner `ProgressPanel` keeps free.
+struct ProgressPanelMenu<Items: View>: View {
+    let title: String
+    @ViewBuilder let items: () -> Items
+    @Environment(\.look) private var look
+    @ScaledMetric(relativeTo: .body) private var side: CGFloat = ProgressPanel.menuSide
+
+    var body: some View {
+        Menu(content: items) {
+            Image(systemName: "ellipsis")
+                .font(.system(.body, weight: .semibold))
+                .foregroundStyle(look.textSecondary)
+                .frame(width: side, height: side)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("\(title) options")
+        .accessibilityIdentifier("progressPanelOptions")
+        .padding(16)
     }
 }
 

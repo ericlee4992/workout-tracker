@@ -33,7 +33,6 @@ struct TodayView: View {
     /// on a clock or time-zone change and when the app becomes active, so Today never keeps showing yesterday on a
     /// screen left open past midnight (codex-review-s2 #2).
     @State private var now = Date.now
-    @Environment(\.scenePhase) private var scenePhase
 
     /// Called with the workout to present — freshly started or resumed.
     var onWorkoutStarted: (Workout) -> Void
@@ -71,8 +70,7 @@ struct TodayView: View {
             .lookScreenBackground()
             .exercisesInlineTitle("Today", visible: titleInBar)
             .workoutStartFlow(request: $startRequest, gym: selectedGym, onWorkoutStarted: onWorkoutStarted)
-            .onReceive(Self.clockChanges) { _ in now = .now }
-            .onChange(of: scenePhase) { _, phase in if phase == .active { now = .now } }
+            .refreshingNow($now)
             .sheet(isPresented: $showingCardioPicker) {
                 CardioActivityPicker { choice in
                     showingCardioPicker = false
@@ -84,17 +82,6 @@ struct TodayView: View {
 
     private var weekSummary: WeekSummary {
         WeekSummaryMath.summary(of: finishedWorkouts.compactMap(WeekSummaryInput.init(workout:)), now: now)
-    }
-
-    /// The day boundary (`NSCalendarDayChanged`), a clock change and a time-zone change, on the main run loop.
-    private static var clockChanges: AnyPublisher<Notification, Never> {
-        let center = NotificationCenter.default
-        return Publishers.MergeMany(
-            center.publisher(for: .NSCalendarDayChanged),
-            center.publisher(for: UIApplication.significantTimeChangeNotification),
-            center.publisher(for: .NSSystemTimeZoneDidChange))
-            .receive(on: RunLoop.main)
-            .eraseToAnyPublisher()
     }
 
     /// A workout belongs to the day it STARTED on (as in History), in the calendar's time zone.

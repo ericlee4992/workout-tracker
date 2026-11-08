@@ -48,3 +48,36 @@ the report; do not commit or push.
 
 Write `work-record/soft-redesign/codex-review-s4.md`: findings P1/P2/P3 with file:line, failure scenario and fix; end
 with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 1 result and round 2 (the implementer's note)
+
+Round 1 (`codex-review-s4.md`): 3 × P2, all accepted. Fixed in `R2_RANGE`:
+
+1. **One weekly bucket ≠ one session** — `ProgressReading.singleNote` (default "One session", the lift/cardio
+   wording unchanged); `ProgressReading.training` sets nil, so a lone week shows its figure and "This week" only.
+   Test: `TrainingProgressTests.aSingleWeekOfSeveralWorkoutsIsNotOneSession` (3 workouts in one week → "3", no note;
+   volume kg and lb display conversion) and `lastWeekJoinsTheCaption`.
+2. **Clock refresh** — new `Features/RefreshingNow.swift`: `.refreshingNow($now)` sets a `@State now` at
+   `NSCalendarDayChanged`, `significantTimeChangeNotification`, `NSSystemTimeZoneDidChange` and on becoming active —
+   Today's S2 code moved verbatim (TodayView now uses it). History's journal and Progress's training readings read that
+   `now`; the open Training detail gets its reading from `ProgressTabView.destination`, so it follows. No automated
+   test drives the notifications (as in S2); `TodayDayBoundaryTests` still pass. Say whether you want more.
+3. **Visible "…"** — `ProgressPanelMenu` (ellipsis, spoken "<title> options", id `progressPanelOptions`) overlaid on
+   each panel's top-right corner, which `ProgressPanel` keeps free (the chevron is gone; the whole card still opens
+   the chart, as in the prototype's `SoftChartCard`). Its items are the long-press menu's (`menu(for:in:)`: Show for
+   lift/cardio, none for training; Move Up/Down; Remove from Progress). Test:
+   `FloodlightProgressUITests.testOptionsMenuMovesAndRemovesTrainingCharts` (Move Up and Remove via "…", kept after a
+   relaunch).
+
+Also: `TrainingProgressTests`' `LegacyPin` replaced by `BuildNinePin`, a verbatim copy of `main`'s synthesised
+`ProgressPin` (old decode of new data, then old re-save → new decode keeps the training pin).
+
+Claude's evidence (WT-Floodlight): R2_EVIDENCE
+
+Round 2: review `git diff 1e298e3..R2_TIP`; rerun on WT-iPhone27, paths under `/tmp/codex-s4/round2/`:
+`build-for-testing`; unit `TrainingProgressTests`, `TodayDayBoundaryTests`, `ProgressPinTests`; UI serially, the
+warm-up first, then `FloodlightProgressUITests`. Inspect a Progress capture for the "…" at default and AccessibilityL. Show progress in the existing
+Orca tab "Test progress (Claude r2)" `term_ac1339dc-202d-4c10-bab3-b528de726cbd` once it is back at its prompt (send
+the script there; do not open a new terminal — the user's request).
+Write `work-record/soft-redesign/codex-review-s4b.md` ending with exactly `Verdict: clear` or `Verdict: not clear`.
+Your round 1 report stays as written. Do not commit or push.

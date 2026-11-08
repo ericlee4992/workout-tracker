@@ -14,6 +14,9 @@ struct ProgressTabView: View {
     @State private var adding = false
     @State private var opened: ProgressPin?
     @State private var titleInBar = false
+    /// The training charts' "now" (this week), kept current past the week's first midnight (codex-review-s4 #2); the
+    /// open detail reads it too, through `destination`.
+    @State private var now = Date.now
     @Query private var exercises: [Exercise]
     @Query(filter: #Predicate<Workout> { $0.finishedAt != nil }, sort: \Workout.startedAt)
     private var workouts: [Workout]
@@ -61,6 +64,10 @@ struct ProgressTabView: View {
                                 .buttonStyle(.lookPressable)
                                 .contextMenu { menu(for: pin, in: visible) }
                                 .accessibilityIdentifier("progressPanel")
+                                // Soft redesign S4: the visible "…" beside the long-press (codex-review-s4 #3).
+                                .overlay(alignment: .topTrailing) {
+                                    ProgressPanelMenu(title: title(of: pin)) { menu(for: pin, in: visible) }
+                                }
                         }
                         Button("Add Chart", systemImage: "plus") { adding = true }
                             .buttonStyle(.lookSecondary)
@@ -111,6 +118,7 @@ struct ProgressTabView: View {
         // set per render would run on each scroll-title change.
         .onAppear(perform: refresh)
         .onChange(of: workouts.count) { _, _ in refresh() }
+        .refreshingNow($now)
     }
 
     private func refresh() {
@@ -162,9 +170,18 @@ struct ProgressTabView: View {
         }
     }
 
+    /// The panel's title, for its options menu's spoken label.
+    private func title(of pin: ProgressPin) -> String {
+        switch pin.subject {
+        case let .lift(exerciseID, _): exercises.first { $0.id == exerciseID }?.name ?? "Chart"
+        case .cardio: pin.activity?.name ?? "Chart"
+        case .training(let metric): metric.title
+        }
+    }
+
     /// Soft redesign S4: a weekly training chart's reading (the last 12 weeks).
     private func trainingReading(_ metric: TrainingMetric) -> ProgressReading {
-        let points = TrainingProgressMath.weekly(TrainingProgressMath.inputs(workouts), metric: metric, now: .now)
+        let points = TrainingProgressMath.weekly(TrainingProgressMath.inputs(workouts), metric: metric, now: now)
         return .training(points, metric: metric, weightUnit: displayUnit, distanceUnit: distanceUnit)
     }
 

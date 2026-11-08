@@ -164,6 +164,41 @@ final class FloodlightProgressUITests: XCTestCase {
         XCTAssertTrue(panels.firstMatch.waitForExistence(timeout: 5))
     }
 
+    /// The visible "…" (codex-review-s4 #3): Move Up and Remove from it on training charts, kept after a relaunch.
+    func testOptionsMenuMovesAndRemovesTrainingCharts() {
+        launch(Self.sample + ["-uiTestDesignProgress", "-uiTestProgressNoPins"])
+        XCTAssertTrue(any("progressEmptyState").waitForExistence(timeout: 15))
+        for (index, id) in ["workoutsPerWeek", "trainingVolume", "runningDistance"].enumerated() {
+            if index == 0 { app.buttons["Add Chart"].firstMatch.tap() } else { any("progressAddChart").tap() }
+            XCTAssertTrue(any("addChartKind").waitForExistence(timeout: 10))
+            app.buttons["Training"].tap()
+            XCTAssertTrue(any("addChartTraining.\(id)").waitForExistence(timeout: 5))
+            any("addChartTraining.\(id)").tap()
+            XCTAssertTrue(waitFor { self.panels.count == index + 1 }, panelTitles().joined(separator: " | "))
+        }
+        let options = app.buttons.matching(identifier: "progressPanelOptions")
+        XCTAssertEqual(options.count, 3, "one ‘…’ per panel")
+        XCTAssertEqual(options.element(boundBy: 1).label, "Training volume options")
+
+        options.element(boundBy: 1).tap()
+        XCTAssertTrue(app.buttons["Move Up"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Time"].exists, "a training chart has no metric choices")
+        app.buttons["Move Up"].tap()
+        XCTAssertTrue(waitFor { self.panels.element(boundBy: 0).label.contains("Training volume") }, panelTitles().joined(separator: " | "))
+
+        options.element(boundBy: 2).tap()
+        XCTAssertTrue(app.buttons["Remove from Progress"].waitForExistence(timeout: 5))
+        app.buttons["Remove from Progress"].tap()
+        XCTAssertTrue(waitFor { self.panels.count == 2 })
+        let before = panelTitles()
+
+        app.terminate()
+        launch(Self.sample + ["-uiTestDesignProgress", "-uiTestKeepPins"])
+        XCTAssertTrue(panels.firstMatch.waitForExistence(timeout: 15))
+        XCTAssertTrue(waitFor { self.panelTitles() == before }, "after relaunch: \(panelTitles()) vs \(before)")
+        XCTAssertTrue(before[0].contains("Training volume") && before[1].contains("Workouts per week"), "\(before)")
+    }
+
     /// Long-press: Show changes the metric, Move Up reorders, Remove drops one; all three survive a relaunch.
     func testChangeMoveRemoveAndRelaunch() {
         launch(Self.sample + ["-uiTestDesignProgress"])

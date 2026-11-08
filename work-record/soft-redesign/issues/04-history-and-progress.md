@@ -74,6 +74,21 @@ New metrics → `ProgressSeries` / `ProgressPins` unit tests; History, HistoryCa
     figures match the sample (this week 11,240 lb = 5,620 + 5,620; last week 22,577 lb = the four Oct 26–31 workouts).
     The detail's in-content title under the inline bar title when scrolled is the same as `CardioProgressView` (kept).
   - Observation for the reviewer: rows no longer speak their date; the day header is a VoiceOver heading.
+- **2026-11-07 — Codex round 1** ([report](../codex-review-s4.md)): **not clear**, 3 × P2, all accepted and fixed
+  (its runs on WT-iPhone27: unit 26/26, UI 15/15). (1) a weekly chart's lone point no longer says "One session"
+  (`ProgressReading.singleNote`); (2) Today's clock refresh moved to `Features/RefreshingNow.swift`
+  (`.refreshingNow($now)`: day change, clock/time-zone change, app active) and used by Today, History's journal and
+  Progress's training readings (the open detail follows through `destination`); (3) a visible "…"
+  (`ProgressPanelMenu`, "<title> options", id `progressPanelOptions`) on each panel's top-right corner with the
+  long-press menu's items; the chevron is gone (as in the prototype). Also `TrainingProgressTests`' legacy decoder is
+  now `BuildNinePin`, a verbatim copy of `main`'s synthesised pin. New tests:
+  `aSingleWeekOfSeveralWorkoutsIsNotOneSession`, `lastWeekJoinsTheCaption`,
+  `FloodlightProgressUITests.testOptionsMenuMovesAndRemovesTrainingCharts`. No automated test posts the clock
+  notifications (as in S2).
+  **Evidence (WT-Floodlight, serial):** unit `TrainingProgressTests`, `HistoryJournalTests`, `TodayDayBoundaryTests`,
+  `ProgressPinTests` — exit 0, **21/21**; UI warm-up + `FloodlightProgressUITests` (10) + `ProgressChartUITests` +
+  `FloodlightHistoryUITests` + `CoreLoopUITests/testCoreLoopFromEmptyStoreToOneTapRepeatSet` — exit 0, **22/22**.
+  Captures: the "…" on every panel, light/dark × default/AXL, no overlap with titles.
 - **Next (for the fresh session, superseded by the entry above):** run unit tests `HistoryJournalTests`, `TrainingProgressTests`,
   `HistoryOverviewTests`, `ProgressTabTests`; UI `FloodlightHistoryUITests`, `HistoryCalendarUITests`,
   `HistoryEditFlowsUITests`, `FloodlightProgressUITests`, `ProgressChartUITests` (serial with the warm-up first, or 3

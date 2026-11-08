@@ -45,6 +45,41 @@ struct TrainingProgressTests {
                                             calendar: calendar).isEmpty)
     }
 
+    // MARK: The panel's reading
+
+    /// Three workouts, all in the first (and only) tracked week: one point that is a WEEK, so the panel says "This
+    /// week" without the lift/cardio "One session" note (codex-review-s4 #1).
+    @Test func aSingleWeekOfSeveralWorkoutsIsNotOneSession() {
+        let inputs = [input("2026-11-02T15:00:00Z", kg: 1000), input("2026-11-03T15:00:00Z", kg: 500),
+                      input("2026-11-05T15:00:00Z", kg: 250)]
+        let workouts = TrainingProgressMath.weekly(inputs, metric: .workoutsPerWeek, now: now, calendar: calendar)
+        let reading = ProgressReading.training(workouts, metric: .workoutsPerWeek, weightUnit: .kg, distanceUnit: .km)
+        #expect(reading.state == .single)
+        #expect(reading.value == "3")
+        #expect(reading.caption == "This week")
+        #expect(reading.singleNote == nil)
+
+        let volume = TrainingProgressMath.weekly(inputs, metric: .trainingVolume, now: now, calendar: calendar)
+        let kg = ProgressReading.training(volume, metric: .trainingVolume, weightUnit: .kg, distanceUnit: .km)
+        #expect(kg.unit == "kg" && kg.singleNote == nil)
+        #expect(kg.points.first?.value == 1750)
+        // Display conversion only: the lb figure is 1,750 kg converted.
+        let lb = ProgressReading.training(volume, metric: .trainingVolume, weightUnit: .lb, distanceUnit: .km)
+        #expect(abs((lb.points.first?.value ?? 0) - 1750 / 0.45359237) < 0.01)
+
+        // A lift's or an activity's lone point still is one session.
+        #expect(ProgressReading(value: "", unit: "", caption: "", points: []).singleNote == "One session")
+    }
+
+    @Test func lastWeekJoinsTheCaption() {
+        let inputs = [input("2026-10-27T15:00:00Z", meters: 5000), input("2026-11-03T15:00:00Z", meters: 3000)]
+        let points = TrainingProgressMath.weekly(inputs, metric: .runningDistance, now: now, calendar: calendar)
+        let reading = ProgressReading.training(points, metric: .runningDistance, weightUnit: .kg, distanceUnit: .km)
+        #expect(reading.value == "3.0" && reading.unit == "km")
+        #expect(reading.caption == "This week · last week 5.0 km")
+        #expect(reading.change == nil)
+    }
+
     // MARK: Pins
 
     @Test func aTrainingPinRoundTripsAndOlderPinsStillDecode() throws {
@@ -56,17 +91,26 @@ struct TrainingProgressTests {
     }
 
     /// An older build knows only `lift` and `cardio`: a training pin is written in the cardio shape with an activity
-    /// no build knows, which an older build decodes and quietly skips (D63) instead of failing the whole list.
+    /// no build knows, which an older build decodes and quietly skips (D63) instead of failing the whole list. Read
+    /// here with a copy of builds 8–9's synthesised pin type, and round-tripped old → new as a downgrade-then-upgrade.
     @Test func aTrainingPinIsWrittenInAShapeOlderBuildsSkip() throws {
-        let data = ProgressPinStore.encode([ProgressPin(subject: .training(.workoutsPerWeek), metric: .time)])
+        let lift = ProgressPin(subject: .lift(exerciseID: UUID(), variation: .mostUsed), metric: .volume)
+        let training = ProgressPin(subject: .training(.workoutsPerWeek), metric: .time)
+        let data = ProgressPinStore.encode([lift, training])
         let json = try #require(String(data: data, encoding: .utf8))
-        #expect(json.contains("\"cardio\""))
-        #expect(json.contains("training.workoutsPerWeek"))
         #expect(!json.contains("\"training\""))
-        // Read as an older build would: the subject is cardio with an unknown activity.
-        let legacy = try JSONDecoder().decode([LegacyPin].self, from: data)
-        #expect(legacy.first?.subject.cardio?.activity == "training.workoutsPerWeek")
+
+        // The older build decodes the whole list; the training pin is a cardio pin with an unknown activity.
+        let old = try JSONDecoder().decode([BuildNinePin].self, from: data)
+        #expect(old.count == 2)
+        #expect(old[0].subject == .lift(exerciseID: lift.exerciseID!, variation: .mostUsed))
+        #expect(old[1].subject == .cardio(activity: "training.workoutsPerWeek"))
         #expect(CardioActivity(rawValue: "training.workoutsPerWeek") == nil)
+
+        // It saves the full list again (a Move or Remove there); the next S4 build still has the training pin.
+        let back = ProgressPinStore.decode(try JSONEncoder().encode(Array(old.reversed())))
+        #expect(back.map(\.id) == [training.id, lift.id])
+        #expect(back.first?.training == .workoutsPerWeek)
     }
 
     @Test func pinsSavedBeforeS4Decode() throws {
@@ -79,13 +123,15 @@ struct TrainingProgressTests {
     }
 }
 
-/// The pin shape before S4 (synthesised Codable), to read new data the way an older build does.
-private struct LegacyPin: Decodable {
-    struct Subject: Decodable {
-        struct Cardio: Decodable { var activity: String }
-        var cardio: Cardio?
+/// Builds 8–9's `ProgressPin`, verbatim apart from the name (`main`'s `Domain/ProgressPins.swift`): synthesised
+/// Codable, two subject cases. `ProgressPinMetric` and `PinnedLiftVariation` are unchanged since, so they are shared.
+private struct BuildNinePin: Codable, Equatable {
+    enum Subject: Codable, Equatable {
+        case lift(exerciseID: UUID, variation: PinnedLiftVariation)
+        case cardio(activity: String)
     }
-    var id: UUID
+
+    var id = UUID()
     var subject: Subject
-    var metric: String
+    var metric: ProgressPinMetric
 }
