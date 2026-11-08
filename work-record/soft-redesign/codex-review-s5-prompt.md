@@ -71,3 +71,20 @@ testing-workflow ticket's rule (approved by the user 2026-11-08, `work-record/de
 item 7), rerun UI only if you find a UI-behaviour concern; Claude's UI evidence is above. Write
 `work-record/soft-redesign/codex-review-s5b.md` ending with exactly `Verdict: clear` or `Verdict: not clear`. Your
 round 1 report stays as written. Do not commit or push.
+
+## Round 2 result and round 3 (the implementer's note)
+
+Round 2 (`codex-review-s5b.md`): #1 and #3 closed; #2's no-history case open. Fixed in `5ae5b83`: `UpNext.suggestion`
+`.off` builds the "Next in order" chain so each step shows a template not yet shown in that chain (the learned
+candidate when new, else `TemplateStats.dueNext` over the not-yet-shown templates with REAL last runs), resetting
+after every template has had its turn; `resolve` passes the chosen template as `alreadyShown`. Established rhythms are
+unchanged (their learned steps are already new). Test: `UpNextTests.nextInOrderWalksEveryTemplateWithoutHistory`
+(no history Legs → Pull → Push → Legs; history outside the window gives three different templates; chose Pull → Legs →
+Push). Claude (WT-Floodlight): unit `UpNextTests`, `UpNextReadingTests`, `WorkoutTemplateTests`, `TemplateDueNextTests`
+**29/29**; UI serial warm-up + `TodayUpNextUITests` **10/10**.
+
+Round 3: review `git diff 5248d44..5ae5b83 -- WorkoutTracker WorkoutTrackerTests`; rerun your
+`/tmp/codex-s5/round2/spec-repro.swift` against it; on WT-iPhone27 build and unit `UpNextTests`, `UpNextReadingTests`
+(paths `/tmp/codex-s5/round3/`). UI only if you find a UI-behaviour concern. Write
+`work-record/soft-redesign/codex-review-s5c.md` ending with exactly `Verdict: clear` or `Verdict: not clear`. Do not
+commit or push.
