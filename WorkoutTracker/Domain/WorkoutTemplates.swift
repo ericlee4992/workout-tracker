@@ -205,6 +205,42 @@ struct WorkoutTemplateService {
         try create(name: name, items: Self.capturableItems(of: workout), cardio: Self.capturableCardio(of: workout))
     }
 
+    /// Soft redesign S5 (D77): Today's Repeat for someone without templates — a new workout with a finished workout's
+    /// structure, as Save as Template would capture it: its exercises in order, each with as many sets as were completed
+    /// and those reps as targets, supersets, planned rest and its cardio as a plan. The same machine when it is still
+    /// active at `gym`, otherwise the entry's free-weight tag. Nothing is saved as a template and `source` is not
+    /// touched (its history stays frozen); superset ids are new, so the two workouts never share a group.
+    func repeatWorkout(_ source: Workout, at gym: Gym?, on date: Date = .now) throws -> Workout {
+        let session = WorkoutSession(context: context)
+        let workout = try session.startWorkout(at: gym, on: date)
+        workout.plannedCardio = Self.capturableCardio(of: source)
+        let active = Set((gym?.activeMachines ?? []).map(\.id))
+        var groups: [UUID: UUID] = [:]
+        for entry in WorkoutSession.orderedEntries(of: source) {
+            guard let exercise = entry.exercise else { continue }
+            let completed = WorkoutSession.orderedSets(of: entry).filter { $0.completedAt != nil }
+            guard !completed.isEmpty else { continue }
+            let machine = entry.machine.flatMap { active.contains($0.id) ? $0 : nil }
+            let copy = try session.addEntry(for: exercise, to: workout, machine: machine,
+                                            freeWeightTag: machine == nil ? entry.freeWeightTag : nil)
+            copy.plannedRestSeconds = entry.plannedRestSeconds
+            copy.plannedRepsBySet = completed.map(\.reps)
+            if let group = entry.supersetGroupID {
+                let fresh = groups[group] ?? UUID()
+                groups[group] = fresh
+                copy.supersetGroupID = fresh
+            }
+            while WorkoutSession.orderedSets(of: copy).count < completed.count {
+                try session.addSet(to: copy)
+            }
+        }
+        try context.save()
+        return workout
+    }
+
+    /// Whether Repeat has anything to start from (the same structure Save as Template needs).
+    static func canRepeat(_ workout: Workout) -> Bool { canSaveAsTemplate(workout) }
+
     /// Whether `saveAsTemplate` can succeed for this workout. The UI must
     /// gate the option on this instead of finishing first and discovering
     /// `noExercises` afterwards.

@@ -274,4 +274,46 @@ struct WorkoutTemplateTests {
         #expect(items[1].targetRepsBySet == [12, 12])
         #expect(workout.sourceTemplateID == nil)
     }
+
+    /// Soft redesign S5 (D77): Today's Repeat starts a new workout with the finished one's captured structure — the
+    /// completed sets as targets, the superset regrouped under a NEW id — creates no template and leaves the source alone.
+    @Test func repeatStartsTheCapturedStructureWithoutATemplate() throws {
+        let context = try makeInMemoryContext()
+        let session = WorkoutSession(context: context)
+        let bench = Exercise(name: "Bench")
+        let row = Exercise(name: "Row")
+        let empty = Exercise(name: "Empty")
+        [bench, row, empty].forEach(context.insert)
+        try context.save()
+        let source = try session.startWorkout(at: nil)
+        let group = UUID()
+        for (exercise, reps) in [(bench, [10, 8, 6]), (row, [12, 12])] {
+            let entry = try session.addEntry(for: exercise, to: source)
+            entry.supersetGroupID = group
+            entry.plannedRestSeconds = 90
+            while WorkoutSession.orderedSets(of: entry).count < reps.count { try session.addSet(to: entry) }
+            for (index, set) in WorkoutSession.orderedSets(of: entry).enumerated() {
+                try session.commitWeight("50", for: set)
+                try session.commitReps(String(reps[index]), for: set)
+                try session.toggleCompletion(of: set)
+            }
+        }
+        _ = try session.addEntry(for: empty, to: source)
+        try session.finish(source)
+        let sourceSets = WorkoutSession.orderedEntries(of: source).map { WorkoutSession.orderedSets(of: $0).count }
+        #expect(WorkoutTemplateService.canRepeat(source))
+
+        let copy = try WorkoutTemplateService(context: context).repeatWorkout(source, at: nil)
+        let entries = WorkoutSession.orderedEntries(of: copy)
+        #expect(entries.map { $0.exercise?.name } == ["Bench", "Row"])
+        #expect(entries.map { WorkoutSession.orderedSets(of: $0).count } == [3, 2])
+        #expect(entries.map(\.plannedRepsBySet) == [[10, 8, 6], [12, 12]])
+        #expect(entries.map(\.plannedRestSeconds) == [90, 90])
+        #expect(entries[0].supersetGroupID != nil && entries[0].supersetGroupID == entries[1].supersetGroupID)
+        #expect(entries[0].supersetGroupID != group)
+        #expect(copy.finishedAt == nil && copy.sourceTemplateID == nil)
+        #expect(try context.fetchCount(FetchDescriptor<WorkoutTemplate>()) == 0)
+        #expect(WorkoutSession.orderedEntries(of: source).map { WorkoutSession.orderedSets(of: $0).count } == sourceSets)
+        #expect(source.finishedAt != nil)
+    }
 }
