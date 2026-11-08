@@ -113,5 +113,10 @@ user before a run over ~20 min).
   `aChoiceExpiresOnARealFinishNotOnFutureHistory`, `UpNextReadingTests.aWorkoutFinishedThisSessionAdvancesTheSuggestion`
   — with the earlier suites **28/28**. `TodayUpNextUITests` gains Choose → Next (Leg → Push); serial warm-up + class **10/10**. Codex round 1's own runs: unit
   25/25, UI warm-up + `CoreLoopUITests` + `TodayUpNextUITests` 19/19.
+- **2026-11-08 — Codex round 2** ([report](../codex-review-s5b.md)): #1 and #3 closed; #2 open for the no-history
+  case (a new user / fresh AI week / history outside the window: Next in order repeated one template, from a choice
+  too). Fixed: the learned chain shows a template not yet shown in that chain (fallback order, then wraps);
+  `resolve` seeds the chain with the chosen template. Test `UpNextTests.nextInOrderWalksEveryTemplateWithoutHistory`;
+  unit **29/29**.
 
 ## Comments

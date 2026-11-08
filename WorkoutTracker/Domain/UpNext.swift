@@ -102,7 +102,7 @@ enum UpNext {
         }
         let past = runs.filter { $0.startedAt <= now } + [Run(templateID: chosen, startedAt: now)]
         return (suggestion(templates: templates, runs: past, split: split, now: now, skip: choice.skip - 1,
-                           calendar: calendar), true)
+                           alreadyShown: [chosen], calendar: calendar), true)
     }
 
     /// One finished workout started from a template.
@@ -116,8 +116,10 @@ enum UpNext {
 
     /// Today's suggestion: the split when set, else the learned order; `skip` steps past that many suggestions as if
     /// they had been done ("Next in order").
+    /// - Parameter alreadyShown: templates this "Next in order" chain has already shown (a chosen template), so a
+    ///   learned suggestion never repeats them before every template has had its turn.
     static func suggestion(templates: [(id: UUID, name: String)], runs: [Run], split: MySplit, now: Date, skip: Int = 0,
-                           calendar: Calendar = .current) -> UpNextSuggestion {
+                           alreadyShown: [UUID] = [], calendar: Calendar = .current) -> UpNextSuggestion {
         guard !templates.isEmpty else { return .none }
         let existing = Set(templates.map(\.id))
         let runs = runs.filter { existing.contains($0.templateID) && $0.startedAt <= now }
@@ -134,13 +136,27 @@ enum UpNext {
             }
             return .template(pick)
         case .off:
+            // Each "Next in order" shows a template not shown yet in this chain (then wraps): with no rhythm to follow
+            // — a new user, a fresh AI week, history outside the window — the learned rule alone would repeat its
+            // single synthetic run forever (codex-review-s5b #1). An established rhythm already yields new ones.
             var done = runs
-            guard var pick = learned(templates: templates, runs: done, now: now) else { return .none }
-            for step in 0..<max(0, skip) {
-                done.append(Run(templateID: pick, startedAt: now.addingTimeInterval(Double(step + 1))))
-                pick = learned(templates: templates, runs: done, now: now) ?? pick
+            var shown = alreadyShown
+            var realLastRun: [UUID: Date] = [:]
+            for run in runs { realLastRun[run.templateID] = max(realLastRun[run.templateID] ?? .distantPast, run.startedAt) }
+            func pick() -> UUID? {
+                if shown.count >= templates.count { shown.removeAll() }
+                guard let candidate = learned(templates: templates, runs: done, now: now) else { return nil }
+                if !shown.contains(candidate) { return candidate }
+                let fresh = templates.filter { !shown.contains($0.id) }
+                return TemplateStats.dueNext(fresh, lastRun: realLastRun) ?? candidate
             }
-            return .template(pick)
+            guard var current = pick() else { return .none }
+            for step in 0..<max(0, skip) {
+                shown.append(current)
+                done.append(Run(templateID: current, startedAt: now.addingTimeInterval(Double(step + 1))))
+                current = pick() ?? current
+            }
+            return .template(current)
         }
     }
 

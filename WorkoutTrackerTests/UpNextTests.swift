@@ -141,6 +141,23 @@ struct UpNextTests {
         #expect(pick(UpNextOverride(madeAt: now, skip: 1)) == .template(pull))
     }
 
+    /// codex-review-s5b #1: with no recent history (a new user, a fresh AI week, or history outside the window), Next
+    /// in order still walks through every template — Legs, Pull, Push by name, then wraps — and from a choice too.
+    @Test func nextInOrderWalksEveryTemplateWithoutHistory() {
+        func plan(_ skip: Int, runs: [UpNext.Run] = []) -> UpNextSuggestion {
+            UpNext.suggestion(templates: ppl, runs: runs, split: .off, now: now, skip: skip, calendar: calendar)
+        }
+        #expect((0...3).map { plan($0) } == [.template(legs), .template(pull), .template(push), .template(legs)])
+        let old = [run(push, daysAgo: 60), run(pull, daysAgo: 55), run(legs, daysAgo: 50)]
+        #expect((0...2).map { plan($0, runs: old) }.count == Set((0...2).map { "\(plan($0, runs: old))" }).count)
+        func chose(_ skip: Int) -> UpNextSuggestion {
+            UpNext.resolve(templates: ppl, runs: [], split: .off, now: now,
+                           override: UpNextOverride(madeAt: now, skip: skip, chosen: pull), lastFinishedAt: nil,
+                           calendar: calendar).suggestion
+        }
+        #expect((0...2).map(chose) == [.template(pull), .template(legs), .template(push)])
+    }
+
     /// #3: a finished record dated in the future does not cancel today's choice; a workout finished after the choice
     /// does (expiry follows completion, not start).
     @Test func aChoiceExpiresOnARealFinishNotOnFutureHistory() {
