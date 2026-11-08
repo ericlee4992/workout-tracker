@@ -4,7 +4,7 @@ You are the independent reviewer; Claude implemented. Read AGENTS.md first. Chec
 `/Users/ericlee06/orca/workspaces/Health App/UI_design`, branch `ericlee4992/soft-05-today-up-next` (off `main`
 `40b30d6`, where S1–S4 are merged).
 
-Review S5: `git diff 40b30d6..S5_TIP` (the first two commits are the ticket, D77 and a separate test-speed ticket —
+Review S5: `git diff 40b30d6..bd09df9` (the first two commits are the ticket, D77 and a separate test-speed ticket —
 docs only).
 
 Read first: `work-record/soft-redesign/issues/05-today-up-next.md` (the user's decisions, scope, acceptance, Progress
