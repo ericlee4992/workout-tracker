@@ -1,11 +1,11 @@
 # Current project state
 
-Updated **2026-11-07, session 2** (Soft redesign S1–S3 clear, S4 tested and in Codex review; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-07, session 2** (Soft redesign S1–S4 all Codex clear; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-07, session 2) — Soft redesign Phase 1: S1–S3 clear; S4 tested, in Codex review.**
+- **Resume here (2026-11-07, session 2) — Soft redesign Phase 1: S1–S4 all Codex clear; Phase 1 run next (ask).**
   **Goal:** the user's approved Soft redesign (Phase 1, S1–S4) then nutrition (Phase 2, N1–N10), shipped to testers
   together as one release R (D76). Tickets: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D76 (in `main` `fc2390c`). One workspace:
@@ -14,15 +14,16 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Branches (stacked, all pushed, none in `main`):** S1 `ericlee4992/soft-01-look` (Codex clear) → S2
   `…/soft-02-tabs` (clear) → S3 `…/soft-03-workout` (clear) → **S4 `…/soft-04-history-progress`** (checked out):
   History day journal + Progress Training charts. **Tested 2026-11-07:** unit 90/90, UI 28/28 (serial, WT-Floodlight),
-  captures checked and sent to the user; fix: Training rows show "+"; new `testTrainingCharts*` UI tests. Evidence in
-  the [S4 ticket](../work-record/soft-redesign/issues/04-history-and-progress.md). **Codex S4 round 1 sent** (prompt
-  `work-record/soft-redesign/codex-review-s4-prompt.md`, report `codex-review-s4.md`, range `55831f0..1e298e3`).
-  **Next, in order:** (1) read Codex's S4 verdict; fix findings and re-review to clear; (2) **ask the user** before the
+  captures checked and sent to the user; fix: Training rows show "+"; new `testTrainingCharts*` UI tests. Codex round 1
+  (`codex-review-s4.md`): 3 × P2 fixed in `224289c` (weekly "One session", shared `refreshingNow` clock refresh for
+  Today/History/Progress, visible "…" on Progress panels); round 2 **clear** (`codex-review-s4b.md`). Evidence in the
+  [S4 ticket](../work-record/soft-redesign/issues/04-history-and-progress.md).
+  **Next, in order:** (1) — done; (2) **ask the user** before the
   deferred Phase 1 run (~45–60 min: all capture suites light/dark/AX + core-flow UI classes; agreed to run after S4);
   (3) with the user's go-ahead fast-forward `main` through S1→S4 in order and push; (4) Phase 2 starts with N1 (safety
   copy) — its design questions are in the N1 ticket.
   **User preferences (memory):** every status update ends with a progress board (done / in progress / left); every
-  multi-minute test run gets the visible "Test progress" tab; ask before long runs; explain plainly; screenshots both
+  multi-minute test run shows in ONE reused "Test progress" Orca tab (send the script to it; no new tab per run); ask before long runs; explain plainly; screenshots both
   SendUserFile and Preview.
   **Codex:** Orca terminal "Codex review" `term_1ae47c82-7df4-40ea-9b18-0c9321ea6c11` (this worktree, GPT-6-Astra; the
   earlier one died in an Orca restart). It asks approval for every simulator command: send `--text "y"` alone (not with

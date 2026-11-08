@@ -1,7 +1,7 @@
 # S4 — History journal and Progress pin-anything (training metrics)
 
 Type: change
-Status: **built and tested** (2026-11-07) — Codex review next
+Status: **review clear** (Codex round 2, 2026-11-07) — merge waits for the deferred Phase 1 test run
 Blocked by: S2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/soft-04-history-progress` off `main`.
@@ -89,6 +89,11 @@ New metrics → `ProgressSeries` / `ProgressPins` unit tests; History, HistoryCa
   `ProgressPinTests` — exit 0, **21/21**; UI warm-up + `FloodlightProgressUITests` (10) + `ProgressChartUITests` +
   `FloodlightHistoryUITests` + `CoreLoopUITests/testCoreLoopFromEmptyStoreToOneTapRepeatSet` — exit 0, **22/22**.
   Captures: the "…" on every panel, light/dark × default/AXL, no overlap with titles.
+- **2026-11-07 — Codex round 2 [clear](../codex-review-s4b.md)** (`1e298e3..224289c`): all three P2s closed, 0 new
+  findings; its runs on WT-iPhone27: unit 18/18, UI warm-up + `FloodlightProgressUITests` 11/11, captures inspected.
+  Noted, not findings: five non-failing "Invalid frame dimension" runtime warnings (as in round 1; already listed in
+  deferred work); clock refresh is source-reviewed, not driven by a test. **Next:** the deferred Phase 1 run (ask the
+  user), then merge S1→S4.
 - **Next (for the fresh session, superseded by the entry above):** run unit tests `HistoryJournalTests`, `TrainingProgressTests`,
   `HistoryOverviewTests`, `ProgressTabTests`; UI `FloodlightHistoryUITests`, `HistoryCalendarUITests`,
   `HistoryEditFlowsUITests`, `FloodlightProgressUITests`, `ProgressChartUITests` (serial with the warm-up first, or 3
