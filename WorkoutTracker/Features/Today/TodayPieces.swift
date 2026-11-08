@@ -192,13 +192,14 @@ struct TodayRestDayCard<Items: View>: View {
                 Spacer(minLength: 8)
                 TodayNotTodayMenu(content: menu)
             }
+            // The id on the title, not the card: a container's identifier would hide the menu's (`todayNotToday`).
             Text("Rest day").font(look.font.cardTitle).foregroundStyle(look.textPrimary)
+                .accessibilityIdentifier("todayRestDay")
             Text("Nothing in your split today.").font(look.font.footnote).foregroundStyle(look.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(look.space.panelPadding)
         .lookSurface(.panel)
-        .accessibilityIdentifier("todayRestDay")
     }
 }
 
@@ -254,7 +255,10 @@ struct TodayNoTemplateCard: View {
         Button(action: repeatLast) {
             Label("Repeat", systemImage: "arrow.counterclockwise")
                 .font(look.font.button)
+                .fixedSize()
                 .foregroundStyle(look.onAction)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
                 .frame(maxWidth: .infinity, minHeight: 44)
                 .background(look.action, in: Capsule())
         }
@@ -270,13 +274,16 @@ struct TodayNoTemplateCard: View {
                 Label("Start workout", systemImage: "figure.strengthtraining.traditional")
                     .font(look.font.button)
                     .foregroundStyle(look.onAction)
+                    .padding(.vertical, 10)
                     .frame(maxWidth: .infinity, minHeight: 44)
                     .background(look.action, in: Capsule())
             }
             .buttonStyle(.lookPressable)
             .accessibilityIdentifier("todayStartWorkout")
         } else {
-            Button("Start workout", systemImage: "plus", action: startEmpty)
+            // Full width measured (`fixedSize`), so `ViewThatFits` stacks the two buttons instead of wrapping or
+            // truncating "Start workout".
+            Button(action: startEmpty) { Label("Start workout", systemImage: "plus").fixedSize() }
                 .buttonStyle(.lookSecondary)
                 .frame(maxWidth: .infinity)
                 .accessibilityIdentifier("todayStartWorkout")

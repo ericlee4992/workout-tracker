@@ -90,6 +90,12 @@ final class TodayUpNextUITests: XCTestCase {
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
         Thread.sleep(forTimeInterval: 1.0)
         shoot("s5-today-upnext-\(suffix)")
+        if large {
+            // At AX sizes the week is a list of days: the card sits below it.
+            for _ in 0..<6 where !upNextStart.isHittable { app.swipeUp() }
+            Thread.sleep(forTimeInterval: 0.6)
+            shoot("s5-today-upnext-\(suffix)-card")
+        }
         app.descendants(matching: .any)["todayNotToday"].firstMatch.tap()
         XCTAssertTrue(app.buttons["Next in order"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.6)
@@ -147,10 +153,10 @@ final class TodayUpNextUITests: XCTestCase {
         openMySplit()
         Thread.sleep(forTimeInterval: 0.6)
         shoot("s5-mysplit-off-light-axl")
-        app.buttons["In order"].tap()
+        app.buttons["In order"].firstMatch.tap()
         Thread.sleep(forTimeInterval: 0.6)
         shoot("s5-mysplit-inorder-light-axl")
-        app.buttons["By weekday"].tap()
+        app.buttons["By weekday"].firstMatch.tap()
         Thread.sleep(forTimeInterval: 0.6)
         shoot("s5-mysplit-weekday-light-axl")
     }
@@ -179,6 +185,9 @@ final class TodayUpNextUITests: XCTestCase {
         XCTAssertTrue(app.buttons["todayRepeat"].waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 0.8)
         shoot("s5-today-notemplates-dark-axl")
+        for _ in 0..<6 where !app.buttons["todayRepeat"].isHittable { app.swipeUp() }
+        Thread.sleep(forTimeInterval: 0.6)
+        shoot("s5-today-notemplates-dark-axl-card")
     }
 
     func testAnEmptyStoreStartsAnEmptyWorkoutFromToday() {

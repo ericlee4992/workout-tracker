@@ -10,6 +10,7 @@ struct MySplitSheet: View {
     @AppStorage(UpNextOverride.key) private var overrideData = Data()
     @Environment(\.dismiss) private var dismiss
     @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var mode = 0
     @State private var order: [UUID] = []
     @State private var days: [Int: UUID] = [:]
@@ -21,10 +22,25 @@ struct MySplitSheet: View {
         NavigationStack {
             List {
                 Section {
-                    SegmentedPills(Self.modes, selection: $mode)
-                        .accessibilityIdentifier("mySplitMode")
-                        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                        .listRowBackground(Color.clear)
+                    if typeSize.isAccessibilitySize {
+                        // Three pills do not fit at accessibility sizes ("By wee…"): one row per choice.
+                        ForEach(Self.modes.indices, id: \.self) { index in
+                            Button { mode = index } label: {
+                                HStack {
+                                    Text(Self.modes[index]).foregroundStyle(look.textPrimary)
+                                    Spacer()
+                                    if mode == index { Image(systemName: "checkmark").fontWeight(.semibold) }
+                                }
+                            }
+                            .accessibilityAddTraits(mode == index ? .isSelected : [])
+                        }
+                        .lookListRows()
+                    } else {
+                        SegmentedPills(Self.modes, selection: $mode)
+                            .accessibilityIdentifier("mySplitMode")
+                            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                            .listRowBackground(Color.clear)
+                    }
                 } footer: {
                     Text(explanation).font(look.font.footnote).foregroundStyle(look.textSecondary)
                 }
