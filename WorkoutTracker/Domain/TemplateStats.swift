@@ -27,4 +27,20 @@ struct TemplateStats: Equatable {
         }
         return runs.mapValues(make(runs:))
     }
+
+    /// The template due next (Soft redesign S2/S3: Today's "Up next" and the card leading Train): the one done
+    /// longest ago. A never-run template counts as longest ago; ties go to the name, then the id, so the choice is
+    /// stable. Nil when there are no templates.
+    static func dueNext(_ templates: [(id: UUID, name: String)], lastRun: [UUID: Date]) -> UUID? {
+        templates.min { lhs, rhs in
+            switch (lastRun[lhs.id], lastRun[rhs.id]) {
+            case let (l?, r?) where l != r: return l < r
+            case (nil, _?): return true
+            case (_?, nil): return false
+            default:
+                if lhs.name != rhs.name { return lhs.name < rhs.name }
+                return lhs.id.uuidString < rhs.id.uuidString
+            }
+        }?.id
+    }
 }

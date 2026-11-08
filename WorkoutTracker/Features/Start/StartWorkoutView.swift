@@ -56,14 +56,20 @@ struct StartWorkoutView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
                     LookNavTitle("Train", subtitle: WorkoutDates.homeSubtitle(.now))
-                    VStack(spacing: 14) {
+                    // Soft redesign S3 (Direction A's order, the prototype's Train): the template due next leads with
+                    // ONE Start, Start Lifting / Start Cardio step down to a quiet pair, the other templates follow,
+                    // and "This week" moves to the end (a look back, not the reason to open the tab).
+                    VStack(spacing: 12) {
                         gymPicker
                             .tourAnchor("tour.gymPicker").id("tour.gymPicker")
+                        if leadTemplate != nil {
+                            upNextCard
+                        }
                         startControl
                             .tourAnchor("tour.start").id("tour.start")
                     }
-                    weekCard
                     templatesSection
+                    weekCard
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.top, 2)
@@ -153,7 +159,13 @@ struct StartWorkoutView: View {
                     action: resumeActive)
                     .accessibilityIdentifier("resumeWorkout")
                     .transition(swapTransition)
+            } else if leadTemplate != nil {
+                TrainQuickStarts(startLifting: { startRequest = WorkoutStartRequest(template: nil) },
+                                 startCardio: { showingCardioPicker = true })
+                    .sensoryFeedback(.workoutStart, trigger: activeWorkouts.count)
+                    .transition(swapTransition)
             } else {
+                // No template to lead: the Start pair stays the screen's primary action.
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 10) { startCapsules }
                     VStack(spacing: 12) { startCapsules }
@@ -214,51 +226,77 @@ struct StartWorkoutView: View {
 
     // MARK: Templates
 
+    /// The template due next, leading the screen while no workout runs (`TemplateStats.dueNext`).
+    private var leadTemplate: WorkoutTemplate? {
+        guard activeWorkouts.first == nil else { return nil }
+        let lastRun = templateStats.compactMapValues(\.lastRun)
+        guard let id = TemplateStats.dueNext(templates.map { (id: $0.id, name: $0.name) }, lastRun: lastRun) else { return nil }
+        return templates.first { $0.id == id }
+    }
+
+    private var upNextCard: some View {
+        let template = leadTemplate!
+        let stats = templateStats[template.id]
+        let items = WorkoutTemplateService.orderedItems(of: template)
+        let names = items.compactMap { $0.exercise?.name } + template.plannedCardio.map { $0.activity.name }
+        let count = items.count
+        let subtitle = [selectedGym?.name, count == 0 ? nil : (count == 1 ? "1 exercise" : "\(count) exercises")]
+            .compactMap { $0 }.joined(separator: " · ")
+        return TrainUpNextCard(name: template.name,
+                               families: MuscleFamily.families(of: items.map { $0.exercise?.muscleGroup }),
+                               exercises: names, lastRun: stats?.lastRun, averageSeconds: stats?.averageDurationSeconds,
+                               startSubtitle: subtitle.isEmpty ? nil : subtitle,
+                               open: { viewingTemplate = template },
+                               start: { startRequest = WorkoutStartRequest(template: template) })
+            // The only template: the tour's "templates" step highlights the card instead of a tile.
+            .tourAnchor("tour.templates", when: otherTemplates.isEmpty)
+            .id(otherTemplates.isEmpty ? "tour.templates" : "upNext")
+    }
+
+    /// Every template except the one leading the screen.
+    private var otherTemplates: [WorkoutTemplate] {
+        let lead = leadTemplate?.id
+        return templates.filter { $0.id != lead }
+    }
+
     private var templatesSection: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("Templates", level: .page)
             if templates.isEmpty {
+                SectionHeader("Templates", level: .page)
                 // First run: an invitation that shows what a template becomes (its family maps).
                 VStack(spacing: look.space.grid) {
                     WorkoutTemplateInvite(action: newTemplate)
                     askAIRow
                 }
-            } else if dynamicTypeSize.isAccessibilitySize {
-                // AX sizes: one column; the two "make one" tiles become full-width rows.
-                VStack(spacing: look.space.grid) {
-                    ForEach(templates) { tile($0, stats: templateStats) }
-                    WorkoutMakeRow(title: "New Template…", symbol: "plus", action: newTemplate)
-                    askAIRow
-                }
             } else {
-                grid
+                SectionHeader(leadTemplate == nil ? "Templates" : "Other templates", level: .page)
+                VStack(spacing: look.space.grid) {
+                    if dynamicTypeSize.isAccessibilitySize {
+                        ForEach(otherTemplates) { tile($0, stats: templateStats) }
+                    } else if !otherTemplates.isEmpty {
+                        grid
+                    }
+                    TrainMakeRow(title: "New Template…", symbol: "plus", action: newTemplate)
+                        .accessibilityIdentifier("newTemplate")
+                    TrainMakeRow(title: "Ask AI for Templates", symbol: "sparkles") { showingAIRoutine = true }
+                        .accessibilityIdentifier("askAIRoutine")
+                        .tourAnchor("tour.askAI").id("tour.askAI")
+                }
             }
         }
     }
 
-    /// Two columns in an eager `Grid` (a nested lazy grid left the first row blank on iOS 27
-    /// after an AI week save — ticket 07). An odd count puts New Template… beside the last tile
-    /// and Ask AI across the row below; an even count puts the two make tiles side by side.
+    /// Two columns of the other templates in an eager `Grid` (a nested lazy grid left the first row blank on iOS 27
+    /// after an AI week save — ticket 07); an odd last tile sits alone at half width.
     private var grid: some View {
         let stats = templateStats
-        let odd = templates.count % 2 == 1
-        let pairs = stride(from: 0, to: templates.count - (odd ? 1 : 0), by: 2).map { Array(templates[$0..<$0 + 2]) }
+        let others = otherTemplates
+        let rows = stride(from: 0, to: others.count, by: 2).map { Array(others[$0..<min($0 + 2, others.count)]) }
         return Grid(horizontalSpacing: look.space.grid, verticalSpacing: look.space.grid) {
-            ForEach(pairs, id: \.first!.id) { pair in
+            ForEach(rows, id: \.first!.id) { row in
                 GridRow(alignment: .top) {
-                    ForEach(pair) { tile($0, stats: stats) }
-                }
-            }
-            if odd, let last = templates.last {
-                GridRow(alignment: .top) {
-                    tile(last, stats: stats)
-                    newTemplateTile
-                }
-                GridRow { askAITile.gridCellColumns(2) }
-            } else {
-                GridRow(alignment: .top) {
-                    newTemplateTile
-                    askAITile
+                    ForEach(row) { tile($0, stats: stats) }
+                    if row.count == 1 { Color.clear.gridCellUnsizedAxes([.horizontal, .vertical]) }
                 }
             }
         }
@@ -272,7 +310,7 @@ struct StartWorkoutView: View {
         let items = WorkoutTemplateService.orderedItems(of: template)
         let names = items.compactMap { $0.exercise?.name } + template.plannedCardio.map { $0.activity.name }
         let running = activeWorkouts.first?.sourceTemplateID == template.id
-        let first = template.id == templates.first?.id
+        let first = template.id == otherTemplates.first?.id
         return TemplateTile(name: template.name,
                             families: MuscleFamily.families(of: items.map { $0.exercise?.muscleGroup }),
                             exercises: names, lastDone: stats[template.id]?.lastRun, now: .now) {
@@ -294,18 +332,6 @@ struct StartWorkoutView: View {
         .accessibilityIdentifier("templateTile.\(template.name)")
         .tourAnchor("tour.templates", when: first)
         .id(first ? "tour.templates" : "template.\(template.id)")
-    }
-
-    private var newTemplateTile: some View {
-        MakeTile(title: "New Template…", symbol: "plus", action: newTemplate)
-    }
-
-    /// D58 amendment: the entry to the AI routine flow sits with the templates, below the user's
-    /// own tiles, never above the Start pair.
-    private var askAITile: some View {
-        MakeTile(title: "Ask AI for Templates", symbol: "sparkles") { showingAIRoutine = true }
-            .accessibilityIdentifier("askAIRoutine")
-            .tourAnchor("tour.askAI").id("tour.askAI")
     }
 
     private var askAIRow: some View {

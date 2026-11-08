@@ -760,9 +760,9 @@ private struct CardioPlanCard: View {
 
 // MARK: - Tray
 
-/// Pinned at the thumb, in the rest bar's slot. Pause (or Resume) is the state's one filled
-/// command; End Cardio is quiet and narrower (it ends the segment at once). At accessibility sizes
-/// the two stay side by side while they fit (icons drop first), else they stack.
+/// Pinned at the thumb, in the rest bar's slot. Pause (or Resume) is the state's one filled command; End is quiet
+/// beside it at the same width (Soft redesign S3, Direction A: "Pause | End" as two equal buttons with a gap; the
+/// activity is named on the panel above). Icons drop first when they no longer fit, then the two stack.
 struct CardioControls: View {
     var segment: CardioSegment
     var recorder: CardioRecorder
@@ -774,9 +774,8 @@ struct CardioControls: View {
     @ScaledMetric(relativeTo: .headline) private var endWidth: CGFloat = 158
 
     var body: some View {
-        let ax = typeSize.isAccessibilitySize
         ViewThatFits(in: .horizontal) {
-            row(icons: true, equal: ax)
+            row(icons: true, equal: true)
             row(icons: false, equal: true)
             VStack(spacing: 10) { pause(icons: true); end(icons: true) }
         }
@@ -799,8 +798,8 @@ struct CardioControls: View {
     }
 
     private func row(icons: Bool, equal: Bool) -> some View {
-        HStack(spacing: 10) {
-            pause(icons: icons)
+        HStack(spacing: 12) {
+            pause(icons: icons).frame(maxWidth: equal ? .infinity : nil)
             end(icons: icons).frame(maxWidth: equal ? .infinity : endWidth)
         }
     }
@@ -824,9 +823,11 @@ struct CardioControls: View {
             ends += 1
             withAnimation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.85)) { recorder.endCardio() }
         } label: {
-            label("End Cardio", symbol: "stop.fill", icons: icons)
+            label("End", symbol: "stop.fill", icons: icons)
         }
         .buttonStyle(CardioTrayButtonStyle(prominent: false))
+        // Seen: "End" (the activity is named above); heard: what ends.
+        .accessibilityLabel("End \(segment.activity.name)")
         .accessibilityIdentifier("endCardio")
     }
 

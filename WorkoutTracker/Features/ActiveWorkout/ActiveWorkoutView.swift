@@ -204,6 +204,14 @@ struct ActiveWorkoutView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if cardioFocus, let segment = workout.unfinishedCardio {
                     CardioControls(segment: segment, recorder: heartRateCoordinator.cardio)
+                } else if cardioFocus, !workout.isDeleted, !(workout.cardioSegments ?? []).isEmpty {
+                    // Soft redesign S3 (Direction A): once the activity has ended, the tray's slot finishes the
+                    // workout — the same action as the toolbar's Finish.
+                    PrimaryButton("Finish Workout", symbol: "flag.checkered") { finishTapped() }
+                        .accessibilityIdentifier("finishWorkoutBar")
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 6)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 } else if restEnd != nil || freshBest != nil {
                     LiveRestSlab(
                         restEnd: restEnd,

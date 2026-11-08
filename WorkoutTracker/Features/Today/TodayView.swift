@@ -145,19 +145,13 @@ struct TodayView: View {
             .accessibilityIdentifier("startCardio")
     }
 
-    /// The template done longest ago leads (a never-run template counts as longest ago; ties by name).
+    /// The template due next (`TemplateStats.dueNext`: done longest ago, never-run first).
     private var upNext: (template: WorkoutTemplate, lastRun: Date?)? {
         let stats = TemplateStats.byTemplate(finishedWorkouts)
-        return templates
-            .map { (template: $0, lastRun: stats[$0.id]?.lastRun) }
-            .min { lhs, rhs in
-                switch (lhs.lastRun, rhs.lastRun) {
-                case (nil, nil): lhs.template.name < rhs.template.name
-                case (nil, _): true
-                case (_, nil): false
-                case let (l?, r?): l < r
-                }
-            }
+        let lastRun = stats.compactMapValues(\.lastRun)
+        guard let id = TemplateStats.dueNext(templates.map { (id: $0.id, name: $0.name) }, lastRun: lastRun),
+              let template = templates.first(where: { $0.id == id }) else { return nil }
+        return (template, lastRun[id])
     }
 
     private func resumeActive() {

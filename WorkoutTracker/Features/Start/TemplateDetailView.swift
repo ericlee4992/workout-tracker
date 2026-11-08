@@ -6,7 +6,7 @@ import SwiftUI
 /// exercises in the template." Floodlight redesign: the name, the families it trains (target
 /// sets per family), how often it ran, the exercises ("N sets · r, r, r reps", rest, the
 /// equipment it starts on at this gym, a superset pair joined by a chain link), cardio
-/// targets, and Delete Template… at the end. Start is the one filled command, pinned at the
+/// targets; Delete Template… in the "…" menu (S3). Start is the one filled command, pinned at the
 /// thumb; Edit is in the bar.
 struct TemplateDetailView: View {
     var template: WorkoutTemplate
@@ -52,10 +52,7 @@ struct TemplateDetailView: View {
                             .font(look.font.footnote).foregroundStyle(look.textSecondary)
                     }
                     if !template.plannedCardio.isEmpty { cardio }
-                    // The destructive command last, never primary (ios-design).
-                    DestructiveRowButton("Delete Template…") { confirmingDelete = true }
-                        .accessibilityIdentifier("deleteTemplate")
-                        .padding(.top, 12)
+                    // Soft redesign S3: Delete Template… lives in the "…" menu beside Edit, not at the foot of the page.
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.top, 4)
@@ -87,6 +84,19 @@ struct TemplateDetailView: View {
                 Button("Edit") { showingEditor = true }
                     .font(.system(.body, weight: .semibold))
                     .accessibilityIdentifier("editTemplate")
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Delete Template…", systemImage: "trash", role: .destructive) { confirmingDelete = true }
+                        .accessibilityIdentifier("deleteTemplate")
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(.body, weight: .semibold))
+                        .foregroundStyle(look.textPrimary)
+                }
+                .accessibilityLabel("More")
+                .accessibilityIdentifier("templateMore")
+                .disabled(isGone)
             }
         }
         .alert("Delete Template", isPresented: $confirmingDelete) {
@@ -242,7 +252,10 @@ struct TemplateDetailView: View {
     @ViewBuilder private func equipmentLine(_ item: TemplateItem) -> some View {
         if let exercise = item.exercise,
            let machine = try? WorkoutTemplateService(context: modelContext).resolvedMachine(for: exercise, in: template, at: gym) {
-            equipmentLabel(machine.label, symbol: LookIcon.machine)
+            // Soft redesign S3: no machine line that only repeats the exercise's name ("Chest Press" on Chest Press).
+            if machine.label.compare(exercise.name, options: [.caseInsensitive, .diacriticInsensitive]) != .orderedSame {
+                equipmentLabel(machine.label, symbol: LookIcon.machine)
+            }
         } else if let tag = item.preferredEquipmentTag {
             equipmentLabel(tag.label, symbol: tag == .machine ? LookIcon.machine : "dumbbell")
         } else if template.generatedForGymID != nil, let exercise = item.exercise,

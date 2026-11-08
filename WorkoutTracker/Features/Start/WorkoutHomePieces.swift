@@ -255,3 +255,133 @@ struct WorkoutFirstWeekCard: View {
             }
     }
 }
+
+// MARK: - Soft redesign S3: Train's lead
+
+/// The template due next (`TemplateStats.dueNext`) as Train's one decision: its name, the families it trains, its
+/// exercises on one line, when it was last done, and ONE Start (the prototype's `ProposedUpNextCard`). The header
+/// opens the template; Start runs the same flow as the template's own Start.
+struct TrainUpNextCard: View {
+    var name: String
+    var families: [MuscleFamily]
+    var exercises: [String]
+    var lastRun: Date?
+    var averageSeconds: Int?
+    var startSubtitle: String?
+    var open: () -> Void
+    var start: () -> Void
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Button(action: open) {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(alignment: .center, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Up next").font(look.font.footnote.weight(.medium)).foregroundStyle(look.textSecondary)
+                            Text(name)
+                                .font(look.font.title)
+                                .foregroundStyle(look.textPrimary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 4)
+                        Image(systemName: "chevron.right")
+                            .font(.system(.footnote, weight: .bold))
+                            .foregroundStyle(look.textTertiary)
+                    }
+                    if !families.isEmpty {
+                        FamilyStrip(families: families, size: typeSize.isAccessibilitySize ? 40 : 34, spacing: 4)
+                    }
+                    if !exercises.isEmpty {
+                        Text(exerciseLine)
+                            .font(look.font.subhead)
+                            .foregroundStyle(look.textSecondary)
+                            .lineLimit(typeSize.isAccessibilitySize ? 4 : 2)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    if let lastLine {
+                        Label(lastLine, systemImage: "clock.arrow.circlepath")
+                            .font(look.font.footnote)
+                            .foregroundStyle(look.textSecondary)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Opens the template")
+            // The same identifier as the template's tile: the template is shown once, as this card or as a tile.
+            .accessibilityIdentifier("templateTile.\(name)")
+
+            TemplateStartCapsule(subtitle: startSubtitle, action: start)
+                .accessibilityIdentifier("startUpNext")
+        }
+        .padding(16)
+        .lookSurface(.panel)
+    }
+
+    /// Up to three names, then "+N"; every name at AX sizes.
+    private var exerciseLine: String {
+        if typeSize.isAccessibilitySize || exercises.count <= 3 { return exercises.joined(separator: " · ") }
+        return exercises.prefix(3).joined(separator: " · ") + " · +\(exercises.count - 3)"
+    }
+
+    private var lastLine: String? {
+        guard let lastRun else { return nil }
+        var parts = ["Last done \(look.lastDoneLabel(lastRun, now: .now))"]
+        if let averageSeconds { parts.append("about \(averageSeconds / 60) min") }
+        return parts.joined(separator: " · ")
+    }
+}
+
+/// Start Lifting / Start Cardio one step quieter than the template's Start, when a template leads.
+struct TrainQuickStarts: View {
+    var startLifting: () -> Void
+    var startCardio: () -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        let layout = typeSize.isAccessibilitySize ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+        layout {
+            Button(action: startLifting) {
+                Label("Start Lifting", systemImage: "figure.strengthtraining.traditional")
+            }
+            .buttonStyle(.lookSecondary)
+            .accessibilityIdentifier("startEmptyWorkout")
+            Button(action: startCardio) {
+                Label("Start Cardio", systemImage: "figure.run")
+            }
+            .buttonStyle(.lookSecondary)
+            .accessibilityIdentifier("startCardio")
+        }
+    }
+}
+
+/// New Template… / Ask AI as plain card rows below the templates (the prototype's `ProposedMakeRow`).
+struct TrainMakeRow: View {
+    var title: String
+    var symbol: String
+    var action: () -> Void
+    @Environment(\.look) private var look
+    @ScaledMetric(relativeTo: .body) private var minHeight: CGFloat = 56
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                IconDisc(symbol: symbol, size: 32, context: .onSurface)
+                Text(title)
+                    .font(.system(.body, weight: .semibold))
+                    .foregroundStyle(look.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 14)
+            .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.lookPressable)
+        .lookSurface(.card)
+        .accessibilityLabel(title)
+    }
+}

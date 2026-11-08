@@ -37,10 +37,8 @@ final class TemplateDetailUITests: XCTestCase {
         second.press(forDuration: 1.2)
         XCTAssertFalse(app.buttons["Delete"].waitForExistence(timeout: 2), "no long-press Delete")
         XCTAssertFalse(app.buttons["Edit…"].exists, "no long-press Edit")
-        if !app.buttons["deleteTemplate"].exists { second.tap() }
-        let delete = app.buttons["deleteTemplate"]
-        XCTAssertTrue(delete.waitForExistence(timeout: 5))
-        delete.tap()
+        if !app.buttons["templateMore"].exists { second.tap() }
+        openDeleteTemplate()
         XCTAssertTrue(app.alerts["Delete Template"].waitForExistence(timeout: 5))
         app.alerts["Delete Template"].buttons["Delete"].tap()
 
@@ -55,13 +53,21 @@ final class TemplateDetailUITests: XCTestCase {
         let tile = anyElement("templateTile.Whole Body")
         XCTAssertTrue(tile.waitForExistence(timeout: 10))
         tile.tap()
-        let delete = app.buttons["deleteTemplate"]
-        XCTAssertTrue(delete.waitForExistence(timeout: 5))
-        delete.tap()
+        openDeleteTemplate()
         XCTAssertTrue(app.alerts["Delete Template"].waitForExistence(timeout: 5))
         app.alerts["Delete Template"].buttons["Cancel"].tap()
         XCTAssertTrue(anyElement("startTemplate").exists, "still on the detail")
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(anyElement("templateTile.Whole Body").waitForExistence(timeout: 5))
+    }
+
+    /// Soft redesign S3: Delete Template… lives in the detail's "…" menu.
+    private func openDeleteTemplate() {
+        let more = app.buttons["templateMore"]
+        XCTAssertTrue(more.waitForExistence(timeout: 5))
+        more.tap()
+        let delete = app.buttons["deleteTemplate"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5))
+        delete.tap()
     }
 }
