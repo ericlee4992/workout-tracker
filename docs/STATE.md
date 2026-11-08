@@ -1,30 +1,47 @@
 # Current project state
 
-Updated **2026-11-07** (Soft redesign + nutrition tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-07 late** (Soft redesign S1–S3 clear, S4 built; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-07) — Soft redesign Phase 1 in progress.** Worktree `…/orca/workspaces/Health App/UI_design`
-  (one workspace for the whole effort, D76). Tickets approved and in `main` (`fc2390c`): [soft-redesign](../work-record/soft-redesign/spec.md)
-  S1–S4, [nutrition](../work-record/nutrition/spec.md) N1–N10 + R; decisions D67–D76.
-  **S1 Soft look:** branch `ericlee4992/soft-01-look` (pushed) — implemented, Mono icon added (the user), Codex round
-  1 **clear**; build + 10/10 unit tests (both sides); 4 capture tests checked (dark). **Not merged:** the user deferred
-  the long test run ("run the test after building more") — capture suites (light/dark, default/AX) + core-flow UI
-  classes run once after more of Phase 1, then S1 (and the next tickets) merge to `main` in order with the user's
-  go-ahead. **S2 five tabs:** `ericlee4992/soft-02-tabs` — Codex **clear** (round 2). **S3 workout refinements:**
-  `ericlee4992/soft-03-workout` (stacked on S2) — Codex **clear** (round 2). **S4 History journal + Progress
-  metrics:** `ericlee4992/soft-04-history-progress` (stacked on S3) — implemented and builds, **not yet tested or
-  reviewed**; next steps in [ticket S4](../work-record/soft-redesign/issues/04-history-and-progress.md) Progress → the deferred Phase 1 run after S4 (the user
-  agreed on timing; ask before starting, ~45–60 min; open the "Test progress" tab with `scripts/test-progress.sh`)
-  → merge S1–S4 into `main` in order (go-ahead). UI runs: serial with the warm-up
-  `CardioUITests/testSavedDistanceEditor…` first, or 3 workers (cold clones hit `kAXErrorServerNotFound`).
-  Prototype: tag `design/soft-approved-2026-11-07` (`git show <tag>:DesignPrototype/…`).
-  Codex: Orca terminal "Codex review" `term_1ae47c82-7df4-40ea-9b18-0c9321ea6c11` (this worktree, GPT-6-Astra; the
-  old one died in an Orca restart; needs approval for simulator commands — if keystrokes do not land, ask the user to
-  press Enter in the tab; reviews on WT-iPhone27 while Claude uses WT-Floodlight). This worktree has no
-  `Config/Local.xcconfig`: Debug builds install as `com.example.workouttracker`. The user's reference screenshots are
-  `~/Downloads/IMG_57xx.PNG` (**IMG_5751 is personal — never share or commit**).
+- **Resume here (2026-11-07, late) — Soft redesign Phase 1: S1–S3 clear, S4 built but untested.**
+  **Goal:** the user's approved Soft redesign (Phase 1, S1–S4) then nutrition (Phase 2, N1–N10), shipped to testers
+  together as one release R (D76). Tickets: [soft-redesign](../work-record/soft-redesign/spec.md),
+  [nutrition](../work-record/nutrition/spec.md); decisions D67–D76 (in `main` `fc2390c`). One workspace:
+  `…/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`
+  (`git show <tag>:DesignPrototype/…`; extracted copy may exist in the session scratchpad — re-extract with
+  `git archive`).
+  **Branches (stacked, all pushed, none in `main`):** S1 `ericlee4992/soft-01-look` (Codex clear) → S2
+  `…/soft-02-tabs` (clear, round 2) → S3 `…/soft-03-workout` (clear, round 2) → **S4 `…/soft-04-history-progress`
+  HEAD `7494632`** (checked out): History day journal + Progress training metrics (workouts/week, volume/week,
+  running distance/week; pins written in the cardio shape "training.<metric>" so pre-S4 builds skip them) + Add Chart
+  "Training"; **builds; nothing run yet**. Evidence and details: each ticket's Progress section.
+  **Next, in order:** (1) S4 checks — unit `HistoryJournalTests`, `TrainingProgressTests`, `HistoryOverviewTests`,
+  `ProgressTabTests`; UI `FloodlightHistoryUITests`, `HistoryCalendarUITests`, `HistoryEditFlowsUITests`,
+  `FloodlightProgressUITests`, `ProgressChartUITests` (serial, warm-up `CardioUITests/testSavedDistanceEditor…` first);
+  open the "Test progress" tab (`orca terminal create --title "Test progress" --command 'bash scripts/test-progress.sh
+  <log> <count> "<title>"'`); (2) export captures (`xcrun xcresulttool export attachments`), build a contact sheet,
+  check, send to the user (SendUserFile + Preview); (3) fix, update the S4 ticket (strings list is there), write
+  `work-record/soft-redesign/codex-review-s4-prompt.md` (model: S3's), send to Codex; (4) **ask the user** before the
+  deferred Phase 1 run (~45–60 min: all capture suites light/dark/AX + core-flow UI classes; agreed to run after S4);
+  (5) with the user's go-ahead fast-forward `main` through S1→S4 in order and push; (6) Phase 2 starts with N1 (safety
+  copy) — its design questions are in the N1 ticket.
+  **User preferences (memory):** every status update ends with a progress board (done / in progress / left); every
+  multi-minute test run gets the visible "Test progress" tab; ask before long runs; explain plainly; screenshots both
+  SendUserFile and Preview.
+  **Codex:** Orca terminal "Codex review" `term_1ae47c82-7df4-40ea-9b18-0c9321ea6c11` (this worktree, GPT-6-Astra; the
+  earlier one died in an Orca restart). It asks approval for every simulator command: send `--text "y"` alone (not with
+  `--enter`); if the keypress does not land, ask the user to press Enter in the tab. It often writes the report with
+  "Verdict: not clear" as a checkpoint while its UI run is still going — watch for the final update before acting.
+  Brief it to use WT-iPhone27 `47D21838-…` while Claude uses WT-Floodlight `9E822EF6-…`.
+  **Gotchas found this session:** this worktree has no `Config/Local.xcconfig` → Debug builds install as
+  `com.example.workouttracker`; manual `simctl launch` captures get a motion-permission alert (use UI-test captures);
+  3-worker UI runs on cold clones hit `kAXErrorServerNotFound` — rerun serially with the warm-up; `.accessibilityIdentifier`
+  on a container overrides its children's ids; a swipe down at the top of a sheet dismisses it (tests);
+  `accessibilityHidden` does not reach a NavigationStack's UIKit pages (Train renders only the chosen part);
+  `xcodebuild` in the background reports the wrapper's exit — read the xcresult summary. Known pre-existing failure:
+  `AskAIUITests/testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce`.
 - **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue
   **exercise media** in the `public-beta` worktree ("Exercise media" entry below; ticket 03 + the DIY animation report's
   four open decisions). Next steps, in order: (1) the user closes the finished `beta-19-bug-fixes` worktree in Orca
