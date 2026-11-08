@@ -29,8 +29,9 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
 
 ## What it does
 
-- **Five tabs.** Today (this week, start or resume a workout, today's log), Train (templates, gyms and
-  exercises), History, Progress and Profile (your account and settings).
+- **Five tabs.** Today (this week, today's template — learned from the order you train in, or your own split — and
+  today's log), Train (templates, gyms and exercises, Start Lifting / Start Cardio), History, Progress and Profile (your
+  account and settings).
 - **Gyms and machines.** Each gym has its own machines. Adding one can read its name plate on
   the phone and match it against a seeded catalog of 1,877 equipment models from 23
   manufacturers.
@@ -41,7 +42,8 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
   rest timer on the Lock Screen.
 - **Cardio.** Indoor machines and outdoor walks, runs and rides with a GPS route — on their
   own or in the same workout as lifting.
-- **Templates.** Save a workout as a plan and start it at any gym; each exercise resolves to
+- **Templates.** Save a workout as a plan and start it at any gym (Today suggests the one that comes next; My Split sets
+  the order or the weekdays); each exercise resolves to
   the machine you last used or picked for it there (a template's Add Exercise can pick, add or scan a machine).
 - **Heart rate and Apple Health.** Live bpm from AirPods Pro 3 or a paired heart-rate monitor,
   zones, calories and a heart-rate rest timer; workouts are saved to Apple Health. (An Apple
