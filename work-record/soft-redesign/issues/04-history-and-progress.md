@@ -120,6 +120,14 @@ New metrics → `ProgressSeries` / `ProgressPins` unit tests; History, HistoryCa
   default/AXL) checked — no clipping, overlap, unreadable text or leftover Floodlight violet; live rest/Skip, new-best,
   AX set rows, menus/sheets/toggles and the activity gallery included. The training charts were captured just after
   midnight on Sunday Nov 8 and correctly show the new week at 0 ("This week · last week 7").
+- **2026-11-08 — Codex round 3 [clear](../codex-review-s4c.md)** (the two test fixes): 0 findings; on WT-iPhone27 the
+  four target tests passed (both Scan corrections, Profile decimal weight, goals number pads).
+  **Follow-ups (not S1–S4; for a later ticket):** (1) the warm-up `CardioUITests/testSavedDistanceEditor…` fails at
+  `:58` (`cardioTimer` never appears) in every run since ~02:00 on 2026-11-08 — on `main` too — and passed in every run
+  the evening before; likely time-of-day dependent; it still serves as a warm-up. (2) Profile → Training Profile: the
+  number pad covers the lower half of the Weight field (same on `main`). (3) `testGoalsNumberPadsHaveAppDone` is
+  intermittent (failed once, passed three times).
+  **Phase 1 is complete; S1–S4 wait for the user's go-ahead to fast-forward `main`.**
 - **Next (for the fresh session, superseded by the entry above):** run unit tests `HistoryJournalTests`, `TrainingProgressTests`,
   `HistoryOverviewTests`, `ProgressTabTests`; UI `FloodlightHistoryUITests`, `HistoryCalendarUITests`,
   `HistoryEditFlowsUITests`, `FloodlightProgressUITests`, `ProgressChartUITests` (serial with the warm-up first, or 3

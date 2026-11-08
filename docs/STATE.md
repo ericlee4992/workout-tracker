@@ -19,7 +19,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   Today/History/Progress, visible "…" on Progress panels); round 2 **clear** (`codex-review-s4b.md`). Evidence in the
   [S4 ticket](../work-record/soft-redesign/issues/04-history-and-progress.md).
   **Phase 1 run done 2026-11-08**: 238/250 in parallel; 8 of the 11 failures passed alone; 3 caused by S1–S4 test
-  assumptions (pass on `main`), fixed in the tests and re-run green; all captures checked. Details in the S4 ticket.
+  assumptions (pass on `main`), fixed in the tests and re-run green (Codex round 3 clear); all captures checked. Follow-ups (cardio warm-up failing
+  since 02:00 Nov 8 on `main` too; Weight field under the number pad; an intermittent number-pad test) in the S4 ticket.
   **Next, in order:** (1) — done; (2) Phase 1 run — done; results shown to the user; the
   deferred Phase 1 run (~45–60 min: all capture suites light/dark/AX + core-flow UI classes; agreed to run after S4);
   (3) with the user's go-ahead fast-forward `main` through S1→S4 in order and push; (4) Phase 2 starts with N1 (safety
