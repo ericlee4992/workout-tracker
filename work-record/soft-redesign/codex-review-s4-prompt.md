@@ -84,3 +84,21 @@ Orca tab "Test progress (Claude r2)" `term_ac1339dc-202d-4c10-bab3-b528de726cbd`
 the script there; do not open a new terminal — the user's request).
 Write `work-record/soft-redesign/codex-review-s4b.md` ending with exactly `Verdict: clear` or `Verdict: not clear`.
 Your round 1 report stays as written. Do not commit or push.
+
+## Round 3 — Phase 1 run test fixes (the implementer's note)
+
+The combined Phase 1 run (S1–S4) and its follow-up are in the S4 ticket's Progress (entry "2026-11-08 — Phase 1 run
+result"). Three tests failed on the branch and passed on `main`; two were fixed in the TESTS only, `git diff 126713e..b0ecf09
+-- WorkoutTrackerUITests` (the rest of that range is docs): `FloodlightScanUITests.historyEquipment()` returns to Train
+with one tab tap (S2's `openTrain` popped the pushed machine page), and
+`FloodlightProfileUITests.testEditorKeepsADecimalWeightAsTyped` taps the weight field's right side (iOS word-snapping put
+the cursor before "180" once S1 changed the digits). The third (`testGoalsNumberPadsHaveAppDone`) is intermittent and
+unchanged. Check the diagnosis and that neither edit hides a product regression (e.g. is the cursor-before-digits a
+user-facing problem we should fix in the app? is losing the pushed page on `openTrain` the intended S2 behaviour?).
+Rerun on WT-iPhone27 serially (paths `/tmp/codex-s4/round3/`): warm-up, then
+`WorkoutTrackerUITests/FloodlightScanUITests/testPastCorrectionAsksThenApplies`,
+`WorkoutTrackerUITests/FloodlightScanUITests/testFutureOnlyCorrectionAppliesWithoutAsking`,
+`WorkoutTrackerUITests/FloodlightProfileUITests/testEditorKeepsADecimalWeightAsTyped`,
+`WorkoutTrackerUITests/FloodlightAIRoutineUITests/testGoalsNumberPadsHaveAppDone`. Progress in the existing "Test progress
+(Claude r2)" tab. Write `work-record/soft-redesign/codex-review-s4c.md` ending with exactly `Verdict: clear` or
+`Verdict: not clear`. Do not commit or push.
