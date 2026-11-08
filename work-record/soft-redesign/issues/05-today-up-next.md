@@ -1,7 +1,7 @@
 # S5 — Today's up next: learn the split, optional "My split", no Start buttons
 
 Type: change
-Status: **built and tested** (2026-11-08) — Codex review next
+Status: **review clear** (Codex round 3, 2026-11-08) — merge waits for the user's go-ahead
 Blocked by: S4 (merged)
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/soft-05-today-up-next` off `main` `40b30d6`.
@@ -117,6 +117,14 @@ user before a run over ~20 min).
   case (a new user / fresh AI week / history outside the window: Next in order repeated one template, from a choice
   too). Fixed: the learned chain shows a template not yet shown in that chain (fallback order, then wraps);
   `resolve` seeds the chain with the chosen template. Test `UpNextTests.nextInOrderWalksEveryTemplateWithoutHistory`;
-  unit **29/29**.
+  unit **29/29**; UI serial warm-up + `TodayUpNextUITests` **10/10**.
+- **2026-11-08 — Codex round 3 [clear](../codex-review-s5c.md):** the no-history case closed, 0 new findings (its runs:
+  unit 17/17 on WT-iPhone27; its reproduction re-run against the fix).
+  **Verified:** unit (`UpNextTests`, `UpNextReadingTests`, `WorkoutTemplateTests`, `TemplateDueNextTests`) 29/29;
+  `TodayUpNextUITests` 9/9 (+ warm-up); broad check of every class using `trainStartButton` 119/120; captures of every
+  Today state and My Split, light/dark × default/AX, checked and sent to the user.
+  **Not verified:** a person's VoiceOver pass; the day-boundary refresh driven live (unit-tested, as S4).
+  **Known flaky:** `CardioUITests` `:58` cardio start (`testCardioAccessibilityCaptureAndSave`, the warm-up) — S4
+  follow-up, also on `main`.
 
 ## Comments
