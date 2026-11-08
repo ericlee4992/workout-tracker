@@ -40,3 +40,16 @@ do not commit or push.
 
 Write `work-record/soft-redesign/codex-review-s3.md`: findings P1/P2/P3 with file:line, failure scenario and fix; end
 with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 1 completion and round 2 (the implementer's note)
+
+Your serial UI run had 9/11 passing; the two failures (`testCaptureBarBestLightDefault`, `testCaptureReceiptDarkAccessibility`:
+`bests.count` 0) came from Claude's test edit in `captureReceipt`: after checking View in History it always swiped down
+four times, and when the button was already visible (no scroll), those swipes dismissed the finish sheet. Fixed in
+`1f887b7` (swipe back only as far as it scrolled). Claude's serial run of the warm-up + all of `FloodlightFinishUITests`
+on WT-Floodlight: the 8 finish tests passed (the warm-up timed out, its purpose).
+
+Round 2: check `git diff 3d059d8..1f887b7` closes this, rerun serially on WT-iPhone27 (paths under
+`/tmp/codex-s3/round2/`) the warm-up first, then `WorkoutTrackerUITests/FloodlightFinishUITests` (no rebuild of the app
+code is needed beyond `build-for-testing`), and write `work-record/soft-redesign/codex-review-s3b.md` ending with exactly
+`Verdict: clear` or `Verdict: not clear`. Your round 1 report can stay as written. Do not commit or push.
