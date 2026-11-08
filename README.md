@@ -15,20 +15,22 @@ machine first, per equipment model second, and per exercise only as a last resor
 labelled so you know what you're comparing against. Sets are prefilled only from that same
 machine.
 
-<!-- Screenshots in docs/readme/: Floodlight capture UI tests (dark, default text size, built-in sample data),
-taken 2026-10-15 and halved in size. Retake them when a shown screen changes visibly (AGENTS.md). -->
+<!-- Screenshots in docs/readme/: the capture UI tests' Soft look (dark, default text size, built-in sample data),
+taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen changes visibly (AGENTS.md). -->
 <p>
-<img src="docs/readme/workout.png" width="150" alt="The Workout tab: gym, start buttons, this week and templates">
+<img src="docs/readme/workout.png" width="150" alt="The Train tab: gym, the template up next, start buttons and other templates">
 <img src="docs/readme/live-workout.png" width="150" alt="Logging sets during a workout, with the rest timer">
 <img src="docs/readme/gyms.png" width="150" alt="A gym and its machines, with Scan Machine">
 <img src="docs/readme/cardio.png" width="150" alt="An indoor run in progress">
-<img src="docs/readme/history.png" width="150" alt="History: the month and recent workouts">
+<img src="docs/readme/history.png" width="150" alt="History: the month, then each day's workouts">
 <img src="docs/readme/progress.png" width="150" alt="Progress: pinned charts of a lift and a run">
 <img src="docs/readme/ai-routine.png" width="150" alt="Ask AI's suggested week of templates">
 </p>
 
 ## What it does
 
+- **Five tabs.** Today (this week, start or resume a workout, today's log), Train (templates, gyms and
+  exercises), History, Progress and Profile (your account and settings).
 - **Gyms and machines.** Each gym has its own machines. Adding one can read its name plate on
   the phone and match it against a seeded catalog of 1,877 equipment models from 23
   manufacturers.
@@ -44,19 +46,20 @@ taken 2026-10-15 and halved in size. Retake them when a shown screen changes vis
 - **Heart rate and Apple Health.** Live bpm from AirPods Pro 3 or a paired heart-rate monitor,
   zones, calories and a heart-rate rest timer; workouts are saved to Apple Health. (An Apple
   Watch companion is written but not yet built or shipped.)
-- **History.** A calendar, per-session detail with editing (down to removing one set, exercise or
+- **History.** A journal by day (Today, Yesterday, then each date) under a month summary, a calendar, per-session detail with editing (down to removing one set, exercise or
   cardio activity), records, progress charts per exercise and variation, and export of your
   workouts as JSON (the fullest record, with heart-rate series and routes) or CSV (a table of
   sets and cardio).
 - **Progress.** A tab of the charts you pin — lifts per machine or weight (best set, volume,
   1RM) and cardio activities (distance, pace or speed, time) — each with its latest value and
-  the change since your first session; tap one for the full chart, its bests and sessions. Add Chart
-  lists the exercises you've logged by body area.
+  the change since your first session — plus training-wide weekly charts (workouts, training volume, running
+  distance). Tap one for the full chart, its bests and sessions; its "…" or a long-press moves or removes it.
+  Add Chart lists the exercises you've logged by body area.
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
   templates from your training profile. Each AI feature asks first and has a daily limit.
 - **Onboarding and feedback.** A guided tour of the real app on sample data, a one-time
-  What's New page after a big update (and in Settings), and Settings → Send Feedback with an
+  What's New page after a big update (and in Profile), and Profile → Send Feedback with an
   optional screenshot.
 
 ## Privacy
@@ -97,7 +100,7 @@ in this repository.
 
 | Folder | What it holds |
 |---|---|
-| `WorkoutTracker/` | The app: `App/`, `Domain/` (SwiftData models and pure logic), `Features/` (one folder per area: workout, cardio, gyms, exercises, templates, history, progress, settings, account, onboarding), `Resources/` (the seeded catalog) |
+| `WorkoutTracker/` | The app: `App/`, `Domain/` (SwiftData models and pure logic), `Features/` (one folder per area: today, train, workout, cardio, gyms, exercises, templates, history, progress, settings, account, onboarding), `Resources/` (the seeded catalog) |
 | `WorkoutTrackerTests/`, `WorkoutTrackerUITests/` | Unit tests (Swift Testing) and end-to-end UI tests (XCTest) |
 | `WorkoutTrackerWidget/` | The Live Activity: the running workout and its rest timer on the Lock Screen |
 | `WorkoutTrackerWatch/` | An Apple Watch companion (workout session, heart rate, phone link) — written, never built or run, not in the beta |
