@@ -51,7 +51,7 @@ with exactly `Verdict: clear` or `Verdict: not clear`.
 
 ## Round 1 result and round 2 (the implementer's note)
 
-Round 1 (`codex-review-s4.md`): 3 × P2, all accepted. Fixed in `R2_RANGE`:
+Round 1 (`codex-review-s4.md`): 3 × P2, all accepted. Fixed in `224289c`:
 
 1. **One weekly bucket ≠ one session** — `ProgressReading.singleNote` (default "One session", the lift/cardio
    wording unchanged); `ProgressReading.training` sets nil, so a lone week shows its figure and "This week" only.
@@ -72,9 +72,12 @@ Round 1 (`codex-review-s4.md`): 3 × P2, all accepted. Fixed in `R2_RANGE`:
 Also: `TrainingProgressTests`' `LegacyPin` replaced by `BuildNinePin`, a verbatim copy of `main`'s synthesised
 `ProgressPin` (old decode of new data, then old re-save → new decode keeps the training pin).
 
-Claude's evidence (WT-Floodlight): R2_EVIDENCE
+Claude's evidence (WT-Floodlight, serial): unit `TrainingProgressTests`, `HistoryJournalTests`,
+`TodayDayBoundaryTests`, `ProgressPinTests` exit 0, **21/21**; UI warm-up + `FloodlightProgressUITests` (10) +
+`ProgressChartUITests` + `FloodlightHistoryUITests` + `CoreLoopUITests/testCoreLoopFromEmptyStoreToOneTapRepeatSet` exit
+0, **22/22**. The ticket's Progress section has the details.
 
-Round 2: review `git diff 1e298e3..R2_TIP`; rerun on WT-iPhone27, paths under `/tmp/codex-s4/round2/`:
+Round 2: review `git diff 1e298e3..224289c` (later commits are docs only); rerun on WT-iPhone27, paths under `/tmp/codex-s4/round2/`:
 `build-for-testing`; unit `TrainingProgressTests`, `TodayDayBoundaryTests`, `ProgressPinTests`; UI serially, the
 warm-up first, then `FloodlightProgressUITests`. Inspect a Progress capture for the "…" at default and AccessibilityL. Show progress in the existing
 Orca tab "Test progress (Claude r2)" `term_ac1339dc-202d-4c10-bab3-b528de726cbd` once it is back at its prompt (send
