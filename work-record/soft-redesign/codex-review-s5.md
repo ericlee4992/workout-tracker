@@ -9,9 +9,14 @@ Requested diff: `git diff 40b30d6..bd09df9`. Branch `ericlee4992/soft-05-today-u
 the full S5 brief/ticket, D77/D68/D52, applicable SwiftUI/SwiftData/design guidance, changed source/tests and callers.
 The separate dev-speed ticket in the range is documentation, not a runtime change.
 
-Only this report was written in the repository; no implementation edits, commit, or push. Simulator work uses
+I changed only this report in the repository; no implementation edits, commit, or push. Simulator work uses
 WT-iPhone27 only. The existing **Test progress (Claude r2)** tab `term_ac1339dc-202d-4c10-bab3-b528de726cbd` was
 verified idle and reused; no new terminal was opened.
+
+During this run, another session committed `8651edb` (a separate testing-workflow ticket) and `25f1aea` (S5 fixes,
+including the draft of this report). Those changes are outside the requested review. All findings, source line
+references, build and test results below apply to `40b30d6..bd09df9`; the subsequent fixes are not reviewed or
+cleared here. The running tests used the already-built original revision.
 
 ## Spec findings
 
@@ -99,14 +104,24 @@ Artifacts and derived data: `/tmp/codex-s5/`.
   `build-summary.json`.
 - Requested serial units: **exit 0**, **25 passed, 0 failed, 0 skipped** in `UpNextTests`, `WorkoutTemplateTests`,
   and `TemplateDueNextTests`; `unit.log`, `unit.xcresult`. Counts read directly from the xcresult summary.
-- Requested serial UI run: **in progress**, exec session `76758`; `ui.log`, `ui.xcresult`. Selection: the known
-  baseline cardio warm-up first, then `CoreLoopUITests` and `TodayUpNextUITests` in XCTest's class order (19 total).
-  Final results and capture inspection will replace this checkpoint before delivery.
+- Requested serial UI run: **exit 0**, `TEST EXECUTE SUCCEEDED`; xcresult **19 passed, 0 failed, 0 skipped**:
+  cardio warm-up **1/1**, `CoreLoopUITests` **9/9**, `TodayUpNextUITests` **9/9**. Evidence: `ui.log`, `ui.xcresult`;
+  counts read directly with `xcresulttool get test-results summary`. No retry was needed. The bundle records four
+  non-failing `Invalid frame dimension (negative or non-finite)` runtime warnings; this review does not establish
+  their origin.
+- Exported and inspected Today up-next light/dark default and dark AccessibilityL; the Not today menus; My Split
+  ordered/weekday default and all modes at light AccessibilityL; rest day; empty start; and no-template Repeat at
+  light/default and dark/AccessibilityL. The inspected fixtures keep their labels readable; AX no-template actions
+  stack, and My Split's modes become rows. Evidence: `captures/manifest.json`, original PNGs, and inspected contact
+  sheets `captures/review-today.png`, `captures/review-split.png`.
 - `git diff --check 40b30d6..bd09df9`: **exit 0**.
 
+Unit/UI commands used `test-without-building`, `-parallel-testing-enabled NO`, the requested `-only-testing:`
+selections and `-collect-test-diagnostics never`; logs preserve their full invocations.
+
 This review does not claim a new full-suite run, device installation, hardware sensor verification, or a person's
-VoiceOver traversal. The known baseline cardio-start failure is tracked separately; actual results will be recorded
-without treating a failed warm-up as a pass.
+VoiceOver traversal. The known baseline cardio-start failure remains separately tracked; the warm-up passed in
+this run. Passing these selected tests does not cover the three transition cases demonstrated above.
 
 Standards: **0 additional findings**. Spec: **3 P2s**. Resolve and re-review before clearance.
 

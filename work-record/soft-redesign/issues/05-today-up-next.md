@@ -87,7 +87,7 @@ user before a run over ~20 min).
     the cardio picker removed from Today; `WorkoutStartRequest.repeating`; Train → `My Split…` (`MySplitSheet`).
   - UI-test launches clear `mySplit` / `upNextOverride` with the pins (unless `-uiTestKeepPins`);
     `-uiTestNoTemplates` (sample workouts without templates).
-  - UI tests: new `TodayUpNextUITests` (11); `trainStartButton(_:)` in `TabNavigation.swift` replaces 36 direct uses
+  - UI tests: new `TodayUpNextUITests` (9); `trainStartButton(_:)` in `TabNavigation.swift` replaces 36 direct uses
     of `startEmptyWorkout` / `startCardio` in 15 files (opens Train first when the button is not on screen).
   - **New strings:** "Up next", "Not today", "Next in order", "Choose template…", "Back to plan", "Chosen for today",
     "My split · Last done <date>", "My split", "Rest day", "Nothing in your split today.", "Last workout", "Repeat",
@@ -111,6 +111,7 @@ user before a run over ~20 min).
   days); (3) a future-dated finished record cancelled every choice, and expiry used start time — `isCurrent` takes the
   latest COMPLETION not later than now. New unit tests: `UpNextTests.nextInOrderAfterAChoiceContinuesFromTheChoice`,
   `aChoiceExpiresOnARealFinishNotOnFutureHistory`, `UpNextReadingTests.aWorkoutFinishedThisSessionAdvancesTheSuggestion`
-  — with the earlier suites **28/28**. `TodayUpNextUITests` gains Choose → Next (Leg → Push).
+  — with the earlier suites **28/28**. `TodayUpNextUITests` gains Choose → Next (Leg → Push); serial warm-up + class **10/10**. Codex round 1's own runs: unit
+  25/25, UI warm-up + `CoreLoopUITests` + `TodayUpNextUITests` 19/19.
 
 ## Comments

@@ -43,3 +43,31 @@ captures. Do not modify files other than the report; do not commit or push.
 
 Write `work-record/soft-redesign/codex-review-s5.md`: findings P1/P2/P3 with file:line, failure scenario and fix; end
 with exactly `Verdict: clear` or `Verdict: not clear`.
+
+## Round 1 result and round 2 (the implementer's note)
+
+Round 1 (`codex-review-s5.md`): 3 × P2, all accepted and fixed in `25f1aea` (tests only after it):
+1. **Finish advances Up next** — `UpNextReading.make(…, now:, clock: .now)` uses `max(now, clock)`: the SwiftData query
+   re-renders Today/Train when a workout finishes, and that render's clock admits the new run.
+   Test: `UpNextReadingTests.aWorkoutFinishedThisSessionAdvancesTheSuggestion` (in-memory store; snapshot an hour old).
+2. **Choose → Next continues from the choice** — new `UpNext.resolve(templates:runs:split:now:override:lastFinishedAt:)`:
+   chosen + skip ≥ 1 appends the chosen template as a virtual run and skips `skip - 1`; a weekday split steps through
+   its days; Today's "Next in order" keeps `chosen`, "Choose template…" resets `skip` to 0.
+   Tests: `UpNextTests.nextInOrderAfterAChoiceContinuesFromTheChoice` (in order incl. wrap, learned, no choice);
+   `TodayUpNextUITests.testLearnedTemplateAndNoStartButtonsOnToday` now does Choose Leg Day → Next → Push Day.
+3. **Expiry on a real completion** — `UpNextOverride.isCurrent(now:lastFinishedAt:)` ignores completions later than
+   `now`; the reading passes the latest `finishedAt` ≤ now (not `startedAt`).
+   Test: `UpNextTests.aChoiceExpiresOnARealFinishNotOnFutureHistory`.
+
+Also: your note that the ticket said 11 Today UI tests — it is 9 methods (+ warm-up = 10 in a run); the ticket's count
+is corrected in this round.
+
+Claude's evidence (WT-Floodlight): unit `UpNextTests`, `UpNextReadingTests`, `WorkoutTemplateTests`,
+`TemplateDueNextTests` exit 0, **28/28**; UI serial warm-up + `TodayUpNextUITests` exit 0, **10/10**.
+
+Round 2: review `git diff bd09df9..R2_TIP -- WorkoutTracker WorkoutTrackerTests WorkoutTrackerUITests`; on WT-iPhone27
+(paths `/tmp/codex-s5/round2/`) `build-for-testing` and unit `UpNextTests`, `UpNextReadingTests`. Per the
+testing-workflow ticket's rule (approved by the user 2026-11-08, `work-record/dev-speed/issues/01-testing-workflow.md`
+item 7), rerun UI only if you find a UI-behaviour concern; Claude's UI evidence is above. Write
+`work-record/soft-redesign/codex-review-s5b.md` ending with exactly `Verdict: clear` or `Verdict: not clear`. Your
+round 1 report stays as written. Do not commit or push.
