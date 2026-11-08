@@ -1,7 +1,7 @@
 # S2 — Five tabs: Today · Train · History · Progress · Profile
 
 Type: change
-Status: **review clear** (Codex round 2, 2026-11-07) — merge waits for the deferred Phase 1 test run
+Status: **done — merged into `main`** (`653a703`, 2026-11-08, the user's go-ahead) after the Phase 1 run (S4 ticket) and Codex clear
 Blocked by: S1
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch: `ericlee4992/soft-02-tabs`, stacked on S1 (`ericlee4992/soft-01-look`, not yet in `main`).

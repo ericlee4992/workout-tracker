@@ -1,30 +1,24 @@
 # Current project state
 
-Updated **2026-11-07, session 2** (Soft redesign S1–S4 all Codex clear; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-08** (Soft redesign S1–S4 merged into `main`; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-07, session 2) — Soft redesign Phase 1: S1–S4 all Codex clear; Phase 1 run next (ask).**
-  **Goal:** the user's approved Soft redesign (Phase 1, S1–S4) then nutrition (Phase 2, N1–N10), shipped to testers
-  together as one release R (D76). Tickets: [soft-redesign](../work-record/soft-redesign/spec.md),
-  [nutrition](../work-record/nutrition/spec.md); decisions D67–D76 (in `main` `fc2390c`). One workspace:
-  `…/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`
-  (`git show <tag>:DesignPrototype/…`).
-  **Branches (stacked, all pushed, none in `main`):** S1 `ericlee4992/soft-01-look` (Codex clear) → S2
-  `…/soft-02-tabs` (clear) → S3 `…/soft-03-workout` (clear) → **S4 `…/soft-04-history-progress`** (checked out):
-  History day journal + Progress Training charts. **Tested 2026-11-07:** unit 90/90, UI 28/28 (serial, WT-Floodlight),
-  captures checked and sent to the user; fix: Training rows show "+"; new `testTrainingCharts*` UI tests. Codex round 1
-  (`codex-review-s4.md`): 3 × P2 fixed in `224289c` (weekly "One session", shared `refreshingNow` clock refresh for
-  Today/History/Progress, visible "…" on Progress panels); round 2 **clear** (`codex-review-s4b.md`). Evidence in the
-  [S4 ticket](../work-record/soft-redesign/issues/04-history-and-progress.md).
-  **Phase 1 run done 2026-11-08**: 238/250 in parallel; 8 of the 11 failures passed alone; 3 caused by S1–S4 test
-  assumptions (pass on `main`), fixed in the tests and re-run green (Codex round 3 clear); all captures checked. Follow-ups (cardio warm-up failing
-  since 02:00 Nov 8 on `main` too; Weight field under the number pad; an intermittent number-pad test) in the S4 ticket.
-  **Next, in order:** (1) — done; (2) Phase 1 run — done; results shown to the user; the
-  deferred Phase 1 run (~45–60 min: all capture suites light/dark/AX + core-flow UI classes; agreed to run after S4);
-  (3) with the user's go-ahead fast-forward `main` through S1→S4 in order and push; (4) Phase 2 starts with N1 (safety
-  copy) — its design questions are in the N1 ticket.
+- **Resume here (2026-11-08) — Soft redesign Phase 1 DONE: S1–S4 merged into `main` `653a703`; Phase 2 next.**
+  **Goal:** the user's approved Soft redesign (Phase 1, S1–S4 — done) then nutrition (Phase 2, N1–N10), shipped to
+  testers together as one release R (D76). Tickets: [soft-redesign](../work-record/soft-redesign/spec.md),
+  [nutrition](../work-record/nutrition/spec.md); decisions D67–D76. One workspace for both phases:
+  `…/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
+  **Done 2026-11-07/08:** S4 (History day journal; Progress training charts, visible "…" options; shared
+  `refreshingNow` clock refresh) — Codex rounds 1–3, last **clear**; combined Phase 1 run (238/250 in parallel; 8 of 11
+  failures passed alone; 3 caused by S1–S4 test assumptions, fixed in the tests); all ~777 captures checked; README
+  refreshed (five tabs, journal, Training charts, new screenshots). `main` fast-forwarded S1→S4 and pushed (the user's
+  go-ahead); remote confirmed `653a703`. No TestFlight build (release R comes after Phase 2).
+  **Follow-ups (S4 ticket):** cardio warm-up test failing since 02:00 Nov 8 on `main` too (time-of-day?); Training
+  Profile's Weight field half under the number pad (pre-existing); `testGoalsNumberPadsHaveAppDone` intermittent.
+  **Next:** Phase 2 — N1 (safety copy before a store-changing update; ticket 11 folded in) on a new branch off `main`
+  in this worktree. Its design questions are in the N1 ticket: read it, then ask the user before building.
   **User preferences (memory):** every status update ends with a progress board (done / in progress / left); every
   multi-minute test run shows in ONE reused "Test progress" Orca tab (send the script to it; no new tab per run); ask before long runs; explain plainly; screenshots both
   SendUserFile and Preview.

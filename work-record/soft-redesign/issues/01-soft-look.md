@@ -1,7 +1,7 @@
 # S1 — Soft look app-wide
 
 Type: change
-Status: **review clear** (Codex round 1, 2026-11-07) — merge waits for the deferred Phase 1 test run (the user, 2026-11-07)
+Status: **done — merged into `main`** (`653a703`, 2026-11-08, the user's go-ahead) after the Phase 1 run (S4 ticket) and Codex clear
 Blocked by: —
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/soft-01-look` off `main`.

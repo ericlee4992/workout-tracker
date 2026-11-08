@@ -1,6 +1,6 @@
 # Soft redesign — Phase 1 (look and navigation)
 
-Status: **in progress** — tickets approved 2026-11-07; S1 review clear (merge waits for the deferred Phase 1 test run); S2 next.
+Status: **Phase 1 done** — S1–S4 merged into `main` `653a703` (2026-11-08) after the combined Phase 1 run; shipped to testers with Phase 2 as release R (D76).
 Decisions: [D67](../../docs/DECISIONS.md#november-7--soft-redesign-and-nutrition) (Soft look), D68 (tabs),
 D76 (one release, per-ticket merges). Design source: [ui-evolution spec](../ui-evolution/spec.md) Direction B rounds
 2–5 and Direction A's workout refinements; [build plan](../ui-evolution/build-plan.md).
