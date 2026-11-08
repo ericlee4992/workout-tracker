@@ -836,14 +836,28 @@ struct RestBar: View {
     var body: some View {
         Group {
             if typeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 12) {
-                        ring
-                        if let axTimeReplacement { axTimeReplacement } else { timeBlock(showNext: look.id != .floodlight) }
+                // Soft redesign S3 (Direction A): at AX sizes the slab is one row — ring · time · +15s · Skip — so the
+                // sets above it stay in view (it took about a quarter of the screen). +15s drops to a second row only
+                // when the row cannot fit it. The Next line is in the slab's spoken label.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 10) {
+                        ring(size: 40)
+                        axLead
+                        Spacer(minLength: 0)
+                        add15
+                        skip
                     }
-                    HStack(spacing: 10) { add15.frame(maxWidth: .infinity); skip.frame(maxWidth: .infinity) }
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 10) {
+                            ring(size: 40)
+                            axLead
+                            Spacer(minLength: 0)
+                            skip
+                        }
+                        add15
+                    }
                 }
-                .padding(14)
+                .padding(.horizontal, 12).padding(.vertical, 10)
             } else {
                 HStack(spacing: 10) {
                     ring
@@ -863,7 +877,15 @@ struct RestBar: View {
     }
 
     private var ring: some View {
-        RestRing(progress: progress, isFinal: isFinal, size: look.id.isPaperClub ? 58 : 56)
+        ring(size: look.id.isPaperClub ? 58 : 56)
+    }
+
+    private func ring(size: CGFloat) -> some View {
+        RestRing(progress: progress, isFinal: isFinal, size: size)
+    }
+
+    @ViewBuilder private var axLead: some View {
+        if let axTimeReplacement { axTimeReplacement } else { timeBlock(showNext: false) }
     }
 
     private func timeBlock(showNext: Bool) -> some View {

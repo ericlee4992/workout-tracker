@@ -354,3 +354,182 @@ struct FinishSavedTemplateLine: View {
         .accessibilityElement(children: .combine)
     }
 }
+
+// MARK: - Soft redesign S3: the receipt leads with what was won (Direction A)
+
+/// The first new best, big — the exercise, the new figure, what it beat — then any others as the compact rows
+/// (the prototype's `ProposedBestsHero`). Spoken and identified as each best's row was (`finishNewBest`).
+struct FinishBestsHero: View {
+    var bests: [FinishReceipt.Best]
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var shown = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let first = bests.first { lead(first) }
+            ForEach(bests.dropFirst()) { best in
+                LookDivider().padding(.vertical, 4)
+                FinishBestRow(best: best).padding(.horizontal, -16)
+            }
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .lookSurface(.panel)
+        .sensoryFeedback(.success, trigger: bests.count)
+        .onAppear {
+            if reduceMotion { shown = true } else {
+                withAnimation(.spring(response: 0.5, dampingFraction: 0.72).delay(0.35)) { shown = true }
+            }
+        }
+    }
+
+    private func lead(_ best: FinishReceipt.Best) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: "burst.fill")
+                Text(bests.count == 1 ? "New best" : "\(bests.count) new bests")
+            }
+            .font(.system(.subheadline, weight: .bold))
+            .foregroundStyle(look.textPrimary)
+            Text(best.exerciseName)
+                .font(look.font.cardTitle)
+                .foregroundStyle(look.textPrimary)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(LookFormat.set(best.value, loadType: best.loadType))
+                .font(look.font.heroNumber)
+                .foregroundStyle(look.textPrimary)
+                .minimumScaleFactor(0.6)
+                .lineLimit(1)
+                .scaleEffect(shown ? 1 : 0.82, anchor: .leading)
+                .opacity(shown ? 1 : 0)
+            let was = [best.previous.map { "was \(LookFormat.set($0, loadType: best.loadType))" }, best.equipment]
+                .compactMap { $0 }
+            if !was.isEmpty {
+                Text(was.joined(separator: " · "))
+                    .font(look.font.subhead)
+                    .foregroundStyle(look.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(spoken(best))
+        .accessibilityIdentifier("finishNewBest")
+    }
+
+    private func spoken(_ best: FinishReceipt.Best) -> String {
+        var parts = ["New best", best.exerciseName]
+        if let equipment = best.equipment { parts.append(equipment) }
+        parts.append(LookFormat.set(best.value, loadType: best.loadType))
+        if let previous = best.previous { parts.append("previous best \(LookFormat.set(previous, loadType: best.loadType))") }
+        return parts.joined(separator: ", ")
+    }
+}
+
+/// The summary as a short receipt: one row per fact, label leading, figures trailing, hairlines between (no
+/// tiles) — Time · Exercises and sets · Volume · Calories active / total · Heart rate avg / max (the prototype's
+/// `ProposedSummaryList`). The figures come from the same `FinishTile`s, so absent facts are omitted exactly as
+/// the tiles were (D44/D52); each figure keeps its tile's identifier and is spoken with its tile's label.
+struct FinishReceiptList: View {
+    /// `FinishTile.summaryTiles`: each figure with its identifier.
+    var tiles: [(tile: FinishTile, id: String)]
+    var exerciseCount: Int
+    var setCount: Int
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private struct Part: Identifiable {
+        var id: String
+        var figure: String
+        var unit: String
+        var spoken: String
+    }
+
+    private struct Row: Identifiable {
+        var id: String
+        var label: String
+        var symbol: String
+        var parts: [Part]
+        var tint = false
+    }
+
+    private func part(_ kind: FinishTileKind, unit: String? = nil) -> Part? {
+        guard let (tile, id) = tiles.first(where: { $0.tile.kind == kind }) else { return nil }
+        return Part(id: id, figure: tile.value, unit: unit ?? tile.unit,
+                    spoken: "\(tile.label) \(tile.value) \(tile.unit)")
+    }
+
+    private var rows: [Row] {
+        var rows: [Row] = []
+        if let time = part(.workoutTime) {
+            rows.append(Row(id: "time", label: "Time", symbol: "stopwatch", parts: [time]))
+        }
+        if setCount > 0 {
+            let exercises = exerciseCount == 1 ? "exercise" : "exercises"
+            let sets = setCount == 1 ? "set" : "sets"
+            rows.append(Row(id: "work", label: "Exercises", symbol: "list.bullet", parts: [
+                Part(id: "summaryExerciseCount", figure: "\(exerciseCount)", unit: exercises,
+                     spoken: "\(exerciseCount) \(exercises)"),
+                Part(id: "summarySetCount", figure: "\(setCount)", unit: sets, spoken: "\(setCount) \(sets)"),
+            ]))
+        }
+        if let volume = part(.totalVolume) {
+            rows.append(Row(id: "volume", label: "Volume", symbol: "scalemass", parts: [volume]))
+        }
+        let calories = [part(.activeCalories, unit: "active"), part(.totalCalories, unit: "total cal")].compactMap { $0 }
+        if !calories.isEmpty {
+            rows.append(Row(id: "cal", label: "Calories", symbol: "flame", parts: calories))
+        }
+        let heart = [part(.averageHeartRate, unit: "avg"), part(.maxHeartRate, unit: "max bpm")].compactMap { $0 }
+        if !heart.isEmpty {
+            rows.append(Row(id: "hr", label: "Heart rate", symbol: "heart.fill", parts: heart, tint: true))
+        }
+        return rows
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
+                if index > 0 { LookDivider().padding(.leading, 16) }
+                line(row)
+            }
+        }
+        .lookSurface(.panel)
+        .accessibilityIdentifier("finishReceipt")
+    }
+
+    private func line(_ row: Row) -> some View {
+        let stack = typeSize.isAccessibilitySize
+        let layout = stack ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4))
+                           : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: 8))
+        return layout {
+            Label(row.label, systemImage: row.symbol)
+                .font(.system(.subheadline, weight: .medium))
+                .foregroundStyle(row.tint ? look.heartRate : look.textSecondary)
+                .labelStyle(.titleAndIcon)
+                .accessibilityHidden(true)
+            if !stack { Spacer(minLength: 8) }
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                ForEach(Array(row.parts.enumerated()), id: \.element.id) { index, part in
+                    if index > 0 {
+                        Text("  ·  ").font(.footnote).foregroundStyle(look.textTertiary).accessibilityHidden(true)
+                    }
+                    HStack(alignment: .firstTextBaseline, spacing: 0) {
+                        Text(part.figure).font(look.font.smallNumber).foregroundStyle(look.textPrimary).monospacedDigit()
+                        if !part.unit.isEmpty {
+                            Text(" \(part.unit)").font(.system(.footnote, weight: .medium)).foregroundStyle(look.textSecondary)
+                        }
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(part.spoken)
+                    .accessibilityIdentifier(part.id)
+                }
+            }
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}

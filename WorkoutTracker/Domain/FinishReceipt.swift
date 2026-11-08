@@ -34,6 +34,14 @@ struct FinishReceipt: Equatable {
         var lastDate: Date
         var lastVolumeKg: Double
         var volumeKg: Double
+
+        /// Soft redesign S3 (Direction A): the finish screen compares with last time only like for like — both
+        /// runs have volume and today is not more than 25 % below the last run, so a short or partial session
+        /// never ends the receipt on a big drop. (History's detail is unchanged.)
+        var isShownAtFinish: Bool {
+            guard lastVolumeKg > 0, volumeKg > 0 else { return false }
+            return (volumeKg - lastVolumeKg) / lastVolumeKg >= -0.25
+        }
     }
 
     /// The ring: every completed set (every type) in workout order, as runs of one family —

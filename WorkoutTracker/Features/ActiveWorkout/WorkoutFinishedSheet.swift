@@ -63,16 +63,20 @@ struct WorkoutFinishedSheet: View {
                     families: receipt?.familySets ?? [])
                     .finishRow(top: 8, bottom: 10)
 
+                // Soft redesign S3 (Direction A): the peak first — the new bests, big — then the figures as a
+                // receipt, then View in History / Save as Template.
+                if savedWorkout != nil, let receipt, !receipt.bests.isEmpty {
+                    FinishBestsHero(bests: receipt.bests).finishRow(top: 10, bottom: 8)
+                }
+                if let summary {
+                    statsSection(summary).finishRow(top: 10, bottom: 8)
+                }
                 if savedWorkout != nil {
                     actions.finishRow(top: 10, bottom: 8)
                 }
 
                 if let summary {
-                    statsSection(summary).finishRow(top: 18, bottom: 8)
-                    if let receipt, !receipt.bests.isEmpty {
-                        bestsSection(receipt.bests).finishRow(top: 18, bottom: 8)
-                    }
-                    if let comparison = receipt?.comparison {
+                    if let comparison = receipt?.comparison, comparison.isShownAtFinish {
                         comparisonSection(comparison).finishRow(top: 18, bottom: 8)
                     }
                     // Milestone 9, ticket 05: the graph, when a series exists, with time in zones
@@ -226,26 +230,7 @@ struct WorkoutFinishedSheet: View {
             case .maxHeartRate: "summaryMaxHR"
             }
         }
-        return VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("Workout details")
-            FinishTileGrid(tiles: tiles)
-        }
-    }
-
-    // MARK: New bests
-
-    private func bestsSection(_ bests: [FinishReceipt.Best]) -> some View {
-        VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("New bests")
-            VStack(spacing: 0) {
-                ForEach(Array(bests.enumerated()), id: \.element.id) { index, best in
-                    if index > 0 { LookDivider().padding(.leading, 16) }
-                    FinishBestRow(best: best)
-                }
-            }
-            .lookSurface(.panel)
-        }
-        .sensoryFeedback(.success, trigger: bests.count)
+        return FinishReceiptList(tiles: tiles, exerciseCount: summary.exercises.count, setCount: summary.completedSets)
     }
 
     // MARK: Last run
