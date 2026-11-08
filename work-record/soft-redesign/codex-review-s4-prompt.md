@@ -4,7 +4,7 @@ You are the independent reviewer; Claude implemented. Read AGENTS.md first. Chec
 `/Users/ericlee06/orca/workspaces/Health App/UI_design`, branch `ericlee4992/soft-04-history-progress` (stacked on S3;
 S1–S4 are not in `main`).
 
-Review S4 only: `git diff 55831f0..S4_TIP` (`55831f0` is S3's cleared tip; `b7b3083` in the range is a STATE-only
+Review S4 only: `git diff 55831f0..1e298e3` (`55831f0` is S3's cleared tip; `b7b3083` in the range is a STATE-only
 handoff commit).
 
 Read first: `work-record/soft-redesign/issues/04-history-and-progress.md` (scope, acceptance, Progress with the new
