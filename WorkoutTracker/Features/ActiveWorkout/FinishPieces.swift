@@ -495,7 +495,7 @@ struct FinishReceiptList: View {
             }
         }
         .lookSurface(.panel)
-        .accessibilityIdentifier("finishReceipt")
+        // No identifier on the panel: on a container it would replace each figure's own (`summaryTime`, …).
     }
 
     private func line(_ row: Row) -> some View {

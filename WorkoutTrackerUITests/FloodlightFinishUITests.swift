@@ -44,7 +44,12 @@ final class FloodlightFinishUITests: XCTestCase {
         let keep = app.buttons["Keep Original"]
         if keep.waitForExistence(timeout: 3) { keep.tap() }
         XCTAssertTrue(app.buttons["finishedDone"].waitForExistence(timeout: 10), "the receipt opens")
-        XCTAssertTrue(any("viewFinishedWorkout").exists)
+        // Soft redesign S3: View in History follows the new bests and the receipt, so at AX sizes it starts below
+        // the fold — scroll to it, then back to the top for the captures.
+        let viewInHistory = any("viewFinishedWorkout")
+        for _ in 0..<4 where !viewInHistory.exists { app.swipeUp() }
+        XCTAssertTrue(viewInHistory.exists, "View in History, after the bests and the receipt")
+        for _ in 0..<4 { app.swipeDown() }
         // Codex review 04: one line per scope, spoken with its machine / bar (the scope).
         let bests = app.descendants(matching: .any).matching(identifier: "finishNewBest")
         let best = bests.firstMatch
