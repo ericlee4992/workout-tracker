@@ -44,6 +44,28 @@ New metrics → `ProgressSeries` / `ProgressPins` unit tests; History, HistoryCa
 
 ## Progress
 
-Not started.
+- **2026-11-07 — implemented, NOT yet tested or reviewed** (branch `ericlee4992/soft-04-history-progress`, stacked
+  on S3; commit after `55831f0`). Builds (`build-for-testing` exit 0).
+  - **History journal:** `HistoryOverviewMath.journal` / `dayTitle` (months → day sections, "Today" / "Yesterday" /
+    "Friday, Nov 6", year when not this year); `HistoryView` renders a `HistoryDayHeader` per day (count only when
+    > 1, id `historyDay`) and rows with `dateStyle: .hidden`; the month card, calendar and month breaks stay. The
+    week header view was removed (`HistoryOverviewMath.sections` kept — still unit-tested). Tests:
+    `HistoryJournalTests` (3).
+  - **Progress training metrics:** `Domain/TrainingProgress.swift` — `TrainingMetric` (workouts per week, training
+    volume, running distance), `TrainingProgressMath.weekly` (calendar weeks from the first with data to this week,
+    ≤ 12, empty weeks 0) and `inputs` (volume = `HistoryWorkoutFacts.volumeKg`, runs = indoor/outdoor run distance).
+    Pin: `ProgressPin.Subject.training(_)`, custom Codable that writes it in the cardio shape with activity
+    "training.<metric>" so pre-S4 builds skip it (D63 unknown-activity rule) instead of dropping every pin; the
+    original cases' JSON unchanged. `ProgressReading.training` (this week so far; caption "This week · last week N";
+    no change badge), panel case, `TrainingProgressView` (large chart + weeks list), Add Chart's third segment
+    "Training". Tests: `TrainingProgressTests` (6, incl. old-JSON decode and the legacy-shape check).
+- **Next (for the fresh session):** run unit tests `HistoryJournalTests`, `TrainingProgressTests`,
+  `HistoryOverviewTests`, `ProgressTabTests`; UI `FloodlightHistoryUITests`, `HistoryCalendarUITests`,
+  `HistoryEditFlowsUITests`, `FloodlightProgressUITests`, `ProgressChartUITests` (serial with the warm-up first, or 3
+  workers; open the "Test progress" tab); capture History + Progress (training panels) light/dark/AX and show the user;
+  fix; ticket progress + new strings ("Today", "Yesterday", weekday dates, "Workouts per week", "Training volume",
+  "Running distance", their "measures" lines, "This week · last week N", "Across all your training", "Weeks", "Week
+  of <date>", "Training", "Charts"); Codex review (prompt `codex-review-s4-prompt.md`). Then ask the user to start the
+  deferred Phase 1 run.
 
 ## Comments

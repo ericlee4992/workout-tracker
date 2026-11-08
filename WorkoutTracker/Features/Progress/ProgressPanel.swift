@@ -119,6 +119,43 @@ extension ProgressReading {
     }
 }
 
+extension ProgressReading {
+    /// Soft redesign S4: a training-wide weekly reading. The figure is this week so far; the caption gives last week
+    /// for comparison (no change badge: a week in progress against a full one would mislead).
+    static func training(_ points: [TrainingWeekPoint], metric: TrainingMetric, weightUnit: WeightUnit,
+                         distanceUnit: CardioDistanceUnit) -> ProgressReading {
+        func shown(_ raw: Double) -> Double {
+            switch metric {
+            case .workoutsPerWeek: raw
+            case .trainingVolume: WeightMath.convert(raw, from: .kg, to: weightUnit)
+            case .runningDistance: raw / distanceUnit.metersPerUnit
+            }
+        }
+        func text(_ value: Double) -> String {
+            switch metric {
+            case .workoutsPerWeek: "\(Int(value.rounded()))"
+            case .trainingVolume: LookFormat.grouped(value)
+            case .runningDistance: String(format: "%.1f", value)
+            }
+        }
+        let unit: String = switch metric {
+        case .workoutsPerWeek: ""
+        case .trainingVolume: weightUnit.rawValue
+        case .runningDistance: distanceUnit.rawValue
+        }
+        guard let latest = points.last else { return ProgressReading(value: "—", unit: "", caption: "", points: []) }
+        var caption = "This week"
+        if points.count > 1 {
+            let last = text(shown(points[points.count - 2].value))
+            caption += " · last week \(last)\(unit.isEmpty ? "" : " \(unit)")"
+        }
+        return ProgressReading(
+            value: text(shown(latest.value)), unit: unit, caption: caption, change: nil,
+            points: points.map { Point(date: $0.weekStart, value: shown($0.value), isBest: false) },
+            axisLabel: { $0.formatted(.number.precision(.fractionLength(0...1))) })
+    }
+}
+
 // MARK: - The panel
 
 struct ProgressPanel: View {

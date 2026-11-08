@@ -139,7 +139,8 @@ struct HistoryView: View {
 
     private var list: some View {
         let now = Date.now
-        let sections = HistoryOverviewMath.sections(allFacts, now: now)
+        // Soft redesign S4: a journal — months, then one section per day (the day's title above its workouts).
+        let months = HistoryOverviewMath.journal(allFacts, now: now)
         let byID = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let thisMonth = Calendar.current.dateInterval(of: .month, for: now)?.start ?? now
         return List {
@@ -153,23 +154,20 @@ struct HistoryView: View {
                 // always clear of the tab bar (codex-review-02 #3; the list could not be scrolled under the tour).
                 .tourAnchor("tour.historyList")
                 .historyPageRow(top: 16, bottom: 8)
-            ForEach(Array(sections.enumerated()), id: \.element.id) { index, month in
+            ForEach(Array(months.enumerated()), id: \.element.id) { index, month in
                 if index > 0 || month.month != thisMonth {
                     HistoryMonthBreak(summary: HistoryOverviewMath.monthSummary(allFacts, month: month.month))
                         .historyPageRow(top: 24, bottom: 0)
                 }
-                ForEach(month.weeks) { week in
-                    HistoryWeekHeader(title: week.title, count: week.workoutIDs.count)
+                ForEach(month.days) { day in
+                    HistoryDayHeader(title: day.title, count: day.workoutIDs.count)
                         .historyPageRow(top: 22, bottom: 10)
-                    let rows = week.workoutIDs.compactMap { byID[$0] }
+                    let rows = day.workoutIDs.compactMap { byID[$0] }
                     ForEach(Array(rows.enumerated()), id: \.element.id) { rowIndex, workout in
-                        // The date only on a day's first row; a second workout that day leaves
-                        // the column empty.
-                        let sameDay = rowIndex > 0
-                            && Calendar.current.isDate(rows[rowIndex - 1].startedAt, inSameDayAs: workout.startedAt)
-                        row(workout, dateStyle: sameDay ? .continued : .shown)
+                        // The day's header carries the date: no date column in the rows.
+                        row(workout, dateStyle: .hidden)
                             .historyPanelRow(first: rowIndex == 0, last: rowIndex == rows.count - 1,
-                                             separatorInset: dynamicTypeSize.isAccessibilitySize ? 16 : 70)
+                                             separatorInset: 16)
                     }
                 }
             }

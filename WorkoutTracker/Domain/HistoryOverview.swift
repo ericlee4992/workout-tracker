@@ -144,6 +144,23 @@ struct HistoryMonthSection: Identifiable, Hashable {
     var weeks: [HistoryWeekSection]
 }
 
+/// Soft redesign S4: one day of the History journal — its title and the day's workouts, newest first.
+struct HistoryDaySection: Identifiable, Hashable {
+    var id: Date { day }
+    /// Start of the day the workouts STARTED on (as everywhere in History).
+    var day: Date
+    /// "Today", "Yesterday", "Friday, Nov 6" ("Friday, Nov 6, 2025" in another year).
+    var title: String
+    var workoutIDs: [UUID]
+}
+
+/// Soft redesign S4: a month of the journal — its days, newest first.
+struct HistoryJournalMonth: Identifiable, Hashable {
+    var id: Date { month }
+    var month: Date
+    var days: [HistoryDaySection]
+}
+
 enum HistoryOverviewMath {
     /// Every finished workout's facts, keyed by id, from ONE read of the history: the new-best
     /// count needs each scope's past, so it is computed for all workouts in a single pass.
@@ -226,6 +243,35 @@ enum HistoryOverviewMath {
             }
         }
         return months
+    }
+
+    /// Soft redesign S4: the History journal — months, then one section per day, newest first. A workout belongs
+    /// to the day (and month) it started on.
+    static func journal(_ facts: [HistoryWorkoutFacts], now: Date, calendar: Calendar = .current) -> [HistoryJournalMonth] {
+        let newestFirst = facts.sorted { $0.startedAt > $1.startedAt }
+        var months: [HistoryJournalMonth] = []
+        for item in newestFirst {
+            let day = calendar.startOfDay(for: item.startedAt)
+            let month = calendar.dateInterval(of: .month, for: item.startedAt)?.start ?? day
+            if months.last?.month != month { months.append(HistoryJournalMonth(month: month, days: [])) }
+            let m = months.count - 1
+            if months[m].days.last?.day == day {
+                months[m].days[months[m].days.count - 1].workoutIDs.append(item.id)
+            } else {
+                months[m].days.append(HistoryDaySection(day: day, title: dayTitle(day, now: now, calendar: calendar),
+                                                        workoutIDs: [item.id]))
+            }
+        }
+        return months
+    }
+
+    /// "Today", "Yesterday", "Friday, Nov 6"; the year joins when it is not the current one.
+    static func dayTitle(_ day: Date, now: Date, calendar: Calendar = .current) -> String {
+        if calendar.isDate(day, inSameDayAs: now) { return "Today" }
+        if let yesterday = calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: now)),
+           calendar.isDate(day, inSameDayAs: yesterday) { return "Yesterday" }
+        let sameYear = calendar.isDate(day, equalTo: now, toGranularity: .year)
+        return formatter(sameYear ? "EEEEMMMd" : "EEEEMMMdyyyy", calendar: calendar).string(from: day)
     }
 
     /// "This week", "Last week", "Sep 7 – 13", "Aug 31 – Sep 6".

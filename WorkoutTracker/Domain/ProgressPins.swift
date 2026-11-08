@@ -67,6 +67,52 @@ struct ProgressPin: Codable, Identifiable, Equatable, Sendable {
         case lift(exerciseID: UUID, variation: PinnedLiftVariation)
         /// The activity's raw value, so an activity a later build removes decodes and is skipped, not a decode failure.
         case cardio(activity: String)
+        /// Soft redesign S4: a training-wide weekly chart. ON DISK it is the cardio shape with the activity
+        /// "training.<metric>": a build from before S4 decodes it as an unknown activity and quietly skips it (the
+        /// rule above), instead of failing the whole list — which would drop every pin. Consequence: changing this
+        /// encoding would make older builds lose all pins.
+        case training(TrainingMetric)
+
+        private static let trainingPrefix = "training."
+        private enum Key: String, CodingKey { case lift, cardio }
+        private enum LiftKey: String, CodingKey { case exerciseID, variation }
+        private enum CardioKey: String, CodingKey { case activity }
+
+        // The same JSON as the synthesised coding of the two original cases ({"lift":{…}} / {"cardio":{…}}), so pins
+        // saved before S4 read unchanged.
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: Key.self)
+            if container.contains(.lift) {
+                let lift = try container.nestedContainer(keyedBy: LiftKey.self, forKey: .lift)
+                self = .lift(exerciseID: try lift.decode(UUID.self, forKey: .exerciseID),
+                             variation: try lift.decode(PinnedLiftVariation.self, forKey: .variation))
+            } else {
+                let cardio = try container.nestedContainer(keyedBy: CardioKey.self, forKey: .cardio)
+                let raw = try cardio.decode(String.self, forKey: .activity)
+                if raw.hasPrefix(Self.trainingPrefix),
+                   let metric = TrainingMetric(rawValue: String(raw.dropFirst(Self.trainingPrefix.count))) {
+                    self = .training(metric)
+                } else {
+                    self = .cardio(activity: raw)
+                }
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: Key.self)
+            switch self {
+            case let .lift(exerciseID, variation):
+                var lift = container.nestedContainer(keyedBy: LiftKey.self, forKey: .lift)
+                try lift.encode(exerciseID, forKey: .exerciseID)
+                try lift.encode(variation, forKey: .variation)
+            case let .cardio(activity):
+                var cardio = container.nestedContainer(keyedBy: CardioKey.self, forKey: .cardio)
+                try cardio.encode(activity, forKey: .activity)
+            case let .training(metric):
+                var cardio = container.nestedContainer(keyedBy: CardioKey.self, forKey: .cardio)
+                try cardio.encode(Self.trainingPrefix + metric.rawValue, forKey: .activity)
+            }
+        }
     }
 
     var id = UUID()
@@ -83,6 +129,11 @@ struct ProgressPin: Codable, Identifiable, Equatable, Sendable {
         return nil
     }
 
+    var training: TrainingMetric? {
+        if case .training(let metric) = subject { return metric }
+        return nil
+    }
+
     /// The metric to draw: a lifting pin's Volume or 1RM falls back to Best set when its variation is not weighted
     /// (a "Most used" pin can move to an assisted variation); a stored metric of the other kind falls back to the
     /// kind's default.
@@ -93,6 +144,9 @@ struct ProgressPin: Codable, Identifiable, Equatable, Sendable {
             return allowed.contains(metric) ? metric : .bestSet
         case .cardio:
             return metric.isCardio ? metric : .distance
+        case .training:
+            // The training metric is the subject; the stored metric is a placeholder older builds can decode.
+            return metric
         }
     }
 }

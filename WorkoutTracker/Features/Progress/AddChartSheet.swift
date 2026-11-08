@@ -6,7 +6,7 @@ import SwiftUI
 
 struct AddChartSheet: View {
     let onAdd: (ProgressPin) -> Void
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
     @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
     @Query private var exercises: [Exercise]
@@ -22,14 +22,18 @@ struct AddChartSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
-                    SegmentedPills(["Lifting", "Cardio"], selection: $kind)
+                    SegmentedPills(["Lifting", "Cardio", "Training"], selection: $kind)
                         .accessibilityIdentifier("addChartKind")
-                    if kind == 0 { liftingList } else { cardioList }
+                    switch kind {
+                    case 0: liftingList
+                    case 1: cardioList
+                    default: trainingList
+                    }
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.vertical, 12)
             }
-            .searchable(text: $search, prompt: kind == 0 ? "Exercises" : "Activities")
+            .searchable(text: $search, prompt: kind == 0 ? "Exercises" : (kind == 1 ? "Activities" : "Charts"))
             .lookSheetGround()
             .navigationTitle("Add Chart")
             .navigationBarTitleDisplayMode(.inline)
@@ -52,7 +56,7 @@ struct AddChartSheet: View {
         summaries = out
     }
 
-    private func matches(_ name: String) -> Bool {
+    func matches(_ name: String) -> Bool {
         let query = search.trimmingCharacters(in: .whitespaces)
         return query.isEmpty || name.localizedCaseInsensitiveContains(query)
     }
@@ -136,6 +140,30 @@ struct AddChartSheet: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("addChartActivity")
+                }
+            }
+        }
+    }
+}
+
+extension AddChartSheet {
+    /// Soft redesign S4: training-wide weekly charts — one tap adds the pin.
+    @ViewBuilder var trainingList: some View {
+        let rows = TrainingMetric.allCases.filter { matches($0.title) }
+        if rows.isEmpty {
+            EmptyStateView(symbol: "chart.xyaxis.line", title: "No matches")
+        } else {
+            LookList(header: "Across all your training") {
+                ForEach(rows, id: \.self) { metric in
+                    Button {
+                        // `.time` is a placeholder older builds can decode (the subject carries the metric).
+                        onAdd(ProgressPin(subject: .training(metric), metric: .time))
+                        dismiss()
+                    } label: {
+                        LookRow(metric.title, subtitle: metric.measures, symbol: metric.glyph) { EmptyView() }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("addChartTraining.\(metric.rawValue)")
                 }
             }
         }

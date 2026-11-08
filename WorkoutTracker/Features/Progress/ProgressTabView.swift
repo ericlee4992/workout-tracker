@@ -37,6 +37,7 @@ struct ProgressTabView: View {
             switch pin.subject {
             case .lift(let id, _): ids.contains(id)
             case .cardio: pin.activity != nil
+            case .training: true
             }
         }
     }
@@ -155,7 +156,16 @@ struct ProgressTabView: View {
                     glyph: activity.symbol,
                     reading: .cardio(sessions, metric: metric, activity: activity, unit: distanceUnit))
             }
+        case .training(let metric):
+            ProgressPanel(title: metric.title, subtitle: metric.measures, glyph: metric.glyph,
+                          reading: trainingReading(metric))
         }
+    }
+
+    /// Soft redesign S4: a weekly training chart's reading (the last 12 weeks).
+    private func trainingReading(_ metric: TrainingMetric) -> ProgressReading {
+        let points = TrainingProgressMath.weekly(TrainingProgressMath.inputs(workouts), metric: metric, now: .now)
+        return .training(points, metric: metric, weightUnit: displayUnit, distanceUnit: distanceUnit)
     }
 
     /// ["Most used", "Chest Press 2"], ["Barbell"]: the variation's label as the exercise chart names it — left out
@@ -200,6 +210,8 @@ struct ProgressTabView: View {
             if let activity = pin.activity {
                 CardioProgressView(activity: activity, metric: pin.shownMetric(loadType: nil))
             }
+        case .training(let metric):
+            TrainingProgressView(metric: metric, reading: trainingReading(metric))
         }
     }
 
@@ -249,6 +261,7 @@ struct ProgressTabView: View {
         switch pin.subject {
         case .lift: ProgressPinMetric.lifting(for: loadType(pin) ?? .weighted)
         case .cardio: ProgressPinMetric.cardio
+        case .training: []
         }
     }
 }

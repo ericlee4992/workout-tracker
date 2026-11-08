@@ -13,8 +13,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   the long test run ("run the test after building more") — capture suites (light/dark, default/AX) + core-flow UI
   classes run once after more of Phase 1, then S1 (and the next tickets) merge to `main` in order with the user's
   go-ahead. **S2 five tabs:** `ericlee4992/soft-02-tabs` — Codex **clear** (round 2). **S3 workout refinements:**
-  `ericlee4992/soft-03-workout` (stacked on S2) — Codex **clear** (round 2). **Next: S4 History journal + Progress
-  metrics** on `ericlee4992/soft-04-history-progress` (stacked on S3) → the deferred Phase 1 run after S4 (the user
+  `ericlee4992/soft-03-workout` (stacked on S2) — Codex **clear** (round 2). **S4 History journal + Progress
+  metrics:** `ericlee4992/soft-04-history-progress` (stacked on S3) — implemented and builds, **not yet tested or
+  reviewed**; next steps in [ticket S4](../work-record/soft-redesign/issues/04-history-and-progress.md) Progress → the deferred Phase 1 run after S4 (the user
   agreed on timing; ask before starting, ~45–60 min; open the "Test progress" tab with `scripts/test-progress.sh`)
   → merge S1–S4 into `main` in order (go-ahead). UI runs: serial with the warm-up
   `CardioUITests/testSavedDistanceEditor…` first, or 3 workers (cold clones hit `kAXErrorServerNotFound`).

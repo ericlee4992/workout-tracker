@@ -355,8 +355,9 @@ struct HistoryMonthBreak: View {
     }
 }
 
-/// A week's heading: its title, and its workout count.
-struct HistoryWeekHeader: View {
+/// Soft redesign S4: a day of the journal — "Today", "Yesterday", "Friday, Nov 6" — with the count only when the day
+/// holds more than one workout.
+struct HistoryDayHeader: View {
     var title: String
     var count: Int
     @Environment(\.look) private var look
@@ -368,12 +369,15 @@ struct HistoryWeekHeader: View {
                 .foregroundStyle(look.textPrimary)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 8)
-            Text(HistoryFormat.workouts(count))
-                .font(look.font.footnote)
-                .foregroundStyle(look.textSecondary)
+            if count > 1 {
+                Text(HistoryFormat.workouts(count))
+                    .font(look.font.footnote)
+                    .foregroundStyle(look.textSecondary)
+            }
         }
         .padding(.horizontal, 4)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("historyDay")
     }
 }
 
