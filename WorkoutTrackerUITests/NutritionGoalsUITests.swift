@@ -100,6 +100,50 @@ final class NutritionGoalsUITests: XCTestCase {
         XCTAssertFalse(protein.label.contains("Typed by you"), protein.label)
     }
 
+    // MARK: Onboarding step (new installs)
+
+    /// Skip on the Welcome page → the goals sheet; an activity chosen before the details is kept for the first goal.
+    func testWelcomeSkipOffersTheGoalsSheetOnce() {
+        app.launchArguments = ["-uiTestReset", "-uiTestOnboarding", "-uiTestFoodGoalsStep"]
+        app.launch()
+        let skip = app.buttons["welcomeSkip"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 15))
+        skip.tap()
+        let done = app.buttons["foodGoalsDone"]
+        XCTAssertTrue(done.waitForExistence(timeout: 10), "the goals sheet follows the Welcome page")
+        XCTAssertFalse(any("foodGoalsCalories").exists, "nothing to calculate yet")
+        shoot("n3-onboarding-empty")
+
+        any("nutritionGoalsActivity").tap()
+        app.buttons["Light"].firstMatch.tap()
+        app.buttons["personalWeight"].tap()
+        type("176.4", into: "weightField")
+        save()
+        app.buttons["personalHeight"].tap()
+        if app.textFields["heightFeet"].waitForExistence(timeout: 3) {
+            type("5", into: "heightFeet")
+            type("11", into: "heightInches")
+        } else {
+            type("180", into: "heightCm")
+        }
+        save()
+        app.buttons["personalBirthDate"].tap()
+        save()
+        any("personalSex").tap()
+        app.buttons["Male"].firstMatch.tap()
+        XCTAssertTrue(any("foodGoalsCalories").waitForExistence(timeout: 5), "the calories appear once complete")
+        XCTAssertTrue(NSPredicate(format: "label CONTAINS 'Light'").evaluate(with: any("nutritionGoalsActivity")),
+                      "the activity chosen first is kept: \(any("nutritionGoalsActivity").label)")
+        shoot("n3-onboarding-filled")
+        done.tap()
+        XCTAssertTrue(done.waitForNonExistence(timeout: 5))
+
+        app.openProfile()
+        let goals = app.buttons["profileNutritionGoals"]
+        XCTAssertTrue(goals.waitForExistence(timeout: 5))
+        XCTAssertTrue(goals.label.hasSuffix("cal"), goals.label)
+    }
+
     // MARK: Captures
 
     func testCaptureLightDefault() { capture(appearance: "light", large: false) }

@@ -221,12 +221,17 @@ struct WorkoutTrackerApp: App {
                         .onAppear {
                             onboarding.evaluateFirstLaunch(in: modelContainer.mainContext)
                             evaluateWhatsNew()
+                            // N3: back from a tour the Welcome page started → the goals sheet.
+                            onboarding.offerFoodGoalsIfPending(in: modelContainer.mainContext)
                         }
+                        .sheet(isPresented: $onboarding.showsFoodGoals) { FoodGoalsSetupSheet() }
                         .sheet(item: $whatsNew, onDismiss: {
                             if let build = whatsNewShown { WhatsNew.markSeen(build) }
                             whatsNewShown = nil
                         }) { WhatsNewSheet(entry: $0) }
-                        .fullScreenCover(isPresented: $onboarding.showsWelcome) {
+                        .fullScreenCover(isPresented: $onboarding.showsWelcome, onDismiss: {
+                            onboarding.offerFoodGoalsIfPending(in: modelContainer.mainContext)
+                        }) {
                             WelcomeView(onTour: { onboarding.startTour(realContext: modelContainer.mainContext) },
                                         onSkip: { onboarding.skipWelcome() },
                                         showsSignIn: account.isAvailable,

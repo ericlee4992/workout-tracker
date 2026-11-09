@@ -14,6 +14,11 @@ final class OnboardingCoordinator {
     static let uiTestArgument = "-uiTestOnboarding"
 
     var showsWelcome = false
+    /// Nutrition N3: the goals sheet, offered once after the Welcome page is answered (Skip, or the tour it started
+    /// ends) when there is no goal yet. Under `-uiTestReset` only with `foodGoalsUITestArgument`, like the welcome page.
+    var showsFoodGoals = false
+    static let foodGoalsUITestArgument = "-uiTestFoodGoalsStep"
+    private var foodGoalsPending = false
     private(set) var tour: TourController?
     /// The tour's world: in memory only, discarded when the tour ends.
     private(set) var sampleContainer: ModelContainer?
@@ -41,12 +46,25 @@ final class OnboardingCoordinator {
 
     func skipWelcome() {
         defaults.set(true, forKey: Self.welcomeSeenKey)
+        foodGoalsPending = true
         showsWelcome = false
+    }
+
+    /// Shows the goals sheet if the Welcome page was just answered and no tour is running (called when the Welcome
+    /// cover closes and when the app's own screens return after the tour).
+    func offerFoodGoalsIfPending(in context: ModelContext) {
+        guard foodGoalsPending, tour == nil, !showsWelcome else { return }
+        foodGoalsPending = false
+        if WorkoutTrackerStore.isUITestReset
+            && !ProcessInfo.processInfo.arguments.contains(Self.foodGoalsUITestArgument) { return }
+        let hasGoal = ((try? context.fetchCount(FetchDescriptor<NutritionGoal>())) ?? 0) > 0
+        showsFoodGoals = !hasGoal
     }
 
     /// Starts the tour on a fresh in-memory sample store. Refuses while a real workout runs: the tour swaps the
     /// whole app to the sample world, and the running workout's screen must not be torn down under the user.
     func startTour(realContext: ModelContext) {
+        if showsWelcome { foodGoalsPending = true }  // started from the Welcome page, not Profile → Show Tour
         defaults.set(true, forKey: Self.welcomeSeenKey)
         showsWelcome = false
         // Read-only and fail-closed (codex-review-02): an unknown answer refuses rather than starting.

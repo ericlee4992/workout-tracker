@@ -18,6 +18,8 @@ struct NutritionGoalsView: View {
     @State private var editing: Number?
     @State private var showDetails = false
     @State private var saveFailure: String?
+    /// Choices made before Personal details are complete (no goal to hold them yet); applied to the first goal.
+    @State private var pending: NutritionGoalStore.Choices?
 
     enum Number: Identifiable, Hashable {
         case calories
@@ -29,7 +31,7 @@ struct NutritionGoalsView: View {
         goals.max { ($0.effectiveFrom, $0.createdAt, $0.id.uuidString) < ($1.effectiveFrom, $1.createdAt, $1.id.uuidString) }
     }
 
-    private var choices: NutritionGoalStore.Choices { NutritionGoalStore.choices(of: current) }
+    private var choices: NutritionGoalStore.Choices { current.map(NutritionGoalStore.choices(of:)) ?? pending ?? .init() }
 
     private var macros: Macros? {
         current.map { Macros(calories: $0.calories, proteinGrams: $0.proteinGrams, carbsGrams: $0.carbsGrams,
@@ -64,6 +66,9 @@ struct NutritionGoalsView: View {
         .navigationBarTitleDisplayMode(.inline)
         // Personal details may have changed since the goal was stored (e.g. a new day's age): bring it up to date.
         .task { change { _ in } }
+        .onChange(of: current == nil) { _, missing in
+            if !missing, let pending { change { $0.activity = pending.activity; $0.goal = pending.goal } }
+        }
         .navigationDestination(isPresented: $showDetails) { PersonalDetailsView() }
         .sheet(item: $editing) { number in editor(number) }
         .alert("Couldn't save", isPresented: Binding(get: { saveFailure != nil }, set: { if !$0 { saveFailure = nil } })) {
@@ -157,25 +162,7 @@ struct NutritionGoalsView: View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Based on")
             LookList(separatorInset: 54) {
-                Menu {
-                    Picker("Activity", selection: Binding(get: { choices.activity },
-                                                          set: { value in change { $0.activity = value } })) {
-                        ForEach(ActivityLevel.allCases, id: \.self) { Text($0.label).tag($0) }
-                    }
-                } label: {
-                    ProfileRow("Activity", symbol: "figure.walk", value: choices.activity.label, action: nil)
-                }
-                .accessibilityIdentifier("nutritionGoalsActivity")
-                Menu {
-                    Picker("Goal", selection: Binding(get: { choices.goal },
-                                                      set: { value in change { $0.goal = value } })) {
-                        ForEach(WeightGoal.allCases, id: \.self) { Text($0.label).tag($0) }
-                    }
-                } label: {
-                    ProfileRow("Goal", symbol: "flag", value: choices.goal.label, action: nil)
-                }
-                .accessibilityIdentifier("nutritionGoalsGoal")
-                // The summary under the title: three values side by side would wrap mid-line at the default size.
+                GoalChoiceMenus(choices: choices) { apply in change(apply) }
                 ProfileRow("Personal details", symbol: "person.text.rectangle", subtitle: detailsSummary) {
                     showDetails = true
                 }
@@ -183,6 +170,8 @@ struct NutritionGoalsView: View {
             }
         }
     }
+
+    private var hasDetails: Bool { detailsSummary != "Not set" }
 
     /// "80 kg · 180 cm · 30" — as entered; "Not set" until every detail is there.
     private var detailsSummary: String {
@@ -218,8 +207,15 @@ struct NutritionGoalsView: View {
     }
 
     private func change(_ apply: (inout NutritionGoalStore.Choices) -> Void) {
+        guard current != nil || hasDetails else {
+            var held = pending ?? .init()
+            apply(&held)
+            pending = held
+            return
+        }
         do {
             try NutritionGoalStore.update(in: modelContext, change: apply)
+            pending = nil
         } catch {
             saveFailure = error.localizedDescription
         }
