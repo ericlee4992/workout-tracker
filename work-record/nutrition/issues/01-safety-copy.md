@@ -53,6 +53,69 @@ Persistence → unit tests for the version check, copy, prune and restore; a Sim
 
 ## Progress
 
-Not started.
+Branch `ericlee4992/nutrition-01-safety-copy` (off `main` `52c1270`).
+
+**Decisions while building (2026-11-09):**
+- **Files only (the user, asked 2026-11-09).** The JSON half of "both" cannot be made from the *old* data by the new
+  build — it can only read the data after converting it, the step the copy protects — and the app has no Import. The
+  copy is the store's `.store` / `-wal` / `-shm`; Export still makes JSON at any time.
+- **"When" is read from the store itself:** `NSPersistentStoreCoordinator.metadataForPersistentStore` +
+  `isConfiguration(withName:compatibleWithStoreMetadata:)` against the app's model — exactly "would this open convert
+  the data", with no version number to keep in step. An existing store whose metadata cannot be read also gets a copy.
+  First rows rewritten at launch without a format change (repairs, backfills) are not a format change — DEVELOPMENT's
+  review by hand still covers them.
+- **Restore happens at the next launch, before the store opens** (iOS cannot restart an app, and replacing the files of
+  an open SQLite store would corrupt it): Profile → confirm → "Close Stacked to finish" (with Cancel Restore) → on the
+  next open the files are swapped (staged beside the store first, so a failure part-way leaves today's data), then
+  "Data restored". Restored files are not copied again on that open. Restoring brings back old-format files, so the same
+  build converts them again: restore is for a later build that fixes a bad conversion, or for data a conversion lost.
+- **A failed copy:** the store stays closed; Try Again or Continue Without a Copy. ("Quit" became Try Again: iOS has no
+  supported way for an app to quit itself; closing the app from the app switcher does the same.)
+- **Where/how many:** Application Support/`SafetyCopies` (in the iPhone's iCloud or computer backup, not in Files); the
+  newest 2; a copy waiting to be restored is never pruned; a free-space check first (files + 10 MB); an interrupted copy
+  never counts (written under a hidden name, renamed when complete).
+- Debug builds only: `-safetyCopyRehearsal` treats a launch as a format change (the Simulator rehearsal).
+
+**Code:** `Domain/SafetyCopy.swift` (`SafetyCopies`: check, make, list, prune, schedule/cancel/perform restore;
+`SafetyCopyLaunch.run`), `App/StoreGate.swift` (opens the store behind the copy; UI-test fixtures
+`-uiTestSafetyCopy`, `-uiTestSafetyCopyFails`), `WorkoutTrackerApp` (start-up work moved to `prepare(_:)`, run when the
+gate opens the store), `Features/Settings/SafetyCopyViews.swift`, `WorkoutTrackerStore.defaultStoreURL` /
+`safetyCopies` / `appVersion`. No model change (`StoreFormatGuardTests` unchanged).
+
+**Screens (ios-design):**
+- *Copy failed (launch):* exists so the user can choose to retry or go on, in one tap; the eye lands on the title, the
+  thumb on Try Again (the one filled command); Continue Without a Copy is the quiet second.
+- *Settings → Safety copy (only when a copy exists):* one row, the newest copy and its date; the confirmation names the
+  date again; Restore is destructive red.
+- *Close Stacked to finish:* the title is the message; Cancel Restore the only command. An overlay over the app (a
+  full-screen cover bound to this state dismissed the "Data restored" alert — found in the rehearsal).
+- Tells: no cards in cards; no accent beyond the one filled button; no paragraphs beyond the two short lines.
+
+**Strings (for the user's approval):** "Couldn't save a safety copy" · "This update changes how Stacked stores your
+data. It saves a copy on this iPhone first — that didn't work." · "Your data hasn't been changed." · the reason, e.g.
+"Not enough free space: the copy needs 48 MB, this iPhone has 12 MB free." · "Try Again" · "Continue Without a Copy" ·
+"Safety copy" · "Restore data from before the update" · "Copy from Nov 9, 2026 at 1:30 PM" · "Restore data from Nov 9,
+2026?" · "Your data goes back to how it was before the update. Anything logged since then is removed." · "Restore" ·
+"The restore didn't work: <reason> Your data is unchanged." · "Close Stacked to finish" · "Your data from Nov 9, 2026
+comes back the next time you open Stacked." · "Cancel Restore" · "Data restored" · "Your data is back to how it was on
+Nov 9, 2026."
+
+**Evidence (WT-Floodlight, session scratchpad `m/`):**
+- `SafetyCopyTests` (18, real SQLite stores written through Core Data — SwiftData has no public close, and a store it
+  still held changed under the copy, which the copy rightly refused): `-test-iterations 10` → **180/180, exit 0**
+  (`n1-safety3.xcresult`).
+- **Simulator rehearsal** (the design-sample store, 6 workouts / 58 sets / 1 gym, put in the app's real store location;
+  the simulator's own store backed up and put back byte for byte afterwards): launch with `-safetyCopyRehearsal` →
+  **exactly one copy**; an ordinary launch → **no new copy**; all workouts and the gym deleted with the app closed (a
+  bad conversion's stand-in) → restore scheduled → next launch: **`compare_stores.py` exit 0 — every row of 15 tables
+  back, preferences unchanged**; no copy of the restored files; "Data restored" shown and staying (`rehearsal/`).
+- Unit plan **1134/1134, exit 0**, 101 s (`n1-unit.xcresult`).
+- `SafetyCopyUITests` 7 + warm-up, serial: 8/8 after the fix (`n1-ui1` found the Settings row never appeared — its
+  `.task` sat on an empty group; `n1-ui2` 6/6 re-run); captures light/dark × Default/AccessibilityL of all four
+  screens checked: every string whole, one filled command.
 
 ## Comments
+- **UI scope** (3 workers): warm-up + `SafetyCopyUITests` + `FloodlightSettingsUITests` (Settings changed) +
+  `CoreLoopUITests` (start-up changed) + `ExportUITests` (the neighbouring row): **28/28, exit 0**, 962 s
+  (`n1-ui3.xcresult`).
+- `StoreFormatGuardTests` (its messages now point at N1) + `SafetyCopyTests`: see `n1-guard.xcresult`.

@@ -363,8 +363,10 @@ the update changes what the phone stores — a SwiftData model, schema or migrat
 or anything else that touches the store on first launch. Every other update installs without one; check the diff
 against the installed build's commit and record the finding in the ticket. Testers cannot back up, so their safety
 comes from the app: migrations tested against a copy of real data, the developer installing each build first, iOS's
-own backup, and an automatic in-app safety copy before a migration — **built together with the first store-changing
-update** (ticket 11, deferred by the user 2026-10-14). `StoreFormatGuardTests` pins the shipped format's fingerprint
+own backup, and the automatic in-app safety copy (**nutrition N1, built 2026-11-09**: before a build first opens a
+store whose metadata no longer matches the model it copies the store's files to Application Support/`SafetyCopies`,
+keeps the newest 2, and Profile → Safety copy restores one at the next launch; rehearse it on the Simulator with the
+Debug-only `-safetyCopyRehearsal` launch argument and `compare_stores.py`). `StoreFormatGuardTests` pins the shipped format's fingerprint
 (Core Data's entity version hashes plus indexes), every stored enum's raw values and samples of the JSON payloads kept in
 `Data` attributes, and fails on a change, pointing to ticket 11. It cannot see code that rewrites existing rows on first
 launch (repairs, backfills, seeding): those still need this review by hand.

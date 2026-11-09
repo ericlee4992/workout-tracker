@@ -5,9 +5,9 @@ import SwiftData
 import Testing
 @testable import WorkoutTracker
 
-// Public beta ticket 11, deferred (the user, 2026-10-14): the automatic safety copy of each tester's data is built
-// together with the first update that changes how the phone stores data — the new build makes the copy before it first
-// opens the old store, so nothing has to ship earlier. These guards make such a change hard to ship unnoticed. Three
+// Public beta ticket 11 → nutrition N1 (built 2026-11-09, `SafetyCopy.swift`): before a build first opens a store in an
+// older format it copies the store's files on the phone, so a format change no longer leaves testers without a way
+// back — but a change must still be deliberate and reviewed. These guards make such a change hard to ship unnoticed. Three
 // layers, because the store holds more than its table structure (codex-review-11 #1):
 //
 // Pinned contracts and payload samples, not a proof that every stored change is caught:
@@ -21,7 +21,7 @@ import Testing
 // Not covered by any test: code that rewrites existing rows on first launch (repairs, backfills, seeding). DEVELOPMENT
 // → *When a backup is required* still applies to those. A passing guard never waives that review.
 
-private let ticket = "work-record/public-beta/issues/11-safety-copy.md"
+private let ticket = "work-record/nutrition/issues/01-safety-copy.md"
 
 struct StoreFormatGuardTests {
 
@@ -53,9 +53,9 @@ struct StoreFormatGuardTests {
         let current = try Self.fingerprint()
         #expect(current == Self.shippedFingerprint, """
             The store's pinned structure (entity version hashes and indexes) differs from what shipped builds use, so \
-            the update may change how testers' only copy of their data is stored. Stop before shipping: build ticket 11 (\(ticket): an \
-            automatic copy of the store before the first open with the new format), follow DEVELOPMENT's migration \
-            rules (a legacy-store fixture from the installed commit), get the user's approval, and only then set \
+            the update may change how testers' only copy of their data is stored. Stop before shipping: confirm the \
+            safety copy covers it (\(ticket) — the copy runs when the store's metadata no longer matches the model), \
+            follow DEVELOPMENT's migration rules (a legacy-store fixture from the installed commit), get the user's approval, and only then set \
             `shippedFingerprint` to \(current).
             """)
     }
@@ -69,7 +69,7 @@ struct StoreFormatGuardTests {
     // MARK: 2. Stored enum values
 
     /// Every raw value stored in a row today. Removing or renaming one leaves old rows unreadable; adding one is readable
-    /// by this build but not by an older one a tester might reinstall — both need ticket 11's review before the pin moves.
+    /// by this build but not by an older one a tester might reinstall — both need N1's review before the pin moves.
     static let shippedRawValues: [String: [String]] = [
         "WeightUnit": ["kg", "lb"],
         "SetType": ["warmup", "working", "failure", "drop"],
@@ -114,7 +114,7 @@ struct StoreFormatGuardTests {
         for (name, shipped) in Self.shippedRawValues {
             #expect(Set(current[name] ?? []) == Set(shipped), """
                 \(name)'s stored values changed (\(shipped) → \(current[name] ?? [])). Rows on testers' phones hold the \
-                old strings. Review with ticket 11 (\(ticket)) before shipping, then update `shippedRawValues`.
+                old strings. Review with N1 (\(ticket)) before shipping, then update `shippedRawValues`.
                 """)
         }
     }
@@ -197,7 +197,7 @@ struct StoreFormatGuardTests {
         #expect(try JSONSerialization.jsonObject(with: data) as? NSArray
                 == JSONSerialization.jsonObject(with: Data(sample.utf8)) as? NSArray, """
             A stored JSON payload's format changed. Old rows on testers' phones keep the old form: keep reading it (and \
-            review with ticket 11, \(ticket)) before updating this sample.
+            review with N1, \(ticket)) before updating this sample.
             """)
     }
 }
