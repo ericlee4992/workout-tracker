@@ -80,6 +80,13 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
   specs or generic skills. Record the selected scope and results in the ticket. Inspect actual
   exit codes and results, not another agent's summary. Docs-only work uses consistency/link
   checks; device installation alone does not require a full UI run.
+- **Named scopes and reporting:** pick the scope as a test plan or named tests per DEVELOPMENT's
+  [tiers](docs/DEVELOPMENT.md#tiers-and-test-plans), run `scripts/prepare-test-simulator.sh` first, and end each
+  ticket's evidence with its Verified / Not verified / Known flaky block.
+- **What the reviewer reruns:** Codex builds and runs the affected unit tests itself every round. It reruns UI tests
+  in round 1 (the ticket's focused classes) and later only when a fix changes UI behaviour or UI test code; for a
+  docs-only or non-UI fix round it inspects the author's xcresult (exit code, counts, failures) instead of repeating
+  the run, and says so in its report.
 - Code commits must preserve a successful `xcodebuild build`. Before closing a feature, check
   internal functions and doc comments against their callers. Verify gated settings are reachable
   and mirrored messages are actually sent; testing only the gate or receiver misses these defects.

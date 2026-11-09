@@ -13,8 +13,8 @@
 #   -f <fixtures>  fixture set: sample (design sample + history + gyms; the default), empty, none (your own store)
 #
 # Each look relaunches the app (fixture stores are throwaway and rebuilt on every launch). Motion and location are
-# granted first so no permission alert covers the screen. The appearance is set with `simctl ui` and restored after.
-# Text size uses the same launch argument as the capture tests. The app stays open on the last look, so you can
+# granted first so no permission alert covers the screen. Appearance and text size use the same launch arguments as
+# the capture tests (`-appearance`, the app's own setting, which wins over the simulator's). The app stays open on the last look, so you can
 # keep exploring by hand; a relaunch from the Home Screen drops the fixture store.
 set -euo pipefail
 
@@ -51,7 +51,6 @@ xcrun simctl bootstatus "$device" -b >/dev/null
 xcrun simctl install "$device" "$app"
 for service in motion location; do xcrun simctl privacy "$device" grant "$service" "$bundle"; done
 
-before=$(xcrun simctl ui "$device" appearance)
 mkdir -p "$out"
 IFS=, read -ra list <<< "$looks"
 for look in "${list[@]}"; do
@@ -60,12 +59,10 @@ for look in "${list[@]}"; do
     light-axl|dark-axl) scheme=${look%-axl}; size=(-UIPreferredContentSizeCategoryName UICTContentSizeCategoryAccessibilityL) ;;
     *) echo "unknown look: $look" >&2; exit 2 ;;
   esac
-  xcrun simctl ui "$device" appearance "$scheme"
   xcrun simctl launch --terminate-running-process "$device" "$bundle" \
-    ${args[@]+"${args[@]}"} ${size[@]+"${size[@]}"} ${extra[@]+"${extra[@]}"} >/dev/null
+    ${args[@]+"${args[@]}"} -appearance "$scheme" ${size[@]+"${size[@]}"} ${extra[@]+"${extra[@]}"} >/dev/null
   sleep "$wait"
   file="$out/$name-$look.png"
   xcrun simctl io "$device" screenshot "$file" >/dev/null 2>&1
   echo "$file"
 done
-if [ "$before" = light ] || [ "$before" = dark ]; then xcrun simctl ui "$device" appearance "$before"; fi

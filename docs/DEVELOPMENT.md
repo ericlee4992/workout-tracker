@@ -21,6 +21,39 @@ not need separate user approval.
 | Shared navigation, workout lifecycle, persistence or broad refactoring | Trace affected callers and run broader relevant suites; escalate to full UI when targeted coverage cannot bound the regression risk |
 | Documentation, agent rules or skill instructions only | Links, consistency and archive preservation; no app build or app tests |
 
+### Tiers and test plans
+
+Testing-workflow ticket 01 (2026-11-08). The scope is chosen by tier; a scope is named by a **test plan** in
+`TestPlans/`, so Claude and Codex run the same sets (`xcodebuild test -testPlan <Name> …`, `-only-testing` narrows
+within it). Plans: **Unit** (the unit target), **TodayTrain**, **Workout**, **HistoryProgress**, **GymsExercises**,
+**ProfileAI**, **Review** (the older per-screen design-review suites) and **Full** (the default: both targets,
+everything). Every UI class sits in exactly one area plan, each area plan starts with the launch-only
+`AAAWarmUpUITests`, and `python3 scripts/test-plans.py --check` fails when a class is unmapped or a plan is stale
+— add a new UI class to `AREAS` in that script and run it without `--check`.
+
+| Tier | Checks |
+|---|---|
+| Every code edit | `xcodebuild build` (or `build-for-testing`) succeeds |
+| Small change | The affected unit suites (`-only-testing`) + one affected UI class + `scripts/explore.sh` screenshots for a visual change |
+| Ticket done | The ticket's area plan(s), or the Unit plan + named UI classes when the change is narrower; captures of the changed screens only (light/dark × default/AccessibilityL) |
+| Checkpoint (after N5) and release (R) | Full, with every capture — ask the user first (over ~20 min) |
+
+The Unit plan takes ~100 s on a booted simulator; run it whole rather than picking suites when a Domain change has
+several callers. Never remove coverage, weaken an assertion or claim untested behaviour works.
+
+**Quick exploration** (no test written): `scripts/explore.sh -s light,dark,light-axl -n <name>` installs the newest
+Debug build, grants motion and location so no permission alert covers the screen, launches with the design sample
+(`-f empty` for an empty store, `-- <args>` for more launch arguments) and saves one PNG per look. Use it for a new or
+changed screen and "does this look right"; write a capture test only for a screen worth guarding.
+
+**Reporting:** each ticket's evidence ends with this block (counts and exit codes from the xcresult, not a summary):
+
+```
+Verified: <plan or named tests> — <passed>/<total>, exit <code>, <xcresult path>
+Not verified: <what and why — e.g. device-only, untested hardware>
+Known flaky: <test — symptom — follow-up ticket>, or "none seen"
+```
+
 ### When to run the full UI suite
 
 Run it for a major release candidate, broad/uncertain changes whose impact spans core flows and
@@ -58,6 +91,12 @@ xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
   -sdk iphonesimulator -destination 'platform=iOS Simulator,name=WT-iPhone' \
   -only-testing:WorkoutTrackerUITests
 ```
+
+**Before a session's first run:** `scripts/prepare-test-simulator.sh [udid]` (default WT-Floodlight). It boots the
+simulator and leaves it booted — when xcodebuild boots one itself it shuts it down after the run, so every later run
+pays ~35 s again (measured: a 3-test run 8 s booted, 41–49 s otherwise) — and turns off iOS's keyboard minimisation so
+parallel clones show the software keyboard. Then build once (`build-for-testing`) and rerun with
+`test-without-building` while only tests change; a no-change `xcodebuild test` still spends ~13 s on the build.
 
 For targeted checks, narrow `-only-testing` to `WorkoutTrackerTests/<Suite>` or
 `WorkoutTrackerUITests/<Class>/<testMethod>`, using names from the actual tests. The commands
@@ -114,6 +153,15 @@ rerun before diagnosis.
   service error, restart that service (2026-09-17: `pkill -9 -f CoreSimulatorService` fixed it).
   Coordinate with other runs before restarting services. Repeated simulator install failures
   after fixing the build may require erasing the dedicated test simulator, which deletes its data.
+- **Poll with an early exit, never `for _ in 0..<N where !cond { … }`.** A `for … where` loop evaluates `cond` on
+  all N iterations even after it holds (the `where` only skips the body), and each XCUITest query costs 0.1–1 s, so a
+  10-step visibility poll spent ~11 s on an element already on screen. Write
+  `for _ in 0..<N { guard !cond else { break }; … }` and keep the assertion after the loop. Ticket 01 rewrote all 85
+  such loops: `CardioUITests` went from 617 s to 362 s.
+- **A UI test that times out right after a tap with "App event loop idle notification not received" is an app hang,
+  not a slow test:** XCTest attaches a spindump to that step (`xcrun xcresulttool export attachments --path <xcresult>
+  --output-path <dir> --test-id '<Class>/<test>()'`); read the app's main thread before touching timeouts. The
+  intermittent cardio start was the main thread blocked in a synchronous notification-center call (ticket 01).
 - UI tests launch with `-uiTestReset` into a disposable store. Without `-uiTestHeartRate`, they
   use `DisabledHeartRateProvider`, preventing HealthKit permission sheets from obscuring tests.
   Fixture flags must also be guarded by `WorkoutTrackerStore.fixtureIsEnabled`.

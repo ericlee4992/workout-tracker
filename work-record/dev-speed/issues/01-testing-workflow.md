@@ -90,4 +90,60 @@ Findings:
   `-uiTestReset` launch seeds the full catalog into an empty store — measured under the UI timing below.
 - Builds dominate small checks: 21–29 s of a ~30 s "build + one suite" check is the build.
 
+**One UI class** (`CardioUITests`, 9 tests, serial, booted WT-Floodlight): **617 s, 9/9 passed, exit 0** (33–97 s per
+test). The xcresult step timeline of `testIndoorPhoneMotionDefaultCapture` (39 s) showed where it goes:
+- each launch ~11.4 s: 1.6 s ending the previous app, **5.5 s "Setting up automation session"** (XCTest's own), 4.4 s
+  until the app is idle (start-up incl. seeding the catalog into the empty `-uiTestReset` store);
+- then **~27 s in `reach()` polls on elements already on screen**: `for _ in 0..<10 where !visible() { … }` evaluates
+  `visible()` (≈1 s of queries) on all 10 iterations — `where` only skips the body. 85 such loops in 29 UI-test files.
+
+### 2. Changes (commit `38fa5c6`)
+
+- **Polling loops** — all 85 `for _ in 0..<N where C { body }` → `for _ in 0..<N { guard C else { break }; body }`
+  (mechanical, same bound/body; the assertions after the loops unchanged; no condition has side effects — checked:
+  all are exists/isHittable/frame/value/`waitForExistence` reads). **After: `CardioUITests` 362 s, 9/9, exit 0
+  (−41 %)**; e.g. `testIndoorPhoneMotionDefaultCapture` 39 → 17 s, `testOutdoorRouteDefaultCapture` 65 → 29 s.
+- **The cardio-start flake was an app hang** (both failing xcresults of 2026-11-08 kept in session
+  `7de0aa3c…/scratchpad`, `s5cardio.xcresult` and `main3.xcresult`): after the Start tap XCTest got no idle for 60 s
+  ("App event loop idle notification not received") and attached a spindump. Both spindumps show the main thread for
+  all samples in `WorkoutStartFlow.startNew` → `CardioSession.start` (`Cardio.swift:319`) → `RestTimerService.skip` →
+  `UserNotificationScheduler.cancel()` (`RestTimer.swift:65`) → `removePendingNotificationRequests` → a synchronous
+  XPC reply from the simulator's notification daemon that never came. So: the daemon's state (bad since ~02:00 on
+  11-08), not the test; and on a phone with a slow daemon the same freeze would hit a cardio start or any rest
+  start/skip. **Fix (app):** `UserNotificationScheduler` sends every notification-center call through one private
+  serial queue — off the main thread, still in call order. It also closes a latent race: `schedule` removed
+  synchronously but added in a detached `Task`, so `schedule` then `cancel` could leave a stale "Rest complete".
+  Unit plan after the fix: **1112/1112, exit 0, 100 s**. The test's 10 s wait is unchanged (no longer timeout).
+  (Ruled out first: the rest-alarm audio session — UI-test runs use `SilentRestAlarm`; motion/location prompts — UI
+  tests collect no sensors.)
+- **Keyboard on parallel clones** (the 7 goals-keyboard failures of the Phase 1 run, `p1.xcresult`): the keyboard
+  element existed at y 976 on a 932-pt screen — iOS had minimised it for a hardware keyboard. The base simulator's
+  `com.apple.keyboard.preferences` had `HardwareKeyboardLastSeen` and `AutomaticMinimizationEnabled` true; clones copy
+  them and have no Simulator window to say otherwise. `scripts/prepare-test-simulator.sh` sets both false (and boots
+  the simulator, leaving it booted).
+- **Warm-up:** `AAAWarmUpUITests/testLaunchReachesTheTabBar` (launch + tab bar, 60 s) runs first in every area plan.
+- **Test plans:** `TestPlans/` Full (default) · Unit · TodayTrain · Workout · HistoryProgress · GymsExercises ·
+  ProfileAI · Review, written and checked by `scripts/test-plans.py` (every UI class in exactly one area plan; coverage
+  off). `xcodebuild -showTestPlans` lists all 8; CI's `-only-testing:WorkoutTrackerTests` and
+  `simulator_export.sh` keep working under the default Full plan.
+- **Exploration:** `scripts/explore.sh`. **Progress tab:** `scripts/test-progress.sh` now counts Swift Testing and
+  serial XCTest lines (it showed 0 for both before).
+### 3. Verification so far (2026-11-08/09, WT-Floodlight, session `b075476f…` scratchpad `m/`)
+
+- **Cardio-start fix proven by reproduction:** with the simulator's `usernotificationsd` paused (`kill -STOP`, resumed
+  after), `CardioUITests/testSavedDistanceEditor…`: **old `RestTimer.swift` (from `main`) → failed at
+  `CardioUITests.swift:58`, "App event loop idle notification not received", exit 65** (`stop-old.xcresult`) — the
+  exact flake, now on demand; **fixed build → passed (34.5 s), exit 0** (`stop-fixed.xcresult`).
+- **Parallel keyboard/typing run 1** (after `prepare-test-simulator.sh`; 3 workers; warm-up + `FloodlightAIRoutineUITests`
+  + `FloodlightLiveUITests` + `FloodlightProfileUITests`): **42/42 passed, exit 0**, 1771 s (`par1.xcresult`) — incl.
+  the 7 goals-keyboard tests, the number-pad test and the typing tests that failed on clones in the Phase 1 run. The
+  wall time is set by the clone that gets the 15-test AI-routine class (XCTest spreads whole classes).
+- **Exploration script:** `scripts/explore.sh -s light,dark,dark-axl` on WT-Floodlight: exit 0, 3 PNGs in ~18 s, no
+  permission alert; first version set the simulator's appearance, but the app's own `-appearance` setting wins, so it
+  now passes `-appearance` like the capture tests.
+
+- **Not done (and why):** skipping the catalog reconcile in the unit-test host — fingerprint-gated, < 1 s. Candidate
+  follow-up, not in this ticket: a pre-seeded UI-test store copied per launch could save part of the 4.4 s idle wait
+  on each of the suite's ~400 launches; needs care with the SwiftData store files.
+
 ## Comments
