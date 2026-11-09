@@ -86,6 +86,37 @@ in AccessibilityL captures.
 
 ## Progress
 
-Branch `ericlee4992/soft-06-profile` off `main` `5f8ff92` (N2 merged). Building.
+Branch `ericlee4992/soft-06-profile` off `main` `5f8ff92` (N2 merged).
+
+**Built (`b7e9c79`):** `ProfileTabView` (new root: account card, Settings rows, Help, version; `ProfileRow` moves the
+value under the title at AX sizes; one VoiceOver element per row, e.g. "Ask AI, Sign In"); `SettingsView` is now the
+"Units, rest and appearance" page; `ExportBackupView` (Export card, only-copy notice, Safety copy); the account card
+(`SettingsAccountRow`) restyled like the prototype — 64 pt dark disc, name at title3, "Signed in with Apple/Google";
+`SettingsZoneLadder` removed (unused: the zones sheet lists the zones). New ids: `profileSettings`,
+`profileExportBackup`, `profileVersion`, `profileRestoreFailed`; every old id kept. Test helpers
+`openProfileSettings()` / `openExportBackup()` in `TabNavigation.swift`; tests updated in FloodlightSettings, Export,
+BackupExport, FloodlightFeedback, FloodlightTour, FloodlightWorkoutTab, SafetyCopy, RedesignScreenshot.
+
+**Test scope (DEVELOPMENT → layout within the Profile area + moved settings):** build; every UI class that opens
+Profile or a moved setting — AAAWarmUp, FloodlightSettings (captures: Profile root `s6-profile-*`, the two
+sub-pages, light/dark × default/AXL), Export, FloodlightFeedback, FloodlightTour, SafetyCopy, FloodlightAccount,
+FloodlightGoogle, FloodlightProfile, FloodlightAIAccess, FloodlightWhatsNew, and the named tests
+RedesignScreenshot `testUnitSystemDefault/Accessibility`, `test05_settings`, HeartRate
+`testZonesAreReachableFromSettings`, FloodlightWorkoutTab `testAppearanceReachesScreensAndSheets` (~73 tests,
+3 workers). No unit change except removing an unused view.
+
+**Results:** build exit 0. UI run (`s6-ui1.xcresult`, 3 workers): **72 passed, 1 failed, 1 skipped** (exit 65) — the
+failure `FloodlightSettingsUITests/testTabRoundTripDropsTheFileCard` timed out waiting for the system share sheet's
+Close button on parallel clone 3 (inside `cancelShareSheet()`, before anything S6 draws); **rerun serially ×3: 3/3
+passed** (`s6-ui1-rerun.xcresult`, exit 0). The skip is `BackupExportUITests` (needs `WT_BACKUP_EXPORT=1`).
+**Captures looked at** (scratchpad `s6-caps/named/`): Profile root light/dark × default/AXL with and without the
+account (`s6-profile-*`, `profile-settings-signedin/out-*`), Export & backup (`s6-export-backup-*`), Units, rest and
+appearance (`floodlight-09-x01-*`), the tour's Profile step (`tour-s6-*`). Every string whole at both sizes; at AXL the
+row values sit under their titles; the account card is the first and largest block signed in and out.
+
+**Verified:** build; the UI scope above (73 tests; the one clone failure passes serially ×3); captures.
+**Not verified:** VoiceOver by a person; a real phone; the Goals & tracking group (N3/N9 add it).
+**Known flaky:** `testTabRoundTripDropsTheFileCard` — the share sheet's Close button on a parallel clone (passes
+serially).
 
 ## Comments
