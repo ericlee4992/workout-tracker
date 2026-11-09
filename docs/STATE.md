@@ -5,8 +5,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-09) — Phase 1 (S1–S4), S5 and the testing-workflow ticket merged into `main`; nothing in
-  progress. Next: Phase 2 (N1) — design approved by the user 2026-11-09 ("all as proposed"; recorded in the N1 ticket).**
+- **Resume here (2026-11-09) — Phase 1 (S1–S4), S5 and the testing-workflow ticket merged into `main`. In progress:
+  N1 on `ericlee4992/nutrition-01-safety-copy` — built and verified, in Codex review; waiting for the user's wording
+  approval (strings in the N1 ticket; screenshots sent). Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,
+  in N6) recorded.**
   **Goal:** the user's approved Soft redesign (Phase 1 — done) then nutrition (Phase 2), shipped to testers together as
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
@@ -25,8 +27,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
      ([ticket](../work-record/dev-speed/issues/01-testing-workflow.md): before/after table, evidence). New workflow:
      `scripts/prepare-test-simulator.sh` first; scopes are test plans (DEVELOPMENT → Tiers and test plans);
      `scripts/explore.sh` for quick screenshots; reviewer rerun rule and reporting block in AGENTS.
-  2. N1 (safety copy) — **design approved 2026-11-09, all as proposed** (the ticket's table + Continue/Quit on a failed
-     copy, wording to show the user); build on `ericlee4992/nutrition-01-safety-copy` off `main`.
+  2. N1 (safety copy) — **built** on `ericlee4992/nutrition-01-safety-copy` (design approved 2026-11-09; files only;
+     evidence in the [ticket](../work-record/nutrition/issues/01-safety-copy.md)). Codex review: the first session died
+     on an API "Bad Request" after its checks passed (`/tmp/codex-n1/`); a fresh session writes
+     `work-record/nutrition/codex-review-n1.md`. Then the user's wording OK → merge → N2.
   3. N2 → **S6** ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md): account card,
      grouped rows to sub-pages, Help; Goals & tracking filled by N3/N9 — confirm groups with the user) → N3 … N10 → R.
      Testing plan: per-ticket unit + UI + changed-screen captures; a core-flow check after N5 (ask); full suite at R (ask).
@@ -38,8 +42,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   runs show in ONE reused Orca tab "Test progress (Claude r2)" `term_ac1339dc-202d-4c10-bab3-b528de726cbd` (send
   `bash scripts/test-progress.sh <log> <count> "<title>"` to it; never open a new one); ask before runs over ~20 min;
   explain plainly; screenshots by SendUserFile **and** Preview.
-  **Codex:** Orca terminal `term_0b783489-9319-4408-a505-664cb8193333` ("Review testing workflow", this worktree,
-  fresh 2026-11-09, ~86% context left, runs without approval prompts); the older `term_1ae47c82-…` ("Review soft redesign round 2") is at
+  **Codex:** Orca terminal `term_6ce8444b-90ab-444c-be37-226992cf09d7` ("Review nutrition N1", this worktree, fresh
+  2026-11-09); the previous `term_0b783489-…` returns "Bad Request" on every request — do not reuse it; the older `term_1ae47c82-…` ("Review soft redesign round 2") is at
   13% context — retired. If a Codex session asks approval for a simulator/orca command: read the `$ ` line, then send
   `--text "y"` alone; read any new script it runs before approving. It writes "Verdict: not clear" as a checkpoint while its UI run is going — act on the final
   report. Brief it to use WT-iPhone27 `47D21838-…`; Claude uses WT-Floodlight `9E822EF6-…`.
