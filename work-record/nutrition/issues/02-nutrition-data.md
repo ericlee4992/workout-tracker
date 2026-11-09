@@ -72,10 +72,33 @@ Branch `ericlee4992/nutrition-02-data` (on `main` `b911247`, N1 merged). **Done 
 - Export v12: JSON carries foodEntries, savedFoods, savedMeals (+items), nutritionGoals, bodyWeights and counts (all
   optional, so v1–v11 files decode); CSV unchanged (sets + cardio). Builds; **not yet tested**.
 
-**Left:** export round-trip unit test (encode v12 → decode equal; a v11 file still decodes); Unit plan; the Simulator
-migration rehearsal (a store in the shipped format in the app's real location → launch → one safety copy →
-`compare_stores.py` exit 0); README if needed; Codex review.
-**Question for the user (morning):** the ticket's "Import" — the app has no Import (JSON can't be restored in the
+**Done 2026-11-09 (session 2, `e7b75b0`+):**
+- `NutritionExportTests` (4): every nutrition row with all optionals set and none set, counts, order, `savedFoodID`
+  links, serving options, items in order; v12 encode → `ExportJSON.decode` equal and no `null`; an empty store; a v11
+  file (the five nutrition keys and four counts removed, `schemaVersion` 11) decodes with nutrition absent; the CSV stays
+  sets and cardio. **40/40 over 10 iterations, exit 0.** The five tests pinning `schemaVersion == 11` moved to 12.
+- **Unit plan 1163/1163, exit 0** (98 s). **Export UI:** warm-up + `ExportUITests` 2/2 passed; `BackupExportUITests`
+  skipped by design (runs only with `WT_BACKUP_EXPORT=1`).
+- **Simulator migration rehearsal (WT-Floodlight, N2 build, binary hash checked against the derived data):** the sim's
+  own `Application Support` backed up (11 files, SHA-256 list); `Fixtures/PreNutrition.store` put there as the only
+  `default.store`; container captured; launch → **exactly one** `SafetyCopies/2026-11-09T08-58-39/` whose
+  `default.store` is byte-identical to the fixture (manifest `appVersion` "0.1.0 (9)"); the app opened on the fixture's
+  unfinished workout (screenshot). `verify_container.py` on the after-capture: exit 0. `compare_stores.py before after`:
+  every table and old row present, six new empty tables, preferences unchanged — **exit 1 on one value**: unfinished
+  workout Z_PK 19 gained `sensorMaxHeartRateBpm` 185 / `Estimated` 0 (`CardioRecorder.refresh()`, which runs when the
+  app resumes an unfinished workout). **Same rehearsal with `main` `b911247`** (scratch build): no safety copy (no
+  format change) and the **identical** difference — pre-existing resume behaviour, not the migration.
+  `compare_stores.py <main after> <N2 after>`: **exit 0** (only the six new tables added). The sim's own data was put
+  back and byte-compared (11/11 identical); the N2 build reinstalled.
+- README: no change (nothing visible changes in N2; nutrition screens come with N4/N5).
+
+**Verified:** models, math, guard, migration fixture (31/31 earlier, in the Unit plan now); export v12 round trip;
+Unit plan 1163/1163; ExportUITests; Simulator migration rehearsal (above).
+**Not verified:** a real phone (Gate S at the release R); the build 8/9 TestFlight store itself (the fixture is in the
+shipped format, proven from its metadata); Import (none exists — question below).
+**Known flaky:** none seen.
+
+**Left:** the user's answer on Import; Codex review (`work-record/nutrition/codex-review-n2-prompt.md`).**Question for the user:** the ticket's "Import" — the app has no Import (a JSON export cannot be restored in the
 app). Build one (replace or merge, its screens) or drop it from N2? Not built; nothing else depends on it.
 
 ## Comments
