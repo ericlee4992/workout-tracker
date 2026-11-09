@@ -104,7 +104,7 @@ final class NutritionGoalsUITests: XCTestCase {
 
     /// Skip on the Welcome page → the goals sheet; an activity chosen before the details is kept for the first goal.
     func testWelcomeSkipOffersTheGoalsSheetOnce() {
-        app.launchArguments = ["-uiTestReset", "-uiTestOnboarding", "-uiTestFoodGoalsStep"]
+        app.launchArguments = ["-uiTestReset", "-uiTestOnboarding", "-uiTestOnboardingFresh", "-uiTestFoodGoalsStep"]
         app.launch()
         let skip = app.buttons["welcomeSkip"]
         XCTAssertTrue(skip.waitForExistence(timeout: 15))

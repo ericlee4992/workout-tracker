@@ -79,6 +79,36 @@ Branch `ericlee4992/nutrition-03-goals` off `main` `6e53446` (S6 merged).
   goals saved as dated `NutritionGoal`s with inputs + override flags; the AI training profile prefills height/weight
   from here; the onboarding "Food goals" step; UI tests + captures; Codex.
 
+**Built (`a449967` … HEAD):**
+- **Storage:** `AppPreferences.heightValue/heightUnit/heightCm/sex` (+ `setHeight`), new stored enum `HeightUnit`
+  (pinned); guard `approvedFingerprint` → `0a01d115…` (D80 approval noted beside it); export v12 `preferences` carries
+  them (v12 is unreleased, so no new version). Weight = the latest `BodyWeightEntry`; date of birth = the existing
+  `AppPreferences.birthDate`, **shared with the heart rate zones sheet** (it still edits the same value — one place in
+  storage, two ways in; the zones row then shows e.g. 190 bpm from the age).
+- **`Domain/NutritionGoalStore`:** details → inputs → resolve → store; same-day changes update today's goal, a later
+  change starts a new dated goal; typed numbers stay; nothing stored while details are incomplete or unchanged.
+  `NutritionGoalStoreTests` (6).
+- **Screens:** `PersonalDetailsView` (+ shared `PersonalDetailsList`: number/height/date editors with Cancel/Save, Sex
+  menu), `NutritionGoalsView` (hero calories, macro tiles, tap → `NumberEditorSheet`, Activity/Goal menus
+  (`GoalChoiceMenus`), Personal details row with the summary as subtitle, Recalculate), Profile rows show the goal
+  ("2,763 cal" / Not set). Choices made before the details are complete are held and applied to the first goal.
+- **Onboarding step:** `FoodGoalsSetupSheet` after the Welcome page is answered (Skip, or the tour it started ends),
+  once, when there is no goal; Done (edits apply immediately). UI tests opt in with `-uiTestFoodGoalsStep`.
+- **Ask AI:** a height/weight the training profile lacks comes from Personal details (marked typed, so a profile save
+  stores it); `TrainingProfileTests` +1.
+- **Strings beyond the approved list** (for the user at merge): editor titles "Calories" (and the macro names),
+  "Done", placeholders "Feet"/"Inches", the error alert "Couldn't save"; "Not set" reused.
+
+**Evidence:** `NutritionGoalsTests` 80/80 ×10; Unit plan **1177/1177**, exit 0 (`n3-unit.xcresult`, before the Ask AI
+test; `TrainingProfileTests` 15/15 after it); UI run 1 (`n3-ui1`): NutritionGoals (5) + FloodlightSettings +
+FloodlightTour + FloodlightProfile + HeartRate zones — **37/37**; run 2 (`n3-ui2`): NutritionGoals + all 32
+`AskAIUITests` — **38/38** (the "known failure" `testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce` passed); run 3
+(`n3-ui3`, onboarding + tour + account + Google): 23/25 — the warm-up's clone `kAXErrorServerNotFound` and the new
+onboarding test, which lacked `-uiTestOnboardingFresh` (fixed; then **2/2** serially, `n3-onb.xcresult`). Captures
+looked at (`n3-caps2/`, `n3-caps3/`, `n3-caps4/`): Profile, Nutrition goals, the edit sheet, Personal details, the
+onboarding sheet empty and filled, light/dark × default/AXL; the goals page's details summary moved under its title
+(it wrapped mid-line as a trailing value).
+
 **First-time goal setup (the user, 2026-11-09: "Both"):** the onboarding "Food goals" step stays in N3 (new
 installs: after Welcome, skippable) **and** N5 adds a "Set your goals" invitation in Today's food area when there is
 no goal (reaches the existing testers, who never see Welcome again). The onboarding step's screen and strings are
