@@ -32,6 +32,16 @@ number.
   before building.
 - A plain line that this is an estimate, not medical advice (wording to approve).
 
+## Added 2026-11-09 (D80): Personal details
+
+- **Profile → Settings → Personal details** (new page, top of Settings): weight, height, date of birth, sex — the one
+  place these live. The goal calculation reads them (no separate inputs on the goals page beyond activity and goal);
+  the heart rate zones read the date of birth from here (today it is entered in the zones sheet — move it, keep the
+  value); the AI training profile's height/weight prefill from here. Weight later comes from Body weight (N9).
+  Storage is decided in this ticket (stored-format change before R — the guard pin moves again; testers still get
+  one update). Strings to the user.
+- **Profile → Goals & tracking → Nutrition goals** goes above Heart rate zones (S6 created the group).
+
 ## Acceptance
 
 1. Calculation unit tests pass for the examples in the ticket (to be written with the user's numbers).

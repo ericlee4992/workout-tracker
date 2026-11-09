@@ -2,11 +2,10 @@ import SwiftData
 import SwiftUI
 
 /// Soft redesign S6: the Profile tab's root, laid out like the approved prototype (`SoftProfileScreen`, tag
-/// `design/soft-approved-2026-11-07`) — the account card, then short grouped rows that open sub-pages or sheets, then
-/// Help and the app's version. Every setting that sat inline on the old page (`SettingsView` before S6) is one tap
-/// further: Units, rest and appearance (`SettingsView`), Heart rate zones and Ask AI (their sheets), Export & backup
-/// (`ExportBackupView`). N3 and N9 add the Goals & tracking group between Settings and Help; it is not drawn while it
-/// has no rows.
+/// `design/soft-approved-2026-11-07`) and grouped as the user chose (D80): the account card, **Goals & tracking** (what
+/// you track — Heart rate zones now; N3 adds Nutrition goals, N9 Body weight and Apple Health), **Settings** (what you
+/// set once — Preferences, Ask AI, Export & backup; N3 adds Personal details), then Help and the app's version. Every
+/// setting that sat inline on the old page (`SettingsView` before S6) is one tap further.
 struct ProfileTabView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
@@ -55,6 +54,7 @@ struct ProfileTabView: View {
                         }
                     }
                 }
+                goalsAndTracking
                 settings
                 help
                 Text("Version \(WorkoutTrackerStore.appVersion)")
@@ -127,17 +127,27 @@ struct ProfileTabView: View {
             lastExport: lastExportSeconds.map(Date.init(timeIntervalSinceReferenceDate:)), now: .now)
     }
 
-    private var settings: some View {
+    /// What the user tracks (D80). N3 adds Nutrition goals above Heart rate zones; N9 Body weight and Apple Health.
+    private var goalsAndTracking: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("Settings")
+            SectionHeader("Goals & tracking")
             LookList(separatorInset: 54) {
-                ProfileRow("Units, rest and appearance", symbol: "slider.horizontal.3") { showSettings = true }
-                    .accessibilityIdentifier("profileSettings")
                 let max = maxHeartRate
                 ProfileRow("Heart rate zones", symbol: "heart", value: max.map { "\($0) bpm" } ?? "Not set") {
                     showMaxHeartRateSheet = true
                 }
                 .accessibilityIdentifier("heartRateZonesSettings")
+            }
+        }
+    }
+
+    /// What the user sets once (D80). N3 adds Personal details at the top.
+    private var settings: some View {
+        VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader("Settings")
+            LookList(separatorInset: 54) {
+                ProfileRow(SettingsView.pageTitle, symbol: "slider.horizontal.3") { showSettings = true }
+                    .accessibilityIdentifier("profileSettings")
                 ProfileRow("Ask AI", symbol: "sparkles", value: askAIStatus) { showAskAISheet = true }
                     .accessibilityIdentifier("askAISettings")
                 // The one line the old Export section had to keep saying (codex-review 06) rides on the row.

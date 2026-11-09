@@ -165,7 +165,7 @@ final class FloodlightWorkoutTabUITests: XCTestCase {
     func testAppearanceReachesScreensAndSheets() {
         // No `-appearance` argument here: a launch argument overrides the stored setting.
         launch(["-uiTestTemplate"])
-        app.openProfileSettings()  // S6: Profile → Units, rest and appearance
+        app.openProfileSettings()  // S6: Profile → Preferences
         // The simulator runs light: System follows it; Light and Dark override it.
         for (choice, light) in [("Dark", false), ("System", true), ("Light", true), ("Dark", false)] {
             // Floodlight ticket 09: System / Light / Dark are pills inside `appearanceSetting`.

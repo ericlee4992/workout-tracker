@@ -35,8 +35,8 @@ extension XCUIApplication {
         tab.tap()
     }
 
-    /// S6: Profile → "Units, rest and appearance" (units, appearance, the rests, the template prompt, the history
-    /// note — the old Settings page's first half).
+    /// S6: Profile → Preferences (units, appearance, the rests, the template prompt, the history note — the old
+    /// Settings page's first half).
     func openProfileSettings(file: StaticString = #filePath, line: UInt = #line) {
         openProfilePage("profileSettings", landmark: "appUnitPreference", file: file, line: line)
     }

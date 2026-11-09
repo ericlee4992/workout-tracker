@@ -58,7 +58,7 @@ final class RedesignScreenshotUITests: XCTestCase {
     private func captureUnitSystem(large: Bool) {
         launch(["-uiTestHeartRate"] + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : []))
         app.openTrain()
-        app.openProfileSettings()  // S6: Profile → Units, rest and appearance
+        app.openProfileSettings()  // S6: Profile → Preferences
         selectUnitSystem("Metric")
         shoot("unit-settings-metric-\(large ? "axl" : "default")")
         selectUnitSystem("U.S. customary")

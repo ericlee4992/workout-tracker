@@ -1,10 +1,10 @@
 import SwiftData
 import SwiftUI
 
-/// X01 Settings (Floodlight ticket 09), since Soft redesign S6 the page Profile → "Units, rest and appearance"
+/// X01 Settings (Floodlight ticket 09), since Soft redesign S6 the page Profile → Preferences
 /// (`ProfileTabView`): **Units** is the bold element — two tiles showing the units you will see, with the one line
 /// saying logged sets keep theirs — then Appearance, Workout (rest defaults, the template prompt) and the one-time D51
-/// history note at the end. Heart rate zones, Ask AI, Export & backup, the account and Help moved to Profile's root.
+/// history note at the end. Heart rate zones, Ask AI, Export & backup, the account and Help moved to Profile's root (D80).
 /// Every control writes through the canonical `AppPreferences` row (duplicates resolved by
 /// `CanonicalRow`), exactly as the old `AppSettingsSection` did.
 struct SettingsView: View {
@@ -18,7 +18,7 @@ struct SettingsView: View {
 
     @State private var titleVisible = false
     /// S6: the page's title is the Profile row that opens it.
-    static let pageTitle = "Units, rest and appearance"
+    static let pageTitle = "Preferences"
     var title = SettingsView.pageTitle
 
     private var preferences: AppPreferences? { AppPreferences.canonical(of: allPreferences) }

@@ -121,7 +121,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         page(to: any("profileVersion"), name: "s6-profile-\(suffix)")
         scrollToTop()
 
-        // X01, now Profile → Units, rest and appearance: units first, then down to the history note.
+        // X01, now Profile → Preferences: units first, then down to the history note.
         app.openProfileSettings()
         Thread.sleep(forTimeInterval: 1.0)
         shoot("floodlight-09-x01-\(suffix)-1")

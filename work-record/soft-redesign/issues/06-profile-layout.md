@@ -84,6 +84,14 @@ the account card and every Settings row are in the first viewport. Control dress
 layout — rows wrap their titles at AX sizes; the value moves under the title (`LookRow` subtitle) where needed; checked
 in AccessibilityL captures.
 
+## Regrouped (the user, 2026-11-09, D80)
+
+Looking at the captures with reference screenshots, the user chose **Goals first**: account card → **Goals & tracking**
+(Heart rate zones now; Nutrition goals N3, Body weight + Apple Health N9) → **Settings** (Preferences, Ask AI, Export &
+backup; Personal details from N3) → Help → version. "Units, rest and appearance" is renamed **Preferences** (row and
+page title). The Personal details page is built in N3 (its ticket updated). This supersedes the wireframe above in
+group order and the one row name; everything else stands.
+
 ## Progress
 
 Branch `ericlee4992/soft-06-profile` off `main` `5f8ff92` (N2 merged).
