@@ -1,17 +1,17 @@
 # Current project state
 
-Updated **2026-11-09, session 2** (N1, N2, S6 merged, `main` `6e53446`; N3 next; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-09, session 2** (N1, N2, S6 merged, `main` `6e53446`; N3 in progress; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-09, session 2) — S6 merged into `main` `6e53446`; N3 next.** N2 (`5f8ff92`) and S6 merged
-  (S6: Profile goals first, D80; strings approved by the user; Codex clear round 2). **N3** on
-  `ericlee4992/nutrition-03-goals` off `main`: the goal calculation (approved as proposed), onboarding step, Profile →
-  Goals & tracking → Nutrition goals, and — added by D80 — **Personal details** (weight, height, date of birth, sex: one
-  place, read by the zones, goals and AI; storage decided in N3, a second pre-R format change) — see the
-  [N3 ticket](../work-record/nutrition/issues/03-goals.md). Then N4 → N5. Still to ask: the four N1 strings; N6's
-  deploy + GPT-6.1 Terra switch. Auto-handoff turned off by the user.
+- **Resume here (2026-11-09, session 2) — N3 in progress** on `ericlee4992/nutrition-03-goals` (pushed). `main` =
+  `6e53446` (N1, N2, S6 merged; S6 regrouped Profile goals first, D80). N3 so far: the approved calculation
+  (`Domain/NutritionGoals.swift`, tests 80/80); **mock of Nutrition goals + Personal details approved by the user**
+  with its strings, tap-to-edit sheets, and the 1,350 floor for "Prefer not to say". **Next:** wire it (storage in
+  `AppPreferences` + `BodyWeightEntry`, dated goals, editors, onboarding step, AI prefill), tests, captures, Codex —
+  steps in the [N3 ticket](../work-record/nutrition/issues/03-goals.md) Progress. Then N4 → N5. Still to ask: the
+  four N1 strings; N6's deploy + GPT-6.1 Terra switch. Auto-handoff off (the user).
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
   deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,

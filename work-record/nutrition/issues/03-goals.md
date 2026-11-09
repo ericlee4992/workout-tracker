@@ -61,12 +61,22 @@ Branch `ericlee4992/nutrition-03-goals` off `main` `6e53446` (S6 merged).
   `calorieFloor`, `calories`, `suggested`, `resolve(_:overrides:)` (typed numbers stay; fat = 25 % of the calories in
   force; carbs the rest, never negative), `age(birthDate:on:)`. `NutritionGoalsTests` (8, hand-worked examples in each
   test's comment): **80/80 over 10 iterations, exit 0** (`n3-goals.xcresult`). Whole kcal and grams.
-  **For the user to confirm:** "Prefer not to say" uses the average floor too (1,350 kcal), as the formula uses the
-  average constant; the ticket named only the women/men floors.
+  **The user (2026-11-09): "Prefer not to say" uses the average floor, 1,350 kcal** (as the formula's average constant).
 - **Storage (proposed):** Personal details live in `AppPreferences` (the canonical settings row, which already holds
   `birthDate` for the zones): new optional `heightValue` + `heightUnit` (entered, D52-style) and `sex`; weight is a
   `BodyWeightEntry` (N2), the latest one shown. Additive — the guard pin moves once more before R.
-- **Next:** mock the Personal details and Nutrition goals pages (and the onboarding step) with sample data, list the
-  strings and the "estimate, not medical advice" line, and show the user before wiring.
+- **Mock shown and approved (the user, 2026-11-09, `1f0ddb4`, captures `n3-caps/sheet-n3-*.png`):** Nutrition goals =
+  the calories (hero) over Protein / Carbs / Fat tiles in the macro hues, then "Based on": Activity, Goal, Personal
+  details; Personal details = Weight, Height, Date of birth, Sex rows. **Editing: tap a number → a small sheet with
+  Save** (the user chose it over always-open fields); a typed number reads "Typed by you" and Recalculate appears.
+  **Strings approved:** "Nutrition goals", "cal a day", "Calculated" / "Typed by you", "Based on", "Activity"
+  (Sedentary, Light, Moderate, Very active, Extra active), "Goal" (Lose weight, Maintain, Gain weight), "Recalculate",
+  "An estimate from your details, not medical advice.", "Personal details" (Weight, Height, Date of birth, Sex — Male,
+  Female, Prefer not to say), "Used for your nutrition goals, heart rate zones and AI suggestions."
+- **Next — wire it:** storage (above; export carries the new preference fields; guard pin + migration test move);
+  Personal details editors (weight writes a `BodyWeightEntry`; height `(value, unit)`; date of birth = the existing
+  `AppPreferences.birthDate`, so the zones keep their value — the zones sheet then points to Personal details);
+  goals saved as dated `NutritionGoal`s with inputs + override flags; the AI training profile prefills height/weight
+  from here; the onboarding "Food goals" step; UI tests + captures; Codex.
 
 ## Comments
