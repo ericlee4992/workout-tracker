@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-08, handoff** (Soft redesign S1–S4 and S5 merged into `main` `274f0ed`; next the testing-workflow ticket, then N1; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-08, handoff** (Soft redesign S1–S4 and S5 merged into `main`; next the testing-workflow ticket, then N1; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
@@ -11,9 +11,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
   `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Git (verified at handoff):** `main` = `origin/main` = **`274f0ed`** (S1→S4, S5 and all notes). This worktree is on
+  **Git (verified at handoff):** `main` = `origin/main` = the STATE handoff commit (S1→S4, S5 and all notes — `git log -1 main`). This worktree is on
   `ericlee4992/soft-05-today-up-next` at the same commit (merged, clean). The home checkout `…/orca/projects/Health App`
-  is on clean `main` `274f0ed`. **Start new work on a new branch off `main`** (e.g. `ericlee4992/dev-01-testing-workflow`).
+  is on clean `main` at the same commit. **Start new work on a new branch off `main`** (e.g. `ericlee4992/dev-01-testing-workflow`).
   **Done 2026-11-07/08:** S4 (History day journal; Progress Training charts + visible "…" menu; shared
   `refreshingNow`); the combined Phase 1 run (238/250 parallel → 3 S1–S4 test assumptions fixed; all ~777 captures
   checked); README refreshed; **S5 — Today's up next** (D77: learned split, "Not today", optional My Split in Train,
