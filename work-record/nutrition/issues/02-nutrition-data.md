@@ -1,7 +1,7 @@
 # N2 — Nutrition data model, migration, export/import
 
 Type: change
-Status: **approved** (the user, 2026-11-09: "Approve N2's data change" — the stored-format change and the guard's new pin; **My meals included**)
+Status: **done — Codex clear (round 2)**; approved (the user, 2026-11-09: "Approve N2's data change" — the stored-format change and the guard's new pin; **My meals included**)
 Blocked by: N1
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-02-data` off `main`.
@@ -104,9 +104,11 @@ README note; also its verification notes — `everyRowAndValueSurvivesTheMigrati
 `everyTableKeepsItsRowsAndKeyValuesThroughTheMigration` (it checks counts and key values; row-by-row is the
 rehearsal), and the nutrition-rows test now reopens the store in a second container and refetches every new row
 (`theMigratedStoreKeepsNutritionDataAcrossAReopen`). `NutritionMigrationTests` **40/40 over 10 iterations, exit 0**
-(`n2-migration-r2.xcresult`). Round 2 sent.
+(`n2-migration-r2.xcresult`).
 
-**Left:** Codex round 2.
+**Codex round 2 — clear** ([report](../codex-review-n2b.md), `0d03918`): Spec 0, Standards 0; it rebuilt and ran
+`NutritionMigrationTests` 40/40 itself, inspected the UI evidence (no UI change). **N2 done in code**; next: ff-merge
+`main`.
 
 **Import — dropped from N2 (the user, 2026-11-09: "Drop it from N2").** The app has never had an Import; the v12
 export carries every nutrition row, so a future Import can restore it. Acceptance 3 is read as "export v12 round-trips
