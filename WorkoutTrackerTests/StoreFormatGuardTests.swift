@@ -33,6 +33,12 @@ struct StoreFormatGuardTests {
     /// shipped binary.
     static let shippedFingerprint = "9569f6fdb6ee5ee8c69173946f9cd5d62c0b09787a961bc10340b83b23fefeba"
 
+    /// Nutrition N2 (approved by the user 2026-11-09: "Approve N2's data change"): `shippedFingerprint` plus FoodEntry,
+    /// SavedFood, SavedMeal, SavedMealItem, NutritionGoal and BodyWeightEntry — additive, so SwiftData migrates the
+    /// shipped format lightweightly (`NutritionMigrationTests`), behind N1's safety copy. Not yet shipped: the release
+    /// (R) ships it; until then this is the approved format, and `shippedFingerprint` stays the testers' format.
+    static let approvedFingerprint = "41b76904c14f314548fccbdd503e64b0ac3c1ac4ef951cfdd59db9720cea1bad"
+
     static func fingerprint(of types: [any PersistentModel.Type] = WorkoutTrackerStore.modelTypes) throws -> String {
         let model = try #require(NSManagedObjectModel.makeManagedObjectModel(for: types))
         let hex = { (data: Data) in data.map { String(format: "%02x", $0) }.joined() }
@@ -49,14 +55,14 @@ struct StoreFormatGuardTests {
         return hex(Data(SHA256.hash(data: Data(lines.joined(separator: "\n").utf8))))
     }
 
-    @Test func theStoredStructureIsTheShippedOne() throws {
+    @Test func theStoredStructureIsTheApprovedOne() throws {
         let current = try Self.fingerprint()
-        #expect(current == Self.shippedFingerprint, """
-            The store's pinned structure (entity version hashes and indexes) differs from what shipped builds use, so \
-            the update may change how testers' only copy of their data is stored. Stop before shipping: confirm the \
-            safety copy covers it (\(ticket) — the copy runs when the store's metadata no longer matches the model), \
-            follow DEVELOPMENT's migration rules (a legacy-store fixture from the installed commit), get the user's approval, and only then set \
-            `shippedFingerprint` to \(current).
+        #expect(current == Self.approvedFingerprint, """
+            The store's pinned structure (entity version hashes and indexes) differs from the approved one, so the \
+            update may change how testers' only copy of their data is stored. Stop before shipping: confirm the safety \
+            copy covers it (\(ticket) — the copy runs when the store's metadata no longer matches the model), follow \
+            DEVELOPMENT's migration rules (a store fixture in the format testers have, opened by the new model), get \
+            the user's approval, and only then set `approvedFingerprint` to \(current).
             """)
     }
 
@@ -89,6 +95,14 @@ struct StoreFormatGuardTests {
         "RoutineEquipment": ["dumbbells", "bench", "adjustableBench", "barbellRack", "cable", "smith", "pullupBar",
                              "dipStation"],
         "MuscleFamily": ["Chest", "Back", "Shoulders", "Arms", "Legs"],
+        // Nutrition N2 (approved 2026-11-09; first shipped in release R).
+        "MealSlot": ["breakfast", "lunch", "dinner", "snacks"],
+        "FoodSource": ["manual", "quickAdd", "saved", "recent", "myMeal", "barcode", "search", "photo", "label",
+                       "describe"],
+        "WeightGoal": ["lose", "maintain", "gain"],
+        "ActivityLevel": ["sedentary", "light", "moderate", "veryActive", "extraActive"],
+        "BiologicalSex": ["male", "female", "unspecified"],
+        "BodyWeightSource": ["app", "health"],
     ]
     // Not pinned: `AppPreferences.modelBrowseMuscleGroup` holds a catalog body-area name — catalog vocabulary (D24), not a
     // closed enum. A renamed area stays saved and keeps hiding categorized models until the user clears the filter, so a
@@ -109,6 +123,9 @@ struct StoreFormatGuardTests {
             "CardioDistanceSource": Self.rawValues(CardioDistanceSource.self),
             "HeartRateSource": Self.rawValues(HeartRateSource.self),
             "RoutineEquipment": Self.rawValues(RoutineEquipment.self), "MuscleFamily": Self.rawValues(MuscleFamily.self),
+            "MealSlot": Self.rawValues(MealSlot.self), "FoodSource": Self.rawValues(FoodSource.self),
+            "WeightGoal": Self.rawValues(WeightGoal.self), "ActivityLevel": Self.rawValues(ActivityLevel.self),
+            "BiologicalSex": Self.rawValues(BiologicalSex.self), "BodyWeightSource": Self.rawValues(BodyWeightSource.self),
         ]
         #expect(Set(current.keys) == Set(Self.shippedRawValues.keys))
         for (name, shipped) in Self.shippedRawValues {
@@ -189,6 +206,20 @@ struct StoreFormatGuardTests {
             else { workout.cardioPlanData = nil; workout.plannedCardio = planValues }
             try expectShape(owner == "template" ? template.cardioPlanData : workout.cardioPlanData, planned)
         }
+    }
+
+    /// N2: `SavedFood.servingOptionsData` — `[ServingOption]` as JSON. Old rows must keep decoding through the app's own
+    /// accessor (one option without grams), and today's encoder must still write this shape.
+    @Test func storedServingOptionsReadAndWriteThroughTheAppsPath() throws {
+        let sample = #"[{"value":1,"unit":"cup","grams":240},{"value":2,"unit":"tbsp"}]"#
+        let food = SavedFood(name: "Yogurt", calories: 100)
+        food.servingOptionsData = Data(sample.utf8)
+        #expect(food.servingOptions == [ServingOption(value: 1, unit: "cup", grams: 240),
+                                        ServingOption(value: 2, unit: "tbsp", grams: nil)])
+        let values = food.servingOptions
+        food.servingOptionsData = nil
+        food.servingOptions = values
+        try expectShape(food.servingOptionsData, sample)
     }
 
     /// The written bytes have the sample's keys and values (key order is not part of the format).
