@@ -6,7 +6,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
 - **Resume here (2026-11-09) — Phase 1 (S1–S4), S5 and the testing-workflow ticket merged into `main`; nothing in
-  progress. Next: Phase 2 (N1) — ask the user N1's design questions first.**
+  progress. Next: Phase 2 (N1) — design approved by the user 2026-11-09 ("all as proposed"; recorded in the N1 ticket).**
   **Goal:** the user's approved Soft redesign (Phase 1 — done) then nutrition (Phase 2), shipped to testers together as
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
@@ -25,8 +25,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
      ([ticket](../work-record/dev-speed/issues/01-testing-workflow.md): before/after table, evidence). New workflow:
      `scripts/prepare-test-simulator.sh` first; scopes are test plans (DEVELOPMENT → Tiers and test plans);
      `scripts/explore.sh` for quick screenshots; reviewer rerun rule and reporting block in AGENTS.
-  2. N1 (safety copy) — **ask the user its design questions first** (in the N1 ticket); the user asked to talk the plan
-     through before N1 and paused there.
+  2. N1 (safety copy) — **design approved 2026-11-09, all as proposed** (the ticket's table + Continue/Quit on a failed
+     copy, wording to show the user); build on `ericlee4992/nutrition-01-safety-copy` off `main`.
   3. N2 → **S6** ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md): account card,
      grouped rows to sub-pages, Help; Goals & tracking filled by N3/N9 — confirm groups with the user) → N3 … N10 → R.
      Testing plan: per-ticket unit + UI + changed-screen captures; a core-flow check after N5 (ask); full suite at R (ask).

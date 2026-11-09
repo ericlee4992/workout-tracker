@@ -1,7 +1,8 @@
 # N1 — Automatic safety copy before a stored-format change
 
 Type: task
-Status: **proposed** (2026-11-07) — awaiting the user's approval; this is [public-beta ticket 11](../../public-beta/issues/11-safety-copy.md), now scheduled
+Status: **approved** (the user, 2026-11-09: "all as proposed" — every row of the table below, and the failed-copy
+behaviour: tell the user, offer Continue or Quit, wording shown for approval); this is [public-beta ticket 11](../../public-beta/issues/11-safety-copy.md), now scheduled
 Blocked by: S4 (Phase 1 done first)
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-01-safety-copy` off `main`.
@@ -19,7 +20,7 @@ combined release it ships in the same build.
 Before the app opens its store with a new data format for the first time, it saves a complete copy of the user's data
 on the phone, without the user doing anything, and offers a way back.
 
-## To decide with the user when the ticket starts (Claude's proposals)
+## Decided with the user (2026-11-09: all as proposed)
 
 | Question | Proposal |
 |---|---|
