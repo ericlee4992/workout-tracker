@@ -62,6 +62,32 @@ behaviour works; report results and remaining gaps.
 
 ## Progress
 
-Not started.
+Branch `ericlee4992/dev-01-testing-workflow` (off `main` `4204fbc`), worktree `…/workspaces/Health App/UI_design`.
+
+### 1. Measurement (2026-11-08, "before"; WT-Floodlight `9E822EF6-…`, iOS 27.0, Xcode 27.2, derived data in the session scratchpad)
+
+| What | Wall time | Notes |
+|---|---|---|
+| Cold `build-for-testing` (empty derived data) | **78 s** | exit 0 |
+| Full unit run, `test-without-building`, simulator already booted | **108 s** | **1112/1112 passed**, exit 0; Swift Testing reports 69.7 s for the tests themselves |
+| 3-test suite, `test-without-building`, simulator booted | **8–9 s** (3 runs) | install + host-app launch + tests: 5.4 s |
+| Same, `xcodebuild test` (build + test), no source change | **21 s** | the build step's no-op cost is ~13 s |
+| Same, after editing one existing Domain file / one view file | **29 s / 28 s** | incremental compile + link |
+| Same, simulator **shut down** before the run | **41–49 s, every run** (4 runs) | xcodebuild boots it, then **shuts it down again after the run**, so each run repeats the boot; the time is all in "Launching WorkoutTrackerTests" (30.5 s), install 0.0 s |
+| Same, simulator booted with `simctl bootstatus -b` and left booted | **39 s, then 18 s, 16 s** | first run after a boot still pays the settling cost |
+
+Findings:
+- **The unit tests themselves are not slow.** 1,112 tests take ~70 s because Swift Testing runs them in parallel in one
+  process (their summed durations are 18,867 s; no suite dominates, so per-test durations from the xcresult don't
+  rank anything useful). The scheme runs the unit target serially between targets, which is fine.
+- **The biggest avoidable cost is a shut-down simulator:** a run against a shut-down simulator costs ~35 s extra, and
+  because xcodebuild shuts it down again afterwards, *every* following run pays it too. This explains "even the unit
+  tests sometimes take long". Fix: boot the test simulator once (`xcrun simctl bootstatus <id> -b`) and keep it booted.
+- **The catalog reconcile is not a unit-test cost:** `CatalogSeeder.reconcile` returns early when the store's catalog
+  fingerprint matches (`CatalogSeeder.swift:19–31`), so in the unit-test host (the simulator's persistent store) it
+  is a fetch, and the whole install-launch-tests step is 5.4 s. Plan item 2's "skip the reconcile when hosting unit
+  tests" would save under a second; **not done** (no code change for a sub-second gain). UI tests are different: every
+  `-uiTestReset` launch seeds the full catalog into an empty store — measured under the UI timing below.
+- Builds dominate small checks: 21–29 s of a ~30 s "build + one suite" check is the build.
 
 ## Comments
