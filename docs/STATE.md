@@ -1,15 +1,19 @@
 # Current project state
 
-Updated **2026-11-09 ~4 AM, handoff** (N1 merged into `main` `b911247`; N2 in progress; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-09, session 2** (N1 merged into `main` `b911247`; N2 in Codex review; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-09, ~4 AM) — N1 (safety copy) merged into `main` `b911247` (Codex clear round 3). In
-  progress: N2 on `ericlee4992/nutrition-02-data` (rebased on `main`, pushed) — models, math, guard pin, migration
-  fixture/tests (31/31) and export v12 done; left: export round-trip test, Unit plan, Simulator migration rehearsal,
-  Codex review (see the N2 ticket's Progress). Then S6 → N3 → N4 → N5 (all approved) … Ask the user in the morning:
-  N2's "Import" (the app has none), the four N1 strings added after approval, N6's deploy + GPT-6.1 Terra switch.
+- **Resume here (2026-11-09, session 2) — N2 in Codex review, round 1.** N1 merged into `main` `b911247`. N2 on
+  `ericlee4992/nutrition-02-data` (pushed): models, math, guard pin, migration fixture/tests, export v12 + round-trip
+  tests all done; **Unit plan 1163/1163**, ExportUITests passed, **Simulator migration rehearsal passed** (one safety
+  copy; the only changed value is pre-existing resume behaviour, identical on `main`; `compare_stores` main-after vs
+  N2-after exit 0) — evidence in the [N2 ticket](../work-record/nutrition/issues/02-nutrition-data.md) Progress.
+  **Import dropped from N2 (the user, 2026-11-09).** Codex was sent `work-record/nutrition/codex-review-n2-prompt.md`
+  in `term_6ce8444b-…` → report `work-record/nutrition/codex-review-n2.md`. Next: fix findings to clear; ff-merge `main`
+  (from the home checkout); then S6 → N3 → N4 → N5 (all approved). Still to ask the user: the four N1 strings added
+  after approval; N6's deploy + GPT-6.1 Terra switch.
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
   deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,
@@ -18,19 +22,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
   `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Git (handoff):** `main` = `origin/main` = `b911247` (N1 merged). This worktree is on
-  `ericlee4992/nutrition-02-data` = `origin` (`aafd468`, rebased on `main`; force-pushed with lease after rebases — it
-  is Claude's own branch). The home checkout `…/orca/projects/Health App` is on clean `main` `b911247`; fast-forward
-  `main` there (`git -C "<home>" merge --ff-only <branch>` + push) — `main` cannot be checked out in this worktree.
-  **N2 next steps, in order:** (1) export round-trip unit test (v12 encode → `ExportJSON.decode` equal; a v11 file —
-  no nutrition keys — still decodes; counts); (2) Unit plan (`-testPlan Unit`, ~105 s); `ExportUITests` +
-  `BackupExportUITests`-adjacent export tests; (3) Simulator migration rehearsal on WT-Floodlight: back up the sim's
-  own `Application Support/default.store*` first, put `WorkoutTrackerTests/Fixtures/PreNutrition.store` there as
-  `default.store`, capture the container, launch the N2 build → exactly one `SafetyCopies/` copy → terminate → capture →
-  `python3 scripts/container-tools/compare_stores.py <before> <after> --bundle-id com.example.workouttracker` exit 0,
-  then put the sim's own store back (byte-compare); (4) ticket evidence + README if needed; (5) Codex brief
-  `work-record/nutrition/codex-review-n2-prompt.md` (pattern: `codex-review-n1-prompt.md`) → Codex terminal
-  `term_6ce8444b-…`; fix to clear; ff-merge `main`. Then S6 → N3 → N4 → N5 (approved; build overnight without asking).
+  **Git:** `main` = `origin/main` = `b911247`. This worktree is on `ericlee4992/nutrition-02-data` = `origin` (Claude's
+  own branch). The home checkout `…/orca/projects/Health App` is on clean `main`; fast-forward `main` there
+  (`git -C "<home>" merge --ff-only <branch>` + push) — `main` cannot be checked out in this worktree.
   **Commands:** build `xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk
   iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath
   <scratch>/dd`; then `test-without-building … -testPlan Unit` (or `-only-testing:WorkoutTrackerTests/<Suite>`;
