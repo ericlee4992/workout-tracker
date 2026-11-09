@@ -5,14 +5,15 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-09, session 2) — S6 in Codex review, round 1.** N2 merged into `main` `5f8ff92` (Codex clear
-  round 2; Import dropped by the user). **S6** on `ericlee4992/soft-06-profile` (pushed): Profile root like the
-  prototype (account card, Settings rows → "Units, rest and appearance" page / zones sheet / Ask AI sheet / "Export &
-  backup" page, Help, version); UI scope 72/73 + the one clone flake 3/3 serially; captures looked at and sent to the
-  user — [ticket](../work-record/soft-redesign/issues/06-profile-layout.md). Codex has
-  `work-record/soft-redesign/codex-review-s6-prompt.md` in `term_6ce8444b-…` → `codex-review-s6.md`. Next: fix to
-  clear; ask the user before the merge (new strings listed in the ticket); then N3 → N4 → N5. Still to ask: the four
-  N1 strings; N6's deploy + GPT-6.1 Terra switch.
+- **Resume here (2026-11-09, session 2) — S6 in Codex review, round 2.** N2 merged into `main` `5f8ff92`. **S6** on
+  `ericlee4992/soft-06-profile` (pushed, `c452791`): Profile like the prototype, then **regrouped by the user (D80):**
+  account card → Goals & tracking (Heart rate zones; N3/N9 add theirs) → Settings (Preferences, Ask AI, Export &
+  backup) → Help → version; **Personal details** (weight, height, date of birth, sex — one place, read by zones, goals
+  and AI) moved into **N3's** scope. Round 1 clear (before the regroup); round 2 sent → `codex-review-s6b.md`. UI
+  34/34 after the regroup; captures sent to the user — [ticket](../work-record/soft-redesign/issues/06-profile-layout.md).
+  **Next:** round 2 clear → ask the user (new strings: "Export & backup", "Version …", "Signed in with Apple", "Goals &
+  tracking", "Preferences") and merge → N3 (with Personal details) → N4 → N5. Still to ask: the four N1 strings; N6's
+  deploy + GPT-6.1 Terra switch. Auto-handoff turned off by the user.
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
   deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,
