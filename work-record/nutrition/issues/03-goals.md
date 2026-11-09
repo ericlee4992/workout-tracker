@@ -79,4 +79,9 @@ Branch `ericlee4992/nutrition-03-goals` off `main` `6e53446` (S6 merged).
   goals saved as dated `NutritionGoal`s with inputs + override flags; the AI training profile prefills height/weight
   from here; the onboarding "Food goals" step; UI tests + captures; Codex.
 
+**First-time goal setup (the user, 2026-11-09: "Both"):** the onboarding "Food goals" step stays in N3 (new
+installs: after Welcome, skippable) **and** N5 adds a "Set your goals" invitation in Today's food area when there is
+no goal (reaches the existing testers, who never see Welcome again). The onboarding step's screen and strings are
+mocked and shown to the user before building.
+
 ## Comments

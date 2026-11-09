@@ -175,7 +175,8 @@ struct NutritionGoalsView: View {
                     ProfileRow("Goal", symbol: "flag", value: choices.goal.label, action: nil)
                 }
                 .accessibilityIdentifier("nutritionGoalsGoal")
-                ProfileRow("Personal details", symbol: "person.text.rectangle", value: detailsSummary) {
+                // The summary under the title: three values side by side would wrap mid-line at the default size.
+                ProfileRow("Personal details", symbol: "person.text.rectangle", subtitle: detailsSummary) {
                     showDetails = true
                 }
                 .accessibilityIdentifier("nutritionGoalsDetails")

@@ -197,6 +197,10 @@ struct AIRoutineSheet: View {
     /// The model refuses once the tester has changed anything (or after the Goals step).
     private func prefillIfUntouched() {
         if let training = account.profile?.training { model.prefill(from: training) }
+        // N3 (D80): what the profile lacks, from Personal details.
+        let preferences = AppPreferences.canonical(of: (try? context.fetch(FetchDescriptor<AppPreferences>())) ?? [])
+        model.prefillMissingMeasurements(heightCm: preferences?.heightCm,
+                                         weightKg: (try? NutritionGoalStore.latestWeight(in: context))?.normalizedKg)
     }
 
     /// Ticket 05: with the switch on, the request also saves the form to the training profile — only when it differs,

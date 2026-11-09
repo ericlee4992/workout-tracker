@@ -205,6 +205,23 @@ final class AIRoutineFlowModel {
         return true
     }
 
+    /// Nutrition N3 (D80): a measurement the form still lacks comes from Personal details — on the untouched Goals step,
+    /// after the training profile's prefill (which wins: it is what the tester last told Ask AI). Marked as typed, so
+    /// "Save to my training profile" stores it rather than keeping the profile's empty one.
+    func prefillMissingMeasurements(heightCm: Double?, weightKg: Double?) {
+        guard !edited, step == .goals else { return }
+        prefilling = true
+        defer { prefilling = false }
+        if self.heightCm == nil, let heightCm {
+            self.heightCm = heightCm
+            heightEdited = true
+        }
+        if self.weightKg == nil, let weightKg {
+            self.weightKg = weightKg
+            weightEdited = true
+        }
+    }
+
     /// The training profile this form describes (`TrainingProfile.fromAskAI`): a measurement prefilled and never
     /// changed is the stored one, exactly; any other is as typed.
     func trainingProfile(usCustomary: Bool) -> TrainingProfile {

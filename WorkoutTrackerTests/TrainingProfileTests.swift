@@ -131,6 +131,28 @@ struct TrainingProfileTests {
         return model
     }
 
+    /// Nutrition N3 (D80): Personal details fill only what the training profile lacks, and what they fill is saved.
+    @MainActor @Test func personalDetailsFillOnlyTheMissingMeasurements() {
+        var noHeight = saved
+        noHeight.height = nil
+        let model = prefilled(noHeight)
+        model.prefillMissingMeasurements(heightCm: 180, weightKg: 70)
+        #expect(model.heightCm == 180, "missing in the profile: from Personal details")
+        #expect(model.weightKg == saved.weight?.kilograms, "the profile's own weight wins")
+        #expect(!model.edited, "a prefill, not the tester's edit")
+        let profile = model.trainingProfile(usCustomary: true)
+        #expect(profile.height == BodyMeasure(value: 71, unit: .inches), "saved as typed in the app's units")
+        #expect(profile.weight == saved.weight, "kept exactly")
+
+        let fresh = AIRoutineFlowModel()
+        fresh.prefillMissingMeasurements(heightCm: 180, weightKg: 80)
+        #expect(fresh.heightCm == 180 && fresh.weightKg == 80 && !fresh.edited, "no profile: both from Personal details")
+        let typed = AIRoutineFlowModel()
+        typed.goals = "Get stronger"
+        typed.prefillMissingMeasurements(heightCm: 180, weightKg: 80)
+        #expect(typed.heightCm == nil && typed.weightKg == nil, "never after the tester's first change")
+    }
+
     @MainActor @Test func aFormLeftAsPrefilledIsTheProfileUnchanged() {
         for usCustomary in [true, false] {
             let model = prefilled(saved)

@@ -25,6 +25,12 @@ Today shows the day's food beside the training (S2).
 - **No goals yet:** the fuel card asks to set goals (opens N3) and still shows Eaten.
 - AX sizes: rings become one row per day ("Pull Day, Indoor Run · 2,140 of 2,288 cal"); the fuel card stacks.
 
+## Added 2026-11-09 (the user, with N3)
+
+- **No goal yet → an invitation, not empty numbers:** Today's food area says "Set your goals" (wording to approve) and
+  opens Personal details → Nutrition goals. Existing testers never see the onboarding step (N3), so this is how they
+  meet goals.
+
 ## Acceptance
 
 1. Totals, left/over and ring fills match the entries and the dated goal (unit tests incl. a goal change mid-week).
