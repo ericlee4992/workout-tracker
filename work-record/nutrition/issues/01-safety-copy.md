@@ -156,3 +156,21 @@ that cannot be cleared → blocked, a failing cancel, a committed swap leaves no
 (`n1r2-safety2.xcresult`); Unit plan **1140/1140, exit 0** (`n1r2-unit.xcresult`).
 Warm-up + `SafetyCopyUITests` (incl. the new isolation assertions) + `CoreLoopUITests`, serial: **17/17, exit 0**
 (`n1r2-ui2.xcresult`); the waiting screen's four captures re-checked.
+
+### Codex round 2 — [not clear](../codex-review-n1b.md) (3 × P1, recovery edge cases), all accepted and fixed
+
+Round 1's fixes confirmed (its own SafetyCopyTests 250/250, UI 8/8, the original failure regressions pass). Three
+recovery cases reproduced against the production source:
+1. **Leftovers of an earlier restore** (`.replaced-*` that its sweep could not remove) were taken for a later restore's
+   set-aside files → a failing later restore "recovered" to older data. Each swap now tags its files
+   (`.replaced-<tag>-…`, `.restoring-<tag>-…`) and the journal records the tag; recovery touches only that swap's files.
+2. **An unreadable journal** read as "nothing to undo" (`try?`) → an empty store opened. Recovery now distinguishes a
+   missing journal from one it cannot read or decode, and the latter blocks the open (journal and set-aside files kept);
+   a journal naming anything but a plain store file name also blocks.
+3. **The journal kept an absolute folder** → after the container moved, recovery found nothing and cleared the journal.
+   It now keeps names only and recovers beside the store's current location; before changing anything it checks every
+   original is either still in place or set aside — a missing one blocks.
+
+Evidence: `SafetyCopyTests` 28 (+4: consecutive restores with unswept leftovers, unreadable journal → blocked then
+recovered, damaged journal → blocked, relocated container recovered) × 10 → **290/290, exit 0**
+(`n1r3-safety.xcresult`); Unit plan **1144/1144, exit 0** (`n1r3-unit.xcresult`). No UI change this round.

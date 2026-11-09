@@ -37,6 +37,9 @@ import Testing
             try FileManager.default.createDirectory(at: root.appending(path: "store"), withIntermediateDirectories: true)
         }
 
+        /// A fixture already on disk (one that was moved).
+        init(root: URL) { self.root = root }
+
         /// Opens the store with `model`, runs `body`, and closes the store before returning.
         func withStore<T>(_ model: NSManagedObjectModel = SafetyCopyTests.itemModel,
                           _ body: (NSManagedObjectContext) throws -> T) throws -> T {
@@ -305,27 +308,98 @@ import Testing
         #expect(try !storeFolderNames(fixture).contains { $0.hasPrefix(".") })
     }
 
-    @Test func aSwapInterruptedByACrashIsUndoneAtTheNextLaunch() throws {
-        let (fixture, copy) = try preparedRestore()
-        // The state a crash leaves after the first move of the copy's file: the journal, the store set aside, the
-        // copy's file in its place.
+    /// The state a crash leaves after the store was set aside and the copy's file moved in: the journal (tag `T1`),
+    /// the store's files under `.replaced-T1-…`, the copy's `Data.store` in place, the request consumed.
+    func crashMidSwap(_ fixture: Fixture, _ copy: SafetyCopyInfo) throws {
         let folder = fixture.storeURL.deletingLastPathComponent()
         let originals = SafetyCopies.storeFiles(for: fixture.storeURL).map(\.lastPathComponent)
             .filter { FileManager.default.fileExists(atPath: folder.appending(path: $0).path) }
-        let journal: [String: Any] = ["storeFolder": folder.path, "originals": originals, "placed": copy.files.keys.sorted()]
+        let journal: [String: Any] = ["tag": "T1", "originals": originals, "placed": copy.files.keys.sorted()]
         try JSONSerialization.data(withJSONObject: journal)
             .write(to: fixture.copies.directory.appending(path: SafetyCopies.journalName))
-        for name in originals { try FileManager.default.moveItem(at: folder.appending(path: name), to: folder.appending(path: ".replaced-\(name)")) }
+        for name in originals {
+            try FileManager.default.moveItem(at: folder.appending(path: name), to: folder.appending(path: ".replaced-T1-\(name)"))
+        }
         try FileManager.default.copyItem(at: fixture.copies.directory.appending(path: copy.folder).appending(path: "Data.store"),
                                          to: folder.appending(path: "Data.store"))
         try fixture.copies.cancelRestore()
+    }
 
+    @Test func aSwapInterruptedByACrashIsUndoneAtTheNextLaunch() throws {
+        let (fixture, copy) = try preparedRestore()
+        try crashMidSwap(fixture, copy)
         let outcome = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: fixture.copies, model: Self.itemModel,
                                            appVersion: "v")
         guard case .open(nil, nil, _?) = outcome else { Issue.record("\(outcome)"); return }
         #expect(try fixture.itemNames() == ["after", "before"])
         #expect(!fixture.copies.restoreWasInterrupted)
         #expect(try !storeFolderNames(fixture).contains { $0.hasPrefix(".") })
+    }
+
+    /// codex-review-n1b #3: the container moved between the crash and the next launch.
+    @Test func anInterruptedSwapIsUndoneWhereTheStoreIsNow() throws {
+        let (fixture, copy) = try preparedRestore()
+        try crashMidSwap(fixture, copy)
+        let moved = FileManager.default.temporaryDirectory.appending(path: "SafetyCopyTests-moved-\(UUID().uuidString)")
+        try FileManager.default.moveItem(at: fixture.root, to: moved)
+        let storeURL = moved.appending(path: "store/Data.store")
+        let copies = SafetyCopies(directory: moved.appending(path: "SafetyCopies", directoryHint: .isDirectory))
+        let outcome = SafetyCopyLaunch.run(storeURL: storeURL, copies: copies, model: Self.itemModel, appVersion: "v")
+        guard case .open(nil, nil, _?) = outcome else { Issue.record("\(outcome)"); return }
+        let reopened = Fixture(root: moved)
+        #expect(try reopened.itemNames() == ["after", "before"])
+        #expect(!copies.restoreWasInterrupted)
+    }
+
+    /// codex-review-n1b #2: a journal that is there but cannot be read keeps the store closed — it is not "nothing to
+    /// undo" — and the set-aside store waits for the next try.
+    @Test func aJournalThatCannotBeReadKeepsTheStoreClosed() throws {
+        let (fixture, copy) = try preparedRestore()
+        try crashMidSwap(fixture, copy)
+        let journal = fixture.copies.directory.appending(path: SafetyCopies.journalName)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: journal.path)
+        let outcome = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: fixture.copies, model: Self.itemModel,
+                                           appVersion: "v")
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: journal.path)
+        guard case .blocked = outcome else { Issue.record("\(outcome)"); return }
+        #expect(fixture.copies.restoreWasInterrupted)
+        #expect(try storeFolderNames(fixture).contains { $0.hasPrefix(".replaced-T1-") })
+        // Readable again: the next try undoes it.
+        let retried = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: fixture.copies, model: Self.itemModel,
+                                           appVersion: "v")
+        guard case .open(nil, nil, _?) = retried else { Issue.record("\(retried)"); return }
+        #expect(try fixture.itemNames() == ["after", "before"])
+    }
+
+    @Test func aDamagedJournalKeepsTheStoreClosed() throws {
+        let (fixture, copy) = try preparedRestore()
+        try crashMidSwap(fixture, copy)
+        let journal: [String: Any] = ["tag": "T1", "originals": ["../../elsewhere"], "placed": []]
+        try JSONSerialization.data(withJSONObject: journal)
+            .write(to: fixture.copies.directory.appending(path: SafetyCopies.journalName))
+        let outcome = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: fixture.copies, model: Self.itemModel,
+                                           appVersion: "v")
+        guard case .blocked = outcome else { Issue.record("\(outcome)"); return }
+    }
+
+    /// codex-review-n1b #1: an earlier restore's set-aside files that could not be swept are never taken for a later
+    /// restore's; that later restore failing part-way still returns to the data logged since.
+    @Test func aLaterRestoreThatFailsReturnsToTheDataLoggedSince() throws {
+        let (fixture, copy) = try preparedRestore()
+        var keepsLeftovers = fixture.copies
+        keepsLeftovers.removeFile = { url in
+            if url.lastPathComponent.hasPrefix(".replaced-") { throw CocoaError(.fileWriteNoPermission) }
+            try FileManager.default.removeItem(at: url)
+        }
+        #expect(try keepsLeftovers.performPendingRestore(to: fixture.storeURL) == copy)
+        #expect(try storeFolderNames(fixture).contains { $0.hasPrefix(".replaced-") }, "the first restore's leftovers stay")
+        try fixture.addItems(["logged after the restore"])
+        try fixture.copies.scheduleRestore(copy)
+        var failing = keepsLeftovers
+        failing.moveFile = failingMove(2)
+        let outcome = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: failing, model: Self.itemModel, appVersion: "v")
+        guard case .open(nil, nil, _?) = outcome else { Issue.record("\(outcome)"); return }
+        #expect(try fixture.itemNames() == ["before", "logged after the restore"])
     }
 
     @Test func aSwapThatCannotBeUndoneKeepsTheStoreClosedUntilItIs() throws {

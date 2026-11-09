@@ -25,8 +25,11 @@ struct SafetyCopyInfo: Codable, Equatable, Identifiable, Sendable {
 
 /// The restore swap's journal (`SafetyCopies.performPendingRestore`).
 private struct RestoreJournal: Codable {
-    var storeFolder: String
-    /// The store's files present before the swap, each set aside as `.replaced-<name>`.
+    /// This swap's own tag in its file names (`.replaced-<tag>-<name>`, `.restoring-<tag>-<name>`), so a leftover of an
+    /// earlier swap is never taken for this one's (codex-review-n1b #1).
+    var tag: String
+    /// The store's files present before the swap (names only, relative to the store's folder — the container can move
+    /// between a crash and the next launch, codex-review-n1b #3), each set aside as `.replaced-<tag>-<name>`.
     var originals: [String]
     /// The copy's files that take their places.
     var placed: [String]
@@ -179,19 +182,21 @@ struct SafetyCopies {
     ///
     /// The swap is a small transaction (codex-review-n1 #1): the copy's files are staged beside the store; the request
     /// is consumed (if that fails, nothing has been touched); a journal is written; the current files are set aside
-    /// under hidden names — never deleted before the end; the staged files take their place; deleting the journal is the
-    /// commit. A failure before the commit — or a crash, which leaves the journal — rolls back to the set-aside files
-    /// (`recoverInterruptedRestore`), here or at the next launch, before any container opens the store.
+    /// under this swap's own hidden names — never deleted before the end; the staged files take their place; deleting
+    /// the journal is the commit. A failure before the commit — or a crash, which leaves the journal — rolls back to the
+    /// set-aside files (`recoverInterruptedRestore`), here or at the next launch, before any container opens the store.
     func performPendingRestore(to storeURL: URL) throws -> SafetyCopyInfo? {
         guard let copy = pendingRestore else { return nil }
         let folder = directory.appending(path: copy.folder, directoryHint: .isDirectory)
         let storeFolder = storeURL.deletingLastPathComponent()
+        let tag = String(UUID().uuidString.prefix(8))
+        // Leftovers of earlier swaps (no journal: committed or undone) are garbage; their names never meet this swap's.
+        sweepRestoreLeftovers(in: storeFolder)
         var staged: [(URL, URL)] = []
         do {
             for name in copy.files.keys.sorted() {
                 let source = folder.appending(path: name)
-                let temporary = storeFolder.appending(path: ".restoring-\(name)")
-                try removeIfPresent(temporary)
+                let temporary = storeFolder.appending(path: ".restoring-\(tag)-\(name)")
                 try copyFile(source, temporary)
                 guard try size(of: temporary) == copy.files[name] else { throw SafetyCopyError.incomplete(name) }
                 staged.append((temporary, storeFolder.appending(path: name)))
@@ -214,16 +219,16 @@ struct SafetyCopies {
         let originals = Self.storeFiles(for: storeURL).map(\.lastPathComponent)
             .filter { fileManager.fileExists(atPath: storeFolder.appending(path: $0).path) }
         do {
-            try JSONEncoder.safetyCopy.encode(RestoreJournal(storeFolder: storeFolder.path, originals: originals,
+            try JSONEncoder.safetyCopy.encode(RestoreJournal(tag: tag, originals: originals,
                                                              placed: staged.map { $0.1.lastPathComponent }))
                 .write(to: directory.appending(path: Self.journalName), options: .atomic)
             for name in originals {
-                try moveFile(storeFolder.appending(path: name), storeFolder.appending(path: ".replaced-\(name)"))
+                try moveFile(storeFolder.appending(path: name), storeFolder.appending(path: ".replaced-\(tag)-\(name)"))
             }
             for (temporary, target) in staged { try moveFile(temporary, target) }
             try removeFile(directory.appending(path: Self.journalName))   // the commit
         } catch {
-            do { try recoverInterruptedRestore() } catch {
+            do { try recoverInterruptedRestore(storeURL: storeURL) } catch {
                 throw SafetyCopyError.restoreUnfinished(
                     "The restore stopped part-way and could not be undone: \(error.localizedDescription)")
             }
@@ -238,30 +243,51 @@ struct SafetyCopies {
         fileManager.fileExists(atPath: directory.appending(path: Self.journalName).path)
     }
 
-    /// Puts the set-aside files back after an interrupted swap and removes the journal. Throws when that is not possible
-    /// — the store must then stay closed.
-    func recoverInterruptedRestore() throws {
+    /// Puts the set-aside files of the journal's swap back beside `storeURL` (the store's location NOW — the journal
+    /// keeps names only) and removes the journal. Throws, leaving everything in place, when the journal cannot be read
+    /// or an original cannot be accounted for — the store must then stay closed (codex-review-n1b #2, #3).
+    func recoverInterruptedRestore(storeURL: URL) throws {
         let journalURL = directory.appending(path: Self.journalName)
-        guard let data = try? Data(contentsOf: journalURL) else { return }
-        let journal = try JSONDecoder.safetyCopy.decode(RestoreJournal.self, from: data)
-        let folder = URL(fileURLWithPath: journal.storeFolder, isDirectory: true)
-        // Any of the copy's files already moved in go first, then each original returns to its name.
-        for name in Set(journal.placed).union(journal.originals) {
-            let setAside = folder.appending(path: ".replaced-\(name)")
-            let current = folder.appending(path: name)
-            if fileManager.fileExists(atPath: setAside.path) {
-                try removeIfPresent(current)
-                try moveFile(setAside, current)
-            } else if !journal.originals.contains(name) {
-                try removeIfPresent(current)   // the copy had this side file; the original store did not
+        guard fileManager.fileExists(atPath: journalURL.path) else { return }
+        let journal = try JSONDecoder.safetyCopy.decode(RestoreJournal.self, from: Data(contentsOf: journalURL))
+        let folder = storeURL.deletingLastPathComponent()
+        for name in journal.originals + journal.placed {
+            // Names come from our own journal; anything else is refused rather than followed.
+            guard !name.isEmpty, !name.contains("/"), !name.hasPrefix(".") else {
+                throw SafetyCopyError.restoreUnfinished("The restore's record is damaged.")
             }
+        }
+        // Every original must be either still in place (not yet set aside) or set aside under this swap's tag.
+        for name in journal.originals {
+            let setAside = folder.appending(path: ".replaced-\(journal.tag)-\(name)")
+            guard fileManager.fileExists(atPath: setAside.path)
+                    || fileManager.fileExists(atPath: folder.appending(path: name).path) else {
+                throw SafetyCopyError.restoreUnfinished("Part of your data from before the restore is missing.")
+            }
+        }
+        for name in journal.originals {
+            let setAside = folder.appending(path: ".replaced-\(journal.tag)-\(name)")
+            guard fileManager.fileExists(atPath: setAside.path) else { continue }   // never moved: already in place
+            let current = folder.appending(path: name)
+            try removeIfPresent(current)   // the copy's file that took its place
+            try moveFile(setAside, current)
+        }
+        // A side file only the copy had: remove it, so it does not sit beside the original store.
+        for name in journal.placed where !journal.originals.contains(name) {
+            try removeIfPresent(folder.appending(path: name))
+        }
+        let names = (try? fileManager.contentsOfDirectory(atPath: folder.path)) ?? []
+        for name in names where name.hasPrefix(".restoring-\(journal.tag)-") {
+            try? removeIfPresent(folder.appending(path: name))
         }
         try removeFile(journalURL)
         sweepRestoreLeftovers(in: folder)
     }
 
-    /// Staged and set-aside files left after a committed swap or an undone one (no journal): safe to delete.
+    /// Staged and set-aside files left by swaps that are over (committed or undone — no journal): safe to delete.
+    /// Best effort; a file that stays cannot be mistaken for a later swap's, whose names carry their own tag.
     private func sweepRestoreLeftovers(in storeFolder: URL) {
+        guard !restoreWasInterrupted else { return }
         let names = (try? fileManager.contentsOfDirectory(atPath: storeFolder.path)) ?? []
         for name in names where name.hasPrefix(".restoring-") || name.hasPrefix(".replaced-") {
             try? removeIfPresent(storeFolder.appending(path: name))
@@ -306,7 +332,7 @@ enum SafetyCopyLaunch {
         // A swap interrupted at an earlier launch (a crash, the phone switched off) is undone before anything else.
         if copies.restoreWasInterrupted {
             do {
-                try copies.recoverInterruptedRestore()
+                try copies.recoverInterruptedRestore(storeURL: storeURL)
                 restoreFailure = "The restore was interrupted, so it was undone."
             } catch {
                 return .blocked("The restore was interrupted and could not be undone: \(error.localizedDescription)")
