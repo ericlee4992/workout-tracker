@@ -25,6 +25,8 @@ weight join the training log; Today shows both.
 - **Apple Health (D74):** read and write body weight, write food totals (calories, protein, carbs, fat), read calories
   burned.
 - **Limits (D75):** food-photo 30, food-label 30, food-describe 60 per person per day.
+- **No "Estimated" mark (D78, 2026-11-09):** AI results stay editable, shown as plain numbers.
+- **Model (D79, 2026-11-09):** every server AI flow moves to GPT-6.1 Terra, in N6.
 
 ## Data rules (apply to every ticket)
 
@@ -34,7 +36,8 @@ weight join the training log; Today shows both.
   `.nullify`; owned rows (a saved meal's items) are `.cascade`.
 - Weights and serving amounts keep the entered `(value, unit)`; body weight also stores `normalizedKg` (the app's
   weight rule). Displays are plain numbers (D52).
-- AI estimates are marked **Estimated** on the entry and stay editable.
+- AI estimates are **not** marked "Estimated" (D78, the user 2026-11-09); they stay editable, and the entry keeps its
+  `source` (photo / label / describe).
 - Export/import (D28) carries all new data; the automatic safety copy (N1) runs before the first launch of the new
   stored format.
 - Diet data, sex and age stay on the phone (and in the user's own export / iCloud backup); only the photo, label or

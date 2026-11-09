@@ -20,7 +20,8 @@ flows.
   - `food-label` (limit **30**/day): a photo cropped to a nutrition-facts label → serving size, servings per container,
     calories, macros and the other facts printed; strict JSON schema; numbers only as printed (no guessing).
   - `food-describe` (limit **60**/day): text ("two eggs and toast") → items as food-photo.
-- Model `gpt-5.6-terra`, `store: false`, image inline and not kept, the same size limits (`MAX_JPEG_BYTES`); the
+- Model **GPT-6.1 Terra for every flow, old and new (D79)** — verify the exact API model id first; re-run each existing
+  flow (routine-week, scan-machine, model-exercises) against it; the deploy is confirmed with the user. Then: `store: false`, image inline and not kept, the same size limits (`MAX_JPEG_BYTES`); the
   usage endpoint lists the new flows so the app's AI limits screen shows them.
 - **Cost check:** measure tokens and cost per request for each flow (as ticket 10 did) and record them here; if any
   flow costs much more than ~1 cent, stop and ask the user before keeping the limits.

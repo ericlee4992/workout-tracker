@@ -16,7 +16,8 @@ the update unchanged, and the user's export/import carries the new data.
 
 - **FoodEntry** — day and time, meal (Breakfast / Lunch / Dinner / Snacks), name, brand, servings, serving
   `(value, unit)` and grams if known, calories, protein, carbs, fat, optional other facts (fibre, sugar, saturated
-  fat, sodium, …), source (manual / quick add / saved / recent / barcode / photo / label / describe), `isEstimated`,
+  fat, sodium, …), source (manual / quick add / saved / recent / barcode / photo / label / describe; no separate `isEstimated` —
+  D78),
   barcode, a `.nullify` link to the SavedFood it came from, a Health sample id (N9).
 - **SavedFood** — the user's foods: name, brand, barcode, nutrition per serving, serving options, saved or only recent,
   last used. Database hits (N8) are cached here when logged.

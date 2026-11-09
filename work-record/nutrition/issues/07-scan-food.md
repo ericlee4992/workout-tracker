@@ -17,7 +17,7 @@ Point the camera at a meal or a nutrition label, check the estimate, and log it.
 - **Consent:** the first scan explains that the photo goes to the server for one estimate and is not kept (D56's
   pattern); sign-in required for AI (as today).
 - **Meal photo → review screen:** the items found, each editable (name, portion, grams, calories, macros) or
-  removable; Add item; totals; every number marked **Estimated**; choose meal and Log. Nothing is logged without Log.
+  removable; Add item; totals; plain, editable numbers (no "Estimated" mark — D78); choose meal and Log. Nothing is logged without Log.
 - **Food label →** cropped to the label (D53's crop) → the Selected food screen (N4) prefilled with the label's
   serving and numbers, Save to My foods offered.
 - **Describe what you ate** (the Log Food field, N4) → food-describe → the same review screen.
