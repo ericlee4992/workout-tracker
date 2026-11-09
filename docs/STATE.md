@@ -1,50 +1,53 @@
 # Current project state
 
-Updated **2026-11-08, handoff** (Soft redesign S1–S4 and S5 merged into `main`; next the testing-workflow ticket, then N1; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-09** (testing-workflow ticket in Codex round 2 on `ericlee4992/dev-01-testing-workflow`; earlier: Soft redesign S1–S4 and S5 merged into `main`; next N1; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-08, handoff) — Phase 1 (S1–S4) + S5 merged into `main`; nothing in progress. Next: the
-  testing-workflow ticket, then Phase 2 (N1).**
+- **Resume here (2026-11-09) — Phase 1 (S1–S4) + S5 merged into `main`; the testing-workflow ticket is in Codex
+  round 2 on `ericlee4992/dev-01-testing-workflow` (item 1 below). Then Phase 2 (N1).**
   **Goal:** the user's approved Soft redesign (Phase 1 — done) then nutrition (Phase 2), shipped to testers together as
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
   `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Git (verified at handoff):** `main` = `origin/main` = the STATE handoff commit (S1→S4, S5 and all notes — `git log -1 main`). This worktree is on
-  `ericlee4992/soft-05-today-up-next` at the same commit (merged, clean). The home checkout `…/orca/projects/Health App`
-  is on clean `main` at the same commit. **Start new work on a new branch off `main`** (e.g. `ericlee4992/dev-01-testing-workflow`).
+  **Git (2026-11-09):** `main` = `origin/main` = `4204fbc` (S1→S4, S5 and notes). This worktree is on
+  `ericlee4992/dev-01-testing-workflow` (off `4204fbc`, pushed; the testing-workflow ticket — `git log main..`). The home
+  checkout `…/orca/projects/Health App` is on clean `main`. After the ticket merges, start N1 on a new branch off `main`.
   **Done 2026-11-07/08:** S4 (History day journal; Progress Training charts + visible "…" menu; shared
   `refreshingNow`); the combined Phase 1 run (238/250 parallel → 3 S1–S4 test assumptions fixed; all ~777 captures
   checked); README refreshed; **S5 — Today's up next** (D77: learned split, "Not today", optional My Split in Train,
   rest days, no-templates last workout + Repeat, Start Lifting/Cardio on Train only; Codex clear round 3; merged). The
   user reviewed the app on the Simulator (WT-Floodlight, sample data) and found Profile ≠ prototype → **S6**.
   **Next, in order (the user's plan, 2026-11-08):**
-  1. [Testing-workflow ticket](../work-record/dev-speed/issues/01-testing-workflow.md) (approved): measure; cut unit
-     overhead (skip catalog reconcile when hosting unit tests, keep the simulator booted); a quick-exploration script
-     (`simctl privacy … grant motion/location`, launch with fixtures, screenshot); Xcode test plans (Domain, Today/Train,
-     Workout core, History/Progress, Captures, Full); fix flakes (launch-only warm-up; cardio start waits on state;
-     hardware keyboard off; 2 workers for typing); per-ticket captures; Codex reruns UI only in round 1 or for UI-behaviour
-     fixes; a Verified / Not verified / Known flaky block; write the rules into DEVELOPMENT and AGENTS. Codex review.
+  1. [Testing-workflow ticket](../work-record/dev-speed/issues/01-testing-workflow.md) — **implemented on
+     `ericlee4992/dev-01-testing-workflow`; Codex round 1 not clear (6 findings, all fixed in `10d1b87`); round 2 in
+     review** (new Codex terminal "Codex review dev-01 round 2" `term_0b783489-9319-4408-a505-664cb8193333`, report
+     `work-record/dev-speed/codex-review-01b.md`). On clear: fast-forward `main`, then give the user the plain-language
+     report they asked for (what changed, before vs. now, whether it is better). Done: measured; cardio-start flake
+     = an app main-thread hang in a synchronous notification call (fixed, proven with the notification daemon paused);
+     85 slow polling loops (`CardioUITests` 617 → 362 s); keyboard on parallel clones (`prepare-test-simulator.sh`;
+     2 × 42/42); test plans; launch-only warm-up; `explore.sh`; rules in DEVELOPMENT and AGENTS.
   2. N1 (safety copy) — **ask the user its design questions first** (in the N1 ticket); the user asked to talk the plan
      through before N1 and paused there.
   3. N2 → **S6** ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md): account card,
      grouped rows to sub-pages, Help; Goals & tracking filled by N3/N9 — confirm groups with the user) → N3 … N10 → R.
      Testing plan: per-ticket unit + UI + changed-screen captures; a core-flow check after N5 (ask); full suite at R (ask).
-  **Open follow-ups:** the cardio start at `CardioUITests.swift:58` (`cardioTimer` within 10 s) is intermittent on
-  `main` too (warm-up, `testCardioAccessibilityCaptureAndSave`) — fixed by the testing-workflow ticket; Training Profile's
-  Weight field sits half under the number pad (pre-existing); `testGoalsNumberPadsHaveAppDone` intermittent; known
-  failure `AskAIUITests/testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce`.
+  **Open follow-ups:** Training Profile's Weight field sits half under the number pad (pre-existing); known failure
+  `AskAIUITests/testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce`; candidate: a pre-seeded UI-test store to cut each
+  launch's ~4 s (testing ticket, not done). The cardio-start flake and the clone keyboard failures are fixed by the
+  testing-workflow ticket (`testGoalsNumberPadsHaveAppDone` passed in 2 parallel runs + Codex's serial run).
   **User preferences (memory):** every status update ends with a done / in progress / left board; multi-minute test
   runs show in ONE reused Orca tab "Test progress (Claude r2)" `term_ac1339dc-202d-4c10-bab3-b528de726cbd` (send
   `bash scripts/test-progress.sh <log> <count> "<title>"` to it; never open a new one); ask before runs over ~20 min;
   explain plainly; screenshots by SendUserFile **and** Preview.
-  **Codex:** Orca terminal `term_1ae47c82-7df4-40ea-9b18-0c9321ea6c11` (titled "Review soft redesign round 2", this
-  worktree, GPT-6-Astra, ~45% context left at handoff — open a new one if it runs low). It asks approval for each
-  simulator/orca command: read the `$ ` line, then send `--text "y"` alone; read any new script it runs in the progress
-  tab before approving. It writes "Verdict: not clear" as a checkpoint while its UI run is going — act on the final
+  **Codex:** Orca terminal `term_0b783489-9319-4408-a505-664cb8193333` ("Codex review dev-01 round 2", this worktree,
+  fresh 2026-11-09, runs without approval prompts); the older `term_1ae47c82-…` ("Review soft redesign round 2") is at
+  13% context — retired. If a Codex session asks approval for a simulator/orca command: read the `$ ` line, then send
+  `--text "y"` alone; read any new script it runs before approving. It writes "Verdict: not clear" as a checkpoint while its UI run is going — act on the final
   report. Brief it to use WT-iPhone27 `47D21838-…`; Claude uses WT-Floodlight `9E822EF6-…`.
-  **Gotchas (2026-11-07/08):** this worktree has no `Config/Local.xcconfig` → Debug installs as
+  **Gotchas (2026-11-07/09):** run `scripts/prepare-test-simulator.sh` before a session's first test run (keeps the
+  simulator booted — xcodebuild shuts down a simulator it booted — and keeps the keyboard up on parallel clones); this worktree has no `Config/Local.xcconfig` → Debug installs as
   `com.example.workouttracker`; the Simulator app is **DeviceHub** (`/Applications/Xcode.app/Contents/Applications/
   DeviceHub.app`); a manual launch needs `xcrun simctl privacy <dev> grant motion <bundle>` or an alert covers the screen;
   sample data: `xcrun simctl launch <dev> <bundle> -uiTestReset -uiTestDesignSample -uiTestDesignHistory
@@ -64,7 +67,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   Add Exercise Exercises | Machines; template Machines tab); (4) ask before deleting `ericlee4992/beta-22-wip`.
   Gotchas: Codex's weekly limit was under 5% on 2026-10-23 (ask the user if reviews fail); serial unit runs on a
   freshly booted simulator are slow (`EquipmentLifecycleTests` 179 s on `main`) — warm the simulator or allow minutes;
-  start UI runs with the warm-up test (`CardioUITests/testSavedDistanceEditor…`); never run one UI run per simulator
+  start UI runs with the warm-up (now `AAAWarmUpUITests`, in every test plan; testing ticket 01); never run one UI run per simulator
   alongside another heavy run (focus/launch flakes); never `pkill` broad xcodebuild patterns (other sessions'
   runs share the machine); `/private/tmp` scratch worktrees vanish — push WIP to a branch.
 - **Agent skills (2026-10-31):** `swiftui-pro` and `swiftdata-pro` (Paul Hudson, MIT) vendored on branch
