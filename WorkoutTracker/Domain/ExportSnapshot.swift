@@ -54,7 +54,10 @@ struct ExportSnapshot: Codable, Equatable {
     /// and draws from them. JSON only, like the mean; CSV unchanged.
     /// 10 — cardio segments, measured/entered distance, active intervals and routes.
     /// 11 — confirmed machine exercise links and authored routine targets/provenance. CSV unchanged.
-    static let currentSchemaVersion = 11
+    /// 12 — nutrition N2: `foodEntries`, `savedFoods`, `savedMeals` (with their items), `nutritionGoals`,
+    /// `bodyWeights`, and their counts. All optional, so a v1–v11 file still decodes. Nutrition per serving, as stored;
+    /// an entry's totals are per serving × `servings`. JSON only: the CSV stays a ledger of sets and cardio.
+    static let currentSchemaVersion = 12
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -77,6 +80,12 @@ struct ExportSnapshot: Codable, Equatable {
     var workouts: [Workout] = []
     var gymExerciseMemory: [GymMemory] = []
     var exerciseRestOverrides: [RestOverride] = []
+    // Nutrition N2 (v12).
+    var foodEntries: [FoodEntryRow]?
+    var savedFoods: [SavedFoodRow]?
+    var savedMeals: [SavedMealRow]?
+    var nutritionGoals: [NutritionGoalRow]?
+    var bodyWeights: [BodyWeightRow]?
 }
 
 // MARK: - Counts
@@ -97,6 +106,10 @@ extension ExportSnapshot {
         var templates: Int = 0
         var presets: Int = 0
         var cardioSegments: Int? = nil
+        var foodEntries: Int? = nil
+        var savedFoods: Int? = nil
+        var savedMeals: Int? = nil
+        var bodyWeights: Int? = nil
     }
 }
 
@@ -482,5 +495,124 @@ extension ExportSnapshot {
             id = target.id; activity = target.activity.rawValue; minutes = target.minutes
             distance = target.distance; unit = target.unit.rawValue; segmentID = target.segmentID
         }
+    }
+}
+
+// MARK: - Nutrition (v12, N2)
+
+extension ExportSnapshot {
+    /// Nutrition per serving, as stored (`FoodEntry`): the entry's totals are these × `servings`.
+    struct FoodEntryRow: Codable, Equatable {
+        var id: UUID
+        var loggedAt: String
+        var meal: MealSlot
+        var name: String
+        var brand: String?
+        var servings: Double
+        var servingValue: Double
+        var servingUnit: String
+        var servingGrams: Double?
+        var calories: Double
+        var proteinGrams: Double
+        var carbsGrams: Double
+        var fatGrams: Double
+        var fiberGrams: Double?
+        var sugarGrams: Double?
+        var saturatedFatGrams: Double?
+        var sodiumMilligrams: Double?
+        var source: FoodSource
+        var barcode: String?
+        /// The saved food it came from, while that food exists.
+        var savedFoodID: UUID?
+        var healthSampleID: UUID?
+        var createdAt: String
+        var updatedAt: String
+    }
+
+    struct SavedFoodRow: Codable, Equatable {
+        var id: UUID
+        var name: String
+        var brand: String?
+        var barcode: String?
+        var databaseID: String?
+        var servingValue: Double
+        var servingUnit: String
+        var servingGrams: Double?
+        var calories: Double
+        var proteinGrams: Double
+        var carbsGrams: Double
+        var fatGrams: Double
+        var fiberGrams: Double?
+        var sugarGrams: Double?
+        var saturatedFatGrams: Double?
+        var sodiumMilligrams: Double?
+        var servingOptions: [ServingOption]?
+        var isSaved: Bool
+        var lastUsedAt: String?
+        var createdAt: String
+        var updatedAt: String
+    }
+
+    struct SavedMealRow: Codable, Equatable {
+        var id: UUID
+        var name: String
+        var usualMeal: MealSlot?
+        var lastUsedAt: String?
+        var createdAt: String
+        var updatedAt: String
+        var items: [SavedMealItemRow]
+    }
+
+    struct SavedMealItemRow: Codable, Equatable {
+        var id: UUID
+        var order: Int
+        var name: String
+        var brand: String?
+        var servings: Double
+        var servingValue: Double
+        var servingUnit: String
+        var servingGrams: Double?
+        var calories: Double
+        var proteinGrams: Double
+        var carbsGrams: Double
+        var fatGrams: Double
+        var fiberGrams: Double?
+        var sugarGrams: Double?
+        var saturatedFatGrams: Double?
+        var sodiumMilligrams: Double?
+        var barcode: String?
+        var savedFoodID: UUID?
+    }
+
+    struct NutritionGoalRow: Codable, Equatable {
+        var id: UUID
+        var effectiveFrom: String
+        var calories: Double
+        var proteinGrams: Double
+        var carbsGrams: Double
+        var fatGrams: Double
+        var weightKg: Double?
+        var heightCm: Double?
+        var ageYears: Int?
+        var sex: BiologicalSex?
+        var activity: ActivityLevel?
+        var goal: WeightGoal?
+        var caloriesOverridden: Bool
+        var proteinOverridden: Bool
+        var carbsOverridden: Bool
+        var fatOverridden: Bool
+        var createdAt: String
+    }
+
+    /// The entered `(value, unit)` and `normalizedKg`, like every exported weight.
+    struct BodyWeightRow: Codable, Equatable {
+        var id: UUID
+        var measuredAt: String
+        var value: Double
+        var unit: WeightUnit
+        var normalizedKg: Double
+        var source: BodyWeightSource
+        var healthSampleID: UUID?
+        var createdAt: String
     }
 }

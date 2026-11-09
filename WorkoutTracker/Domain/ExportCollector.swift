@@ -42,6 +42,12 @@ struct ExportCollector {
         let workouts = try context.fetch(FetchDescriptor<Workout>())
         let memories = try context.fetch(FetchDescriptor<GymExerciseMemory>())
         let overrides = try context.fetch(FetchDescriptor<ExerciseRestOverride>())
+        // Nutrition N2 (v12).
+        let foodEntries = try context.fetch(FetchDescriptor<FoodEntry>())
+        let savedFoods = try context.fetch(FetchDescriptor<SavedFood>())
+        let savedMeals = try context.fetch(FetchDescriptor<SavedMeal>())
+        let nutritionGoals = try context.fetch(FetchDescriptor<NutritionGoal>())
+        let bodyWeights = try context.fetch(FetchDescriptor<BodyWeightEntry>())
         let preferences = AppPreferences.canonical(
             of: try context.fetch(FetchDescriptor<AppPreferences>()))
 
@@ -107,7 +113,11 @@ struct ExportCollector {
                 equipmentModels: exportedModels.count,
                 templates: exportedTemplates.count,
                 presets: presets.count,
-                cardioSegments: workouts.reduce(0) { $0 + $1.orderedCardio.count }),
+                cardioSegments: workouts.reduce(0) { $0 + $1.orderedCardio.count },
+                foodEntries: foodEntries.count,
+                savedFoods: savedFoods.count,
+                savedMeals: savedMeals.count,
+                bodyWeights: bodyWeights.count),
             preferences: preferences.map(self.preferences(from:)),
             gyms: exportedGyms,
             presets: presets
@@ -130,7 +140,82 @@ struct ExportCollector {
                 .map(gymMemory(from:)),
             exerciseRestOverrides: overrides
                 .sorted { ($0.updatedAt, $0.id.uuidString) < ($1.updatedAt, $1.id.uuidString) }
-                .map(restOverride(from:)))
+                .map(restOverride(from:)),
+            foodEntries: foodEntries
+                .sorted { ($0.loggedAt, $0.id.uuidString) < ($1.loggedAt, $1.id.uuidString) }
+                .map(foodEntry(from:)),
+            savedFoods: savedFoods
+                .sorted { ($0.name, $0.id.uuidString) < ($1.name, $1.id.uuidString) }
+                .map(savedFood(from:)),
+            savedMeals: savedMeals
+                .sorted { ($0.name, $0.id.uuidString) < ($1.name, $1.id.uuidString) }
+                .map(savedMeal(from:)),
+            nutritionGoals: nutritionGoals
+                .sorted { ($0.effectiveFrom, $0.id.uuidString) < ($1.effectiveFrom, $1.id.uuidString) }
+                .map(nutritionGoal(from:)),
+            bodyWeights: bodyWeights
+                .sorted { ($0.measuredAt, $0.id.uuidString) < ($1.measuredAt, $1.id.uuidString) }
+                .map(bodyWeight(from:)))
+    }
+
+    // MARK: Nutrition (v12, N2)
+
+    private func foodEntry(from entry: FoodEntry) -> ExportSnapshot.FoodEntryRow {
+        ExportSnapshot.FoodEntryRow(
+            id: entry.id, loggedAt: dateFormat.string(from: entry.loggedAt), meal: entry.meal, name: entry.name,
+            brand: entry.brand, servings: entry.servings, servingValue: entry.servingValue,
+            servingUnit: entry.servingUnit, servingGrams: entry.servingGrams, calories: entry.calories,
+            proteinGrams: entry.proteinGrams, carbsGrams: entry.carbsGrams, fatGrams: entry.fatGrams,
+            fiberGrams: entry.fiberGrams, sugarGrams: entry.sugarGrams, saturatedFatGrams: entry.saturatedFatGrams,
+            sodiumMilligrams: entry.sodiumMilligrams, source: entry.source, barcode: entry.barcode,
+            savedFoodID: entry.savedFood?.id, healthSampleID: entry.healthSampleID,
+            createdAt: dateFormat.string(from: entry.createdAt), updatedAt: dateFormat.string(from: entry.updatedAt))
+    }
+
+    private func savedFood(from food: SavedFood) -> ExportSnapshot.SavedFoodRow {
+        let options = food.servingOptions
+        return ExportSnapshot.SavedFoodRow(
+            id: food.id, name: food.name, brand: food.brand, barcode: food.barcode, databaseID: food.databaseID,
+            servingValue: food.servingValue, servingUnit: food.servingUnit, servingGrams: food.servingGrams,
+            calories: food.calories, proteinGrams: food.proteinGrams, carbsGrams: food.carbsGrams,
+            fatGrams: food.fatGrams, fiberGrams: food.fiberGrams, sugarGrams: food.sugarGrams,
+            saturatedFatGrams: food.saturatedFatGrams, sodiumMilligrams: food.sodiumMilligrams,
+            servingOptions: options.isEmpty ? nil : options, isSaved: food.isSaved,
+            lastUsedAt: food.lastUsedAt.map(dateFormat.string(from:)),
+            createdAt: dateFormat.string(from: food.createdAt), updatedAt: dateFormat.string(from: food.updatedAt))
+    }
+
+    private func savedMeal(from meal: SavedMeal) -> ExportSnapshot.SavedMealRow {
+        ExportSnapshot.SavedMealRow(
+            id: meal.id, name: meal.name, usualMeal: meal.usualMeal,
+            lastUsedAt: meal.lastUsedAt.map(dateFormat.string(from:)),
+            createdAt: dateFormat.string(from: meal.createdAt), updatedAt: dateFormat.string(from: meal.updatedAt),
+            items: meal.orderedItems.map { item in
+                ExportSnapshot.SavedMealItemRow(
+                    id: item.id, order: item.order, name: item.name, brand: item.brand, servings: item.servings,
+                    servingValue: item.servingValue, servingUnit: item.servingUnit, servingGrams: item.servingGrams,
+                    calories: item.calories, proteinGrams: item.proteinGrams, carbsGrams: item.carbsGrams,
+                    fatGrams: item.fatGrams, fiberGrams: item.fiberGrams, sugarGrams: item.sugarGrams,
+                    saturatedFatGrams: item.saturatedFatGrams, sodiumMilligrams: item.sodiumMilligrams,
+                    barcode: item.barcode, savedFoodID: item.savedFood?.id)
+            })
+    }
+
+    private func nutritionGoal(from goal: NutritionGoal) -> ExportSnapshot.NutritionGoalRow {
+        ExportSnapshot.NutritionGoalRow(
+            id: goal.id, effectiveFrom: dateFormat.string(from: goal.effectiveFrom), calories: goal.calories,
+            proteinGrams: goal.proteinGrams, carbsGrams: goal.carbsGrams, fatGrams: goal.fatGrams,
+            weightKg: goal.weightKg, heightCm: goal.heightCm, ageYears: goal.ageYears, sex: goal.sex,
+            activity: goal.activity, goal: goal.goal, caloriesOverridden: goal.caloriesOverridden,
+            proteinOverridden: goal.proteinOverridden, carbsOverridden: goal.carbsOverridden,
+            fatOverridden: goal.fatOverridden, createdAt: dateFormat.string(from: goal.createdAt))
+    }
+
+    private func bodyWeight(from weight: BodyWeightEntry) -> ExportSnapshot.BodyWeightRow {
+        ExportSnapshot.BodyWeightRow(
+            id: weight.id, measuredAt: dateFormat.string(from: weight.measuredAt), value: weight.value,
+            unit: weight.unit, normalizedKg: weight.normalizedKg, source: weight.source,
+            healthSampleID: weight.healthSampleID, createdAt: dateFormat.string(from: weight.createdAt))
     }
 
     /// Chronological, with a total tie-break so two exports of unchanged data
