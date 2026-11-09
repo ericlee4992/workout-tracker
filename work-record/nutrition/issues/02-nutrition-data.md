@@ -95,10 +95,13 @@ Branch `ericlee4992/nutrition-02-data` (on `main` `b911247`, N1 merged). **Done 
 **Verified:** models, math, guard, migration fixture (31/31 earlier, in the Unit plan now); export v12 round trip;
 Unit plan 1163/1163; ExportUITests; Simulator migration rehearsal (above).
 **Not verified:** a real phone (Gate S at the release R); the build 8/9 TestFlight store itself (the fixture is in the
-shipped format, proven from its metadata); Import (none exists — question below).
+shipped format, proven from its metadata); Import (none exists; dropped from N2 by the user).
 **Known flaky:** none seen.
 
-**Left:** the user's answer on Import; Codex review (`work-record/nutrition/codex-review-n2-prompt.md`).**Question for the user:** the ticket's "Import" — the app has no Import (a JSON export cannot be restored in the
-app). Build one (replace or merge, its screens) or drop it from N2? Not built; nothing else depends on it.
+**Left:** Codex review (`work-record/nutrition/codex-review-n2-prompt.md`).
+
+**Import — dropped from N2 (the user, 2026-11-09: "Drop it from N2").** The app has never had an Import; the v12
+export carries every nutrition row, so a future Import can restore it. Acceptance 3 is read as "export v12 round-trips
+through `ExportJSON.decode`; an old export still decodes". A separate Import ticket only if the user asks.
 
 ## Comments
