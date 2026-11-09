@@ -1,18 +1,16 @@
 # Current project state
 
-Updated **2026-11-09, session 2** (N1 and N2 merged, `main` `5f8ff92`; S6 in review; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-09, session 2** (N1, N2, S6 merged, `main` `6e53446`; N3 next; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-09, session 2) — S6 in Codex review, round 2.** N2 merged into `main` `5f8ff92`. **S6** on
-  `ericlee4992/soft-06-profile` (pushed, `c452791`): Profile like the prototype, then **regrouped by the user (D80):**
-  account card → Goals & tracking (Heart rate zones; N3/N9 add theirs) → Settings (Preferences, Ask AI, Export &
-  backup) → Help → version; **Personal details** (weight, height, date of birth, sex — one place, read by zones, goals
-  and AI) moved into **N3's** scope. Round 1 clear (before the regroup); round 2 sent → `codex-review-s6b.md`. UI
-  34/34 after the regroup; captures sent to the user — [ticket](../work-record/soft-redesign/issues/06-profile-layout.md).
-  **Next:** round 2 clear → ask the user (new strings: "Export & backup", "Version …", "Signed in with Apple", "Goals &
-  tracking", "Preferences") and merge → N3 (with Personal details) → N4 → N5. Still to ask: the four N1 strings; N6's
+- **Resume here (2026-11-09, session 2) — S6 merged into `main` `6e53446`; N3 next.** N2 (`5f8ff92`) and S6 merged
+  (S6: Profile goals first, D80; strings approved by the user; Codex clear round 2). **N3** on
+  `ericlee4992/nutrition-03-goals` off `main`: the goal calculation (approved as proposed), onboarding step, Profile →
+  Goals & tracking → Nutrition goals, and — added by D80 — **Personal details** (weight, height, date of birth, sex: one
+  place, read by the zones, goals and AI; storage decided in N3, a second pre-R format change) — see the
+  [N3 ticket](../work-record/nutrition/issues/03-goals.md). Then N4 → N5. Still to ask: the four N1 strings; N6's
   deploy + GPT-6.1 Terra switch. Auto-handoff turned off by the user.
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
@@ -22,7 +20,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
   `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Git:** `main` = `origin/main` = `5f8ff92` (N2). Each ticket: a new branch off `main` in this worktree (Claude's
+  **Git:** `main` = `origin/main` = `6e53446` (S6). Each ticket: a new branch off `main` in this worktree (Claude's
   own branches). The home checkout `…/orca/projects/Health App` is on clean `main`; fast-forward `main` there
   (`git -C "<home>" merge --ff-only <branch>` + push) — `main` cannot be checked out in this worktree.
   **Commands:** build `xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk
@@ -43,7 +41,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
      files-only copy before a format change (store metadata vs model), newest 2 kept, restore at the next launch as a
      journaled swap with rollback, blocked open when a swap cannot be undone or a request cannot be withdrawn,
      full-screen waiting screen; 3 Codex rounds). Open for the user: 4 strings added after approval (in the ticket).
-  3. ~~N2~~ — **done 2026-11-09**, merged `5f8ff92` → **S6** ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md): account card,
+  3. ~~N2~~ — **done 2026-11-09**, merged `5f8ff92` → ~~S6~~ — **done 2026-11-09**, merged `6e53446` (D80) ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md): account card,
      grouped rows to sub-pages, Help; Goals & tracking filled by N3/N9 — confirm groups with the user) → N3 … N10 → R.
      Testing plan: per-ticket unit + UI + changed-screen captures; a core-flow check after N5 (ask); full suite at R (ask).
   **Open follow-ups:** Training Profile's Weight field sits half under the number pad (pre-existing); known failure
