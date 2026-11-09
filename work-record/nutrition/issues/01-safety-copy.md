@@ -118,4 +118,4 @@ Nov 9, 2026."
 - **UI scope** (3 workers): warm-up + `SafetyCopyUITests` + `FloodlightSettingsUITests` (Settings changed) +
   `CoreLoopUITests` (start-up changed) + `ExportUITests` (the neighbouring row): **28/28, exit 0**, 962 s
   (`n1-ui3.xcresult`).
-- `StoreFormatGuardTests` (its messages now point at N1) + `SafetyCopyTests`: see `n1-guard.xcresult`.
+- `StoreFormatGuardTests` (its messages now point at N1) + `SafetyCopyTests`: **22/22, exit 0** (`n1-guard.xcresult`).
