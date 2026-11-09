@@ -92,6 +92,12 @@ backup; Personal details from N3) → Help → version. "Units, rest and appeara
 page title). The Personal details page is built in N3 (its ticket updated). This supersedes the wireframe above in
 group order and the one row name; everything else stands.
 
+**Regroup evidence (`f419a95`):** build exit 0; UI run (`s6-ui2.xcresult`, 3 workers) — AAAWarmUp,
+FloodlightSettings, FloodlightProfile, FloodlightTour, HeartRate `testZonesAreReachableFromSettings`,
+RedesignScreenshot `test05_settings` and `testUnitSystemDefault`: **34/34 passed, exit 0**. Captures looked at
+(`s6-caps2/named/`, sheets `sheet-profile.png`, `sheet-more.png`): the goals-first order signed in/out, light/dark,
+default/AXL; Preferences page; the tour's step 8 (caption still true). Sent to the user. Codex round 2 next.
+
 ## Progress
 
 Branch `ericlee4992/soft-06-profile` off `main` `5f8ff92` (N2 merged).
