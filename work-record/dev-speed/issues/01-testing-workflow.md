@@ -138,6 +138,8 @@ test). The xcresult step timeline of `testIndoorPhoneMotionDefaultCapture` (39 s
   + `FloodlightLiveUITests` + `FloodlightProfileUITests`): **42/42 passed, exit 0**, 1771 s (`par1.xcresult`) — incl.
   the 7 goals-keyboard tests, the number-pad test and the typing tests that failed on clones in the Phase 1 run. The
   wall time is set by the clone that gets the 15-test AI-routine class (XCTest spreads whole classes).
+- **Parallel run 2** (same selection, `ec082d2`, the user chose to repeat it): **42/42 passed, exit 0**, 1642 s
+  (`par2.xcresult`). Two consecutive clean runs.
 - **Exploration script:** `scripts/explore.sh -s light,dark,dark-axl` on WT-Floodlight: exit 0, 3 PNGs in ~18 s, no
   permission alert; first version set the simulator's appearance, but the app's own `-appearance` setting wins, so it
   now passes `-appearance` like the capture tests.
