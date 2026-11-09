@@ -1,7 +1,7 @@
 # S6 — Profile like the prototype
 
 Type: change
-Status: **Codex clear (round 1)**; approved (the user, 2026-11-08) — scheduled in Phase 2, **right before N3** (after N1, N2)
+Status: **Codex clear (round 2, after the D80 regroup)**; approved (the user, 2026-11-08) — scheduled in Phase 2, **right before N3** (after N1, N2)
 Implementer: Claude; Reviewer: Codex.
 Spec: [soft-redesign](../spec.md); prototype `SoftProfileAndAdd.swift` (`SoftProfileScreen`, tag
 `design/soft-approved-2026-11-07`). Decisions: D68 (five tabs).
@@ -96,7 +96,11 @@ group order and the one row name; everything else stands.
 FloodlightSettings, FloodlightProfile, FloodlightTour, HeartRate `testZonesAreReachableFromSettings`,
 RedesignScreenshot `test05_settings` and `testUnitSystemDefault`: **34/34 passed, exit 0**. Captures looked at
 (`s6-caps2/named/`, sheets `sheet-profile.png`, `sheet-more.png`): the goals-first order signed in/out, light/dark,
-default/AXL; Preferences page; the tour's step 8 (caption still true). Sent to the user. Codex round 2 next.
+default/AXL; Preferences page; the tour's step 8 (caption still true). Sent to the user.
+
+**Codex round 2 — clear** ([report](../codex-review-s6b.md), `c452791`): Spec 0, Standards 0; its own Unit 1163/1163;
+UI 32/33 in parallel — the one failure the known share-sheet clone flake (`testTabRoundTripDropsTheFileCard`), 2/2
+serially. **Waiting:** the user's go-ahead on the strings and the merge.
 
 ## Progress
 
