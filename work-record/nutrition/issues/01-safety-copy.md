@@ -1,7 +1,7 @@
 # N1 — Automatic safety copy before a stored-format change
 
 Type: task
-Status: **approved** (the user, 2026-11-09: "all as proposed" — every row of the table below, and the failed-copy
+Status: **done — Codex clear (round 3), merged into `main` 2026-11-09**; approved (the user, 2026-11-09: "all as proposed" — every row of the table below, and the failed-copy
 behaviour: tell the user, offer Continue or Quit, wording shown for approval); this is [public-beta ticket 11](../../public-beta/issues/11-safety-copy.md), now scheduled
 Blocked by: S4 (Phase 1 done first)
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
@@ -174,3 +174,16 @@ recovery cases reproduced against the production source:
 Evidence: `SafetyCopyTests` 28 (+4: consecutive restores with unswept leftovers, unreadable journal → blocked then
 recovered, damaged journal → blocked, relocated container recovered) × 10 → **290/290, exit 0**
 (`n1r3-safety.xcresult`); Unit plan **1144/1144, exit 0** (`n1r3-unit.xcresult`). No UI change this round.
+
+### Codex round 3 — [clear](../codex-review-n1c.md)
+
+0 findings on both axes; its three round-2 reproductions now pass against `a0c0384` (and the control), its own
+`SafetyCopyTests` × 10 passed. Merged into `main` (fast-forward), 2026-11-09.
+
+**Verified:** `SafetyCopyTests` 28 × 10 → 290/290; Unit plan 1144/1144; `SafetyCopyUITests` + warm-up + CoreLoop 17/17;
+UI scope (Settings, Export) 28/28 before the round-1 fixes; the Simulator rehearsal (one copy, none on an ordinary
+launch, restore → `compare_stores.py` exit 0); Codex's own rehearsal on WT-iPhone27 and 18 metadata checks.
+**Not verified:** a real phone (Gate S at the release), an iCloud/computer backup restore, a human VoiceOver pass of
+the waiting screen, a process kill during a real swap (simulated by the journal tests).
+**Known flaky:** none seen. **Open for the user:** the four round-1 strings ("Couldn't finish the restore", its two
+lines, "Couldn't cancel the restore: …") were added after the wording approval — shown to the user for approval.
