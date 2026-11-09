@@ -17,7 +17,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 PROJECT = "container:WorkoutTracker.xcodeproj"
 UNIT = {"containerPath": PROJECT, "identifier": "1A0000000000000000000012", "name": "WorkoutTrackerTests"}
 UI = {"containerPath": PROJECT, "identifier": "1A0000000000000000000022", "name": "WorkoutTrackerUITests"}
-# Runs first in every UI plan (XCTest orders classes by name): absorbs a fresh runner's slow automation set-up.
+# In every UI plan; sorts first, so a serial run starts with it. In a parallel run it lands on one clone only.
 WARM_UP = "AAAWarmUpUITests"
 
 AREAS = {
@@ -50,7 +50,7 @@ AREAS = {
 
 def ui_classes():
     found = set()
-    for path in (ROOT / "WorkoutTrackerUITests").glob("*.swift"):
+    for path in (ROOT / "WorkoutTrackerUITests").rglob("*.swift"):  # sub-folders compile into the target too
         found |= set(re.findall(r"^(?:final )?class (\w+)\s*:\s*XCTestCase", path.read_text(), re.M))
     return found
 

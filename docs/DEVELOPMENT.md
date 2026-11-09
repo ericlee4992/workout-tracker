@@ -27,8 +27,9 @@ Testing-workflow ticket 01 (2026-11-08). The scope is chosen by tier; a scope is
 `TestPlans/`, so Claude and Codex run the same sets (`xcodebuild test -testPlan <Name> …`, `-only-testing` narrows
 within it). Plans: **Unit** (the unit target), **TodayTrain**, **Workout**, **HistoryProgress**, **GymsExercises**,
 **ProfileAI**, **Review** (the older per-screen design-review suites) and **Full** (the default: both targets,
-everything). Every UI class sits in exactly one area plan, each area plan starts with the launch-only
-`AAAWarmUpUITests`, and `python3 scripts/test-plans.py --check` fails when a class is unmapped or a plan is stale
+everything). Every UI class sits in exactly one area plan, each area plan includes the launch-only
+`AAAWarmUpUITests` (it sorts first, so a serial run starts with it; a parallel run gives it to one clone only, so it
+does not warm the others), and `python3 scripts/test-plans.py --check` fails when a class is unmapped or a plan is stale
 — add a new UI class to `AREAS` in that script and run it without `--check`.
 
 | Tier | Checks |
@@ -95,8 +96,10 @@ xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
 **Before a session's first run:** `scripts/prepare-test-simulator.sh [udid]` (default WT-Floodlight). It boots the
 simulator and leaves it booted — when xcodebuild boots one itself it shuts it down after the run, so every later run
 pays ~35 s again (measured: a 3-test run 8 s booted, 41–49 s otherwise) — and turns off iOS's keyboard minimisation so
-parallel clones show the software keyboard. Then build once (`build-for-testing`) and rerun with
-`test-without-building` while only tests change; a no-change `xcodebuild test` still spends ~13 s on the build.
+parallel clones show the software keyboard. Then `build-for-testing` after **any** edit to app or test source, and
+rerun with `test-without-building` only while the source is unchanged — another test selection, plan or launch
+argument. `test-without-building` runs the bundle last built, so an edited test would not run (codex-review-01 #2). A
+no-change `xcodebuild test` still spends ~13 s on the build.
 
 For targeted checks, narrow `-only-testing` to `WorkoutTrackerTests/<Suite>` or
 `WorkoutTrackerUITests/<Class>/<testMethod>`, using names from the actual tests. The commands

@@ -27,27 +27,43 @@ extension RestNotificationScheduling {
     }
 }
 
+/// The two notification-center calls the rest notification makes; `UNUserNotificationCenter` provides both. A seam so
+/// a test can stand in a slow center and check the deadline (`RestNotificationSchedulerTests`).
+protocol RestNotificationCenter: AnyObject {
+    func removePendingNotificationRequests(withIdentifiers identifiers: [String])
+    func add(_ request: UNNotificationRequest, withCompletionHandler completionHandler: (@Sendable (Error?) -> Void)?)
+}
+
+extension UNUserNotificationCenter: RestNotificationCenter {}
+
 /// Production adapter. One stable identifier guarantees that every start,
 /// +time, or replacement leaves at most one pending rest notification.
 ///
-/// Every call to the notification center goes through one serial queue, never the caller's thread.
-/// `removePendingNotificationRequests` is a synchronous XPC round trip to the notification daemon: called on the
-/// main thread (a rest skip inside `CardioSession.start`, any rest start or +15s), a slow daemon froze the whole
+/// The remove and add calls go through one serial queue, never the caller's thread.
+/// `removePendingNotificationRequests` blocked in a synchronous XPC round trip to the notification daemon: called on
+/// the main thread (a rest skip inside `CardioSession.start`, any rest start or +15s), a slow daemon froze the whole
 /// app — the intermittent cardio start in the UI tests was exactly that, 60+ s on the main thread in this call
 /// (testing-workflow ticket 01). The one serial queue also keeps each remove-then-add in call order, so a cancel
 /// right after a schedule can no longer be overtaken by the schedule's add (it used to run in a detached Task).
+/// Authorization stays an async Task; it never blocked.
+///
+/// The request is built on the queue, after the removal, from the absolute end time: a trigger interval computed
+/// before a slow removal would fire that much later than the rest actually ends (codex-review-01 #1). A deadline that
+/// has already passed by then still notifies, 1 s later (the trigger's minimum) — the same as before for a past date.
 final class UserNotificationScheduler: RestNotificationScheduling {
     static let shared = UserNotificationScheduler()
-    private let center: UNUserNotificationCenter
+    private let center: any RestNotificationCenter
+    private let now: () -> Date
     private let identifier = "workout-rest-timer"
     private let queue = DispatchQueue(label: "workout-rest-timer.notifications", qos: .userInitiated)
 
-    init(center: UNUserNotificationCenter = .current()) {
+    init(center: any RestNotificationCenter = UNUserNotificationCenter.current(), now: @escaping () -> Date = { .now }) {
         self.center = center
+        self.now = now
     }
 
     func requestAuthorization() {
-        Task { _ = try? await center.requestAuthorization(options: [.alert, .sound]) }
+        Task { _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) }
     }
 
     func schedule(at date: Date) {
@@ -59,14 +75,13 @@ final class UserNotificationScheduler: RestNotificationScheduling {
         content.title = title
         content.body = body
         content.sound = .default
-        let interval = max(1, date.timeIntervalSinceNow)
-        let request = UNNotificationRequest(
-            identifier: identifier,
-            content: content,
-            trigger: UNTimeIntervalNotificationTrigger(
-                timeInterval: interval, repeats: false))
-        queue.async { [center, identifier] in
+        queue.async { [center, identifier, now] in
             center.removePendingNotificationRequests(withIdentifiers: [identifier])
+            let request = UNNotificationRequest(
+                identifier: identifier,
+                content: content,
+                trigger: UNTimeIntervalNotificationTrigger(
+                    timeInterval: max(1, date.timeIntervalSince(now())), repeats: false))
             center.add(request, withCompletionHandler: nil)
         }
     }
@@ -75,6 +90,11 @@ final class UserNotificationScheduler: RestNotificationScheduling {
         queue.async { [center, identifier] in
             center.removePendingNotificationRequests(withIdentifiers: [identifier])
         }
+    }
+
+    /// Tests only: returns once every call made so far has reached the center.
+    func waitUntilQueuedCallsFinish() {
+        queue.sync {}
     }
 }
 

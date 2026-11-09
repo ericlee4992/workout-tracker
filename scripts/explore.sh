@@ -32,8 +32,12 @@ extra=("$@")
 
 if [ -z "$app" ]; then
   roots=("${DERIVED:-}" "$HOME/Library/Developer/Xcode/DerivedData")
-  app=$(for r in "${roots[@]}"; do [ -n "$r" ] && [ -d "$r" ] && \
-          find "$r" -path "*Debug-iphonesimulator/WorkoutTracker.app" -maxdepth 6 -type d 2>/dev/null; done \
+  # An absent or empty root is skipped, not an error (with pipefail and set -e a failed test here ended the script).
+  app=$(for r in "${roots[@]}"; do
+          if [ -n "$r" ] && [ -d "$r" ]; then
+            find "$r" -path "*Debug-iphonesimulator/WorkoutTracker.app" -maxdepth 6 -type d 2>/dev/null || true
+          fi
+        done \
         | while read -r p; do echo "$(stat -f %m "$p") $p"; done | sort -rn | head -1 | cut -d' ' -f2-)
 fi
 [ -d "$app" ] || { echo "No built WorkoutTracker.app found; build first or pass -a." >&2; exit 1; }

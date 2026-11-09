@@ -149,3 +149,30 @@ test). The xcresult step timeline of `testIndoorPhoneMotionDefaultCapture` (39 s
   on each of the suite's ~400 launches; needs care with the SwiftData store files.
 
 ## Comments
+
+### 4. Codex round 1 — [not clear](../codex-review-01.md) (4 × P2, 2 × P3), all accepted and fixed
+
+Codex confirmed: the 85-loop rewrite reverses byte-for-byte to the originals; the hang diagnosis (both spindumps);
+queue ordering; plan coverage; and repeated the fixed half of the paused-daemon check on WT-iPhone27 (pass). Its own
+runs: Unit plan 1112/1112, focused UI 11/11, all exit 0.
+1. **P2 deadline drift** — the trigger interval was computed before the queued (possibly slow) removal, so the
+   notification fired that much after the rest's end. Now the request is built on the queue after the removal, from
+   the absolute end time (a passed deadline still notifies 1 s later, as before). A seam `RestNotificationCenter`
+   (`UNUserNotificationCenter` conforms) lets `RestNotificationSchedulerTests` stand in a slow center: deadline held
+   with a 0.6 s removal; call order for schedule→cancel and cancel→schedule; a passed deadline; the caller not kept
+   waiting. The comment no longer claims authorization goes through the queue.
+2. **P2 docs** — `build-for-testing` after any app *or test* source edit; `test-without-building` only while the
+   source is unchanged.
+3. **P2 `test-plans.py`** — finds classes in sub-folders (`rglob`); checked: a nested unmapped class → `--check` exit 1;
+   clean tree → exit 0.
+4. **P2 `explore.sh`** — an absent fallback DerivedData folder is skipped; checked with a temporary `HOME` → exit 0.
+5. **P3 warm-up** — comment and DEVELOPMENT now say it warms a serial run (one clone in a parallel run) and that a
+   failure there can be a real launch regression.
+6. **P3 progress tab** — keeps counting until the log has been quiet 15 s after the final marker, excludes Swift
+   Testing's run-summary line, and says the counts are the log's (the xcresult is the result). Replayed on `par1.log`:
+   ends at 42 (was 22); on the unit log: 1108 of 1112 (some Swift Testing lines interleave with app logs), labelled
+   provisional.
+
+**Round-2 evidence (WT-Floodlight):** build exit 0, no new warnings; Unit plan **1116/1116, exit 0**, 108 s
+(`unit-r2.xcresult`; +4 new tests); paused-daemon `CardioUITests/testSavedDistanceEditor…` **passed, exit 0**
+(`stop-fixed2.xcresult`), daemon resumed.
