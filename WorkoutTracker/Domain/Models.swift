@@ -883,6 +883,25 @@ enum WorkoutTrackerStore {
         return container
     }
 
+    /// Where `makeContainer()` keeps the user's store (SwiftData's default location) — the safety copy (N1) reads its
+    /// files before the container opens them.
+    static var defaultStoreURL: URL {
+        ModelConfiguration(schema: schema, isStoredInMemoryOnly: false).url
+    }
+
+    /// Nutrition N1: Application Support/SafetyCopies — inside the iPhone's own iCloud or computer backup, not in Files.
+    static var safetyCopies: SafetyCopies {
+        SafetyCopies(directory: URL.applicationSupportDirectory.appending(path: "SafetyCopies", directoryHint: .isDirectory))
+    }
+
+    /// "0.1.0 (10)": the version and build that made a safety copy.
+    static var appVersion: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        return "\(version) (\(build))"
+    }
+
     /// Launch argument that makes the app start from an empty store, so
     /// XCUITest runs are deterministic (`WorkoutTrackerUITests`).
     static let uiTestResetArgument = "-uiTestReset"

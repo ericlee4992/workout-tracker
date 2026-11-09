@@ -24,7 +24,8 @@
         "FloodlightTourUITests",
         "FloodlightWhatsNewUITests",
         "ExportUITests",
-        "BackupExportUITests"
+        "BackupExportUITests",
+        "SafetyCopyUITests"
       ],
       "target": {
         "containerPath": "container:WorkoutTracker.xcodeproj",

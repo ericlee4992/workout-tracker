@@ -3,8 +3,14 @@ import SwiftUI
 
 @main
 struct WorkoutTrackerApp: App {
-    /// On-disk SwiftData store; UI tests receive a disposable container.
-    private let modelContainer: ModelContainer
+    /// Nutrition N1: the on-disk SwiftData store, opened behind the safety copy (UI tests receive a disposable
+    /// container). Its container is nil only while a failed copy waits for the user (`SafetyCopyFailedView`).
+    @State private var store: StoreGate
+    /// The open store. Read only inside the main UI, which exists only once the gate has opened it.
+    private var modelContainer: ModelContainer {
+        guard let container = store.container else { preconditionFailure("the store is not open yet") }
+        return container
+    }
 
     init() {
         if WorkoutTrackerStore.isUITestReset {
@@ -31,15 +37,12 @@ struct WorkoutTrackerApp: App {
             // Public beta ticket 06: AI runs on the server; a key saved by an older build is removed.
             LegacyOpenAIKey.purge()
         }
-        do {
-            // `-uiTestReset` starts from an empty throwaway store so UI tests
-            // never inherit state from a previous run.
-            modelContainer = WorkoutTrackerStore.isUITestReset
-                ? try WorkoutTrackerStore.makeUITestContainer()
-                : try WorkoutTrackerStore.makeContainer()
-        } catch {
-            fatalError("Failed to create ModelContainer: \(error)")
-        }
+        _store = State(initialValue: StoreGate.forThisLaunch(prepare: Self.prepare))
+    }
+
+    /// Everything that runs once the store is open, before any screen reads it: at launch, or when the user chooses
+    /// Try Again / Continue Without a Copy after a failed safety copy.
+    private static func prepare(_ modelContainer: ModelContainer) {
         // +15s / Skip / Pause pressed on the Lock Screen card land here (ticket 11). Installed
         // before anything else can run: a command can be what launched the app.
         WorkoutActivityCommands.shared.install(container: modelContainer)
@@ -154,6 +157,36 @@ struct WorkoutTrackerApp: App {
 
     var body: some Scene {
         WindowGroup {
+            if let container = store.container {
+                mainApp
+                    .modelContainer(container)
+                    .environment(store)
+                    // N1: a restore chosen in Settings waits for the next launch; nothing more is logged meanwhile.
+                    .fullScreenCover(isPresented: .constant(store.pendingRestore != nil)) {
+                        if let copy = store.pendingRestore {
+                            SafetyRestorePendingView(copy: copy) { store.cancelRestore() }
+                                .lookLayer()
+                        }
+                    }
+                    .alert(SafetyCopyCopy.restoredTitle, isPresented: Binding(
+                        get: { store.restoredThisLaunch != nil },
+                        set: { if !$0 { store.restoredThisLaunch = nil } })) {
+                        Button("OK") {}
+                    } message: {
+                        Text(SafetyCopyCopy.restoredMessage(store.restoredThisLaunch?.date ?? .now))
+                    }
+            } else {
+                // N1: the copy before a format change failed; the store stays closed until the user chooses.
+                SafetyCopyFailedView(reason: store.copyFailure ?? "",
+                                     onTryAgain: { store.tryAgain() },
+                                     onContinue: { store.continueWithoutCopy() })
+                    .lookLayer()
+            }
+        }
+    }
+
+    /// The app itself, once the store is open.
+    private var mainApp: some View {
             Group {
                 // Ticket 11, test-only: the Live Activity's views for captures.
                 if let state = ActivityGallery.requestedState {
@@ -208,8 +241,6 @@ struct WorkoutTrackerApp: App {
                 // Floodlight token set (D54 reopened by the Floodlight redesign).
                 .environment(onboarding)
                 .lookLayer()
-        }
-        .modelContainer(modelContainer)
     }
 
     /// Public beta ticket 14: decided once per appearance of the user's own app (not the tour's world). A fresh

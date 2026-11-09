@@ -64,6 +64,7 @@ struct SettingsView: View {
                     askAI
                 }
                 export
+                SafetyCopySection()
                 historyUpdate
                 help
             }
