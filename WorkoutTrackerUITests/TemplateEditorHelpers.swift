@@ -6,7 +6,7 @@ extension XCUIApplication {
     /// Opens Add Exercise, searches each name and adds it, then closes the picker.
     func addTemplateExercises(_ names: [String], file: StaticString = #filePath, line: UInt = #line) {
         let add = buttons["addTemplateExercise"]
-        for _ in 0..<4 where !(add.exists && add.isHittable) { swipeUp() }
+        for _ in 0..<4 { guard !(add.exists && add.isHittable) else { break }; swipeUp() }
         XCTAssertTrue(add.waitForExistence(timeout: 5), "Add Exercise in the editor", file: file, line: line)
         add.tap()
         let search = textFields["Search exercises"]

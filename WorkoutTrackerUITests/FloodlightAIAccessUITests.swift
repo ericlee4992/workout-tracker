@@ -57,7 +57,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
     private func openAskAISheet(_ name: String) {
         openSettings()
         let card = any("askAISettings")
-        for _ in 0..<8 where !onScreen(card) { app.swipeUp() }
+        for _ in 0..<8 { guard !onScreen(card) else { break }; app.swipeUp() }
         Thread.sleep(forTimeInterval: 0.6)
         shoot("\(name)-settings")
         card.tap()
@@ -79,7 +79,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
         app.openTrain()
         let ask = app.buttons["askAIRoutine"]
         XCTAssertTrue(ask.waitForExistence(timeout: 15))
-        for _ in 0..<8 where !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+        for _ in 0..<8 { guard !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break }; app.swipeUp() }
         ask.tap()
         XCTAssertTrue(any("routineGoals").waitForExistence(timeout: 10))
         let phrase = any("routineGoalPhrase.0")
@@ -154,7 +154,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
         launch(appearance: appearance, large: large, flags: ["-uiTestProfileSample", "-uiTestTerraRoutineLimit"])
         openRoutineEquipment()
         let dumbbells = any("routineEquipment.dumbbells")
-        for _ in 0..<8 where !onScreen(dumbbells, floor: app.buttons["generateAIRoutine"].frame.minY - 12) { app.swipeUp() }
+        for _ in 0..<8 { guard !onScreen(dumbbells, floor: app.buttons["generateAIRoutine"].frame.minY - 12) else { break }; app.swipeUp() }
         dumbbells.tap()
         app.buttons["generateAIRoutine"].tap()
         XCTAssertTrue(any("routineRetry").waitForExistence(timeout: 10))
@@ -168,7 +168,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
         launch(appearance: "light", large: false, flags: ["-uiTestProfileSample", "-uiTestTerraExpired"])
         openRoutineEquipment()
         let dumbbells = any("routineEquipment.dumbbells")
-        for _ in 0..<8 where !onScreen(dumbbells, floor: app.buttons["generateAIRoutine"].frame.minY - 12) { app.swipeUp() }
+        for _ in 0..<8 { guard !onScreen(dumbbells, floor: app.buttons["generateAIRoutine"].frame.minY - 12) else { break }; app.swipeUp() }
         dumbbells.tap()
         app.buttons["generateAIRoutine"].tap()
         let signIn = app.buttons["routineSignIn"]
@@ -218,7 +218,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
         launch(appearance: "light", large: false, flags: flags)
         openRoutineEquipment()
         let dumbbells = any("routineEquipment.dumbbells")
-        for _ in 0..<8 where !onScreen(dumbbells, floor: app.buttons["generateAIRoutine"].frame.minY - 12) { app.swipeUp() }
+        for _ in 0..<8 { guard !onScreen(dumbbells, floor: app.buttons["generateAIRoutine"].frame.minY - 12) else { break }; app.swipeUp() }
         dumbbells.tap()
         app.buttons["generateAIRoutine"].tap()
         let routineSignIn = app.buttons["routineSignIn"]
@@ -244,7 +244,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
         XCTAssertTrue(iron.waitForExistence(timeout: 15))
         iron.tap()
         let addMachine = app.buttons["addMachine"]
-        for _ in 0..<8 where !onScreen(addMachine) { app.swipeUp() }
+        for _ in 0..<8 { guard !onScreen(addMachine) else { break }; app.swipeUp() }
         addMachine.tap()
         app.buttons["scanMachineLabel"].tap()
         let cancel = app.buttons["scanCancel"]
@@ -257,12 +257,12 @@ final class FloodlightAIAccessUITests: XCTestCase {
         let create = app.buttons["scanCreateNew"]
         XCTAssertTrue(create.waitForExistence(timeout: 15))
         let bar = app.buttons["scanUseCandidate"]
-        for _ in 0..<8 where !(create.isHittable && (!bar.exists || create.frame.maxY < bar.frame.minY - 20)) { app.swipeUp() }
+        for _ in 0..<8 { guard !(create.isHittable && (!bar.exists || create.frame.maxY < bar.frame.minY - 20)) else { break }; app.swipeUp() }
         create.tap()
         // A Form's rows exist once scrolled into view (the section starts below the fold at AX sizes).
         XCTAssertTrue(app.navigationBars["New Model"].waitForExistence(timeout: 5))
         let note = any("newModelSuggestSignIn")
-        for _ in 0..<10 where !onScreen(note, floor: app.frame.maxY - 30) { app.swipeUp(); Thread.sleep(forTimeInterval: 0.4) }
+        for _ in 0..<10 { guard !onScreen(note, floor: app.frame.maxY - 30) else { break }; app.swipeUp(); Thread.sleep(forTimeInterval: 0.4) }
         XCTAssertTrue(app.buttons["newModelSuggestExercises"].exists && note.exists)
         Thread.sleep(forTimeInterval: 0.6)
         shoot("ai06-newmodel-signedout-\(suffix)")

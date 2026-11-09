@@ -25,7 +25,7 @@ final class CardioUITests: XCTestCase {
             }
             return true
         }
-        for _ in 0..<10 where !visible() {
+        for _ in 0..<10 { guard !visible() else { break };
             if element.exists && element.frame.maxY < 130 { app.swipeDown() }
             else { app.swipeUp() }
         }
@@ -35,7 +35,7 @@ final class CardioUITests: XCTestCase {
         // The receipt link is above its metrics/map. Lazy content can remove it
         // from the accessibility tree, so an absent element must scroll upward.
         let history = app.buttons["viewFinishedWorkout"]
-        for _ in 0..<10 where !history.exists || !history.isHittable { app.swipeDown() }
+        for _ in 0..<10 { guard !history.exists || !history.isHittable else { break }; app.swipeDown() }
         XCTAssertTrue(history.exists && history.isHittable)
         history.tap()
     }
@@ -51,7 +51,7 @@ final class CardioUITests: XCTestCase {
     private func choose(_ kind: String) {
         let option = any("cardioActivity.\(kind)")
         XCTAssertTrue(option.waitForExistence(timeout: 5))
-        for _ in 0..<6 where !option.isHittable { app.swipeUp() }
+        for _ in 0..<6 { guard !option.isHittable else { break }; app.swipeUp() }
         option.tap()
         XCTAssertTrue(option.isSelected)
         app.buttons["startSelectedCardio"].tap()

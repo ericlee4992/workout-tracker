@@ -243,7 +243,7 @@ final class FloodlightWorkoutTabUITests: XCTestCase {
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
         shoot("floodlight-02-home-\(suffix)")
         let tile = any("templateTile.Whole Body")
-        for _ in 0..<6 where !(tile.exists && tile.isHittable) { app.swipeUp() }
+        for _ in 0..<6 { guard !(tile.exists && tile.isHittable) else { break }; app.swipeUp() }
         tile.tap()
         XCTAssertTrue(app.buttons["editTemplate"].waitForExistence(timeout: 5))
         shoot("floodlight-02-detail-\(suffix)")

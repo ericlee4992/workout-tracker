@@ -80,7 +80,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(labelled(" km").waitForExistence(timeout: 10), "Current activity retains its chosen unit")
         app.buttons["endCardio"].tap()
         let add = app.buttons["addCardio"]
-        for _ in 0..<6 where !add.exists || !add.isHittable { app.swipeUp() }
+        for _ in 0..<6 { guard !add.exists || !add.isHittable else { break }; app.swipeUp() }
         add.tap()
         let cycle = anyElement("cardioActivity.indoorCycle")
         XCTAssertTrue(cycle.waitForExistence(timeout: 5))
@@ -106,7 +106,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         }
         // A full swipe can skip the live metrics and land on an older segment at AXL.
         // Scroll in small steps until this value is actually above the pinned controls.
-        for _ in 0..<8 where !visible() {
+        for _ in 0..<8 { guard !visible() else { break };
             let down = speedUnit.exists && speedUnit.frame.minY < 120
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.4 : 0.6))
             let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.6 : 0.4))
@@ -188,7 +188,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-02-active-workout-axl-2")
         let add = app.buttons["addExercise"]
         let restLabel = app.staticTexts["Rest"]
-        for _ in 0..<6 where !(add.exists && add.isHittable && add.frame.maxY < restLabel.frame.minY) { app.swipeUp() }
+        for _ in 0..<6 { guard !(add.exists && add.isHittable && add.frame.maxY < restLabel.frame.minY) else { break }; app.swipeUp() }
         XCTAssertTrue(add.exists && add.isHittable, "Add Exercise reachable at AccessibilityL")
         XCTAssertLessThan(add.frame.maxY, restLabel.frame.minY, "Add Exercise clear of the pinned rest bar")
         shoot("redesign-02-active-workout-axl-3")
@@ -284,12 +284,12 @@ final class RedesignScreenshotUITests: XCTestCase {
         // unconditionally, then make sure the last make row is on screen.
         app.swipeUp()
         let ask = app.buttons["askAIRoutine"]
-        for _ in 0..<4 where !(ask.exists && ask.isHittable) { app.swipeUp() }
+        for _ in 0..<4 { guard !(ask.exists && ask.isHittable) else { break }; app.swipeUp() }
         XCTAssertTrue(ask.exists && ask.isHittable, "Ask AI for Templates reachable at AccessibilityL")
         XCTAssertLessThanOrEqual(ask.frame.maxY, app.tabBars.firstMatch.frame.minY, "clear of the tab bar")
         shoot("redesign-04-start-axl-2")
         // Ticket 11: the same template opened, at AccessibilityL.
-        for _ in 0..<4 where !app.buttons["templateTile.Full Session"].isHittable { app.swipeDown() }
+        for _ in 0..<4 { guard !app.buttons["templateTile.Full Session"].isHittable else { break }; app.swipeDown() }
         anyElement("templateTile.Full Session").tap()
         XCTAssertTrue(anyElement("startTemplate").waitForExistence(timeout: 5))
         shoot("redesign-04-template-detail-axl")
@@ -325,7 +325,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         let tile = anyElement("templateTile.Whole Body")
         XCTAssertTrue(tile.waitForExistence(timeout: 10))
         // The tile sits under the capsule at this size: scroll it up first.
-        for _ in 0..<4 where !tile.isHittable { app.swipeUp() }
+        for _ in 0..<4 { guard !tile.isHittable else { break }; app.swipeUp() }
         shoot("redesign-04-start-fixture-axl")
         tile.tap()
         XCTAssertTrue(anyElement("startTemplate").waitForExistence(timeout: 5))
@@ -400,7 +400,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         shoot("redesign-05-detail-axl")
         // The exercises sit under the hero and tiles; the lazy list builds them once scrolled.
         let setLine = anyElement("historySetLine")
-        for _ in 0..<8 where !setLine.exists { app.swipeUp() }
+        for _ in 0..<8 { guard !setLine.exists else { break }; app.swipeUp() }
         XCTAssertTrue(setLine.waitForExistence(timeout: 5))
         shoot("redesign-05-detail-axl-sets")
     }
@@ -431,19 +431,19 @@ final class RedesignScreenshotUITests: XCTestCase {
         row.tap()
         XCTAssertTrue(app.buttons["historyWorkoutName"].waitForExistence(timeout: 10))
         let section = anyElement("historyHeartRateSection")
-        for _ in 0..<8 where !section.exists { app.swipeUp() }
+        for _ in 0..<8 { guard !section.exists else { break }; app.swipeUp() }
         XCTAssertTrue(section.waitForExistence(timeout: 5))
         let chart = anyElement("heartRateChart")
-        for _ in 0..<3 where !(chart.exists && chart.isHittable) { app.swipeUp() }
+        for _ in 0..<3 { guard !(chart.exists && chart.isHittable) else { break }; app.swipeUp() }
         XCTAssertTrue(chart.waitForExistence(timeout: 10))
         shoot("redesign-05-detail-heart-rate-axl")
         let zones = anyElement("historyZoneCard")
-        for _ in 0..<4 where !zones.exists { app.swipeUp() }
+        for _ in 0..<4 { guard !zones.exists else { break }; app.swipeUp() }
         XCTAssertTrue(zones.exists, "the zones card reachable at AccessibilityL")
         // A card half under the tab bar counts as hittable (ticket 10's
         // lesson): scroll until its last row is on screen.
         let lastRow = app.descendants(matching: .any).matching(NSPredicate(format: "label BEGINSWITH 'Zone 3'")).firstMatch
-        for _ in 0..<4 where !(lastRow.exists && lastRow.isHittable) { app.swipeUp() }
+        for _ in 0..<4 { guard !(lastRow.exists && lastRow.isHittable) else { break }; app.swipeUp() }
         // The condition the loop was after, asserted (codex-review-14): the
         // last row hittable AND clear of the tab bar, so the capture is whole.
         XCTAssertTrue(lastRow.exists && lastRow.isHittable, "the last zone row visible at AccessibilityL")

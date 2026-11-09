@@ -189,11 +189,11 @@ final class FloodlightLiveUITests: XCTestCase {
     func testAtAccessibilitySizesTheBestTakesTheRestTextsPlace() {
         launch(["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"])
         let weight = app.textFields.matching(identifier: "setRow.weight").element(boundBy: 2)
-        for _ in 0..<6 where !(weight.exists && weight.isHittable) { app.swipeUp() }
+        for _ in 0..<6 { guard !(weight.exists && weight.isHittable) else { break }; app.swipeUp() }
         XCTAssertTrue(weight.isHittable)
         replace(weight, with: "115")
         let check = app.buttons.matching(identifier: "setRow.complete").element(boundBy: 2)
-        for _ in 0..<4 where !check.isHittable { app.swipeUp() }
+        for _ in 0..<4 { guard !check.isHittable else { break }; app.swipeUp() }
         check.tap()
         let band = any("liveNewBest")
         XCTAssertTrue(band.waitForExistence(timeout: 5), "the compact New best lands")

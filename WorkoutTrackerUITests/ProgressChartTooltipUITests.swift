@@ -141,7 +141,7 @@ final class ProgressChartTooltipUITests: XCTestCase {
         // from this one (codex-review 13).
         let row = rows.matching(NSPredicate(format: "label ENDSWITH %@", ", 450, lb")).firstMatch
         let tabBar = app.tabBars.firstMatch
-        for _ in 0..<8 where !(row.exists && row.isHittable && row.frame.maxY < tabBar.frame.minY - 8) {
+        for _ in 0..<8 { guard !(row.exists && row.isHittable && row.frame.maxY < tabBar.frame.minY - 8) else { break };
             app.swipeUp()
         }
         XCTAssertTrue(row.exists, "the dumbbell session's row (45 lb × 10)")

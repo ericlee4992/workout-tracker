@@ -87,7 +87,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         XCTAssertGreaterThan(app.keyboards.firstMatch.frame.height, 200)
         // Measure only once the keyboard has risen: mid-animation its frame can still start below the screen.
         let keyboard = app.keyboards.firstMatch
-        for _ in 0..<15 where keyboard.frame.minY > app.frame.maxY - 200 { Thread.sleep(forTimeInterval: 0.2) }
+        for _ in 0..<15 { guard keyboard.frame.minY > app.frame.maxY - 200 else { break }; Thread.sleep(forTimeInterval: 0.2) }
         XCTAssertLessThan(keyboard.frame.minY, app.frame.maxY - 200, "the keyboard settled on screen: \(keyboard.frame)")
         Thread.sleep(forTimeInterval: 0.4)
     }
@@ -137,7 +137,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
 
         let weight = app.textFields["routineWeight"]
         // Weight is the last row: swipe to the end (short drags from mid-screen can land on the minutes control).
-        for _ in 0..<10 where !visible(weight) { app.swipeUp() }
+        for _ in 0..<10 { guard !visible(weight) else { break }; app.swipeUp() }
         XCTAssertTrue(visible(weight), "reached \(weight)")
         weight.tap()
         assertSoftwareKeyboard()
@@ -157,7 +157,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
         app.openTrain()
         let ask = app.buttons["askAIRoutine"]
         XCTAssertTrue(ask.waitForExistence(timeout: 15))
-        for _ in 0..<8 where !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+        for _ in 0..<8 { guard !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break }; app.swipeUp() }
         ask.tap()
         XCTAssertTrue(any("routineGoals").waitForExistence(timeout: 10))
     }
@@ -173,7 +173,7 @@ final class FloodlightAIRoutineUITests: XCTestCase {
     }
 
     private func reach(_ element: XCUIElement, limit: Int = 12) {
-        for _ in 0..<limit where !visible(element) {
+        for _ in 0..<limit { guard !visible(element) else { break };
             let down = element.exists && element.frame.minY < 150
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.35 : 0.6))
             let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.6 : 0.35))

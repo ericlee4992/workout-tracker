@@ -70,7 +70,7 @@ final class HistoryEditingUITests: XCTestCase {
 
         // Floodlight ticket 05: Delete Workout… sits at the end of the page (was in a toolbar menu).
         let delete = app.buttons["deleteWorkout"]
-        for _ in 0..<6 where !(delete.exists && delete.isHittable) { app.swipeUp() }
+        for _ in 0..<6 { guard !(delete.exists && delete.isHittable) else { break }; app.swipeUp() }
         XCTAssertTrue(delete.isHittable)
         delete.tap()
 

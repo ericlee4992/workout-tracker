@@ -31,7 +31,7 @@ extension XCUIApplication {
 
     func revealedSearchField(file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
         let field = searchFields.firstMatch
-        for _ in 0..<3 where !field.waitForExistence(timeout: 2) {
+        for _ in 0..<3 { guard !field.waitForExistence(timeout: 2) else { break };
             let top = navigationBars.firstMatch.exists ? navigationBars.firstMatch : windows.firstMatch
             top.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 1.2))
                 .press(forDuration: 0.05, thenDragTo: top.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 4)))

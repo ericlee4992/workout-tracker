@@ -25,8 +25,8 @@ final class GymsFlowsUITests: XCTestCase {
 
     /// Scrolls the page until `element` is on screen and clear of the tab bar.
     private func reach(_ element: XCUIElement) {
-        for _ in 0..<10 where !(element.exists && element.isHittable
-                                && element.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) {
+        for _ in 0..<10 { guard !(element.exists && element.isHittable
+                                && element.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break };
             app.swipeUp()
         }
     }

@@ -48,7 +48,7 @@ final class HeartRateSummaryUITests: XCTestCase {
         // UNDER the chart is on screen, so the screenshot holds the whole chart.
         let chart = app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
         let caption = app.descendants(matching: .any).matching(identifier: "heartRateAverageCaption").firstMatch
-        for _ in 0..<6 where !(chart.exists && caption.exists && caption.isHittable) { app.swipeUp() }
+        for _ in 0..<6 { guard !(chart.exists && caption.exists && caption.isHittable) else { break }; app.swipeUp() }
         XCTAssertTrue(chart.waitForExistence(timeout: 5), "the receipt should draw the heart-rate series")
         XCTAssertTrue(caption.isHittable, "the whole chart, caption included, is in view")
 
@@ -62,18 +62,18 @@ final class HeartRateSummaryUITests: XCTestCase {
         // Clear of the sheet's bar too: a button half under it is "hittable" but the tap lands
         // on the bar.
         let bar = app.navigationBars["Nice work"]
-        for _ in 0..<6 where !(viewInHistory.exists && viewInHistory.isHittable
-                               && viewInHistory.frame.minY >= bar.frame.maxY) { app.swipeDown() }
+        for _ in 0..<6 { guard !(viewInHistory.exists && viewInHistory.isHittable
+                               && viewInHistory.frame.minY >= bar.frame.maxY) else { break }; app.swipeDown() }
         XCTAssertTrue(viewInHistory.isHittable, "View in History is reachable after the chart scroll")
         viewInHistory.tap()
         XCTAssertTrue(app.buttons["historyWorkoutName"].waitForExistence(timeout: 15), "View in History opens the detail")
         // The plate sits under the Workout details tiles, and a lazy List only materialises it
         // once scrolled into view (as on the receipt above).
         let section = app.descendants(matching: .any).matching(identifier: "historyHeartRateSection").firstMatch
-        for _ in 0..<6 where !section.exists { app.swipeUp() }
+        for _ in 0..<6 { guard !section.exists else { break }; app.swipeUp() }
         XCTAssertTrue(section.waitForExistence(timeout: 5), "History detail should show the heart-rate section")
         let historyChart = app.descendants(matching: .any).matching(identifier: "heartRateChart").firstMatch
-        for _ in 0..<3 where !(historyChart.exists && historyChart.isHittable) { app.swipeUp() }
+        for _ in 0..<3 { guard !(historyChart.exists && historyChart.isHittable) else { break }; app.swipeUp() }
         XCTAssertTrue(historyChart.waitForExistence(timeout: 10), "and the same chart")
 
         let after = XCTAttachment(screenshot: app.screenshot())

@@ -52,7 +52,7 @@ final class FloodlightCardioUITests: XCTestCase {
             return element.frame.minY > 100
         }
         // Lazy lists (History at AccessibilityL) load a far row only once scrolled near it.
-        for _ in 0..<24 where !visible() {
+        for _ in 0..<24 { guard !visible() else { break };
             let up = !element.exists || element.frame.minY > 100
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: up ? 0.62 : 0.38))
             let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: up ? 0.38 : 0.62))
@@ -259,7 +259,7 @@ final class FloodlightCardioUITests: XCTestCase {
         // Clear of the receipt's pinned header ("Nice work · Done"): a link half under it is hittable,
         // but the tap lands on Done.
         func clear() -> Bool { history.exists && history.isHittable && history.frame.minY > 160 }
-        for _ in 0..<12 where !clear() { app.swipeDown() }
+        for _ in 0..<12 { guard !clear() else { break }; app.swipeDown() }
         XCTAssertTrue(clear(), "View in History clear of the header")
         history.tap()
         XCTAssertTrue(any("historyWorkoutName").waitForExistence(timeout: 15), "History's detail opened")

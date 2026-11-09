@@ -37,9 +37,9 @@ final class FloodlightExercisesUITests: XCTestCase {
     /// Scrolls until `element` is on screen and clear of the tab bar (a row half under the bar is
     /// "hittable" but the tap lands on the bar).
     private func reach(_ element: XCUIElement, limit: Int = 12) {
-        for _ in 0..<limit where !(element.exists && element.isHittable
+        for _ in 0..<limit { guard !(element.exists && element.isHittable
                                    && element.frame.maxY < app.tabBars.firstMatch.frame.minY - 8
-                                   && element.frame.minY > 100) {
+                                   && element.frame.minY > 100) else { break };
             app.swipeUp()
         }
     }
@@ -64,7 +64,7 @@ final class FloodlightExercisesUITests: XCTestCase {
         field.typeText(text)
         // The simulator keyboard once added a stray key ("Landmine PressY", exercises-ui-13): check
         // what landed and type it again if it is not the text.
-        for _ in 0..<2 where (field.value as? String) != text {
+        for _ in 0..<2 { guard (field.value as? String) != text else { break };
             field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 40))
             field.typeText(text)
         }
@@ -174,7 +174,7 @@ final class FloodlightExercisesUITests: XCTestCase {
         shoot("floodlight-08-e05-changed-\(suffix)")
         // The whole ledger on record, down to the logged-sets row (codex-review-08 #7).
         let note = any("editLoadTypeHistoryNote")
-        for _ in 0..<4 where !(note.isHittable && note.frame.maxY < app.frame.maxY - 40) {
+        for _ in 0..<4 { guard !(note.isHittable && note.frame.maxY < app.frame.maxY - 40) else { break };
             app.swipeUp(velocity: .slow)
             Thread.sleep(forTimeInterval: 0.5)
         }

@@ -55,13 +55,13 @@ final class FloodlightFinishUITests: XCTestCase {
         // Codex review 04: one line per scope, spoken with its machine / bar (the scope).
         let bests = app.descendants(matching: .any).matching(identifier: "finishNewBest")
         let best = bests.firstMatch
-        for _ in 0..<3 where !best.exists { app.swipeUp() }
+        for _ in 0..<3 { guard !best.exists else { break }; app.swipeUp() }
         XCTAssertEqual(bests.count, barBest ? 2 : 1)
         XCTAssertTrue(bests.element(boundBy: 0).label.contains("Seated Chest Press, Chest Press 2, 110 lb × 8"), bests.element(boundBy: 0).label)
         XCTAssertTrue(bests.element(boundBy: 0).label.contains("previous best 45 lb × 8"))
         if barBest {
             let bench = bests.element(boundBy: 1)
-            for _ in 0..<3 where !bench.isHittable { app.swipeUp() }
+            for _ in 0..<3 { guard !bench.isHittable else { break }; app.swipeUp() }
             XCTAssertTrue(bench.label.contains("Bench Press"), bench.label)
             XCTAssertTrue(bench.label.contains("102.5 lb × 10 (45 lb bar)"), bench.label)
             XCTAssertTrue(bench.label.contains("previous best 90 lb × 10 (45 lb bar)"), bench.label)
@@ -72,7 +72,7 @@ final class FloodlightFinishUITests: XCTestCase {
             shoot("floodlight-04-barbest-\(appearance)-\(large ? "axl" : "default")")
             return
         }
-        for _ in 0..<4 where !any("viewFinishedWorkout").isHittable { app.swipeDown() }
+        for _ in 0..<4 { guard !any("viewFinishedWorkout").isHittable else { break }; app.swipeDown() }
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
         Thread.sleep(forTimeInterval: 1.5)
         shoot("floodlight-04-finish-\(suffix)-1")

@@ -98,7 +98,7 @@ final class TodayUpNextUITests: XCTestCase {
         shoot("s5-today-upnext-\(suffix)")
         if large {
             // At AX sizes the week is a list of days: the card sits below it.
-            for _ in 0..<6 where !upNextStart.isHittable { app.swipeUp() }
+            for _ in 0..<6 { guard !upNextStart.isHittable else { break }; app.swipeUp() }
             Thread.sleep(forTimeInterval: 0.6)
             shoot("s5-today-upnext-\(suffix)-card")
         }
@@ -113,7 +113,7 @@ final class TodayUpNextUITests: XCTestCase {
     private func openMySplit() {
         app.openTrain("Templates")
         let row = app.buttons["mySplit"]
-        for _ in 0..<8 where !(row.exists && row.isHittable) { app.swipeUp() }
+        for _ in 0..<8 { guard !(row.exists && row.isHittable) else { break }; app.swipeUp() }
         XCTAssertTrue(row.isHittable, "My Split… in Train → Templates")
         row.tap()
         XCTAssertTrue(app.buttons["mySplitSave"].waitForExistence(timeout: 5))
@@ -191,7 +191,7 @@ final class TodayUpNextUITests: XCTestCase {
         XCTAssertTrue(app.buttons["todayRepeat"].waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 0.8)
         shoot("s5-today-notemplates-dark-axl")
-        for _ in 0..<6 where !app.buttons["todayRepeat"].isHittable { app.swipeUp() }
+        for _ in 0..<6 { guard !app.buttons["todayRepeat"].isHittable else { break }; app.swipeUp() }
         Thread.sleep(forTimeInterval: 0.6)
         shoot("s5-today-notemplates-dark-axl-card")
     }

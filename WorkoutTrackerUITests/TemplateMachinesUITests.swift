@@ -35,7 +35,7 @@ final class TemplateMachinesUITests: XCTestCase {
     /// while its top is under the bar, where a tap lands on the bar instead.
     private func reach(_ element: XCUIElement) {
         func clear() -> Bool { element.exists && element.isHittable && element.frame.minY > 120 }
-        for _ in 0..<8 where !clear() {
+        for _ in 0..<8 { guard !clear() else { break };
             if element.exists && element.frame.minY <= 120 { app.swipeDown() } else { app.swipeUp() }
         }
         XCTAssertTrue(element.waitForExistence(timeout: 5), "\(element) not reached")
@@ -94,7 +94,7 @@ final class TemplateMachinesUITests: XCTestCase {
 
         // The Pec Deck is a station: it asks which exercise. Rear Delt Fly is already remembered on it; pick the other.
         let pecDeck = any("machineOption.Pec Deck")
-        for _ in 0..<8 where !(pecDeck.exists && pecDeck.isHittable) { app.swipeDown() }
+        for _ in 0..<8 { guard !(pecDeck.exists && pecDeck.isHittable) else { break }; app.swipeDown() }
         reach(pecDeck)
         pecDeck.tap()
         let options = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'exerciseOption.' AND NOT (identifier == 'exerciseOption.Rear Delt Fly')"))
@@ -106,7 +106,7 @@ final class TemplateMachinesUITests: XCTestCase {
         XCTAssertEqual(pecDeck.value as? String, "Added")
 
         // codex-review-23 #1: the gym and the ✓ survive a trip to Exercises and back.
-        for _ in 0..<8 where !gym.isHittable { app.swipeDown() }
+        for _ in 0..<8 { guard !gym.isHittable else { break }; app.swipeDown() }
         gym.tap()
         let second = app.buttons["Second Gym"].firstMatch
         XCTAssertTrue(second.waitForExistence(timeout: 5), "the gym menu lists the second gym")
@@ -124,7 +124,7 @@ final class TemplateMachinesUITests: XCTestCase {
         // codex-review-23b #1: the same exercise picked again on another machine (the model-less Biceps Curl machine
         // offers the full catalog) — that machine becomes the choice, and the Pec Deck loses its ✓.
         let modelless = any("machineOption.Biceps Curl")
-        for _ in 0..<8 where !(modelless.exists && modelless.isHittable) { app.swipeDown() }
+        for _ in 0..<8 { guard !(modelless.exists && modelless.isHittable) else { break }; app.swipeDown() }
         reach(modelless)
         modelless.tap()
         let search = app.searchFields.firstMatch

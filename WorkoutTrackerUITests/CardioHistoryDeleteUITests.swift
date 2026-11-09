@@ -33,7 +33,7 @@ final class CardioHistoryDeleteUITests: XCTestCase {
 
     private func reach(_ element: XCUIElement, file: StaticString = #filePath, line: UInt = #line) {
         func visible() -> Bool { element.exists && element.isHittable && element.frame.minY > 100 }
-        for _ in 0..<24 where !visible() {
+        for _ in 0..<24 { guard !visible() else { break };
             let up = !element.exists || element.frame.minY > 100
             let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: up ? 0.62 : 0.38))
             let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: up ? 0.38 : 0.62))
@@ -63,8 +63,8 @@ final class CardioHistoryDeleteUITests: XCTestCase {
         let history = app.buttons["viewFinishedWorkout"]
         // Clear of the receipt's pinned header: a link half under it is hittable, but the tap lands on Done.
         func clear() -> Bool { history.exists && history.isHittable && history.frame.minY > 160 }
-        for _ in 0..<12 where !clear() { app.swipeDown() }
-        for _ in 0..<12 where !clear() { app.swipeUp() }
+        for _ in 0..<12 { guard !clear() else { break }; app.swipeDown() }
+        for _ in 0..<12 { guard !clear() else { break }; app.swipeUp() }
         XCTAssertTrue(clear(), "View in History clear of the header")
         history.tap()
         XCTAssertTrue(any("historyWorkoutName").waitForExistence(timeout: 15), "History's detail opened")

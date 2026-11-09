@@ -45,7 +45,7 @@ final class FloodlightWhatsNewUITests: XCTestCase {
         XCTAssertEqual(items.count, 3)
         let last = items.element(boundBy: 2)
         let continueTop = { self.any("whatsNewContinue").frame.minY }
-        for _ in 0..<4 where last.frame.maxY > continueTop() { any("whatsNewSheet").swipeUp() }
+        for _ in 0..<4 { guard last.frame.maxY > continueTop() else { break }; any("whatsNewSheet").swipeUp() }
         XCTAssertLessThanOrEqual(last.frame.maxY, continueTop(), "the last line sits wholly above Continue")
         if large {
             Thread.sleep(forTimeInterval: 0.8)
@@ -62,7 +62,7 @@ final class FloodlightWhatsNewUITests: XCTestCase {
 
         app.openProfile()
         let row = any("settingsWhatsNew")
-        for _ in 0..<6 where !row.isHittable { app.swipeUp() }
+        for _ in 0..<6 { guard !row.isHittable else { break }; app.swipeUp() }
         XCTAssertTrue(row.isHittable, "What's New in Settings")
         row.tap()
         XCTAssertTrue(any("whatsNewSheet").waitForExistence(timeout: 5))

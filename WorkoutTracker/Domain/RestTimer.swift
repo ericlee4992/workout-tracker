@@ -29,10 +29,18 @@ extension RestNotificationScheduling {
 
 /// Production adapter. One stable identifier guarantees that every start,
 /// +time, or replacement leaves at most one pending rest notification.
+///
+/// Every call to the notification center goes through one serial queue, never the caller's thread.
+/// `removePendingNotificationRequests` is a synchronous XPC round trip to the notification daemon: called on the
+/// main thread (a rest skip inside `CardioSession.start`, any rest start or +15s), a slow daemon froze the whole
+/// app — the intermittent cardio start in the UI tests was exactly that, 60+ s on the main thread in this call
+/// (testing-workflow ticket 01). The one serial queue also keeps each remove-then-add in call order, so a cancel
+/// right after a schedule can no longer be overtaken by the schedule's add (it used to run in a detached Task).
 final class UserNotificationScheduler: RestNotificationScheduling {
     static let shared = UserNotificationScheduler()
     private let center: UNUserNotificationCenter
     private let identifier = "workout-rest-timer"
+    private let queue = DispatchQueue(label: "workout-rest-timer.notifications", qos: .userInitiated)
 
     init(center: UNUserNotificationCenter = .current()) {
         self.center = center
@@ -47,7 +55,6 @@ final class UserNotificationScheduler: RestNotificationScheduling {
     }
 
     func schedule(at date: Date, title: String, body: String) {
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
         let content = UNMutableNotificationContent()
         content.title = title
         content.body = body
@@ -58,11 +65,16 @@ final class UserNotificationScheduler: RestNotificationScheduling {
             content: content,
             trigger: UNTimeIntervalNotificationTrigger(
                 timeInterval: interval, repeats: false))
-        Task { try? await center.add(request) }
+        queue.async { [center, identifier] in
+            center.removePendingNotificationRequests(withIdentifiers: [identifier])
+            center.add(request, withCompletionHandler: nil)
+        }
     }
 
     func cancel() {
-        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        queue.async { [center, identifier] in
+            center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        }
     }
 }
 

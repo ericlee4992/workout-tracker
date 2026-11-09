@@ -158,7 +158,7 @@ final class ScanMachineLabelUITests: XCTestCase {
     /// tap lands on the bar (it once accepted the preselected model), so scroll it clear first.
     private func clearOfPinnedBar(_ element: XCUIElement) {
         let bar = app.buttons["scanUseCandidate"]
-        for _ in 0..<8 where !(element.isHittable && (!bar.exists || element.frame.maxY < bar.frame.minY - 20)) {
+        for _ in 0..<8 { guard !(element.isHittable && (!bar.exists || element.frame.maxY < bar.frame.minY - 20)) else { break };
             app.swipeUp()
             Thread.sleep(forTimeInterval: 0.4)
         }

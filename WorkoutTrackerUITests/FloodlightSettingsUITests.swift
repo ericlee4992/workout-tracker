@@ -38,7 +38,7 @@ final class FloodlightSettingsUITests: XCTestCase {
     /// Shorter drags than a swipe, back down when past: at AccessibilityL a swipe could carry a card from below the
     /// tab bar to above the title in one go, and the old up-only loop then never returned to it (ticket 06's runs).
     private func reach(_ element: XCUIElement, limit: Int = 16) {
-        for _ in 0..<limit where !visible(element) {
+        for _ in 0..<limit { guard !visible(element) else { break };
             let down = element.exists && element.frame.minY <= 100
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.35 : 0.65))
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.6 : 0.4)))

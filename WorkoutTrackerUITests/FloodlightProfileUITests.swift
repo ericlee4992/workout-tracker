@@ -81,7 +81,7 @@ final class FloodlightProfileUITests: XCTestCase {
         // The editor, from Edit.
         for _ in 0..<6 { app.swipeDown() }
         let edit = app.buttons["Edit"].firstMatch
-        for _ in 0..<6 where !onScreen(edit) { app.swipeUp() }
+        for _ in 0..<6 { guard !onScreen(edit) else { break }; app.swipeUp() }
         edit.tap()
         XCTAssertTrue(app.buttons["trainingSave"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["trainingSave"].isEnabled, "Save waits for a change")
@@ -102,7 +102,7 @@ final class FloodlightProfileUITests: XCTestCase {
         launch(appearance: appearance, large: large, flags: ["-uiTestProfileSample"])
         let ask = app.buttons["askAIRoutine"]
         XCTAssertTrue(ask.waitForExistence(timeout: 15))
-        for _ in 0..<8 where !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+        for _ in 0..<8 { guard !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break }; app.swipeUp() }
         ask.tap()
         XCTAssertTrue(any("routineGoals").waitForExistence(timeout: 10))
         Thread.sleep(forTimeInterval: 1.0)
@@ -115,7 +115,7 @@ final class FloodlightProfileUITests: XCTestCase {
         app.openTrain()
         let ask = app.buttons["askAIRoutine"]
         XCTAssertTrue(ask.waitForExistence(timeout: 15))
-        for _ in 0..<8 where !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+        for _ in 0..<8 { guard !(ask.isHittable && ask.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break }; app.swipeUp() }
         ask.tap()
         XCTAssertTrue(any("routineGoals").waitForExistence(timeout: 10))
     }
@@ -127,7 +127,7 @@ final class FloodlightProfileUITests: XCTestCase {
     }
 
     private func reachInFlow(_ element: XCUIElement) {
-        for _ in 0..<10 where !onFlowScreen(element) {
+        for _ in 0..<10 { guard !onFlowScreen(element) else { break };
             let down = element.exists && element.frame.minY <= 150
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.35 : 0.6))
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: down ? 0.6 : 0.35)))
@@ -141,7 +141,7 @@ final class FloodlightProfileUITests: XCTestCase {
         let dumbbells = any("routineEquipment.dumbbells")
         XCTAssertTrue(dumbbells.waitForExistence(timeout: 5))
         let generate = app.buttons["generateAIRoutine"]
-        for _ in 0..<8 where !(dumbbells.isHittable && dumbbells.frame.maxY < generate.frame.minY - 12) { app.swipeUp() }
+        for _ in 0..<8 { guard !(dumbbells.isHittable && dumbbells.frame.maxY < generate.frame.minY - 12) else { break }; app.swipeUp() }
         dumbbells.tap()
         generate.tap()
         XCTAssertTrue(any("routineDay.0").waitForExistence(timeout: 12))
@@ -200,7 +200,7 @@ final class FloodlightProfileUITests: XCTestCase {
         let dumbbells = any("routineEquipment.dumbbells")
         XCTAssertTrue(dumbbells.waitForExistence(timeout: 5))
         let generate = app.buttons["generateAIRoutine"]
-        for _ in 0..<8 where !(dumbbells.isHittable && dumbbells.frame.maxY < generate.frame.minY - 12) { app.swipeUp() }
+        for _ in 0..<8 { guard !(dumbbells.isHittable && dumbbells.frame.maxY < generate.frame.minY - 12) else { break }; app.swipeUp() }
         dumbbells.tap()
         generate.tap()
         XCTAssertTrue(any("routineDay.0").waitForExistence(timeout: 12), "the week still arrives")
@@ -218,7 +218,7 @@ final class FloodlightProfileUITests: XCTestCase {
         edit.tap()
         let weight = app.textFields["trainingWeight"]
         XCTAssertTrue(weight.waitForExistence(timeout: 5))
-        for _ in 0..<6 where !onScreen(weight, floor: app.frame.maxY - 20) {
+        for _ in 0..<6 { guard !onScreen(weight, floor: app.frame.maxY - 20) else { break };
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
         }
@@ -242,7 +242,7 @@ final class FloodlightProfileUITests: XCTestCase {
         edit.tap()
         XCTAssertTrue(app.buttons["trainingSave"].waitForExistence(timeout: 5))
         let feet = app.textFields["trainingHeightFeet"]
-        for _ in 0..<6 where !onScreen(feet, floor: app.frame.maxY - 20) {
+        for _ in 0..<6 { guard !onScreen(feet, floor: app.frame.maxY - 20) else { break };
             app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.72))
                 .press(forDuration: 0.05, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.3)))
         }

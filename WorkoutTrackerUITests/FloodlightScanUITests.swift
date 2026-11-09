@@ -272,8 +272,8 @@ final class FloodlightScanUITests: XCTestCase {
     private func openCorrection() {
         openIronTemple()
         let chest = any("machineRow.Chest Press 2")
-        for _ in 0..<8 where !(chest.exists && chest.isHittable
-                               && chest.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+        for _ in 0..<8 { guard !(chest.exists && chest.isHittable
+                               && chest.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break }; app.swipeUp() }
         chest.staticTexts["Chest Press 2"].tap()
         let correct = any("machineDetail.correctModel")
         XCTAssertTrue(any("machineDetail.best.0").waitForExistence(timeout: 10))
@@ -325,7 +325,7 @@ final class FloodlightScanUITests: XCTestCase {
     private func historyEquipment(_ machine: String = "Chest Press 2") -> String? {
         // Right after a sheet closes the tab bar is still settling; a tap then has no hit point.
         let tab = app.tabBars.buttons["History"]
-        for _ in 0..<10 where !tab.isHittable { Thread.sleep(forTimeInterval: 0.5) }
+        for _ in 0..<10 { guard !tab.isHittable else { break }; Thread.sleep(forTimeInterval: 0.5) }
         Thread.sleep(forTimeInterval: 0.6)
         tab.tap()
         // Back to Train with ONE tap: the page left pushed there (the machine) stays. `openTrain` would tap again when
@@ -336,7 +336,7 @@ final class FloodlightScanUITests: XCTestCase {
         // list" means no Back button: pop until there is none.
         let back = app.navigationBars.buttons["BackButton"]
         func popToList() {
-            for _ in 0..<4 where back.exists {
+            for _ in 0..<4 { guard back.exists else { break };
                 back.firstMatch.tap()
                 Thread.sleep(forTimeInterval: 0.8)
             }
@@ -346,7 +346,7 @@ final class FloodlightScanUITests: XCTestCase {
         for index in 0..<5 {
             let row = rows.element(boundBy: index)
             guard row.exists else { break }
-            for _ in 0..<4 where !(row.isHittable && row.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+            for _ in 0..<4 { guard !(row.isHittable && row.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break }; app.swipeUp() }
             row.tap()
             let line = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH %@", "\(machine) · ")).firstMatch
             let found = line.waitForExistence(timeout: 3) ? line.label : nil
@@ -491,7 +491,7 @@ final class FloodlightScanUITests: XCTestCase {
         XCTAssertTrue(app.buttons["scanDone"].waitForExistence(timeout: 5))
         app.buttons["scanDone"].tap()
         let row = any("machineRow.Chest press")
-        for _ in 0..<10 where !row.exists { app.swipeUp() }
+        for _ in 0..<10 { guard !row.exists else { break }; app.swipeUp() }
         XCTAssertTrue(row.waitForExistence(timeout: 5), "the scanned machine is at Iron Temple")
     }
 }

@@ -1,0 +1,29 @@
+{
+  "configurations": [
+    {
+      "id": "6F1E3D2C-0001-4A00-9000-000000000001",
+      "name": "Default",
+      "options": {}
+    }
+  ],
+  "defaultOptions": {
+    "codeCoverage": false
+  },
+  "testTargets": [
+    {
+      "target": {
+        "containerPath": "container:WorkoutTracker.xcodeproj",
+        "identifier": "1A0000000000000000000012",
+        "name": "WorkoutTrackerTests"
+      }
+    },
+    {
+      "target": {
+        "containerPath": "container:WorkoutTracker.xcodeproj",
+        "identifier": "1A0000000000000000000022",
+        "name": "WorkoutTrackerUITests"
+      }
+    }
+  ],
+  "version": 1
+}

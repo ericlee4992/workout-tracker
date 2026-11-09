@@ -75,8 +75,8 @@ final class FloodlightHistoryUITests: XCTestCase {
         // (70 lb × 10, a new best), then its lower half (footer, Delete Set).
         let setLine = app.descendants(matching: .any)
             .matching(NSPredicate(format: "identifier == 'historySetLine' AND label BEGINSWITH 'Set 1, 70 lb × 10'")).firstMatch
-        for _ in 0..<10 where !(setLine.exists && setLine.isHittable) { app.swipeDown() }
-        for _ in 0..<10 where !(setLine.exists && setLine.isHittable) { app.swipeUp() }
+        for _ in 0..<10 { guard !(setLine.exists && setLine.isHittable) else { break }; app.swipeDown() }
+        for _ in 0..<10 { guard !(setLine.exists && setLine.isHittable) else { break }; app.swipeUp() }
         XCTAssertTrue(setLine.isHittable)
         setLine.tap()
         XCTAssertTrue(app.textFields["editSetWeight"].waitForExistence(timeout: 5))

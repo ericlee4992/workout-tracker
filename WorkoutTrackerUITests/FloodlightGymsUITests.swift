@@ -121,8 +121,8 @@ final class FloodlightGymsUITests: XCTestCase {
         // G04: Chest Press 2's page — its bests (charted), setup, exercises, model, delete.
         for _ in 0..<12 { app.swipeDown() }
         let chest = any("machineRow.Chest Press 2")
-        for _ in 0..<8 where !(chest.exists && chest.isHittable
-                               && chest.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+        for _ in 0..<8 { guard !(chest.exists && chest.isHittable
+                               && chest.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break }; app.swipeUp() }
         chest.staticTexts["Chest Press 2"].tap()
         XCTAssertTrue(any("machineDetail.best.0").waitForExistence(timeout: 10), "a used machine shows its bests")
         Thread.sleep(forTimeInterval: 1.4)
@@ -155,8 +155,8 @@ final class FloodlightGymsUITests: XCTestCase {
         // The machine form, and the catalog from it.
         let add = any("addMachine")
         // Clear of the tab bar, not just "hittable": a row half under the bar takes the tap there.
-        for _ in 0..<10 where !(add.exists && add.isHittable
-                                && add.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) { app.swipeUp() }
+        for _ in 0..<10 { guard !(add.exists && add.isHittable
+                                && add.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break }; app.swipeUp() }
         add.tap()
         XCTAssertTrue(app.textFields["machineLabel"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 0.8)
@@ -186,7 +186,7 @@ final class FloodlightGymsUITests: XCTestCase {
         field.typeText("\n")
         let newModel = any("newModelFromSearch")
         let bar = app.searchFields.firstMatch
-        for _ in 0..<3 where !(newModel.isHittable && newModel.frame.maxY < bar.frame.minY - 4) { app.swipeUp() }
+        for _ in 0..<3 { guard !(newModel.isHittable && newModel.frame.maxY < bar.frame.minY - 4) else { break }; app.swipeUp() }
         newModel.tap()
         let manufacturer = app.textFields["Manufacturer"]
         XCTAssertTrue(manufacturer.waitForExistence(timeout: 5))

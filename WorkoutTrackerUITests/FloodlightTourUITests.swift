@@ -98,7 +98,7 @@ final class FloodlightTourUITests: XCTestCase {
                           historyTab: app.tabBars.buttons["History"].frame, gymPicker: app.buttons["gymPicker"].frame)
         app.openProfile()
         let row = app.buttons["showTour"]
-        for _ in 0..<8 where !row.isHittable { app.swipeUp() }
+        for _ in 0..<8 { guard !row.isHittable else { break }; app.swipeUp() }
         XCTAssertTrue(row.isHittable)
         row.tap()
         if tapStartImmediately { for _ in 0..<3 { tap(spots.start) } }
@@ -156,7 +156,7 @@ final class FloodlightTourUITests: XCTestCase {
         minimize.tap()
         app.openProfile()
         let row = app.buttons["showTour"]
-        for _ in 0..<8 where !row.isHittable { app.swipeUp() }
+        for _ in 0..<8 { guard !row.isHittable else { break }; app.swipeUp() }
         row.tap()
         XCTAssertTrue(app.alerts["Finish your workout first."].waitForExistence(timeout: 5))
         app.alerts.buttons["OK"].tap()

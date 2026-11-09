@@ -26,7 +26,7 @@ final class HistoryEditFlowsUITests: XCTestCase {
         func visible() -> Bool {
             element.exists && element.isHittable && (!bar.exists || element.frame.maxY < bar.frame.minY)
         }
-        for _ in 0..<10 where !visible() { up ? app.swipeUp() : app.swipeDown() }
+        for _ in 0..<10 { guard !visible() else { break }; up ? app.swipeUp() : app.swipeDown() }
         XCTAssertTrue(visible(), "\(element) should be reachable")
     }
 
