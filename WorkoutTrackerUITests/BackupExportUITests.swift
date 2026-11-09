@@ -17,10 +17,10 @@ final class BackupExportUITests: XCTestCase {
         continueAfterFailure = false
         let app = XCUIApplication()
         app.launch()
-        app.openProfile()
+        app.openExportBackup()  // S6: Profile → Export & backup
 
         let card = app.buttons["exportSettings"]
-        XCTAssertTrue(card.waitForExistence(timeout: 10), "The Settings screen should carry the export card")
+        XCTAssertTrue(card.waitForExistence(timeout: 10), "Export & backup should carry the export card")
         print("BACKUP-EXPORT CARD: \(card.label)")
         card.tap()
 

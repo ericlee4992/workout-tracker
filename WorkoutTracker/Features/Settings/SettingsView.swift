@@ -1,11 +1,10 @@
 import SwiftData
 import SwiftUI
 
-/// X01 Settings, pushed from the gear on the Workout tab (Floodlight ticket 09). Grouped and
-/// graphic where the old screen was one headerless list: **Units** is the bold element — two
-/// tiles showing the units you will see, with the one line saying logged sets keep theirs —
-/// then Appearance, Workout (rest defaults, the template prompt), cards that open the heart-rate
-/// zones sheet, Ask AI and Export, and the one-time D51 history note at the end.
+/// X01 Settings (Floodlight ticket 09), since Soft redesign S6 the page Profile → "Units, rest and appearance"
+/// (`ProfileTabView`): **Units** is the bold element — two tiles showing the units you will see, with the one line
+/// saying logged sets keep theirs — then Appearance, Workout (rest defaults, the template prompt) and the one-time D51
+/// history note at the end. Heart rate zones, Ask AI, Export & backup, the account and Help moved to Profile's root.
 /// Every control writes through the canonical `AppPreferences` row (duplicates resolved by
 /// `CanonicalRow`), exactly as the old `AppSettingsSection` did.
 struct SettingsView: View {
@@ -14,59 +13,24 @@ struct SettingsView: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Query private var allPreferences: [AppPreferences]
-    /// Public beta ticket 02: Show Tour starts the guided tour (absent in previews and the tour's own world).
-    @Environment(OnboardingCoordinator.self) private var onboarding: OnboardingCoordinator?
     /// Settings → Appearance: per device, not synced (see `AppearanceSetting`).
     @AppStorage(AppearanceSetting.key) private var appearanceRaw = Appearance.system.rawValue
-    @AppStorage(ExportRecord.dateKey) private var lastExportSeconds: Double?
-    @AppStorage(ExportRecord.formatKey) private var lastExportFormat: String?
 
-    @State private var showMaxHeartRateSheet = false
-    @State private var showAskAISheet = false
-    @State private var showExport = false
-    @State private var showFeedback = false
-    @State private var showWhatsNew = false
-    @State private var showProfile = false
-    @State private var showSignIn = false
-    @State private var showAppleStep = false
-    @State private var deletionSignedOut = false
-    @Environment(AccountStore.self) private var account
-    @State private var counts: ExportCounts?
-    @State private var countFailure: String?
     @State private var titleVisible = false
-    /// The page's title: "Profile" as the Profile tab's root (S2, D68).
-    var title = "Settings"
+    /// S6: the page's title is the Profile row that opens it.
+    static let pageTitle = "Units, rest and appearance"
+    var title = SettingsView.pageTitle
 
     private var preferences: AppPreferences? { AppPreferences.canonical(of: allPreferences) }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: look.space.section) {
-                // Soft redesign S2 (D68): Settings is the Profile tab's page (it was behind the Workout tab's gear).
                 LookNavTitle(title)
-                    .tourAnchor("tour.settings")
-                // Public beta tickets 05/03: the Account row — shown when this build has a server (or a sample flag).
-                if account.isAvailable {
-                    SettingsAccountRow(profile: account.profile, signedIn: account.isSignedIn) {
-                        if account.isSignedIn {
-                            // The page works without a loaded profile too: Try Again and Sign Out (offline at launch).
-                            showProfile = true
-                        } else {
-                            showSignIn = true
-                        }
-                    }
-                }
                 units
                 appearance
                 workout
-                VStack(spacing: look.space.group) {
-                    heartRate
-                    askAI
-                }
-                export
-                SafetyCopySection()
                 historyUpdate
-                help
             }
             .padding(.horizontal, look.space.margin)
             .padding(.top, 2)
@@ -82,39 +46,6 @@ struct SettingsView: View {
         .exercisesInlineTitle(title, visible: titleVisible)
         .sensoryFeedback(.selection, trigger: unitSystem)
         .sensoryFeedback(.selection, trigger: appearanceRaw)
-        // Counted afresh on every visit (and after an export, on the way back), which is every
-        // moment the number is looked at; logging happens in a full-screen cover.
-        .task(id: showExport) { if !showExport { refreshCounts() } }
-        .sheet(isPresented: $showMaxHeartRateSheet) { MaxHeartRateSheet() }
-        .sheet(isPresented: $showAskAISheet) { AskAISettingsSheet() }
-        .navigationDestination(isPresented: $showExport) { ExportView() }
-        .navigationDestination(isPresented: $showProfile) {
-            ProfileScreen(usCustomary: unitSystem == .usCustomary) { outcome in
-                switch outcome {
-                case .deletedNeedsAppleStep: showAppleStep = true
-                case .signedOut: deletionSignedOut = true
-                default: break
-                }
-            }
-        }
-        .sheet(isPresented: $showSignIn) { AccountSignInSheet() }
-        .alert(AccountDeletionCopy.doneTitle, isPresented: $showAppleStep) {
-            Button("OK") {}
-        } message: {
-            Text(AccountDeletionCopy.stopUsingApple)
-        }
-        // Shown here, not on the page: the page closes when the session ends (codex-review-03-app #5).
-        .alert(AccountDeletionCopy.signedOut, isPresented: $deletionSignedOut) {
-            Button("OK") {}
-        }
-        .sheet(isPresented: $showFeedback) {
-            // Rebuilt on every change of the account: the footer and the session sent always agree (codex-review-03-app
-            // #1); a refused session signs out and the form, its draft kept, then says "Not signed in" (#2).
-            let details = FeedbackDetails.forThisPhone(account: account.feedbackAccountLine)
-            FeedbackSheet(details: details, initial: FeedbackSample.draft,
-                          send: FeedbackSender.make(details: details, sessionToken: account.token,
-                                                    onUnauthorized: { account.invalidate(token: $0) }))
-        }
     }
 
     // MARK: Units (the bold element)
@@ -206,41 +137,6 @@ struct SettingsView: View {
 
     // MARK: Workout (rest defaults and the template prompt)
 
-    /// Public beta ticket 02: the guided tour again, any time (not while a workout runs — it explains why).
-    /// Ticket 07: Send Feedback (works signed out). Neither row may exist (a preview without a server): no section then.
-    @ViewBuilder private var help: some View {
-        if onboarding != nil || FeedbackSender.isAvailable || WhatsNew.latest != nil {
-        VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("Help")
-            LookList(separatorInset: 54) {
-                if let onboarding {
-                    LookRow("Show Tour", symbol: "map", action: {
-                        onboarding.startTour(realContext: modelContext)
-                    })
-                    .accessibilityIdentifier("showTour")
-                }
-                // Public beta ticket 14: the latest What's New again (the user's choice: readable from Settings).
-                if WhatsNew.latest != nil {
-                    LookRow("What's New", symbol: "newspaper", action: { showWhatsNew = true })
-                        .accessibilityIdentifier("settingsWhatsNew")
-                }
-                // Hidden in a build without a server (WT_SERVER_URL blank) rather than failing on Send.
-                if FeedbackSender.isAvailable {
-                    LookRow("Send Feedback", symbol: "bubble.left.and.text.bubble.right", action: { showFeedback = true })
-                        .accessibilityIdentifier("sendFeedback")
-                }
-            }
-        }
-        .sheet(isPresented: $showWhatsNew) {
-            if let latest = WhatsNew.latest { WhatsNewSheet(entry: latest) }
-        }
-        .alert(onboarding?.tourFailure ?? "", isPresented: Binding(
-            get: { onboarding?.tourFailure != nil }, set: { if !$0 { onboarding?.tourFailure = nil } })) {
-            Button("OK", role: .cancel) {}
-        }
-        }
-    }
-
     private var workout: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Workout")
@@ -299,138 +195,6 @@ struct SettingsView: View {
                     assertionFailure("Failed to save rest default: \(error)")
                 }
             })
-    }
-
-    // MARK: Heart rate
-
-    /// The maximum the zones are computed against right now (measured, else 220−age); the basis
-    /// still decides the zones but is not named on screen (D52).
-    private var maxHeartRate: Int? {
-        MaxHeartRateResolver.resolve(
-            measured: preferences?.measuredMaxHeartRate, birthDate: preferences?.birthDate, at: .now)?.bpm
-    }
-
-    /// The ONLY way into this sheet used to be the "zone estimated" button on the live heart-rate
-    /// bar, which needs a zone, which needs the maximum this sheet sets (D45) — so it lives here too.
-    private var heartRate: some View {
-        let max = maxHeartRate
-        return SettingsCardButton { showMaxHeartRateSheet = true } label: {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .center, spacing: 12) {
-                    Image(systemName: "heart.fill")
-                        .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(look.heartRate)
-                        .frame(width: 26)
-                    Text("Heart rate zones")
-                        .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(look.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Spacer(minLength: 8)
-                    if let max {
-                        HStack(alignment: .firstTextBaseline, spacing: 3) {
-                            Text("\(max)").font(look.font.statNumber).foregroundStyle(look.textPrimary)
-                            Text("bpm").font(.system(.footnote, weight: .semibold)).foregroundStyle(look.textSecondary)
-                        }
-                        .fixedSize()
-                    } else {
-                        Text("Not set").font(look.font.subhead).foregroundStyle(look.textSecondary)
-                    }
-                    Image(systemName: "chevron.right")
-                        .font(.system(.footnote, weight: .semibold))
-                        .foregroundStyle(look.textTertiary)
-                }
-                if let max {
-                    SettingsZoneLadder(maxBpm: max)
-                        .padding(.leading, 38)
-                } else {
-                    SettingsNotice(symbol: "plus.circle", text: "Set up zones").padding(.leading, 34)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 15)
-        }
-        .accessibilityElement(children: .ignore)
-        // The card ignores its children, so it says the zones too (codex-review-09 #4).
-        .accessibilityLabel(max.map { "Heart rate zones, \($0) bpm. \(SettingsZoneLadder.summary(maxBpm: $0))" }
-            ?? "Heart rate zones, Not set")
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("heartRateZonesSettings")
-    }
-
-    // MARK: Ask AI
-
-    /// "Ask AI" (was "Ask AI about plates": the sheet covers scanning, routines and model
-    /// suggestions). One status — On, Sign In or Paused; the account status, today's use and the three
-    /// permissions live in the sheet. Ticket 06: AI runs on the server, signed in (D60) — no key on the phone.
-    private var askAIStatus: String {
-        guard TerraAccess.ready(account) else { return "Sign In" }
-        return account.profile?.aiPaused == true ? "Paused" : "On"
-    }
-
-    private var askAI: some View {
-        SettingsCardButton { showAskAISheet = true } label: {
-            HStack(alignment: .center, spacing: 12) {
-                Image(systemName: "sparkles")
-                    .font(.system(.body, weight: .semibold))
-                    .foregroundStyle(look.textSecondary)
-                    .frame(width: 26)
-                Text("Ask AI")
-                    .font(.system(.body, weight: .semibold))
-                    .foregroundStyle(look.textPrimary)
-                Spacer(minLength: 8)
-                Text(askAIStatus)
-                    .font(look.font.subhead)
-                    .foregroundStyle(look.textSecondary)
-                    .contentTransition(.opacity)
-                Image(systemName: "chevron.right")
-                    .font(.system(.footnote, weight: .semibold))
-                    .foregroundStyle(look.textTertiary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 13)
-            .frame(minHeight: 58)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Ask AI, \(askAIStatus)")
-        .accessibilityAddTraits(.isButton)
-        .accessibilityIdentifier("askAISettings")
-    }
-
-    // MARK: Export
-
-    private var lastExport: ExportRecord? {
-        lastExportSeconds.map {
-            ExportRecord(date: Date(timeIntervalSinceReferenceDate: $0), format: lastExportFormat.flatMap(ExportFormat.init(rawValue:)))
-        }
-    }
-
-    private var export: some View {
-        VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("Export")
-            SettingsCardButton { showExport = true } label: {
-                SettingsRow(counts?.summary ?? " ",
-                            subtitle: countFailure ?? lastExport.map { BackupStatus.lastExportLine($0, now: .now) },
-                            symbol: "square.and.arrow.up", showsChevron: true)
-            }
-            // One element whose label starts with the count ("0 workouts · 0 sets"), so it
-            // says the export is not empty before the tap.
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("exportSettings")
-            if BackupStatus.showsOnlyCopyNotice(lastExport: lastExport?.date, now: .now) {
-                // The one line this screen must keep saying (codex-review 06).
-                SettingsNotice(symbol: "iphone", text: "This phone holds the only copy until you export.")
-                    .padding(.top, 2)
-            }
-        }
-    }
-
-    private func refreshCounts() {
-        do {
-            counts = try ExportCounts.fetch(from: modelContext)
-            countFailure = nil
-        } catch {
-            countFailure = "Could not count what there is to export: \(error.localizedDescription)"
-        }
     }
 
     // MARK: History update (D51)

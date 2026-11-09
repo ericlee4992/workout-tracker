@@ -100,7 +100,7 @@ struct RootView: View {
                 .tag(Tab.progress)
 
             // S2 (D68): the account and every setting, formerly behind the Workout tab's gear.
-            NavigationStack { SettingsView(title: "Profile") }
+            NavigationStack { ProfileTabView() }
                 .tabItem { Label("Profile", systemImage: "person.crop.circle") }
                 .tag(Tab.profile)
         }

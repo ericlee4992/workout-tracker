@@ -175,40 +175,42 @@ struct ProfileView: View {
 
 // MARK: - Settings → Account row
 
-/// The row at the top of Settings (spec → Profile page): the name and email signed in; "Sign In" alone signed out.
+/// The account card at the top of Profile (S6, the prototype's `SoftProfileScreen`): the name and how the user signed in
+/// (the account page shows the email); "Sign In" alone signed out.
 struct SettingsAccountRow: View {
     var profile: AccountProfile?
     /// Signed in while the profile is still loading: "Signed In" rather than "Sign In".
     var signedIn = false
     var action: () -> Void
     @Environment(\.look) private var look
-    @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 48
+    @ScaledMetric(relativeTo: .title3) private var disc: CGFloat = 64
 
     var body: some View {
         SettingsCardButton(action: action) {
             HStack(spacing: 14) {
                 ZStack {
-                    Circle().fill(look.surfaceRaised)
+                    Circle().fill(look.textPrimary)
                     if let profile, !Self.initials(profile.displayName).isEmpty {
                         Text(Self.initials(profile.displayName))
-                            .font(.system(.headline, weight: .bold))
-                            .foregroundStyle(look.textPrimary)
+                            .font(.system(.title2, weight: .bold))
+                            .foregroundStyle(look.onAction)
                     } else {
                         Image(systemName: "person.fill")
-                            .font(.system(.title3, weight: .semibold))
-                            .foregroundStyle(look.textSecondary)
+                            .font(.system(.title, weight: .semibold))
+                            .foregroundStyle(look.onAction)
                     }
                 }
                 .frame(width: disc, height: disc)
                 .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 2) {
+                VStack(alignment: .leading, spacing: 3) {
                     Text(profile?.displayName ?? (signedIn ? AccountDisplayCopy.loading : "Sign In"))
-                        .font(.system(.body, weight: .semibold))
+                        .font(.system(.title3, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
                     // Signed out: the title alone (the user removed "For AI and a training profile.", 2026-10-13).
-                    if let email = profile?.email {
-                        Text(email)
-                            .font(look.font.footnote)
+                    if let provider = profile?.provider {
+                        Text("Signed in with \(provider)")
+                            .font(look.font.subhead)
                             .foregroundStyle(look.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -218,8 +220,7 @@ struct SettingsAccountRow: View {
                     .font(.system(.footnote, weight: .semibold))
                     .foregroundStyle(look.textTertiary)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(18)
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)

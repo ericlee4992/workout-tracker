@@ -19,14 +19,14 @@ final class ExportUITests: XCTestCase {
     }
 
     func testExportSectionProducesAShareableFile() {
-        // Soft redesign S2: Settings is the Profile tab (it was behind the Workout tab's gear); Floodlight
-        // ticket 09 moved Export to its own screen behind Settings' export card.
-        app.openProfile()
+        // Soft redesign S6: Profile → Export & backup carries the export card (S2 put Settings in the Profile tab;
+        // Floodlight ticket 09 moved Export to its own screen behind that card).
+        app.openExportBackup()
 
         let card = app.buttons["exportSettings"]
         XCTAssertTrue(
             card.waitForExistence(timeout: 5),
-            "The Settings screen should carry the export card")
+            "Export & backup should carry the export card")
         XCTAssertTrue(
             card.label.hasPrefix("0 workouts · 0 sets"),
             "An empty store should say so rather than showing nothing (\(card.label))")

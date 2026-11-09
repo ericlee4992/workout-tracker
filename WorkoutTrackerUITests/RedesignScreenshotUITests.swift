@@ -58,7 +58,7 @@ final class RedesignScreenshotUITests: XCTestCase {
     private func captureUnitSystem(large: Bool) {
         launch(["-uiTestHeartRate"] + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : []))
         app.openTrain()
-        app.openProfile()
+        app.openProfileSettings()  // S6: Profile → Units, rest and appearance
         selectUnitSystem("Metric")
         shoot("unit-settings-metric-\(large ? "axl" : "default")")
         selectUnitSystem("U.S. customary")
@@ -71,7 +71,7 @@ final class RedesignScreenshotUITests: XCTestCase {
         XCTAssertTrue(anyElement("cardioTimer").waitForExistence(timeout: 10))
         XCTAssertTrue(labelled(" km").waitForExistence(timeout: 10))
         app.buttons["minimizeWorkout"].tap()
-        app.openProfile()
+        app.openProfileSettings()
         selectUnitSystem("U.S. customary")
         app.openTrain()  // S2: Profile is a tab (no Back)
         let resume = anyElement("resumeWorkout")

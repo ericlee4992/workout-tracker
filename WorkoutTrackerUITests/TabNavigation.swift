@@ -28,10 +28,33 @@ extension XCUIApplication {
         return button
     }
 
-    /// The Profile tab: the account and every setting.
+    /// The Profile tab: the account card, the Settings rows, Help (S6: settings are one tap further, below).
     func openProfile(file: StaticString = #filePath, line: UInt = #line) {
         let tab = tabBars.buttons["Profile"]
         XCTAssertTrue(tab.waitForExistence(timeout: 15), "Profile tab", file: file, line: line)
         tab.tap()
+    }
+
+    /// S6: Profile → "Units, rest and appearance" (units, appearance, the rests, the template prompt, the history
+    /// note — the old Settings page's first half).
+    func openProfileSettings(file: StaticString = #filePath, line: UInt = #line) {
+        openProfilePage("profileSettings", landmark: "appUnitPreference", file: file, line: line)
+    }
+
+    /// S6: Profile → "Export & backup" (the export card, the only-copy notice, N1's safety copy).
+    func openExportBackup(file: StaticString = #filePath, line: UInt = #line) {
+        openProfilePage("profileExportBackup", landmark: "exportSettings", file: file, line: line)
+    }
+
+    private func openProfilePage(_ row: String, landmark: String, file: StaticString, line: UInt) {
+        openProfile(file: file, line: line)
+        let button = buttons[row]
+        // A page left pushed in the Profile tab hides the rows; tapping the selected tab again pops to the root.
+        if !button.waitForExistence(timeout: 3) { tabBars.buttons["Profile"].tap() }
+        XCTAssertTrue(button.waitForExistence(timeout: 10), "Profile → \(row)", file: file, line: line)
+        for _ in 0..<4 where !button.isHittable { swipeUp() }
+        button.tap()
+        XCTAssertTrue(descendants(matching: .any).matching(identifier: landmark).firstMatch.waitForExistence(timeout: 10),
+                      "\(row) opened", file: file, line: line)
     }
 }

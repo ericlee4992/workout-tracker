@@ -31,7 +31,8 @@ final class FloodlightSettingsUITests: XCTestCase {
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
         app.openProfile()
-        XCTAssertTrue(any("appUnitPreference").waitForExistence(timeout: 10))
+        // S6: Profile's root is the account, the Settings rows and Help; each flow opens the page it needs.
+        XCTAssertTrue(any("profileSettings").waitForExistence(timeout: 10))
     }
 
     /// Scrolls until `element` is on screen and clear of the tab bar and the navigation bar.
@@ -113,7 +114,15 @@ final class FloodlightSettingsUITests: XCTestCase {
         launch(appearance: appearance, large: large)
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
 
-        // X01: units first, then down to the history note.
+        // S6: Profile's root (the account card needs a server; this store has the Settings rows and Help), to the
+        // version line.
+        Thread.sleep(forTimeInterval: 1.0)
+        shoot("s6-profile-\(suffix)-1")
+        page(to: any("profileVersion"), name: "s6-profile-\(suffix)")
+        scrollToTop()
+
+        // X01, now Profile → Units, rest and appearance: units first, then down to the history note.
+        app.openProfileSettings()
         Thread.sleep(forTimeInterval: 1.0)
         shoot("floodlight-09-x01-\(suffix)-1")
         page(to: any("dumbbellMoveNote"), name: "floodlight-09-x01-\(suffix)")
@@ -125,6 +134,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.6)
         shoot("floodlight-09-x01-metric-\(suffix)")
         app.buttons["appUnitPreference.usCustomary"].tap()
+        app.openProfile()  // the selected tab again: back to Profile's root
 
         // X02 (ticket 06: no key; this store has no account): Off with Sign In, then the permissions.
         let askAI = app.buttons["askAISettings"]
@@ -141,7 +151,10 @@ final class FloodlightSettingsUITests: XCTestCase {
         done.tap()
         XCTAssertTrue(done.waitForNonExistence(timeout: 5))
 
-        // X03: idle (an export five days ago), sharing, then the file card.
+        // X03, now Profile → Export & backup: idle (an export five days ago), sharing, then the file card.
+        app.openExportBackup()
+        Thread.sleep(forTimeInterval: 1.0)
+        shoot("s6-export-backup-\(suffix)")
         let card = app.buttons["exportSettings"]
         reach(card)
         card.tap()
@@ -164,6 +177,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         // A failed write.
         app.terminate()
         launch(appearance: appearance, large: large, extra: ["-uiTestExportFails"])
+        app.openExportBackup()
         reach(app.buttons["exportSettings"])
         app.buttons["exportSettings"].tap()
         let csvAgain = app.buttons["exportCSV"]
@@ -181,15 +195,16 @@ final class FloodlightSettingsUITests: XCTestCase {
     /// The tiles write the canonical preference; the choice is there on the next visit.
     func testUnitTilesSwitchAndPersist() {
         launch(settingsFixture: false)
+        app.openProfileSettings()
         let metric = app.buttons["appUnitPreference.metric"]
         let us = app.buttons["appUnitPreference.usCustomary"]
         let start = metric.isSelected
         (start ? us : metric).tap()
         XCTAssertNotEqual(metric.isSelected, start)
         XCTAssertEqual(us.isSelected, start)
-        // S2: Settings is the Profile tab's root (no Back): leave through another tab and come back.
+        // Leave through another tab and come back (the tab keeps the page).
         app.openTrain()
-        app.openProfile()
+        app.openProfileSettings()
         XCTAssertTrue(metric.waitForExistence(timeout: 5))
         XCTAssertNotEqual(metric.isSelected, start, "the unit choice persisted")
     }
@@ -198,6 +213,7 @@ final class FloodlightSettingsUITests: XCTestCase {
     /// flag and both survive leaving the screen.
     func testWorkoutDefaults() {
         launch(settingsFixture: false)
+        app.openProfileSettings()
         let rest = any("globalWorkingRest")
         reach(rest)
         XCTAssertEqual(rest.value as? String, "2:00")
@@ -210,9 +226,9 @@ final class FloodlightSettingsUITests: XCTestCase {
         ask.tap()
         let off = XCTNSPredicateExpectation(predicate: NSPredicate(format: "value == '0'"), object: ask)
         XCTAssertEqual(XCTWaiter.wait(for: [off], timeout: 5), .completed)
-        // S2: Settings is the Profile tab's root (no Back): leave through another tab and come back.
+        // Leave through another tab and come back.
         app.openTrain()
-        app.openProfile()
+        app.openProfileSettings()
         reach(ask)
         XCTAssertEqual(ask.value as? String, "0")
         XCTAssertEqual(any("globalWorkingRest").value as? String, "2:15")
@@ -250,6 +266,7 @@ final class FloodlightSettingsUITests: XCTestCase {
     /// A cancelled share records nothing; a completed one (Copy) moves the mark to now.
     func testExportRecordsOnlyACompletedShare() {
         launch(settingsFixture: false)
+        app.openExportBackup()
         let card = app.buttons["exportSettings"]
         reach(card)
         XCTAssertFalse(card.label.contains("Last export"), "never exported")
@@ -288,6 +305,7 @@ final class FloodlightSettingsUITests: XCTestCase {
     /// (codex-review-09 #1).
     func testTabRoundTripDropsTheFileCard() {
         launch(settingsFixture: false)
+        app.openExportBackup()
         let card = app.buttons["exportSettings"]
         reach(card)
         card.tap()
@@ -299,7 +317,7 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["exportShare"].waitForExistence(timeout: 5))
         app.tabBars.buttons["History"].tap()
         Thread.sleep(forTimeInterval: 0.8)
-        app.openProfile()  // S2: Export lives in the Profile tab (it was under the Workout tab's gear)
+        app.openProfile()  // S6: back to the Profile tab, which kept Export (under Export & backup)
         XCTAssertTrue(any("exportPending").waitForExistence(timeout: 5), "back on Export (the tab kept it)")
         XCTAssertFalse(app.buttons["exportShare"].exists, "no Share for a deleted file")
         XCTAssertFalse(any("exportFileCard").exists)
@@ -313,6 +331,7 @@ final class FloodlightSettingsUITests: XCTestCase {
     /// A failed write says so in the warning panel and presents nothing.
     func testExportFailureShowsTheWarning() {
         launch(extra: ["-uiTestExportFails"])
+        app.openExportBackup()
         let card = app.buttons["exportSettings"]
         reach(card)
         card.tap()

@@ -27,8 +27,65 @@ their rows straight into the new layout and Profile is laid out once.
 - Every existing setting stays reachable (checklist against today's `SettingsView`); identifiers kept or every test
   updated; captures light/dark × default/AX, side by side with the prototype; the tour's Profile step checked.
 
+## Design (ios-design steps 1, 2, 4)
+
+**Job.** Signed in: this screen exists so the user can reach any setting, their account or help in one tap; the eye
+lands on the **account card** (top-leading, the only block with a large figure — the 64 pt disc). Signed out: the
+same, the card reading "Sign In". No build server: no card; the eye lands on the Settings group. Runner-up: the
+Settings group (rows, not cards; no accent). No call to action on this screen wears the accent.
+
+**Initial viewport (default size), relative sizes:**
+
+```
+Profile                                   ← LookNavTitle (chrome), tour anchor
+┌──────────────────────────────────────┐
+│ (●64)  Alex Kim                    › │  ← account card: the largest block
+│        Signed in with Apple          │
+└──────────────────────────────────────┘
+Settings
+┌──────────────────────────────────────┐
+│ ⚙ Units, rest and appearance       › │  ← equal rows, one surface, hairlines
+│ ♥ Heart rate zones        185 bpm  › │
+│ ✦ Ask AI                       On  › │
+│ ↑ Export & backup                  › │  (subtitle: "This phone holds the only copy…" when no export)
+└──────────────────────────────────────┘
+Help
+┌──────────────────────────────────────┐
+│ Show Tour · What's New · Send Feedback│ (three rows)
+└──────────────────────────────────────┘
+Version 0.1.0 (9)                         ← footnote, secondary
+```
+
+Goals & tracking: no rows exist until N3, so the group is not drawn yet (an empty group is a tell); N3 adds it between
+Settings and Help.
+
+**Sub-pages.** *Units, rest and appearance* (pushed): today's Units tiles (still that page's bold element), Appearance,
+Workout (rests, Ask to update templates), the one-time History update note. *Export & backup* (pushed): today's Export
+card with counts and last export, the only-copy notice, and N1's Safety copy section. Heart rate zones and Ask AI open
+their existing sheets.
+
+**Every setting stays reachable (checklist against `SettingsView` before S6):** account → card ✓; units, appearance,
+working/warm-up rest, ask to update templates, history note → Units, rest and appearance ✓; heart rate zones → row
+(sheet) ✓; Ask AI → row (sheet) ✓; Export (+ only-copy notice) → Export & backup ✓; Safety copy → Export & backup ✓
+(a restore failure is also shown on Profile, under Settings, so it is not hidden one level down); Show Tour, What's
+New, Send Feedback → Help ✓.
+
+**Strings (new or changed — the user's decision, approved as the prototype unless noted):** group headers "Settings",
+"Help"; rows "Units, rest and appearance", "Heart rate zones", "Ask AI", "Export & backup" (*new — the prototype had no
+export row; the ticket's scope named it*); account subtitle "Signed in with Apple/Google" (replaces the email; the
+account page still shows the email); "Version 0.1.0 (9)" (*new*); the zone row's value "185 bpm" / "Not set"
+(existing strings; the zone ladder stays in the sheet, not on Profile).
+
+**Tells:** same container on everything — absent (one card for the account; rows in grouped lists). Chip where a
+caption would do — absent. All-caps labels — absent (sentence-case group headers). Middle dots — absent. Accent
+overuse — absent (no accent on this screen except the tab). Equal stacked blocks — deliberate: the groups are lists of
+equal rows under a leading card (the accepted prototype composition). Phone-sized website — absent. Above the fold —
+the account card and every Settings row are in the first viewport. Control dressed as primary — absent. Default-only
+layout — rows wrap their titles at AX sizes; the value moves under the title (`LookRow` subtitle) where needed; checked
+in AccessibilityL captures.
+
 ## Progress
 
-Not started.
+Branch `ericlee4992/soft-06-profile` off `main` `5f8ff92` (N2 merged). Building.
 
 ## Comments

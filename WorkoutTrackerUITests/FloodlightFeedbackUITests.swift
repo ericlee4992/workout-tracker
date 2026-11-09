@@ -29,11 +29,11 @@ final class FloodlightFeedbackUITests: XCTestCase {
         app.launch()
         app.openProfile()
         let row = app.buttons["sendFeedback"]
-        XCTAssertTrue(any("appUnitPreference").waitForExistence(timeout: 10))
+        XCTAssertTrue(any("profileSettings").waitForExistence(timeout: 10))
         for _ in 0..<12 { guard !(row.exists && row.isHittable && row.frame.maxY < app.tabBars.firstMatch.frame.minY - 8) else { break };
             app.swipeUp()
         }
-        XCTAssertTrue(row.isHittable, "Send Feedback is reachable in Settings")
+        XCTAssertTrue(row.isHittable, "Send Feedback is reachable in Profile → Help")
         row.tap()
         XCTAssertTrue(app.buttons["feedbackSend"].waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 1.0)

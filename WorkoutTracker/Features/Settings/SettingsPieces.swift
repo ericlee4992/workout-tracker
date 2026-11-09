@@ -197,43 +197,6 @@ private struct SettingsFloodSwitch: View {
     }
 }
 
-// MARK: - Zone ramp
-
-/// The five training zones as a ramp of lit segments, each zone's lower bound under it (Warm-up
-/// sits below Zone 1 and is left out). Plain numbers (D52); VoiceOver reads the zones.
-struct SettingsZoneLadder: View {
-    var maxBpm: Int
-    @Environment(\.look) private var look
-
-    var body: some View {
-        let zones = HeartRateZone.allCases.filter { $0 != .warm }
-        HStack(alignment: .top, spacing: 4) {
-            ForEach(zones, id: \.self) { zone in
-                VStack(alignment: .leading, spacing: 5) {
-                    Capsule()
-                        .fill(look.zone(zone))
-                        .frame(height: 8)
-                    Text("\(HeartRateZones.lowerBound(of: zone, max: maxBpm))")
-                        .font(.system(.caption2, weight: .semibold).monospacedDigit())
-                        .foregroundStyle(look.textSecondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Self.summary(maxBpm: maxBpm))
-    }
-
-    /// "Zone 1 from 102, Zone 2 from 120, …" — what the ramp shows, for VoiceOver.
-    static func summary(maxBpm: Int) -> String {
-        HeartRateZone.allCases.filter { $0 != .warm }
-            .map { "\($0.label) from \(HeartRateZones.lowerBound(of: $0, max: maxBpm))" }
-            .joined(separator: ", ")
-    }
-}
-
 // MARK: - Stat strip
 
 struct SettingsStat: Identifiable {

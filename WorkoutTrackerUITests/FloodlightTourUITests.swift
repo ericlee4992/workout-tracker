@@ -108,7 +108,7 @@ final class FloodlightTourUITests: XCTestCase {
 
     private func assertNothingEscaped() {
         XCTAssertFalse(app.buttons["minimizeWorkout"].exists, "no workout opened")
-        XCTAssertFalse(app.descendants(matching: .any)["appUnitPreference"].exists, "Settings did not open")
+        XCTAssertFalse(app.descendants(matching: .any)["profileSettings"].exists, "Profile did not open")
     }
 
     func testTheAppUnderTheTourIsInert() {

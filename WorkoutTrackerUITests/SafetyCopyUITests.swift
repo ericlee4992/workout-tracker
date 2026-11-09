@@ -45,9 +45,9 @@ final class SafetyCopyUITests: XCTestCase {
         XCTAssertTrue(visible(element), "reached \(element)")
     }
 
+    /// S6: the safety copy is on Profile → Export & backup.
     private func openSettings() {
-        app.openProfile()
-        XCTAssertTrue(any("appUnitPreference").waitForExistence(timeout: 10))
+        app.openExportBackup()
     }
 
     // MARK: Flows
