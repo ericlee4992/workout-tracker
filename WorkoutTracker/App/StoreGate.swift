@@ -11,6 +11,10 @@ final class StoreGate {
     /// The open store; nil only while the copy failure waits for the user.
     private(set) var container: ModelContainer?
     private(set) var copyFailure: String?
+    /// A restore's swap that could not be undone: the store stays closed, with Try Again only (never Continue).
+    private(set) var restoreBlocked: String?
+    /// Cancel Restore could not withdraw the request; the waiting screen stays and says so.
+    private(set) var cancelFailure: String?
     /// The copy waiting to be restored at the next launch.
     private(set) var pendingRestore: SafetyCopyInfo?
     /// The copy restored at this launch (the app says so once).
@@ -43,8 +47,14 @@ final class StoreGate {
     }
 
     func cancelRestore() {
-        copies.cancelRestore()
-        pendingRestore = nil
+        do {
+            try copies.cancelRestore()
+            cancelFailure = nil
+            pendingRestore = nil
+        } catch {
+            // The request is still on disk: the next launch would restore over anything logged now, so keep waiting.
+            cancelFailure = error.localizedDescription
+        }
     }
 
     /// Settings shows the newest copy (the one from before the latest format change). Read at launch, the only time
@@ -58,11 +68,16 @@ final class StoreGate {
         switch outcome {
         case let .copyFailed(message):
             copyFailure = message
+            restoreBlocked = nil
+        case let .blocked(message):
+            restoreBlocked = message
+            copyFailure = nil
         case let .open(restored, _, restoreFailure):
             if let restoreFailure { UserDefaults.standard.set(restoreFailure, forKey: Self.restoreFailureKey) }
             if restored != nil { UserDefaults.standard.removeObject(forKey: Self.restoreFailureKey) }
             restoredThisLaunch = restored
             copyFailure = nil
+            restoreBlocked = nil
             latestCopy = copies.list().first
             container = openStore()
         }

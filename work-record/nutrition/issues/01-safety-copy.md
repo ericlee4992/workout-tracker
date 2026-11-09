@@ -119,3 +119,40 @@ Nov 9, 2026."
   `CoreLoopUITests` (start-up changed) + `ExportUITests` (the neighbouring row): **28/28, exit 0**, 962 s
   (`n1-ui3.xcresult`).
 - `StoreFormatGuardTests` (its messages now point at N1) + `SafetyCopyTests`: **22/22, exit 0** (`n1-guard.xcresult`).
+
+### Codex round 1 — [not clear](../codex-review-n1.md) (P1, 2 × P2, P3), all accepted and fixed
+
+(The first Codex session died on an API "Bad Request" after its checks — all passing: its own rehearsal on
+WT-iPhone27, 18 metadata checks incl. a simulated N2 lightweight migration and WAL-only metadata, UI 17/17; a fresh
+session wrote the report from those results.)
+1. **P1 — a restore that failed part-way could lose data** (current files deleted before the copy's were moved in; a
+   failed move opened an empty store). The swap is now a transaction: stage the copy's files beside the store → consume
+   the request (a failure here touches nothing) → write `restore-journal.json` → set the current files aside as
+   `.replaced-*` (never deleted before the end) → move the copy's in → **deleting the journal is the commit** → sweep.
+   Any failure before the commit rolls back to the set-aside files; a crash leaves the journal and the next launch rolls
+   back before anything opens the store. If the rollback itself fails, the store stays closed (`.blocked`: "Couldn't
+   finish the restore", Try Again only — never Continue).
+2. **P2 — Cancel Restore could fail silently**, leaving the request armed. `cancelRestore()` now throws; the waiting
+   screen stays and says "Couldn't cancel the restore: …". Found while fixing: a restore whose staging failed also left
+   the request armed while the app opened. Rule now: **the store never opens while a restore request is armed** — a
+   failure withdraws the request, and one that cannot be withdrawn blocks the open.
+3. **P2 — the waiting screen did not isolate the app underneath** (the UIKit tab bar stayed reachable). Tried:
+   `.disabled` + no hit testing + `.accessibilityHidden` under the overlay — a probe still found the Train tab in the
+   accessibility tree (`.accessibilityHidden` does not reach the UIKit tab bar, as the tour notes). Now a real
+   full-screen presentation (`fullScreenCover(item:)` with a real binding, attached to `mainApp`'s inner view — not the
+   view with the "Data restored" alert, which the earlier constant-bound cover had dismissed); iOS keeps touch and
+   VoiceOver inside a full-screen presentation. The UI test asserts the Train tab is not hittable and a tap where the tab
+   bar is changes nothing (XCUITest's tree still lists the presenter's elements, so "exists" is not the measure).
+   Re-checked on the Simulator: "Data restored" still shows and stays.
+4. **P3 — README**: a "safety copy before data changes" line, marked on `main`, not yet in TestFlight.
+
+**New strings (for the user's approval):** "Couldn't finish the restore" · "Stacked couldn't finish restoring your
+data." · "It won't open your data until this is sorted out, so nothing gets mixed up." · "Couldn't cancel the
+restore: <reason>".
+
+**Round-2 evidence (WT-Floodlight):** `SafetyCopyTests` 24 (+7 failure-path tests: a failing set-aside move, a
+failing move-in, a crash mid-swap undone at the next launch, an undo that fails → blocked then recovered, a request
+that cannot be cleared → blocked, a failing cancel, a committed swap leaves nothing) × 10 → **250/250, exit 0**
+(`n1r2-safety2.xcresult`); Unit plan **1140/1140, exit 0** (`n1r2-unit.xcresult`).
+Warm-up + `SafetyCopyUITests` (incl. the new isolation assertions) + `CoreLoopUITests`, serial: **17/17, exit 0**
+(`n1r2-ui2.xcresult`); the waiting screen's four captures re-checked.

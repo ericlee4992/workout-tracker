@@ -60,6 +60,9 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
   templates from your training profile. Each AI feature asks first and has a daily limit.
+- **A safety copy before data changes** *(on `main`, not yet in TestFlight)*. Before an update first opens your data
+  in a new stored format, the app copies it on the phone (the newest two copies are kept, inside the iPhone's own
+  backup); Profile → Safety copy restores one, at the next launch.
 - **Onboarding and feedback.** A guided tour of the real app on sample data, a one-time
   What's New page after a big update (and in Profile), and Profile → Send Feedback with an
   optional screenshot.

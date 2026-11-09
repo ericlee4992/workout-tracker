@@ -23,9 +23,20 @@ struct SafetyCopyInfo: Codable, Equatable, Identifiable, Sendable {
     var totalBytes: Int64 { files.values.reduce(0, +) }
 }
 
+/// The restore swap's journal (`SafetyCopies.performPendingRestore`).
+private struct RestoreJournal: Codable {
+    var storeFolder: String
+    /// The store's files present before the swap, each set aside as `.replaced-<name>`.
+    var originals: [String]
+    /// The copy's files that take their places.
+    var placed: [String]
+}
+
 enum SafetyCopyError: Error, Equatable, LocalizedError {
     case notEnoughSpace(needed: Int64, available: Int64)
     case incomplete(String)
+    /// A restore's file swap could not be undone; the store must not open until it is (`SafetyCopyLaunch.Outcome.blocked`).
+    case restoreUnfinished(String)
 
     var errorDescription: String? {
         switch self {
@@ -35,6 +46,8 @@ enum SafetyCopyError: Error, Equatable, LocalizedError {
                 + "this iPhone has \(format.string(fromByteCount: available)) free."
         case let .incomplete(file):
             return "The copy of \(file) was incomplete."
+        case let .restoreUnfinished(reason):
+            return reason
         }
     }
 }
@@ -44,6 +57,8 @@ struct SafetyCopies {
     static let keep = 2
     static let manifestName = "manifest.json"
     static let pendingRestoreName = "restore-pending.json"
+    /// Present only while a restore swaps files; its deletion is the restore's commit point.
+    static let journalName = "restore-journal.json"
     /// About 10 MB on top of the files themselves, so a copy never takes the last of the phone's space.
     static let spaceMargin: Int64 = 10_000_000
 
@@ -51,6 +66,10 @@ struct SafetyCopies {
     var fileManager: FileManager = .default
     /// Copies one file; injected by tests to simulate a full disk.
     var copyFile: (URL, URL) throws -> Void = { try FileManager.default.copyItem(at: $0, to: $1) }
+    /// Renames one file in place (the restore's swap); injected by tests to fail at a chosen step.
+    var moveFile: (URL, URL) throws -> Void = { try FileManager.default.moveItem(at: $0, to: $1) }
+    /// Deletes one file (the restore request, set-aside files); injected by tests to fail.
+    var removeFile: (URL) throws -> Void = { try FileManager.default.removeItem(at: $0) }
     /// Free space where the copies are written; nil when unknown (the copy is then attempted).
     var availableBytes: (URL) -> Int64? = { url in
         (try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey]))?
@@ -148,40 +167,110 @@ struct SafetyCopies {
                                                       options: .atomic)
     }
 
-    func cancelRestore() {
-        try? fileManager.removeItem(at: directory.appending(path: Self.pendingRestoreName))
+    /// Withdraws the restore request. Throws when the request is still on disk, so the caller keeps the app waiting
+    /// rather than letting the user log data that the next launch would then replace (codex-review-n1 #2).
+    func cancelRestore() throws {
+        try removeIfPresent(directory.appending(path: Self.pendingRestoreName))
     }
 
     /// Replaces the store's files with the pending copy's, if one is pending; returns it. Call only while no container
-    /// has the store open. The copy's files are first staged beside the store, so a failure part-way leaves the current
-    /// store as it was. The request is cleared whatever happens, so a failing restore cannot repeat on every launch.
+    /// has the store open. Whatever happens, the store never opens with the request still armed: a failure withdraws
+    /// it, and one that cannot be withdrawn throws `restoreUnfinished` (the store stays closed).
+    ///
+    /// The swap is a small transaction (codex-review-n1 #1): the copy's files are staged beside the store; the request
+    /// is consumed (if that fails, nothing has been touched); a journal is written; the current files are set aside
+    /// under hidden names — never deleted before the end; the staged files take their place; deleting the journal is the
+    /// commit. A failure before the commit — or a crash, which leaves the journal — rolls back to the set-aside files
+    /// (`recoverInterruptedRestore`), here or at the next launch, before any container opens the store.
     func performPendingRestore(to storeURL: URL) throws -> SafetyCopyInfo? {
         guard let copy = pendingRestore else { return nil }
-        defer { cancelRestore() }
         let folder = directory.appending(path: copy.folder, directoryHint: .isDirectory)
         let storeFolder = storeURL.deletingLastPathComponent()
         var staged: [(URL, URL)] = []
         do {
             for name in copy.files.keys.sorted() {
                 let source = folder.appending(path: name)
-                let target = storeFolder.appending(path: name)
                 let temporary = storeFolder.appending(path: ".restoring-\(name)")
-                if fileManager.fileExists(atPath: temporary.path) { try fileManager.removeItem(at: temporary) }
+                try removeIfPresent(temporary)
                 try copyFile(source, temporary)
                 guard try size(of: temporary) == copy.files[name] else { throw SafetyCopyError.incomplete(name) }
-                staged.append((temporary, target))
+                staged.append((temporary, storeFolder.appending(path: name)))
             }
+            // Consumed before anything changes, so a restore cannot repeat on a later launch.
+            try cancelRestore()
         } catch {
-            for (temporary, _) in staged { try? fileManager.removeItem(at: temporary) }
+            for (temporary, _) in staged { try? removeIfPresent(temporary) }
+            // The store opens after this: a request still armed would restore over what the user logs next
+            // (codex-review-n1 #2). If it cannot be withdrawn, the store must stay closed.
+            if pendingRestore != nil {
+                do { try cancelRestore() } catch {
+                    throw SafetyCopyError.restoreUnfinished(
+                        "The restore could not start, and the request to restore could not be withdrawn: "
+                            + error.localizedDescription)
+                }
+            }
             throw error
         }
-        // The current files go; the copy's take their place. A side file the copy has none of (it was taken with an
-        // empty write-ahead log) must not survive next to the restored store.
-        for current in Self.storeFiles(for: storeURL) where fileManager.fileExists(atPath: current.path) {
-            try fileManager.removeItem(at: current)
+        let originals = Self.storeFiles(for: storeURL).map(\.lastPathComponent)
+            .filter { fileManager.fileExists(atPath: storeFolder.appending(path: $0).path) }
+        do {
+            try JSONEncoder.safetyCopy.encode(RestoreJournal(storeFolder: storeFolder.path, originals: originals,
+                                                             placed: staged.map { $0.1.lastPathComponent }))
+                .write(to: directory.appending(path: Self.journalName), options: .atomic)
+            for name in originals {
+                try moveFile(storeFolder.appending(path: name), storeFolder.appending(path: ".replaced-\(name)"))
+            }
+            for (temporary, target) in staged { try moveFile(temporary, target) }
+            try removeFile(directory.appending(path: Self.journalName))   // the commit
+        } catch {
+            do { try recoverInterruptedRestore() } catch {
+                throw SafetyCopyError.restoreUnfinished(
+                    "The restore stopped part-way and could not be undone: \(error.localizedDescription)")
+            }
+            throw error
         }
-        for (temporary, target) in staged { try fileManager.moveItem(at: temporary, to: target) }
+        sweepRestoreLeftovers(in: storeFolder)
         return copy
+    }
+
+    /// Whether a restore's swap was interrupted (the journal is still there).
+    var restoreWasInterrupted: Bool {
+        fileManager.fileExists(atPath: directory.appending(path: Self.journalName).path)
+    }
+
+    /// Puts the set-aside files back after an interrupted swap and removes the journal. Throws when that is not possible
+    /// — the store must then stay closed.
+    func recoverInterruptedRestore() throws {
+        let journalURL = directory.appending(path: Self.journalName)
+        guard let data = try? Data(contentsOf: journalURL) else { return }
+        let journal = try JSONDecoder.safetyCopy.decode(RestoreJournal.self, from: data)
+        let folder = URL(fileURLWithPath: journal.storeFolder, isDirectory: true)
+        // Any of the copy's files already moved in go first, then each original returns to its name.
+        for name in Set(journal.placed).union(journal.originals) {
+            let setAside = folder.appending(path: ".replaced-\(name)")
+            let current = folder.appending(path: name)
+            if fileManager.fileExists(atPath: setAside.path) {
+                try removeIfPresent(current)
+                try moveFile(setAside, current)
+            } else if !journal.originals.contains(name) {
+                try removeIfPresent(current)   // the copy had this side file; the original store did not
+            }
+        }
+        try removeFile(journalURL)
+        sweepRestoreLeftovers(in: folder)
+    }
+
+    /// Staged and set-aside files left after a committed swap or an undone one (no journal): safe to delete.
+    private func sweepRestoreLeftovers(in storeFolder: URL) {
+        let names = (try? fileManager.contentsOfDirectory(atPath: storeFolder.path)) ?? []
+        for name in names where name.hasPrefix(".restoring-") || name.hasPrefix(".replaced-") {
+            try? removeIfPresent(storeFolder.appending(path: name))
+        }
+    }
+
+    private func removeIfPresent(_ url: URL) throws {
+        guard fileManager.fileExists(atPath: url.path) else { return }
+        try removeFile(url)
     }
 
     // MARK: Helpers
@@ -202,21 +291,34 @@ struct SafetyCopies {
 enum SafetyCopyLaunch {
     enum Outcome: Equatable {
         /// Open the store. `restored`: the copy just put back; `copied`: the copy just made; `restoreFailure`: a pending
-        /// restore that could not be carried out (the current data stays).
+        /// restore that could not be carried out (it was undone; the current data stays).
         case open(restored: SafetyCopyInfo?, copied: SafetyCopyInfo?, restoreFailure: String?)
         /// Do not open yet: the copy before a format change failed.
         case copyFailed(String)
+        /// Do not open: a restore's swap was interrupted and could not be undone (never open a half-swapped store).
+        case blocked(String)
     }
 
     /// `forceCopy` stands in for a format change (a Debug-only rehearsal on the Simulator).
     static func run(storeURL: URL, copies: SafetyCopies, model: NSManagedObjectModel?, appVersion: String,
                     forceCopy: Bool = false, now: Date = .now) -> Outcome {
         var restoreFailure: String?
+        // A swap interrupted at an earlier launch (a crash, the phone switched off) is undone before anything else.
+        if copies.restoreWasInterrupted {
+            do {
+                try copies.recoverInterruptedRestore()
+                restoreFailure = "The restore was interrupted, so it was undone."
+            } catch {
+                return .blocked("The restore was interrupted and could not be undone: \(error.localizedDescription)")
+            }
+        }
         do {
             if let restored = try copies.performPendingRestore(to: storeURL) {
                 // The restored files are themselves a kept copy: no second copy of them before this open.
                 return .open(restored: restored, copied: nil, restoreFailure: nil)
             }
+        } catch let SafetyCopyError.restoreUnfinished(reason) {
+            return .blocked(reason)
         } catch {
             restoreFailure = error.localizedDescription
         }

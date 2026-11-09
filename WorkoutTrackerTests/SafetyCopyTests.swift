@@ -192,7 +192,7 @@ import Testing
         try fixture.addItems(["a"])
         let copy = try fixture.copies.make(from: fixture.storeURL, appVersion: "v")
         try fixture.copies.scheduleRestore(copy)
-        fixture.copies.cancelRestore()
+        try fixture.copies.cancelRestore()
         #expect(try fixture.copies.performPendingRestore(to: fixture.storeURL) == nil)
     }
 
@@ -262,5 +262,120 @@ import Testing
         let outcome = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: copies, model: Self.itemModel, appVersion: "v")
         guard case let .open(nil, nil, failure?) = outcome else { Issue.record("\(outcome)"); return }
         #expect(!failure.isEmpty)
+    }
+
+    // MARK: Restore failures (codex-review-n1 #1, #2)
+
+    /// A copy and a newer store: "before" in the copy, "before" + "after" in the store, the copy scheduled.
+    func preparedRestore() throws -> (Fixture, SafetyCopyInfo) {
+        let fixture = try Fixture()
+        try fixture.addItems(["before"])
+        let copy = try fixture.copies.make(from: fixture.storeURL, appVersion: "v")
+        try fixture.addItems(["after"])
+        try fixture.copies.scheduleRestore(copy)
+        return (fixture, copy)
+    }
+
+    func storeFolderNames(_ fixture: Fixture) throws -> [String] {
+        try FileManager.default.contentsOfDirectory(atPath: fixture.storeURL.deletingLastPathComponent().path).sorted()
+    }
+
+    /// Fails the `failing`-th move; other moves go through.
+    func failingMove(_ failing: Int) -> (URL, URL) throws -> Void {
+        var calls = 0
+        return { source, target in
+            calls += 1
+            if calls == failing { throw CocoaError(.fileWriteUnknown) }
+            try FileManager.default.moveItem(at: source, to: target)
+        }
+    }
+
+    @Test(arguments: [1, 2])
+    func aSwapThatFailsIsUndoneAndTodaysDataStays(failingMove step: Int) throws {
+        // Step 1 sets the current store aside; step 2 moves the copy in.
+        let (fixture, _) = try preparedRestore()
+        var copies = fixture.copies
+        copies.moveFile = failingMove(step)
+        let outcome = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: copies, model: Self.itemModel, appVersion: "v")
+        guard case let .open(nil, nil, failure?) = outcome else { Issue.record("\(outcome)"); return }
+        #expect(!failure.isEmpty)
+        #expect(try fixture.itemNames() == ["after", "before"], "today's data, not the copy, not an empty store")
+        #expect(copies.pendingRestore == nil, "the request is not retried")
+        #expect(!copies.restoreWasInterrupted)
+        #expect(try !storeFolderNames(fixture).contains { $0.hasPrefix(".") })
+    }
+
+    @Test func aSwapInterruptedByACrashIsUndoneAtTheNextLaunch() throws {
+        let (fixture, copy) = try preparedRestore()
+        // The state a crash leaves after the first move of the copy's file: the journal, the store set aside, the
+        // copy's file in its place.
+        let folder = fixture.storeURL.deletingLastPathComponent()
+        let originals = SafetyCopies.storeFiles(for: fixture.storeURL).map(\.lastPathComponent)
+            .filter { FileManager.default.fileExists(atPath: folder.appending(path: $0).path) }
+        let journal: [String: Any] = ["storeFolder": folder.path, "originals": originals, "placed": copy.files.keys.sorted()]
+        try JSONSerialization.data(withJSONObject: journal)
+            .write(to: fixture.copies.directory.appending(path: SafetyCopies.journalName))
+        for name in originals { try FileManager.default.moveItem(at: folder.appending(path: name), to: folder.appending(path: ".replaced-\(name)")) }
+        try FileManager.default.copyItem(at: fixture.copies.directory.appending(path: copy.folder).appending(path: "Data.store"),
+                                         to: folder.appending(path: "Data.store"))
+        try fixture.copies.cancelRestore()
+
+        let outcome = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: fixture.copies, model: Self.itemModel,
+                                           appVersion: "v")
+        guard case .open(nil, nil, _?) = outcome else { Issue.record("\(outcome)"); return }
+        #expect(try fixture.itemNames() == ["after", "before"])
+        #expect(!fixture.copies.restoreWasInterrupted)
+        #expect(try !storeFolderNames(fixture).contains { $0.hasPrefix(".") })
+    }
+
+    @Test func aSwapThatCannotBeUndoneKeepsTheStoreClosedUntilItIs() throws {
+        let (fixture, _) = try preparedRestore()
+        var broken = fixture.copies
+        var calls = 0
+        broken.moveFile = { source, target in
+            calls += 1
+            if calls >= 2 { throw CocoaError(.fileWriteUnknown) }   // the swap and its undo both fail
+            try FileManager.default.moveItem(at: source, to: target)
+        }
+        let outcome = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: broken, model: Self.itemModel, appVersion: "v")
+        guard case .blocked = outcome else { Issue.record("\(outcome)"); return }
+        #expect(broken.restoreWasInterrupted, "the journal stays for the next try")
+
+        // Try Again with a working file system: undone, today's data back, the store may open.
+        let retried = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: fixture.copies, model: Self.itemModel,
+                                           appVersion: "v")
+        guard case .open(nil, nil, _?) = retried else { Issue.record("\(retried)"); return }
+        #expect(try fixture.itemNames() == ["after", "before"])
+    }
+
+    @Test func aRequestThatCannotBeClearedLeavesTheStoreUntouched() throws {
+        let (fixture, copy) = try preparedRestore()
+        var copies = fixture.copies
+        copies.removeFile = { url in
+            if url.lastPathComponent == SafetyCopies.pendingRestoreName { throw CocoaError(.fileWriteNoPermission) }
+            try FileManager.default.removeItem(at: url)
+        }
+        // The request stays armed, so the store must not open: the launch is blocked, the data untouched.
+        let outcome = SafetyCopyLaunch.run(storeURL: fixture.storeURL, copies: copies, model: Self.itemModel, appVersion: "v")
+        guard case .blocked = outcome else { Issue.record("\(outcome)"); return }
+        #expect(try fixture.itemNames() == ["after", "before"])
+        #expect(copies.pendingRestore == copy)
+        #expect(try !storeFolderNames(fixture).contains { $0.hasPrefix(".") })
+    }
+
+    @Test func aCancelThatFailsSaysSo() throws {
+        let (fixture, copy) = try preparedRestore()
+        var copies = fixture.copies
+        copies.removeFile = { _ in throw CocoaError(.fileWriteNoPermission) }
+        #expect(throws: (any Error).self) { try copies.cancelRestore() }
+        #expect(copies.pendingRestore == copy, "still armed, and the caller knows")
+    }
+
+    @Test func aCommittedSwapLeavesNothingBehind() throws {
+        let (fixture, copy) = try preparedRestore()
+        #expect(try fixture.copies.performPendingRestore(to: fixture.storeURL) == copy)
+        #expect(try fixture.itemNames() == ["before"])
+        #expect(!fixture.copies.restoreWasInterrupted)
+        #expect(try !storeFolderNames(fixture).contains { $0.hasPrefix(".") })
     }
 }

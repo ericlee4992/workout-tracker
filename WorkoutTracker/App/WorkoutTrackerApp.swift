@@ -161,15 +161,6 @@ struct WorkoutTrackerApp: App {
                 mainApp
                     .modelContainer(container)
                     .environment(store)
-                    // N1: a restore chosen in Settings waits for the next launch; nothing more is logged meanwhile.
-                    // An overlay, not a presentation: a cover bound to this state dismissed the launch's other alerts.
-                    .overlay {
-                        if let copy = store.pendingRestore {
-                            SafetyRestorePendingView(copy: copy) { store.cancelRestore() }
-                                .lookLayer()
-                                .transition(.opacity)
-                        }
-                    }
                     // N1: "Data restored", once, after a restore at this launch.
                     .alert(SafetyCopyCopy.restoredTitle, isPresented: Binding(
                         get: { store.restoredThisLaunch != nil },
@@ -180,10 +171,17 @@ struct WorkoutTrackerApp: App {
                     }
             } else {
                 // N1: the copy before a format change failed; the store stays closed until the user chooses.
-                SafetyCopyFailedView(reason: store.copyFailure ?? "",
-                                     onTryAgain: { store.tryAgain() },
-                                     onContinue: { store.continueWithoutCopy() })
-                    .lookLayer()
+                if let blocked = store.restoreBlocked {
+                    // N1: a restore's swap that could not be undone — the store must not open half-swapped.
+                    SafetyCopyFailedView(title: SafetyCopyCopy.blockedTitle, lines: SafetyCopyCopy.blockedLines,
+                                         reason: blocked, onTryAgain: { store.tryAgain() }, onContinue: nil)
+                        .lookLayer()
+                } else {
+                    SafetyCopyFailedView(reason: store.copyFailure ?? "",
+                                         onTryAgain: { store.tryAgain() },
+                                         onContinue: { store.continueWithoutCopy() })
+                        .lookLayer()
+                }
             }
         }
     }
@@ -240,6 +238,15 @@ struct WorkoutTrackerApp: App {
                         .task { await account.refresh() }
                 }
             }
+                // N1: a restore chosen in Settings waits for the next launch; nothing more is logged meanwhile. A
+                // full-screen presentation, so the app underneath (the UIKit tab bar too) is out of reach for touch
+                // and VoiceOver (codex-review-n1 #3). On this view, not the one with the "Data restored" alert: a
+                // constant-bound cover there dismissed that alert at launch (the N1 rehearsal).
+                .fullScreenCover(item: Binding(get: { store.pendingRestore }, set: { _ in })) { copy in
+                    SafetyRestorePendingView(copy: copy, cancelFailure: store.cancelFailure) { store.cancelRestore() }
+                        .lookLayer()
+                        .interactiveDismissDisabled()
+                }
                 // Settings → Appearance (System / Light / Dark) picks the scheme and the
                 // Floodlight token set (D54 reopened by the Floodlight redesign).
                 .environment(onboarding)

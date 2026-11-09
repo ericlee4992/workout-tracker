@@ -11,6 +11,12 @@ enum SafetyCopyCopy {
         "Your data hasn't been changed.",
     ]
     static let tryAgain = "Try Again"
+    static let blockedTitle = "Couldn't finish the restore"
+    static let blockedLines = [
+        "Stacked couldn't finish restoring your data.",
+        "It won't open your data until this is sorted out, so nothing gets mixed up.",
+    ]
+    static func cancelFailed(_ reason: String) -> String { "Couldn't cancel the restore: \(reason)" }
     static let continueWithout = "Continue Without a Copy"
 
     static let sectionTitle = "Safety copy"
@@ -36,23 +42,26 @@ enum SafetyCopyCopy {
 /// Launch, the copy failed: the user's data is still closed and unchanged. The eye lands on the title; the thumb on
 /// Try Again (the one filled command); Continue Without a Copy is the quiet second.
 struct SafetyCopyFailedView: View {
+    var title = SafetyCopyCopy.failedTitle
+    var lines = SafetyCopyCopy.failedLines
     let reason: String
     let onTryAgain: () -> Void
-    let onContinue: () -> Void
+    /// nil: Try Again only (an unfinished restore must not open the store).
+    let onContinue: (() -> Void)?
     @Environment(\.look) private var look
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
-                    Text(SafetyCopyCopy.failedTitle)
+                    Text(title)
                         .font(look.font.largeTitle)
                         .foregroundStyle(look.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
                         .padding(.top, 40)
                     VStack(alignment: .leading, spacing: 14) {
-                        ForEach(SafetyCopyCopy.failedLines, id: \.self) { line in
+                        ForEach(lines, id: \.self) { line in
                             Text(line)
                                 .font(look.font.body)
                                 .foregroundStyle(look.textPrimary)
@@ -76,9 +85,11 @@ struct SafetyCopyFailedView: View {
                 Button(SafetyCopyCopy.tryAgain, action: onTryAgain)
                     .buttonStyle(.lookPrimary)
                     .accessibilityIdentifier("safetyCopyTryAgain")
-                Button(SafetyCopyCopy.continueWithout, action: onContinue)
-                    .buttonStyle(.lookSecondary)
-                    .accessibilityIdentifier("safetyCopyContinue")
+                if let onContinue {
+                    Button(SafetyCopyCopy.continueWithout, action: onContinue)
+                        .buttonStyle(.lookSecondary)
+                        .accessibilityIdentifier("safetyCopyContinue")
+                }
             }
             .padding(.horizontal, look.space.margin)
             .padding(.bottom, 16)
@@ -93,6 +104,7 @@ struct SafetyCopyFailedView: View {
 /// would survive. The eye lands on the title; Cancel Restore is the only command.
 struct SafetyRestorePendingView: View {
     let copy: SafetyCopyInfo
+    var cancelFailure: String?
     let onCancel: () -> Void
     @Environment(\.look) private var look
 
@@ -110,6 +122,13 @@ struct SafetyRestorePendingView: View {
                         .font(look.font.body)
                         .foregroundStyle(look.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
+                    if let cancelFailure {
+                        Text(SafetyCopyCopy.cancelFailed(cancelFailure))
+                            .font(look.font.footnote)
+                            .foregroundStyle(look.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .accessibilityIdentifier("safetyRestoreCancelFailed")
+                    }
                 }
                 .padding(.horizontal, look.space.margin)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -123,6 +142,8 @@ struct SafetyRestorePendingView: View {
         }
         .lookScreenBackground()
         .accessibilityElement(children: .contain)
+        // The app is still underneath: VoiceOver stays on this screen (codex-review-n1 #3).
+        .accessibilityAddTraits(.isModal)
         .accessibilityIdentifier("safetyRestorePending")
     }
 }

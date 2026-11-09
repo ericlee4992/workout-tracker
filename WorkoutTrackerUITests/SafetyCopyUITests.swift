@@ -80,6 +80,12 @@ final class SafetyCopyUITests: XCTestCase {
         let pending = any("safetyRestorePending")
         XCTAssertTrue(pending.waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Close Stacked to finish"].exists)
+        // Nothing underneath can be reached while the restore waits (codex-review-n1 #3): no tab, no row.
+        let train = app.tabBars.buttons["Train"]
+        XCTAssertFalse(train.exists && train.isHittable, "the Train tab under the full-screen waiting screen")
+        XCTAssertFalse(row.exists && row.isHittable, "the Settings row under the waiting screen")
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.97)).tap()   // where the tab bar is
+        XCTAssertTrue(pending.exists, "a tap on the covered tab bar changes nothing")
         app.buttons["safetyRestoreCancel"].tap()
         XCTAssertTrue(pending.waitForNonExistence(timeout: 5))
         XCTAssertTrue(row.waitForExistence(timeout: 5), "back in Settings, the copy still offered")
