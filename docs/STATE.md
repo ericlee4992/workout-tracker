@@ -1,15 +1,18 @@
 # Current project state
 
-Updated **2026-11-09, session 2** (N1 and N2 merged, `main` `5f8ff92`; S6 next; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-09, session 2** (N1 and N2 merged, `main` `5f8ff92`; S6 in review; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-09, session 2) — N2 merged into `main` `5f8ff92`** (Codex clear round 2; the user's go-ahead;
-  [ticket](../work-record/nutrition/issues/02-nutrition-data.md): models, math, guard pin, migration fixture/tests,
-  export v12; Unit 1163/1163; Simulator migration rehearsal; **Import dropped by the user**). **Next: S6** (Profile like
-  the prototype, groups approved) on a new branch off `main` in this worktree → N3 → N4 → N5 (all approved). Still to
-  ask the user: the four N1 strings added after approval; N6's deploy + GPT-6.1 Terra switch.
+- **Resume here (2026-11-09, session 2) — S6 in Codex review, round 1.** N2 merged into `main` `5f8ff92` (Codex clear
+  round 2; Import dropped by the user). **S6** on `ericlee4992/soft-06-profile` (pushed): Profile root like the
+  prototype (account card, Settings rows → "Units, rest and appearance" page / zones sheet / Ask AI sheet / "Export &
+  backup" page, Help, version); UI scope 72/73 + the one clone flake 3/3 serially; captures looked at and sent to the
+  user — [ticket](../work-record/soft-redesign/issues/06-profile-layout.md). Codex has
+  `work-record/soft-redesign/codex-review-s6-prompt.md` in `term_6ce8444b-…` → `codex-review-s6.md`. Next: fix to
+  clear; ask the user before the merge (new strings listed in the ticket); then N3 → N4 → N5. Still to ask: the four
+  N1 strings; N6's deploy + GPT-6.1 Terra switch.
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
   deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,
