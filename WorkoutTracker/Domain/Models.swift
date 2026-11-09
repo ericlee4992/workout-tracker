@@ -699,6 +699,13 @@ final class AppPreferences {
     /// means no zones are shown at all — inventing an age to invent a zone
     /// would be two guesses stacked on each other.
     var birthDate: Date?
+    /// Nutrition N3 (D80) — Personal details, the one place these live (with `birthDate` above and the latest
+    /// `BodyWeightEntry`): the height as entered `(heightValue, heightUnit)` and in centimetres (kept in step by
+    /// `setHeight`), and the sex the goal calculation uses. nil = not given yet.
+    var heightValue: Double?
+    var heightUnit: HeightUnit?
+    var heightCm: Double?
+    var sex: BiologicalSex?
     /// Gym the Start screen is set to, remembered across launches (D1,
     /// ticket 17). nil = "No gym", a real choice rather than a missing one.
     /// Scalar id, never a relationship: an archived or deleted gym must
@@ -757,6 +764,13 @@ final class AppPreferences {
         self.exerciseBrowseMuscleGroup = exerciseBrowseMuscleGroup
         self.exerciseBrowseEquipmentTag = exerciseBrowseEquipmentTag
         self.updatedAt = updatedAt
+    }
+
+    /// Sets the height as entered and its centimetres together (never one without the other).
+    func setHeight(value: Double, unit: HeightUnit) {
+        heightValue = value
+        heightUnit = unit
+        heightCm = unit == .cm ? value : value * 2.54
     }
 }
 

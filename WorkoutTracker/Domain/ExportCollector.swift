@@ -537,6 +537,8 @@ struct ExportCollector {
             updatedAt: dateFormat.string(from: preferences.updatedAt),
             dumbbellHistoryMovedSets: preferences.dumbbellHistoryMovedSets,
             dumbbellHistoryMovedAt: dateFormat.optionalString(from: preferences.dumbbellHistoryMovedAt),
-            dumbbellHistoryCheckedAt: dateFormat.optionalString(from: preferences.dumbbellHistoryCheckedAt))
+            dumbbellHistoryCheckedAt: dateFormat.optionalString(from: preferences.dumbbellHistoryCheckedAt),
+            heightValue: preferences.heightValue, heightUnit: preferences.heightUnit, heightCm: preferences.heightCm,
+            sex: preferences.sex)
     }
 }

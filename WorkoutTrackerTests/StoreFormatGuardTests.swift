@@ -37,7 +37,10 @@ struct StoreFormatGuardTests {
     /// SavedFood, SavedMeal, SavedMealItem, NutritionGoal and BodyWeightEntry — additive, so SwiftData migrates the
     /// shipped format lightweightly (`NutritionMigrationTests`), behind N1's safety copy. Not yet shipped: the release
     /// (R) ships it; until then this is the approved format, and `shippedFingerprint` stays the testers' format.
-    static let approvedFingerprint = "41b76904c14f314548fccbdd503e64b0ac3c1ac4ef951cfdd59db9720cea1bad"
+    /// N2's own value was `41b76904…`. **N3 (D80, approved by the user 2026-11-09 — "Personal details, build it with N3",
+    /// which adds fields before R):** `AppPreferences` gains `heightValue`, `heightUnit`, `heightCm`, `sex` — additive
+    /// optionals; testers still receive one format change at R (shipped → this).
+    static let approvedFingerprint = "0a01d115df7052d90608b30f425a219be7dfef0c2b653d12b6fe6ca231a4fb14"
 
     static func fingerprint(of types: [any PersistentModel.Type] = WorkoutTrackerStore.modelTypes) throws -> String {
         let model = try #require(NSManagedObjectModel.makeManagedObjectModel(for: types))
@@ -103,6 +106,8 @@ struct StoreFormatGuardTests {
         "ActivityLevel": ["sedentary", "light", "moderate", "veryActive", "extraActive"],
         "BiologicalSex": ["male", "female", "unspecified"],
         "BodyWeightSource": ["app", "health"],
+        // Nutrition N3 (D80; first shipped in release R).
+        "HeightUnit": ["cm", "in"],
     ]
     // Not pinned: `AppPreferences.modelBrowseMuscleGroup` holds a catalog body-area name — catalog vocabulary (D24), not a
     // closed enum. A renamed area stays saved and keeps hiding categorized models until the user clears the filter, so a
@@ -126,6 +131,7 @@ struct StoreFormatGuardTests {
             "MealSlot": Self.rawValues(MealSlot.self), "FoodSource": Self.rawValues(FoodSource.self),
             "WeightGoal": Self.rawValues(WeightGoal.self), "ActivityLevel": Self.rawValues(ActivityLevel.self),
             "BiologicalSex": Self.rawValues(BiologicalSex.self), "BodyWeightSource": Self.rawValues(BodyWeightSource.self),
+            "HeightUnit": Self.rawValues(HeightUnit.self),
         ]
         #expect(Set(current.keys) == Set(Self.shippedRawValues.keys))
         for (name, shipped) in Self.shippedRawValues {

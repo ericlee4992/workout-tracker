@@ -55,7 +55,8 @@ struct ExportSnapshot: Codable, Equatable {
     /// 10 — cardio segments, measured/entered distance, active intervals and routes.
     /// 11 — confirmed machine exercise links and authored routine targets/provenance. CSV unchanged.
     /// 12 — nutrition N2: `foodEntries`, `savedFoods`, `savedMeals` (with their items), `nutritionGoals`,
-    /// `bodyWeights`, and their counts. All optional, so a v1–v11 file still decodes. Nutrition per serving, as stored;
+    /// `bodyWeights`, and their counts; N3 adds Personal details to `preferences` (height, sex). All optional, so a
+    /// v1–v11 file still decodes. Nutrition per serving, as stored;
     /// an entry's totals are per serving × `servings`. JSON only: the CSV stays a ledger of sets and cardio.
     static let currentSchemaVersion = 12
 
@@ -140,6 +141,11 @@ extension ExportSnapshot {
         var dumbbellHistoryMovedSets: Int? = nil
         var dumbbellHistoryMovedAt: String? = nil
         var dumbbellHistoryCheckedAt: String? = nil
+        /// v12 (N3, D80): Personal details — the height as entered and in cm, and sex.
+        var heightValue: Double? = nil
+        var heightUnit: HeightUnit? = nil
+        var heightCm: Double? = nil
+        var sex: BiologicalSex? = nil
     }
 }
 

@@ -39,6 +39,12 @@ enum BiologicalSex: String, Codable, CaseIterable {
 }
 
 /// Where a body weight came from (N9: the app's own entry or Apple Health).
+/// N3 (D80): the unit a height was entered in (Personal details). Stored; renaming a case strands old rows.
+enum HeightUnit: String, Codable, CaseIterable {
+    case cm
+    case inches = "in"
+}
+
 enum BodyWeightSource: String, Codable, CaseIterable {
     case app, health
 }
