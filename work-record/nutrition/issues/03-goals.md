@@ -55,6 +55,18 @@ number.
 
 ## Progress
 
-Not started.
+Branch `ericlee4992/nutrition-03-goals` off `main` `6e53446` (S6 merged).
+
+- **Calculation done** — `Domain/NutritionGoals.swift`: `restingEnergy`, `activityFactor`, `goalAdjustment`,
+  `calorieFloor`, `calories`, `suggested`, `resolve(_:overrides:)` (typed numbers stay; fat = 25 % of the calories in
+  force; carbs the rest, never negative), `age(birthDate:on:)`. `NutritionGoalsTests` (8, hand-worked examples in each
+  test's comment): **80/80 over 10 iterations, exit 0** (`n3-goals.xcresult`). Whole kcal and grams.
+  **For the user to confirm:** "Prefer not to say" uses the average floor too (1,350 kcal), as the formula uses the
+  average constant; the ticket named only the women/men floors.
+- **Storage (proposed):** Personal details live in `AppPreferences` (the canonical settings row, which already holds
+  `birthDate` for the zones): new optional `heightValue` + `heightUnit` (entered, D52-style) and `sex`; weight is a
+  `BodyWeightEntry` (N2), the latest one shown. Additive — the guard pin moves once more before R.
+- **Next:** mock the Personal details and Nutrition goals pages (and the onboarding step) with sample data, list the
+  strings and the "estimate, not medical advice" line, and show the user before wiring.
 
 ## Comments
