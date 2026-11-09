@@ -1,7 +1,7 @@
 # S6 — Profile like the prototype
 
 Type: change
-Status: **approved** (the user, 2026-11-08) — scheduled in Phase 2, **right before N3** (after N1, N2)
+Status: **Codex clear (round 1)**; approved (the user, 2026-11-08) — scheduled in Phase 2, **right before N3** (after N1, N2)
 Implementer: Claude; Reviewer: Codex.
 Spec: [soft-redesign](../spec.md); prototype `SoftProfileAndAdd.swift` (`SoftProfileScreen`, tag
 `design/soft-approved-2026-11-07`). Decisions: D68 (five tabs).
@@ -108,14 +108,17 @@ RedesignScreenshot `testUnitSystemDefault/Accessibility`, `test05_settings`, Hea
 **Results:** build exit 0. UI run (`s6-ui1.xcresult`, 3 workers): **72 passed, 1 failed, 1 skipped** (exit 65) — the
 failure `FloodlightSettingsUITests/testTabRoundTripDropsTheFileCard` timed out waiting for the system share sheet's
 Close button on parallel clone 3 (inside `cancelShareSheet()`, before anything S6 draws); **rerun serially ×3: 3/3
-passed** (`s6-ui1-rerun.xcresult`, exit 0). The skip is `BackupExportUITests` (needs `WT_BACKUP_EXPORT=1`).
+passed** (`s6-ui1-rerun.xcresult`, exit 0). The skip is `FloodlightFeedbackUITests/testSmokeSendsToTheBuildsServer` (opt-in, `WT_FEEDBACK_SMOKE=1`; corrected by Codex).
 **Captures looked at** (scratchpad `s6-caps/named/`): Profile root light/dark × default/AXL with and without the
 account (`s6-profile-*`, `profile-settings-signedin/out-*`), Export & backup (`s6-export-backup-*`), Units, rest and
-appearance (`floodlight-09-x01-*`), the tour's Profile step (`tour-s6-*`). Every string whole at both sizes; at AXL the
+appearance (`floodlight-09-x01-*`), the tour's Profile step (`tour-s8-*`, step 8 of 8 — corrected by Codex; `tour-s6` is History). Every string whole at both sizes; at AXL the
 row values sit under their titles; the account card is the first and largest block signed in and out.
 
 **Verified:** build; the UI scope above (73 tests; the one clone failure passes serially ×3); captures.
 **Not verified:** VoiceOver by a person; a real phone; the Goals & tracking group (N3/N9 add it).
+**Codex round 1 — clear** ([report](../codex-review-s6.md), `17d8aef`): Spec 0, Standards 0; its own run: Unit
+1163/1163, the UI scope 67/68 (1 opt-in skip), exit 0. **Waiting:** the user's go-ahead on the new strings and the merge.
+
 **Known flaky:** `testTabRoundTripDropsTheFileCard` — the share sheet's Close button on a parallel clone (passes
 serially).
 
