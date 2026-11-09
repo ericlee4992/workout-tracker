@@ -162,12 +162,15 @@ struct WorkoutTrackerApp: App {
                     .modelContainer(container)
                     .environment(store)
                     // N1: a restore chosen in Settings waits for the next launch; nothing more is logged meanwhile.
-                    .fullScreenCover(isPresented: .constant(store.pendingRestore != nil)) {
+                    // An overlay, not a presentation: a cover bound to this state dismissed the launch's other alerts.
+                    .overlay {
                         if let copy = store.pendingRestore {
                             SafetyRestorePendingView(copy: copy) { store.cancelRestore() }
                                 .lookLayer()
+                                .transition(.opacity)
                         }
                     }
+                    // N1: "Data restored", once, after a restore at this launch.
                     .alert(SafetyCopyCopy.restoredTitle, isPresented: Binding(
                         get: { store.restoredThisLaunch != nil },
                         set: { if !$0 { store.restoredThisLaunch = nil } })) {

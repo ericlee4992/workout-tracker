@@ -133,9 +133,10 @@ struct SafetyCopySection: View {
     @Environment(StoreGate.self) private var store
     @Environment(\.look) private var look
     @State private var confirming: SafetyCopyInfo?
-    @State private var latest: SafetyCopyInfo?
     @State private var scheduleFailure: String?
     @AppStorage(StoreGate.restoreFailureKey) private var restoreFailure: String?
+
+    private var latest: SafetyCopyInfo? { store.latestCopy }
 
     var body: some View {
         Group {
@@ -159,7 +160,6 @@ struct SafetyCopySection: View {
                 }
             }
         }
-        .task { latest = store.latestCopy }
         .confirmationDialog(confirming.map { SafetyCopyCopy.confirmTitle($0.date) } ?? "",
                             isPresented: Binding(get: { confirming != nil }, set: { if !$0 { confirming = nil } }),
                             titleVisibility: .visible, presenting: confirming) { copy in

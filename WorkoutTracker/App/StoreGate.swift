@@ -32,6 +32,7 @@ final class StoreGate {
 
     func continueWithoutCopy() {
         copyFailure = nil
+        latestCopy = copies.list().first
         container = openStore()
     }
 
@@ -46,8 +47,9 @@ final class StoreGate {
         pendingRestore = nil
     }
 
-    /// Settings shows the newest copy (the one from before the latest format change).
-    var latestCopy: SafetyCopyInfo? { copies.list().first }
+    /// Settings shows the newest copy (the one from before the latest format change). Read at launch, the only time
+    /// a copy is made or pruned.
+    private(set) var latestCopy: SafetyCopyInfo?
 
     /// A restore that could not be carried out at launch; shown in Settings until another restore is chosen.
     static let restoreFailureKey = "safetyCopy.restoreFailure"
@@ -61,6 +63,7 @@ final class StoreGate {
             if restored != nil { UserDefaults.standard.removeObject(forKey: Self.restoreFailureKey) }
             restoredThisLaunch = restored
             copyFailure = nil
+            latestCopy = copies.list().first
             container = openStore()
         }
     }
