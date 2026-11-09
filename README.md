@@ -91,8 +91,13 @@ under more than one iOS version):
 ```sh
 xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
   -sdk iphonesimulator -destination 'platform=iOS Simulator,id=<simulator ID>' \
-  -only-testing:WorkoutTrackerTests
+  -testPlan Unit
 ```
+
+Tests are grouped into Xcode test plans in `TestPlans/`: `Unit`, one per app area for the UI tests (`TodayTrain`,
+`Workout`, `HistoryProgress`, `GymsExercises`, `ProfileAI`, `Review`) and `Full` (everything, the default).
+`scripts/prepare-test-simulator.sh <simulator ID>` keeps the simulator booted between runs, and
+`scripts/explore.sh` launches the app with sample data and saves screenshots without writing a test.
 
 The server is a Cloudflare Worker (TypeScript, D1, R2): `cd server && npm install && npm test`.
 Setup, secrets and deployment are in [`server/README.md`](server/README.md); secrets are never
@@ -107,7 +112,8 @@ in this repository.
 | `WorkoutTrackerWidget/` | The Live Activity: the running workout and its rest timer on the Lock Screen |
 | `WorkoutTrackerWatch/` | An Apple Watch companion (workout session, heart rate, phone link) — written, never built or run, not in the beta |
 | `server/` | The backend: accounts (Apple, Google), the AI proxy with daily limits, feedback, the privacy and support pages |
-| `Config/`, `scripts/` | Build settings (`Local.xcconfig` is yours and git-ignored), catalog generation, device install, the secret scanner |
+| `TestPlans/` | The named test groups (Xcode test plans), written by `scripts/test-plans.py` |
+| `Config/`, `scripts/` | Build settings (`Local.xcconfig` is yours and git-ignored), catalog generation, device install, the secret scanner, test helpers |
 | `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md` | Shared agent workflow, Claude's import of it, the domain glossary |
 | `docs/` | `SPEC.md` (product), `DECISIONS.md` (why), `STATE.md` (current work), `DEVELOPMENT.md` (runbook), `archive/` (preserved handoffs) |
 | `work-record/` | Every ticket with its acceptance criteria and resolution, every cross-review, and the screenshots each ticket was judged on |

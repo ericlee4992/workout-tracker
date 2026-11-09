@@ -1,7 +1,8 @@
 # 01 — A faster, more reliable testing workflow
 
 Type: task
-Status: **approved** (the user, 2026-11-08: "fold it all into the test-speed ticket") — after S5, before N1
+Status: **done — Codex clear (round 3), merged into `main` 2026-11-09** (approved by the user 2026-11-08: "fold it
+all into the test-speed ticket")
 Implementer: Claude; Reviewer: Codex.
 
 ## Why
@@ -188,3 +189,29 @@ asserts nothing reached the center before the test opened the gate, and that bot
 Evidence (WT-Floodlight): build exit 0, no warnings in the changed files; `RestNotificationSchedulerTests` with
 `-test-iterations 25` → **100/100 runs passed, exit 0** (`sched-x25.xcresult`); Unit plan **1116/1116, exit 0**, 103 s
 (`unit-r3.xcresult`).
+
+### 6. Codex round 3 — [clear](../codex-review-01c.md); README; merge
+
+0 findings on both axes; its own `RestNotificationSchedulerTests` × 25: 100/100, exit 0. README: the Unit-plan
+command, the test plans, `prepare-test-simulator.sh` / `explore.sh`, `TestPlans/` in the layout. Fast-forwarded into
+`main` (the user's plan: merge on clear).
+
+**Before / after** (WT-Floodlight; same machine and simulator):
+
+| Check | Before | After |
+|---|---|---|
+| Full unit run | 108 s with the simulator booted; ~35 s more whenever xcodebuild had to boot it (that penalty measured on small runs) | 100–108 s; `prepare-test-simulator.sh` keeps it booted |
+| A small unit check (3 tests, no build) | 41–49 s on every run if the simulator was shut down | 8 s |
+| One UI class (`CardioUITests`, 9 tests, serial) | 617 s | 362 s (−41 %) |
+| Cardio start (warm-up and two tests) | intermittent 60 s+ hang, failing most runs since 2026-11-08 02:00 | fixed in the app; passes even with the notification daemon paused |
+| Parallel keyboard/typing classes (42 tests, 3 workers) | 8 keyboard tests failed on clones (Phase 1 run) | 42/42 twice in a row |
+
+**Verified:** Unit plan 1116/1116, exit 0 (`unit-r3`); `RestNotificationSchedulerTests` × 25 → 100/100, exit 0;
+`CardioUITests` 9/9, exit 0 (`ui-cardio2`); keyboard/typing classes 42/42 × 2, exit 0 (`par1`, `par2`); paused-daemon
+cardio test: old build fails, fixed build passes (`stop-old`, `stop-fixed`, `stop-fixed2`); Codex: Unit plan 1112/1112 (round 1) and 1116/1116 (round 2),
+focused UI 11/11, paused-daemon 1/1, scheduler × 25 100/100 — all on WT-iPhone27.
+**Not verified:** the full UI suite (not run — over an hour; the next is at the N5 checkpoint, ask first); the
+other area plans' UI classes beyond those named; notification delivery on a real phone (the scheduler's calls are
+verified against a stand-in center, and the cardio flow on the simulator); the parallel warm-up only warms one clone.
+**Known flaky:** none seen in these runs. Still open from before: `AskAIUITests/testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce`
+(known failure). Follow-up candidate: a pre-seeded UI-test store to cut ~4 s off each UI launch.

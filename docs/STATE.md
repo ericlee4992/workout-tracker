@@ -1,33 +1,30 @@
 # Current project state
 
-Updated **2026-11-09** (testing-workflow ticket in Codex round 2 on `ericlee4992/dev-01-testing-workflow`; earlier: Soft redesign S1–S4 and S5 merged into `main`; next N1; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-09** (testing-workflow ticket merged into `main`; earlier: Soft redesign S1–S4 and S5 merged; next N1 — ask first; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-09) — Phase 1 (S1–S4) + S5 merged into `main`; the testing-workflow ticket is in Codex
-  round 2 on `ericlee4992/dev-01-testing-workflow` (item 1 below). Then Phase 2 (N1).**
+- **Resume here (2026-11-09) — Phase 1 (S1–S4), S5 and the testing-workflow ticket merged into `main`; nothing in
+  progress. Next: Phase 2 (N1) — ask the user N1's design questions first.**
   **Goal:** the user's approved Soft redesign (Phase 1 — done) then nutrition (Phase 2), shipped to testers together as
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
   `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Git (2026-11-09):** `main` = `origin/main` = `4204fbc` (S1→S4, S5 and notes). This worktree is on
-  `ericlee4992/dev-01-testing-workflow` (off `4204fbc`, pushed; the testing-workflow ticket — `git log main..`). The home
-  checkout `…/orca/projects/Health App` is on clean `main`. After the ticket merges, start N1 on a new branch off `main`.
+  **Git (2026-11-09):** `main` = `origin/main` = the testing-workflow merge (fast-forward of
+  `ericlee4992/dev-01-testing-workflow`; `git log -1 main`). This worktree is on that branch at the same commit (merged,
+  clean). The home checkout `…/orca/projects/Health App` is on `main` (pull to update). Start N1 on a new branch off
+  `main`.
   **Done 2026-11-07/08:** S4 (History day journal; Progress Training charts + visible "…" menu; shared
   `refreshingNow`); the combined Phase 1 run (238/250 parallel → 3 S1–S4 test assumptions fixed; all ~777 captures
   checked); README refreshed; **S5 — Today's up next** (D77: learned split, "Not today", optional My Split in Train,
   rest days, no-templates last workout + Repeat, Start Lifting/Cardio on Train only; Codex clear round 3; merged). The
   user reviewed the app on the Simulator (WT-Floodlight, sample data) and found Profile ≠ prototype → **S6**.
   **Next, in order (the user's plan, 2026-11-08):**
-  1. [Testing-workflow ticket](../work-record/dev-speed/issues/01-testing-workflow.md) — **implemented on
-     `ericlee4992/dev-01-testing-workflow`; Codex round 1 not clear (6 findings, all fixed in `10d1b87`); round 2 in
-     review** (new Codex terminal "Codex review dev-01 round 2" `term_0b783489-9319-4408-a505-664cb8193333`, report
-     `work-record/dev-speed/codex-review-01b.md`). On clear: fast-forward `main`, then give the user the plain-language
-     report they asked for (what changed, before vs. now, whether it is better). Done: measured; cardio-start flake
-     = an app main-thread hang in a synchronous notification call (fixed, proven with the notification daemon paused);
-     85 slow polling loops (`CardioUITests` 617 → 362 s); keyboard on parallel clones (`prepare-test-simulator.sh`;
-     2 × 42/42); test plans; launch-only warm-up; `explore.sh`; rules in DEVELOPMENT and AGENTS.
+  1. ~~Testing-workflow ticket~~ — **done 2026-11-09**: Codex clear (round 3), merged into `main`
+     ([ticket](../work-record/dev-speed/issues/01-testing-workflow.md): before/after table, evidence). New workflow:
+     `scripts/prepare-test-simulator.sh` first; scopes are test plans (DEVELOPMENT → Tiers and test plans);
+     `scripts/explore.sh` for quick screenshots; reviewer rerun rule and reporting block in AGENTS.
   2. N1 (safety copy) — **ask the user its design questions first** (in the N1 ticket); the user asked to talk the plan
      through before N1 and paused there.
   3. N2 → **S6** ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md): account card,
@@ -41,8 +38,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   runs show in ONE reused Orca tab "Test progress (Claude r2)" `term_ac1339dc-202d-4c10-bab3-b528de726cbd` (send
   `bash scripts/test-progress.sh <log> <count> "<title>"` to it; never open a new one); ask before runs over ~20 min;
   explain plainly; screenshots by SendUserFile **and** Preview.
-  **Codex:** Orca terminal `term_0b783489-9319-4408-a505-664cb8193333` ("Codex review dev-01 round 2", this worktree,
-  fresh 2026-11-09, runs without approval prompts); the older `term_1ae47c82-…` ("Review soft redesign round 2") is at
+  **Codex:** Orca terminal `term_0b783489-9319-4408-a505-664cb8193333` ("Review testing workflow", this worktree,
+  fresh 2026-11-09, ~86% context left, runs without approval prompts); the older `term_1ae47c82-…` ("Review soft redesign round 2") is at
   13% context — retired. If a Codex session asks approval for a simulator/orca command: read the `$ ` line, then send
   `--text "y"` alone; read any new script it runs before approving. It writes "Verdict: not clear" as a checkpoint while its UI run is going — act on the final
   report. Brief it to use WT-iPhone27 `47D21838-…`; Claude uses WT-Floodlight `9E822EF6-…`.
