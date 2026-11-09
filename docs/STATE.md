@@ -5,9 +5,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-09) — Phase 1 (S1–S4), S5 and the testing-workflow ticket merged into `main`. In progress:
-  N1 on `ericlee4992/nutrition-01-safety-copy` — built and verified, in Codex review; the user approved its wording
-  (2026-11-09). Codex round 1 not clear (P1 restore swap, P2 cancel, P2 overlay isolation, P3 README) — fixing.
+- **Resume here (2026-11-09, ~4 AM) — N1 (safety copy) merged into `main` `b911247` (Codex clear round 3). In
+  progress: N2 on `ericlee4992/nutrition-02-data` (rebased on `main`, pushed) — models, math, guard pin, migration
+  fixture/tests (31/31) and export v12 done; left: export round-trip test, Unit plan, Simulator migration rehearsal,
+  Codex review (see the N2 ticket's Progress). Then S6 → N3 → N4 → N5 (all approved) … Ask the user in the morning:
+  N2's "Import" (the app has none), the four N1 strings added after approval, N6's deploy + GPT-6.1 Terra switch.
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
   deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,

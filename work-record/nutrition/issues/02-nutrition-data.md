@@ -56,6 +56,26 @@ rehearsal. Gate S on the user's phone happens at the release (R).
 
 ## Progress
 
-Not started.
+Branch `ericlee4992/nutrition-02-data` (on `main` `b911247`, N1 merged). **Done so far (2026-11-09, not yet reviewed):**
+- Models in `Domain/Nutrition.swift` (FoodEntry, SavedFood with `servingOptionsData`, SavedMeal + SavedMealItem
+  `.cascade`, NutritionGoal dated with inputs and override flags, BodyWeightEntry `(value, unit)` + `normalizedKg`);
+  enums MealSlot, FoodSource, WeightGoal, ActivityLevel, BiologicalSex, BodyWeightSource; registered in
+  `WorkoutTrackerStore.modelTypes`. Nutrition stored per serving; no `isEstimated` (D78). SwiftData's automatic
+  (lightweight, additive) migration — no `VersionedSchema`.
+- `Domain/NutritionMath.swift`: totals, day/meal totals, 4/4/9 macro calories, servings from grams, goal in force on a day.
+- `StoreFormatGuardTests`: `approvedFingerprint` `41b76904…` (user-approved 2026-11-09), `shippedFingerprint` kept for
+  builds 1–9; 6 new enums pinned; `servingOptionsData` payload pinned.
+- `Fixtures/PreNutrition.store` (shipped format, proven from its own metadata: 21 workouts, 72 sets, 11 cardio, 3
+  templates, 3 gyms, 12 machines, 2 presets) + `NutritionMigrationTests` (every row and checksum survives; new tables
+  empty; the safety copy sees the change); `NutritionModelTests`. Guard + Schema + migration + model + Legacy suites:
+  **31/31, exit 0** (`n2-t2.xcresult`).
+- Export v12: JSON carries foodEntries, savedFoods, savedMeals (+items), nutritionGoals, bodyWeights and counts (all
+  optional, so v1–v11 files decode); CSV unchanged (sets + cardio). Builds; **not yet tested**.
+
+**Left:** export round-trip unit test (encode v12 → decode equal; a v11 file still decodes); Unit plan; the Simulator
+migration rehearsal (a store in the shipped format in the app's real location → launch → one safety copy →
+`compare_stores.py` exit 0); README if needed; Codex review.
+**Question for the user (morning):** the ticket's "Import" — the app has no Import (JSON can't be restored in the
+app). Build one (replace or merge, its screens) or drop it from N2? Not built; nothing else depends on it.
 
 ## Comments
