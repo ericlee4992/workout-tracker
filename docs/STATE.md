@@ -1,45 +1,60 @@
 # Current project state
 
-Updated **2026-11-08** (Soft redesign S1–S4 merged into `main`; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-08, handoff** (Soft redesign S1–S4 and S5 merged into `main` `274f0ed`; next the testing-workflow ticket, then N1; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-08) — Phase 1 (S1–S4) and S5 merged into `main` (`b3c29a9`); testing-workflow ticket next, then N1.**
-  **Goal:** the user's approved Soft redesign (Phase 1, S1–S4 — done) then nutrition (Phase 2, N1–N10), shipped to
-  testers together as one release R (D76). Tickets: [soft-redesign](../work-record/soft-redesign/spec.md),
-  [nutrition](../work-record/nutrition/spec.md); decisions D67–D76. One workspace for both phases:
-  `…/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Done 2026-11-07/08:** S4 (History day journal; Progress training charts, visible "…" options; shared
-  `refreshingNow` clock refresh) — Codex rounds 1–3, last **clear**; combined Phase 1 run (238/250 in parallel; 8 of 11
-  failures passed alone; 3 caused by S1–S4 test assumptions, fixed in the tests); all ~777 captures checked; README
-  refreshed (five tabs, journal, Training charts, new screenshots). `main` fast-forwarded S1→S4 and pushed (the user's
-  go-ahead); remote confirmed `653a703`. No TestFlight build (release R comes after Phase 2).
-  **Follow-ups (S4 ticket):** cardio warm-up test failing since 02:00 Nov 8 on `main` too (time-of-day?); Training
-  Profile's Weight field half under the number pad (pre-existing); `testGoalsNumberPadsHaveAppDone` intermittent.
-  **S5 — Today's up next** (D77; [ticket](../work-record/soft-redesign/issues/05-today-up-next.md)) on
-  `ericlee4992/soft-05-today-up-next` (off `main` `40b30d6`): built, tested, **Codex clear (round 3)**, **merged into
-  `main` `b3c29a9`** (2026-11-08, the user's go-ahead). **Next:** the testing-workflow ticket, then Phase 2: N1 → N2 → **S6** ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md), approved 2026-11-08, right before N3) → N3 … (its design questions: ask the user
-  before building). Testing plan agreed in outline: each ticket runs its own unit + UI tests and captures as it goes; a
-  mid-way core-flow check after N5 and the full suite at R (ask first). After S5: the
-  [testing-workflow ticket](../work-record/dev-speed/issues/01-testing-workflow.md) (approved 2026-11-08 — speed, quick
-  simulator exploration, test plans, flake fixes, per-ticket captures, Codex reruns less, a Verified/Not
-  verified/Known flaky block), then N1.
-  **User preferences (memory):** every status update ends with a progress board (done / in progress / left); every
-  multi-minute test run shows in ONE reused "Test progress" Orca tab (send the script to it; no new tab per run); ask before long runs; explain plainly; screenshots both
-  SendUserFile and Preview.
-  **Codex:** Orca terminal "Codex review" `term_1ae47c82-7df4-40ea-9b18-0c9321ea6c11` (this worktree, GPT-6-Astra; the
-  earlier one died in an Orca restart). It asks approval for every simulator command: send `--text "y"` alone (not with
-  `--enter`); if the keypress does not land, ask the user to press Enter in the tab. It often writes the report with
-  "Verdict: not clear" as a checkpoint while its UI run is still going — watch for the final update before acting.
-  Brief it to use WT-iPhone27 `47D21838-…` while Claude uses WT-Floodlight `9E822EF6-…`.
-  **Gotchas found this session:** this worktree has no `Config/Local.xcconfig` → Debug builds install as
-  `com.example.workouttracker`; manual `simctl launch` captures get a motion-permission alert (use UI-test captures);
-  3-worker UI runs on cold clones hit `kAXErrorServerNotFound` — rerun serially with the warm-up; `.accessibilityIdentifier`
-  on a container overrides its children's ids; a swipe down at the top of a sheet dismisses it (tests);
-  `accessibilityHidden` does not reach a NavigationStack's UIKit pages (Train renders only the chosen part);
-  `xcodebuild` in the background reports the wrapper's exit — read the xcresult summary. Known pre-existing failure:
-  `AskAIUITests/testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce`.
+- **Resume here (2026-11-08, handoff) — Phase 1 (S1–S4) + S5 merged into `main`; nothing in progress. Next: the
+  testing-workflow ticket, then Phase 2 (N1).**
+  **Goal:** the user's approved Soft redesign (Phase 1 — done) then nutrition (Phase 2), shipped to testers together as
+  one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
+  [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
+  `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
+  **Git (verified at handoff):** `main` = `origin/main` = **`274f0ed`** (S1→S4, S5 and all notes). This worktree is on
+  `ericlee4992/soft-05-today-up-next` at the same commit (merged, clean). The home checkout `…/orca/projects/Health App`
+  is on clean `main` `274f0ed`. **Start new work on a new branch off `main`** (e.g. `ericlee4992/dev-01-testing-workflow`).
+  **Done 2026-11-07/08:** S4 (History day journal; Progress Training charts + visible "…" menu; shared
+  `refreshingNow`); the combined Phase 1 run (238/250 parallel → 3 S1–S4 test assumptions fixed; all ~777 captures
+  checked); README refreshed; **S5 — Today's up next** (D77: learned split, "Not today", optional My Split in Train,
+  rest days, no-templates last workout + Repeat, Start Lifting/Cardio on Train only; Codex clear round 3; merged). The
+  user reviewed the app on the Simulator (WT-Floodlight, sample data) and found Profile ≠ prototype → **S6**.
+  **Next, in order (the user's plan, 2026-11-08):**
+  1. [Testing-workflow ticket](../work-record/dev-speed/issues/01-testing-workflow.md) (approved): measure; cut unit
+     overhead (skip catalog reconcile when hosting unit tests, keep the simulator booted); a quick-exploration script
+     (`simctl privacy … grant motion/location`, launch with fixtures, screenshot); Xcode test plans (Domain, Today/Train,
+     Workout core, History/Progress, Captures, Full); fix flakes (launch-only warm-up; cardio start waits on state;
+     hardware keyboard off; 2 workers for typing); per-ticket captures; Codex reruns UI only in round 1 or for UI-behaviour
+     fixes; a Verified / Not verified / Known flaky block; write the rules into DEVELOPMENT and AGENTS. Codex review.
+  2. N1 (safety copy) — **ask the user its design questions first** (in the N1 ticket); the user asked to talk the plan
+     through before N1 and paused there.
+  3. N2 → **S6** ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md): account card,
+     grouped rows to sub-pages, Help; Goals & tracking filled by N3/N9 — confirm groups with the user) → N3 … N10 → R.
+     Testing plan: per-ticket unit + UI + changed-screen captures; a core-flow check after N5 (ask); full suite at R (ask).
+  **Open follow-ups:** the cardio start at `CardioUITests.swift:58` (`cardioTimer` within 10 s) is intermittent on
+  `main` too (warm-up, `testCardioAccessibilityCaptureAndSave`) — fixed by the testing-workflow ticket; Training Profile's
+  Weight field sits half under the number pad (pre-existing); `testGoalsNumberPadsHaveAppDone` intermittent; known
+  failure `AskAIUITests/testEditingGeneratedWeekKeepsRowsAndSavesOnlyOnce`.
+  **User preferences (memory):** every status update ends with a done / in progress / left board; multi-minute test
+  runs show in ONE reused Orca tab "Test progress (Claude r2)" `term_ac1339dc-202d-4c10-bab3-b528de726cbd` (send
+  `bash scripts/test-progress.sh <log> <count> "<title>"` to it; never open a new one); ask before runs over ~20 min;
+  explain plainly; screenshots by SendUserFile **and** Preview.
+  **Codex:** Orca terminal `term_1ae47c82-7df4-40ea-9b18-0c9321ea6c11` (titled "Review soft redesign round 2", this
+  worktree, GPT-6-Astra, ~45% context left at handoff — open a new one if it runs low). It asks approval for each
+  simulator/orca command: read the `$ ` line, then send `--text "y"` alone; read any new script it runs in the progress
+  tab before approving. It writes "Verdict: not clear" as a checkpoint while its UI run is going — act on the final
+  report. Brief it to use WT-iPhone27 `47D21838-…`; Claude uses WT-Floodlight `9E822EF6-…`.
+  **Gotchas (2026-11-07/08):** this worktree has no `Config/Local.xcconfig` → Debug installs as
+  `com.example.workouttracker`; the Simulator app is **DeviceHub** (`/Applications/Xcode.app/Contents/Applications/
+  DeviceHub.app`); a manual launch needs `xcrun simctl privacy <dev> grant motion <bundle>` or an alert covers the screen;
+  sample data: `xcrun simctl launch <dev> <bundle> -uiTestReset -uiTestDesignSample -uiTestDesignHistory
+  -uiTestDesignGyms` (throwaway store; reopening from the home screen drops it); in 3-worker runs xcodebuild writes
+  "Test case … passed" lines in batches as classes finish (the progress tab sits at 0 for a while); clones hit
+  `kAXErrorServerNotFound`, keyboards not rising, dropped typing → rerun failures serially before diagnosing; compare
+  against `main` (git archive into the scratchpad, build there) before blaming a branch; `.accessibilityIdentifier` on a
+  container hides its children's ids; `openTrain` taps Train twice when a pushed page hides the switcher (pops it) —
+  use one tab tap to return to a pushed page; UI tests start workouts via `app.trainStartButton(_:)`; the session
+  scratchpad (derived data, captures, logs) is temporary — rebuild rather than rely on it.
 - **Resume here (2026-11-06, handoff from the build 9 bug-fix session):** nothing in progress. Goal now: continue
   **exercise media** in the `public-beta` worktree ("Exercise media" entry below; ticket 03 + the DIY animation report's
   four open decisions). Next steps, in order: (1) the user closes the finished `beta-19-bug-fixes` worktree in Orca
