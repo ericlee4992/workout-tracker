@@ -11,7 +11,8 @@ import Testing
 // `StoreFormatGuardTests.shippedFingerprint`), with the design sample, history, gyms, exercises, settings, progress,
 // heart-rate history and cardio route fixtures: 21 workouts, 72 sets, 11 cardio segments, 3 templates, 3 gyms,
 // 12 machines, 2 presets. The first test proves that format from the store's own metadata, so the fixture cannot
-// silently be today's. Opened with today's model it must migrate with every row and value intact, the new tables empty
+// silently be today's. Opened with today's model it must migrate with every table's row count and the key values below
+// intact (a row-by-row comparison is the Simulator rehearsal's `compare_stores.py`), the new tables empty
 // — and N1's safety copy must see the change first. The checksums were read from the fixture with sqlite3.
 
 struct NutritionMigrationTests {
@@ -47,7 +48,7 @@ struct NutritionMigrationTests {
         #expect(SafetyCopies.storeNeedsCopy(at: try fixtureURL(), model: model))
     }
 
-    @Test func everyRowAndValueSurvivesTheMigration() throws {
+    @Test func everyTableKeepsItsRowsAndKeyValuesThroughTheMigration() throws {
         let url = try copiedFixture()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
         let context = ModelContext(try WorkoutTrackerStore.makeContainer(url: url))
@@ -92,13 +93,16 @@ struct NutritionMigrationTests {
         #expect(try count(BodyWeightEntry.self) == 0)
     }
 
-    @Test func theMigratedStoreTakesNutritionDataAndKeepsIt() throws {
+    @Test func theMigratedStoreKeepsNutritionDataAcrossAReopen() throws {
         let url = try copiedFixture()
         defer { try? FileManager.default.removeItem(at: url.deletingLastPathComponent()) }
+        let foodID = UUID()
         do {
             let context = ModelContext(try WorkoutTrackerStore.makeContainer(url: url))
-            let food = SavedFood(name: "Greek yogurt", servingValue: 170, servingUnit: "g", servingGrams: 170,
-                                 calories: 100, proteinGrams: 17, carbsGrams: 6, fatGrams: 0.7, isSaved: true)
+            let food = SavedFood(id: foodID, name: "Greek yogurt", servingValue: 170, servingUnit: "g",
+                                 servingGrams: 170, calories: 100, proteinGrams: 17, carbsGrams: 6, fatGrams: 0.7,
+                                 isSaved: true)
+            food.servingOptions = [ServingOption(value: 1, unit: "cup", grams: 227)]
             context.insert(food)
             context.insert(FoodEntry(logging: food, servings: 1.5, meal: .breakfast))
             context.insert(BodyWeightEntry(measuredAt: .now, value: 180, unit: .lb))
@@ -107,5 +111,19 @@ struct NutritionMigrationTests {
         // After a migration, an ordinary launch makes no further copy: the store now matches the model.
         let model = NSManagedObjectModel.makeManagedObjectModel(for: WorkoutTrackerStore.modelTypes)
         #expect(!SafetyCopies.storeNeedsCopy(at: url, model: model))
+
+        // A second container on the same file reads back what the first wrote, the old rows still beside it.
+        let reopened = ModelContext(try WorkoutTrackerStore.makeContainer(url: url))
+        let entry = try #require(try reopened.fetch(FetchDescriptor<FoodEntry>()).first)
+        #expect(entry.name == "Greek yogurt" && entry.servings == 1.5 && entry.meal == .breakfast)
+        #expect(entry.savedFood?.id == foodID && entry.source == .saved)
+        #expect(NutritionMath.totals(of: entry).calories == 150)
+        let food = try #require(try reopened.fetch(FetchDescriptor<SavedFood>()).first)
+        #expect(food.servingOptions == [ServingOption(value: 1, unit: "cup", grams: 227)] && food.isSaved)
+        let weight = try #require(try reopened.fetch(FetchDescriptor<BodyWeightEntry>()).first)
+        #expect(weight.value == 180 && weight.unit == .lb)
+        #expect(weight.normalizedKg == 180 * WeightMath.kilogramsPerPound)
+        #expect(try reopened.fetchCount(FetchDescriptor<Workout>()) == 21)
+        #expect(try reopened.fetchCount(FetchDescriptor<SetRecord>()) == 72)
     }
 }

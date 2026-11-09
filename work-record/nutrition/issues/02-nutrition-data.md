@@ -90,7 +90,8 @@ Branch `ericlee4992/nutrition-02-data` (on `main` `b911247`, N1 merged). **Done 
   format change) and the **identical** difference — pre-existing resume behaviour, not the migration.
   `compare_stores.py <main after> <N2 after>`: **exit 0** (only the six new tables added). The sim's own data was put
   back and byte-compared (11/11 identical); the N2 build reinstalled.
-- README: no change (nothing visible changes in N2; nutrition screens come with N4/N5).
+- README: a short unreleased note on the v12 JSON (Codex round 1, P3 — AGENTS asks for it when behaviour changes,
+  not only screens).
 
 **Verified:** models, math, guard, migration fixture (31/31 earlier, in the Unit plan now); export v12 round trip;
 Unit plan 1163/1163; ExportUITests; Simulator migration rehearsal (above).
@@ -98,7 +99,14 @@ Unit plan 1163/1163; ExportUITests; Simulator migration rehearsal (above).
 shipped format, proven from its metadata); Import (none exists; dropped from N2 by the user).
 **Known flaky:** none seen.
 
-**Left:** Codex review (`work-record/nutrition/codex-review-n2-prompt.md`).
+**Codex round 1** ([report](../codex-review-n2.md), not clear): Spec 0 findings; Standards 1 P3 (README). Fixed: the
+README note; also its verification notes — `everyRowAndValueSurvivesTheMigration` renamed
+`everyTableKeepsItsRowsAndKeyValuesThroughTheMigration` (it checks counts and key values; row-by-row is the
+rehearsal), and the nutrition-rows test now reopens the store in a second container and refetches every new row
+(`theMigratedStoreKeepsNutritionDataAcrossAReopen`). `NutritionMigrationTests` **40/40 over 10 iterations, exit 0**
+(`n2-migration-r2.xcresult`). Round 2 sent.
+
+**Left:** Codex round 2.
 
 **Import — dropped from N2 (the user, 2026-11-09: "Drop it from N2").** The app has never had an Import; the v12
 export carries every nutrition row, so a future Import can restore it. Acceptance 3 is read as "export v12 round-trips

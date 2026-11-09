@@ -51,7 +51,9 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
 - **History.** A journal by day (Today, Yesterday, then each date) under a month summary, a calendar, per-session detail with editing (down to removing one set, exercise or
   cardio activity), records, progress charts per exercise and variation, and export of your
   workouts as JSON (the fullest record, with heart-rate series and routes) or CSV (a table of
-  sets and cardio).
+  sets and cardio). *Unreleased, on `main`:* the JSON (format v12) also carries the coming nutrition data — food log,
+  saved foods, My meals, nutrition goals and body weights; the nutrition screens are still being built, and the CSV
+  stays sets and cardio.
 - **Progress.** A tab of the charts you pin — lifts per machine or weight (best set, volume,
   1RM) and cardio activities (distance, pace or speed, time) — each with its latest value and
   the change since your first session — plus training-wide weekly charts (workouts, training volume, running
