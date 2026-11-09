@@ -176,3 +176,15 @@ runs: Unit plan 1112/1112, focused UI 11/11, all exit 0.
 **Round-2 evidence (WT-Floodlight):** build exit 0, no new warnings; Unit plan **1116/1116, exit 0**, 108 s
 (`unit-r2.xcresult`; +4 new tests); paused-daemon `CardioUITests/testSavedDistanceEditor…` **passed, exit 0**
 (`stop-fixed2.xcresult`), daemon resumed.
+
+### 5. Codex round 2 — [not clear](../codex-review-01b.md) (1 × P2, both axes), fixed
+
+All six round-1 fixes confirmed (its own Unit plan 1116/1116, exit 0; nested-class, explore and progress replays).
+**P2:** two of the new scheduler tests used wall-clock limits (100 ms / 200 ms) — a busy machine could fail them
+falsely. Rewritten: a `ManualClock` through the scheduler's `now` (the stand-in center advances it 20 s during the
+removal → the interval is exactly 40 s of a 60 s rest; a passed deadline → exactly 1 s), and "the caller is not kept
+waiting" is shown with a removal held on a semaphore until the test opens it (30 s timeout only as a hang guard;
+asserts nothing reached the center before the test opened the gate, and that both removals were opened by the test).
+Evidence (WT-Floodlight): build exit 0, no warnings in the changed files; `RestNotificationSchedulerTests` with
+`-test-iterations 25` → **100/100 runs passed, exit 0** (`sched-x25.xcresult`); Unit plan **1116/1116, exit 0**, 103 s
+(`unit-r3.xcresult`).
