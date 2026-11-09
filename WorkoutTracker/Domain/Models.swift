@@ -860,6 +860,13 @@ enum WorkoutTrackerStore {
         GymExerciseMemory.self,
         AppPreferences.self,
         ExerciseRestOverride.self,
+        // Nutrition N2 (Nutrition.swift).
+        FoodEntry.self,
+        SavedFood.self,
+        SavedMeal.self,
+        SavedMealItem.self,
+        NutritionGoal.self,
+        BodyWeightEntry.self,
     ]
 
     static var schema: Schema { Schema(modelTypes) }
