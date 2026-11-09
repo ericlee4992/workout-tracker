@@ -102,6 +102,28 @@ enum DesignSampleFixture {
         ].compactMap { $0 }
     }
 
+    /// With `-uiTestPersonalDetails` too (nutrition N3, the goals captures): 176.4 lb (80 kg), 5 ft 11 in, born 30
+    /// years ago (Mar 14), male — so a goal exists, calculated (2,759 cal, as `NutritionGoalsTests`' first example,
+    /// give or take the height's inch rounding).
+    static let personalDetailsArgument = "-uiTestPersonalDetails"
+    static var personalDetailsIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(personalDetailsArgument)
+    }
+
+    static func seedPersonalDetails(in context: ModelContext, now: Date = .now) throws {
+        let preferences = try AppPreferences.canonical(in: context)
+        preferences.setHeight(value: 71, unit: .inches)
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: now) - 30
+        let birthday = calendar.date(from: DateComponents(year: year, month: 3, day: 14))!
+        preferences.birthDate = birthday <= calendar.date(byAdding: .year, value: -30, to: now)! ? birthday
+            : calendar.date(byAdding: .year, value: -1, to: birthday)!
+        preferences.sex = .male
+        context.insert(BodyWeightEntry(measuredAt: now.addingTimeInterval(-3_600), value: 176.4, unit: .lb))
+        try context.save()
+        try NutritionGoalStore.update(in: context, now: now)
+    }
+
     static var settingsIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(settingsArgument)
     }

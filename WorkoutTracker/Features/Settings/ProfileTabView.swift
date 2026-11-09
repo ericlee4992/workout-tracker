@@ -11,6 +11,7 @@ struct ProfileTabView: View {
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @Query private var allPreferences: [AppPreferences]
+    @Query private var nutritionGoals: [NutritionGoal]
     /// Public beta ticket 02: Show Tour starts the guided tour (absent in previews and the tour's own world).
     @Environment(OnboardingCoordinator.self) private var onboarding: OnboardingCoordinator?
     @Environment(AccountStore.self) private var account
@@ -120,6 +121,13 @@ struct ProfileTabView: View {
             measured: preferences?.measuredMaxHeartRate, birthDate: preferences?.birthDate, at: .now)?.bpm
     }
 
+    private var nutritionGoalValue: String {
+        guard let goal = nutritionGoals.max(by: {
+            ($0.effectiveFrom, $0.createdAt, $0.id.uuidString) < ($1.effectiveFrom, $1.createdAt, $1.id.uuidString)
+        }) else { return "Not set" }
+        return "\(goal.calories.formatted(.number.precision(.fractionLength(0)))) cal"
+    }
+
     /// One status — On, Sign In or Paused (ticket 06: AI runs on the server, signed in, D60).
     private var askAIStatus: String {
         guard TerraAccess.ready(account) else { return "Sign In" }
@@ -136,8 +144,8 @@ struct ProfileTabView: View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Goals & tracking")
             LookList(separatorInset: 54) {
-                // N3 (mock value until the goal is stored).
-                ProfileRow("Nutrition goals", symbol: "scope", value: "2,759 cal") { showNutritionGoals = true }
+                // N3: the goal in force, or Not set until Personal details make one.
+                ProfileRow("Nutrition goals", symbol: "scope", value: nutritionGoalValue) { showNutritionGoals = true }
                     .accessibilityIdentifier("profileNutritionGoals")
                 let max = maxHeartRate
                 ProfileRow("Heart rate zones", symbol: "heart", value: max.map { "\($0) bpm" } ?? "Not set") {
@@ -218,11 +226,12 @@ struct ProfileRow: View {
     var symbol: String
     var value: String?
     var subtitle: String?
-    var action: () -> Void
+    /// nil when the row is another control's label (a `Menu`), which is then the button.
+    var action: (() -> Void)?
     @Environment(\.dynamicTypeSize) private var typeSize
 
     init(_ title: String, symbol: String, value: String? = nil, subtitle: String? = nil,
-         action: @escaping () -> Void) {
+         action: (() -> Void)?) {
         self.title = title
         self.symbol = symbol
         self.value = value

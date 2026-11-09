@@ -1,30 +1,49 @@
+import SwiftData
 import SwiftUI
 
-/// Nutrition N3 — Profile → Goals & tracking → Nutrition goals. **MOCK for the user's review:** sample inputs in local
-/// state, nothing saved; the numbers are the real calculation (`NutritionGoals`). Wired to Personal details and a dated
-/// `NutritionGoal` after the user approves the screen and its strings.
+/// Nutrition N3 — Profile → Goals & tracking → Nutrition goals (mock approved by the user 2026-11-09).
 ///
-/// In this screen's one state the eye lands on the calorie figure (the hero); the three macros sit under it as equal
-/// tiles; the two choices the goal is "based on" (activity, goal) are rows below, with Personal details one tap away.
+/// The eye lands on the calorie figure (the hero); the three macros sit under it as equal tiles; the two choices the
+/// goal is "based on" (activity, goal) and Personal details are rows below. Tapping a number opens a small editor (the
+/// user's choice); a typed number reads "Typed by you" and Recalculate appears. Every change is stored through
+/// `NutritionGoalStore` (a dated goal: past days keep theirs). Without complete Personal details there is nothing to
+/// calculate: the numbers are absent and the Personal details row says Not set.
 struct NutritionGoalsView: View {
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Query private var goals: [NutritionGoal]
+    @Query private var allPreferences: [AppPreferences]
+    @Query(sort: \BodyWeightEntry.measuredAt, order: .reverse) private var weights: [BodyWeightEntry]
+    @State private var editing: Number?
+    @State private var showDetails = false
+    @State private var saveFailure: String?
 
-    // Sample inputs (mock).
-    @State private var inputs = NutritionGoals.Inputs(weightKg: 80, heightCm: 180, ageYears: 30, sex: .male,
-                                                      activity: .moderate, goal: .maintain)
-    @State private var overrides = NutritionGoals.Overrides.none
+    enum Number: Identifiable, Hashable {
+        case calories
+        case macro(MacroKind)
+        var id: Self { self }
+    }
 
-    private var goal: Macros { NutritionGoals.resolve(inputs, overrides: overrides) }
+    private var current: NutritionGoal? {
+        goals.max { ($0.effectiveFrom, $0.createdAt, $0.id.uuidString) < ($1.effectiveFrom, $1.createdAt, $1.id.uuidString) }
+    }
+
+    private var choices: NutritionGoalStore.Choices { NutritionGoalStore.choices(of: current) }
+
+    private var macros: Macros? {
+        current.map { Macros(calories: $0.calories, proteinGrams: $0.proteinGrams, carbsGrams: $0.carbsGrams,
+                             fatGrams: $0.fatGrams) }
+    }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: look.space.section) {
                 LookNavTitle("Nutrition goals")
-                numbers
+                if let macros { numbers(macros) }
                 basedOn
-                if overrides != .none {
-                    Button("Recalculate") { withAnimation(.snappy) { overrides = .none } }
+                if choices.overrides != .none {
+                    Button("Recalculate") { change { $0.overrides = .none } }
                         .buttonStyle(.borderless)
                         .font(.system(.body, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
@@ -43,35 +62,47 @@ struct NutritionGoalsView: View {
         .scrollIndicators(.hidden)
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
+        // Personal details may have changed since the goal was stored (e.g. a new day's age): bring it up to date.
+        .task { change { _ in } }
+        .navigationDestination(isPresented: $showDetails) { PersonalDetailsView() }
+        .sheet(item: $editing) { number in editor(number) }
+        .alert("Couldn't save", isPresented: Binding(get: { saveFailure != nil }, set: { if !$0 { saveFailure = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: { Text(saveFailure ?? "") }
     }
 
     // MARK: The numbers (the bold element: calories)
 
-    private var numbers: some View {
+    private func numbers(_ macros: Macros) -> some View {
         VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(goal.calories.formatted(.number.precision(.fractionLength(0))))
-                        .font(look.font.heroNumber)
-                        .foregroundStyle(look.textPrimary)
-                        .contentTransition(.numericText(value: goal.calories))
-                    Text("cal a day")
-                        .font(.system(.subheadline, weight: .semibold))
+            Button { editing = .calories } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(macros.calories.formatted(.number.precision(.fractionLength(0))))
+                            .font(look.font.heroNumber)
+                            .foregroundStyle(look.textPrimary)
+                            .contentTransition(.numericText(value: macros.calories))
+                        Text("cal a day")
+                            .font(.system(.subheadline, weight: .semibold))
+                            .foregroundStyle(look.textSecondary)
+                        Spacer(minLength: 8)
+                        pencil
+                    }
+                    Text(choices.overrides.calories == nil ? "Calculated" : "Typed by you")
+                        .font(look.font.footnote)
                         .foregroundStyle(look.textSecondary)
-                    Spacer(minLength: 8)
-                    editMark(typed: overrides.calories != nil)
                 }
-                Text(overrides.calories == nil ? "Calculated" : "Typed by you")
-                    .font(look.font.footnote)
-                    .foregroundStyle(look.textSecondary)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
             .accessibilityIdentifier("nutritionGoalsCalories")
             let layout = typeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
             layout {
                 ForEach(MacroKind.allCases) { macro in
-                    macroTile(macro)
+                    macroTile(macro, grams: macro.grams(of: macros))
                 }
             }
         }
@@ -79,29 +110,45 @@ struct NutritionGoalsView: View {
         .lookSurface(.panel)
     }
 
-    private func macroTile(_ macro: MacroKind) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            MacroGlyph(macro: macro)
-            HStack(alignment: .firstTextBaseline, spacing: 2) {
-                Text(macro.grams(of: goal).formatted(.number.precision(.fractionLength(0))))
-                    .font(look.font.statNumber)
-                    .foregroundStyle(look.textPrimary)
-                Text("g").font(.system(.footnote, weight: .semibold)).foregroundStyle(look.textSecondary)
+    private func macroTile(_ macro: MacroKind, grams: Double) -> some View {
+        Button { editing = .macro(macro) } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                MacroGlyph(macro: macro)
+                HStack(alignment: .firstTextBaseline, spacing: 2) {
+                    Text(grams.formatted(.number.precision(.fractionLength(0))))
+                        .font(look.font.statNumber)
+                        .foregroundStyle(look.textPrimary)
+                    Text("g").font(.system(.footnote, weight: .semibold)).foregroundStyle(look.textSecondary)
+                }
+                Text(macro.name).font(look.font.footnote).foregroundStyle(look.textSecondary)
+                if typed(macro) != nil {
+                    Text("Typed by you").font(look.font.footnote).foregroundStyle(look.textSecondary)
+                }
             }
-            Text(macro.name).font(look.font.footnote).foregroundStyle(look.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(look.ground.opacity(0.6), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .contentShape(Rectangle())
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(look.ground.opacity(0.6), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .buttonStyle(.plain)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isButton)
         .accessibilityIdentifier("nutritionGoals.\(macro.name)")
     }
 
-    private func editMark(typed: Bool) -> some View {
+    private var pencil: some View {
         Image(systemName: "pencil")
             .font(.system(.footnote, weight: .semibold))
             .foregroundStyle(look.textTertiary)
             .accessibilityHidden(true)
+    }
+
+    private func typed(_ macro: MacroKind) -> Double? {
+        switch macro {
+        case .protein: choices.overrides.proteinGrams
+        case .carbs: choices.overrides.carbsGrams
+        case .fat: choices.overrides.fatGrams
+        }
     }
 
     // MARK: Based on
@@ -110,28 +157,70 @@ struct NutritionGoalsView: View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Based on")
             LookList(separatorInset: 54) {
-                ProfileRow("Activity", symbol: "figure.walk", value: activityName(inputs.activity)) {}
-                ProfileRow("Goal", symbol: "flag", value: goalName(inputs.goal)) {}
-                ProfileRow("Personal details", symbol: "person.text.rectangle", value: "80 kg · 180 cm · 30") {}
+                Menu {
+                    Picker("Activity", selection: Binding(get: { choices.activity },
+                                                          set: { value in change { $0.activity = value } })) {
+                        ForEach(ActivityLevel.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
+                } label: {
+                    ProfileRow("Activity", symbol: "figure.walk", value: choices.activity.label, action: nil)
+                }
+                .accessibilityIdentifier("nutritionGoalsActivity")
+                Menu {
+                    Picker("Goal", selection: Binding(get: { choices.goal },
+                                                      set: { value in change { $0.goal = value } })) {
+                        ForEach(WeightGoal.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
+                } label: {
+                    ProfileRow("Goal", symbol: "flag", value: choices.goal.label, action: nil)
+                }
+                .accessibilityIdentifier("nutritionGoalsGoal")
+                ProfileRow("Personal details", symbol: "person.text.rectangle", value: detailsSummary) {
+                    showDetails = true
+                }
+                .accessibilityIdentifier("nutritionGoalsDetails")
             }
         }
     }
 
-    private func activityName(_ activity: ActivityLevel) -> String {
-        switch activity {
-        case .sedentary: "Sedentary"
-        case .light: "Light"
-        case .moderate: "Moderate"
-        case .veryActive: "Very active"
-        case .extraActive: "Extra active"
+    /// "80 kg · 180 cm · 30" — as entered; "Not set" until every detail is there.
+    private var detailsSummary: String {
+        let preferences = AppPreferences.canonical(of: allPreferences)
+        guard let weight = weights.first, let value = preferences?.heightValue, let unit = preferences?.heightUnit,
+              let birthDate = preferences?.birthDate, preferences?.sex != nil
+        else { return "Not set" }
+        return [DetailFormat.weight(weight), DetailFormat.height(value: value, unit: unit),
+                "\(NutritionGoals.age(birthDate: birthDate, on: .now))"].joined(separator: " · ")
+    }
+
+    // MARK: Editing
+
+    @ViewBuilder private func editor(_ number: Number) -> some View {
+        switch number {
+        case .calories:
+            NumberEditorSheet(title: "Calories", unit: "cal a day", initial: macros?.calories,
+                              range: 500...10_000, fieldID: "goalCaloriesField") { value in
+                change { $0.overrides.calories = value.rounded() }
+            }
+        case .macro(let macro):
+            NumberEditorSheet(title: macro.name, unit: "g", initial: macros.map(macro.grams(of:)),
+                              range: 0...1_000, fieldID: "goal\(macro.name)Field") { value in
+                change { choices in
+                    switch macro {
+                    case .protein: choices.overrides.proteinGrams = value.rounded()
+                    case .carbs: choices.overrides.carbsGrams = value.rounded()
+                    case .fat: choices.overrides.fatGrams = value.rounded()
+                    }
+                }
+            }
         }
     }
 
-    private func goalName(_ goal: WeightGoal) -> String {
-        switch goal {
-        case .lose: "Lose weight"
-        case .maintain: "Maintain"
-        case .gain: "Gain weight"
+    private func change(_ apply: (inout NutritionGoalStore.Choices) -> Void) {
+        do {
+            try NutritionGoalStore.update(in: modelContext, change: apply)
+        } catch {
+            saveFailure = error.localizedDescription
         }
     }
 }

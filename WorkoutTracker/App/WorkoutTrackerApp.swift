@@ -136,6 +136,11 @@ struct WorkoutTrackerApp: App {
             UserDefaults.standard.set(true, forKey: TerraAccess.photoConsentKey)
             UserDefaults.standard.set(true, forKey: TerraAccess.routineConsentKey)
         }
+        // Nutrition N3's captures: Personal details filled, so a goal exists.
+        if DesignSampleFixture.personalDetailsIsEnabled {
+            do { try DesignSampleFixture.seedPersonalDetails(in: modelContainer.mainContext) }
+            catch { assertionFailure("Personal details fixture failed: \(error)") }
+        }
         // First-launch unit preference: derive from the locale measurement
         // system (US → lb, else kg). Idempotent; never blocks launch.
         do {
