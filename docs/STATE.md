@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-09** (testing-workflow ticket merged into `main`; earlier: Soft redesign S1–S4 and S5 merged; next N1 — ask first; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-09 ~4 AM, handoff** (N1 merged into `main` `b911247`; N2 in progress; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
@@ -18,10 +18,23 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
   `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Git (2026-11-09):** `main` = `origin/main` = the testing-workflow merge (fast-forward of
-  `ericlee4992/dev-01-testing-workflow`; `git log -1 main`). This worktree is on that branch at the same commit (merged,
-  clean). The home checkout `…/orca/projects/Health App` is on `main` (pull to update). Start N1 on a new branch off
-  `main`.
+  **Git (handoff):** `main` = `origin/main` = `b911247` (N1 merged). This worktree is on
+  `ericlee4992/nutrition-02-data` = `origin` (`aafd468`, rebased on `main`; force-pushed with lease after rebases — it
+  is Claude's own branch). The home checkout `…/orca/projects/Health App` is on clean `main` `b911247`; fast-forward
+  `main` there (`git -C "<home>" merge --ff-only <branch>` + push) — `main` cannot be checked out in this worktree.
+  **N2 next steps, in order:** (1) export round-trip unit test (v12 encode → `ExportJSON.decode` equal; a v11 file —
+  no nutrition keys — still decodes; counts); (2) Unit plan (`-testPlan Unit`, ~105 s); `ExportUITests` +
+  `BackupExportUITests`-adjacent export tests; (3) Simulator migration rehearsal on WT-Floodlight: back up the sim's
+  own `Application Support/default.store*` first, put `WorkoutTrackerTests/Fixtures/PreNutrition.store` there as
+  `default.store`, capture the container, launch the N2 build → exactly one `SafetyCopies/` copy → terminate → capture →
+  `python3 scripts/container-tools/compare_stores.py <before> <after> --bundle-id com.example.workouttracker` exit 0,
+  then put the sim's own store back (byte-compare); (4) ticket evidence + README if needed; (5) Codex brief
+  `work-record/nutrition/codex-review-n2-prompt.md` (pattern: `codex-review-n1-prompt.md`) → Codex terminal
+  `term_6ce8444b-…`; fix to clear; ff-merge `main`. Then S6 → N3 → N4 → N5 (approved; build overnight without asking).
+  **Commands:** build `xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk
+  iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath
+  <scratch>/dd`; then `test-without-building … -testPlan Unit` (or `-only-testing:WorkoutTrackerTests/<Suite>`;
+  `-test-iterations 10` for new suites); read results with `xcrun xcresulttool get test-results summary --path …`.
   **Done 2026-11-07/08:** S4 (History day journal; Progress Training charts + visible "…" menu; shared
   `refreshingNow`); the combined Phase 1 run (238/250 parallel → 3 S1–S4 test assumptions fixed; all ~777 captures
   checked); README refreshed; **S5 — Today's up next** (D77: learned split, "Not today", optional My Split in Train,
@@ -32,11 +45,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
      ([ticket](../work-record/dev-speed/issues/01-testing-workflow.md): before/after table, evidence). New workflow:
      `scripts/prepare-test-simulator.sh` first; scopes are test plans (DEVELOPMENT → Tiers and test plans);
      `scripts/explore.sh` for quick screenshots; reviewer rerun rule and reporting block in AGENTS.
-  2. N1 (safety copy) — **built** on `ericlee4992/nutrition-01-safety-copy` (design approved 2026-11-09; files only;
-     evidence in the [ticket](../work-record/nutrition/issues/01-safety-copy.md)). Codex review: the first session died
-     on an API "Bad Request" after its checks passed (`/tmp/codex-n1/`); a fresh session writes
-     `work-record/nutrition/codex-review-n1.md`. Then the user's wording OK → merge → N2.
-  3. N2 → **S6** ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md): account card,
+  2. ~~N1 (safety copy)~~ — **done 2026-11-09**, merged `b911247` ([ticket](../work-record/nutrition/issues/01-safety-copy.md):
+     files-only copy before a format change (store metadata vs model), newest 2 kept, restore at the next launch as a
+     journaled swap with rollback, blocked open when a swap cannot be undone or a request cannot be withdrawn,
+     full-screen waiting screen; 3 Codex rounds). Open for the user: 4 strings added after approval (in the ticket).
+  3. **N2 in progress** ([ticket](../work-record/nutrition/issues/02-nutrition-data.md) Progress) → **S6** ([Profile like the prototype](../work-record/soft-redesign/issues/06-profile-layout.md): account card,
      grouped rows to sub-pages, Help; Goals & tracking filled by N3/N9 — confirm groups with the user) → N3 … N10 → R.
      Testing plan: per-ticket unit + UI + changed-screen captures; a core-flow check after N5 (ask); full suite at R (ask).
   **Open follow-ups:** Training Profile's Weight field sits half under the number pad (pre-existing); known failure
@@ -52,7 +65,14 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   13% context — retired. If a Codex session asks approval for a simulator/orca command: read the `$ ` line, then send
   `--text "y"` alone; read any new script it runs before approving. It writes "Verdict: not clear" as a checkpoint while its UI run is going — act on the final
   report. Brief it to use WT-iPhone27 `47D21838-…`; Claude uses WT-Floodlight `9E822EF6-…`.
-  **Gotchas (2026-11-07/09):** run `scripts/prepare-test-simulator.sh` before a session's first test run (keeps the
+  **Gotchas (2026-11-09):** rebuild (`build-for-testing`) after any app OR test edit — `test-without-building` runs the
+  old bundle; SwiftData has no public close, so file-level tests write stores via Core Data (`coordinator.remove`); a
+  `fullScreenCover(isPresented: .constant(...))` dismissed another alert on the same view — use a real binding on a
+  different view; XCUITest still lists a full-screen cover's presenter elements (assert not hittable, not "exists");
+  a Codex session can die with API "Bad Request" on every request — open a fresh one (`orca agent launch --agent
+  codex --surface terminal --prompt …`), point it at the saved `/tmp/codex-*` results; Codex's launch prompt may arrive
+  late and twice (harmless); several waiters reading one xcresult at once collide — read it once.
+  **Gotchas (2026-11-07/08):** run `scripts/prepare-test-simulator.sh` before a session's first test run (keeps the
   simulator booted — xcodebuild shuts down a simulator it booted — and keeps the keyboard up on parallel clones); this worktree has no `Config/Local.xcconfig` → Debug installs as
   `com.example.workouttracker`; the Simulator app is **DeviceHub** (`/Applications/Xcode.app/Contents/Applications/
   DeviceHub.app`); a manual launch needs `xcrun simctl privacy <dev> grant motion <bundle>` or an alert covers the screen;
