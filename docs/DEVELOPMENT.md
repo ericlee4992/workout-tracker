@@ -123,12 +123,14 @@ Read `** TEST SUCCEEDED **`, the actual exit status, and the summary from
 does not establish that `xcodebuild` succeeded. A missing shell continuation once turned a
 focused run into the entire suite. Avoid broad `pkill` patterns that can kill another run.
 
-**Parallel UI runs (the user's choice, 2026-10-13):** a UI selection of more than a few classes runs on simulator
-clones, about half the wall time — add `-parallel-testing-enabled YES -parallel-testing-worker-count 3` to the
+**Parallel UI runs (the user's choice, 2026-10-13; two workers since 2026-11-09):** a UI selection of more than a few
+classes runs on simulator clones — add `-parallel-testing-enabled YES -parallel-testing-worker-count 2` to the
 `xcodebuild test` command with the usual single `-destination`. Xcode clones that simulator per worker ("Clone 1 of
 WT-Floodlight") and deletes the clones afterwards; classes are spread across them, each clone with its own app data
-and defaults, so a class must not depend on another class having run first. Three workers fit this Mac (16 GB, 10
-cores); use 2 if anything else heavy is running. Unit tests stay serial (they are fast, and parallel unit runs in one
+and defaults, so a class must not depend on another class having run first. **Two workers, and never two heavy runs
+at once** (the user, 2026-11-09, after near-full CPU and thermal throttling): three workers plus a reviewer's
+concurrent build/test run saturated this Mac (16 GB, 10 cores) and slowed or flaked both. The author does not start a
+build or test run while the reviewer's is going (and briefs the reviewer the same way); wait for its report. Unit tests stay serial (they are fast, and parallel unit runs in one
 process would race shared stubs). If a failure appears only in a parallel run, rerun that class alone, serially,
 before diagnosing it — load is the first suspect. Give every run its own log, status and result path (a stale earlier
 run once overwrote a later run's `unit2.log`/`unit2.status` in ticket 03).

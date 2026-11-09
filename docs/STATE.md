@@ -265,7 +265,8 @@ One branch per ticket off `main`; Claude implements, Codex reviews to "clear" in
 the remote). `scripts/check-secrets.sh --staged` before every commit (public repo). Secrets are typed or piped by the
 user locally, never in chat or the repo; never ask for the OpenAI key. Decline desktop control (`orca computer …`); the
 user accepts legal terms and Claude never enters credentials. Multi-class UI runs use
-`-parallel-testing-enabled YES -parallel-testing-worker-count 3`; unit tests serial; every run gets unique
+`-parallel-testing-enabled YES -parallel-testing-worker-count 2` (the user, 2026-11-09; was 3), and never while the
+reviewer's build/test run is going (or vice versa); unit tests serial; every run gets unique
 log/status/result paths; read the results before recording them. Show screenshots in Preview and by file. At each
 ticket's end: update STATE and the ticket and give the user a resume prompt.
 
