@@ -19,6 +19,8 @@ struct ProfileTabView: View {
     @AppStorage(StoreGate.restoreFailureKey) private var restoreFailure: String?
 
     @State private var showSettings = false
+    @State private var showNutritionGoals = false
+    @State private var showPersonalDetails = false
     @State private var showExportBackup = false
     @State private var showMaxHeartRateSheet = false
     @State private var showAskAISheet = false
@@ -76,6 +78,8 @@ struct ProfileTabView: View {
         .lookScreenBackground()
         .exercisesInlineTitle(title, visible: titleVisible)
         .navigationDestination(isPresented: $showSettings) { SettingsView(title: SettingsView.pageTitle) }
+        .navigationDestination(isPresented: $showNutritionGoals) { NutritionGoalsView() }
+        .navigationDestination(isPresented: $showPersonalDetails) { PersonalDetailsView() }
         .navigationDestination(isPresented: $showExportBackup) { ExportBackupView() }
         .sheet(isPresented: $showMaxHeartRateSheet) { MaxHeartRateSheet() }
         .sheet(isPresented: $showAskAISheet) { AskAISettingsSheet() }
@@ -132,6 +136,9 @@ struct ProfileTabView: View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Goals & tracking")
             LookList(separatorInset: 54) {
+                // N3 (mock value until the goal is stored).
+                ProfileRow("Nutrition goals", symbol: "scope", value: "2,759 cal") { showNutritionGoals = true }
+                    .accessibilityIdentifier("profileNutritionGoals")
                 let max = maxHeartRate
                 ProfileRow("Heart rate zones", symbol: "heart", value: max.map { "\($0) bpm" } ?? "Not set") {
                     showMaxHeartRateSheet = true
@@ -146,6 +153,9 @@ struct ProfileTabView: View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Settings")
             LookList(separatorInset: 54) {
+                // N3 (D80): the one place for weight, height, date of birth and sex.
+                ProfileRow("Personal details", symbol: "person.text.rectangle") { showPersonalDetails = true }
+                    .accessibilityIdentifier("profilePersonalDetails")
                 ProfileRow(SettingsView.pageTitle, symbol: "slider.horizontal.3") { showSettings = true }
                     .accessibilityIdentifier("profileSettings")
                 ProfileRow("Ask AI", symbol: "sparkles", value: askAIStatus) { showAskAISheet = true }
