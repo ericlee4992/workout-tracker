@@ -15,7 +15,7 @@ sub-pages, and Help. S2's ticket wording allowed the shortcut and no review comp
 The user chose to build it in Phase 2 right before N3, so N3 (Nutrition goals) and N9 (body weight, Apple Health) add
 their rows straight into the new layout and Profile is laid out once.
 
-## Scope (proposal — confirm the groups with the user when the ticket starts)
+## Scope (the groups approved by the user 2026-11-09, as proposed; Settings also carries N1's Safety copy)
 
 - **Account card** on top: name and sign-in method (or **Sign in** when signed out), opening the account and training
   profile (today's account pages).

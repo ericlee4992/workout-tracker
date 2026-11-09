@@ -91,7 +91,7 @@ gate opens the store), `Features/Settings/SafetyCopyViews.swift`, `WorkoutTracke
   full-screen cover bound to this state dismissed the "Data restored" alert — found in the rehearsal).
 - Tells: no cards in cards; no accent beyond the one filled button; no paragraphs beyond the two short lines.
 
-**Strings (for the user's approval):** "Couldn't save a safety copy" · "This update changes how Stacked stores your
+**Strings — approved by the user 2026-11-09 ("Approve as shown"):** "Couldn't save a safety copy" · "This update changes how Stacked stores your
 data. It saves a copy on this iPhone first — that didn't work." · "Your data hasn't been changed." · the reason, e.g.
 "Not enough free space: the copy needs 48 MB, this iPhone has 12 MB free." · "Try Again" · "Continue Without a Copy" ·
 "Safety copy" · "Restore data from before the update" · "Copy from Nov 9, 2026 at 1:30 PM" · "Restore data from Nov 9,

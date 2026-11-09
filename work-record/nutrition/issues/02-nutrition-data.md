@@ -1,7 +1,7 @@
 # N2 — Nutrition data model, migration, export/import
 
 Type: change
-Status: **proposed** (2026-11-07) — awaiting the user's approval
+Status: **approved** (the user, 2026-11-09: "Approve N2's data change" — the stored-format change and the guard's new pin; **My meals included**)
 Blocked by: N1
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-02-data` off `main`.
@@ -21,8 +21,8 @@ the update unchanged, and the user's export/import carries the new data.
   barcode, a `.nullify` link to the SavedFood it came from, a Health sample id (N9).
 - **SavedFood** — the user's foods: name, brand, barcode, nutrition per serving, serving options, saved or only recent,
   last used. Database hits (N8) are cached here when logged.
-- **SavedMeal** + **SavedMealItem** (`.cascade`) — "My meals": a named group of foods logged together. *Confirm with
-  the user (the prototype showed "My meals"; not asked explicitly).*
+- **SavedMeal** + **SavedMealItem** (`.cascade`) — "My meals": a named group of foods logged together. **Included — the
+  user, 2026-11-09.**
 - **NutritionGoal** — dated: calories, protein, carbs, fat, and the inputs (weight, height, age, sex, activity, goal,
   rate) with which it was calculated, and which numbers were overridden. A past day is judged against the goal in
   force that day (frozen history).

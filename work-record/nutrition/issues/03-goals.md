@@ -1,7 +1,7 @@
 # N3 — Goals: calculation, onboarding step, Profile → Nutrition goals
 
 Type: feature
-Status: **proposed** (2026-11-07) — awaiting the user's approval
+Status: **approved** (the user, 2026-11-09: the calculation below "as proposed")
 Blocked by: N2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-03-goals` off `main`.
@@ -12,7 +12,7 @@ Spec: [nutrition](../spec.md). Decisions: D70.
 The app suggests daily calories and protein / carbs / fat from the user's body and goal, and the user can change any
 number.
 
-## Proposed calculation (confirm with the user at the start)
+## Calculation (approved by the user 2026-11-09, as proposed)
 
 - **Energy:** Mifflin–St Jeor resting energy from weight, height, age and sex (sex options: Male / Female; a "Prefer
   not to say" uses the average of the two), times an activity factor: Sedentary 1.2 · Light 1.375 · Moderate 1.55 ·
