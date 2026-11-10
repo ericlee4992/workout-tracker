@@ -1,7 +1,7 @@
 # N6 — Server: food-photo, food-label, food-describe flows, limits, privacy text
 
 Type: feature
-Status: **in progress** (2026-11-10) — the user's go-ahead (2026-11-10: "for N6 I give you the go-ahead")
+Status: **code done — Codex clear (round 1), merged; live check, cost and deploy wait for the user** (2026-11-10) — the user's go-ahead (2026-11-10: "for N6 I give you the go-ahead")
 Blocked by: N2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-06-server-ai` off `main`.
@@ -69,5 +69,14 @@ off `main` `c03bd12`).**
   keys); the deploy (it switches the live beta's three flows to the new model) is held until a real request per flow
   has passed, which needs either a local key or a signed-in session on the deployed server; the privacy wording's
   approval. App side of the new flows: N7.
+
+**Codex round 1 (`codex-review-n6.md`): clear** — no findings; it checked OpenAI's docs (model id, low/medium effort,
+nullable unions in strict schemas, image input) and probed migration 0007 in SQLite with foreign keys (rows, defaults,
+key, cascade kept). Merged into `main` (no deploy). **Before deploy (the morning, with the user):** (1) a real,
+non-personal sample through **all six flows** on `gpt-6.1-terra` — completed replies within the output caps and 60 s,
+strict nullable schema accepted, image handling — recording tokens, latency and cost per flow (stop if any is much
+over ~1 cent); (2) approve the privacy wording and set `POLICY_EFFECTIVE_DATE` (the predeploy guard refuses until
+then; do not bypass it with `wrangler deploy`); (3) deploy order: back up, `npm run migrate:remote` (0007) **before**
+`npm run deploy`; a rollback of the Worker keeps the expanded table.
 
 ## Comments
