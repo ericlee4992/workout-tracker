@@ -16,7 +16,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Decisions this morning (the user):** D79 amended; deploy at R; **D82** — meal-photo scan: a progress card in
   Today's log, logged at once (tap to edit), the photo kept on the phone; Health usage strings approved (N9b); the
   Nutrition goals page keeps recalculating from the latest weight on a visit (no change to N3).
-  **NEXT: N7 — Scan Food** (the user: start it in a new session). Branch `ericlee4992/nutrition-07-scan-food` off
+  **N7 IN PROGRESS (2026-11-10 evening): mock v1 shown, waiting for the user's approval** — branch
+  `ericlee4992/nutrition-07-scan-food` (pushed); what was mocked, the new strings and **six open questions** are in
+  N7's ticket → Progress. Launch the mock: `-uiTestReset -uiTestDesignSample -uiTestFoodSample -scanFoodMock`
+  (`-scanFoodMockSample analyzing|done|failures|none`); `ScanFoodUITests` 2/2 passed. Next: the user's answers → wire.
+  **NEXT (was): N7 — Scan Food** (the user: start it in a new session). Branch `ericlee4992/nutrition-07-scan-food` off
   `main` in this worktree. **Mocks only first** (sample data, nothing stored; screenshots light/default + dark/AXL;
   SendUserFile + Preview) and wait for the user's approval before wiring: the camera with modes Scan food | Barcode
   (N8) | Food label, photo-library pick; **D82's progress card** in Today's log (blurred photo, estimated % ring,

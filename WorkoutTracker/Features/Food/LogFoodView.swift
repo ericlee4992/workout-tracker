@@ -25,6 +25,9 @@ struct LogFoodView: View {
     @State private var selected: SavedFood?
     @State private var selectedMeal: SavedMeal?
     @State private var failure: String?
+    /// N7 MOCK: the scan camera from Log food's bar; a meal photo or a description returns to Today (D82's card).
+    @State private var showScan = false
+    @Environment(\.dismiss) private var dismiss
 
     enum Tab: CaseIterable, Identifiable {
         case all, myFoods, myMeals, saved
@@ -79,6 +82,7 @@ struct LogFoodView: View {
                     mealChips
                     tabBar
                     searchField
+                    if tab == .all && searching { describeRow }
                     content
                     // At accessibility sizes the command scrolls with the list: pinned, it left room for one food row.
                     if typeSize.isAccessibilitySize, let command {
@@ -94,6 +98,20 @@ struct LogFoodView: View {
         }
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showScan = true } label: {
+                    Image(systemName: "camera.viewfinder").font(.system(.body, weight: .semibold))
+                        .foregroundStyle(look.textPrimary)
+                }
+                .accessibilityLabel("Scan food")
+                .accessibilityIdentifier("logFoodScan")
+            }
+        }
+        .fullScreenCover(isPresented: $showScan) {
+            FoodScanFlow(meal: meal, onMealPhoto: { showScan = false; dismiss() },
+                         onManualAdd: { route = .manualAdd })
+        }
         .overlay(alignment: .bottom) { if let receipt { undoToast(receipt) } }
         .sensoryFeedback(.success, trigger: receipt?.entries.first?.id) { _, new in new != nil }
         .task(id: receipt?.entries.first?.id) {
@@ -151,12 +169,51 @@ struct LogFoodView: View {
         case .all where !searching && FoodLog.recent(foods).isEmpty:
             EmptyStateView(symbol: "clock", title: "Nothing logged yet",
                            message: "Foods you log appear here.")
+        case .all where searching && shownFoods.isEmpty:
+            // The estimate row above is the way forward; no "No Results" under it (N7).
+            EmptyView()
         case .myMeals where shownMeals.isEmpty, .all where shownFoods.isEmpty, .myFoods where shownFoods.isEmpty,
              .saved where shownFoods.isEmpty:
             ContentUnavailableView.search(text: search)
         case .myMeals: myMeals
         default: foodList
         }
+    }
+
+    /// N7: what was typed, estimated by AI (food-describe) — logged at once like a meal photo, its card on Today.
+    private var describeRow: some View {
+        let text = search.trimmingCharacters(in: .whitespaces)
+        return Button {
+            FoodScanMock.shared.startDescribe(text, meal: meal)
+            dismiss()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.system(.body, weight: .semibold))
+                    .foregroundStyle(look.textPrimary)
+                    .frame(width: 40, height: 40)
+                    .background(look.surfaceRaised, in: Circle())
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Estimate “\(text)”")
+                        .font(.system(.body, weight: .semibold))
+                        .foregroundStyle(look.textPrimary)
+                        .lineLimit(3)
+                    Text("With AI · logs to \(meal.label)")
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right").font(.system(.footnote, weight: .semibold))
+                    .foregroundStyle(look.textTertiary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.lookPressable)
+        .lookSurface(.panel)
+        .accessibilityIdentifier("logFoodDescribe")
     }
 
     private var mealChips: some View {
@@ -341,9 +398,34 @@ struct LogFoodView: View {
 /// Today's "Log food" pill (D68; the approved prototype's `SoftLogFoodPill`): black, above the tab bar, Today only.
 struct LogFoodPill: View {
     var action: () -> Void
+    /// N7: Scan food, a round camera button beside the pill (one tap from Today to the camera).
+    var scan: (() -> Void)?
     @Environment(\.look) private var look
 
     var body: some View {
+        HStack(spacing: 10) {
+            if let scan {
+                Button(action: scan) {
+                    Image(systemName: "camera.viewfinder")
+                        .font(.system(.title3, weight: .semibold))
+                        .foregroundStyle(look.textPrimary)
+                        .frame(width: 50, height: 50)
+                        .background(look.surface, in: Circle())
+                        .overlay { Circle().strokeBorder(look.hairline, lineWidth: 1) }
+                        .shadow(color: .black.opacity(0.12), radius: 10, y: 4)
+                }
+                .buttonStyle(.lookPressable)
+                .accessibilityLabel("Scan food")
+                .accessibilityIdentifier("scanFoodButton")
+            }
+            pill
+        }
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.horizontal, 22)
+        .padding(.bottom, 8)
+    }
+
+    private var pill: some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: "plus").font(.system(.subheadline, weight: .bold))
@@ -356,9 +438,6 @@ struct LogFoodPill: View {
             .shadow(color: .black.opacity(0.16), radius: 10, y: 4)
         }
         .buttonStyle(.lookPressable)
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.horizontal, 22)
-        .padding(.bottom, 8)
         .accessibilityIdentifier("logFoodPill")
     }
 }

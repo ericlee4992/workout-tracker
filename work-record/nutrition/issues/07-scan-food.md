@@ -1,7 +1,7 @@
 # N7 — Scan Food camera: meal photo and food label
 
 Type: feature
-Status: **proposed** (2026-11-07) — awaiting the user's approval
+Status: **mock v1 shown** (2026-11-10) — awaiting the user's approval of the mock
 Blocked by: N4, N6
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-07-scan-food` off `main`.
@@ -45,6 +45,58 @@ Point the camera at a meal or a nutrition label, check the estimate, and log it.
 
 ## Progress
 
-Not started.
+**Mock v1 (2026-11-10, branch `ericlee4992/nutrition-07-scan-food`) — sent to the user for approval; nothing wired.**
+Sample data in memory only (`Features/Food/Scan/FoodScanMock.swift`, launch flag `-scanFoodMock`); the meal, label
+and barcode "photos" are drawn in code (no personal photos). A yellow sliders button on Today (mock only) switches the
+photo-entry option, how the next scan ends, signed in, camera allowed and photo consent.
+
+- **Entry points:** a round camera button beside Today's Log food pill (D68 has no floating +; one tap to the camera),
+  and a camera in Log food's bar. **Describe what you ate:** typing in Log food's search (All) shows "Estimate
+  “…”" / "With AI · logs to <meal>" above the results; it is logged at once like a photo, its card on Today.
+- **Camera (full screen, always dark):** Cancel; the drawn feed; a frame per mode (meal: square; label: the tall crop
+  box, outside dimmed harder — D53; barcode: a wide band, no shutter — N8); a hint line; three equal mode tiles
+  Scan food | Barcode | Food label; library · shutter · flash. Before it: Sign in (signed out) and the photo consent
+  (first scan, D56's pattern + D82's kept-photo line). Camera off: "Camera access is off", Choose a photo / Open Settings.
+- **Meal photo (D82):** the camera closes at once; Today's log shows the card (blurred photo, percent ring rising over
+  ~5 s, "Analyzing image", skeleton lines, "We'll notify you when done!"), which becomes the entry in its meal. The fuel
+  card and day rings count it. Failure cards in its place: No food found (Retake, Manual Add), Daily limit reached (Manual
+  Add), Couldn't analyze (Try again); × removes the card.
+- **Both options for a photo's entries (open):** A — one entry named for the meal (thumbnail, name, time, macros, cal);
+  B — the photo as a header ("Photo · 5 items", time, total) with each item its own entry under it.
+- **Items screen** (tap the entry; staged, Cancel / Save): photo with its time, Name (option A), meal chips, total as the
+  hero + macros, Items (name, portion · grams · macros, cal → item editor: Name, Portion, Weight, calories and macros,
+  Remove Item), Add item, Delete Entry (with Undo on Today). In option B an item opens on its own (Cancel / Save).
+- **Food label:** shutter → "Reading the label…" over the cropped label (Take another photo) → "From the label": the
+  label thumbnail, Name (needed) and Brand, Servings stepper, Serving and Servings per container as printed, the total
+  hero + macros, Other nutrition facts shown open, **Save to My foods** on, **Log to <meal>**; Retake in the bar.
+
+**ios-design.** Today with a scan: the eye stays on the fuel card's hero; the card is the log's first item, the photo its
+anchor. Camera: the shutter is the one bold control; the mode tiles are a state (white fill), not commands. Label food:
+the total is the hero, Log the one primary. Tells: same container on everything — absent (the card is a group: photo +
+status; items are a list); chips — deliberate (meal choice only); all-caps — absent; middle dots — deliberate (the
+entry lines "12:40 PM · P 36 · C 70 · F 14 g", as N5's rows); accent overuse — absent (the action colour only on the shutter,
+the same `ScanShutterStyle` as Scan Machine, and the existing Log food pill); equal stacked blocks — absent; above the fold — the card is in
+the first viewport after the log header; control as primary — absent; default-size-only — absent (AXL captures: the card
+stacks photo over text, rows stack, the percent is capped inside its ring).
+
+**New strings for the user's OK:** "Scan food" (camera button label), "Analyzing image" / "Analyzing description",
+"We'll notify you when done!", "No food found" / "Try a closer photo, or add it by hand.", "Daily limit reached" /
+"30 meal photos a day. More at 7:00 PM.", "Couldn't analyze" / "No connection. Your photo is kept until you try
+again.", Retake / Try again, "Fit your meal in the frame" / "Point at a barcode" / "Fit the Nutrition Facts in the box",
+"Sign in to scan food with AI.", "Send food photos to OpenAI?" + the four facts ("One photo of your meal or label, for
+one estimate", "Not kept by Stacked’s server or OpenAI", "A meal photo stays on this iPhone with its entry", "Up to 30
+meal photos and 30 labels a day"), "Allow photos and continue", "Camera access is off" / "Allow the camera in
+Settings, or choose a photo of your meal." / "Choose a photo", "Reading the label…", "From the label" / "Check the
+numbers, name it, log it.", "Save to My foods", "Estimate “…”" / "With AI · logs to Dinner", "Photo · 5 items",
+"Items", "Add item", "Portion", "Weight", "Remove Item", "Delete Photo and Items".
+
+**Open for the user:** (1) option A or B; (2) A needs a meal name — the server's food-photo reply has none (N6 schema:
+items only), so either add a short `mealName` to the schema (a server change at R) or name it from the items ("Tuna poke
+& 4 more"); (3) a description logged at once like a photo (mocked) or reviewed before Log; (4) the camera button beside
+Log food (mocked) vs only inside Log food; (5) the notification needs the system's permission — ask on the first
+scan, or never notify (the card is enough); (6) the limit's reset time (the server's day is UTC: 7:00 PM in New York).
+
+Verification (mock): `build-for-testing` exit 0; `ScanFoodUITests` (2 tests, 2 workers) — results in the session's
+scratchpad; captures light/Default + dark/AXL looked at. Not verified: anything stored or sent (nothing is wired).
 
 ## Comments
