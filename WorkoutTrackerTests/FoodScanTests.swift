@@ -97,6 +97,14 @@ struct FoodScanTests {
         #expect(FoodLabelReading.parse(try json(negative)) == nil)
     }
 
+    /// The live check's label (2026-11-10, the FDA example) printed "(55g)" with no space.
+    @Test func aServingSizeWithoutASpaceBeforeGramsReads() throws {
+        let reply: [String: Any] = ["found": true, "servingSize": "2/3 cup (55g)", "servingGrams": 55, "calories": 230]
+        let label = try #require(FoodLabelReading.parse(try json(reply)))
+        #expect(label.serving.unit == "cup")
+        #expect(label.serving.grams == 55)
+    }
+
     @Test func anUnparseableServingSizeIsOneServingWithThePrintedGrams() throws {
         let reply: [String: Any] = ["found": true, "servingSize": "", "servingGrams": 30, "calories": 120]
         let label = try #require(FoodLabelReading.parse(try json(reply)))

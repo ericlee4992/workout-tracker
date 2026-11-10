@@ -116,6 +116,7 @@ struct ScanPendingCard: View {
                     .font(look.font.headline)
                     .foregroundStyle(look.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("scanFailedTitle")
                 Spacer(minLength: 8)
                 Button { withAnimation(.snappy) { FoodScanQueue.shared.dismiss(scan.id) } } label: {
                     Image(systemName: "xmark").font(.system(.footnote, weight: .bold))
@@ -146,7 +147,6 @@ struct ScanPendingCard: View {
             }
             .padding(.top, 2)
         }
-        .accessibilityIdentifier("scanFailed")
     }
 
     private func small(_ title: String, symbol: String, id: String, action: @escaping () -> Void) -> some View {

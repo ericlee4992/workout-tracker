@@ -1,7 +1,7 @@
 # N7 — Scan Food camera: meal photo and food label
 
 Type: feature
-Status: **mock v1 shown** (2026-11-10) — awaiting the user's approval of the mock
+Status: **wiring** (2026-11-10) — mock approved with D83's answers; the user: "skip backup steps for wiring N7"
 Blocked by: N4, N6
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-07-scan-food` off `main`.
@@ -94,6 +94,51 @@ the notification permission on the first scan; (6) "More at 7:00 PM" (local time
 photo uses the time it was taken (its meal follows it); a camera photo uses now; (8) **no consent screen** ("just get rid
 of the consent screen") — the camera opens straight after sign-in. Wiring drops option B and the mock
 switcher. Still for the user: the new strings above.
+
+**Wiring (2026-11-10, after D83; the user skipped the backup steps for this data change):**
+- **Server:** the food-photo and food-describe replies gain `mealName` (≤ 60 characters; empty only without items) —
+  `FOOD_ITEMS_SCHEMA`, both flows' instructions, `checkFoodItems`; `food-ai.test.ts` (254 server tests, tsc clean).
+  Deployed at R with everything else.
+- **Data (additive, approved fingerprint `15051efe…`):** `FoodEntry.photo` (external storage) and `FoodEntry.items`
+  (cascade) + new `FoodEntryItem` (id, order, name, portion, grams?, calories, protein, carbs, fat). Delete/Undo carries
+  the photo and items; the JSON export carries the items and `hasPhoto` (not the photo bytes).
+- **Domain (`Domain/FoodScan.swift`):** replies checked as the server checks them (`FoodEstimate`, `FoodLabelReading`);
+  a scan logged as ONE entry named for the meal, numbers = the items' sum; `update` replaces items and recomputes;
+  `logLabel` (Save to My foods → `createFood` + log, else a one-off entry; source `.label`); `FoodScan.when` (a library
+  photo's own time, never in the future; its meal follows); `PhotoDate` reads EXIF DateTimeOriginal (+ offset).
+- **App:** `FoodScanQueue` (in memory) runs each request with a background task, logs on success, keeps a failure card,
+  notifies when the app is not in front (permission asked on the first scan; never under UI tests); the camera is
+  `LabelCameraView` with the food box mapped by `LabelFramingBox.visionRegion`; a meal photo sends the whole photo
+  (≤ 1568 px, `EquipmentPhoto.jpeg`), a camera label only the box (`LabelCrop.jpeg`); PhotosPicker for the library;
+  Today's rows show the thumbnail and open the items screen for a scan; the mock and its switcher are gone.
+
+**Live check (2026-11-10 evening, Claude — the dev key copied into git-ignored `server/.dev.vars` for the run and
+deleted after, never printed):** local `wrangler dev` with this branch's server (migrations through 0007, a local test
+session), `gpt-6.1-terra`, non-personal Wikimedia Commons samples re-encoded as the app does (≤ 1568 px, JPEG 0.85):
+"Salmon Poke Bowl (S) with Spicy mayo sauce - Kitokito.jpg" and "FDA Nutrition Facts Label 2016.png".
+
+| Flow | Answer | Tokens in / out (reasoning) | Cost | Latency |
+|---|---|---|---|---|
+| food-photo | `mealName` "Salmon poke bowl", 11 items (salmon, rice, edamame, … spicy mayo) | 2,487 / 688 (190) | $0.0059 | 10.3 s |
+| food-describe ("two scrambled eggs and a slice of buttered toast") | "Scrambled eggs and toast", 3 items | 315 / 204 (57) | $0.0013 | 3.7 s |
+| food-label | exact: 2/3 cup (55g), 8 servings, 230 cal, P 3, C 37, F 8, sat 1, fiber 4, sugars 12, sodium 160 mg | 1,657 / 79 (0) | $0.0021 | 2.4 s |
+
+The photo took 10 s (N6's plate: 5.4 s) — the progress card's percent stops at 95 until the answer, so a slow estimate
+still reads as working. Not done: the app itself against the local server (it needs a real sign-in); the app's parsing
+of these replies is covered by `FoodScanTests` (incl. the label's "(55g)" spelling).
+
+**Own decisions (minor, logged for the user):** a scan still running when the app is quit is not resumed (its photo is
+stored only once logged); a label picked from the library is sent whole (the user chose that picture; D53's box is the
+camera's); a library photo's meal follows its time even from Log food's chosen meal; a new item left nameless is
+dropped on Save; the export carries no photo bytes.
+
+**New strings since the mock (for the user's OK):** notifications "Poke bowl logged" / "550 cal · Lunch" and the failure
+card's title/detail; "Try naming the food and how much." (description, nothing found); "60 descriptions a day. More at
+midnight."; "No connection. Try again." (description offline); "Something went wrong. Try again." (other failures);
+label: "No label found" / "Fit the whole Nutrition Facts panel in the box.", "Couldn't read the label", "30 labels a
+day. More at midnight.", "Sign in again, then try again."; camera: "No camera" / "Choose a photo of your meal instead.",
+"That photo couldn't be opened.", "That photo couldn't be used. Try again."; "New item" (an unnamed item's row);
+"Meal" (the items screen's title while the name is blank).
 
 Verification (mock): `build-for-testing` exit 0; `ScanFoodUITests` (2 tests, 2 workers) — results in the session's
 scratchpad; captures light/Default + dark/AXL looked at. Not verified: anything stored or sent (nothing is wired).

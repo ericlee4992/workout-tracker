@@ -143,7 +143,9 @@ final class ScanFoodUITests: XCTestCase {
             launch("light", large: false, ["-uiTestFoodScanFail", flag])
             openCamera()
             app.buttons["scanFoodShutter"].tap()
-            XCTAssertTrue(app.staticTexts[expected].waitForExistence(timeout: 10), flag)
+            let title = app.staticTexts["scanFailedTitle"]
+            XCTAssertTrue(title.waitForExistence(timeout: 10), flag)
+            XCTAssertEqual(title.label, expected, flag)
             XCTAssertTrue(app.buttons[action].exists, flag)
             XCTAssertFalse(app.buttons["todayEntry.Poke bowl"].exists, flag)
         }
@@ -215,7 +217,7 @@ final class ScanFoodUITests: XCTestCase {
             launch(appearance, large: large, ["-uiTestFoodScanFail", flag])
             openCamera()
             app.buttons["scanFoodShutter"].tap()
-            XCTAssertTrue(app.descendants(matching: .any)["scanFailed"].waitForExistence(timeout: 10))
+            XCTAssertTrue(app.staticTexts["scanFailedTitle"].waitForExistence(timeout: 10))
             reveal(card)
             shoot("today-failed-\(flag)")
         }

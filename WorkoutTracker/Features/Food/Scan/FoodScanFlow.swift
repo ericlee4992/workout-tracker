@@ -54,8 +54,8 @@ struct FoodScanFlow: View {
             .navigationDestination(for: Step.self) { step in
                 switch step {
                 case .readingLabel:
-                    FoodScanReadingLabel(image: label?.shot.image, failure: label?.failure,
-                                         onCancel: { dismiss() }, onRetake: retake, onManual: manual)
+                    // A binding, not values: the destination is built once, and the reply arrives later.
+                    FoodScanReadingLabel(label: $label, onCancel: { dismiss() }, onRetake: retake, onManual: manual)
                         .toolbar(.hidden, for: .navigationBar)
                 case .labelFood:
                     if let label, let reading = label.reading {
@@ -520,14 +520,16 @@ private struct FoodScanSignIn: View {
 /// The cropped label is the hero while it is read; a label not found or a failure says so, with Take another photo and
 /// Manual Add.
 private struct FoodScanReadingLabel: View {
-    var image: UIImage?
-    var failure: (title: String, detail: String)?
+    @Binding var label: FoodScanFlow.LabelState?
     var onCancel: () -> Void
     var onRetake: () -> Void
     var onManual: () -> Void
     @Environment(\.look) private var look
 
     static let notFound = ("No label found", "Fit the whole Nutrition Facts panel in the box.")
+
+    private var image: UIImage? { label?.shot.image }
+    private var failure: (title: String, detail: String)? { label?.failure }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -683,9 +685,12 @@ struct LabelFoodView: View {
             } else {
                 LookRow("Servings", symbol: "number", showsChevron: false) { stepper }
             }
+            // As printed ("2/3 cup (55g)"); what is stored is the parsed serving.
             let serving = reading.serving
             LookRow("Serving", symbol: "scalemass",
-                    value: ServingText.format(value: serving.value, unit: serving.unit, grams: serving.grams),
+                    value: reading.servingSize.isEmpty
+                        ? ServingText.format(value: serving.value, unit: serving.unit, grams: serving.grams)
+                        : reading.servingSize,
                     showsChevron: false)
             if let perContainer = reading.servingsPerContainer {
                 LookRow("Servings per container", symbol: "shippingbox", value: FoodNumber.text(perContainer),
