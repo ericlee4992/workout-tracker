@@ -1,7 +1,7 @@
 import XCTest
 
 /// Nutrition N7 MOCK — Scan Food on record before it is wired (the user, 2026-11-10: mocks first): Today's progress
-/// card (D82) and the logged photo entry as one entry or one per item, the failures, the camera's three modes, consent,
+/// card (D82) and the logged photo entry as one entry or one per item, the failures, the camera's three modes,
 /// sign in, camera off, reading a label and the prefilled food, the entry's items and an item, and Log food's estimate
 /// row — light at Default and dark at AccessibilityL. Sample data in memory only (`-scanFoodMock`).
 final class ScanFoodUITests: XCTestCase {
@@ -120,11 +120,7 @@ final class ScanFoodUITests: XCTestCase {
         app.swipeUp()
         shoot("label-food-2")
 
-        // 8. First scan: consent; signed out; camera off.
-        launch(appearance, large: large, ["-scanFoodMockSample", "none", "-scanFoodMockConsent"])
-        app.buttons["scanFoodButton"].tap()
-        XCTAssertTrue(app.buttons["scanFoodAllow"].waitForExistence(timeout: 5))
-        shoot("consent")
+        // 8. Signed out; camera off (no consent screen, D83).
         launch(appearance, large: large, ["-scanFoodMockSample", "none", "-scanFoodMockSignedOut"])
         app.buttons["scanFoodButton"].tap()
         XCTAssertTrue(app.buttons["scanFoodSignIn"].waitForExistence(timeout: 5))

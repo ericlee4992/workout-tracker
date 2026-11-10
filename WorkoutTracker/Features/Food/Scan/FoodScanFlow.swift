@@ -2,8 +2,8 @@ import SwiftUI
 import UIKit
 
 // Nutrition N7 (MOCK) — Scan Food, a full-screen cover from Today (the camera beside Log food) or Log food's bar:
-// sign in (AI needs an account, D60) → photo consent the first time (D56's pattern, D82's line about the kept photo)
-// → the camera with Scan food | Barcode | Food label and a photo-library pick. A meal photo closes the camera at once:
+// sign in (AI needs an account, D60) → the camera (no photo consent screen: the user, 2026-11-10, D83)
+// with Scan food | Barcode | Food label and a photo-library pick. A meal photo closes the camera at once:
 // the progress card is in Today's log (D82). A label is cropped to the box (D53), read, and opens the food prefilled.
 // The Simulator has no camera: the drawn sample stands in for the viewfinder.
 
@@ -24,8 +24,6 @@ struct FoodScanFlow: View {
             Group {
                 if !mock.signedIn {
                     FoodScanSignIn(onCancel: { dismiss() }, onSignIn: { mock.signedIn = true }, onManual: manual)
-                } else if !mock.consentGiven {
-                    FoodScanConsent(onCancel: { dismiss() }, onAllow: { withAnimation(.snappy) { mock.consentGiven = true } })
                 } else {
                     FoodScanCamera(initialMode: mock.initialMode, cameraAllowed: mock.cameraAllowed,
                                    onCancel: { dismiss() }, onShot: shot)
@@ -314,7 +312,7 @@ private struct FoodScanCameraContent: View {
     }
 }
 
-// MARK: - Sign in and consent
+// MARK: - Sign in
 
 private struct FoodScanSignIn: View {
     var onCancel: () -> Void
@@ -349,105 +347,6 @@ private struct FoodScanSignIn: View {
             }
         }
         .lookScreenBackground()
-    }
-}
-
-/// D56's pattern for food: what is sent (a filled disc with an up-arrow), what is not kept or stays yours (an open
-/// disc), the policy link last; "Allow photos and continue" the one filled command.
-private struct FoodScanConsent: View {
-    var onCancel: () -> Void
-    var onAllow: () -> Void
-    @Environment(\.look) private var look
-    @Environment(\.dynamicTypeSize) private var typeSize
-
-    private static let policyURL = URL(string: "https://developers.openai.com/api/docs/guides/your-data")!
-
-    var body: some View {
-        VStack(spacing: 0) {
-            ScanTopBar(title: "Scan Food", onCancel: onCancel)
-            ScanPagedScroll(centered: !typeSize.isAccessibilitySize) {
-                VStack(alignment: .leading, spacing: 20) {
-                    ScanInlineTitle(title: "Scan Food")
-                    ScanGlyphDisc(symbol: "fork.knife", size: typeSize.isAccessibilitySize ? 76 : 96,
-                                  glyphFont: .system(size: typeSize.isAccessibilitySize ? 28 : 36, weight: .semibold))
-                    Text("Send food photos to OpenAI?")
-                        .font(look.font.title2)
-                        .foregroundStyle(look.textPrimary)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityAddTraits(.isHeader)
-                    facts
-                }
-                .padding(.horizontal, look.space.margin)
-                .padding(.bottom, 20)
-            } bar: {
-                ScanBottomBar {
-                    ScanPrimaryButton("Allow photos and continue", symbol: "checkmark", action: onAllow)
-                        .accessibilityIdentifier("scanFoodAllow")
-                }
-            }
-        }
-        .lookScreenBackground()
-    }
-
-    private var facts: some View {
-        VStack(spacing: 0) {
-            FoodFactRow(symbol: "photo", sent: true, text: "One photo of your meal or label, for one estimate")
-            LookDivider().padding(.leading, 62)
-            FoodFactRow(symbol: "square.and.arrow.down.badge.xmark", sent: false,
-                        text: "Not kept by Stacked’s server or OpenAI")
-            LookDivider().padding(.leading, 62)
-            FoodFactRow(symbol: "iphone", sent: false, text: "A meal photo stays on this iPhone with its entry")
-            LookDivider().padding(.leading, 62)
-            FoodFactRow(symbol: "person.crop.circle", sent: false, text: "Up to 30 meal photos and 30 labels a day")
-            LookDivider()
-            Link(destination: Self.policyURL) {
-                HStack(spacing: 6) {
-                    Text("OpenAI data policies")
-                    Spacer(minLength: 8)
-                    Image(systemName: "arrow.up.right").font(.system(.footnote, weight: .bold))
-                }
-                .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(look.textSecondary)
-                .padding(.horizontal, 16)
-                .frame(minHeight: 48)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.lookPressable)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: look.radius.panel, style: .continuous))
-        .lookSurface(.panel)
-    }
-}
-
-private struct FoodFactRow: View {
-    var symbol: String
-    var sent: Bool
-    var text: String
-    @Environment(\.look) private var look
-    @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 32
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 14) {
-            Image(systemName: symbol)
-                .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(sent ? look.surfaceSheet : look.textSecondary)
-                .frame(width: disc, height: disc)
-                .background {
-                    if sent { Circle().fill(look.textPrimary) } else { Circle().strokeBorder(look.hairline, lineWidth: 1.2) }
-                }
-                .padding(.trailing, 2)
-                .alignmentGuide(.firstTextBaseline) { $0[VerticalAlignment.center] + 6 }
-                .accessibilityHidden(true)
-            Text(text)
-                .font(look.font.body)
-                .foregroundStyle(look.textPrimary)
-                .fixedSize(horizontal: false, vertical: true)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(sent ? "Sent: \(text)" : text)
     }
 }
 

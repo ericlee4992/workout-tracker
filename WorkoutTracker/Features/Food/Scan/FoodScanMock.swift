@@ -87,7 +87,6 @@ final class FoodScanMock {
     var nextFailure: ScanMockFailure?
     var signedIn = true
     var cameraAllowed = true
-    var consentGiven = true
     /// The open camera's mode; captures pick it with `-scanFoodMockMode`.
     var initialMode: FoodScanMode = .meal
 
@@ -97,7 +96,6 @@ final class FoodScanMock {
         nextFailure = Self.argument("-scanFoodMockFail").flatMap(ScanMockFailure.init)
         signedIn = !args.contains("-scanFoodMockSignedOut")
         cameraAllowed = !args.contains("-scanFoodMockNoCamera")
-        consentGiven = !args.contains("-scanFoodMockConsent")
         if let mode = Self.argument("-scanFoodMockMode").flatMap(FoodScanMode.init) { initialMode = mode }
         // Outside the mock launch Today stays as it was: no sample scans.
         if Self.enabled { seed(Self.argument("-scanFoodMockSample") ?? "done") }

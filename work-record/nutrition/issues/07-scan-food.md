@@ -14,7 +14,7 @@ Point the camera at a meal or a nutrition label, check the estimate, and log it.
 ## Scope
 
 - **Camera** with modes **Scan food | Barcode | Food label** (Barcode is wired in N8). Photo library pick as well.
-- **Consent:** the first scan explains that the photo goes to the server for one estimate and is not kept there — a
+- ~~**Consent:**~~ *removed by the user 2026-11-10 (D83): no consent screen.* Was: the first scan explains that the photo goes to the server for one estimate and is not kept there — a
   logged meal photo stays on the phone with its entry (D82) — (D56's
   pattern); sign-in required for AI (as today).
 - **Meal photo → progress card → logged at once (D82, the user 2026-11-10, from a reference screenshot):** Today's
@@ -55,8 +55,8 @@ photo-entry option, how the next scan ends, signed in, camera allowed and photo 
   “…”" / "With AI · logs to <meal>" above the results; it is logged at once like a photo, its card on Today.
 - **Camera (full screen, always dark):** Cancel; the drawn feed; a frame per mode (meal: square; label: the tall crop
   box, outside dimmed harder — D53; barcode: a wide band, no shutter — N8); a hint line; three equal mode tiles
-  Scan food | Barcode | Food label; library · shutter · flash. Before it: Sign in (signed out) and the photo consent
-  (first scan, D56's pattern + D82's kept-photo line). Camera off: "Camera access is off", Choose a photo / Open Settings.
+  Scan food | Barcode | Food label; library · shutter · flash. Before it: Sign in (signed out). ~~The photo consent~~ — removed
+  (D83). Camera off: "Camera access is off", Choose a photo / Open Settings.
 - **Meal photo (D82):** the camera closes at once; Today's log shows the card (blurred photo, percent ring rising over
   ~5 s, "Analyzing image", skeleton lines, "We'll notify you when done!"), which becomes the entry in its meal. The fuel
   card and day rings count it. Failure cards in its place: No food found (Retake, Manual Add), Daily limit reached (Manual
@@ -83,9 +83,7 @@ stacks photo over text, rows stack, the percent is capped inside its ring).
 "We'll notify you when done!", "No food found" / "Try a closer photo, or add it by hand.", "Daily limit reached" /
 "30 meal photos a day. More at 7:00 PM.", "Couldn't analyze" / "No connection. Your photo is kept until you try
 again.", Retake / Try again, "Fit your meal in the frame" / "Point at a barcode" / "Fit the Nutrition Facts in the box",
-"Sign in to scan food with AI.", "Send food photos to OpenAI?" + the four facts ("One photo of your meal or label, for
-one estimate", "Not kept by Stacked’s server or OpenAI", "A meal photo stays on this iPhone with its entry", "Up to 30
-meal photos and 30 labels a day"), "Allow photos and continue", "Camera access is off" / "Allow the camera in
+"Sign in to scan food with AI.", "Camera access is off" / "Allow the camera in
 Settings, or choose a photo of your meal." / "Choose a photo", "Reading the label…", "From the label" / "Check the
 numbers, name it, log it.", "Save to My foods", "Estimate “…”" / "With AI · logs to Dinner", "Photo · 5 items",
 "Items", "Add item", "Portion", "Weight", "Remove Item", "Delete Photo and Items".
@@ -93,7 +91,8 @@ numbers, name it, log it.", "Save to My foods", "Estimate “…”" / "With AI 
 **Decided (the user, 2026-11-10 → D83):** (1) option **A**, one entry named for the meal; (2) the name from the server
 (add a meal name to the food-photo reply); (3) a description logged at once; (4) both camera entry points; (5) ask for
 the notification permission on the first scan; (6) "More at 7:00 PM" (local time of the UTC reset) is fine; (7) a library
-photo uses the time it was taken (its meal follows it); a camera photo uses now. Wiring drops option B and the mock
+photo uses the time it was taken (its meal follows it); a camera photo uses now; (8) **no consent screen** ("just get rid
+of the consent screen") — the camera opens straight after sign-in. Wiring drops option B and the mock
 switcher. Still for the user: the new strings above.
 
 Verification (mock): `build-for-testing` exit 0; `ScanFoodUITests` (2 tests, 2 workers) — results in the session's

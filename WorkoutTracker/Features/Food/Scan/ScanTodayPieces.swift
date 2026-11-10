@@ -367,7 +367,6 @@ struct ScanMockSwitcher: View {
             }
             Toggle("Signed in", isOn: $mock.signedIn)
             Toggle("Camera allowed", isOn: $mock.cameraAllowed)
-            Toggle("Photo consent given", isOn: $mock.consentGiven)
         } label: {
             Label("Mock", systemImage: "slider.horizontal.3")
                 .font(.system(.footnote, weight: .bold))
