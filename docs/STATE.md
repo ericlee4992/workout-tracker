@@ -14,8 +14,19 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Morning (2026-11-10), with the user:** N6 live check done (all six flows ok; costs in N6's ticket); **D79 amended**
   — training flows stay on GPT-5.6 Terra, food flows on GPT-6.1 Terra (Codex clear); **deploy everything at R**
   (option 2); **D82** — meal-photo scan: progress card in Today's log, logged at once, photo kept on the phone (N7).
-  Health prompts approved (N9b); Nutrition goals keeps recalculating on a visit. **Next: N9b** (Apple Health) on
-  `ericlee4992/nutrition-09b-health`, then N10, N7.
+  Health prompts approved (N9b); Nutrition goals keeps recalculating on a visit.
+  **NEXT (the user, 2026-11-10): N7 — Scan Food, in a new session.** Branch `ericlee4992/nutrition-07-scan-food` off
+  `main` in this worktree. Start with **mocks only** (sample data, nothing stored; screenshots light/default +
+  dark/AXL; SendUserFile + Preview) and wait for the user's approval before wiring: the camera with modes Scan food |
+  Barcode (N8) | Food label, photo-library pick; **D82's progress card** in Today's log (blurred photo, estimated %
+  ring, "Analyzing image", skeleton lines, "We'll notify you when done!") turning into the logged entry (photo
+  thumbnail, name, time, calories, macros); the items/edit screen; **both options** for a photo's entries (one entry
+  named for the meal vs one per item — open); the label → Selected food prefilled; Describe what you ate; failure
+  states. Read N7's ticket, D82, D78, D53 (label crop), D56 (consent pattern). Server food flows are merged
+  (`/v1/ai/food-photo|food-label|food-describe`, N6) but deploy at R — test against a stub in UI tests and, for a real
+  check, the local server (N6 ticket: "Live check" — the dev key file is copied into git-ignored `server/.dev.vars`
+  and deleted after; never printed). Then **N9b** (Apple Health; branch `ericlee4992/nutrition-09b-health` already
+  exists at `main`), then N10.
   **Earlier list for the morning (mostly answered above):** (1) N6 deploy gates — a real sample per flow (all six) on `gpt-6.1-terra` with costs,
   the privacy wording + `POLICY_EFFECTIVE_DATE`, then `migrate:remote` before `deploy` (N6 ticket; no local OpenAI key
   exists, so Claude could not run them); (2) new strings and own decisions listed in the N5 and N9 tickets; (3) N9: should
