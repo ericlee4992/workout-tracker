@@ -1,18 +1,17 @@
 # Current project state
 
-Updated **2026-11-09, session 2** (N1, N2, S6 merged, `main` `6e53446`; N3 in review; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-10, session 2** (N1, N2, S6, N3 merged, `main` `e471c11`; N4 next; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-09, session 2) — N3 in Codex review, round 1** on `ericlee4992/nutrition-03-goals`
-  (pushed, `b55a18c`). `main` = `6e53446` (N1, N2, S6 merged). N3 built: calculation, Personal details (stored in
-  `AppPreferences` + `BodyWeightEntry`; guard pin moved, D80), dated goals (`NutritionGoalStore`), Nutrition goals
-  page, onboarding goals sheet (the user chose "Both": this + N5's Today invitation), Ask AI prefill. Unit 1177/1177;
-  UI 37/37 + 38/38 + onboarding 2/2; captures checked — [N3 ticket](../work-record/nutrition/issues/03-goals.md).
-  Codex: `codex-review-n3-prompt.md` → `codex-review-n3.md` in `term_6ce8444b-…` (54% context used — open a fresh
-  Codex session for N4). **Next:** fix to clear; ask the user (extra strings listed in the ticket) and merge → N4 → N5.
-  Still to ask: the four N1 strings; N6's deploy + GPT-6.1 Terra switch. Auto-handoff off (the user).
+- **Resume here (2026-11-10, session 2) — N3 merged into `main` `e471c11`; N4 next.** N1, N2, S6, N3 merged (N3:
+  calculation, Personal details (D80), dated goals, Nutrition goals page, onboarding goals sheet; Codex clear round 3;
+  strings approved). **N4** on `ericlee4992/nutrition-04-manual-logging` off `main` —
+  [ticket](../work-record/nutrition/issues/04-manual-logging.md). N5 also gets Today's "Set your goals" invitation
+  (the user, "Both"). **Codex:** open a fresh session for N4 (`term_6ce8444b-…` is ~75% full). New rule (the user,
+  2026-11-09): 2 parallel UI workers, and never run builds/tests while Codex's run is going. Still to ask: the four
+  N1 strings; N6's deploy + GPT-6.1 Terra switch. Auto-handoff off (the user).
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
   deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,
@@ -21,7 +20,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
   `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Git:** `main` = `origin/main` = `6e53446` (S6). Each ticket: a new branch off `main` in this worktree (Claude's
+  **Git:** `main` = `origin/main` = `e471c11` (N3). Each ticket: a new branch off `main` in this worktree (Claude's
   own branches). The home checkout `…/orca/projects/Health App` is on clean `main`; fast-forward `main` there
   (`git -C "<home>" merge --ff-only <branch>` + push) — `main` cannot be checked out in this worktree.
   **Commands:** build `xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk
