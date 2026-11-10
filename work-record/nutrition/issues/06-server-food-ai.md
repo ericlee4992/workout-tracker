@@ -102,4 +102,7 @@ Every flow is well under the ~1 cent threshold — cheaper than GPT-5.6 Terra's 
 deploy:** the user's approval of the privacy wording and its effective date; then `migrate:remote` (0007) before
 `deploy`.
 
+**The user (2026-11-10): deploy everything at R (option 2)** — the model switch, the food flows, migration 0007 and the
+privacy page go live together with the release, not before; the live beta stays on GPT-5.6 Terra until then.
+
 ## Comments
