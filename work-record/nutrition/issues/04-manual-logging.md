@@ -128,4 +128,7 @@ looked at (`ui2shots/`). Not verified: Today totals and entry edit/delete (N5); 
 (skipped by the user's instruction). Known flaky: the idle-signal stall above. Scratchpad:
 `/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/d3ab4aaa-bbbb-43da-8c54-44b94b2255ab/scratchpad/`.
 
+**The user (2026-11-10, night):** the new strings — OK; **Delete Food… for My foods — yes** (build after Codex round 1,
+review it in round 2); moving entry edit/delete and Today's totals to N5 — yes.
+
 ## Comments

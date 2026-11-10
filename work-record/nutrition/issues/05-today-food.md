@@ -21,6 +21,8 @@ Today shows the day's food beside the training (S2).
   Burned = the day's workout calories known to the app now; Health's active energy joins in N9. **Burned never changes
   the goal or "left"** (D71).
 - **Today's log:** foods by meal (calories and macros) and the day's workouts with calories burned; tap to edit (N4).
+- **Moved here from N4 (the user, 2026-11-10):** edit a logged entry (servings, meal, numbers) and delete it, with
+  Undo; Today's totals update after a log / Undo (N4's acceptance 1).
 - **Log food pill:** black, above the tab bar, on Today only; opens Log Food (N4). *Built in N4 (the user, 2026-11-10).*
 - **No goals yet:** the fuel card asks to set goals (opens N3) and still shows Eaten.
 - AX sizes: rings become one row per day ("Pull Day, Indoor Run · 2,140 of 2,288 cal"); the fuel card stacks.

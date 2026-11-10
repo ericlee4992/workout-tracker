@@ -17,7 +17,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Quick Add merged into it**. **Mock v2 (D81) + Create/Edit/Delete meal approved; wired** (2026-11-10; unit plan 1213/0, Log food UI 8/8; entry
 edit/delete + Today totals moved to N5; see the ticket's Progress). **Now: Codex review round 1** in a fresh Orca
 terminal, brief `work-record/nutrition/codex-review-n4-prompt.md`, report `codex-review-n4.md`; run nothing meanwhile.
-Ask the user: the new strings and "Delete Food… for My foods?" (ticket) (see the ticket's Progress). **Next, in order:** (1) ~~rework the mock to D81~~ (My foods + Add food two-step form,
+The user (night of 11-10): strings OK, Delete Food… yes (after round 1), edit/delete entries + totals → N5.
+  **Overnight mandate (the user, 2026-11-10):** keep working through tickets while the user sleeps; decide minor things
+  and record them; stop only for answers that are really the user's. Plan: N4 (Codex to clear, merge) → N5 → N9 →
+  N10, each Codex-cleared and merged; N6 (deploy/model/cost), N7 (needs N6), N8 (USDA key) and R wait for the user.
+  New strings go into each ticket for the morning. (see the ticket's Progress). **Next, in order:** (1) ~~rework the mock to D81~~ (My foods + Add food two-step form,
   "Saved foods" tab, Manual Add with optional name, remove Quick Add), capture light/default + dark/AXL, send to the
   user (SendUserFile + Preview) and get approval of the new screens/wording; (2) wire it: `SavedFood` + a "made by the
   user" marker and optional servings per container (additive; guard pin moves, export v12 fields), recent/saved/My
