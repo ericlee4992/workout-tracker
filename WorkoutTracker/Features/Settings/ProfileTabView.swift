@@ -21,6 +21,8 @@ struct ProfileTabView: View {
 
     @State private var showSettings = false
     @State private var showNutritionGoals = false
+    @State private var showBodyWeight = false
+    @Query(sort: \BodyWeightEntry.measuredAt, order: .reverse) private var bodyWeights: [BodyWeightEntry]
     @State private var showPersonalDetails = false
     @State private var showExportBackup = false
     @State private var showMaxHeartRateSheet = false
@@ -80,6 +82,7 @@ struct ProfileTabView: View {
         .exercisesInlineTitle(title, visible: titleVisible)
         .navigationDestination(isPresented: $showSettings) { SettingsView(title: SettingsView.pageTitle) }
         .navigationDestination(isPresented: $showNutritionGoals) { NutritionGoalsView() }
+        .navigationDestination(isPresented: $showBodyWeight) { BodyWeightView() }
         .navigationDestination(isPresented: $showPersonalDetails) { PersonalDetailsView() }
         .navigationDestination(isPresented: $showExportBackup) { ExportBackupView() }
         .sheet(isPresented: $showMaxHeartRateSheet) { MaxHeartRateSheet() }
@@ -147,6 +150,11 @@ struct ProfileTabView: View {
                 // N3: the goal in force, or Not set until Personal details make one.
                 ProfileRow("Nutrition goals", symbol: "scope", value: nutritionGoalValue) { showNutritionGoals = true }
                     .accessibilityIdentifier("profileNutritionGoals")
+                // N9: the latest weight, or Not set.
+                ProfileRow("Body weight", symbol: "scalemass", value: bodyWeights.first.map(DetailFormat.weight) ?? "Not set") {
+                    showBodyWeight = true
+                }
+                .accessibilityIdentifier("profileBodyWeight")
                 let max = maxHeartRate
                 ProfileRow("Heart rate zones", symbol: "heart", value: max.map { "\($0) bpm" } ?? "Not set") {
                     showMaxHeartRateSheet = true
