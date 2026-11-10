@@ -172,6 +172,18 @@ struct HeightFieldsTests {
         #expect(parsed.0 == 71.5 && parsed.1 == .inches)
     }
 
+    /// codex-review-n3b #3: an accepted value near 12 inches reopens valid and unchanged.
+    @Test func inchesNearTwelveReopenValid() throws {
+        for value in [71.999, 71.9999, 59.9996, 72.0] {
+            let (cm, feet, inches) = HeightFields.fields(value: value, unit: .inches)
+            let parsed = try #require(HeightFields.parse(cm: cm, feet: feet, inches: inches, unit: .inches),
+                                      "\(value) reopens as \(feet) ft \(inches) in")
+            #expect(abs(parsed.0 - value) < 0.0011, "\(value) → \(parsed.0)")
+        }
+        #expect(HeightFields.fields(value: 71.999, unit: .inches).2 == "11.999", "shown to three decimals")
+        #expect(HeightFields.fields(value: 71.9999, unit: .inches).1 == "6", "carried into the feet")
+    }
+
     @Test func aNewHeightTakesTheAppsUnitsAndAnEditIsSaved() throws {
         #expect(HeightFields.unit(stored: nil, usCustomary: true) == .inches)
         #expect(HeightFields.unit(stored: nil, usCustomary: false) == .cm)

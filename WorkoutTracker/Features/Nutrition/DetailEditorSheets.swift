@@ -137,16 +137,20 @@ enum HeightFields {
     }
 
     static func text(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(0...2)).grouping(.never).locale(Locale(identifier: "en_US_POSIX")))
+        value.formatted(.number.precision(.fractionLength(0...3)).grouping(.never).locale(Locale(identifier: "en_US_POSIX")))
     }
 
-    /// The fields as shown for a stored value: (cm, feet, inches).
+    /// The fields as shown for a stored value: (cm, feet, inches). The inches are rounded to what is shown (three
+    /// decimals) before splitting, so a remainder that rounds to 12 carries into the feet and the fields always parse
+    /// back (codex-review-n3b #3: 71.999 9 in showed "5 ft 12 in", which Save then refused).
     static func fields(value: Double, unit: HeightUnit) -> (String, String, String) {
         switch unit {
         case .cm: return (text(value), "", "")
         case .inches:
-            let ft = (value / 12).rounded(.down)
-            return ("", text(ft), text(value - ft * 12))
+            let shown = (value * 1_000).rounded() / 1_000
+            let ft = (shown / 12).rounded(.down)
+            let inches = ((shown - ft * 12) * 1_000).rounded() / 1_000
+            return ("", text(ft), text(inches))
         }
     }
 

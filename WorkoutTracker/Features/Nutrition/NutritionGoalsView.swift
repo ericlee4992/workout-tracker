@@ -70,7 +70,7 @@ struct NutritionGoalsView: View {
         // Personal details may have changed since the goal was stored (e.g. a new day's age): bring it up to date.
         .task { refresh() }
         .onChange(of: hasDetails) { _, complete in
-            if complete, let pending { change { $0.activity = pending.activity; $0.goal = pending.goal } }
+            if complete, let pending { change { $0 = pending } }  // every held choice, Recalculate (no overrides) too
         }
         .navigationDestination(isPresented: $showDetails) { PersonalDetailsView() }
         .sheet(item: $editing) { number in editor(number) }

@@ -37,7 +37,20 @@ struct PersonalDetailsList: View {
     @State private var editing: Field?
     @State private var saveFailure: String?
 
-    enum Field: String, Identifiable { case weight, height, birthDate; var id: String { rawValue } }
+    /// What an open editor edits, fixed when it opens: a profile that loads meanwhile (the prefill) must not change the
+    /// unit under a draft (codex-review-n3b #2).
+    enum Field: Identifiable {
+        case weight(unit: WeightUnit, value: Double?)
+        case height(unit: HeightUnit, value: Double?)
+        case birthDate
+        var id: String {
+            switch self {
+            case .weight: "weight"
+            case .height: "height"
+            case .birthDate: "birthDate"
+            }
+        }
+    }
 
     private var preferences: AppPreferences? { AppPreferences.canonical(of: allPreferences) }
     private var usCustomary: Bool { AppUnitSystem.resolve(preference: preferences?.unitPreference) == .usCustomary }
@@ -45,10 +58,13 @@ struct PersonalDetailsList: View {
     var body: some View {
         LookList(separatorInset: 54) {
             ProfileRow("Weight", symbol: "scalemass", value: weights.first.map(DetailFormat.weight) ?? "Not set") {
-                editing = .weight
+                editing = .weight(unit: weights.first?.unit ?? (usCustomary ? .lb : .kg), value: weights.first?.value)
             }
             .accessibilityIdentifier("personalWeight")
-            ProfileRow("Height", symbol: "ruler", value: heightText) { editing = .height }
+            ProfileRow("Height", symbol: "ruler", value: heightText) {
+                editing = .height(unit: HeightFields.unit(stored: preferences?.heightUnit, usCustomary: usCustomary),
+                                  value: preferences?.heightValue)
+            }
                 .accessibilityIdentifier("personalHeight")
             ProfileRow("Date of birth", symbol: "calendar",
                        value: preferences?.birthDate?.formatted(date: .abbreviated, time: .omitted) ?? "Not set") {
@@ -91,15 +107,13 @@ struct PersonalDetailsList: View {
 
     @ViewBuilder private func editor(_ field: Field) -> some View {
         switch field {
-        case .weight:
-            let unit: WeightUnit = weights.first?.unit ?? (usCustomary ? .lb : .kg)
-            NumberEditorSheet(title: "Weight", unit: unit.rawValue, initial: weights.first?.value, fractionDigits: 1,
+        case .weight(let unit, let value):
+            NumberEditorSheet(title: "Weight", unit: unit.rawValue, initial: value, fractionDigits: 1,
                               range: unit == .lb ? 50...800 : 20...360, fieldID: "weightField") { value in
                 commit { context in context.insert(BodyWeightEntry(measuredAt: .now, value: value, unit: unit)) }
             }
-        case .height:
-            HeightEditorSheet(initialValue: preferences?.heightValue, initialUnit: preferences?.heightUnit,
-                              usCustomary: usCustomary) { value, unit in
+        case .height(let unit, let value):
+            HeightEditorSheet(initialValue: value, initialUnit: unit, usCustomary: usCustomary) { value, unit in
                 save { $0.setHeight(value: value, unit: unit) }
             }
         case .birthDate:

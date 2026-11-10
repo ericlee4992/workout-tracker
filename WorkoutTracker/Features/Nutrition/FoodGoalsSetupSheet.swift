@@ -77,7 +77,7 @@ struct FoodGoalsSetupSheet: View {
                 Button("OK", role: .cancel) {}
             } message: { Text(saveFailure ?? "") }
             .onChange(of: hasDetails) { _, complete in
-                if complete, let pending { change { $0.activity = pending.activity; $0.goal = pending.goal } }
+                if complete, let pending { change { $0 = pending } }  // every held choice, Recalculate (no overrides) too
             }
         }
     }

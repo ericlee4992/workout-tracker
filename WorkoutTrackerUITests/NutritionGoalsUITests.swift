@@ -124,6 +124,46 @@ final class NutritionGoalsUITests: XCTestCase {
         XCTAssertFalse(app.alerts.firstMatch.exists, "opening the page is not an error")
     }
 
+    /// codex-review-n3b #1: Recalculate pressed while the details are incomplete is kept, and applied once they are
+    /// complete again — the typed number does not come back.
+    func testRecalculateWhileDetailsAreIncompleteSticks() {
+        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestPersonalDetails"]
+        app.launch()
+        app.openProfile()
+        app.buttons["profileNutritionGoals"].tap()
+        let protein = app.buttons["nutritionGoals.Protein"]
+        XCTAssertTrue(protein.waitForExistence(timeout: 5))
+        protein.tap()
+        type("200", into: "goalProteinField")
+        save()
+        XCTAssertTrue(protein.label.contains("Typed by you"), protein.label)
+
+        app.openProfile()  // pops to the root
+        let zones = app.buttons["heartRateZonesSettings"]
+        XCTAssertTrue(zones.waitForExistence(timeout: 5))
+        zones.tap()
+        let useBirthDate = app.switches["useBirthDate"]
+        XCTAssertTrue(useBirthDate.waitForExistence(timeout: 5))
+        useBirthDate.switches.firstMatch.exists ? useBirthDate.switches.firstMatch.tap() : useBirthDate.tap()
+        app.buttons["saveMaxHeartRate"].tap()
+        XCTAssertTrue(app.buttons["saveMaxHeartRate"].waitForNonExistence(timeout: 5))
+
+        app.buttons["profileNutritionGoals"].tap()
+        let recalculate = app.buttons["nutritionGoalsRecalculate"]
+        XCTAssertTrue(recalculate.waitForExistence(timeout: 5), "the typed protein still offers Recalculate")
+        recalculate.tap()
+        XCTAssertTrue(recalculate.waitForNonExistence(timeout: 5))
+
+        app.buttons["nutritionGoalsDetails"].tap()
+        tapRow("personalBirthDate")
+        XCTAssertTrue(any("birthDatePicker").waitForExistence(timeout: 5))
+        save()  // the picker opens on 30 years ago: the details are complete again
+        app.navigationBars.buttons.element(boundBy: 0).tap()  // back to Nutrition goals
+        XCTAssertTrue(protein.waitForExistence(timeout: 5))
+        XCTAssertFalse(protein.label.contains("Typed by you"), "Recalculate was kept: \(protein.label)")
+        XCTAssertFalse(recalculate.exists)
+    }
+
     // MARK: Onboarding step (new installs)
 
     /// Skip on the Welcome page → the goals sheet; an activity chosen before the details is kept for the first goal.

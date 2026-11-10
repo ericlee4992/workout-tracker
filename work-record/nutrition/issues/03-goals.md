@@ -126,6 +126,17 @@ NutritionGoals + HeartRate + warm-up **14/14** (`n3-r2-ui`), then after the two-
 (full swipes down closed the sheet at AXL) NutritionGoals + warm-up **9/9** (`n3-r2-goals`); captures `n3-caps5/`,
 `n3-caps6/` looked at.
 
+**Codex round 2** ([report](../codex-review-n3b.md), not clear: Spec 2 × P2, Standards P3) — fixed:
+1. Recalculate pressed while details are incomplete was dropped when they became complete: both views now replay the
+   whole held `Choices` (overrides too). UI regression `testRecalculateWhileDetailsAreIncompleteSticks`.
+2. A profile loading while the weight/height editor is open could change the draft's unit: the editor's unit and
+   starting value are fixed when it opens (`PersonalDetailsList.Field` carries them). Codex's probe-patch fixture
+   is the regression (structural fix; no app hook added for it).
+3. Heights near 12 inches: `HeightFields.fields` rounds to the shown three decimals and carries into the feet, so an
+   accepted value reopens valid. `HeightFieldsTests.inchesNearTwelveReopenValid`.
+**Evidence:** store + height unit tests 12/12 (`n3-r3-unit`); NutritionGoalsUITests + warm-up, 2 workers, **10/10**
+(`n3-r3-ui`).
+
 **First-time goal setup (the user, 2026-11-09: "Both"):** the onboarding "Food goals" step stays in N3 (new
 installs: after Welcome, skippable) **and** N5 adds a "Set your goals" invitation in Today's food area when there is
 no goal (reaches the existing testers, who never see Welcome again). The onboarding step's screen and strings are
