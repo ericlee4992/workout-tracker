@@ -6,7 +6,7 @@
 /** The day the policy went live (the user, 2026-10-15). Change it with the text; `npm run deploy` refuses a placeholder. */
 // Nutrition N6: the food and Apple Health wording below is a DRAFT for the user's approval; `npm run deploy` refuses
 // while this reads "[…" (predeploy), so it cannot go live with an old date or unapproved text.
-export const POLICY_EFFECTIVE_DATE = "[the day the nutrition release goes live]";
+export const POLICY_EFFECTIVE_DATE = "[effective date]";
 export const DEVELOPER_NAME = "Eunchan Lee";
 export const SUPPORT_EMAIL = "ericlee4992@gmail.com";
 

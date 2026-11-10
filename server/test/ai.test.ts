@@ -32,7 +32,9 @@ const replies: Record<string, unknown> = {
 const validReply = (body: Record<string, unknown>) =>
   openAIReply(replies[((body.text as any).format as any).name as string]);
 
-const inputs: Record<Flow, Record<string, unknown>> = {
+// The training flows; the food flows have their own file (food-ai.test.ts).
+type TrainingFlow = "scan-machine" | "routine-week" | "model-exercises";
+const inputs: Record<TrainingFlow, Record<string, unknown>> = {
   "scan-machine": { exercises: [{ id: A, name: "Seated Chest Press", loadType: "weighted" }], jpeg: JPEG_B64 },
   "routine-week": {
     goals: "Get stronger", experience: "Beginner", days: 3, minutes: 45, heightCm: 180,
@@ -45,7 +47,7 @@ const inputs: Record<Flow, Record<string, unknown>> = {
   },
 };
 
-const ai = (flow: string, body: unknown = inputs[flow as Flow], token = session) =>
+const ai = (flow: string, body: unknown = inputs[flow as TrainingFlow], token = session) =>
   h.call("POST", `/v1/ai/${flow}`, { token, body });
 const errorOf = async (r: Response) => ((await r.json()) as { error: string }).error;
 const usageRow = (flow: Flow) => env.DB.prepare("SELECT successes, attempts, in_flight FROM ai_usage WHERE flow = ?")
@@ -102,7 +104,7 @@ describe("the server owns each flow's request", () => {
 });
 
 describe("input checks (refused before any slot or OpenAI call)", () => {
-  const cases: [string, Flow, (i: Record<string, unknown>) => unknown][] = [
+  const cases: [string, TrainingFlow, (i: Record<string, unknown>) => unknown][] = [
     ["a non-UUID exercise id", "scan-machine", (i) => ({ ...i, exercises: [{ id: "1", name: "x", loadType: "weighted" }] })],
     ["a JPEG that is not one", "scan-machine", (i) => ({ ...i, jpeg: btoa("<html>") })],
     ["no JPEG", "scan-machine", (i) => ({ ...i, jpeg: undefined })],

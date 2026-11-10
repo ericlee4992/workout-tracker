@@ -62,6 +62,8 @@ off `main` `c03bd12`).**
   approves and the date is set.
 - **Tests** `server/test/food-ai.test.ts` (request shapes, input checks, reply bounds, limits, migration); the usage
   test lists six flows.
+- **Evidence:** rebased on `main` `46c9e92` (N5); `tsc --noEmit` exit 0; `vitest run` **7 files, 250/250**; script
+  tests pass; `scripts/check-secrets.sh` clean. Privacy placeholder uses the tests' "[effective date]" form.
 - **Not done — needs the user (the morning):** the cost check and each flow against a real sample need a live OpenAI
   key — the only one is a Cloudflare secret, and no local `.dev.vars` key exists (Claude did not search the Mac for
   keys); the deploy (it switches the live beta's three flows to the new model) is held until a real request per flow
