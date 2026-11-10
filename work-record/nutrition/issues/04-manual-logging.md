@@ -53,4 +53,20 @@ Food screens are **mocked with sample data and shown first**, then wired.
 Selected food, Manual Add, Quick Add; `LogFoodUITests`; captures in the old session's scratchpad — re-run the test to
 regenerate). Rework to D81 next (see STATE → Next), then show the user, then wire.
 
+**Mock v2 (2026-11-10, D81) — sent to the user for approval:** tabs All / My foods / My meals / Saved foods
+(chosen tab scrolls into view at AXL); All = Recently logged + Manual Add; My foods = the user's foods + **Add food**
+(two steps: Brand (Optional), Description, Serving size, Servings per container (Optional) → **Next** → "Nutrition",
+Per serving: Calories, Protein, Carbs, Total fat, Saturated fat; then Fiber, Sugar, Sodium → **Save food**); Saved
+foods = bookmarks; Selected food: bookmark in the bar (save / remove), **Edit** on one of My foods (the Add food form
+filled in), "Servings per container" shown when set; Manual Add = Name (Optional), Serving (Optional), calories and
+macros, no "Save to My foods" (creates no food); Quick Add removed. My meals / Saved foods tabs have no bottom command.
+Empty states (mock switch `-logFoodMockEmpty`): My foods "No foods yet" / "Add a food once, then log it in one tap." /
+Add food; Saved foods "No saved foods" / "Tap the bookmark on any food to keep it here."
+New strings for the user's OK: the tab "Saved foods", Add food / Next / Nutrition / Per serving / Save food, field
+labels and prompts above, Edit food, the two empty states, "Save to Saved foods" / "Remove from Saved foods"
+(VoiceOver labels). Step 2 offers only the facts `SavedFood` already stores (N2); more (e.g. cholesterol, potassium)
+would need fields — ask. Serving size is one text field in the mock; wiring parses it into `(value, unit)`.
+Verification (mock): `build-for-testing` exit 0; `LogFoodUITests` 4/4 passed (2 workers, `n4b.xcresult` in the
+session scratchpad); captures light/Default + dark/AXL looked at. Not verified: anything stored (nothing is wired).
+
 ## Comments

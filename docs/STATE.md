@@ -14,7 +14,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   (two-step form like the user's reference: brand (optional), description, serving size, servings per container
   (optional) → Next → calories, protein, carbs, total fat, saturated fat, … → Save food); **Saved foods** = bookmarks
   from anywhere (incl. My foods); **Manual Add** (All tab) logs a one-off entry, creates no food, name optional —
-  **Quick Add merged into it**. **Next, in order:** (1) rework the mock to D81 (My foods + Add food two-step form,
+  **Quick Add merged into it**. **Mock v2 (D81) done and sent for approval** (see the ticket's Progress). **Next, in order:** (1) ~~rework the mock to D81~~ (My foods + Add food two-step form,
   "Saved foods" tab, Manual Add with optional name, remove Quick Add), capture light/default + dark/AXL, send to the
   user (SendUserFile + Preview) and get approval of the new screens/wording; (2) wire it: `SavedFood` + a "made by the
   user" marker and optional servings per container (additive; guard pin moves, export v12 fields), recent/saved/My

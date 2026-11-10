@@ -1,30 +1,56 @@
 import SwiftUI
 
 /// Nutrition N4 — Log Food, opened by Today's "Log food" pill. **MOCK for the user's review** (sample foods, nothing
-/// stored). Laid out like the approved prototype (`SoftLogFoodScreen`): the meal, tabs (All / My foods / My meals /
-/// Saved), a search over the user's own foods, "Recently logged" with a one-tap + (one serving, with Undo), and Manual
-/// Add / Quick Add at the bottom (Voice Log is out of scope).
+/// stored), in the user's structure (D81): the meal, tabs All / My foods / My meals / Saved foods, a search over the
+/// user's own foods, and a one-tap + (one serving, with Undo) on every food row. All ends with **Manual Add** (a one-off
+/// entry, name optional — Quick Add merged into it); My foods ends with **Add food** (the two-step form that creates
+/// one of My foods). Voice Log is out of scope; Scan joins in N7.
 ///
-/// The eye lands on the recent list (what most logs are); the + on each row is the action, quiet until tapped.
+/// The eye lands on the list (what most logs are); the + on each row is the action, quiet until tapped.
 struct LogFoodView: View {
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var meal = MealSlot.forTime(.now)
-    @State private var tab = 0
+    @State private var tab = Tab.all
     @State private var search = ""
     @State private var added: Set<String> = []
     @State private var undo: MockFood?
-    @State private var addMode: AddMode?
+    @State private var route: Route?
     @State private var selected: MockFood?
 
-    enum AddMode: Identifiable { case manual, quick; var id: Self { self } }
+    enum Tab: CaseIterable, Identifiable {
+        case all, myFoods, myMeals, saved
+        var id: Self { self }
+        var title: String {
+            switch self {
+            case .all: "All"
+            case .myFoods: "My foods"
+            case .myMeals: "My meals"
+            case .saved: "Saved foods"
+            }
+        }
+    }
 
-    private let tabs = ["All", "My foods", "My meals", "Saved"]
+    enum Route: Identifiable { case manualAdd, addFood; var id: Self { self } }
 
     private var foods: [MockFood] {
-        let base = tab == 3 ? MockFood.recent.filter(\.saved) : MockFood.recent
+        let base = switch tab {
+        case .all, .myMeals: MockFood.recentFoods
+        case .myFoods: MockFood.myFoods
+        case .saved: MockFood.savedFoods
+        }
         guard !search.isEmpty else { return base }
         return base.filter { $0.name.localizedCaseInsensitiveContains(search) }
+    }
+
+    /// The tab's own command at the bottom: Manual Add on All, Add food on My foods (D81); none on the others. An empty
+    /// My foods carries Add food in its empty state instead.
+    private var command: Route? {
+        switch tab {
+        case .all: .manualAdd
+        case .myFoods: MockFood.myFoods.isEmpty ? nil : .addFood
+        case .myMeals, .saved: nil
+        }
     }
 
     var body: some View {
@@ -35,22 +61,41 @@ struct LogFoodView: View {
                     mealChips
                     tabBar
                     searchField
-                    if tab == 2 { myMeals } else { recent }
-                    // At accessibility sizes the two stacked buttons scroll with the list: pinned, they left room for one
-                    // food row.
-                    if typeSize.isAccessibilitySize { bottomButtons.padding(.horizontal, -look.space.margin) }
+                    content
+                    // At accessibility sizes the command scrolls with the list: pinned, it left room for one food row.
+                    if typeSize.isAccessibilitySize, let command { commandButton(command).padding(.horizontal, -look.space.margin) }
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
-            if !typeSize.isAccessibilitySize { bottomButtons }
+            if !typeSize.isAccessibilitySize, let command { commandButton(command) }
         }
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) { if let undo { undoToast(undo) } }
         .navigationDestination(item: $selected) { SelectedFoodView(food: $0, meal: meal) }
-        .navigationDestination(item: $addMode) { ManualAddView(quick: $0 == .quick, meal: meal) }
+        .navigationDestination(item: $route) { route in
+            switch route {
+            case .manualAdd: ManualAddView(meal: meal)
+            case .addFood: AddFoodView()
+            }
+        }
+    }
+
+    @ViewBuilder private var content: some View {
+        switch tab {
+        case .myMeals: myMeals
+        case .myFoods where foods.isEmpty && search.isEmpty:
+            EmptyStateView(symbol: "fork.knife", title: "No foods yet",
+                           message: "Add a food once, then log it in one tap.", actionTitle: "Add food") {
+                route = .addFood
+            }
+        case .saved where foods.isEmpty && search.isEmpty:
+            EmptyStateView(symbol: "bookmark", title: "No saved foods",
+                           message: "Tap the bookmark on any food to keep it here.")
+        default: foodList
+        }
     }
 
     private var mealChips: some View {
@@ -63,25 +108,31 @@ struct LogFoodView: View {
     }
 
     private var tabBar: some View {
+        // Scrolls at accessibility sizes, where "Saved foods" lies past the edge; the chosen tab is scrolled into view.
+        ScrollViewReader { proxy in
         ScrollView(.horizontal) {
             HStack(spacing: 22) {
-                ForEach(tabs.indices, id: \.self) { index in
-                    Button { withAnimation(.snappy) { tab = index } } label: {
+                ForEach(Tab.allCases) { item in
+                    Button { withAnimation(.snappy) { tab = item } } label: {
                         VStack(spacing: 8) {
-                            Text(tabs[index])
-                                .font(.system(.body, weight: tab == index ? .semibold : .medium))
-                                .foregroundStyle(tab == index ? look.textPrimary : look.textSecondary)
-                            Capsule().fill(tab == index ? look.textPrimary : .clear).frame(height: 2)
+                            Text(item.title)
+                                .font(.system(.body, weight: tab == item ? .semibold : .medium))
+                                .foregroundStyle(tab == item ? look.textPrimary : look.textSecondary)
+                            Capsule().fill(tab == item ? look.textPrimary : .clear).frame(height: 2)
                         }
                         .fixedSize()
                         .frame(minHeight: 44)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityAddTraits(tab == index ? .isSelected : [])
+                    .accessibilityAddTraits(tab == item ? .isSelected : [])
+                    .accessibilityIdentifier("logFoodTab.\(item.title)")
+                    .id(item)
                 }
             }
         }
         .scrollIndicators(.hidden)
+        .onChange(of: tab) { _, item in withAnimation(.snappy) { proxy.scrollTo(item, anchor: .center) } }
+        }
     }
 
     private var searchField: some View {
@@ -94,9 +145,9 @@ struct LogFoodView: View {
         .lookSurface(.panel)
     }
 
-    private var recent: some View {
+    private var foodList: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader(tab == 3 ? "Saved" : tab == 1 ? "My foods" : "Recently logged")
+            SectionHeader(tab == .all ? "Recently logged" : tab.title)
             LookList(separatorInset: 16) {
                 ForEach(foods) { food in foodRow(food) }
             }
@@ -108,7 +159,8 @@ struct LogFoodView: View {
             Button { selected = food } label: {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(food.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
-                    Text("\(food.calories.formatted()) cal · \(food.serving)")
+                    Text([food.brand, "\(food.calories.formatted()) cal", food.serving].compactMap(\.self)
+                        .joined(separator: " · "))
                         .font(look.font.footnote)
                         .foregroundStyle(look.textSecondary)
                 }
@@ -156,18 +208,18 @@ struct LogFoodView: View {
         }
     }
 
-    private var bottomButtons: some View {
-        // Stacked at accessibility sizes: side by side the labels broke mid-word ("Manu-al Add").
-        let layout = typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 12))
-        return layout {
-            Button { addMode = .manual } label: { Label("Manual Add", systemImage: "square.and.pencil") }
-                .buttonStyle(.lookSecondary)
-                .accessibilityIdentifier("logFoodManualAdd")
-            Button { addMode = .quick } label: { Label("Quick Add", systemImage: "bolt") }
-                .buttonStyle(.lookSecondary)
-                .accessibilityIdentifier("logFoodQuickAdd")
+    private func commandButton(_ command: Route) -> some View {
+        Group {
+            switch command {
+            case .manualAdd:
+                Button { route = .manualAdd } label: { Label("Manual Add", systemImage: "square.and.pencil") }
+                    .accessibilityIdentifier("logFoodManualAdd")
+            case .addFood:
+                Button { route = .addFood } label: { Label("Add food", systemImage: "plus") }
+                    .accessibilityIdentifier("logFoodAddFood")
+            }
         }
+        .buttonStyle(.lookSecondary)
         .padding(.horizontal, look.space.margin)
         .padding(.vertical, 10)
     }
@@ -192,7 +244,7 @@ struct LogFoodView: View {
         .frame(minHeight: 52)
         .background(look.action, in: Capsule())
         .padding(.horizontal, look.space.margin)
-        .padding(.bottom, 76)
+        .padding(.bottom, command == nil || typeSize.isAccessibilitySize ? 16 : 76)
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }

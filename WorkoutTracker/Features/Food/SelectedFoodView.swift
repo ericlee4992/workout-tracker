@@ -2,15 +2,23 @@ import SwiftUI
 
 /// Nutrition N4 — a food chosen from Log Food: how much, its numbers, Log. **MOCK for the user's review.**
 /// The eye lands on the calories for the chosen amount (the hero); servings is the control above it; Log is the one
-/// primary command at the bottom.
+/// primary command at the bottom. The bookmark in the bar saves the food to Saved foods from anywhere (D81); one of My
+/// foods also offers Edit (the Add food form, filled in).
 struct SelectedFoodView: View {
     var food: MockFood
     var meal: MealSlot
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @State private var servings = 1.0
-    @State private var saveToMyFoods = false
+    @State private var saved: Bool
     @State private var showsOther = false
+    @State private var editing = false
+
+    init(food: MockFood, meal: MealSlot) {
+        self.food = food
+        self.meal = meal
+        _saved = State(initialValue: food.saved)
+    }
 
     private var eaten: Macros { food.macros.scaled(by: servings) }
 
@@ -22,11 +30,6 @@ struct SelectedFoodView: View {
                     amount
                     numbers
                     other
-                    LookList {
-                        LookRow("Save to My foods", symbol: "bookmark", showsChevron: false) {
-                            Toggle("Save to My foods", isOn: $saveToMyFoods).labelsHidden().toggleStyle(.settings)
-                        }
-                    }
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.bottom, 24)
@@ -39,6 +42,26 @@ struct SelectedFoodView: View {
         }
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if food.mine {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") { editing = true }
+                        .font(.system(.body, weight: .semibold))
+                        .accessibilityIdentifier("selectedFoodEdit")
+                }
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { withAnimation(.snappy) { saved.toggle() } } label: {
+                    Image(systemName: saved ? "bookmark.fill" : "bookmark")
+                        .font(.system(.body, weight: .semibold))
+                        .foregroundStyle(saved ? look.action : look.textPrimary)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .accessibilityLabel(saved ? "Remove from Saved foods" : "Save to Saved foods")
+                .accessibilityIdentifier("selectedFoodSave")
+            }
+        }
+        .navigationDestination(isPresented: $editing) { AddFoodView(editing: food) }
     }
 
     private var amount: some View {
@@ -56,6 +79,11 @@ struct SelectedFoodView: View {
                 LookRow("Servings", symbol: "number", showsChevron: false) { stepper }
             }
             ProfileRow("Serving", symbol: "scalemass", value: food.serving) {}
+            if let perContainer = food.servingsPerContainer {
+                // A fact of the food, not a choice: no chevron.
+                LookRow("Servings per container", symbol: "shippingbox", value: perContainer.formatted(),
+                        showsChevron: false)
+            }
         }
     }
 
@@ -114,10 +142,10 @@ struct SelectedFoodView: View {
     private var other: some View {
         DisclosureGroup("Other nutrition facts", isExpanded: $showsOther) {
             VStack(spacing: 8) {
-                fact("Fiber", "0 g")
-                fact("Sugar", "6 g")
-                fact("Saturated fat", "0.3 g")
-                fact("Sodium", "65 mg")
+                fact("Saturated fat", food.saturatedFat, unit: "g")
+                fact("Fiber", food.fiber, unit: "g")
+                fact("Sugar", food.sugar, unit: "g")
+                fact("Sodium", food.sodium, unit: "mg")
             }
             .padding(.top, 8)
         }
@@ -127,20 +155,22 @@ struct SelectedFoodView: View {
         .lookSurface(.panel)
     }
 
-    private func fact(_ name: String, _ value: String) -> some View {
+    private func fact(_ name: String, _ perServing: Double?, unit: String) -> some View {
         HStack {
             Text(name).foregroundStyle(look.textSecondary)
             Spacer()
-            Text(value).monospacedDigit().foregroundStyle(look.textPrimary)
+            Text(perServing.map { "\(($0 * servings).formatted(.number.precision(.fractionLength(0...1)))) \(unit)" } ?? "–")
+                .monospacedDigit()
+                .foregroundStyle(look.textPrimary)
         }
         .font(look.font.subhead)
     }
 }
 
-/// Nutrition N4 — Manual Add (a named food) and Quick Add (calories, optional macros, no name). **MOCK.** The macros'
-/// own calories are shown beside the total when they disagree — shown, never blocked (the ticket).
+/// Nutrition N4 — Manual Add (D81): logs a one-off entry and creates no food. The name and serving are optional, so it
+/// is also the quick add (Quick Add merged into it): calories alone are enough. **MOCK.** The macros' own calories are
+/// shown when they disagree with the total — shown, never blocked (the ticket).
 struct ManualAddView: View {
-    var quick: Bool
     var meal: MealSlot
     @Environment(\.look) private var look
     @State private var name = ""
@@ -149,43 +179,17 @@ struct ManualAddView: View {
     @State private var protein = "30"
     @State private var carbs = "40"
     @State private var fat = "12"
-    @State private var saveToMyFoods = true
-
-    private var macroCalories: Double {
-        NutritionMath.macroCalories(proteinGrams: Double(protein) ?? 0, carbsGrams: Double(carbs) ?? 0,
-                                    fatGrams: Double(fat) ?? 0)
-    }
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
-                    LookNavTitle(quick ? "Quick Add" : "Manual Add")
-                    if !quick {
-                        LookList(separatorInset: 16) {
-                            field("Name", text: $name, prompt: "e.g. Chicken burrito")
-                            field("Serving", text: $serving, prompt: "e.g. 1 bowl")
-                        }
+                    LookNavTitle("Manual Add")
+                    LookList(separatorInset: 16) {
+                        FoodFormField("Name", text: $name, prompt: "Optional")
+                        FoodFormField("Serving", text: $serving, prompt: "Optional")
                     }
-                    VStack(alignment: .leading, spacing: look.space.header) {
-                        LookList(separatorInset: 16) {
-                            field("Calories", text: $calories, prompt: "0", unit: "cal", number: true)
-                            field("Protein", text: $protein, prompt: "Optional", unit: "g", number: true)
-                            field("Carbs", text: $carbs, prompt: "Optional", unit: "g", number: true)
-                            field("Fat", text: $fat, prompt: "Optional", unit: "g", number: true)
-                        }
-                        if let total = Double(calories), abs(macroCalories - total) > max(10, total * 0.1) {
-                            SettingsNotice(symbol: "info.circle",
-                                           text: "Protein, carbs and fat add up to \(macroCalories.formatted(.number.precision(.fractionLength(0)))) cal.")
-                        }
-                    }
-                    if !quick {
-                        LookList {
-                            LookRow("Save to My foods", symbol: "bookmark", showsChevron: false) {
-                                Toggle("Save to My foods", isOn: $saveToMyFoods).labelsHidden().toggleStyle(.settings)
-                            }
-                        }
-                    }
+                    MacroFields(calories: $calories, protein: $protein, carbs: $carbs, fat: $fat)
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.bottom, 24)
@@ -194,22 +198,88 @@ struct ManualAddView: View {
             PrimaryButton("Log to \(meal.label)") {}
                 .padding(.horizontal, look.space.margin)
                 .padding(.vertical, 10)
+                .accessibilityIdentifier("manualAddLog")
         }
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
     }
+}
 
-    private func field(_ title: String, text: Binding<String>, prompt: String, unit: String? = nil,
-                       number: Bool = false) -> some View {
-        HStack(spacing: 10) {
+/// Calories, protein, carbs and fat, with the macros' own calories shown under them when they disagree with the total
+/// by more than 10 % (and 10 cal) — shown, never blocked. Shared by Manual Add and Add food's step 2.
+struct MacroFields<Extra: View>: View {
+    @Binding var calories: String
+    @Binding var protein: String
+    @Binding var carbs: String
+    @Binding var fat: String
+    var fatTitle = "Fat"
+    @ViewBuilder var extra: () -> Extra
+    @Environment(\.look) private var look
+
+    private var macroCalories: Double {
+        NutritionMath.macroCalories(proteinGrams: Double(protein) ?? 0, carbsGrams: Double(carbs) ?? 0,
+                                    fatGrams: Double(fat) ?? 0)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: look.space.header) {
+            LookList(separatorInset: 16) {
+                FoodFormField("Calories", text: $calories, prompt: "0", unit: "cal", number: true)
+                FoodFormField("Protein", text: $protein, prompt: "Optional", unit: "g", number: true)
+                FoodFormField("Carbs", text: $carbs, prompt: "Optional", unit: "g", number: true)
+                FoodFormField(fatTitle, text: $fat, prompt: "Optional", unit: "g", number: true)
+                extra()
+            }
+            if let total = Double(calories), abs(macroCalories - total) > max(10, total * 0.1) {
+                SettingsNotice(symbol: "info.circle",
+                               text: "Protein, carbs and fat add up to \(macroCalories.formatted(.number.precision(.fractionLength(0)))) cal.")
+            }
+        }
+    }
+}
+
+extension MacroFields where Extra == EmptyView {
+    init(calories: Binding<String>, protein: Binding<String>, carbs: Binding<String>, fat: Binding<String>) {
+        self.init(calories: calories, protein: protein, carbs: carbs, fat: fat, extra: { EmptyView() })
+    }
+}
+
+/// One labelled entry row of the food forms: the title leading, the value trailing with its unit. At accessibility
+/// sizes the value goes under the title, so neither breaks mid-word.
+struct FoodFormField: View {
+    var title: String
+    @Binding var text: String
+    var prompt: String
+    var unit: String?
+    var number = false
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    init(_ title: String, text: Binding<String>, prompt: String, unit: String? = nil, number: Bool = false) {
+        self.title = title
+        _text = text
+        self.prompt = prompt
+        self.unit = unit
+        self.number = number
+    }
+
+    var body: some View {
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(spacing: 10))
+        layout {
             Text(title).font(.system(.body, weight: .medium)).foregroundStyle(look.textPrimary)
-            TextField(prompt, text: text)
-                .multilineTextAlignment(.trailing)
-                .keyboardType(number ? .decimalPad : .default)
-                .foregroundStyle(look.textPrimary)
-            if let unit { Text(unit).foregroundStyle(look.textSecondary) }
+            HStack(spacing: 6) {
+                TextField(prompt, text: $text)
+                    .multilineTextAlignment(typeSize.isAccessibilitySize ? .leading : .trailing)
+                    .keyboardType(number ? .decimalPad : .default)
+                    .foregroundStyle(look.textPrimary)
+                    .accessibilityLabel(title)
+                if let unit { Text(unit).foregroundStyle(look.textSecondary) }
+            }
         }
         .padding(.horizontal, 16)
+        .padding(.vertical, typeSize.isAccessibilitySize ? 10 : 0)
         .frame(minHeight: 50)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }

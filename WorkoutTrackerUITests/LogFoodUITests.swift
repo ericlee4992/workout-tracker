@@ -1,7 +1,8 @@
 import XCTest
 
-/// Nutrition N4: Log Food (Today's pill → recent foods with a one-tap + and Undo, My meals, a selected food, Manual
-/// Add, Quick Add) on record in light at Default and dark at AccessibilityL.
+/// Nutrition N4: Log Food in the user's structure (D81) — Today's pill → All (recent foods with a one-tap + and Undo,
+/// Manual Add), My foods (Add food, two steps), My meals, Saved foods, a selected food with its bookmark, Manual Add —
+/// on record in light at Default and dark at AccessibilityL, plus the empty My foods / Saved foods.
 final class LogFoodUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -11,58 +12,103 @@ final class LogFoodUITests: XCTestCase {
     }
 
     private func shoot(_ name: String) {
+        Thread.sleep(forTimeInterval: 0.7)
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = name
         shot.lifetime = .keepAlways
         add(shot)
     }
 
-    private func any(_ id: String) -> XCUIElement {
-        app.descendants(matching: .any).matching(identifier: id).firstMatch
+    private func back() { app.navigationBars.buttons.element(boundBy: 0).tap() }
+
+    private func tab(_ title: String) { app.buttons["logFoodTab.\(title)"].firstMatch.tap() }
+
+    /// At AccessibilityL the bottom command scrolls with the list: one more shot, scrolled, so it is on record.
+    private func shootScrolled(_ name: String, large: Bool) {
+        shoot(name)
+        guard large else { return }
+        app.swipeUp()
+        shoot("\(name)-2")
+        app.swipeDown()
+        app.swipeDown()
     }
 
-    private func back() { app.navigationBars.buttons.element(boundBy: 0).tap() }
+    private func launch(appearance: String, large: Bool, extra: [String] = []) {
+        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-appearance", appearance] + extra
+        if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
+        app.launch()
+    }
 
     func testCaptureLightDefault() { capture(appearance: "light", large: false) }
     func testCaptureDarkAccessibility() { capture(appearance: "dark", large: true) }
+    func testCaptureEmptyLightDefault() { captureEmpty(appearance: "light", large: false) }
+    func testCaptureEmptyDarkAccessibility() { captureEmpty(appearance: "dark", large: true) }
 
     private func capture(appearance: String, large: Bool) {
         let tag = "\(appearance)-\(large ? "axl" : "default")"
-        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-appearance", appearance]
-        if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
-        app.launch()
+        launch(appearance: appearance, large: large)
         let pill = app.buttons["logFoodPill"]
         XCTAssertTrue(pill.waitForExistence(timeout: 15))
-        Thread.sleep(forTimeInterval: 0.8)
         shoot("n4-today-\(tag)")
         pill.tap()
+
+        // All: recently logged, + and Undo, Manual Add.
         let add = app.buttons["logFoodAdd.Greek yogurt"]
         XCTAssertTrue(add.waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("n4-logfood-\(tag)-1")
+        shootScrolled("n4-all-\(tag)", large: large)
         add.tap()
         XCTAssertTrue(app.buttons["logFoodUndo"].waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("n4-logfood-added-\(tag)")
+        shoot("n4-all-added-\(tag)")
         app.buttons["logFoodUndo"].tap()
-        if large { app.swipeUp(); Thread.sleep(forTimeInterval: 0.6); shoot("n4-logfood-\(tag)-2"); app.swipeDown() }
-        app.buttons["My meals"].firstMatch.tap()
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("n4-mymeals-\(tag)")
-        app.buttons["All"].firstMatch.tap()
 
-        app.buttons["logFoodRow.Greek yogurt"].tap()
-        XCTAssertTrue(app.buttons["selectedFoodLog"].waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("n4-selected-\(tag)")
-        back()
-
+        // Manual Add (name optional; Quick Add merged).
+        if large { app.swipeUp() }
         app.buttons["logFoodManualAdd"].tap()
-        Thread.sleep(forTimeInterval: 0.8)
-        shoot("n4-manual-\(tag)")
+        XCTAssertTrue(app.buttons["manualAddLog"].waitForExistence(timeout: 5))
+        shootScrolled("n4-manual-\(tag)", large: large)
         back()
-        app.buttons["logFoodQuickAdd"].tap()
-        Thread.sleep(forTimeInterval: 0.8)
-        shoot("n4-quick-\(tag)")
+
+        // My foods and Add food's two steps.
+        if large { app.swipeDown() }
+        tab("My foods")
+        XCTAssertTrue(app.buttons["logFoodRow.Turkey chili"].waitForExistence(timeout: 5))
+        shootScrolled("n4-myfoods-\(tag)", large: large)
+        if large { app.swipeUp() }
+        app.buttons["logFoodAddFood"].tap()
+        XCTAssertTrue(app.buttons["addFoodNext"].waitForExistence(timeout: 5))
+        shoot("n4-addfood-1-\(tag)")
+        app.buttons["addFoodNext"].tap()
+        XCTAssertTrue(app.buttons["addFoodSave"].waitForExistence(timeout: 5))
+        shootScrolled("n4-addfood-2-\(tag)", large: large)
+        back()
+        back()
+        if large { app.swipeDown() }
+
+        // One of My foods: Edit and the bookmark.
+        app.buttons["logFoodRow.Turkey chili"].tap()
+        XCTAssertTrue(app.buttons["selectedFoodLog"].waitForExistence(timeout: 5))
+        shoot("n4-selected-\(tag)")
+        app.buttons["selectedFoodSave"].tap()
+        shoot("n4-selected-saved-\(tag)")
+        back()
+
+        tab("My meals")
+        shoot("n4-mymeals-\(tag)")
+        tab("Saved foods")
+        XCTAssertTrue(app.buttons["logFoodRow.Overnight oats"].waitForExistence(timeout: 5))
+        shoot("n4-saved-\(tag)")
+    }
+
+    private func captureEmpty(appearance: String, large: Bool) {
+        let tag = "\(appearance)-\(large ? "axl" : "default")"
+        launch(appearance: appearance, large: large, extra: ["-logFoodMockEmpty"])
+        let pill = app.buttons["logFoodPill"]
+        XCTAssertTrue(pill.waitForExistence(timeout: 15))
+        pill.tap()
+        XCTAssertTrue(app.buttons["logFoodTab.My foods"].waitForExistence(timeout: 5))
+        tab("My foods")
+        shootScrolled("n4-myfoods-empty-\(tag)", large: large)
+        tab("Saved foods")
+        shootScrolled("n4-saved-empty-\(tag)", large: large)
     }
 }
