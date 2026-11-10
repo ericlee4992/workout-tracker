@@ -90,11 +90,11 @@ Settings, or choose a photo of your meal." / "Choose a photo", "Reading the labe
 numbers, name it, log it.", "Save to My foods", "Estimate “…”" / "With AI · logs to Dinner", "Photo · 5 items",
 "Items", "Add item", "Portion", "Weight", "Remove Item", "Delete Photo and Items".
 
-**Open for the user:** (1) option A or B; (2) A needs a meal name — the server's food-photo reply has none (N6 schema:
-items only), so either add a short `mealName` to the schema (a server change at R) or name it from the items ("Tuna poke
-& 4 more"); (3) a description logged at once like a photo (mocked) or reviewed before Log; (4) the camera button beside
-Log food (mocked) vs only inside Log food; (5) the notification needs the system's permission — ask on the first
-scan, or never notify (the card is enough); (6) the limit's reset time (the server's day is UTC: 7:00 PM in New York).
+**Decided (the user, 2026-11-10 → D83):** (1) option **A**, one entry named for the meal; (2) the name from the server
+(add a meal name to the food-photo reply); (3) a description logged at once; (4) both camera entry points; (5) ask for
+the notification permission on the first scan; (6) "More at 7:00 PM" (local time of the UTC reset) is fine; (7) a library
+photo uses the time it was taken (its meal follows it); a camera photo uses now. Wiring drops option B and the mock
+switcher. Still for the user: the new strings above.
 
 Verification (mock): `build-for-testing` exit 0; `ScanFoodUITests` (2 tests, 2 workers) — results in the session's
 scratchpad; captures light/Default + dark/AXL looked at. Not verified: anything stored or sent (nothing is wired).
