@@ -84,4 +84,48 @@ Tapping a meal opens its page ("Usually for Breakfast", total as the hero + macr
 approved the mock ("Looks good") — read as also accepting step 2's eight facts and no bottom command on Saved foods.
 `LogFoodUITests` 4/4 passed (`n4d.xcresult`). Next: wire.
 
+**Wired (2026-11-10, the user: "start wiring. ignore the backup steps for this"):**
+- **Data (D81):** `SavedFood.createdByUser` (false) + `servingsPerContainer` (optional) — additive; `isSaved` now means
+  Saved foods (bookmark); guard `approvedFingerprint` → `038a4fcb…`; export v12 `SavedFoodRow` gains both as optionals
+  (v12 unreleased, not bumped). Backup steps skipped by the user's instruction; the shipped-format fixture still opens
+  (`NutritionMigrationTests`).
+- **`Domain/FoodLog.swift`:** `FoodNumber` (comma decimals, blank/negative refused), `ServingText` (parse "1 jar (250 g)",
+  "100 g", "1/2 cup", "jar"; the unit kept verbatim), `FoodDraft`, `MealDraftItem`, `FoodLogReceipt`; lists (recent by
+  last used, My foods / Saved foods by name, all, meals with the chosen meal's first, search over name + brand); `log`
+  food (servings) / meal (one entry per item, `.myMeal`), `logManual` (blank name → `.quickAdd`, no food),
+  `undo` (deletes exactly the receipt's entries, restores last used), `createFood` / `update` / `setSaved`,
+  `saveMeal` (create or replace items) / `delete` (cascade; entries stay).
+- **Screens on stored data** (`Features/Food/`): Log food (`@Query` foods + meals; + logs with a check and a 5 s Undo
+  toast; logging from Selected food / Manual Add / a meal page pops back to the toast; "Your foods" header while
+  searching All; system "No results" for an empty search), Selected food (servings ½ steps, bookmark, Edit for My
+  foods), Add/Edit food (Next needs a description + serving; Save needs calories; other numbers blank or numbers),
+  Manual Add (Log needs calories), Create/Edit meal (Save needs a name + a food), meal page (Log, Edit, Delete Meal… with
+  a confirmation). `FoodSampleFixture` (`-uiTestFoodSample`) replaces the mock data.
+- **Moved to N5 (where entries are listed):** editing/deleting a logged entry, and Today's totals (acceptance 1's
+  "totals update"). N4 proves the data with unit tests and the list order in UI tests.
+- **New strings since the approved mock (for the user's OK):** All empty "Nothing logged yet" / "Foods you log appear
+  here."; "Your foods" (search header on All); "Couldn't save" (save-error alert, with the system's message); Delete
+  Meal alert "Food already logged from it is kept." / Delete / Cancel; toast for a nameless Manual Add "Logged 250 cal to
+  Lunch"; meal page subtitle "Usually for Breakfast". Open question: Delete Food… for My foods (not in the mock).
+- **ios-design tells:** same container on everything — absent (lists for lists; panels only for the hero and forms);
+  chips — deliberate: the meal and "Usually for" are choices; all-caps labels — absent; middle-dot metadata —
+  deliberate: a food line "brand · cal · serving"; accent overuse — absent (violet only for the logged check, the
+  bookmark state and the toast); equal stacked blocks — absent; phone-sized website — absent; above the fold — the
+  list starts in the first viewport; control as primary — absent (Manual Add / Add food / Create meal secondary; one
+  primary per pushed screen); default-size-only layout — absent (AXL captures; fields stack, commands scroll).
+
+**Evidence (wiring):** `build-for-testing` exit 0. Unit plan **1213 passed, 0 failed** (`unit2.xcresult`; includes
+`FoodLogTests` 13, `NutritionExportTests`, `NutritionMigrationTests`, `StoreFormatGuardTests`). UI: `LogFoodFlowUITests`
+4 + `LogFoodUITests` 4 — first run 5/8 (two captures tapped a now-disabled Next; one looked up "2" instead of "2
+servings"), tests fixed, the three reran 3/3 (`ui2.xcresult`); final run of both classes **8/8 passed, exit 0**
+(`ui3.xcresult`, 2 workers). Two tests were slow in that run (Add food 238 s vs 40 s before; AXL capture 411 s): each
+stalled once right after tapping the first Add food field — "App event loop idle notification not received" (60 s) +
+spindump. The spindump's app main thread is idle in its run loop (73.8K cycles over 102 samples), not blocked — read
+as a clone/keyboard idle-signal flake, not an app hang; noted for the reviewer.
+
+Verified: unit plan 1213/0; `LogFoodFlowUITests` 4/4 and `LogFoodUITests` 4/4; captures light/Default + dark/AXL
+looked at (`ui2shots/`). Not verified: Today totals and entry edit/delete (N5); a migration rehearsal on a device
+(skipped by the user's instruction). Known flaky: the idle-signal stall above. Scratchpad:
+`/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/d3ab4aaa-bbbb-43da-8c54-44b94b2255ab/scratchpad/`.
+
 ## Comments

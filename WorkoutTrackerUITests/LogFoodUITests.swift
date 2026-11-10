@@ -2,7 +2,7 @@ import XCTest
 
 /// Nutrition N4: Log Food in the user's structure (D81) — Today's pill → All (recent foods with a one-tap + and Undo,
 /// Manual Add), My foods (Add food, two steps), My meals, Saved foods, a selected food with its bookmark, Manual Add —
-/// on record in light at Default and dark at AccessibilityL, plus the empty My foods / Saved foods.
+/// on record in light at Default and dark at AccessibilityL, plus the empty tabs (a new user).
 final class LogFoodUITests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -39,6 +39,9 @@ final class LogFoodUITests: XCTestCase {
         app.launch()
     }
 
+    // The user's foods and meals (`FoodSampleFixture`); the empty captures run without them.
+    private let foods = ["-uiTestFoodSample"]
+
     func testCaptureLightDefault() { capture(appearance: "light", large: false) }
     func testCaptureDarkAccessibility() { capture(appearance: "dark", large: true) }
     func testCaptureEmptyLightDefault() { captureEmpty(appearance: "light", large: false) }
@@ -46,7 +49,7 @@ final class LogFoodUITests: XCTestCase {
 
     private func capture(appearance: String, large: Bool) {
         let tag = "\(appearance)-\(large ? "axl" : "default")"
-        launch(appearance: appearance, large: large)
+        launch(appearance: appearance, large: large, extra: foods)
         let pill = app.buttons["logFoodPill"]
         XCTAssertTrue(pill.waitForExistence(timeout: 15))
         shoot("n4-today-\(tag)")
@@ -77,6 +80,10 @@ final class LogFoodUITests: XCTestCase {
         app.buttons["logFoodAddFood"].tap()
         XCTAssertTrue(app.buttons["addFoodNext"].waitForExistence(timeout: 5))
         shoot("n4-addfood-1-\(tag)")
+        for (field, text) in [("addFoodName", "Overnight oats"), ("addFoodServing", "1 jar")] {
+            app.textFields[field].tap()
+            app.textFields[field].typeText(text)
+        }
         app.buttons["addFoodNext"].tap()
         XCTAssertTrue(app.buttons["addFoodSave"].waitForExistence(timeout: 5))
         shootScrolled("n4-addfood-2-\(tag)", large: large)
@@ -104,6 +111,8 @@ final class LogFoodUITests: XCTestCase {
         app.buttons["logFoodCreateMeal"].tap()
         XCTAssertTrue(app.buttons["createMealSave"].waitForExistence(timeout: 5))
         shootScrolled("n4-createmeal-\(tag)", large: large)
+        app.textFields["createMealName"].tap()
+        app.textFields["createMealName"].typeText("Snack box\n")  // Return closes the keyboard
         app.buttons["createMealAdd.Overnight oats"].tap()
         app.buttons["createMealAdd.Banana"].firstMatch.tap()
         app.buttons["createMealAdd.Banana"].firstMatch.tap()
@@ -113,7 +122,7 @@ final class LogFoodUITests: XCTestCase {
         if large { app.swipeDown() }
 
         // One of My meals: its page, Edit meal, and Delete Meal… in the "…" menu.
-        app.buttons["logFoodMealRow.Usual breakfast"].tap()
+        app.buttons["logFoodRow.meal.Usual breakfast"].tap()
         XCTAssertTrue(app.buttons["selectedMealLog"].waitForExistence(timeout: 5))
         shootScrolled("n4-selectedmeal-\(tag)", large: large)
         app.buttons["selectedMealEdit"].tap()
@@ -127,11 +136,12 @@ final class LogFoodUITests: XCTestCase {
 
     private func captureEmpty(appearance: String, large: Bool) {
         let tag = "\(appearance)-\(large ? "axl" : "default")"
-        launch(appearance: appearance, large: large, extra: ["-logFoodMockEmpty"])
+        launch(appearance: appearance, large: large)
         let pill = app.buttons["logFoodPill"]
         XCTAssertTrue(pill.waitForExistence(timeout: 15))
         pill.tap()
         XCTAssertTrue(app.buttons["logFoodTab.My foods"].waitForExistence(timeout: 5))
+        shootScrolled("n4-all-empty-\(tag)", large: large)
         tab("My foods")
         shootScrolled("n4-myfoods-empty-\(tag)", large: large)
         tab("Saved foods")
