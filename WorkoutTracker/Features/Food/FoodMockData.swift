@@ -50,10 +50,35 @@ struct MockFood: Identifiable, Hashable {
     static var myFoods: [MockFood] { showsEmpty ? [] : all.filter(\.mine) }
     static var savedFoods: [MockFood] { showsEmpty ? [] : all.filter(\.saved) }
 
-    static let myMeals: [(name: String, detail: String, calories: Double)] = [
-        ("Usual breakfast", "Overnight oats, Banana", 485),
-        ("Post-workout", "Protein shake, Banana", 225),
-    ]
+    static func named(_ name: String) -> MockFood { all.first { $0.name == name }! }
+
+    static var myMeals: [MockMeal] {
+        showsEmpty ? [] : [
+            MockMeal(name: "Usual breakfast", usual: .breakfast,
+                     items: [MockMealItem(food: named("Overnight oats"), servings: 1),
+                             MockMealItem(food: named("Banana"), servings: 1)]),
+            MockMeal(name: "Post-workout", usual: nil,
+                     items: [MockMealItem(food: named("Protein shake"), servings: 1),
+                             MockMealItem(food: named("Banana"), servings: 1)]),
+        ]
+    }
+}
+
+/// One of My meals in the mock: its foods (each with servings) and the meal it is usually for (nil = any; then it
+/// logs to whichever meal is chosen, like every meal).
+struct MockMeal: Identifiable, Hashable {
+    var id: String { name }
+    var name: String
+    var usual: MealSlot?
+    var items: [MockMealItem]
+
+    var macros: Macros { items.reduce(.zero) { $0 + $1.food.macros.scaled(by: $1.servings) } }
+    var detail: String { items.map(\.food.name).joined(separator: ", ") }
+}
+
+struct MockMealItem: Hashable {
+    var food: MockFood
+    var servings: Double
 }
 
 extension MealSlot {

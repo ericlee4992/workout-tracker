@@ -76,4 +76,12 @@ serving), **Save meal** (disabled until a food is in). Empty My meals: "No meals
 then log them in one tap." / Create meal. Later N5: "Save as meal" on a Today meal. `LogFoodUITests` 4/4 passed
 (`n4c.xcresult`). Not in the mock: editing or deleting a meal; the meal's usual slot (`SavedMeal.usualMeal`).
 
+**Meals edit/delete + usual meal (the user, 2026-11-10: "You should be able to edit or delete saved meal. Create meal
+can let you pick one. Looks good"):** Create meal gains **Usually for** chips (Any / Breakfast / Lunch / Dinner /
+Snacks → `SavedMeal.usualMeal`); My meals lists the chosen meal's own first; logging still goes to the chosen meal chip.
+Tapping a meal opens its page ("Usually for Breakfast", total as the hero + macros, Foods with ×servings, **Log to
+…**); **Edit** → "Edit meal" (the Create meal form filled in); "…" → **Delete Meal…** (like a template's). The user
+approved the mock ("Looks good") — read as also accepting step 2's eight facts and no bottom command on Saved foods.
+`LogFoodUITests` 4/4 passed (`n4d.xcresult`). Next: wire.
+
 ## Comments

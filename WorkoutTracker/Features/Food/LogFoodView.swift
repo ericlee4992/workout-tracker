@@ -14,9 +14,11 @@ struct LogFoodView: View {
     @State private var tab = Tab.all
     @State private var search = ""
     @State private var added: Set<String> = []
-    @State private var undo: MockFood?
+    /// The name of what the last + logged (a food or a meal), for the Undo toast.
+    @State private var undo: String?
     @State private var route: Route?
     @State private var selected: MockFood?
+    @State private var selectedMeal: MockMeal?
 
     enum Tab: CaseIterable, Identifiable {
         case all, myFoods, myMeals, saved
@@ -76,6 +78,7 @@ struct LogFoodView: View {
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) { if let undo { undoToast(undo) } }
         .navigationDestination(item: $selected) { SelectedFoodView(food: $0, meal: meal) }
+        .navigationDestination(item: $selectedMeal) { SelectedMealView(savedMeal: $0, meal: meal) }
         .navigationDestination(item: $route) { route in
             switch route {
             case .manualAdd: ManualAddView(meal: meal)
@@ -87,7 +90,7 @@ struct LogFoodView: View {
 
     @ViewBuilder private var content: some View {
         switch tab {
-        case .myMeals where MockFood.showsEmpty && search.isEmpty:
+        case .myMeals where MockFood.myMeals.isEmpty && search.isEmpty:
             EmptyStateView(symbol: "takeoutbag.and.cup.and.straw", title: "No meals yet",
                            message: "Save foods you eat together, then log them in one tap.",
                            actionTitle: "Create meal") {
@@ -180,7 +183,7 @@ struct LogFoodView: View {
             Button {
                 withAnimation(.snappy) {
                     added.insert(food.name)
-                    undo = food
+                    undo = food.name
                 }
             } label: {
                 Image(systemName: added.contains(food.name) ? "checkmark" : "plus")
@@ -198,22 +201,54 @@ struct LogFoodView: View {
         .padding(.vertical, 10)
     }
 
+    /// My meals, the chosen meal's own first (a meal usually for Breakfast leads while Breakfast is chosen).
+    private var meals: [MockMeal] {
+        let all = MockFood.myMeals.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }
+        return all.filter { $0.usual == meal } + all.filter { $0.usual != meal }
+    }
+
     private var myMeals: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("My meals")
             LookList(separatorInset: 16) {
-                ForEach(MockFood.myMeals, id: \.name) { item in
-                    LookRow(item.name, subtitle: "\(item.calories.formatted()) cal · \(item.detail)",
-                            showsChevron: false) {
-                        Image(systemName: "plus")
-                            .font(.system(.body, weight: .semibold))
-                            .foregroundStyle(look.textPrimary)
-                            .frame(width: 44, height: 44)
-                            .background(look.ground, in: Circle())
-                    }
-                }
+                ForEach(meals) { item in mealRow(item) }
             }
         }
+    }
+
+    private func mealRow(_ item: MockMeal) -> some View {
+        HStack(spacing: 12) {
+            Button { selectedMeal = item } label: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(item.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
+                    Text("\(item.macros.calories.formatted(.number.precision(.fractionLength(0)))) cal · \(item.detail)")
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("logFoodMealRow.\(item.name)")
+            Button {
+                withAnimation(.snappy) {
+                    added.insert(item.name)
+                    undo = item.name
+                }
+            } label: {
+                Image(systemName: added.contains(item.name) ? "checkmark" : "plus")
+                    .font(.system(.body, weight: .semibold))
+                    .foregroundStyle(added.contains(item.name) ? look.onAction : look.textPrimary)
+                    .frame(width: 44, height: 44)
+                    .background(added.contains(item.name) ? look.action : look.ground, in: Circle())
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Log \(item.name)")
+            .accessibilityIdentifier("logFoodMealAdd.\(item.name)")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 
     private func commandButton(_ command: Route) -> some View {
@@ -235,15 +270,15 @@ struct LogFoodView: View {
         .padding(.vertical, 10)
     }
 
-    private func undoToast(_ food: MockFood) -> some View {
+    private func undoToast(_ name: String) -> some View {
         HStack(spacing: 12) {
-            Text("Logged \(food.name) to \(meal.label)")
+            Text("Logged \(name) to \(meal.label)")
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(look.onAction)
                 .frame(maxWidth: .infinity, alignment: .leading)
             Button("Undo") {
                 withAnimation(.snappy) {
-                    added.remove(food.name)
+                    added.remove(name)
                     undo = nil
                 }
             }

@@ -109,35 +109,7 @@ struct SelectedFoodView: View {
         .buttonStyle(.plain)
     }
 
-    private var numbers: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(eaten.calories.formatted(.number.precision(.fractionLength(0))))
-                    .font(look.font.heroNumber)
-                    .foregroundStyle(look.textPrimary)
-                    .contentTransition(.numericText(value: eaten.calories))
-                Text("cal").font(.system(.subheadline, weight: .semibold)).foregroundStyle(look.textSecondary)
-            }
-            let layout = typeSize.isAccessibilitySize
-                ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
-            layout {
-                ForEach(MacroKind.allCases) { macro in
-                    HStack(spacing: 8) {
-                        MacroGlyph(macro: macro)
-                        VStack(alignment: .leading, spacing: 0) {
-                            Text("\(macro.grams(of: eaten).formatted(.number.precision(.fractionLength(0...1)))) g")
-                                .font(.system(.headline, weight: .semibold))
-                                .foregroundStyle(look.textPrimary)
-                            Text(macro.name).font(look.font.footnote).foregroundStyle(look.textSecondary)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-        }
-        .padding(18)
-        .lookSurface(.panel)
-    }
+    private var numbers: some View { MacroSummary(macros: eaten) }
 
     private var other: some View {
         DisclosureGroup("Other nutrition facts", isExpanded: $showsOther) {
@@ -281,5 +253,43 @@ struct FoodFormField: View {
         .padding(.vertical, typeSize.isAccessibilitySize ? 10 : 0)
         .frame(minHeight: 50)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// The calories of an amount as the screen's hero number, with protein, carbs and fat under it (stacked at accessibility
+/// sizes). Shared by Selected food and Selected meal.
+struct MacroSummary: View {
+    var macros: Macros
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(macros.calories.formatted(.number.precision(.fractionLength(0))))
+                    .font(look.font.heroNumber)
+                    .foregroundStyle(look.textPrimary)
+                    .contentTransition(.numericText(value: macros.calories))
+                Text("cal").font(.system(.subheadline, weight: .semibold)).foregroundStyle(look.textSecondary)
+            }
+            let layout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(spacing: 10)) : AnyLayout(HStackLayout(spacing: 10))
+            layout {
+                ForEach(MacroKind.allCases) { macro in
+                    HStack(spacing: 8) {
+                        MacroGlyph(macro: macro)
+                        VStack(alignment: .leading, spacing: 0) {
+                            Text("\(macro.grams(of: macros).formatted(.number.precision(.fractionLength(0...1)))) g")
+                                .font(.system(.headline, weight: .semibold))
+                                .foregroundStyle(look.textPrimary)
+                            Text(macro.name).font(look.font.footnote).foregroundStyle(look.textSecondary)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .padding(18)
+        .lookSurface(.panel)
     }
 }

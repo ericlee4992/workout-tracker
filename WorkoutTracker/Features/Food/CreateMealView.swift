@@ -1,18 +1,28 @@
 import SwiftUI
 
 /// Nutrition N4 — Create meal (the user, 2026-11-10): makes one of **My meals** from the bottom of that tab, the same
-/// pattern as Add food on My foods. One screen: the meal's name, the foods in it (each with its servings), and the
-/// user's foods to add with a + (adding one again adds a serving). **MOCK for the user's review**: nothing is stored.
+/// pattern as Add food on My foods. One screen: the meal's name, the meal it is usually for (Any, or one of the four;
+/// that meal's own lead My meals while it is chosen), the foods in it (each with its servings), and the user's foods to
+/// add with a + (adding one again adds a serving). As **Edit meal** it opens filled in from a meal's page. **MOCK for the user's review**: nothing is stored.
 /// Later N5 adds "Save as meal" to a meal on Today.
 ///
 /// The eye lands on the meal's foods and their total; the + on each food below is the action; Save meal is the one
 /// primary command at the bottom.
 struct CreateMealView: View {
+    var editing: MockMeal?
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
-    @State private var name = ""
-    @State private var items: [(food: MockFood, servings: Double)] = []
+    @State private var name: String
+    @State private var usual: MealSlot?
+    @State private var items: [MockMealItem]
     @State private var search = ""
+
+    init(editing: MockMeal? = nil) {
+        self.editing = editing
+        _name = State(initialValue: editing?.name ?? "")
+        _usual = State(initialValue: editing?.usual)
+        _items = State(initialValue: editing?.items ?? [])
+    }
 
     private var candidates: [MockFood] {
         let foods = MockFood.all
@@ -26,10 +36,11 @@ struct CreateMealView: View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
-                    LookNavTitle("Create meal")
+                    LookNavTitle(editing == nil ? "Create meal" : "Edit meal")
                     LookList(separatorInset: 16) {
                         FoodFormField("Name", text: $name, prompt: "e.g. Usual breakfast")
                     }
+                    usualFor
                     if !items.isEmpty { mealFoods }
                     VStack(alignment: .leading, spacing: look.space.header) {
                         SectionHeader("Add foods")
@@ -57,6 +68,20 @@ struct CreateMealView: View {
         }
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var usualFor: some View {
+        VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader("Usually for")
+            WrapLayout(spacing: 8, lineSpacing: 8) {
+                Chip("Any", isSelected: usual == nil) { usual = nil }
+                    .accessibilityIdentifier("createMealUsual.any")
+                ForEach(MealSlot.allCases) { slot in
+                    Chip(slot.label, isSelected: usual == slot) { usual = slot }
+                        .accessibilityIdentifier("createMealUsual.\(slot.rawValue)")
+                }
+            }
+        }
     }
 
     private var mealFoods: some View {
@@ -125,7 +150,7 @@ struct CreateMealView: View {
                     if let index = items.firstIndex(where: { $0.food == food }) {
                         items[index].servings += 1
                     } else {
-                        items.append((food, 1))
+                        items.append(MockMealItem(food: food, servings: 1))
                     }
                 }
             } label: {

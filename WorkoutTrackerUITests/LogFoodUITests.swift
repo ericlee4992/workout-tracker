@@ -92,6 +92,10 @@ final class LogFoodUITests: XCTestCase {
         shoot("n4-selected-saved-\(tag)")
         back()
 
+        tab("Saved foods")
+        XCTAssertTrue(app.buttons["logFoodRow.Overnight oats"].waitForExistence(timeout: 5))
+        shoot("n4-saved-\(tag)")
+
         tab("My meals")
         shootScrolled("n4-mymeals-\(tag)", large: large)
 
@@ -99,16 +103,26 @@ final class LogFoodUITests: XCTestCase {
         if large { app.swipeUp() }
         app.buttons["logFoodCreateMeal"].tap()
         XCTAssertTrue(app.buttons["createMealSave"].waitForExistence(timeout: 5))
-        shoot("n4-createmeal-\(tag)")
+        shootScrolled("n4-createmeal-\(tag)", large: large)
         app.buttons["createMealAdd.Overnight oats"].tap()
         app.buttons["createMealAdd.Banana"].firstMatch.tap()
         app.buttons["createMealAdd.Banana"].firstMatch.tap()
+        app.swipeDown()
         shootScrolled("n4-createmeal-filled-\(tag)", large: large)
         back()
         if large { app.swipeDown() }
-        tab("Saved foods")
-        XCTAssertTrue(app.buttons["logFoodRow.Overnight oats"].waitForExistence(timeout: 5))
-        shoot("n4-saved-\(tag)")
+
+        // One of My meals: its page, Edit meal, and Delete Meal… in the "…" menu.
+        app.buttons["logFoodMealRow.Usual breakfast"].tap()
+        XCTAssertTrue(app.buttons["selectedMealLog"].waitForExistence(timeout: 5))
+        shootScrolled("n4-selectedmeal-\(tag)", large: large)
+        app.buttons["selectedMealEdit"].tap()
+        XCTAssertTrue(app.buttons["createMealSave"].waitForExistence(timeout: 5))
+        shootScrolled("n4-editmeal-\(tag)", large: large)
+        back()
+        app.buttons["selectedMealMore"].tap()
+        XCTAssertTrue(app.buttons["deleteMeal"].waitForExistence(timeout: 5))
+        shoot("n4-selectedmeal-menu-\(tag)")
     }
 
     private func captureEmpty(appearance: String, large: Bool) {
