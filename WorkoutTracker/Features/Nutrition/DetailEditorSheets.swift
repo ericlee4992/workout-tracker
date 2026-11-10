@@ -83,9 +83,12 @@ struct HeightEditorSheet: View {
             Form {
                 Section {
                     if unit == .inches {
+                        // One row per field: side by side, each field stretched and its unit landed mid-row.
                         HStack {
                             TextField("Feet", text: $feet).keyboardType(.numberPad).accessibilityIdentifier("heightFeet")
                             Text("ft").foregroundStyle(.secondary)
+                        }
+                        HStack {
                             TextField("Inches", text: $inches).keyboardType(.decimalPad).accessibilityIdentifier("heightInches")
                             Text("in").foregroundStyle(.secondary)
                         }

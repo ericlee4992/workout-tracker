@@ -109,6 +109,23 @@ looked at (`n3-caps2/`, `n3-caps3/`, `n3-caps4/`): Profile, Nutrition goals, the
 onboarding sheet empty and filled, light/dark × default/AXL; the goals page's details summary moved under its title
 (it wrapped mid-line as a trailing value).
 
+**Codex round 1** ([report](../codex-review-n3.md), not clear: Spec 2 × P2, Standards P2 + P3) — fixed:
+1. Edits with incomplete details: `NutritionGoalStore.update(change:)` throws `.detailsIncomplete` instead of dropping
+   the edit; a plain refresh (no change) writes nothing; the goals page and the onboarding sheet show no numbers
+   without complete details and hold Activity/Goal until they are; the zones sheet's save refreshes the goal.
+2. Prefill: `NutritionGoalStore.prefillMissing(from:)` fills a missing height/weight from the training profile, as
+   entered, never over a value (`PersonalDetailsList` runs it when the profile loads, also late).
+3. Height: the editor edits a stored height in its own unit at full precision; an unchanged Save writes nothing
+   (`HeightFields`, unit-tested); the number editor's unchanged Save writes nothing (no duplicate weight entry).
+   Feet and inches on separate rows (side by side they misaligned).
+4. README: an unreleased "Nutrition goals" entry.
+Regressions: `NutritionGoalStoreTests` +2 (refused edit; prefill), `HeightFieldsTests` (3), UI
+`testClearingTheBirthDateInTheZonesSheetLeavesNothingToEdit`, the onboarding flow also at dark/AXL with editor
+captures (Codex's coverage note). **Evidence:** Unit plan **1183/1183**, exit 0 (`n3-r2-unitplan`); UI (2 workers)
+NutritionGoals + HeartRate + warm-up **14/14** (`n3-r2-ui`), then after the two-row height editor and a test-scroll fix
+(full swipes down closed the sheet at AXL) NutritionGoals + warm-up **9/9** (`n3-r2-goals`); captures `n3-caps5/`,
+`n3-caps6/` looked at.
+
 **First-time goal setup (the user, 2026-11-09: "Both"):** the onboarding "Food goals" step stays in N3 (new
 installs: after Welcome, skippable) **and** N5 adds a "Set your goals" invitation in Today's food area when there is
 no goal (reaches the existing testers, who never see Welcome again). The onboarding step's screen and strings are

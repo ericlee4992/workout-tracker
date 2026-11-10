@@ -146,10 +146,9 @@ final class NutritionGoalsUITests: XCTestCase {
         shoot("n3-onboarding-empty-\(tag)")
 
         let activity = any("nutritionGoalsActivity")
-        for _ in 0..<4 where !activity.isHittable { app.swipeUp() }
+        reveal(activity)
         activity.tap()
         app.buttons["Light"].firstMatch.tap()
-        for _ in 0..<4 { app.swipeDown() }
         tapRow("personalWeight")
         type("176.4", into: "weightField")
         shoot("n3-editor-weight-\(tag)")
@@ -168,12 +167,12 @@ final class NutritionGoalsUITests: XCTestCase {
         shoot("n3-editor-birthdate-\(tag)")
         save()
         let sexRow = any("personalSex")
-        for _ in 0..<4 where !sexRow.isHittable { app.swipeUp() }
+        reveal(sexRow)
         sexRow.tap()
         app.buttons["Male"].firstMatch.tap()
         let calories = any("foodGoalsCalories")
-        for _ in 0..<4 where !calories.exists { app.swipeDown() }
         XCTAssertTrue(calories.waitForExistence(timeout: 5), "the calories appear once complete")
+        reveal(calories)
         XCTAssertTrue(NSPredicate(format: "label CONTAINS 'Light'").evaluate(with: any("nutritionGoalsActivity")),
                       "the activity chosen first is kept: \(any("nutritionGoalsActivity").label)")
         shoot("n3-onboarding-filled-\(tag)")
@@ -190,8 +189,21 @@ final class NutritionGoalsUITests: XCTestCase {
     private func tapRow(_ id: String) {
         let row = app.buttons[id]
         XCTAssertTrue(row.waitForExistence(timeout: 5), id)
-        for _ in 0..<4 where !row.isHittable { app.swipeUp() }
+        reveal(row)
         row.tap()
+    }
+
+    /// Short drags towards `element` until it is hittable — never a full swipe down, which at the top of a sheet's
+    /// content dismisses the sheet (the first dark/AXL run).
+    private func reveal(_ element: XCUIElement) {
+        for _ in 0..<10 where !(element.exists && element.isHittable) {
+            let below = !element.exists || element.frame.minY > app.frame.midY
+            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: below ? 0.7 : 0.45))
+            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: below ? 0.45 : 0.7))
+            from.press(forDuration: 0.05, thenDragTo: to)
+            Thread.sleep(forTimeInterval: 0.3)
+        }
+        XCTAssertTrue(element.isHittable, "reached \(element)")
     }
 
     // MARK: Captures
