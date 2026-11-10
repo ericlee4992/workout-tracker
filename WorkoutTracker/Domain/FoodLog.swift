@@ -415,7 +415,12 @@ enum FoodLog {
             savedFood: copy.savedFood.flatMap { $0.isLive ? $0 : nil }, createdAt: copy.createdAt)
         entry.updatedAt = copy.updatedAt
         entry.healthSampleID = copy.healthSampleID
+        entry.photo = copy.photo
         context.insert(entry)
+        entry.items = copy.items.enumerated().map { index, item in
+            FoodEntryItem(id: item.id, order: index, name: item.name, portion: item.portion, grams: item.grams,
+                          calories: item.calories, proteinGrams: item.protein, carbsGrams: item.carbs, fatGrams: item.fat)
+        }
         try context.save()
         return entry
     }
@@ -538,6 +543,9 @@ struct DeletedEntry {
     var createdAt: Date
     var updatedAt: Date
     var savedFood: SavedFood?
+    /// N7: a scanned meal's photo and items come back with it.
+    var photo: Data?
+    var items: [FoodEstimate.Item]
 
     init(_ entry: FoodEntry) {
         id = entry.id
@@ -563,5 +571,7 @@ struct DeletedEntry {
         createdAt = entry.createdAt
         updatedAt = entry.updatedAt
         savedFood = entry.savedFood
+        photo = entry.photo
+        items = FoodScan.editable(entry)
     }
 }

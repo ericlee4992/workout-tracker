@@ -169,7 +169,14 @@ struct ExportCollector {
             fiberGrams: entry.fiberGrams, sugarGrams: entry.sugarGrams, saturatedFatGrams: entry.saturatedFatGrams,
             sodiumMilligrams: entry.sodiumMilligrams, source: entry.source, barcode: entry.barcode,
             savedFoodID: entry.savedFood?.id, healthSampleID: entry.healthSampleID,
-            createdAt: dateFormat.string(from: entry.createdAt), updatedAt: dateFormat.string(from: entry.updatedAt))
+            createdAt: dateFormat.string(from: entry.createdAt), updatedAt: dateFormat.string(from: entry.updatedAt),
+            items: entry.orderedItems.isEmpty ? nil : entry.orderedItems.map { item in
+                ExportSnapshot.FoodEntryItemRow(
+                    id: item.id, order: item.order, name: item.name, portion: item.portion, grams: item.grams,
+                    calories: item.calories, proteinGrams: item.proteinGrams, carbsGrams: item.carbsGrams,
+                    fatGrams: item.fatGrams)
+            },
+            hasPhoto: entry.photo == nil ? nil : true)
     }
 
     private func savedFood(from food: SavedFood) -> ExportSnapshot.SavedFoodRow {

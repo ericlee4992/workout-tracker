@@ -8,6 +8,10 @@ enum AIFlow: String, CaseIterable, Sendable {
     case scanMachine = "scan-machine"
     case routineWeek = "routine-week"
     case modelExercises = "model-exercises"
+    /// Nutrition N6/N7: a meal photo, a nutrition label, a description.
+    case foodPhoto = "food-photo"
+    case foodLabel = "food-label"
+    case foodDescribe = "food-describe"
 
     /// The plural noun in "You've used today's 60 machine scans." (the profile's tile titles, lowercased).
     var noun: String {
@@ -15,6 +19,9 @@ enum AIFlow: String, CaseIterable, Sendable {
         case .scanMachine: "machine scans"
         case .routineWeek: "template weeks"
         case .modelExercises: "exercise suggestions"
+        case .foodPhoto: "meal photos"
+        case .foodLabel: "food labels"
+        case .foodDescribe: "food descriptions"
         }
     }
 }
@@ -48,6 +55,12 @@ struct AIServerClient: Sendable {
              return row
          }]
     }
+
+    /// Scan Food (N7): one re-encoded JPEG — the whole meal photo, or the label's crop (D53).
+    static func foodPhotoBody(jpeg: Data) -> [String: Any] { ["jpeg": jpeg.base64EncodedString()] }
+
+    /// Describe what you ate (N7): the words as typed.
+    static func foodDescribeBody(text: String) -> [String: Any] { ["text": text] }
 
     func request(_ flow: AIFlow, body: Data) -> URLRequest {
         var request = URLRequest(url: baseURL.appending(path: "v1/ai/\(flow.rawValue)"))

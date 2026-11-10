@@ -533,6 +533,22 @@ extension ExportSnapshot {
         var healthSampleID: UUID?
         var createdAt: String
         var updatedAt: String
+        /// N7: a scanned meal's or a description's items (nil for other entries). The photo stays on the phone: not
+        /// exported (`hasPhoto` says one exists).
+        var items: [FoodEntryItemRow]? = nil
+        var hasPhoto: Bool? = nil
+    }
+
+    struct FoodEntryItemRow: Codable, Equatable {
+        var id: UUID
+        var order: Int
+        var name: String
+        var portion: String
+        var grams: Double?
+        var calories: Double
+        var proteinGrams: Double
+        var carbsGrams: Double
+        var fatGrams: Double
     }
 
     struct SavedFoodRow: Codable, Equatable {

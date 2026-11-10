@@ -42,8 +42,11 @@ struct StoreFormatGuardTests {
     /// optionals; testers still receive one format change at R (shipped → this). N3's value was `0a01d115…`.
     /// **N4 (D81, the user 2026-11-10: My foods and servings per container — "start wiring"):** `SavedFood` gains
     /// `createdByUser` (default false) and `servingsPerContainer` (optional) — additive; `NutritionMigrationTests` opens
-    /// the shipped-format fixture with them.
-    static let approvedFingerprint = "038a4fcb00d1e75f85c320d7a32b7058880d022cb7e5b61adb1648a734faa401"
+    /// the shipped-format fixture with them. N4's value was `038a4fcb…`.
+    /// **N7 (D82/D83, the user 2026-11-10 — "skip backup steps for wiring N7"):** `FoodEntry` gains `photo`
+    /// (external storage, optional) and `items` (cascade) and the new `FoodEntryItem` — additive;
+    /// `NutritionMigrationTests` still opens the shipped-format fixture.
+    static let approvedFingerprint = "15051efe2b80539f60c438e611551ca1fda776dd6fdd0935f6983320013b69ad"
 
     static func fingerprint(of types: [any PersistentModel.Type] = WorkoutTrackerStore.modelTypes) throws -> String {
         let model = try #require(NSManagedObjectModel.makeManagedObjectModel(for: types))
