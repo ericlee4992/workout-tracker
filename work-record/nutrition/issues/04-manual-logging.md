@@ -1,7 +1,7 @@
 # N4 — Log Food: search, recent, saved, quick add, selected food, one-tap + with Undo
 
 Type: feature
-Status: **proposed** (2026-11-07) — awaiting the user's approval
+Status: **approved** (the user, 2026-11-09: "S6 → N3 → N4 → N5", recorded in STATE); My meals included (N2)
 Blocked by: N2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-04-log-food` off `main`.

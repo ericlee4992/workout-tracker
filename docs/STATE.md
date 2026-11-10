@@ -7,7 +7,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 - **Resume here (2026-11-10, session 2) — N3 merged into `main` `e471c11`; N4 next.** N1, N2, S6, N3 merged (N3:
   calculation, Personal details (D80), dated goals, Nutrition goals page, onboarding goals sheet; Codex clear round 3;
-  strings approved). **N4** on `ericlee4992/nutrition-04-manual-logging` off `main` —
+  strings approved). **N4** on `ericlee4992/nutrition-04-log-food` off `main` —
   [ticket](../work-record/nutrition/issues/04-manual-logging.md). N5 also gets Today's "Set your goals" invitation
   (the user, "Both"). **Codex:** open a fresh session for N4 (`term_6ce8444b-…` is ~75% full). New rule (the user,
   2026-11-09): 2 parallel UI workers, and never run builds/tests while Codex's run is going. Still to ask: the four
