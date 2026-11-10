@@ -16,7 +16,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   exists, so Claude could not run them); (2) new strings and own decisions listed in the N5 and N9 tickets; (3) N9: should
   the goal follow the weight on every Nutrition goals visit (N3's refresh) or only on Recalculate?; (4) Codex's weekly
   limit was ~18 % at 07:15. Codex terminal: `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~50 %
-  context). N6's worktree `…/Health App/nutrition-06-server` is kept for the deploy. Auto-handoff on (the user).
+  context). N6's worktree `…/Health App/nutrition-06-server` is kept for the deploy. Auto-handoff off (the user, 2026-11-10 morning).
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
   deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,
