@@ -11,7 +11,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   0007, privacy draft) — each Codex-clear and merged under the user's standing permission ("merge whenever Codex clear").
   **N9a** (Body weight page + Log weight sheet + Recalculate offer) — Codex clear round 2, merged too. **Next: N9b**
   (Apple Health; not started — its usage strings need the user's wording; split, see N9's ticket), then N10.
-  **For the user in the morning:** (1) N6 deploy gates — a real sample per flow (all six) on `gpt-6.1-terra` with costs,
+  **Morning (2026-11-10), with the user:** N6 live check done (all six flows ok; costs in N6's ticket); **D79 amended**
+  — training flows stay on GPT-5.6 Terra, food flows on GPT-6.1 Terra (Codex clear); **deploy everything at R**
+  (option 2); **D82** — meal-photo scan: progress card in Today's log, logged at once, photo kept on the phone (N7).
+  Health prompts approved (N9b); Nutrition goals keeps recalculating on a visit. **Next: N9b** (Apple Health) on
+  `ericlee4992/nutrition-09b-health`, then N10, N7.
+  **Earlier list for the morning (mostly answered above):** (1) N6 deploy gates — a real sample per flow (all six) on `gpt-6.1-terra` with costs,
   the privacy wording + `POLICY_EFFECTIVE_DATE`, then `migrate:remote` before `deploy` (N6 ticket; no local OpenAI key
   exists, so Claude could not run them); (2) new strings and own decisions listed in the N5 and N9 tickets; (3) N9: should
   the goal follow the weight on every Nutrition goals visit (N3's refresh) or only on Recalculate?; (4) Codex's weekly
