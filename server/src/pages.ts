@@ -4,7 +4,9 @@
 // text together, and have the reviewer recheck it. Source draft: work-record/public-beta/privacy-policy-draft.md.
 
 /** The day the policy went live (the user, 2026-10-15). Change it with the text; `npm run deploy` refuses a placeholder. */
-export const POLICY_EFFECTIVE_DATE = "October 15, 2026";
+// Nutrition N6: the food and Apple Health wording below is a DRAFT for the user's approval; `npm run deploy` refuses
+// while this reads "[…" (predeploy), so it cannot go live with an old date or unapproved text.
+export const POLICY_EFFECTIVE_DATE = "[the day the nutrition release goes live]";
 export const DEVELOPER_NAME = "Eunchan Lee";
 export const SUPPORT_EMAIL = "ericlee4992@gmail.com";
 
@@ -31,21 +33,24 @@ with me too. I don’t sell data, show ads, or track you across other companies�
 
 <h2>What stays on your iPhone</h2>
 <p>What you log — workouts, sets, weights, gyms, machines, templates, history, records, cardio sessions and their
-routes, and your settings — is stored in the app on your iPhone. I don’t receive it, and nothing uploads it
+routes, the food you log, your foods and meals, nutrition goals, body weight, personal details (height, date of birth,
+sex) and your settings — is stored in the app on your iPhone. I don’t receive it, and nothing uploads it
 automatically.</p>
 <ul>
 <li><strong>Apple Health.</strong> With your permission, Stacked reads during a workout your heart rate, active and
 resting energy, and distance for walking, running, cycling or rowing where your devices record it, and shows them
-during and after the workout; it saves the workouts you log to Health. Stacked does not upload Health data. It leaves
+during and after the workout; it saves the workouts you log to Health. If you turn them on, it also reads and saves
+your body weight, saves the calories, protein, carbohydrate and fat of the food you log, and reads the day’s active
+energy to show beside your food. Stacked does not upload Health data. It leaves
 your iPhone only if you choose to send it — for example in a feedback message or screenshot, or in an export you
 share.</li>
 <li><strong>Location and motion.</strong> With your permission, outdoor cardio records your route, distance and pace
 using location, and indoor cardio may use motion data. The route stays in the app. To draw the map behind a route,
 the app asks Apple Maps for map imagery of the area around it; Apple’s handling of that request is covered by Apple’s
 privacy policy, and I receive nothing from it.</li>
-<li><strong>Camera and photos.</strong> You can photograph a machine or its label, or choose a photo, to identify it.
-The app’s own label reader works on your iPhone, and the app does not keep the photo. AI identification sends the
-photo for processing, as described below; a photo leaves your iPhone only then.</li>
+<li><strong>Camera and photos.</strong> You can photograph a machine or its label, a meal, or a food’s nutrition
+label, or choose a photo. The app’s own label reader works on your iPhone, and the app does not keep
+the photo. The AI features send the photo for processing, as described below; a photo leaves your iPhone only then.</li>
 <li><strong>Your exports.</strong> Settings → Export makes a file of your workout data: JSON (the fullest record,
 including heart-rate series and routes) or CSV (a table of sets and cardio). You choose where it goes; that
 destination may be another app or service with its own policy.</li>
@@ -79,15 +84,18 @@ time; deleting your account removes it.</li>
 <p>These stay until you change them or delete your account.</p>
 
 <h2>AI features (optional, signed in)</h2>
-<p>Stacked’s AI features — identifying a machine from a photo, suggesting exercises for a machine, and building a week
-of templates — run through my server on my OpenAI account. Each feature asks your permission the first time and
+<p>Stacked’s AI features — identifying a machine from a photo, suggesting exercises for a machine, building a week of
+templates, estimating the food in a meal photo or a description, and reading a food’s nutrition label — run through my
+server on my OpenAI account. Each feature asks your permission the first time and
 remembers it; you can turn each permission off in Settings → Ask AI. Nothing is sent before you allow it.</p>
 <ul>
 <li><strong>What is sent:</strong> for machine identification, the photo (re-encoded on your iPhone without its
 location or camera details) and the app’s list of exercises; for exercise suggestions, the machine’s manufacturer and
 model as you typed them, any text read from its label, and the list of exercises; for templates, your goals,
-experience, schedule, optional height and weight, and the exercises and cardio available to you. The app does not
-automatically include your workout history or readings from Apple Health.</li>
+experience, schedule, optional height and weight, and the exercises and cardio available to you; for food, the meal
+or label photo (re-encoded the same way) with any note you add, or the words you typed to describe what you ate. Each
+is sent for one estimate. The app does not automatically include your workout history, your food log or readings from
+Apple Health.</li>
 <li><strong>Where it goes:</strong> to my server, which passes it to OpenAI to produce the answer and returns the
 answer to you. My server does not store the photo, what you sent or the answer, and does not log them. My requests ask
 OpenAI not to store them for later use; OpenAI may still keep API data for up to 30 days to monitor for abuse, as

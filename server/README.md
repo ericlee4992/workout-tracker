@@ -24,6 +24,9 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 | `POST /v1/ai/scan-machine` | `{ exercises: [{ id, name, loadType }], jpeg: <base64 of a JPEG ≤ 2 MB, ≤ 4096 px a side> }` → `{ result }` (the model's JSON) |
 | `POST /v1/ai/routine-week` | the app's routine request `{ goals, experience, days, minutes, heightCm?, weightKg?, exercises, cardioActivities }` → `{ result }` |
 | `POST /v1/ai/model-exercises` | `{ plate: { brand, model, lines }, candidates: [{ id, name, muscleGroup? }] }` → `{ result }` |
+| `POST /v1/ai/food-photo` | nutrition N6: `{ jpeg, note? }` (a meal photo, as scan-machine's; a one-line note ≤ 300 characters) → `{ result: { items: [{ name, portion, grams, calories, protein, carbs, fat, confidence }] } }` (≤ 15 items; none when no food) |
+| `POST /v1/ai/food-label` | `{ jpeg }` (a nutrition facts panel) → `{ result: { found, servingSize, servingGrams, servingsPerContainer, calories, protein, carbs, fat, saturatedFat, fiber, sugar, sodiumMg } }` — numbers only as printed, null when not |
+| `POST /v1/ai/food-describe` | `{ text }` (≤ 500 characters, line breaks allowed) → `{ result: { items: [...] } }` as food-photo |
 | `GET /v1/ai/usage` | `{ day, resetsAt, paused, flows: { <flow>: { used, limit } } }` |
 | `POST /v1/feedback` | multipart: `category` (bug/idea/other), `message` (1–4,000 characters), `appVersion`, `build`, `systemVersion`, `model`, optional `screenshot` (JPEG/PNG ≤ 5 MB) → `201 { id }`; signed in or out |
 | `GET /privacy`, `GET /support`, `GET /v1/health` | pages / liveness |
@@ -55,7 +58,7 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   due keys 1,000 per run (at most 14 D1 statements — the expiry's two, one read, ≤ 10 deletes by id, the counter
   clean-up — and one R2 call; with the revocation retry, now 20 a run, the AI prune's two and the expired-session
   prune's one, at most 38 of Workers Free's 50 per invocation).
-- **AI** (ticket 06; signed in only): the server owns each flow's instructions, JSON schema, model (`gpt-5.6-terra`),
+- **AI** (ticket 06; signed in only): the server owns each flow's instructions, JSON schema, model (`gpt-6.1-terra` since nutrition N6, D79),
   `store: false`, reasoning effort and output cap; the app sends only checked, bounded structured input (unknown fields
   are dropped; names and plate lines are single-line, so they cannot fabricate rows; the JPEG's structure is checked)
   and still validates every reply itself. The server also checks replies as the app does: a scan or routine the app
@@ -74,7 +77,7 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
 - **Off switch:** `node scripts/ai.mjs pause` (everyone) or `pause --account <id>`; `resume`; `status`. It is a D1 row,
   read on every request: effective at once, no app build or deploy.
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB;
-  `/v1/ai/scan-machine` 3 MB — a 2 MB JPEG is about 2.7 MB as base64; `routine-week` 256 KB; `model-exercises` 128 KB); Apple's key set is cached for
+  `/v1/ai/scan-machine` 3 MB — a 2 MB JPEG is about 2.7 MB as base64; `routine-week` 256 KB; `model-exercises` 128 KB; `food-photo` and `food-label` 3 MB; `food-describe` 16 KB); Apple's key set is cached for
   an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
 - Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.
 
