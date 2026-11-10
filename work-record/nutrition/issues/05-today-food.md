@@ -80,3 +80,11 @@ Verified: the above. Not verified: runtime Reduce Motion, VoiceOver by a person,
 clone keyboard/idle stall (none seen here).
 
 ## Comments
+
+**Round 1 (`codex-review-n5.md`): not clear — 1 P2.** Without a goal the fuel card dropped Burned (D71 shows it beside
+Eaten either way). Fixed: the no-goal card shows "1,065 cal eaten" with **Burned** beside it (stacked at AX) and Set
+your goals under them. The diary fixture adds a measured "Morning Run" today (320 cal). New test
+`testBurnedShowsWithAndWithoutAGoalAndIsNeverAdded` (Burned 320 with and without a goal; left + eaten = the goal);
+no-goal capture at dark/AXL added. `TodayFoodUITests` **7/7** (`n5ui3.xcresult`, 2 workers); captures looked at
+(`n5shots3/`). Codex's follow-up (not a finding): a date-bounded entry query for long histories.
+

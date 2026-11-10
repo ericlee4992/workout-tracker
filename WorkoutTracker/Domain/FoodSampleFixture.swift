@@ -38,6 +38,12 @@ enum FoodSampleFixture {
         }
         context.insert(FoodEntry(loggedAt: earlier(15), meal: .snacks, name: "", calories: 250, source: .quickAdd,
                                  createdAt: earlier(15)))
+        // A measured workout today (Burned: 320 cal), early so it is never in the future.
+        let workoutStart = at(today, min(6, max(0, hour - 1.5)))
+        let run = Workout(startedAt: workoutStart, finishedAt: workoutStart.addingTimeInterval(30 * 60),
+                          name: "Morning Run")
+        run.activeEnergyKilocalories = 320
+        context.insert(run)
         if ProcessInfo.processInfo.arguments.contains(overArgument), let chili = food("Turkey chili") {
             context.insert(FoodEntry(logging: chili, servings: 5, meal: .dinner, at: earlier(19)))
         }

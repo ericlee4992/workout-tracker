@@ -85,16 +85,25 @@ struct TodayFuelCard: View {
         }
     }
 
+    /// Without a goal: what was eaten, and Burned beside it (D71 — burned is shown whether or not there is a goal;
+    /// codex-review-n5), then the invitation.
     private var noGoal: some View {
         VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(TodayFoodCopy.calories(day.eaten.calories))
-                    .font(look.font.heroNumber)
-                    .foregroundStyle(look.textPrimary)
-                Text("cal eaten").font(look.font.headline.weight(.medium)).foregroundStyle(look.textSecondary)
+            let layout = typeSize.isAccessibilitySize
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+                : AnyLayout(HStackLayout(alignment: .firstTextBaseline))
+            layout {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(TodayFoodCopy.calories(day.eaten.calories))
+                        .font(look.font.heroNumber)
+                        .foregroundStyle(look.textPrimary)
+                    Text("cal eaten").font(look.font.headline.weight(.medium)).foregroundStyle(look.textSecondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("todayEaten")
+                if !typeSize.isAccessibilitySize { Spacer(minLength: 8) }
+                stat("Burned", day.burned, id: "todayBurned")
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityIdentifier("todayEaten")
             Button("Set your goals", action: setGoals)
                 .buttonStyle(.lookSecondary)
                 .accessibilityIdentifier("todaySetGoals")

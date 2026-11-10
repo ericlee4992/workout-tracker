@@ -74,6 +74,10 @@ final class TodayFoodUITests: XCTestCase {
         XCTAssertTrue(app.buttons["todaySetGoals"].exists)
         shoot("n5-today-nogoal-light-default")
         app.terminate()
+        launch(goal: false, appearance: "dark", large: true)
+        reveal(app.buttons["todaySetGoals"])
+        shoot("n5-today-nogoal-dark-axl")
+        app.terminate()
         launch(over: true, appearance: "dark", large: true)
         shoot("n5-today-over-dark-axl")
         app.swipeUp()
@@ -120,6 +124,25 @@ final class TodayFoodUITests: XCTestCase {
         XCTAssertTrue(banana.waitForExistence(timeout: 5), "Undo puts it back")
         app.swipeDown(); app.swipeDown()
         XCTAssertEqual(number("todayEaten"), eaten)
+    }
+
+    func testBurnedShowsWithAndWithoutAGoalAndIsNeverAdded() {
+        // codex-review-n5: D71 — Burned beside Eaten whether or not there is a goal; "left" ignores it.
+        launch()
+        XCTAssertEqual(number("todayBurned"), 320, "the fixture's measured run")
+        // Never added: left + eaten is the goal, whatever was burned (the goal's figure is in "of … today").
+        let eaten = number("todayEaten")
+        // The headline reads as one element: "1,698, cal left, of 2,763 today".
+        let headline = app.descendants(matching: .any).matching(NSPredicate(format: "label CONTAINS 'cal left'"))
+            .firstMatch.label
+        let figures = headline.split(whereSeparator: { !$0.isNumber && $0 != "," })
+            .compactMap { Int($0.filter(\.isNumber)) }
+        XCTAssertEqual(figures.count, 2, headline)
+        XCTAssertEqual((figures.first ?? 0) + eaten, figures.last ?? -1, headline)
+        app.terminate()
+        launch(goal: false)
+        XCTAssertEqual(number("todayBurned"), 320)
+        XCTAssertTrue(app.buttons["todaySetGoals"].exists)
     }
 
     func testALogFromLogFoodReachesTodayAndSetGoalsOpensTheGoals() {
