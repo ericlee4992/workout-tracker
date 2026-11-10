@@ -30,8 +30,8 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
 
 ## What it does
 
-- **Five tabs.** Today (this week, today's template — learned from the order you train in, or your own split — and
-  today's log), Train (templates, gyms and exercises, Start Lifting / Start Cardio), History, Progress and Profile (your
+- **Five tabs.** Today (this week, the day's food against your goal, today's template — learned from the order you train
+  in, or your own split — and today's log), Train (templates, gyms and exercises, Start Lifting / Start Cardio), History, Progress and Profile (your
   account card, settings grouped into short pages, and help).
 - **Gyms and machines.** Each gym has its own machines. Adding one can read its name plate on
   the phone and match it against a seeded catalog of 1,877 equipment models from 23
@@ -62,8 +62,11 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
   templates from your training profile. Each AI feature asks first and has a daily limit.
-- **Food logging** *(on `main`, not yet in TestFlight; Today's food totals and editing a logged entry come next)*.
-  Today's **Log food** opens the meal (preset by the time of day), tabs **All / My foods / My meals / Saved foods** and a
+- **Food logging** *(on `main`, not yet in TestFlight)*. On Today each day's ring fills toward that day's calorie goal
+  in protein · carbs · fat colours; the fuel card shows what's left (or over), what you ate and burned — burned never
+  changes the goal — and protein to go; without goals it offers to set them. Today's log lists the food by meal; tap an
+  entry to change its servings, meal or numbers, or delete it with Undo.
+  **Log food** opens the meal (preset by the time of day), tabs **All / My foods / My meals / Saved foods** and a
   search over your own foods. Each food or meal has a **+** that logs one serving at once, with Undo; tapping a food
   picks the servings. **Manual Add** logs a one-off entry (a name is optional, so calories alone are enough);
   **Add food** creates one of My foods in two steps (brand, description, serving, servings per container → nutrition);

@@ -378,6 +378,48 @@ enum FoodLog {
         try context.save()
     }
 
+    // MARK: Logged entries (N5: Today's log)
+
+    /// Edit a logged entry (N5): how many servings, which meal, and its numbers per serving. Its food and its other
+    /// numbers (fiber, sugar, …) stay; a later Health sync (N9) follows `updatedAt`.
+    static func update(_ entry: FoodEntry, servings: Double, meal: MealSlot, calories: Double, proteinGrams: Double,
+                       carbsGrams: Double, fatGrams: Double, at date: Date = .now, in context: ModelContext) throws {
+        entry.servings = servings
+        entry.meal = meal
+        entry.calories = calories
+        entry.proteinGrams = proteinGrams
+        entry.carbsGrams = carbsGrams
+        entry.fatGrams = fatGrams
+        entry.updatedAt = date
+        try context.save()
+    }
+
+    /// Delete a logged entry (N5), returning what Undo needs to put it back as it was.
+    static func delete(_ entry: FoodEntry, in context: ModelContext) throws -> DeletedEntry {
+        let copy = DeletedEntry(entry)
+        context.delete(entry)
+        try context.save()
+        return copy
+    }
+
+    /// Undo of a delete: the same entry again — same id, numbers, times and, while it exists, its food.
+    @discardableResult
+    static func restore(_ copy: DeletedEntry, in context: ModelContext) throws -> FoodEntry {
+        let entry = FoodEntry(
+            id: copy.id, loggedAt: copy.loggedAt, meal: copy.meal, name: copy.name, brand: copy.brand,
+            servings: copy.servings, servingValue: copy.servingValue, servingUnit: copy.servingUnit,
+            servingGrams: copy.servingGrams, calories: copy.calories, proteinGrams: copy.proteinGrams,
+            carbsGrams: copy.carbsGrams, fatGrams: copy.fatGrams, fiberGrams: copy.fiberGrams,
+            sugarGrams: copy.sugarGrams, saturatedFatGrams: copy.saturatedFatGrams,
+            sodiumMilligrams: copy.sodiumMilligrams, source: copy.source, barcode: copy.barcode,
+            savedFood: copy.savedFood.flatMap { $0.isLive ? $0 : nil }, createdAt: copy.createdAt)
+        entry.updatedAt = copy.updatedAt
+        entry.healthSampleID = copy.healthSampleID
+        context.insert(entry)
+        try context.save()
+        return entry
+    }
+
     // MARK: My foods and Saved foods
 
     /// Add food (D81): one of My foods.
@@ -469,4 +511,57 @@ enum FoodLog {
 private extension PersistentModel {
     /// Still in a context and not deleted (after a save, a deleted model leaves its context).
     var isLive: Bool { modelContext != nil && !isDeleted }
+}
+
+/// A deleted entry's every field, held for Undo (N5).
+struct DeletedEntry {
+    var id: UUID
+    var loggedAt: Date
+    var meal: MealSlot
+    var name: String
+    var brand: String?
+    var servings: Double
+    var servingValue: Double
+    var servingUnit: String
+    var servingGrams: Double?
+    var calories: Double
+    var proteinGrams: Double
+    var carbsGrams: Double
+    var fatGrams: Double
+    var fiberGrams: Double?
+    var sugarGrams: Double?
+    var saturatedFatGrams: Double?
+    var sodiumMilligrams: Double?
+    var source: FoodSource
+    var barcode: String?
+    var healthSampleID: UUID?
+    var createdAt: Date
+    var updatedAt: Date
+    var savedFood: SavedFood?
+
+    init(_ entry: FoodEntry) {
+        id = entry.id
+        loggedAt = entry.loggedAt
+        meal = entry.meal
+        name = entry.name
+        brand = entry.brand
+        servings = entry.servings
+        servingValue = entry.servingValue
+        servingUnit = entry.servingUnit
+        servingGrams = entry.servingGrams
+        calories = entry.calories
+        proteinGrams = entry.proteinGrams
+        carbsGrams = entry.carbsGrams
+        fatGrams = entry.fatGrams
+        fiberGrams = entry.fiberGrams
+        sugarGrams = entry.sugarGrams
+        saturatedFatGrams = entry.saturatedFatGrams
+        sodiumMilligrams = entry.sodiumMilligrams
+        source = entry.source
+        barcode = entry.barcode
+        healthSampleID = entry.healthSampleID
+        createdAt = entry.createdAt
+        updatedAt = entry.updatedAt
+        savedFood = entry.savedFood
+    }
 }

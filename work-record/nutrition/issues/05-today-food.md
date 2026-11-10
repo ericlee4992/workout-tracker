@@ -1,7 +1,7 @@
 # N5 — Today's food parts
 
 Type: feature
-Status: **proposed** (2026-11-07) — awaiting the user's approval
+Status: **in progress** (2026-11-10) — approved in the user's plan "S6 → N3 → N4 → N5" (2026-11-09); built overnight under the user's standing permission (2026-11-10)
 Blocked by: N3, N4
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-05-today` off `main`.
@@ -45,6 +45,38 @@ Today shows the day's food beside the training (S2).
 
 ## Progress
 
-Not started.
+**Built (2026-11-10, night — Claude, on branch `ericlee4992/nutrition-05-today` off `main` `c03bd12`).** Screens from the
+approved prototype (`SoftTodayTop.swift` `SoftFuelCard` / `DayRing`, `SoftTodayScreen.swift`); the user asleep, so the
+captures are for the morning rather than approved first (the user's overnight permission).
+- **Domain `FoodDay.swift`:** `FoodDay` (eaten, entry count, the goal in force that day, burned; left / over, fill 0…1,
+  4/4/9 macro shares, grams to go), `FoodDayMath` (`day`, `week`, `burned(by:)` — the workout's active energy, else its
+  cardio segments', nil when no sensor; `daysLogged`). `FoodLog.update(entry…)`, `delete(entry) → DeletedEntry`,
+  `restore` (same id, numbers, times, Health sample id, and its food while it exists).
+- **Today:** rings fill toward each day's own goal in the macro hues (dashed = no food, whether or not trained; faint =
+  ahead; the workout disc stays); key "Calories toward goal · Worked out"; header "1 workout · 3 days logged"; AX rows
+  add "1,752 of 2,763 cal" / "No food logged". **Fuel card** under the rings: "1,698 cal left" (over: "402 cal over"),
+  "of 2,763 today", Eaten / Burned, the bar in macro shares, Protein with "59 g to go" / "Goal reached", Carbs and Fat
+  compact; without a goal "1,065 cal eaten" + **Set your goals** (opens Nutrition goals). **Today's log:** a panel per
+  meal ("Breakfast · 485 cal", entries "1 jar · P 22 · C 52 · F 9 g" + calories; a nameless entry reads "Manual Add"),
+  then today's workouts (caption adds "· 320 cal" when measured). **Edit entry** sheet (Cancel / Save): meal chips,
+  servings ±½, per-serving calories / protein / carbs / fat (unchanged fields keep stored values), **Delete Entry** →
+  "Deleted Banana" toast with Undo (5 s, the same timer rule as N4).
+- **Own decisions (for the morning):** no goal → a logged day's ring reads full in its macro split; Burned shows "0"
+  when nothing was measured; edits are explicit (Save), Undo is for delete; Burned = the app's workout calories (N9
+  adds Health); every entry is queried (a date-bound @Query cannot follow midnight).
+- **New strings (for the user's OK):** "N days logged", "Calories toward goal", "cal left" / "cal over" / "of X today" /
+  "cal eaten", "Eaten", "Burned", "g to go", "Goal reached", **"Set your goals"**, "Per serving", "Delete Entry",
+  "Deleted <name>", "No food logged", "X of Y cal".
+- **Fixture:** `-uiTestFoodDiary` (with `-uiTestFoodSample`): today's breakfast, lunch and a calories-only snack, the
+  earlier days of the week; back-dates a `-uiTestPersonalDetails` goal to the week; `-uiTestFoodOver` adds a big dinner.
+
+**Evidence so far:** build exit 0; `FoodDayTests` 6 × 10 = 60/60 (`n5u.xcresult`); `TodayFoodUITests` 6/6 (2 workers,
+`n5ui.xcresult`; first run 2/6 — a meal panel's identifier hid its rows', moved to the header; same-minute fixture
+entries ordered); captures light/default + dark/AXL looked at (`n5shots/N5-*.png`). Unit plan **1,206 definitions / 1,222 executions, 0
+failed** (`n5unit.xcresult`). Regression UI (warm-up, TodayUpNext, LogFoodFlow, NutritionGoals; 2 workers): 23/24
+(`n5reg.xcresult`) — the one failure, N4's "2 servings" check read right after the second tap (Codex saw it flake in
+N4 round 1 too); now waits up to 5 s; `LogFoodFlowUITests` 5/5 after (`n5reg2.xcresult`).
+Verified: the above. Not verified: runtime Reduce Motion, VoiceOver by a person, the full UI suite. Known flaky: N4's
+clone keyboard/idle stall (none seen here).
 
 ## Comments

@@ -3,11 +3,11 @@ import SwiftData
 import SwiftUI
 import UIKit
 
-// Soft redesign S2 (D68): the Today tab — the first tab. Phase 1 shows its training parts: the week as day
-// rings (a workout mark inside on days trained), the Training card (Resume, or the template up next with Start —
-// S5/D77: learned from the user's order or their split, with "Not today"; without templates the last workout with
-// Repeat and Start workout; Start Lifting / Start Cardio live in Train only), and today's workouts. The food parts — calories filling the rings, the fuel
-// card, the food log and the Log food pill — arrive with nutrition N5; nothing ships to testers before then (D76).
+// Soft redesign S2 (D68): the Today tab — the first tab: the week as day rings (a workout mark inside on days trained;
+// N5: calories filling each ring toward that day's goal), the fuel card (N5), the Training card (Resume, or the
+// template up next with Start — S5/D77: learned from the user's order or their split, with "Not today"; without
+// templates the last workout with Repeat and Start workout; Start Lifting / Start Cardio live in Train only), and
+// today's log — food by meal (N5; tap to edit or delete) and today's workouts — over the Log food pill (N4).
 // Design: the approved prototype's Today (tag design/soft-approved-2026-11-07, Screens/Soft/SoftTodayScreen.swift
 // and SoftTodayTop.swift, round 5's day rings).
 
@@ -27,6 +27,15 @@ struct TodayView: View {
     @Query(filter: #Predicate<Workout> { $0.finishedAt != nil },
            sort: [SortDescriptor(\Workout.startedAt, order: .reverse)])
     private var finishedWorkouts: [Workout]
+    /// N5: the food log and the goals. Every entry is queried (the week's rings and today's log use a few); a date-bound
+    /// query cannot follow `now` across midnight.
+    @Query(sort: \FoodEntry.loggedAt) private var foodEntries: [FoodEntry]
+    @Query private var nutritionGoals: [NutritionGoal]
+    @State private var editingEntry: FoodEntry?
+    /// The entry just deleted, for the Undo toast.
+    @State private var deletedEntry: DeletedEntry?
+    @State private var showGoals = false
+    @State private var foodFailure: String?
     @State private var startRequest: WorkoutStartRequest?
     /// S5 (D77): the user's split and the day's "Not today" choice — view preferences, not workout data.
     @AppStorage(MySplitStore.key) private var splitData = Data()
@@ -58,7 +67,9 @@ struct TodayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
                     LookNavTitle("Today", subtitle: WorkoutDates.homeSubtitle(now))
-                    TodayWeekRings(summary: weekSummary)
+                    let summary = weekSummary
+                    TodayWeekRings(summary: summary, food: weekFood(summary))
+                    TodayFuelCard(day: todayFood) { showGoals = true }
                     trainingSection
                     todaysLog
                 }
@@ -75,6 +86,26 @@ struct TodayView: View {
             // N4 (D68; built early by the user's choice, 2026-11-10): Log food above the tab bar, Today only.
             .safeAreaInset(edge: .bottom) { LogFoodPill { showLogFood = true } }
             .navigationDestination(isPresented: $showLogFood) { LogFoodView() }
+            .navigationDestination(isPresented: $showGoals) { NutritionGoalsView() }
+            .sheet(item: $editingEntry) { entry in
+                EditEntrySheet(entry: entry) { copy in
+                    withAnimation(reduceMotion ? nil : .snappy) { deletedEntry = copy }
+                }
+            }
+            .overlay(alignment: .bottom) { if let deletedEntry { deletedToast(deletedEntry) } }
+            .task(id: deletedEntry?.id) {
+                // The toast leaves after a few seconds; a newer delete cancels this wait (as Log food's, codex-review-n4).
+                guard let shown = deletedEntry?.id else { return }
+                do { try await Task.sleep(for: .seconds(5)) } catch { return }
+                guard deletedEntry?.id == shown else { return }
+                withAnimation(reduceMotion ? nil : .snappy) { deletedEntry = nil }
+            }
+            .alert(FoodCopy.saveFailed, isPresented: Binding(get: { foodFailure != nil },
+                                                             set: { if !$0 { foodFailure = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(foodFailure ?? "")
+            }
             .lookScreenBackground()
             .exercisesInlineTitle("Today", visible: titleInBar)
             .workoutStartFlow(request: $startRequest, gym: selectedGym, onWorkoutStarted: onWorkoutStarted)
@@ -84,6 +115,15 @@ struct TodayView: View {
 
     private var weekSummary: WeekSummary {
         WeekSummaryMath.summary(of: finishedWorkouts.compactMap(WeekSummaryInput.init(workout:)), now: now)
+    }
+
+    private func weekFood(_ summary: WeekSummary) -> [Date: FoodDay] {
+        FoodDayMath.week(summary.days.filter { !$0.isFuture }.map(\.date), entries: foodEntries, goals: nutritionGoals,
+                         workouts: finishedWorkouts)
+    }
+
+    private var todayFood: FoodDay {
+        FoodDayMath.day(now, entries: foodEntries, goals: nutritionGoals, workouts: finishedWorkouts)
     }
 
     /// A workout belongs to the day it STARTED on (as in History), in the calendar's time zone.
@@ -185,9 +225,12 @@ struct TodayView: View {
 
     private var todaysLog: some View {
         let today = finishedWorkouts.filter { Self.startedOnDay($0.startedAt, of: now) }
+        // In the order eaten; same-minute entries by when they were logged, then by id (a stable order).
+        let entries = NutritionMath.entries(foodEntries, on: now)
+            .sorted { ($0.loggedAt, $0.createdAt, $0.id.uuidString) < ($1.loggedAt, $1.createdAt, $1.id.uuidString) }
         return VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Today's log")
-            if today.isEmpty {
+            if today.isEmpty && entries.isEmpty {
                 Text("Nothing logged yet today.")
                     .font(look.font.subhead)
                     .foregroundStyle(look.textSecondary)
@@ -195,16 +238,54 @@ struct TodayView: View {
                     .padding(look.space.panelPadding)
                     .lookSurface(.panel)
             } else {
-                VStack(spacing: 0) {
-                    ForEach(today) { workout in
-                        Button { onOpenWorkout(workout) } label: { TodayWorkoutRow(workout: workout) }
-                            .buttonStyle(.lookPressable)
-                            .accessibilityIdentifier("todayWorkout.\(workout.historyTitle)")
-                        if workout.id != today.last?.id { Divider().overlay(look.hairline) }
+                // N5: food by meal, in the day's order, then the day's workouts.
+                ForEach(MealSlot.allCases) { meal in
+                    let logged = entries.filter { $0.meal == meal }
+                    if !logged.isEmpty {
+                        TodayMealLog(meal: meal, entries: logged) { editingEntry = $0 }
                     }
                 }
-                .lookSurface(.panel)
+                if !today.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(today) { workout in
+                            Button { onOpenWorkout(workout) } label: { TodayWorkoutRow(workout: workout) }
+                                .buttonStyle(.lookPressable)
+                                .accessibilityIdentifier("todayWorkout.\(workout.historyTitle)")
+                            if workout.id != today.last?.id { Divider().overlay(look.hairline) }
+                        }
+                    }
+                    .lookSurface(.panel)
+                }
             }
         }
+    }
+
+    /// "Deleted Banana" with Undo (N5): puts the entry back as it was.
+    private func deletedToast(_ copy: DeletedEntry) -> some View {
+        HStack(spacing: 12) {
+            Text("Deleted \(copy.name.isEmpty ? "Manual Add" : copy.name)")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(look.onAction)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("todayDeletedToast")
+            Button("Undo") {
+                do {
+                    try FoodLog.restore(copy, in: modelContext)
+                    withAnimation(reduceMotion ? nil : .snappy) { deletedEntry = nil }
+                } catch {
+                    foodFailure = error.localizedDescription
+                }
+            }
+            .font(.system(.subheadline, weight: .bold))
+            .foregroundStyle(look.onAction)
+            .frame(minHeight: 44)
+            .accessibilityIdentifier("todayUndoDelete")
+        }
+        .padding(.horizontal, 18)
+        .frame(minHeight: 52)
+        .background(look.action, in: Capsule())
+        .padding(.horizontal, look.space.margin)
+        .padding(.bottom, 72)
+        .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
     }
 }

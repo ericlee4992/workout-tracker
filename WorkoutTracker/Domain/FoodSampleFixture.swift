@@ -9,6 +9,64 @@ enum FoodSampleFixture {
 
     static var isEnabled: Bool { WorkoutTrackerStore.fixtureIsEnabled(launchArgument) }
 
+    /// N5's Today captures (`-uiTestFoodDiary`, with `-uiTestFoodSample`): today's breakfast and lunch, a calories-only
+    /// snack, and the earlier days of this week logged. With `-uiTestFoodOver` too: a big dinner takes today over
+    /// the goal.
+    static let diaryArgument = "-uiTestFoodDiary"
+    static let overArgument = "-uiTestFoodOver"
+    static var diaryIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(diaryArgument)
+    }
+
+    static func seedDiary(in context: ModelContext, now: Date = .now, calendar: Calendar = .current) throws {
+        let foods = try context.fetch(FetchDescriptor<SavedFood>())
+        func food(_ name: String) -> SavedFood? { foods.first { $0.name == name } }
+        let today = calendar.startOfDay(for: now)
+        func at(_ day: Date, _ hour: Double) -> Date { day.addingTimeInterval(hour * 3_600) }
+        // Today: up to now, so nothing sits in the future.
+        let hour = min(Double(calendar.component(.hour, from: now)), 23)
+        // Each a little after the last, in the order listed, even early in the day.
+        func earlier(_ wanted: Double) -> Date { at(today, min(wanted, max(0, hour - 0.5)) + wanted / 100) }
+        if let oats = food("Overnight oats") {
+            context.insert(FoodEntry(logging: oats, meal: .breakfast, at: earlier(7.5)))
+        }
+        if let banana = food("Banana") {
+            context.insert(FoodEntry(logging: banana, meal: .breakfast, at: earlier(7.6)))
+        }
+        if let chicken = food("Chicken breast") {
+            context.insert(FoodEntry(logging: chicken, servings: 2, meal: .lunch, at: earlier(12.5)))
+        }
+        context.insert(FoodEntry(loggedAt: earlier(15), meal: .snacks, name: "", calories: 250, source: .quickAdd,
+                                 createdAt: earlier(15)))
+        if ProcessInfo.processInfo.arguments.contains(overArgument), let chili = food("Turkey chili") {
+            context.insert(FoodEntry(logging: chili, servings: 5, meal: .dinner, at: earlier(19)))
+        }
+        // The earlier days of this week: a full day of a few foods each.
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? today
+        // With `-uiTestPersonalDetails` (seeded first) the goal starts today; back-date it so the week's rings fill
+        // toward it too.
+        for goal in try context.fetch(FetchDescriptor<NutritionGoal>()) where goal.effectiveFrom > weekStart {
+            goal.effectiveFrom = calendar.date(byAdding: .day, value: -1, to: weekStart) ?? weekStart
+        }
+        var day = weekStart
+        var index = 0
+        while day < today {
+            let picks: [(String, Double, MealSlot)] = index % 3 == 2
+                ? [("Greek yogurt", 1, .breakfast), ("Turkey chili", 2, .dinner)]
+                : [("Overnight oats", 1, .breakfast), ("Chicken breast", 2.5, .lunch), ("Turkey chili", 2, .dinner),
+                   ("Protein shake", 1, .snacks)]
+            for (offset, pick) in picks.enumerated() {
+                if let food = food(pick.0) {
+                    context.insert(FoodEntry(logging: food, servings: pick.1, meal: pick.2,
+                                             at: at(day, 8 + Double(offset) * 4)))
+                }
+            }
+            index += 1
+            day = calendar.date(byAdding: .day, value: 1, to: day) ?? today
+        }
+        try context.save()
+    }
+
     static func seed(in context: ModelContext, now: Date = .now) throws {
         func food(_ name: String, brand: String? = nil, serving: String, _ calories: Double, _ protein: Double,
                   _ carbs: Double, _ fat: Double, saturatedFat: Double? = nil, fiber: Double? = nil,

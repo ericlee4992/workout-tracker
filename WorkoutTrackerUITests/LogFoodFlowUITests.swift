@@ -144,7 +144,8 @@ final class LogFoodFlowUITests: XCTestCase {
         app.buttons["createMealUsual.lunch"].tap()
         app.buttons["createMealAdd.Banana"].firstMatch.tap()
         app.buttons["createMealAdd.Banana"].firstMatch.tap()
-        XCTAssertTrue(app.staticTexts["2 servings"].exists, "a second + is a second serving")
+        // Waits: the count updates a moment after the second tap (read at once, it failed under parallel load).
+        XCTAssertTrue(app.staticTexts["2 servings"].waitForExistence(timeout: 5), "a second + is a second serving")
         save.tap()
 
         let meal = row("meal.Snack box")

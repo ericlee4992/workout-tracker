@@ -18,7 +18,8 @@
         "TemplateMachinesUITests",
         "FloodlightWorkoutTabUITests",
         "LogFoodUITests",
-        "LogFoodFlowUITests"
+        "LogFoodFlowUITests",
+        "TodayFoodUITests"
       ],
       "target": {
         "containerPath": "container:WorkoutTracker.xcodeproj",

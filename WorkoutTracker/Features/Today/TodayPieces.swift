@@ -8,6 +8,8 @@ import SwiftUI
 
 struct TodayWeekRings: View {
     var summary: WeekSummary
+    /// N5: each day's food, keyed by its start of day.
+    var food: [Date: FoodDay] = [:]
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var ring: CGFloat = 36
@@ -24,7 +26,7 @@ struct TodayWeekRings: View {
                 VStack(alignment: .leading, spacing: 12) {
                     ForEach(summary.days) { day in
                         HStack(spacing: 14) {
-                            TodayDayRing(day: day, size: ring * 1.1)
+                            TodayDayRing(day: day, food: food[day.date], size: ring * 1.1)
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(day.date, format: .dateTime.weekday(.wide).day())
                                     .font(look.font.headline).foregroundStyle(look.textPrimary)
@@ -39,16 +41,32 @@ struct TodayWeekRings: View {
                     ForEach(summary.days) { day in
                         VStack(spacing: 8) {
                             dayLabel(day)
-                            TodayDayRing(day: day, size: ring)
+                            TodayDayRing(day: day, food: food[day.date], size: ring)
                         }
                         .frame(maxWidth: .infinity)
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel(spoken(day))
                     }
                 }
-                HStack(spacing: 6) {
-                    Circle().fill(look.textPrimary).frame(width: 8, height: 8)
-                    Text("Worked out").font(look.font.caption).foregroundStyle(look.textSecondary)
+                // The key: what the ring and the mark mean (N5).
+                HStack(spacing: 14) {
+                    HStack(spacing: 6) {
+                        ZStack {
+                            Circle().stroke(look.ringTrack, lineWidth: 2.5)
+                            DayRingFood(day: FoodDay(eaten: Macros(calories: 1_500, proteinGrams: 30, carbsGrams: 47,
+                                                                   fatGrams: 10),
+                                                     entryCount: 1, goal: DayGoal(calories: 2_000, proteinGrams: 0,
+                                                                                  carbsGrams: 0, fatGrams: 0),
+                                                     burned: 0),
+                                        width: 2.5)
+                        }
+                        .frame(width: 14, height: 14)
+                        Text("Calories toward goal").font(look.font.caption).foregroundStyle(look.textSecondary)
+                    }
+                    HStack(spacing: 6) {
+                        Circle().fill(look.textPrimary).frame(width: 8, height: 8)
+                        Text("Worked out").font(look.font.caption).foregroundStyle(look.textSecondary)
+                    }
                 }
                 .accessibilityHidden(true)
             }
@@ -70,27 +88,46 @@ struct TodayWeekRings: View {
         .background { if day.isToday { Capsule().fill(look.action) } }
     }
 
+    /// "3 workouts · 5 days logged" (N5).
     private var headline: String {
         let count = summary.workoutCount
-        return count == 1 ? "1 workout" : "\(count) workouts"
+        let workouts = count == 1 ? "1 workout" : "\(count) workouts"
+        let logged = FoodDayMath.daysLogged(food)
+        return workouts + " · " + (logged == 1 ? "1 day logged" : "\(logged) days logged")
     }
 
+    /// AX rows: "Pull Day · 55 min · 2,140 of 2,288 cal".
     private func detail(_ day: WeekDaySummary) -> String {
-        if day.workouts.isEmpty { return day.isFuture ? "Ahead" : "Rest day" }
-        return day.workouts.map(\.title).joined(separator: ", ") + " · \(day.minutes) min"
+        var parts = [day.workouts.isEmpty ? (day.isFuture ? "Ahead" : "Rest day")
+                     : day.workouts.map(\.title).joined(separator: ", ") + " · \(day.minutes) min"]
+        if !day.isFuture, let food = food[day.date] { parts.append(Self.food(food)) }
+        return parts.joined(separator: " · ")
     }
 
     private func spoken(_ day: WeekDaySummary) -> String {
         let date = day.date.formatted(.dateTime.weekday(.wide).day())
         let today = day.isToday ? ", today" : ""
-        if day.workouts.isEmpty { return date + today + (day.isFuture ? "" : ", no workout") }
-        return date + today + ", " + day.workouts.map(\.title).joined(separator: ", ")
+        var text = date + today
+        if day.workouts.isEmpty { text += day.isFuture ? "" : ", no workout" }
+        else { text += ", " + day.workouts.map(\.title).joined(separator: ", ") }
+        if !day.isFuture, let food = food[day.date] { text += ", " + Self.food(food) }
+        return text
+    }
+
+    /// "2,140 of 2,288 cal", "2,140 cal" without a goal, "No food logged".
+    static func food(_ day: FoodDay) -> String {
+        guard day.isLogged else { return "No food logged" }
+        let eaten = TodayFoodCopy.calories(day.eaten.calories)
+        guard let goal = day.goal else { return "\(eaten) cal" }
+        return "\(eaten) of \(TodayFoodCopy.calories(goal.calories)) cal"
     }
 }
 
-/// One day's ring: the track (dashed when a past day has nothing logged, faint ahead) with the workout mark.
+/// One day's ring: the track (dashed when a past day has nothing logged, faint ahead) with the workout mark; N5 fills
+/// it toward the day's calorie goal in the macros' colours.
 struct TodayDayRing: View {
     var day: WeekDaySummary
+    var food: FoodDay? = nil
     var size: CGFloat
     @Environment(\.look) private var look
 
@@ -104,10 +141,12 @@ struct TodayDayRing: View {
         ZStack {
             if day.isFuture {
                 Circle().stroke(look.ringTrack.opacity(0.6), lineWidth: width)
-            } else if mark == nil {
-                Circle().stroke(look.dash, style: StrokeStyle(lineWidth: max(1.5, width * 0.45), dash: [3, 3]))
-            } else {
+            } else if let food, food.isLogged {
                 Circle().stroke(look.ringTrack, lineWidth: width)
+                DayRingFood(day: food, width: width)
+            } else {
+                // Nothing logged (N5: dashed means no food, whether or not the day had a workout).
+                Circle().stroke(look.dash, style: StrokeStyle(lineWidth: max(1.5, width * 0.45), dash: [3, 3]))
             }
             if let mark {
                 Circle().fill(look.textPrimary).padding(width + 2)
@@ -317,9 +356,11 @@ struct TodayWorkoutRow: View {
         .contentShape(Rectangle())
     }
 
+    /// "7:05 AM · 55 min · 320 cal" — the calories the workout burned when a sensor measured them (N5).
     private func caption(_ input: WeekSummaryInput?) -> String {
-        let time = workout.startedAt.formatted(date: .omitted, time: .shortened)
-        guard let input else { return time }
-        return "\(time) · \(input.durationSeconds / 60) min"
+        var parts = [workout.startedAt.formatted(date: .omitted, time: .shortened)]
+        if let input { parts.append("\(input.durationSeconds / 60) min") }
+        if let burned = FoodDayMath.burned(by: workout) { parts.append("\(TodayFoodCopy.calories(burned)) cal") }
+        return parts.joined(separator: " · ")
     }
 }
