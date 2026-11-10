@@ -181,6 +181,7 @@ struct ExportCollector {
             fatGrams: food.fatGrams, fiberGrams: food.fiberGrams, sugarGrams: food.sugarGrams,
             saturatedFatGrams: food.saturatedFatGrams, sodiumMilligrams: food.sodiumMilligrams,
             servingOptions: options.isEmpty ? nil : options, isSaved: food.isSaved,
+            createdByUser: food.createdByUser, servingsPerContainer: food.servingsPerContainer,
             lastUsedAt: food.lastUsedAt.map(dateFormat.string(from:)),
             createdAt: dateFormat.string(from: food.createdAt), updatedAt: dateFormat.string(from: food.updatedAt))
     }

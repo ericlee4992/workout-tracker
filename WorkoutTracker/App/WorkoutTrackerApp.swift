@@ -141,6 +141,11 @@ struct WorkoutTrackerApp: App {
             do { try DesignSampleFixture.seedPersonalDetails(in: modelContainer.mainContext) }
             catch { assertionFailure("Personal details fixture failed: \(error)") }
         }
+        // Nutrition N4's Log food tests and captures: the user's foods and meals.
+        if FoodSampleFixture.isEnabled {
+            do { try FoodSampleFixture.seed(in: modelContainer.mainContext) }
+            catch { assertionFailure("Food sample fixture failed: \(error)") }
+        }
         // First-launch unit preference: derive from the locale measurement
         // system (US → lb, else kg). Idempotent; never blocks launch.
         do {

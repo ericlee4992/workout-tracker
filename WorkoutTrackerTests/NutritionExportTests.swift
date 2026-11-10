@@ -32,7 +32,8 @@ struct NutritionExportTests {
         let food = SavedFood(name: "Greek yogurt", brand: "Fage", barcode: "5201054017029", databaseID: "usda:123",
                              servingValue: 170, servingUnit: "g", servingGrams: 170, calories: 100,
                              proteinGrams: 18, carbsGrams: 6, fatGrams: 0.5, fiberGrams: 0, sugarGrams: 6,
-                             saturatedFatGrams: 0.2, sodiumMilligrams: 65, isSaved: true, createdAt: at(0))
+                             saturatedFatGrams: 0.2, sodiumMilligrams: 65, isSaved: true, createdByUser: true,
+                             servingsPerContainer: 4, createdAt: at(0))
         food.servingOptions = [ServingOption(value: 1, unit: "cup", grams: 227), ServingOption(value: 1, unit: "tub")]
         food.lastUsedAt = at(3_600)
         let bare = SavedFood(name: "Coffee", calories: 2, createdAt: at(10))
@@ -107,6 +108,8 @@ struct NutritionExportTests {
         let yogurt = try #require(foods.last)
         #expect(yogurt.servingOptions == rig.food.servingOptions && yogurt.databaseID == "usda:123")
         #expect(yogurt.isSaved && yogurt.lastUsedAt != nil)
+        #expect(yogurt.createdByUser == true && yogurt.servingsPerContainer == 4, "N4: My foods and per container")
+        #expect(foods.first?.createdByUser == false && foods.first?.servingsPerContainer == nil)
         #expect(foods.first?.servingOptions == nil, "no options is absent, not an empty list")
 
         let meal = try #require(snapshot.savedMeals?.first)

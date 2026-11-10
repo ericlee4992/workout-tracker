@@ -1,36 +1,41 @@
+import SwiftData
 import SwiftUI
 
 /// Nutrition N4 — Create meal (the user, 2026-11-10): makes one of **My meals** from the bottom of that tab, the same
 /// pattern as Add food on My foods. One screen: the meal's name, the meal it is usually for (Any, or one of the four;
 /// that meal's own lead My meals while it is chosen), the foods in it (each with its servings), and the user's foods to
-/// add with a + (adding one again adds a serving). As **Edit meal** it opens filled in from a meal's page. **MOCK for the user's review**: nothing is stored.
+/// add with a + (adding one again adds a serving). As **Edit meal** it opens filled in from a meal's page; entries already
+/// logged from the meal stay as they were. **MOCK for the user's review**: nothing is stored.
 /// Later N5 adds "Save as meal" to a meal on Today.
 ///
 /// The eye lands on the meal's foods and their total; the + on each food below is the action; Save meal is the one
 /// primary command at the bottom.
 struct CreateMealView: View {
-    var editing: MockMeal?
+    var editing: SavedMeal?
+    var onSaved: () -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.modelContext) private var context
+    @Query private var foods: [SavedFood]
     @State private var name: String
     @State private var usual: MealSlot?
-    @State private var items: [MockMealItem]
+    @State private var items: [MealDraftItem]
     @State private var search = ""
+    @State private var failure: String?
 
-    init(editing: MockMeal? = nil) {
+    init(editing: SavedMeal? = nil, onSaved: @escaping () -> Void) {
         self.editing = editing
+        self.onSaved = onSaved
         _name = State(initialValue: editing?.name ?? "")
-        _usual = State(initialValue: editing?.usual)
-        _items = State(initialValue: editing?.items ?? [])
+        _usual = State(initialValue: editing?.usualMeal)
+        _items = State(initialValue: editing?.orderedItems.map(MealDraftItem.init(item:)) ?? [])
     }
 
-    private var candidates: [MockFood] {
-        let foods = MockFood.all
-        guard !search.isEmpty else { return foods }
-        return foods.filter { $0.name.localizedCaseInsensitiveContains(search) }
-    }
+    private var candidates: [SavedFood] { FoodLog.matching(FoodLog.all(foods), search) }
 
-    private var totalCalories: Double { items.reduce(0) { $0 + $1.food.calories * $1.servings } }
+    private var totalCalories: Double { items.reduce(0) { $0 + $1.calories } }
+
+    private var canSave: Bool { !items.isEmpty && !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,7 +43,7 @@ struct CreateMealView: View {
                 VStack(alignment: .leading, spacing: look.space.section) {
                     LookNavTitle(editing == nil ? "Create meal" : "Edit meal")
                     LookList(separatorInset: 16) {
-                        FoodFormField("Name", text: $name, prompt: "e.g. Usual breakfast")
+                        FoodFormField("Name", text: $name, prompt: "e.g. Usual breakfast", identifier: "createMealName")
                     }
                     usualFor
                     if !items.isEmpty { mealFoods }
@@ -47,6 +52,7 @@ struct CreateMealView: View {
                         HStack(spacing: 8) {
                             Image(systemName: "magnifyingglass").foregroundStyle(look.textSecondary)
                             TextField("Search your foods", text: $search)
+                                .accessibilityIdentifier("createMealSearch")
                         }
                         .padding(14)
                         .lookSurface(.panel)
@@ -59,15 +65,28 @@ struct CreateMealView: View {
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
-            PrimaryButton("Save meal") {}
-                .padding(.horizontal, look.space.margin)
-                .padding(.vertical, 10)
-                .disabled(items.isEmpty)
-                .opacity(items.isEmpty ? 0.4 : 1)
-                .accessibilityIdentifier("createMealSave")
+            .scrollDismissesKeyboard(.interactively)
+            PrimaryButton("Save meal") {
+                do {
+                    try FoodLog.saveMeal(editing, name: name, usualMeal: usual, items: items, in: context)
+                    onSaved()
+                } catch {
+                    failure = error.localizedDescription
+                }
+            }
+            .padding(.horizontal, look.space.margin)
+            .padding(.vertical, 10)
+            .disabled(!canSave)
+            .opacity(canSave ? 1 : 0.4)
+            .accessibilityIdentifier("createMealSave")
         }
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
+        .alert(FoodCopy.saveFailed, isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(failure ?? "")
+        }
     }
 
     private var usualFor: some View {
@@ -86,29 +105,29 @@ struct CreateMealView: View {
 
     private var mealFoods: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("Foods", trailing: "\(totalCalories.formatted(.number.precision(.fractionLength(0)))) cal")
+            SectionHeader("Foods", trailing: FoodCopy.calories(totalCalories))
             LookList(separatorInset: 16) {
-                ForEach(items.indices, id: \.self) { index in itemRow(index) }
+                ForEach(items) { item in itemRow(item) }
             }
         }
         .transition(.opacity)
     }
 
-    private func itemRow(_ index: Int) -> some View {
-        let item = items[index]
+    private func itemRow(_ item: MealDraftItem) -> some View {
         let layout = typeSize.isAccessibilitySize
             ? AnyLayout(VStackLayout(alignment: .leading, spacing: 8)) : AnyLayout(HStackLayout(spacing: 12))
         return layout {
             VStack(alignment: .leading, spacing: 3) {
-                Text(item.food.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
-                Text("\((item.food.calories * item.servings).formatted(.number.precision(.fractionLength(0)))) cal · \(item.food.serving)")
+                Text(item.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
+                Text("\(FoodCopy.calories(item.calories)) · \(ServingText.format(value: item.servingValue, unit: item.servingUnit, grams: item.servingGrams))")
                     .font(look.font.footnote)
                     .foregroundStyle(look.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             HStack(spacing: 8) {
                 stepButton(item.servings <= 0.5 ? "trash" : "minus",
-                           label: item.servings <= 0.5 ? "Remove \(item.food.name)" : "Fewer servings") {
+                           label: item.servings <= 0.5 ? "Remove \(item.name)" : "Fewer servings") {
+                    guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
                     if items[index].servings <= 0.5 { items.remove(at: index) } else { items[index].servings -= 0.5 }
                 }
                 Text(item.servings.formatted(.number.precision(.fractionLength(0...1))))
@@ -116,12 +135,16 @@ struct CreateMealView: View {
                     .monospacedDigit()
                     .frame(minWidth: 28)
                     .accessibilityLabel("\(item.servings.formatted()) servings")
-                stepButton("plus", label: "More servings") { items[index].servings += 0.5 }
+                stepButton("plus", label: "More servings") {
+                    guard let index = items.firstIndex(where: { $0.id == item.id }) else { return }
+                    items[index].servings += 0.5
+                }
             }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .accessibilityIdentifier("createMealItem.\(item.food.name)")
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("createMealItem.\(item.name)")
     }
 
     private func stepButton(_ symbol: String, label: String, _ action: @escaping () -> Void) -> some View {
@@ -135,22 +158,21 @@ struct CreateMealView: View {
         .accessibilityLabel(label)
     }
 
-    private func candidateRow(_ food: MockFood) -> some View {
+    private func candidateRow(_ food: SavedFood) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(food.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
-                Text([food.brand, "\(food.calories.formatted()) cal", food.serving].compactMap(\.self)
-                    .joined(separator: " · "))
+                Text(FoodCopy.foodLine(brand: food.brand, calories: food.calories, serving: food.servingText))
                     .font(look.font.footnote)
                     .foregroundStyle(look.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Button {
                 withAnimation(.snappy) {
-                    if let index = items.firstIndex(where: { $0.food == food }) {
+                    if let index = items.firstIndex(where: { $0.savedFood?.persistentModelID == food.persistentModelID }) {
                         items[index].servings += 1
                     } else {
-                        items.append(MockMealItem(food: food, servings: 1))
+                        items.append(MealDraftItem(food: food))
                     }
                 }
             } label: {

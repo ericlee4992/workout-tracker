@@ -159,8 +159,13 @@ final class SavedFood {
     var sodiumMilligrams: Double?
     /// Other servings the food can be logged by: `[ServingOption]` as JSON. nil = only the main serving.
     var servingOptionsData: Data?
-    /// In My foods (true) or only among recent foods (false).
+    /// In Saved foods: bookmarked by the user from anywhere (D81). N2 read it as "in My foods"; nothing shipped with that
+    /// meaning (nutrition ships at R), so no row needs rewriting.
     var isSaved: Bool = false
+    /// In My foods: created by the user with Add food (D81). False for foods cached from a scan or a search (N7/N8).
+    var createdByUser: Bool = false
+    /// How many servings a package holds, when the user gave it (Add food, optional; D81).
+    var servingsPerContainer: Double?
     var lastUsedAt: Date?
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
@@ -175,7 +180,8 @@ final class SavedFood {
         servingValue: Double = 1, servingUnit: String = "serving", servingGrams: Double? = nil,
         calories: Double, proteinGrams: Double = 0, carbsGrams: Double = 0, fatGrams: Double = 0,
         fiberGrams: Double? = nil, sugarGrams: Double? = nil, saturatedFatGrams: Double? = nil,
-        sodiumMilligrams: Double? = nil, isSaved: Bool = false, createdAt: Date = .now
+        sodiumMilligrams: Double? = nil, isSaved: Bool = false, createdByUser: Bool = false,
+        servingsPerContainer: Double? = nil, createdAt: Date = .now
     ) {
         self.id = id
         self.name = name
@@ -194,6 +200,8 @@ final class SavedFood {
         self.saturatedFatGrams = saturatedFatGrams
         self.sodiumMilligrams = sodiumMilligrams
         self.isSaved = isSaved
+        self.createdByUser = createdByUser
+        self.servingsPerContainer = servingsPerContainer
         self.createdAt = createdAt
         self.updatedAt = createdAt
     }

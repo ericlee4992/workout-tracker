@@ -554,6 +554,9 @@ extension ExportSnapshot {
         var sodiumMilligrams: Double?
         var servingOptions: [ServingOption]?
         var isSaved: Bool
+        /// N4 (D81): in My foods. Optional so an export written before N4 still decodes (absent = false).
+        var createdByUser: Bool?
+        var servingsPerContainer: Double?
         var lastUsedAt: String?
         var createdAt: String
         var updatedAt: String

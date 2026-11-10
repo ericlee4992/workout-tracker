@@ -1,24 +1,29 @@
+import SwiftData
 import SwiftUI
 
-/// Nutrition N4 — Log Food, opened by Today's "Log food" pill. **MOCK for the user's review** (sample foods, nothing
-/// stored), in the user's structure (D81): the meal, tabs All / My foods / My meals / Saved foods, a search over the
-/// user's own foods, and a one-tap + (one serving, with Undo) on every food row. All ends with **Manual Add** (a one-off
-/// entry, name optional — Quick Add merged into it); My foods ends with **Add food** (the two-step form that creates
-/// one of My foods). Voice Log is out of scope; Scan joins in N7.
+/// Nutrition N4 — Log Food, opened by Today's "Log food" pill, in the user's structure (D81): the meal, tabs All / My
+/// foods / My meals / Saved foods, a search over the user's own foods, and a one-tap + (one serving, with Undo) on every
+/// food and meal row. All ends with **Manual Add** (a one-off entry, name optional — Quick Add merged into it); My foods
+/// with **Add food**; My meals with **Create meal**. Voice Log is out of scope; Scan joins in N7, online search in N8.
 ///
 /// The eye lands on the list (what most logs are); the + on each row is the action, quiet until tapped.
 struct LogFoodView: View {
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.modelContext) private var context
+    @Query private var foods: [SavedFood]
+    @Query private var savedMeals: [SavedMeal]
     @State private var meal = MealSlot.forTime(.now)
     @State private var tab = Tab.all
     @State private var search = ""
-    @State private var added: Set<String> = []
-    /// The name of what the last + logged (a food or a meal), for the Undo toast.
-    @State private var undo: String?
+    /// The rows whose + was tapped on this visit (they show a check until Undo).
+    @State private var logged: Set<PersistentIdentifier> = []
+    /// What the last log wrote, for the Undo toast.
+    @State private var receipt: FoodLogReceipt?
     @State private var route: Route?
-    @State private var selected: MockFood?
-    @State private var selectedMeal: MockMeal?
+    @State private var selected: SavedFood?
+    @State private var selectedMeal: SavedMeal?
+    @State private var failure: String?
 
     enum Tab: CaseIterable, Identifiable {
         case all, myFoods, myMeals, saved
@@ -35,23 +40,32 @@ struct LogFoodView: View {
 
     enum Route: Identifiable { case manualAdd, addFood, createMeal; var id: Self { self } }
 
-    private var foods: [MockFood] {
-        let base = switch tab {
-        case .all, .myMeals: MockFood.recentFoods
-        case .myFoods: MockFood.myFoods
-        case .saved: MockFood.savedFoods
+    private var searching: Bool { !search.trimmingCharacters(in: .whitespaces).isEmpty }
+
+    /// The tab's foods. Searching on All looks through every food the user has, not only the recent ones.
+    private var tabFoods: [SavedFood] {
+        switch tab {
+        case .all: searching ? FoodLog.all(foods) : FoodLog.recent(foods)
+        case .myFoods: FoodLog.mine(foods)
+        case .saved: FoodLog.saved(foods)
+        case .myMeals: []
         }
-        guard !search.isEmpty else { return base }
-        return base.filter { $0.name.localizedCaseInsensitiveContains(search) }
     }
 
-    /// The tab's own command at the bottom: Manual Add on All, Add food on My foods (D81), Create meal on My meals; none
-    /// on Saved foods. An empty My foods / My meals carries its command in its empty state instead.
+    private var shownFoods: [SavedFood] { FoodLog.matching(tabFoods, search) }
+
+    private var shownMeals: [SavedMeal] {
+        let query = search.trimmingCharacters(in: .whitespaces)
+        return FoodLog.meals(savedMeals, for: meal).filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    /// The tab's own command at the bottom: Manual Add on All, Add food on My foods, Create meal on My meals; none on
+    /// Saved foods. An empty My foods / My meals carries its command in its empty state instead.
     private var command: Route? {
         switch tab {
         case .all: .manualAdd
-        case .myFoods: MockFood.myFoods.isEmpty ? nil : .addFood
-        case .myMeals: MockFood.showsEmpty ? nil : .createMeal
+        case .myFoods: FoodLog.mine(foods).isEmpty ? nil : .addFood
+        case .myMeals: savedMeals.isEmpty ? nil : .createMeal
         case .saved: nil
         }
     }
@@ -66,45 +80,75 @@ struct LogFoodView: View {
                     searchField
                     content
                     // At accessibility sizes the command scrolls with the list: pinned, it left room for one food row.
-                    if typeSize.isAccessibilitySize, let command { commandButton(command).padding(.horizontal, -look.space.margin) }
+                    if typeSize.isAccessibilitySize, let command {
+                        commandButton(command).padding(.horizontal, -look.space.margin)
+                    }
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.interactively)
             if !typeSize.isAccessibilitySize, let command { commandButton(command) }
         }
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
-        .overlay(alignment: .bottom) { if let undo { undoToast(undo) } }
-        .navigationDestination(item: $selected) { SelectedFoodView(food: $0, meal: meal) }
-        .navigationDestination(item: $selectedMeal) { SelectedMealView(savedMeal: $0, meal: meal) }
+        .overlay(alignment: .bottom) { if let receipt { undoToast(receipt) } }
+        .sensoryFeedback(.success, trigger: receipt?.entries.first?.id) { _, new in new != nil }
+        .task(id: receipt?.entries.first?.id) {
+            // The toast leaves after a few seconds; the log stays.
+            guard receipt != nil else { return }
+            try? await Task.sleep(for: .seconds(5))
+            withAnimation(.snappy) { receipt = nil }
+        }
+        .navigationDestination(item: $selected) { food in
+            SelectedFoodView(food: food, meal: meal, source: tab == .all ? .recent : .saved) { receipt in
+                selected = nil
+                show(receipt)
+            }
+        }
+        .navigationDestination(item: $selectedMeal) { savedMeal in
+            SelectedMealView(savedMeal: savedMeal, meal: meal,
+                             onLogged: { receipt in selectedMeal = nil; show(receipt) },
+                             onDeleted: { selectedMeal = nil })
+        }
         .navigationDestination(item: $route) { route in
             switch route {
-            case .manualAdd: ManualAddView(meal: meal)
-            case .addFood: AddFoodView()
-            case .createMeal: CreateMealView()
+            case .manualAdd: ManualAddView(meal: meal) { receipt in self.route = nil; show(receipt) }
+            case .addFood: AddFoodView { _ in self.route = nil }
+            case .createMeal: CreateMealView { self.route = nil }
             }
+        }
+        .alert(FoodCopy.saveFailed, isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(failure ?? "")
         }
     }
 
     @ViewBuilder private var content: some View {
         switch tab {
-        case .myMeals where MockFood.myMeals.isEmpty && search.isEmpty:
+        case .myMeals where savedMeals.isEmpty:
             EmptyStateView(symbol: "takeoutbag.and.cup.and.straw", title: "No meals yet",
                            message: "Save foods you eat together, then log them in one tap.",
                            actionTitle: "Create meal") {
                 route = .createMeal
             }
-        case .myMeals: myMeals
-        case .myFoods where foods.isEmpty && search.isEmpty:
+        case .myFoods where FoodLog.mine(foods).isEmpty:
             EmptyStateView(symbol: "fork.knife", title: "No foods yet",
                            message: "Add a food once, then log it in one tap.", actionTitle: "Add food") {
                 route = .addFood
             }
-        case .saved where foods.isEmpty && search.isEmpty:
+        case .saved where FoodLog.saved(foods).isEmpty:
             EmptyStateView(symbol: "bookmark", title: "No saved foods",
                            message: "Tap the bookmark on any food to keep it here.")
+        case .all where !searching && FoodLog.recent(foods).isEmpty:
+            EmptyStateView(symbol: "clock", title: "Nothing logged yet",
+                           message: "Foods you log appear here.")
+        case .myMeals where shownMeals.isEmpty, .all where shownFoods.isEmpty, .myFoods where shownFoods.isEmpty,
+             .saved where shownFoods.isEmpty:
+            ContentUnavailableView.search(text: search)
+        case .myMeals: myMeals
         default: foodList
         }
     }
@@ -121,28 +165,28 @@ struct LogFoodView: View {
     private var tabBar: some View {
         // Scrolls at accessibility sizes, where "Saved foods" lies past the edge; the chosen tab is scrolled into view.
         ScrollViewReader { proxy in
-        ScrollView(.horizontal) {
-            HStack(spacing: 22) {
-                ForEach(Tab.allCases) { item in
-                    Button { withAnimation(.snappy) { tab = item } } label: {
-                        VStack(spacing: 8) {
-                            Text(item.title)
-                                .font(.system(.body, weight: tab == item ? .semibold : .medium))
-                                .foregroundStyle(tab == item ? look.textPrimary : look.textSecondary)
-                            Capsule().fill(tab == item ? look.textPrimary : .clear).frame(height: 2)
+            ScrollView(.horizontal) {
+                HStack(spacing: 22) {
+                    ForEach(Tab.allCases) { item in
+                        Button { withAnimation(.snappy) { tab = item } } label: {
+                            VStack(spacing: 8) {
+                                Text(item.title)
+                                    .font(.system(.body, weight: tab == item ? .semibold : .medium))
+                                    .foregroundStyle(tab == item ? look.textPrimary : look.textSecondary)
+                                Capsule().fill(tab == item ? look.textPrimary : .clear).frame(height: 2)
+                            }
+                            .fixedSize()
+                            .frame(minHeight: 44)
                         }
-                        .fixedSize()
-                        .frame(minHeight: 44)
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(tab == item ? .isSelected : [])
+                        .accessibilityIdentifier("logFoodTab.\(item.title)")
+                        .id(item)
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityAddTraits(tab == item ? .isSelected : [])
-                    .accessibilityIdentifier("logFoodTab.\(item.title)")
-                    .id(item)
                 }
             }
-        }
-        .scrollIndicators(.hidden)
-        .onChange(of: tab) { _, item in withAnimation(.snappy) { proxy.scrollTo(item, anchor: .center) } }
+            .scrollIndicators(.hidden)
+            .onChange(of: tab) { _, item in withAnimation(.snappy) { proxy.scrollTo(item, anchor: .center) } }
         }
     }
 
@@ -150,6 +194,7 @@ struct LogFoodView: View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(look.textSecondary)
             TextField("Search your foods", text: $search)
+                .submitLabel(.search)
                 .accessibilityIdentifier("logFoodSearch")
         }
         .padding(14)
@@ -158,97 +203,78 @@ struct LogFoodView: View {
 
     private var foodList: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader(tab == .all ? "Recently logged" : tab.title)
+            SectionHeader(tab == .all ? (searching ? "Your foods" : "Recently logged") : tab.title)
             LookList(separatorInset: 16) {
-                ForEach(foods) { food in foodRow(food) }
+                ForEach(shownFoods) { food in
+                    logRow(title: food.name,
+                           subtitle: FoodCopy.foodLine(brand: food.brand, calories: food.calories,
+                                                       serving: food.servingText),
+                           id: food.persistentModelID, identifier: food.name,
+                           open: { selected = food },
+                           log: { try FoodLog.log(food, meal: meal, source: tab == .all ? .recent : .saved, in: context) })
+                }
             }
         }
-    }
-
-    private func foodRow(_ food: MockFood) -> some View {
-        HStack(spacing: 12) {
-            Button { selected = food } label: {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(food.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
-                    Text([food.brand, "\(food.calories.formatted()) cal", food.serving].compactMap(\.self)
-                        .joined(separator: " · "))
-                        .font(look.font.footnote)
-                        .foregroundStyle(look.textSecondary)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("logFoodRow.\(food.name)")
-            Button {
-                withAnimation(.snappy) {
-                    added.insert(food.name)
-                    undo = food.name
-                }
-            } label: {
-                Image(systemName: added.contains(food.name) ? "checkmark" : "plus")
-                    .font(.system(.body, weight: .semibold))
-                    .foregroundStyle(added.contains(food.name) ? look.onAction : look.textPrimary)
-                    .frame(width: 44, height: 44)
-                    .background(added.contains(food.name) ? look.action : look.ground, in: Circle())
-                    .contentTransition(.symbolEffect(.replace))
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Log one serving of \(food.name)")
-            .accessibilityIdentifier("logFoodAdd.\(food.name)")
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-    }
-
-    /// My meals, the chosen meal's own first (a meal usually for Breakfast leads while Breakfast is chosen).
-    private var meals: [MockMeal] {
-        let all = MockFood.myMeals.filter { search.isEmpty || $0.name.localizedCaseInsensitiveContains(search) }
-        return all.filter { $0.usual == meal } + all.filter { $0.usual != meal }
     }
 
     private var myMeals: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("My meals")
             LookList(separatorInset: 16) {
-                ForEach(meals) { item in mealRow(item) }
+                ForEach(shownMeals) { item in
+                    logRow(title: item.name,
+                           subtitle: "\(FoodCopy.calories(item.macros.calories)) · \(item.orderedItems.map(\.name).joined(separator: ", "))",
+                           id: item.persistentModelID, identifier: "meal.\(item.name)",
+                           open: { selectedMeal = item },
+                           log: { try FoodLog.log(item, meal: meal, in: context) })
+                }
             }
         }
     }
 
-    private func mealRow(_ item: MockMeal) -> some View {
-        HStack(spacing: 12) {
-            Button { selectedMeal = item } label: {
+    /// A food or meal row: tapping it opens it; its + logs it at once, with Undo.
+    private func logRow(title: String, subtitle: String, id: PersistentIdentifier, identifier: String,
+                        open: @escaping () -> Void, log: @escaping () throws -> FoodLogReceipt) -> some View {
+        let done = logged.contains(id)
+        return HStack(spacing: 12) {
+            Button(action: open) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(item.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
-                    Text("\(item.macros.calories.formatted(.number.precision(.fractionLength(0)))) cal · \(item.detail)")
-                        .font(look.font.footnote)
-                        .foregroundStyle(look.textSecondary)
+                    Text(title).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
+                    Text(subtitle).font(look.font.footnote).foregroundStyle(look.textSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityIdentifier("logFoodMealRow.\(item.name)")
+            .accessibilityIdentifier("logFoodRow.\(identifier)")
             Button {
-                withAnimation(.snappy) {
-                    added.insert(item.name)
-                    undo = item.name
+                do {
+                    let receipt = try log()
+                    withAnimation(.snappy) {
+                        logged.insert(id)
+                        self.receipt = receipt
+                    }
+                } catch {
+                    failure = error.localizedDescription
                 }
             } label: {
-                Image(systemName: added.contains(item.name) ? "checkmark" : "plus")
+                Image(systemName: done ? "checkmark" : "plus")
                     .font(.system(.body, weight: .semibold))
-                    .foregroundStyle(added.contains(item.name) ? look.onAction : look.textPrimary)
+                    .foregroundStyle(done ? look.onAction : look.textPrimary)
                     .frame(width: 44, height: 44)
-                    .background(added.contains(item.name) ? look.action : look.ground, in: Circle())
+                    .background(done ? look.action : look.ground, in: Circle())
                     .contentTransition(.symbolEffect(.replace))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Log \(item.name)")
-            .accessibilityIdentifier("logFoodMealAdd.\(item.name)")
+            .accessibilityLabel("Log \(title)")
+            .accessibilityIdentifier("logFoodAdd.\(identifier)")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
+    }
+
+    private func show(_ receipt: FoodLogReceipt) {
+        withAnimation(.snappy) { self.receipt = receipt }
     }
 
     private func commandButton(_ command: Route) -> some View {
@@ -270,20 +296,28 @@ struct LogFoodView: View {
         .padding(.vertical, 10)
     }
 
-    private func undoToast(_ name: String) -> some View {
+    private func undoToast(_ receipt: FoodLogReceipt) -> some View {
         HStack(spacing: 12) {
-            Text("Logged \(name) to \(meal.label)")
+            Text(FoodCopy.logged(receipt, to: receipt.entries.first?.meal ?? meal))
                 .font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(look.onAction)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("logFoodToast")
             Button("Undo") {
-                withAnimation(.snappy) {
-                    added.remove(name)
-                    undo = nil
+                do {
+                    try FoodLog.undo(receipt, in: context)
+                    withAnimation(.snappy) {
+                        receipt.food.map { logged.remove($0.persistentModelID) }
+                        receipt.meal.map { logged.remove($0.persistentModelID) }
+                        self.receipt = nil
+                    }
+                } catch {
+                    failure = error.localizedDescription
                 }
             }
             .font(.system(.subheadline, weight: .bold))
             .foregroundStyle(look.onAction)
+            .frame(minHeight: 44)
             .accessibilityIdentifier("logFoodUndo")
         }
         .padding(.horizontal, 18)
