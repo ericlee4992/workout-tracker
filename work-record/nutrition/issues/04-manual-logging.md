@@ -39,7 +39,18 @@ Log food by hand quickly: from recent and saved foods with one tap, or by enteri
 
 ## Progress
 
+**Structure (the user, 2026-11-10, D81):** tabs All / My foods / My meals / Saved foods; **My foods** = created by
+the user via **Add food** at the bottom of that tab (two-step form like the user's reference: brand (optional),
+description, serving size, servings per container (optional) → Next → calories, protein, carbs, total fat, saturated
+fat, … → Save food); **Saved foods** = bookmarks from anywhere (incl. My foods); **Manual Add** (All tab) logs a
+one-off entry, creates no food, name optional — **Quick Add merged into it**. Meals kept (preset by time). Wording of
+the first mock approved. Data: `SavedFood` + "made by the user" + optional servings per container (additive, pre-R).
+
 **The user (2026-11-10):** N4 adds Today's **"Log food" pill** now (N5 builds Today's food area around it); the Log
 Food screens are **mocked with sample data and shown first**, then wired.
+
+**Handoff (2026-11-10):** mock v1 at `5f36999` (pill, Log food with chips/tabs/search/recent +/Undo/My meals,
+Selected food, Manual Add, Quick Add; `LogFoodUITests`; captures in the old session's scratchpad — re-run the test to
+regenerate). Rework to D81 next (see STATE → Next), then show the user, then wire.
 
 ## Comments

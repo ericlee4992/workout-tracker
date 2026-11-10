@@ -1,17 +1,29 @@
 # Current project state
 
-Updated **2026-11-10, session 2** (N1, N2, S6, N3 merged, `main` `e471c11`; N4 next; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-10, handoff** (N1, N2, S6, N3 merged, `main` `e471c11`; N4 mock in progress; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-10, session 2) — N3 merged into `main` `e471c11`; N4 next.** N1, N2, S6, N3 merged (N3:
-  calculation, Personal details (D80), dated goals, Nutrition goals page, onboarding goals sheet; Codex clear round 3;
-  strings approved). **N4** on `ericlee4992/nutrition-04-log-food` off `main` —
-  [ticket](../work-record/nutrition/issues/04-manual-logging.md). N5 also gets Today's "Set your goals" invitation
-  (the user, "Both"). **Codex:** open a fresh session for N4 (`term_6ce8444b-…` is ~75% full). New rule (the user,
-  2026-11-09): 2 parallel UI workers, and never run builds/tests while Codex's run is going. Still to ask: the four
-  N1 strings; N6's deploy + GPT-6.1 Terra switch. Auto-handoff off (the user).
+- **Resume here (2026-11-10, handoff after session 2) — N4 mock in progress** on `ericlee4992/nutrition-04-log-food`
+  (pushed). `main` = `origin/main` = `e471c11` (N1, N2, S6, N3 merged — N3: goals, Personal details D80, onboarding
+  goals sheet; Codex clear round 3). **N4 so far:** Today's "Log food" pill (built in N4 by the user's choice) and a
+  first mock of Log food / Selected food / Manual Add / Quick Add with sample data (`Features/Food/`, `5f36999`;
+  `LogFoodUITests` captures; wording approved; meals kept). **Then the user restructured it (D81):** tabs All / My
+  foods / My meals / Saved foods; **My foods** = foods the user creates via **Add food** at the bottom of that tab
+  (two-step form like the user's reference: brand (optional), description, serving size, servings per container
+  (optional) → Next → calories, protein, carbs, total fat, saturated fat, … → Save food); **Saved foods** = bookmarks
+  from anywhere (incl. My foods); **Manual Add** (All tab) logs a one-off entry, creates no food, name optional —
+  **Quick Add merged into it**. **Next, in order:** (1) rework the mock to D81 (My foods + Add food two-step form,
+  "Saved foods" tab, Manual Add with optional name, remove Quick Add), capture light/default + dark/AXL, send to the
+  user (SendUserFile + Preview) and get approval of the new screens/wording; (2) wire it: `SavedFood` + a "made by the
+  user" marker and optional servings per container (additive; guard pin moves, export v12 fields), recent/saved/My
+  foods queries, one-tap + logs one serving with Undo, Selected food logs servings, Manual Add logs one-off entries,
+  edit/delete entries with Undo, My meals save/log; unit + UI tests; captures; (3) Codex in a **fresh** session (the
+  old `term_6ce8444b-…` is ~75% full) — brief like `work-record/nutrition/codex-review-n3-prompt.md`; 2 workers, and
+  run nothing while Codex runs (the user's rule, DEVELOPMENT); (4) the user's OK on any extra strings, then merge.
+  Then N5 (Today's food area + the "Set your goals" invitation). Still to ask: the four N1 strings; N6's deploy +
+  GPT-6.1 Terra switch. Auto-handoff off (the user).
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
   deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,
