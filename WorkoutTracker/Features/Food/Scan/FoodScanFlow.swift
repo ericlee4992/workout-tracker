@@ -328,7 +328,7 @@ private struct FoodScanSignIn: View {
                 VStack(spacing: 22) {
                     ScanGlyphDisc(symbol: "person.crop.circle", size: typeSize.isAccessibilitySize ? 88 : 108,
                                   glyphFont: .system(size: typeSize.isAccessibilitySize ? 34 : 42, weight: .semibold))
-                    Text("Sign in to scan food with AI.")
+                    Text("Sign in to scan food.")
                         .font(look.font.title2)
                         .foregroundStyle(look.textPrimary)
                         .multilineTextAlignment(.center)

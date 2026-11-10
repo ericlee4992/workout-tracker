@@ -83,9 +83,9 @@ stacks photo over text, rows stack, the percent is capped inside its ring).
 "We'll notify you when done!", "No food found" / "Try a closer photo, or add it by hand.", "Daily limit reached" /
 "30 meal photos a day. More at 7:00 PM.", "Couldn't analyze" / "No connection. Your photo is kept until you try
 again.", Retake / Try again, "Fit your meal in the frame" / "Point at a barcode" / "Fit the Nutrition Facts in the box",
-"Sign in to scan food with AI.", "Camera access is off" / "Allow the camera in
+"Sign in to scan food.", "Camera access is off" / "Allow the camera in
 Settings, or choose a photo of your meal." / "Choose a photo", "Reading the label…", "From the label" / "Check the
-numbers, name it, log it.", "Save to My foods", "Estimate “…”" / "With AI · logs to Dinner", "Photo · 5 items",
+numbers, name it, log it.", "Save to My foods", "Estimate “…”" / "Logs to Dinner", "Photo · 5 items",
 "Items", "Add item", "Portion", "Weight", "Remove Item", "Delete Photo and Items".
 
 **Decided (the user, 2026-11-10 → D83):** (1) option **A**, one entry named for the meal; (2) the name from the server

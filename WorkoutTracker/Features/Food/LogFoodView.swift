@@ -180,7 +180,7 @@ struct LogFoodView: View {
         }
     }
 
-    /// N7: what was typed, estimated by AI (food-describe) — logged at once like a meal photo, its card on Today.
+    /// N7: what was typed, estimated by the server (food-describe; no "AI" in the wording — the user, D83) — logged at once like a meal photo, its card on Today.
     private var describeRow: some View {
         let text = search.trimmingCharacters(in: .whitespaces)
         return Button {
@@ -199,7 +199,7 @@ struct LogFoodView: View {
                         .font(.system(.body, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
                         .lineLimit(3)
-                    Text("With AI · logs to \(meal.label)")
+                    Text("Logs to \(meal.label)")
                         .font(look.font.footnote)
                         .foregroundStyle(look.textSecondary)
                 }
