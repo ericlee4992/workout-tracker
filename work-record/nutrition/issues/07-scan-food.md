@@ -14,7 +14,8 @@ Point the camera at a meal or a nutrition label, check the estimate, and log it.
 ## Scope
 
 - **Camera** with modes **Scan food | Barcode | Food label** (Barcode is wired in N8). Photo library pick as well.
-- **Consent:** the first scan explains that the photo goes to the server for one estimate and is not kept (D56's
+- **Consent:** the first scan explains that the photo goes to the server for one estimate and is not kept there — a
+  logged meal photo stays on the phone with its entry (D82) — (D56's
   pattern); sign-in required for AI (as today).
 - **Meal photo → progress card → logged at once (D82, the user 2026-11-10, from a reference screenshot):** Today's
   log shows a card — the blurred photo with an estimated percent ring, "Analyzing image", skeleton lines, "We'll notify
