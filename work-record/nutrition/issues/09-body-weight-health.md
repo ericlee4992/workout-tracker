@@ -1,7 +1,7 @@
 # N9 — Body weight logging and Apple Health
 
 Type: feature
-Status: **N9a in progress** (2026-11-10) — in the user's plan (N3 … N10 → R); split by Claude overnight: **N9a** body weight logging (now), **N9b** Apple Health (next — its usage strings need the user's wording approval)
+Status: **N9a done — Codex clear (round 2), merged** (2026-11-10); **N9b (Apple Health) next** — in the user's plan (N3 … N10 → R); split by Claude overnight: **N9a** body weight logging (now), **N9b** Apple Health (next — its usage strings need the user's wording approval)
 Blocked by: N2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-09-weight-health` off `main`.
@@ -73,4 +73,8 @@ of doing nothing; (3) README "Body weight" item. Tests: `anUnchangedFigureKeepsI
 `recalculateClearsTypedNumbersAndUsesTheLatestWeight` (overridden goal; incomplete details throw); the UI flow now taps
 Recalculate and sees the offer go, then come back after deleting. `BodyWeightLogTests` 5 × 10 = 50/50 (`n9u2.xcresult`);
 `BodyWeightUITests` 3/3 (`n9ui3.xcresult`).
+
+**Round 2 (`codex-review-n9a-b.md`): clear** — reviewer's Unit 1,211 / 1,227 executions, BodyWeightUITests 3/3 +
+warm-up. N9a merged into `main` by the user's standing permission. **N9b** (Apple Health) is next, held for the
+morning: its usage strings need the user's wording, and Codex's weekly limit was at 18 %.
 

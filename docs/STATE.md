@@ -5,18 +5,17 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-10, morning handoff after the overnight run).** `main` = `origin/main` = `d38cf18`: **N4**
+- **Resume here (2026-11-10, morning handoff after the overnight run).** `main` = `origin/main` = (see `git log`; after N9a): **N4**
   (Log food: My foods / My meals / Saved foods / Manual Add, D81; Delete Food), **N5** (Today's food: fuel card, rings,
   log by meal, edit/delete entries with Undo, Set your goals) and **N6 code** (server food flows, GPT-6.1 Terra, migration
   0007, privacy draft) — each Codex-clear and merged under the user's standing permission ("merge whenever Codex clear").
-  **In progress:** **N9a** (Body weight page + Log weight sheet + Recalculate offer) on
-  `ericlee4992/nutrition-09-weight-health` in this worktree — built, tests green, Codex review next (brief
-  `work-record/nutrition/codex-review-n9a-prompt.md`). **N9b** (Apple Health) not started (split, see N9's ticket).
+  **N9a** (Body weight page + Log weight sheet + Recalculate offer) — Codex clear round 2, merged too. **Next: N9b**
+  (Apple Health; not started — its usage strings need the user's wording; split, see N9's ticket), then N10.
   **For the user in the morning:** (1) N6 deploy gates — a real sample per flow (all six) on `gpt-6.1-terra` with costs,
   the privacy wording + `POLICY_EFFECTIVE_DATE`, then `migrate:remote` before `deploy` (N6 ticket; no local OpenAI key
   exists, so Claude could not run them); (2) new strings and own decisions listed in the N5 and N9 tickets; (3) N9: should
   the goal follow the weight on every Nutrition goals visit (N3's refresh) or only on Recalculate?; (4) Codex's weekly
-  limit was ~23 % at 06:30. Codex terminal: `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~50 %
+  limit was ~18 % at 07:15. Codex terminal: `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~50 %
   context). N6's worktree `…/Health App/nutrition-06-server` is kept for the deploy. Auto-handoff on (the user).
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
