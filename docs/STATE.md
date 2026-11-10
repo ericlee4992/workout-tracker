@@ -15,8 +15,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   (optional) → Next → calories, protein, carbs, total fat, saturated fat, … → Save food); **Saved foods** = bookmarks
   from anywhere (incl. My foods); **Manual Add** (All tab) logs a one-off entry, creates no food, name optional —
   **Quick Add merged into it**. **Mock v2 (D81) + Create/Edit/Delete meal approved; wired** (2026-11-10; unit plan 1213/0, Log food UI 8/8; entry
-edit/delete + Today totals moved to N5; see the ticket's Progress). **Now: Codex review round 1** in a fresh Orca
-terminal, brief `work-record/nutrition/codex-review-n4-prompt.md`, report `codex-review-n4.md`; run nothing meanwhile.
+edit/delete + Today totals moved to N5; see the ticket's Progress). **N4 done:** Codex clear round 2, merged into `main`.
+  Codex terminal for every review: `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~22% context).
+  **Next: N5** on `ericlee4992/nutrition-05-today`.
 The user (night of 11-10): strings OK, Delete Food… yes (after round 1), edit/delete entries + totals → N5.
   **Overnight mandate (the user, 2026-11-10):** keep working through tickets while the user sleeps; decide minor things
   and record them; stop only for answers that are really the user's. Plan: N4 (Codex to clear, merge) → N5 → N9 →

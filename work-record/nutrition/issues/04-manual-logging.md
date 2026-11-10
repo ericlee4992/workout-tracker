@@ -1,7 +1,7 @@
 # N4 — Log Food: search, recent, saved, quick add, selected food, one-tap + with Undo
 
 Type: feature
-Status: **approved** (the user, 2026-11-09: "S6 → N3 → N4 → N5", recorded in STATE); My meals included (N2)
+Status: **done — Codex clear (round 2), merged** (2026-11-10); approved by the user 2026-11-09; My meals included (N2)
 Blocked by: N2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-04-log-food` off `main`.
@@ -141,5 +141,9 @@ and meals with it are kept." (string decided by Claude), entries and meal items 
 is gone still removes the entry. Own decision: "1e3 g" reads as a unit text ("1 × e3 g"), not scientific notation.
 Evidence: build exit 0; `FoodLogTests` 16 × 10 iterations, 160/160 (`unit3.xcresult`); Log food UI 9/9 (`ui4.xcresult`,
 2 workers); README capture 1/1; captures looked at (Selected food facts expanded, light/default + dark/AXL).
+
+**Codex round 2 (`codex-review-n4b.md`): clear** — 0 findings; reviewer's Unit 1,200 definitions / 1,216 executions,
+UI 11/11 (`/tmp/codex-n4/round2/`). Merged into `main` by the user's standing permission (2026-11-10: "merge whenever
+Codex clear").
 
 ## Comments
