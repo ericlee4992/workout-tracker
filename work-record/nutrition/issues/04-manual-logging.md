@@ -39,6 +39,7 @@ Log food by hand quickly: from recent and saved foods with one tap, or by enteri
 
 ## Progress
 
-Not started.
+**The user (2026-11-10):** N4 adds Today's **"Log food" pill** now (N5 builds Today's food area around it); the Log
+Food screens are **mocked with sample data and shown first**, then wired.
 
 ## Comments

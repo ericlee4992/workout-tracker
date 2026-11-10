@@ -51,6 +51,8 @@ struct TodayView: View {
         GymSelection.resolve(id: AppPreferences.canonical(of: allPreferences)?.selectedGymID, among: gyms)
     }
 
+    @State private var showLogFood = false
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -70,6 +72,9 @@ struct TodayView: View {
             } action: { _, past in
                 withAnimation(.easeInOut(duration: 0.18)) { titleInBar = past }
             }
+            // N4 (D68; built early by the user's choice, 2026-11-10): Log food above the tab bar, Today only.
+            .safeAreaInset(edge: .bottom) { LogFoodPill { showLogFood = true } }
+            .navigationDestination(isPresented: $showLogFood) { LogFoodView() }
             .lookScreenBackground()
             .exercisesInlineTitle("Today", visible: titleInBar)
             .workoutStartFlow(request: $startRequest, gym: selectedGym, onWorkoutStarted: onWorkoutStarted)
