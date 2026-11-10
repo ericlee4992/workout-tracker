@@ -23,7 +23,8 @@ const label = {
   carbs: 37, fat: 8, saturatedFat: 1, fiber: 4, sugar: 12, sodiumMg: 160,
 };
 let overrides: Record<string, unknown> = {};
-const replyFor = (name: string) => overrides[name] ?? (name === "food_label" ? label : { items: [item] });
+const meal = { mealName: "Grilled chicken", items: [item] };
+const replyFor = (name: string) => overrides[name] ?? (name === "food_label" ? label : meal);
 beforeEach(() => { overrides = {}; });
 
 const inputs = {
@@ -38,13 +39,17 @@ describe("the server owns each food flow's request", () => {
   it("food-photo: the photo inline, the note as data, the items schema, medium effort", async () => {
     const response = await ai("food-photo", inputs["food-photo"]);
     expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ result: { items: [item] } });
+    expect(await response.json()).toEqual({ result: meal });
     const body = h.openai.calls[0]!.body as any;
     expect(body).toMatchObject({ model: FOOD_MODEL, store: false, reasoning: { effort: "medium" }, max_output_tokens: 8000 });
     expect(FOOD_MODEL).toBe("gpt-6.1-terra");
     expect(body.instructions).toMatch(/^Estimate the food in one meal photograph/);
     expect(body.text.format).toMatchObject({ type: "json_schema", name: "food_items", strict: true });
     expect(body.text.format.schema.properties.items.items.properties.confidence.enum).toEqual(["high", "medium", "low"]);
+    // N7 (D83): the meal's name, required like every property of a strict schema.
+    expect(body.text.format.schema.properties.mealName).toEqual({ type: "string" });
+    expect(body.text.format.schema.required).toContain("mealName");
+    expect(body.instructions).toMatch(/mealName/);
     expect(body.input[0].content).toEqual([
       { type: "input_text", text: JSON.stringify({ note: "half eaten" }) },
       { type: "input_image", image_url: `data:image/jpeg;base64,${JPEG_B64}`, detail: "high" },
@@ -113,11 +118,14 @@ describe("food inputs are checked before any slot or OpenAI call", () => {
 
 describe("replies outside a plate's bounds are ai_invalid, not a success", () => {
   it.each([
-    ["negative calories", { items: [{ ...item, calories: -5 }] }],
-    ["too many items", { items: Array(16).fill(item) }],
-    ["an empty name", { items: [{ ...item, name: " " }] }],
-    ["an unknown confidence", { items: [{ ...item, confidence: "sure" }] }],
-    ["an absurd weight", { items: [{ ...item, grams: 50_000 }] }],
+    ["negative calories", { mealName: "x", items: [{ ...item, calories: -5 }] }],
+    ["too many items", { mealName: "x", items: Array(16).fill(item) }],
+    ["an empty name", { mealName: "x", items: [{ ...item, name: " " }] }],
+    ["an unknown confidence", { mealName: "x", items: [{ ...item, confidence: "sure" }] }],
+    ["an absurd weight", { mealName: "x", items: [{ ...item, grams: 50_000 }] }],
+    ["no meal name", { items: [item] }],
+    ["a blank meal name with items", { mealName: "  ", items: [item] }],
+    ["a meal name over 60 characters", { mealName: "x".repeat(61), items: [item] }],
   ])("food items: %s", async (_, reply) => {
     overrides.food_items = reply;
     const response = await ai("food-describe", inputs["food-describe"]);
@@ -127,8 +135,8 @@ describe("replies outside a plate's bounds are ai_invalid, not a success", () =>
   });
 
   it("no food in the photo is a valid empty answer", async () => {
-    overrides.food_items = { items: [] };
-    expect(await (await ai("food-photo", inputs["food-photo"])).json()).toEqual({ result: { items: [] } });
+    overrides.food_items = { mealName: "", items: [] };
+    expect(await (await ai("food-photo", inputs["food-photo"])).json()).toEqual({ result: { mealName: "", items: [] } });
   });
 
   it("a label: nulls for what is not printed are valid; a negative or a string is not", async () => {
