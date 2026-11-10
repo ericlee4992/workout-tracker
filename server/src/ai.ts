@@ -9,8 +9,11 @@ import { newYorkDay, nextNewYorkMidnight } from "./time";
 // the flow's input as structured JSON (the exercise list, the plate, the routine request; for a scan, one JPEG) and
 // keeps validating every reply itself. Nothing of an input or a reply is stored or logged — only counts.
 
-/** D79 (nutrition N6): every flow on GPT-6.1 Terra — OpenAI's model page gives the API id `gpt-6.1-terra`. */
-export const MODEL = "gpt-6.1-terra";
+/** D79 as amended by the user (2026-11-10, N6): the training flows stay on GPT-5.6 Terra — GPT-6.1 Terra answered them
+ *  3–4× slower in the live check (scan 7.2 s vs 1.4–1.7 s) — and only the food flows use GPT-6.1 Terra
+ *  (`gpt-6.1-terra`, OpenAI's model page). */
+export const TRAINING_MODEL = "gpt-5.6-terra";
+export const FOOD_MODEL = "gpt-6.1-terra";
 export const OPENAI_URL = "https://api.openai.com/v1/responses";
 /** The server answers before the app gives up; OpenAI's reasoning replies can take most of a minute. */
 export const OPENAI_TIMEOUT_MS = 60_000;
@@ -24,6 +27,12 @@ export const DAILY_LIMITS: Record<Flow, number> = {
   "scan-machine": 60, "routine-week": 10, "model-exercises": 60, "food-photo": 30, "food-label": 30, "food-describe": 60,
 };
 export const FLOWS = Object.keys(DAILY_LIMITS) as Flow[];
+
+/** Each flow's model (D79 as amended). */
+export const MODELS: Record<Flow, string> = {
+  "scan-machine": TRAINING_MODEL, "routine-week": TRAINING_MODEL, "model-exercises": TRAINING_MODEL,
+  "food-photo": FOOD_MODEL, "food-label": FOOD_MODEL, "food-describe": FOOD_MODEL,
+};
 /** Attempts (successful or not) per day: twice the limit, so a failure loop cannot run unbounded. */
 export const attemptCap = (flow: Flow) => DAILY_LIMITS[flow] * 2;
 
@@ -156,6 +165,7 @@ const FOOD_LABEL_SCHEMA = object({
 });
 
 interface Prepared {
+  model: string;
   /** The reply as passed on, or null when the app would refuse it (→ ai_invalid, not a success). */
   check: (result: Record<string, unknown>) => Record<string, unknown> | null;
   instructions: string;
@@ -285,6 +295,10 @@ export function jpeg(value: unknown): string {
 }
 
 export function prepare(flow: Flow, input: Record<string, unknown>): Prepared {
+  return { ...prepareInput(flow, input), model: MODELS[flow] };
+}
+
+function prepareInput(flow: Flow, input: Record<string, unknown>): Omit<Prepared, "model"> {
   switch (flow) {
     case "scan-machine": {
       const exercises = list(input.exercises, 1, MAX_EXERCISES).map((e) => {
@@ -461,7 +475,7 @@ export function openAIRequestBody(p: Prepared, slot = "IMAGE"): Record<string, u
   const content: Record<string, unknown>[] = [{ type: "input_text", text: p.text }];
   if (p.jpegBase64) content.push({ type: "input_image", image_url: `data:image/jpeg;base64,${slot}`, detail: "high" });
   return {
-    model: MODEL, store: false, instructions: p.instructions, reasoning: { effort: p.reasoningEffort },
+    model: p.model, store: false, instructions: p.instructions, reasoning: { effort: p.reasoningEffort },
     max_output_tokens: p.maxOutputTokens, input: [{ role: "user", content }],
     text: { format: { type: "json_schema", name: p.schemaName, strict: true, schema: p.schema } },
   };

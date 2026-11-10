@@ -58,7 +58,7 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   due keys 1,000 per run (at most 14 D1 statements — the expiry's two, one read, ≤ 10 deletes by id, the counter
   clean-up — and one R2 call; with the revocation retry, now 20 a run, the AI prune's two and the expired-session
   prune's one, at most 38 of Workers Free's 50 per invocation).
-- **AI** (ticket 06; signed in only): the server owns each flow's instructions, JSON schema, model (`gpt-6.1-terra` since nutrition N6, D79),
+- **AI** (ticket 06; signed in only): the server owns each flow's instructions, JSON schema, model (`gpt-5.6-terra` for the training flows, `gpt-6.1-terra` for the food flows — D79 as amended in nutrition N6),
   `store: false`, reasoning effort and output cap; the app sends only checked, bounded structured input (unknown fields
   are dropped; names and plate lines are single-line, so they cannot fabricate rows; the JPEG's structure is checked)
   and still validates every reply itself. The server also checks replies as the app does: a scan or routine the app

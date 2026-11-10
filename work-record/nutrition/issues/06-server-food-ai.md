@@ -103,6 +103,8 @@ deploy:** the user's approval of the privacy wording and its effective date; the
 `deploy`.
 
 **The user (2026-11-10): deploy everything at R (option 2)** — the model switch, the food flows, migration 0007 and the
-privacy page go live together with the release, not before; the live beta stays on GPT-5.6 Terra until then.
+privacy page go live together with the release, not before; the live beta stays on GPT-5.6 Terra until then. **And (same day): keep GPT-5.6 Terra for the existing flows; GPT-6.1
+Terra only for food** (D79 amended) — the live check's latency (above) was the reason. `MODELS` maps each flow;
+`TRAINING_MODEL` / `FOOD_MODEL`.
 
 ## Comments
