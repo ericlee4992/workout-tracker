@@ -49,8 +49,9 @@ using location, and indoor cardio may use motion data. The route stays in the ap
 the app asks Apple Maps for map imagery of the area around it; Apple’s handling of that request is covered by Apple’s
 privacy policy, and I receive nothing from it.</li>
 <li><strong>Camera and photos.</strong> You can photograph a machine or its label, a meal, or a food’s nutrition
-label, or choose a photo. The app’s own label reader works on your iPhone, and the app does not keep
-the photo. The AI features send the photo for processing, as described below; a photo leaves your iPhone only then.</li>
+label, or choose a photo. The app’s own label reader works on your iPhone. A meal photo you log is kept in the app on
+your iPhone with its entry, so your log can show it, and is deleted with the entry; other photos are not kept. The AI
+features send the photo for processing, as described below; a photo leaves your iPhone only then.</li>
 <li><strong>Your exports.</strong> Settings → Export makes a file of your workout data: JSON (the fullest record,
 including heart-rate series and routes) or CSV (a table of sets and cardio). You choose where it goes; that
 destination may be another app or service with its own policy.</li>

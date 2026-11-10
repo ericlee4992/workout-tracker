@@ -16,8 +16,15 @@ Point the camera at a meal or a nutrition label, check the estimate, and log it.
 - **Camera** with modes **Scan food | Barcode | Food label** (Barcode is wired in N8). Photo library pick as well.
 - **Consent:** the first scan explains that the photo goes to the server for one estimate and is not kept (D56's
   pattern); sign-in required for AI (as today).
-- **Meal photo → review screen:** the items found, each editable (name, portion, grams, calories, macros) or
-  removable; Add item; totals; plain, editable numbers (no "Estimated" mark — D78); choose meal and Log. Nothing is logged without Log.
+- **Meal photo → progress card → logged at once (D82, the user 2026-11-10, from a reference screenshot):** Today's
+  log shows a card — the blurred photo with an estimated percent ring, "Analyzing image", skeleton lines, "We'll notify
+  you when done!" (a notification if the app is in the background when it finishes); the result is logged straight
+  away and the card becomes the entry: photo thumbnail, name, time, calories, macros. Tap → the items screen: each item
+  editable (name, portion, grams, calories, macros) or removable, Add item, totals, plain numbers (D78), meal; delete
+  with Undo. The photo is kept on the phone with the entry (an additive stored field; deleted with the entry).
+  *Was:* a review screen with Log ("nothing is logged without Log").
+  Open for the build: one entry per item under the photo, or one grouped entry named for the meal (the reference shows
+  one, "Poke Bowl") — mock both.
 - **Food label →** cropped to the label (D53's crop) → the Selected food screen (N4) prefilled with the label's
   serving and numbers, Save to My foods offered.
 - **Describe what you ate** (the Log Food field, N4) → food-describe → the same review screen.
