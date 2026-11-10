@@ -69,4 +69,11 @@ would need fields — ask. Serving size is one text field in the mock; wiring pa
 Verification (mock): `build-for-testing` exit 0; `LogFoodUITests` 4/4 passed (2 workers, `n4b.xcresult` in the
 session scratchpad); captures light/Default + dark/AXL looked at. Not verified: anything stored (nothing is wired).
 
+**Create meal (the user, 2026-11-10: "add Create meal to the mock"):** My meals gets **Create meal** at the bottom (same
+pattern as Add food) → one screen: Name ("e.g. Usual breakfast"), "Foods" with the total calories and a servings
+−/+ per food (− at ½ serving becomes remove), "Add foods" with a search and every food with a + (again = one more
+serving), **Save meal** (disabled until a food is in). Empty My meals: "No meals yet" / "Save foods you eat together,
+then log them in one tap." / Create meal. Later N5: "Save as meal" on a Today meal. `LogFoodUITests` 4/4 passed
+(`n4c.xcresult`). Not in the mock: editing or deleting a meal; the meal's usual slot (`SavedMeal.usualMeal`).
+
 ## Comments

@@ -31,7 +31,7 @@ struct LogFoodView: View {
         }
     }
 
-    enum Route: Identifiable { case manualAdd, addFood; var id: Self { self } }
+    enum Route: Identifiable { case manualAdd, addFood, createMeal; var id: Self { self } }
 
     private var foods: [MockFood] {
         let base = switch tab {
@@ -43,13 +43,14 @@ struct LogFoodView: View {
         return base.filter { $0.name.localizedCaseInsensitiveContains(search) }
     }
 
-    /// The tab's own command at the bottom: Manual Add on All, Add food on My foods (D81); none on the others. An empty
-    /// My foods carries Add food in its empty state instead.
+    /// The tab's own command at the bottom: Manual Add on All, Add food on My foods (D81), Create meal on My meals; none
+    /// on Saved foods. An empty My foods / My meals carries its command in its empty state instead.
     private var command: Route? {
         switch tab {
         case .all: .manualAdd
         case .myFoods: MockFood.myFoods.isEmpty ? nil : .addFood
-        case .myMeals, .saved: nil
+        case .myMeals: MockFood.showsEmpty ? nil : .createMeal
+        case .saved: nil
         }
     }
 
@@ -79,12 +80,19 @@ struct LogFoodView: View {
             switch route {
             case .manualAdd: ManualAddView(meal: meal)
             case .addFood: AddFoodView()
+            case .createMeal: CreateMealView()
             }
         }
     }
 
     @ViewBuilder private var content: some View {
         switch tab {
+        case .myMeals where MockFood.showsEmpty && search.isEmpty:
+            EmptyStateView(symbol: "takeoutbag.and.cup.and.straw", title: "No meals yet",
+                           message: "Save foods you eat together, then log them in one tap.",
+                           actionTitle: "Create meal") {
+                route = .createMeal
+            }
         case .myMeals: myMeals
         case .myFoods where foods.isEmpty && search.isEmpty:
             EmptyStateView(symbol: "fork.knife", title: "No foods yet",
@@ -217,6 +225,9 @@ struct LogFoodView: View {
             case .addFood:
                 Button { route = .addFood } label: { Label("Add food", systemImage: "plus") }
                     .accessibilityIdentifier("logFoodAddFood")
+            case .createMeal:
+                Button { route = .createMeal } label: { Label("Create meal", systemImage: "plus") }
+                    .accessibilityIdentifier("logFoodCreateMeal")
             }
         }
         .buttonStyle(.lookSecondary)

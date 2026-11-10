@@ -93,7 +93,19 @@ final class LogFoodUITests: XCTestCase {
         back()
 
         tab("My meals")
-        shoot("n4-mymeals-\(tag)")
+        shootScrolled("n4-mymeals-\(tag)", large: large)
+
+        // Create meal: empty, then two foods added (one twice: a second serving).
+        if large { app.swipeUp() }
+        app.buttons["logFoodCreateMeal"].tap()
+        XCTAssertTrue(app.buttons["createMealSave"].waitForExistence(timeout: 5))
+        shoot("n4-createmeal-\(tag)")
+        app.buttons["createMealAdd.Overnight oats"].tap()
+        app.buttons["createMealAdd.Banana"].firstMatch.tap()
+        app.buttons["createMealAdd.Banana"].firstMatch.tap()
+        shootScrolled("n4-createmeal-filled-\(tag)", large: large)
+        back()
+        if large { app.swipeDown() }
         tab("Saved foods")
         XCTAssertTrue(app.buttons["logFoodRow.Overnight oats"].waitForExistence(timeout: 5))
         shoot("n4-saved-\(tag)")
@@ -110,5 +122,7 @@ final class LogFoodUITests: XCTestCase {
         shootScrolled("n4-myfoods-empty-\(tag)", large: large)
         tab("Saved foods")
         shootScrolled("n4-saved-empty-\(tag)", large: large)
+        tab("My meals")
+        shootScrolled("n4-mymeals-empty-\(tag)", large: large)
     }
 }
