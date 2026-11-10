@@ -10,17 +10,45 @@ struct SelectedFoodView: View {
     var meal: MealSlot
     var source: FoodSource
     var onLogged: (FoodLogReceipt) -> Void
+    var onDeleted: () -> Void = {}
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var context
     @State private var servings = 1.0
     @State private var showsOther = false
     @State private var editing = false
+    @State private var confirmingDelete = false
+    /// Set BEFORE the food is deleted, so a re-evaluation after the save never renders a deleted model (as
+    /// TemplateDetailView, codex-review-15).
+    @State private var deleted = false
     @State private var failure: String?
 
     private var eaten: Macros { food.macros.scaled(by: servings) }
 
     var body: some View {
+        Group {
+            if deleted { Color.clear } else { content }
+        }
+        .lookScreenBackground()
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar { if !deleted { toolbar } }
+        .navigationDestination(isPresented: $editing) { AddFoodView(editing: food) { _ in editing = false } }
+        .alert("Delete Food", isPresented: $confirmingDelete) {
+            Button("Delete", role: .destructive, action: delete)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            // The consequence, in one line: the food goes, what was logged and the meals keep their copy.
+            Text("Food already logged and meals with it are kept.")
+        }
+        .alert(FoodCopy.saveFailed, isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(failure ?? "")
+        }
+    }
+
+    private var content: some View {
         VStack(spacing: 0) {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
@@ -41,35 +69,53 @@ struct SelectedFoodView: View {
             .padding(.vertical, 10)
             .accessibilityIdentifier("selectedFoodLog")
         }
-        .lookScreenBackground()
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            if food.createdByUser {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Edit") { editing = true }
-                        .font(.system(.body, weight: .semibold))
-                        .accessibilityIdentifier("selectedFoodEdit")
-                }
-            }
+    }
+
+    @ToolbarContentBuilder private var toolbar: some ToolbarContent {
+        if food.createdByUser {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    do { try withAnimation(.snappy) { try FoodLog.setSaved(food, !food.isSaved, in: context) } }
-                    catch { failure = error.localizedDescription }
-                } label: {
-                    Image(systemName: food.isSaved ? "bookmark.fill" : "bookmark")
-                        .font(.system(.body, weight: .semibold))
-                        .foregroundStyle(food.isSaved ? look.action : look.textPrimary)
-                        .contentTransition(.symbolEffect(.replace))
-                }
-                .accessibilityLabel(food.isSaved ? "Remove from Saved foods" : "Save to Saved foods")
-                .accessibilityIdentifier("selectedFoodSave")
+                Button("Edit") { editing = true }
+                    .font(.system(.body, weight: .semibold))
+                    .accessibilityIdentifier("selectedFoodEdit")
             }
         }
-        .navigationDestination(isPresented: $editing) { AddFoodView(editing: food) { _ in editing = false } }
-        .alert(FoodCopy.saveFailed, isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(failure ?? "")
+        ToolbarItem(placement: .topBarTrailing) {
+            Button {
+                do { try withAnimation(reduceMotion ? nil : .snappy) { try FoodLog.setSaved(food, !food.isSaved, in: context) } }
+                catch { failure = error.localizedDescription }
+            } label: {
+                Image(systemName: food.isSaved ? "bookmark.fill" : "bookmark")
+                    .font(.system(.body, weight: .semibold))
+                    .foregroundStyle(food.isSaved ? look.action : look.textPrimary)
+                    .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
+            }
+            .accessibilityLabel(food.isSaved ? "Remove from Saved foods" : "Save to Saved foods")
+            .accessibilityIdentifier("selectedFoodSave")
+        }
+        if food.createdByUser {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Delete Food…", systemImage: "trash", role: .destructive) { confirmingDelete = true }
+                        .accessibilityIdentifier("deleteFood")
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(.body, weight: .semibold))
+                        .foregroundStyle(look.textPrimary)
+                }
+                .accessibilityLabel("More")
+                .accessibilityIdentifier("selectedFoodMore")
+            }
+        }
+    }
+
+    private func delete() {
+        deleted = true
+        do {
+            try FoodLog.delete(food, in: context)
+            onDeleted()
+        } catch {
+            deleted = false
+            failure = error.localizedDescription
         }
     }
 
@@ -103,14 +149,14 @@ struct SelectedFoodView: View {
                 .font(look.font.statNumber)
                 .monospacedDigit()
                 .frame(minWidth: 44)
-                .contentTransition(.numericText(value: servings))
+                .contentTransition(reduceMotion ? .opacity : .numericText(value: servings))
                 .accessibilityIdentifier("selectedFoodServings")
             stepButton("plus", label: "More servings", enabled: true) { servings += 0.5 }
         }
     }
 
     private func stepButton(_ symbol: String, label: String, enabled: Bool, _ action: @escaping () -> Void) -> some View {
-        Button { withAnimation(.snappy) { action() } } label: {
+        Button { withAnimation(reduceMotion ? nil : .snappy) { action() } } label: {
             Image(systemName: symbol).font(.system(.body, weight: .semibold))
                 .foregroundStyle(look.textPrimary)
                 .frame(width: 44, height: 44)
@@ -166,10 +212,12 @@ struct ManualAddView: View {
     @State private var fat = ""
     @State private var failure: String?
 
-    /// Calories are needed; every other number is blank or a number.
+    /// Calories are needed; every other number is blank or a number; the serving blank or one (a serving that is not
+    /// one never silently becomes "1 serving").
     private var nutrition: FoodNutrition? {
-        guard let calories = FoodNumber.parse(calories),
-              let protein = optionalNumber(protein), let carbs = optionalNumber(carbs), let fat = optionalNumber(fat) else { return nil }
+        guard ServingText.isBlank(serving) || ServingText.parse(serving) != nil,
+              let calories = FoodNumber.parse(calories),
+              let protein = FoodNumber.optional(protein), let carbs = FoodNumber.optional(carbs), let fat = FoodNumber.optional(fat) else { return nil }
         return FoodNutrition(calories: calories, proteinGrams: protein ?? 0, carbsGrams: carbs ?? 0, fatGrams: fat ?? 0)
     }
 
@@ -212,11 +260,6 @@ struct ManualAddView: View {
             Text(failure ?? "")
         }
     }
-}
-
-/// A form's optional number: `.some(nil)` when blank, `.some(value)` when a number, nil when it is not a number.
-func optionalNumber(_ text: String) -> Double?? {
-    text.trimmingCharacters(in: .whitespaces).isEmpty ? .some(nil) : FoodNumber.parse(text).map { .some($0) }
 }
 
 /// Calories, protein, carbs and fat, with the macros' own calories shown under them when they disagree with the total
@@ -323,6 +366,7 @@ struct MacroSummary: View {
     var macros: Macros
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -330,7 +374,7 @@ struct MacroSummary: View {
                 Text(macros.calories.formatted(.number.precision(.fractionLength(0))))
                     .font(look.font.heroNumber)
                     .foregroundStyle(look.textPrimary)
-                    .contentTransition(.numericText(value: macros.calories))
+                    .contentTransition(reduceMotion ? .opacity : .numericText(value: macros.calories))
                 Text("cal").font(.system(.subheadline, weight: .semibold)).foregroundStyle(look.textSecondary)
             }
             let layout = typeSize.isAccessibilitySize

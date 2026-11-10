@@ -221,10 +221,68 @@ struct FoodLogTests {
         #expect(ServingText.format(value: 0.5, unit: "cup", grams: nil) == "0.5 cup")
     }
 
+    @Test func aServingThatIsNotAPositiveAmountIsRefused() {
+        // codex-review-n4: these were stored as units ("1/0 cup" → 1 × "1/0 cup") or as infinity.
+        for text in ["1/0 cup", "-2 g", "0 g", "0/2 cup", "1/2/3 cup", "+1 cup", ".", "1 cup (0 g)", "1 cup (-5 g)",
+                     "999999/0.000001 g"] {
+            #expect(ServingText.parse(text) == nil, "\(text)")
+        }
+        #expect(ServingText.parse("2 x 50 g") == ServingText(value: 2, unit: "x 50 g"), "digits inside a unit stay")
+        #expect(ServingText.parse("cup (abc g)") == ServingText(value: 1, unit: "cup (abc g)"))
+        #expect(ServingText.isBlank("  ") && !ServingText.isBlank("jar"))
+    }
+
+    @Test func editingOneFieldKeepsTheOthersExactly() throws {
+        // codex-review-n4: a field shows its stored value rounded; unchanged, it saves the stored value, not the text.
+        let third = EditableNumber(1.0 / 3)
+        #expect(third.text == "0.33" && third.resolve("0.33") == .some(1.0 / 3))
+        #expect(third.resolve("0.5") == .some(0.5) && third.resolve("") == .some(nil) && third.resolve("x") == nil)
+        #expect(EditableNumber(nil).resolve("") == .some(nil))
+        let serving = EditableServing(value: 1.0 / 3, unit: "cup", grams: 0.004)
+        #expect(serving.text == "0.33 cup (0.004 g)")
+        #expect(serving.resolve(serving.text) == ServingText(value: 1.0 / 3, unit: "cup", grams: 0.004))
+        #expect(serving.resolve("2 cup") == ServingText(value: 2, unit: "cup"))
+        #expect(EditableServing().resolve("") == nil)
+
+        let context = try context()
+        let food = try FoodLog.createFood(
+            FoodDraft(name: "Rice", serving: ServingText(value: 1.0 / 3, unit: "cup"), servingsPerContainer: 2.75,
+                      nutrition: FoodNutrition(calories: 68.333, proteinGrams: 1.4167)), at: now, in: context)
+        let stored = EditableServing(value: food.servingValue, unit: food.servingUnit, grams: food.servingGrams)
+        let calories = EditableNumber(food.calories), protein = EditableNumber(food.proteinGrams)
+        let draft = FoodDraft(name: "Brown rice", serving: try #require(stored.resolve(stored.text)),
+                              servingsPerContainer: EditableNumber(2.75).resolve("2.75") ?? nil,
+                              nutrition: FoodNutrition(calories: try #require(calories.resolve(calories.text) ?? nil),
+                                                       proteinGrams: try #require(protein.resolve(protein.text) ?? nil)))
+        try FoodLog.update(food, with: draft, in: context)
+        #expect(food.name == "Brown rice" && food.servingValue == 1.0 / 3 && food.calories == 68.333)
+        #expect(food.proteinGrams == 1.4167 && food.servingsPerContainer == 2.75)
+    }
+
+    @Test func deletingOneOfMyFoodsKeepsWhatWasLoggedAndUndoStillWorks() throws {
+        let context = try context()
+        let food = yogurt(context)
+        let meal = try FoodLog.saveMeal(nil, name: "Snack", usualMeal: nil, items: [MealDraftItem(food: food)],
+                                        at: now, in: context)
+        let receipt = try FoodLog.log(food, meal: .snacks, at: now, in: context)
+        try FoodLog.delete(food, in: context)
+        #expect(try context.fetch(FetchDescriptor<SavedFood>()).isEmpty)
+        let entry = try #require(try entries(context).first)
+        #expect(entry.name == "Greek yogurt" && entry.savedFood == nil, "the entry keeps its copy (.nullify)")
+        #expect(meal.orderedItems.first?.name == "Greek yogurt" && meal.orderedItems.first?.savedFood == nil)
+        try FoodLog.undo(receipt, in: context)
+        #expect(try entries(context).isEmpty, "Undo after the food is gone still removes the entry")
+    }
+
     @Test func typedNumbersReadACommaAndRefuseTheRest() {
         #expect(FoodNumber.parse("12,5") == 12.5 && FoodNumber.parse(" 30 ") == 30)
         #expect(FoodNumber.parse("") == nil && FoodNumber.parse("abc") == nil && FoodNumber.parse("-3") == nil)
         #expect(FoodNumber.text(nil) == "" && FoodNumber.text(1_200) == "1200" && FoodNumber.text(0.25) == "0.25")
-        #expect(optionalNumber("") == .some(nil) && optionalNumber("4") == .some(4) && optionalNumber("x") == nil)
+        #expect(FoodNumber.optional("") == .some(nil) && FoodNumber.optional("4") == .some(4))
+        #expect(FoodNumber.optional("x") == nil)
+        #expect(FoodNumber.parse("1e3") == nil && FoodNumber.parse("1.2.3") == nil && FoodNumber.parse("+5") == nil,
+                "plain digits only (codex-review-n4)")
+        #expect(FoodNumber.parse("1000000") == 1_000_000 && FoodNumber.parse("1000001") == nil)
+        #expect(FoodNumber.text(0.004) == "0.004" && FoodNumber.text(1.0 / 3) == "0.33", "small values never read as 0")
     }
 }

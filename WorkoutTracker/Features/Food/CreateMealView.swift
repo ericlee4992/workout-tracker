@@ -15,6 +15,7 @@ struct CreateMealView: View {
     var onSaved: () -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var context
     @Query private var foods: [SavedFood]
     @State private var name: String
@@ -148,7 +149,7 @@ struct CreateMealView: View {
     }
 
     private func stepButton(_ symbol: String, label: String, _ action: @escaping () -> Void) -> some View {
-        Button { withAnimation(.snappy) { action() } } label: {
+        Button { withAnimation(reduceMotion ? nil : .snappy) { action() } } label: {
             Image(systemName: symbol).font(.system(.subheadline, weight: .semibold))
                 .foregroundStyle(look.textPrimary)
                 .frame(width: 44, height: 44)
@@ -168,7 +169,7 @@ struct CreateMealView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             Button {
-                withAnimation(.snappy) {
+                withAnimation(reduceMotion ? nil : .snappy) {
                     if let index = items.firstIndex(where: { $0.savedFood?.persistentModelID == food.persistentModelID }) {
                         items[index].servings += 1
                     } else {

@@ -16,7 +16,9 @@
         "TodayUpNextUITests",
         "TemplateDetailUITests",
         "TemplateMachinesUITests",
-        "FloodlightWorkoutTabUITests"
+        "FloodlightWorkoutTabUITests",
+        "LogFoodUITests",
+        "LogFoodFlowUITests"
       ],
       "target": {
         "containerPath": "container:WorkoutTracker.xcodeproj",

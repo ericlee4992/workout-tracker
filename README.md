@@ -25,6 +25,7 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
 <img src="docs/readme/history.png" width="150" alt="History: the month, then each day's workouts">
 <img src="docs/readme/progress.png" width="150" alt="Progress: pinned charts of a lift and a run">
 <img src="docs/readme/ai-routine.png" width="150" alt="Ask AI's suggested week of templates">
+<img src="docs/readme/log-food.png" width="150" alt="Log food: the meal, tabs, and recently logged foods with a one-tap +">
 </p>
 
 ## What it does
@@ -61,7 +62,14 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
   templates from your training profile. Each AI feature asks first and has a daily limit.
-- **Nutrition goals** *(on `main`, not yet in TestFlight; food logging still being built)*. Profile → Personal details
+- **Food logging** *(on `main`, not yet in TestFlight; Today's food totals and editing a logged entry come next)*.
+  Today's **Log food** opens the meal (preset by the time of day), tabs **All / My foods / My meals / Saved foods** and a
+  search over your own foods. Each food or meal has a **+** that logs one serving at once, with Undo; tapping a food
+  picks the servings. **Manual Add** logs a one-off entry (a name is optional, so calories alone are enough);
+  **Add food** creates one of My foods in two steps (brand, description, serving, servings per container → nutrition);
+  the bookmark keeps any food in Saved foods; **Create meal** groups foods you eat together. Each entry keeps its own
+  copy of the numbers, so editing or deleting a food or meal never changes a day already logged.
+- **Nutrition goals** *(on `main`, not yet in TestFlight)*. Profile → Personal details
   holds your weight, height, date of birth and sex — one place, also used by the heart-rate zones and Ask AI. From
   them Profile → Nutrition goals calculates daily calories, protein, carbs and fat (Mifflin–St Jeor, your activity and
   goal); type over any number, and a change dates a new goal so past days keep theirs. A new install is offered the

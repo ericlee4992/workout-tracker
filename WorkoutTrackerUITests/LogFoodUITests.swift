@@ -44,6 +44,16 @@ final class LogFoodUITests: XCTestCase {
 
     func testCaptureLightDefault() { capture(appearance: "light", large: false) }
     func testCaptureDarkAccessibility() { capture(appearance: "dark", large: true) }
+    /// README's Log food picture (docs/readme: dark, default text size, sample data).
+    func testCaptureReadme() {
+        launch(appearance: "dark", large: false, extra: foods)
+        let pill = app.buttons["logFoodPill"]
+        XCTAssertTrue(pill.waitForExistence(timeout: 15))
+        pill.tap()
+        XCTAssertTrue(app.buttons["logFoodAdd.Greek yogurt"].waitForExistence(timeout: 5))
+        shoot("readme-log-food")
+    }
+
     func testCaptureEmptyLightDefault() { captureEmpty(appearance: "light", large: false) }
     func testCaptureEmptyDarkAccessibility() { captureEmpty(appearance: "dark", large: true) }
 
@@ -95,6 +105,9 @@ final class LogFoodUITests: XCTestCase {
         app.buttons["logFoodRow.Turkey chili"].tap()
         XCTAssertTrue(app.buttons["selectedFoodLog"].waitForExistence(timeout: 5))
         shoot("n4-selected-\(tag)")
+        // codex-review-n4: the lower part and the other facts, expanded.
+        app.buttons["Other nutrition facts"].firstMatch.tap()
+        shootScrolled("n4-selected-facts-\(tag)", large: true)
         app.buttons["selectedFoodSave"].tap()
         shoot("n4-selected-saved-\(tag)")
         back()

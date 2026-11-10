@@ -47,6 +47,29 @@ final class LogFoodFlowUITests: XCTestCase {
         XCTAssertTrue(isAbove("Greek yogurt", "Banana"), "Undo puts it back where it was")
     }
 
+    func testASecondLogKeepsItsOwnUndo() {
+        // codex-review-n4: the first log's toast timer cleared the second log's Undo.
+        open(foods: true)
+        XCTAssertTrue(row("Chicken breast").waitForExistence(timeout: 5))
+        app.buttons["logFoodAdd.Banana"].tap()
+        app.buttons["logFoodAdd.Chicken breast"].tap()
+        let toast = app.staticTexts["logFoodToast"]
+        XCTAssertTrue(toast.waitForExistence(timeout: 5))
+        XCTAssertEqual(toast.label, "Logged Chicken breast to Lunch")
+        Thread.sleep(forTimeInterval: 2)  // past the moment the first log's timer was cancelled
+        XCTAssertTrue(app.buttons["logFoodUndo"].exists, "the second log still offers Undo")
+        app.buttons["logFoodUndo"].tap()
+        XCTAssertTrue(toast.waitForNonExistence(timeout: 5))
+        XCTAssertTrue(isAbove("Banana", "Greek yogurt"), "the first log stays")
+        XCTAssertTrue(isAbove("Greek yogurt", "Chicken breast"), "only the second is undone")
+        // After the toast expires, logging again shows a fresh Undo.
+        app.buttons["logFoodAdd.Overnight oats"].tap()
+        XCTAssertTrue(toast.waitForExistence(timeout: 5))
+        XCTAssertTrue(toast.waitForNonExistence(timeout: 10), "the toast leaves on its own")
+        app.buttons["logFoodAdd.Greek yogurt"].tap()
+        XCTAssertTrue(app.buttons["logFoodUndo"].waitForExistence(timeout: 5))
+    }
+
     func testSelectedFoodLogsTheServingsChosen() {
         open(foods: true)
         XCTAssertTrue(row("Greek yogurt").waitForExistence(timeout: 5))
@@ -87,6 +110,18 @@ final class LogFoodFlowUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         app.buttons["logFoodTab.Saved foods"].tap()
         XCTAssertTrue(row("Overnight oats").waitForExistence(timeout: 5), "bookmarked into Saved foods")
+
+        // Delete Food… (the user, 2026-11-10): gone from Saved foods and My foods.
+        row("Overnight oats").tap()
+        XCTAssertTrue(app.buttons["selectedFoodMore"].waitForExistence(timeout: 5))
+        app.buttons["selectedFoodMore"].tap()
+        app.buttons["deleteFood"].tap()
+        let alert = app.alerts["Delete Food"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Delete"].tap()
+        XCTAssertTrue(app.staticTexts["No saved foods"].waitForExistence(timeout: 5))
+        app.buttons["logFoodTab.My foods"].tap()
+        XCTAssertTrue(app.staticTexts["No foods yet"].waitForExistence(timeout: 5))
     }
 
     func testManualAddLogsCaloriesAloneAndAMealIsCreatedLoggedAndDeleted() {

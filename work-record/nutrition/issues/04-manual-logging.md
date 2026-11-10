@@ -131,4 +131,15 @@ looked at (`ui2shots/`). Not verified: Today totals and entry edit/delete (N5); 
 **The user (2026-11-10, night):** the new strings — OK; **Delete Food… for My foods — yes** (build after Codex round 1,
 review it in round 2); moving entry edit/delete and Today's totals to N5 — yes.
 
+**Round 1 fixes (2026-11-10, codex-review-n4.md — not clear: 5 P2, 1 P3):** toast timer clears only its own receipt
+(cancellation returns); `EditableNumber` / `EditableServing` keep untouched stored values exactly; `ServingText.parse`
+refuses non-positive / non-finite / over-1,000,000 amounts ("1/0 cup", "-2 g", "0 g", "(0 g)"), `FoodNumber.parse`
+plain digits only; Manual Add's Log disabled for a non-blank serving that does not parse; Reduce Motion in every Food
+view; README "Food logging" + `docs/readme/log-food.png`; test plans list the Log food classes and
+`NutritionGoalsUITests`. **Delete Food…** for My foods (the user): "…" menu, alert "Delete Food" / "Food already logged
+and meals with it are kept." (string decided by Claude), entries and meal items keep their copy; Undo after the food
+is gone still removes the entry. Own decision: "1e3 g" reads as a unit text ("1 × e3 g"), not scientific notation.
+Evidence: build exit 0; `FoodLogTests` 16 × 10 iterations, 160/160 (`unit3.xcresult`); Log food UI 9/9 (`ui4.xcresult`,
+2 workers); README capture 1/1; captures looked at (Selected food facts expanded, light/default + dark/AXL).
+
 ## Comments

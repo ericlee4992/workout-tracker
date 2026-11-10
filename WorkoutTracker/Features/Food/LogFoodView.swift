@@ -10,6 +10,7 @@ import SwiftUI
 struct LogFoodView: View {
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var context
     @Query private var foods: [SavedFood]
     @Query private var savedMeals: [SavedMeal]
@@ -96,16 +97,21 @@ struct LogFoodView: View {
         .overlay(alignment: .bottom) { if let receipt { undoToast(receipt) } }
         .sensoryFeedback(.success, trigger: receipt?.entries.first?.id) { _, new in new != nil }
         .task(id: receipt?.entries.first?.id) {
-            // The toast leaves after a few seconds; the log stays.
-            guard receipt != nil else { return }
-            try? await Task.sleep(for: .seconds(5))
-            withAnimation(.snappy) { receipt = nil }
+            // The toast leaves after a few seconds; the log stays. A newer log cancels this wait, and the wait only ever
+            // clears its own receipt, so the newer log keeps its Undo (codex-review-n4).
+            guard let shown = receipt?.entries.first?.id else { return }
+            do { try await Task.sleep(for: .seconds(5)) } catch { return }
+            guard receipt?.entries.first?.id == shown else { return }
+            withAnimation(motion) { receipt = nil }
         }
         .navigationDestination(item: $selected) { food in
-            SelectedFoodView(food: food, meal: meal, source: tab == .all ? .recent : .saved) { receipt in
-                selected = nil
-                show(receipt)
-            }
+            SelectedFoodView(food: food, meal: meal, source: tab == .all ? .recent : .saved,
+                             onLogged: { receipt in selected = nil; show(receipt) },
+                             onDeleted: {
+                                 // Its Undo would have no food to put back; the entries it logged stay.
+                                 if receipt?.food === food { receipt = nil }
+                                 selected = nil
+                             })
         }
         .navigationDestination(item: $selectedMeal) { savedMeal in
             SelectedMealView(savedMeal: savedMeal, meal: meal,
@@ -168,7 +174,7 @@ struct LogFoodView: View {
             ScrollView(.horizontal) {
                 HStack(spacing: 22) {
                     ForEach(Tab.allCases) { item in
-                        Button { withAnimation(.snappy) { tab = item } } label: {
+                        Button { withAnimation(motion) { tab = item } } label: {
                             VStack(spacing: 8) {
                                 Text(item.title)
                                     .font(.system(.body, weight: tab == item ? .semibold : .medium))
@@ -186,7 +192,7 @@ struct LogFoodView: View {
                 }
             }
             .scrollIndicators(.hidden)
-            .onChange(of: tab) { _, item in withAnimation(.snappy) { proxy.scrollTo(item, anchor: .center) } }
+            .onChange(of: tab) { _, item in withAnimation(motion) { proxy.scrollTo(item, anchor: .center) } }
         }
     }
 
@@ -250,7 +256,7 @@ struct LogFoodView: View {
             Button {
                 do {
                     let receipt = try log()
-                    withAnimation(.snappy) {
+                    withAnimation(motion) {
                         logged.insert(id)
                         self.receipt = receipt
                     }
@@ -263,7 +269,7 @@ struct LogFoodView: View {
                     .foregroundStyle(done ? look.onAction : look.textPrimary)
                     .frame(width: 44, height: 44)
                     .background(done ? look.action : look.ground, in: Circle())
-                    .contentTransition(.symbolEffect(.replace))
+                    .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Log \(title)")
@@ -274,8 +280,11 @@ struct LogFoodView: View {
     }
 
     private func show(_ receipt: FoodLogReceipt) {
-        withAnimation(.snappy) { self.receipt = receipt }
+        withAnimation(motion) { self.receipt = receipt }
     }
+
+    /// Reduce Motion: changes land without movement (the toast fades instead of sliding).
+    private var motion: Animation? { reduceMotion ? nil : .snappy }
 
     private func commandButton(_ command: Route) -> some View {
         Group {
@@ -306,7 +315,7 @@ struct LogFoodView: View {
             Button("Undo") {
                 do {
                     try FoodLog.undo(receipt, in: context)
-                    withAnimation(.snappy) {
+                    withAnimation(motion) {
                         receipt.food.map { logged.remove($0.persistentModelID) }
                         receipt.meal.map { logged.remove($0.persistentModelID) }
                         self.receipt = nil
@@ -325,7 +334,7 @@ struct LogFoodView: View {
         .background(look.action, in: Capsule())
         .padding(.horizontal, look.space.margin)
         .padding(.bottom, command == nil || typeSize.isAccessibilitySize ? 16 : 76)
-        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
     }
 }
 

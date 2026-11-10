@@ -23,6 +23,7 @@ WARM_UP = "AAAWarmUpUITests"
 AREAS = {
     "TodayTrain": [
         "TodayUpNextUITests", "TemplateDetailUITests", "TemplateMachinesUITests", "FloodlightWorkoutTabUITests",
+        "LogFoodUITests", "LogFoodFlowUITests",
     ],
     "Workout": [
         "CoreLoopUITests", "FloodlightLiveUITests", "FloodlightFinishUITests", "CardioUITests",
@@ -42,7 +43,7 @@ AREAS = {
         "FloodlightProfileUITests", "FloodlightSettingsUITests", "FloodlightAccountUITests", "FloodlightGoogleUITests",
         "FloodlightAIAccessUITests", "FloodlightAIRoutineUITests", "AskAIUITests", "FloodlightFeedbackUITests",
         "FloodlightTourUITests", "FloodlightWhatsNewUITests", "ExportUITests", "BackupExportUITests",
-        "SafetyCopyUITests",
+        "SafetyCopyUITests", "NutritionGoalsUITests",
     ],
     # The older per-screen design-review suites (D54, the Codex design).
     "Review": ["RedesignScreenshotUITests", "CodexScreenshotUITests"],

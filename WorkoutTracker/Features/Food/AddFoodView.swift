@@ -17,20 +17,26 @@ struct AddFoodView: View {
     @State private var serving: String
     @State private var perContainer: String
     @State private var next = false
+    /// The stored serving and servings per container when editing: an unchanged field keeps them exactly.
+    private let storedServing: EditableServing
+    private let storedPerContainer: EditableNumber
 
     init(editing: SavedFood? = nil, onSaved: @escaping (SavedFood) -> Void) {
         self.editing = editing
         self.onSaved = onSaved
+        storedServing = editing.map { EditableServing(value: $0.servingValue, unit: $0.servingUnit, grams: $0.servingGrams) }
+            ?? EditableServing()
+        storedPerContainer = EditableNumber(editing?.servingsPerContainer)
         _brand = State(initialValue: editing?.brand ?? "")
         _name = State(initialValue: editing?.name ?? "")
-        _serving = State(initialValue: editing?.servingText ?? "")
-        _perContainer = State(initialValue: FoodNumber.text(editing?.servingsPerContainer))
+        _serving = State(initialValue: storedServing.text)
+        _perContainer = State(initialValue: storedPerContainer.text)
     }
 
     /// Step 1 is complete: a description, a serving, and servings per container blank or a number above zero.
     private var parsed: (serving: ServingText, perContainer: Double?)? {
-        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let serving = ServingText.parse(serving),
-              let perContainer = optionalNumber(perContainer), perContainer.map({ $0 > 0 }) ?? true
+        guard !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, let serving = storedServing.resolve(serving),
+              let perContainer = storedPerContainer.resolve(perContainer), perContainer.map({ $0 > 0 }) ?? true
         else { return nil }
         return (serving, perContainer)
     }
@@ -94,6 +100,10 @@ struct AddFoodNutritionView: View {
     @State private var sugar: String
     @State private var sodium: String
     @State private var failure: String?
+    /// The stored numbers when editing (blank when adding): an unchanged field keeps its value exactly.
+    private let stored: [Field: EditableNumber]
+
+    enum Field: CaseIterable { case calories, protein, carbs, fat, saturatedFat, fiber, sugar, sodium }
 
     init(editing: SavedFood?, brand: String, name: String, serving: ServingText, perContainer: Double?,
          onSaved: @escaping (SavedFood) -> Void) {
@@ -103,23 +113,31 @@ struct AddFoodNutritionView: View {
         self.serving = serving
         self.perContainer = perContainer
         self.onSaved = onSaved
-        _calories = State(initialValue: FoodNumber.text(editing?.calories))
         // A macro stored as 0 shows as "0" when editing (the user may have typed it); a new food starts blank.
-        _protein = State(initialValue: FoodNumber.text(editing?.proteinGrams))
-        _carbs = State(initialValue: FoodNumber.text(editing?.carbsGrams))
-        _fat = State(initialValue: FoodNumber.text(editing?.fatGrams))
-        _saturatedFat = State(initialValue: FoodNumber.text(editing?.saturatedFatGrams))
-        _fiber = State(initialValue: FoodNumber.text(editing?.fiberGrams))
-        _sugar = State(initialValue: FoodNumber.text(editing?.sugarGrams))
-        _sodium = State(initialValue: FoodNumber.text(editing?.sodiumMilligrams))
+        let stored: [Field: EditableNumber] = [
+            .calories: EditableNumber(editing?.calories), .protein: EditableNumber(editing?.proteinGrams),
+            .carbs: EditableNumber(editing?.carbsGrams), .fat: EditableNumber(editing?.fatGrams),
+            .saturatedFat: EditableNumber(editing?.saturatedFatGrams), .fiber: EditableNumber(editing?.fiberGrams),
+            .sugar: EditableNumber(editing?.sugarGrams), .sodium: EditableNumber(editing?.sodiumMilligrams),
+        ]
+        self.stored = stored
+        _calories = State(initialValue: stored[.calories]!.text)
+        _protein = State(initialValue: stored[.protein]!.text)
+        _carbs = State(initialValue: stored[.carbs]!.text)
+        _fat = State(initialValue: stored[.fat]!.text)
+        _saturatedFat = State(initialValue: stored[.saturatedFat]!.text)
+        _fiber = State(initialValue: stored[.fiber]!.text)
+        _sugar = State(initialValue: stored[.sugar]!.text)
+        _sodium = State(initialValue: stored[.sodium]!.text)
     }
 
     /// Calories are needed; every other number is blank or a number.
     private var nutrition: FoodNutrition? {
-        guard let calories = FoodNumber.parse(calories), let protein = optionalNumber(protein),
-              let carbs = optionalNumber(carbs), let fat = optionalNumber(fat),
-              let saturatedFat = optionalNumber(saturatedFat), let fiber = optionalNumber(fiber),
-              let sugar = optionalNumber(sugar), let sodium = optionalNumber(sodium) else { return nil }
+        func value(_ field: Field, _ text: String) -> Double?? { stored[field]!.resolve(text) }
+        guard let calories = value(.calories, calories) ?? nil, let protein = value(.protein, protein),
+              let carbs = value(.carbs, carbs), let fat = value(.fat, fat),
+              let saturatedFat = value(.saturatedFat, saturatedFat), let fiber = value(.fiber, fiber),
+              let sugar = value(.sugar, sugar), let sodium = value(.sodium, sodium) else { return nil }
         return FoodNutrition(calories: calories, proteinGrams: protein ?? 0, carbsGrams: carbs ?? 0, fatGrams: fat ?? 0,
                              saturatedFatGrams: saturatedFat, fiberGrams: fiber, sugarGrams: sugar,
                              sodiumMilligrams: sodium)

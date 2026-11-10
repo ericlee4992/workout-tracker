@@ -8,20 +8,53 @@ import SwiftData
 // entry. Undo deletes exactly the entries a log wrote and restores the "last used" time it moved, so Recently logged
 // reads as before.
 
-/// A typed number as the food forms read it: a comma is a decimal separator; blank, negative or not a number is nil.
-/// The text is never rewritten.
+/// A typed number as the food forms read it: digits with at most one decimal separator (a comma is one); blank,
+/// negative, scientific notation, anything else, or more than a million is nil. The text is never rewritten.
 enum FoodNumber {
+    static let maximum = 1_000_000.0
+
     static func parse(_ text: String) -> Double? {
         let cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")
-        guard !cleaned.isEmpty, let value = Double(cleaned), value.isFinite, value >= 0 else { return nil }
+        guard cleaned.contains(where: \.isWholeNumberDigit),
+              cleaned.allSatisfy({ $0.isWholeNumberDigit || $0 == "." }),
+              cleaned.filter({ $0 == "." }).count <= 1,
+              let value = Double(cleaned), value.isFinite, value <= maximum else { return nil }
         return value
     }
 
-    /// A stored number for a form field: "12", "0.5"; blank for nil.
+    /// A form's optional number: `.some(nil)` when blank, `.some(value)` when a number, nil when it is not a number.
+    static func optional(_ text: String) -> Double?? {
+        text.trimmingCharacters(in: .whitespaces).isEmpty ? .some(nil) : parse(text).map { .some($0) }
+    }
+
+    /// A stored number for reading: "12", "0.5", "0.33"; a small non-zero value keeps two significant digits
+    /// ("0.004"), so it never reads as 0. Blank for nil.
     static func text(_ value: Double?) -> String {
         guard let value else { return "" }
+        if value != 0, abs(value) < 0.01 {
+            return value.formatted(.number.precision(.significantDigits(1...2)).grouping(.never))
+        }
         return value.formatted(.number.precision(.fractionLength(0...2)).grouping(.never))
     }
+}
+
+private extension Character {
+    var isWholeNumberDigit: Bool { ("0"..."9").contains(self) }
+}
+
+/// A stored number in an edit form (codex-review-n4): the field shows it rounded for reading, and an unchanged field
+/// keeps the stored value exactly — editing one field never rewrites another (the entered value is kept).
+struct EditableNumber {
+    let value: Double?
+    let text: String
+
+    init(_ value: Double?) {
+        self.value = value
+        text = FoodNumber.text(value)
+    }
+
+    /// `.some(stored)` when the field is unchanged; else as `FoodNumber.optional` reads the text.
+    func resolve(_ current: String) -> Double?? { current == text ? .some(value) : FoodNumber.optional(current) }
 }
 
 /// One serving as typed ("1 jar (250 g)", "100 g", "1/2 cup", "jar") and as stored: `(value, unit)` plus its grams
@@ -33,8 +66,11 @@ struct ServingText: Equatable {
 
     static let defaultUnit = "serving"
 
-    /// Nil for blank text. A text without a leading number is one of it ("jar" → 1 jar); "(250 g)" at the end gives the
-    /// grams; a unit of g or grams is its own weight.
+    static func isBlank(_ text: String) -> Bool { text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+
+    /// Nil for blank text and for an amount that is not a positive number ("1/0 cup", "-2 g", "0 g"). A text that
+    /// starts with a letter is one of it ("jar" → 1 jar); "(250 g)" at the end gives the grams; a unit of g or grams
+    /// is its own weight.
     static func parse(_ text: String) -> ServingText? {
         var rest = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !rest.isEmpty else { return nil }
@@ -42,17 +78,27 @@ struct ServingText: Equatable {
         if let open = rest.lastIndex(of: "("), rest.hasSuffix(")") {
             let inside = rest[rest.index(after: open)..<rest.index(before: rest.endIndex)]
                 .trimmingCharacters(in: .whitespaces).lowercased()
-            for suffix in ["grams", "gram", "g"] where inside.hasSuffix(suffix) {
-                if let value = FoodNumber.parse(String(inside.dropLast(suffix.count))), value > 0 {
+            if let suffix = ["grams", "gram", "g"].first(where: { inside.hasSuffix($0) }) {
+                let amount = String(inside.dropLast(suffix.count))
+                if let value = FoodNumber.parse(amount), value > 0 {
                     grams = value
                     rest = String(rest[..<open]).trimmingCharacters(in: .whitespaces)
+                } else if startsAsNumber(amount.trimmingCharacters(in: .whitespaces)) {
+                    return nil  // "(0 g)", "(-5 g)": a weight that is not one
                 }
-                break
             }
         }
-        let (number, unitText) = leadingNumber(of: rest)
+        let value: Double
+        let unitText: String
+        if startsAsNumber(rest) {
+            guard let (number, remainder) = leadingNumber(of: rest) else { return nil }
+            value = number
+            unitText = remainder
+        } else {
+            value = 1
+            unitText = rest
+        }
         let unit = unitText.isEmpty ? defaultUnit : unitText
-        let value = number ?? 1
         if grams == nil, ["g", "gram", "grams"].contains(unit.lowercased()) { grams = value }
         return ServingText(value: value, unit: unit, grams: grams)
     }
@@ -64,19 +110,50 @@ struct ServingText: Equatable {
         return "\(amount) (\(FoodNumber.text(grams)) g)"
     }
 
-    /// A leading "1", "1.5", "1,5" or "1/2", and the rest of the text; nil when the text does not start with one.
-    private static func leadingNumber(of text: String) -> (Double?, String) {
-        let digits = text.prefix { $0.isNumber || $0 == "." || $0 == "," || $0 == "/" }
-        guard !digits.isEmpty else { return (nil, text) }
+    private static func startsAsNumber(_ text: String) -> Bool {
+        guard let first = text.first else { return false }
+        return first.isWholeNumberDigit || ".,-+".contains(first)
+    }
+
+    /// A leading "1", "1.5", "1,5" or "1/2" — positive and finite — and the rest of the text; nil when the amount is
+    /// not one.
+    private static func leadingNumber(of text: String) -> (Double, String)? {
+        let digits = text.prefix { $0.isWholeNumberDigit || $0 == "." || $0 == "," || $0 == "/" }
         let rest = text.dropFirst(digits.count).trimmingCharacters(in: .whitespaces)
         let parts = digits.split(separator: "/", omittingEmptySubsequences: false)
-        if parts.count == 2, let top = FoodNumber.parse(String(parts[0])), let bottom = FoodNumber.parse(String(parts[1])),
-           bottom > 0 {
-            return (top / bottom, rest)
+        let value: Double
+        switch parts.count {
+        case 1:
+            guard let number = FoodNumber.parse(String(digits)) else { return nil }
+            value = number
+        case 2:
+            guard let top = FoodNumber.parse(String(parts[0])), let bottom = FoodNumber.parse(String(parts[1])),
+                  bottom > 0 else { return nil }
+            value = top / bottom
+        default:
+            return nil
         }
-        guard parts.count == 1, let value = FoodNumber.parse(String(digits)), value > 0 else { return (nil, text) }
+        guard value.isFinite, value > 0, value <= FoodNumber.maximum else { return nil }
         return (value, rest)
     }
+}
+
+/// A stored serving in the Edit food form: unchanged text keeps the stored `(value, unit, grams)` exactly.
+struct EditableServing {
+    let serving: ServingText?
+    let text: String
+
+    init(value: Double, unit: String, grams: Double?) {
+        serving = ServingText(value: value, unit: unit, grams: grams)
+        text = ServingText.format(value: value, unit: unit, grams: grams)
+    }
+
+    init() {
+        serving = nil
+        text = ""
+    }
+
+    func resolve(_ current: String) -> ServingText? { current == text ? serving : ServingText.parse(current) }
 }
 
 /// Nutrition per serving, as the forms collect it. Calories are required; the rest optional (macros 0 when blank).
@@ -294,9 +371,10 @@ enum FoodLog {
 
     /// Undo: deletes the entries the log wrote and puts the food's or meal's "last used" back.
     static func undo(_ receipt: FoodLogReceipt, in context: ModelContext) throws {
-        receipt.entries.forEach(context.delete)
-        receipt.food?.lastUsedAt = receipt.previousLastUsedAt
-        receipt.meal?.lastUsedAt = receipt.previousLastUsedAt
+        receipt.entries.filter(\.isLive).forEach(context.delete)
+        // The food or meal may have been deleted since the log; then there is no "last used" to put back.
+        if let food = receipt.food, food.isLive { food.lastUsedAt = receipt.previousLastUsedAt }
+        if let meal = receipt.meal, meal.isLive { meal.lastUsedAt = receipt.previousLastUsedAt }
         try context.save()
     }
 
@@ -323,6 +401,13 @@ enum FoodLog {
     /// The bookmark: in or out of Saved foods.
     static func setSaved(_ food: SavedFood, _ saved: Bool, in context: ModelContext) throws {
         food.isSaved = saved
+        try context.save()
+    }
+
+    /// Delete Food… (the user, 2026-11-10: My foods can be deleted): the food goes; entries logged from it and meal
+    /// items made from it keep their own copy (`.nullify`).
+    static func delete(_ food: SavedFood, in context: ModelContext) throws {
+        context.delete(food)
         try context.save()
     }
 
@@ -379,4 +464,9 @@ enum FoodLog {
         context.delete(meal)
         try context.save()
     }
+}
+
+private extension PersistentModel {
+    /// Still in a context and not deleted (after a save, a deleted model leaves its context).
+    var isLive: Bool { modelContext != nil && !isDeleted }
 }

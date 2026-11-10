@@ -21,7 +21,9 @@ The user (night of 11-10): strings OK, Delete Food… yes (after round 1), edit/
   **Overnight mandate (the user, 2026-11-10):** keep working through tickets while the user sleeps; decide minor things
   and record them; stop only for answers that are really the user's. Plan: N4 (Codex to clear, merge) → N5 → N9 →
   N10, each Codex-cleared and merged; N6 (deploy/model/cost), N7 (needs N6), N8 (USDA key) and R wait for the user.
-  New strings go into each ticket for the morning. (see the ticket's Progress). **Next, in order:** (1) ~~rework the mock to D81~~ (My foods + Add food two-step form,
+  New strings go into each ticket for the morning. **Later the same night the user added:** merge each ticket as soon
+  as Codex says clear; run any tests needed; N6 has the go-ahead (deploy, GPT-6.1 Terra switch, cost check); finish
+  N5 too (Codex clear + merge). Ask only for what really needs the user's approval. (see the ticket's Progress). **Next, in order:** (1) ~~rework the mock to D81~~ (My foods + Add food two-step form,
   "Saved foods" tab, Manual Add with optional name, remove Quick Add), capture light/default + dark/AXL, send to the
   user (SendUserFile + Preview) and get approval of the new screens/wording; (2) wire it: `SavedFood` + a "made by the
   user" marker and optional servings per container (additive; guard pin moves, export v12 fields), recent/saved/My
