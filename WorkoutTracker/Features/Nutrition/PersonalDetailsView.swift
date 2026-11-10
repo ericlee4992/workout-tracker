@@ -31,6 +31,7 @@ struct PersonalDetailsView: View {
 /// editor; every save brings the stored goal up to date (`NutritionGoalStore`).
 struct PersonalDetailsList: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(AccountStore.self) private var account
     @Query private var allPreferences: [AppPreferences]
     @Query(sort: \BodyWeightEntry.measuredAt, order: .reverse) private var weights: [BodyWeightEntry]
     @State private var editing: Field?
@@ -57,6 +58,12 @@ struct PersonalDetailsList: View {
             sexRow
         }
         .sheet(item: $editing) { field in editor(field) }
+        // The ticket's prefill: a height or weight missing here comes from the AI training profile once it loads.
+        .task(id: account.profile?.training) {
+            guard let training = account.profile?.training else { return }
+            do { try NutritionGoalStore.prefillMissing(from: training, in: modelContext) }
+            catch { saveFailure = error.localizedDescription }
+        }
         .alert("Couldn't save", isPresented: Binding(get: { saveFailure != nil }, set: { if !$0 { saveFailure = nil } })) {
             Button("OK", role: .cancel) {}
         } message: { Text(saveFailure ?? "") }
@@ -91,7 +98,8 @@ struct PersonalDetailsList: View {
                 commit { context in context.insert(BodyWeightEntry(measuredAt: .now, value: value, unit: unit)) }
             }
         case .height:
-            HeightEditorSheet(usCustomary: usCustomary, initialCm: preferences?.heightCm) { value, unit in
+            HeightEditorSheet(initialValue: preferences?.heightValue, initialUnit: preferences?.heightUnit,
+                              usCustomary: usCustomary) { value, unit in
                 save { $0.setHeight(value: value, unit: unit) }
             }
         case .birthDate:

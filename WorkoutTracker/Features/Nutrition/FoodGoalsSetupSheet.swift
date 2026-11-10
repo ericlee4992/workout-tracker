@@ -11,6 +11,8 @@ struct FoodGoalsSetupSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.look) private var look
     @Query private var goals: [NutritionGoal]
+    @Query private var allPreferences: [AppPreferences]
+    @Query private var weights: [BodyWeightEntry]
     @State private var saveFailure: String?
     /// Choices made before Personal details are complete (no goal to hold them yet); applied to the first goal.
     @State private var pending: NutritionGoalStore.Choices?
@@ -19,14 +21,21 @@ struct FoodGoalsSetupSheet: View {
         goals.max { ($0.effectiveFrom, $0.createdAt, $0.id.uuidString) < ($1.effectiveFrom, $1.createdAt, $1.id.uuidString) }
     }
 
-    private var choices: NutritionGoalStore.Choices { current.map(NutritionGoalStore.choices(of:)) ?? pending ?? .init() }
+    private var hasDetails: Bool {
+        let preferences = AppPreferences.canonical(of: allPreferences)
+        return !weights.isEmpty && preferences?.heightCm != nil && preferences?.birthDate != nil && preferences?.sex != nil
+    }
+
+    private var choices: NutritionGoalStore.Choices {
+        hasDetails ? NutritionGoalStore.choices(of: current) : pending ?? NutritionGoalStore.choices(of: current)
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
                     LookNavTitle("Nutrition goals")
-                    if let current {
+                    if hasDetails, let current {
                         HStack(alignment: .firstTextBaseline, spacing: 6) {
                             Text(current.calories.formatted(.number.precision(.fractionLength(0))))
                                 .font(look.font.heroNumber)
@@ -67,21 +76,21 @@ struct FoodGoalsSetupSheet: View {
             .alert("Couldn't save", isPresented: Binding(get: { saveFailure != nil }, set: { if !$0 { saveFailure = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: { Text(saveFailure ?? "") }
-            .onChange(of: current == nil) { _, missing in
-                if !missing, let pending { change { $0.activity = pending.activity; $0.goal = pending.goal } }
+            .onChange(of: hasDetails) { _, complete in
+                if complete, let pending { change { $0.activity = pending.activity; $0.goal = pending.goal } }
             }
         }
     }
 
     private func change(_ apply: (inout NutritionGoalStore.Choices) -> Void) {
-        guard current != nil else {
-            var held = pending ?? .init()
+        guard hasDetails else {
+            var held = pending ?? NutritionGoalStore.choices(of: current)
             apply(&held)
             pending = held
             return
         }
         do {
-            try NutritionGoalStore.update(in: modelContext, change: apply)
+            try withoutActuallyEscaping(apply) { try NutritionGoalStore.update(in: modelContext, change: $0) }
             pending = nil
         } catch {
             saveFailure = error.localizedDescription

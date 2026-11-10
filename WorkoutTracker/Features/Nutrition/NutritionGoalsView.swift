@@ -31,7 +31,9 @@ struct NutritionGoalsView: View {
         goals.max { ($0.effectiveFrom, $0.createdAt, $0.id.uuidString) < ($1.effectiveFrom, $1.createdAt, $1.id.uuidString) }
     }
 
-    private var choices: NutritionGoalStore.Choices { current.map(NutritionGoalStore.choices(of:)) ?? pending ?? .init() }
+    private var choices: NutritionGoalStore.Choices {
+        hasDetails ? NutritionGoalStore.choices(of: current) : pending ?? NutritionGoalStore.choices(of: current)
+    }
 
     private var macros: Macros? {
         current.map { Macros(calories: $0.calories, proteinGrams: $0.proteinGrams, carbsGrams: $0.carbsGrams,
@@ -42,7 +44,8 @@ struct NutritionGoalsView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: look.space.section) {
                 LookNavTitle("Nutrition goals")
-                if let macros { numbers(macros) }
+                // Without complete details nothing can be calculated or edited (codex-review-n3): no numbers.
+                if hasDetails, let macros { numbers(macros) }
                 basedOn
                 if choices.overrides != .none {
                     Button("Recalculate") { change { $0.overrides = .none } }
@@ -65,9 +68,9 @@ struct NutritionGoalsView: View {
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
         // Personal details may have changed since the goal was stored (e.g. a new day's age): bring it up to date.
-        .task { change { _ in } }
-        .onChange(of: current == nil) { _, missing in
-            if !missing, let pending { change { $0.activity = pending.activity; $0.goal = pending.goal } }
+        .task { refresh() }
+        .onChange(of: hasDetails) { _, complete in
+            if complete, let pending { change { $0.activity = pending.activity; $0.goal = pending.goal } }
         }
         .navigationDestination(isPresented: $showDetails) { PersonalDetailsView() }
         .sheet(item: $editing) { number in editor(number) }
@@ -206,15 +209,20 @@ struct NutritionGoalsView: View {
         }
     }
 
+    /// Brings the stored goal up to date with Personal details (a new day's age, a weight logged elsewhere).
+    private func refresh() {
+        do { try NutritionGoalStore.update(in: modelContext) } catch { saveFailure = error.localizedDescription }
+    }
+
     private func change(_ apply: (inout NutritionGoalStore.Choices) -> Void) {
-        guard current != nil || hasDetails else {
-            var held = pending ?? .init()
+        guard hasDetails else {
+            var held = pending ?? NutritionGoalStore.choices(of: current)
             apply(&held)
             pending = held
             return
         }
         do {
-            try NutritionGoalStore.update(in: modelContext, change: apply)
+            try withoutActuallyEscaping(apply) { try NutritionGoalStore.update(in: modelContext, change: $0) }
             pending = nil
         } catch {
             saveFailure = error.localizedDescription

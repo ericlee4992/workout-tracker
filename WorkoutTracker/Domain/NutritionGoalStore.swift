@@ -10,6 +10,14 @@ import SwiftData
 /// incomplete, or when nothing changed.
 enum NutritionGoalStore {
 
+    enum Failure: Error, LocalizedError, Equatable {
+        /// A change was asked for while Personal details are incomplete (e.g. the date of birth cleared in the
+        /// zones sheet): it cannot be calculated, so it is refused rather than dropped silently (codex-review-n3).
+        case detailsIncomplete
+
+        var errorDescription: String? { "Add your personal details first." }
+    }
+
     /// Personal details as the calculation needs them; nil when any is missing.
     struct Details: Equatable {
         var weightKg: Double
@@ -65,14 +73,18 @@ enum NutritionGoalStore {
     }
 
     /// Applies `change` to the current choices and stores the result (see the type's comment). Returns the goal in
-    /// force afterwards — nil while Personal details are incomplete.
+    /// force afterwards. Without a change (a refresh after Personal details changed) incomplete details write
+    /// nothing; with one they throw `Failure.detailsIncomplete`.
     @discardableResult
     static func update(in context: ModelContext, now: Date = .now, calendar: Calendar = .current,
-                       change: (inout Choices) -> Void = { _ in }) throws -> NutritionGoal? {
+                       change: ((inout Choices) -> Void)? = nil) throws -> NutritionGoal? {
         let latest = try latestGoal(in: context)
-        guard let details = try details(in: context) else { return latest }
+        guard let details = try details(in: context) else {
+            if change != nil { throw Failure.detailsIncomplete }
+            return latest
+        }
         var choices = choices(of: latest)
-        change(&choices)
+        change?(&choices)
         let inputs = inputs(details, choices, on: now, calendar: calendar)
         let numbers = NutritionGoals.resolve(inputs, overrides: choices.overrides)
         if let latest, matches(latest, inputs: inputs, choices: choices, numbers: numbers) { return latest }
@@ -102,6 +114,33 @@ enum NutritionGoalStore {
         goal.fatOverridden = choices.overrides.fatGrams != nil
         try context.save()
         return goal
+    }
+
+    /// The ticket's prefill (N3): a height or weight Personal details lack comes from the AI training profile (ticket
+    /// 05), as entered there — never over a value already given. Returns whether anything was filled; the goal follows.
+    @discardableResult
+    static func prefillMissing(from training: TrainingProfile, in context: ModelContext, now: Date = .now) throws -> Bool {
+        let preferences = try AppPreferences.canonical(in: context)
+        var filled = false
+        if preferences.heightCm == nil, let height = training.height {
+            switch height.unit {
+            case .cm: preferences.setHeight(value: height.value, unit: .cm); filled = true
+            case .inches: preferences.setHeight(value: height.value, unit: .inches); filled = true
+            case .kg, .lb: break
+            }
+        }
+        if try latestWeight(in: context) == nil, let weight = training.weight {
+            switch weight.unit {
+            case .kg: context.insert(BodyWeightEntry(measuredAt: now, value: weight.value, unit: .kg, createdAt: now)); filled = true
+            case .lb: context.insert(BodyWeightEntry(measuredAt: now, value: weight.value, unit: .lb, createdAt: now)); filled = true
+            case .cm, .inches: break
+            }
+        }
+        guard filled else { return false }
+        preferences.updatedAt = now
+        try context.save()
+        try update(in: context, now: now)
+        return true
     }
 
     private static func matches(_ goal: NutritionGoal, inputs: NutritionGoals.Inputs, choices: Choices,

@@ -100,6 +100,45 @@ struct NutritionGoalStoreTests {
         #expect(recalculated.proteinGrams == 162 && !recalculated.proteinOverridden)
     }
 
+    /// codex-review-n3: once the details are incomplete (the date of birth cleared in the zones sheet), an edit is
+    /// refused with an error rather than dropped silently; a plain refresh writes nothing and does not throw.
+    @Test func anEditWithIncompleteDetailsIsRefusedNotDropped() throws {
+        let context = try context()
+        try fillDetails(context)
+        let goal = try #require(try NutritionGoalStore.update(in: context, now: date(9), calendar: calendar))
+        try AppPreferences.canonical(in: context).birthDate = nil
+        try context.save()
+        #expect(throws: NutritionGoalStore.Failure.detailsIncomplete) {
+            try NutritionGoalStore.update(in: context, now: date(9, 12), calendar: calendar) { $0.goal = .gain }
+        }
+        #expect(try NutritionGoalStore.update(in: context, now: date(9, 12), calendar: calendar) === goal)
+        #expect(goal.goal == .maintain, "unchanged")
+    }
+
+    /// The ticket's prefill: what Personal details lack comes from the training profile, as entered; never over a
+    /// value already given; the goal follows.
+    @Test func missingDetailsComeFromTheTrainingProfile() throws {
+        let context = try context()
+        let preferences = try AppPreferences.canonical(in: context)
+        preferences.birthDate = calendar.date(from: DateComponents(year: 1996, month: 11, day: 1))
+        preferences.sex = .male
+        try context.save()
+        let training = TrainingProfile(goals: "", experience: "Beginner", days: 3, minutes: 45,
+                                       height: BodyMeasure(value: 70.5, unit: .inches),
+                                       weight: BodyMeasure(value: 180.4, unit: .lb))
+        #expect(try NutritionGoalStore.prefillMissing(from: training, in: context, now: date(9)))
+        #expect(preferences.heightValue == 70.5 && preferences.heightUnit == .inches)
+        let weight = try #require(try NutritionGoalStore.latestWeight(in: context))
+        #expect(weight.value == 180.4 && weight.unit == .lb, "as entered")
+        #expect(try goals(context).count == 1, "complete now: the goal follows")
+
+        preferences.setHeight(value: 180, unit: .cm)
+        try context.save()
+        #expect(try !NutritionGoalStore.prefillMissing(from: training, in: context, now: date(10)), "never over a value")
+        #expect(preferences.heightValue == 180 && preferences.heightUnit == .cm)
+        #expect(try context.fetchCount(FetchDescriptor<BodyWeightEntry>()) == 1)
+    }
+
     @Test func theChoicesComeBackFromTheStoredGoal() throws {
         let goal = NutritionGoal(effectiveFrom: date(9), calories: 2000, proteinGrams: 150, carbsGrams: 200,
                                  fatGrams: 60)
@@ -110,5 +149,35 @@ struct NutritionGoalStoreTests {
         #expect(choices.activity == .light && choices.goal == .gain)
         #expect(choices.overrides == .init(calories: 2000))
         #expect(NutritionGoalStore.choices(of: nil) == .init())
+    }
+}
+
+/// codex-review-n3 #3: the height editor never rewrites an entered height (D52).
+struct HeightFieldsTests {
+    /// 180 cm stored, the app switched to U.S. units: the editor still shows cm, and an unchanged Save writes nothing.
+    @Test func aStoredHeightKeepsItsUnitAndAnUnchangedSaveWritesNothing() throws {
+        let unit = HeightFields.unit(stored: .cm, usCustomary: true)
+        #expect(unit == .cm)
+        let (cm, feet, inches) = HeightFields.fields(value: 180, unit: unit)
+        #expect(cm == "180" && feet.isEmpty && inches.isEmpty)
+        let parsed = try #require(HeightFields.parse(cm: cm, feet: feet, inches: inches, unit: unit))
+        #expect(HeightFields.toSave(fields: [cm, feet, inches], shown: [cm, feet, inches], parsed: parsed) == nil)
+    }
+
+    /// 71.5 in reopens as 5 ft 11.5 in and parses back to exactly 71.5 in.
+    @Test func fractionalInchesSurviveAReopen() throws {
+        let (cm, feet, inches) = HeightFields.fields(value: 71.5, unit: .inches)
+        #expect(feet == "5" && inches == "11.5")
+        let parsed = try #require(HeightFields.parse(cm: cm, feet: feet, inches: inches, unit: .inches))
+        #expect(parsed.0 == 71.5 && parsed.1 == .inches)
+    }
+
+    @Test func aNewHeightTakesTheAppsUnitsAndAnEditIsSaved() throws {
+        #expect(HeightFields.unit(stored: nil, usCustomary: true) == .inches)
+        #expect(HeightFields.unit(stored: nil, usCustomary: false) == .cm)
+        let parsed = try #require(HeightFields.parse(cm: "", feet: "6", inches: "0", unit: .inches))
+        #expect(parsed.0 == 72)
+        #expect(HeightFields.toSave(fields: ["", "6", "0"], shown: ["", "5", "11.5"], parsed: parsed)?.0 == 72)
+        #expect(HeightFields.parse(cm: "", feet: "5", inches: "12", unit: .inches) == nil, "inches under 12")
     }
 }

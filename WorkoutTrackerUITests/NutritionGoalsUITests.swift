@@ -100,11 +100,42 @@ final class NutritionGoalsUITests: XCTestCase {
         XCTAssertFalse(protein.label.contains("Typed by you"), protein.label)
     }
 
+    /// codex-review-n3 #1: the date of birth is shared with the zones sheet. Clearing it there leaves nothing to
+    /// calculate, so the goals page offers no numbers to edit (an edit would otherwise be dropped silently).
+    func testClearingTheBirthDateInTheZonesSheetLeavesNothingToEdit() {
+        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestPersonalDetails"]
+        app.launch()
+        app.openProfile()
+        let zones = app.buttons["heartRateZonesSettings"]
+        XCTAssertTrue(zones.waitForExistence(timeout: 10))
+        zones.tap()
+        let useBirthDate = app.switches["useBirthDate"]
+        XCTAssertTrue(useBirthDate.waitForExistence(timeout: 5))
+        XCTAssertEqual(useBirthDate.value as? String, "1", "the fixture's date of birth")
+        useBirthDate.switches.firstMatch.exists ? useBirthDate.switches.firstMatch.tap() : useBirthDate.tap()
+        app.buttons["saveMaxHeartRate"].tap()
+        XCTAssertTrue(app.buttons["saveMaxHeartRate"].waitForNonExistence(timeout: 5))
+
+        app.buttons["profileNutritionGoals"].tap()
+        let details = app.buttons["nutritionGoalsDetails"]
+        XCTAssertTrue(details.waitForExistence(timeout: 5))
+        XCTAssertTrue(details.label.contains("Not set"), details.label)
+        XCTAssertFalse(any("nutritionGoalsCalories").exists, "no numbers to edit without complete details")
+        XCTAssertFalse(app.alerts.firstMatch.exists, "opening the page is not an error")
+    }
+
     // MARK: Onboarding step (new installs)
 
     /// Skip on the Welcome page → the goals sheet; an activity chosen before the details is kept for the first goal.
-    func testWelcomeSkipOffersTheGoalsSheetOnce() {
-        app.launchArguments = ["-uiTestReset", "-uiTestOnboarding", "-uiTestOnboardingFresh", "-uiTestFoodGoalsStep"]
+    func testWelcomeSkipOffersTheGoalsSheetOnce() { onboarding(appearance: "light", large: false) }
+    /// The same flow on record in dark at AccessibilityL, with each editor and its keyboard.
+    func testWelcomeSkipOffersTheGoalsSheetDarkAccessibility() { onboarding(appearance: "dark", large: true) }
+
+    private func onboarding(appearance: String, large: Bool) {
+        let tag = "\(appearance)-\(large ? "axl" : "default")"
+        app.launchArguments = ["-uiTestReset", "-uiTestOnboarding", "-uiTestOnboardingFresh", "-uiTestFoodGoalsStep",
+                               "-appearance", appearance]
+        if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
         let skip = app.buttons["welcomeSkip"]
         XCTAssertTrue(skip.waitForExistence(timeout: 15))
@@ -112,29 +143,40 @@ final class NutritionGoalsUITests: XCTestCase {
         let done = app.buttons["foodGoalsDone"]
         XCTAssertTrue(done.waitForExistence(timeout: 10), "the goals sheet follows the Welcome page")
         XCTAssertFalse(any("foodGoalsCalories").exists, "nothing to calculate yet")
-        shoot("n3-onboarding-empty")
+        shoot("n3-onboarding-empty-\(tag)")
 
-        any("nutritionGoalsActivity").tap()
+        let activity = any("nutritionGoalsActivity")
+        for _ in 0..<4 where !activity.isHittable { app.swipeUp() }
+        activity.tap()
         app.buttons["Light"].firstMatch.tap()
-        app.buttons["personalWeight"].tap()
+        for _ in 0..<4 { app.swipeDown() }
+        tapRow("personalWeight")
         type("176.4", into: "weightField")
+        shoot("n3-editor-weight-\(tag)")
         save()
-        app.buttons["personalHeight"].tap()
+        tapRow("personalHeight")
         if app.textFields["heightFeet"].waitForExistence(timeout: 3) {
             type("5", into: "heightFeet")
             type("11", into: "heightInches")
         } else {
             type("180", into: "heightCm")
         }
+        shoot("n3-editor-height-\(tag)")
         save()
-        app.buttons["personalBirthDate"].tap()
+        tapRow("personalBirthDate")
+        XCTAssertTrue(any("birthDatePicker").waitForExistence(timeout: 5))
+        shoot("n3-editor-birthdate-\(tag)")
         save()
-        any("personalSex").tap()
+        let sexRow = any("personalSex")
+        for _ in 0..<4 where !sexRow.isHittable { app.swipeUp() }
+        sexRow.tap()
         app.buttons["Male"].firstMatch.tap()
-        XCTAssertTrue(any("foodGoalsCalories").waitForExistence(timeout: 5), "the calories appear once complete")
+        let calories = any("foodGoalsCalories")
+        for _ in 0..<4 where !calories.exists { app.swipeDown() }
+        XCTAssertTrue(calories.waitForExistence(timeout: 5), "the calories appear once complete")
         XCTAssertTrue(NSPredicate(format: "label CONTAINS 'Light'").evaluate(with: any("nutritionGoalsActivity")),
                       "the activity chosen first is kept: \(any("nutritionGoalsActivity").label)")
-        shoot("n3-onboarding-filled")
+        shoot("n3-onboarding-filled-\(tag)")
         done.tap()
         XCTAssertTrue(done.waitForNonExistence(timeout: 5))
 
@@ -142,6 +184,14 @@ final class NutritionGoalsUITests: XCTestCase {
         let goals = app.buttons["profileNutritionGoals"]
         XCTAssertTrue(goals.waitForExistence(timeout: 5))
         XCTAssertTrue(goals.label.hasSuffix("cal"), goals.label)
+    }
+
+    /// Scrolls a Personal details row on screen (AccessibilityL pushes the lower rows down) and taps it.
+    private func tapRow(_ id: String) {
+        let row = app.buttons[id]
+        XCTAssertTrue(row.waitForExistence(timeout: 5), id)
+        for _ in 0..<4 where !row.isHittable { app.swipeUp() }
+        row.tap()
     }
 
     // MARK: Captures

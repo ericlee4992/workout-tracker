@@ -95,6 +95,8 @@ struct MaxHeartRateSheet: View {
             preferences.birthDate = hasBirthDate ? birthDate : nil
             preferences.updatedAt = .now
             try modelContext.save()
+            // N3 (D80): the date of birth is Personal details' too — the nutrition goal follows it.
+            try NutritionGoalStore.update(in: modelContext)
         } catch {
             assertionFailure("Failed to save heart-rate settings: \(error)")
         }
