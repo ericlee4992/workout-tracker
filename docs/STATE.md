@@ -5,37 +5,19 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: beta running (build 6); tickets 08 and 13 done
 
-- **Resume here (2026-11-10, handoff after session 2) — N4 mock in progress** on `ericlee4992/nutrition-04-log-food`
-  (pushed). `main` = `origin/main` = `e471c11` (N1, N2, S6, N3 merged — N3: goals, Personal details D80, onboarding
-  goals sheet; Codex clear round 3). **N4 so far:** Today's "Log food" pill (built in N4 by the user's choice) and a
-  first mock of Log food / Selected food / Manual Add / Quick Add with sample data (`Features/Food/`, `5f36999`;
-  `LogFoodUITests` captures; wording approved; meals kept). **Then the user restructured it (D81):** tabs All / My
-  foods / My meals / Saved foods; **My foods** = foods the user creates via **Add food** at the bottom of that tab
-  (two-step form like the user's reference: brand (optional), description, serving size, servings per container
-  (optional) → Next → calories, protein, carbs, total fat, saturated fat, … → Save food); **Saved foods** = bookmarks
-  from anywhere (incl. My foods); **Manual Add** (All tab) logs a one-off entry, creates no food, name optional —
-  **Quick Add merged into it**. **Mock v2 (D81) + Create/Edit/Delete meal approved; wired** (2026-11-10; unit plan 1213/0, Log food UI 8/8; entry
-edit/delete + Today totals moved to N5; see the ticket's Progress). **N4 done:** Codex clear round 2, merged into `main`.
-  Codex terminal for every review: `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~22% context).
-  **N5 done:** Codex clear round 2, merged into `main` (strings and own decisions for the morning in its ticket).
-  **N6** (worktree `…/Health App/nutrition-06-server`, branch `ericlee4992/nutrition-06-server`): server code built (server code; deploy/cost check need a live key — see
-  its ticket).
-The user (night of 11-10): strings OK, Delete Food… yes (after round 1), edit/delete entries + totals → N5.
-  **Overnight mandate (the user, 2026-11-10):** keep working through tickets while the user sleeps; decide minor things
-  and record them; stop only for answers that are really the user's. Plan: N4 (Codex to clear, merge) → N5 → N9 →
-  N10, each Codex-cleared and merged; N6 (deploy/model/cost), N7 (needs N6), N8 (USDA key) and R wait for the user.
-  New strings go into each ticket for the morning. **Later the same night the user added:** merge each ticket as soon
-  as Codex says clear; run any tests needed; N6 has the go-ahead (deploy, GPT-6.1 Terra switch, cost check); finish
-  N5 too (Codex clear + merge). Ask only for what really needs the user's approval. (see the ticket's Progress). **Next, in order:** (1) ~~rework the mock to D81~~ (My foods + Add food two-step form,
-  "Saved foods" tab, Manual Add with optional name, remove Quick Add), capture light/default + dark/AXL, send to the
-  user (SendUserFile + Preview) and get approval of the new screens/wording; (2) wire it: `SavedFood` + a "made by the
-  user" marker and optional servings per container (additive; guard pin moves, export v12 fields), recent/saved/My
-  foods queries, one-tap + logs one serving with Undo, Selected food logs servings, Manual Add logs one-off entries,
-  edit/delete entries with Undo, My meals save/log; unit + UI tests; captures; (3) Codex in a **fresh** session (the
-  old `term_6ce8444b-…` is ~75% full) — brief like `work-record/nutrition/codex-review-n3-prompt.md`; 2 workers, and
-  run nothing while Codex runs (the user's rule, DEVELOPMENT); (4) the user's OK on any extra strings, then merge.
-  Then N5 (Today's food area + the "Set your goals" invitation). Still to ask: the four N1 strings; N6's deploy +
-  GPT-6.1 Terra switch. Auto-handoff off (the user).
+- **Resume here (2026-11-10, morning handoff after the overnight run).** `main` = `origin/main` = `d38cf18`: **N4**
+  (Log food: My foods / My meals / Saved foods / Manual Add, D81; Delete Food), **N5** (Today's food: fuel card, rings,
+  log by meal, edit/delete entries with Undo, Set your goals) and **N6 code** (server food flows, GPT-6.1 Terra, migration
+  0007, privacy draft) — each Codex-clear and merged under the user's standing permission ("merge whenever Codex clear").
+  **In progress:** **N9a** (Body weight page + Log weight sheet + Recalculate offer) on
+  `ericlee4992/nutrition-09-weight-health` in this worktree — built, tests green, Codex review next (brief
+  `work-record/nutrition/codex-review-n9a-prompt.md`). **N9b** (Apple Health) not started (split, see N9's ticket).
+  **For the user in the morning:** (1) N6 deploy gates — a real sample per flow (all six) on `gpt-6.1-terra` with costs,
+  the privacy wording + `POLICY_EFFECTIVE_DATE`, then `migrate:remote` before `deploy` (N6 ticket; no local OpenAI key
+  exists, so Claude could not run them); (2) new strings and own decisions listed in the N5 and N9 tickets; (3) N9: should
+  the goal follow the weight on every Nutrition goals visit (N3's refresh) or only on Recalculate?; (4) Codex's weekly
+  limit was ~23 % at 06:30. Codex terminal: `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~50 %
+  context). N6's worktree `…/Health App/nutrition-06-server` is kept for the deploy. Auto-handoff on (the user).
   **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
   proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
   deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,

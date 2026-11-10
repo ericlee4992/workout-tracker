@@ -59,6 +59,8 @@ steps, Time, Cancel / Save, Delete Weight when editing. New entries use the late
   "More".
 - **Evidence:** build exit 0; `BodyWeightLogTests` 3 × 10 = 30/30 (`n9u.xcresult`); `BodyWeightUITests` 3/3 (captures
   2/2 in `n9ui.xcresult`; the flow test failed once — its edit typed before the old figure — fixed to tap the field's
-  end, 1/1 in `n9ui2.xcresult`); captures looked at (`n9att/N9.png`).
+  end, 1/1 in `n9ui2.xcresult`); captures looked at (`n9att/N9.png`). After rebasing on `main` `d38cf18`: Unit plan **1,225 executions, 0 failed**
+  (`n9unit.xcresult`); warm-up + BodyWeight + FloodlightProfile + NutritionGoals **23/23** (`n9reg.xcresult`, 2 workers).
+  Verified: the above. Not verified: runtime Reduce Motion, VoiceOver by a person, the full UI suite.
 
 ## Comments
