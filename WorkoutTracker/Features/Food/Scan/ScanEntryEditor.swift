@@ -1,36 +1,49 @@
+import SwiftData
 import SwiftUI
 
-// Nutrition N7 (MOCK) — a logged photo entry, opened from Today: the photo, its name (option A) and meal, the totals as
-// the hero, then each item — editable (name, portion, grams, calories, macros) or removable — and Add item. Staged
-// edits: Cancel and Save (D82: the review screen before Log became this edit screen; D78: plain numbers).
+// Nutrition N7 — a scanned meal or a description, opened from Today: the photo, its name and meal, the totals as the
+// hero, then each item — editable (name, portion, weight, calories, macros) or removable — and Add item. Staged edits:
+// Cancel and Save (D82: the review screen before Log became this edit screen; D78: plain numbers). Delete with Undo on
+// Today, the photo and items coming back with it.
 
 struct ScanEntryEditor: View {
-    var onDelete: (ScanMockEntry) -> Void
+    var entry: FoodEntry
+    var onDelete: (DeletedEntry) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var context
     @Environment(\.look) private var look
-    @State private var draft: ScanMockEntry
-    @State private var mock = FoodScanMock.shared
-    private let original: ScanMockEntry
+    @State private var name: String
+    @State private var meal: MealSlot
+    @State private var items: [FoodEstimate.Item]
+    @State private var failure: String?
+    /// Read once: after Delete the entry is gone while the sheet slides away, so the body never reads it.
+    private let photo: UIImage?
+    private let time: Date
 
-    init(entry: ScanMockEntry, onDelete: @escaping (ScanMockEntry) -> Void) {
-        original = entry
-        _draft = State(initialValue: entry)
+    init(entry: FoodEntry, onDelete: @escaping (DeletedEntry) -> Void) {
+        self.entry = entry
         self.onDelete = onDelete
+        _name = State(initialValue: entry.name)
+        _meal = State(initialValue: entry.meal)
+        _items = State(initialValue: FoodScan.editable(entry))
+        photo = entry.photo.flatMap(UIImage.init(data:))
+        time = entry.loggedAt
     }
 
-    private var oneEntry: Bool { mock.grouping == .oneEntry || draft.origin != .photo }
+    private var totals: Macros { items.reduce(Macros.zero) { $0 + $1.macros } }
+    private var canSave: Bool { !items.isEmpty && !name.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
-                    if let image = draft.image {
-                        Color.black.overlay { Image(uiImage: image).resizable().scaledToFill() }
+                    if let photo {
+                        Color.black.overlay { Image(uiImage: photo).resizable().scaledToFill() }
                             .frame(height: 190)
                             .frame(maxWidth: .infinity)
                             .clipShape(RoundedRectangle(cornerRadius: look.radius.panel, style: .continuous))
                             .overlay(alignment: .bottomLeading) {
-                                Text(ScanCopy.time(draft.time))
+                                Text(ScanCopy.time(time))
                                     .font(.system(.footnote, weight: .semibold))
                                     .foregroundStyle(.white)
                                     .padding(.horizontal, 10)
@@ -40,84 +53,58 @@ struct ScanEntryEditor: View {
                             }
                             .accessibilityHidden(true)
                     }
-                    if oneEntry {
-                        LookList(separatorInset: 16) {
-                            FoodFormField("Name", text: $draft.name, prompt: "e.g. Poke bowl", identifier: "scanEntryName")
-                        }
+                    LookList(separatorInset: 16) {
+                        FoodFormField("Name", text: $name, prompt: "e.g. Poke bowl", identifier: "scanEntryName")
                     }
                     WrapLayout(spacing: 8, lineSpacing: 8) {
                         ForEach(MealSlot.allCases) { slot in
-                            Chip(slot.label, isSelected: draft.meal == slot) { draft.meal = slot }
+                            Chip(slot.label, isSelected: meal == slot) { meal = slot }
                                 .accessibilityIdentifier("scanEntryMeal.\(slot.rawValue)")
                         }
                     }
-                    MacroSummary(macros: draft.totals)
-                    items
-                    DestructiveRowButton(oneEntry ? "Delete Entry" : "Delete Photo and Items") {
-                        mock.delete(original)
-                        dismiss()
-                        onDelete(original)
-                    }
-                    .accessibilityIdentifier("scanEntryDelete")
+                    MacroSummary(macros: totals)
+                    itemList
+                    DestructiveRowButton("Delete Entry", action: delete)
+                        .accessibilityIdentifier("scanEntryDelete")
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.vertical, 12)
             }
             .scrollDismissesKeyboard(.interactively)
             .lookScreenBackground()
-            .navigationTitle(oneEntry ? draft.name : "Photo")
+            .navigationTitle(name.isEmpty ? "Meal" : name)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        mock.update(draft)
-                        dismiss()
-                    }
-                    .disabled(draft.items.isEmpty)
-                    .accessibilityIdentifier("scanEntrySave")
+                    Button("Save", action: save)
+                        .disabled(!canSave)
+                        .accessibilityIdentifier("scanEntrySave")
                 }
             }
             .navigationDestination(for: UUID.self) { id in
-                if let index = draft.items.firstIndex(where: { $0.id == id }) {
-                    ScanItemEditor(item: $draft.items[index]) {
-                        draft.items.remove(at: index)
-                    }
+                if let index = items.firstIndex(where: { $0.id == id }) {
+                    ScanItemEditor(item: $items[index]) { items.removeAll { $0.id == id } }
                 }
+            }
+            .alert(FoodCopy.saveFailed, isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(failure ?? "")
             }
         }
     }
 
-    private var items: some View {
+    private var itemList: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("Items", trailing: "\(draft.items.count)")
+            SectionHeader("Items", trailing: "\(items.count)")
             LookList(separatorInset: 16) {
-                ForEach(draft.items) { item in
-                    NavigationLink(value: item.id) {
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(item.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
-                                Text("\(item.portion) · \(FoodNumber.text(item.grams)) g · \(ScanCopy.detail(time: nil, item.macros))")
-                                    .font(look.font.footnote).foregroundStyle(look.textSecondary)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            Text("\(TodayFoodCopy.calories(item.calories)) cal")
-                                .font(look.font.subhead.weight(.semibold)).monospacedDigit()
-                                .foregroundStyle(look.textPrimary)
-                            Image(systemName: "chevron.right").font(.system(.footnote, weight: .semibold))
-                                .foregroundStyle(look.textTertiary)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.lookPressable)
-                    .accessibilityIdentifier("scanItem.\(item.name)")
+                ForEach(items) { item in
+                    NavigationLink(value: item.id) { itemRow(item) }
+                        .buttonStyle(.lookPressable)
+                        .accessibilityIdentifier("scanItem.\(item.name)")
                 }
-                Button {
-                    let item = ScanMockItem(name: "", portion: "1 serving", grams: 0, calories: 0, protein: 0, carbs: 0, fat: 0)
-                    draft.items.append(item)
-                } label: {
+                Button(action: addItem) {
                     Label("Add item", systemImage: "plus")
                         .font(.system(.body, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
@@ -130,12 +117,62 @@ struct ScanEntryEditor: View {
             }
         }
     }
+
+    private func itemRow(_ item: FoodEstimate.Item) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.name.isEmpty ? "New item" : item.name).font(.system(.body, weight: .semibold))
+                    .foregroundStyle(item.name.isEmpty ? look.textSecondary : look.textPrimary)
+                Text(itemLine(item)).font(look.font.footnote).foregroundStyle(look.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text("\(TodayFoodCopy.calories(item.calories)) cal")
+                .font(look.font.subhead.weight(.semibold)).monospacedDigit().foregroundStyle(look.textPrimary)
+            Image(systemName: "chevron.right").font(.system(.footnote, weight: .semibold))
+                .foregroundStyle(look.textTertiary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
+    }
+
+    /// "1 cup · 150 g · P 26 · C 4 · F 4 g" — the portion and weight when known.
+    private func itemLine(_ item: FoodEstimate.Item) -> String {
+        let amount = [item.portion.isEmpty ? nil : item.portion, item.grams.map { "\(FoodNumber.text($0)) g" }]
+            .compactMap(\.self)
+        return (amount + [ScanCopy.detail(time: nil, item.macros)]).joined(separator: " · ")
+    }
+
+    private func addItem() {
+        items.append(FoodEstimate.Item(name: "", portion: "", grams: nil, calories: 0, protein: 0, carbs: 0, fat: 0))
+    }
+
+    private func save() {
+        // A new item left without a name is dropped rather than saved nameless.
+        let kept = items.filter { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty }
+        do {
+            try FoodScan.update(entry, name: name, meal: meal, items: kept, in: context)
+            dismiss()
+        } catch {
+            failure = error.localizedDescription
+        }
+    }
+
+    private func delete() {
+        do {
+            let copy = try FoodLog.delete(entry, in: context)
+            dismiss()
+            onDelete(copy)
+        } catch {
+            failure = error.localizedDescription
+        }
+    }
 }
 
-/// One item: its name, portion and grams, then its calories and macros (blank macro = 0); Remove Item at the end.
+/// One item: its name, portion and weight, then its calories and macros (blank macro = 0); Remove Item at the end.
 /// Changes go into the entry's draft; the entry's Save keeps them.
 struct ScanItemEditor: View {
-    @Binding var item: ScanMockItem
+    @Binding var item: FoodEstimate.Item
     var onRemove: () -> Void
     @Environment(\.dismiss) private var dismiss
     @Environment(\.look) private var look
@@ -179,7 +216,7 @@ struct ScanItemEditor: View {
             loaded = true
             name = item.name
             portion = item.portion
-            grams = item.grams > 0 ? FoodNumber.text(item.grams) : ""
+            grams = item.grams.map(FoodNumber.text) ?? ""
             calories = FoodNumber.text(item.calories)
             protein = FoodNumber.text(item.protein)
             carbs = FoodNumber.text(item.carbs)
@@ -188,48 +225,14 @@ struct ScanItemEditor: View {
         .onDisappear { if !removed { apply() } }
     }
 
+    /// Back writes the fields into the draft: a number that does not read keeps the item's value; a blank macro is 0.
     private func apply() {
-        item.name = name
-        item.portion = portion
-        item.grams = FoodNumber.parse(grams) ?? 0
+        item.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        item.portion = portion.trimmingCharacters(in: .whitespacesAndNewlines)
+        item.grams = FoodNumber.optional(grams) ?? item.grams
         item.calories = FoodNumber.parse(calories) ?? item.calories
-        item.protein = FoodNumber.parse(protein) ?? 0
-        item.carbs = FoodNumber.parse(carbs) ?? 0
-        item.fat = FoodNumber.parse(fat) ?? 0
-    }
-}
-
-/// Option B: an item entry opened from Today on its own (it is its own entry): the item editor with Cancel and Save.
-struct ScanItemEntrySheet: View {
-    var entry: ScanMockEntry
-    var itemID: UUID
-    @Environment(\.dismiss) private var dismiss
-    @State private var draft: ScanMockEntry
-
-    init(entry: ScanMockEntry, itemID: UUID) {
-        self.entry = entry
-        self.itemID = itemID
-        _draft = State(initialValue: entry)
-    }
-
-    var body: some View {
-        NavigationStack {
-            if let index = draft.items.firstIndex(where: { $0.id == itemID }) {
-                ScanItemEditor(item: $draft.items[index]) {
-                    draft.items.remove(at: index)
-                    FoodScanMock.shared.update(draft)
-                }
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
-                            // The editor writes into the draft as it disappears; read it on the next turn.
-                            dismiss()
-                            Task { @MainActor in FoodScanMock.shared.update(draft) }
-                        }
-                    }
-                }
-            }
-        }
+        item.protein = (FoodNumber.optional(protein) ?? item.protein) ?? 0
+        item.carbs = (FoodNumber.optional(carbs) ?? item.carbs) ?? 0
+        item.fat = (FoodNumber.optional(fat) ?? item.fat) ?? 0
     }
 }

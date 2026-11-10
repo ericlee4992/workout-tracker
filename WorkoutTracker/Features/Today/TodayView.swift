@@ -61,15 +61,12 @@ struct TodayView: View {
     }
 
     @State private var showLogFood = false
-    /// N7 MOCK: the scan camera, the logged scans and their Undo.
+    /// N7: the scan camera, the scans being estimated, and a scanned meal's items screen.
     @State private var showScan = false
-    @State private var scanMock = FoodScanMock.shared
-    @State private var openScan: ScanMockEntry?
-    @State private var openScanItem: ScanItemRef?
-    @State private var deletedScan: ScanMockEntry?
+    @State private var scans = FoodScanQueue.shared
+    @State private var openScan: FoodEntry?
     @State private var manualFromScan = false
-
-    struct ScanItemRef: Identifiable { var entry: ScanMockEntry; var itemID: UUID; var id: UUID { itemID } }
+    @Environment(AccountStore.self) private var account
 
     var body: some View {
         NavigationStack {
@@ -99,18 +96,12 @@ struct TodayView: View {
                 ManualAddView(meal: MealSlot.forTime(.now)) { _ in manualFromScan = false }
             }
             .fullScreenCover(isPresented: $showScan) {
-                FoodScanFlow(meal: MealSlot.forTime(.now), onMealPhoto: { showScan = false },
-                             onManualAdd: { manualFromScan = true })
+                FoodScanFlow(meal: nil, onDone: {}, onManualAdd: { manualFromScan = true })
             }
-            .sheet(item: $openScan) { scan in
-                ScanEntryEditor(entry: scan) { copy in
-                    withAnimation(reduceMotion ? nil : .snappy) { deletedScan = copy }
+            .sheet(item: $openScan) { entry in
+                ScanEntryEditor(entry: entry) { copy in
+                    withAnimation(reduceMotion ? nil : .snappy) { deletedEntry = copy }
                 }
-            }
-            .sheet(item: $openScanItem) { ref in ScanItemEntrySheet(entry: ref.entry, itemID: ref.itemID) }
-            .overlay(alignment: .bottom) { if let deletedScan { deletedScanToast(deletedScan) } }
-            .toolbar {
-                if FoodScanMock.enabled { ToolbarItem(placement: .topBarTrailing) { ScanMockSwitcher() } }
             }
             .navigationDestination(isPresented: $showGoals) { NutritionGoalsView() }
             .sheet(item: $editingEntry) { entry in
@@ -144,14 +135,12 @@ struct TodayView: View {
     }
 
     private func weekFood(_ summary: WeekSummary) -> [Date: FoodDay] {
-        FoodDayMath.week(summary.days.filter { !$0.isFuture }.map(\.date), entries: foodEntries + scanMock.asFoodEntries,
-                         goals: nutritionGoals,
+        FoodDayMath.week(summary.days.filter { !$0.isFuture }.map(\.date), entries: foodEntries, goals: nutritionGoals,
                          workouts: finishedWorkouts)
     }
 
     private var todayFood: FoodDay {
-        FoodDayMath.day(now, entries: foodEntries + scanMock.asFoodEntries, goals: nutritionGoals,
-                        workouts: finishedWorkouts)
+        FoodDayMath.day(now, entries: foodEntries, goals: nutritionGoals, workouts: finishedWorkouts)
     }
 
     /// A workout belongs to the day it STARTED on (as in History), in the calendar's time zone.
@@ -256,16 +245,17 @@ struct TodayView: View {
         // In the order eaten; same-minute entries by when they were logged, then by id (a stable order).
         let entries = NutritionMath.entries(foodEntries, on: now)
             .sorted { ($0.loggedAt, $0.createdAt, $0.id.uuidString) < ($1.loggedAt, $1.createdAt, $1.id.uuidString) }
-        let scans = scanMock.entries
         return VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Today's log")
-            // N7 MOCK (D82): a scan in flight or failed, first.
-            ForEach(scanMock.pending) { scan in
-                ScanPendingCard(scan: scan, retake: { showScan = true }, manualAdd: { manualFromScan = true })
+            // N7 (D82): a scan in flight or failed, first.
+            ForEach(scans.pending) { scan in
+                ScanPendingCard(scan: scan, retake: { scans.dismiss(scan.id); showScan = true },
+                                retry: { scans.retry(scan.id, client: TerraAccess.client(account), context: modelContext) },
+                                manualAdd: { scans.dismiss(scan.id); manualFromScan = true })
                     .transition(.opacity.combined(with: .scale(scale: 0.97)))
             }
-            if today.isEmpty && entries.isEmpty && scans.isEmpty {
-                if scanMock.pending.isEmpty {
+            if today.isEmpty && entries.isEmpty {
+                if scans.pending.isEmpty {
                     Text("Nothing logged yet today.")
                         .font(look.font.subhead)
                         .foregroundStyle(look.textSecondary)
@@ -277,11 +267,10 @@ struct TodayView: View {
                 // N5: food by meal, in the day's order, then the day's workouts.
                 ForEach(MealSlot.allCases) { meal in
                     let logged = entries.filter { $0.meal == meal }
-                    let scanned = scanMock.entries(for: meal)
-                    if !logged.isEmpty || !scanned.isEmpty {
-                        TodayMealLog(meal: meal, entries: logged, edit: { editingEntry = $0 }, scans: scanned,
-                                     grouping: scanMock.grouping, openScan: { openScan = $0 },
-                                     openScanItem: { openScanItem = ScanItemRef(entry: $0, itemID: $1.id) })
+                    if !logged.isEmpty {
+                        TodayMealLog(meal: meal, entries: logged) { entry in
+                            if entry.isScan { openScan = entry } else { editingEntry = entry }
+                        }
                     }
                 }
                 if !today.isEmpty {
@@ -296,33 +285,6 @@ struct TodayView: View {
                     .lookSurface(.panel)
                 }
             }
-        }
-    }
-
-    /// N7 MOCK: "Deleted Poke bowl" with Undo.
-    private func deletedScanToast(_ copy: ScanMockEntry) -> some View {
-        HStack(spacing: 12) {
-            Text("Deleted \(copy.name)")
-                .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(look.onAction)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Button("Undo") {
-                scanMock.restore(copy)
-                withAnimation(reduceMotion ? nil : .snappy) { deletedScan = nil }
-            }
-            .font(.system(.subheadline, weight: .bold))
-            .foregroundStyle(look.onAction)
-            .frame(minHeight: 44)
-        }
-        .padding(.horizontal, 18)
-        .frame(minHeight: 52)
-        .background(look.action, in: Capsule())
-        .padding(.horizontal, look.space.margin)
-        .padding(.bottom, 72)
-        .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
-        .task {
-            try? await Task.sleep(for: .seconds(5))
-            withAnimation(reduceMotion ? nil : .snappy) { deletedScan = nil }
         }
     }
 

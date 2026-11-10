@@ -1,9 +1,10 @@
 import XCTest
 
-/// Nutrition N7 MOCK — Scan Food on record before it is wired (the user, 2026-11-10: mocks first): Today's progress
-/// card (D82) and the logged photo entry as one entry or one per item, the failures, the camera's three modes,
-/// sign in, camera off, reading a label and the prefilled food, the entry's items and an item, and Log food's estimate
-/// row — light at Default and dark at AccessibilityL. Sample data in memory only (`-scanFoodMock`).
+/// Nutrition N7 — Scan Food against the server's fixture (`-uiTestTerra`; the drawn meal and label stand in for the
+/// camera): a meal photo's card (D82) becomes ONE entry named for the meal (D83) with its photo, whose items are edited
+/// and which is deleted with Undo; a library photo logged at its own time; a label read into the food and logged; a
+/// description logged at once; each failure's card; signed out; camera off. Then the captures, light at Default and
+/// dark at AccessibilityL.
 final class ScanFoodUITests: XCTestCase {
     private var app: XCUIApplication!
     private var tag = ""
@@ -21,10 +22,10 @@ final class ScanFoodUITests: XCTestCase {
         add(shot)
     }
 
-    private func launch(_ appearance: String, large: Bool, _ extra: [String] = []) {
+    private func launch(_ appearance: String = "light", large: Bool = false, _ extra: [String] = []) {
         tag = "\(appearance)-\(large ? "axl" : "default")"
-        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestFoodSample", "-appearance", appearance,
-                               "-scanFoodMock"] + extra
+        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestFoodSample", "-uiTestTerra",
+                               "-appearance", appearance] + extra
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
         XCTAssertTrue(app.buttons["logFoodPill"].waitForExistence(timeout: 15))
@@ -40,21 +41,148 @@ final class ScanFoodUITests: XCTestCase {
         XCTAssertTrue(element.exists, "not found: \(element)")
     }
 
+    private var card: XCUIElement { app.descendants(matching: .any)["scanPending"] }
+
+    private func openCamera() {
+        app.buttons["scanFoodButton"].tap()
+        XCTAssertTrue(app.buttons["scanFoodShutter"].waitForExistence(timeout: 5))
+    }
+
+    // MARK: Behaviour
+
+    func testAMealPhotoIsLoggedAsOneEntryAndItsItemsEdit() {
+        launch()
+        openCamera()
+        app.buttons["scanFoodShutter"].tap()
+        // The camera closes at once and the card counts up on Today.
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        let entry = app.buttons["todayEntry.Poke bowl"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 10), "the estimate is logged as one entry named for the meal")
+        XCTAssertFalse(card.exists)
+        reveal(entry)
+        XCTAssertTrue(entry.label.contains("550 cal"), entry.label)
+
+        // The items screen: remove an item, save — the entry's total follows.
+        entry.tap()
+        XCTAssertTrue(app.buttons["scanEntrySave"].waitForExistence(timeout: 5))
+        let mango = app.buttons["scanItem.Mango"]
+        if !mango.isHittable { app.swipeUp() }
+        mango.tap()
+        XCTAssertTrue(app.buttons["scanItemRemove"].waitForExistence(timeout: 5))
+        app.buttons["scanItemRemove"].tap()
+        XCTAssertFalse(app.buttons["scanItem.Mango"].waitForExistence(timeout: 2))
+        app.buttons["scanEntrySave"].tap()
+        XCTAssertTrue(entry.waitForExistence(timeout: 5))
+        XCTAssertTrue(entry.label.contains("500 cal"), entry.label)
+
+        // Delete with Undo: it comes back with its items.
+        entry.tap()
+        XCTAssertTrue(app.buttons["scanEntryDelete"].waitForExistence(timeout: 5))
+        app.swipeUp()
+        app.buttons["scanEntryDelete"].tap()
+        XCTAssertTrue(app.buttons["todayUndoDelete"].waitForExistence(timeout: 5))
+        app.buttons["todayUndoDelete"].tap()
+        XCTAssertTrue(entry.waitForExistence(timeout: 5))
+        reveal(entry)
+        entry.tap()
+        XCTAssertTrue(app.buttons["scanItem.Tuna poke"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["scanItem.Mango"].exists)
+    }
+
+    func testALibraryPhotoIsLoggedWhenItWasTaken() {
+        launch()
+        openCamera()
+        app.buttons["scanFoodLibrary"].tap()
+        let entry = app.buttons["todayEntry.Poke bowl"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 10))
+        reveal(entry)
+        // The fixture's picked photo was taken at 12:40 (or now, if that is still ahead).
+        let hour = Calendar.current.component(.hour, from: .now)
+        let minute = Calendar.current.component(.minute, from: .now)
+        if hour * 60 + minute >= 12 * 60 + 40 {
+            XCTAssertTrue(entry.label.contains("12:40"), entry.label)
+            XCTAssertTrue(app.descendants(matching: .any)["todayMeal.lunch"].exists)
+        }
+    }
+
+    func testALabelIsReadIntoTheFoodAndLogged() {
+        launch()
+        openCamera()
+        app.buttons["scanFoodMode.label"].tap()
+        app.buttons["scanFoodShutter"].tap()
+        let log = app.buttons["labelFoodLog"]
+        XCTAssertTrue(log.waitForExistence(timeout: 10))
+        XCTAssertFalse(log.isEnabled, "a label has no name: the user's")
+        let name = app.textFields["labelFoodName"]
+        name.tap()
+        name.typeText("Maple granola")
+        app.buttons["labelFoodLog"].tap()
+        let entry = app.buttons["todayEntry.Maple granola"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 5))
+        // Save to My foods was on: it is one of My foods now.
+        app.buttons["logFoodPill"].tap()
+        app.buttons["logFoodTab.My foods"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["logFoodRow.Maple granola"].waitForExistence(timeout: 5))
+    }
+
+    func testADescriptionIsLoggedAtOnce() {
+        launch()
+        app.buttons["logFoodPill"].tap()
+        let search = app.textFields["logFoodSearch"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText("2 eggs and toast")
+        app.buttons["logFoodDescribe"].tap()
+        XCTAssertTrue(app.buttons["todayEntry.Eggs and toast"].waitForExistence(timeout: 10))
+    }
+
+    func testEachFailureKeepsItsCard() {
+        for (flag, expected, action) in [("nothing", "No food found", "scanManualAdd"),
+                                         ("limit", "Daily limit reached", "scanManualAdd"),
+                                         ("offline", "Couldn't analyze", "scanTryAgain")] {
+            launch("light", large: false, ["-uiTestFoodScanFail", flag])
+            openCamera()
+            app.buttons["scanFoodShutter"].tap()
+            XCTAssertTrue(app.staticTexts[expected].waitForExistence(timeout: 10), flag)
+            XCTAssertTrue(app.buttons[action].exists, flag)
+            XCTAssertFalse(app.buttons["todayEntry.Poke bowl"].exists, flag)
+        }
+        // Remove takes the card away.
+        app.buttons["scanPendingRemove"].tap()
+        XCTAssertFalse(card.waitForExistence(timeout: 2))
+    }
+
+    // MARK: Captures
+
     func testCaptureLightDefault() { capture("light", large: false) }
     func testCaptureDarkAccessibility() { capture("dark", large: true) }
 
     private func capture(_ appearance: String, large: Bool) {
-        // 1. Today: the progress card at 9 % over a logged photo (option A, one entry).
-        launch(appearance, large: large, ["-scanFoodMockSample", "analyzing"])
-        let card = app.descendants(matching: .any)["scanPending"]
-        reveal(card)
-        shoot("today-analyzing")
-        app.swipeUp()
-        shoot("today-analyzing-2")
+        // 1. Today's buttons, the camera's three modes.
+        launch(appearance, large: large, ["-uiTestFoodScanHold"])
+        shoot("today-buttons")
+        openCamera()
+        shoot("camera-meal")
+        app.buttons["scanFoodMode.barcode"].tap()
+        shoot("camera-barcode")
+        app.buttons["scanFoodMode.label"].tap()
+        shoot("camera-label")
 
-        // 2. The entry's items screen, then one item.
-        let entry = app.buttons["scanEntry.Poke bowl"]
+        // 2. A meal photo: the card, held.
+        app.buttons["scanFoodMode.meal"].tap()
+        app.buttons["scanFoodShutter"].tap()
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        reveal(card)
+        shoot("today-card")
+
+        // 3. Logged: the entry with its photo, its items screen and an item.
+        launch(appearance, large: large)
+        openCamera()
+        app.buttons["scanFoodShutter"].tap()
+        let entry = app.buttons["todayEntry.Poke bowl"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 10))
         reveal(entry)
+        shoot("today-logged")
         entry.tap()
         XCTAssertTrue(app.buttons["scanEntrySave"].waitForExistence(timeout: 5))
         shoot("entry")
@@ -66,72 +194,50 @@ final class ScanFoodUITests: XCTestCase {
         XCTAssertTrue(app.buttons["scanItemRemove"].waitForExistence(timeout: 5))
         shoot("item")
 
-        // 3. Option B: one entry per item under the photo.
-        launch(appearance, large: large, ["-scanFoodMockSample", "done", "-scanFoodMockGrouping", "perItem"])
-        let group = app.buttons["scanPhotoGroup"]
-        reveal(group)
-        shoot("today-per-item")
-        app.swipeUp()
-        shoot("today-per-item-2")
-
-        // 4. The failures on Today.
-        launch(appearance, large: large, ["-scanFoodMockSample", "failures"])
-        reveal(app.descendants(matching: .any)["scanFailed.nothingFound"])
-        shoot("today-failures")
-        app.swipeUp()
-        shoot("today-failures-2")
-
-        // 5. The camera's three modes (from Today's camera button).
-        launch(appearance, large: large, ["-scanFoodMockSample", "none", "-scanFoodMockSlow"])
-        shoot("today-buttons")
-        app.buttons["scanFoodButton"].tap()
-        XCTAssertTrue(app.buttons["scanFoodShutter"].waitForExistence(timeout: 5))
-        shoot("camera-meal")
-        app.buttons["scanFoodMode.barcode"].tap()
-        shoot("camera-barcode")
+        // 4. A label: reading (held), then the food.
+        launch(appearance, large: large, ["-uiTestFoodScanHold"])
+        openCamera()
         app.buttons["scanFoodMode.label"].tap()
-        shoot("camera-label")
-
-        // 6. A meal photo: the camera closes, the card counts up on Today, then becomes the entry.
-        app.buttons["scanFoodMode.meal"].tap()
-        app.buttons["scanFoodShutter"].tap()
-        let live = app.descendants(matching: .any)["scanPending"]
-        XCTAssertTrue(live.waitForExistence(timeout: 5))
-        reveal(live)
-        shoot("today-live-card")
-        XCTAssertTrue(app.buttons["scanEntry.Poke bowl"].waitForExistence(timeout: 25))
-        shoot("today-live-logged")
-
-        // 7. A label: read, then the food prefilled (named, as if typed).
-        launch(appearance, large: large, ["-scanFoodMockSample", "none", "-scanFoodMockMode", "label",
-                                          "-scanFoodMockHoldLabel"])
-        app.buttons["scanFoodButton"].tap()
-        XCTAssertTrue(app.buttons["scanFoodShutter"].waitForExistence(timeout: 5))
         app.buttons["scanFoodShutter"].tap()
         XCTAssertTrue(app.buttons["scanFoodRetake"].waitForExistence(timeout: 5))
         shoot("label-reading")
-        launch(appearance, large: large, ["-scanFoodMockSample", "none", "-scanFoodMockMode", "label",
-                                          "-scanFoodMockNamed"])
-        app.buttons["scanFoodButton"].tap()
-        XCTAssertTrue(app.buttons["scanFoodShutter"].waitForExistence(timeout: 5))
+        launch(appearance, large: large)
+        openCamera()
+        app.buttons["scanFoodMode.label"].tap()
         app.buttons["scanFoodShutter"].tap()
-        XCTAssertTrue(app.buttons["labelFoodLog"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.buttons["labelFoodLog"].waitForExistence(timeout: 10))
         shoot("label-food")
         app.swipeUp()
         shoot("label-food-2")
 
-        // 8. Signed out; camera off (no consent screen, D83).
-        launch(appearance, large: large, ["-scanFoodMockSample", "none", "-scanFoodMockSignedOut"])
+        // 5. The failures.
+        for flag in ["nothing", "limit", "offline"] {
+            launch(appearance, large: large, ["-uiTestFoodScanFail", flag])
+            openCamera()
+            app.buttons["scanFoodShutter"].tap()
+            XCTAssertTrue(app.descendants(matching: .any)["scanFailed"].waitForExistence(timeout: 10))
+            reveal(card)
+            shoot("today-failed-\(flag)")
+        }
+        launch(appearance, large: large, ["-uiTestFoodScanFail", "nothing"])
+        openCamera()
+        app.buttons["scanFoodMode.label"].tap()
+        app.buttons["scanFoodShutter"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["scanFoodLabelFailure"].waitForExistence(timeout: 10))
+        shoot("label-not-found")
+
+        // 6. Signed out; camera off.
+        launch(appearance, large: large, ["-uiTestProfileSignedOut"])
         app.buttons["scanFoodButton"].tap()
         XCTAssertTrue(app.buttons["scanFoodSignIn"].waitForExistence(timeout: 5))
         shoot("signed-out")
-        launch(appearance, large: large, ["-scanFoodMockSample", "none", "-scanFoodMockNoCamera"])
+        launch(appearance, large: large, ["-uiTestFoodScanNoCamera"])
         app.buttons["scanFoodButton"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["scanFoodCameraOff"].waitForExistence(timeout: 5))
         shoot("camera-off")
 
-        // 9. Log food: the estimate row for what was typed, and the camera in the bar.
-        launch(appearance, large: large, ["-scanFoodMockSample", "none", "-scanFoodMockSlow"])
+        // 7. Log food: the estimate row, then its card on Today (held).
+        launch(appearance, large: large, ["-uiTestFoodScanHold"])
         app.buttons["logFoodPill"].tap()
         let search = app.textFields["logFoodSearch"]
         XCTAssertTrue(search.waitForExistence(timeout: 5))
@@ -140,9 +246,8 @@ final class ScanFoodUITests: XCTestCase {
         XCTAssertTrue(app.buttons["logFoodDescribe"].waitForExistence(timeout: 5))
         shoot("describe")
         app.buttons["logFoodDescribe"].tap()
-        let describing = app.descendants(matching: .any)["scanPending"]
-        XCTAssertTrue(describing.waitForExistence(timeout: 5))
-        reveal(describing)
+        XCTAssertTrue(card.waitForExistence(timeout: 5))
+        reveal(card)
         shoot("today-describe-card")
     }
 }

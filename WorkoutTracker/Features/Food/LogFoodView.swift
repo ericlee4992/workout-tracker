@@ -25,9 +25,10 @@ struct LogFoodView: View {
     @State private var selected: SavedFood?
     @State private var selectedMeal: SavedMeal?
     @State private var failure: String?
-    /// N7 MOCK: the scan camera from Log food's bar; a meal photo or a description returns to Today (D82's card).
+    /// N7: the scan camera from Log food's bar; a meal photo or a description returns to Today (D82's card).
     @State private var showScan = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(AccountStore.self) private var account
 
     enum Tab: CaseIterable, Identifiable {
         case all, myFoods, myMeals, saved
@@ -109,8 +110,7 @@ struct LogFoodView: View {
             }
         }
         .fullScreenCover(isPresented: $showScan) {
-            FoodScanFlow(meal: meal, onMealPhoto: { showScan = false; dismiss() },
-                         onManualAdd: { route = .manualAdd })
+            FoodScanFlow(meal: meal, onDone: { dismiss() }, onManualAdd: { route = .manualAdd })
         }
         .overlay(alignment: .bottom) { if let receipt { undoToast(receipt) } }
         .sensoryFeedback(.success, trigger: receipt?.entries.first?.id) { _, new in new != nil }
@@ -184,7 +184,7 @@ struct LogFoodView: View {
     private var describeRow: some View {
         let text = search.trimmingCharacters(in: .whitespaces)
         return Button {
-            FoodScanMock.shared.startDescribe(text, meal: meal)
+            FoodScanQueue.shared.startDescribe(text, meal: meal, client: TerraAccess.client(account), context: context)
             dismiss()
         } label: {
             HStack(spacing: 12) {

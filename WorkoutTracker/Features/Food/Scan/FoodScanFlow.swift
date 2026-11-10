@@ -1,58 +1,141 @@
+import PhotosUI
+import SwiftData
 import SwiftUI
 import UIKit
 
-// Nutrition N7 (MOCK) — Scan Food, a full-screen cover from Today (the camera beside Log food) or Log food's bar:
-// sign in (AI needs an account, D60) → the camera (no photo consent screen: the user, 2026-11-10, D83)
-// with Scan food | Barcode | Food label and a photo-library pick. A meal photo closes the camera at once:
-// the progress card is in Today's log (D82). A label is cropped to the box (D53), read, and opens the food prefilled.
-// The Simulator has no camera: the drawn sample stands in for the viewfinder.
+// Nutrition N7 — Scan Food, a full-screen cover from Today (the camera beside Log food) or Log food's bar: sign in (AI
+// needs an account, D60) → the camera (no photo consent screen, D83) with Scan food | Barcode | Food label and a
+// photo-library pick. A meal photo closes the camera at once: its progress card is in Today's log and it is logged when
+// the estimate arrives (D82). A label is cropped to the box (D53), read here, and opens the food prefilled. Barcode is
+// N8's. In UI tests (`-uiTestTerra`) and on the Simulator the drawn sample stands in for the camera.
+
+/// One photo from the shutter or the library, ready to send.
+struct FoodScanShot {
+    var image: UIImage
+    var jpeg: Data
+    var mode: FoodScanMode
+    /// A library photo's own time (nil from the camera: now).
+    var taken: Date?
+    var fromLibrary: Bool
+}
 
 struct FoodScanFlow: View {
-    var meal: MealSlot
-    /// A meal photo was taken: the caller closes the camera and shows Today.
-    var onMealPhoto: () -> Void
+    /// The meal a camera photo goes to: Log food's chosen meal, or nil from Today (by the time of day).
+    var meal: MealSlot?
+    /// A meal photo or a label was handled: the caller shows Today (the card, or the logged label).
+    var onDone: () -> Void
     var onManualAdd: () -> Void
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.look) private var look
-    @State private var mock = FoodScanMock.shared
+    @Environment(\.modelContext) private var context
+    @Environment(AccountStore.self) private var account
     @State private var path: [Step] = []
+    @State private var signingIn = false
+    @State private var label: LabelState?
 
     enum Step: Hashable { case readingLabel, labelFood }
+
+    /// The label being read: its crop, then the reading or why there is none.
+    struct LabelState {
+        var shot: FoodScanShot
+        var reading: FoodLabelReading?
+        var failure: (title: String, detail: String)?
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if !mock.signedIn {
-                    FoodScanSignIn(onCancel: { dismiss() }, onSignIn: { mock.signedIn = true }, onManual: manual)
+                if !TerraAccess.ready(account) {
+                    FoodScanSignIn(onCancel: { dismiss() }, onSignIn: { signingIn = true }, onManual: manual)
                 } else {
-                    FoodScanCamera(initialMode: mock.initialMode, cameraAllowed: mock.cameraAllowed,
-                                   onCancel: { dismiss() }, onShot: shot)
+                    FoodScanCamera(onCancel: { dismiss() }, onShot: shot)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: Step.self) { step in
                 switch step {
                 case .readingLabel:
-                    FoodScanReadingLabel(onCancel: { dismiss() }, onRetake: { path.removeAll() }) {
-                        path.append(.labelFood)
-                    }
-                    .toolbar(.hidden, for: .navigationBar)
+                    FoodScanReadingLabel(image: label?.shot.image, failure: label?.failure,
+                                         onCancel: { dismiss() }, onRetake: retake, onManual: manual)
+                        .toolbar(.hidden, for: .navigationBar)
                 case .labelFood:
-                    LabelFoodView(meal: meal, onRetake: { path.removeAll() }) { dismiss() }
+                    if let label, let reading = label.reading {
+                        LabelFoodView(reading: reading, image: label.shot.image,
+                                      meal: label.shot.taken.map { FoodScan.when(photoTaken: $0).meal }
+                                        ?? meal ?? MealSlot.forTime(.now),
+                                      eatenAt: FoodScan.when(photoTaken: label.shot.taken).date,
+                                      onRetake: retake) { done() }
+                    }
                 }
             }
         }
         .lookScreenBackground()
+        .sheet(isPresented: $signingIn) { AccountSignInSheet() }
     }
 
-    private func shot(_ mode: FoodScanMode) {
-        switch mode {
+    private func shot(_ shot: FoodScanShot) {
+        switch shot.mode {
         case .meal:
-            mock.startPhoto(meal: meal)
-            onMealPhoto()
-        case .label: path.append(.readingLabel)
-        case .barcode: break
+            // A library photo is logged when it was taken, in that time's meal (D83); a camera photo now, in the meal
+            // Log food chose or the time's.
+            let when = FoodScan.when(photoTaken: shot.taken)
+            let meal = shot.fromLibrary && shot.taken != nil ? when.meal : (meal ?? when.meal)
+            FoodScanQueue.shared.startPhoto(jpeg: shot.jpeg, meal: meal, eatenAt: when.date,
+                                            client: TerraAccess.client(account), context: context)
+            done()
+        case .label:
+            label = LabelState(shot: shot)
+            path.append(.readingLabel)
+            read(shot)
+        case .barcode:
+            break
         }
+    }
+
+    /// A label is short work: the camera's sheet waits for it on the reading screen.
+    private func read(_ shot: FoodScanShot) {
+        let client = TerraAccess.client(account)
+        Task {
+            let failure: (String, String)?
+            do {
+                let data: Data
+                if TerraAccess.fixture {
+                    data = try await FoodScanFixture.reply(.foodLabel)
+                } else {
+                    guard let client else { throw AIServerError.signedOut }
+                    data = try await client.complete(.foodLabel, json: AIServerClient.foodPhotoBody(jpeg: shot.jpeg))
+                }
+                if let reading = FoodLabelReading.parse(data), reading.isUsable {
+                    guard label?.shot.jpeg == shot.jpeg else { return }
+                    label?.reading = reading
+                    path = [.readingLabel, .labelFood]
+                    return
+                }
+                failure = FoodScanReadingLabel.notFound
+            } catch let error as AIServerError {
+                switch error {
+                case .limit(_, let limit, let resetsAt):
+                    failure = ("Daily limit reached",
+                               "\(limit ?? 30) labels a day. More at \(AIResetCopy.clock(resetsAt, zone: .current)).")
+                case .offline: failure = ("Couldn't read the label", "No connection. Try again.")
+                case .signedOut: failure = ("Couldn't read the label", "Sign in again, then try again.")
+                default: failure = ("Couldn't read the label", "Something went wrong. Try again.")
+                }
+            } catch {
+                failure = ("Couldn't read the label", "Something went wrong. Try again.")
+            }
+            guard label?.shot.jpeg == shot.jpeg else { return }
+            label?.failure = failure.map { (title: $0.0, detail: $0.1) }
+        }
+    }
+
+    private func retake() {
+        label = nil
+        path.removeAll()
+    }
+
+    private func done() {
+        dismiss()
+        onDone()
     }
 
     private func manual() {
@@ -64,10 +147,8 @@ struct FoodScanFlow: View {
 // MARK: - Camera
 
 struct FoodScanCamera: View {
-    var initialMode: FoodScanMode
-    var cameraAllowed: Bool
     var onCancel: () -> Void
-    var onShot: (FoodScanMode) -> Void
+    var onShot: (FoodScanShot) -> Void
     @Environment(\.look) private var look
 
     var body: some View {
@@ -80,18 +161,30 @@ struct FoodScanCamera: View {
 private struct FoodScanCameraContent: View {
     var camera: FoodScanCamera
     @Environment(\.look) private var look
-    @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var mode: FoodScanMode = .meal
     @State private var torch = false
     @State private var flash = 0.0
     @State private var shutterTaps = 0
+    @State private var captureID: UUID?
+    @State private var notice: String?
+    @State private var picking = false
+    @State private var picked: PhotosPickerItem?
+    /// The view's size and the box at the shutter, so the crop is the box the user saw.
+    @State private var geometry: (size: CGSize, frame: CGRect) = (.zero, .zero)
+
+    private var availability: CaptureAvailability { CaptureAvailability.resolve() }
+    private var fixture: Bool { TerraAccess.fixture }
+    /// UI tests reach the camera-off screen with `-uiTestFoodScanNoCamera`.
+    private var cameraUsable: Bool {
+        fixture ? !ProcessInfo.processInfo.arguments.contains("-uiTestFoodScanNoCamera") : availability.allowsCamera
+    }
 
     var body: some View {
         GeometryReader { geo in
             let frame = framingRect(in: geo.size)
             ZStack {
-                if camera.cameraAllowed {
+                if cameraUsable {
                     viewfinder(frame: frame, size: geo.size)
                 } else {
                     cameraOff
@@ -100,7 +193,8 @@ private struct FoodScanCameraContent: View {
                 VStack(spacing: 0) {
                     topBar
                     Spacer(minLength: 0)
-                    if camera.cameraAllowed {
+                    if cameraUsable {
+                        if let notice { glassLine(notice).padding(.bottom, 10) }
                         glassLine(hint).padding(.bottom, 16)
                         modes.padding(.horizontal, look.space.margin).padding(.bottom, 14)
                         controls.padding(.horizontal, 30).padding(.bottom, 10)
@@ -109,9 +203,13 @@ private struct FoodScanCameraContent: View {
                     }
                 }
             }
+            .onAppear { geometry = (geo.size, frame) }
+            .onChange(of: geo.size) { _, size in geometry = (size, framingRect(in: size)) }
+            .onChange(of: mode) { _, _ in geometry = (geo.size, framingRect(in: geo.size)) }
         }
         .background(Color.black.ignoresSafeArea())
-        .onAppear { mode = camera.initialMode }
+        .photosPicker(isPresented: $picking, selection: $picked, matching: .images)
+        .onChange(of: picked) { _, item in if let item { load(item) } }
         .sensoryFeedback(.impact(weight: .medium), trigger: shutterTaps)
         .sensoryFeedback(.selection, trigger: mode)
     }
@@ -124,29 +222,32 @@ private struct FoodScanCameraContent: View {
         }
     }
 
-    // MARK: Viewfinder (the drawn sample stands in for the camera)
+    // MARK: Viewfinder
 
-    private func viewfinder(frame: CGRect, size: CGSize) -> some View {
+    @ViewBuilder private func viewfinder(frame: CGRect, size: CGSize) -> some View {
         ZStack {
-            // The feed fills the screen without taking part in the layout (an image's own size would push the
-            // controls off the screen).
-            Group {
-                if mode == .meal {
-                    Color.black.overlay { Image(uiImage: FoodScanArt.meal).resizable().scaledToFill().scaleEffect(0.95) }
-                } else {
-                    // A package on the counter: the label (or its barcode) sits where the box is.
-                    Color(hex: 0xC9B48F).overlay {
-                        Image(uiImage: mode == .label ? FoodScanArt.label : FoodScanArt.barcode)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: frame.width * (mode == .label ? 0.9 : 1.06))
-                            .position(x: frame.midX, y: frame.midY)
+            if fixture {
+                // The Simulator and UI tests: a drawn meal, label or barcode where the camera would be.
+                Group {
+                    if mode == .meal {
+                        Color.black.overlay { Image(uiImage: FoodScanArt.meal).resizable().scaledToFill().scaleEffect(0.95) }
+                    } else {
+                        Color(hex: 0xC9B48F).overlay {
+                            Image(uiImage: mode == .label ? FoodScanArt.label : FoodScanArt.barcode)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: frame.width * (mode == .label ? 0.9 : 1.06))
+                                .position(x: frame.midX, y: frame.midY)
+                        }
                     }
                 }
+                .clipped()
+                .accessibilityIdentifier("scanFoodViewfinder")
+            } else {
+                // The same coordinates as the box: the preview fills exactly this view (aspect-filled), which is what
+                // `LabelFramingBox.visionRegion` assumes.
+                LabelCameraView(captureRequest: captureID, onPhoto: photo, onFailure: failed, torchOn: torch)
             }
-            .clipped()
-            .ignoresSafeArea()
-            .accessibilityIdentifier("scanFoodViewfinder")
             // The label's box is a crop (D53): outside it is dimmed harder, since only the box is sent.
             Path { p in
                 p.addRect(CGRect(x: -10, y: -200, width: size.width + 20, height: size.height + 400))
@@ -219,7 +320,9 @@ private struct FoodScanCameraContent: View {
 
     private var controls: some View {
         HStack {
-            side(symbol: "photo.on.rectangle", lit: false) { camera.onShot(mode) }
+            side(symbol: "photo.on.rectangle", lit: false) { library() }
+                .disabled(mode == .barcode)
+                .opacity(mode == .barcode ? 0.4 : 1)
                 .accessibilityLabel("Choose a photo")
                 .accessibilityIdentifier("scanFoodLibrary")
             Spacer()
@@ -229,11 +332,13 @@ private struct FoodScanCameraContent: View {
             } else {
                 Button(action: shoot) { EmptyView() }
                     .buttonStyle(ScanShutterStyle())
+                    .disabled(captureID != nil)
                     .accessibilityLabel("Take photo")
                     .accessibilityIdentifier("scanFoodShutter")
             }
             Spacer()
             side(symbol: torch ? "bolt.fill" : "bolt.slash", lit: torch) { torch.toggle() }
+                .disabled(fixture)
                 .accessibilityLabel("Flash")
                 .accessibilityValue(torch ? "On" : "Off")
         }
@@ -252,17 +357,76 @@ private struct FoodScanCameraContent: View {
         .buttonStyle(.plain)
     }
 
+    // MARK: Taking a photo
+
     private func shoot() {
         shutterTaps += 1
+        notice = nil
         if !reduceMotion {
             withAnimation(.easeOut(duration: 0.07)) { flash = 0.85 }
             withAnimation(.easeIn(duration: 0.35).delay(0.08)) { flash = 0 }
         }
-        let shotMode = mode
-        Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(reduceMotion ? 0 : 250))
-            camera.onShot(shotMode)
+        if fixture {
+            let art = mode == .meal ? FoodScanArt.meal : FoodScanArt.label
+            send(art, region: nil, taken: nil, fromLibrary: false)
+        } else {
+            captureID = UUID()
         }
+    }
+
+    private func photo(_ captured: CapturedLabel) {
+        guard captured.requestID == captureID else { return }
+        captureID = nil
+        // The label's crop is OUR box (taller than Scan Machine's), mapped into the photo as the preview showed it.
+        let region = LabelFramingBox.visionRegion(box: geometry.frame, viewSize: geometry.size,
+                                                  imageSize: captured.image.size)
+        send(captured.image, region: region, taken: nil, fromLibrary: false)
+    }
+
+    private func failed(_ request: UUID?, _ message: String) {
+        if request == nil || request == captureID { captureID = nil }
+        notice = message
+    }
+
+    private func library() {
+        notice = nil
+        if fixture {
+            // The fixture's "library": the drawn meal, taken at 12:40 today (a picked photo's own time, D83).
+            let taken = Calendar.current.date(bySettingHour: 12, minute: 40, second: 0, of: .now)
+            send(mode == .meal ? FoodScanArt.meal : FoodScanArt.label, region: nil, taken: taken, fromLibrary: true)
+        } else {
+            picking = true
+        }
+    }
+
+    private func load(_ item: PhotosPickerItem) {
+        let shotMode = mode
+        Task {
+            defer { picked = nil }
+            guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+                notice = "That photo couldn't be opened."
+                return
+            }
+            mode = shotMode
+            send(image, region: nil, taken: PhotoDate.taken(in: data), fromLibrary: true)
+        }
+    }
+
+    /// The JPEG that leaves the phone: a meal photo whole (≤ 1568 px, as Scan Machine sends); a label from the camera
+    /// only its box (D53); a picked label photo whole (the user chose that picture).
+    private func send(_ image: UIImage, region: CGRect?, taken: Date?, fromLibrary: Bool) {
+        let jpeg: Data?
+        if mode == .label, let region {
+            jpeg = LabelCrop.jpeg(image, region: region)
+        } else {
+            jpeg = EquipmentPhoto.jpeg(image)
+        }
+        guard let jpeg else {
+            notice = "That photo couldn't be used. Try again."
+            return
+        }
+        camera.onShot(FoodScanShot(image: UIImage(data: jpeg) ?? image, jpeg: jpeg, mode: mode, taken: taken,
+                                   fromLibrary: fromLibrary))
     }
 
     private var topBar: some View {
@@ -284,12 +448,13 @@ private struct FoodScanCameraContent: View {
                 .frame(width: 88, height: 88)
                 .background(look.onSlab.opacity(0.12), in: Circle())
                 .accessibilityHidden(true)
-            Text("Camera access is off")
+            Text(availability == .noCamera ? "No camera" : "Camera access is off")
                 .font(look.font.title2)
                 .foregroundStyle(look.onSlab)
                 .multilineTextAlignment(.center)
                 .accessibilityAddTraits(.isHeader)
-            Text("Allow the camera in Settings, or choose a photo of your meal.")
+            Text(availability.settingsCanHelp ? "Allow the camera in Settings, or choose a photo of your meal."
+                                              : "Choose a photo of your meal instead.")
                 .font(look.font.subhead)
                 .foregroundStyle(look.onSlabSecondary)
                 .multilineTextAlignment(.center)
@@ -303,9 +468,9 @@ private struct FoodScanCameraContent: View {
 
     private var cameraOffActions: some View {
         VStack(spacing: 10) {
-            ScanPrimaryButton("Choose a photo", symbol: "photo.on.rectangle") { camera.onShot(.meal) }
+            ScanPrimaryButton("Choose a photo", symbol: "photo.on.rectangle") { picking = true }
                 .accessibilityIdentifier("scanFoodLibrary")
-            if let settings = URL(string: UIApplication.openSettingsURLString) {
+            if availability.settingsCanHelp, let settings = URL(string: UIApplication.openSettingsURLString) {
                 Link("Open Settings", destination: settings).buttonStyle(.lookSecondary)
             }
         }
@@ -352,36 +517,55 @@ private struct FoodScanSignIn: View {
 
 // MARK: - Reading a label
 
-/// The cropped label is the hero while it is read (a label is short work, so the camera's sheet waits for it here,
-/// unlike a meal photo).
+/// The cropped label is the hero while it is read; a label not found or a failure says so, with Take another photo and
+/// Manual Add.
 private struct FoodScanReadingLabel: View {
+    var image: UIImage?
+    var failure: (title: String, detail: String)?
     var onCancel: () -> Void
     var onRetake: () -> Void
-    var onRead: () -> Void
+    var onManual: () -> Void
     @Environment(\.look) private var look
+
+    static let notFound = ("No label found", "Fit the whole Nutrition Facts panel in the box.")
 
     var body: some View {
         VStack(spacing: 0) {
             ScanTopBar(title: "Food label", onCancel: onCancel)
             ScanStepBody {
                 ScanInlineTitle(title: "Food label")
-                ScanPhotoHero(image: FoodScanArt.label, scanning: true)
-                ScanProgressInstrument(title: "Reading the label…")
+                ScanPhotoHero(image: image, scanning: failure == nil, failed: failure != nil)
+                if let failure {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(failure.title).font(look.font.title3).foregroundStyle(look.textPrimary)
+                        Text(failure.detail).font(look.font.subhead).foregroundStyle(look.textSecondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(look.space.panelPadding)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lookSurface(.panel)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityIdentifier("scanFoodLabelFailure")
+                } else {
+                    ScanProgressInstrument(title: "Reading the label…")
+                }
             } bar: {
                 ScanBottomBar {
-                    Button("Take another photo", action: onRetake)
-                        .buttonStyle(.lookSecondary)
-                        .accessibilityIdentifier("scanFoodRetake")
+                    if failure != nil {
+                        ScanPrimaryButton("Take another photo", symbol: "camera", action: onRetake)
+                            .accessibilityIdentifier("scanFoodRetake")
+                        Button("Manual Add", action: onManual)
+                            .buttonStyle(.lookSecondary)
+                            .accessibilityIdentifier("scanFoodManual")
+                    } else {
+                        Button("Take another photo", action: onRetake)
+                            .buttonStyle(.lookSecondary)
+                            .accessibilityIdentifier("scanFoodRetake")
+                    }
                 }
             }
         }
         .lookScreenBackground()
-        .task {
-            // The mock's reply: the label in ~2.5 s (frozen for captures).
-            guard !ProcessInfo.processInfo.arguments.contains("-scanFoodMockHoldLabel") else { return }
-            try? await Task.sleep(for: .seconds(2.5))
-            onRead()
-        }
     }
 }
 
@@ -390,19 +574,27 @@ private struct FoodScanReadingLabel: View {
 /// The Selected food screen (N4) prefilled from the label: the serving and every number as printed; the name is the
 /// user's (a label has none). Log is the one primary; "Save to My foods" is on, so the next time it is one tap.
 struct LabelFoodView: View {
+    var reading: FoodLabelReading
+    var image: UIImage?
     var meal: MealSlot
+    var eatenAt: Date
     var onRetake: () -> Void
     var onLogged: () -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var name = ProcessInfo.processInfo.arguments.contains("-scanFoodMockNamed") ? "Maple granola" : ""
+    @Environment(\.modelContext) private var context
+    @State private var name = ""
     @State private var brand = ""
     @State private var servings = 1.0
     @State private var saveToMyFoods = true
+    @State private var failure: String?
 
-    private let perServing = Macros(calories: 230, proteinGrams: 3, carbsGrams: 37, fatGrams: 8)
     private var named: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
+    private var perServing: Macros {
+        let n = reading.nutrition
+        return Macros(calories: n.calories, proteinGrams: n.proteinGrams, carbsGrams: n.carbsGrams, fatGrams: n.fatGrams)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -426,39 +618,48 @@ struct LabelFoodView: View {
             }
             .scrollIndicators(.hidden)
             .scrollDismissesKeyboard(.interactively)
-            PrimaryButton("Log to \(meal.label)") {
-                FoodScanMock.shared.logLabel(
-                    name: name,
-                    item: ScanMockItem(name: name, portion: "2/3 cup", grams: 55 * servings,
-                                       calories: 230 * servings, protein: 3 * servings, carbs: 37 * servings,
-                                       fat: 8 * servings),
-                    meal: meal)
-                onLogged()
-            }
-            .disabled(!named)
-            .opacity(named ? 1 : 0.4)
-            .padding(.horizontal, look.space.margin)
-            .padding(.vertical, 10)
-            .accessibilityIdentifier("labelFoodLog")
+            PrimaryButton("Log to \(meal.label)", action: log)
+                .disabled(!named)
+                .opacity(named ? 1 : 0.4)
+                .padding(.horizontal, look.space.margin)
+                .padding(.vertical, 10)
+                .accessibilityIdentifier("labelFoodLog")
         }
         .lookScreenBackground()
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarBackButtonHidden()
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Retake", action: onRetake)
-                    .accessibilityIdentifier("labelFoodRetake")
+                Button("Retake", action: onRetake).accessibilityIdentifier("labelFoodRetake")
             }
+        }
+        .alert(FoodCopy.saveFailed, isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(failure ?? "")
+        }
+    }
+
+    private func log() {
+        let draft = reading.draft(name: name, brand: brand)
+        do {
+            try FoodScan.logLabel(draft, servings: servings, meal: meal, saveToMyFoods: saveToMyFoods, at: eatenAt,
+                                  in: context)
+            onLogged()
+        } catch {
+            failure = error.localizedDescription
         }
     }
 
     /// The label as read, small, beside the title: what the numbers came from.
     private var header: some View {
         HStack(alignment: .center, spacing: 14) {
-            Image(uiImage: FoodScanArt.label).resizable().scaledToFill()
-                .frame(width: 56, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: look.radius.row, style: .continuous))
-                .accessibilityHidden(true)
+            if let image {
+                Image(uiImage: image).resizable().scaledToFill()
+                    .frame(width: 56, height: 72)
+                    .clipShape(RoundedRectangle(cornerRadius: look.radius.row, style: .continuous))
+                    .accessibilityHidden(true)
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text("From the label").font(look.font.largeTitle).foregroundStyle(look.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -482,8 +683,14 @@ struct LabelFoodView: View {
             } else {
                 LookRow("Servings", symbol: "number", showsChevron: false) { stepper }
             }
-            LookRow("Serving", symbol: "scalemass", value: "2/3 cup (55 g)", showsChevron: false)
-            LookRow("Servings per container", symbol: "shippingbox", value: "8", showsChevron: false)
+            let serving = reading.serving
+            LookRow("Serving", symbol: "scalemass",
+                    value: ServingText.format(value: serving.value, unit: serving.unit, grams: serving.grams),
+                    showsChevron: false)
+            if let perContainer = reading.servingsPerContainer {
+                LookRow("Servings per container", symbol: "shippingbox", value: FoodNumber.text(perContainer),
+                        showsChevron: false)
+            }
         }
     }
 
@@ -493,6 +700,7 @@ struct LabelFoodView: View {
             Text(servings.formatted(.number.precision(.fractionLength(0...2))))
                 .font(look.font.statNumber).monospacedDigit().frame(minWidth: 44)
                 .contentTransition(reduceMotion ? .opacity : .numericText(value: servings))
+                .accessibilityIdentifier("labelFoodServings")
             step("plus", label: "More servings", enabled: true) { servings += 0.5 }
         }
     }
@@ -510,24 +718,24 @@ struct LabelFoodView: View {
         .accessibilityLabel(label)
     }
 
-    /// Shown open: the label printed them, so they are part of what to check.
+    /// Shown open: the label printed them, so they are part of what to check. Not printed: "–".
     private var otherFacts: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Other nutrition facts").font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
-            fact("Saturated fat", 1, "g")
-            fact("Fiber", 4, "g")
-            fact("Sugar", 12, "g")
-            fact("Sodium", 160, "mg")
+            fact("Saturated fat", reading.saturatedFat, "g")
+            fact("Fiber", reading.fiber, "g")
+            fact("Sugar", reading.sugar, "g")
+            fact("Sodium", reading.sodiumMg, "mg")
         }
         .padding(16)
         .lookSurface(.panel)
     }
 
-    private func fact(_ title: String, _ value: Double, _ unit: String) -> some View {
+    private func fact(_ title: String, _ value: Double?, _ unit: String) -> some View {
         HStack {
             Text(title).foregroundStyle(look.textSecondary)
             Spacer()
-            Text("\((value * servings).formatted(.number.precision(.fractionLength(0...1)))) \(unit)")
+            Text(value.map { "\(($0 * servings).formatted(.number.precision(.fractionLength(0...1)))) \(unit)" } ?? "–")
                 .monospacedDigit().foregroundStyle(look.textPrimary)
         }
         .font(look.font.subhead)

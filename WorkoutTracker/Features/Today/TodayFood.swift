@@ -259,16 +259,10 @@ struct TodayMealLog: View {
     var meal: MealSlot
     var entries: [FoodEntry]
     var edit: (FoodEntry) -> Void
-    /// N7 MOCK: the meal's logged scans (photo entries), after its stored entries.
-    var scans: [ScanMockEntry] = []
-    var grouping: ScanMockGrouping = .oneEntry
-    var openScan: (ScanMockEntry) -> Void = { _ in }
-    var openScanItem: (ScanMockEntry, ScanMockItem) -> Void = { _, _ in }
     @Environment(\.look) private var look
 
     var body: some View {
         let total = entries.reduce(Macros.zero) { $0 + NutritionMath.totals(of: $1) }
-            + scans.reduce(Macros.zero) { $0 + $1.totals }
         VStack(alignment: .leading, spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 Text(meal.label).font(look.font.headline).foregroundStyle(look.textPrimary)
@@ -285,19 +279,12 @@ struct TodayMealLog: View {
             .accessibilityIdentifier("todayMeal.\(meal.rawValue)")
             ForEach(entries) { entry in
                 Divider().overlay(look.hairline).padding(.leading, 16)
-                Button { edit(entry) } label: { TodayEntryRow(entry: entry) }
-                    .buttonStyle(.lookPressable)
-                    .accessibilityIdentifier("todayEntry.\(TodayFoodCopy.name(of: entry))")
-            }
-            ForEach(scans) { scan in
-                Divider().overlay(look.hairline).padding(.leading, 16)
-                if grouping == .perItem && scan.origin == .photo {
-                    ScanPerItemGroup(entry: scan, open: { openScan(scan) }, openItem: { openScanItem(scan, $0) })
-                } else {
-                    Button { openScan(scan) } label: { ScanEntryRow(entry: scan) }
-                        .buttonStyle(.lookPressable)
-                        .accessibilityIdentifier("scanEntry.\(scan.name)")
+                // N7: a scanned meal or a description shows its photo and opens on its items.
+                Button { edit(entry) } label: {
+                    if entry.isScan { ScanEntryRow(entry: entry) } else { TodayEntryRow(entry: entry) }
                 }
+                .buttonStyle(.lookPressable)
+                .accessibilityIdentifier("todayEntry.\(TodayFoodCopy.name(of: entry))")
             }
         }
         .lookSurface(.panel)

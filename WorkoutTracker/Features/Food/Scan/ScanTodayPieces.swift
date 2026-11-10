@@ -1,8 +1,9 @@
 import SwiftUI
+import UIKit
 
-// Nutrition N7 (MOCK) — Today's log while a meal photo is analysed (D82) and after: the progress card (the blurred photo
-// with a percent ring, "Analyzing image", skeleton lines, "We'll notify you when done!"), a failed scan's card, and the
-// logged photo entry — as one entry named for the meal, or as one entry per item under the photo (both mocked; open).
+// Nutrition N7 — Today's log while a meal photo or a description is estimated (D82) and after: the progress card (the
+// blurred photo with a percent ring, "Analyzing image", skeleton lines, "We'll notify you when done!"), a failed scan's
+// card, and the logged entry — one entry named for the meal (D83) with its photo thumbnail, time, macros and calories.
 
 enum ScanCopy {
     static func time(_ date: Date) -> String { date.formatted(date: .omitted, time: .shortened) }
@@ -14,32 +15,19 @@ enum ScanCopy {
                      "P \(grams(macros.proteinGrams)) · C \(grams(macros.carbsGrams)) · F \(grams(macros.fatGrams)) g"]
         return parts.compactMap(\.self).joined(separator: " · ")
     }
-
-    static func failureTitle(_ failure: ScanMockFailure) -> String {
-        switch failure {
-        case .nothingFound: "No food found"
-        case .dailyLimit: "Daily limit reached"
-        case .offline: "Couldn't analyze"
-        }
-    }
-
-    static func failureDetail(_ failure: ScanMockFailure) -> String {
-        switch failure {
-        case .nothingFound: "Try a closer photo, or add it by hand."
-        case .dailyLimit: "30 meal photos a day. More at 7:00 PM."
-        case .offline: "No connection. Your photo is kept until you try again."
-        }
-    }
 }
 
 /// A scan in flight or failed, at the top of Today's log.
 struct ScanPendingCard: View {
-    var scan: ScanMockPending
+    var scan: FoodScanQueue.Pending
     var retake: () -> Void
+    var retry: () -> Void
     var manualAdd: () -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 112
+
+    private var analyzing: Bool { scan.failure == nil }
 
     var body: some View {
         let layout = typeSize.isAccessibilitySize
@@ -54,10 +42,7 @@ struct ScanPendingCard: View {
                        maxHeight: typeSize.isAccessibilitySize ? nil : .infinity)
                 .clipped()
             Group {
-                switch scan.state {
-                case .analyzing: analyzing
-                case .failed(let failure): failed(failure)
-                }
+                if let failure = scan.failure { failed(failure) } else { analyzingText }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -73,12 +58,12 @@ struct ScanPendingCard: View {
 
     private var photo: some View {
         ZStack {
-            if let image = scan.image {
+            if let image = scan.preview {
                 Color.black.overlay {
                     Image(uiImage: image).resizable().scaledToFill()
-                        .blur(radius: scan.state == .analyzing ? 7 : 0)
-                        .saturation(scan.state == .analyzing ? 1 : 0)
-                        .overlay(Color.black.opacity(scan.state == .analyzing ? 0.28 : 0.45))
+                        .blur(radius: analyzing ? 7 : 0)
+                        .saturation(analyzing ? 1 : 0)
+                        .overlay(Color.black.opacity(analyzing ? 0.28 : 0.45))
                 }
                 .clipped()
             } else {
@@ -88,15 +73,16 @@ struct ScanPendingCard: View {
                         .foregroundStyle(look.textTertiary.opacity(0.5))
                 }
             }
-            switch scan.state {
-            case .analyzing: PercentRing(scan: scan, onPhoto: scan.image != nil)
-            case .failed:
+            if analyzing {
+                PercentRing(startedAt: scan.startedAt, onPhoto: scan.preview != nil)
+            } else {
+                let ink = scan.preview == nil ? look.textPrimary : Color.white
                 Image(systemName: "exclamationmark")
                     .font(.system(.title3, weight: .heavy))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(ink)
                     .frame(width: 46, height: 46)
-                    .background(.black.opacity(0.4), in: Circle())
-                    .overlay { Circle().strokeBorder(.white.opacity(0.7), lineWidth: 2) }
+                    .background(.black.opacity(scan.preview == nil ? 0 : 0.4), in: Circle())
+                    .overlay { Circle().strokeBorder(ink.opacity(0.7), lineWidth: 2) }
                     .accessibilityHidden(true)
             }
         }
@@ -105,9 +91,9 @@ struct ScanPendingCard: View {
 
     // MARK: Analysing
 
-    private var analyzing: some View {
+    private var analyzingText: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(scan.image == nil ? "Analyzing description" : "Analyzing image")
+            Text(scan.text == nil ? "Analyzing image" : "Analyzing description")
                 .font(look.font.headline)
                 .foregroundStyle(look.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -122,15 +108,16 @@ struct ScanPendingCard: View {
 
     // MARK: Failed
 
-    private func failed(_ failure: ScanMockFailure) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+    private func failed(_ failure: FoodScanQueue.Failure) -> some View {
+        let describe = scan.text != nil
+        return VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
-                Text(ScanCopy.failureTitle(failure))
+                Text(FoodScanCopy.failureTitle(failure, describe: describe))
                     .font(look.font.headline)
                     .foregroundStyle(look.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
                 Spacer(minLength: 8)
-                Button { FoodScanMock.shared.dismiss(scan.id) } label: {
+                Button { withAnimation(.snappy) { FoodScanQueue.shared.dismiss(scan.id) } } label: {
                     Image(systemName: "xmark").font(.system(.footnote, weight: .bold))
                         .foregroundStyle(look.textSecondary)
                         .frame(width: 44, height: 44)
@@ -142,27 +129,27 @@ struct ScanPendingCard: View {
                 .accessibilityLabel("Remove")
                 .accessibilityIdentifier("scanPendingRemove")
             }
-            Text(ScanCopy.failureDetail(failure))
+            Text(FoodScanCopy.failureDetail(failure, describe: describe))
                 .font(look.font.footnote)
                 .foregroundStyle(look.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             WrapLayout(spacing: 8, lineSpacing: 8) {
                 switch failure {
                 case .nothingFound:
-                    small("Retake", symbol: "camera", action: retake)
-                    small("Manual Add", symbol: "square.and.pencil", action: manualAdd)
-                case .dailyLimit:
-                    small("Manual Add", symbol: "square.and.pencil", action: manualAdd)
-                case .offline:
-                    small("Try again", symbol: "arrow.clockwise") { FoodScanMock.shared.retry(scan.id) }
+                    if !describe { small("Retake", symbol: "camera", id: "scanRetake", action: retake) }
+                    small("Manual Add", symbol: "square.and.pencil", id: "scanManualAdd", action: manualAdd)
+                case .limit:
+                    small("Manual Add", symbol: "square.and.pencil", id: "scanManualAdd", action: manualAdd)
+                case .offline, .other:
+                    small("Try again", symbol: "arrow.clockwise", id: "scanTryAgain", action: retry)
                 }
             }
             .padding(.top, 2)
         }
-        .accessibilityIdentifier("scanFailed.\(failure.rawValue)")
+        .accessibilityIdentifier("scanFailed")
     }
 
-    private func small(_ title: String, symbol: String, action: @escaping () -> Void) -> some View {
+    private func small(_ title: String, symbol: String, id: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: symbol)
                 .font(.system(.subheadline, weight: .semibold))
@@ -174,25 +161,25 @@ struct ScanPendingCard: View {
         }
         .buttonStyle(.lookPressable)
         .frame(minHeight: 44)
+        .accessibilityIdentifier(id)
     }
 }
 
-/// The percent: the server reports none, so it rises over the typical ~5 s, slows near the end, and completes when the
-/// answer arrives (D82).
+/// The percent: the server reports none, so it rises over the typical ~5 s, slows near the end, and stops short of 100
+/// until the estimate arrives (then the card becomes the entry) — D82.
 private struct PercentRing: View {
-    var scan: ScanMockPending
+    var startedAt: Date
     var onPhoto: Bool
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private func percent(at date: Date) -> Int {
-        if let frozen = scan.frozenPercent { return frozen }
-        let t = date.timeIntervalSince(scan.startedAt)
+        let t = max(0, date.timeIntervalSince(startedAt))
         return min(95, Int((1 - exp(-t / 2.2)) * 100))
     }
 
     var body: some View {
-        TimelineView(.periodic(from: scan.startedAt, by: 0.1)) { timeline in
+        TimelineView(.periodic(from: startedAt, by: 0.1)) { timeline in
             let value = percent(at: timeline.date)
             let ink = onPhoto ? Color.white : look.textPrimary
             ZStack {
@@ -201,7 +188,7 @@ private struct PercentRing: View {
                     .stroke(ink, style: StrokeStyle(lineWidth: 5, lineCap: .round))
                     .rotationEffect(.degrees(-90))
                     .animation(reduceMotion ? nil : .linear(duration: 0.1), value: value)
-                // Inside a fixed ring: capped, so "100%" never truncates at large text sizes.
+                // Inside a fixed ring: capped, so it never truncates at large text sizes.
                 Text("\(value)%")
                     .font(.system(.headline, design: .rounded, weight: .bold))
                     .monospacedDigit()
@@ -242,16 +229,16 @@ private struct SkeletonLines: View {
     private var bar: some View { Capsule().fill(look.ringTrack).frame(height: 9) }
 }
 
-// MARK: - Logged photo entries
+// MARK: - A logged scan
 
-/// A small rounded photo; a description or label entry has none (nil → nothing drawn).
+/// A scanned meal's photo, small and rounded; decoded once per entry (the stored JPEG is up to 1568 px).
 struct ScanThumbnail: View {
-    var image: UIImage?
+    var entry: FoodEntry
     @ScaledMetric(relativeTo: .body) private var side: CGFloat = 56
     @Environment(\.look) private var look
 
     var body: some View {
-        if let image {
+        if let image = ScanThumbnailCache.image(for: entry) {
             Color.black.overlay { Image(uiImage: image).resizable().scaledToFill() }
                 .frame(width: side, height: side)
                 .clipShape(RoundedRectangle(cornerRadius: look.radius.row, style: .continuous))
@@ -260,22 +247,37 @@ struct ScanThumbnail: View {
     }
 }
 
-/// Option A — the photo is ONE entry named for the meal: thumbnail, name, time and macros, its calories trailing.
+@MainActor
+enum ScanThumbnailCache {
+    private static let cache = NSCache<NSString, UIImage>()
+
+    static func image(for entry: FoodEntry) -> UIImage? {
+        guard let data = entry.photo else { return nil }
+        let key = "\(entry.id.uuidString)-\(data.count)" as NSString
+        if let cached = cache.object(forKey: key) { return cached }
+        guard let image = UIImage(data: data)?.preparingThumbnail(of: CGSize(width: 240, height: 240)) else { return nil }
+        cache.setObject(image, forKey: key)
+        return image
+    }
+}
+
+/// A scanned meal or a description in its meal: the thumbnail (a photo), the name, time and macros, its calories.
 struct ScanEntryRow: View {
-    var entry: ScanMockEntry
+    var entry: FoodEntry
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        let totals = entry.totals
+        let totals = NutritionMath.totals(of: entry)
         HStack(alignment: typeSize.isAccessibilitySize ? .top : .center, spacing: 12) {
-            ScanThumbnail(image: entry.image)
+            ScanThumbnail(entry: entry)
             let layout = typeSize.isAccessibilitySize
                 ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(spacing: 12))
             layout {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(entry.name).font(look.font.body.weight(.semibold)).foregroundStyle(look.textPrimary)
-                    Text(ScanCopy.detail(time: entry.time, totals)).font(look.font.footnote)
+                    Text(TodayFoodCopy.name(of: entry)).font(look.font.body.weight(.semibold))
+                        .foregroundStyle(look.textPrimary)
+                    Text(ScanCopy.detail(time: entry.loggedAt, totals)).font(look.font.footnote)
                         .foregroundStyle(look.textSecondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -289,93 +291,7 @@ struct ScanEntryRow: View {
     }
 }
 
-/// Option B — one entry PER ITEM under the photo: the photo's row (thumbnail, "Photo · 5 items", time, total), then each
-/// item as its own entry, indented under it.
-struct ScanPerItemGroup: View {
-    var entry: ScanMockEntry
-    var open: () -> Void
-    var openItem: (ScanMockItem) -> Void
-    @Environment(\.look) private var look
-    @Environment(\.dynamicTypeSize) private var typeSize
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button(action: open) {
-                HStack(spacing: 12) {
-                    ScanThumbnail(image: entry.image)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Photo · \(entry.items.count) items").font(look.font.body.weight(.semibold))
-                            .foregroundStyle(look.textPrimary)
-                        Text("\(ScanCopy.time(entry.time)) · \(TodayFoodCopy.calories(entry.totals.calories)) cal")
-                            .font(look.font.footnote).monospacedDigit().foregroundStyle(look.textSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    Image(systemName: "chevron.right").font(.system(.footnote, weight: .semibold))
-                        .foregroundStyle(look.textTertiary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.lookPressable)
-            .accessibilityIdentifier("scanPhotoGroup")
-            ForEach(entry.items) { item in
-                Divider().overlay(look.hairline).padding(.leading, typeSize.isAccessibilitySize ? 32 : 84)
-                Button { openItem(item) } label: { itemRow(item) }
-                    .buttonStyle(.lookPressable)
-                    .accessibilityIdentifier("scanItemEntry.\(item.name)")
-            }
-        }
-    }
-
-    private func itemRow(_ item: ScanMockItem) -> some View {
-        let layout = typeSize.isAccessibilitySize
-            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 4)) : AnyLayout(HStackLayout(spacing: 12))
-        return layout {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(item.name).font(look.font.body.weight(.semibold)).foregroundStyle(look.textPrimary)
-                Text("\(item.portion) · \(ScanCopy.detail(time: nil, item.macros))").font(look.font.footnote)
-                    .foregroundStyle(look.textSecondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            Text("\(TodayFoodCopy.calories(item.calories)) cal")
-                .font(look.font.subhead.weight(.semibold)).monospacedDigit().foregroundStyle(look.textPrimary)
-        }
-        .padding(.leading, typeSize.isAccessibilitySize ? 32 : 84)
-        .padding(.trailing, 16)
-        .padding(.vertical, 10)
-        .contentShape(Rectangle())
-    }
-}
-
-// MARK: - Mock switcher (the interactive prototype only)
-
-/// A small floating control on Today in the mock: which option the photo entries show, how the next scan ends, and the
-/// signed-out / camera-off / first-scan states. Never in the wired build.
-struct ScanMockSwitcher: View {
-    @State private var mock = FoodScanMock.shared
-    @Environment(\.look) private var look
-
-    var body: some View {
-        Menu {
-            Picker("Photo entries", selection: $mock.grouping) {
-                ForEach(ScanMockGrouping.allCases) { Text($0.label).tag($0) }
-            }
-            Picker("Next scan", selection: $mock.nextFailure) {
-                Text("Succeeds").tag(ScanMockFailure?.none)
-                ForEach(ScanMockFailure.allCases) { Text($0.label).tag(Optional($0)) }
-            }
-            Toggle("Signed in", isOn: $mock.signedIn)
-            Toggle("Camera allowed", isOn: $mock.cameraAllowed)
-        } label: {
-            Label("Mock", systemImage: "slider.horizontal.3")
-                .font(.system(.footnote, weight: .bold))
-                .foregroundStyle(Color.black)
-                .padding(.horizontal, 10)
-                .frame(minHeight: 30)
-                .background(.yellow, in: Capsule())
-                .dynamicTypeSize(...DynamicTypeSize.large)
-        }
-        .accessibilityIdentifier("scanMockSwitcher")
-    }
+extension FoodEntry {
+    /// A scanned meal or a description (N7): opened on the items screen, shown with its thumbnail.
+    var isScan: Bool { photo != nil || !(items ?? []).isEmpty }
 }
