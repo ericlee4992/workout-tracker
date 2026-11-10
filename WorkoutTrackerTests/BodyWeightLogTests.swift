@@ -41,6 +41,36 @@ struct BodyWeightLogTests {
         #expect(!BodyWeightLog.goalNeedsRecalculating(goal: typed, latest: far), "a goal without a weight")
     }
 
+    @Test func anUnchangedFigureKeepsItsStoredPrecision() {
+        // codex-review-n9a: the sheet shows 176.46 for 176.456; saving without touching it keeps 176.456.
+        let stored = EditableNumber(176.456)
+        #expect(stored.text == "176.46")
+        #expect(stored.resolve(stored.text) == .some(176.456))
+        #expect(stored.resolve("176.4") == .some(176.4), "a typed change is the typed number")
+    }
+
+    @Test func recalculateClearsTypedNumbersAndUsesTheLatestWeight() throws {
+        let context = try context()
+        let preferences = try AppPreferences.canonical(in: context)
+        preferences.setHeight(value: 180, unit: .cm)
+        preferences.birthDate = Calendar.current.date(byAdding: .year, value: -30, to: now)
+        preferences.sex = .male
+        try BodyWeightLog.log(value: 80, unit: .kg, at: now.addingTimeInterval(-86_400 * 10), in: context)
+        let typed = try #require(try NutritionGoalStore.update(in: context, now: now.addingTimeInterval(-86_400 * 10)) {
+            $0.overrides.calories = 1_800
+        })
+        #expect(typed.caloriesOverridden && typed.calories == 1_800 && typed.weightKg == 80)
+
+        let latest = try BodyWeightLog.log(value: 75, unit: .kg, at: now, in: context)
+        #expect(BodyWeightLog.goalNeedsRecalculating(goal: typed, latest: latest))
+        let goal = try #require(try BodyWeightLog.recalculateGoal(in: context, now: now))
+        #expect(goal.weightKg == 75 && !goal.caloriesOverridden && goal.calories != 1_800)
+        #expect(!BodyWeightLog.goalNeedsRecalculating(goal: goal, latest: latest))
+
+        preferences.birthDate = nil
+        #expect(throws: NutritionGoalStore.Failure.detailsIncomplete) { try BodyWeightLog.recalculateGoal(in: context, now: now) }
+    }
+
     @Test func theSheetStepsAndRanges() {
         #expect(BodyWeightLog.step(for: .kg) == 0.1 && BodyWeightLog.step(for: .lb) == 0.2)
         #expect(BodyWeightLog.range(for: .kg).contains(20) && !BodyWeightLog.range(for: .kg).contains(361))

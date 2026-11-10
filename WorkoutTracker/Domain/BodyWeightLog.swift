@@ -32,6 +32,14 @@ enum BodyWeightLog {
         try context.save()
     }
 
+    /// Recalculate goals (the Body weight offer): N3's explicit Recalculate — the typed-over numbers go and the goal is
+    /// calculated again from Personal details, now with the latest weight (codex-review-n9a). Throws
+    /// `NutritionGoalStore.Failure.detailsIncomplete` when there is nothing to calculate from, rather than doing nothing.
+    @discardableResult
+    static func recalculateGoal(in context: ModelContext, now: Date = .now) throws -> NutritionGoal? {
+        try NutritionGoalStore.update(in: context, now: now) { $0.overrides = .none }
+    }
+
     /// The goal was calculated at a weight more than about 2 kg from the latest one (N9: offer Recalculate rather than
     /// follow every day's fluctuation). False without a goal, a goal weight, or a weight.
     static func goalNeedsRecalculating(goal: NutritionGoal?, latest: BodyWeightEntry?, thresholdKg: Double = 2) -> Bool {

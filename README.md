@@ -72,6 +72,10 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
   **Add food** creates one of My foods in two steps (brand, description, serving, servings per container → nutrition);
   the bookmark keeps any food in Saved foods; **Create meal** groups foods you eat together. Each entry keeps its own
   copy of the numbers, so editing or deleting a food or meal never changes a day already logged.
+- **Body weight** *(on `main`, not yet in TestFlight; Apple Health sync comes next)*. Profile → Body weight shows your
+  latest weight and its history; Log weight takes the figure with ± steps in your unit (kg or lb, kept as entered) and
+  the time; tap an entry to change or delete it. When your weight is more than about 2 kg from the one your nutrition
+  goals were calculated at, it offers to recalculate them.
 - **Nutrition goals** *(on `main`, not yet in TestFlight)*. Profile → Personal details
   holds your weight, height, date of birth and sex — one place, also used by the heart-rate zones and Ask AI. From
   them Profile → Nutrition goals calculates daily calories, protein, carbs and fat (Mifflin–St Jeor, your activity and

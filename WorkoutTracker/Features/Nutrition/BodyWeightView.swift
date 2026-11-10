@@ -102,7 +102,7 @@ struct BodyWeightView: View {
             Text("Your nutrition goals use \(shown.formatted(.number.precision(.fractionLength(0...1)))) \(unit.rawValue).")
                 .font(look.font.subhead).foregroundStyle(look.textPrimary)
             Button("Recalculate goals") {
-                do { _ = try NutritionGoalStore.update(in: context) } catch { failure = error.localizedDescription }
+                do { try BodyWeightLog.recalculateGoal(in: context) } catch { failure = error.localizedDescription }
             }
             .buttonStyle(.lookSecondary)
             .accessibilityIdentifier("bodyWeightRecalculate")
@@ -141,19 +141,23 @@ struct LogWeightSheet: View {
     @State private var failure: String?
     /// Read once: after Delete the entry is gone while the sheet slides away.
     private let isEditing: Bool
+    /// The figure the sheet opened with: unchanged text saves it exactly — a time-only edit never rounds the stored
+    /// weight (D52; codex-review-n9a).
+    private let stored: EditableNumber
 
     init(entry: BodyWeightEntry?, unit: WeightUnit, start: Double?) {
         self.entry = entry
         self.unit = unit
         isEditing = entry != nil
         let initial = start ?? (unit == .kg ? 70 : 155)
+        stored = EditableNumber(initial)
         _value = State(initialValue: initial)
-        _text = State(initialValue: FoodNumber.text(initial))
+        _text = State(initialValue: stored.text)
         _date = State(initialValue: entry?.measuredAt ?? .now)
     }
 
     private var typed: Double? {
-        FoodNumber.parse(text).flatMap { BodyWeightLog.range(for: unit).contains($0) ? $0 : nil }
+        (stored.resolve(text) ?? nil).flatMap { BodyWeightLog.range(for: unit).contains($0) ? $0 : nil }
     }
 
     var body: some View {
@@ -167,7 +171,7 @@ struct LogWeightSheet: View {
                             .multilineTextAlignment(.center)
                             .fixedSize()
                             .accessibilityIdentifier("logWeightValue")
-                            .onChange(of: text) { _, new in if let number = FoodNumber.parse(new) { value = number } }
+                            .onChange(of: text) { _, new in if let number = stored.resolve(new) ?? nil { value = number } }
                         Text(unit.rawValue).font(look.font.headline.weight(.medium)).foregroundStyle(look.textSecondary)
                     }
                     .foregroundStyle(look.textPrimary)

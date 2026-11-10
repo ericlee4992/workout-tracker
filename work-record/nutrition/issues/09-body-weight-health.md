@@ -64,3 +64,13 @@ steps, Time, Cancel / Save, Delete Weight when editing. New entries use the late
   Verified: the above. Not verified: runtime Reduce Motion, VoiceOver by a person, the full UI suite.
 
 ## Comments
+
+**Round 1 (`codex-review-n9a.md`): not clear — 2 P2, 1 P3.** Fixed: (1) the Log weight sheet keeps the stored figure
+exactly when its text is unchanged (`EditableNumber`; a time-only edit no longer rounds 176.456 to 176.46); (2)
+**Recalculate goals** is N3's explicit Recalculate — `BodyWeightLog.recalculateGoal` clears typed-over numbers and
+recalculates with the latest weight, and incomplete Personal details show "Add your personal details first." instead
+of doing nothing; (3) README "Body weight" item. Tests: `anUnchangedFigureKeepsItsStoredPrecision`,
+`recalculateClearsTypedNumbersAndUsesTheLatestWeight` (overridden goal; incomplete details throw); the UI flow now taps
+Recalculate and sees the offer go, then come back after deleting. `BodyWeightLogTests` 5 × 10 = 50/50 (`n9u2.xcresult`);
+`BodyWeightUITests` 3/3 (`n9ui3.xcresult`).
+

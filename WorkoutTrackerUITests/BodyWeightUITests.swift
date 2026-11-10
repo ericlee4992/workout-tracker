@@ -58,6 +58,9 @@ final class BodyWeightUITests: XCTestCase {
         app.buttons["logWeightSave"].tap()
         XCTAssertTrue(app.buttons["bodyWeightEntry.170 lb"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["bodyWeightRecalculate"].waitForExistence(timeout: 5), "6.4 lb (2.9 kg) away")
+        app.buttons["bodyWeightRecalculate"].tap()
+        XCTAssertTrue(app.buttons["bodyWeightRecalculate"].waitForNonExistence(timeout: 5),
+                      "recalculated at 170 lb, the offer goes")
 
         app.buttons["bodyWeightEntry.170 lb"].tap()
         let delete = app.buttons["logWeightDelete"]
@@ -66,6 +69,8 @@ final class BodyWeightUITests: XCTestCase {
         delete.tap()
         XCTAssertTrue(app.buttons["bodyWeightEntry.170 lb"].waitForNonExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["bodyWeightLatest"].label.contains("176.4"))
+        // The goal was recalculated at 170 lb; the latest is 176.4 lb again (2.9 kg away): the offer is back.
+        XCTAssertTrue(app.buttons["bodyWeightRecalculate"].waitForExistence(timeout: 5))
     }
 
     func testCaptureLightDefault() { capture(appearance: "light", large: false) }
