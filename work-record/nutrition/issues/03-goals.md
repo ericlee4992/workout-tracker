@@ -1,7 +1,7 @@
 # N3 — Goals: calculation, onboarding step, Profile → Nutrition goals
 
 Type: feature
-Status: **approved** (the user, 2026-11-09: the calculation below "as proposed")
+Status: **Codex clear (round 3)**; approved (the user, 2026-11-09: the calculation below "as proposed")
 Blocked by: N2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-03-goals` off `main`.
@@ -136,6 +136,9 @@ NutritionGoals + HeartRate + warm-up **14/14** (`n3-r2-ui`), then after the two-
    accepted value reopens valid. `HeightFieldsTests.inchesNearTwelveReopenValid`.
 **Evidence:** store + height unit tests 12/12 (`n3-r3-unit`); NutritionGoalsUITests + warm-up, 2 workers, **10/10**
 (`n3-r3-ui`).
+
+**Codex round 3 — clear** ([report](../codex-review-n3c.md), `e30a6a3`): Spec 0, Standards 0; its reapplied probes
+confirm all three round-2 fixes. **Waiting:** the user's OK on the extra strings and the merge.
 
 **First-time goal setup (the user, 2026-11-09: "Both"):** the onboarding "Food goals" step stays in N3 (new
 installs: after Welcome, skippable) **and** N5 adds a "Set your goals" invitation in Today's food area when there is
