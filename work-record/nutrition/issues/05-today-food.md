@@ -1,7 +1,7 @@
 # N5 — Today's food parts
 
 Type: feature
-Status: **in progress** (2026-11-10) — approved in the user's plan "S6 → N3 → N4 → N5" (2026-11-09); built overnight under the user's standing permission (2026-11-10)
+Status: **done — Codex clear (round 2), merged** (2026-11-10) — approved in the user's plan "S6 → N3 → N4 → N5" (2026-11-09); built overnight under the user's standing permission (2026-11-10)
 Blocked by: N3, N4
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-05-today` off `main`.
@@ -87,4 +87,8 @@ your goals under them. The diary fixture adds a measured "Morning Run" today (32
 `testBurnedShowsWithAndWithoutAGoalAndIsNeverAdded` (Burned 320 with and without a goal; left + eaten = the goal);
 no-goal capture at dark/AXL added. `TodayFoodUITests` **7/7** (`n5ui3.xcresult`, 2 workers); captures looked at
 (`n5shots3/`). Codex's follow-up (not a finding): a date-bounded entry query for long histories.
+
+**Round 2 (`codex-review-n5b.md`): clear** — reviewer's Unit 1,206 / 1,222 executions, TodayFoodUITests 7/7 + warm-up
+(`/tmp/codex-n5/round2/`). Merged into `main` by the user's standing permission. **For the morning:** the new strings
+above, and the own decisions (no-goal rings full; Burned "0" when nothing measured; Undo for delete only).
 

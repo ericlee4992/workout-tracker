@@ -17,8 +17,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Quick Add merged into it**. **Mock v2 (D81) + Create/Edit/Delete meal approved; wired** (2026-11-10; unit plan 1213/0, Log food UI 8/8; entry
 edit/delete + Today totals moved to N5; see the ticket's Progress). **N4 done:** Codex clear round 2, merged into `main`.
   Codex terminal for every review: `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~22% context).
-  **N5 built** on `ericlee4992/nutrition-05-today` (see its ticket): Codex round 1 next, brief
-  `work-record/nutrition/codex-review-n5-prompt.md`. Then N6 (server code; deploy/cost check need a live key — see
+  **N5 done:** Codex clear round 2, merged into `main` (strings and own decisions for the morning in its ticket).
+  **N6** (worktree `…/Health App/nutrition-06-server`, branch `ericlee4992/nutrition-06-server`): server code built (server code; deploy/cost check need a live key — see
   its ticket).
 The user (night of 11-10): strings OK, Delete Food… yes (after round 1), edit/delete entries + totals → N5.
   **Overnight mandate (the user, 2026-11-10):** keep working through tickets while the user sleeps; decide minor things
