@@ -79,4 +79,27 @@ over ~1 cent); (2) approve the privacy wording and set `POLICY_EFFECTIVE_DATE` (
 then; do not bypass it with `wrangler deploy`); (3) deploy order: back up, `npm run migrate:remote` (0007) **before**
 `npm run deploy`; a rollback of the Worker keeps the expanded table.
 
+**Live check (2026-11-10 morning, Claude; the user: "can you look for it" — the development key file
+`~/.config/workouttracker/openai.env`, copied into a git-ignored `server/.dev.vars` for the run and deleted after, never
+printed).** Local `wrangler dev` (local D1 migrated through 0007, a local test account), `MODEL = gpt-6.1-terra`, one
+non-personal sample per flow — Wikimedia Commons images re-encoded as the app does (≤ 1568 px, JPEG 0.85): a leg press
+machine, a chicken/rice/sweet-potato plate, the FDA's 2016 Nutrition Facts example label. All six answered `ok` with
+valid structured replies; the label read exactly (2/3 cup (55 g), 8 servings, 230 cal, protein 3, carbs 37, fat 8,
+saturated 1, fiber 4, sugars 12, sodium 160 mg). Tokens from the server's own count-only log; cost at $1 / 1M input and
+$5 / 1M output (output includes reasoning):
+
+| Flow | Tokens in / out (reasoning) | Cost | Latency |
+|---|---|---|---|
+| scan-machine | 2,746 / 239 (180) | $0.0039 | 7.2 s |
+| routine-week (3 days, 45 min) | 637 / 1,091 (516) | $0.0061 | 15.1 s |
+| model-exercises | 475 / 273 (172) | $0.0018 | 5.2 s |
+| food-photo | 2,433 / 331 (94) | $0.0041 | 5.4 s |
+| food-label | 1,861 / 79 (0) | $0.0023 | 2.8 s |
+| food-describe | 272 / 244 (70) | $0.0015 | 4.7 s |
+
+Every flow is well under the ~1 cent threshold — cheaper than GPT-5.6 Terra's ~1 cent per request (public-beta ticket
+10); one person at every daily limit at once costs about $0.68 a day. Single samples (indicative). **Left for the
+deploy:** the user's approval of the privacy wording and its effective date; then `migrate:remote` (0007) before
+`deploy`.
+
 ## Comments
