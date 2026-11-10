@@ -1,47 +1,43 @@
 # Current project state
 
-Updated **2026-11-10, handoff** (N1, N2, S6, N3 merged, `main` `e471c11`; N4 mock in progress; earlier: testing-workflow ticket, Soft redesign S1–S5 merged; tickets written; build 9 live in Developer and Friends; checkouts cleaned up — home checkout on `main`, one Orca worktree per task, see AGENTS.md → Checkout layout and "Checkouts after the 2026-11-06 clean-up" below). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-10 (midday), handoff before a new session for N7.** Nutrition phase: N1–N5, S6, N6 code and N9a merged into `main`; next N7 (Scan Food, mocks first), then N9b, N10, N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: beta running (build 6); tickets 08 and 13 done
+## NOW: nutrition phase — next N7 (Scan Food), mocks first
 
-- **Resume here (2026-11-10, morning handoff after the overnight run).** `main` = `origin/main` = (see `git log`; after N9a): **N4**
-  (Log food: My foods / My meals / Saved foods / Manual Add, D81; Delete Food), **N5** (Today's food: fuel card, rings,
-  log by meal, edit/delete entries with Undo, Set your goals) and **N6 code** (server food flows, GPT-6.1 Terra, migration
-  0007, privacy draft) — each Codex-clear and merged under the user's standing permission ("merge whenever Codex clear").
-  **N9a** (Body weight page + Log weight sheet + Recalculate offer) — Codex clear round 2, merged too. **Next: N9b**
-  (Apple Health; not started — its usage strings need the user's wording; split, see N9's ticket), then N10.
-  **Morning (2026-11-10), with the user:** N6 live check done (all six flows ok; costs in N6's ticket); **D79 amended**
-  — training flows stay on GPT-5.6 Terra, food flows on GPT-6.1 Terra (Codex clear); **deploy everything at R**
-  (option 2); **D82** — meal-photo scan: progress card in Today's log, logged at once, photo kept on the phone (N7).
-  Health prompts approved (N9b); Nutrition goals keeps recalculating on a visit.
-  **NEXT (the user, 2026-11-10): N7 — Scan Food, in a new session.** Branch `ericlee4992/nutrition-07-scan-food` off
-  `main` in this worktree. Start with **mocks only** (sample data, nothing stored; screenshots light/default +
-  dark/AXL; SendUserFile + Preview) and wait for the user's approval before wiring: the camera with modes Scan food |
-  Barcode (N8) | Food label, photo-library pick; **D82's progress card** in Today's log (blurred photo, estimated %
-  ring, "Analyzing image", skeleton lines, "We'll notify you when done!") turning into the logged entry (photo
-  thumbnail, name, time, calories, macros); the items/edit screen; **both options** for a photo's entries (one entry
-  named for the meal vs one per item — open); the label → Selected food prefilled; Describe what you ate; failure
-  states. Read N7's ticket, D82, D78, D53 (label crop), D56 (consent pattern). Server food flows are merged
-  (`/v1/ai/food-photo|food-label|food-describe`, N6) but deploy at R — test against a stub in UI tests and, for a real
-  check, the local server (N6 ticket: "Live check" — the dev key file is copied into git-ignored `server/.dev.vars`
-  and deleted after; never printed). Then **N9b** (Apple Health; branch `ericlee4992/nutrition-09b-health` already
-  exists at `main`), then N10.
-  **Earlier list for the morning (mostly answered above):** (1) N6 deploy gates — a real sample per flow (all six) on `gpt-6.1-terra` with costs,
-  the privacy wording + `POLICY_EFFECTIVE_DATE`, then `migrate:remote` before `deploy` (N6 ticket; no local OpenAI key
-  exists, so Claude could not run them); (2) new strings and own decisions listed in the N5 and N9 tickets; (3) N9: should
-  the goal follow the weight on every Nutrition goals visit (N3's refresh) or only on Recalculate?; (4) Codex's weekly
-  limit was ~18 % at 07:15. Codex terminal: `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~50 %
-  context). N6's worktree `…/Health App/nutrition-06-server` is kept for the deploy. Auto-handoff off (the user, 2026-11-10 morning).
-  **The user's answers for the night (2026-11-09):** N2 data change approved, My meals included; N3 calculation as
-  proposed; S6 groups as proposed; test runs over 20 min allowed overnight (never the full ~1 h suite). Not tonight: N6's
-  deploy/model switch (needs the user's OK), N8 (USDA key from the user; search-mixing question), R. Decisions D78 (no "Estimated" mark) and D79 (GPT-6.1 Terra,
-  in N6) recorded.**
+- **Resume here (2026-11-10 midday).** Read this block, then N7's ticket. Verify Git first.
+  **Merged into `main`** (each Codex-clear; merged under the user's standing permission "merge whenever Codex clear"):
+  **N4** Log food (D81: All / My foods / My meals / Saved foods, Manual Add, Add food two-step, Create/Edit/Delete meal,
+  Delete Food); **N5** Today's food (fuel card, food in the day rings, today's log by meal, edit/delete an entry with
+  Undo, Set your goals); **N6 code** (server food flows food-photo / food-label / food-describe, limits 30/30/60,
+  migration 0007, privacy draft; **D79 amended** — training flows stay on GPT-5.6 Terra, food flows on GPT-6.1 Terra;
+  live check done, all six flows ok, costs in N6's ticket; **deploy everything at R**, the user's option 2);
+  **N9a** Body weight (Profile → Body weight, Log/Edit weight, Recalculate goals past 2 kg).
+  **Decisions this morning (the user):** D79 amended; deploy at R; **D82** — meal-photo scan: a progress card in
+  Today's log, logged at once (tap to edit), the photo kept on the phone; Health usage strings approved (N9b); the
+  Nutrition goals page keeps recalculating from the latest weight on a visit (no change to N3).
+  **NEXT: N7 — Scan Food** (the user: start it in a new session). Branch `ericlee4992/nutrition-07-scan-food` off
+  `main` in this worktree. **Mocks only first** (sample data, nothing stored; screenshots light/default + dark/AXL;
+  SendUserFile + Preview) and wait for the user's approval before wiring: the camera with modes Scan food | Barcode
+  (N8) | Food label, photo-library pick; **D82's progress card** in Today's log (blurred photo, estimated % ring,
+  "Analyzing image", skeleton lines, "We'll notify you when done!") turning into the logged entry (photo thumbnail,
+  name, time, calories, macros); the items/edit screen; **both options** for a photo's entries (one entry named for
+  the meal vs one per item — open); the label → Selected food prefilled; Describe what you ate; failure states. Read
+  N7's ticket, D82, D78, D53 (label crop), D56 (consent pattern). The server's food flows are merged but deploy at R —
+  test against a stub in UI tests and, for a real check, the local server (N6 ticket "Live check"; the dev key file is
+  copied into git-ignored `server/.dev.vars` and deleted after; never printed).
+  **After N7:** **N9b** Apple Health (read/write weight, write food totals, read active energy as Burned, Profile →
+  Apple Health; branch `ericlee4992/nutrition-09b-health` exists at an older `main` — rebase or recreate), then N10
+  (Progress body/nutrition charts, History food line), N8 (needs the user's USDA key + search-mixing answer), R.
+  **Still open for the user:** new strings and own decisions listed in the N5 and N9 tickets (not yet confirmed).
+  **Tools:** Codex terminal for every review `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~55 %
+  context; the user reset Codex's weekly limit 2026-11-10); 2 parallel UI workers max; run nothing while Codex runs.
+  N6's worktree `…/Health App/nutrition-06-server` is kept (node_modules) for the R deploy. Auto-handoff off (the user).
   **Goal:** the user's approved Soft redesign (Phase 1 — done) then nutrition (Phase 2), shipped to testers together as
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
   `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Git:** `main` = `origin/main` = `e471c11` (N3). Each ticket: a new branch off `main` in this worktree (Claude's
+  **Git:** `main` = `origin/main` (see `git log`; N9a and the morning's decisions are the latest). Each ticket: a new branch off `main` in this worktree (Claude's
   own branches). The home checkout `…/orca/projects/Health App` is on clean `main`; fast-forward `main` there
   (`git -C "<home>" merge --ff-only <branch>` + push) — `main` cannot be checked out in this worktree.
   **Commands:** build `xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk
