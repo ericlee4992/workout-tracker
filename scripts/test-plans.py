@@ -23,7 +23,7 @@ WARM_UP = "AAAWarmUpUITests"
 AREAS = {
     "TodayTrain": [
         "TodayUpNextUITests", "TemplateDetailUITests", "TemplateMachinesUITests", "FloodlightWorkoutTabUITests",
-        "LogFoodUITests", "LogFoodFlowUITests", "TodayFoodUITests", "ScanFoodUITests",
+        "LogFoodUITests", "LogFoodFlowUITests", "TodayFoodUITests", "ScanFoodUITests", "BarcodeSearchUITests",
     ],
     "Workout": [
         "CoreLoopUITests", "FloodlightLiveUITests", "FloodlightFinishUITests", "CardioUITests",

@@ -277,7 +277,7 @@ final class ScanFoodUITests: XCTestCase {
 
     private func capture(_ appearance: String, large: Bool) {
         // 1. Today's buttons, the camera's three modes.
-        launch(appearance, large: large, ["-uiTestFoodScanHold"])
+        launch(appearance, large: large, ["-uiTestFoodScanHold", "-uiTestBarcodeNoRead"])
         shoot("today-buttons")
         openCamera()
         shoot("camera-meal")

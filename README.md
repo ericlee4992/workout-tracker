@@ -67,7 +67,7 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
   changes the goal — and protein to go; without goals it offers to set them. Today's log lists the food by meal; tap an
   entry to change its servings, meal or numbers, or delete it with Undo.
   **Log food** opens the meal (preset by the time of day), tabs **All / My foods / My meals / Saved foods** and a
-  search over your own foods. Each food or meal has a **+** that logs one serving at once, with Undo; tapping a food
+  search: your own foods first, then (signed in) more foods from USDA FoodData Central, each with its servings. Each food or meal has a **+** that logs one serving at once, with Undo; tapping a food
   picks the servings. **Manual Add** logs a one-off entry (a name is optional, so calories alone are enough);
   **Add food** creates one of My foods in two steps (brand, description, serving, servings per container → nutrition);
   the bookmark keeps any food in Saved foods; **Create meal** groups foods you eat together. Each entry keeps its own
@@ -76,8 +76,10 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
   closes at once and Today's log shows the photo with a progress ring; the estimate is logged as one entry named for
   the meal, its photo kept on the iPhone with it (a photo chosen from the library is logged when it was taken). Tap it
   to edit the name, meal or any item, or delete it with Undo. *Food label*: the label inside the box is read and opens
-  as a food to name and log, saved to My foods if you like. *Barcode* comes next. Typing in Log food's search also
-  offers **Estimate "…"**, logged the same way. Meal photos stay out of the JSON export (it carries their items).
+  as a food to name and log, saved to My foods if you like. *Barcode*: a product's barcode is read as soon as it is in
+  the band and looked up at Open Food Facts, then USDA; the food opens to log, credited to its source, and stays on
+  the iPhone, so it scans offline next time. Not found offers the label scan or Manual Add. Typing in Log food's search
+  also offers **Estimate "…"**, logged the same way. Meal photos stay out of the JSON export (it carries their items).
 - **Body weight** *(on `main`, not yet in TestFlight)*. Profile → Body weight shows your
   latest weight and its history; Log weight takes the figure with ± steps in your unit (kg or lb, kept as entered) and
   the time; tap an entry to change or delete it. When your weight is more than about 2 kg from the one your nutrition
@@ -150,7 +152,7 @@ in this repository.
 | `WorkoutTrackerTests/`, `WorkoutTrackerUITests/` | Unit tests (Swift Testing) and end-to-end UI tests (XCTest) |
 | `WorkoutTrackerWidget/` | The Live Activity: the running workout and its rest timer on the Lock Screen |
 | `WorkoutTrackerWatch/` | An Apple Watch companion (workout session, heart rate, phone link) — written, never built or run, not in the beta |
-| `server/` | The backend: accounts (Apple, Google), the AI proxy with daily limits, feedback, the privacy and support pages |
+| `server/` | The backend: accounts (Apple, Google), the AI proxy with daily limits, food database lookups (barcodes, search), feedback, the privacy and support pages |
 | `TestPlans/` | The named test groups (Xcode test plans), written by `scripts/test-plans.py` |
 | `Config/`, `scripts/` | Build settings (`Local.xcconfig` is yours and git-ignored), catalog generation, device install, the secret scanner, test helpers |
 | `AGENTS.md`, `CLAUDE.md`, `CONTEXT.md` | Shared agent workflow, Claude's import of it, the domain glossary |

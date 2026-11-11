@@ -2,7 +2,9 @@ import Foundation
 
 /// Nutrition N8: the barcode lookup and the online search, through the server — or, in UI tests (`-uiTestTerra`), the
 /// fixture below, which stands in for the server (no network). Flags: `-uiTestBarcodeNotFound` (neither database has
-/// it), `-uiTestTerraOffline` (no connection), `-uiTestFoodSearchOff` (search not set up on the server).
+/// it), `-uiTestTerraOffline` (no connection), `-uiTestFoodDatabaseOfflineAfterOne` (the connection goes after the
+/// first answer), `-uiTestFoodSearchOff` (search not set up on the server), `-uiTestBarcodeNoRead` (the fixture camera
+/// reads nothing, for captures of Barcode mode itself).
 enum FoodDatabaseAccess {
     /// The server client for this session; nil signed out. A 401 signs the phone out, as the AI client does.
     @MainActor static func client(_ account: AccountStore) -> FoodDatabaseClient? {
@@ -33,9 +35,13 @@ enum FoodDatabaseFixture {
 
     private static var arguments: [String] { ProcessInfo.processInfo.arguments }
 
+    nonisolated(unsafe) private static var answered = 0
+
     private static func wait() async throws {
         try await Task.sleep(for: .milliseconds(arguments.contains("-uiTestTerraSlow") ? 4000 : 400))
         if arguments.contains("-uiTestTerraOffline") { throw FoodDatabaseError.offline }
+        if arguments.contains("-uiTestFoodDatabaseOfflineAfterOne"), answered > 0 { throw FoodDatabaseError.offline }
+        answered += 1
     }
 
     static func barcode(_ code: String) async throws -> DatabaseFood? {

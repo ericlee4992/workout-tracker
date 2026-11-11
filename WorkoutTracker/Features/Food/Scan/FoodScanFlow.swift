@@ -159,6 +159,8 @@ struct FoodScanFlow: View {
     /// Not in the database: the camera again, in Food label mode.
     private func scanLabelInstead() {
         lookupTask?.cancel()
+        // Chosen, not backed out of: no resting code (the user may scan another barcode at once).
+        barcode = nil
         cameraMode = .label
         path.removeAll()
     }
@@ -321,7 +323,8 @@ private struct FoodScanCameraContent: View {
         .sensoryFeedback(.selection, trigger: mode)
         .task(id: mode) {
             // The fixture's barcode is "read" a moment after Barcode mode shows it, through the camera's callback.
-            guard fixture, cameraUsable, mode == .barcode else { return }
+            guard fixture, cameraUsable, mode == .barcode,
+                  !ProcessInfo.processInfo.arguments.contains("-uiTestBarcodeNoRead") else { return }
             try? await Task.sleep(for: .milliseconds(1500))
             guard !Task.isCancelled, mode == .barcode else { return }
             camera.onBarcode(FoodDatabaseFixture.barcode, .ean13)
