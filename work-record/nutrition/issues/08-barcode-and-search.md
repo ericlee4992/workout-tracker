@@ -113,6 +113,17 @@ captures) + `LogFoodUITests` + `LogFoodFlowUITests` 18/18 with 2 workers, exit 0
 
 Round 3 checks: server 282/282 + tsc; Unit plan 1284/1284 exit 0 (`r3-unit.xcresult`). No UI code changed.
 
+### Codex round 3 (`codex-review-n8-c.md`): not clear — 1 P2; fixed (round 4)
+
+- R3-S1 the basis and the serving unit were resolved separately (a 10 g spoon of a product sold by the 500 ml was
+  scaled as 10 ml; a "1 shot (30 ml)" with no package read as per 100 g). Now `offUnits` resolves both from all the
+  evidence first: basis = the package's quantity, else the serving's unit (field, else its text), else grams (the
+  database's default); serving unit = its field, else its text, else the basis (none when the field names another
+  unit). Scaling only within one unit. An 11-case matrix test covers package weight/volume/absent, field/text/absent,
+  per-100-only vs serving numbers, fl oz.
+
+Round 4 checks: server 283/283 + tsc. App unchanged this round (Unit plan 1284/1284 from round 3 stands).
+
 ### The user's to review (not blocking)
 
 Own decisions: (1) routes under `/v1/food/…` like every other route; (2) limits 200 barcodes / 500 searches a day,

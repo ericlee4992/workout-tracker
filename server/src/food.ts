@@ -186,9 +186,35 @@ const kj = (value: Field): Field => (typeof value === "number" ? value / 4.184 :
 /** The first value a source gives (energy in kcal, else kJ…); an invalid one is not passed over for the next. */
 const first = (...fields: Field[]): Field => fields.find((f) => f !== null) ?? null;
 
-/** "330 ml", "1.5 L", "33 cl" — a product sold by volume, whose Open Food Facts numbers are per 100 ml. */
-const VOLUME = /\b\d+(?:[.,]\d+)?\s*(?:ml|cl|dl|l)\b/i;
+/** Amounts by volume ("330 ml", "1.5 L", "33 cl", "12 fl oz") and by weight ("400 g", "1 kg", "8 oz"). */
+const VOLUME = /\b\d+(?:[.,]\d+)?\s*(?:ml|cl|dl|l|fl\.?\s?oz)\b/i;
 const WEIGHT = /\b\d+(?:[.,]\d+)?\s*(?:g|kg|mg|oz|lb)\b/i;
+
+/** "g" or "ml" when a text gives amounts in only one of the two; null when it gives neither or both. */
+export function unitIn(words: string | null): Per100Unit | null {
+  if (!words) return null;
+  const volume = VOLUME.test(words), weight = WEIGHT.test(words);
+  return volume === weight ? null : volume ? "ml" : "g";
+}
+
+/**
+ * Open Food Facts' units, resolved together from every piece of evidence before any number is read (codex-review-n8-c
+ * R3-S1). Its `_100g` numbers are per 100 ml for a product sold by volume and per 100 g otherwise; `serving_quantity`
+ * is in the serving's unit. Neither the unit field nor the package's quantity is required, so:
+ * - the basis: the package's quantity ("500 ml"), else the serving's unit (field, else its text), else grams — the
+ *   database's own default;
+ * - the serving's unit: its field, else its text ("1 spoon (10 g)"), else the basis — unless the field names some other
+ *   unit, when its quantity is not used at all.
+ * The two stay distinct: a 10 g spoon of a product sold by the litre is grams, and is never scaled from per 100 ml.
+ */
+export function offUnits(product: Record<string, unknown>): { per100: Per100Unit; serving: Per100Unit | null } {
+  const raw = typeof product.serving_quantity_unit === "string" ? product.serving_quantity_unit.trim().toLowerCase() : "";
+  const field: Per100Unit | null = raw === "g" || raw === "ml" ? raw : null;
+  const servingText = typeof product.serving_size === "string" ? product.serving_size : null;
+  const inServing = field ?? unitIn(servingText);
+  const per100 = unitIn(typeof product.quantity === "string" ? product.quantity : null) ?? inServing ?? "g";
+  return { per100, serving: inServing ?? (raw !== "" && field === null ? null : per100) };
+}
 
 /** An Open Food Facts product (API v2) as a food, or null when it has no name or no usable nutrition. */
 export function fromOpenFoodFacts(code: string, product: Record<string, unknown>): DatabaseFood | null {
@@ -196,12 +222,8 @@ export function fromOpenFoodFacts(code: string, product: Record<string, unknown>
     ?? text(product.generic_name, MAX_NAME);
   if (!name) return null;
   const n = (typeof product.nutriments === "object" && product.nutriments !== null ? product.nutriments : {}) as Record<string, unknown>;
-  // `serving_quantity` is in the serving's unit; a drink's numbers are per 100 ml (codex-review-n8 S2): from that unit,
-  // else from the package's quantity ("330 ml").
-  const servingUnit = typeof product.serving_quantity_unit === "string" ? product.serving_quantity_unit.toLowerCase() : null;
-  const quantityText = typeof product.quantity === "string" ? product.quantity : "";
-  const per100Unit: Per100Unit = servingUnit === "ml" || (servingUnit === null && VOLUME.test(quantityText) && !WEIGHT.test(quantityText))
-    ? "ml" : "g";
+  const units = offUnits(product);
+  const per100Unit = units.per100;
   const read = (suffix: "100g" | "serving", basis: Basis, max: number) => {
     const per = (key: string) => field(n[`${key}_${suffix}`]);
     const sodium = per("sodium");
@@ -215,17 +237,13 @@ export function fromOpenFoodFacts(code: string, product: Record<string, unknown>
   };
   const per100g = read("100g", { amount: 100, unit: per100Unit }, PER_100_KCAL);
   const servingText = text(product.serving_size, MAX_SERVING_TEXT);
-  // Without its unit field, a serving is in millilitres when it says so ("1 can (330 ml)") or the product's numbers are
-  // per 100 ml — never grams by default for a drink (codex-review-n8-b R2-S1).
-  const unit = servingUnit
-    ?? (per100Unit === "ml" || (servingText !== null && VOLUME.test(servingText) && !WEIGHT.test(servingText)) ? "ml" : "g");
-  const quantity = unit === "g" || unit === "ml" ? amount(product.serving_quantity, MAX_GRAMS) : null;
+  const quantity = units.serving ? amount(product.serving_quantity, MAX_GRAMS) : null;
   const size = quantity && quantity > 0 ? quantity : null;
-  const basis: Basis = { amount: size, unit: unit === "ml" ? "ml" : "g" };
+  const basis: Basis = { amount: size, unit: units.serving ?? "g" };
   // Scaled from 100 only within one unit: grams and millilitres are not interchangeable without a density.
   const servingNutrients = read("serving", basis, PER_SERVING_KCAL)
-    ?? (per100g && size && basis.unit === per100Unit ? scale(per100g, size, per100Unit) : null);
-  const grams = unit === "g" && size ? round(size) : null;
+    ?? (per100g && size && units.serving === per100Unit ? scale(per100g, size, per100Unit) : null);
+  const grams = units.serving === "g" && size ? round(size) : null;
   const serving = servingText && servingNutrients ? { text: servingText, grams, nutrients: servingNutrients } : null;
   if (!per100g && !serving) return null;
   const brand = typeof product.brands === "string" ? text(product.brands.split(",")[0], MAX_BRAND) : null;

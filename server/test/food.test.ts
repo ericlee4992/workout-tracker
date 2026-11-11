@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   BARCODE_HIT_TTL_MS, BARCODE_MISS_TTL_MS, EMPTY_SEARCH_TTL_MS, FOOD_DAILY_LIMITS, FOOD_USER_AGENT, SEARCH_TTL_MS,
   USDA_GENERIC_TYPES, cleanQuery, fromOpenFoodFacts, fromUSDAGeneric, gtinForms, normalizeBarcode, pruneFood, rankFoods,
-  sameGTIN, tidyName,
+  sameGTIN, tidyName, unitIn,
 } from "../src/food";
 import { count, harness, USDA_KEY, type Harness } from "./helpers";
 
@@ -436,6 +436,51 @@ describe("normalisation helpers", () => {
       .toEqual(["Bananas, raw", "Banana, raw", "Banana, baked", "Bananas, dehydrated, or banana powder", "Cake, banana"]);
     expect(names("chicken breast", ["Chicken breast, fried, from raw", "Chicken, breast, boneless, skinless, raw", "Lunchmeat, chicken breast"]))
       .toEqual(["Chicken, breast, boneless, skinless, raw", "Chicken breast, fried, from raw", "Lunchmeat, chicken breast"]);
+  });
+
+  it("units from every piece of evidence, the basis and the serving kept apart (codex-review-n8-c R3-S1)", () => {
+    const per100 = (kcal: number) => ({ "energy-kcal_100g": kcal, carbohydrates_100g: 10 });
+    type Case = [label: string, product: Record<string, unknown>, per100Unit: "g" | "ml", serving: { grams: number | null; calories: number } | null];
+    const cases: Case[] = [
+      // A gram serving of a product sold by volume: never scaled from per 100 ml…
+      ["10 g spoon, sold by the 500 ml", { quantity: "500 ml", serving_size: "1 spoon (10 g)", serving_quantity: "10",
+        nutriments: { "energy-kcal_100g": 810, fat_100g: 90 } }, "ml", null],
+      // …but its own serving numbers stand.
+      ["10 g spoon with its own numbers", { quantity: "500 ml", serving_size: "1 spoon (10 g)", serving_quantity: "10",
+        nutriments: { "energy-kcal_100g": 810, fat_100g: 90, "energy-kcal_serving": 80, fat_serving: 9 } }, "ml", { grams: 10, calories: 80 }],
+      // Volume only in the serving's text: the basis is millilitres too.
+      ["30 ml shot, no package", { quantity: undefined, serving_size: "1 shot (30 ml)", serving_quantity: "30",
+        nutriments: per100(42) }, "ml", { grams: null, calories: 12.6 }],
+      ["40 g bar of a 400 g box", { quantity: "400 g", serving_size: "1 bar (40 g)", serving_quantity: 40,
+        nutriments: per100(500) }, "g", { grams: 40, calories: 200 }],
+      ["200 ml glass of a 1 L carton", { quantity: "1 L", serving_size: "1 glass (200 ml)", serving_quantity: 200,
+        nutriments: per100(42) }, "ml", { grams: null, calories: 84 }],
+      ["15 g, nothing else", { quantity: undefined, serving_size: "15 g", serving_quantity: 15, nutriments: per100(500) },
+        "g", { grams: 15, calories: 75 }],
+      // No unit anywhere: the database's default, grams.
+      ["a portion, no units", { quantity: undefined, serving_size: "1 portion", serving_quantity: 30, nutriments: per100(500) },
+        "g", { grams: 30, calories: 150 }],
+      // A unitless serving of a drink is in the drink's unit.
+      ["a portion of a 1 L drink", { quantity: "1 L", serving_size: "1 portion", serving_quantity: 250, nutriments: per100(42) },
+        "ml", { grams: null, calories: 105 }],
+      ["12 fl oz bottle", { quantity: "12 fl oz", serving_size: "1 bottle", serving_quantity: 355, nutriments: per100(42) },
+        "ml", { grams: null, calories: 149.1 }],
+      // The field wins over the text and the package for the serving; a millilitre serving of a product weighed per
+      // 100 g is not scaled.
+      ["ml field, 500 g package", { quantity: "500 g", serving_size: "1 cup", serving_quantity: 240, serving_quantity_unit: "ml",
+        nutriments: per100(60) }, "g", null],
+      // A field naming another unit: its quantity is not used.
+      ["oz field", { quantity: undefined, serving_size: "1 portion", serving_quantity: 2, serving_quantity_unit: "oz",
+        nutriments: per100(500) }, "g", null],
+    ];
+    for (const [label, product, unit, serving] of cases) {
+      const food = fromOpenFoodFacts(NUTELLA, offProduct({ serving_quantity_unit: undefined, ...product }));
+      expect(food?.per100Unit, label).toBe(unit);
+      if (serving === null) expect(food?.serving, label).toBeNull();
+      else expect(food?.serving, label).toMatchObject({ grams: serving.grams, nutrients: { calories: serving.calories } });
+    }
+    expect(unitIn("250 ml (255 g)")).toBeNull();
+    expect(unitIn("1 can")).toBeNull();
   });
 
   it("USDA's GTIN forms", () => {
