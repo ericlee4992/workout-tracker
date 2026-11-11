@@ -1,18 +1,19 @@
 # Current project state
 
-Updated **2026-11-11, C1 + N9b and N10 merged (Codex clear); handoff — next N8 in a new session.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-11, N8 built and verified on `ericlee4992/nutrition-08-barcode`; Codex review round 1.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
 
-- **Resume here (2026-11-11, handoff for N8).** Start **N8** (`work-record/nutrition/issues/08-barcode-and-search.md`) in
-  a new session: one branch off `main` in this worktree (e.g. `ericlee4992/nutrition-08-barcode`; this worktree is on the
-  merged `ericlee4992/nutrition-10-progress`). Scope as the ticket says; **online search by name approved** (the user,
-  2026-11-11). The USDA key is the user's to create later (api.data.gov → Worker secret `USDA_API_KEY`, never in chat or
-  the repo) — build and test against a stub; deploy at R. Server work happens here too (`server/`; its
-  `node_modules` is a symlink to the N6 worktree's). Flow as before: build, one verification pass, Codex review in
-  `term_df72a91c-b1a6-47a2-aedb-5b652fc9e0d0` to clear, ff-merge `main` (the user's standing permission). Ask the user
-  before anything over ~20 min. Then R.
+- **Resume here (2026-11-11): N8 in Codex review.** Branch `ericlee4992/nutrition-08-barcode` (pushed; off `main`
+  `59e354b`). Built: server `server/src/food.ts` + migration 0008 (barcode → Open Food Facts → USDA branded; search →
+  USDA generic; D1 cache; per-account limit) and app (Barcode mode, lookup screens, Log food "More foods", serving
+  picker, attribution). Live check done with the user's USDA key (temporary `server/.dev.vars`, deleted; results in the
+  ticket). The key is the user's: Worker secret `USDA_API_KEY` at R (`npx wrangler secret put USDA_API_KEY`). Verified:
+  server 278/278, Unit plan 1282/1282, BarcodeSearchUITests 5/5, food UI classes 24/25 parallel (1 known flaky, passes
+  serially). Codex round 1: brief `work-record/nutrition/codex-review-n8-prompt.md` → report
+  `work-record/nutrition/codex-review-n8.md`, terminal `term_df72a91c-b1a6-47a2-aedb-5b652fc9e0d0`. Next: fix findings
+  to "clear", ff-merge `main` (standing permission), then R. Ticket: `work-record/nutrition/issues/08-barcode-and-search.md`.
   **C1 + N9b DONE: Codex clear (round 3), merged into `main`** (branch
   `ericlee4992/c1-n9b`). C1: no "AI" wording outside feature names (lines in `work-record/copy/issues/01-no-ai-wording.md`).
   N9b: Apple Health — Profile → Apple Health (read weight, read Burned, save weight, save food), reconcile sync by sync
