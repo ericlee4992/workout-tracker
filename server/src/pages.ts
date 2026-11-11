@@ -4,7 +4,7 @@
 // text together, and have the reviewer recheck it. Source draft: work-record/public-beta/privacy-policy-draft.md.
 
 /** The day the policy went live (the user, 2026-10-15). Change it with the text; `npm run deploy` refuses a placeholder. */
-// Nutrition N6: the food and Apple Health wording below is a DRAFT for the user's approval; `npm run deploy` refuses
+// Nutrition N6 (and N8: "Barcodes and food search", the two food databases): the food and Apple Health wording below is a DRAFT for the user's approval; `npm run deploy` refuses
 // while this reads "[…" (predeploy), so it cannot go live with an old date or unapproved text.
 export const POLICY_EFFECTIVE_DATE = "[effective date]";
 export const DEVELOPER_NAME = "Eunchan Lee";
@@ -109,6 +109,15 @@ These records are kept for 90 days. Each day’s per-feature counts are kept for
 are removed by an hourly clean-up job.</li>
 </ul>
 
+<h2>Barcodes and food search (optional, signed in)</h2>
+<p>When you scan a food’s barcode, or search for a food by name while signed in, the app sends the barcode number or
+the words you typed to my server, which looks them up at Open Food Facts and the U.S. Department of Agriculture’s
+FoodData Central and returns the food. Your account, name and network address are not sent to either. My server keeps
+the answers for up to 30 days so the next lookup is quicker; that copy is shared by everyone and linked to no account,
+and a search is kept only as a one-way code made from its words. It also counts each account’s lookups per day to
+limit abuse; the counts are removed after about two days and when you delete your account. A food you log is then kept
+on your iPhone like any other food.</p>
+
 <h2>Feedback (optional)</h2>
 <p>If you send feedback from Settings → Send Feedback, my server keeps your message, its category, the screenshot if
 you attach one (re-encoded on your iPhone without its location or camera details), and the details the form shows
@@ -130,6 +139,8 @@ which AI feature was used, whether it worked, how long it took and how many toke
 I have turned off Cloudflare’s per-request logging, so they do not hold your network address, location, account or
 what you sent. The database also keeps a recovery history for 7 days.</li>
 <li><strong>OpenAI</strong> processes AI requests as described above.</li>
+<li><strong>Open Food Facts</strong> and <strong>USDA FoodData Central</strong> receive barcode numbers and search words
+from my server, as described above.</li>
 <li><strong>Apple</strong> provides Sign in with Apple, TestFlight and map imagery; <strong>Google</strong> provides
 Google sign-in.</li>
 </ul>

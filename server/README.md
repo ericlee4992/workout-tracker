@@ -27,6 +27,8 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 | `POST /v1/ai/food-photo` | nutrition N6: `{ jpeg, note? }` (a meal photo, as scan-machine's; a one-line note ≤ 300 characters) → `{ result: { items: [{ name, portion, grams, calories, protein, carbs, fat, confidence }] } }` (≤ 15 items; none when no food) |
 | `POST /v1/ai/food-label` | `{ jpeg }` (a nutrition facts panel) → `{ result: { found, servingSize, servingGrams, servingsPerContainer, calories, protein, carbs, fat, saturatedFat, fiber, sugar, sodiumMg } }` — numbers only as printed, null when not |
 | `POST /v1/ai/food-describe` | `{ text }` (≤ 500 characters, line breaks allowed) → `{ result: { items: [...] } }` as food-photo |
+| `GET /v1/food/barcode/:code` | nutrition N8: a scanned GTIN (8, 12, 13 or 14 digits, valid check digit; the app expands UPC-E) → `{ found: true, food }` or `{ found: false }`. Open Food Facts first, then USDA FoodData Central branded foods |
+| `GET /v1/food/search?q=` | nutrition N8: 2–100 characters → `{ foods: [...] }`, at most 10 USDA generic foods (Foundation, SR Legacy, FNDDS), the food itself before dishes with it |
 | `GET /v1/ai/usage` | `{ day, resetsAt, paused, flows: { <flow>: { used, limit } } }` |
 | `POST /v1/feedback` | multipart: `category` (bug/idea/other), `message` (1–4,000 characters), `appVersion`, `build`, `systemVersion`, `model`, optional `screenshot` (JPEG/PNG ≤ 5 MB) → `201 { id }`; signed in or out |
 | `GET /privacy`, `GET /support`, `GET /v1/health` | pages / liveness |
@@ -74,6 +76,19 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   `429 ai_limit | ai_attempts | ai_busy`, `503 ai_paused | ai_unavailable | ai_timeout | server_not_configured`,
   `502 ai_refused | ai_invalid`. Kept per request: account, flow, time, status, latency and token counts (90 days) —
   never the input, photo or reply, and nothing of them is logged. Account deletion deletes all of it.
+- **Food databases** (nutrition N8, D72; signed in only): one food shape from both sources — `{ id ("off:<code>" |
+  "usda:<fdcId>"), source, name, brand, barcode, per100g, serving: { text, grams, nutrients }, measures: [{ text, grams
+  }] }`, nutrients `{ calories, protein, carbs, fat, saturatedFat, fiber, sugar, sodiumMg }` (macros 0 when the source
+  omits them, the rest null; a drink's serving in millilitres claims no grams; impossible numbers make the food
+  unusable). Cached in D1 (`food_cache`, shared, linked to no account; a search only under its query's SHA-256): a found
+  barcode 30 days, a miss 1 day, a search 7 days (1 when empty). A miss is not cached while `USDA_API_KEY` is unset
+  (USDA was not asked) or when a source failed (`502 food_unavailable`). Limits per account per New York day: 200
+  barcodes, 500 searches, cache hits included (`429 food_limit`; `food_limits`, deleted with the account). Without
+  `USDA_API_KEY`, barcodes use Open Food Facts only and search is `503 server_not_configured`. Upstream calls time out
+  after 8 s and send `FOOD_USER_AGENT` (the support page's URL, no address); USDA's key goes in the `X-Api-Key` header,
+  never a URL. Logs name only the source and its status — never the code, the query or the key. Open Food Facts data is
+  ODbL: the app shows "Food data from Open Food Facts" wherever it shows it. The hourly cron prunes expired cache rows
+  and earlier days' counts (two more statements: at most 40 of Workers Free's 50).
 - **Off switch:** `node scripts/ai.mjs pause` (everyone) or `pause --account <id>`; `resume`; `status`. It is a D1 row,
   read on every request: effective at once, no app build or deploy.
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB;
@@ -104,6 +119,7 @@ npm run migrate:local && npm run dev    # http://localhost:8787 — sign-in need
    npx wrangler secret put APPLE_PRIVATE_KEY < AuthKey_XXXXXXXXXX.p8
    openssl rand -base64 32 | npx wrangler secret put TOKEN_ENC_KEY
    npx wrangler secret put OPENAI_API_KEY      # the developer's OpenAI key (ticket 06); typed at the prompt
+   npx wrangler secret put USDA_API_KEY        # nutrition N8: the api.data.gov key for USDA FoodData Central
    ```
    Keep the `.p8` somewhere safe outside this folder; `TOKEN_ENC_KEY` must not change once accounts exist (it decrypts
    the stored refresh tokens).

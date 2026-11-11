@@ -2,7 +2,7 @@ import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   BARCODE_HIT_TTL_MS, BARCODE_MISS_TTL_MS, EMPTY_SEARCH_TTL_MS, FOOD_DAILY_LIMITS, FOOD_USER_AGENT, SEARCH_TTL_MS,
-  USDA_GENERIC_TYPES, cleanQuery, fromOpenFoodFacts, normalizeBarcode, pruneFood, tidyName,
+  USDA_GENERIC_TYPES, cleanQuery, fromOpenFoodFacts, gtinForms, normalizeBarcode, pruneFood, rankFoods, tidyName,
 } from "../src/food";
 import { count, harness, USDA_KEY, type Harness } from "./helpers";
 
@@ -97,6 +97,16 @@ describe("barcodes", () => {
     });
   });
 
+  it("a drink's serving in millilitres claims no grams; its numbers are scaled per 100 ml", async () => {
+    h.food.off = () => offFound(offProduct({
+      serving_size: "1 can (355 mL)", serving_quantity: 355, serving_quantity_unit: "mL",
+      nutriments: { "energy-kcal_100g": 42, carbohydrates_100g: 10.6 },
+    }));
+    expect((await body(await barcode(NUTELLA))).food.serving).toMatchObject({
+      text: "1 can (355 mL)", grams: null, nutrients: { calories: 149.1, carbs: 37.63 },
+    });
+  });
+
   it("a Korean product: its own name, per 100 g only when it gives no serving", async () => {
     h.food.off = () => offFound(offProduct({
       code: SHIN, product_name: "신라면", brands: "농심", serving_size: undefined, serving_quantity: undefined,
@@ -128,15 +138,20 @@ describe("barcodes", () => {
     const call = h.food.usdaCalls[0]!;
     expect(call.apiKey).toBe(USDA_KEY);
     expect(call.url).not.toContain(USDA_KEY);
-    expect(call.body).toEqual({ query: COKE_UPC, dataType: ["Branded"], pageSize: 25 });
+    // USDA keeps a GTIN as 12, 13 or 14 digits and matches only exactly (live check): every form, any word.
+    expect(call.body).toEqual({ query: `${COKE} 0${COKE} ${COKE_UPC}`, dataType: ["Branded"], pageSize: 25 });
   });
 
   it("an Open Food Facts product without calories is not a find: USDA is asked", async () => {
     h.food.off = () => offFound(offProduct({ nutriments: { proteins_100g: 3 } }));
-    h.food.usda = () => usdaAnswer([usdaBranded({ gtinUpc: NUTELLA, servingSize: 37, servingSizeUnit: "g",
+    h.food.usda = () => usdaAnswer([usdaBranded({ gtinUpc: `0${NUTELLA}`, servingSize: 37, servingSizeUnit: "g",
       householdServingFullText: "2 Tbsp" })]);
     const food = (await body(await barcode(NUTELLA))).food;
     expect(food).toMatchObject({ source: "usda", serving: { text: "2 Tbsp (37 g)", grams: 37 } });
+    // A household text that already gives its weight is kept as is.
+    h.food.usda = () => usdaAnswer([usdaBranded({ gtinUpc: SHIN, servingSize: 20, servingSizeUnit: "GRM",
+      householdServingFullText: "3/4 cup (20g)" })]);
+    expect((await body(await barcode(SHIN))).food.serving).toMatchObject({ text: "3/4 cup (20g)", grams: 20 });
   });
 
   it("found nowhere: { found: false }, cached a day; then looked up again", async () => {
@@ -227,7 +242,7 @@ describe("search by name", () => {
         measures: [{ text: "1 medium (7\" to 7-7/8\" long)", grams: 118 }],
       }],
     });
-    expect(h.food.usdaCalls[0]!.body).toEqual({ query: "Banana", dataType: USDA_GENERIC_TYPES, pageSize: 25 });
+    expect(h.food.usdaCalls[0]!.body).toEqual({ query: "Banana", dataType: USDA_GENERIC_TYPES, pageSize: 50 });
   });
 
   it("caches under the query's hash, any case: a week; nothing found, a day", async () => {
@@ -322,6 +337,21 @@ describe("normalisation helpers", () => {
     expect(normalizeBarcode(NUTELLA)).toBe(NUTELLA);
     expect(normalizeBarcode("3017620422004")).toBeNull();
     expect(normalizeBarcode("1234567")).toBeNull();
+  });
+
+  it("ranks the food itself before dishes with it; raw first, then the plainer name (live check order)", () => {
+    const food = (name: string) => ({ id: name, source: "usda" as const, name, brand: null, barcode: null, per100g: null, serving: null, measures: [] });
+    const names = (q: string, list: string[]) => rankFoods(q, list.map(food)).map((f) => f.name);
+    expect(names("banana", ["Bananas, dehydrated, or banana powder", "Banana, baked", "Cake, banana", "Bananas, raw", "Banana, raw"]))
+      .toEqual(["Bananas, raw", "Banana, raw", "Banana, baked", "Bananas, dehydrated, or banana powder", "Cake, banana"]);
+    expect(names("chicken breast", ["Chicken breast, fried, from raw", "Chicken, breast, boneless, skinless, raw", "Lunchmeat, chicken breast"]))
+      .toEqual(["Chicken, breast, boneless, skinless, raw", "Chicken breast, fried, from raw", "Lunchmeat, chicken breast"]);
+  });
+
+  it("USDA's GTIN forms", () => {
+    expect(gtinForms(COKE)).toEqual([COKE, `0${COKE}`, COKE_UPC]);
+    expect(gtinForms(SHIN)).toEqual([SHIN, `0${SHIN}`]);
+    expect(gtinForms("96385074")).toEqual(["96385074", "00000096385074", "0000096385074"]);
   });
 
   it("queries and names", () => {

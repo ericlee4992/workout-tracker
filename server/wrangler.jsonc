@@ -1,5 +1,6 @@
 // Stacked's backend (public beta ticket 03). Secrets are NOT here — this repository is public. Set them with
-// `wrangler secret put` (see README): APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY.
+// `wrangler secret put` (see README): APPLE_KEY_ID, APPLE_PRIVATE_KEY, TOKEN_ENC_KEY, OPENAI_API_KEY,
+// USDA_API_KEY (nutrition N8).
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "stacked-server",

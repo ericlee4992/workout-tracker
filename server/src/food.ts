@@ -29,6 +29,8 @@ export const SEARCH_TTL_MS = 7 * DAY_MS;
 export const EMPTY_SEARCH_TTL_MS = DAY_MS;
 export const SEARCH_RESULTS = 10;
 const USDA_PAGE_SIZE = 25;
+/** A search asks for more than it shows, so the plain food ("Bananas, raw") is among what is ranked. */
+const USDA_SEARCH_PAGE_SIZE = 50;
 /** USDA's generic (not branded) foods, for search by name. */
 export const USDA_GENERIC_TYPES = ["Foundation", "SR Legacy", "Survey (FNDDS)"];
 const MAX_NAME = 200;
@@ -163,11 +165,12 @@ export function fromOpenFoodFacts(code: string, product: Record<string, unknown>
   };
   const per100g = read("100g", PER_100_KCAL);
   const servingText = text(product.serving_size, MAX_SERVING_TEXT);
+  // `serving_quantity` is in the serving's unit: grams, or millilitres for a drink (per 100 ml) — no grams claimed then.
   const unit = typeof product.serving_quantity_unit === "string" ? product.serving_quantity_unit.toLowerCase() : "g";
-  const grams = unit === "g" || unit === "ml" ? amount(product.serving_quantity, MAX_GRAMS) : null;
-  const servingNutrients = read("serving", PER_SERVING_KCAL) ?? (per100g && grams ? scale(per100g, grams) : null);
-  const serving = servingText && servingNutrients
-    ? { text: servingText, grams: grams && grams > 0 ? round(grams) : null, nutrients: servingNutrients } : null;
+  const quantity = unit === "g" || unit === "ml" ? amount(product.serving_quantity, MAX_GRAMS) : null;
+  const grams = unit === "g" && quantity && quantity > 0 ? round(quantity) : null;
+  const servingNutrients = read("serving", PER_SERVING_KCAL) ?? (per100g && quantity ? scale(per100g, quantity) : null);
+  const serving = servingText && servingNutrients ? { text: servingText, grams, nutrients: servingNutrients } : null;
   if (!per100g && !serving) return null;
   const brand = typeof product.brands === "string" ? text(product.brands.split(",")[0], MAX_BRAND) : null;
   return { id: `off:${code}`, source: "openFoodFacts", name, brand, barcode: code, per100g, serving, measures: [] };
@@ -209,9 +212,9 @@ export function fromUSDABranded(code: string, food: Record<string, unknown>): Da
     const household = text(food.householdServingFullText, MAX_SERVING_TEXT);
     const weight = `${round(size)} ${metric}`;
     const scaled = scale(per100g, size);
-    if (scaled) {
-      serving = { text: household ? `${household} (${weight})` : weight, grams: metric === "g" ? round(size) : null, nutrients: scaled };
-    }
+    // "1 Can" → "1 Can (355 ml)"; a household text that already says its weight ("3/4 cup (20g)") is kept as is.
+    const words = household && !household.includes(String(round(size))) ? `${household} (${weight})` : household ?? weight;
+    if (scaled) serving = { text: words, grams: metric === "g" ? round(size) : null, nutrients: scaled };
   }
   const brand = text(food.brandName, MAX_BRAND) ?? text(food.brandOwner, MAX_BRAND);
   return {
@@ -274,11 +277,11 @@ async function openFoodFacts(code: string, deps: Deps): Promise<DatabaseFood | n
 }
 
 /** USDA's food search; the key travels in a header, never in a URL. */
-async function usdaSearch(key: string, deps: Deps, query: string, dataType: string[]): Promise<Record<string, unknown>[]> {
+async function usdaSearch(key: string, deps: Deps, query: string, dataType: string[], pageSize = USDA_PAGE_SIZE): Promise<Record<string, unknown>[]> {
   const body = await fetchJSON(deps, "usda", USDA_SEARCH_URL, {
     method: "POST",
     headers: { "x-api-key": key, "content-type": "application/json", accept: "application/json", "user-agent": FOOD_USER_AGENT },
-    body: JSON.stringify({ query, dataType, pageSize: USDA_PAGE_SIZE }),
+    body: JSON.stringify({ query, dataType, pageSize }),
   }) as Record<string, unknown> | null;
   return Array.isArray(body?.foods) ? body!.foods as Record<string, unknown>[] : [];
 }
@@ -286,10 +289,17 @@ async function usdaSearch(key: string, deps: Deps, query: string, dataType: stri
 /** The same GTIN whatever its length in USDA's `gtinUpc` (12-digit UPCs, sometimes 13 or 14 digits). */
 const sameGTIN = (a: unknown, code: string) => typeof a === "string" && normalizeBarcode(a.trim()) === code;
 
+/** The forms a GTIN is stored in at USDA (`gtinUpc` holds 12, 13 or 14 digits, matched only exactly): every form,
+ *  as one any-word query. */
+export function gtinForms(code: string): string[] {
+  const forms = new Set([code, code.padStart(14, "0")]);
+  if (code.length === 13 && code.startsWith("0")) forms.add(code.slice(1));
+  if (code.length === 8) forms.add(code.padStart(13, "0"));
+  return [...forms];
+}
+
 async function usdaBarcode(code: string, key: string, deps: Deps): Promise<DatabaseFood | null> {
-  // US products are indexed by their 12-digit UPC.
-  const query = code.length === 13 && code.startsWith("0") ? code.slice(1) : code;
-  const foods = await usdaSearch(key, deps, query, ["Branded"]);
+  const foods = await usdaSearch(key, deps, gtinForms(code).join(" "), ["Branded"]);
   for (const food of foods.filter((f) => sameGTIN(f.gtinUpc, code))) {
     const found = fromUSDABranded(code, food);
     if (found) return found;
@@ -368,7 +378,7 @@ export async function searchFoods(env: Env, deps: Deps, accountID: string, raw: 
   if (cached) return { foods: cached.value };
   let results: Record<string, unknown>[];
   try {
-    results = await usdaSearch(env.USDA_API_KEY, deps, query, USDA_GENERIC_TYPES);
+    results = await usdaSearch(env.USDA_API_KEY, deps, query, USDA_GENERIC_TYPES, USDA_SEARCH_PAGE_SIZE);
   } catch (error) {
     logUpstream(error);
     throw new AuthError("food_unavailable", 502);
@@ -378,10 +388,35 @@ export async function searchFoods(env: Env, deps: Deps, accountID: string, raw: 
     const food = fromUSDAGeneric(result);
     if (!food || foods.some((f) => f.id === food.id || f.name.toLowerCase() === food.name.toLowerCase())) continue;
     foods.push(food);
-    if (foods.length === SEARCH_RESULTS) break;
   }
+  foods.splice(0, foods.length, ...rankFoods(query, foods).slice(0, SEARCH_RESULTS));
   await writeCache(env, deps, key, foods, foods.length > 0 ? SEARCH_TTL_MS : EMPTY_SEARCH_TTL_MS);
   return { foods };
+}
+
+/** Words for matching: lower case, letters and digits only, a plural "s" dropped ("Bananas, raw" → banana raw). */
+function words(text: string): string[] {
+  return text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter(Boolean).map((w) => (w.length > 3 && w.endsWith("s") ? w.slice(0, -1) : w));
+}
+
+/**
+ * USDA's own order puts "Bananas, dehydrated, or banana powder" before "Bananas, raw" (live check, 2026-11-11), so the
+ * results are re-ranked: names that START with the query's words first (the food itself, not a dish with it), then
+ * names holding every word; within each, raw before prepared, then the shorter (plainer) name; then USDA's order.
+ */
+export function rankFoods(query: string, foods: DatabaseFood[]): DatabaseFood[] {
+  const q = words(query);
+  const score = (food: DatabaseFood) => {
+    const name = words(food.name);
+    const starts = q.every((w, i) => name[i] === w);
+    const all = q.every((w) => name.includes(w));
+    // "…, raw" is the food as bought; "…, from raw" is a cooked dish.
+    const raw = name.includes("raw") && !/\bfrom raw\b/i.test(food.name);
+    return [starts ? 0 : all ? 1 : 2, raw ? 0 : 1, name.length];
+  };
+  return foods.map((food, index) => ({ food, index, key: score(food) }))
+    .sort((a, b) => a.key[0]! - b.key[0]! || a.key[1]! - b.key[1]! || a.key[2]! - b.key[2]! || a.index - b.index)
+    .map((x) => x.food);
 }
 
 /** The source and its status only — never the code, the query or the key. */
