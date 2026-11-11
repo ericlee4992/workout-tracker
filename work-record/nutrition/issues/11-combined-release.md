@@ -34,8 +34,10 @@ Ship the Soft redesign and nutrition together as one TestFlight build (build **1
    food-label $0.0021–0.0023, food-describe $0.0013–0.0015 a request; training flows $0.0018–0.0061. One person at
    every daily limit (60 scans, 10 weeks, 60 suggestions, 30 photos, 30 labels, 60 descriptions) ≈ **$0.74 a day**.
    N8 adds no AI cost (Open Food Facts and USDA are free; USDA's key allows 1,000 requests an hour, the cache cuts
-   repeats). **Waiting: the user confirms the limits.**
-2. Full UI suite — **waiting: the user's go** (about an hour).
+   repeats). **The user (2026-11-11): keep the limits as they are.**
+2. Full UI suite — the user's go (2026-11-11). Running at `32165f7` (app unchanged since N8's merge `3ad9dca`):
+   `-testPlan Full -only-testing:WorkoutTrackerUITests`, 2 workers, 386 tests, WT-Floodlight; xcresult
+   `/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/8bffdecc-0105-4db5-8c71-05a754a21832/scratchpad/r-full.xcresult`.
 3. Drafts below — **waiting: the user's approval/edits.**
 4.–9. Not started.
 

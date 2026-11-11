@@ -1,12 +1,15 @@
 # Current project state
 
-Updated **2026-11-11, N8 merged (Codex clear, round 5); next R.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-11, N8 merged; R in progress on `ericlee4992/release-r` (full UI suite running).** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
 
-- **Resume here (2026-11-11): N8 DONE — Codex clear (round 5), merged into `main`.** Next: **R** (the combined release,
-  `work-record/nutrition/issues/11-combined-release.md`) — ask the user before the full suite. N8 = barcode (Open Food
+- **Resume here (2026-11-11): R in progress** (branch `ericlee4992/release-r`; ticket
+  `work-record/nutrition/issues/11-combined-release.md` → Progress has the checklist state, drafts and what waits for
+  the user: What's New / What to Test / privacy approval + effective date, deploy, App Privacy, Gate S). Limits kept
+  (the user). Full UI suite running (the user's go). N12 (Korean food DB) written, after R.
+  **N8 DONE — Codex clear (round 5), merged into `main`.** N8 = barcode (Open Food
   Facts → USDA branded) + online search (USDA generic) through the server (`server/src/food.ts`, migration 0008, D1
   cache, per-account limit) and the app (Barcode mode, lookup screens, Log food "More foods", serving picker,
   credits). Live check done with the user's USDA key (temporary `server/.dev.vars`, deleted). **At R:** apply
