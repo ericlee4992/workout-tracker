@@ -21,7 +21,7 @@ Scan a packaged food's barcode, or search a food by name, and log it from a food
   User-Agent and **attribution** (ODbL: "Food data from Open Food Facts" where its data is shown). USDA needs an **API
   key** that the user creates at api.data.gov and sets as a Worker secret (`USDA_API_KEY`) — never in chat or the repo.
 - **Not found →** "Not in the database" with **Scan the label** (N7) and Manual Add.
-- **Online search by name** *(proposal, confirm with the user):* the Log Food search shows the user's own foods first,
+- **Online search by name** *(approved by the user, 2026-11-11: "Yes, add online search")*: the Log Food search shows the user's own foods first,
   then USDA generic foods (e.g. "banana", "chicken breast") from `GET /food/search?q=`, cached; anything else →
   Describe (food-describe).
 - A logged database food becomes a SavedFood (recent), so it works offline next time.
