@@ -144,8 +144,8 @@ enum FoodScan {
                               servingUnit: ServingText.defaultUnit, calories: totals.calories,
                               proteinGrams: totals.proteinGrams, carbsGrams: totals.carbsGrams,
                               fatGrams: totals.fatGrams, source: source, createdAt: now)
-        entry.photo = photo
         context.insert(entry)
+        if let photo { entry.photo = FoodPhoto(data: photo) }
         entry.items = items(estimate.items)
         try context.save()
         return entry

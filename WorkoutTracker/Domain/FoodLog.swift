@@ -415,8 +415,8 @@ enum FoodLog {
             savedFood: copy.savedFood.flatMap { $0.isLive ? $0 : nil }, createdAt: copy.createdAt)
         entry.updatedAt = copy.updatedAt
         entry.healthSampleID = copy.healthSampleID
-        entry.photo = copy.photo
         context.insert(entry)
+        if let photo = copy.photo { entry.photo = FoodPhoto(data: photo) }
         entry.items = copy.items.enumerated().map { index, item in
             FoodEntryItem(id: item.id, order: index, name: item.name, portion: item.portion, grams: item.grams,
                           calories: item.calories, proteinGrams: item.protein, carbsGrams: item.carbs, fatGrams: item.fat)
@@ -571,7 +571,7 @@ struct DeletedEntry {
         createdAt = entry.createdAt
         updatedAt = entry.updatedAt
         savedFood = entry.savedFood
-        photo = entry.photo
+        photo = entry.photoData
         items = FoodScan.editable(entry)
     }
 }

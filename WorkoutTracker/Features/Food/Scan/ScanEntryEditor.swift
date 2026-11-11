@@ -26,7 +26,7 @@ struct ScanEntryEditor: View {
         _name = State(initialValue: entry.name)
         _meal = State(initialValue: entry.meal)
         _items = State(initialValue: FoodScan.editable(entry))
-        photo = entry.photo.flatMap(UIImage.init(data:))
+        photo = entry.photoData.flatMap(UIImage.init(data:))
         time = entry.loggedAt
     }
 
@@ -186,6 +186,9 @@ struct ScanItemEditor: View {
     @State private var loaded = false
     /// Removed: the binding's row is gone, so nothing is written back.
     @State private var removed = false
+    /// The numbers as stored when the editor opened: an unchanged field keeps its exact value, not its rounded text
+    /// (codex-review-n7 S3, as Edit entry does).
+    @State private var stored: [EditableNumber] = []
 
     var body: some View {
         ScrollView {
@@ -216,23 +219,43 @@ struct ScanItemEditor: View {
             loaded = true
             name = item.name
             portion = item.portion
-            grams = item.grams.map(FoodNumber.text) ?? ""
-            calories = FoodNumber.text(item.calories)
-            protein = FoodNumber.text(item.protein)
-            carbs = FoodNumber.text(item.carbs)
-            fat = FoodNumber.text(item.fat)
+            stored = [EditableNumber(item.grams), EditableNumber(item.calories), EditableNumber(item.protein),
+                      EditableNumber(item.carbs), EditableNumber(item.fat)]
+            grams = stored[0].text
+            calories = stored[1].text
+            protein = stored[2].text
+            carbs = stored[3].text
+            fat = stored[4].text
         }
         .onDisappear { if !removed { apply() } }
     }
 
-    /// Back writes the fields into the draft: a number that does not read keeps the item's value; a blank macro is 0.
+    /// Back writes the fields into the draft: an unchanged field keeps its stored value exactly; a number that does not
+    /// read keeps the item's value; a blank macro is 0, a blank weight none.
     private func apply() {
+        guard stored.count == 5 else { return }
         item.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         item.portion = portion.trimmingCharacters(in: .whitespacesAndNewlines)
-        item.grams = FoodNumber.optional(grams) ?? item.grams
-        item.calories = FoodNumber.parse(calories) ?? item.calories
-        item.protein = (FoodNumber.optional(protein) ?? item.protein) ?? 0
-        item.carbs = (FoodNumber.optional(carbs) ?? item.carbs) ?? 0
-        item.fat = (FoodNumber.optional(fat) ?? item.fat) ?? 0
+        item.grams = ScanItemNumbers.optional(stored[0], grams, keeping: item.grams)
+        item.calories = ScanItemNumbers.required(stored[1], calories, keeping: item.calories)
+        item.protein = ScanItemNumbers.optional(stored[2], protein, keeping: item.protein) ?? 0
+        item.carbs = ScanItemNumbers.optional(stored[3], carbs, keeping: item.carbs) ?? 0
+        item.fat = ScanItemNumbers.optional(stored[4], fat, keeping: item.fat) ?? 0
+    }
+}
+
+/// The item editor's write-back rules, testable without a view (codex-review-n7 S3).
+enum ScanItemNumbers {
+    /// Unchanged → the stored value exactly; blank → nil; unreadable → `keeping`.
+    static func optional(_ stored: EditableNumber, _ text: String, keeping: Double?) -> Double? {
+        switch stored.resolve(text) {
+        case .some(let value): value
+        case .none: keeping
+        }
+    }
+
+    /// As `optional`, but blank or unreadable keeps the value (calories are needed).
+    static func required(_ stored: EditableNumber, _ text: String, keeping: Double) -> Double {
+        optional(stored, text, keeping: keeping) ?? keeping
     }
 }

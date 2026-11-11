@@ -66,6 +66,9 @@ struct TodayView: View {
     @State private var scans = FoodScanQueue.shared
     @State private var openScan: FoodEntry?
     @State private var manualFromScan = false
+    /// A scan whose session expired: sign in, then it is sent again.
+    @State private var signInFor: UUID?
+    @State private var showSignIn = false
     @Environment(AccountStore.self) private var account
 
     var body: some View {
@@ -98,6 +101,15 @@ struct TodayView: View {
             .fullScreenCover(isPresented: $showScan) {
                 FoodScanFlow(meal: nil, onDone: {}, onManualAdd: { manualFromScan = true })
             }
+            .sheet(isPresented: $showSignIn, onDismiss: {
+                // Signed in: the same scan is sent again; still signed out, its card stays.
+                if let id = signInFor, TerraAccess.ready(account) {
+                    scans.retry(id, client: TerraAccess.client(account), context: modelContext)
+                }
+                signInFor = nil
+            }) { AccountSignInSheet() }
+            // Completion, failure and Remove move the log; under Reduce Motion they simply appear (codex-review-n7 T2).
+            .animation(reduceMotion ? nil : .snappy, value: scans.revision)
             .sheet(item: $openScan) { entry in
                 ScanEntryEditor(entry: entry) { copy in
                     withAnimation(reduceMotion ? nil : .snappy) { deletedEntry = copy }
@@ -251,8 +263,10 @@ struct TodayView: View {
             ForEach(scans.pending) { scan in
                 ScanPendingCard(scan: scan, retake: { scans.dismiss(scan.id); showScan = true },
                                 retry: { scans.retry(scan.id, client: TerraAccess.client(account), context: modelContext) },
-                                manualAdd: { scans.dismiss(scan.id); manualFromScan = true })
-                    .transition(.opacity.combined(with: .scale(scale: 0.97)))
+                                manualAdd: { scans.dismiss(scan.id); manualFromScan = true },
+                                signIn: { signInFor = scan.id; showSignIn = true },
+                                open: { openScan = $0 })
+                    .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.97)))
             }
             if today.isEmpty && entries.isEmpty {
                 if scans.pending.isEmpty {

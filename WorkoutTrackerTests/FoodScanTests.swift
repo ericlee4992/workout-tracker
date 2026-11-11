@@ -124,7 +124,8 @@ struct FoodScanTests {
         #expect(entry.source == .photo)
         #expect(entry.meal == .lunch)
         #expect(entry.loggedAt == now)
-        #expect(entry.photo == photo)
+        #expect(entry.photoData == photo)
+        #expect(try context.fetch(FetchDescriptor<FoodPhoto>()).count == 1)
         #expect(entry.servings == 1)
         #expect(NutritionMath.totals(of: entry) == estimate.totals)
         #expect(entry.orderedItems.map(\.name) == ["Tuna poke", "Sushi rice"])
@@ -160,9 +161,10 @@ struct FoodScanTests {
         let copy = try FoodLog.delete(entry, in: context)
         #expect(try context.fetch(FetchDescriptor<FoodEntry>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<FoodEntryItem>()).isEmpty)
+        #expect(try context.fetch(FetchDescriptor<FoodPhoto>()).isEmpty, "the photo goes with its entry")
         let restored = try FoodLog.restore(copy, in: context)
         #expect(restored.id == id)
-        #expect(restored.photo == photo)
+        #expect(restored.photoData == photo)
         #expect(restored.orderedItems.map(\.name) == ["Tuna poke", "Sushi rice"])
         #expect(NutritionMath.totals(of: restored) == estimate.totals)
     }
@@ -201,6 +203,26 @@ struct FoodScanTests {
         #expect(entry.source == .label)
         #expect(entry.servingGrams == 55)
         #expect(entry.fiberGrams == 4)
+    }
+
+    // MARK: The item editor's numbers (codex-review-n7 S3)
+
+    @Test func anUntouchedItemNumberKeepsItsStoredValueExactly() {
+        let protein = EditableNumber(27.456)
+        #expect(ScanItemNumbers.optional(protein, protein.text, keeping: 27.456) == 27.456)
+        let grams = EditableNumber(0.333)
+        #expect(ScanItemNumbers.optional(grams, grams.text, keeping: 0.333) == 0.333)
+        let calories = EditableNumber(212.75)
+        #expect(ScanItemNumbers.required(calories, calories.text, keeping: 212.75) == 212.75)
+    }
+
+    @Test func anEditedItemNumberTakesTheTypedValueAndBlankClearsIt() {
+        let protein = EditableNumber(27.456)
+        #expect(ScanItemNumbers.optional(protein, "30", keeping: 27.456) == 30)
+        #expect(ScanItemNumbers.optional(protein, "", keeping: 27.456) == nil)
+        #expect(ScanItemNumbers.optional(protein, "abc", keeping: 27.456) == 27.456)
+        let calories = EditableNumber(212.75)
+        #expect(ScanItemNumbers.required(calories, "", keeping: 212.75) == 212.75, "calories are needed")
     }
 
     // MARK: When

@@ -175,6 +175,38 @@ import Testing
         #expect(fixture.copies.list() == [copy], "the copy stays after it is restored")
     }
 
+    /// N7 (codex-review-n7 T1): a meal photo is in the copy. It lives in the database file (a `FoodPhoto` row), so a
+    /// restore into a folder with nothing else beside the store still brings every byte back.
+    @Test func aMealPhotoComesBackWholeFromACopy() throws {
+        let fixture = try Fixture()
+        let model = try #require(Self.appModel)
+        let bytes = Data((0..<2_000_000).map { UInt8($0 % 251) })
+        try fixture.withStore(model) { context in
+            NSEntityDescription.insertNewObject(forEntityName: "FoodPhoto", into: context).setValue(bytes, forKey: "data")
+            try context.save()
+        }
+        let copy = try fixture.copies.make(from: fixture.storeURL, appVersion: "v")
+        // Nothing of the original store is left beside it: only the copy can bring the photo back.
+        try FileManager.default.removeItem(at: fixture.storeURL.deletingLastPathComponent())
+        try FileManager.default.createDirectory(at: fixture.storeURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try fixture.copies.scheduleRestore(copy)
+        _ = try fixture.copies.performPendingRestore(to: fixture.storeURL)
+        let restored = try fixture.withStore(model) { context in
+            try context.fetch(NSFetchRequest<NSManagedObject>(entityName: "FoodPhoto")).first?.value(forKey: "data") as? Data
+        }
+        #expect(restored == bytes)
+    }
+
+    /// The copy carries the store's three SQLite files and nothing else, so no attribute may keep its bytes outside
+    /// them (`.externalStorage`).
+    @Test func noAttributeIsStoredOutsideTheDatabaseFile() throws {
+        let model = try #require(Self.appModel)
+        let external = model.entities.flatMap { entity in
+            entity.attributesByName.values.filter(\.allowsExternalBinaryDataStorage).map { "\(entity.name ?? "").\($0.name)" }
+        }
+        #expect(external.isEmpty, "stored outside the database, not in a safety copy: \(external)")
+    }
+
     @Test func aRestoreThatFailsKeepsTodaysDataAndIsNotRetried() throws {
         let fixture = try Fixture()
         try fixture.addItems(["before"])

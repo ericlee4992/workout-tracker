@@ -27,6 +27,8 @@ struct LogFoodView: View {
     @State private var failure: String?
     /// N7: the scan camera from Log food's bar; a meal photo or a description returns to Today (D82's card).
     @State private var showScan = false
+    /// Signed out, Estimate asks to sign in first; the words stay in the field (codex-review-n7 S1).
+    @State private var signingIn = false
     @Environment(\.dismiss) private var dismiss
     @Environment(AccountStore.self) private var account
 
@@ -109,6 +111,7 @@ struct LogFoodView: View {
                 .accessibilityIdentifier("logFoodScan")
             }
         }
+        .sheet(isPresented: $signingIn) { AccountSignInSheet() }
         .fullScreenCover(isPresented: $showScan) {
             FoodScanFlow(meal: meal, onDone: { dismiss() }, onManualAdd: { route = .manualAdd })
         }
@@ -184,6 +187,7 @@ struct LogFoodView: View {
     private var describeRow: some View {
         let text = search.trimmingCharacters(in: .whitespaces)
         return Button {
+            guard TerraAccess.ready(account) else { signingIn = true; return }
             FoodScanQueue.shared.startDescribe(text, meal: meal, client: TerraAccess.client(account), context: context)
             dismiss()
         } label: {

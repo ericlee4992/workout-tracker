@@ -61,7 +61,7 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
   Add Chart lists the exercises you've logged by body area.
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
   photo, get exercise suggestions for a new machine, or have Ask AI build a week of
-  templates from your training profile. Each AI feature asks first and has a daily limit.
+  templates from your training profile. Each training AI feature asks first; every AI feature has a daily limit.
 - **Food logging** *(on `main`, not yet in TestFlight)*. On Today each day's ring fills toward that day's calorie goal
   in protein · carbs · fat colours; the fuel card shows what's left (or over), what you ate and burned — burned never
   changes the goal — and protein to go; without goals it offers to set them. Today's log lists the food by meal; tap an
@@ -72,6 +72,12 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
   **Add food** creates one of My foods in two steps (brand, description, serving, servings per container → nutrition);
   the bookmark keeps any food in Saved foods; **Create meal** groups foods you eat together. Each entry keeps its own
   copy of the numbers, so editing or deleting a food or meal never changes a day already logged.
+  **Scan food** (signed in; the camera beside Log food, or in Log food's bar) has three modes. *Scan food*: the camera
+  closes at once and Today's log shows the photo with a progress ring; the estimate is logged as one entry named for
+  the meal, its photo kept on the iPhone with it (a photo chosen from the library is logged when it was taken). Tap it
+  to edit the name, meal or any item, or delete it with Undo. *Food label*: the label inside the box is read and opens
+  as a food to name and log, saved to My foods if you like. *Barcode* comes next. Typing in Log food's search also
+  offers **Estimate "…"**, logged the same way. Meal photos stay out of the JSON export (it carries their items).
 - **Body weight** *(on `main`, not yet in TestFlight; Apple Health sync comes next)*. Profile → Body weight shows your
   latest weight and its history; Log weight takes the figure with ± steps in your unit (kg or lb, kept as entered) and
   the time; tap an entry to change or delete it. When your weight is more than about 2 kg from the one your nutrition

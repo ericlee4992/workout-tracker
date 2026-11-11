@@ -23,11 +23,13 @@ struct ScanPendingCard: View {
     var retake: () -> Void
     var retry: () -> Void
     var manualAdd: () -> Void
+    var signIn: () -> Void
+    var open: (FoodEntry) -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 112
 
-    private var analyzing: Bool { scan.failure == nil }
+    private var analyzing: Bool { scan.failure == nil && scan.loggedEarlier == nil }
 
     var body: some View {
         let layout = typeSize.isAccessibilitySize
@@ -42,7 +44,13 @@ struct ScanPendingCard: View {
                        maxHeight: typeSize.isAccessibilitySize ? nil : .infinity)
                 .clipped()
             Group {
-                if let failure = scan.failure { failed(failure) } else { analyzingText }
+                if let entry = scan.loggedEarlier, !entry.isDeleted {
+                    loggedEarlier(entry)
+                } else if let failure = scan.failure {
+                    failed(failure)
+                } else {
+                    analyzingText
+                }
             }
             .padding(16)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -62,8 +70,8 @@ struct ScanPendingCard: View {
                 Color.black.overlay {
                     Image(uiImage: image).resizable().scaledToFill()
                         .blur(radius: analyzing ? 7 : 0)
-                        .saturation(analyzing ? 1 : 0)
-                        .overlay(Color.black.opacity(analyzing ? 0.28 : 0.45))
+                        .saturation(analyzing || scan.loggedEarlier != nil ? 1 : 0)
+                        .overlay(Color.black.opacity(analyzing ? 0.28 : scan.loggedEarlier != nil ? 0 : 0.45))
                 }
                 .clipped()
             } else {
@@ -75,6 +83,8 @@ struct ScanPendingCard: View {
             }
             if analyzing {
                 PercentRing(startedAt: scan.startedAt, onPhoto: scan.preview != nil)
+            } else if scan.loggedEarlier != nil {
+                EmptyView()
             } else {
                 let ink = scan.preview == nil ? look.textPrimary : Color.white
                 Image(systemName: "exclamationmark")
@@ -106,6 +116,42 @@ struct ScanPendingCard: View {
         .accessibilityElement(children: .combine)
     }
 
+    // MARK: Logged to an earlier day (codex-review-n7 S2)
+
+    private func loggedEarlier(_ entry: FoodEntry) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(TodayFoodCopy.name(of: entry))
+                    .font(look.font.headline)
+                    .foregroundStyle(look.textPrimary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("scanLoggedEarlierTitle")
+                Spacer(minLength: 8)
+                removeButton
+            }
+            Text(FoodScanCopy.loggedEarlier(entry))
+                .font(look.font.footnote)
+                .foregroundStyle(look.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            small("Open", symbol: "list.bullet", id: "scanOpenEarlier") { open(entry) }
+                .padding(.top, 2)
+        }
+    }
+
+    private var removeButton: some View {
+        Button { FoodScanQueue.shared.dismiss(scan.id) } label: {
+            Image(systemName: "xmark").font(.system(.footnote, weight: .bold))
+                .foregroundStyle(look.textSecondary)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.vertical, -14)
+        .padding(.trailing, -12)
+        .accessibilityLabel("Remove")
+        .accessibilityIdentifier("scanPendingRemove")
+    }
+
     // MARK: Failed
 
     private func failed(_ failure: FoodScanQueue.Failure) -> some View {
@@ -118,17 +164,7 @@ struct ScanPendingCard: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("scanFailedTitle")
                 Spacer(minLength: 8)
-                Button { withAnimation(.snappy) { FoodScanQueue.shared.dismiss(scan.id) } } label: {
-                    Image(systemName: "xmark").font(.system(.footnote, weight: .bold))
-                        .foregroundStyle(look.textSecondary)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .padding(.vertical, -14)
-                .padding(.trailing, -12)
-                .accessibilityLabel("Remove")
-                .accessibilityIdentifier("scanPendingRemove")
+                removeButton
             }
             Text(FoodScanCopy.failureDetail(failure, describe: describe))
                 .font(look.font.footnote)
@@ -141,6 +177,8 @@ struct ScanPendingCard: View {
                     small("Manual Add", symbol: "square.and.pencil", id: "scanManualAdd", action: manualAdd)
                 case .limit:
                     small("Manual Add", symbol: "square.and.pencil", id: "scanManualAdd", action: manualAdd)
+                case .signedOut:
+                    small("Sign In", symbol: "person.crop.circle", id: "scanSignIn", action: signIn)
                 case .offline, .other:
                     small("Try again", symbol: "arrow.clockwise", id: "scanTryAgain", action: retry)
                 }
@@ -251,11 +289,13 @@ struct ScanThumbnail: View {
 enum ScanThumbnailCache {
     private static let cache = NSCache<NSString, UIImage>()
 
+    /// Keyed by the entry (its photo never changes), so a cached thumbnail never loads the photo's row again.
     static func image(for entry: FoodEntry) -> UIImage? {
-        guard let data = entry.photo else { return nil }
-        let key = "\(entry.id.uuidString)-\(data.count)" as NSString
+        guard entry.photo != nil else { return nil }
+        let key = entry.id.uuidString as NSString
         if let cached = cache.object(forKey: key) { return cached }
-        guard let image = UIImage(data: data)?.preparingThumbnail(of: CGSize(width: 240, height: 240)) else { return nil }
+        guard let data = entry.photoData,
+              let image = UIImage(data: data)?.preparingThumbnail(of: CGSize(width: 240, height: 240)) else { return nil }
         cache.setObject(image, forKey: key)
         return image
     }

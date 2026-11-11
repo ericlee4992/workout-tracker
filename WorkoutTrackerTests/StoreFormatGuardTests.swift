@@ -43,10 +43,11 @@ struct StoreFormatGuardTests {
     /// **N4 (D81, the user 2026-11-10: My foods and servings per container — "start wiring"):** `SavedFood` gains
     /// `createdByUser` (default false) and `servingsPerContainer` (optional) — additive; `NutritionMigrationTests` opens
     /// the shipped-format fixture with them. N4's value was `038a4fcb…`.
-    /// **N7 (D82/D83, the user 2026-11-10 — "skip backup steps for wiring N7"):** `FoodEntry` gains `photo`
-    /// (external storage, optional) and `items` (cascade) and the new `FoodEntryItem` — additive;
-    /// `NutritionMigrationTests` still opens the shipped-format fixture.
-    static let approvedFingerprint = "15051efe2b80539f60c438e611551ca1fda776dd6fdd0935f6983320013b69ad"
+    /// **N7 (D82/D83, the user 2026-11-10 — "skip backup steps for wiring N7"):** `FoodEntry` gains `photo` and
+    /// `items` (both cascade) with the new `FoodPhoto` and `FoodEntryItem` — additive; `NutritionMigrationTests` still
+    /// opens the shipped-format fixture. The photo is a row in the database, not `.externalStorage` (codex-review-n7
+    /// T1: the safety copy carries only the SQLite files); N7's first value, with external storage, was `15051efe…`.
+    static let approvedFingerprint = "ad42bc469f293250bcfedef97805a72147cc97142a39e7c7a8fe8475745b7f19"
 
     static func fingerprint(of types: [any PersistentModel.Type] = WorkoutTrackerStore.modelTypes) throws -> String {
         let model = try #require(NSManagedObjectModel.makeManagedObjectModel(for: types))

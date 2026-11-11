@@ -20,7 +20,10 @@ final class FoodScanQueue {
         /// Today's limit for this flow (D75): how many a day and when it resets.
         case limit(Int?, resetsAt: Date)
         case offline
-        /// Any other failure (timeout, the server unavailable or paused, an invalid reply): try again.
+        /// No session, or it expired during the request: sign in, then the same scan is sent again.
+        case signedOut
+        /// Any other failure (timeout, the server unavailable or paused, an invalid reply, iOS ending the app's
+        /// background time): try again.
         case other
     }
 
@@ -34,9 +37,14 @@ final class FoodScanQueue {
         let eatenAt: Date
         let startedAt: Date
         var failure: Failure?
+        /// Logged to an earlier day (a library photo taken then, D83): Today does not list that day, so the card stays
+        /// with Open until removed (codex-review-n7 S2).
+        var loggedEarlier: FoodEntry?
     }
 
     private(set) var pending: [Pending] = []
+    /// Bumped on every change, so the observing view animates it (or not, under Reduce Motion — codex-review-n7 T2).
+    private(set) var revision = 0
     private var tasks: [UUID: Task<Void, Never>] = [:]
     private static let notificationsAskedKey = "foodScan.notificationsAsked"
 
@@ -63,20 +71,32 @@ final class FoodScanQueue {
         tasks[id]?.cancel()
         tasks[id] = nil
         pending.removeAll { $0.id == id }
+        revision += 1
     }
 
     private func start(_ scan: Pending, client: AIServerClient?, context: ModelContext) {
         pending.insert(scan, at: 0)
+        revision += 1
         askForNotificationsOnce()
         let id = scan.id
+        // iOS gives a backgrounded app a little time to finish (the estimate usually takes 5–10 s). When that time runs
+        // out the request is cancelled and the card offers Try again; the assertion ends exactly once either way
+        // (codex-review-n7 S6).
+        let assertion = BackgroundAssertion { [weak self] in self?.expire(id) }
         tasks[id] = Task { [weak self] in
-            // iOS gives a backgrounded app a little time to finish; the estimate usually takes ~5 s.
-            let background = UIApplication.shared.beginBackgroundTask(withName: "food-scan")
-            defer { UIApplication.shared.endBackgroundTask(background) }
+            defer { assertion.end() }
             let outcome = await Self.estimate(scan, client: client)
             guard !Task.isCancelled else { return }
             self?.finish(id, outcome: outcome, context: context)
         }
+    }
+
+    private func expire(_ id: UUID) {
+        tasks[id]?.cancel()
+        tasks[id] = nil
+        guard let index = pending.firstIndex(where: { $0.id == id }), pending[index].failure == nil else { return }
+        pending[index].failure = .other
+        revision += 1
     }
 
     private enum Outcome { case estimate(FoodEstimate), failure(Failure) }
@@ -99,6 +119,7 @@ final class FoodScanQueue {
             switch error {
             case .limit(_, let limit, let resetsAt): return .failure(.limit(limit, resetsAt: resetsAt))
             case .offline: return .failure(.offline)
+            case .signedOut: return .failure(.signedOut)
             default: return .failure(.other)
             }
         } catch {
@@ -115,14 +136,21 @@ final class FoodScanQueue {
             do {
                 let entry = try FoodScan.log(estimate, photo: scan.jpeg, source: scan.text == nil ? .photo : .describe,
                                              meal: scan.meal, at: scan.eatenAt, in: context)
-                withAnimation(.snappy) { _ = pending.remove(at: index) }
+                if Calendar.current.isDateInToday(entry.loggedAt) {
+                    pending.remove(at: index)
+                } else {
+                    pending[index].loggedEarlier = entry
+                }
+                revision += 1
                 notify(title: FoodScanCopy.loggedTitle(entry.name),
                        body: FoodScanCopy.loggedBody(calories: NutritionMath.totals(of: entry).calories, meal: entry.meal))
             } catch {
-                withAnimation(.snappy) { pending[index].failure = .other }
+                pending[index].failure = .other
+                revision += 1
             }
         case .failure(let failure):
-            withAnimation(.snappy) { pending[index].failure = failure }
+            pending[index].failure = failure
+            revision += 1
             notify(title: FoodScanCopy.failureTitle(failure, describe: scan.text != nil),
                    body: FoodScanCopy.failureDetail(failure, describe: scan.text != nil))
         }
@@ -159,8 +187,13 @@ enum FoodScanCopy {
         switch failure {
         case .nothingFound: "No food found"
         case .limit: "Daily limit reached"
-        case .offline, .other: "Couldn't analyze"
+        case .offline, .signedOut, .other: "Couldn't analyze"
         }
+    }
+
+    /// An entry logged to an earlier day: "Logged to Mon, Nov 9 · Lunch".
+    static func loggedEarlier(_ entry: FoodEntry) -> String {
+        "Logged to \(entry.loggedAt.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())) · \(entry.meal.label)"
     }
 
     static func failureDetail(_ failure: FoodScanQueue.Failure, describe: Bool, zone: TimeZone = .current) -> String {
@@ -172,9 +205,33 @@ enum FoodScanCopy {
                 + "More at \(AIResetCopy.clock(resetsAt, zone: zone))."
         case .offline:
             describe ? "No connection. Try again." : "No connection. Your photo is kept until you try again."
+        case .signedOut:
+            "Sign in, then try again."
         case .other:
             "Something went wrong. Try again."
         }
+    }
+}
+
+/// A UIKit background-time assertion that ends exactly once — by the work finishing, by Remove, or by iOS's
+/// expiration handler (which must end it before returning).
+@MainActor
+private final class BackgroundAssertion {
+    private var id: UIBackgroundTaskIdentifier = .invalid
+
+    init(expired: @escaping @MainActor () -> Void) {
+        id = UIApplication.shared.beginBackgroundTask(withName: "food-scan") { [weak self] in
+            MainActor.assumeIsolated {
+                expired()
+                self?.end()
+            }
+        }
+    }
+
+    func end() {
+        guard id != .invalid else { return }
+        UIApplication.shared.endBackgroundTask(id)
+        id = .invalid
     }
 }
 
@@ -200,6 +257,7 @@ enum FoodScanFixture {
             return try JSONSerialization.data(withJSONObject: ["found": false, "servingSize": ""])
         case "limit": throw AIServerError.limit(flow, flow == .foodDescribe ? 60 : 30, resetsAt: AIResetCopy.nextReset())
         case "offline": throw AIServerError.offline
+        case "signedOut": throw AIServerError.signedOut
         case "other": throw AIServerError.timedOut
         default: break
         }

@@ -31,11 +31,15 @@ struct FoodScanFlow: View {
     @State private var path: [Step] = []
     @State private var signingIn = false
     @State private var label: LabelState?
+    /// The label read in flight; cancelled by Retake, Cancel and closing (codex-review-n7 S5).
+    @State private var readTask: Task<Void, Never>?
 
     enum Step: Hashable { case readingLabel, labelFood }
 
-    /// The label being read: its crop, then the reading or why there is none.
+    /// The label being read: its crop, then the reading or why there is none. `attempt` is the request's identity —
+    /// a late reply for an earlier attempt (even of the same bytes) is ignored.
     struct LabelState {
+        var attempt = UUID()
         var shot: FoodScanShot
         var reading: FoodLabelReading?
         var failure: (title: String, detail: String)?
@@ -47,7 +51,7 @@ struct FoodScanFlow: View {
                 if !TerraAccess.ready(account) {
                     FoodScanSignIn(onCancel: { dismiss() }, onSignIn: { signingIn = true }, onManual: manual)
                 } else {
-                    FoodScanCamera(onCancel: { dismiss() }, onShot: shot)
+                    FoodScanCamera(onCancel: { readTask?.cancel(); dismiss() }, onShot: shot)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -64,6 +68,7 @@ struct FoodScanFlow: View {
         }
         .lookScreenBackground()
         .sheet(isPresented: $signingIn) { AccountSignInSheet() }
+        .onDisappear { readTask?.cancel() }
     }
 
     private func shot(_ shot: FoodScanShot) {
@@ -77,18 +82,20 @@ struct FoodScanFlow: View {
                                             client: TerraAccess.client(account), context: context)
             done()
         case .label:
-            label = LabelState(shot: shot)
+            let state = LabelState(shot: shot)
+            label = state
             path.append(.readingLabel)
-            read(shot)
+            read(shot, attempt: state.attempt)
         case .barcode:
             break
         }
     }
 
     /// A label is short work: the camera's sheet waits for it on the reading screen.
-    private func read(_ shot: FoodScanShot) {
+    private func read(_ shot: FoodScanShot, attempt: UUID) {
         let client = TerraAccess.client(account)
-        Task {
+        readTask?.cancel()
+        readTask = Task {
             let failure: (String, String)?
             do {
                 let data: Data
@@ -99,7 +106,7 @@ struct FoodScanFlow: View {
                     data = try await client.complete(.foodLabel, json: AIServerClient.foodPhotoBody(jpeg: shot.jpeg))
                 }
                 if let reading = FoodLabelReading.parse(data), reading.isUsable {
-                    guard label?.shot.jpeg == shot.jpeg else { return }
+                    guard !Task.isCancelled, label?.attempt == attempt else { return }
                     label?.reading = reading
                     path = [.readingLabel, .labelFood]
                     return
@@ -117,22 +124,25 @@ struct FoodScanFlow: View {
             } catch {
                 failure = ("Couldn't read the label", "Something went wrong. Try again.")
             }
-            guard label?.shot.jpeg == shot.jpeg else { return }
+            guard !Task.isCancelled, label?.attempt == attempt else { return }
             label?.failure = failure.map { (title: $0.0, detail: $0.1) }
         }
     }
 
     private func retake() {
+        readTask?.cancel()
         label = nil
         path.removeAll()
     }
 
     private func done() {
+        readTask?.cancel()
         dismiss()
         onDone()
     }
 
     private func manual() {
+        readTask?.cancel()
         dismiss()
         onManualAdd()
     }
@@ -161,10 +171,15 @@ private struct FoodScanCameraContent: View {
     @State private var flash = 0.0
     @State private var shutterTaps = 0
     @State private var captureID: UUID?
+    /// What the shutter was pressed FOR — the mode, the box and the view's size at the tap — so the photo arriving later
+    /// is handled as that, whatever the screen shows by then (codex-review-n7 S4).
+    @State private var capture: (id: UUID, mode: FoodScanMode, frame: CGRect, size: CGSize)?
     @State private var notice: String?
     @State private var picking = false
     @State private var picked: PhotosPickerItem?
-    /// The view's size and the box at the shutter, so the crop is the box the user saw.
+    /// A picked photo still loading; cancelled when the camera closes (codex-review-n7 S5).
+    @State private var importTask: Task<Void, Never>?
+    /// The view's size and the box, kept current for the shutter's snapshot.
     @State private var geometry: (size: CGSize, frame: CGRect) = (.zero, .zero)
 
     private var availability: CaptureAvailability { CaptureAvailability.resolve() }
@@ -204,6 +219,7 @@ private struct FoodScanCameraContent: View {
         .background(Color.black.ignoresSafeArea())
         .photosPicker(isPresented: $picking, selection: $picked, matching: .images)
         .onChange(of: picked) { _, item in if let item { load(item) } }
+        .onDisappear { importTask?.cancel() }
         .sensoryFeedback(.impact(weight: .medium), trigger: shutterTaps)
         .sensoryFeedback(.selection, trigger: mode)
     }
@@ -305,6 +321,8 @@ private struct FoodScanCameraContent: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                // Not while a photo is being taken: it is handled as the mode it was taken in.
+                .disabled(captureID != nil)
                 .accessibilityAddTraits(mode == item ? .isSelected : [])
                 .accessibilityIdentifier("scanFoodMode.\(item.rawValue)")
             }
@@ -315,7 +333,7 @@ private struct FoodScanCameraContent: View {
     private var controls: some View {
         HStack {
             side(symbol: "photo.on.rectangle", lit: false) { library() }
-                .disabled(mode == .barcode)
+                .disabled(mode == .barcode || captureID != nil)
                 .opacity(mode == .barcode ? 0.4 : 1)
                 .accessibilityLabel("Choose a photo")
                 .accessibilityIdentifier("scanFoodLibrary")
@@ -362,23 +380,30 @@ private struct FoodScanCameraContent: View {
         }
         if fixture {
             let art = mode == .meal ? FoodScanArt.meal : FoodScanArt.label
-            send(art, region: nil, taken: nil, fromLibrary: false)
+            send(art, mode: mode, region: nil, taken: nil, fromLibrary: false)
         } else {
-            captureID = UUID()
+            let id = UUID()
+            capture = (id, mode, geometry.frame, geometry.size)
+            captureID = id
         }
     }
 
     private func photo(_ captured: CapturedLabel) {
-        guard captured.requestID == captureID else { return }
+        guard captured.requestID == captureID, let capture, capture.id == captured.requestID else { return }
         captureID = nil
-        // The label's crop is OUR box (taller than Scan Machine's), mapped into the photo as the preview showed it.
-        let region = LabelFramingBox.visionRegion(box: geometry.frame, viewSize: geometry.size,
+        self.capture = nil
+        // The label's crop is OUR box at the tap (taller than Scan Machine's), mapped into the photo as the preview
+        // showed it.
+        let region = LabelFramingBox.visionRegion(box: capture.frame, viewSize: capture.size,
                                                   imageSize: captured.image.size)
-        send(captured.image, region: region, taken: nil, fromLibrary: false)
+        send(captured.image, mode: capture.mode, region: region, taken: nil, fromLibrary: false)
     }
 
     private func failed(_ request: UUID?, _ message: String) {
-        if request == nil || request == captureID { captureID = nil }
+        if request == nil || request == captureID {
+            captureID = nil
+            capture = nil
+        }
         notice = message
     }
 
@@ -387,28 +412,35 @@ private struct FoodScanCameraContent: View {
         if fixture {
             // The fixture's "library": the drawn meal, taken at 12:40 today (a picked photo's own time, D83).
             let taken = Calendar.current.date(bySettingHour: 12, minute: 40, second: 0, of: .now)
-            send(mode == .meal ? FoodScanArt.meal : FoodScanArt.label, region: nil, taken: taken, fromLibrary: true)
+                .map { ProcessInfo.processInfo.arguments.contains("-uiTestFoodScanYesterday")
+                    ? $0.addingTimeInterval(-86_400) : $0 }
+            send(mode == .meal ? FoodScanArt.meal : FoodScanArt.label, mode: mode, region: nil, taken: taken,
+                 fromLibrary: true)
         } else {
             picking = true
         }
     }
 
+    /// A picked photo, handled as the mode it was picked in; nothing is sent once the camera has closed.
     private func load(_ item: PhotosPickerItem) {
         let shotMode = mode
-        Task {
+        importTask?.cancel()
+        importTask = Task {
             defer { picked = nil }
-            guard let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) else {
+            let data = try? await item.loadTransferable(type: Data.self)
+            guard !Task.isCancelled else { return }
+            guard let data, let image = UIImage(data: data) else {
                 notice = "That photo couldn't be opened."
                 return
             }
-            mode = shotMode
-            send(image, region: nil, taken: PhotoDate.taken(in: data), fromLibrary: true)
+            send(image, mode: shotMode, region: nil, taken: PhotoDate.taken(in: data), fromLibrary: true)
         }
     }
 
     /// The JPEG that leaves the phone: a meal photo whole (≤ 1568 px, as Scan Machine sends); a label from the camera
     /// only its box (D53); a picked label photo whole (the user chose that picture).
-    private func send(_ image: UIImage, region: CGRect?, taken: Date?, fromLibrary: Bool) {
+    private func send(_ image: UIImage, mode: FoodScanMode, region: CGRect?, taken: Date?, fromLibrary: Bool) {
+        guard mode != .barcode else { return }
         let jpeg: Data?
         if mode == .label, let region {
             jpeg = LabelCrop.jpeg(image, region: region)
@@ -425,7 +457,11 @@ private struct FoodScanCameraContent: View {
 
     private var topBar: some View {
         HStack {
-            GlassCapsuleButton("Cancel", action: camera.onCancel).accessibilityIdentifier("scanFoodCancel")
+            GlassCapsuleButton("Cancel") {
+                importTask?.cancel()
+                camera.onCancel()
+            }
+            .accessibilityIdentifier("scanFoodCancel")
             Spacer()
         }
         .padding(.horizontal, look.space.margin)

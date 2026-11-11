@@ -87,8 +87,10 @@ time; deleting your account removes it.</li>
 <h2>AI features (optional, signed in)</h2>
 <p>Stacked’s AI features — identifying a machine from a photo, suggesting exercises for a machine, building a week of
 templates, estimating the food in a meal photo or a description, and reading a food’s nutrition label — run through my
-server on my OpenAI account. Each feature asks your permission the first time and
-remembers it; you can turn each permission off in Settings → Ask AI. Nothing is sent before you allow it.</p>
+server on my OpenAI account. The training features ask your permission the first time and remember it; you can turn
+each of those permissions off in Settings → Ask AI. Scanning or describing food has no separate prompt: a food photo,
+label or description is sent only when you take the photo, choose it, or tap Estimate, and you can always log food by
+hand instead.</p>
 <ul>
 <li><strong>What is sent:</strong> for machine identification, the photo (re-encoded on your iPhone without its
 location or camera details) and the app’s list of exercises; for exercise suggestions, the machine’s manufacturer and
@@ -181,7 +183,8 @@ open Stacked in the TestFlight app and tap Send Beta Feedback.</li>
 from my server: in Settings, tap your name or email at the top, then Delete Account…. The privacy policy explains what can
 remain for a while (backups, a pending Sign in with Apple revocation) and how to have feedback you sent while signed
 out deleted.</li>
-<li>To stop sending data to OpenAI, turn off the permissions in Settings → Ask AI.</li>
+<li>To stop sending data to OpenAI, turn off the permissions in Settings → Ask AI, and log food by hand rather than
+scanning or describing it.</li>
 </ul>
 <p>Details: the <a href="/privacy">privacy policy</a>.</p>
 `;

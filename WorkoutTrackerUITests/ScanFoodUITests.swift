@@ -105,6 +105,47 @@ final class ScanFoodUITests: XCTestCase {
         }
     }
 
+    /// codex-review-n7 S2: a photo taken yesterday is logged to yesterday; its card stays on Today with Open.
+    func testAPhotoFromAnEarlierDayStaysReachable() {
+        launch("light", large: false, ["-uiTestFoodScanYesterday"])
+        openCamera()
+        app.buttons["scanFoodLibrary"].tap()
+        let title = app.staticTexts["scanLoggedEarlierTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertEqual(title.label, "Poke bowl")
+        XCTAssertFalse(app.buttons["todayEntry.Poke bowl"].exists, "not today's")
+        reveal(app.buttons["scanOpenEarlier"])
+        app.buttons["scanOpenEarlier"].tap()
+        XCTAssertTrue(app.buttons["scanEntrySave"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["scanItem.Tuna poke"].exists)
+    }
+
+    /// codex-review-n7 S1: signed out, Estimate asks to sign in and sends nothing.
+    func testASignedOutDescriptionAsksToSignInFirst() {
+        launch("light", large: false, ["-uiTestProfileSignedOut"])
+        app.buttons["logFoodPill"].tap()
+        let search = app.textFields["logFoodSearch"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        search.tap()
+        search.typeText("2 eggs and toast")
+        app.buttons["logFoodDescribe"].tap()
+        XCTAssertTrue(app.buttons["signInWithApple"].waitForExistence(timeout: 5))
+        app.buttons["signInClose"].tap()
+        XCTAssertTrue(app.buttons["logFoodDescribe"].waitForExistence(timeout: 5), "still on Log food, words kept")
+    }
+
+    /// codex-review-n7 S1: a session that expires during the request leaves a card with Sign In.
+    func testAnExpiredSessionsCardOffersSignIn() {
+        launch("light", large: false, ["-uiTestFoodScanFail", "signedOut"])
+        openCamera()
+        app.buttons["scanFoodShutter"].tap()
+        let title = app.staticTexts["scanFailedTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["scanSignIn"].exists)
+        app.buttons["scanSignIn"].tap()
+        XCTAssertTrue(app.buttons["signInWithApple"].waitForExistence(timeout: 5))
+    }
+
     func testALabelIsReadIntoTheFoodAndLogged() {
         launch()
         openCamera()
@@ -127,7 +168,9 @@ final class ScanFoodUITests: XCTestCase {
 
     func testADescriptionIsLoggedAtOnce() {
         launch()
-        app.buttons["logFoodPill"].tap()
+        let pill = app.buttons["logFoodPill"]
+        XCTAssertTrue(pill.waitForExistence(timeout: 5) && pill.isHittable)
+        pill.tap()
         let search = app.textFields["logFoodSearch"]
         XCTAssertTrue(search.waitForExistence(timeout: 5))
         search.tap()

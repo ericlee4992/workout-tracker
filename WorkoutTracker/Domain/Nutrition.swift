@@ -90,8 +90,14 @@ final class FoodEntry {
     /// The saved food it came from; `.nullify` from the food's side, so the entry outlives it.
     var savedFood: SavedFood?
     /// N7 (D82): a scanned meal's photo, kept on the phone with its entry (the JPEG sent for the estimate, ≤ 1568 px) and
-    /// deleted with it. Outside the database file; not in the JSON export (the export carries the items).
-    @Attribute(.externalStorage) var photo: Data?
+    /// deleted with it (`.cascade`). Its own row INSIDE the database file — not `.externalStorage`, whose files beside
+    /// the store the safety copy (N1) does not carry (codex-review-n7 T1) — and a relationship, so fetching entries
+    /// (Today queries them all) never loads photo bytes until a thumbnail asks. Not in the JSON export.
+    @Relationship(deleteRule: .cascade, inverse: \FoodPhoto.entry)
+    var photo: FoodPhoto?
+
+    /// The photo's JPEG, if the entry has one.
+    var photoData: Data? { photo?.data }
     /// N7 (D83): a scanned meal or a description is ONE entry named for the meal; these are its items, each editable.
     /// Owned rows: `.cascade`, so deleting the entry deletes them. The entry's numbers are their sum (one serving).
     @Relationship(deleteRule: .cascade, inverse: \FoodEntryItem.entry)
@@ -142,6 +148,21 @@ final class FoodEntry {
                   fatGrams: food.fatGrams, fiberGrams: food.fiberGrams, sugarGrams: food.sugarGrams,
                   saturatedFatGrams: food.saturatedFatGrams, sodiumMilligrams: food.sodiumMilligrams,
                   source: source, barcode: food.barcode, savedFood: food, createdAt: date)
+    }
+}
+
+// MARK: - Food photo (N7)
+
+/// A scanned meal's photo (D82), owned by its entry. The bytes live in the database row so a safety copy is complete.
+@Model
+final class FoodPhoto {
+    var id: UUID = UUID()
+    var data: Data?
+    var entry: FoodEntry?
+
+    init(id: UUID = UUID(), data: Data) {
+        self.id = id
+        self.data = data
     }
 }
 

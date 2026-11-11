@@ -876,8 +876,9 @@ enum WorkoutTrackerStore {
         ExerciseRestOverride.self,
         // Nutrition N2 (Nutrition.swift).
         FoodEntry.self,
-        // Nutrition N7 (a scanned meal's items).
+        // Nutrition N7 (a scanned meal's items and photo).
         FoodEntryItem.self,
+        FoodPhoto.self,
         SavedFood.self,
         SavedMeal.self,
         SavedMealItem.self,
