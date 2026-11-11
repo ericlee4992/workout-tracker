@@ -32,6 +32,8 @@ struct TodayView: View {
     @Query(sort: \FoodEntry.loggedAt) private var foodEntries: [FoodEntry]
     @Query private var nutritionGoals: [NutritionGoal]
     @State private var editingEntry: FoodEntry?
+    /// N9b: Health's active energy as Burned (absent in previews and the tour's sample world).
+    @Environment(HealthSync.self) private var health: HealthSync?
     /// The entry just deleted, for the Undo toast.
     @State private var deletedEntry: DeletedEntry?
     @State private var showGoals = false
@@ -139,6 +141,8 @@ struct TodayView: View {
             .exercisesInlineTitle("Today", visible: titleInBar)
             .workoutStartFlow(request: $startRequest, gym: selectedGym, onWorkoutStarted: onWorkoutStarted)
             .refreshingNow($now)
+            // N9b: Health's active energy for today, read again whenever `now` refreshes (on becoming active too).
+            .task(id: BurnedRefresh(now: now, on: health?.isOn(.readBurned) == true)) { await health?.refreshBurned(on: now) }
         }
     }
 
@@ -152,7 +156,9 @@ struct TodayView: View {
     }
 
     private var todayFood: FoodDay {
-        FoodDayMath.day(now, entries: foodEntries, goals: nutritionGoals, workouts: finishedWorkouts)
+        var day = FoodDayMath.day(now, entries: foodEntries, goals: nutritionGoals, workouts: finishedWorkouts)
+        day.burned = FoodDayMath.burned(workouts: day.burned, health: health?.burned(on: now))
+        return day
     }
 
     /// A workout belongs to the day it STARTED on (as in History), in the calendar's time zone.
@@ -340,4 +346,10 @@ struct TodayView: View {
         .padding(.bottom, 72)
         .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
     }
+}
+
+/// When Today reads Health's active energy again: each refresh of its `now`, and when reading it is turned on.
+private struct BurnedRefresh: Equatable {
+    var now: Date
+    var on: Bool
 }

@@ -30,9 +30,10 @@ struct BodyWeightView: View {
         goals.max { ($0.effectiveFrom, $0.createdAt, $0.id.uuidString) < ($1.effectiveFrom, $1.createdAt, $1.id.uuidString) }
     }
 
-    /// New entries use the latest entry's unit, else the app's unit system.
+    /// New entries use the latest logged entry's unit, else the app's unit system (N9b: a weight read from Health is in
+    /// the unit system, which says nothing about the user's own choice).
     private var unit: WeightUnit {
-        weights.first?.unit
+        weights.first(where: { $0.source == .app })?.unit
             ?? (AppUnitSystem.resolve(preference: AppPreferences.canonical(of: allPreferences)?.unitPreference) == .usCustomary
                 ? .lb : .kg)
     }
@@ -116,9 +117,12 @@ struct BodyWeightView: View {
             SectionHeader("History")
             LookList(separatorInset: 16) {
                 ForEach(weights) { entry in
+                    // N9b: a weight read from Health is Health's — shown, not edited here (change it in Health).
+                    let fromHealth = entry.source == .health
                     LookRow(entry.measuredAt.formatted(date: .abbreviated, time: .shortened),
-                            subtitle: entry.source == .health ? "Apple Health" : nil,
-                            value: DetailFormat.weight(entry)) { sheet = .edit(entry) }
+                            subtitle: fromHealth ? "Apple Health" : nil,
+                            value: DetailFormat.weight(entry), showsChevron: !fromHealth,
+                            action: fromHealth ? nil : { sheet = .edit(entry) })
                         .accessibilityIdentifier("bodyWeightEntry.\(DetailFormat.weight(entry))")
                 }
             }

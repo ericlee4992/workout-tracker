@@ -22,6 +22,9 @@ struct ProfileTabView: View {
     @State private var showSettings = false
     @State private var showNutritionGoals = false
     @State private var showBodyWeight = false
+    @State private var showAppleHealth = false
+    /// N9b: absent in previews and the tour's sample world.
+    @Environment(HealthSync.self) private var health: HealthSync?
     @Query(sort: \BodyWeightEntry.measuredAt, order: .reverse) private var bodyWeights: [BodyWeightEntry]
     @State private var showPersonalDetails = false
     @State private var showExportBackup = false
@@ -83,6 +86,7 @@ struct ProfileTabView: View {
         .navigationDestination(isPresented: $showSettings) { SettingsView(title: SettingsView.pageTitle) }
         .navigationDestination(isPresented: $showNutritionGoals) { NutritionGoalsView() }
         .navigationDestination(isPresented: $showBodyWeight) { BodyWeightView() }
+        .navigationDestination(isPresented: $showAppleHealth) { AppleHealthView() }
         .navigationDestination(isPresented: $showPersonalDetails) { PersonalDetailsView() }
         .navigationDestination(isPresented: $showExportBackup) { ExportBackupView() }
         .sheet(isPresented: $showMaxHeartRateSheet) { MaxHeartRateSheet() }
@@ -142,7 +146,7 @@ struct ProfileTabView: View {
             lastExport: lastExportSeconds.map(Date.init(timeIntervalSinceReferenceDate:)), now: .now)
     }
 
-    /// What the user tracks (D80). N3 adds Nutrition goals above Heart rate zones; N9 Body weight and Apple Health.
+    /// What the user tracks (D80). N3 adds Nutrition goals above Heart rate zones; N9 Body weight, N9b Apple Health.
     private var goalsAndTracking: some View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Goals & tracking")
@@ -160,6 +164,11 @@ struct ProfileTabView: View {
                     showMaxHeartRateSheet = true
                 }
                 .accessibilityIdentifier("heartRateZonesSettings")
+                // N9b (D74): what is read from and saved to Apple Health — On when any part is.
+                ProfileRow("Apple Health", symbol: "heart.text.square", value: AppleHealthCopy.status(health)) {
+                    showAppleHealth = true
+                }
+                .accessibilityIdentifier("profileAppleHealth")
             }
         }
     }

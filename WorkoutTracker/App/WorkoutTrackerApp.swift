@@ -168,6 +168,9 @@ struct WorkoutTrackerApp: App {
     @State private var tourAccount = AccountStore(client: nil)
     /// Public beta ticket 14: the notes shown after an update, and the build they belong to (saved as seen on dismissal).
     @State private var whatsNew: WhatsNewEntry?
+    /// N9b (D74): Apple Health's read and saved parts, following the user's own store (never the tour's world).
+    @State private var health = HealthSync.forThisLaunch()
+    @Environment(\.scenePhase) private var scenePhase
     @State private var whatsNewShown: Int?
 
     var body: some Scene {
@@ -254,8 +257,15 @@ struct WorkoutTrackerApp: App {
                                         onGoogle: GoogleSignIn.isAvailable ? { Task { await account.signInWithGoogle() } } : nil)
                         }
                         .environment(account)
+                        .environment(health)
                         // A stored session is checked and its profile fetched once per launch.
                         .task { await account.refresh() }
+                        // N9b: a pass now and after every save; again when the app comes back (Health may have new
+                        // weights, and a pass may have failed meanwhile).
+                        .task { health.attach(modelContainer.mainContext) }
+                        .onChange(of: scenePhase) { _, phase in
+                            if phase == .active { health.scheduleSync(after: .zero) }
+                        }
                 }
             }
                 // N1: a restore chosen in Settings waits for the next launch; nothing more is logged meanwhile. A
