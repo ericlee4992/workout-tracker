@@ -43,8 +43,10 @@ Check in particular:
 
 Claude's evidence (scratchpad
 `/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/987d2e07-f1f0-4854-a4f2-1db12bf762c0/scratchpad/`):
-`u2.xcresult` (nutrition unit suites), `b1.xcresult`/`b2.xcresult` (behaviour), `c1.xcresult` (captures; exported PNGs
-in `w/`, sheets in `n7-wired/`), `v1.xcresult` (ScanFood + TodayFood + LogFood + LogFoodFlow, 2 workers).
+`u2.xcresult` (nutrition unit suites), `b1.xcresult`/`b2.xcresult` (behaviour), `c1.xcresult` then `c2.xcresult` (captures after
+the label-step fix; PNGs in `w/` and `w2/`, sheets in `n7-wired/`), `v1.xcresult` (ScanFood + TodayFood + LogFood +
+LogFoodFlow, 2 workers: 21 passed, 3 failed — all the label step, fixed in `e6e6421`; `b3.xcresult` the label test
+after the fix).
 
 Per AGENTS' reviewer rule (round 1): build; run the Unit plan; run as UI classes (2 workers): `AAAWarmUpUITests`,
 `ScanFoodUITests`, `TodayFoodUITests`, `LogFoodUITests`, `LogFoodFlowUITests` (rerun failures serially before judging).

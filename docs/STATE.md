@@ -16,10 +16,14 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Decisions this morning (the user):** D79 amended; deploy at R; **D82** — meal-photo scan: a progress card in
   Today's log, logged at once (tap to edit), the photo kept on the phone; Health usage strings approved (N9b); the
   Nutrition goals page keeps recalculating from the latest weight on a visit (no change to N3).
-  **N7 IN PROGRESS (2026-11-10 evening): mock v1 shown, waiting for the user's approval** — branch
-  `ericlee4992/nutrition-07-scan-food` (pushed); what was mocked, the new strings and **six open questions** are in
-  N7's ticket → Progress. Launch the mock: `-uiTestReset -uiTestDesignSample -uiTestFoodSample -scanFoodMock`
-  (`-scanFoodMockSample analyzing|done|failures|none`); `ScanFoodUITests` 2/2 passed. Next: the user's answers → wire.
+  **N7 IN PROGRESS (2026-11-10 night): wired, in Codex review round 1** — branch `ericlee4992/nutrition-07-scan-food`
+  (pushed). D83 (the user's answers: one entry named for the meal, name from the server, describe logged at once, both
+  entry points, notification asked on the first scan, no consent screen, no "AI" wording, a library photo's own time).
+  Data change approved (fingerprint `15051efe…`; the user skipped the backup steps). Live check done (ticket). Verified:
+  nutrition unit suites 66/66, ScanFood/TodayFood/LogFood/LogFoodFlow UI, captures. Codex brief
+  `work-record/nutrition/codex-review-n7-prompt.md` → report `codex-review-n7.md` (terminal `term_3f1b832a…`).
+  Next: fix findings → clear → merge; then **C1** (`work-record/copy/issues/01-no-ai-wording.md`, approved wording),
+  N9b, N8, N10, R. Strings and own decisions to confirm: N7's ticket.
   **NEXT (was): N7 — Scan Food** (the user: start it in a new session). Branch `ericlee4992/nutrition-07-scan-food` off
   `main` in this worktree. **Mocks only first** (sample data, nothing stored; screenshots light/default + dark/AXL;
   SendUserFile + Preview) and wait for the user's approval before wiring: the camera with modes Scan food | Barcode
