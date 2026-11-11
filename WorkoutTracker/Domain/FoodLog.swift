@@ -231,6 +231,9 @@ extension FoodNutrition {
 }
 
 extension SavedFood {
+    /// N8: a food from a database that was only opened — never logged, bookmarked or made the user's own.
+    var isCachedLookup: Bool { databaseID != nil && !createdByUser && !isSaved && lastUsedAt == nil }
+
     var macros: Macros {
         Macros(calories: calories, proteinGrams: proteinGrams, carbsGrams: carbsGrams, fatGrams: fatGrams)
     }
@@ -278,8 +281,9 @@ enum FoodLog {
     /// Saved foods: the foods the user bookmarked, by name.
     static func saved(_ foods: [SavedFood]) -> [SavedFood] { foods.filter(\.isSaved).sorted(by: byName) }
 
-    /// Every food (search on All, and Create meal's list): the logged ones newest first, then the rest by name.
-    static func all(_ foods: [SavedFood]) -> [SavedFood] { foods.sorted(by: lastUsedFirst) }
+    /// Every food (search on All, and Create meal's list): the logged ones newest first, then the rest by name. A
+    /// database food only opened, never logged or bookmarked (N8), is a cached lookup, not one of the user's foods.
+    static func all(_ foods: [SavedFood]) -> [SavedFood] { foods.filter { !$0.isCachedLookup }.sorted(by: lastUsedFirst) }
 
     /// My meals: those usually for `meal` first, then the most recently logged, then by name.
     static func meals(_ meals: [SavedMeal], for meal: MealSlot) -> [SavedMeal] {
@@ -315,15 +319,46 @@ enum FoodLog {
         }
     }
 
+    // MARK: Servings (N8)
+
+    /// The servings `food` can be logged by: its own, then its other servings that have a weight — only when its own
+    /// has one too, since the others' nutrition is scaled by weight from it. The first is the food's own.
+    static func servingChoices(_ food: SavedFood) -> [ServingOption] {
+        let main = ServingOption(value: food.servingValue, unit: food.servingUnit, grams: food.servingGrams)
+        guard food.servingGrams != nil else { return [main] }
+        return [main] + food.servingOptions.filter { $0 != main && scale(of: $0, in: food) != nil }
+    }
+
+    /// One serving of `option` as a multiple of the food's own serving, by weight; nil when either has none.
+    static func scale(of option: ServingOption, in food: SavedFood) -> Double? {
+        guard let grams = option.grams, grams > 0, let base = food.servingGrams, base > 0 else { return nil }
+        return grams / base
+    }
+
     // MARK: Logging
 
     /// Logs `servings` of `food` to `meal`: one entry (a snapshot), and the food moves to the top of Recently logged.
+    /// `option` (N8): one of the food's other servings (`servingChoices`) — the entry then keeps that serving, its
+    /// nutrition scaled by weight from the main serving.
     @discardableResult
-    static func log(_ food: SavedFood, servings: Double = 1, meal: MealSlot, at date: Date = .now,
-                    source: FoodSource = .saved, in context: ModelContext) throws -> FoodLogReceipt {
+    static func log(_ food: SavedFood, servings: Double = 1, option: ServingOption? = nil, meal: MealSlot,
+                    at date: Date = .now, source: FoodSource = .saved, in context: ModelContext) throws -> FoodLogReceipt {
         let entry = FoodEntry(logging: food, servings: servings, meal: meal, at: date, source: source)
+        if let option, let factor = scale(of: option, in: food) {
+            entry.servingValue = option.value
+            entry.servingUnit = option.unit
+            entry.servingGrams = option.grams
+            entry.calories = food.calories * factor
+            entry.proteinGrams = food.proteinGrams * factor
+            entry.carbsGrams = food.carbsGrams * factor
+            entry.fatGrams = food.fatGrams * factor
+            entry.saturatedFatGrams = food.saturatedFatGrams.map { $0 * factor }
+            entry.fiberGrams = food.fiberGrams.map { $0 * factor }
+            entry.sugarGrams = food.sugarGrams.map { $0 * factor }
+            entry.sodiumMilligrams = food.sodiumMilligrams.map { $0 * factor }
+        }
         context.insert(entry)
-        let receipt = FoodLogReceipt(title: food.name, calories: food.calories * servings, entries: [entry], food: food,
+        let receipt = FoodLogReceipt(title: food.name, calories: entry.calories * servings, entries: [entry], food: food,
                                      previousLastUsedAt: food.lastUsedAt)
         food.lastUsedAt = date
         try context.save()

@@ -35,6 +35,10 @@ struct LabelCameraView: UIViewControllerRepresentable {
     /// (configuration), which is not tied to any tap.
     let onFailure: (UUID?, String) -> Void
     let torchOn: Bool
+    /// Nutrition N8: while set, product barcodes (EAN-13 — UPC-A reads as one —, EAN-8, UPC-E) whose outline lies in
+    /// this band of the view are reported to `onBarcode`; nil reads none (Scan Machine, a meal, a label).
+    var barcodeBand: CGRect? = nil
+    var onBarcode: ((String, AVMetadataObject.ObjectType) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator(honoured: captureRequest) }
 
@@ -48,6 +52,8 @@ struct LabelCameraView: UIViewControllerRepresentable {
     func updateUIViewController(_ controller: LabelCameraController, context: Context) {
         controller.onPhoto = onPhoto
         controller.onFailure = onFailure
+        controller.onBarcode = onBarcode
+        controller.setBarcodeBand(barcodeBand)
         controller.setTorch(torchOn)
         if let request = captureRequest, request != context.coordinator.honoured {
             context.coordinator.honoured = request
@@ -69,8 +75,13 @@ struct LabelCameraView: UIViewControllerRepresentable {
 final class LabelCameraController: UIViewController {
     var onPhoto: ((CapturedLabel) -> Void)?
     var onFailure: ((UUID?, String) -> Void)?
+    var onBarcode: ((String, AVMetadataObject.ObjectType) -> Void)?
 
     private let session = AVCaptureSession()
+    /// N8: barcodes, only while a band is set (`setBarcodeBand`). Its delegate runs on the main queue.
+    private let metadataOutput = AVCaptureMetadataOutput()
+    private var barcodeBand: CGRect?
+    static let barcodeTypes: [AVMetadataObject.ObjectType] = [.ean13, .ean8, .upce]
     private let sessionQueue = DispatchQueue(label: "machine-label-scan.session")
     private let photoOutput = AVCapturePhotoOutput()
     private var previewLayer: AVCaptureVideoPreviewLayer?
@@ -134,6 +145,11 @@ final class LabelCameraController: UIViewController {
                 session.addInput(input)
                 guard session.canAddOutput(photoOutput) else { throw NSError(domain: "scan", code: 2) }
                 session.addOutput(photoOutput)
+                // N8: optional — a camera without metadata output still takes photos.
+                if session.canAddOutput(metadataOutput) {
+                    session.addOutput(metadataOutput)
+                    metadataOutput.setMetadataObjectsDelegate(self, queue: .main)
+                }
             } catch {
                 session.commitConfiguration()
                 DispatchQueue.main.async {
@@ -156,6 +172,7 @@ final class LabelCameraController: UIViewController {
             device.unlockForConfiguration()
             session.commitConfiguration()
             session.startRunning()
+            DispatchQueue.main.async { self.applyBarcodeTypes() }
         }
     }
 
@@ -236,6 +253,27 @@ final class LabelCameraController: UIViewController {
         }
     }
 
+    /// N8: reads barcodes inside `band` (view coordinates), or none for nil. The types are switched on the session
+    /// queue, after the configuration that added the output.
+    func setBarcodeBand(_ band: CGRect?) {
+        guard band != barcodeBand else { return }
+        let wasOn = barcodeBand != nil
+        barcodeBand = band
+        guard wasOn != (band != nil) else { return }
+        applyBarcodeTypes()
+    }
+
+    /// On main: the band's on/off, applied on the session queue — again once the session is configured, in case the
+    /// band was set before the output was added.
+    private func applyBarcodeTypes() {
+        let on = barcodeBand != nil
+        sessionQueue.async { [weak self] in
+            guard let self, session.outputs.contains(metadataOutput) else { return }
+            let available = metadataOutput.availableMetadataObjectTypes
+            metadataOutput.metadataObjectTypes = on ? Self.barcodeTypes.filter(available.contains) : []
+        }
+    }
+
     func setTorch(_ on: Bool) {
         guard let device, device.hasTorch, device.isTorchAvailable else { return }
         sessionQueue.async {
@@ -266,6 +304,24 @@ extension LabelCameraController: AVCapturePhotoCaptureDelegate {
             // `image.size` is the UPRIGHT size (orientation applied).
             let region = LabelFramingBox.visionRegion(box: pending.box, viewSize: pending.viewSize, imageSize: image.size)
             self.onPhoto?(CapturedLabel(requestID: pending.request, image: image, region: region))
+        }
+    }
+}
+
+extension LabelCameraController: AVCaptureMetadataOutputObjectsDelegate {
+    /// N8: the first product code whose outline, as the preview shows it, lies inside the band — a code elsewhere in
+    /// the picture (a neighbouring product) is not read.
+    func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject],
+                        from connection: AVCaptureConnection) {
+        guard let band = barcodeBand, let previewLayer else { return }
+        for object in metadataObjects {
+            guard let code = object as? AVMetadataMachineReadableCodeObject, let value = code.stringValue,
+                  Self.barcodeTypes.contains(code.type),
+                  let shown = previewLayer.transformedMetadataObject(for: code),
+                  band.insetBy(dx: -12, dy: -12).contains(CGPoint(x: shown.bounds.midX, y: shown.bounds.midY))
+            else { continue }
+            onBarcode?(value, code.type)
+            return
         }
     }
 }

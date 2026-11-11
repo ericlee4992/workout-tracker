@@ -4,7 +4,7 @@ import SwiftUI
 /// Nutrition N4 — a food chosen from Log Food: how much, its numbers, Log. The eye lands on the calories for the
 /// chosen amount (the hero); servings is the control above it; Log is the one primary command at the bottom. The
 /// bookmark in the bar puts the food in Saved foods or takes it out (D81); one of My foods also offers Edit (the Add
-/// food form, filled in).
+/// food form, filled in). N8: a food from a database offers its other servings (by weight) and credits its source.
 struct SelectedFoodView: View {
     var food: SavedFood
     var meal: MealSlot
@@ -16,6 +16,8 @@ struct SelectedFoodView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.modelContext) private var context
     @State private var servings = 1.0
+    /// N8: which of `FoodLog.servingChoices` (0 = the food's own serving).
+    @State private var choice = 0
     @State private var showsOther = false
     @State private var editing = false
     @State private var confirmingDelete = false
@@ -24,7 +26,11 @@ struct SelectedFoodView: View {
     @State private var deleted = false
     @State private var failure: String?
 
-    private var eaten: Macros { food.macros.scaled(by: servings) }
+    private var choices: [ServingOption] { FoodLog.servingChoices(food) }
+    private var option: ServingOption? { choice > 0 && choice < choices.count ? choices[choice] : nil }
+    /// One chosen serving as a multiple of the food's own.
+    private var factor: Double { option.flatMap { FoodLog.scale(of: $0, in: food) } ?? 1 }
+    private var eaten: Macros { food.macros.scaled(by: servings * factor) }
 
     var body: some View {
         Group {
@@ -56,13 +62,22 @@ struct SelectedFoodView: View {
                     amount
                     MacroSummary(macros: eaten)
                     other
+                    if let credit = FoodDatabase.attribution(databaseID: food.databaseID) {
+                        Text(credit)
+                            .font(look.font.footnote)
+                            .foregroundStyle(look.textSecondary)
+                            .accessibilityIdentifier("selectedFoodAttribution")
+                    }
                 }
                 .padding(.horizontal, look.space.margin)
                 .padding(.bottom, 24)
             }
             .scrollIndicators(.hidden)
             PrimaryButton("Log to \(meal.label)") {
-                do { onLogged(try FoodLog.log(food, servings: servings, meal: meal, source: source, in: context)) }
+                do {
+                    onLogged(try FoodLog.log(food, servings: servings, option: option, meal: meal, source: source,
+                                             in: context))
+                }
                 catch { failure = error.localizedDescription }
             }
             .padding(.horizontal, look.space.margin)
@@ -133,13 +148,32 @@ struct SelectedFoodView: View {
             } else {
                 LookRow("Servings", symbol: "number", showsChevron: false) { stepper }
             }
-            // Facts of the food, not choices: no chevron. Other measurements arrive with database foods (N8).
-            LookRow("Serving", symbol: "scalemass", value: food.servingText, showsChevron: false)
+            // A fact of the food, no chevron — unless a database gave it other servings (N8): then a choice.
+            if choices.count > 1 {
+                Menu {
+                    Picker("Serving", selection: $choice) {
+                        ForEach(choices.indices, id: \.self) { index in
+                            Text(Self.text(choices[index])).tag(index)
+                        }
+                    }
+                } label: {
+                    LookRow("Serving", symbol: "scalemass", value: Self.text(choices[min(choice, choices.count - 1)]),
+                            showsChevron: true)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("selectedFoodServing")
+            } else {
+                LookRow("Serving", symbol: "scalemass", value: food.servingText, showsChevron: false)
+            }
             if let perContainer = food.servingsPerContainer {
                 LookRow("Servings per container", symbol: "shippingbox", value: FoodNumber.text(perContainer),
                         showsChevron: false)
             }
         }
+    }
+
+    private static func text(_ option: ServingOption) -> String {
+        ServingText.format(value: option.value, unit: option.unit, grams: option.grams)
     }
 
     private var stepper: some View {
@@ -188,7 +222,7 @@ struct SelectedFoodView: View {
         HStack {
             Text(name).foregroundStyle(look.textSecondary)
             Spacer()
-            Text(perServing.map { "\(($0 * servings).formatted(.number.precision(.fractionLength(0...1)))) \(unit)" } ?? "–")
+            Text(perServing.map { "\(($0 * servings * factor).formatted(.number.precision(.fractionLength(0...1)))) \(unit)" } ?? "–")
                 .monospacedDigit()
                 .foregroundStyle(look.textPrimary)
         }

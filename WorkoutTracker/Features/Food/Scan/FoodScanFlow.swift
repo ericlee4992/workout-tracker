@@ -1,3 +1,4 @@
+import AVFoundation
 import PhotosUI
 import SwiftData
 import SwiftUI
@@ -6,8 +7,10 @@ import UIKit
 // Nutrition N7 — Scan Food, a full-screen cover from Today (the camera beside Log food) or Log food's bar: sign in (AI
 // needs an account, D60) → the camera (no photo consent screen, D83) with Scan food | Barcode | Food label and a
 // photo-library pick. A meal photo closes the camera at once: its progress card is in Today's log and it is logged when
-// the estimate arrives (D82). A label is cropped to the box (D53), read here, and opens the food prefilled. Barcode is
-// N8's. In UI tests (`-uiTestTerra`) and on the Simulator the drawn sample stands in for the camera.
+// the estimate arrives (D82). A label is cropped to the box (D53), read here, and opens the food prefilled. A barcode
+// (N8, D72) is read as soon as it is in the band: a food already on the phone opens at once (offline too), else the
+// server looks it up (Open Food Facts, then USDA) and the found food opens to log; not found offers the label scan and
+// Manual Add. In UI tests (`-uiTestTerra`) and on the Simulator the drawn sample stands in for the camera.
 
 /// One photo from the shutter or the library, ready to send.
 struct FoodScanShot {
@@ -33,8 +36,25 @@ struct FoodScanFlow: View {
     @State private var label: LabelState?
     /// The label read in flight; cancelled by Retake, Cancel and closing (codex-review-n7 S5).
     @State private var readTask: Task<Void, Never>?
+    /// N8: the camera's mode, here so "Scan the label" after a barcode not found can switch it.
+    @State private var cameraMode: FoodScanMode = .meal
+    @State private var barcode: BarcodeState?
+    @State private var lookupTask: Task<Void, Never>?
+    /// The code just left (back to the camera): not read again for a moment, so it does not reopen at once while it is
+    /// still in the band.
+    @State private var resting: (code: String, until: Date)?
+    @State private var barcodeReads = 0
 
-    enum Step: Hashable { case readingLabel, labelFood }
+    enum Step: Hashable { case readingLabel, labelFood, barcodeLookup, barcodeFood }
+
+    /// N8: a scanned code, looked up. `attempt` is the lookup's identity — a late answer for an earlier one is ignored.
+    struct BarcodeState {
+        var attempt = UUID()
+        var code: String
+        var food: SavedFood?
+        var notFound = false
+        var failure: FoodDatabaseError?
+    }
 
     /// The label being read: its crop, then the reading or why there is none. `attempt` is the request's identity —
     /// a late reply for an earlier attempt (even of the same bytes) is ignored.
@@ -51,7 +71,8 @@ struct FoodScanFlow: View {
                 if !TerraAccess.ready(account) {
                     FoodScanSignIn(onCancel: { dismiss() }, onSignIn: { signingIn = true }, onManual: manual)
                 } else {
-                    FoodScanCamera(onCancel: { readTask?.cancel(); dismiss() }, onShot: shot)
+                    FoodScanCamera(mode: $cameraMode, onCancel: { readTask?.cancel(); lookupTask?.cancel(); dismiss() },
+                                   onShot: shot, onBarcode: barcodeRead)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
@@ -63,12 +84,83 @@ struct FoodScanFlow: View {
                         .toolbar(.hidden, for: .navigationBar)
                 case .labelFood:
                     LabelFoodStep(label: $label, meal: meal, onRetake: retake, onLogged: done)
+                case .barcodeLookup:
+                    FoodScanBarcodeLookup(barcode: $barcode, onCancel: { lookupTask?.cancel(); dismiss() },
+                                          onRetry: retryLookup, onLabel: scanLabelInstead, onManual: manual)
+                        .toolbar(.hidden, for: .navigationBar)
+                case .barcodeFood:
+                    if let food = barcode?.food {
+                        SelectedFoodView(food: food, meal: meal ?? MealSlot.forTime(.now), source: .barcode,
+                                         onLogged: { _ in done() }, onDeleted: { path.removeAll() })
+                    }
                 }
             }
         }
         .lookScreenBackground()
         .sheet(isPresented: $signingIn) { AccountSignInSheet() }
-        .onDisappear { readTask?.cancel() }
+        .sensoryFeedback(.success, trigger: barcodeReads)
+        .onChange(of: path) { _, steps in
+            // Back at the camera from a barcode: that code rests a moment, and nothing of the lookup is kept.
+            guard steps.isEmpty, let code = barcode?.code else { return }
+            lookupTask?.cancel()
+            resting = (code, Date.now.addingTimeInterval(3))
+            barcode = nil
+        }
+        .onDisappear { readTask?.cancel(); lookupTask?.cancel() }
+    }
+
+    // MARK: Barcode (N8)
+
+    /// A code in the band. Only from the camera itself (nothing pushed over it), and only a product code.
+    private func barcodeRead(_ raw: String, _ type: AVMetadataObject.ObjectType) {
+        guard path.isEmpty, barcode == nil, cameraMode == .barcode,
+              let code = FoodBarcode.normalize(raw, upcE: type == .upce) else { return }
+        if let resting, resting.code == code, resting.until > .now { return }
+        barcodeReads += 1
+        // On the phone already (logged before, or one of My foods): open it, no network needed.
+        let foods = (try? context.fetch(FetchDescriptor<SavedFood>(predicate: #Predicate { $0.barcode != nil }))) ?? []
+        if let food = FoodDatabase.local(barcode: code, in: foods) {
+            barcode = BarcodeState(code: code, food: food)
+            path = [.barcodeFood]
+            return
+        }
+        let state = BarcodeState(code: code)
+        barcode = state
+        path = [.barcodeLookup]
+        lookUp(code, attempt: state.attempt)
+    }
+
+    private func lookUp(_ code: String, attempt: UUID) {
+        let client = FoodDatabaseAccess.client(account)
+        lookupTask?.cancel()
+        lookupTask = Task {
+            do {
+                let found = try await FoodDatabaseAccess.barcode(code, client: client)
+                guard !Task.isCancelled, barcode?.attempt == attempt else { return }
+                guard let found else { barcode?.notFound = true; return }
+                barcode?.food = try FoodDatabase.save(found, in: context)
+                path = [.barcodeFood]
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled, barcode?.attempt == attempt else { return }
+                barcode?.failure = error as? FoodDatabaseError ?? .unavailable
+            }
+        }
+    }
+
+    private func retryLookup() {
+        guard let code = barcode?.code else { return }
+        let state = BarcodeState(code: code)
+        barcode = state
+        lookUp(code, attempt: state.attempt)
+    }
+
+    /// Not in the database: the camera again, in Food label mode.
+    private func scanLabelInstead() {
+        lookupTask?.cancel()
+        cameraMode = .label
+        path.removeAll()
     }
 
     private func shot(_ shot: FoodScanShot) {
@@ -137,12 +229,14 @@ struct FoodScanFlow: View {
 
     private func done() {
         readTask?.cancel()
+        lookupTask?.cancel()
         dismiss()
         onDone()
     }
 
     private func manual() {
         readTask?.cancel()
+        lookupTask?.cancel()
         dismiss()
         onManualAdd()
     }
@@ -151,12 +245,15 @@ struct FoodScanFlow: View {
 // MARK: - Camera
 
 struct FoodScanCamera: View {
+    @Binding var mode: FoodScanMode
     var onCancel: () -> Void
     var onShot: (FoodScanShot) -> Void
+    /// N8: a code read in Barcode mode, with its symbology (UPC-E is expanded by the flow).
+    var onBarcode: (String, AVMetadataObject.ObjectType) -> Void
     @Environment(\.look) private var look
 
     var body: some View {
-        FoodScanCameraContent(camera: self)
+        FoodScanCameraContent(camera: self, mode: $mode)
             .environment(\.look, look.darkCounterpart)
             .environment(\.colorScheme, .dark)
     }
@@ -164,9 +261,9 @@ struct FoodScanCamera: View {
 
 private struct FoodScanCameraContent: View {
     var camera: FoodScanCamera
+    @Binding var mode: FoodScanMode
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var mode: FoodScanMode = .meal
     @State private var torch = false
     @State private var flash = 0.0
     @State private var shutterTaps = 0
@@ -222,6 +319,13 @@ private struct FoodScanCameraContent: View {
         .onDisappear { closeDown() }
         .sensoryFeedback(.impact(weight: .medium), trigger: shutterTaps)
         .sensoryFeedback(.selection, trigger: mode)
+        .task(id: mode) {
+            // The fixture's barcode is "read" a moment after Barcode mode shows it, through the camera's callback.
+            guard fixture, cameraUsable, mode == .barcode else { return }
+            try? await Task.sleep(for: .milliseconds(1500))
+            guard !Task.isCancelled, mode == .barcode else { return }
+            camera.onBarcode(FoodDatabaseFixture.barcode, .ean13)
+        }
     }
 
     private var hint: String {
@@ -256,7 +360,8 @@ private struct FoodScanCameraContent: View {
             } else {
                 // The same coordinates as the box: the preview fills exactly this view (aspect-filled), which is what
                 // `LabelFramingBox.visionRegion` assumes.
-                LabelCameraView(captureRequest: captureID, onPhoto: photo, onFailure: failed, torchOn: torch)
+                LabelCameraView(captureRequest: captureID, onPhoto: photo, onFailure: failed, torchOn: torch,
+                                barcodeBand: mode == .barcode ? frame : nil, onBarcode: camera.onBarcode)
             }
             // The label's box is a crop (D53): outside it is dimmed harder, since only the box is sent.
             Path { p in
@@ -557,6 +662,90 @@ private struct FoodScanSignIn: View {
             }
         }
         .lookScreenBackground()
+    }
+}
+
+// MARK: - Looking up a barcode (N8)
+
+/// The scanned code while it is looked up; then, when neither database has it, "Not in the database" with Scan the
+/// label and Manual Add (D72), or why the lookup failed, with Try again and Manual Add.
+private struct FoodScanBarcodeLookup: View {
+    @Binding var barcode: FoodScanFlow.BarcodeState?
+    var onCancel: () -> Void
+    var onRetry: () -> Void
+    var onLabel: () -> Void
+    var onManual: () -> Void
+    @Environment(\.look) private var look
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private var notFound: Bool { barcode?.notFound ?? false }
+    private var failure: FoodDatabaseError? { barcode?.failure }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ScanTopBar(title: "Barcode", onCancel: onCancel)
+            ScanStepBody {
+                ScanInlineTitle(title: "Barcode")
+                hero
+                if notFound {
+                    message("Not in the database", "Scan the label to read its numbers, or add it by hand.")
+                        .accessibilityIdentifier("scanFoodBarcodeNotFound")
+                } else if let failure {
+                    message("Couldn't look it up", failure.localizedDescription)
+                        .accessibilityIdentifier("scanFoodBarcodeFailure")
+                } else {
+                    ScanProgressInstrument(title: "Looking up the barcode…")
+                }
+            } bar: {
+                ScanBottomBar {
+                    if notFound {
+                        ScanPrimaryButton("Scan the label", symbol: "doc.text.viewfinder", action: onLabel)
+                            .accessibilityIdentifier("scanFoodBarcodeLabel")
+                        Button("Manual Add", action: onManual)
+                            .buttonStyle(.lookSecondary)
+                            .accessibilityIdentifier("scanFoodManual")
+                    } else if failure != nil {
+                        ScanPrimaryButton("Try again", symbol: "arrow.clockwise", action: onRetry)
+                            .accessibilityIdentifier("scanFoodBarcodeRetry")
+                        Button("Manual Add", action: onManual)
+                            .buttonStyle(.lookSecondary)
+                            .accessibilityIdentifier("scanFoodManual")
+                    } else {
+                        Button("Manual Add", action: onManual)
+                            .buttonStyle(.lookSecondary)
+                            .accessibilityIdentifier("scanFoodManual")
+                    }
+                }
+            }
+        }
+        .lookScreenBackground()
+    }
+
+    /// The code itself is what was read: the glyph and its digits, as printed under the bars.
+    private var hero: some View {
+        VStack(spacing: 14) {
+            ScanGlyphDisc(symbol: "barcode", size: typeSize.isAccessibilitySize ? 88 : 108,
+                          glyphFont: .system(size: typeSize.isAccessibilitySize ? 34 : 42, weight: .semibold))
+            Text(barcode?.code ?? "")
+                .font(.system(.title3, design: .monospaced, weight: .semibold))
+                .foregroundStyle(look.textPrimary)
+                .accessibilityLabel("Barcode \(barcode?.code ?? "")")
+                .accessibilityIdentifier("scanFoodBarcodeCode")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 18)
+    }
+
+    private func message(_ title: String, _ detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(look.font.title3).foregroundStyle(look.textPrimary)
+            Text(detail).font(look.font.subhead).foregroundStyle(look.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(look.space.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .lookSurface(.panel)
+        .accessibilityElement(children: .combine)
     }
 }
 

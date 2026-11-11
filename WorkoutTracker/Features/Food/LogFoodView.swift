@@ -4,7 +4,9 @@ import SwiftUI
 /// Nutrition N4 — Log Food, opened by Today's "Log food" pill, in the user's structure (D81): the meal, tabs All / My
 /// foods / My meals / Saved foods, a search over the user's own foods, and a one-tap + (one serving, with Undo) on every
 /// food and meal row. All ends with **Manual Add** (a one-off entry, name optional — Quick Add merged into it); My foods
-/// with **Add food**; My meals with **Create meal**. Voice Log is out of scope; Scan joins in N7, online search in N8.
+/// with **Add food**; My meals with **Create meal**. Voice Log is out of scope; Scan joins in N7. N8: searching on All
+/// shows the user's own foods first, then generic foods from USDA (signed in, through the server), and the Estimate row
+/// for anything else; a food opened or logged from the database is kept on the phone (`FoodDatabase.save`).
 ///
 /// The eye lands on the list (what most logs are); the + on each row is the action, quiet until tapped.
 struct LogFoodView: View {
@@ -23,6 +25,10 @@ struct LogFoodView: View {
     @State private var receipt: FoodLogReceipt?
     @State private var route: Route?
     @State private var selected: SavedFood?
+    /// N8: `selected` came from the online results (logged as `.search`).
+    @State private var selectedFromSearch = false
+    /// N8: the online results for the query they were asked for.
+    @State private var online: OnlineResults?
     @State private var selectedMeal: SavedMeal?
     @State private var failure: String?
     /// N7: the scan camera from Log food's bar; a meal photo or a description returns to Today (D82's card).
@@ -46,6 +52,27 @@ struct LogFoodView: View {
     }
 
     enum Route: Identifiable { case manualAdd, addFood, createMeal; var id: Self { self } }
+
+    struct OnlineResults {
+        var query: String
+        var foods: [DatabaseFood] = []
+        var loading = true
+        var failure: FoodDatabaseError?
+    }
+
+    /// What the online search asks for: the query on All, two characters or more, signed in; "" for none.
+    private var onlineQuery: String {
+        let query = search.trimmingCharacters(in: .whitespaces)
+        guard tab == .all, query.count >= 2, TerraAccess.ready(account) else { return "" }
+        return query
+    }
+
+    /// The results not already shown among the user's foods.
+    private var onlineFoods: [DatabaseFood] {
+        guard let online, online.query == onlineQuery else { return [] }
+        let shown = Set(shownFoods.compactMap(\.databaseID))
+        return online.foods.filter { !shown.contains($0.id) }
+    }
 
     private var searching: Bool { !search.trimmingCharacters(in: .whitespaces).isEmpty }
 
@@ -87,6 +114,7 @@ struct LogFoodView: View {
                     searchField
                     if tab == .all && searching { describeRow }
                     content
+                    if tab == .all && searching { onlineSection }
                     // At accessibility sizes the command scrolls with the list: pinned, it left room for one food row.
                     if typeSize.isAccessibilitySize, let command {
                         commandButton(command).padding(.horizontal, -look.space.margin)
@@ -125,8 +153,9 @@ struct LogFoodView: View {
             guard receipt?.entries.first?.id == shown else { return }
             withAnimation(motion) { receipt = nil }
         }
+        .task(id: onlineQuery) { await searchOnline(onlineQuery) }
         .navigationDestination(item: $selected) { food in
-            SelectedFoodView(food: food, meal: meal, source: tab == .all ? .recent : .saved,
+            SelectedFoodView(food: food, meal: meal, source: selectedFromSearch ? .search : tab == .all ? .recent : .saved,
                              onLogged: { receipt in selected = nil; show(receipt) },
                              onDeleted: {
                                  // Its Undo would have no food to put back; the entries it logged stay.
@@ -260,7 +289,7 @@ struct LogFoodView: View {
     private var searchField: some View {
         HStack(spacing: 8) {
             Image(systemName: "magnifyingglass").foregroundStyle(look.textSecondary)
-            TextField("Search your foods", text: $search)
+            TextField("Search foods", text: $search)
                 .submitLabel(.search)
                 .accessibilityIdentifier("logFoodSearch")
         }
@@ -277,11 +306,120 @@ struct LogFoodView: View {
                            subtitle: FoodCopy.foodLine(brand: food.brand, calories: food.calories,
                                                        serving: food.servingText),
                            id: food.persistentModelID, identifier: food.name,
-                           open: { selected = food },
+                           open: { selectedFromSearch = false; selected = food },
                            log: { try FoodLog.log(food, meal: meal, source: tab == .all ? .recent : .saved, in: context) })
                 }
             }
         }
+    }
+
+    // MARK: Online search (N8)
+
+    /// Waits for typing to pause, then asks; a newer query cancels this one (the task's id).
+    private func searchOnline(_ query: String) async {
+        guard !query.isEmpty else { online = nil; return }
+        do { try await Task.sleep(for: .milliseconds(450)) } catch { return }
+        online = OnlineResults(query: query)
+        do {
+            let foods = try await FoodDatabaseAccess.search(query, client: FoodDatabaseAccess.client(account))
+            guard !Task.isCancelled else { return }
+            online = OnlineResults(query: query, foods: foods, loading: false)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard !Task.isCancelled else { return }
+            online = OnlineResults(query: query, loading: false, failure: error as? FoodDatabaseError ?? .unavailable)
+        }
+    }
+
+    /// "More foods": the database's results under the user's own, credited; a quiet line while searching or when the
+    /// search cannot answer (the user's foods and Estimate still work). Signed out, a line offers Sign In.
+    @ViewBuilder private var onlineSection: some View {
+        if !TerraAccess.ready(account) {
+            Button { signingIn = true } label: {
+                Text("Sign in to search more foods.")
+                    .font(look.font.footnote)
+                    .foregroundStyle(look.textSecondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("logFoodOnlineSignIn")
+        } else if let online, online.query == onlineQuery {
+            VStack(alignment: .leading, spacing: look.space.header) {
+                SectionHeader("More foods")
+                if online.loading {
+                    onlineNote("Searching…").accessibilityIdentifier("logFoodOnlineSearching")
+                } else if let failure = online.failure {
+                    onlineNote(failure.localizedDescription).accessibilityIdentifier("logFoodOnlineFailure")
+                } else if onlineFoods.isEmpty {
+                    onlineNote("No more foods found.").accessibilityIdentifier("logFoodOnlineEmpty")
+                } else {
+                    LookList(separatorInset: 16) {
+                        ForEach(onlineFoods) { food in onlineRow(food) }
+                    }
+                    Text(FoodDatabase.attribution(.usda))
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textSecondary)
+                        .accessibilityIdentifier("logFoodOnlineAttribution")
+                }
+            }
+        }
+    }
+
+    private func onlineNote(_ text: String) -> some View {
+        Text(text).font(look.font.footnote).foregroundStyle(look.textSecondary)
+    }
+
+    /// A database food: tapping keeps it on the phone and opens it; its + keeps it and logs one serving, with Undo.
+    private func onlineRow(_ food: DatabaseFood) -> some View {
+        let stored = FoodDatabase.storedServing(food)
+        return HStack(spacing: 12) {
+            Button {
+                do {
+                    let saved = try FoodDatabase.save(food, in: context)
+                    selectedFromSearch = true
+                    selected = saved
+                } catch {
+                    failure = error.localizedDescription
+                }
+            } label: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(food.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
+                    Text(FoodCopy.foodLine(brand: food.brand, calories: stored.nutrition.calories,
+                                           serving: ServingText.format(value: stored.serving.value,
+                                                                       unit: stored.serving.unit,
+                                                                       grams: stored.serving.grams)))
+                        .font(look.font.footnote).foregroundStyle(look.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("logFoodOnlineRow.\(food.name)")
+            Button {
+                do {
+                    let saved = try FoodDatabase.save(food, in: context)
+                    let receipt = try FoodLog.log(saved, meal: meal, source: .search, in: context)
+                    withAnimation(motion) {
+                        logged.insert(saved.persistentModelID)
+                        self.receipt = receipt
+                    }
+                } catch {
+                    failure = error.localizedDescription
+                }
+            } label: {
+                Image(systemName: "plus")
+                    .font(.system(.body, weight: .semibold))
+                    .foregroundStyle(look.textPrimary)
+                    .frame(width: 44, height: 44)
+                    .background(look.ground, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Log \(food.name)")
+            .accessibilityIdentifier("logFoodOnlineAdd.\(food.name)")
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
     }
 
     private var myMeals: some View {
