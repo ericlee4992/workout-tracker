@@ -43,7 +43,7 @@ AREAS = {
         "FloodlightProfileUITests", "FloodlightSettingsUITests", "FloodlightAccountUITests", "FloodlightGoogleUITests",
         "FloodlightAIAccessUITests", "FloodlightAIRoutineUITests", "AskAIUITests", "FloodlightFeedbackUITests",
         "FloodlightTourUITests", "FloodlightWhatsNewUITests", "ExportUITests", "BackupExportUITests",
-        "SafetyCopyUITests", "NutritionGoalsUITests", "BodyWeightUITests",
+        "SafetyCopyUITests", "NutritionGoalsUITests", "BodyWeightUITests", "AppleHealthUITests",
     ],
     # The older per-screen design-review suites (D54, the Codex design).
     "Review": ["RedesignScreenshotUITests", "CodexScreenshotUITests"],

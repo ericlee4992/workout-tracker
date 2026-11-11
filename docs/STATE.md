@@ -1,22 +1,21 @@
 # Current project state
 
-Updated **2026-11-10 (late night), handoff before a new session for C1 + N9b.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; next **C1 + N9b as one task** (build both, then test and Codex-review them together), then N10, N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-10, C1 + N9b built on `ericlee4992/c1-n9b`; verification and Codex review next.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; next **C1 + N9b as one task** (build both, then test and Codex-review them together), then N10, N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
 
-- **Resume here (2026-11-10 late night).** Read this block, then the two tickets below. Verify Git first:
-  `main` = `origin/main` = `2c93c1e` or later (N7 merged). The `UI_design` worktree is on the merged
-  `ericlee4992/nutrition-07-scan-food` — nothing pending.
-  **NEXT TASK: C1 + N9b, grouped (the user, 2026-11-10: "for testing and codex review, lets do that after doing both C1
-  and N9b … group them together as one task").** One branch off `main` in this worktree, e.g.
-  `ericlee4992/c1-n9b` (the old `ericlee4992/nutrition-09b-health` sits at an older `main` with no work — ignore it).
-  Order: build **C1** (`work-record/copy/issues/01-no-ai-wording.md` — wording approved: drop "with AI" phrases and
-  start no error with "AI…"; feature names such as "Ask AI" stay), then **N9b** (`work-record/nutrition/issues/
-  09-body-weight-health.md` — Apple Health: read/write weight, write food totals, read active energy as Burned,
-  Profile → Apple Health page; **usage strings approved, wording in that ticket**). Then ONE verification pass (scope per
-  DEVELOPMENT; the classes both touch, captures of changed screens) and ONE Codex review covering both, to clear; then
-  ff-merge `main`. Commit and push at checkpoints as usual; no Codex or long test runs between C1 and N9b.
+- **Resume here (2026-11-10, C1 + N9b session).** Branch `ericlee4992/c1-n9b` (off `main` `ed4ec5a`, pushed) in this
+  worktree. **C1 built** (`d70538e`; every rewritten line in `work-record/copy/issues/01-no-ai-wording.md`) and **N9b
+  built** (Apple Health: `Domain/HealthNutritionSync.swift`, `Domain/HealthKitNutritionStore.swift`,
+  `Features/Nutrition/AppleHealthView.swift`; design, own decisions and new strings in
+  `work-record/nutrition/issues/09-body-weight-health.md`). Build-for-testing exit 0. **Next:** the ONE verification
+  pass for both (Unit plan + `HealthNutritionSyncTests` ×10 + UI classes `AppleHealthUITests`, `BodyWeightUITests`,
+  `TodayFoodUITests`, `FloodlightProfileUITests`, `FloodlightScanUITests`, `AskAIUITests`; captures of changed
+  screens), then ONE Codex review of both in the Codex terminal below, fix to clear, ff-merge `main`.
+  The task as the user set it (2026-11-10): C1 then N9b on one branch, then test and Codex-review them together; no
+  Codex or long test runs between them. **For the user (not blocking):** C1's camera/photo-library permission
+  wording (left; proposal in C1's ticket); N9b's own decisions 1–5 and new strings (N9 ticket).
   **N7 DONE (2026-11-10 night): Scan Food — Codex clear (round 4), merged.** D83 = the user's N7 answers (one entry
   named for the meal, name from the server, describe logged at once, both entry points, notification asked on the first
   scan, no consent screen, no "AI" wording, a library photo's own time). Data: `FoodPhoto` + `FoodEntryItem` (approved

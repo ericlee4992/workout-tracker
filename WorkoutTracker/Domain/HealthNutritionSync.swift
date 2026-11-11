@@ -228,9 +228,11 @@ final class HealthSync {
         return !part.shares.allSatisfy(store.canWrite)
     }
 
-    /// Follows this context's store: a pass now, and a pass shortly after every save anywhere in the app.
-    func attach(_ context: ModelContext) {
+    /// Follows this context's store: a pass now, and a pass shortly after every save anywhere in the app. Tests pass
+    /// `observesSaves: false` and run each pass themselves.
+    func attach(_ context: ModelContext, observesSaves: Bool = true) {
         self.context = context
+        guard observesSaves else { return }
         if observer == nil {
             observer = NotificationCenter.default.addObserver(forName: ModelContext.didSave, object: nil,
                                                               queue: .main) { [weak self] _ in

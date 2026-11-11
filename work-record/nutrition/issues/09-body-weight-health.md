@@ -1,7 +1,7 @@
 # N9 — Body weight logging and Apple Health
 
 Type: feature
-Status: **N9a done — Codex clear (round 2), merged** (2026-11-10); **N9b (Apple Health) next, grouped with C1** (the user, 2026-11-10: build C1 and N9b, then test and Codex-review them together as one task); split by Claude overnight: **N9a** body weight logging, **N9b** Apple Health — usage strings **approved** (below)
+Status: **N9a done — Codex clear (round 2), merged** (2026-11-10); **N9b (Apple Health) built** on `ericlee4992/c1-n9b` (2026-11-10), verification + Codex review pending together with C1; was: next, grouped with C1 (the user, 2026-11-10: build C1 and N9b, then test and Codex-review them together as one task); split by Claude overnight: **N9a** body weight logging, **N9b** Apple Health — usage strings **approved** (below)
 Blocked by: N2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-09-weight-health` off `main`.
@@ -69,6 +69,57 @@ steps, Time, Cancel / Save, Delete Weight when editing. New entries use the late
   end, 1/1 in `n9ui2.xcresult`); captures looked at (`n9att/N9.png`). After rebasing on `main` `d38cf18`: Unit plan **1,225 executions, 0 failed**
   (`n9unit.xcresult`); warm-up + BodyWeight + FloodlightProfile + NutritionGoals **23/23** (`n9reg.xcresult`, 2 workers).
   Verified: the above. Not verified: runtime Reduce Motion, VoiceOver by a person, the full UI suite.
+
+**N9b built (Claude, 2026-11-10, branch `ericlee4992/c1-n9b`, with C1).**
+- **Code:** `Domain/HealthNutritionSync.swift` — `HealthType` / `HealthPart` (the four switches, each asking Health only
+  for its own types), `HealthStoring` (HealthKit behind a protocol), `HealthSyncPlan` (pure: desired samples, diff,
+  readings, mirror), `HealthSync` (the observable engine); `Domain/HealthKitNutritionStore.swift` — the real store, the
+  `FakeHealthStore` (unit tests + UI tests) and `HealthFixture` (`-uiTestHealthSample`, `-uiTestHealthOn`,
+  `-uiTestHealthRefused`); `Features/Nutrition/AppleHealthView.swift`; Profile row **Apple Health** (On / Off) at the
+  end of Goals & tracking; Body weight shows Health's weights read-only; Today's Burned; app root injects and starts the
+  sync (never in the tour's sample world; UI tests get the fake and throwaway switches). No schema change: N2's
+  `healthSampleID` fields carry the Health ids.
+- **How it syncs (Claude's design):** a reconcile, not a hook per write path — food is logged from many places (Log
+  food, Undo, Restore, scans, editors). Each pass (at launch, ~1 s after any save, when the app becomes active, when a
+  part is turned on) compares the app's entries with the samples this app wrote, found by sync identifiers
+  (`stacked.weight.<id>`, `stacked.food.<id>.<type>`); it saves what differs (Health's sync versioning replaces the old
+  sample, so an edit never duplicates) and deletes samples whose entry is gone. A repeated pass writes nothing.
+- **Own decisions (Claude; for the user to confirm):**
+  1. Food goes to Health as four plain samples per entry (calories always; protein, carbs, fat when above zero), each
+     named with the food, **not a food correlation** as this ticket first said: Health cannot be asked to share the
+     correlation type, so the app could not reliably replace or delete one.
+  2. Turning a save part **off** stops changes; what is in Health stays. Turning it on again brings Health back in line
+     with the app — every entry written, ones deleted meanwhile removed.
+  3. Health's weights: the **last 365 days**, in the app's unit system, **read-only** in the app (no chevron; change
+     them in Health); turning reading off removes them from the app (Health keeps them). The Log weight sheet's unit
+     follows the latest weight the user logged, not a Health one.
+  4. **Burned** = the larger of Health's active energy for the day and the app's own workouts (Health's figure already
+     counts the app's workouts saved there; the max keeps a workout not yet in Health). Today only; the week's rings
+     are unchanged.
+  5. A refused save is said under its switch; a refused read cannot be detected (Health shows it as no data).
+- **New strings:** page "Apple Health"; groups "Read from Health" / "Save to Health"; rows "Body weight" — "Shown with
+  the weights you log", "Calories burned" — "Active energy, shown as Burned on Today", "Body weight" — "Each weight you
+  log", "Food" — "Calories, protein, carbs and fat of each entry"; footnote "Stacked doesn't upload your Health data.
+  Turning a switch off stops new changes; what's already in Health stays there."; refused "Health hasn't allowed saving
+  body weight. / …saving all of your food's numbers. Allow it in the Health app: Profile → Apps → Stacked."; failures
+  "Couldn't ask Health for permission. Try again." / "Couldn't update Apple Health. It will try again."; unavailable
+  "Health isn't available" / "This device doesn't have Apple Health."; Profile row "Apple Health" On / Off. Usage
+  strings as approved above (apostrophe typeset ’ like the file's other strings), iPhone app Debug and Release.
+- **Design (ios-design):** *In the default state this screen exists so the user can turn a part on in one tap; the eye
+  lands on the first group, Read from Health* (runner-up: Save to Health, same weight, second). Wireframe:
+  ```
+  Apple Health                 (nav title, large)
+  READ FROM HEALTH             (section header)
+  [ Body weight            (o) ]  equal rows
+  [ Calories burned        (o) ]
+  SAVE TO HEALTH
+  [ Body weight            (o) ]
+  [ Food                   (o) ]
+  ! refused note (only when)
+  footnote (secondary)
+  ```
+  A standard settings list: no mock round (no new structure; Preferences' look). Tells: accent fill — absent (switches
+  are state); card around a sentence — absent (the footnote is plain text); second hero — absent.
 
 ## Comments
 

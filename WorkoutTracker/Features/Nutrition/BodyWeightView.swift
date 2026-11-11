@@ -117,13 +117,18 @@ struct BodyWeightView: View {
             SectionHeader("History")
             LookList(separatorInset: 16) {
                 ForEach(weights) { entry in
-                    // N9b: a weight read from Health is Health's — shown, not edited here (change it in Health).
-                    let fromHealth = entry.source == .health
-                    LookRow(entry.measuredAt.formatted(date: .abbreviated, time: .shortened),
-                            subtitle: fromHealth ? "Apple Health" : nil,
-                            value: DetailFormat.weight(entry), showsChevron: !fromHealth,
-                            action: fromHealth ? nil : { sheet = .edit(entry) })
-                        .accessibilityIdentifier("bodyWeightEntry.\(DetailFormat.weight(entry))")
+                    // N9b: a weight read from Health is Health's — shown, not edited here (change it in Health), and
+                    // read by VoiceOver as one line: time, "Apple Health", weight.
+                    if entry.source == .health {
+                        LookRow(entry.measuredAt.formatted(date: .abbreviated, time: .shortened), subtitle: "Apple Health",
+                                value: DetailFormat.weight(entry), showsChevron: false, action: nil)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityIdentifier("bodyWeightEntry.\(DetailFormat.weight(entry))")
+                    } else {
+                        LookRow(entry.measuredAt.formatted(date: .abbreviated, time: .shortened),
+                                value: DetailFormat.weight(entry)) { sheet = .edit(entry) }
+                            .accessibilityIdentifier("bodyWeightEntry.\(DetailFormat.weight(entry))")
+                    }
                 }
             }
         }

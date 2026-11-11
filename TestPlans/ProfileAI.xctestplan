@@ -27,7 +27,8 @@
         "BackupExportUITests",
         "SafetyCopyUITests",
         "NutritionGoalsUITests",
-        "BodyWeightUITests"
+        "BodyWeightUITests",
+        "AppleHealthUITests"
       ],
       "target": {
         "containerPath": "container:WorkoutTracker.xcodeproj",
