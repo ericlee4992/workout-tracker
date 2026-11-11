@@ -16,8 +16,9 @@ labelled so you know what you're comparing against. Sets are prefilled only from
 machine.
 
 <!-- Screenshots in docs/readme/: the capture UI tests' Soft look (dark, default text size, built-in sample data),
-taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen changes visibly (AGENTS.md). -->
+taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resized to 603 px wide. Retake them when a shown screen changes visibly (AGENTS.md). -->
 <p>
+<img src="docs/readme/today.png" width="150" alt="Today: the week's rings, calories and protein left, and the workout up next">
 <img src="docs/readme/workout.png" width="150" alt="The Train tab: gym, the template up next, start buttons and other templates">
 <img src="docs/readme/live-workout.png" width="150" alt="Logging sets during a workout, with the rest timer">
 <img src="docs/readme/gyms.png" width="150" alt="A gym and its machines, with Scan Machine">

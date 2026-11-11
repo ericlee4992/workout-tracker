@@ -56,7 +56,10 @@ Ship the Soft redesign and nutrition together as one TestFlight build (build **1
    in `WhatsNew.entries`; `WhatsNewTests` + `FloodlightWhatsNewUITests` 13/13 serial, exit 0 (`r-wn.xcresult`;
    captures light/dark × Default/AccessibilityL checked: all four lines above Continue, scrolled at AXL).
    Privacy page: **still waiting** — approval and effective date.
-4.–9. Not started.
+4. README: Today picture added (`docs/readme/today.png`, dark, default size, food + goals sample, 603 px), the food
+   and barcode/search text (N8). Server README has the N6/N8 endpoints. The "not yet in TestFlight" marks change when
+   build 10 is in TestFlight.
+5.–9. Not started — need the user (privacy approval + date before the deploy; App Privacy; Gate S on the phone).
 
 ### Draft — What's New (build 10, in-app, once after updating)
 
