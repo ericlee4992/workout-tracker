@@ -119,6 +119,8 @@ final class FakeHealthStore: HealthStoring {
     /// Runs inside every sample query, before it answers — a test's stand-in for Health taking its time (a switch
     /// turned, an entry saved meanwhile).
     var whileQuerying: (@MainActor () async -> Void)?
+    /// Answers an active-energy query in a test's own time (another query may run and answer first).
+    var answerEnergy: (@MainActor (Date) async -> Double)?
 
     func requestAuthorization(share: Set<HealthType>, read: Set<HealthType>) async throws {
         asked.append((share, read))
@@ -159,6 +161,7 @@ final class FakeHealthStore: HealthStoring {
 
     func activeEnergy(from start: Date, to end: Date) async throws -> Double {
         energyQueries.append((start, end))
+        if let answerEnergy { return await answerEnergy(start) }
         return activeEnergyByDay[calendar.startOfDay(for: start)] ?? 0
     }
 }

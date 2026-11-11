@@ -171,3 +171,13 @@ Tests added (`HealthNutritionSyncTests` now 24): off during a read and a write q
 a rename, a unit change, Ask AI's prefill with a newer Health weight and with Health only. Evidence: build exit 0;
 `HealthNutritionSyncTests` 24 × 10 = 240/240 (`r2-health10.xcresult`); Unit plan 1,256/1,256 (`r2-unit.xcresult`);
 AppleHealthUITests + FloodlightAIRoutineUITests + warm-up 20/20, 2 workers (`r2-ui.xcresult`). Round 2 sent.
+
+**Round 2 (`codex-review-c1-n9b-b.md`): not clear — 1 P2 (R2-S1); T1, S1–S7 confirmed fixed.** R2-S1: two Burned
+refreshes answered out of order let the older replace the newer (after a zone change the current day read nil). Fixed:
+each refresh takes a request number; only the latest publishes, and only while the part is on and the asking task is not
+cancelled. Test `anOlderBurnedAnswerNeverReplacesANewerOne` (zone change, and the same day). Not changed (Codex's note,
+not a finding): a save Health did not take is retried at the next trigger, not at once (an immediate retry could loop on
+a store that keeps refusing). Codex's parallel UI run had one failure — `FloodlightAIRoutineUITests.
+testBackKeepsInputsAndLeavingTheWeekAsksFirst` at the Train tab, before any changed code — and the serial class rerun
+passed 15/15: known flaky. Evidence: build exit 0; `HealthNutritionSyncTests` 25 × 10 = 250/250 (`r3-health10.xcresult`);
+Unit plan 1,257/1,257 (`r3-unit.xcresult`). No view changed: UI not rerun (round 2's `r2-ui` 20/20 stands).

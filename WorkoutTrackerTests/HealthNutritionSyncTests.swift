@@ -461,4 +461,39 @@ struct HealthNutritionSyncTests {
         fresh.prefillMissingMeasurements(from: healthOnly)
         #expect(fresh.weightKg == nil && fresh.trainingProfile(usCustomary: false).weight == nil)
     }
+
+    /// R2-S1: an older Burned answer arriving after a newer one never replaces it — after a time-zone change, and on
+    /// the same day.
+    @Test func anOlderBurnedAnswerNeverReplacesANewerOne() async throws {
+        let context = try context()
+        let store = FakeHealthStore()
+        let york = TimeZone(identifier: "America/New_York")!, angeles = TimeZone(identifier: "America/Los_Angeles")!
+        var zone = york
+        let sync = HealthSync(store: store, defaults: defaults(), calendar: {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = zone
+            return calendar
+        }, now: { [now] in now })
+        sync.attach(context, observesSaves: false)
+        var yorkCalendar = Calendar(identifier: .gregorian); yorkCalendar.timeZone = york
+        let yorkStart = yorkCalendar.startOfDay(for: now)
+        store.answerEnergy = { start in
+            guard start == yorkStart else { return 600 }
+            zone = angeles
+            await sync.refreshBurned(on: now)  // Today asks again in the new zone, and is answered first
+            return 100
+        }
+        await sync.set(.readBurned, on: true)
+        #expect(sync.burned(on: now) == 600)
+
+        var calls = 0
+        store.answerEnergy = { _ in
+            calls += 1
+            guard calls == 1 else { return 700 }
+            await sync.refreshBurned(on: now)
+            return 650
+        }
+        await sync.refreshBurned(on: now)
+        #expect(sync.burned(on: now) == 700, "the newer total for the same day stays")
+    }
 }

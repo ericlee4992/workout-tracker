@@ -229,6 +229,9 @@ final class HealthSync {
     /// Bumped whenever a part is switched: work for that part begun before the switch is dropped after its next await
     /// (a late answer must not import rows or start saves for a part now off — codex-review-c1-n9b S1).
     @ObservationIgnored private var generations: [HealthPart: Int] = [:]
+    /// The latest Burned request: an older answer arriving after it (a time-zone change, Today and the switch both
+    /// asking) never replaces it (codex-review-c1-n9b-b R2-S1).
+    @ObservationIgnored private var burnedRequest = 0
 
     init(store: HealthStoring?, defaults: UserDefaults = .standard, calendar: @escaping () -> Calendar = { .current },
          debounce: Duration = .seconds(1), now: @escaping () -> Date = { .now }) {
@@ -318,13 +321,16 @@ final class HealthSync {
 
     func refreshBurned(on day: Date) async {
         guard isOn(.readBurned), let store, store.isAvailable else { return }
+        burnedRequest += 1
+        let request = burnedRequest
         let generation = generations[.readBurned, default: 0]
         let calendar = calendar()
         let start = calendar.startOfDay(for: day)
         guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return }
         // A refused read and a quiet day both read as 0 — Health does not say which (D74: the other parts go on).
+        // Only the latest request publishes, and only while the part is still on and the asking task still wants it.
         guard let value = try? await store.activeEnergy(from: start, to: min(end, max(now(), start))),
-              current(.readBurned, generation) else { return }
+              request == burnedRequest, current(.readBurned, generation), !Task.isCancelled else { return }
         burned = [start: value]
     }
 
