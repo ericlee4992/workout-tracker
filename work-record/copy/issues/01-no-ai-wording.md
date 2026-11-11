@@ -1,7 +1,7 @@
 # C1 — No "AI" in the app's wording, except feature names
 
 Type: task (copy)
-Status: **built** on `ericlee4992/c1-n9b` (2026-11-10), verification and Codex review pending together with N9b — **grouped with N9b** (the user, 2026-11-10: build C1 and N9b, then run the tests and the Codex review
+Status: **done — Codex clear (C1 clear from round 1; the combined review cleared in round 3), merged with N9b** (2026-11-11) — **grouped with N9b** (the user, 2026-11-10: build C1 and N9b, then run the tests and the Codex review
 once for both, as one task; one branch)
 Implementer: Claude; Reviewer: Codex, to "clear".
 Decision: D83 (8) extended app-wide by the user, 2026-11-10: "get rid of all wordings that say using ai since the users

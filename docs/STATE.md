@@ -1,22 +1,19 @@
 # Current project state
 
-Updated **2026-11-10, C1 + N9b built on `ericlee4992/c1-n9b`; verification and Codex review next.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; next **C1 + N9b as one task** (build both, then test and Codex-review them together), then N10, N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-11, C1 + N9b merged (Codex clear); next N10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b merged 2026-11-11; next N10, N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
 
-- **Resume here (2026-11-10, C1 + N9b session).** Branch `ericlee4992/c1-n9b` (off `main` `ed4ec5a`, pushed) in this
-  worktree. **C1 built** (`d70538e`; every rewritten line in `work-record/copy/issues/01-no-ai-wording.md`) and **N9b
-  built** (Apple Health: `Domain/HealthNutritionSync.swift`, `Domain/HealthKitNutritionStore.swift`,
-  `Features/Nutrition/AppleHealthView.swift`; design, own decisions and new strings in
-  `work-record/nutrition/issues/09-body-weight-health.md`). Build-for-testing exit 0. **Verification done** (all green). **Codex round 1: not clear** (6 P2, 2 P3, all N9b; C1 clear) — all fixed and retested (N9 ticket, end); round 2: not clear (1 P2, Burned answers out of order) — fixed; **round 3 sent** (brief `work-record/nutrition/codex-review-c1-n9b-r3-prompt.md`, report `codex-review-c1-n9b-c.md`). Was: Codex round 1
-  (brief `work-record/nutrition/codex-review-c1-n9b-prompt.md`, report `codex-review-c1-n9b.md`). Was: the ONE verification
-  pass for both (Unit plan + `HealthNutritionSyncTests` ×10 + UI classes `AppleHealthUITests`, `BodyWeightUITests`,
-  `TodayFoodUITests`, `FloodlightProfileUITests`, `FloodlightScanUITests`, `AskAIUITests`; captures of changed
-  screens), then ONE Codex review of both in the Codex terminal below, fix to clear, ff-merge `main`.
-  The task as the user set it (2026-11-10): C1 then N9b on one branch, then test and Codex-review them together; no
-  Codex or long test runs between them. **For the user (not blocking):** C1's camera/photo-library permission
-  wording (left; proposal in C1's ticket); N9b's own decisions 1–5 and new strings (N9 ticket).
+- **Resume here (2026-11-11).** **C1 + N9b DONE: Codex clear (round 3), merged into `main`** (branch
+  `ericlee4992/c1-n9b`). C1: no "AI" wording outside feature names (lines in `work-record/copy/issues/01-no-ai-wording.md`).
+  N9b: Apple Health — Profile → Apple Health (read weight, read Burned, save weight, save food), reconcile sync by sync
+  ids (`Domain/HealthNutritionSync.swift`, `Domain/HealthKitNutritionStore.swift`); 3 Codex rounds (T1 privacy: Ask AI
+  prefills only an entered weight; S1–S7, R2-S1 fixed). Evidence and Verified / Not verified in the N9 ticket.
+  **Next, in order:** N10, N8, R. **For the user (not blocking):** C1's camera/photo-library permission wording (left;
+  proposal in C1's ticket); N9b's own decisions 1–5 and new strings (N9 ticket). Known flaky:
+  `FloodlightAIRoutineUITests.testBackKeepsInputsAndLeavingTheWeekAsksFirst` (Train tab, parallel run; serial passes).
+  The user (2026-11-11) kept the review/test workflow as is (asked why rounds take long; no rule change).
   **N7 DONE (2026-11-10 night): Scan Food — Codex clear (round 4), merged.** D83 = the user's N7 answers (one entry
   named for the meal, name from the server, describe logged at once, both entry points, notification asked on the first
   scan, no consent screen, no "AI" wording, a library photo's own time). Data: `FoodPhoto` + `FoodEntryItem` (approved

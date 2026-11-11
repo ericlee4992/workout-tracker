@@ -1,7 +1,7 @@
 # N9 — Body weight logging and Apple Health
 
 Type: feature
-Status: **N9a done — Codex clear (round 2), merged** (2026-11-10); **N9b (Apple Health) built** on `ericlee4992/c1-n9b` (2026-11-10), verification + Codex review pending together with C1; was: next, grouped with C1 (the user, 2026-11-10: build C1 and N9b, then test and Codex-review them together as one task); split by Claude overnight: **N9a** body weight logging, **N9b** Apple Health — usage strings **approved** (below)
+Status: **N9a done — Codex clear (round 2), merged** (2026-11-10); **N9b (Apple Health) done — Codex clear (round 3), merged with C1** (2026-11-11) (the user, 2026-11-10: build C1 and N9b, then test and Codex-review them together as one task); split by Claude overnight: **N9a** body weight logging, **N9b** Apple Health — usage strings **approved** (below)
 Blocked by: N2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-09-weight-health` off `main`.
@@ -181,3 +181,8 @@ a store that keeps refusing). Codex's parallel UI run had one failure — `Flood
 testBackKeepsInputsAndLeavingTheWeekAsksFirst` at the Train tab, before any changed code — and the serial class rerun
 passed 15/15: known flaky. Evidence: build exit 0; `HealthNutritionSyncTests` 25 × 10 = 250/250 (`r3-health10.xcresult`);
 Unit plan 1,257/1,257 (`r3-unit.xcresult`). No view changed: UI not rerun (round 2's `r2-ui` 20/20 stands).
+
+**Round 3 (`codex-review-c1-n9b-c.md`): clear** — no findings; reviewer's build exit 0, Unit 1,257/1,257, Health suite
+250/250, ordering/cancellation probes exit 0; UI evidence inspected (no view changed). Merged into `main` with C1 (the
+user's standing permission "merge whenever Codex clear"). Real HealthKit (permission sheets, replacement, deletes) is
+checked on the phone at R.
