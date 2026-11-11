@@ -58,13 +58,7 @@ struct FoodScanFlow: View {
                     FoodScanReadingLabel(label: $label, onCancel: { dismiss() }, onRetake: retake, onManual: manual)
                         .toolbar(.hidden, for: .navigationBar)
                 case .labelFood:
-                    if let label, let reading = label.reading {
-                        LabelFoodView(reading: reading, image: label.shot.image,
-                                      meal: label.shot.taken.map { FoodScan.when(photoTaken: $0).meal }
-                                        ?? meal ?? MealSlot.forTime(.now),
-                                      eatenAt: FoodScan.when(photoTaken: label.shot.taken).date,
-                                      onRetake: retake) { done() }
-                    }
+                    LabelFoodStep(label: $label, meal: meal, onRetake: retake, onLogged: done)
                 }
             }
         }
@@ -572,6 +566,24 @@ private struct FoodScanReadingLabel: View {
 }
 
 // MARK: - The label's food
+
+/// The label's food once read — through a binding, so the step shows the reading that arrived after it was pushed.
+private struct LabelFoodStep: View {
+    @Binding var label: FoodScanFlow.LabelState?
+    var meal: MealSlot?
+    var onRetake: () -> Void
+    var onLogged: () -> Void
+
+    var body: some View {
+        if let label, let reading = label.reading {
+            // A picked photo's time decides its meal (D83); a camera label: Log food's meal or the time's.
+            LabelFoodView(reading: reading, image: label.shot.image,
+                          meal: label.shot.taken.map { FoodScan.when(photoTaken: $0).meal } ?? meal ?? MealSlot.forTime(.now),
+                          eatenAt: FoodScan.when(photoTaken: label.shot.taken).date,
+                          onRetake: onRetake, onLogged: onLogged)
+        }
+    }
+}
 
 /// The Selected food screen (N4) prefilled from the label: the serving and every number as printed; the name is the
 /// user's (a label has none). Log is the one primary; "Save to My foods" is on, so the next time it is one tap.
