@@ -78,10 +78,15 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
   to edit the name, meal or any item, or delete it with Undo. *Food label*: the label inside the box is read and opens
   as a food to name and log, saved to My foods if you like. *Barcode* comes next. Typing in Log food's search also
   offers **Estimate "…"**, logged the same way. Meal photos stay out of the JSON export (it carries their items).
-- **Body weight** *(on `main`, not yet in TestFlight; Apple Health sync comes next)*. Profile → Body weight shows your
+- **Body weight** *(on `main`, not yet in TestFlight)*. Profile → Body weight shows your
   latest weight and its history; Log weight takes the figure with ± steps in your unit (kg or lb, kept as entered) and
   the time; tap an entry to change or delete it. When your weight is more than about 2 kg from the one your nutrition
   goals were calculated at, it offers to recalculate them.
+- **Apple Health for food and weight** *(on `main`, not yet in TestFlight)*. Profile → Apple Health has a switch for
+  each part, each asking Health's permission when first turned on: read your body weight (shown in Body weight's
+  history as "Apple Health", read-only), read the day's active energy (shown as Burned on Today, never added to the
+  budget), save the weights you log, and save each food entry's calories, protein, carbs and fat. Edits and deletes
+  follow to Health; turning a switch off stops new changes and leaves what is already in Health.
 - **Nutrition goals** *(on `main`, not yet in TestFlight)*. Profile → Personal details
   holds your weight, height, date of birth and sex — one place, also used by the heart-rate zones and Ask AI. From
   them Profile → Nutrition goals calculates daily calories, protein, carbs and fat (Mifflin–St Jeor, your activity and

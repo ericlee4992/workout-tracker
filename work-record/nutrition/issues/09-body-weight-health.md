@@ -121,6 +121,19 @@ steps, Time, Cancel / Save, Delete Weight when editing. New entries use the late
   A standard settings list: no mock round (no new structure; Preferences' look). Tells: accent fill — absent (switches
   are state); card around a sentence — absent (the footnote is plain text); second hero — absent.
 
+**Verification (one pass for C1 + N9b, 2026-11-10; scope per DEVELOPMENT — a new feature: its tests plus adjacent flows;
+C1: the flows whose text changed).** Build-for-testing exit 0. `HealthNutritionSyncTests` 15 × 10 = 150/150
+(`/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/20f5b25b-92e7-448e-a00d-dbd68fee92a9/scratchpad/c1n9b-health10.xcresult`); Unit plan 1,247/1,247 (`c1n9b-unit`); `AppleHealthUITests` + warm-up 5/5
+(`c1n9b-ui1`, captures looked at: `att1/`); BodyWeight, TodayFood, FloodlightProfile, FloodlightScan,
+FloodlightAIRoutine, NutritionGoals + warm-up 65/65, 2 workers (`c1n9b-ui2`). AskAIUITests not run: no test there reads a
+changed string; the changed error lines are unit-tested.
+
+```
+Verified: HealthNutritionSyncTests 150/150, Unit plan 1,247/1,247, AppleHealthUITests 5/5, affected UI classes 65/65 — exit 0 each
+Not verified: the real HealthKit store (permission sheets, sync-version replacement, deletes) — the Simulator/phone check at R; AskAIUITests; VoiceOver by a person
+Known flaky: none seen
+```
+
 ## Comments
 
 **Round 1 (`codex-review-n9a.md`): not clear — 2 P2, 1 P3.** Fixed: (1) the Log weight sheet keeps the stored figure
