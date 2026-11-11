@@ -16,14 +16,15 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Decisions this morning (the user):** D79 amended; deploy at R; **D82** — meal-photo scan: a progress card in
   Today's log, logged at once (tap to edit), the photo kept on the phone; Health usage strings approved (N9b); the
   Nutrition goals page keeps recalculating from the latest weight on a visit (no change to N3).
-  **N7 IN PROGRESS (2026-11-10 night): wired, in Codex review round 1** — branch `ericlee4992/nutrition-07-scan-food`
-  (pushed). D83 (the user's answers: one entry named for the meal, name from the server, describe logged at once, both
-  entry points, notification asked on the first scan, no consent screen, no "AI" wording, a library photo's own time).
-  Data change approved (fingerprint `15051efe…`; the user skipped the backup steps). Live check done (ticket). Verified:
-  nutrition unit suites 66/66, ScanFood/TodayFood/LogFood/LogFoodFlow UI, captures. Codex brief
-  `work-record/nutrition/codex-review-n7-prompt.md` → report `codex-review-n7.md` (terminal `term_3f1b832a…`).
-  Next: fix findings → clear → merge; then **C1** (`work-record/copy/issues/01-no-ai-wording.md`, approved wording),
-  N9b, N8, N10, R. Strings and own decisions to confirm: N7's ticket.
+  **N7 IN PROGRESS (2026-11-10 night): Codex round 2** — branch `ericlee4992/nutrition-07-scan-food` (pushed). Round 1
+  (`work-record/nutrition/codex-review-n7.md`): not clear, 8 × P2 + P3 — all fixed in `cb9ef04` (photo now a
+  `FoodPhoto` row so safety copies are complete; sign-in/expired session; earlier-day card; lossless item numbers;
+  capture snapshot; owned tasks; background expiry; Reduce Motion; README + privacy draft; test plan). Verified after
+  the fixes: Unit plan 1,232/1,232, ScanFood+TodayFood+LogFood+LogFoodFlow 27/27, server 254/254. Round 2 brief
+  `codex-review-n7b-prompt.md` → `codex-review-n7b.md`, in a NEW Codex terminal `term_20f2d1c6-628e-4ca8-9110-48b74ef8ec31`
+  ("Review N7 round 2 (Codex)"; the old `term_3f1b832a…` is at 10 % context — retired). D83 = the user's N7 answers.
+  Next: fix round-2 findings → clear → ff-merge `main`; then **C1** (`work-record/copy/issues/01-no-ai-wording.md`,
+  approved wording), N9b, N8, N10, R. To confirm with the user: N7's new strings, own decisions, the privacy draft line.
   **NEXT (was): N7 — Scan Food** (the user: start it in a new session). Branch `ericlee4992/nutrition-07-scan-food` off
   `main` in this worktree. **Mocks only first** (sample data, nothing stored; screenshots light/default + dark/AXL;
   SendUserFile + Preview) and wait for the user's approval before wiring: the camera with modes Scan food | Barcode
