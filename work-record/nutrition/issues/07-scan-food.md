@@ -1,7 +1,7 @@
 # N7 — Scan Food camera: meal photo and food label
 
 Type: feature
-Status: **wiring** (2026-11-10) — mock approved with D83's answers; the user: "skip backup steps for wiring N7"
+Status: **done — Codex clear (round 4), merged** (2026-11-10) — mock approved with D83's answers; the user: "skip backup steps for wiring N7"
 Blocked by: N4, N6
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-07-scan-food` off `main`.
@@ -37,6 +37,26 @@ Point the camera at a meal or a nutrition label, check the estimate, and log it.
 1. Each mode on the Simulator with fixture responses (UI tests with a stubbed server), including every failure state.
 2. A real scan of a sample meal and a sample label on the Simulator or phone (no personal photos in the repo).
 3. Captures (default / AccessibilityL, light / dark); Codex clear.
+
+**Review (Codex, 4 rounds — `work-record/nutrition/codex-review-n7*.md`):** round 1 not clear (8 × P2 + P3: signed-out
+describe, earlier-day result, rounded item numbers, mode change during capture, stale import/label work, background
+expiry, **photos outside the safety copy** → photo moved into a `FoodPhoto` row, Reduce Motion, README/privacy) — all
+fixed in `cb9ef04`; round 2 (fresh Codex session) not clear (2 × P2: earlier-day card after Delete/Undo, Cancel during
+a capture) — fixed in `d217517`; round 3 one P3 (empty state) — fixed in `16482c3`; **round 4 clear**.
+
+**Evidence (final):** Unit plan 1,232/1,232 definitions (1,252 executions); ScanFood 13/13 + TodayFood 7/7 (Claude
+`v4.xcresult`; Codex `/tmp/codex-n7d/ui.xcresult` 21/21 with warm-up); LogFood 5/5 + LogFoodFlow 5/5 (Claude `v2`,
+Codex round 2); server 254/254 + tsc; test-plan check exit 0; live check (above).
+
+Verified / Not verified / Known flaky:
+- **Verified:** build; Unit plan; ScanFood, TodayFood, LogFood, LogFoodFlow UI classes; server tests; captures at
+  light/Default and dark/AccessibilityL; the three food flows live on the local server; a 2 MB photo through the real
+  safety copy and restore.
+- **Not verified:** the physical camera (crop, focus, restart), a delayed iCloud photo import, iOS ending background
+  time, live notifications, the app against a live server with a real sign-in, CloudKit, a phone install, the full UI
+  suite (at R).
+- **Known flaky:** `ScanFoodUITests.testADescriptionIsLoggedAtOnce` lost its first Log food tap twice under 2 parallel
+  workers (rounds 1–2; passed serially); it now taps once more — cause not established.
 
 ## Code map
 
