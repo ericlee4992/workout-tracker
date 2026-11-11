@@ -260,8 +260,13 @@ struct TodayView: View {
         return VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Today's log")
             // N7 (D82): a scan in flight or failed, first.
-            ForEach(scans.pending) { scan in
-                ScanPendingCard(scan: scan, retake: { scans.dismiss(scan.id); showScan = true },
+            ForEach(scans.pending.filter { scan in
+                // An earlier-day card shows while its entry exists (deleted: hidden, back on Undo — R2-S1).
+                scan.loggedEarlierID.map { id in foodEntries.contains { $0.id == id } } ?? true
+            }) { scan in
+                ScanPendingCard(scan: scan,
+                                loggedEarlier: scan.loggedEarlierID.flatMap { id in foodEntries.first { $0.id == id } },
+                                retake: { scans.dismiss(scan.id); showScan = true },
                                 retry: { scans.retry(scan.id, client: TerraAccess.client(account), context: modelContext) },
                                 manualAdd: { scans.dismiss(scan.id); manualFromScan = true },
                                 signIn: { signInFor = scan.id; showSignIn = true },

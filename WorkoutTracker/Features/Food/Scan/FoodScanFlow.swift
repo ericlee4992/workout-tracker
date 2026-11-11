@@ -219,7 +219,7 @@ private struct FoodScanCameraContent: View {
         .background(Color.black.ignoresSafeArea())
         .photosPicker(isPresented: $picking, selection: $picked, matching: .images)
         .onChange(of: picked) { _, item in if let item { load(item) } }
-        .onDisappear { importTask?.cancel() }
+        .onDisappear { closeDown() }
         .sensoryFeedback(.impact(weight: .medium), trigger: shutterTaps)
         .sensoryFeedback(.selection, trigger: mode)
     }
@@ -378,14 +378,29 @@ private struct FoodScanCameraContent: View {
             withAnimation(.easeOut(duration: 0.07)) { flash = 0.85 }
             withAnimation(.easeIn(duration: 0.35).delay(0.08)) { flash = 0 }
         }
-        if fixture {
+        if fixture && !ProcessInfo.processInfo.arguments.contains("-uiTestFoodScanSlowShutter") {
             let art = mode == .meal ? FoodScanArt.meal : FoodScanArt.label
             send(art, mode: mode, region: nil, taken: nil, fromLibrary: false)
         } else {
             let id = UUID()
             capture = (id, mode, geometry.frame, geometry.size)
             captureID = id
+            if fixture {
+                // UI tests: the photo arrives 2 s after the tap, like a slow camera, through the same callback.
+                let art = mode == .meal ? FoodScanArt.meal : FoodScanArt.label
+                Task {
+                    try? await Task.sleep(for: .seconds(2))
+                    photo(CapturedLabel(requestID: id, image: art, region: CGRect(x: 0, y: 0, width: 1, height: 1)))
+                }
+            }
         }
+    }
+
+    /// Cancel or the camera going away: a photo still on its way is not sent (codex-review-n7b R2-S2), nor a picked one.
+    private func closeDown() {
+        captureID = nil
+        capture = nil
+        importTask?.cancel()
     }
 
     private func photo(_ captured: CapturedLabel) {
@@ -458,7 +473,7 @@ private struct FoodScanCameraContent: View {
     private var topBar: some View {
         HStack {
             GlassCapsuleButton("Cancel") {
-                importTask?.cancel()
+                closeDown()
                 camera.onCancel()
             }
             .accessibilityIdentifier("scanFoodCancel")

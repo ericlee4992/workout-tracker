@@ -120,6 +120,51 @@ final class ScanFoodUITests: XCTestCase {
         XCTAssertTrue(app.buttons["scanItem.Tuna poke"].exists)
     }
 
+    /// codex-review-n7b R2-S1: the earlier-day card follows its entry through Delete and Undo, and Open edits the restored
+    /// entry.
+    func testAnEarlierDayCardFollowsItsEntryThroughDeleteAndUndo() {
+        launch("light", large: false, ["-uiTestFoodScanYesterday"])
+        openCamera()
+        app.buttons["scanFoodLibrary"].tap()
+        let open = app.buttons["scanOpenEarlier"]
+        XCTAssertTrue(open.waitForExistence(timeout: 10))
+        reveal(open)
+        open.tap()
+        XCTAssertTrue(app.buttons["scanEntryDelete"].waitForExistence(timeout: 5))
+        app.swipeUp()
+        app.buttons["scanEntryDelete"].tap()
+        XCTAssertTrue(app.buttons["todayUndoDelete"].waitForExistence(timeout: 5))
+        XCTAssertFalse(open.exists, "deleted: its card is hidden")
+        app.buttons["todayUndoDelete"].tap()
+        XCTAssertTrue(open.waitForExistence(timeout: 5), "Undo brings the card back")
+        reveal(open)
+        open.tap()
+        // Edit the restored entry: remove an item and save; reopening shows the edit.
+        let mango = app.buttons["scanItem.Mango"]
+        XCTAssertTrue(mango.waitForExistence(timeout: 5))
+        if !mango.isHittable { app.swipeUp() }
+        mango.tap()
+        app.buttons["scanItemRemove"].tap()
+        app.buttons["scanEntrySave"].tap()
+        XCTAssertTrue(open.waitForExistence(timeout: 5))
+        reveal(open)
+        open.tap()
+        XCTAssertTrue(app.buttons["scanItem.Tuna poke"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["scanItem.Mango"].exists, "the edit landed on the restored entry")
+    }
+
+    /// codex-review-n7b R2-S2: a photo still on its way when Cancel is tapped is not sent or logged.
+    func testCancelDropsAPhotoStillOnItsWay() {
+        launch("light", large: false, ["-uiTestFoodScanSlowShutter"])
+        openCamera()
+        app.buttons["scanFoodShutter"].tap()
+        app.buttons["scanFoodCancel"].tap()
+        XCTAssertTrue(app.buttons["logFoodPill"].waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 4)
+        XCTAssertFalse(card.exists, "nothing was sent")
+        XCTAssertFalse(app.buttons["todayEntry.Poke bowl"].exists, "nothing was logged")
+    }
+
     /// codex-review-n7 S1: signed out, Estimate asks to sign in and sends nothing.
     func testASignedOutDescriptionAsksToSignInFirst() {
         launch("light", large: false, ["-uiTestProfileSignedOut"])
@@ -172,7 +217,10 @@ final class ScanFoodUITests: XCTestCase {
         XCTAssertTrue(pill.waitForExistence(timeout: 5) && pill.isHittable)
         pill.tap()
         let search = app.textFields["logFoodSearch"]
-        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        // Under two parallel workers the first tap has twice been lost while Today settled (codex-review-n7/n7b):
+        // tap again once rather than fail on navigation this test is not about.
+        if !search.waitForExistence(timeout: 5) { pill.tap() }
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
         search.tap()
         search.typeText("2 eggs and toast")
         app.buttons["logFoodDescribe"].tap()

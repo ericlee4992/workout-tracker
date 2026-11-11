@@ -20,6 +20,8 @@ enum ScanCopy {
 /// A scan in flight or failed, at the top of Today's log.
 struct ScanPendingCard: View {
     var scan: FoodScanQueue.Pending
+    /// The live entry an earlier-day card points to (nil while it is deleted — then the card is not shown).
+    var loggedEarlier: FoodEntry? = nil
     var retake: () -> Void
     var retry: () -> Void
     var manualAdd: () -> Void
@@ -29,7 +31,7 @@ struct ScanPendingCard: View {
     @Environment(\.dynamicTypeSize) private var typeSize
     @ScaledMetric(relativeTo: .body) private var tile: CGFloat = 112
 
-    private var analyzing: Bool { scan.failure == nil && scan.loggedEarlier == nil }
+    private var analyzing: Bool { scan.failure == nil && scan.loggedEarlierID == nil }
 
     var body: some View {
         let layout = typeSize.isAccessibilitySize
@@ -44,8 +46,8 @@ struct ScanPendingCard: View {
                        maxHeight: typeSize.isAccessibilitySize ? nil : .infinity)
                 .clipped()
             Group {
-                if let entry = scan.loggedEarlier, !entry.isDeleted {
-                    loggedEarlier(entry)
+                if let entry = loggedEarlier {
+                    loggedEarlierText(entry)
                 } else if let failure = scan.failure {
                     failed(failure)
                 } else {
@@ -70,8 +72,8 @@ struct ScanPendingCard: View {
                 Color.black.overlay {
                     Image(uiImage: image).resizable().scaledToFill()
                         .blur(radius: analyzing ? 7 : 0)
-                        .saturation(analyzing || scan.loggedEarlier != nil ? 1 : 0)
-                        .overlay(Color.black.opacity(analyzing ? 0.28 : scan.loggedEarlier != nil ? 0 : 0.45))
+                        .saturation(analyzing || scan.loggedEarlierID != nil ? 1 : 0)
+                        .overlay(Color.black.opacity(analyzing ? 0.28 : scan.loggedEarlierID != nil ? 0 : 0.45))
                 }
                 .clipped()
             } else {
@@ -83,7 +85,7 @@ struct ScanPendingCard: View {
             }
             if analyzing {
                 PercentRing(startedAt: scan.startedAt, onPhoto: scan.preview != nil)
-            } else if scan.loggedEarlier != nil {
+            } else if scan.loggedEarlierID != nil {
                 EmptyView()
             } else {
                 let ink = scan.preview == nil ? look.textPrimary : Color.white
@@ -118,7 +120,7 @@ struct ScanPendingCard: View {
 
     // MARK: Logged to an earlier day (codex-review-n7 S2)
 
-    private func loggedEarlier(_ entry: FoodEntry) -> some View {
+    private func loggedEarlierText(_ entry: FoodEntry) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .firstTextBaseline) {
                 Text(TodayFoodCopy.name(of: entry))

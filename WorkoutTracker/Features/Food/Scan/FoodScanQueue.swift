@@ -38,8 +38,9 @@ final class FoodScanQueue {
         let startedAt: Date
         var failure: Failure?
         /// Logged to an earlier day (a library photo taken then, D83): Today does not list that day, so the card stays
-        /// with Open until removed (codex-review-n7 S2).
-        var loggedEarlier: FoodEntry?
+        /// with Open until removed (codex-review-n7 S2). The entry's ID, resolved against the live entries each time —
+        /// after Delete and Undo the entry is a new object with the same ID (codex-review-n7b R2-S1).
+        var loggedEarlierID: UUID?
     }
 
     private(set) var pending: [Pending] = []
@@ -139,7 +140,7 @@ final class FoodScanQueue {
                 if Calendar.current.isDateInToday(entry.loggedAt) {
                     pending.remove(at: index)
                 } else {
-                    pending[index].loggedEarlier = entry
+                    pending[index].loggedEarlierID = entry.id
                 }
                 revision += 1
                 notify(title: FoodScanCopy.loggedTitle(entry.name),
