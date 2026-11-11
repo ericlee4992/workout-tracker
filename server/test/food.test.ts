@@ -2,7 +2,8 @@ import { env } from "cloudflare:test";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   BARCODE_HIT_TTL_MS, BARCODE_MISS_TTL_MS, EMPTY_SEARCH_TTL_MS, FOOD_DAILY_LIMITS, FOOD_USER_AGENT, SEARCH_TTL_MS,
-  USDA_GENERIC_TYPES, cleanQuery, fromOpenFoodFacts, gtinForms, normalizeBarcode, pruneFood, rankFoods, tidyName,
+  USDA_GENERIC_TYPES, cleanQuery, fromOpenFoodFacts, fromUSDAGeneric, gtinForms, normalizeBarcode, pruneFood, rankFoods,
+  sameGTIN, tidyName,
 } from "../src/food";
 import { count, harness, USDA_KEY, type Harness } from "./helpers";
 
@@ -67,7 +68,7 @@ describe("barcodes", () => {
     expect(await body(response)).toEqual({
       found: true,
       food: {
-        id: `off:${NUTELLA}`, source: "openFoodFacts", name: "Nutella", brand: "Ferrero", barcode: NUTELLA,
+        id: `off:${NUTELLA}`, source: "openFoodFacts", name: "Nutella", brand: "Ferrero", barcode: NUTELLA, per100Unit: "g",
         per100g: { calories: 539, protein: 6.3, carbs: 57.5, fat: 30.9, saturatedFat: 10.6, fiber: 0, sugar: 56.3, sodiumMg: 42.8 },
         // The serving's own numbers as the product gives them; what it does not give per serving stays unknown.
         serving: {
@@ -124,7 +125,7 @@ describe("barcodes", () => {
     expect(await body(response)).toEqual({
       found: true,
       food: {
-        id: "usda:2345678", source: "usda", name: "Coca-Cola Classic", brand: "Coca-Cola", barcode: COKE,
+        id: "usda:2345678", source: "usda", name: "Coca-Cola Classic", brand: "Coca-Cola", barcode: COKE, per100Unit: "ml",
         per100g: { calories: 39, protein: 0, carbs: 10.6, fat: 0, saturatedFat: null, fiber: null, sugar: 10.6, sodiumMg: 12.7 },
         // A drink given per 100 ml: the serving keeps its millilitres, with no grams claimed.
         serving: {
@@ -218,6 +219,78 @@ describe("barcodes", () => {
     expect(await count("food_limits")).toBe(0);
   });
 
+  it("an EAN-8 is found at USDA under its zero-padded forms, and cached (codex-review-n8 S1)", async () => {
+    for (const stored of ["96385074", "0000096385074", "00000096385074"]) {
+      await env.DB.prepare("DELETE FROM food_cache").run();
+      h.food.usda = () => usdaAnswer([usdaBranded({ gtinUpc: stored })]);
+      expect(await body(await barcode("96385074")), stored).toMatchObject({ found: true, food: { barcode: "96385074" } });
+      const row = await env.DB.prepare("SELECT body FROM food_cache").first<{ body: string }>();
+      expect(row!.body, stored).not.toBe("null");
+    }
+    expect(sameGTIN("0000096385074", "96385074")).toBe(true);
+    expect(sameGTIN("0000096385075", "96385074")).toBe(false);  // its check digit is wrong
+    expect(sameGTIN("x96385074", "96385074")).toBe(false);
+  });
+
+  it("a drink sold by volume keeps its per-100 ml basis, with or without a serving (codex-review-n8 S2)", async () => {
+    h.food.off = () => offFound(offProduct({
+      product_name: "Orange juice", quantity: "1 L", serving_size: undefined, serving_quantity: undefined,
+      nutriments: { "energy-kcal_100g": 45, carbohydrates_100g: 10.4, sugars_100g: 8.4 },
+    }));
+    const juice = (await body(await barcode(NUTELLA))).food;
+    expect(juice).toMatchObject({ per100Unit: "ml", serving: null, per100g: { calories: 45 } });
+    // By its serving's unit.
+    await env.DB.prepare("DELETE FROM food_cache").run();
+    h.food.off = () => offFound(offProduct({
+      serving_size: "1 can (355 mL)", serving_quantity: 355, serving_quantity_unit: "mL", quantity: "6 x 355 mL",
+      nutriments: { "energy-kcal_100g": 42, carbohydrates_100g: 10.6 },
+    }));
+    expect((await body(await barcode(NUTELLA))).food).toMatchObject({ per100Unit: "ml", serving: { grams: null } });
+    // Sold by weight: grams.
+    expect(fromOpenFoodFacts(NUTELLA, offProduct({ quantity: "400 g" }))?.per100Unit).toBe("g");
+  });
+
+  it("a reply that is not the source's shape is a failure, never a miss to cache (codex-review-n8 S4)", async () => {
+    h.food.off = () => Response.json({ error: "temporary upstream failure" });
+    expect((await barcode(NUTELLA)).status).toBe(502);
+    h.food.off = () => Response.json({ status: 1, product: "nope" });
+    expect((await barcode(NUTELLA)).status).toBe(502);
+    h.food.off = offMissing;
+    h.food.usda = () => Response.json({ error: { code: "OVER_RATE_LIMIT" } });
+    expect((await barcode(NUTELLA)).status).toBe(502);
+    expect((await search("banana")).status).toBe(502);
+    h.food.usda = () => Response.json({ foods: "none" });
+    expect((await search("apple")).status).toBe(502);
+    expect(await count("food_cache")).toBe(0);
+    // An explicit empty answer is still an empty answer.
+    h.food.usda = () => usdaAnswer([]);
+    expect(await body(await barcode(NUTELLA))).toEqual({ found: false });
+    expect(await count("food_cache")).toBe(1);
+  });
+
+  it("a server error on the barcode route never logs the code (codex-review-n8 S3)", async () => {
+    const errors: unknown[][] = [];
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => { errors.push(args); });
+    const real = h.env.DB;
+    h.env.DB = new Proxy(real, {
+      get(target, property) {
+        if (property === "prepare") {
+          return (sql: string) => {
+            if (sql.includes("food_limits")) throw new Error("d1 down");
+            return target.prepare(sql);
+          };
+        }
+        const value = Reflect.get(target, property);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+    const response = await barcode("96385074");
+    h.env.DB = real;
+    expect(response.status).toBe(500);
+    expect(errors).toEqual([["unhandled", "GET /v1/food/barcode/:code", "Error"]]);
+    expect(JSON.stringify(errors)).not.toContain("96385074");
+  });
+
   it("signed in only", async () => {
     expect((await h.call("GET", `/v1/food/barcode/${NUTELLA}`)).status).toBe(401);
     expect((await barcode(NUTELLA, "not-a-session")).status).toBe(401);
@@ -233,7 +306,7 @@ describe("search by name", () => {
     expect(response.status).toBe(200);
     expect(await body(response)).toEqual({
       foods: [{
-        id: "usda:173944", source: "usda", name: "Bananas, raw", brand: null, barcode: null,
+        id: "usda:173944", source: "usda", name: "Bananas, raw", brand: null, barcode: null, per100Unit: "g",
         per100g: { calories: 89, protein: 1.09, carbs: 22.84, fat: 0.33, saturatedFat: null, fiber: 2.6, sugar: 12.23, sodiumMg: 1 },
         serving: {
           text: "1 cup, sliced", grams: 150,
@@ -340,7 +413,7 @@ describe("normalisation helpers", () => {
   });
 
   it("ranks the food itself before dishes with it; raw first, then the plainer name (live check order)", () => {
-    const food = (name: string) => ({ id: name, source: "usda" as const, name, brand: null, barcode: null, per100g: null, serving: null, measures: [] });
+    const food = (name: string) => ({ id: name, source: "usda" as const, name, brand: null, barcode: null, per100g: null, per100Unit: "g" as const, serving: null, measures: [] });
     const names = (q: string, list: string[]) => rankFoods(q, list.map(food)).map((f) => f.name);
     expect(names("banana", ["Bananas, dehydrated, or banana powder", "Banana, baked", "Cake, banana", "Bananas, raw", "Banana, raw"]))
       .toEqual(["Bananas, raw", "Banana, raw", "Banana, baked", "Bananas, dehydrated, or banana powder", "Cake, banana"]);
@@ -363,11 +436,32 @@ describe("normalisation helpers", () => {
     expect(tidyName("123")).toBe("123");
   });
 
-  it("refuses impossible numbers rather than logging them", () => {
-    expect(fromOpenFoodFacts(NUTELLA, offProduct({ nutriments: { "energy-kcal_100g": 4000 } }))).toBeNull();
-    expect(fromOpenFoodFacts(NUTELLA, offProduct({ nutriments: { "energy-kcal_100g": -5 } }))).toBeNull();
+  it("refuses impossible numbers rather than logging them (codex-review-n8 S5)", () => {
+    const off = (nutriments: Record<string, unknown>, extra: Record<string, unknown> = {}) =>
+      fromOpenFoodFacts(NUTELLA, offProduct({ serving_size: undefined, serving_quantity: undefined, nutriments, ...extra }));
+    expect(off({ "energy-kcal_100g": 4000 })).toBeNull();
+    expect(off({ "energy-kcal_100g": -5 })).toBeNull();
     expect(fromOpenFoodFacts(NUTELLA, offProduct({ product_name: "  " }))).toBeNull();
-    const food = fromOpenFoodFacts(NUTELLA, offProduct({ nutriments: { "energy-kcal_100g": "250", fat_100g: "NaN" } }));
-    expect(food?.per100g).toMatchObject({ calories: 250, fat: 0 });
+    // A supplied value that is negative, not a number or more than its basis makes the set unusable — not 0, not missing.
+    expect(off({ "energy-kcal_100g": 100, proteins_100g: 10_000 })).toBeNull();
+    expect(off({ "energy-kcal_100g": 100, carbohydrates_100g: -5 })).toBeNull();
+    expect(off({ "energy-kcal_100g": 250, fat_100g: "NaN" })).toBeNull();
+    expect(off({ "energy-kcal_100g": 400, proteins_100g: 40, carbohydrates_100g: 40, fat_100g: 40 })).toBeNull();
+    expect(off({ "energy-kcal_100g": 100, sodium_100g: 150 })).toBeNull();
+    // Numbers given as text are numbers; omitted macros are 0, other omitted facts unknown.
+    expect(off({ "energy-kcal_100g": "250", fat_100g: "10" })?.per100g).toMatchObject({ calories: 250, fat: 10, protein: 0, fiber: null });
+    // A serving whose own numbers are impossible for its weight falls back to 100 g scaled.
+    const food = fromOpenFoodFacts(NUTELLA, offProduct({
+      serving_size: "1 bar (40 g)", serving_quantity: 40,
+      nutriments: { "energy-kcal_100g": 500, fat_100g: 20, "energy-kcal_serving": 200, fat_serving: 50 },
+    }));
+    expect(food?.serving?.nutrients).toMatchObject({ calories: 200, fat: 8 });
+    // A serving's calories beyond 9 kcal a gram.
+    expect(fromOpenFoodFacts(NUTELLA, offProduct({
+      serving_size: "1 piece (10 g)", serving_quantity: 10, nutriments: { "energy-kcal_serving": 500 },
+    }))).toBeNull();
+    // USDA: the same rules.
+    expect(fromUSDAGeneric({ ...banana, foodNutrients: [nutrient(1008, 89, "KCAL"), nutrient(1003, -1)] })).toBeNull();
+    expect(fromUSDAGeneric({ ...banana, foodNutrients: [nutrient(1008, 89, "KCAL"), nutrient(1005, 500)] })).toBeNull();
   });
 });

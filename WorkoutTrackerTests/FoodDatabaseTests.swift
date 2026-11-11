@@ -84,7 +84,57 @@ struct FoodDatabaseTests {
             "serving": ["text": "1", "nutrients": ["calories": true, "protein": 0, "carbs": 0, "fat": 0]]])) == nil)
     }
 
+    @Test func impossibleNutritionIsRefusedNotZeroed() throws {
+        // codex-review-n8 S5: the server's bounds, checked again — per 100 g nothing weighs more than 100 g (with slack).
+        let per100 = { (overrides: [String: Any]) -> [String: Any] in
+            var n: [String: Any] = ["calories": 100, "protein": 1, "carbs": 1, "fat": 1]
+            overrides.forEach { n[$0.key] = $0.value }
+            return self.json(["per100g": n, "serving": NSNull()])
+        }
+        #expect(DatabaseFood(json: per100([:])) != nil)
+        #expect(DatabaseFood(json: per100(["protein": 10_000])) == nil)
+        #expect(DatabaseFood(json: per100(["protein": 40, "carbs": 40, "fat": 40])) == nil)
+        #expect(DatabaseFood(json: per100(["sodiumMg": 150_000])) == nil)
+        #expect(DatabaseFood(json: per100(["fiber": -1])) == nil)
+        // A serving of known weight: bounded by it, and by 9 kcal a gram.
+        let serving = { (grams: Any, nutrients: [String: Any]) -> [String: Any] in
+            self.json(["per100g": NSNull(), "serving": ["text": "1 bar", "grams": grams, "nutrients": nutrients]])
+        }
+        #expect(DatabaseFood(json: serving(40, ["calories": 200, "protein": 5, "carbs": 20, "fat": 10])) != nil)
+        #expect(DatabaseFood(json: serving(40, ["calories": 200, "protein": 0, "carbs": 0, "fat": 50])) == nil)
+        #expect(DatabaseFood(json: serving(10, ["calories": 500, "protein": 0, "carbs": 0, "fat": 0])) == nil)
+        // A drink per 100 ml may weigh more than 100 g (a syrup), within 1.5 g a millilitre.
+        let syrup = self.json(["per100Unit": "ml", "serving": NSNull(),
+                               "per100g": ["calories": 400, "protein": 0, "carbs": 110, "fat": 0, "sugar": 110]])
+        #expect(DatabaseFood(json: syrup)?.per100Unit == .ml)
+        #expect(DatabaseFood(json: self.json(["per100Unit": "cup"])) == nil)
+    }
+
     // MARK: Kept on the phone
+
+    @Test func aDrinkPer100mlIsKeptAs100mlWithNoWeight() throws {
+        // codex-review-n8 S2: no package serving, numbers per 100 ml — 100 ml, never 100 g.
+        let juice = try #require(DatabaseFood(json: json([
+            "per100Unit": "ml", "serving": NSNull(),
+            "per100g": ["calories": 45, "protein": 0.7, "carbs": 10.4, "fat": 0.2],
+        ])))
+        let stored = FoodDatabase.storedServing(juice)
+        #expect(stored.serving == ServingText(value: 100, unit: "ml", grams: nil))
+        #expect(stored.nutrition.calories == 45)
+        #expect(stored.options.isEmpty)
+        // With a serving in ml: that serving, and no "100 g" beside it.
+        let can = try #require(DatabaseFood(json: json([
+            "per100Unit": "ml",
+            "per100g": ["calories": 42, "protein": 0, "carbs": 10.6, "fat": 0],
+            "serving": ["text": "1 can (355 mL)", "grams": NSNull(),
+                        "nutrients": ["calories": 149, "protein": 0, "carbs": 37.6, "fat": 0]],
+        ])))
+        #expect(FoodDatabase.storedServing(can).options.isEmpty)
+        let context = try context()
+        let saved = try FoodDatabase.save(juice, in: context)
+        #expect(saved.servingUnit == "ml" && saved.servingValue == 100 && saved.servingGrams == nil)
+        #expect(FoodLog.servingChoices(saved).count == 1)
+    }
 
     @Test func aDatabaseFoodIsKeptWithItsServingAndOtherServings() throws {
         let generic = DatabaseFood(

@@ -203,7 +203,9 @@ export function createHandler(deps: Deps) {
     } catch (error) {
       if (error instanceof AuthError) return failure(error.code, error.status);
       // Never echo internals (tokens, keys) to the client; the request body is not logged either.
-      console.error("unhandled", route, error instanceof Error ? error.name : "unknown");
+      // The route without what the user sent: a scanned code is never logged (codex-review-n8 S3).
+      const logged = route.startsWith("GET /v1/food/barcode/") ? "GET /v1/food/barcode/:code" : route;
+      console.error("unhandled", logged, error instanceof Error ? error.name : "unknown");
       return failure("server_error", 500);
     }
   };

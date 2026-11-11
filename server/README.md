@@ -77,10 +77,14 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   `502 ai_refused | ai_invalid`. Kept per request: account, flow, time, status, latency and token counts (90 days) —
   never the input, photo or reply, and nothing of them is logged. Account deletion deletes all of it.
 - **Food databases** (nutrition N8, D72; signed in only): one food shape from both sources — `{ id ("off:<code>" |
-  "usda:<fdcId>"), source, name, brand, barcode, per100g, serving: { text, grams, nutrients }, measures: [{ text, grams
-  }] }`, nutrients `{ calories, protein, carbs, fat, saturatedFat, fiber, sugar, sodiumMg }` (macros 0 when the source
-  omits them, the rest null; a drink's serving in millilitres claims no grams; impossible numbers make the food
-  unusable). Cached in D1 (`food_cache`, shared, linked to no account; a search only under its query's SHA-256): a found
+  "usda:<fdcId>"), source, name, brand, barcode, per100g, per100Unit ("g" | "ml": a drink's numbers are per 100 ml,
+  never converted to grams), serving: { text, grams, nutrients }, measures: [{ text, grams }] }`, nutrients `{ calories,
+  protein, carbs, fat, saturatedFat, fiber, sugar, sodiumMg }` (macros 0 when the source omits them, the rest null; a
+  drink's serving in millilitres claims no grams). A supplied value that is negative, not a number or impossible for
+  its basis (more than 900 kcal per 100, more than 9 kcal a gram, a nutrient — or protein + carbs + fat — heavier than
+  the amount, with 5 % slack, 50 % for millilitres) makes that set unusable; a serving falls back to 100 scaled. A
+  reply that is not the source's shape is a failure (`502`), never a miss. Errors are logged with the route
+  `GET /v1/food/barcode/:code`, never the code. Cached in D1 (`food_cache`, shared, linked to no account; a search only under its query's SHA-256): a found
   barcode 30 days, a miss 1 day, a search 7 days (1 when empty). A miss is not cached while `USDA_API_KEY` is unset
   (USDA was not asked) or when a source failed (`502 food_unavailable`). Limits per account per New York day: 200
   barcodes, 500 searches, cache hits included (`429 food_limit`; `food_limits`, deleted with the account). Without

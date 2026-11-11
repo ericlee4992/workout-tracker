@@ -310,6 +310,19 @@ struct LogFoodView: View {
                            log: { try FoodLog.log(food, meal: meal, source: tab == .all ? .recent : .saved, in: context) })
                 }
             }
+            credits(shownFoods.map(\.databaseID))
+        }
+    }
+
+    /// N8 (codex-review-n8 S6): the databases whose data a list shows, credited under it — Open Food Facts asks for it
+    /// wherever its data is shown (ODbL). Nothing for the user's own foods.
+    @ViewBuilder private func credits(_ databaseIDs: [String?]) -> some View {
+        let lines = Set(databaseIDs.compactMap { FoodDatabase.attribution(databaseID: $0) }).sorted()
+        if !lines.isEmpty {
+            Text(lines.joined(separator: "\n"))
+                .font(look.font.footnote)
+                .foregroundStyle(look.textSecondary)
+                .accessibilityIdentifier("logFoodCredits")
         }
     }
 
@@ -373,6 +386,9 @@ struct LogFoodView: View {
     /// A database food: tapping keeps it on the phone and opens it; its + keeps it and logs one serving, with Undo.
     private func onlineRow(_ food: DatabaseFood) -> some View {
         let stored = FoodDatabase.storedServing(food)
+        // Logged on this visit (codex-review-n8 T1): its kept copy's check, cleared by Undo like any row's. The row can
+        // stay here when the query does not match the name as a whole ("banana raw" → "Bananas, raw").
+        let done = foods.first { $0.databaseID == food.id }.map { logged.contains($0.persistentModelID) } ?? false
         return HStack(spacing: 12) {
             Button {
                 do {
@@ -408,14 +424,16 @@ struct LogFoodView: View {
                     failure = error.localizedDescription
                 }
             } label: {
-                Image(systemName: "plus")
+                Image(systemName: done ? "checkmark" : "plus")
                     .font(.system(.body, weight: .semibold))
-                    .foregroundStyle(look.textPrimary)
+                    .foregroundStyle(done ? look.onAction : look.textPrimary)
                     .frame(width: 44, height: 44)
-                    .background(look.ground, in: Circle())
+                    .background(done ? look.action : look.ground, in: Circle())
+                    .contentTransition(reduceMotion ? .opacity : .symbolEffect(.replace))
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Log \(food.name)")
+            .accessibilityValue(done ? "Logged" : "")
             .accessibilityIdentifier("logFoodOnlineAdd.\(food.name)")
         }
         .padding(.horizontal, 16)
@@ -434,6 +452,7 @@ struct LogFoodView: View {
                            log: { try FoodLog.log(item, meal: meal, in: context) })
                 }
             }
+            credits(shownMeals.flatMap { $0.orderedItems.map { $0.savedFood?.databaseID } })
         }
     }
 
@@ -472,6 +491,7 @@ struct LogFoodView: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Log \(title)")
+            .accessibilityValue(done ? "Logged" : "")
             .accessibilityIdentifier("logFoodAdd.\(identifier)")
         }
         .padding(.horizontal, 16)

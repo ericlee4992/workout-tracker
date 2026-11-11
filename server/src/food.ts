@@ -47,6 +47,9 @@ export interface Nutrients {
 /** A portion the food can be logged by, in the source's words, with its weight. */
 export interface Measure { text: string; grams: number }
 
+/** What `per100g` is per: 100 g, or 100 ml for a drink (codex-review-n8 S2) — never converted without a density. */
+export type Per100Unit = "g" | "ml";
+
 /** The one food shape both databases are normalised to. */
 export interface DatabaseFood {
   /** `off:<code>` or `usda:<fdcId>`: the app's `SavedFood.databaseID`. */
@@ -55,8 +58,9 @@ export interface DatabaseFood {
   name: string;
   brand: string | null;
   barcode: string | null;
-  /** Per 100 g (or 100 ml for a drink the source gives per 100 ml); null when the source gives only a serving. */
+  /** Per 100 of `per100Unit` (g, or ml for a drink); null when the source gives only a serving. */
   per100g: Nutrients | null;
+  per100Unit: Per100Unit;
   /** The package's (or the first household) serving: its words, weight when known, and its nutrition. */
   serving: { text: string; grams: number | null; nutrients: Nutrients } | null;
   /** Other portions (USDA generic foods), heaviest-ranked first; scale `per100g` by `grams / 100`. */
@@ -99,10 +103,22 @@ export function cleanQuery(raw: string | null): string | null {
 
 const round = (value: number, places = 2) => Math.round(value * 10 ** places) / 10 ** places;
 
-/** A finite, non-negative number at most `max` (a number given as text, as Open Food Facts sometimes does, counts). */
+/** A finite, non-negative number at most `max` (a number given as text, as Open Food Facts sometimes does, counts);
+ *  null otherwise. For a serving's size or a portion's weight, where an unusable one is simply left out. */
 function amount(value: unknown, max: number): number | null {
   const n = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
   return typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= max ? n : null;
+}
+
+/** A supplied nutrient (codex-review-n8 S5): `null` when the source does not give it, `INVALID` when it gives one that
+ *  is not a finite, non-negative number — which makes the whole set unusable rather than read as missing or zero. */
+const INVALID = Symbol("invalid");
+type Field = number | null | typeof INVALID;
+
+function field(value: unknown): Field {
+  if (value === undefined || value === null || (typeof value === "string" && value.trim() === "")) return null;
+  const n = typeof value === "string" ? Number(value) : value;
+  return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : INVALID;
 }
 
 function text(value: unknown, max: number): string | null {
@@ -118,62 +134,102 @@ export function tidyName(name: string): string {
   return name.toLowerCase().replace(/(^|[\s\-/(&])(\p{L})/gu, (_, gap: string, letter: string) => gap + letter.toUpperCase());
 }
 
-/** Bounds a nutrition answer: a serving up to 10,000 kcal, 100 g up to 900 kcal (pure fat) — beyond that the source's
- *  numbers are wrong, so the food is unusable rather than logged with them. */
-function nutrients(raw: Partial<Record<keyof Nutrients, number | null>>, kcalMax: number): Nutrients | null {
-  const calories = raw.calories ?? null;
-  if (calories === null || calories > kcalMax) return null;
-  const grams = (v: number | null | undefined) => (v === null || v === undefined ? null : round(v));
+/** What a set of nutrients is for, to bound it: an amount in grams or millilitres, or a serving of unknown weight. */
+export interface Basis { amount: number | null; unit: Per100Unit }
+
+/** A serving of unknown weight is bounded loosely: no serving holds more than this of one nutrient. */
+const UNKNOWN_SERVING_GRAMS = 2_000;
+/** A gram holds at most a gram of a nutrient; a millilitre may weigh more (syrups, honey ~1.4 g/ml). Rounding slack. */
+const tolerance = (unit: Per100Unit) => (unit === "ml" ? 1.5 : 1.05);
+
+/**
+ * Bounds a nutrition answer (codex-review-n8 S5): 100 g (or ml) up to 900 kcal (pure fat), a serving up to 10,000;
+ * no nutrient, and not protein + carbs + fat together, weighs more than its basis; sodium likewise in mg. Any supplied
+ * value out of bounds, negative or not a number makes the set unusable — the source's numbers are wrong, so the food is
+ * not logged with them. Macros the source omits are 0 (as the app's forms read a blank); the others stay unknown.
+ */
+function nutrients(raw: Record<keyof Nutrients, Field>, basis: Basis, kcalMax: number): Nutrients | null {
+  const values = Object.values(raw);
+  if (values.includes(INVALID)) return null;
+  const v = raw as Record<keyof Nutrients, number | null>;
+  if (v.calories === null || v.calories > kcalMax) return null;
+  const limit = (basis.amount ?? UNKNOWN_SERVING_GRAMS) * tolerance(basis.unit);
+  // Nothing has more than 9 kcal a gram (fat).
+  if (basis.amount !== null && v.calories > limit * 9) return null;
+  const grams = [v.protein, v.carbs, v.fat, v.saturatedFat, v.fiber, v.sugar];
+  if (grams.some((g) => g !== null && g > limit)) return null;
+  if ((v.protein ?? 0) + (v.carbs ?? 0) + (v.fat ?? 0) > limit) return null;
+  if (v.sodiumMg !== null && v.sodiumMg > limit * 1000) return null;
+  const g = (x: number | null) => (x === null ? null : round(x));
   return {
-    calories: round(calories, 1),
-    protein: grams(raw.protein) ?? 0, carbs: grams(raw.carbs) ?? 0, fat: grams(raw.fat) ?? 0,
-    saturatedFat: grams(raw.saturatedFat), fiber: grams(raw.fiber), sugar: grams(raw.sugar),
-    sodiumMg: raw.sodiumMg === null || raw.sodiumMg === undefined ? null : round(raw.sodiumMg, 1),
+    calories: round(v.calories, 1),
+    protein: g(v.protein) ?? 0, carbs: g(v.carbs) ?? 0, fat: g(v.fat) ?? 0,
+    saturatedFat: g(v.saturatedFat), fiber: g(v.fiber), sugar: g(v.sugar),
+    sodiumMg: v.sodiumMg === null ? null : round(v.sodiumMg, 1),
   };
 }
 
-function scale(per100: Nutrients, grams: number): Nutrients | null {
-  const f = grams / 100;
+/** `per100` scaled to `amount` of the same unit (a serving or a portion). */
+function scale(per100: Nutrients, amount: number, unit: Per100Unit): Nutrients | null {
+  const f = amount / 100;
   const s = (v: number | null) => (v === null ? null : v * f);
   return nutrients({
     calories: per100.calories * f, protein: per100.protein * f, carbs: per100.carbs * f, fat: per100.fat * f,
     saturatedFat: s(per100.saturatedFat), fiber: s(per100.fiber), sugar: s(per100.sugar), sodiumMg: s(per100.sodiumMg),
-  }, 10_000);
+  }, { amount, unit }, PER_SERVING_KCAL);
 }
 
 const PER_100_KCAL = 900;
 const PER_SERVING_KCAL = 10_000;
 const MAX_GRAMS = 100_000;
-const kj = (value: number | null) => (value === null ? null : value / 4.184);
+const kj = (value: Field): Field => (typeof value === "number" ? value / 4.184 : value);
+/** The first value a source gives (energy in kcal, else kJ…); an invalid one is not passed over for the next. */
+const first = (...fields: Field[]): Field => fields.find((f) => f !== null) ?? null;
 
-/** An Open Food Facts product (API v2) as a food, or null when it has no name or no calories. */
+/** "330 ml", "1.5 L", "33 cl" — a product sold by volume, whose Open Food Facts numbers are per 100 ml. */
+const VOLUME = /\b\d+(?:[.,]\d+)?\s*(?:ml|cl|dl|l)\b/i;
+const WEIGHT = /\b\d+(?:[.,]\d+)?\s*(?:g|kg|mg|oz|lb)\b/i;
+
+/** An Open Food Facts product (API v2) as a food, or null when it has no name or no usable nutrition. */
 export function fromOpenFoodFacts(code: string, product: Record<string, unknown>): DatabaseFood | null {
   const name = text(product.product_name, MAX_NAME) ?? text(product.product_name_en, MAX_NAME)
     ?? text(product.generic_name, MAX_NAME);
   if (!name) return null;
   const n = (typeof product.nutriments === "object" && product.nutriments !== null ? product.nutriments : {}) as Record<string, unknown>;
-  const read = (suffix: "100g" | "serving", max: number) => {
-    const per = (key: string, cap = MAX_GRAMS) => amount(n[`${key}_${suffix}`], cap);
+  // `serving_quantity` is in the serving's unit; a drink's numbers are per 100 ml (codex-review-n8 S2): from that unit,
+  // else from the package's quantity ("330 ml").
+  const servingUnit = typeof product.serving_quantity_unit === "string" ? product.serving_quantity_unit.toLowerCase() : null;
+  const quantityText = typeof product.quantity === "string" ? product.quantity : "";
+  const per100Unit: Per100Unit = servingUnit === "ml" || (servingUnit === null && VOLUME.test(quantityText) && !WEIGHT.test(quantityText))
+    ? "ml" : "g";
+  const read = (suffix: "100g" | "serving", basis: Basis, max: number) => {
+    const per = (key: string) => field(n[`${key}_${suffix}`]);
     const sodium = per("sodium");
     return nutrients({
-      calories: per("energy-kcal", max) ?? kj(per("energy-kj", max * 4.184)) ?? kj(per("energy", max * 4.184)),
+      calories: first(per("energy-kcal"), kj(per("energy-kj")), kj(per("energy"))),
       protein: per("proteins"), carbs: per("carbohydrates"), fat: per("fat"),
       saturatedFat: per("saturated-fat"), fiber: per("fiber"), sugar: per("sugars"),
       // Open Food Facts gives sodium in grams.
-      sodiumMg: sodium === null ? null : sodium * 1000,
-    }, max);
+      sodiumMg: typeof sodium === "number" ? sodium * 1000 : sodium,
+    }, basis, max);
   };
-  const per100g = read("100g", PER_100_KCAL);
+  const per100g = read("100g", { amount: 100, unit: per100Unit }, PER_100_KCAL);
   const servingText = text(product.serving_size, MAX_SERVING_TEXT);
-  // `serving_quantity` is in the serving's unit: grams, or millilitres for a drink (per 100 ml) — no grams claimed then.
-  const unit = typeof product.serving_quantity_unit === "string" ? product.serving_quantity_unit.toLowerCase() : "g";
+  const unit = servingUnit ?? "g";
   const quantity = unit === "g" || unit === "ml" ? amount(product.serving_quantity, MAX_GRAMS) : null;
-  const grams = unit === "g" && quantity && quantity > 0 ? round(quantity) : null;
-  const servingNutrients = read("serving", PER_SERVING_KCAL) ?? (per100g && quantity ? scale(per100g, quantity) : null);
+  const size = quantity && quantity > 0 ? quantity : null;
+  const basis: Basis = { amount: size, unit: unit === "ml" ? "ml" : "g" };
+  // Scaled from 100 only within one unit: grams and millilitres are not interchangeable without a density.
+  const servingNutrients = read("serving", basis, PER_SERVING_KCAL)
+    ?? (per100g && size && basis.unit === per100Unit ? scale(per100g, size, per100Unit) : null);
+  const grams = unit === "g" && size ? round(size) : null;
   const serving = servingText && servingNutrients ? { text: servingText, grams, nutrients: servingNutrients } : null;
   if (!per100g && !serving) return null;
   const brand = typeof product.brands === "string" ? text(product.brands.split(",")[0], MAX_BRAND) : null;
-  return { id: `off:${code}`, source: "openFoodFacts", name, brand, barcode: code, per100g, serving, measures: [] };
+  return {
+    id: `off:${code}`, source: "openFoodFacts", name, brand, barcode: code, per100g: per100g, per100Unit, serving,
+    measures: [],
+  };
 }
 
 /** USDA nutrient numbers (FoodData Central): energy in kcal, then the Atwater energies some foods carry instead. */
@@ -182,36 +238,36 @@ const USDA = {
   sugar: [2000, 1063], sodiumMg: [1093],
 } as const;
 
-function usdaNutrients(food: Record<string, unknown>): Nutrients | null {
+function usdaNutrients(food: Record<string, unknown>, unit: Per100Unit): Nutrients | null {
   const list = Array.isArray(food.foodNutrients) ? food.foodNutrients as Record<string, unknown>[] : [];
-  const find = (ids: readonly number[], max = MAX_GRAMS, energy = false) => {
+  const find = (ids: readonly number[], energy = false): Field => {
     for (const id of ids) {
       const row = list.find((r) => r.nutrientId === id && (!energy || String(r.unitName).toUpperCase() === "KCAL"));
-      const value = row ? amount(row.value, max) : null;
-      if (value !== null) return value;
+      if (row) return field(row.value);
     }
     return null;
   };
   return nutrients({
-    calories: find(USDA.calories, PER_100_KCAL, true), protein: find(USDA.protein), carbs: find(USDA.carbs),
-    fat: find(USDA.fat), saturatedFat: find(USDA.saturatedFat), fiber: find(USDA.fiber), sugar: find(USDA.sugar),
-    sodiumMg: find(USDA.sodiumMg),
-  }, PER_100_KCAL);
+    calories: find(USDA.calories, true), protein: find(USDA.protein), carbs: find(USDA.carbs), fat: find(USDA.fat),
+    saturatedFat: find(USDA.saturatedFat), fiber: find(USDA.fiber), sugar: find(USDA.sugar), sodiumMg: find(USDA.sodiumMg),
+  }, { amount: 100, unit }, PER_100_KCAL);
 }
 
-/** A USDA branded food (a search result: nutrients per 100 g or 100 ml) as a food, or null when unusable. */
+/** A USDA branded food (a search result: nutrients per 100 g, or per 100 ml for one served in ml) as a food, or null
+ *  when unusable. */
 export function fromUSDABranded(code: string, food: Record<string, unknown>): DatabaseFood | null {
   const name = text(food.description, MAX_NAME);
-  const per100g = usdaNutrients(food);
-  if (!name || !per100g || typeof food.fdcId !== "number") return null;
   const size = amount(food.servingSize, MAX_GRAMS);
   const unit = String(food.servingSizeUnit ?? "").toLowerCase();
   const metric = ["g", "grm", "gram", "grams"].includes(unit) ? "g" : ["ml", "mlt"].includes(unit) ? "ml" : null;
+  const per100Unit: Per100Unit = metric === "ml" ? "ml" : "g";
+  const per100g = usdaNutrients(food, per100Unit);
+  if (!name || !per100g || typeof food.fdcId !== "number") return null;
   let serving: DatabaseFood["serving"] = null;
   if (size && size > 0 && metric) {
     const household = text(food.householdServingFullText, MAX_SERVING_TEXT);
     const weight = `${round(size)} ${metric}`;
-    const scaled = scale(per100g, size);
+    const scaled = scale(per100g, size, per100Unit);
     // "1 Can" → "1 Can (355 ml)"; a household text that already says its weight ("3/4 cup (20g)") is kept as is.
     const words = household && !household.includes(String(round(size))) ? `${household} (${weight})` : household ?? weight;
     if (scaled) serving = { text: words, grams: metric === "g" ? round(size) : null, nutrients: scaled };
@@ -219,7 +275,7 @@ export function fromUSDABranded(code: string, food: Record<string, unknown>): Da
   const brand = text(food.brandName, MAX_BRAND) ?? text(food.brandOwner, MAX_BRAND);
   return {
     id: `usda:${food.fdcId}`, source: "usda", name: tidyName(name), brand: brand ? tidyName(brand) : null, barcode: code,
-    per100g, serving, measures: [],
+    per100g, per100Unit, serving, measures: [],
   };
 }
 
@@ -227,7 +283,7 @@ export function fromUSDABranded(code: string, food: Record<string, unknown>): Da
  *  first of them as the serving. */
 export function fromUSDAGeneric(food: Record<string, unknown>): DatabaseFood | null {
   const name = text(food.description, MAX_NAME);
-  const per100g = usdaNutrients(food);
+  const per100g = usdaNutrients(food, "g");
   if (!name || !per100g || typeof food.fdcId !== "number") return null;
   const raw = Array.isArray(food.foodMeasures) ? food.foodMeasures as Record<string, unknown>[] : [];
   const measures: Measure[] = [];
@@ -239,11 +295,11 @@ export function fromUSDAGeneric(food: Record<string, unknown>): DatabaseFood | n
     measures.push({ text: words, grams: round(grams) });
     if (measures.length === MAX_MEASURES) break;
   }
-  const first = measures[0];
-  const scaled = first ? scale(per100g, first.grams) : null;
+  const head = measures[0];
+  const scaled = head ? scale(per100g, head.grams, "g") : null;
   return {
-    id: `usda:${food.fdcId}`, source: "usda", name: tidyName(name), brand: null, barcode: null, per100g,
-    serving: first && scaled ? { text: first.text, grams: first.grams, nutrients: scaled } : null,
+    id: `usda:${food.fdcId}`, source: "usda", name: tidyName(name), brand: null, barcode: null, per100g, per100Unit: "g",
+    serving: head && scaled ? { text: head.text, grams: head.grams, nutrients: scaled } : null,
     measures: measures.slice(1),
   };
 }
@@ -268,12 +324,17 @@ async function fetchJSON(deps: Deps, source: string, url: string, init: RequestI
 
 /** Open Food Facts: a product, or null when it has none usable. Its v2 API answers 404 `{status: 0}` for an unknown code. */
 async function openFoodFacts(code: string, deps: Deps): Promise<DatabaseFood | null> {
-  const fields = "code,product_name,product_name_en,generic_name,brands,serving_size,serving_quantity," +
+  const fields = "code,product_name,product_name_en,generic_name,brands,quantity,serving_size,serving_quantity," +
     "serving_quantity_unit,nutriments";
   const body = await fetchJSON(deps, "off", `${OFF_PRODUCT_URL}${code}.json?fields=${fields}`,
-    { headers: { "user-agent": FOOD_USER_AGENT, accept: "application/json" } }, 404) as Record<string, unknown> | null;
-  if (!body || body.status !== 1 || typeof body.product !== "object" || body.product === null) return null;
-  return fromOpenFoodFacts(code, body.product as Record<string, unknown>);
+    { headers: { "user-agent": FOOD_USER_AGENT, accept: "application/json" } }, 404);
+  if (body === null) return null;  // 404: not in Open Food Facts
+  // Only `{status: 0}` is a miss and only `{status: 1, product: {…}}` a product; any other reply is a failure, never a
+  // miss to cache (codex-review-n8 S4).
+  if (!isObject(body)) throw new Upstream("off", "malformed");
+  if (body.status === 0) return null;
+  if (body.status !== 1 || !isObject(body.product)) throw new Upstream("off", "malformed");
+  return fromOpenFoodFacts(code, body.product);
 }
 
 /** USDA's food search; the key travels in a header, never in a URL. */
@@ -282,12 +343,23 @@ async function usdaSearch(key: string, deps: Deps, query: string, dataType: stri
     method: "POST",
     headers: { "x-api-key": key, "content-type": "application/json", accept: "application/json", "user-agent": FOOD_USER_AGENT },
     body: JSON.stringify({ query, dataType, pageSize }),
-  }) as Record<string, unknown> | null;
-  return Array.isArray(body?.foods) ? body!.foods as Record<string, unknown>[] : [];
+  });
+  // A reply without its `foods` list (an error envelope, another shape) is a failure, not an empty result to cache.
+  if (!isObject(body) || !Array.isArray(body.foods)) throw new Upstream("usda", "malformed");
+  return body.foods.filter(isObject);
 }
 
-/** The same GTIN whatever its length in USDA's `gtinUpc` (12-digit UPCs, sometimes 13 or 14 digits). */
-const sameGTIN = (a: unknown, code: string) => typeof a === "string" && normalizeBarcode(a.trim()) === code;
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** The same GTIN whatever its length in USDA's `gtinUpc` (12-digit UPCs, sometimes 13 or 14 digits; an EAN-8 padded
+ *  with zeros): both valid, compared as 14 digits (codex-review-n8 S1). */
+export function sameGTIN(value: unknown, code: string): boolean {
+  if (typeof value !== "string") return false;
+  const other = value.trim();
+  if (!/^\d{8,14}$/.test(other) || !validCheckDigit(other)) return false;
+  return other.padStart(14, "0") === code.padStart(14, "0");
+}
 
 /** The forms a GTIN is stored in at USDA (`gtinUpc` holds 12, 13 or 14 digits, matched only exactly): every form,
  *  as one any-word query. */

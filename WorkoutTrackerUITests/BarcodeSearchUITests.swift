@@ -71,9 +71,13 @@ final class BarcodeSearchUITests: XCTestCase {
         XCTAssertFalse(foodLog.waitForExistence(timeout: 2), "the code just left is not read again at once")
         app.buttons["scanFoodCancel"].tap()
 
-        // And it is in Recently logged.
+        // And it is in Recently logged, still credited there (codex-review-n8 S6).
         _ = openLogFood()
         XCTAssertTrue(app.buttons["logFoodRow.Hazelnut spread"].waitForExistence(timeout: 5))
+        let credits = app.staticTexts["logFoodCredits"]
+        if !credits.isHittable { app.swipeUp() }
+        XCTAssertTrue(credits.waitForExistence(timeout: 5))
+        XCTAssertTrue(credits.label.contains("Food data from Open Food Facts"), credits.label)
     }
 
     func testABarcodeNotFoundOffersTheLabelScanAndManualAdd() {
@@ -143,6 +147,32 @@ final class BarcodeSearchUITests: XCTestCase {
         let entry = app.buttons["todayEntry.Bananas, raw"]
         XCTAssertTrue(entry.waitForExistence(timeout: 5))
         XCTAssertTrue(entry.label.contains("134 cal") || entry.label.contains("133 cal"), entry.label)
+    }
+
+    /// codex-review-n8 T1: an online row that stays (the query is not the name as a whole) shows its check after +,
+    /// after the toast too, and Undo clears it.
+    func testAnOnlineRowShowsItsCheckUntilUndo() {
+        launch()
+        let search = openLogFood()
+        search.tap()
+        search.typeText("banana raw")
+        let add = app.buttons["logFoodOnlineAdd.Bananas, raw"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        XCTAssertEqual(add.value as? String ?? "", "")
+        add.tap()
+        XCTAssertTrue(app.staticTexts["logFoodToast"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["logFoodRow.Bananas, raw"].exists, "\"banana raw\" is not in its name: it stays online")
+        XCTAssertEqual(add.value as? String, "Logged")
+        app.buttons["logFoodUndo"].tap()
+        XCTAssertFalse(app.staticTexts["logFoodToast"].waitForExistence(timeout: 2))
+        XCTAssertEqual(add.value as? String ?? "", "")
+        add.tap()
+        XCTAssertTrue(app.staticTexts["logFoodToast"].waitForExistence(timeout: 5))
+        // The toast leaves after 5 s; the check stays.
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: app.staticTexts["logFoodToast"])
+        waitForExpectations(timeout: 10)
+        XCTAssertEqual(add.value as? String, "Logged")
     }
 
     func testSearchSignedOutOffersSignInAndSaysWhenItIsOff() {

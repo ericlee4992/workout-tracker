@@ -53,6 +53,8 @@ enum FoodBarcode {
 /// A food as the server answers (one shape for both databases), checked by the app.
 struct DatabaseFood: Equatable, Identifiable, Sendable {
     enum Source: String, Sendable { case openFoodFacts, usda }
+    /// What `per100g` is per: 100 g, or 100 ml for a drink — never converted without a density (codex-review-n8 S2).
+    enum Per100Unit: String, Sendable { case g, ml }
 
     struct Nutrients: Equatable, Sendable {
         var calories: Double
@@ -89,6 +91,7 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
     var brand: String?
     var barcode: String?
     var per100g: Nutrients?
+    var per100Unit: Per100Unit
     var serving: Serving?
     var measures: [Measure]
 
@@ -109,12 +112,21 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
               let source = Source(rawValue: sourceText),
               id.hasPrefix(source == .openFoodFacts ? "off:" : "usda:"), id.count <= 64,
               let name = Self.text(json["name"], max: Self.maxName) else { return nil }
-        let per100g = (json["per100g"] as? [String: Any]).flatMap { Self.nutrients($0, maxCalories: Self.maxPer100gCalories) }
+        // A missing unit is grams (the server always sends one); an unknown one is not a food the app understands.
+        guard let unit = json["per100Unit"] == nil ? .g : (json["per100Unit"] as? String).flatMap(Per100Unit.init) else {
+            return nil
+        }
+        let per100g = (json["per100g"] as? [String: Any]).flatMap {
+            Self.nutrients($0, basis: 100, unit: unit, maxCalories: Self.maxPer100gCalories)
+        }
         var serving: Serving?
-        if let raw = json["serving"] as? [String: Any], let text = Self.text(raw["text"], max: 120),
-           let nutrients = (raw["nutrients"] as? [String: Any]).flatMap({ Self.nutrients($0, maxCalories: Self.maxServingCalories) }) {
+        if let raw = json["serving"] as? [String: Any], let text = Self.text(raw["text"], max: 120) {
             let grams = Self.number(raw["grams"]).flatMap { $0 > 0 && $0 <= Self.maxGrams ? $0 : nil }
-            serving = Serving(text: text, grams: grams, nutrients: nutrients)
+            if let nutrients = (raw["nutrients"] as? [String: Any]).flatMap({
+                Self.nutrients($0, basis: grams, unit: grams == nil ? .ml : .g, maxCalories: Self.maxServingCalories)
+            }) {
+                serving = Serving(text: text, grams: grams, nutrients: nutrients)
+            }
         }
         guard per100g != nil || serving != nil else { return nil }
         let measures = (json["measures"] as? [[String: Any]] ?? []).compactMap { raw -> Measure? in
@@ -124,17 +136,18 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
         }
         self.init(id: id, source: source, name: name, brand: Self.text(json["brand"], max: 100),
                   barcode: (json["barcode"] as? String).flatMap { FoodBarcode.normalize($0) },
-                  per100g: per100g, serving: serving, measures: Array(measures.prefix(6)))
+                  per100g: per100g, per100Unit: unit, serving: serving, measures: Array(measures.prefix(6)))
     }
 
     init(id: String, source: Source, name: String, brand: String? = nil, barcode: String? = nil,
-         per100g: Nutrients? = nil, serving: Serving? = nil, measures: [Measure] = []) {
+         per100g: Nutrients? = nil, per100Unit: Per100Unit = .g, serving: Serving? = nil, measures: [Measure] = []) {
         self.id = id
         self.source = source
         self.name = name
         self.brand = brand
         self.barcode = barcode
         self.per100g = per100g
+        self.per100Unit = per100Unit
         self.serving = serving
         self.measures = measures
     }
@@ -151,16 +164,26 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
         return text
     }
 
-    private static func nutrients(_ raw: [String: Any], maxCalories: Double) -> Nutrients? {
-        func grams(_ key: String) -> Double?? {
+    /// A serving of unknown weight is bounded loosely: no serving holds more than this of one nutrient.
+    static let unknownServingGrams = 2_000.0
+
+    /// The server's bounds, checked again (codex-review-n8 S5): every value finite and not negative; no nutrient — nor
+    /// protein + carbs + fat together — weighing more than its basis (a millilitre may weigh up to 1.5 g), sodium
+    /// likewise in mg, at most 9 kcal a gram. Any value out of bounds makes the set unusable.
+    private static func nutrients(_ raw: [String: Any], basis: Double?, unit: Per100Unit, maxCalories: Double) -> Nutrients? {
+        let limit = (basis ?? unknownServingGrams) * (unit == .ml ? 1.5 : 1.05)
+        func grams(_ key: String, max: Double) -> Double?? {
             guard let value = raw[key], !(value is NSNull) else { return .some(nil) }
-            guard let n = number(value), n >= 0, n <= maxGrams else { return nil }
+            guard let n = number(value), n >= 0, n <= max else { return nil }
             return .some(n)
         }
         guard let calories = number(raw["calories"]), calories >= 0, calories <= maxCalories,
-              let protein = grams("protein"), let carbs = grams("carbs"), let fat = grams("fat"),
-              let saturated = grams("saturatedFat"), let fiber = grams("fiber"), let sugar = grams("sugar"),
-              let sodium = grams("sodiumMg") else { return nil }
+              basis == nil || calories <= limit * 9,
+              let protein = grams("protein", max: limit), let carbs = grams("carbs", max: limit),
+              let fat = grams("fat", max: limit), let saturated = grams("saturatedFat", max: limit),
+              let fiber = grams("fiber", max: limit), let sugar = grams("sugar", max: limit),
+              let sodium = grams("sodiumMg", max: limit * 1000),
+              (protein ?? 0) + (carbs ?? 0) + (fat ?? 0) <= limit else { return nil }
         return Nutrients(calories: calories, protein: protein ?? 0, carbs: carbs ?? 0, fat: fat ?? 0,
                          saturatedFat: saturated, fiber: fiber, sugar: sugar, sodiumMg: sodium)
     }
@@ -299,12 +322,16 @@ enum FoodDatabase {
             let parsed = ServingText.parse(serving.text)
             // The source's grams, not any the words imply; a drink in millilitres has none.
             let main = ServingText(value: parsed?.value ?? 1, unit: parsed?.unit ?? serving.text, grams: serving.grams)
-            if food.per100g != nil, main.grams != nil, main.grams != 100 {
+            if food.per100g != nil, food.per100Unit == .g, main.grams != nil, main.grams != 100 {
                 options.append(ServingOption(value: 100, unit: "g", grams: 100))
             }
             return (main, serving.nutrients.nutrition, options)
         }
-        // per100g is present whenever serving is not (DatabaseFood.init).
+        // per100g is present whenever serving is not (DatabaseFood.init). A drink's is 100 ml, with no weight claimed —
+        // so no other serving scales from it (codex-review-n8 S2).
+        if food.per100Unit == .ml {
+            return (ServingText(value: 100, unit: "ml", grams: nil), food.per100g!.nutrition, [])
+        }
         return (ServingText(value: 100, unit: "g", grams: 100), food.per100g!.nutrition, options)
     }
 

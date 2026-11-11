@@ -85,6 +85,22 @@ git-ignored `server/.dev.vars`, deleted right after; never printed). Through the
 
 Fixes from the check: USDA GTIN forms (the 12-digit query alone found nothing), millilitre servings, ranking.
 
+### Codex round 1 (`codex-review-n8.md`): not clear — 5 P2, 2 P3; all fixed (round 2)
+
+- S1 EAN-8 at USDA under zero-padded forms: `sameGTIN` compares two valid GTINs as 14 digits.
+- S2 a drink's per-100 ml numbers: `per100Unit` ("g" | "ml") from the server to the app; a drink with no serving is
+  kept as 100 ml with no grams and no "100 g" option; servings scale from 100 only within one unit.
+- S3 the outer error log printed the barcode: the route is logged as `GET /v1/food/barcode/:code`.
+- S4 a malformed reply (OFF without `status` 0/1 + product, USDA without `foods`) is `502`, never a cached miss.
+- S5 impossible numbers: missing vs invalid kept apart (invalid → the set is unusable, not 0); bounds per basis (each
+  nutrient and protein + carbs + fat ≤ the amount, sodium likewise, ≤ 9 kcal a gram); the app re-checks the same.
+- S6 Log food's lists credit the databases of the foods (and meal items) they show (`logFoodCredits`).
+- T1 an online row shows its check after + (and after the toast), cleared by Undo; local and online + buttons say
+  "Logged" to VoiceOver.
+
+Round 2 checks: server 282/282 + tsc; Unit plan 1284/1284 exit 0 (`r2-unit.xcresult`); `BarcodeSearchUITests` (8, incl.
+captures) + `LogFoodUITests` + `LogFoodFlowUITests` 18/18 with 2 workers, exit 0 (`r2-ui.xcresult`).
+
 ### The user's to review (not blocking)
 
 Own decisions: (1) routes under `/v1/food/…` like every other route; (2) limits 200 barcodes / 500 searches a day,
