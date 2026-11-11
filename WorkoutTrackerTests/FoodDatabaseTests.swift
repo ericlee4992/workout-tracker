@@ -96,6 +96,9 @@ struct FoodDatabaseTests {
         #expect(DatabaseFood(json: per100(["protein": 40, "carbs": 40, "fat": 40])) == nil)
         #expect(DatabaseFood(json: per100(["sodiumMg": 150_000])) == nil)
         #expect(DatabaseFood(json: per100(["fiber": -1])) == nil)
+        // The server's calorie bound per 100 (pure fat): 900, not more.
+        #expect(DatabaseFood(json: per100(["calories": 900, "protein": 0, "carbs": 0, "fat": 100])) != nil)
+        #expect(DatabaseFood(json: per100(["calories": 940, "protein": 0, "carbs": 0, "fat": 100])) == nil)
         // A serving of known weight: bounded by it, and by 9 kcal a gram.
         let serving = { (grams: Any, nutrients: [String: Any]) -> [String: Any] in
             self.json(["per100g": NSNull(), "serving": ["text": "1 bar", "grams": grams, "nutrients": nutrients]])

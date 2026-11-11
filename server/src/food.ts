@@ -215,7 +215,10 @@ export function fromOpenFoodFacts(code: string, product: Record<string, unknown>
   };
   const per100g = read("100g", { amount: 100, unit: per100Unit }, PER_100_KCAL);
   const servingText = text(product.serving_size, MAX_SERVING_TEXT);
-  const unit = servingUnit ?? "g";
+  // Without its unit field, a serving is in millilitres when it says so ("1 can (330 ml)") or the product's numbers are
+  // per 100 ml — never grams by default for a drink (codex-review-n8-b R2-S1).
+  const unit = servingUnit
+    ?? (per100Unit === "ml" || (servingText !== null && VOLUME.test(servingText) && !WEIGHT.test(servingText)) ? "ml" : "g");
   const quantity = unit === "g" || unit === "ml" ? amount(product.serving_quantity, MAX_GRAMS) : null;
   const size = quantity && quantity > 0 ? quantity : null;
   const basis: Basis = { amount: size, unit: unit === "ml" ? "ml" : "g" };
@@ -310,6 +313,10 @@ class Upstream extends Error {
   constructor(readonly source: string, readonly status: string) { super(`${source} ${status}`); this.name = "Upstream"; }
 }
 
+/** An HTTP not-found, kept apart from every JSON value a reply can decode to (codex-review-n8-b R2-S2: a 200 `null`
+ *  read as a miss). */
+const NOT_FOUND = Symbol("not found");
+
 async function fetchJSON(deps: Deps, source: string, url: string, init: RequestInit, missStatus?: number): Promise<unknown> {
   let response: Response;
   try {
@@ -317,7 +324,7 @@ async function fetchJSON(deps: Deps, source: string, url: string, init: RequestI
   } catch (error) {
     throw new Upstream(source, error instanceof Error && error.name === "TimeoutError" ? "timeout" : "network");
   }
-  if (response.status === missStatus) return null;
+  if (response.status === missStatus) return NOT_FOUND;
   if (!response.ok) throw new Upstream(source, String(response.status));
   try { return await response.json(); } catch { throw new Upstream(source, "malformed"); }
 }
@@ -328,7 +335,7 @@ async function openFoodFacts(code: string, deps: Deps): Promise<DatabaseFood | n
     "serving_quantity_unit,nutriments";
   const body = await fetchJSON(deps, "off", `${OFF_PRODUCT_URL}${code}.json?fields=${fields}`,
     { headers: { "user-agent": FOOD_USER_AGENT, accept: "application/json" } }, 404);
-  if (body === null) return null;  // 404: not in Open Food Facts
+  if (body === NOT_FOUND) return null;  // 404: not in Open Food Facts
   // Only `{status: 0}` is a miss and only `{status: 1, product: {…}}` a product; any other reply is a failure, never a
   // miss to cache (codex-review-n8 S4).
   if (!isObject(body)) throw new Upstream("off", "malformed");

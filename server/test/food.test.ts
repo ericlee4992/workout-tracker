@@ -248,12 +248,29 @@ describe("barcodes", () => {
     expect((await body(await barcode(NUTELLA))).food).toMatchObject({ per100Unit: "ml", serving: { grams: null } });
     // Sold by weight: grams.
     expect(fromOpenFoodFacts(NUTELLA, offProduct({ quantity: "400 g" }))?.per100Unit).toBe("g");
+    // No unit field (codex-review-n8-b R2-S1): a drink's serving keeps its millilitres and claims no grams…
+    for (const [quantity, size, words] of [["330 ml", 330, "1 can (330 ml)"], ["1 L", 200, "1 glass (200 ml)"]] as const) {
+      const drink = fromOpenFoodFacts(NUTELLA, offProduct({
+        quantity, serving_size: words, serving_quantity: String(size), serving_quantity_unit: undefined,
+        nutriments: { "energy-kcal_100g": 42, carbohydrates_100g: 10.6, "energy-kcal_serving": 42 * size / 100 },
+      }));
+      expect(drink, words).toMatchObject({ per100Unit: "ml", serving: { text: words, grams: null } });
+    }
+    // …and a serving that says millilitres does too, while one in grams (or unsaid, for a food sold by weight) is grams.
+    expect(fromOpenFoodFacts(NUTELLA, offProduct({ quantity: undefined, serving_size: "1 shot (30 ml)", serving_quantity: 30 }))
+      ?.serving?.grams).toBeNull();
+    expect(fromOpenFoodFacts(NUTELLA, offProduct({ quantity: "400 g", serving_size: "1 bar (40 g)", serving_quantity: 40 }))
+      ?.serving?.grams).toBe(40);
   });
 
   it("a reply that is not the source's shape is a failure, never a miss to cache (codex-review-n8 S4)", async () => {
     h.food.off = () => Response.json({ error: "temporary upstream failure" });
     expect((await barcode(NUTELLA)).status).toBe(502);
     h.food.off = () => Response.json({ status: 1, product: "nope" });
+    expect((await barcode(NUTELLA)).status).toBe(502);
+    // A 200 whose body is JSON null is not the 404 miss (codex-review-n8-b R2-S2), even when USDA has nothing.
+    h.food.off = () => Response.json(null);
+    h.food.usda = () => usdaAnswer([]);
     expect((await barcode(NUTELLA)).status).toBe(502);
     h.food.off = offMissing;
     h.food.usda = () => Response.json({ error: { code: "OVER_RATE_LIMIT" } });

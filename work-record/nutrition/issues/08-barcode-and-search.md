@@ -101,6 +101,18 @@ Fixes from the check: USDA GTIN forms (the 12-digit query alone found nothing), 
 Round 2 checks: server 282/282 + tsc; Unit plan 1284/1284 exit 0 (`r2-unit.xcresult`); `BarcodeSearchUITests` (8, incl.
 captures) + `LogFoodUITests` + `LogFoodFlowUITests` 18/18 with 2 workers, exit 0 (`r2-ui.xcresult`).
 
+### Codex round 2 (`codex-review-n8-b.md`): not clear — 2 P2 (remainders of S2/S4); fixed (round 3)
+
+- R2-S1 an Open Food Facts serving without its unit field defaulted to grams for a drink ("1 can (330 ml)" → 330 g):
+  the unit is millilitres when the serving says so or the product is per 100 ml; grams only otherwise.
+- R2-S2 a 200 reply with JSON `null` read as the 404 miss: the HTTP miss is its own sentinel; every 200 body is
+  validated.
+- Advisory: the app's per-100 calorie bound is now the server's 900.
+- Its 3 parallel UI failures (warm-up launch, `LogFoodFlowUITests` Add food, `LogFoodUITests` dark capture — Today
+  instead of Log food) passed serially; parallel-load launch/navigation flakes, as before.
+
+Round 3 checks: server 282/282 + tsc; Unit plan 1284/1284 exit 0 (`r3-unit.xcresult`). No UI code changed.
+
 ### The user's to review (not blocking)
 
 Own decisions: (1) routes under `/v1/food/…` like every other route; (2) limits 200 barcodes / 500 searches a day,

@@ -102,7 +102,7 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
 
     static let maxName = 200
     static let maxServingCalories = 10_000.0
-    static let maxPer100gCalories = 1_000.0
+    static let maxPer100gCalories = 900.0  // the server's bound (pure fat), codex-review-n8-b
     static let maxGrams = 100_000.0
 
     /// A food from the server's JSON, or nil when it is not one the app would log: no name, an unknown source or id,
