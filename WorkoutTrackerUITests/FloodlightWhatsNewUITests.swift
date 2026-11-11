@@ -35,15 +35,15 @@ final class FloodlightWhatsNewUITests: XCTestCase {
     private func capture(appearance: String, large: Bool) {
         launch(["-uiTestWhatsNew"], appearance: appearance, large: large)
         XCTAssertTrue(any("whatsNewSheet").waitForExistence(timeout: 15))
-        XCTAssertTrue(app.staticTexts["New: Progress"].exists)
+        XCTAssertTrue(app.staticTexts["New: Food, and a fresh look"].exists)
         XCTAssertTrue(any("whatsNewContinue").isHittable, "Continue is reachable")
         Thread.sleep(forTimeInterval: 1.0)
         shoot("whatsnew-14-\(appearance)-\(large ? "axl" : "default")")
 
         // codex-review-14 #3: every line whole above Continue — scrolled into view where the text is large.
         let items = app.descendants(matching: .any).matching(identifier: "whatsNewItem")
-        XCTAssertEqual(items.count, 3)
-        let last = items.element(boundBy: 2)
+        XCTAssertEqual(items.count, 4)
+        let last = items.element(boundBy: 3)
         let continueTop = { self.any("whatsNewContinue").frame.minY }
         for _ in 0..<4 { guard last.frame.maxY > continueTop() else { break }; any("whatsNewSheet").swipeUp() }
         XCTAssertLessThanOrEqual(last.frame.maxY, continueTop(), "the last line sits wholly above Continue")
@@ -66,7 +66,7 @@ final class FloodlightWhatsNewUITests: XCTestCase {
         XCTAssertTrue(row.isHittable, "What's New in Settings")
         row.tap()
         XCTAssertTrue(any("whatsNewSheet").waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["New: Progress"].exists)
+        XCTAssertTrue(app.staticTexts["New: Food, and a fresh look"].exists)
         any("whatsNewContinue").tap()
         XCTAssertTrue(any("whatsNewSheet").waitForNonExistence(timeout: 5))
 

@@ -24,12 +24,19 @@ enum WhatsNew {
     /// UI tests never see the sheet unless they ask with this argument (it would cover every other test's screens).
     static let uiTestArgument = "-uiTestWhatsNew"
 
-    /// Newest last. The user approved this entry's wording (ticket 14, 2026-10-17).
+    /// Newest last. The user approved each entry's wording (build 7: ticket 14, 2026-10-17; build 10: release R, 2026-11-11).
     static let entries: [WhatsNewEntry] = [
         WhatsNewEntry(build: 7, title: "New: Progress", items: [
             .init(symbol: "chart.line.uptrend.xyaxis", text: "Pin any lift or cardio activity to the new Progress tab."),
             .init(symbol: "arrow.up.right", text: "Each chart shows your latest best and how far you've come since your first session."),
             .init(symbol: "hand.tap", text: "Long-press a chart to change what it shows, move it or remove it."),
+        ]),
+        // Release R (D76): the Soft redesign and nutrition together; wording approved by the user (2026-11-11).
+        WhatsNewEntry(build: 10, title: "New: Food, and a fresh look", items: [
+            .init(symbol: "fork.knife", text: "Log food from Today: search, scan a barcode or a label, or take a photo of your meal."),
+            .init(symbol: "target", text: "Set calorie and protein goals; Today shows what's left."),
+            .init(symbol: "scalemass", text: "Track your body weight, with Apple Health if you like."),
+            .init(symbol: "paintbrush", text: "A softer look across the app, with a new Profile."),
         ]),
     ]
 

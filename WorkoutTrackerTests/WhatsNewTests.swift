@@ -56,15 +56,24 @@ struct WhatsNewTests {
         #expect(WhatsNew.lastSeen(defaults) == 9)
     }
 
-    /// The shipped entry is the one the user approved, for build 7.
-    @Test func theProgressEntryIsBuildSevenAsApproved() throws {
-        let latest = try #require(WhatsNew.latest)
-        #expect(latest.build == 7)
-        #expect(latest.title == "New: Progress")
-        #expect(latest.items.map(\.text) == [
+    /// The shipped entries are the ones the user approved: build 7 (Progress) and, newest, build 10 (release R).
+    @Test func theShippedEntriesAreAsApproved() throws {
+        #expect(WhatsNew.entries.map(\.build) == [7, 10])
+        let progress = WhatsNew.entries[0]
+        #expect(progress.title == "New: Progress")
+        #expect(progress.items.map(\.text) == [
             "Pin any lift or cardio activity to the new Progress tab.",
             "Each chart shows your latest best and how far you've come since your first session.",
             "Long-press a chart to change what it shows, move it or remove it.",
+        ])
+        let latest = try #require(WhatsNew.latest)
+        #expect(latest.build == 10)
+        #expect(latest.title == "New: Food, and a fresh look")
+        #expect(latest.items.map(\.text) == [
+            "Log food from Today: search, scan a barcode or a label, or take a photo of your meal.",
+            "Set calorie and protein goals; Today shows what's left.",
+            "Track your body weight, with Apple Health if you like.",
+            "A softer look across the app, with a new Profile.",
         ])
     }
 }

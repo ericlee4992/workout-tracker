@@ -52,7 +52,10 @@ Ship the Soft redesign and nutrition together as one TestFlight build (build **1
    Not verified: BackupExportUITests and the feedback smoke test (skipped by design; device / live server)
    Known flaky: FloodlightLiveUITests.testACompletedSetCanBeCorrectedInPlace, LogFoodFlowUITests "2 servings" (parallel only)
    ```
-3. Drafts below — **waiting: the user's approval/edits.**
+3. **What's New and What to Test approved as drafted (the user, 2026-11-11: "both yes").** What's New entry build 10
+   in `WhatsNew.entries`; `WhatsNewTests` + `FloodlightWhatsNewUITests` 13/13 serial, exit 0 (`r-wn.xcresult`;
+   captures light/dark × Default/AccessibilityL checked: all four lines above Continue, scrolled at AXL).
+   Privacy page: **still waiting** — approval and effective date.
 4.–9. Not started.
 
 ### Draft — What's New (build 10, in-app, once after updating)
