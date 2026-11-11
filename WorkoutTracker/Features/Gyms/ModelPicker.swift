@@ -447,7 +447,7 @@ struct TypeChip: View {
 ///
 /// Floodlight redesign ticket 06 (G06 New Model): a preview of what will be made, the manufacturer
 /// and model, the equipment type as glyph chips, then the exercises — the linked ones as removable
-/// chips on top, "Suggest exercises with AI" (unchanged rules), a search and the checklist.
+/// chips on top, "Suggest exercises" (unchanged rules), a search and the checklist.
 struct AddModelSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -533,7 +533,7 @@ struct AddModelSheet: View {
                                 else if exerciseConsent || AskAI.fixtureIsEnabled { suggestExercises() }
                                 else { confirmSendModel = true }
                             } label: {
-                                Label("Suggest exercises with AI", systemImage: "sparkles")
+                                Label("Suggest exercises", systemImage: "sparkles")
                             }
                             .accessibilityIdentifier("newModelSuggestExercises")
                         }
@@ -775,7 +775,7 @@ struct AddModelSheet: View {
             guard session.isCurrent() else { return }
             switch outcome {
             case .success(let proposals) where proposals.isEmpty:
-                proposalNote = "AI could not tell which exercises this machine serves."
+                proposalNote = "Couldn't tell which exercises this machine serves."
             case .success(let proposals):
                 for proposal in proposals {
                     linkedExerciseIDs.insert(proposal.id)

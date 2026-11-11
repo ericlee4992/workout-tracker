@@ -82,12 +82,12 @@ struct AIRoutine: Codable, Equatable {
             guard !day.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, day.name.count <= 80,
                   day.strength.count <= 10, day.cardio.count <= 3, !day.strength.isEmpty || !day.cardio.isEmpty,
                   Set(day.strength.map(\.exerciseID)).count == day.strength.count else {
-                throw TerraError.message(edited ? "Each session needs a name, at least one activity, and no repeated strength exercise (up to 10 exercises and 3 cardio targets)." : "AI returned an invalid session. Try generating again.")
+                throw TerraError.message(edited ? "Each session needs a name, at least one activity, and no repeated strength exercise (up to 10 exercises and 3 cardio targets)." : "A generated session was invalid. Try generating again.")
             }
             for item in day.strength {
                 guard eligible.contains(item.exerciseID), (1...10).contains(item.sets), (1...50).contains(item.reps),
                       (0...600).contains(item.restSeconds) else {
-                    throw TerraError.message(edited ? "Check \(day.name): choose an available exercise, 1–10 sets, 1–50 reps and 0–600 seconds rest." : "AI returned unavailable equipment or invalid targets. Try generating again.")
+                    throw TerraError.message(edited ? "Check \(day.name): choose an available exercise, 1–10 sets, 1–50 reps and 0–600 seconds rest." : "The generated week used unavailable equipment or invalid targets. Try generating again.")
                 }
             }
             for item in day.cardio {

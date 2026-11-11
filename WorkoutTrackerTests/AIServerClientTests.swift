@@ -432,12 +432,12 @@ struct AIServerClientTests {
             #expect(!routine.what.localizedCaseInsensitiveContains("continue manually"), "\(text)")
         }
         #expect(ScanErrorText.shown(AIServerError.rejected("x").localizedDescription)
-                == "AI couldn't take this request. Choose a catalog model.")
+                == "Couldn't take this request. Choose a catalog model.")
         #expect(ScanErrorText.shown(AIServerError.paused.localizedDescription)
-                == "AI is paused right now. You can choose a catalog model.")
-        #expect(AIRoutineErrorText.split(AIServerError.paused.localizedDescription) == ("AI is paused right now.", nil))
+                == "This feature is paused right now. You can choose a catalog model.")
+        #expect(AIRoutineErrorText.split(AIServerError.paused.localizedDescription) == ("This feature is paused right now.", nil))
         #expect(AIRoutineErrorText.split(AIServerError.rejected("x").localizedDescription)
-                == ("AI couldn't take this request.", nil))
+                == ("Couldn't take this request.", nil))
         #expect(AIRoutineErrorText.split(AIServerError.attempts(resetsAt: reset).localizedDescription).next?
                 .hasPrefix("Try again after ") == true)
     }
@@ -458,7 +458,7 @@ struct AIServerClientTests {
         #expect(AIResetCopy.resets(at: midnight, zone: york) == "Resets at midnight")
         let pacific = TimeZone(identifier: "America/Los_Angeles")!
         #expect(AIResetCopy.clock(midnight, zone: pacific).hasPrefix("9:00"))
-        #expect(AIServerError.paused.localizedDescription == "AI is paused right now. You can continue manually.")
+        #expect(AIServerError.paused.localizedDescription == "This feature is paused right now. You can continue manually.")
         #expect(AIServerError.signedOut.localizedDescription == "Sign in to use AI.")
         let limit = AIServerError.limit(.scanMachine, 60, resetsAt: midnight).localizedDescription
         #expect(limit.hasPrefix("You've used today's 60 machine scans. They reset at "))

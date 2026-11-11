@@ -101,7 +101,7 @@ struct AIRoutineFlowMathTests {
         let offline = AIRoutineErrorText.split(AIServerError.offline.localizedDescription)
         #expect(offline.what == "Could not reach the server.")
         #expect(offline.next == "Check your connection.")
-        #expect(AIRoutineErrorText.split("AI returned an invalid session.").next == nil)
+        #expect(AIRoutineErrorText.split("A generated session was invalid.").next == nil)
     }
 
     // MARK: Save

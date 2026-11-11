@@ -73,9 +73,9 @@ enum PlateTranscriptionError: Error, Equatable, LocalizedError {
         case .offline: "Ask AI needs a connection — you look offline."
         case .timedOut: "Ask AI took too long. Try again when the signal is better."
         case .unauthorized: "Ask AI's key was rejected. Check it in Settings."
-        case .refused: "AI declined to read this photo."
+        case .refused: "Couldn't read this photo."
         case .unavailable(let status): "Ask AI is unavailable right now (\(status))."
-        case .malformed: "AI's answer could not be read."
+        case .malformed: "The answer could not be read."
         }
     }
 }

@@ -261,7 +261,7 @@ struct AIEquipmentStep: View {
         let families = AIRoutineReadouts.eligibleFamilies(options)
         return AIBottomBar {
             if !aiReady {
-                Text("Sign in to create routines with AI.")
+                Text("Sign in to create routines.")
                     .font(look.font.footnote)
                     .foregroundStyle(look.textSecondary)
                     .multilineTextAlignment(.center)

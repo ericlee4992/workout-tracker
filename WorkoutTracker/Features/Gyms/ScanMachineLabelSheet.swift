@@ -394,7 +394,7 @@ struct ScanMachineLabelSheet: View {
 
     private func readingCard(_ results: Results) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(results.source == .ai ? "What AI read" : "What the camera read")
+            Text(results.source == .ai ? "What Ask AI read" : "What the camera read")
                 .font(.system(.footnote, weight: .semibold))
                 .foregroundStyle(look.textSecondary)
                 .padding(.leading, 4)
@@ -729,7 +729,7 @@ struct ScanMachineLabelSheet: View {
                 let reading = transcription.labelReading
                 if reading.isEmpty {
                     var noted = current
-                    noted.askNote = "AI could not find a name plate in the box."
+                    noted.askNote = "Couldn't find a name plate in the box."
                     phase = .results(noted)
                 } else {
                     present(reading, in: index, source: .ai, crop: nil)

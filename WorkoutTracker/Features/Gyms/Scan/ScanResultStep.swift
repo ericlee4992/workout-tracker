@@ -44,7 +44,7 @@ struct ScanResultStep: View {
                     ScanInlineTitle(title: "Scan Machine")
                     hero
                     if proposal.identity == "uncertain" {
-                        Text("AI could not identify this equipment. Try a clearer angle or choose its exercises below.")
+                        Text("Couldn't identify this equipment. Try a clearer angle or choose its exercises below.")
                             .font(look.font.subhead)
                             .foregroundStyle(look.textSecondary)
                             .fixedSize(horizontal: false, vertical: true)

@@ -151,7 +151,7 @@ struct ScanExercisePicker: View {
                             Image(systemName: "sparkles")
                                 .font(.system(.caption, weight: .bold))
                                 .foregroundStyle(look.textSecondary)
-                                .accessibilityLabel("Suggested by AI")
+                                .accessibilityLabel("Suggested")
                         }
                     }
                     if let group = exercise.muscleGroup, searching {

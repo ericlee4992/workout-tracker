@@ -178,15 +178,15 @@ enum AIServerError: LocalizedError, Equatable {
         case .limit(let flow, let limit, let resetsAt):
             "You've used today's \(limit.map { "\($0) " } ?? "")\(flow.noun). They \(AIResetCopy.reset(at: resetsAt))."
         case .attempts(let resetsAt):
-            "Too many AI tries today. Try again after \(AIResetCopy.clock(resetsAt, zone: .current)) or continue manually."
-        case .busy: "Another AI request is still running. Try again in a moment."
-        case .paused: "AI is paused right now. You can continue manually."
+            "Too many tries today. Try again after \(AIResetCopy.clock(resetsAt, zone: .current)) or continue manually."
+        case .busy: "Another request is still running. Try again in a moment."
+        case .paused: "This feature is paused right now. You can continue manually."
         case .offline: "Could not reach the server. Check your connection or continue manually."
-        case .timedOut: "AI took too long. Try again."
-        case .unavailable: "AI is unavailable right now. Try again later."
-        case .refused: "AI could not help with this request. Change the request or continue manually."
-        case .invalid: "AI returned an incomplete or invalid result. Try again or continue manually."
-        case .rejected: "AI couldn't take this request. Continue manually."
+        case .timedOut: "Took too long. Try again."
+        case .unavailable: "This feature is unavailable right now. Try again later."
+        case .refused: "Couldn't help with this request. Change the request or continue manually."
+        case .invalid: "Got an incomplete or invalid result. Try again or continue manually."
+        case .rejected: "Couldn't take this request. Continue manually."
         }
     }
 }

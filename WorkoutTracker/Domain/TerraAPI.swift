@@ -8,7 +8,7 @@ enum TerraError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .message(let text): text
-        case .invalidResponse: "AI returned an incomplete or invalid result. Try again or continue manually."
+        case .invalidResponse: "Got an incomplete or invalid result. Try again or continue manually."
         }
     }
 }

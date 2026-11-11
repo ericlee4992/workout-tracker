@@ -120,7 +120,7 @@ struct AskAISettingsSheet: View {
                            label: "Send equipment photos to OpenAI", isOn: $photoConsent)
                 consentRow("Routine details", feature: "Ask AI for Templates", symbol: "calendar",
                            label: "Send routine details to OpenAI", isOn: $routineConsent)
-                consentRow("Model details", feature: "Suggest exercises with AI", symbol: "tag",
+                consentRow("Model details", feature: "Suggest exercises", symbol: "tag",
                            label: "Send model details to OpenAI", isOn: $exerciseConsent)
                 Link(destination: URL(string: "https://developers.openai.com/api/docs/guides/your-data")!) {
                     SettingsRow("OpenAI API data policies", symbol: "doc.text", trailingStaysInline: true) {

@@ -12,7 +12,7 @@ struct PersonalDetailsView: View {
             VStack(alignment: .leading, spacing: look.space.section) {
                 LookNavTitle("Personal details")
                 PersonalDetailsList()
-                Text("Used for your nutrition goals, heart rate zones and AI suggestions.")
+                Text("Used for your nutrition goals, heart rate zones and suggestions.")
                     .font(look.font.footnote)
                     .foregroundStyle(look.textSecondary)
                     .padding(.horizontal, 4)
