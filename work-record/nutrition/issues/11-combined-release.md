@@ -1,7 +1,7 @@
 # R — The combined release (Phase 1 + Phase 2) to testers
 
 Type: task
-Status: **proposed** (2026-11-07) — awaiting the user's approval
+Status: **in progress** (2026-11-11) — the user: "lets work on R now"; branch `ericlee4992/release-r`
 Blocked by: S1–S4, N1–N10
 Implementer: Claude; Reviewer: Codex for the release notes, README and privacy changes.
 Spec: [soft-redesign](../../soft-redesign/spec.md), [nutrition](../spec.md). Decisions: D76; D62 (release notes).
@@ -28,6 +28,38 @@ Ship the Soft redesign and nutrition together as one TestFlight build (build **1
 
 ## Progress
 
-Not started.
+**2026-11-11 (Claude), after N8 merged.** Checklist state:
+
+1. **Cost re-check** — recorded live checks (N6, N7; `gpt-6.1-terra`, $1/1M in, $5/1M out): food-photo $0.0041–0.0059,
+   food-label $0.0021–0.0023, food-describe $0.0013–0.0015 a request; training flows $0.0018–0.0061. One person at
+   every daily limit (60 scans, 10 weeks, 60 suggestions, 30 photos, 30 labels, 60 descriptions) ≈ **$0.74 a day**.
+   N8 adds no AI cost (Open Food Facts and USDA are free; USDA's key allows 1,000 requests an hour, the cache cuts
+   repeats). **Waiting: the user confirms the limits.**
+2. Full UI suite — **waiting: the user's go** (about an hour).
+3. Drafts below — **waiting: the user's approval/edits.**
+4.–9. Not started.
+
+### Draft — What's New (build 10, in-app, once after updating)
+
+Title: **New: Food, and a fresh look**
+- fork.knife — Log food from Today: search, scan a barcode or a label, or take a photo of your meal.
+- target — Set calorie and protein goals; Today shows what's left.
+- scalemass — Track your body weight, with Apple Health if you like.
+- paintbrush — A softer look across the app, with a new Profile.
+
+### Draft — What to Test (TestFlight, build 10)
+
+"Build 10 adds food logging and a new look. Tap Log food on Today to search, scan a barcode or label, or photograph a
+meal; set goals in Profile. Your workouts and templates should be just as before (the app makes a safety copy first).
+Send anything odd from Profile → Send Feedback."
+
+### Privacy page changes since the live version (October 15, 2026) — for approval with a new effective date
+
+N6/N9: what's stored on the iPhone now includes food, goals, body weight, personal details; Apple Health reads/saves
+weight, saves food totals, reads active energy; meal photos are kept with their entry; the food AI features (photo,
+label, description) are sent only when used, no separate prompt. N8: "Barcodes and food search" (barcode numbers and
+search words go to Open Food Facts and USDA through the server; 30-day shared cache linked to no account; searches
+kept only as a one-way code; daily counts removed after ~2 days); both listed as processors. Exact text:
+`git diff 0191b3f HEAD -- server/src/pages.ts`.
 
 ## Comments
