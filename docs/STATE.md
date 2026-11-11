@@ -1,50 +1,44 @@
 # Current project state
 
-Updated **2026-11-10 (midday), handoff before a new session for N7.** Nutrition phase: N1–N5, S6, N6 code and N9a merged into `main`; next N7 (Scan Food, mocks first), then N9b, N10, N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-10 (late night), handoff before a new session for C1 + N9b.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; next **C1 + N9b as one task** (build both, then test and Codex-review them together), then N10, N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: nutrition phase — next N7 (Scan Food), mocks first
+## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
 
-- **Resume here (2026-11-10 midday).** Read this block, then N7's ticket. Verify Git first.
-  **Merged into `main`** (each Codex-clear; merged under the user's standing permission "merge whenever Codex clear"):
-  **N4** Log food (D81: All / My foods / My meals / Saved foods, Manual Add, Add food two-step, Create/Edit/Delete meal,
-  Delete Food); **N5** Today's food (fuel card, food in the day rings, today's log by meal, edit/delete an entry with
-  Undo, Set your goals); **N6 code** (server food flows food-photo / food-label / food-describe, limits 30/30/60,
-  migration 0007, privacy draft; **D79 amended** — training flows stay on GPT-5.6 Terra, food flows on GPT-6.1 Terra;
-  live check done, all six flows ok, costs in N6's ticket; **deploy everything at R**, the user's option 2);
-  **N9a** Body weight (Profile → Body weight, Log/Edit weight, Recalculate goals past 2 kg).
-  **Decisions this morning (the user):** D79 amended; deploy at R; **D82** — meal-photo scan: a progress card in
-  Today's log, logged at once (tap to edit), the photo kept on the phone; Health usage strings approved (N9b); the
-  Nutrition goals page keeps recalculating from the latest weight on a visit (no change to N3).
-  **N7 DONE (2026-11-10 night): Scan Food — Codex clear (round 4), merged into `main`.** D83 = the user's N7 answers
-  (one entry named for the meal, name from the server, describe logged at once, both entry points, notification asked
-  on the first scan, no consent screen, no "AI" wording, a library photo's own time). Data: `FoodPhoto` + `FoodEntryItem`
-  (approved fingerprint `ad42bc46…`). Server `mealName` deploys at R. Ticket: evidence and Verified/Not verified/flaky.
-  Codex terminal for reviews now `term_20f2d1c6-628e-4ca8-9110-48b74ef8ec31` ("Review N7 round 2 (Codex)", ~70 % left).
-  **Next: C1** (`work-record/copy/issues/01-no-ai-wording.md`, wording approved by the user), then N9b, N8, N10, R.
-  To confirm with the user: N7's new strings, own decisions, the privacy draft's food line (all in N7's ticket).
-  **NEXT (was): N7 — Scan Food** (the user: start it in a new session). Branch `ericlee4992/nutrition-07-scan-food` off
-  `main` in this worktree. **Mocks only first** (sample data, nothing stored; screenshots light/default + dark/AXL;
-  SendUserFile + Preview) and wait for the user's approval before wiring: the camera with modes Scan food | Barcode
-  (N8) | Food label, photo-library pick; **D82's progress card** in Today's log (blurred photo, estimated % ring,
-  "Analyzing image", skeleton lines, "We'll notify you when done!") turning into the logged entry (photo thumbnail,
-  name, time, calories, macros); the items/edit screen; **both options** for a photo's entries (one entry named for
-  the meal vs one per item — open); the label → Selected food prefilled; Describe what you ate; failure states. Read
-  N7's ticket, D82, D78, D53 (label crop), D56 (consent pattern). The server's food flows are merged but deploy at R —
-  test against a stub in UI tests and, for a real check, the local server (N6 ticket "Live check"; the dev key file is
-  copied into git-ignored `server/.dev.vars` and deleted after; never printed).
-  **After N7:** **N9b** Apple Health (read/write weight, write food totals, read active energy as Burned, Profile →
-  Apple Health; branch `ericlee4992/nutrition-09b-health` exists at an older `main` — rebase or recreate), then N10
-  (Progress body/nutrition charts, History food line), N8 (needs the user's USDA key + search-mixing answer), R.
-  **Still open for the user:** new strings and own decisions listed in the N5 and N9 tickets (not yet confirmed).
-  **Tools:** Codex terminal for every review `term_3f1b832a-eaa8-4561-8b3a-d5b98db5d158` ("Review nutrition N4", ~55 %
-  context; the user reset Codex's weekly limit 2026-11-10); 2 parallel UI workers max; run nothing while Codex runs.
-  N6's worktree `…/Health App/nutrition-06-server` is kept (node_modules) for the R deploy. Auto-handoff off (the user).
+- **Resume here (2026-11-10 late night).** Read this block, then the two tickets below. Verify Git first:
+  `main` = `origin/main` = `2c93c1e` or later (N7 merged). The `UI_design` worktree is on the merged
+  `ericlee4992/nutrition-07-scan-food` — nothing pending.
+  **NEXT TASK: C1 + N9b, grouped (the user, 2026-11-10: "for testing and codex review, lets do that after doing both C1
+  and N9b … group them together as one task").** One branch off `main` in this worktree, e.g.
+  `ericlee4992/c1-n9b` (the old `ericlee4992/nutrition-09b-health` sits at an older `main` with no work — ignore it).
+  Order: build **C1** (`work-record/copy/issues/01-no-ai-wording.md` — wording approved: drop "with AI" phrases and
+  start no error with "AI…"; feature names such as "Ask AI" stay), then **N9b** (`work-record/nutrition/issues/
+  09-body-weight-health.md` — Apple Health: read/write weight, write food totals, read active energy as Burned,
+  Profile → Apple Health page; **usage strings approved, wording in that ticket**). Then ONE verification pass (scope per
+  DEVELOPMENT; the classes both touch, captures of changed screens) and ONE Codex review covering both, to clear; then
+  ff-merge `main`. Commit and push at checkpoints as usual; no Codex or long test runs between C1 and N9b.
+  **N7 DONE (2026-11-10 night): Scan Food — Codex clear (round 4), merged.** D83 = the user's N7 answers (one entry
+  named for the meal, name from the server, describe logged at once, both entry points, notification asked on the first
+  scan, no consent screen, no "AI" wording, a library photo's own time). Data: `FoodPhoto` + `FoodEntryItem` (approved
+  fingerprint `ad42bc46…`). Server `mealName` deploys at R. Evidence and Verified/Not verified in N7's ticket.
+  **Open for the user (not blocking):** N7's new strings, own decisions and the privacy draft's food line (N7 ticket);
+  older strings and own decisions in the N5 and N9 tickets.
+  **Merged before N7** (each Codex-clear; the user's standing permission "merge whenever Codex clear"): N4 Log food
+  (D81), N5 Today's food, N6 code (server food flows; D79 amended — training flows GPT-5.6 Terra, food flows GPT-6.1
+  Terra; live check done; **deploy everything at R**), N9a Body weight.
+  **Tools:** Codex reviews in terminal `term_20f2d1c6-628e-4ca8-9110-48b74ef8ec31` ("Review N7 round 2 (Codex)", this
+  worktree, ~70 % context left; the older `term_3f1b832a…` is at 10 % — retired). Send the brief with `orca terminal
+  send --terminal <id> --text … --enter --wait-submit 20`; watch the report file and approval prompts (not tui-idle).
+  Test progress tab `term_ac1339dc-202d-4c10-bab3-b528de726cbd` (`bash scripts/test-progress.sh <log> <count> "<title>"`).
+  2 parallel UI workers max; nothing runs while Codex runs. `server/node_modules` here is a symlink to the N6 worktree's
+  (excluded via `.git/info/exclude`); N6's worktree `…/Health App/nutrition-06-server` is kept for the R deploy.
+  Live AI checks: the dev key file and steps are in N6's ticket ("Live check") — copy into git-ignored `server/.dev.vars`,
+  delete after, never print. Auto-handoff off (the user).
   **Goal:** the user's approved Soft redesign (Phase 1 — done) then nutrition (Phase 2), shipped to testers together as
   one release R (D76; no TestFlight build before R). Specs: [soft-redesign](../work-record/soft-redesign/spec.md),
   [nutrition](../work-record/nutrition/spec.md); decisions D67–D77. Workspace for both phases:
   `/Users/ericlee06/orca/workspaces/Health App/UI_design`. Prototype record: tag `design/soft-approved-2026-11-07`.
-  **Git:** `main` = `origin/main` (see `git log`; N9a and the morning's decisions are the latest). Each ticket: a new branch off `main` in this worktree (Claude's
+  **Git:** `main` = `origin/main` (see `git log`; N7 is the latest). Each ticket: a new branch off `main` in this worktree (Claude's
   own branches). The home checkout `…/orca/projects/Health App` is on clean `main`; fast-forward `main` there
   (`git -C "<home>" merge --ff-only <branch>` + push) — `main` cannot be checked out in this worktree.
   **Commands:** build `xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk
@@ -76,11 +70,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   runs show in ONE reused Orca tab "Test progress (Claude r2)" `term_ac1339dc-202d-4c10-bab3-b528de726cbd` (send
   `bash scripts/test-progress.sh <log> <count> "<title>"` to it; never open a new one); ask before runs over ~20 min;
   explain plainly; screenshots by SendUserFile **and** Preview.
-  **Codex:** Orca terminal `term_6ce8444b-90ab-444c-be37-226992cf09d7` ("Review nutrition N1", this worktree, fresh
-  2026-11-09); the previous `term_0b783489-…` returns "Bad Request" on every request — do not reuse it; the older `term_1ae47c82-…` ("Review soft redesign round 2") is at
-  13% context — retired. If a Codex session asks approval for a simulator/orca command: read the `$ ` line, then send
-  `--text "y"` alone; read any new script it runs before approving. It writes "Verdict: not clear" as a checkpoint while its UI run is going — act on the final
-  report. Brief it to use WT-iPhone27 `47D21838-…`; Claude uses WT-Floodlight `9E822EF6-…`.
+  **Codex:** see Tools above (current terminal `term_20f2d1c6…`). If a Codex session asks approval for a
+  simulator/orca command: read the `$ ` line, then send `--text "y"` alone; read any new script it runs before
+  approving. It writes "Verdict: not clear" as a checkpoint while its UI run is going — act on the final report. Brief
+  it to use WT-iPhone27 `47D21838-…`; Claude uses WT-Floodlight `9E822EF6-…`.
   **Gotchas (2026-11-09):** rebuild (`build-for-testing`) after any app OR test edit — `test-without-building` runs the
   old bundle; SwiftData has no public close, so file-level tests write stores via Core Data (`coordinator.remove`); a
   `fullScreenCover(isPresented: .constant(...))` dismissed another alert on the same view — use a real binding on a

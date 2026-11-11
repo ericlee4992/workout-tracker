@@ -1,7 +1,7 @@
 # N9 — Body weight logging and Apple Health
 
 Type: feature
-Status: **N9a done — Codex clear (round 2), merged** (2026-11-10); **N9b (Apple Health) next** — in the user's plan (N3 … N10 → R); split by Claude overnight: **N9a** body weight logging (now), **N9b** Apple Health (next — its usage strings need the user's wording approval)
+Status: **N9a done — Codex clear (round 2), merged** (2026-11-10); **N9b (Apple Health) next, grouped with C1** (the user, 2026-11-10: build C1 and N9b, then test and Codex-review them together as one task); split by Claude overnight: **N9a** body weight logging, **N9b** Apple Health — usage strings **approved** (below)
 Blocked by: N2
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-09-weight-health` off `main`.
@@ -22,7 +22,14 @@ Log body weight in the app, and share weight, food and burned calories with Appl
     a sync id), replaced on edit and deleted on delete.
   - **Read calories burned** → the day's active energy shown as Burned on Today (D71: shown, never added).
 - Profile → Apple Health: on/off per part, and what is shared.
-- Usage strings (`NSHealthShareUsageDescription` / `NSHealthUpdateUsageDescription`) updated; wording to approve.
+- Usage strings (`NSHealthShareUsageDescription` / `NSHealthUpdateUsageDescription`) updated — **approved by the user
+  (2026-11-10 morning; recorded from that session's transcript in the evening):**
+  - Share (reading): "Your heart rate, active and resting energy, and distance are shown during and after a workout;
+    your body weight appears with the weights you log, and the day's active energy is shown as Burned on Today.
+    Stacked does not upload them; they leave your iPhone only in an export or feedback you send."
+  - Update (saving): "Workouts you log are saved to Health, and if you turn them on, your body weight and the calories,
+    protein, carbs and fat of the food you log."
+  (Today's values are in `project.pbxproj` `INFOPLIST_KEY_NSHealth…`, both configurations.)
 - Goals (N3): offer Recalculate when the weight changes by more than about 2 kg since the goal.
 
 ## Acceptance

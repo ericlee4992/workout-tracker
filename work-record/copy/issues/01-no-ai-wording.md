@@ -1,7 +1,8 @@
 # C1 — No "AI" in the app's wording, except feature names
 
 Type: task (copy)
-Status: ready — after N7 (the user, 2026-11-10)
+Status: ready — next, **grouped with N9b** (the user, 2026-11-10: build C1 and N9b, then run the tests and the Codex review
+once for both, as one task; one branch)
 Implementer: Claude; Reviewer: Codex, to "clear".
 Decision: D83 (8) extended app-wide by the user, 2026-11-10: "get rid of all wordings that say using ai since the users
 of the app already know that app is using ai for things."
