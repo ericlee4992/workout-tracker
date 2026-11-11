@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-11, C1 + N9b merged (Codex clear); next N10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b merged 2026-11-11; next N10, N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-11, C1 + N9b and N10 merged (Codex clear); next N8.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
@@ -10,8 +10,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   N9b: Apple Health — Profile → Apple Health (read weight, read Burned, save weight, save food), reconcile sync by sync
   ids (`Domain/HealthNutritionSync.swift`, `Domain/HealthKitNutritionStore.swift`); 3 Codex rounds (T1 privacy: Ask AI
   prefills only an entered weight; S1–S7, R2-S1 fixed). Evidence and Verified / Not verified in the N9 ticket.
-  **Next, in order (the user, 2026-11-11):** N10 (built and verified on `ericlee4992/nutrition-10-progress`; Codex round 1 not clear (2 P2, 2 P3) — fixed; round 2 not clear (1 P2, same-time weigh-in identity) — fixed; **round 3 sent** (brief `work-record/nutrition/codex-review-n10-r3-prompt.md`, report `codex-review-n10-c.md`) to the NEW Codex terminal `term_df72a91c-b1a6-47a2-aedb-5b652fc9e0d0` (the old `term_20f2d1c6…` is at 16 % context — retired), brief `work-record/nutrition/codex-review-n10-r2-prompt.md`, report `codex-review-n10-b.md`), then N8
-  (online search by name approved), then R. **For the user (not blocking):** C1's camera/photo-library permission wording (left;
+  **N10 DONE (2026-11-11): Codex clear (round 3), merged** — Progress body/food charts (Add Chart → Nutrition), History's
+  food line → a day's food page (ticket `work-record/nutrition/issues/10-progress-history-nutrition.md`).
+  **Next (the user, 2026-11-11):** N8 (barcode + online search by name, approved), then R. Codex terminal now
+  `term_df72a91c-b1a6-47a2-aedb-5b652fc9e0d0` ("Review N10 round 2 (Codex)", ~78 % context left).
   proposal in C1's ticket); N9b's own decisions 1–5 and new strings (N9 ticket). Known flaky:
   `FloodlightAIRoutineUITests.testBackKeepsInputsAndLeavingTheWeekAsksFirst` (Train tab, parallel run; serial passes).
   The user (2026-11-11) kept the review/test workflow as is (asked why rounds take long; no rule change).

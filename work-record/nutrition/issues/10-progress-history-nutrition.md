@@ -1,7 +1,7 @@
 # N10 — Progress body and nutrition metrics, History food line
 
 Type: feature
-Status: **in progress** (2026-11-11, branch `ericlee4992/nutrition-10-progress`) — started on the user's go-ahead
+Status: **done — Codex clear (round 3), merged** (2026-11-11)
 Blocked by: N5, N9
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-10-progress` off `main`.
@@ -113,3 +113,7 @@ order-independent, kept through an edit and a delete). Codex's advisory: today's
 each refresh of its `now`, as Today does. Capture added: Body weight's page (weigh-ins with times), light Default and
 dark AXL. Evidence: build exit 0; Unit plan 1,273/1,273 (`/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/20f5b25b-92e7-448e-a00d-dbd68fee92a9/scratchpad/n10r3-unit.xcresult`); NutritionProgress, FloodlightProgress,
 ProgressChart, ProgressChartTooltip UI classes + warm-up 22/22, 2 workers (`n10r3-ui.xcresult`).
+
+**Round 3 (`codex-review-n10-c.md`): clear** — no findings; reviewer's build exit 0, Unit 1,273/1,273, the Progress UI
+classes passed. Merged into `main` (the user's standing permission "merge whenever Codex clear"). Known flaky (Codex
+round 2, did not recur): a dark nutrition capture's navigation once in a parallel run.
