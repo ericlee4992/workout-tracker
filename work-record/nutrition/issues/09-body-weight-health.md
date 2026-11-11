@@ -86,8 +86,10 @@ steps, Time, Cancel / Save, Delete Weight when editing. New entries use the late
   sample, so an edit never duplicates) and deletes samples whose entry is gone. A repeated pass writes nothing.
 - **Own decisions (Claude; for the user to confirm):**
   1. Food goes to Health as four plain samples per entry (calories always; protein, carbs, fat when above zero), each
-     named with the food, **not a food correlation** as this ticket first said: Health cannot be asked to share the
-     correlation type, so the app could not reliably replace or delete one.
+     named with the food, **not a food correlation** as this ticket first said — chosen as the simpler shape (each
+     type stands alone, so a refused type is simply not written and a macro edited to zero is one delete). A
+     correlation would also have worked; the first reason given here (that it could not be replaced or deleted) was
+     wrong (codex-review-c1-n9b).
   2. Turning a save part **off** stops changes; what is in Health stays. Turning it on again brings Health back in line
      with the app — every entry written, ones deleted meanwhile removed.
   3. Health's weights: the **last 365 days**, in the app's unit system, **read-only** in the app (no chevron; change
@@ -149,3 +151,23 @@ Recalculate and sees the offer go, then come back after deleting. `BodyWeightLog
 warm-up. N9a merged into `main` by the user's standing permission. **N9b** (Apple Health) is next, held for the
 morning: its usage strings need the user's wording, and Codex's weekly limit was at 18 %.
 
+
+**C1 + N9b round 1 (`codex-review-c1-n9b.md`): not clear — 6 P2, 2 P3 (all N9b; C1 clear).** Fixed:
+- **T1** a weight read from Health could be prefilled into Ask AI's request (and the training profile it saves) —
+  against "Stacked does not upload Health data". `NutritionGoalStore.latestEnteredWeight` (app-entered only) feeds
+  `AIRoutineFlowModel.prefillMissingMeasurements(from:)`, which the sheet now calls; on-phone uses keep `latestWeight`.
+- **S1** a part switched off while Health answered could still import rows or start a save: per-part generations,
+  checked after every await (`CancellationError` drops the work quietly).
+- **S2** the 0.1 % comparison tolerance swallowed a 0.1 kg edit: now floating-point only (1e-9 relative, 1 ms).
+- **S3** a save during the third pass was left until the next save: a pass that ends dirty schedules another.
+- **S4** wall-clock sync versions: each save's version is above the one Health holds for that sync id (read back
+  with the sample); sample ids are read back from Health after saving, never assumed. The fake now honours versions.
+- **S5** the day's bounds for Burned used launch's calendar: the calendar is read at each use (`{ .current }`).
+- **S6** a rename did not reach Health: the food name is read back and compared.
+- **S7** Health's rows kept the old unit after a unit change: each pass converts them from their exact kg.
+- The correlation reason (own decision 1) corrected in the ticket and `HealthKitNutritionStore.swift`.
+Tests added (`HealthNutritionSyncTests` now 24): off during a read and a write query, small edits (0.1 kg, 0.2 lb,
+0.5 cal), a save during the last pass, the real save observer, an edit after the clock went back, a time-zone change,
+a rename, a unit change, Ask AI's prefill with a newer Health weight and with Health only. Evidence: build exit 0;
+`HealthNutritionSyncTests` 24 × 10 = 240/240 (`r2-health10.xcresult`); Unit plan 1,256/1,256 (`r2-unit.xcresult`);
+AppleHealthUITests + FloodlightAIRoutineUITests + warm-up 20/20, 2 workers (`r2-ui.xcresult`). Round 2 sent.

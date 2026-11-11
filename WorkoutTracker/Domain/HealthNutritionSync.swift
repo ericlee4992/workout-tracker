@@ -14,9 +14,12 @@ import SwiftData
 // identifier, so an edit is one save and a repeated pass writes nothing. Turning a write part off stops the app touching
 // Health for it; turning it on again brings Health back in line (including deletes made meanwhile).
 //
-// Each written sample's Health id goes back on its entry (`healthSampleID`, D74): reading weights skips samples with
-// those ids, samples that carry this app's sync identifiers, and samples from this app — so the app's own writes never
-// come back as "Apple Health" entries.
+// Each written sample's Health id goes back on its entry (`healthSampleID`, D74), read back from Health after the save
+// rather than assumed from it: reading weights skips samples with those ids, samples that carry this app's sync
+// identifiers, and samples from this app — so the app's own writes never come back as "Apple Health" entries.
+//
+// Health's data stays on the phone (the approved usage string): weights read from Health feed what the phone shows and
+// calculates, never a request to the server — `NutritionGoalStore.latestEnteredWeight` is the one for those.
 
 /// The Health data types the app reads or writes for N9b (workouts and the live heart rate are elsewhere).
 enum HealthType: String, CaseIterable, Sendable {
@@ -59,6 +62,10 @@ struct HealthSample: Equatable, Sendable {
     var syncID: String?
     /// Written by this app (its source is this app).
     var isOwn: Bool
+    /// `HKMetadataKeySyncVersion`, when the sample has one.
+    var version: Int? = nil
+    /// `HKMetadataKeyFoodType`, when the sample has one.
+    var foodName: String? = nil
 }
 
 /// A sample the app wants in Health.
@@ -69,6 +76,8 @@ struct HealthWrite: Equatable, Sendable {
     var value: Double
     /// `HKMetadataKeyFoodType`: the entry's name, so Health lists the food by name.
     var foodName: String?
+    /// `HKMetadataKeySyncVersion`; the plan sets it above the version already in Health (codex-review-c1-n9b S4).
+    var version: Int = 0
 }
 
 /// The app's sync identifiers: `stacked.weight.<entry id>` and `stacked.food.<entry id>.<type>`. Stable per entry and
@@ -97,8 +106,9 @@ protocol HealthStoring: AnyObject {
     func canWrite(_ type: HealthType) -> Bool
     /// Samples of a type since `start` (all time when nil); `ownOnly` limits them to this app's.
     func samples(_ type: HealthType, from start: Date?, ownOnly: Bool) async throws -> [HealthSample]
-    /// Saves the samples under `version` (`HKMetadataKeySyncVersion`, higher replaces); returns each sync id's Health id.
-    func save(_ writes: [HealthWrite], version: Int) async throws -> [String: UUID]
+    /// Saves the samples, each under its own sync version (a higher version replaces the sample with the same sync id).
+    /// Says nothing about which replacements Health accepted: the sync reads Health again to learn the samples' ids.
+    func save(_ writes: [HealthWrite]) async throws
     /// Deletes this app's samples of a type with these sync identifiers.
     func delete(_ type: HealthType, syncIDs: [String]) async throws
     /// Active energy between the two instants in kcal, Health's de-duplicated sum across sources.
@@ -136,31 +146,39 @@ enum HealthSyncPlan {
         var delete: [String]
         /// Writes already in Health as they should be: sync id → that sample's Health id.
         var matched: [String: UUID]
+
+        var isEmpty: Bool { save.isEmpty && delete.isEmpty }
     }
 
     /// What to change so this app's samples in Health are exactly `desired`. Only `existing` samples with this app's
-    /// sync ids count; anyone else's are never touched.
-    static func diff(desired: [HealthWrite], existing: [HealthSample]) -> Diff {
+    /// sync ids count; anyone else's are never touched. Each save's version is above both `baseVersion` (the clock) and
+    /// the version Health holds for that sync id, so it replaces the sample even after the phone's clock went back.
+    static func diff(desired: [HealthWrite], existing: [HealthSample], baseVersion: Int) -> Diff {
         let mine = Dictionary(grouping: existing.filter { $0.isOwn && HealthSyncID.isApps($0.syncID) }, by: { $0.syncID! })
         let wanted = Set(desired.map(\.syncID))
         var save: [HealthWrite] = []
         var delete = mine.keys.filter { !wanted.contains($0) }
         var matched: [String: UUID] = [:]
-        for write in desired {
+        for var write in desired {
             let copies = mine[write.syncID] ?? []
             if copies.count == 1, let sample = copies.first, same(sample, write) {
                 matched[write.syncID] = sample.uuid
             } else {
                 if copies.count > 1 { delete.append(write.syncID) }
+                write.version = max(baseVersion, (copies.compactMap(\.version).max() ?? 0) + 1)
                 save.append(write)
             }
         }
         return Diff(save: save, delete: delete.sorted(), matched: matched)
     }
 
-    /// Health stores what it was given; a second's and a thousandth's tolerance absorb its own rounding.
+    /// The sample already says what the write says: the same instant (Health keeps dates to the millisecond), the same
+    /// value to within floating-point conversion — never a display rounding, so a 0.1 kg edit reaches Health
+    /// (codex-review-c1-n9b S2) — and the same food name.
     static func same(_ sample: HealthSample, _ write: HealthWrite) -> Bool {
-        abs(sample.date.timeIntervalSince(write.date)) < 1 && abs(sample.value - write.value) < 0.001 * max(1, abs(write.value))
+        abs(sample.date.timeIntervalSince(write.date)) < 0.001
+            && abs(sample.value - write.value) <= 1e-9 * max(1, abs(write.value))
+            && sample.foodName == write.foodName
     }
 
     /// Health's weights to show: everyone's but this app's (by Health id, sync id or source).
@@ -189,7 +207,7 @@ final class HealthSync {
 
     let store: HealthStoring?
     private(set) var enabled: Set<HealthPart>
-    /// The day's active energy read from Health, by local start of day.
+    /// Today's active energy read from Health, keyed by its local start of day.
     private(set) var burned: [Date: Double] = [:]
     /// The part whose Health permission sheet is up.
     private(set) var requesting: HealthPart?
@@ -199,19 +217,25 @@ final class HealthSync {
     private(set) var authorizationRevision = 0
 
     @ObservationIgnored private let defaults: UserDefaults
-    @ObservationIgnored private let calendar: Calendar
+    /// Read at each use, so a time-zone change moves the day's bounds (codex-review-c1-n9b S5).
+    @ObservationIgnored private let calendar: () -> Calendar
+    @ObservationIgnored private let debounce: Duration
     @ObservationIgnored private var context: ModelContext?
     @ObservationIgnored private var syncing = false
     @ObservationIgnored private var dirty = false
     @ObservationIgnored private var pending: Task<Void, Never>?
     @ObservationIgnored private var observer: NSObjectProtocol?
     @ObservationIgnored private var now: () -> Date
+    /// Bumped whenever a part is switched: work for that part begun before the switch is dropped after its next await
+    /// (a late answer must not import rows or start saves for a part now off — codex-review-c1-n9b S1).
+    @ObservationIgnored private var generations: [HealthPart: Int] = [:]
 
-    init(store: HealthStoring?, defaults: UserDefaults = .standard, calendar: Calendar = .current,
-         now: @escaping () -> Date = { .now }) {
+    init(store: HealthStoring?, defaults: UserDefaults = .standard, calendar: @escaping () -> Calendar = { .current },
+         debounce: Duration = .seconds(1), now: @escaping () -> Date = { .now }) {
         self.store = store
         self.defaults = defaults
         self.calendar = calendar
+        self.debounce = debounce
         self.now = now
         enabled = Set(HealthPart.allCases.filter { defaults.bool(forKey: $0.defaultsKey) })
     }
@@ -228,7 +252,7 @@ final class HealthSync {
         return !part.shares.allSatisfy(store.canWrite)
     }
 
-    /// Follows this context's store: a pass now, and a pass shortly after every save anywhere in the app. Tests pass
+    /// Follows this context's store: a pass now, and a pass shortly after every save anywhere in the app. Tests may pass
     /// `observesSaves: false` and run each pass themselves.
     func attach(_ context: ModelContext, observesSaves: Bool = true) {
         self.context = context
@@ -242,22 +266,25 @@ final class HealthSync {
         scheduleSync(after: .zero)
     }
 
-    /// A pass soon: saves come in bursts (a meal logs several entries), so they share one pass.
-    func scheduleSync(after delay: Duration = .seconds(1)) {
+    /// A pass soon: saves come in bursts (a meal logs several entries), so they share one pass. During a pass, the
+    /// pass runs again (or, past its limit, schedules this).
+    func scheduleSync(after delay: Duration? = nil) {
         guard anyOn else { return }
         if syncing { dirty = true; return }
         pending?.cancel()
+        let wait = delay ?? debounce
         pending = Task { [weak self] in
-            try? await Task.sleep(for: delay)
+            try? await Task.sleep(for: wait)
             guard !Task.isCancelled else { return }
             await self?.sync()
         }
     }
 
     /// Turns a part on (asking Health first) or off. Off: reading weights removes Health's rows from the app; writing
-    /// leaves what is already in Health.
+    /// leaves what is already in Health. Either way, work for the part still under way is dropped.
     func set(_ part: HealthPart, on: Bool) async {
         guard let store, store.isAvailable else { return }
+        generations[part, default: 0] += 1
         if on {
             requesting = part
             defer { requesting = nil; authorizationRevision += 1 }
@@ -286,26 +313,28 @@ final class HealthSync {
     /// The day's active energy from Health, nil when reading it is off or nothing was read.
     func burned(on day: Date) -> Double? {
         guard isOn(.readBurned) else { return nil }
-        return burned[calendar.startOfDay(for: day)]
+        return burned[calendar().startOfDay(for: day)]
     }
 
     func refreshBurned(on day: Date) async {
         guard isOn(.readBurned), let store, store.isAvailable else { return }
+        let generation = generations[.readBurned, default: 0]
+        let calendar = calendar()
         let start = calendar.startOfDay(for: day)
         guard let end = calendar.date(byAdding: .day, value: 1, to: start) else { return }
         // A refused read and a quiet day both read as 0 — Health does not say which (D74: the other parts go on).
-        if let value = try? await store.activeEnergy(from: start, to: min(end, max(now(), start))) {
-            burned[start] = value
-        }
+        guard let value = try? await store.activeEnergy(from: start, to: min(end, max(now(), start))),
+              current(.readBurned, generation) else { return }
+        burned = [start: value]
     }
 
-    /// One pass over every part that is on. A save during the pass (the app's own included) runs one more pass, which
-    /// finds nothing to change; at most three passes in a row.
+    /// Passes over every part that is on. A save during a pass (the app's own included) runs another, which finds
+    /// nothing to change; past three in a row the rest waits for a scheduled pass, so nothing is left behind
+    /// (codex-review-c1-n9b S3).
     func sync() async {
         guard let store, store.isAvailable, let context, anyOn else { return }
         if syncing { dirty = true; return }
         syncing = true
-        defer { syncing = false }
         var passes = 0
         repeat {
             dirty = false
@@ -315,22 +344,39 @@ final class HealthSync {
                 if isOn(.writeFood) { try await writeFood(store, context) }
                 if isOn(.readWeight) { try await readWeights(store, context) }
                 failure = nil
+            } catch is CancellationError {
+                // A part was switched during the pass: its work was dropped; the others run next pass.
+                dirty = true
             } catch {
                 failure = HealthSyncCopy.syncFailed
             }
         } while dirty && passes < 3
+        syncing = false
+        if dirty {
+            dirty = false
+            scheduleSync()
+        }
     }
 
     // MARK: Passes
 
+    private func current(_ part: HealthPart, _ generation: Int) -> Bool {
+        isOn(part) && generations[part, default: 0] == generation
+    }
+
+    /// After every await: stop if the part was switched meanwhile.
+    private func check(_ part: HealthPart, _ generation: Int) throws {
+        guard current(part, generation) else { throw CancellationError() }
+    }
+
     private func writeWeights(_ store: HealthStoring, _ context: ModelContext) async throws {
         guard store.canWrite(.weight) else { return }
-        let entries = try context.fetch(FetchDescriptor<BodyWeightEntry>()).filter { $0.source == .app }
-        let existing = try await store.samples(.weight, from: nil, ownOnly: true)
-        let ids = try await apply(HealthSyncPlan.diff(desired: HealthSyncPlan.weightWrites(entries), existing: existing),
-                                  types: [.weight], store)
+        let generation = generations[.writeWeight, default: 0]
+        let desired = HealthSyncPlan.weightWrites(try context.fetch(FetchDescriptor<BodyWeightEntry>()))
+        let ids = try await reconcile(.writeWeight, generation, types: [.weight], desired: desired, store)
+        // Fetched again: an entry may have been deleted while Health answered.
         var changed = false
-        for entry in entries {
+        for entry in try context.fetch(FetchDescriptor<BodyWeightEntry>()) where entry.source == .app {
             if let id = ids[HealthSyncID.weight(entry.id)], entry.healthSampleID != id {
                 entry.healthSampleID = id
                 changed = true
@@ -342,16 +388,12 @@ final class HealthSync {
     private func writeFood(_ store: HealthStoring, _ context: ModelContext) async throws {
         let types = HealthPart.writeFood.shares.filter(store.canWrite)
         guard !types.isEmpty else { return }
-        let entries = try context.fetch(FetchDescriptor<FoodEntry>())
-        var existing: [HealthSample] = []
-        for type in HealthType.allCases where types.contains(type) {
-            existing += try await store.samples(type, from: nil, ownOnly: true)
-        }
-        let desired = HealthSyncPlan.foodWrites(entries).filter { types.contains($0.type) }
-        let ids = try await apply(HealthSyncPlan.diff(desired: desired, existing: existing), types: types, store)
-        // The entry's Health id is its calories sample's (the one sample every entry writes).
+        let generation = generations[.writeFood, default: 0]
+        let desired = HealthSyncPlan.foodWrites(try context.fetch(FetchDescriptor<FoodEntry>())).filter { types.contains($0.type) }
+        let ids = try await reconcile(.writeFood, generation, types: types, desired: desired, store)
+        // The entry's Health id is its calories sample's (the one sample every entry writes). Fetched again, as above.
         var changed = false
-        for entry in entries {
+        for entry in try context.fetch(FetchDescriptor<FoodEntry>()) {
             if let id = ids[HealthSyncID.food(entry.id, .energy)], entry.healthSampleID != id {
                 entry.healthSampleID = id
                 changed = true
@@ -360,34 +402,62 @@ final class HealthSync {
         if changed { try context.save() }
     }
 
-    /// Deletes, then saves, type by type; returns every desired sync id's Health id (matched or just saved).
-    private func apply(_ diff: HealthSyncPlan.Diff, types: Set<HealthType>, _ store: HealthStoring) async throws
-        -> [String: UUID] {
-        var ids = diff.matched
+    /// Brings this app's samples of these types in line with `desired`: deletes, then saves, then reads Health again
+    /// and returns the ids of the samples that now match (a save Health did not take shows up as unmatched, and the
+    /// next pass tries again — codex-review-c1-n9b S4).
+    private func reconcile(_ part: HealthPart, _ generation: Int, types: Set<HealthType>, desired: [HealthWrite],
+                           _ store: HealthStoring) async throws -> [String: UUID] {
+        let version = Int(now().timeIntervalSince1970 * 1_000)
+        let diff = HealthSyncPlan.diff(desired: desired, existing: try await own(types, part, generation, store),
+                                       baseVersion: version)
+        guard !diff.isEmpty else { return diff.matched }
         for type in HealthType.allCases where types.contains(type) {
             let deletes = diff.delete.filter { HealthSyncID.type(of: $0) == type }
-            if !deletes.isEmpty { try await store.delete(type, syncIDs: deletes) }
+            guard !deletes.isEmpty else { continue }
+            try await store.delete(type, syncIDs: deletes)
+            try check(part, generation)
         }
-        if !diff.save.isEmpty {
-            let saved = try await store.save(diff.save, version: Int(now().timeIntervalSince1970 * 1_000))
-            ids.merge(saved) { _, new in new }
+        if !diff.save.isEmpty { try await store.save(diff.save) }
+        try check(part, generation)
+        return HealthSyncPlan.diff(desired: desired, existing: try await own(types, part, generation, store),
+                                   baseVersion: version).matched
+    }
+
+    private func own(_ types: Set<HealthType>, _ part: HealthPart, _ generation: Int,
+                     _ store: HealthStoring) async throws -> [HealthSample] {
+        var samples: [HealthSample] = []
+        for type in HealthType.allCases where types.contains(type) {
+            samples += try await store.samples(type, from: nil, ownOnly: true)
+            try check(part, generation)
         }
-        return ids
+        return samples
     }
 
     private func readWeights(_ store: HealthStoring, _ context: ModelContext) async throws {
+        let generation = generations[.readWeight, default: 0]
+        let since = now().addingTimeInterval(-Self.readingWindow)
+        let samples = try await store.samples(.weight, from: since, ownOnly: false)
+        try check(.readWeight, generation)
+        // Fetched after the answer, so no row deleted meanwhile is touched.
         let all = try context.fetch(FetchDescriptor<BodyWeightEntry>())
         let ownIDs = Set(all.filter { $0.source == .app }.compactMap(\.healthSampleID))
-        let since = now().addingTimeInterval(-Self.readingWindow)
-        let readings = HealthSyncPlan.readings(try await store.samples(.weight, from: since, ownOnly: false), ownIDs: ownIDs)
-        let plan = HealthSyncPlan.mirror(readings: readings, rows: all.filter { $0.source == .health })
-        guard !plan.insert.isEmpty || !plan.delete.isEmpty else { return }
+        let rows = all.filter { $0.source == .health }
+        let plan = HealthSyncPlan.mirror(readings: HealthSyncPlan.readings(samples, ownIDs: ownIDs), rows: rows)
         let unit = Self.weightUnit(in: context)
+        // Health's rows follow the unit system (codex-review-c1-n9b S7); kilograms stay exact. The app's own weights
+        // keep the unit they were entered in.
+        let deleted = Set(plan.delete.map(\.id))
+        let inOtherUnit = rows.filter { !deleted.contains($0.id) && $0.unit != unit }
+        guard !plan.insert.isEmpty || !plan.delete.isEmpty || !inOtherUnit.isEmpty else { return }
         for row in plan.delete { context.delete(row) }
+        for row in inOtherUnit {
+            row.value = WeightMath.convert(row.normalizedKg, from: .kg, to: unit)
+            row.unit = unit
+        }
         for reading in plan.insert {
-            let value = WeightMath.convert(reading.value, from: .kg, to: unit)
-            let entry = BodyWeightEntry(measuredAt: reading.date, value: value, unit: unit, source: .health,
-                                        healthSampleID: reading.uuid, createdAt: now())
+            let entry = BodyWeightEntry(measuredAt: reading.date, value: WeightMath.convert(reading.value, from: .kg, to: unit),
+                                        unit: unit, source: .health, healthSampleID: reading.uuid, createdAt: now())
+            entry.normalizedKg = reading.value
             context.insert(entry)
         }
         try context.save()

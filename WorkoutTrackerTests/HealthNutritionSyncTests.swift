@@ -23,8 +23,9 @@ struct HealthNutritionSyncTests {
         return defaults
     }
 
-    private func sync(_ store: FakeHealthStore, _ context: ModelContext, on parts: [HealthPart] = []) async -> HealthSync {
-        let sync = HealthSync(store: store, defaults: defaults(), now: { [now] in now })
+    private func sync(_ store: FakeHealthStore, _ context: ModelContext, on parts: [HealthPart] = [],
+                      clock: (() -> Date)? = nil) async -> HealthSync {
+        let sync = HealthSync(store: store, defaults: defaults(), debounce: .milliseconds(20), now: clock ?? { [now] in now })
         sync.attach(context, observesSaves: false)
         for part in parts { await sync.set(part, on: true) }
         return sync
@@ -286,5 +287,178 @@ struct HealthNutritionSyncTests {
         first.attach(context, observesSaves: false)
         await first.set(.writeFood, on: true)
         #expect(HealthSync(store: store, defaults: defaults).enabled == [.writeFood])
+    }
+
+    // MARK: codex-review-c1-n9b
+
+    /// S1: a part switched off while Health is answering does no more work — no rows imported, no save started.
+    @Test func aPartTurnedOffWhileHealthAnswersDoesNothingMore() async throws {
+        let context = try context()
+        let store = FakeHealthStore()
+        store.samples = [HealthSample(uuid: UUID(), type: .weight, date: now, value: 81, syncID: nil, isOwn: false)]
+        let sync = await sync(store, context)
+        // Read: turned off while Health answers the first pass's query.
+        store.whileQuerying = { await sync.set(.readWeight, on: false) }
+        await sync.set(.readWeight, on: true)
+        store.whileQuerying = nil
+        await sync.sync()
+        #expect(!sync.isOn(.readWeight))
+        #expect(try context.fetch(FetchDescriptor<BodyWeightEntry>()).isEmpty, "a late answer imports nothing")
+
+        // Write: turned off while Health says what it holds.
+        await sync.set(.writeWeight, on: true)
+        try BodyWeightLog.log(value: 80, unit: .kg, at: now, in: context)
+        let saves = store.saveCalls
+        store.whileQuerying = { await sync.set(.writeWeight, on: false) }
+        await sync.sync()
+        store.whileQuerying = nil
+        await sync.sync()
+        #expect(store.saveCalls == saves && own(store, .weight).isEmpty, "no save started after off")
+    }
+
+    /// S2: one editor step (0.1 kg, 0.2 lb) and a small food change reach Health.
+    @Test func smallEditsReachHealth() async throws {
+        let context = try context()
+        let store = FakeHealthStore()
+        let sync = await sync(store, context, on: [.writeWeight, .writeFood])
+        let weight = try BodyWeightLog.log(value: 100, unit: .kg, at: now, in: context)
+        try FoodLog.logManual(name: "Rice", serving: nil, nutrition: FoodNutrition(calories: 1_000), meal: .lunch,
+                              at: now, in: context)
+        await sync.sync()
+        try BodyWeightLog.update(weight, value: 100.1, unit: .kg, at: now, in: context)
+        let entry = try #require(try context.fetch(FetchDescriptor<FoodEntry>()).first)
+        try FoodLog.update(entry, servings: 1, meal: .lunch, calories: 1_000.5, proteinGrams: 0, carbsGrams: 0,
+                           fatGrams: 0, at: now, in: context)
+        await sync.sync()
+        #expect(own(store, .weight).map(\.value) == [100.1])
+        #expect(own(store, .energy).map(\.value) == [1_000.5])
+        try BodyWeightLog.update(weight, value: 220.6, unit: .lb, at: now, in: context)
+        await sync.sync()
+        try BodyWeightLog.update(weight, value: 220.8, unit: .lb, at: now, in: context)
+        await sync.sync()
+        #expect(own(store, .weight).map(\.value) == [weight.normalizedKg])
+    }
+
+    /// S3: a save during the last pass of a burst is not left behind — a pass is scheduled for it.
+    @Test func aSaveDuringTheLastPassIsSyncedAfterwards() async throws {
+        let context = try context()
+        let store = FakeHealthStore()
+        let sync = await sync(store, context, on: [.writeWeight])
+        var logged = 0
+        store.whileQuerying = {
+            guard logged < 6 else { return }
+            logged += 1
+            try? BodyWeightLog.log(value: 80 + Double(logged), unit: .kg, at: now, in: context)
+            sync.scheduleSync()  // what the save observer does
+        }
+        await sync.sync()
+        store.whileQuerying = nil
+        for _ in 0..<100 where own(store, .weight).count < logged { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(own(store, .weight).count == logged && logged > 3, "\(own(store, .weight).count) of \(logged)")
+    }
+
+    /// S3: the real observer — a save anywhere starts a pass on its own.
+    @Test func aSaveStartsAPassWithoutBeingAsked() async throws {
+        let context = try context()
+        let store = FakeHealthStore()
+        let sync = HealthSync(store: store, defaults: defaults(), debounce: .milliseconds(20), now: { [now] in now })
+        sync.attach(context)
+        await sync.set(.writeWeight, on: true)
+        try BodyWeightLog.log(value: 80, unit: .kg, at: now, in: context)
+        for _ in 0..<100 where own(store, .weight).isEmpty { try await Task.sleep(for: .milliseconds(20)) }
+        #expect(own(store, .weight).map(\.value) == [80])
+    }
+
+    /// S4: after the phone's clock went back, an edit still replaces the sample (its version is above Health's).
+    @Test func anEditReplacesTheSampleAfterTheClockWentBack() async throws {
+        let context = try context()
+        let store = FakeHealthStore()
+        var clock = now
+        let sync = await sync(store, context, on: [.writeWeight], clock: { clock })
+        let weight = try BodyWeightLog.log(value: 80, unit: .kg, at: now.addingTimeInterval(-86_400), in: context)
+        await sync.sync()
+        let first = try #require(own(store, .weight).first)
+        clock = now.addingTimeInterval(-3_600)
+        try BodyWeightLog.update(weight, value: 79, unit: .kg, at: weight.measuredAt, in: context)
+        await sync.sync()
+        let second = try #require(own(store, .weight).first)
+        #expect(own(store, .weight).count == 1 && second.value == 79)
+        #expect((second.version ?? 0) > (first.version ?? 0))
+        #expect(weight.healthSampleID == second.uuid, "the id Health holds, read back")
+    }
+
+    /// S5: Burned asks Health for the local day as it is now, after a time-zone change.
+    @Test func burnedFollowsATimeZoneChange() async throws {
+        let context = try context()
+        let store = FakeHealthStore()
+        var zone = TimeZone(identifier: "America/New_York")!
+        let sync = HealthSync(store: store, defaults: defaults(), calendar: {
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = zone
+            return calendar
+        }, now: { [now] in now })
+        sync.attach(context, observesSaves: false)
+        await sync.set(.readBurned, on: true)
+        var york = Calendar(identifier: .gregorian); york.timeZone = zone
+        #expect(store.energyQueries.last?.start == york.startOfDay(for: now))
+        zone = TimeZone(identifier: "America/Los_Angeles")!
+        await sync.refreshBurned(on: now)
+        var angeles = Calendar(identifier: .gregorian); angeles.timeZone = zone
+        #expect(store.energyQueries.last?.start == angeles.startOfDay(for: now))
+        #expect(york.startOfDay(for: now) != angeles.startOfDay(for: now))
+    }
+
+    /// S6: renaming an entry renames it in Health.
+    @Test func aRenameReachesHealth() async throws {
+        let context = try context()
+        let store = FakeHealthStore()
+        let sync = await sync(store, context, on: [.writeFood])
+        try FoodLog.logManual(name: "Lunch", serving: nil, nutrition: FoodNutrition(calories: 600, proteinGrams: 30),
+                              meal: .lunch, at: now, in: context)
+        await sync.sync()
+        let entry = try #require(try context.fetch(FetchDescriptor<FoodEntry>()).first)
+        entry.name = "Chicken bowl"
+        try context.save()
+        await sync.sync()
+        #expect(store.samples.filter(\.isOwn).allSatisfy { $0.foodName == "Chicken bowl" })
+        #expect(store.samples.filter(\.isOwn).count == 2)
+    }
+
+    /// S7: Health's rows follow a unit change; the app's own keep the unit they were entered in.
+    @Test func healthsRowsFollowAUnitChange() async throws {
+        let context = try context()
+        let preferences = AppPreferences(unitPreference: .kg)
+        context.insert(preferences)
+        try context.save()
+        let store = FakeHealthStore()
+        store.samples = [HealthSample(uuid: UUID(), type: .weight, date: now, value: 80, syncID: nil, isOwn: false)]
+        let sync = await sync(store, context, on: [.readWeight])
+        let mine = try BodyWeightLog.log(value: 81, unit: .kg, at: now, in: context)
+        preferences.unitPreference = .lb
+        try context.save()
+        await sync.sync()
+        let row = try #require(try context.fetch(FetchDescriptor<BodyWeightEntry>()).first { $0.source == .health })
+        #expect(row.unit == .lb && abs(row.value - 176.37) < 0.01 && row.normalizedKg == 80)
+        #expect(mine.unit == .kg && mine.value == 81)
+    }
+
+    /// T1: Ask AI's prefill (it leaves the phone) takes the weight the user entered, never Health's.
+    @Test func askAITakesOnlyAnEnteredWeight() async throws {
+        let context = try context()
+        try BodyWeightLog.log(value: 80, unit: .kg, at: now.addingTimeInterval(-86_400), in: context)
+        context.insert(BodyWeightEntry(measuredAt: now, value: 90, unit: .kg, source: .health, healthSampleID: UUID()))
+        try context.save()
+        #expect(try NutritionGoalStore.latestWeight(in: context)?.value == 90, "on the phone: Health's is the latest")
+        let model = AIRoutineFlowModel()
+        model.prefillMissingMeasurements(from: context)
+        #expect(model.weightKg == 80)
+        #expect(model.trainingProfile(usCustomary: false).weight?.kilograms == 80)
+
+        let healthOnly = try self.context()
+        healthOnly.insert(BodyWeightEntry(measuredAt: now, value: 90, unit: .kg, source: .health, healthSampleID: UUID()))
+        try healthOnly.save()
+        let fresh = AIRoutineFlowModel()
+        fresh.prefillMissingMeasurements(from: healthOnly)
+        #expect(fresh.weightKg == nil && fresh.trainingProfile(usCustomary: false).weight == nil)
     }
 }

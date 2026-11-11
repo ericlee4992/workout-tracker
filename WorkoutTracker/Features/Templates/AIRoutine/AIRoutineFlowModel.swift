@@ -222,6 +222,15 @@ final class AIRoutineFlowModel {
         }
     }
 
+    /// The same from the store: the height in Personal details and the latest weight ENTERED in the app. A weight read
+    /// from Apple Health is never used: the request (and the training profile it may save) leaves the phone, and
+    /// Stacked does not upload Health data (N9b's approved usage string; codex-review-c1-n9b T1).
+    func prefillMissingMeasurements(from context: ModelContext) {
+        let preferences = AppPreferences.canonical(of: (try? context.fetch(FetchDescriptor<AppPreferences>())) ?? [])
+        prefillMissingMeasurements(heightCm: preferences?.heightCm,
+                                   weightKg: (try? NutritionGoalStore.latestEnteredWeight(in: context))?.normalizedKg)
+    }
+
     /// The training profile this form describes (`TrainingProfile.fromAskAI`): a measurement prefilled and never
     /// changed is the stored one, exactly; any other is as typed.
     func trainingProfile(usCustomary: Bool) -> TrainingProfile {

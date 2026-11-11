@@ -9,7 +9,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   worktree. **C1 built** (`d70538e`; every rewritten line in `work-record/copy/issues/01-no-ai-wording.md`) and **N9b
   built** (Apple Health: `Domain/HealthNutritionSync.swift`, `Domain/HealthKitNutritionStore.swift`,
   `Features/Nutrition/AppleHealthView.swift`; design, own decisions and new strings in
-  `work-record/nutrition/issues/09-body-weight-health.md`). Build-for-testing exit 0. **Verification done** (all green; evidence in both tickets). **Next:** Codex round 1
+  `work-record/nutrition/issues/09-body-weight-health.md`). Build-for-testing exit 0. **Verification done** (all green). **Codex round 1: not clear** (6 P2, 2 P3, all N9b; C1 clear) — all fixed and retested (N9 ticket, end); **round 2 sent** (brief `work-record/nutrition/codex-review-c1-n9b-r2-prompt.md`, report `codex-review-c1-n9b-b.md`). Was: Codex round 1
   (brief `work-record/nutrition/codex-review-c1-n9b-prompt.md`, report `codex-review-c1-n9b.md`). Was: the ONE verification
   pass for both (Unit plan + `HealthNutritionSyncTests` ×10 + UI classes `AppleHealthUITests`, `BodyWeightUITests`,
   `TodayFoodUITests`, `FloodlightProfileUITests`, `FloodlightScanUITests`, `AskAIUITests`; captures of changed

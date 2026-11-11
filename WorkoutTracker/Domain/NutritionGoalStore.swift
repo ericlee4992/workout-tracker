@@ -48,6 +48,14 @@ enum NutritionGoalStore {
         return try context.fetch(descriptor).first
     }
 
+    /// The most recent weight the user entered in the app — never one read from Apple Health. Anything that leaves the
+    /// phone (Ask AI's request, the training profile it saves) uses this: Stacked does not upload Health data (N9b's
+    /// approved usage string; codex-review-c1-n9b T1). On-phone uses (goals, Personal details) take `latestWeight`.
+    static func latestEnteredWeight(in context: ModelContext) throws -> BodyWeightEntry? {
+        let descriptor = FetchDescriptor<BodyWeightEntry>(sortBy: [SortDescriptor(\.measuredAt, order: .reverse)])
+        return try context.fetch(descriptor).first { $0.source == .app }
+    }
+
     static func latestGoal(in context: ModelContext) throws -> NutritionGoal? {
         try context.fetch(FetchDescriptor<NutritionGoal>()).max {
             ($0.effectiveFrom, $0.createdAt, $0.id.uuidString) < ($1.effectiveFrom, $1.createdAt, $1.id.uuidString)
