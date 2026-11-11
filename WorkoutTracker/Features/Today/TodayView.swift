@@ -260,10 +260,7 @@ struct TodayView: View {
         return VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Today's log")
             // N7 (D82): a scan in flight or failed, first.
-            ForEach(scans.pending.filter { scan in
-                // An earlier-day card shows while its entry exists (deleted: hidden, back on Undo — R2-S1).
-                scan.loggedEarlierID.map { id in foodEntries.contains { $0.id == id } } ?? true
-            }) { scan in
+            ForEach(visibleScans) { scan in
                 ScanPendingCard(scan: scan,
                                 loggedEarlier: scan.loggedEarlierID.flatMap { id in foodEntries.first { $0.id == id } },
                                 retake: { scans.dismiss(scan.id); showScan = true },
@@ -274,7 +271,7 @@ struct TodayView: View {
                     .transition(reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.97)))
             }
             if today.isEmpty && entries.isEmpty {
-                if scans.pending.isEmpty {
+                if visibleScans.isEmpty {
                     Text("Nothing logged yet today.")
                         .font(look.font.subhead)
                         .foregroundStyle(look.textSecondary)
@@ -304,6 +301,14 @@ struct TodayView: View {
                     .lookSurface(.panel)
                 }
             }
+        }
+    }
+
+    /// The scans Today shows: an earlier-day card only while its entry exists (deleted: hidden, back on Undo —
+    /// codex-review-n7b R2-S1). The empty state uses the same list (codex-review-n7c).
+    private var visibleScans: [FoodScanQueue.Pending] {
+        scans.pending.filter { scan in
+            scan.loggedEarlierID.map { id in foodEntries.contains { $0.id == id } } ?? true
         }
     }
 

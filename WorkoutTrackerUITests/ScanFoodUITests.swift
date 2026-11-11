@@ -22,10 +22,11 @@ final class ScanFoodUITests: XCTestCase {
         add(shot)
     }
 
-    private func launch(_ appearance: String = "light", large: Bool = false, _ extra: [String] = []) {
+    private func launch(_ appearance: String = "light", large: Bool = false, _ extra: [String] = [],
+                        samples: Bool = true) {
         tag = "\(appearance)-\(large ? "axl" : "default")"
-        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestFoodSample", "-uiTestTerra",
-                               "-appearance", appearance] + extra
+        app.launchArguments = ["-uiTestReset"] + (samples ? ["-uiTestDesignSample", "-uiTestFoodSample"] : [])
+            + ["-uiTestTerra", "-appearance", appearance] + extra
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
         XCTAssertTrue(app.buttons["logFoodPill"].waitForExistence(timeout: 15))
@@ -151,6 +152,30 @@ final class ScanFoodUITests: XCTestCase {
         open.tap()
         XCTAssertTrue(app.buttons["scanItem.Tuna poke"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["scanItem.Mango"].exists, "the edit landed on the restored entry")
+    }
+
+    /// codex-review-n7c R3-S1: on an otherwise empty Today, deleting the earlier-day result shows the empty state (its
+    /// hidden card does not suppress it); Undo brings the card back.
+    func testDeletingAnEarlierDayResultLeavesTodaysEmptyState() {
+        launch("light", large: false, ["-uiTestFoodScanYesterday"], samples: false)
+        let empty = app.staticTexts["Nothing logged yet today."]
+        openCamera()
+        app.buttons["scanFoodLibrary"].tap()
+        let open = app.buttons["scanOpenEarlier"]
+        XCTAssertTrue(open.waitForExistence(timeout: 10))
+        XCTAssertFalse(empty.exists, "the card is today's log for now")
+        reveal(open)
+        open.tap()
+        XCTAssertTrue(app.buttons["scanEntryDelete"].waitForExistence(timeout: 5))
+        app.swipeUp()
+        app.buttons["scanEntryDelete"].tap()
+        XCTAssertTrue(app.buttons["todayUndoDelete"].waitForExistence(timeout: 5))
+        reveal(empty)
+        XCTAssertTrue(empty.exists, "deleted: the empty state shows")
+        XCTAssertFalse(open.exists)
+        app.buttons["todayUndoDelete"].tap()
+        XCTAssertTrue(open.waitForExistence(timeout: 5), "Undo brings the card back")
+        XCTAssertFalse(empty.exists)
     }
 
     /// codex-review-n7b R2-S2: a photo still on its way when Cancel is tapped is not sent or logged.
