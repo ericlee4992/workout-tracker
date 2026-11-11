@@ -38,6 +38,20 @@ Ship the Soft redesign and nutrition together as one TestFlight build (build **1
 2. Full UI suite — the user's go (2026-11-11). Running at `32165f7` (app unchanged since N8's merge `3ad9dca`):
    `-testPlan Full -only-testing:WorkoutTrackerUITests`, 2 workers, 386 tests, WT-Floodlight; xcresult
    `/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/8bffdecc-0105-4db5-8c71-05a754a21832/scratchpad/r-full.xcresult`.
+   **Result: 381 passed, 3 failed, 2 skipped of 386, exit 65.** Skipped by design: `BackupExportUITests` (the
+   installed store, device-only) and `FloodlightFeedbackUITests.testSmokeSendsToTheBuildsServer` (the live server).
+   Failures rerun serially (`r-rerun.xcresult`): `FloodlightLiveUITests.testACompletedSetCanBeCorrectedInPlace`
+   ("102." for "102.5" — typing under parallel load) and `LogFoodFlowUITests.testManualAddLogsCaloriesAloneAnd…`
+   ("2 servings", known) **passed**; `WorkoutNameUITests.testRenamingFromHistoryIsAMarkedEdit` failed again — a test
+   defect: it tapped the receipt's Done mid-presentation (dropped; the sheet stayed over History), which
+   `HistoryEditingUITests` already guards. Fixed with the same wait (`closeReceipt()`, both tests of the class);
+   `WorkoutNameUITests` × 3 iterations serial: passed, exit 0 (`r-name.xcresult`). No app defect found.
+
+   ```
+   Verified: Full UI plan 381/386 parallel (exit 65) + the 3 failures: 2 pass serially, 1 test fixed and passes ×3
+   Not verified: BackupExportUITests and the feedback smoke test (skipped by design; device / live server)
+   Known flaky: FloodlightLiveUITests.testACompletedSetCanBeCorrectedInPlace, LogFoodFlowUITests "2 servings" (parallel only)
+   ```
 3. Drafts below — **waiting: the user's approval/edits.**
 4.–9. Not started.
 

@@ -27,7 +27,7 @@ final class WorkoutNameUITests: XCTestCase {
             "the bar should show the new name at once, got '\(app.buttons["workoutTitle"].label)'")
 
         app.buttons["finishWorkout"].tap()
-        app.buttons["finishedDone"].firstMatch.tap()
+        closeReceipt()
 
         app.tabBars.buttons["History"].tap()
         let row = app.descendants(matching: .any).matching(identifier: "historyWorkoutRow").firstMatch
@@ -50,7 +50,7 @@ final class WorkoutNameUITests: XCTestCase {
     func testRenamingFromHistoryIsAMarkedEdit() {
         startWorkoutWithOneSet()
         app.buttons["finishWorkout"].tap()
-        app.buttons["finishedDone"].firstMatch.tap()
+        closeReceipt()
 
         app.tabBars.buttons["History"].tap()
         let row = app.descendants(matching: .any).matching(identifier: "historyWorkoutRow").firstMatch
@@ -75,6 +75,15 @@ final class WorkoutNameUITests: XCTestCase {
     }
 
     // MARK: Helpers
+
+    /// Waits for the receipt before Done: a Done tapped mid-presentation is dropped and the sheet stays up, covering
+    /// History (the R full run, 2026-11-11; as `HistoryEditingUITests` does).
+    private func closeReceipt() {
+        let done = app.buttons["finishedDone"].firstMatch
+        XCTAssertTrue(done.waitForExistence(timeout: 10))
+        done.tap()
+        XCTAssertTrue(done.waitForNonExistence(timeout: 5))
+    }
 
     private func typeIntoNameAlert(_ name: String) {
         let alert = app.alerts.firstMatch
