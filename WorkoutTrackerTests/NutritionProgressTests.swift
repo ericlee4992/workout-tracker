@@ -237,6 +237,26 @@ struct NutritionProgressTests {
             #expect(abs(fast[index].kg - window.map(\.kg).reduce(0, +) / Double(window.count)) < 1e-9)
         }
     }
+
+    /// R2-S1: two weigh-ins at the same instant are two points with their own, stable identities.
+    @Test func weighInsAtTheSameTimeKeepTheirOwnIdentity() {
+        let at = day(0, hour: 7)
+        let first = BodyWeightEntry(measuredAt: at, value: 80, unit: .kg)
+        let second = BodyWeightEntry(measuredAt: at, value: 82, unit: .kg, source: .health, healthSampleID: UUID())
+        func reading(_ entries: [BodyWeightEntry]) -> ProgressReading {
+            ProgressReading.nutrition(.bodyWeight, range: .days90, weights: entries, entries: [], goals: [], unit: .kg,
+                                      now: today, calendar: calendar)
+        }
+        let both = reading([first, second])
+        #expect(Set(both.points.map(\.id)) == [first.id.uuidString, second.id.uuidString])
+        #expect(reading([second, first]).points == both.points, "the order does not depend on the input's")
+        second.set(value: 81, unit: .kg)
+        #expect(reading([first, second]).points.map(\.id) == both.points.map(\.id), "an edit keeps both identities")
+        #expect(reading([first]).points.map(\.id) == [first.id.uuidString], "a delete leaves the other's")
+        let daily = ProgressReading.nutrition(.weightTrend, range: .days90, weights: [first, second], entries: [],
+                                              goals: [], unit: .kg, now: today, calendar: calendar)
+        #expect(daily.points.count == 1 && daily.points[0].key == nil, "a day's average keeps its date key")
+    }
 }
 
 extension HistoryFoodLine {

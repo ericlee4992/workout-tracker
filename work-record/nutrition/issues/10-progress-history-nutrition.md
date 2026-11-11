@@ -104,3 +104,12 @@ Known flaky: none seen
 - Performance note: the trend is now one pass with a sliding window (was quadratic); test against a plain window average.
 Evidence: build exit 0; Unit plan 1,272/1,272 (`/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/20f5b25b-92e7-448e-a00d-dbd68fee92a9/scratchpad/n10r2-unit.xcresult`); NutritionProgressUITests (5) + TodayFoodUITests
 (7) + warm-up 13/13, 2 workers (`n10r2-ui.xcresult`).
+
+**Round 2 (`codex-review-n10-b.md`, a new Codex session): not clear — 1 P2 (R2-S1); round 1's fixes confirmed.** R2-S1:
+two weigh-ins at the same instant shared a chart/list identity (points were keyed by date). Fixed: a weigh-in point
+carries its entry's id (`WeightPoint.entryID` → `ProgressReading.Point.key`, kept through the chart's mapping); equal
+times sort by entry id; daily series keep date keys. Test `weighInsAtTheSameTimeKeepTheirOwnIdentity` (distinct ids,
+order-independent, kept through an edit and a delete). Codex's advisory: today's food page now reads Burned again with
+each refresh of its `now`, as Today does. Capture added: Body weight's page (weigh-ins with times), light Default and
+dark AXL. Evidence: build exit 0; Unit plan 1,273/1,273 (`/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/20f5b25b-92e7-448e-a00d-dbd68fee92a9/scratchpad/n10r3-unit.xcresult`); NutritionProgress, FloodlightProgress,
+ProgressChart, ProgressChartTooltip UI classes + warm-up 22/22, 2 workers (`n10r3-ui.xcresult`).

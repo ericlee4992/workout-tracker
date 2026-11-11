@@ -37,7 +37,7 @@ extension ProgressReading {
         }
         return ProgressReading(
             value: text(latest.kg), unit: unit.rawValue, caption: caption, change: nil,
-            points: shown.map { Point(date: $0.date, value: inUnit($0.kg), isBest: false) },
+            points: shown.map { Point(date: $0.date, value: inUnit($0.kg), isBest: false, key: $0.entryID?.uuidString) },
             axisLabel: { $0.formatted(.number.precision(.fractionLength(0...1))) },
             singleNote: "One weigh-in")
     }

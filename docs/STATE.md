@@ -10,7 +10,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   N9b: Apple Health — Profile → Apple Health (read weight, read Burned, save weight, save food), reconcile sync by sync
   ids (`Domain/HealthNutritionSync.swift`, `Domain/HealthKitNutritionStore.swift`); 3 Codex rounds (T1 privacy: Ask AI
   prefills only an entered weight; S1–S7, R2-S1 fixed). Evidence and Verified / Not verified in the N9 ticket.
-  **Next, in order (the user, 2026-11-11):** N10 (built and verified on `ericlee4992/nutrition-10-progress`; Codex round 1 not clear (2 P2, 2 P3) — fixed; **round 2 sent** to a NEW Codex terminal `term_df72a91c-b1a6-47a2-aedb-5b652fc9e0d0` (the old `term_20f2d1c6…` is at 16 % context — retired), brief `work-record/nutrition/codex-review-n10-r2-prompt.md`, report `codex-review-n10-b.md`), then N8
+  **Next, in order (the user, 2026-11-11):** N10 (built and verified on `ericlee4992/nutrition-10-progress`; Codex round 1 not clear (2 P2, 2 P3) — fixed; round 2 not clear (1 P2, same-time weigh-in identity) — fixed; **round 3 sent** (brief `work-record/nutrition/codex-review-n10-r3-prompt.md`, report `codex-review-n10-c.md`) to the NEW Codex terminal `term_df72a91c-b1a6-47a2-aedb-5b652fc9e0d0` (the old `term_20f2d1c6…` is at 16 % context — retired), brief `work-record/nutrition/codex-review-n10-r2-prompt.md`, report `codex-review-n10-b.md`), then N8
   (online search by name approved), then R. **For the user (not blocking):** C1's camera/photo-library permission wording (left;
   proposal in C1's ticket); N9b's own decisions 1–5 and new strings (N9 ticket). Known flaky:
   `FloodlightAIRoutineUITests.testBackKeepsInputsAndLeavingTheWeekAsksFirst` (Train tab, parallel run; serial passes).

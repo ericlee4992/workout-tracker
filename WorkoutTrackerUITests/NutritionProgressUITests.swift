@@ -145,6 +145,14 @@ final class NutritionProgressUITests: XCTestCase {
             app.swipeUp()
             shoot("n10-progress-\(tag)-\(index)")
         }
+        // Body weight's page: each weigh-in with its time (codex-review-n10-b).
+        let weight = panels.element(boundBy: 0)
+        for _ in 0..<8 where !weight.isHittable { app.swipeDown() }
+        weight.tap()
+        XCTAssertTrue(app.navigationBars["Body weight"].waitForExistence(timeout: 10))
+        app.swipeUp()
+        shoot("n10-bodyweight-\(tag)")
+        app.buttons["Done"].tap()
         let trend = panels.element(boundBy: 1)
         for _ in 0..<8 where !trend.isHittable { app.swipeDown() }
         trend.tap()

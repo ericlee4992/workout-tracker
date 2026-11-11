@@ -8,12 +8,15 @@ import SwiftUI
 /// What a panel (and the cardio screen's chart panel) shows, already formatted.
 struct ProgressReading {
     struct Point: Identifiable, Equatable {
-        var id: Date { date }
+        /// The point's own key when it has one (a weigh-in's entry id — two can share a time, codex-review-n10-b);
+        /// otherwise its date, unique in a series of sessions, days or weeks.
+        var id: String { key ?? String(date.timeIntervalSinceReferenceDate) }
         let date: Date
         let value: Double
         let isBest: Bool
         /// N10, the macros chart: protein, carbs and fat calories, stacked (they add up to `value`).
         var parts: [Double]? = nil
+        var key: String? = nil
     }
     /// N10: a line (the default), daily bars, or daily bars stacked protein · carbs · fat.
     enum Style: Equatable { case line, bars, macros }
@@ -375,7 +378,9 @@ struct ProgressPanelChart: View {
 
     private var line: some View {
         let sign: Double = reading.lowerIsBetter ? -1 : 1
-        let points = reading.points.map { ProgressReading.Point(date: $0.date, value: $0.value * sign, isBest: $0.isBest) }
+        let points = reading.points.map {
+            ProgressReading.Point(date: $0.date, value: $0.value * sign, isBest: $0.isBest, key: $0.key)
+        }
         let values = points.map(\.value)
         let lo = values.min() ?? 0, hi = values.max() ?? 1
         let pad = max((hi - lo) * 0.18, max(0.5, abs(hi) * 0.03))

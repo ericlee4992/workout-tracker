@@ -48,10 +48,12 @@ enum NutritionChart: String, CaseIterable, Codable, Sendable {
     }
 }
 
-/// One day's weight in kilograms (the day's weigh-ins averaged), at the day's start.
+/// A weight in kilograms: one weigh-in (with its entry's id), or a day's average at the day's start (no id).
 struct WeightPoint: Equatable, Sendable {
     var date: Date
     var kg: Double
+    /// The weigh-in's entry: its identity in a chart and a list (two weigh-ins can share a time).
+    var entryID: UUID? = nil
 }
 
 /// One day of food for the charts: what was eaten and the goal in force that day.
@@ -117,7 +119,9 @@ enum NutritionProgressMath {
     /// Body weight's points (codex-review-n10 S3): each weigh-in as measured, oldest first — "Each weigh-in" means
     /// that; the trend averages by day instead.
     static func weighIns(_ entries: [BodyWeightEntry]) -> [WeightPoint] {
-        entries.map { WeightPoint(date: $0.measuredAt, kg: $0.normalizedKg) }.sorted { $0.date < $1.date }
+        // Equal times in a fixed order (by entry id), so the latest shown never flips between renders.
+        entries.map { WeightPoint(date: $0.measuredAt, kg: $0.normalizedKg, entryID: $0.id) }
+            .sorted { ($0.date, $0.entryID?.uuidString ?? "") < ($1.date, $1.entryID?.uuidString ?? "") }
     }
 
     /// The trend: each weigh-in day's value is the average of the daily weights in the 7 days ending that day (days

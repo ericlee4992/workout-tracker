@@ -97,7 +97,8 @@ struct DayFoodView: View {
             Text(failure ?? "")
         }
         .refreshingNow($now)
-        .task(id: [isToday, health?.isOn(.readBurned) == true]) {
+        // Read again with each refresh of `now` (becoming active, the clock, the time zone), as Today does.
+        .task(id: "\(isToday) \(health?.isOn(.readBurned) == true) \(now.timeIntervalSinceReferenceDate)") {
             if isToday { await health?.refreshBurned(on: now) }
         }
     }
