@@ -23,7 +23,7 @@ struct AddChartSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
                     // N10 (the user, 2026-11-11): one Nutrition tab — five would not fit.
-                    SegmentedPills(["Lifting", "Cardio", "Training", "Nutrition"], selection: $kind)
+                    SegmentedPills(["Lifting", "Cardio", "Training", "Nutrition"], selection: $kind, wraps: true)
                         .accessibilityIdentifier("addChartKind")
                     switch kind {
                     case 0: liftingList

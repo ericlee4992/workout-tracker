@@ -10,7 +10,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   N9b: Apple Health — Profile → Apple Health (read weight, read Burned, save weight, save food), reconcile sync by sync
   ids (`Domain/HealthNutritionSync.swift`, `Domain/HealthKitNutritionStore.swift`); 3 Codex rounds (T1 privacy: Ask AI
   prefills only an entered weight; S1–S7, R2-S1 fixed). Evidence and Verified / Not verified in the N9 ticket.
-  **Next, in order (the user, 2026-11-11):** N10 (in progress, branch `ericlee4992/nutrition-10-progress`), then N8
+  **Next, in order (the user, 2026-11-11):** N10 (built and verified on `ericlee4992/nutrition-10-progress`; **Codex round 1 sent**, brief `work-record/nutrition/codex-review-n10-prompt.md`, report `codex-review-n10.md`), then N8
   (online search by name approved), then R. **For the user (not blocking):** C1's camera/photo-library permission wording (left;
   proposal in C1's ticket); N9b's own decisions 1–5 and new strings (N9 ticket). Known flaky:
   `FloodlightAIRoutineUITests.testBackKeepsInputsAndLeavingTheWeekAsksFirst` (Train tab, parallel run; serial passes).

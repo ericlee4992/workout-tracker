@@ -362,42 +362,84 @@ struct SegmentedPills: View {
     /// 38 + 3 pt track padding each side = 44 pt segments.
     @ScaledMetric(relativeTo: .subheadline) private var height: CGFloat = 38
 
-    init(_ options: [String], selection: Binding<Int>) {
+    /// N10: wrap into rows of two when a label would not fit whole (opt-in; Add Chart's four kinds).
+    var wraps = false
+
+    init(_ options: [String], selection: Binding<Int>, wraps: Bool = false) {
         self.options = options
         _selection = selection
+        self.wraps = wraps
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            ForEach(Array(options.enumerated()), id: \.offset) { index, option in
-                let selected = index == selection
-                Button {
-                    if reduceMotion { selection = index } else {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { selection = index }
-                    }
-                } label: {
-                    Text(option)
-                        .font(.system(.subheadline, weight: .semibold))
-                        .foregroundStyle(selected ? selectedText : look.textSecondary)
-                        .lineLimit(1)
-                        .frame(maxWidth: .infinity, minHeight: height)
-                        .background {
-                            if selected {
-                                Capsule().fill(selectedFill)
-                                    .overlay { if look.id.isPaperClub { Capsule().strokeBorder(look.outline, lineWidth: 1.5) } }
-                                    .matchedGeometryEffect(id: "selection", in: namespace)
-                            }
-                        }
-                        .contentShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(selected ? .isSelected : [])
+        if wraps {
+            // N10: one row when every label fits whole, else rows of two (Add Chart's four kinds at accessibility
+            // sizes truncated to "Traini…", "Nutri…").
+            ViewThatFits(in: .horizontal) {
+                row(fitted: true)
+                grid
             }
+            .frame(minHeight: 44)
+        } else {
+            row(fitted: false).frame(minHeight: 44)
+        }
+    }
+
+    private func row(fitted: Bool) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(options.enumerated()), id: \.offset) { index, option in segment(index, option, fitted: fitted) }
         }
         .padding(3)
         .background(trackFill, in: Capsule())
         .overlay { if look.id.isPaperClub { Capsule().strokeBorder(look.hairline, lineWidth: 1.5) } }
-        .frame(minHeight: 44)
+    }
+
+    private var grid: some View {
+            VStack(spacing: 0) {
+                ForEach(Array(stride(from: 0, to: options.count, by: 2)), id: \.self) { start in
+                    HStack(spacing: 0) {
+                        ForEach(start..<min(start + 2, options.count), id: \.self) { index in
+                            segment(index, options[index], fitted: false)
+                        }
+                    }
+                }
+            }
+            .padding(3)
+            .background(trackFill, in: RoundedRectangle(cornerRadius: height / 2 + 3, style: .continuous))
+            .overlay {
+                if look.id.isPaperClub {
+                    RoundedRectangle(cornerRadius: height / 2 + 3, style: .continuous).strokeBorder(look.hairline, lineWidth: 1.5)
+                }
+            }
+    }
+
+    /// `fitted`: the label keeps its whole width (and a margin), so `ViewThatFits` sees a row that would truncate as
+    /// one that does not fit. Otherwise as before N10: the label truncates.
+    private func segment(_ index: Int, _ option: String, fitted: Bool) -> some View {
+        let selected = index == selection
+        return Button {
+            if reduceMotion { selection = index } else {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { selection = index }
+            }
+        } label: {
+            Text(option)
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(selected ? selectedText : look.textSecondary)
+                .lineLimit(1)
+                .fixedSize(horizontal: fitted, vertical: false)
+                .padding(.horizontal, fitted ? 12 : 0)
+                .frame(maxWidth: .infinity, minHeight: height)
+                .background {
+                    if selected {
+                        Capsule().fill(selectedFill)
+                            .overlay { if look.id.isPaperClub { Capsule().strokeBorder(look.outline, lineWidth: 1.5) } }
+                            .matchedGeometryEffect(id: "selection", in: namespace)
+                    }
+                }
+                .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private var trackFill: Color {

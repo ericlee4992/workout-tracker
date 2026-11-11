@@ -82,6 +82,10 @@ taken 2026-11-08 and resized to 603 px wide. Retake them when a shown screen cha
   latest weight and its history; Log weight takes the figure with ± steps in your unit (kg or lb, kept as entered) and
   the time; tap an entry to change or delete it. When your weight is more than about 2 kg from the one your nutrition
   goals were calculated at, it offers to recalculate them.
+- **Body and food progress** *(on `main`, not yet in TestFlight)*. Progress → Add Chart → Nutrition pins body weight,
+  a 7-day weight trend, calories and protein per day against your goal, and macros per day; a chart opens with longer
+  spans. History shows each day's food ("1,240 cal eaten · 1,048 under goal"), days with food and no workout too; it
+  opens that day's food, where an entry can be changed or deleted.
 - **Apple Health for food and weight** *(on `main`, not yet in TestFlight)*. Profile → Apple Health has a switch for
   each part, each asking Health's permission when first turned on: read your body weight (shown in Body weight's
   history as "Apple Health", read-only), read the day's active energy (shown as Burned on Today, never added to the

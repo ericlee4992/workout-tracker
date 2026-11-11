@@ -33,7 +33,7 @@ AREAS = {
     "HistoryProgress": [
         "FloodlightHistoryUITests", "HistoryCalendarUITests", "HistoryEditFlowsUITests", "HistoryEditingUITests",
         "HistoryTemplateUITests", "CardioHistoryDeleteUITests", "FloodlightProgressUITests", "ProgressChartUITests",
-        "ProgressChartTooltipUITests",
+        "ProgressChartTooltipUITests", "NutritionProgressUITests",
     ],
     "GymsExercises": [
         "FloodlightGymsUITests", "GymsFlowsUITests", "MachineDeletionUITests", "FloodlightScanUITests",

@@ -18,6 +18,23 @@ enum FoodSampleFixture {
         isEnabled && ProcessInfo.processInfo.arguments.contains(diaryArgument)
     }
 
+    /// N10's Progress captures (`-uiTestNutritionCharts`, with `-uiTestFoodSample`): twelve weeks of weigh-ins in lb
+    /// (from 183.8 down towards the Personal details weight, every third day) and the five body and food charts pinned.
+    static let chartsArgument = "-uiTestNutritionCharts"
+    static var chartsIsEnabled: Bool { isEnabled && ProcessInfo.processInfo.arguments.contains(chartsArgument) }
+
+    static func seedCharts(in context: ModelContext, now: Date = .now, defaults: UserDefaults = .standard) throws {
+        let steps = 28
+        for step in 0..<steps {
+            let day = now.addingTimeInterval(-Double(steps - step) * 3 * 86_400 - 3_600)
+            // Down about 0.27 lb every third day, with a little day-to-day wobble.
+            let value = 183.8 - Double(step) * 0.27 + (step % 3 == 0 ? 0.4 : (step % 3 == 1 ? -0.2 : 0))
+            context.insert(BodyWeightEntry(measuredAt: day, value: (value * 10).rounded() / 10, unit: .lb))
+        }
+        try context.save()
+        ProgressPinStore.save(NutritionChart.allCases.map { ProgressPin(subject: .nutrition($0), metric: .time) }, defaults)
+    }
+
     static func seedDiary(in context: ModelContext, now: Date = .now, calendar: Calendar = .current) throws {
         let foods = try context.fetch(FetchDescriptor<SavedFood>())
         func food(_ name: String) -> SavedFood? { foods.first { $0.name == name } }

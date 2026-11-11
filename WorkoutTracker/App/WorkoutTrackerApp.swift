@@ -151,6 +151,11 @@ struct WorkoutTrackerApp: App {
             do { try FoodSampleFixture.seedDiary(in: modelContainer.mainContext) }
             catch { assertionFailure("Food diary fixture failed: \(error)") }
         }
+        // Nutrition N10's Progress captures: weight history and the body and food charts pinned.
+        if FoodSampleFixture.chartsIsEnabled {
+            do { try FoodSampleFixture.seedCharts(in: modelContainer.mainContext) }
+            catch { assertionFailure("Nutrition charts fixture failed: \(error)") }
+        }
         // First-launch unit preference: derive from the locale measurement
         // system (US → lb, else kg). Idempotent; never blocks launch.
         do {

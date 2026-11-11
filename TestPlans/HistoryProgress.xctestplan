@@ -21,7 +21,8 @@
         "CardioHistoryDeleteUITests",
         "FloodlightProgressUITests",
         "ProgressChartUITests",
-        "ProgressChartTooltipUITests"
+        "ProgressChartTooltipUITests",
+        "NutritionProgressUITests"
       ],
       "target": {
         "containerPath": "container:WorkoutTracker.xcodeproj",
