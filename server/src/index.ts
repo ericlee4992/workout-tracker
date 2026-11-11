@@ -3,6 +3,7 @@ import { AuthError, exchangeAppleCode, revokeAppleToken, verifyAppleIdentityToke
 import { verifyGoogleIdentityToken } from "./google";
 import { liveDeps, type Deps, type Env } from "./env";
 import { deleteClaimedScreenshots, submitFeedback, sweepFeedback } from "./feedback";
+import { lookupBarcode, pruneFood, searchFoods } from "./food";
 import { bearer, failure, json, readJSON } from "./http";
 import { cleanTraining, readTraining, trainingStatement } from "./training";
 import { privacyPage, supportPage } from "./pages";
@@ -167,6 +168,11 @@ export function createHandler(deps: Deps) {
           const { account } = await authenticated(request, env, deps);
           return json(await usage(env, deps, account.id));
         }
+        case "GET /v1/food/search": {
+          // Nutrition N8: USDA generic foods by name.
+          const { account } = await authenticated(request, env, deps);
+          return json(await searchFoods(env, deps, account.id, url.searchParams.get("q")));
+        }
         case "POST /v1/feedback": {
           // Works signed out; a bearer that is sent must be valid (the app then knows its session ended).
           const accountID = bearer(request) || request.headers.has("authorization")
@@ -180,6 +186,12 @@ export function createHandler(deps: Deps) {
           return outcome ? json(outcome) : failure("deletion_in_progress", 409);
         }
         default: {
+          // Nutrition N8: a scanned barcode (digits only; anything else is not this route).
+          const barcode = /^GET \/v1\/food\/barcode\/([^/]+)$/.exec(route)?.[1];
+          if (barcode !== undefined) {
+            const { account } = await authenticated(request, env, deps);
+            return json(await lookupBarcode(env, deps, account.id, decodeURIComponent(barcode)));
+          }
           const flow = /^POST \/v1\/ai\/([a-z-]+)$/.exec(route)?.[1];
           if (flow && isFlow(flow)) {
             const { account } = await authenticated(request, env, deps);
@@ -206,5 +218,6 @@ export default {
     ctx.waitUntil(sweepFeedback(env, liveDeps));
     ctx.waitUntil(pruneAI(env, liveDeps));
     ctx.waitUntil(pruneSessions(env, liveDeps));
+    ctx.waitUntil(pruneFood(env, liveDeps));
   },
 } satisfies ExportedHandler<Env>;

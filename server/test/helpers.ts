@@ -158,6 +158,16 @@ export interface Harness {
   feedback: (options?: FeedbackOptions) => Promise<Response>;
   /** A fake OpenAI Responses endpoint (ticket 06). */
   openai: FakeOpenAI;
+  /** Fake Open Food Facts and USDA FoodData Central (nutrition N8). */
+  food: FakeFoodDatabases;
+}
+
+/** Nutrition N8: the two food databases. Each records its calls; `off` / `usda` answer them (default: nothing found). */
+export interface FakeFoodDatabases {
+  offCalls: { url: string; userAgent: string | null }[];
+  usdaCalls: { url: string; body: Record<string, unknown>; apiKey: string | null }[];
+  off: (code: string) => Promise<Response> | Response;
+  usda: (body: Record<string, unknown>) => Promise<Response> | Response;
 }
 
 export interface FakeOpenAI {
@@ -169,6 +179,7 @@ export interface FakeOpenAI {
 }
 
 export const OPENAI_KEY = "fake-key";
+export const USDA_KEY = "fake-usda-key";
 
 /** A completed Responses API reply whose single output_text is `result` as JSON. */
 export function openAIReply(result: unknown, usage = { input_tokens: 1200, output_tokens: 300, output_tokens_details: { reasoning_tokens: 200 } }) {
@@ -196,7 +207,7 @@ export async function harness(): Promise<Harness> {
   resetAppleKeyCache();
   resetGoogleKeyCache();
   // The pool keeps one D1 per test file: start every test from empty tables (children first).
-  await env.DB.batch(["training_profiles", "ai_usage", "ai_requests", "ai_settings", "ai_account_pauses",
+  await env.DB.batch(["food_cache", "food_limits", "training_profiles", "ai_usage", "ai_requests", "ai_settings", "ai_account_pauses",
     "feedback", "feedback_limits", "screenshot_deletions", "pending_revocations", "sessions", "identities", "accounts"]
     .map((t) => env.DB.prepare(`DELETE FROM ${t}`)));
   const stored = await env.FEEDBACK.list();
@@ -206,11 +217,25 @@ export async function harness(): Promise<Harness> {
   const { google, keys: googleKeys } = await makeFakeGoogle();
   let counter = 0;
   const openai: FakeOpenAI = { calls: [], respond: () => openAIReply({ ok: true }) };
+  const food: FakeFoodDatabases = {
+    offCalls: [], usdaCalls: [],
+    off: () => Response.json({ status: 0, status_verbose: "product not found" }, { status: 404 }),
+    usda: () => Response.json({ totalHits: 0, foods: [] }),
+  };
   const deps: Deps = {
     now: () => clock.now,
     fetch: async (input, init) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       if (url === GOOGLE_KEYS_URL) return googleKeys();
+      if (url.startsWith("https://world.openfoodfacts.org/api/v2/product/")) {
+        food.offCalls.push({ url, userAgent: new Headers(init?.headers).get("user-agent") });
+        return food.off(url.slice("https://world.openfoodfacts.org/api/v2/product/".length).split(".")[0]!);
+      }
+      if (url === "https://api.nal.usda.gov/fdc/v1/foods/search") {
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        food.usdaCalls.push({ url, body, apiKey: new Headers(init?.headers).get("x-api-key") });
+        return food.usda(body);
+      }
       if (url !== "https://api.openai.com/v1/responses") return fakeFetch(input, init);
       const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
       openai.calls.push({ body, authorization: new Headers(init?.headers).get("authorization") });
@@ -249,6 +274,7 @@ export async function harness(): Promise<Harness> {
     TOKEN_ENC_KEY: btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))),
     OPENAI_API_KEY: OPENAI_KEY,
     GOOGLE_CLIENT_ID,
+    USDA_API_KEY: USDA_KEY,
   };
   const handle = createHandler(deps);
   const call: Harness["call"] = (method, path, options = {}) => {
@@ -297,7 +323,7 @@ export async function harness(): Promise<Harness> {
     if (options.authorization !== undefined) headers.authorization = options.authorization;
     return handle(new Request("https://stacked.test/v1/feedback", { method: "POST", headers, body: form }), testEnv);
   };
-  return { apple, google, googleToken, env: testEnv, clock, call, idToken, signIn, deps, feedback, openai };
+  return { apple, google, googleToken, env: testEnv, clock, call, idToken, signIn, deps, feedback, openai, food };
 }
 
 export async function count(table: string): Promise<number> {

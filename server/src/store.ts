@@ -173,6 +173,8 @@ export async function claimDeletion(env: Env, deps: Deps, accountID: string): Pr
     env.DB.prepare("DELETE FROM ai_usage WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM ai_requests WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM ai_account_pauses WHERE account_id = ?").bind(accountID),
+    // Nutrition N8: food lookup counts (the shared cache holds nothing of the account).
+    env.DB.prepare("DELETE FROM food_limits WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM sessions WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM identities WHERE account_id = ?").bind(accountID),
     env.DB.prepare("DELETE FROM accounts WHERE id = ?").bind(accountID),

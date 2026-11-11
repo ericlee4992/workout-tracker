@@ -1,0 +1,404 @@
+import { AuthError } from "./apple";
+import { sha256Hex } from "./crypto";
+import type { Deps, Env } from "./env";
+import { characterCount } from "./text";
+import { newYorkDay } from "./time";
+
+// Nutrition N8 (D72): food databases through the server. A barcode is looked up at Open Food Facts first, then at USDA
+// FoodData Central's branded foods; a search by name goes to USDA's generic foods (Foundation, SR Legacy, FNDDS). Every
+// answer is normalised to one food shape (per 100 g and per serving) and cached in D1 — hits and misses, each with an
+// expiry. Signed in only, with a modest per-account daily limit (no AI cost). Nothing about the account is sent to
+// either database; the cache is linked to no account and keeps a typed search only as a one-way hash.
+
+export const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product/";
+export const USDA_SEARCH_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
+/** Open Food Facts asks every client for a descriptive User-Agent with a way to reach it: the app's support page (no
+ *  personal address in a request). */
+export const FOOD_USER_AGENT = "Stacked/1.0 (iOS workout and food log; +https://stacked-server.stacked-server.workers.dev/support)";
+/** Each upstream call; the app waits longer (FoodDatabaseClient.timeout). */
+export const FOOD_TIMEOUT_MS = 8_000;
+/** Lookups per account per New York day; every request counts, cache hits too. */
+export const FOOD_DAILY_LIMITS = { barcode: 200, search: 500 } as const;
+export type FoodKind = keyof typeof FOOD_DAILY_LIMITS;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** A found product rarely changes; a miss is retried after a day (a product added to either database since). */
+export const BARCODE_HIT_TTL_MS = 30 * DAY_MS;
+export const BARCODE_MISS_TTL_MS = DAY_MS;
+export const SEARCH_TTL_MS = 7 * DAY_MS;
+export const EMPTY_SEARCH_TTL_MS = DAY_MS;
+export const SEARCH_RESULTS = 10;
+const USDA_PAGE_SIZE = 25;
+/** USDA's generic (not branded) foods, for search by name. */
+export const USDA_GENERIC_TYPES = ["Foundation", "SR Legacy", "Survey (FNDDS)"];
+const MAX_NAME = 200;
+const MAX_BRAND = 100;
+const MAX_SERVING_TEXT = 120;
+const MAX_MEASURES = 6;
+
+/** One serving's or 100 g's nutrition; macros 0 when the source omits them (as the app's forms read a blank). */
+export interface Nutrients {
+  calories: number; protein: number; carbs: number; fat: number;
+  saturatedFat: number | null; fiber: number | null; sugar: number | null; sodiumMg: number | null;
+}
+
+/** A portion the food can be logged by, in the source's words, with its weight. */
+export interface Measure { text: string; grams: number }
+
+/** The one food shape both databases are normalised to. */
+export interface DatabaseFood {
+  /** `off:<code>` or `usda:<fdcId>`: the app's `SavedFood.databaseID`. */
+  id: string;
+  source: "openFoodFacts" | "usda";
+  name: string;
+  brand: string | null;
+  barcode: string | null;
+  /** Per 100 g (or 100 ml for a drink the source gives per 100 ml); null when the source gives only a serving. */
+  per100g: Nutrients | null;
+  /** The package's (or the first household) serving: its words, weight when known, and its nutrition. */
+  serving: { text: string; grams: number | null; nutrients: Nutrients } | null;
+  /** Other portions (USDA generic foods), heaviest-ranked first; scale `per100g` by `grams / 100`. */
+  measures: Measure[];
+}
+
+// MARK: - Input
+
+/**
+ * A scanned code as a GTIN, or null: 8 (EAN-8), 12 (UPC-A), 13 (EAN-13) or 14 digits with a valid check digit. UPC-A
+ * and a 14-digit code with a leading 0 become their 13-digit EAN form, so one product has one cache key whichever way
+ * it was read. (The app expands UPC-E to UPC-A before sending.)
+ */
+export function normalizeBarcode(raw: string): string | null {
+  if (!/^(\d{8}|\d{12,14})$/.test(raw) || /^0+$/.test(raw) || !validCheckDigit(raw)) return null;
+  if (raw.length === 12) return `0${raw}`;
+  if (raw.length === 14 && raw.startsWith("0")) return raw.slice(1);
+  return raw;
+}
+
+/** The GTIN check digit: weights 3, 1, 3, … from the digit left of the check digit. */
+export function validCheckDigit(code: string): boolean {
+  const digits = [...code].map(Number);
+  const check = digits.pop()!;
+  let sum = 0;
+  digits.reverse().forEach((d, i) => { sum += d * (i % 2 === 0 ? 3 : 1); });
+  return (10 - (sum % 10)) % 10 === check;
+}
+
+/** A search as typed: whitespace collapsed, 2–100 characters, no control characters; null otherwise. */
+export function cleanQuery(raw: string | null): string | null {
+  if (raw === null) return null;
+  const query = raw.replace(/\s+/g, " ").trim();
+  const length = characterCount(query);
+  if (length < 2 || length > 100 || /[\u0000-\u001f\u007f]/.test(query)) return null;
+  return query;
+}
+
+// MARK: - Normalisation
+
+const round = (value: number, places = 2) => Math.round(value * 10 ** places) / 10 ** places;
+
+/** A finite, non-negative number at most `max` (a number given as text, as Open Food Facts sometimes does, counts). */
+function amount(value: unknown, max: number): number | null {
+  const n = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  return typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= max ? n : null;
+}
+
+function text(value: unknown, max: number): string | null {
+  if (typeof value !== "string") return null;
+  const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  if (cleaned.length === 0) return null;
+  return [...cleaned].slice(0, max).join("");
+}
+
+/** "NUTELLA HAZELNUT SPREAD" (USDA's branded names are often capitals) → "Nutella Hazelnut Spread"; other names as is. */
+export function tidyName(name: string): string {
+  if (name !== name.toUpperCase() || name === name.toLowerCase()) return name;
+  return name.toLowerCase().replace(/(^|[\s\-/(&])(\p{L})/gu, (_, gap: string, letter: string) => gap + letter.toUpperCase());
+}
+
+/** Bounds a nutrition answer: a serving up to 10,000 kcal, 100 g up to 900 kcal (pure fat) — beyond that the source's
+ *  numbers are wrong, so the food is unusable rather than logged with them. */
+function nutrients(raw: Partial<Record<keyof Nutrients, number | null>>, kcalMax: number): Nutrients | null {
+  const calories = raw.calories ?? null;
+  if (calories === null || calories > kcalMax) return null;
+  const grams = (v: number | null | undefined) => (v === null || v === undefined ? null : round(v));
+  return {
+    calories: round(calories, 1),
+    protein: grams(raw.protein) ?? 0, carbs: grams(raw.carbs) ?? 0, fat: grams(raw.fat) ?? 0,
+    saturatedFat: grams(raw.saturatedFat), fiber: grams(raw.fiber), sugar: grams(raw.sugar),
+    sodiumMg: raw.sodiumMg === null || raw.sodiumMg === undefined ? null : round(raw.sodiumMg, 1),
+  };
+}
+
+function scale(per100: Nutrients, grams: number): Nutrients | null {
+  const f = grams / 100;
+  const s = (v: number | null) => (v === null ? null : v * f);
+  return nutrients({
+    calories: per100.calories * f, protein: per100.protein * f, carbs: per100.carbs * f, fat: per100.fat * f,
+    saturatedFat: s(per100.saturatedFat), fiber: s(per100.fiber), sugar: s(per100.sugar), sodiumMg: s(per100.sodiumMg),
+  }, 10_000);
+}
+
+const PER_100_KCAL = 900;
+const PER_SERVING_KCAL = 10_000;
+const MAX_GRAMS = 100_000;
+const kj = (value: number | null) => (value === null ? null : value / 4.184);
+
+/** An Open Food Facts product (API v2) as a food, or null when it has no name or no calories. */
+export function fromOpenFoodFacts(code: string, product: Record<string, unknown>): DatabaseFood | null {
+  const name = text(product.product_name, MAX_NAME) ?? text(product.product_name_en, MAX_NAME)
+    ?? text(product.generic_name, MAX_NAME);
+  if (!name) return null;
+  const n = (typeof product.nutriments === "object" && product.nutriments !== null ? product.nutriments : {}) as Record<string, unknown>;
+  const read = (suffix: "100g" | "serving", max: number) => {
+    const per = (key: string, cap = MAX_GRAMS) => amount(n[`${key}_${suffix}`], cap);
+    const sodium = per("sodium");
+    return nutrients({
+      calories: per("energy-kcal", max) ?? kj(per("energy-kj", max * 4.184)) ?? kj(per("energy", max * 4.184)),
+      protein: per("proteins"), carbs: per("carbohydrates"), fat: per("fat"),
+      saturatedFat: per("saturated-fat"), fiber: per("fiber"), sugar: per("sugars"),
+      // Open Food Facts gives sodium in grams.
+      sodiumMg: sodium === null ? null : sodium * 1000,
+    }, max);
+  };
+  const per100g = read("100g", PER_100_KCAL);
+  const servingText = text(product.serving_size, MAX_SERVING_TEXT);
+  const unit = typeof product.serving_quantity_unit === "string" ? product.serving_quantity_unit.toLowerCase() : "g";
+  const grams = unit === "g" || unit === "ml" ? amount(product.serving_quantity, MAX_GRAMS) : null;
+  const servingNutrients = read("serving", PER_SERVING_KCAL) ?? (per100g && grams ? scale(per100g, grams) : null);
+  const serving = servingText && servingNutrients
+    ? { text: servingText, grams: grams && grams > 0 ? round(grams) : null, nutrients: servingNutrients } : null;
+  if (!per100g && !serving) return null;
+  const brand = typeof product.brands === "string" ? text(product.brands.split(",")[0], MAX_BRAND) : null;
+  return { id: `off:${code}`, source: "openFoodFacts", name, brand, barcode: code, per100g, serving, measures: [] };
+}
+
+/** USDA nutrient numbers (FoodData Central): energy in kcal, then the Atwater energies some foods carry instead. */
+const USDA = {
+  calories: [1008, 2047, 2048], protein: [1003], carbs: [1005], fat: [1004], saturatedFat: [1258], fiber: [1079],
+  sugar: [2000, 1063], sodiumMg: [1093],
+} as const;
+
+function usdaNutrients(food: Record<string, unknown>): Nutrients | null {
+  const list = Array.isArray(food.foodNutrients) ? food.foodNutrients as Record<string, unknown>[] : [];
+  const find = (ids: readonly number[], max = MAX_GRAMS, energy = false) => {
+    for (const id of ids) {
+      const row = list.find((r) => r.nutrientId === id && (!energy || String(r.unitName).toUpperCase() === "KCAL"));
+      const value = row ? amount(row.value, max) : null;
+      if (value !== null) return value;
+    }
+    return null;
+  };
+  return nutrients({
+    calories: find(USDA.calories, PER_100_KCAL, true), protein: find(USDA.protein), carbs: find(USDA.carbs),
+    fat: find(USDA.fat), saturatedFat: find(USDA.saturatedFat), fiber: find(USDA.fiber), sugar: find(USDA.sugar),
+    sodiumMg: find(USDA.sodiumMg),
+  }, PER_100_KCAL);
+}
+
+/** A USDA branded food (a search result: nutrients per 100 g or 100 ml) as a food, or null when unusable. */
+export function fromUSDABranded(code: string, food: Record<string, unknown>): DatabaseFood | null {
+  const name = text(food.description, MAX_NAME);
+  const per100g = usdaNutrients(food);
+  if (!name || !per100g || typeof food.fdcId !== "number") return null;
+  const size = amount(food.servingSize, MAX_GRAMS);
+  const unit = String(food.servingSizeUnit ?? "").toLowerCase();
+  const metric = ["g", "grm", "gram", "grams"].includes(unit) ? "g" : ["ml", "mlt"].includes(unit) ? "ml" : null;
+  let serving: DatabaseFood["serving"] = null;
+  if (size && size > 0 && metric) {
+    const household = text(food.householdServingFullText, MAX_SERVING_TEXT);
+    const weight = `${round(size)} ${metric}`;
+    const scaled = scale(per100g, size);
+    if (scaled) {
+      serving = { text: household ? `${household} (${weight})` : weight, grams: metric === "g" ? round(size) : null, nutrients: scaled };
+    }
+  }
+  const brand = text(food.brandName, MAX_BRAND) ?? text(food.brandOwner, MAX_BRAND);
+  return {
+    id: `usda:${food.fdcId}`, source: "usda", name: tidyName(name), brand: brand ? tidyName(brand) : null, barcode: code,
+    per100g, serving, measures: [],
+  };
+}
+
+/** A USDA generic food (Foundation, SR Legacy, FNDDS) as a food: per 100 g, its household portions as measures, the
+ *  first of them as the serving. */
+export function fromUSDAGeneric(food: Record<string, unknown>): DatabaseFood | null {
+  const name = text(food.description, MAX_NAME);
+  const per100g = usdaNutrients(food);
+  if (!name || !per100g || typeof food.fdcId !== "number") return null;
+  const raw = Array.isArray(food.foodMeasures) ? food.foodMeasures as Record<string, unknown>[] : [];
+  const measures: Measure[] = [];
+  for (const m of [...raw].sort((a, b) => (Number(a.rank) || 0) - (Number(b.rank) || 0))) {
+    const words = text(m.disseminationText, MAX_SERVING_TEXT);
+    const grams = amount(m.gramWeight, MAX_GRAMS);
+    if (!words || !grams || grams <= 0 || /quantity not specified/i.test(words)) continue;
+    if (measures.some((x) => x.text === words)) continue;
+    measures.push({ text: words, grams: round(grams) });
+    if (measures.length === MAX_MEASURES) break;
+  }
+  const first = measures[0];
+  const scaled = first ? scale(per100g, first.grams) : null;
+  return {
+    id: `usda:${food.fdcId}`, source: "usda", name: tidyName(name), brand: null, barcode: null, per100g,
+    serving: first && scaled ? { text: first.text, grams: first.grams, nutrients: scaled } : null,
+    measures: measures.slice(1),
+  };
+}
+
+// MARK: - Upstream
+
+class Upstream extends Error {
+  constructor(readonly source: string, readonly status: string) { super(`${source} ${status}`); this.name = "Upstream"; }
+}
+
+async function fetchJSON(deps: Deps, source: string, url: string, init: RequestInit, missStatus?: number): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await deps.fetch(url, { ...init, signal: AbortSignal.timeout(FOOD_TIMEOUT_MS) });
+  } catch (error) {
+    throw new Upstream(source, error instanceof Error && error.name === "TimeoutError" ? "timeout" : "network");
+  }
+  if (response.status === missStatus) return null;
+  if (!response.ok) throw new Upstream(source, String(response.status));
+  try { return await response.json(); } catch { throw new Upstream(source, "malformed"); }
+}
+
+/** Open Food Facts: a product, or null when it has none usable. Its v2 API answers 404 `{status: 0}` for an unknown code. */
+async function openFoodFacts(code: string, deps: Deps): Promise<DatabaseFood | null> {
+  const fields = "code,product_name,product_name_en,generic_name,brands,serving_size,serving_quantity," +
+    "serving_quantity_unit,nutriments";
+  const body = await fetchJSON(deps, "off", `${OFF_PRODUCT_URL}${code}.json?fields=${fields}`,
+    { headers: { "user-agent": FOOD_USER_AGENT, accept: "application/json" } }, 404) as Record<string, unknown> | null;
+  if (!body || body.status !== 1 || typeof body.product !== "object" || body.product === null) return null;
+  return fromOpenFoodFacts(code, body.product as Record<string, unknown>);
+}
+
+/** USDA's food search; the key travels in a header, never in a URL. */
+async function usdaSearch(key: string, deps: Deps, query: string, dataType: string[]): Promise<Record<string, unknown>[]> {
+  const body = await fetchJSON(deps, "usda", USDA_SEARCH_URL, {
+    method: "POST",
+    headers: { "x-api-key": key, "content-type": "application/json", accept: "application/json", "user-agent": FOOD_USER_AGENT },
+    body: JSON.stringify({ query, dataType, pageSize: USDA_PAGE_SIZE }),
+  }) as Record<string, unknown> | null;
+  return Array.isArray(body?.foods) ? body!.foods as Record<string, unknown>[] : [];
+}
+
+/** The same GTIN whatever its length in USDA's `gtinUpc` (12-digit UPCs, sometimes 13 or 14 digits). */
+const sameGTIN = (a: unknown, code: string) => typeof a === "string" && normalizeBarcode(a.trim()) === code;
+
+async function usdaBarcode(code: string, key: string, deps: Deps): Promise<DatabaseFood | null> {
+  // US products are indexed by their 12-digit UPC.
+  const query = code.length === 13 && code.startsWith("0") ? code.slice(1) : code;
+  const foods = await usdaSearch(key, deps, query, ["Branded"]);
+  for (const food of foods.filter((f) => sameGTIN(f.gtinUpc, code))) {
+    const found = fromUSDABranded(code, food);
+    if (found) return found;
+  }
+  return null;
+}
+
+// MARK: - Cache and limit
+
+async function readCache<T>(env: Env, deps: Deps, key: string): Promise<{ value: T } | null> {
+  const row = await env.DB.prepare("SELECT body FROM food_cache WHERE key = ? AND expires_at > ?")
+    .bind(key, deps.now()).first<{ body: string }>();
+  if (!row) return null;
+  try { return { value: JSON.parse(row.body) as T }; } catch { return null; }
+}
+
+async function writeCache(env: Env, deps: Deps, key: string, value: unknown, ttl: number) {
+  const now = deps.now();
+  await env.DB.prepare("INSERT OR REPLACE INTO food_cache (key, body, created_at, expires_at) VALUES (?, ?, ?, ?)")
+    .bind(key, JSON.stringify(value), now, now + ttl).run();
+}
+
+/** Counts one lookup, or refuses it past today's limit (`429 food_limit`). A deleted account counts nothing (401). */
+async function countLookup(env: Env, deps: Deps, accountID: string, kind: FoodKind) {
+  const row = await env.DB.prepare(
+    "INSERT INTO food_limits (account_id, day, kind, count) SELECT ?1, ?2, ?3, 1 " +
+    "WHERE EXISTS (SELECT 1 FROM accounts WHERE id = ?1) " +
+    "ON CONFLICT(account_id, day, kind) DO UPDATE SET count = count + 1 WHERE count < ?4 RETURNING count")
+    .bind(accountID, newYorkDay(deps.now()), kind, FOOD_DAILY_LIMITS[kind]).first<{ count: number }>();
+  if (row) return;
+  const exists = await env.DB.prepare("SELECT 1 AS one FROM accounts WHERE id = ?").bind(accountID).first();
+  throw exists ? new AuthError("food_limit", 429) : new AuthError("unauthorized", 401);
+}
+
+// MARK: - Routes
+
+/**
+ * `GET /v1/food/barcode/:code` → `{ found: true, food }` or `{ found: false }`. Open Food Facts first, then USDA
+ * branded foods (when the key is set). Hits are cached 30 days, misses a day. A miss is not cached when USDA was not
+ * asked (no key yet) or when either source failed — the next try may find it — and a failure with nothing found is
+ * `502 food_unavailable`.
+ */
+export async function lookupBarcode(env: Env, deps: Deps, accountID: string, raw: string) {
+  const code = normalizeBarcode(raw);
+  if (!code) throw new AuthError("invalid_barcode", 400);
+  await countLookup(env, deps, accountID, "barcode");
+  const key = `barcode:${code}`;
+  const cached = await readCache<DatabaseFood | null>(env, deps, key);
+  if (cached) return cached.value ? { found: true, food: cached.value } : { found: false };
+  let failed = false;
+  let food: DatabaseFood | null = null;
+  try { food = await openFoodFacts(code, deps); } catch (error) { failed = true; logUpstream(error); }
+  if (!food && env.USDA_API_KEY) {
+    try { food = await usdaBarcode(code, env.USDA_API_KEY, deps); } catch (error) { failed = true; logUpstream(error); }
+  }
+  if (food) {
+    await writeCache(env, deps, key, food, BARCODE_HIT_TTL_MS);
+    return { found: true, food };
+  }
+  if (failed) throw new AuthError("food_unavailable", 502);
+  if (env.USDA_API_KEY) await writeCache(env, deps, key, null, BARCODE_MISS_TTL_MS);
+  return { found: false };
+}
+
+/**
+ * `GET /v1/food/search?q=` → `{ foods: [...] }`, at most ten USDA generic foods (e.g. "banana", "chicken breast").
+ * Cached under the query's hash: a week, a day when nothing matched. Without the USDA key: `503 server_not_configured`.
+ */
+export async function searchFoods(env: Env, deps: Deps, accountID: string, raw: string | null) {
+  const query = cleanQuery(raw);
+  if (!query) throw new AuthError("invalid_query", 400);
+  if (!env.USDA_API_KEY) throw new AuthError("server_not_configured", 503);
+  await countLookup(env, deps, accountID, "search");
+  const key = `search:${await sha256Hex(query.toLowerCase())}`;
+  const cached = await readCache<DatabaseFood[]>(env, deps, key);
+  if (cached) return { foods: cached.value };
+  let results: Record<string, unknown>[];
+  try {
+    results = await usdaSearch(env.USDA_API_KEY, deps, query, USDA_GENERIC_TYPES);
+  } catch (error) {
+    logUpstream(error);
+    throw new AuthError("food_unavailable", 502);
+  }
+  const foods: DatabaseFood[] = [];
+  for (const result of results) {
+    const food = fromUSDAGeneric(result);
+    if (!food || foods.some((f) => f.id === food.id || f.name.toLowerCase() === food.name.toLowerCase())) continue;
+    foods.push(food);
+    if (foods.length === SEARCH_RESULTS) break;
+  }
+  await writeCache(env, deps, key, foods, foods.length > 0 ? SEARCH_TTL_MS : EMPTY_SEARCH_TTL_MS);
+  return { foods };
+}
+
+/** The source and its status only — never the code, the query or the key. */
+function logUpstream(error: unknown) {
+  if (error instanceof Upstream) console.error("food upstream", error.source, error.status);
+  else throw error;
+}
+
+/** Hourly: expired cache rows and earlier days' counts (two statements). */
+export async function pruneFood(env: Env, deps: Deps) {
+  const now = deps.now();
+  try {
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM food_cache WHERE expires_at <= ?").bind(now),
+      env.DB.prepare("DELETE FROM food_limits WHERE day < ?").bind(newYorkDay(now - 2 * DAY_MS)),
+    ]);
+  } catch (error) {
+    console.error("food prune failed", error instanceof Error ? error.name : "unknown");
+  }
+}

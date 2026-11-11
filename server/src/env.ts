@@ -18,6 +18,9 @@ export interface Env {
   GOOGLE_CLIENT_ID?: string;
   /** Secret: the developer's OpenAI key (ticket 06). Never sent to the app; without it the AI routes answer 503. */
   OPENAI_API_KEY?: string;
+  /** Secret (nutrition N8): the user's api.data.gov key for USDA FoodData Central. Unset: barcodes use Open Food Facts
+   *  only and search answers 503 server_not_configured. */
+  USDA_API_KEY?: string;
 }
 
 /** What the handler takes from the outside world, so tests can replace it. */
