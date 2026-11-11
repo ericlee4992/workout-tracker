@@ -19,10 +19,11 @@ extension ProgressReading {
 
     private static func weight(_ chart: NutritionChart, range: NutritionRange, weights: [BodyWeightEntry],
                                unit: WeightUnit, now: Date, calendar: Calendar) -> ProgressReading {
-        let daily = NutritionProgressMath.dailyWeights(weights, calendar: calendar)
-        // The trend is worked out over every weigh-in, then cut to the span (its first days still average the week
-        // before them).
-        let series = chart == .weightTrend ? NutritionProgressMath.trend(daily, calendar: calendar) : daily
+        // Body weight: each weigh-in as measured (codex-review-n10 S3). The trend is worked out over every day's
+        // average, then cut to the span (its first days still average the week before them).
+        let series = chart == .weightTrend
+            ? NutritionProgressMath.trend(NutritionProgressMath.dailyWeights(weights, calendar: calendar), calendar: calendar)
+            : NutritionProgressMath.weighIns(weights)
         let shown = NutritionProgressMath.points(series, from: range.start(endingAt: now, calendar: calendar))
         func inUnit(_ kg: Double) -> Double { WeightMath.convert(kg, from: .kg, to: unit) }
         func text(_ kg: Double) -> String { inUnit(kg).formatted(.number.precision(.fractionLength(1))) }
@@ -30,7 +31,7 @@ extension ProgressReading {
         var caption = HistoryFormat.shortDayTitle(latest.date)
         if chart == .weightTrend, let rate = NutritionProgressMath.weeklyRate(series, calendar: calendar) {
             caption = "\(signed(inUnit(rate))) \(unit.rawValue) a week"
-        } else if chart == .bodyWeight, let change = NutritionProgressMath.change(shown) {
+        } else if chart == .bodyWeight, let change = NutritionProgressMath.change(shown, calendar: calendar) {
             let span = change.weeks >= 2 ? "\(change.weeks) weeks" : HistoryRendering.pluralized(change.days, "day", "days")
             caption = "\(signed(inUnit(change.kg))) \(unit.rawValue) in \(span)"
         }

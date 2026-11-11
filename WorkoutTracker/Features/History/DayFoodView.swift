@@ -10,6 +10,8 @@ struct DayFoodView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Today's page shows Health's Burned as Today does (codex-review-n10 S1); a past day's is its workouts'.
+    @Environment(HealthSync.self) private var health: HealthSync?
     @Query(sort: \FoodEntry.loggedAt) private var foodEntries: [FoodEntry]
     @Query private var goals: [NutritionGoal]
     @Query(filter: #Predicate<Workout> { $0.finishedAt != nil }) private var workouts: [Workout]
@@ -22,8 +24,15 @@ struct DayFoodView: View {
 
     private var isToday: Bool { Calendar.current.isDate(day, inSameDayAs: now) }
 
+    /// The day's food; today's Burned as Today shows it (Health's active energy when read).
+    private var dayFood: FoodDay {
+        var food = FoodDayMath.day(day, entries: foodEntries, goals: goals, workouts: workouts)
+        if isToday { food.burned = FoodDayMath.burned(workouts: food.burned, health: health?.burned(on: day)) }
+        return food
+    }
+
     var body: some View {
-        let food = FoodDayMath.day(day, entries: foodEntries, goals: goals, workouts: workouts)
+        let food = dayFood
         // In the order eaten, as Today's log.
         let entries = NutritionMath.entries(foodEntries, on: day)
             .sorted { ($0.loggedAt, $0.createdAt, $0.id.uuidString) < ($1.loggedAt, $1.createdAt, $1.id.uuidString) }
@@ -88,5 +97,8 @@ struct DayFoodView: View {
             Text(failure ?? "")
         }
         .refreshingNow($now)
+        .task(id: [isToday, health?.isOn(.readBurned) == true]) {
+            if isToday { await health?.refreshBurned(on: now) }
+        }
     }
 }

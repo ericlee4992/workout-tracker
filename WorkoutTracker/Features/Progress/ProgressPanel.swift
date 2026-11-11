@@ -425,8 +425,10 @@ private struct BarDomain: ViewModifier {
     let domain: ClosedRange<Date>?
     @ViewBuilder func body(content: Content) -> some View {
         if let domain {
-            // The last day's bar stands on its start: the domain runs to the end of that day.
-            content.chartXScale(domain: domain.lowerBound...domain.upperBound.addingTimeInterval(86_400))
+            // The last day's bar stands on its start: the domain runs to the end of that day (a calendar day, so a
+            // daylight-saving change does not clip it).
+            let end = Calendar.current.date(byAdding: .day, value: 1, to: domain.upperBound) ?? domain.upperBound
+            content.chartXScale(domain: domain.lowerBound...end)
         } else {
             content
         }

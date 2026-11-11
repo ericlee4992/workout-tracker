@@ -193,6 +193,50 @@ struct NutritionProgressTests {
         #expect(decoded.count == 2 && decoded[0].activity == nil && decoded[0].nutrition == nil)
         #expect(decoded[1].training == .workoutsPerWeek)
     }
+
+    // MARK: codex-review-n10
+
+    /// S3: Body weight's points are the weigh-ins as measured (two in a day are two points); the trend averages by day.
+    @Test func bodyWeightKeepsEachWeighIn() {
+        let entries = [BodyWeightEntry(measuredAt: day(0, hour: 7), value: 80, unit: .kg),
+                       BodyWeightEntry(measuredAt: day(0, hour: 20), value: 82, unit: .kg)]
+        #expect(NutritionProgressMath.weighIns(entries).map(\.kg) == [80, 82])
+        let reading = ProgressReading.nutrition(.bodyWeight, range: .days90, weights: entries, entries: [], goals: [],
+                                                unit: .kg, now: today, calendar: calendar)
+        #expect(reading.value == "82.0" && reading.points.count == 2, "the latest measurement, not the day's 81")
+        let trend = ProgressReading.nutrition(.weightTrend, range: .days90, weights: entries, entries: [], goals: [],
+                                              unit: .kg, now: today, calendar: calendar)
+        #expect(trend.value == "81.0" && trend.points.count == 1)
+    }
+
+    /// S2: a week across a daylight-saving change is still seven days (spring: 167 hours; fall: 169).
+    @Test func theWeeklyRateCountsCalendarDaysAcrossDaylightSaving() throws {
+        func point(_ month: Int, _ dayOfMonth: Int, _ kg: Double) -> WeightPoint {
+            WeightPoint(date: calendar.date(from: DateComponents(year: 2026, month: month, day: dayOfMonth))!, kg: kg)
+        }
+        let spring = try #require(NutritionProgressMath.weeklyRate([point(3, 2, 80), point(3, 9, 79)], calendar: calendar))
+        #expect(abs(spring - -1) < 1e-9)
+        let fall = try #require(NutritionProgressMath.weeklyRate([point(10, 29, 80), point(11, 5, 79)], calendar: calendar))
+        #expect(abs(fall - -1) < 1e-9)
+        #expect(NutritionProgressMath.change([point(3, 2, 80), point(3, 9, 79)], calendar: calendar)?.days == 7)
+    }
+
+    /// The sliding-window trend equals averaging each window outright.
+    @Test func theTrendMatchesAPlainWindowAverage() {
+        var generator = SystemRandomNumberGenerator()
+        var daily: [WeightPoint] = []
+        var date = calendar.startOfDay(for: day(-400))
+        for _ in 0..<200 {
+            date = calendar.date(byAdding: .day, value: Int.random(in: 1...4, using: &generator), to: date)!
+            daily.append(WeightPoint(date: date, kg: Double.random(in: 70...90, using: &generator)))
+        }
+        let fast = NutritionProgressMath.trend(daily, calendar: calendar)
+        for (index, point) in daily.enumerated() {
+            let from = calendar.date(byAdding: .day, value: -6, to: point.date)!
+            let window = daily.filter { $0.date >= from && $0.date <= point.date }
+            #expect(abs(fast[index].kg - window.map(\.kg).reduce(0, +) / Double(window.count)) < 1e-9)
+        }
+    }
 }
 
 extension HistoryFoodLine {

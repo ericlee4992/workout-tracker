@@ -11,11 +11,10 @@ final class NutritionProgressUITests: XCTestCase {
         app = XCUIApplication()
     }
 
-    private static let food = ["-uiTestReset", "-uiTestDesignSample", "-uiTestPersonalDetails", "-uiTestFoodSample",
-                               "-uiTestFoodDiary"]
+    private static let food = ["-uiTestReset", "-uiTestDesignSample", "-uiTestFoodSample", "-uiTestFoodDiary"]
 
-    private func launch(_ extra: [String] = [], appearance: String = "light", large: Bool = false) {
-        app.launchArguments = Self.food + extra + ["-appearance", appearance]
+    private func launch(_ extra: [String] = [], goal: Bool = true, appearance: String = "light", large: Bool = false) {
+        app.launchArguments = Self.food + (goal ? ["-uiTestPersonalDetails"] : []) + extra + ["-appearance", appearance]
         if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
         app.launch()
         XCTAssertTrue(any("todayEaten").waitForExistence(timeout: 15))
@@ -114,6 +113,24 @@ final class NutritionProgressUITests: XCTestCase {
         XCTAssertEqual(Int(any("todayEaten").label.filter(\.isNumber)), eaten)
     }
 
+    /// codex-review-n10 S1: today's food page shows Health's Burned as Today does — with a goal and without one.
+    func testTodaysFoodPageShowsHealthsBurned() {
+        for goal in [true, false] {
+            launch(["-uiTestDesignHistory", "-uiTestHealthSample", "-uiTestHealthOn"], goal: goal)
+            let burned = NSPredicate(format: "label CONTAINS '412'")
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: burned, evaluatedWith: any("todayBurned"))], timeout: 5),
+                           .completed, "Today: \(any("todayBurned").label)")
+            tab("History")
+            let food = app.buttons.matching(identifier: "historyFoodRow").firstMatch
+            XCTAssertTrue(food.waitForExistence(timeout: 10))
+            food.tap()
+            XCTAssertTrue(any("todayBurned").waitForExistence(timeout: 5))
+            XCTAssertEqual(XCTWaiter().wait(for: [expectation(for: burned, evaluatedWith: any("todayBurned"))], timeout: 5),
+                           .completed, "today's page (goal \(goal)): \(any("todayBurned").label)")
+            app.terminate()
+        }
+    }
+
     func testCaptureLightDefault() { capture(appearance: "light", large: false) }
     func testCaptureDarkAccessibility() { capture(appearance: "dark", large: true) }
 
@@ -142,9 +159,15 @@ final class NutritionProgressUITests: XCTestCase {
         tab("History")
         XCTAssertTrue(app.buttons.matching(identifier: "historyFoodRow").firstMatch.waitForExistence(timeout: 10))
         shoot("n10-history-\(tag)")
+        // A past day, explicitly (codex-review-n10): the second food line, scrolled to.
         let rows = app.buttons.matching(identifier: "historyFoodRow")
-        (rows.count > 1 ? rows.element(boundBy: 1) : rows.firstMatch).tap()
+        for _ in 0..<8 where rows.count < 2 { app.swipeUp() }
+        let past = rows.element(boundBy: 1)
+        reveal(past)
+        past.tap()
         XCTAssertTrue(any("todayEaten").waitForExistence(timeout: 5))
+        let pastWording = NSPredicate(format: "label CONTAINS 'goal' AND NOT (label CONTAINS 'today')")
+        XCTAssertTrue(app.descendants(matching: .any).matching(pastWording).firstMatch.exists, "a past day's fuel card")
         shoot("n10-day-\(tag)")
     }
 }

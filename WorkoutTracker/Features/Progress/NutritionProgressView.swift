@@ -60,7 +60,11 @@ struct NutritionProgressView: View {
         LookList(header: chart == .weightTrend ? "7-day average" : "Weigh-ins") {
             ForEach(reading.points.reversed()) { point in
                 HStack {
-                    Text(HistoryFormat.shortDayTitle(point.date)).font(look.font.body).foregroundStyle(look.textPrimary)
+                    // Body weight lists each weigh-in (two on a day are two rows): with its time.
+                    Text(chart == .bodyWeight
+                         ? point.date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+                         : HistoryFormat.shortDayTitle(point.date))
+                        .font(look.font.body).foregroundStyle(look.textPrimary)
                     Spacer()
                     Text("\(point.value.formatted(.number.precision(.fractionLength(1)))) \(unit.rawValue)")
                         .font(look.font.fieldNumber).foregroundStyle(look.textPrimary)

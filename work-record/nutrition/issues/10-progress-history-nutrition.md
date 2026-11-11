@@ -89,3 +89,18 @@ Known flaky: none seen
 ```
 
 ## Comments
+
+**Round 1 (`codex-review-n10.md`): not clear — 2 P2, 2 P3.** Fixed:
+- **S1** today's food page showed Burned from workouts only: when the page is today it reads Health's active energy as
+  Today does (`FoodDayMath.burned`, refreshed by `HealthSync`); a past day stays workouts-only. UI test
+  `testTodaysFoodPageShowsHealthsBurned` (with and without a goal: 412 on Today and on the page).
+- **S2** the weekly rate (and change) counted days as seconds ÷ 86,400 — a spring week was 6.96 days and vanished: calendar
+  days now (`NutritionProgressMath.days`); the bars' last day ends a calendar day later. Test across March 8 and Nov 1,
+  2026 (New York).
+- **S3** "Each weigh-in" showed daily averages: Body weight now plots each weigh-in as measured (two in a day are two
+  points; the list shows date and time); the trend keeps averaging by day.
+- **T1** a past day's protein said "50 g to go": "50 g under goal" on a past day (new string). Captures: an explicitly
+  chosen past day (the second food line), light Default and dark AXL — "cal under", "50 g under goal".
+- Performance note: the trend is now one pass with a sliding window (was quadratic); test against a plain window average.
+Evidence: build exit 0; Unit plan 1,272/1,272 (`/private/tmp/claude-501/-Users-ericlee06-orca-workspaces-Health-App-UI-design/20f5b25b-92e7-448e-a00d-dbd68fee92a9/scratchpad/n10r2-unit.xcresult`); NutritionProgressUITests (5) + TodayFoodUITests
+(7) + warm-up 13/13, 2 workers (`n10r2-ui.xcresult`).

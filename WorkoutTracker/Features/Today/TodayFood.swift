@@ -134,7 +134,8 @@ struct TodayFuelCard: View {
                 Text("/ \(TodayFoodCopy.grams(target)) g").font(look.font.subhead).foregroundStyle(look.textSecondary)
             }
             ProgressLine(progress: target > 0 ? eaten / target : 0, tint: MacroKind.protein.color, height: 6)
-            Text(toGo < 0.5 ? "Goal reached" : "\(TodayFoodCopy.grams(toGo)) g to go")
+            // N10: a past day says what it fell short by, not what is still to come (codex-review-n10 T1).
+            Text(toGo < 0.5 ? "Goal reached" : "\(TodayFoodCopy.grams(toGo)) g \(isToday ? "to go" : "under goal")")
                 .font(look.font.footnote.weight(.medium)).foregroundStyle(look.textSecondary)
         }
         .accessibilityElement(children: .combine)

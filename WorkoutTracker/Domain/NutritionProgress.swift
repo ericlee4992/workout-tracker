@@ -114,14 +114,36 @@ enum NutritionProgressMath {
         .sorted { $0.date < $1.date }
     }
 
+    /// Body weight's points (codex-review-n10 S3): each weigh-in as measured, oldest first — "Each weigh-in" means
+    /// that; the trend averages by day instead.
+    static func weighIns(_ entries: [BodyWeightEntry]) -> [WeightPoint] {
+        entries.map { WeightPoint(date: $0.measuredAt, kg: $0.normalizedKg) }.sorted { $0.date < $1.date }
+    }
+
     /// The trend: each weigh-in day's value is the average of the daily weights in the 7 days ending that day (days
-    /// without a weigh-in are skipped, not counted as zero).
+    /// without a weigh-in are skipped, not counted as zero). One pass with a sliding window (codex-review-n10: the
+    /// whole history is averaged before a span is cut, so it must stay linear).
     static func trend(_ daily: [WeightPoint], days: Int = 7, calendar: Calendar = .current) -> [WeightPoint] {
-        daily.map { point in
+        var result: [WeightPoint] = []
+        result.reserveCapacity(daily.count)
+        var first = 0
+        var sum = 0.0
+        for (index, point) in daily.enumerated() {
+            sum += point.kg
             let from = calendar.date(byAdding: .day, value: -(days - 1), to: point.date) ?? point.date
-            let window = daily.filter { $0.date >= from && $0.date <= point.date }
-            return WeightPoint(date: point.date, kg: window.map(\.kg).reduce(0, +) / Double(window.count))
+            while daily[first].date < from {
+                sum -= daily[first].kg
+                first += 1
+            }
+            result.append(WeightPoint(date: point.date, kg: sum / Double(index - first + 1)))
         }
+        return result
+    }
+
+    /// Whole calendar days between two instants' days — not seconds ÷ 86,400, which a daylight-saving change makes a
+    /// day short or long (codex-review-n10 S2).
+    static func days(from start: Date, to end: Date, calendar: Calendar = .current) -> Int {
+        calendar.dateComponents([.day], from: calendar.startOfDay(for: start), to: calendar.startOfDay(for: end)).day ?? 0
     }
 
     /// The points from `start` on (all of them without one).
@@ -136,16 +158,16 @@ enum NutritionProgressMath {
         guard let last = trend.last,
               let from = calendar.date(byAdding: .day, value: -28, to: last.date),
               let first = trend.first(where: { $0.date >= from }) else { return nil }
-        let days = last.date.timeIntervalSince(first.date) / 86_400
-        guard days >= 7 else { return nil }
-        return (last.kg - first.kg) / days * 7
+        let span = days(from: first.date, to: last.date, calendar: calendar)
+        guard span >= 7 else { return nil }
+        return (last.kg - first.kg) / Double(span) * 7
     }
 
     /// The change over the points shown and the weeks it took ("−7.6 lb in 12 weeks"); nil with one point.
-    static func change(_ points: [WeightPoint]) -> (kg: Double, weeks: Int, days: Int)? {
+    static func change(_ points: [WeightPoint], calendar: Calendar = .current) -> (kg: Double, weeks: Int, days: Int)? {
         guard let first = points.first, let last = points.last, points.count > 1 else { return nil }
-        let days = Int((last.date.timeIntervalSince(first.date) / 86_400).rounded())
-        return (last.kg - first.kg, Int((Double(days) / 7).rounded()), days)
+        let span = days(from: first.date, to: last.date, calendar: calendar)
+        return (last.kg - first.kg, Int((Double(span) / 7).rounded()), span)
     }
 
     // MARK: Food
