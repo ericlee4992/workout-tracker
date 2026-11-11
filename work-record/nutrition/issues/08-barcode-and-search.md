@@ -1,8 +1,8 @@
 # N8 — Barcode and online food search (Open Food Facts + USDA)
 
 Type: feature
-Status: **built, in review** (2026-11-11) — approved 2026-11-11 (online search included); branch
-`ericlee4992/nutrition-08-barcode`
+Status: **done** (2026-11-11) — Codex clear (round 5, `codex-review-n8-e.md`), merged into `main`; branch
+`ericlee4992/nutrition-08-barcode`. Deploy (migration 0008, `USDA_API_KEY` secret) at R.
 Blocked by: N7
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-08-barcode` off `main`.
@@ -129,6 +129,8 @@ Round 4 checks: server 283/283 + tsc. App unchanged this round (Unit plan 1284/1
 - R4-T1 an unsupported unit field ("oz") was bypassed by recognisable serving text ("2 oz (56 g)" → 2 g): the field
   now decides first — no serving unit at all, so the quantity is never scaled or shown as grams; the serving's own
   numbers stand with no weight. Matrix + 3 cases. Server 283/283 + tsc; app unchanged.
+
+### Codex round 5 (`codex-review-n8-e.md`): **clear** — no findings; server 283/283 + tsc (app unchanged since round 3).
 
 ### The user's to review (not blocking)
 
