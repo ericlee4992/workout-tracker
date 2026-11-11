@@ -124,6 +124,12 @@ Round 3 checks: server 282/282 + tsc; Unit plan 1284/1284 exit 0 (`r3-unit.xcres
 
 Round 4 checks: server 283/283 + tsc. App unchanged this round (Unit plan 1284/1284 from round 3 stands).
 
+### Codex round 4 (`codex-review-n8-d.md`): not clear — 1 P2; fixed (round 5)
+
+- R4-T1 an unsupported unit field ("oz") was bypassed by recognisable serving text ("2 oz (56 g)" → 2 g): the field
+  now decides first — no serving unit at all, so the quantity is never scaled or shown as grams; the serving's own
+  numbers stand with no weight. Matrix + 3 cases. Server 283/283 + tsc; app unchanged.
+
 ### The user's to review (not blocking)
 
 Own decisions: (1) routes under `/v1/food/…` like every other route; (2) limits 200 barcodes / 500 searches a day,

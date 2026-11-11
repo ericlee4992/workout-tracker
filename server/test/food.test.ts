@@ -469,9 +469,17 @@ describe("normalisation helpers", () => {
       // 100 g is not scaled.
       ["ml field, 500 g package", { quantity: "500 g", serving_size: "1 cup", serving_quantity: 240, serving_quantity_unit: "ml",
         nutriments: per100(60) }, "g", null],
-      // A field naming another unit: its quantity is not used.
+      // A field naming another unit: its quantity is not used — whatever the text says (codex-review-n8-d T1)…
       ["oz field", { quantity: undefined, serving_size: "1 portion", serving_quantity: 2, serving_quantity_unit: "oz",
         nutriments: per100(500) }, "g", null],
+      ["oz field, oz text", { quantity: "400 g", serving_size: "2 oz", serving_quantity: 2, serving_quantity_unit: "oz",
+        nutriments: per100(400) }, "g", null],
+      ["oz field, text with grams", { quantity: "400 g", serving_size: "2 oz (56 g)", serving_quantity: 2,
+        serving_quantity_unit: "oz", nutriments: per100(400) }, "g", null],
+      // …while the serving's own numbers stand, with no weight claimed.
+      ["oz field with its own numbers", { quantity: "400 g", serving_size: "2 oz (56 g)", serving_quantity: 2,
+        serving_quantity_unit: "oz", nutriments: { ...per100(400), "energy-kcal_serving": 224 } }, "g",
+        { grams: null, calories: 224 }],
     ];
     for (const [label, product, unit, serving] of cases) {
       const food = fromOpenFoodFacts(NUTELLA, offProduct({ serving_quantity_unit: undefined, ...product }));

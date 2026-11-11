@@ -213,7 +213,10 @@ export function offUnits(product: Record<string, unknown>): { per100: Per100Unit
   const servingText = typeof product.serving_size === "string" ? product.serving_size : null;
   const inServing = field ?? unitIn(servingText);
   const per100 = unitIn(typeof product.quantity === "string" ? product.quantity : null) ?? inServing ?? "g";
-  return { per100, serving: inServing ?? (raw !== "" && field === null ? null : per100) };
+  // A field naming another unit ("oz") decides first: `serving_quantity` is in that unit, so no text ("2 oz (56 g)")
+  // or basis may lend it grams or millilitres (codex-review-n8-d T1).
+  if (raw !== "" && field === null) return { per100, serving: null };
+  return { per100, serving: inServing ?? per100 };
 }
 
 /** An Open Food Facts product (API v2) as a food, or null when it has no name or no usable nutrition. */
