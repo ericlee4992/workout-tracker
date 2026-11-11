@@ -14,7 +14,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   food line → a day's food page (ticket `work-record/nutrition/issues/10-progress-history-nutrition.md`).
   **Next (the user, 2026-11-11):** N8 (barcode + online search by name, approved), then R. Codex terminal now
   `term_df72a91c-b1a6-47a2-aedb-5b652fc9e0d0` ("Review N10 round 2 (Codex)", ~78 % context left).
-  proposal in C1's ticket); N9b's own decisions 1–5 and new strings (N9 ticket). Known flaky:
+  **For the user (not blocking):** C1's camera/photo-library permission wording (left; proposal in C1's ticket); N9b's
+  own decisions 1–5 and new strings (N9 ticket); N10's own decisions and new strings, incl. "N g under goal" for a past
+  day's protein (N10 ticket). Known flaky:
   `FloodlightAIRoutineUITests.testBackKeepsInputsAndLeavingTheWeekAsksFirst` (Train tab, parallel run; serial passes).
   The user (2026-11-11) kept the review/test workflow as is (asked why rounds take long; no rule change).
   **N7 DONE (2026-11-10 night): Scan Food — Codex clear (round 4), merged.** D83 = the user's N7 answers (one entry
