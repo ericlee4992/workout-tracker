@@ -10,7 +10,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   built** (Apple Health: `Domain/HealthNutritionSync.swift`, `Domain/HealthKitNutritionStore.swift`,
   `Features/Nutrition/AppleHealthView.swift`; design, own decisions and new strings in
   `work-record/nutrition/issues/09-body-weight-health.md`). Build-for-testing exit 0. **Verification done** (all green; evidence in both tickets). **Next:** Codex round 1
-  (brief , report ). Was: the ONE verification
+  (brief `work-record/nutrition/codex-review-c1-n9b-prompt.md`, report `codex-review-c1-n9b.md`). Was: the ONE verification
   pass for both (Unit plan + `HealthNutritionSyncTests` ×10 + UI classes `AppleHealthUITests`, `BodyWeightUITests`,
   `TodayFoodUITests`, `FloodlightProfileUITests`, `FloodlightScanUITests`, `AskAIUITests`; captures of changed
   screens), then ONE Codex review of both in the Codex terminal below, fix to clear, ff-merge `main`.
