@@ -21,6 +21,10 @@ struct ProgressTabView: View {
     @Query(filter: #Predicate<Workout> { $0.finishedAt != nil }, sort: \Workout.startedAt)
     private var workouts: [Workout]
     @Query private var preferences: [AppPreferences]
+    /// N10: the body and food charts' data.
+    @Query private var bodyWeights: [BodyWeightEntry]
+    @Query private var foodEntries: [FoodEntry]
+    @Query private var nutritionGoals: [NutritionGoal]
     @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -40,7 +44,7 @@ struct ProgressTabView: View {
             switch pin.subject {
             case .lift(let id, _): ids.contains(id)
             case .cardio: pin.activity != nil
-            case .training: true
+            case .training, .nutrition: true
             }
         }
     }
@@ -167,6 +171,10 @@ struct ProgressTabView: View {
         case .training(let metric):
             ProgressPanel(title: metric.title, subtitle: metric.measures, glyph: metric.glyph,
                           reading: trainingReading(metric))
+        case .nutrition(let chart):
+            ProgressPanel(title: chart.title, subtitle: chart.measures, glyph: chart.glyph,
+                          reading: .nutrition(chart, range: NutritionRange.panel(for: chart), weights: bodyWeights,
+                                              entries: foodEntries, goals: nutritionGoals, unit: displayUnit, now: now))
         }
     }
 
@@ -176,6 +184,7 @@ struct ProgressTabView: View {
         case let .lift(exerciseID, _): exercises.first { $0.id == exerciseID }?.name ?? "Chart"
         case .cardio: pin.activity?.name ?? "Chart"
         case .training(let metric): metric.title
+        case .nutrition(let chart): chart.title
         }
     }
 
@@ -229,6 +238,8 @@ struct ProgressTabView: View {
             }
         case .training(let metric):
             TrainingProgressView(metric: metric, reading: trainingReading(metric))
+        case .nutrition(let chart):
+            NutritionProgressView(chart: chart)
         }
     }
 
@@ -278,7 +289,7 @@ struct ProgressTabView: View {
         switch pin.subject {
         case .lift: ProgressPinMetric.lifting(for: loadType(pin) ?? .weighted)
         case .cardio: ProgressPinMetric.cardio
-        case .training: []
+        case .training, .nutrition: []
         }
     }
 }

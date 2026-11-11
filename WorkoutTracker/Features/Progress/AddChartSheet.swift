@@ -22,12 +22,14 @@ struct AddChartSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: look.space.section) {
-                    SegmentedPills(["Lifting", "Cardio", "Training"], selection: $kind)
+                    // N10 (the user, 2026-11-11): one Nutrition tab — five would not fit.
+                    SegmentedPills(["Lifting", "Cardio", "Training", "Nutrition"], selection: $kind)
                         .accessibilityIdentifier("addChartKind")
                     switch kind {
                     case 0: liftingList
                     case 1: cardioList
-                    default: trainingList
+                    case 2: trainingList
+                    default: nutritionList
                     }
                 }
                 .padding(.horizontal, look.space.margin)
@@ -147,6 +149,38 @@ struct AddChartSheet: View {
 }
 
 extension AddChartSheet {
+    /// Nutrition N10: the body and food charts, in two groups — one tap adds the pin.
+    @ViewBuilder var nutritionList: some View {
+        let groups: [(title: String, charts: [NutritionChart])] = [
+            ("Body", NutritionChart.allCases.filter { $0.group == .body && matches($0.title) }),
+            ("Food", NutritionChart.allCases.filter { $0.group == .food && matches($0.title) }),
+        ].filter { !$0.charts.isEmpty }
+        if groups.isEmpty {
+            EmptyStateView(symbol: "chart.xyaxis.line", title: "No matches")
+        } else {
+            ForEach(groups, id: \.title) { group in
+                LookList(header: group.title) {
+                    ForEach(group.charts, id: \.self) { chart in
+                        Button {
+                            // `.time` is a placeholder older builds can decode (the subject carries the chart).
+                            onAdd(ProgressPin(subject: .nutrition(chart), metric: .time))
+                            dismiss()
+                        } label: {
+                            LookRow(chart.title, subtitle: chart.measures, symbol: chart.glyph, showsChevron: false) {
+                                Image(systemName: "plus.circle")
+                                    .font(look.font.body)
+                                    .foregroundStyle(look.textSecondary)
+                                    .accessibilityHidden(true)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("addChartNutrition.\(chart.rawValue)")
+                    }
+                }
+            }
+        }
+    }
+
     /// Soft redesign S4: training-wide weekly charts — one tap adds the pin.
     @ViewBuilder var trainingList: some View {
         let rows = TrainingMetric.allCases.filter { matches($0.title) }

@@ -72,8 +72,12 @@ struct ProgressPin: Codable, Identifiable, Equatable, Sendable {
         /// rule above), instead of failing the whole list — which would drop every pin. Consequence: changing this
         /// encoding would make older builds lose all pins.
         case training(TrainingMetric)
+        /// Nutrition N10: a body or food chart — on disk the same way, the activity "nutrition.<chart>", so an older
+        /// build skips it as an unknown activity (and a later build skips a chart it no longer has).
+        case nutrition(NutritionChart)
 
         private static let trainingPrefix = "training."
+        private static let nutritionPrefix = "nutrition."
         private enum Key: String, CodingKey { case lift, cardio }
         private enum LiftKey: String, CodingKey { case exerciseID, variation }
         private enum CardioKey: String, CodingKey { case activity }
@@ -92,6 +96,9 @@ struct ProgressPin: Codable, Identifiable, Equatable, Sendable {
                 if raw.hasPrefix(Self.trainingPrefix),
                    let metric = TrainingMetric(rawValue: String(raw.dropFirst(Self.trainingPrefix.count))) {
                     self = .training(metric)
+                } else if raw.hasPrefix(Self.nutritionPrefix),
+                          let chart = NutritionChart(rawValue: String(raw.dropFirst(Self.nutritionPrefix.count))) {
+                    self = .nutrition(chart)
                 } else {
                     self = .cardio(activity: raw)
                 }
@@ -111,6 +118,9 @@ struct ProgressPin: Codable, Identifiable, Equatable, Sendable {
             case let .training(metric):
                 var cardio = container.nestedContainer(keyedBy: CardioKey.self, forKey: .cardio)
                 try cardio.encode(Self.trainingPrefix + metric.rawValue, forKey: .activity)
+            case let .nutrition(chart):
+                var cardio = container.nestedContainer(keyedBy: CardioKey.self, forKey: .cardio)
+                try cardio.encode(Self.nutritionPrefix + chart.rawValue, forKey: .activity)
             }
         }
     }
@@ -134,6 +144,11 @@ struct ProgressPin: Codable, Identifiable, Equatable, Sendable {
         return nil
     }
 
+    var nutrition: NutritionChart? {
+        if case .nutrition(let chart) = subject { return chart }
+        return nil
+    }
+
     /// The metric to draw: a lifting pin's Volume or 1RM falls back to Best set when its variation is not weighted
     /// (a "Most used" pin can move to an assisted variation); a stored metric of the other kind falls back to the
     /// kind's default.
@@ -144,8 +159,8 @@ struct ProgressPin: Codable, Identifiable, Equatable, Sendable {
             return allowed.contains(metric) ? metric : .bestSet
         case .cardio:
             return metric.isCardio ? metric : .distance
-        case .training:
-            // The training metric is the subject; the stored metric is a placeholder older builds can decode.
+        case .training, .nutrition:
+            // The training metric or chart is the subject; the stored metric is a placeholder older builds can decode.
             return metric
         }
     }

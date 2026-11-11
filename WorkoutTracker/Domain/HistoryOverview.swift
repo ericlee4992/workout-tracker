@@ -246,21 +246,19 @@ enum HistoryOverviewMath {
     }
 
     /// Soft redesign S4: the History journal — months, then one section per day, newest first. A workout belongs
-    /// to the day (and month) it started on.
-    static func journal(_ facts: [HistoryWorkoutFacts], now: Date, calendar: Calendar = .current) -> [HistoryJournalMonth] {
-        let newestFirst = facts.sorted { $0.startedAt > $1.startedAt }
+    /// to the day (and month) it started on. N10: a day with food and no workout is in the journal too (its section
+    /// has no workouts; History shows its food line).
+    static func journal(_ facts: [HistoryWorkoutFacts], foodDays: Set<Date> = [], now: Date,
+                        calendar: Calendar = .current) -> [HistoryJournalMonth] {
+        let byDay = Dictionary(grouping: facts) { calendar.startOfDay(for: $0.startedAt) }
+        let days = Set(byDay.keys).union(foodDays.map { calendar.startOfDay(for: $0) }).sorted(by: >)
         var months: [HistoryJournalMonth] = []
-        for item in newestFirst {
-            let day = calendar.startOfDay(for: item.startedAt)
-            let month = calendar.dateInterval(of: .month, for: item.startedAt)?.start ?? day
+        for day in days {
+            let month = calendar.dateInterval(of: .month, for: day)?.start ?? day
             if months.last?.month != month { months.append(HistoryJournalMonth(month: month, days: [])) }
-            let m = months.count - 1
-            if months[m].days.last?.day == day {
-                months[m].days[months[m].days.count - 1].workoutIDs.append(item.id)
-            } else {
-                months[m].days.append(HistoryDaySection(day: day, title: dayTitle(day, now: now, calendar: calendar),
-                                                        workoutIDs: [item.id]))
-            }
+            let ids = (byDay[day] ?? []).sorted { $0.startedAt > $1.startedAt }.map(\.id)
+            months[months.count - 1].days.append(
+                HistoryDaySection(day: day, title: dayTitle(day, now: now, calendar: calendar), workoutIDs: ids))
         }
         return months
     }

@@ -11,6 +11,11 @@ struct HistoryView: View {
         sort: \Workout.startedAt, order: .reverse)
     private var workouts: [Workout]
     @Query private var allPreferences: [AppPreferences]
+    /// N10: each day's food line (and days with food but no workout).
+    @Query private var foodEntries: [FoodEntry]
+    @Query private var nutritionGoals: [NutritionGoal]
+    /// N10: the day whose food page is open.
+    @State private var openFoodDay: Date?
     /// C2: a workout the presenter wants opened — "View in History" on the
     /// post-finish receipt. Consumed (set back to nil) once pushed, so the
     /// same workout can be opened again later.
@@ -76,7 +81,7 @@ struct HistoryView: View {
     var body: some View {
         NavigationStack(path: $path) {
             Group {
-                if workouts.isEmpty {
+                if workouts.isEmpty && foodEntries.isEmpty {
                     emptyState
                 } else {
                     list
@@ -127,6 +132,7 @@ struct HistoryView: View {
             .navigationDestination(for: Workout.self) { workout in
                 WorkoutDetailView(workout: workout)
             }
+            .navigationDestination(item: $openFoodDay) { day in DayFoodView(day: day) }
         }
         // The tab may only be created once the presenter has already asked
         // for a workout, so the arrival is handled on appear as well as on
@@ -142,7 +148,8 @@ struct HistoryView: View {
 
     private var list: some View {
         // Soft redesign S4: a journal — months, then one section per day (the day's title above its workouts).
-        let months = HistoryOverviewMath.journal(allFacts, now: now)
+        let food = FoodDayMath.loggedDays(foodEntries, goals: nutritionGoals)
+        let months = HistoryOverviewMath.journal(allFacts, foodDays: Set(food.keys), now: now)
         let byID = Dictionary(workouts.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let thisMonth = Calendar.current.dateInterval(of: .month, for: now)?.start ?? now
         return List {
@@ -165,11 +172,19 @@ struct HistoryView: View {
                     HistoryDayHeader(title: day.title, count: day.workoutIDs.count)
                         .historyPageRow(top: 22, bottom: 10)
                     let rows = day.workoutIDs.compactMap { byID[$0] }
+                    let eaten = food[day.day]
                     ForEach(Array(rows.enumerated()), id: \.element.id) { rowIndex, workout in
                         // The day's header carries the date: no date column in the rows.
                         row(workout, dateStyle: .hidden)
-                            .historyPanelRow(first: rowIndex == 0, last: rowIndex == rows.count - 1,
+                            .historyPanelRow(first: rowIndex == 0, last: rowIndex == rows.count - 1 && eaten == nil,
                                              separatorInset: 16)
+                    }
+                    // N10: the day's food, last in its panel; opens the day's food page.
+                    if let eaten {
+                        Button { openFoodDay = day.day } label: { HistoryFoodRow(line: HistoryFoodLine(eaten)) }
+                            .buttonStyle(HistoryRowPressStyle())
+                            .historyPanelRow(first: rows.isEmpty, last: true, separatorInset: 70)
+                            .accessibilityIdentifier("historyFoodRow")
                     }
                 }
             }

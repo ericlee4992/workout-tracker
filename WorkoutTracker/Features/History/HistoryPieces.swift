@@ -381,6 +381,43 @@ struct HistoryDayHeader: View {
     }
 }
 
+// MARK: - Food row
+
+/// Nutrition N10: a day's food in the journal (the approved prototype's line) — "1,240 cal eaten" over "1,048 under
+/// goal"; it opens the day's food page.
+struct HistoryFoodRow: View {
+    var line: HistoryFoodLine
+    @Environment(\.look) private var look
+    @ScaledMetric(relativeTo: .body) private var disc: CGFloat = 40
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "fork.knife")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(look.textPrimary)
+                .frame(width: disc, height: disc)
+                .background(look.surfaceRaised, in: Circle())
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(line.title).font(look.historyRowTitle).foregroundStyle(look.textPrimary)
+                if let detail = line.detail {
+                    Text(detail).font(look.font.footnote).foregroundStyle(look.textSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: "chevron.right")
+                .font(.system(.footnote, weight: .semibold))
+                .foregroundStyle(look.textTertiary)
+                .accessibilityHidden(true)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+    }
+}
+
 // MARK: - Workout row
 
 enum HistoryRowDateStyle {

@@ -320,31 +320,14 @@ struct TodayView: View {
 
     /// "Deleted Banana" with Undo (N5): puts the entry back as it was.
     private func deletedToast(_ copy: DeletedEntry) -> some View {
-        HStack(spacing: 12) {
-            Text("Deleted \(copy.name.isEmpty ? "Manual Add" : copy.name)")
-                .font(.system(.subheadline, weight: .semibold))
-                .foregroundStyle(look.onAction)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityIdentifier("todayDeletedToast")
-            Button("Undo") {
-                do {
-                    try FoodLog.restore(copy, in: modelContext)
-                    withAnimation(reduceMotion ? nil : .snappy) { deletedEntry = nil }
-                } catch {
-                    foodFailure = error.localizedDescription
-                }
+        FoodDeletedToast(copy: copy) {
+            do {
+                try FoodLog.restore(copy, in: modelContext)
+                withAnimation(reduceMotion ? nil : .snappy) { deletedEntry = nil }
+            } catch {
+                foodFailure = error.localizedDescription
             }
-            .font(.system(.subheadline, weight: .bold))
-            .foregroundStyle(look.onAction)
-            .frame(minHeight: 44)
-            .accessibilityIdentifier("todayUndoDelete")
         }
-        .padding(.horizontal, 18)
-        .frame(minHeight: 52)
-        .background(look.action, in: Capsule())
-        .padding(.horizontal, look.space.margin)
-        .padding(.bottom, 72)
-        .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
     }
 }
 

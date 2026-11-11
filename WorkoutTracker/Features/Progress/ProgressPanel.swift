@@ -12,7 +12,11 @@ struct ProgressReading {
         let date: Date
         let value: Double
         let isBest: Bool
+        /// N10, the macros chart: protein, carbs and fat calories, stacked (they add up to `value`).
+        var parts: [Double]? = nil
     }
+    /// N10: a line (the default), daily bars, or daily bars stacked protein · carbs · fat.
+    enum Style: Equatable { case line, bars, macros }
     enum Change: Equatable {
         /// Oriented so positive is better — `ProgressChangeBadge`.
         case fraction(Double)
@@ -35,6 +39,11 @@ struct ProgressReading {
     /// Under a lone point on a panel: a lift's or an activity's single point IS one session. A weekly training chart
     /// sets nil — its one point is a week that may hold several workouts (codex-review-s4 #1).
     var singleNote: String? = "One session"
+    var style: Style = .line
+    /// N10: the dashed goal line (calories, protein).
+    var goal: Double? = nil
+    /// N10: the days the bars stand on, so a day without food is an empty slot, not a squeezed axis.
+    var xDomain: ClosedRange<Date>? = nil
 
     var state: State {
         switch points.count {
@@ -312,13 +321,65 @@ struct ProgressPanelChart: View {
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
 
-    var body: some View {
+    @ViewBuilder var body: some View {
+        if reading.style == .line { line } else { bars }
+    }
+
+    /// N10 (the approved prototype): daily bars — the latest day in full, earlier days lighter — or stacked macros,
+    /// against a dashed goal; from zero (amounts, not a trend).
+    private var bars: some View {
+        let top = max(reading.points.map(\.value).max() ?? 0, reading.goal ?? 0) * 1.12
+        let latest = reading.points.last?.date
+        return Chart {
+            ForEach(reading.points) { p in
+                if reading.style == .macros, let parts = p.parts {
+                    ForEach(Array(zip(MacroKind.allCases, parts)), id: \.0) { kind, part in
+                        BarMark(x: .value("Day", p.date, unit: .day), y: .value("Calories", part), width: .ratio(0.6))
+                            .foregroundStyle(kind.color)
+                    }
+                } else {
+                    BarMark(x: .value("Day", p.date, unit: .day), y: .value("Value", p.value), width: .ratio(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+                        .foregroundStyle(p.date == latest ? look.textPrimary : look.textPrimary.opacity(0.28))
+                }
+            }
+            if let goal = reading.goal {
+                RuleMark(y: .value("Goal", goal))
+                    .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 4]))
+                    .foregroundStyle(look.textTertiary)
+            }
+        }
+        .chartYScale(domain: 0...max(top, 1))
+        .modifier(BarDomain(domain: reading.xDomain))
+        .chartXAxis {
+            if let first = reading.xDomain?.lowerBound ?? reading.points.first?.date,
+               let last = reading.xDomain?.upperBound ?? reading.points.last?.date {
+                AxisMarks(values: [first, last]) { value in
+                    AxisValueLabel(format: .dateTime.month(.abbreviated).day(),
+                                   anchor: value.index == 0 ? .topLeading : .topTrailing)
+                        .foregroundStyle(look.textTertiary)
+                }
+            }
+        }
+        .chartYAxis {
+            AxisMarks(position: .trailing, values: .automatic(desiredCount: typeSize.isAccessibilitySize ? 2 : 3)) { value in
+                AxisValueLabel(horizontalSpacing: 10) {
+                    if let v = value.as(Double.self) { Text(reading.axisLabel(v)) }
+                }
+                .foregroundStyle(look.textTertiary)
+            }
+        }
+        .frame(height: typeSize.isAccessibilitySize ? height * 1.25 : height)
+        .accessibilityHidden(true)
+    }
+
+    private var line: some View {
         let sign: Double = reading.lowerIsBetter ? -1 : 1
         let points = reading.points.map { ProgressReading.Point(date: $0.date, value: $0.value * sign, isBest: $0.isBest) }
         let values = points.map(\.value)
         let lo = values.min() ?? 0, hi = values.max() ?? 1
         let pad = max((hi - lo) * 0.18, max(0.5, abs(hi) * 0.03))
-        Chart(points) { p in
+        return Chart(points) { p in
             LineMark(x: .value("Date", p.date), y: .value("Value", p.value))
                 .foregroundStyle(look.done)
                 .lineStyle(StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
@@ -356,5 +417,18 @@ struct ProgressPanelChart: View {
         }
         .frame(height: typeSize.isAccessibilitySize ? height * 1.25 : height)
         .accessibilityHidden(true)
+    }
+}
+
+/// The bars' days: the whole span when the reading names one (a day without food stays an empty slot).
+private struct BarDomain: ViewModifier {
+    let domain: ClosedRange<Date>?
+    @ViewBuilder func body(content: Content) -> some View {
+        if let domain {
+            // The last day's bar stands on its start: the domain runs to the end of that day.
+            content.chartXScale(domain: domain.lowerBound...domain.upperBound.addingTimeInterval(86_400))
+        } else {
+            content
+        }
     }
 }

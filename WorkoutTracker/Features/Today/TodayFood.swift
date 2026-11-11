@@ -32,6 +32,8 @@ enum TodayFoodCopy {
 /// The eye lands on the left/over figure (the screen's one hero number).
 struct TodayFuelCard: View {
     var day: FoodDay
+    /// N10: a past day (the day's food page) says "cal under … of 2,288 goal" — nothing is left of a day gone by.
+    var isToday = true
     var setGoals: () -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -68,11 +70,11 @@ struct TodayFuelCard: View {
                         .font(look.font.heroNumber)
                         .foregroundStyle(look.textPrimary)
                         .contentTransition(.numericText())
-                    Text(day.isOver ? "cal over" : "cal left")
+                    Text(day.isOver ? "cal over" : (isToday ? "cal left" : "cal under"))
                         .font(look.font.headline.weight(.medium))
                         .foregroundStyle(look.textSecondary)
                 }
-                Text("of \(TodayFoodCopy.calories(goal.calories)) today")
+                Text("of \(TodayFoodCopy.calories(goal.calories)) \(isToday ? "today" : "goal")")
                     .font(look.font.subhead)
                     .foregroundStyle(look.textSecondary)
             }
@@ -470,5 +472,34 @@ struct EditEntrySheet: View {
         } catch {
             failure = error.localizedDescription
         }
+    }
+}
+
+/// "Deleted Banana" with Undo (N5), over the bottom of Today and of a day's food page (N10).
+struct FoodDeletedToast: View {
+    var copy: DeletedEntry
+    var undo: () -> Void
+    @Environment(\.look) private var look
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text("Deleted \(copy.name.isEmpty ? "Manual Add" : copy.name)")
+                .font(.system(.subheadline, weight: .semibold))
+                .foregroundStyle(look.onAction)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("todayDeletedToast")
+            Button("Undo", action: undo)
+                .font(.system(.subheadline, weight: .bold))
+                .foregroundStyle(look.onAction)
+                .frame(minHeight: 44)
+                .accessibilityIdentifier("todayUndoDelete")
+        }
+        .padding(.horizontal, 18)
+        .frame(minHeight: 52)
+        .background(look.action, in: Capsule())
+        .padding(.horizontal, look.space.margin)
+        .padding(.bottom, 72)
+        .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
     }
 }
