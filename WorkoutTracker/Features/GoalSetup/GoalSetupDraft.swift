@@ -206,9 +206,9 @@ final class GoalSetupDraft: Identifiable {
 
     // MARK: The server's plan (N14, D85)
 
-    /// Asks the server for a plan; nil when it could not answer (the calculation stands in). The host supplies it
-    /// signed in; nil signed out.
-    typealias Generator = @MainActor (NutritionGoals.Inputs, Double?) async -> Macros?
+    /// Asks the server for a plan; nil when it could not answer (the calculation stands in); throws only when cancelled
+    /// (the page was left — not a failure). The host supplies it signed in; nil signed out.
+    typealias Generator = @MainActor (NutritionGoals.Inputs, Double?) async throws -> Macros?
 
     /// What a plan is asked for: the answers (the pace included) and the desired weight. Changing any of them (Back,
     /// a new answer) asks again on the plan page; a typed number does not.
@@ -240,13 +240,21 @@ final class GoalSetupDraft: Identifiable {
     /// The server was asked for these answers and could not answer: the plan is the calculation.
     var generationFailed: Bool { failedRequest != nil && failedRequest == generationRequest && generatedPlan == nil }
 
-    /// Asks once per request (a failure is not retried until an answer changes).
+    /// Asks once per request (a failed answer is not retried until an answer changes). A cancelled ask — Back, or an
+    /// answer changed mid-request — is not a failure: coming back with the same answers asks again
+    /// (codex-review-n14 R5).
     func generate(with generator: Generator) async {
         guard let request = generationRequest, generatedPlan == nil, pendingRequest != request,
               failedRequest != request else { return }
         pendingRequest = request
-        let plan = await generator(request.inputs, request.desiredKg)
-        if pendingRequest == request { pendingRequest = nil }
+        defer { if pendingRequest == request { pendingRequest = nil } }
+        let plan: Macros?
+        do {
+            plan = try await generator(request.inputs, request.desiredKg)
+        } catch {
+            return  // cancelled: nothing cached
+        }
+        if Task.isCancelled && plan == nil { return }
         if let plan { generatedResult = (request, plan) } else { failedRequest = request }
     }
 

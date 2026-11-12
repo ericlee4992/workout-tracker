@@ -55,7 +55,8 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   workouts as JSON (the fullest record, with heart-rate series and routes) or CSV (a table of
   sets and cardio). The JSON (format v12) also carries the nutrition data — food log, saved
   foods, My meals, nutrition goals, body weights and Personal details; the CSV stays sets and cardio. *New in build 11
-  (0.2.0):* v13 adds each goal's desired weight and weekly pace.
+  (0.2.0):* v13 adds each goal's desired weight and weekly pace. *Unreleased, on `main`:* v14 marks goals whose numbers
+  came from the server (`generated`).
 - **Progress.** A tab of the charts you pin — lifts per machine or weight (best set, volume,
   1RM) and cardio activities (distance, pace or speed, time) — each with its latest value and
   the change since your first session — plus training-wide weekly charts (workouts, training volume, running
@@ -95,14 +96,16 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   history as "Apple Health", read-only), read the day's active energy (shown as Burned on Today, never added to the
   budget), save the weights you log, and save each food entry's calories, protein, carbs and fat. Edits and deletes
   follow to Health; turning a switch off stops new changes and leaves what is already in Health.
-- **Nutrition goals** *(on `main`, not yet in TestFlight)*. Profile → Personal details
-  holds your weight, height, date of birth and sex — one place, also used by the heart-rate zones and Ask AI. From
-  them Profile → Nutrition goals calculates daily calories, protein, carbs and fat (Mifflin–St Jeor, your activity and
-  goal); type over any number, and a change dates a new goal so past days keep theirs. *New in build 11 (0.2.0):* a goal
-  setup — sex, date of birth, height and weight, workouts a week, lose / maintain / gain, the weight you're aiming for
-  and how fast (slow / recommended / fast, within safe weekly rates, never under a calorie floor), then the plan, every
-  number editable. A new install goes from the welcome page straight into it; existing users run it from Nutrition
-  goals → Goal weight. Calculated on the phone; nothing is sent anywhere.
+- **Nutrition goals.** Profile → Personal details holds your weight, height, date of birth and sex — one place, also
+  used by the heart-rate zones. A goal setup — sex, date of birth, height and weight, workouts a week, lose / maintain
+  / gain, the weight you're aiming for and how fast (slow / recommended / fast, within safe weekly rates) — makes the
+  plan: daily calories, protein, carbs and fat, every number editable; a change dates a new goal so past days keep
+  theirs. A new install goes from the welcome page straight into it (in build 11, 0.2.0). *Unreleased, on `main`:*
+  Profile → Nutrition goals shows the numbers and one button, **Generate Goals**, which runs the setup again; signed
+  in, the plan comes from the server (the answers, with the current weight as entered in Stacked — never one read
+  from Apple Health — are sent through it to OpenAI), and signed out or when the server can't answer it is calculated
+  on the phone (Mifflin–St Jeor, the pace, a calorie floor). Generated numbers stay until you generate again or
+  Recalculate. The Ask AI section in Profile is gone: the AI features ask at first use.
 - **A safety copy before data changes** *(on `main`, not yet in TestFlight)*. Before an update first opens your data
   in a new stored format, the app copies it on the phone (the newest two copies are kept, inside the iPhone's own
   backup); Profile → Export & backup → Safety copy restores one, at the next launch.

@@ -126,3 +126,27 @@ Verified: Full plan -only-testing AAAWarmUp, GoalSetupUITests (7, incl. the gene
 Not verified: a signed-in request from a device to the deployed server; the phone (Gate S first); human VoiceOver
 Known flaky: none seen
 ```
+
+### 2026-11-12 — Codex round 1: not clear (R1–R4 P2, R3 P3) → fixed
+
+Report `work-record/nutrition/codex-review-n14.md`.
+- **R1** privacy "What stays on your iPhone" now names the exception: "The one exception is the goal setup: signed in,
+  the answers you give there (sex, age, height, your current weight as entered in Stacked, how often you work out, your
+  goal, and the weight and pace you chose) are sent to make your nutrition goals, as described under AI features
+  below." **Redeployed**: Worker `4c9d03db-89ba-471d-b400-dc454e64f325` (live check: the sentence, `/v1/health` ok).
+- **R2** README: Nutrition goals rewritten (Generate Goals, server plan signed in with the entered weight, fallback,
+  Ask AI section gone); export v14 noted as unreleased.
+- **R3** What's New (build 11's entry, shown in Settings): "Find it in Profile → Nutrition goals → Generate Goals."
+  (new string, the user's list).
+- **R4** the commit compares the answer with the latest weight from **any** source; when Apple Health has a newer one,
+  the confirmed answer is saved as today's app weight, so the saved goal is made from the weight the plan page used.
+  Test `theSavedGoalUsesTheConfirmedWeightNotANewerHealthOne` (generated and calculated).
+- **R5** `Generator` throws on cancellation; `generate` caches no failure for a cancelled ask; the service rethrows
+  `CancellationError`. Test `aCancelledAskIsNotAFailure`.
+
+```
+Verified: Unit plan — 1341/1341, exit 0, /tmp/n14-unit3.xcresult; server 305/305, tsc clean
+Verified: AAAWarmUp + GoalSetupUITests + FloodlightWhatsNewUITests — 13/13, exit 0, /tmp/n14-ui2.xcresult
+Not verified: a signed-in request from a device; the phone (Gate S first)
+Known flaky: none seen
+```

@@ -37,7 +37,9 @@ with me too. I don’t sell data, show ads, or track you across other companies�
 <p>What you log — workouts, sets, weights, gyms, machines, templates, history, records, cardio sessions and their
 routes, the food you log, your foods and meals, nutrition goals, body weight, personal details (height, date of birth,
 sex) and your settings — is stored in the app on your iPhone. I don’t receive it, and nothing uploads it
-automatically.</p>
+automatically. The one exception is the goal setup: signed in, the answers you give there (sex, age, height, your
+current weight as entered in Stacked, how often you work out, your goal, and the weight and pace you chose) are sent
+to make your nutrition goals, as described under AI features below.</p>
 <ul>
 <li><strong>Apple Health.</strong> With your permission, Stacked reads during a workout your heart rate, active and
 resting energy, and distance for walking, running, cycling or rowing where your devices record it, and shows them

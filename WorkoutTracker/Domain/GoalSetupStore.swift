@@ -85,7 +85,11 @@ enum GoalSetupStore {
             preferences.setHeight(value: answers.height.value, unit: answers.height.unit)
         }
         preferences.updatedAt = now
-        if !isUnchanged(answers.weight, stored: before.weight) {
+        // The weigh-in is compared with the latest weight from any source (codex-review-n14 R4): the prefill shows only
+        // weights entered in Stacked, so when Apple Health has a newer one, the confirmed answer is recorded as today's
+        // weight — the goal is then calculated from the weight the user confirmed, as the plan page showed.
+        let latest = try NutritionGoalStore.latestWeight(in: context).map { Weight(value: $0.value, unit: $0.unit) }
+        if !isUnchanged(answers.weight, stored: latest) {
             context.insert(BodyWeightEntry(measuredAt: now, value: answers.weight.value, unit: answers.weight.unit,
                                            createdAt: now))
         }

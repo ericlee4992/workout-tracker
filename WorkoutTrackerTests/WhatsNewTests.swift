@@ -74,7 +74,7 @@ struct WhatsNewTests {
             "Set calorie and protein goals; Today shows what's left.",
             "Set the weight you're aiming for and how fast — slow, recommended or fast.",
             "Your calories and macros follow the pace, within safe limits.",
-            "Find it in Profile → Nutrition goals → Goal weight.",
+            "Find it in Profile → Nutrition goals → Generate Goals.",
             "Track your body weight, with Apple Health if you like.",
             "A softer look across the app, with a new Profile.",
             "Smoother workouts: typing and scrolling no longer lag.",

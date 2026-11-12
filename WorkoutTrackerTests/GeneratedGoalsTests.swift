@@ -116,6 +116,26 @@ struct GeneratedGoalsTests {
         #expect(asked == 1, "not retried until an answer changes")
     }
 
+    /// codex-review-n14 R5: Back (the request's task cancelled) is not a failure — returning asks again; a real failed
+    /// answer is still asked once.
+    @Test func aCancelledAskIsNotAFailure() async throws {
+        let draft = readyDraft(goal: .maintain)
+        var asked = 0
+        let slow: GoalSetupDraft.Generator = { _, _ in
+            asked += 1
+            try await Task.sleep(for: .seconds(30))
+            return self.served
+        }
+        let task = Task { await draft.generate(with: slow) }
+        for _ in 0..<50 where !draft.isGenerating { await Task.yield() }
+        #expect(draft.isGenerating)
+        task.cancel()
+        await task.value
+        #expect(!draft.isGenerating && !draft.generationFailed && draft.generatedPlan == nil)
+        await draft.generate(with: { _, _ in asked += 1; return self.served })
+        #expect(asked == 2 && draft.generatedPlan == served)
+    }
+
     @Test func nothingIsSavedWhileThePlanIsBeingMade() async throws {
         let draft = readyDraft(goal: .maintain)
         var observed: Bool?
@@ -178,6 +198,34 @@ struct GeneratedGoalsTests {
         answers.generated = nil
         let goal = try #require(try GoalSetupStore.commit(answers, in: context, now: date(12), calendar: calendar))
         #expect(!goal.generated && goal.calories == 2_319)
+    }
+
+    /// codex-review-n14 R4: an entered 80 kg, then a newer 90 kg from Apple Health. The setup shows and sends 80 kg; the
+    /// saved goal is made from 80 kg too (the confirmed answer becomes today's weight), generated or calculated.
+    @Test func theSavedGoalUsesTheConfirmedWeightNotANewerHealthOne() throws {
+        for generated in [nil, served] {
+            let context = try context()
+            context.insert(BodyWeightEntry(measuredAt: date(8), value: 80, unit: .kg, createdAt: date(8)))
+            let health = BodyWeightEntry(measuredAt: date(11), value: 90, unit: .kg, createdAt: date(11))
+            health.source = .health
+            context.insert(health)
+            try context.save()
+            let prefill = try GoalSetupStore.prefill(in: context)
+            #expect(prefill.weight == .init(value: 80, unit: .kg))
+            var answers = GoalSetupStore.Answers(
+                sex: .male, birthDate: calendar.date(from: DateComponents(year: 1996, month: 11, day: 1))!,
+                height: .init(value: 180, unit: .cm), weight: try #require(prefill.weight), activity: .moderate,
+                goal: .lose, desired: .init(value: 75, unit: .kg), paceKgPerWeek: 0.4)
+            answers.generated = generated
+            let goal = try #require(try GoalSetupStore.commit(answers, in: context, now: date(12), calendar: calendar))
+            #expect(goal.weightKg == 80, "the weight the plan was made from")
+            #expect(goal.calories == (generated == nil ? 2_319 : 2_100), "as the plan page showed")
+            let latest = try #require(try NutritionGoalStore.latestWeight(in: context))
+            #expect(latest.value == 80 && latest.source == .app && latest.measuredAt == date(12))
+            // A refresh keeps it (the latest weight is now the confirmed one).
+            let refreshed = try #require(try NutritionGoalStore.update(in: context, now: date(12, 15), calendar: calendar))
+            #expect(refreshed.weightKg == 80 && refreshed.calories == goal.calories)
+        }
     }
 
     @Test func theSetupPrefillsOnlyAWeightEnteredInStacked() throws {

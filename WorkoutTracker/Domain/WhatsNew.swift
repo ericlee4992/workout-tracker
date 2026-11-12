@@ -40,7 +40,8 @@ enum WhatsNew {
             .init(symbol: "target", text: "Set calorie and protein goals; Today shows what's left."),
             .init(symbol: "flag", text: "Set the weight you're aiming for and how fast — slow, recommended or fast."),
             .init(symbol: "chart.line.downtrend.xyaxis", text: "Your calories and macros follow the pace, within safe limits."),
-            .init(symbol: "person.crop.circle", text: "Find it in Profile → Nutrition goals → Goal weight."),
+            // N14 (D85): the Goal weight row became Generate Goals; the line follows the control (the user's wording list).
+            .init(symbol: "person.crop.circle", text: "Find it in Profile → Nutrition goals → Generate Goals."),
             .init(symbol: "scalemass", text: "Track your body weight, with Apple Health if you like."),
             .init(symbol: "paintbrush", text: "A softer look across the app, with a new Profile."),
             .init(symbol: "bolt", text: "Smoother workouts: typing and scrolling no longer lag."),
