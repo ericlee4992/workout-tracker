@@ -201,6 +201,11 @@ Round-2 verification: Debug build exit 0; focused UI (2 workers) `AAAWarmUpUITes
 (`/tmp/p1/focused-r2.xcresult`). Unit plan not rerun: only view code and the test fixture changed since the green
 Unit run, and no unit test covers them (the reviewer reruns it).
 
+**2026-11-12 — Codex round 2: clear, no findings** ([report](../codex-review-p1-b.md)): reviewer build exit 0, Unit
+1,289/1,289 exit 0; focused UI 20/21 in parallel (exit 65: `CoreLoopUITests.testAddSetCarriesForwardTheLastCompletedSet`
+"kg" for "lb", the parallel-only flake in public-beta 22), CoreLoop alone 9/9 exit 0 (`/tmp/codex-p1-r2/`).
+Remaining before merge: the phone check (acceptance 1–2).
+
 ## Comments
 
 - **2026-11-11, second opinion (Fable 5.2, static read, nothing measured; asked by the user).** Agrees with causes 1,
