@@ -33,7 +33,9 @@ version is its own design in the Soft look (`ios-design` skill) — the steps an
   the guided tour go relative to it: decide with the prototype.
 - **Existing users:** Profile → Nutrition goals runs the same flow prefilled from Personal details, the latest body
   weight and the current goal; finishing makes a new dated goal (D70: past days keep theirs).
-- **Calculation:** today's energy (N3) ± the pace (≈ 7,700 kcal per kg ÷ 7 a day), never below the floor; protein
+- **Calculation — on the phone only (the user, 2026-11-11: option A; AI-generated goals considered and declined):**
+  no server, no sign-in, works offline, same inputs give the same plan; sex, age and weights stay on the phone (the
+  data rules and the privacy page unchanged). Today's energy (N3) ± the pace (≈ 7,700 kcal per kg ÷ 7 a day), never below the floor; protein
   for lifting (N3); pace bounds and the "recommended" pace to be set with care (safe rates), stated in the ticket.
 - **Data (a stored-format change):** the desired weight `(value, unit, normalizedKg)` and the weekly pace on the
   goal; current weight saved as a body-weight entry (N9; to Apple Health when that is on). Migration + safety copy
