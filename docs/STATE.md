@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-12: 0.2.0 (11) uploaded; N14 (AI goals) merged and its server deployed; next build is the user's call.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-12: 0.2.0 (12) uploaded (N14 on top of build 11); next: the user's TestFlight steps, Gate S first.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
@@ -10,7 +10,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   server signed in (fallback: the calculation); `NutritionGoal.generated` (fingerprint `9d83c203…`, fixture
   `Build11.store`); Profile → Ask AI removed. Server: migration 0009, Worker `4c9d03db` (privacy "Effective November 12,
   2026" with the goal-setup exception); D1 backup `~/WorkoutTracker-Backups/server/2026-11-12-n14-ai-goals` (delete by
-  2026-12-12). **Next build (0.2.0 (12)?) is the user's call; Gate S on the phone before installing it.** Not yet: a
+  2026-12-12). **0.2.0 (12) uploaded 2026-11-12 17:55 EST** (`main` `5058a16e`; record `work-record/release/0.2.0-build-12.md`) — next the user: Developer, **Gate S on the phone before installing**, Generate Goals signed in, then Friends. Not yet: a
   signed-in goal request from a device. For the user: N14's new strings (ticket). Branch kept; the worktree
   (`~/.paseo/worktrees/1qmeipq9/nutrition-13-goal-setup`, workspace "N13 goal setup") can be archived.
 - **2026-11-12: N13 goal setup DONE — Codex clear (round 3), merged into `main`.** Branch
