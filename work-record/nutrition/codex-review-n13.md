@@ -235,3 +235,64 @@ Standards: 1 P2 finding (R2-1). Spec: that same P2 plus 1 P3 (R2-2); worst issue
 mismatch. Two distinct findings remain.
 
 Verdict: not clear
+
+
+## Round 3
+
+Reviewed 2026-11-12 at `cb73bc7bb32c6c38365c91b6a3198b4f7e40f204` on
+`ericlee4992/nutrition-13-goal-setup`, using `git diff 52df69f1..HEAD` and the round-3 brief.
+The working tree was clean before this report update.
+
+### Standards
+
+No findings. **R2-1 is resolved:** `GoalSetupStore.isUnchanged` compares the entered units and values with only a
+negligible numerical tolerance. Its only production callers are the height and weight checks inside `commit`;
+both setup hosts supply the draft's preserved entered pairs. There are no remaining production callers relying
+on display-rounded comparisons. Untouched values remain unchanged, while 180.49 → 180 cm and 176.37 → 176.36 lb
+are recognized as edits.
+
+### Spec
+
+No findings. **R2-2 is resolved:** `stepDesired` and `desiredAtLowest` share `nextDesired`, so the caption now agrees
+with the minus action for off-step targets. The prior 133.3797… lb example is not labelled lowest until minus
+reaches 133 lb.
+
+The strengthened height test now uses an adult birth date, requires non-nil answers, commits the answers for
+metric/imperial × untouched/edited cases, and checks both saved height and target BMI. The small-weight test
+checks the two persisted weigh-ins. The caption test checks its state before and after the final downward step.
+The previous R4 test's vacuous assertion is gone. Together with the earlier rounds, R1–R5 and R2-1/R2-2 are closed.
+
+### Round-3 evidence
+
+- Ran `scripts/prepare-test-simulator.sh` first on WT-Floodlight
+  `9E822EF6-DC67-4958-AEA2-D53D2D36D674`. Runner `/tmp/codex-n13/r3/run.sh`, PID **85504**, completed.
+  Rebuilt current source in `/tmp/codex-n13/dd`.
+- Independent **build-for-testing**: exit **0**, `/tmp/codex-n13/r3/build.log` and `build.status`.
+- Independent **Unit** plan: **1326/1326**, no failures or skips, exit **0**,
+  `/tmp/codex-n13/r3/unit.xcresult`. Inspected the actual status file and `xcresulttool` summary retained as
+  `/tmp/codex-n13/r3/unit-summary.json`.
+- **UI evidence inspected, not rerun**, following the round-3 brief: `/tmp/n13-ui4.xcresult` records
+  `AAAWarmUpUITests` + `GoalSetupUITests` **7/7**, no failures or skips. `/tmp/n13-ui4.log` records
+  `TEST EXECUTE SUCCEEDED`; the brief reports process exit **0** (no separate shell-status file was supplied).
+  Inspected summary retained as `/tmp/codex-n13/r3/author-ui-summary.json`. No layout or UI-test code changed;
+  the caption condition is directly covered by the unit regression, and the round-2 visual evidence remains relevant.
+- Recompiled the temporary harness from current source: `/tmp/codex-n13/r3/Repro.swift`, `repro`, `repro.log`.
+  Both explicit edits now return unchanged=false; resolved height is **180 cm**, target BMI **18.5185**.
+  The caption is false at **133.3797… lb**, then true at valid **133 lb** after minus. Original untouched unit
+  round trips, target preservation and the narrow-range rejection also remain correct. Actual persistence is
+  covered by the passing integration tests above, not claimed from this value-only harness.
+- Checked production callers and `git diff --check`. No new regressions or unrelated scope expansion found.
+
+Verified: independent build-for-testing — exit 0; independent Unit — 1326/1326, exit 0,
+`/tmp/codex-n13/r3/unit.xcresult`; author's UI result inspected — 7/7 passed, success marker present,
+`/tmp/n13-ui4.xcresult`; both round-2 reproduction cases resolved.
+
+Not verified: independent UI rerun this round (author's artifact inspected per brief); phone installation/Gate S;
+device HealthKit receipt; human VoiceOver; runtime Reduce Motion; fault-injected save failure; full UI suite.
+The stored-format change still requires Gate S before the phone's 0.2.1 installation.
+
+Known flaky: none seen in this round's independent run or the inspected UI result.
+
+Standards: 0 findings. Spec: 0 findings. No outstanding review findings.
+
+Verdict: clear

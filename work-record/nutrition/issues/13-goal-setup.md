@@ -1,7 +1,7 @@
 # N13 — Goal setup: current and desired weight, pace, then the nutrition goals
 
 Type: feature
-Status: **approved — for 0.2.1** (the user, 2026-11-11; after [P1 workout lag](../../performance/issues/01-workout-lag.md))
+Status: **done — Codex clear (round 3), merged into `main` 2026-11-12; ships in 0.2.1 with P1** (Gate S before the user's phone installs it)
 Implementer: Claude; Reviewer: Codex (a Paseo Codex agent), to "clear".
 Branch (when built): `ericlee4992/nutrition-13-goal-setup` off `main`.
 Spec: [nutrition](../spec.md). Decisions: D70 (goals calculated, every number editable), D80 (Profile), D52 (units).
@@ -223,3 +223,10 @@ Verified: ProfileAI -only-testing AAAWarmUp + GoalSetupUITests — 7/7, exit 0, 
 Not verified: as before (phone / Gate S, device HealthKit, human VoiceOver, runtime Reduce Motion)
 Known flaky: none seen
 ```
+
+### 2026-11-12 — Codex round 3: clear → merged
+
+Codex (Paseo agent `edd217f6-2a56-463d-abf4-8bbcf958a5af`) independently: build, Unit 1326/1326, inspected
+`/tmp/n13-ui4.xcresult`; R2-1 and R2-2 resolved, no new findings — **Verdict: clear**. Merged into `main` (fast-forward).
+Acceptance 1–3 met; 4 (shipped in 0.2.1) waits for the release. Open for the user (not blocking): the new strings and own
+decisions above. Before the user's phone gets 0.2.1: **Gate S** (stored-format change), then the P1 phone check.
