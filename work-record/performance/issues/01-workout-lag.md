@@ -1,7 +1,7 @@
 # P1 — The app lags during a workout
 
 Type: bug (performance)
-Status: **approved — for 0.2.1** (the user, 2026-11-11; first in order: lag → goal setup → Korean DB)
+Status: **merged to `main` 2026-11-12; the phone check waits for the 0.2.1 TestFlight build** (was: approved — for 0.2.1 (the user, 2026-11-11; first in order: lag → goal setup → Korean DB))
 Implementer: Claude; Reviewer: Codex (a Paseo Codex agent, [tools-paseo](../../../docs/agents/tools-paseo.md)), to "clear".
 Branch (when built): `ericlee4992/perf-01-workout-lag` off `main`.
 Release: **0.2.1** together with [N13 goal setup](../../nutrition/issues/13-goal-setup.md).
@@ -204,7 +204,11 @@ Unit run, and no unit test covers them (the reviewer reruns it).
 **2026-11-12 — Codex round 2: clear, no findings** ([report](../codex-review-p1-b.md)): reviewer build exit 0, Unit
 1,289/1,289 exit 0; focused UI 20/21 in parallel (exit 65: `CoreLoopUITests.testAddSetCarriesForwardTheLastCompletedSet`
 "kg" for "lb", the parallel-only flake in public-beta 22), CoreLoop alone 9/9 exit 0 (`/tmp/codex-p1-r2/`).
-Remaining before merge: the phone check (acceptance 1–2).
+**2026-11-12 — merged; phone check deferred (the user).** Asked how to test on the phone, the user chose to wait for
+the 0.2.1 TestFlight build (with N13) rather than a dev build over the TestFlight app now. So P1 merges with
+acceptance 1–2 open: in 0.2.1, the user does a long workout with AirPods heart rate and confirms typing, scrolling and
+Add Exercise feel immediate; if not, re-measure on the phone with `p1-tools/probe.patch` (and consider saving heart
+rate less often — the user's call, see "After").
 
 ## Comments
 

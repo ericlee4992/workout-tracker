@@ -14,8 +14,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   causes and a typed-values-prefilled-over bug fixed; idle with heart rate 19.0 s of 20 s frozen → 2.3 s; Unit plan
   green (1,289). See the [ticket](../work-record/performance/issues/01-workout-lag.md#progress). Workout plan 73/74
   (the known flake passes alone). **Codex clear (rounds 1–2, `4c01a810`)** — Paseo Codex agent `2208216c-5a8a-48fa-ab89-876ff0ffdd22`
-  (reuse it). Next: the phone check (asking the user how to install: a dev build over the TestFlight app with the
-  real bundle ID, after a container backup — no schema change — or wait for 0.2.1 on TestFlight), then merge. Still the user's: release 0.2.0 (10) to Friends with the What to Test
+  (reuse it). **Merged to `main` 2026-11-12.** Phone check: the user tests it in the 0.2.1 TestFlight build
+  (their choice) — P1 acceptance 1–2 stay open until then. Next: N13 goal setup on its own branch. Still the user's: release 0.2.0 (10) to Friends with the What to Test
   note, then the phone check.
 - **Resume here (2026-11-11): R in progress** (branch `ericlee4992/release-r`; ticket
   `work-record/nutrition/issues/11-combined-release.md` → Progress has the checklist state, drafts and what waits for
