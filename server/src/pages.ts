@@ -4,9 +4,9 @@
 // text together, and have the reviewer recheck it. Source draft: work-record/public-beta/privacy-policy-draft.md.
 
 /** The day the policy went live (the user, 2026-10-15). Change it with the text; `npm run deploy` refuses a placeholder. */
-// Nutrition N6 (and N8: "Barcodes and food search", the two food databases): the food and Apple Health wording below is a DRAFT for the user's approval; `npm run deploy` refuses
-// while this reads "[…" (predeploy), so it cannot go live with an old date or unapproved text.
-export const POLICY_EFFECTIVE_DATE = "[effective date]";
+// Release R (2026-11-11): the user approved the nutrition, Apple Health and barcode/search wording and this date (the
+// deploy day). Change the date with the text; `npm run deploy` refuses a "[…" placeholder (predeploy).
+export const POLICY_EFFECTIVE_DATE = "November 11, 2026";
 export const DEVELOPER_NAME = "Eunchan Lee";
 export const SUPPORT_EMAIL = "ericlee4992@gmail.com";
 

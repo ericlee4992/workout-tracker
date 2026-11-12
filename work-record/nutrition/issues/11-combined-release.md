@@ -65,7 +65,11 @@ Ship the Soft redesign and nutrition together as one TestFlight build (build **1
    deletion text now name the nutrition data (JSON carries food, foods/meals, goals, body weights, personal details,
    not meal photos; Health keeps workouts, body weights and food nutrition). Fixed; server 283/283 + tsc.
    **Codex R round 2 (`codex-review-r-b.md`): clear.**
-5.–9. Not started — need the user (privacy approval + date before the deploy; App Privacy; Gate S on the phone).
+5. **Server deploy (the user: "yes, deploy today", 2026-11-11).** Privacy page approved ("Looks good"), effective
+   date **November 11, 2026** (the deploy day). Backup `~/WorkoutTracker-Backups/server/2026-11-11-release-r/stacked.sql`
+   (check-export: restores cleanly, every row count equal; delete by 2026-12-11). Migrations 0007 + 0008 applied
+   remotely (`ai_usage` rows kept: 3; `food_cache`, `food_limits` present).
+6.–9. Not started — need the user (privacy approval + date before the deploy; App Privacy; Gate S on the phone).
 
 ### Draft — What's New (build 10, in-app, once after updating)
 
