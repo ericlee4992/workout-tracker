@@ -27,6 +27,7 @@
         "BackupExportUITests",
         "SafetyCopyUITests",
         "NutritionGoalsUITests",
+        "GoalSetupUITests",
         "BodyWeightUITests",
         "AppleHealthUITests"
       ],

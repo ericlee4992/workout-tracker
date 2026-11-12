@@ -62,10 +62,10 @@ final class FloodlightGoogleUITests: XCTestCase {
 
         launch(appearance: appearance, large: large,
                flags: ["-uiTestOnboarding", "-uiTestOnboardingFresh", "-uiTestProfileSignedOut"], design: false)
-        XCTAssertTrue(app.buttons["welcomeTour"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["welcomeGetStarted"].waitForExistence(timeout: 15))
         XCTAssertTrue(any("signInWithGoogle").waitForExistence(timeout: 5))
         Thread.sleep(forTimeInterval: 1.0)
         shoot("google-welcome-\(suffix)")
-        XCTAssertTrue(app.buttons["welcomeSkip"].isHittable, "Skip still reachable")
+        XCTAssertTrue(app.buttons["welcomeGetStarted"].isHittable, "Get Started still reachable (N13: no Skip)")
     }
 }

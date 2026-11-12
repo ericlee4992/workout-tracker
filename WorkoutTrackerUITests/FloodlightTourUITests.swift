@@ -49,11 +49,14 @@ final class FloodlightTourUITests: XCTestCase {
     private func welcomeThenTour(appearance: String, large: Bool = false) {
         launch(freshWelcome, appearance: appearance, large: large)
         let name = "\(appearance)-\(large ? "AXL" : "default")"
-        let tour = app.buttons["welcomeTour"]
-        XCTAssertTrue(tour.waitForExistence(timeout: 15), "a fresh phone shows the welcome page")
+        let start = app.buttons["welcomeGetStarted"]
+        XCTAssertTrue(start.waitForExistence(timeout: 15), "a fresh phone shows the welcome page")
         Thread.sleep(forTimeInterval: 0.8)
         shoot("welcome-\(name)")
-        tour.tap()
+        // N13 (D84): the welcome leads into the goal setup; the plan page's Show Me Around saves it and starts the tour.
+        start.tap()
+        app.completeGoalSetup(goal: "maintain", tapFinish: false)
+        app.buttons["goalSetupTour"].tap()
         walkTour(name)
         assertBackOnTheUsersEmptyStore()
     }
@@ -62,23 +65,26 @@ final class FloodlightTourUITests: XCTestCase {
     func testWelcomeAndTourLight() { welcomeThenTour(appearance: "light") }
     func testWelcomeAndTourLargeText() { welcomeThenTour(appearance: "dark", large: true) }
 
-    func testSkipIsRememberedAcrossLaunches() {
+    /// N13 (D84): no Skip; a finished goal setup answers the welcome for good.
+    func testAFinishedSetupIsRememberedAcrossLaunches() {
         launch(freshWelcome)
-        let skip = app.buttons["welcomeSkip"]
-        XCTAssertTrue(skip.waitForExistence(timeout: 15))
-        skip.tap()
+        let start = app.buttons["welcomeGetStarted"]
+        XCTAssertTrue(start.waitForExistence(timeout: 15))
+        XCTAssertFalse(app.buttons["welcomeSkip"].exists)
+        start.tap()
+        app.completeGoalSetup(goal: "maintain")
         assertBackOnTheUsersEmptyStore()
         app.terminate()
         launch(["-uiTestOnboarding"])  // answered: no -uiTestOnboardingFresh
         XCTAssertTrue(app.trainStartButton("startEmptyWorkout").waitForExistence(timeout: 15))
-        XCTAssertFalse(app.buttons["welcomeSkip"].exists, "an answered welcome stays away")
+        XCTAssertFalse(start.exists, "an answered welcome stays away")
     }
 
     func testAPhoneWithWorkoutsNeverSeesTheWelcome() {
         launch(freshWelcome + ["-uiTestDesignSample"])
         XCTAssertTrue(app.trainStartButton("startEmptyWorkout").waitForExistence(timeout: 15))
         Thread.sleep(forTimeInterval: 1.0)
-        XCTAssertFalse(app.buttons["welcomeTour"].exists)
+        XCTAssertFalse(app.buttons["welcomeGetStarted"].exists)
     }
 
     /// Where the real app's controls are, read before a tour hides them (the tour's sample app lays out the same).

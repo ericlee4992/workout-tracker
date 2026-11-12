@@ -461,7 +461,7 @@ private struct OptionList<Value: Hashable>: View {
                         .accessibilityHidden(true)
                 }
                 .accessibilityAddTraits(selected ? .isSelected : [])
-                .accessibilityIdentifier("\(idPrefix).\(title)")
+                .accessibilityIdentifier("\(idPrefix).\(String(describing: value))")
             }
         }
     }

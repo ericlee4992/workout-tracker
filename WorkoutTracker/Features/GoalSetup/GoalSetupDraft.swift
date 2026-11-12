@@ -39,13 +39,15 @@ final class GoalSetupDraft: Identifiable {
     /// goals (Sedentary, Extra active) survives a run that leaves the answer alone.
     private let storedActivity: ActivityLevel?
 
-    init(prefill: GoalSetupStore.Prefill? = nil, now: Date = .now, calendar: Calendar = .current) {
+    /// `usCustomary`: a new install starts in the app's units (Settings, else the region's) — lb and ft/in in the US.
+    init(prefill: GoalSetupStore.Prefill? = nil, usCustomary: Bool = false, now: Date = .now,
+         calendar: Calendar = .current) {
         isExistingUser = prefill != nil
         self.now = now
         birthDate = calendar.date(byAdding: .year, value: -30, to: now) ?? now
         storedActivity = prefill?.choices?.activity
-        let usesPounds = prefill?.weight?.unit == .lb
-            || (prefill?.weight == nil && prefill?.height?.unit == .inches)
+        let usesPounds = prefill?.weight.map { $0.unit == .lb }
+            ?? prefill?.height.map { $0.unit == .inches } ?? usCustomary
         units = usesPounds ? .imperial : .metric
         guard let prefill else { return }
         sex = prefill.sex

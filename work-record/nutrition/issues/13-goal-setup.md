@@ -113,3 +113,71 @@ Around; B: setup → today's Welcome (tour / Skip); C: setup only, tour from Pro
 above; (3) the existing-user entry on Nutrition goals; (4) anything in the look or wording.
 
 ## Comments
+
+### 2026-11-12 — built (after the user's answers)
+
+**Code.** `Domain/GoalPlan.swift` (paces, bounds, calories at a pace, arrival, desired range, workouts → activity);
+`Domain/GoalSetupStore.swift` (prefill, commit: Personal details, a weigh-in only when the weight changed, height kept as
+entered when unchanged — D52, the goal through `NutritionGoalStore`); `NutritionGoals.Inputs.paceKgPerWeek` (nil = N3's
+fixed −500 / +250, so goals from before N13 keep their numbers); `NutritionGoalStore.Choices` carries `desired` and
+`paceKgPerWeek`. UI: `Features/GoalSetup/GoalSetupDraft.swift`, `GoalSetupFlow.swift`; `Onboarding/FirstLaunchView.swift`
+(welcome → setup in one cover; `OnboardingCoordinator.beginSetup` / `finishSetup`; the welcome counts as answered only
+once the setup is saved, so quitting part-way brings it back; Show Me Around saves, then tours; `startTour` refuses
+while the welcome is up); `WelcomeView` → one Get Started, no Skip; Nutrition goals → **Goal weight** row (opens the
+setup prefilled, Close allowed) replacing the Goal menu (`ActivityMenu` keeps Activity). Removed: N3's
+`FoodGoalsSetupSheet` and the `-uiTestFoodGoalsStep` path, and the prototype wrapper. A new install starts in the app's
+units (lb / ft-in in the US).
+
+**Data (stored-format change).** `NutritionGoal` + `desiredWeightValue`, `desiredWeightUnit`, `desiredWeightKg`,
+`paceKgPerWeek` (additive optionals; lightweight migration). `StoreFormatGuardTests.approvedFingerprint` `d339bba6…`;
+`release020Fingerprint` `ad42bc46…` = 0.2.0's shipped format. New fixture `WorkoutTrackerTests/Fixtures/Release020.store`
+(0.2.0 format, written by `main` `e6255e85` with the design sample, Personal details, food sample + diary, nutrition
+charts: 7 workouts, 58 sets, 18 food entries, 7 saved foods, 2 meals, 1 goal, 29 weights) + `GoalSetupMigrationTests`
+(format proven from metadata; the safety copy sees the change; rows and checksums survive; new fields nil). Export
+v13 (the four fields, omitted when nil; a v12 file decodes). **Gate S before the user's phone installs 0.2.1.**
+
+**Own decisions (after the answers):** the existing user's run starts on page 1 with every answer prefilled; an
+unchanged prefilled weight adds no weigh-in; a finer stored activity (Sedentary / Extra active) survives a run that
+leaves the workouts answer alone; Lose is refused with a line when already at BMI 18.5 ("You're already at the lowest
+healthy weight for your height.") or when no loss fits above the floor ("Losing would take your calories under N cal a
+day."); the Goal weight row reads "63.5 kg · 0.35 kg a week", "Maintain", or a pre-N13 goal's name. Not in scope (follow
+up if wanted): telling the user when the latest weight reaches the desired weight.
+
+**Design (ios-design).** Job per page: "On each setup page the user answers one question in a tap or two; the eye lands
+on the question (top-leading, title style); Continue, the one filled command, sits in the thumb's bottom third." Plan
+page: "the user checks the plan and starts; the eye lands on the calories (the one hero number); Start is the command,
+Show Me Around a plain secondary." Wireframe (every page):
+```
+[‹ Back]  ▬▬▬▬▬▬▬▬ progress          (Close: existing users only)
+Question (title)                     ← largest type
+Subtitle (subhead, optional)
+┌ answer panel / option list ┐       ← one surface; options equal rows
+└────────────────────────────┘
+(stats panel: pace page only — 2 equal stats)
+…
+[        Continue / Start        ]  ← one filled command
+          Show Me Around            (plan page, first launch)
+```
+Tells: same container on everything — absent (a list for options, one panel for an answer); chips where a caption
+would do — the pace stops are three equal options (deliberate: a jump to the named paces); all-caps labels — absent;
+middle dots — the Goal weight row value (deliberate, the frozen-stat style); accent on many things — violet/ink only on
+the selected state, progress done-segments and the command; equal blocks — absent (question leads); phone-sized website
+— absent; empty first viewport — the short pages leave space above Continue (deliberate: the thumb zone holds the
+command); control dressed as primary — absent; layout only at default size — AccessibilityL captures: options and
+stats stack, pace stops stack, the page scrolls under the fixed command.
+
+**Evidence (2026-11-12, `WT-Floodlight`, derived data `/tmp/n13-dd`).** Captures (light/dark × Default/AccessibilityL,
+welcome + 8 pages, from `GoalSetupUITests` capture tests): `work-record/nutrition/captures/13/`; prototype captures in
+`captures/13-prototype/`; the prototype's code stays at commit `49b9c585` (tag `design/n13-prototype`).
+
+```
+Verified: Unit plan — 1320/1320, exit 0, /tmp/n13-unit2.xcresult (incl. GoalSetupTests 27, GoalSetupMigrationTests 3,
+  OnboardingTests, StoreFormatGuardTests with the new fingerprint, export v13 pins)
+Verified: GoalSetupUITests new-install + existing-user — 2/2, exit 0, /tmp/n13-ui1.xcresult
+Verified: ProfileAI -only-testing AAAWarmUp, GoalSetupUITests (6), FloodlightTourUITests (10), FloodlightAccountUITests (4),
+  FloodlightGoogleUITests (4), NutritionGoalsUITests (7) — 32/32, exit 0, 2 workers, /tmp/n13-ui2.xcresult
+Not verified: the user's phone (Gate S before 0.2.1 installs: a stored-format change); Apple Health receiving the setup's
+  weigh-in on a device (same save path as Personal details' weight, which N9b's sync follows); the full UI suite (not
+  required by the tier; ask first)
+Known flaky: none seen
+```

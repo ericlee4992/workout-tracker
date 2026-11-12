@@ -46,9 +46,11 @@ final class OnboardingCoordinator {
             uiTestRequested: ProcessInfo.processInfo.arguments.contains(Self.uiTestArgument))
     }
 
-    /// Get Started: into the goal setup, inside the same cover.
-    func beginSetup(now: Date = .now) {
-        setup = GoalSetupDraft(now: now)
+    /// Get Started: into the goal setup, inside the same cover, in the app's units.
+    func beginSetup(in context: ModelContext? = nil, now: Date = .now) {
+        let preferences = context.flatMap { try? AppPreferences.canonical(of: $0.fetch(FetchDescriptor<AppPreferences>())) }
+        let system = AppUnitSystem.resolve(preference: preferences?.unitPreference)
+        setup = GoalSetupDraft(usCustomary: system == .usCustomary, now: now)
     }
 
     /// The plan's Start (or Show Me Around): saves the answers, marks the welcome answered and closes the cover; with

@@ -88,11 +88,12 @@ final class NutritionGoalsUITests: XCTestCase {
         let recalculate = app.buttons["nutritionGoalsRecalculate"]
         XCTAssertTrue(recalculate.waitForExistence(timeout: 5))
 
-        // A typed number stays when the goal choice changes; the calories follow it.
+        // A typed number stays when the activity changes; the calories follow it. (N13: the goal itself is set by the
+        // goal setup — GoalSetupUITests.)
         let before = calories.label
-        any("nutritionGoalsGoal").tap()
-        app.buttons["Lose weight"].firstMatch.tap()
-        XCTAssertTrue(NSPredicate(format: "label != %@", before).evaluate(with: calories), "the calories followed the goal")
+        any("nutritionGoalsActivity").tap()
+        app.buttons["Light"].firstMatch.tap()
+        XCTAssertTrue(NSPredicate(format: "label != %@", before).evaluate(with: calories), "the calories followed the activity")
         XCTAssertTrue(protein.label.contains("200"), protein.label)
 
         recalculate.tap()
@@ -164,66 +165,7 @@ final class NutritionGoalsUITests: XCTestCase {
         XCTAssertFalse(recalculate.exists)
     }
 
-    // MARK: Onboarding step (new installs)
-
-    /// Skip on the Welcome page → the goals sheet; an activity chosen before the details is kept for the first goal.
-    func testWelcomeSkipOffersTheGoalsSheetOnce() { onboarding(appearance: "light", large: false) }
-    /// The same flow on record in dark at AccessibilityL, with each editor and its keyboard.
-    func testWelcomeSkipOffersTheGoalsSheetDarkAccessibility() { onboarding(appearance: "dark", large: true) }
-
-    private func onboarding(appearance: String, large: Bool) {
-        let tag = "\(appearance)-\(large ? "axl" : "default")"
-        app.launchArguments = ["-uiTestReset", "-uiTestOnboarding", "-uiTestOnboardingFresh", "-uiTestFoodGoalsStep",
-                               "-appearance", appearance]
-        if large { app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] }
-        app.launch()
-        let skip = app.buttons["welcomeSkip"]
-        XCTAssertTrue(skip.waitForExistence(timeout: 15))
-        skip.tap()
-        let done = app.buttons["foodGoalsDone"]
-        XCTAssertTrue(done.waitForExistence(timeout: 10), "the goals sheet follows the Welcome page")
-        XCTAssertFalse(any("foodGoalsCalories").exists, "nothing to calculate yet")
-        shoot("n3-onboarding-empty-\(tag)")
-
-        let activity = any("nutritionGoalsActivity")
-        reveal(activity)
-        activity.tap()
-        app.buttons["Light"].firstMatch.tap()
-        tapRow("personalWeight")
-        type("176.4", into: "weightField")
-        shoot("n3-editor-weight-\(tag)")
-        save()
-        tapRow("personalHeight")
-        if app.textFields["heightFeet"].waitForExistence(timeout: 3) {
-            type("5", into: "heightFeet")
-            type("11", into: "heightInches")
-        } else {
-            type("180", into: "heightCm")
-        }
-        shoot("n3-editor-height-\(tag)")
-        save()
-        tapRow("personalBirthDate")
-        XCTAssertTrue(any("birthDatePicker").waitForExistence(timeout: 5))
-        shoot("n3-editor-birthdate-\(tag)")
-        save()
-        let sexRow = any("personalSex")
-        reveal(sexRow)
-        sexRow.tap()
-        app.buttons["Male"].firstMatch.tap()
-        let calories = any("foodGoalsCalories")
-        XCTAssertTrue(calories.waitForExistence(timeout: 5), "the calories appear once complete")
-        reveal(calories)
-        XCTAssertTrue(NSPredicate(format: "label CONTAINS 'Light'").evaluate(with: any("nutritionGoalsActivity")),
-                      "the activity chosen first is kept: \(any("nutritionGoalsActivity").label)")
-        shoot("n3-onboarding-filled-\(tag)")
-        done.tap()
-        XCTAssertTrue(done.waitForNonExistence(timeout: 5))
-
-        app.openProfile()
-        let goals = app.buttons["profileNutritionGoals"]
-        XCTAssertTrue(goals.waitForExistence(timeout: 5))
-        XCTAssertTrue(goals.label.hasSuffix("cal"), goals.label)
-    }
+    // N3's onboarding goals sheet (Welcome → Skip → the sheet) gave way to N13's goal setup: GoalSetupUITests.
 
     /// Scrolls a Personal details row on screen (AccessibilityL pushes the lower rows down) and taps it.
     private func tapRow(_ id: String) {

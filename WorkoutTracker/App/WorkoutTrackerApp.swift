@@ -251,7 +251,7 @@ struct WorkoutTrackerApp: App {
                         }) { WhatsNewSheet(entry: $0) }
                         // N13 (D84): the welcome page, then the required goal setup, in one cover.
                         .fullScreenCover(isPresented: $onboarding.showsWelcome) {
-                            FirstLaunchView(welcome: WelcomeView(onStart: { onboarding.beginSetup() },
+                            FirstLaunchView(welcome: WelcomeView(onStart: { onboarding.beginSetup(in: modelContainer.mainContext) },
                                         showsSignIn: account.isAvailable,
                                         signedInName: ProfileSample.welcomeSignedInName
                                             ?? (account.isSignedIn ? account.profile?.displayName ?? AccountDisplayCopy.unnamed : nil),
