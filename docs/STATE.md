@@ -10,7 +10,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   Codex agent, `gpt-6-astra` high, **full access** (the user). The Orca terminal IDs below are retired. **0.2.1 started:**
   P1 workout lag in Paseo workspace "P1 workout lag" (`wks_82b6a9c32a163410`,
   `~/.paseo/worktrees/1qmeipq9/perf-01-workout-lag`, branch `ericlee4992/perf-01-workout-lag` off `main` `97e63f9`);
-  diagnose with measurements first, then N13. Still the user's: release 0.2.0 (10) to Friends with the What to Test
+  diagnose with measurements first, then N13. **P1 diagnosed (2026-11-11, `11fe18b`)**: four causes measured on a Release
+  simulator build with the heavy store — see the [ticket](../work-record/performance/issues/01-workout-lag.md#progress);
+  fixes F1–F4 proposed, waiting for the user's go. Temporary `[DEBUG-p1]` probes and the UI driver are uncommitted
+  in the worktree (remove before the fix commit). Still the user's: release 0.2.0 (10) to Friends with the What to Test
   note, then the phone check.
 - **Resume here (2026-11-11): R in progress** (branch `ericlee4992/release-r`; ticket
   `work-record/nutrition/issues/11-combined-release.md` → Progress has the checklist state, drafts and what waits for
