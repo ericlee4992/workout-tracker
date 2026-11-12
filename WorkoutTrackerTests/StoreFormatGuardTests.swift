@@ -47,7 +47,14 @@ struct StoreFormatGuardTests {
     /// `items` (both cascade) with the new `FoodPhoto` and `FoodEntryItem` — additive; `NutritionMigrationTests` still
     /// opens the shipped-format fixture. The photo is a row in the database, not `.externalStorage` (codex-review-n7
     /// T1: the safety copy carries only the SQLite files); N7's first value, with external storage, was `15051efe…`.
-    static let approvedFingerprint = "ad42bc469f293250bcfedef97805a72147cc97142a39e7c7a8fe8475745b7f19"
+    /// **Release 0.2.0 (TestFlight build 10, 2026-11-11, `e48ca60`) shipped that last value** — the format on testers'
+    /// phones now (`GoalSetupMigrationTests` opens a fixture in it).
+    static let release020Fingerprint = "ad42bc469f293250bcfedef97805a72147cc97142a39e7c7a8fe8475745b7f19"
+
+    /// **N13 (D84; the ticket's stored-format change, approved with the ticket by the user 2026-11-11):**
+    /// `NutritionGoal` gains `desiredWeightValue`, `desiredWeightUnit`, `desiredWeightKg`, `paceKgPerWeek` — additive
+    /// optionals; `GoalSetupMigrationTests` opens 0.2.0's format with them, behind N1's safety copy.
+    static let approvedFingerprint = "d339bba6f54e7f9a9ceeb0595942baa0d5043c8f8ec13960609adc6c9d0293f7"
 
     static func fingerprint(of types: [any PersistentModel.Type] = WorkoutTrackerStore.modelTypes) throws -> String {
         let model = try #require(NSManagedObjectModel.makeManagedObjectModel(for: types))

@@ -100,7 +100,8 @@ enum GoalPlan {
     static func arrival(fromKg current: Double, toKg desired: Double, kgPerWeek: Double, now: Date = .now,
                         calendar: Calendar = .current) -> Date? {
         guard let weeks = weeks(fromKg: current, toKg: desired, kgPerWeek: kgPerWeek) else { return nil }
-        return calendar.date(byAdding: .day, value: Int((weeks * 7).rounded(.up)), to: calendar.startOfDay(for: now))
+        // A hair of tolerance: 5 kg at 0.35 kg a week is 100 days, not 101 through floating-point noise.
+        return calendar.date(byAdding: .day, value: Int((weeks * 7 - 1e-9).rounded(.up)), to: calendar.startOfDay(for: now))
     }
 
     /// The desired weights offered, kg: losing, from a BMI of 18.5 to just under today's weight; gaining, from just

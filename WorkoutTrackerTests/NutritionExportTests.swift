@@ -136,7 +136,7 @@ struct NutritionExportTests {
         #expect(try ExportJSON.decode(data) == snapshot)
         let text = try #require(String(data: data, encoding: .utf8))
         #expect(!text.contains("null"), "nil optionals are omitted on nutrition rows too")
-        #expect(text.contains("\"schemaVersion\" : 12"))
+        #expect(text.contains("\"schemaVersion\" : 13"))
     }
 
     @Test func nutritionDataLeavesTheCSVAsSetsAndCardio() throws {
