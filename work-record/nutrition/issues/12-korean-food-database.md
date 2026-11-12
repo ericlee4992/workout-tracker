@@ -31,8 +31,10 @@ product report number (품목제조보고번호).
 
 ## Scope (the user's choice, 2026-11-11: 식품영양성분DB first; C005 only if the coverage check shows it is needed)
 
-- **Key:** the user applies for a data.go.kr service key for 식품영양성분DB and sets it as a Worker secret (e.g.
-  `MFDS_API_KEY`) — never in chat or the repo; a temporary git-ignored `server/.dev.vars` for the live check only.
+- **Key:** the user's data.go.kr service key for 식품영양성분DB (received 2026-11-11) is kept on the Mac in
+  `~/.config/workouttracker/mfds.env` (`MFDS_API_KEY=`, mode 600, outside the repo). For the coverage and live checks
+  copy it into the git-ignored `server/.dev.vars` and delete that after; never print it. At release the user sets the
+  Worker secret `MFDS_API_KEY` (`npx wrangler secret put`, in a Terminal window) — never in chat or the repo.
 - **Korean search:** a query containing Hangul goes to 식품영양성분DB (processed foods and dishes) instead of USDA;
   normalised to N8's food shape (per 100 g/ml by the DB's basis amount; its serving when given), cached and limited
   as N8's search, credited (the source's required attribution — check its licence, e.g. 공공누리 type).
