@@ -414,8 +414,8 @@ TestFlight build **without launching**; if installation demands a delete, stop; 
   bypass it. The tooling key in `Config/anthropic.key` is distinct from the phone's keychain key.
 - Shell details: zsh does not word-split `$VAR`; use arrays for argument lists. Quote heredoc
   delimiters in review prompts so backticks and substitutions are not executed.
-- For agent reviews in Orca, follow the version-matched `orca-cli` guide. A report file's
-  completion/content is stronger evidence than a TUI-idle wait after an agent finishes.
+- For agent reviews, follow the active agent tooling file ([Paseo](agents/tools-paseo.md) now). A report file's
+  completion/content is stronger evidence than an idle or finished signal from the agent.
 - Read the archived background-alarm incident before changing timed background behavior.
   A scheduled notification does not prove app code executed. The working rest alarm queues
   a pre-rendered silence-plus-beep track; it avoids needing CPU at a chosen future instant.

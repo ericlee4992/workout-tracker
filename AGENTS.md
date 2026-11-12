@@ -60,17 +60,19 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 - Codex is the default implementer; Claude independently reviews (T6). If Claude implements,
   Codex reviews. The author does not supply the independent clearance. Give the reviewer the
   ticket, diff, relevant decisions, and evidence; resolve findings and re-review fixes.
-- Run Codex in a visible Orca terminal and keep **one Codex session** for every review round and ticket: check
-  `orca terminal list` and send the next prompt to the idle Codex terminal (`orca terminal send`). Open a new one only
-  when that terminal is gone, stuck in an approval/interrupted state, near its context limit, or in another worktree.
+- **Agent tooling: Paseo** (since 2026-11-11) — follow [tools-paseo](docs/agents/tools-paseo.md) for the Codex
+  reviewer, the test progress tab, worktrees and handoff. The Orca setup is kept in
+  [tools-orca](docs/agents/tools-orca.md); to switch back, point this line there.
+- Keep **one Codex session** for every review round and ticket, visible to the user. Start a new one only when it is
+  gone, stuck in an approval/error state, near its context limit, or in another worktree.
 - **Checkout layout** (the user, 2026-11-06): the home checkout `…/orca/projects/Health App` stays on
-  a clean `main` — update it, work elsewhere. Each task gets its own Orca worktree on a short-lived
-  branch off `main` (`orca-cli`); once that branch is merged and its record written, remove the
-  worktree with `orca worktree rm`, which keeps the branch. `…/workspaces/Health App/release-build`
-  stays as the detached archive checkout for TestFlight builds. A session started in the home
-  checkout and given a task hands it off: it creates the task's worktree with an agent and a brief
-  (`orca worktree create … --agent claude --prompt`, per `orca-cli`'s handoff steps), tells the user
-  which workspace to open, and stops; reading files and answering questions there are fine.
+  a clean `main` — update it, work elsewhere. Each task gets its own worktree on a short-lived
+  branch off `main`; once that branch is merged and its record written, remove the worktree
+  (the branch is kept). `…/workspaces/Health App/release-build` stays as the detached archive
+  checkout for TestFlight builds. A session started in the home checkout and given a task hands
+  it off: it creates the task's worktree with an agent and a brief, tells the user which
+  workspace to open, and stops; reading files and answering questions there are fine. The
+  tool-specific steps are in the agent tooling file above.
 - Commit on the branch and push it. Once the required verification and review are clear,
   fast-forward `main` with `git merge --ff-only <branch>` and push `main`. The repository's
   established workflow does not require a PR. Confirm the remote contains the resulting tip.

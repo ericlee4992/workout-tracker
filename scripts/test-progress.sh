@@ -1,5 +1,5 @@
 #!/bin/bash
-# Live progress of an xcodebuild test run, for a visible Orca terminal tab.
+# Live progress of an xcodebuild test run, for a visible terminal tab (Paseo or Orca).
 # usage: scripts/test-progress.sh <xcodebuild log> <expected test count> [title]
 # Counts the log's XCTest "Test case" (parallel) and "Test Case" (serial) passed/failed lines and Swift Testing "✔ Test … passed" /
 # "✘ Test … failed after" lines every 5 s — live, provisional counts; exits 15 s after the run prints its

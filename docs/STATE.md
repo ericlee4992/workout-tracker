@@ -5,6 +5,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
 
+- **2026-11-11 (late): tooling moved from Orca to Paseo** (the user; Orca may come back — its setup is kept in
+  [tools-orca](agents/tools-orca.md), the active one is [tools-paseo](agents/tools-paseo.md)). Codex reviewer = a Paseo
+  Codex agent, `gpt-6-astra` high, **full access** (the user). The Orca terminal IDs below are retired. **0.2.1 started:**
+  P1 workout lag in Paseo workspace "P1 workout lag" (`wks_82b6a9c32a163410`,
+  `~/.paseo/worktrees/1qmeipq9/perf-01-workout-lag`, branch `ericlee4992/perf-01-workout-lag` off `main` `97e63f9`);
+  diagnose with measurements first, then N13. Still the user's: release 0.2.0 (10) to Friends with the What to Test
+  note, then the phone check.
 - **Resume here (2026-11-11): R in progress** (branch `ericlee4992/release-r`; ticket
   `work-record/nutrition/issues/11-combined-release.md` → Progress has the checklist state, drafts and what waits for
   the user). Done: limits kept, full UI suite (381/386 + fixes), What's New (build 10) and What to Test approved,
@@ -51,7 +58,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Merged before N7** (each Codex-clear; the user's standing permission "merge whenever Codex clear"): N4 Log food
   (D81), N5 Today's food, N6 code (server food flows; D79 amended — training flows GPT-5.6 Terra, food flows GPT-6.1
   Terra; live check done; **deploy everything at R**), N9a Body weight.
-  **Tools:** Codex reviews in terminal `term_20f2d1c6-628e-4ca8-9110-48b74ef8ec31` ("Review N7 round 2 (Codex)", this
+  **Tools (Orca, retired 2026-11-11):** Codex reviews in terminal `term_20f2d1c6-628e-4ca8-9110-48b74ef8ec31` ("Review N7 round 2 (Codex)", this
   worktree, ~70 % context left; the older `term_3f1b832a…` is at 10 % — retired). Send the brief with `orca terminal
   send --terminal <id> --text … --enter --wait-submit 20`; watch the report file and approval prompts (not tui-idle).
   Test progress tab `term_ac1339dc-202d-4c10-bab3-b528de726cbd` (`bash scripts/test-progress.sh <log> <count> "<title>"`).
