@@ -64,6 +64,7 @@ Ship the Soft redesign and nutrition together as one TestFlight build (build **1
    "account needed only for the AI features" (now also online food lookup; hand logging works without); S3 export and
    deletion text now name the nutrition data (JSON carries food, foods/meals, goals, body weights, personal details,
    not meal photos; Health keeps workouts, body weights and food nutrition). Fixed; server 283/283 + tsc.
+   **Codex R round 2 (`codex-review-r-b.md`): clear.**
 5.–9. Not started — need the user (privacy approval + date before the deploy; App Privacy; Gate S on the phone).
 
 ### Draft — What's New (build 10, in-app, once after updating)
