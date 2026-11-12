@@ -75,7 +75,7 @@ Ship the Soft redesign and nutrition together as one TestFlight build (build **1
    route 404. Not yet: a signed-in barcode/search/food-AI request (with build 10 on the user's phone).
 6. **App Privacy:** the user added Search History (App Functionality, not linked, not tracking) and published
    (2026-11-11, "done"); the other types unchanged (they now also cover the food features).
-7.–9. Gate S just before installing build 10 (so the app need not stay closed during processing); build 10 below. (privacy approval + date before the deploy; App Privacy; Gate S on the phone).
+7.–9. Version **0.2.0** (the user, 2026-11-11: "a lot of things changed"), build 10. Gate S just before installing build 10 (so the app need not stay closed during processing); build 10 below. (privacy approval + date before the deploy; App Privacy; Gate S on the phone).
 
 ### Draft — What's New (build 10, in-app, once after updating)
 
