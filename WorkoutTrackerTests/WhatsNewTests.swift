@@ -56,9 +56,9 @@ struct WhatsNewTests {
         #expect(WhatsNew.lastSeen(defaults) == 9)
     }
 
-    /// The shipped entries are the ones the user approved: build 7 (Progress) and, newest, build 10 (release R).
+    /// The shipped entries are the ones the user approved: build 7 (Progress) and, newest, build 11 (0.2.0: release R + P1 + N13).
     @Test func theShippedEntriesAreAsApproved() throws {
-        #expect(WhatsNew.entries.map(\.build) == [7, 10])
+        #expect(WhatsNew.entries.map(\.build) == [7, 11])
         let progress = WhatsNew.entries[0]
         #expect(progress.title == "New: Progress")
         #expect(progress.items.map(\.text) == [
@@ -67,13 +67,17 @@ struct WhatsNewTests {
             "Long-press a chart to change what it shows, move it or remove it.",
         ])
         let latest = try #require(WhatsNew.latest)
-        #expect(latest.build == 10)
-        #expect(latest.title == "New: Food, and a fresh look")
+        #expect(latest.build == 11)
+        #expect(latest.title == "New: Food, goals and a fresh look")
         #expect(latest.items.map(\.text) == [
             "Log food from Today: search, scan a barcode or a label, or take a photo of your meal.",
             "Set calorie and protein goals; Today shows what's left.",
+            "Set the weight you're aiming for and how fast — slow, recommended or fast.",
+            "Your calories and macros follow the pace, within safe limits.",
+            "Find it in Profile → Nutrition goals → Goal weight.",
             "Track your body weight, with Apple Health if you like.",
             "A softer look across the app, with a new Profile.",
+            "Smoother workouts: typing and scrolling no longer lag.",
         ])
     }
 }

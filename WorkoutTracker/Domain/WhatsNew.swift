@@ -31,12 +31,19 @@ enum WhatsNew {
             .init(symbol: "arrow.up.right", text: "Each chart shows your latest best and how far you've come since your first session."),
             .init(symbol: "hand.tap", text: "Long-press a chart to change what it shows, move it or remove it."),
         ]),
-        // Release R (D76): the Soft redesign and nutrition together; wording approved by the user (2026-11-11).
-        WhatsNewEntry(build: 10, title: "New: Food, and a fresh look", items: [
+        // Build 11 (0.2.0, the user 2026-11-12: P1 + N13 shipped as a new build of 0.2.0, its What's New carrying
+        // build 10's lines too). Replaces build 10's entry, so a tester on build 10 sees it once more with the goal setup
+        // and the faster workout; Settings → What's New keeps one entry. Build 10's wording approved 2026-11-11; the new
+        // lines approved 2026-11-12.
+        WhatsNewEntry(build: 11, title: "New: Food, goals and a fresh look", items: [
             .init(symbol: "fork.knife", text: "Log food from Today: search, scan a barcode or a label, or take a photo of your meal."),
             .init(symbol: "target", text: "Set calorie and protein goals; Today shows what's left."),
+            .init(symbol: "flag", text: "Set the weight you're aiming for and how fast — slow, recommended or fast."),
+            .init(symbol: "chart.line.downtrend.xyaxis", text: "Your calories and macros follow the pace, within safe limits."),
+            .init(symbol: "person.crop.circle", text: "Find it in Profile → Nutrition goals → Goal weight."),
             .init(symbol: "scalemass", text: "Track your body weight, with Apple Health if you like."),
             .init(symbol: "paintbrush", text: "A softer look across the app, with a new Profile."),
+            .init(symbol: "bolt", text: "Smoother workouts: typing and scrolling no longer lag."),
         ]),
     ]
 
