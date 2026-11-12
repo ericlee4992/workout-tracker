@@ -176,7 +176,15 @@ from the repo root; adds `P1Probe.swift` and the `[DEBUG-p1]` lines) and `p1-too
   `PreviousPerformanceTests.aTypedValueIsNeverReplacedEvenFromACleanRow` and `.sharedFinishedHistoryGivesTheSameReference`,
   `FinishedHistoryCacheTests.sharedHistoryMarksEqualPerEntryReadsAndFollowHistoryChanges`.
 - `LivePrefillUITests` (new, added to the Workout plan): passes, exit 0; fails with the guard off (shown above).
-- Not yet: the Workout area plan (73 UI tests, ~20–25 min — asking the user first), Codex review, the phone.
+- Workout area plan (the user approved the run, 2026-11-11), 2 workers, `/tmp/p1/workout-1.xcresult`: **73 of 74
+  passed**, exit 65. The one failure, `FloodlightLiveUITests.testACompletedSetCanBeCorrectedInPlace` (typed "102.5"
+  arrived as "102."), is the known parallel-only flake recorded in Floodlight 11 and release R; rerun alone,
+  serially: passed, exit 0 (`/tmp/p1/workout-1-rerun.xcresult`).
+
+Verified: build; Unit plan; Workout plan (one known flake, passing alone); `LivePrefillUITests` red without the guard,
+green with it; before/after loops on the Release simulator build. Not verified: the phone (dev build, the user's store
+and AirPods heart rate); Codex review. Known flaky: `FloodlightLiveUITests.testACompletedSetCanBeCorrectedInPlace`
+(parallel only).
 
 ## Comments
 
