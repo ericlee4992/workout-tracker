@@ -100,6 +100,10 @@ struct ActiveWorkoutView: View {
     /// Performance P1: the finished history every reading on this screen judges against (marks, the fresh-best
     /// band, the Lock Screen card, each row's PREVIOUS), read once instead of by each of them on every commit.
     @State private var finishedHistory = FinishedHistoryCache()
+    /// "Recent at <gym>" for an empty workout, read when the screen appears and when the gym changes (P1, Codex
+    /// review P3): read in `body`, it walked the whole history on every redraw — each heart-rate sample — at a gym
+    /// with little history. Finished history cannot change while this screen is up.
+    @State private var recentAtGym: (gymID: UUID, exercises: [Exercise])?
     /// L03: the new best the user just logged, on the rest slab for a few seconds.
     @State private var freshBest: LiveFreshBest?
 
@@ -180,8 +184,9 @@ struct ActiveWorkoutView: View {
                     }
                     .onMove(perform: moveEntries)
 
-                    if entries.isEmpty, let gym = workout.isDeleted ? nil : workout.gym {
-                        let recent = LiveRecentSection.exercises(at: gym, in: modelContext)
+                    if entries.isEmpty, let gym = workout.isDeleted ? nil : workout.gym,
+                       let cached = recentAtGym, cached.gymID == gym.id {
+                        let recent = cached.exercises.filter { !$0.isDeleted }
                         if !recent.isEmpty {
                             LiveRecentSection(gymName: gym.name, exercises: recent) { addEntry(for: $0) }
                                 .liveRow(top: 10, bottom: 8)
@@ -394,6 +399,8 @@ struct ActiveWorkoutView: View {
             }
             .onAppear(perform: refreshRest)
             .onAppear(perform: refreshBadges)
+            .onAppear(perform: loadRecentAtGym)
+            .onChange(of: workout.isDeleted ? nil : workout.gym?.id) { _, _ in loadRecentAtGym() }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { refreshRest() }
             }
@@ -611,6 +618,12 @@ struct ActiveWorkoutView: View {
         let set = entries.lazy.flatMap { $0.sets ?? [] }.first { $0.id == current.setID }
         let updated = set.flatMap(freshBest(for:))
         if updated != current { freshBest = updated }
+    }
+
+    /// Reads "Recent at <gym>" for `recentAtGym`.
+    private func loadRecentAtGym() {
+        guard !workout.isDeleted, let gym = workout.gym, !gym.isDeleted else { recentAtGym = nil; return }
+        recentAtGym = (gym.id, LiveRecentSection.exercises(at: gym, in: modelContext))
     }
 
     /// Recomputes the New best / First time marks (`SetBadgeMath`) and reconciles the fresh

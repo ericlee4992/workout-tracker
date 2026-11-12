@@ -186,6 +186,21 @@ green with it; before/after loops on the Release simulator build. Not verified: 
 and AirPods heart rate); Codex review. Known flaky: `FloodlightLiveUITests.testACompletedSetCanBeCorrectedInPlace`
 (parallel only).
 
+**2026-11-12 — Codex round 1: clear** ([report](../codex-review-p1.md); reviewer's build, Unit 1,289/1,289 and focused
+UI 27/27 in `/tmp/codex-p1/`). One P3, resolved on the user's complaint list (Add Exercise): "Recent at <gym>" was
+read in `body` — twice per redraw in `ExercisePickerSheet`, once in the empty workout — and at a gym with fewer than
+five past exercises it walks the whole history; with heart rate every saved sample redraws. Now read once when the
+sheet / the screen appears (and when the workout's gym changes): `ExercisePickerSheet.recentAtGym`,
+`ActiveWorkoutView.recentAtGym` + `loadRecentAtGym`. Measured with the probes re-applied (`probe.patch`), the driver
+plus a 5 s pause on the open sheet, heart rate on and the new fixture flag `-uiTestPerfNewGym` (the live workout at a
+second gym with no history): lookups 47 → 2 per run; the open sheet with an empty search 23 % → 18 % frozen, worst
+155 → 113 ms (the rest is the per-sample save). New `LiveRecentUITests` (Workout plan) checks both places still
+show the list and that a search hides and restores it.
+Round-2 verification: Debug build exit 0; focused UI (2 workers) `AAAWarmUpUITests`, `CoreLoopUITests`,
+`FloodlightLiveUITests`, `FloodlightTourUITests`, `LivePrefillUITests`, `LiveRecentUITests`: **38/38 passed**, exit 0
+(`/tmp/p1/focused-r2.xcresult`). Unit plan not rerun: only view code and the test fixture changed since the green
+Unit run, and no unit test covers them (the reviewer reruns it).
+
 ## Comments
 
 - **2026-11-11, second opinion (Fable 5.2, static read, nothing measured; asked by the user).** Agrees with causes 1,

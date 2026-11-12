@@ -23,6 +23,9 @@ enum PerfFixture {
         ProcessInfo.processInfo.arguments.contains(noHistoryArgument) ? 0 : 150
     }
     static let gymName = "Perf Gym"
+    /// With `-uiTestPerfNewGym` too: the live workout runs at a second gym with no history, where Add Exercise's
+    /// "Recent at" lookup finds nothing and walks the whole history (Codex review P1, the P3).
+    static let newGymArgument = "-uiTestPerfNewGym"
 
     /// Catalog exercises the history rotates through; the live workout uses the first eight.
     static let exerciseNames = [
@@ -84,8 +87,15 @@ enum PerfFixture {
             context.insert(item)
         }
         try context.save()
+        var liveGym = gym
+        if ProcessInfo.processInfo.arguments.contains(newGymArgument) {
+            liveGym = Gym(name: "Perf Gym 2", city: "Busan", defaultUnit: .lb)
+            context.insert(liveGym)
+            try context.save()
+            try GymSelection.remember(liveGym, in: context)
+        }
         let workout = try WorkoutTemplateService(context: context)
-            .start(template, at: gym, on: now.addingTimeInterval(-45 * 60))
+            .start(template, at: liveGym, on: now.addingTimeInterval(-45 * 60))
         let session = WorkoutSession(context: context)
         var lastCompleted: SetRecord?
         for (entryIndex, entry) in WorkoutSession.orderedEntries(of: workout).enumerated() {

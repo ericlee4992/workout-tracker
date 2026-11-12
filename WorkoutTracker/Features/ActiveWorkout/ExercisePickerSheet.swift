@@ -38,9 +38,15 @@ struct ExercisePickerSheet: View {
         BodyArea.sections(of: filtered) { $0.muscleGroup }
     }
 
+    /// "Recent at <gym>", read once when the sheet appears. Performance P1 (Codex review P3): read in `body`, it ran
+    /// twice per redraw — and during a workout with heart rate the sheet redraws on every saved sample — and at a gym
+    /// with fewer than five past exercises it walks the whole history. Finished history cannot change while the
+    /// sheet is up.
+    @State private var recentAtGym: [Exercise] = []
+
     private var recent: [Exercise] {
         guard trimmedSearch.isEmpty, let gym, !gym.isDeleted else { return [] }
-        return LiveRecentSection.exercises(at: gym, in: modelContext)
+        return recentAtGym.filter { !$0.isDeleted }
     }
 
     var body: some View {
@@ -103,6 +109,9 @@ struct ExercisePickerSheet: View {
                 NewExerciseSheet(initialName: request.name) { exercise in
                     select(exercise)
                 }
+            }
+            .onAppear {
+                if let gym, !gym.isDeleted { recentAtGym = LiveRecentSection.exercises(at: gym, in: modelContext) }
             }
         }
     }

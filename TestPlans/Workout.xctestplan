@@ -25,7 +25,8 @@
         "HeartRateSummaryUITests",
         "WorkoutNameUITests",
         "FloodlightSystemUITests",
-        "LivePrefillUITests"
+        "LivePrefillUITests",
+        "LiveRecentUITests"
       ],
       "target": {
         "containerPath": "container:WorkoutTracker.xcodeproj",

@@ -29,6 +29,7 @@ AREAS = {
         "CoreLoopUITests", "FloodlightLiveUITests", "FloodlightFinishUITests", "CardioUITests",
         "FloodlightCardioUITests", "BarbellUITests", "DumbbellCounterpartUITests", "ExercisePresetUITests",
         "HeartRateUITests", "HeartRateSummaryUITests", "WorkoutNameUITests", "FloodlightSystemUITests", "LivePrefillUITests",
+        "LiveRecentUITests",
     ],
     "HistoryProgress": [
         "FloodlightHistoryUITests", "HistoryCalendarUITests", "HistoryEditFlowsUITests", "HistoryEditingUITests",
