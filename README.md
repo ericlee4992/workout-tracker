@@ -54,8 +54,8 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   cardio activity), records, progress charts per exercise and variation, and export of your
   workouts as JSON (the fullest record, with heart-rate series and routes) or CSV (a table of
   sets and cardio). The JSON (format v12) also carries the nutrition data — food log, saved
-  foods, My meals, nutrition goals, body weights and Personal details; the CSV stays sets and cardio. *Coming in
-  0.2.1:* v13 adds each goal's desired weight and weekly pace.
+  foods, My meals, nutrition goals, body weights and Personal details; the CSV stays sets and cardio. *New in build 11
+  (0.2.0):* v13 adds each goal's desired weight and weekly pace.
 - **Progress.** A tab of the charts you pin — lifts per machine or weight (best set, volume,
   1RM) and cardio activities (distance, pace or speed, time) — each with its latest value and
   the change since your first session — plus training-wide weekly charts (workouts, training volume, running
@@ -98,7 +98,7 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
 - **Nutrition goals** *(on `main`, not yet in TestFlight)*. Profile → Personal details
   holds your weight, height, date of birth and sex — one place, also used by the heart-rate zones and Ask AI. From
   them Profile → Nutrition goals calculates daily calories, protein, carbs and fat (Mifflin–St Jeor, your activity and
-  goal); type over any number, and a change dates a new goal so past days keep theirs. *Coming in 0.2.1:* a goal
+  goal); type over any number, and a change dates a new goal so past days keep theirs. *New in build 11 (0.2.0):* a goal
   setup — sex, date of birth, height and weight, workouts a week, lose / maintain / gain, the weight you're aiming for
   and how fast (slow / recommended / fast, within safe weekly rates, never under a calorie floor), then the plan, every
   number editable. A new install goes from the welcome page straight into it; existing users run it from Nutrition

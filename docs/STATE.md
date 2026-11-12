@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-12: N13 merged; next release 0.2.1.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-12: N13 merged; next TestFlight 0.2.0 (11) = P1 + N13 (the user chose 0.2.0 build 11 over 0.2.1).** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
@@ -10,8 +10,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   answers. Stored-format change (NutritionGoal + desired weight + pace; fingerprint `d339bba6…`; fixture
   `Release020.store`). Evidence: Unit 1326/1326, UI 32/32 then 7/7 after fixes ([ticket](../work-record/nutrition/issues/13-goal-setup.md#progress),
   review `work-record/nutrition/codex-review-n13.md`). Codex agent `edd217f6-2a56-463d-abf4-8bbcf958a5af` (this
-  workspace). **Next: release 0.2.1** (P1 + N13) — TestFlight build/upload and What to Test need the user's go;
-  **Gate S on the user's phone before installing 0.2.1** (stored-format change); then P1's phone check. For the user
+  workspace). **Next: 0.2.0 (11)** (P1 + N13; record `work-record/release/0.2.0-build-11.md`, branch
+  `ericlee4992/release-0.2.0-11`) — the user said build it for upload; archive/upload after the release review clears;
+  **Gate S on the user's phone before installing build 11** (stored-format change); then P1's phone check. For the user
   (not blocking): N13's new strings and own decisions (ticket).
 - **2026-11-11 (late): tooling moved from Orca to Paseo** (the user; Orca may come back — its setup is kept in
   [tools-orca](agents/tools-orca.md), the active one is [tools-paseo](agents/tools-paseo.md)). Codex reviewer = a Paseo
@@ -22,7 +23,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   causes and a typed-values-prefilled-over bug fixed; idle with heart rate 19.0 s of 20 s frozen → 2.3 s; Unit plan
   green (1,289). See the [ticket](../work-record/performance/issues/01-workout-lag.md#progress). Workout plan 73/74
   (the known flake passes alone). **Codex clear (rounds 1–2, `4c01a810`)** — Paseo Codex agent `2208216c-5a8a-48fa-ab89-876ff0ffdd22`
-  (reuse it). **Merged to `main` 2026-11-12.** Phone check: the user tests it in the 0.2.1 TestFlight build
+  (reuse it). **Merged to `main` 2026-11-12.** Phone check: the user tests it in the TestFlight build 0.2.0 (11) (planned as 0.2.1)
   (their choice) — P1 acceptance 1–2 stay open until then. Next: N13 goal setup on its own branch. Still the user's: release 0.2.0 (10) to Friends with the What to Test
   note, then the phone check.
 - **Resume here (2026-11-11): R in progress** (branch `ericlee4992/release-r`; ticket
