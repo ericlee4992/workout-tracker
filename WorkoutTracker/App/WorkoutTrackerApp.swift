@@ -94,6 +94,11 @@ struct WorkoutTrackerApp: App {
             }
             catch { assertionFailure("Design sample fixture failed: \(error)") }
         }
+        // P1's heavy store: months of history and a long live workout (see PerfFixture).
+        if PerfFixture.isEnabled {
+            do { try PerfFixture.seed(in: modelContainer.mainContext) }
+            catch { assertionFailure("Perf fixture failed: \(error)") }
+        }
         // The Progress captures' cardio and pins (public beta ticket 16).
         if DesignSampleFixture.progressIsEnabled {
             do {
