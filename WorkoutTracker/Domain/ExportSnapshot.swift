@@ -60,7 +60,8 @@ struct ExportSnapshot: Codable, Equatable {
     /// an entry's totals are per serving × `servings`. JSON only: the CSV stays a ledger of sets and cardio.
     /// 13 — nutrition N13: `nutritionGoals[]` gain `desiredWeightValue`, `desiredWeightUnit`, `desiredWeightKg` and
     /// `paceKgPerWeek` (the goal setup), each omitted when absent, so a v12 file still decodes.
-    static let currentSchemaVersion = 13
+    /// 14 — nutrition N14: `nutritionGoals[].generated` (true only; omitted otherwise), so a v13 file still decodes.
+    static let currentSchemaVersion = 14
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -634,6 +635,8 @@ extension ExportSnapshot {
         var desiredWeightUnit: WeightUnit? = nil
         var desiredWeightKg: Double? = nil
         var paceKgPerWeek: Double? = nil
+        /// N14 (v14): true when the numbers came from the server's plan; absent when calculated.
+        var generated: Bool? = nil
     }
 
     /// The entered `(value, unit)` and `normalizedKg`, like every exported weight.

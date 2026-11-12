@@ -34,6 +34,9 @@ enum NutritionGoalStore {
         /// N13: the goal setup's desired weight and pace (kg a week); nil before the setup ran, and for maintain.
         var desired: DesiredWeight?
         var paceKgPerWeek: Double?
+        /// N14 (D85): the server's numbers the goal holds instead of the calculation; nil = calculated. Typed numbers
+        /// (`overrides`) still win over them one by one.
+        var generated: Macros?
     }
 
     /// N13: a desired weight as entered (D52) — the kg follows from it.
@@ -83,7 +86,9 @@ enum NutritionGoalStore {
                              proteinGrams: goal.proteinOverridden ? goal.proteinGrams : nil,
                              carbsGrams: goal.carbsOverridden ? goal.carbsGrams : nil,
                              fatGrams: goal.fatOverridden ? goal.fatGrams : nil),
-            desired: desired, paceKgPerWeek: goal.paceKgPerWeek)
+            desired: desired, paceKgPerWeek: goal.paceKgPerWeek,
+            generated: goal.generated ? Macros(calories: goal.calories, proteinGrams: goal.proteinGrams,
+                                               carbsGrams: goal.carbsGrams, fatGrams: goal.fatGrams) : nil)
     }
 
     static func inputs(_ details: Details, _ choices: Choices, on date: Date,
@@ -108,7 +113,8 @@ enum NutritionGoalStore {
         var choices = choices(of: latest)
         change?(&choices)
         let inputs = inputs(details, choices, on: now, calendar: calendar)
-        let numbers = NutritionGoals.resolve(inputs, overrides: choices.overrides)
+        let numbers = choices.generated.map { Self.resolve(generated: $0, overrides: choices.overrides) }
+            ?? NutritionGoals.resolve(inputs, overrides: choices.overrides)
         if let latest, matches(latest, inputs: inputs, choices: choices, numbers: numbers) { return latest }
 
         let today = calendar.startOfDay(for: now)
@@ -139,6 +145,7 @@ enum NutritionGoalStore {
         goal.desiredWeightUnit = desired?.unit
         goal.desiredWeightKg = desired?.kg
         goal.paceKgPerWeek = inputs.paceKgPerWeek
+        goal.generated = choices.generated != nil
         try context.save()
         return goal
     }
@@ -184,5 +191,12 @@ enum NutritionGoalStore {
             && goal.paceKgPerWeek == inputs.paceKgPerWeek
             && goal.desiredWeightValue == (choices.goal == .maintain ? nil : choices.desired?.value)
             && goal.desiredWeightUnit == (choices.goal == .maintain ? nil : choices.desired?.unit)
+            && goal.generated == (choices.generated != nil)
+    }
+
+    /// N14: generated numbers with each typed one in its place (no recalculation around them — the plan is the server's).
+    static func resolve(generated: Macros, overrides: NutritionGoals.Overrides) -> Macros {
+        Macros(calories: overrides.calories ?? generated.calories, proteinGrams: overrides.proteinGrams ?? generated.proteinGrams,
+               carbsGrams: overrides.carbsGrams ?? generated.carbsGrams, fatGrams: overrides.fatGrams ?? generated.fatGrams)
     }
 }

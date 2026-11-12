@@ -89,7 +89,7 @@ struct NutritionExportTests {
         let rig = try seed(context)
         let snapshot = try collector.snapshot(from: context)
 
-        #expect(snapshot.schemaVersion == 13)
+        #expect(snapshot.schemaVersion == 14)
         #expect(snapshot.counts.foodEntries == 2 && snapshot.counts.savedFoods == 2)
         #expect(snapshot.counts.savedMeals == 1 && snapshot.counts.bodyWeights == 2)
 
@@ -136,7 +136,7 @@ struct NutritionExportTests {
         #expect(try ExportJSON.decode(data) == snapshot)
         let text = try #require(String(data: data, encoding: .utf8))
         #expect(!text.contains("null"), "nil optionals are omitted on nutrition rows too")
-        #expect(text.contains("\"schemaVersion\" : 13"))
+        #expect(text.contains("\"schemaVersion\" : 14"))
     }
 
     @Test func nutritionDataLeavesTheCSVAsSetsAndCardio() throws {

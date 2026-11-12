@@ -197,8 +197,58 @@ final class GoalSetupDraft: Identifiable {
     /// The calories at the chosen pace (maintain: no adjustment).
     var calculatedCalories: Double? { inputs.map(NutritionGoals.calories) }
 
-    /// The plan in force: the calculation with the typed-over numbers.
-    var plan: Macros? { inputs.map { NutritionGoals.resolve($0, overrides: overrides) } }
+    /// The plan in force: the server's plan for these answers when there is one (N14), else the calculation — with the
+    /// typed-over numbers in place either way.
+    var plan: Macros? {
+        if let generatedPlan { return NutritionGoalStore.resolve(generated: generatedPlan, overrides: overrides) }
+        return inputs.map { NutritionGoals.resolve($0, overrides: overrides) }
+    }
+
+    // MARK: The server's plan (N14, D85)
+
+    /// Asks the server for a plan; nil when it could not answer (the calculation stands in). The host supplies it
+    /// signed in; nil signed out.
+    typealias Generator = @MainActor (NutritionGoals.Inputs, Double?) async -> Macros?
+
+    /// What a plan is asked for: the answers (the pace included) and the desired weight. Changing any of them (Back,
+    /// a new answer) asks again on the plan page; a typed number does not.
+    struct GenerationRequest: Hashable {
+        let inputs: NutritionGoals.Inputs
+        let desiredKg: Double?
+    }
+
+    /// The request for the plan page as it stands; nil before every answer is in or away from the plan page.
+    var generationRequest: GenerationRequest? { step == .plan ? currentRequest : nil }
+
+    /// The request the answers make now, on any page.
+    private var currentRequest: GenerationRequest? {
+        guard let inputs, answersAreComplete else { return nil }
+        return .init(inputs: inputs, desiredKg: inputs.goal == .maintain ? nil : desiredKg)
+    }
+
+    private var generatedResult: (request: GenerationRequest, plan: Macros)?
+    private var pendingRequest: GenerationRequest?
+    private var failedRequest: GenerationRequest?
+
+    /// The server's plan for the answers as they are now.
+    var generatedPlan: Macros? {
+        guard let generatedResult, generatedResult.request == currentRequest else { return nil }
+        return generatedResult.plan
+    }
+
+    var isGenerating: Bool { pendingRequest != nil && pendingRequest == generationRequest }
+    /// The server was asked for these answers and could not answer: the plan is the calculation.
+    var generationFailed: Bool { failedRequest != nil && failedRequest == generationRequest && generatedPlan == nil }
+
+    /// Asks once per request (a failure is not retried until an answer changes).
+    func generate(with generator: Generator) async {
+        guard let request = generationRequest, generatedPlan == nil, pendingRequest != request,
+              failedRequest != request else { return }
+        pendingRequest = request
+        let plan = await generator(request.inputs, request.desiredKg)
+        if pendingRequest == request { pendingRequest = nil }
+        if let plan { generatedResult = (request, plan) } else { failedRequest = request }
+    }
 
     var arrival: Date? {
         guard let weightKg, goal != .maintain else { return nil }
@@ -210,15 +260,20 @@ final class GoalSetupDraft: Identifiable {
         return GoalPlan.weeks(fromKg: weightKg, toKg: desiredKg, kgPerWeek: paceKg)
     }
 
-    /// What the plan's commit saves — the entered pairs; nil while an answer is missing.
+    private var answersAreComplete: Bool {
+        guard sex != nil, weightEntry != nil, activity != nil, let goal, Self.ageRange.contains(ageYears) else { return false }
+        return goal == .maintain || (paceKg > 0 && desiredIsValid)
+    }
+
+    /// What the plan's commit saves — the entered pairs and the server's plan if any; nil while an answer is missing or
+    /// the plan is still being asked for.
     var answers: GoalSetupStore.Answers? {
-        guard let sex, let weightEntry, let activity, let goal, Self.ageRange.contains(ageYears) else { return nil }
+        guard answersAreComplete, !isGenerating, let sex, let weightEntry, let activity, let goal else { return nil }
         let losesOrGains = goal != .maintain
-        if losesOrGains && (paceKg <= 0 || !desiredIsValid) { return nil }
         return .init(sex: sex, birthDate: birthDate, height: heightEntry, weight: weightEntry,
                      activity: activity, goal: goal,
                      desired: losesOrGains ? desiredEntry : nil,
-                     paceKgPerWeek: losesOrGains ? paceKg : nil, overrides: overrides)
+                     paceKgPerWeek: losesOrGains ? paceKg : nil, overrides: overrides, generated: generatedPlan)
     }
 
     // MARK: Moving

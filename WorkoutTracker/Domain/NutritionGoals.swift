@@ -8,7 +8,7 @@ import Foundation
 enum NutritionGoals {
 
     /// What the calculation needs. Weight and height normalized (kg, cm); the entered units live with Personal details.
-    struct Inputs: Equatable {
+    struct Inputs: Hashable {
         var weightKg: Double
         var heightCm: Double
         var ageYears: Int

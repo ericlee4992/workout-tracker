@@ -458,7 +458,7 @@ struct GoalSetupTests {
         try GoalSetupStore.commit(answers(), in: context, now: date(12), calendar: calendar)
         let collector = ExportCollector(dateFormat: ExportDateFormat(timeZone: calendar.timeZone), appVersion: "test")
         let snapshot = try collector.snapshot(from: context)
-        #expect(snapshot.schemaVersion == 13)
+        #expect(snapshot.schemaVersion == 14)
         let row = try #require(snapshot.nutritionGoals?.first)
         #expect(row.desiredWeightValue == 75 && row.desiredWeightUnit == .kg && row.desiredWeightKg == 75)
         #expect(row.paceKgPerWeek == 0.4)

@@ -153,7 +153,7 @@ struct ExportTests {
     @Test func jsonCarriesVersionAndOmitsNilRatherThanNull() throws {
         let text = try #require(
             String(data: try ExportJSON.data(makeSnapshot()), encoding: .utf8))
-        #expect(text.contains("\"schemaVersion\" : 13"), "v6 name, v7 D51 provenance, v8 heart-rate series, v9 series low/high, v10 cardio, v11 machine links, v12 nutrition")
+        #expect(text.contains("\"schemaVersion\" : 14"), "v6 name, v7 D51 provenance, v8 heart-rate series, v9 series low/high, v10 cardio, v11 machine links, v12 nutrition")
         #expect(!text.contains("null"), "nil optionals must be omitted, not encoded as null")
         // Sorted keys make the file diffable: `appVersion` precedes `counts`.
         let appVersion = try #require(text.range(of: "\"appVersion\""))

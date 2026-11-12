@@ -313,7 +313,7 @@ describe("GET /v1/ai/usage", () => {
       day: "2026-10-02", resetsAt: Date.UTC(2026, 9, 3, 4), paused: false,
       flows: {
         "scan-machine": { used: 1, limit: 60 }, "routine-week": { used: 0, limit: 10 }, "model-exercises": { used: 0, limit: 60 },
-        "food-photo": { used: 0, limit: 30 }, "food-label": { used: 0, limit: 30 }, "food-describe": { used: 0, limit: 60 },
+        "food-photo": { used: 0, limit: 30 }, "food-label": { used: 0, limit: 30 }, "food-describe": { used: 0, limit: 60 }, "nutrition-goals": { used: 0, limit: 20 },
       },
     });
     expect((await h.call("GET", "/v1/ai/usage")).status).toBe(401);

@@ -28,7 +28,6 @@ struct AIRoutineSheet: View {
     @State private var path: [UUID] = []
     @AppStorage(TerraAccess.routineConsentKey) private var consent = false
     @Environment(AccountStore.self) private var account
-    @State private var showingSettings = false
     @State private var signingIn = false
     @State private var showingNewGym = false
     @State private var scanningGym: Gym?
@@ -126,7 +125,6 @@ struct AIRoutineSheet: View {
             Button("Discard Week", role: .destructive) { perform(leave) }
             Button("Keep Editing", role: .cancel) {}
         }
-        .sheet(isPresented: $showingSettings) { AskAISettingsSheet() }
         .sheet(isPresented: $signingIn) { AccountSignInSheet() }
         .sheet(isPresented: $showingNewGym) {
             GymEditorSheet(onSave: { created in select(created) })
@@ -152,7 +150,7 @@ struct AIRoutineSheet: View {
                             consent: $consent, consentBypassed: TerraAccess.bypassesConsent,
                             aiReady: TerraAccess.ready(account),
                             onSelectGym: select, onAddGym: { showingNewGym = true },
-                            onScan: { scanningGym = $0 }, onOpenSettings: { showingSettings = true },
+                            onScan: { scanningGym = $0 },
                             onSignIn: { signingIn = true },
                             onGenerate: generate, onCancel: close)
                 .transition(stepTransition)

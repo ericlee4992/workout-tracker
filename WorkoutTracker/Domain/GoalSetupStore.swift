@@ -33,6 +33,8 @@ enum GoalSetupStore {
         /// kg a week; nil for maintain.
         var paceKgPerWeek: Double?
         var overrides: NutritionGoals.Overrides = .none
+        /// N14 (D85): the server's plan for these answers; nil = calculated on the phone.
+        var generated: Macros? = nil
     }
 
     /// What an existing user's run starts from: Personal details, the latest weight and the current goal. Any of them
@@ -49,7 +51,9 @@ enum GoalSetupStore {
         let preferences = AppPreferences.canonical(of: try context.fetch(FetchDescriptor<AppPreferences>()))
         var height: Height?
         if let value = preferences?.heightValue, let unit = preferences?.heightUnit { height = .init(value: value, unit: unit) }
-        let weight = try NutritionGoalStore.latestWeight(in: context).map { Weight(value: $0.value, unit: $0.unit) }
+        // N14 (D85): the latest weight entered in Stacked, never one read from Apple Health — the answers may go to the
+        // server for the plan, and Stacked does not upload Health data (N9b's approved wording).
+        let weight = try NutritionGoalStore.latestEnteredWeight(in: context).map { Weight(value: $0.value, unit: $0.unit) }
         let goal = try NutritionGoalStore.latestGoal(in: context)
         return Prefill(sex: preferences?.sex, birthDate: preferences?.birthDate, height: height, weight: weight,
                        choices: goal.map { NutritionGoalStore.choices(of: $0) })
@@ -92,6 +96,7 @@ enum GoalSetupStore {
             choices.overrides = answers.overrides
             choices.desired = answers.goal == .maintain ? nil : answers.desired
             choices.paceKgPerWeek = answers.goal == .maintain ? nil : answers.paceKgPerWeek
+            choices.generated = answers.generated
         }
     }
 }

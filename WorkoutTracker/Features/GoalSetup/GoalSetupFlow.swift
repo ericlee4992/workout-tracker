@@ -14,6 +14,8 @@ struct GoalSetupFlow: View {
     var onClose: (() -> Void)?
     /// First launch (D84): the plan page also offers the tour — the answers are saved first.
     var onTour: ((GoalSetupStore.Answers) -> Void)?
+    /// N14 (D85): the server's plan, signed in; nil = the calculation.
+    var generator: GoalSetupDraft.Generator? = nil
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var editing: NutritionGoalsView.Number?
@@ -38,6 +40,10 @@ struct GoalSetupFlow: View {
         }
         .lookScreenBackground()
         .sheet(item: $editing) { number in editor(number) }
+        // N14: reaching the plan page (or changing an answer that shapes it) asks the server once.
+        .task(id: draft.generationRequest) {
+            if let generator { await draft.generate(with: generator) }
+        }
     }
 
     // MARK: Chrome
@@ -384,8 +390,20 @@ struct GoalSetupFlow: View {
 
     private var planPage: some View {
         VStack(alignment: .leading, spacing: 0) {
-            question("Your plan is ready", planSummary)
-            if let plan = draft.plan { planNumbers(plan) }
+            question(draft.isGenerating ? "Making your plan" : "Your plan is ready", planSummary)
+            if draft.isGenerating {
+                generatingPanel
+            } else if let plan = draft.plan {
+                planNumbers(plan)
+                if draft.generationFailed {
+                    Text("Couldn't reach the server, so this plan was calculated on your phone.")
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 10)
+                        .accessibilityIdentifier("goalSetupCalculatedFallback")
+                }
+            }
             if draft.overrides != .none {
                 Button("Recalculate") { move { draft.overrides = .none } }
                     .buttonStyle(.borderless)
@@ -417,7 +435,23 @@ struct GoalSetupFlow: View {
     }
 
     private func planNumbers(_ plan: Macros) -> some View {
-        PlanNumbersPanel(plan: plan, overrides: draft.overrides) { editing = $0 }
+        PlanNumbersPanel(plan: plan, overrides: draft.overrides, generated: draft.generatedPlan != nil) { editing = $0 }
+    }
+
+    /// While the server works: the panel's place, a spinner and one line (no numbers to edit yet).
+    private var generatingPanel: some View {
+        HStack(spacing: 12) {
+            ProgressView()
+            Text("Working out your calories and macros…")
+                .font(look.font.subhead.weight(.semibold))
+                .foregroundStyle(look.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, minHeight: 120)
+        .padding(18)
+        .lookSurface(.panel)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("goalSetupGenerating")
     }
 
     @ViewBuilder private func editor(_ number: NutritionGoalsView.Number) -> some View {
@@ -555,6 +589,8 @@ struct GoalSetupStats: View {
 struct PlanNumbersPanel: View {
     var plan: Macros
     var overrides: NutritionGoals.Overrides
+    /// N14: the untyped numbers came from the server's plan ("Generated") rather than the calculation.
+    var generated = false
     var onEdit: (NutritionGoalsView.Number) -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
@@ -574,7 +610,7 @@ struct PlanNumbersPanel: View {
                         Spacer(minLength: 8)
                         pencil
                     }
-                    Text(overrides.calories == nil ? "Calculated" : "Typed by you")
+                    Text(overrides.calories != nil ? "Typed by you" : (generated ? "Generated" : "Calculated"))
                         .font(look.font.footnote)
                         .foregroundStyle(look.textSecondary)
                 }

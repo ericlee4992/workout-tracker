@@ -39,7 +39,7 @@ struct TourStep: Identifiable, Hashable {
         TourStep(id: "exercises", anchor: "tour.exercisesList", tab: .exercises,
                  caption: "Every exercise, with its history on each machine."),
         TourStep(id: "settings", anchor: "tour.settings", tab: .profile,
-                 caption: "Your profile: units, appearance, Ask AI and backups — and this tour again."),
+                 caption: "Your profile: units, appearance and backups — and this tour again."),
     ]
 }
 

@@ -12,6 +12,8 @@ enum AIFlow: String, CaseIterable, Sendable {
     case foodPhoto = "food-photo"
     case foodLabel = "food-label"
     case foodDescribe = "food-describe"
+    /// Nutrition N14 (D85): the goal setup's plan.
+    case nutritionGoals = "nutrition-goals"
 
     /// The plural noun in "You've used today's 60 machine scans." (the profile's tile titles, lowercased).
     var noun: String {
@@ -22,6 +24,7 @@ enum AIFlow: String, CaseIterable, Sendable {
         case .foodPhoto: "meal photos"
         case .foodLabel: "food labels"
         case .foodDescribe: "food descriptions"
+        case .nutritionGoals: "goal plans"
         }
     }
 }

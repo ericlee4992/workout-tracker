@@ -18,7 +18,6 @@ struct AIEquipmentStep: View {
     var onSelectGym: (Gym?) -> Void
     var onAddGym: () -> Void
     var onScan: (Gym) -> Void
-    var onOpenSettings: () -> Void
     var onSignIn: () -> Void
     var onGenerate: () -> Void
     var onCancel: () -> Void
@@ -218,9 +217,8 @@ struct AIEquipmentStep: View {
                 .padding(.vertical, 10)
                 .frame(minHeight: 50)
                 .accessibilityIdentifier("allowAIRoutine")
-                // Same label as the Settings row (X01).
-                LookRow("Ask AI", symbol: "sparkles", value: aiReady ? "On" : "Sign In", action: onOpenSettings)
-                    .accessibilityIdentifier("routineAskAIRow")
+                // N14 (D85): the "Ask AI — On / Sign In" row went with Profile → Ask AI; signed out, the Sign In command
+                // below is the way in.
             }
             .overlay {
                 // Points at the switch after a tap on the off Generate.

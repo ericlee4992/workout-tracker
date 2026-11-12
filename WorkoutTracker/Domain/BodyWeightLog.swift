@@ -37,7 +37,7 @@ enum BodyWeightLog {
     /// `NutritionGoalStore.Failure.detailsIncomplete` when there is nothing to calculate from, rather than doing nothing.
     @discardableResult
     static func recalculateGoal(in context: ModelContext, now: Date = .now) throws -> NutritionGoal? {
-        try NutritionGoalStore.update(in: context, now: now) { $0.overrides = .none }
+        try NutritionGoalStore.update(in: context, now: now) { $0.overrides = .none; $0.generated = nil }
     }
 
     /// The goal was calculated at a weight more than about 2 kg from the latest one (N9: offer Recalculate rather than

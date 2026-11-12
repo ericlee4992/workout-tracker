@@ -85,6 +85,7 @@ describe("the server owns each food flow's request", () => {
     expect(MODELS).toEqual({
       "scan-machine": "gpt-5.6-terra", "routine-week": "gpt-5.6-terra", "model-exercises": "gpt-5.6-terra",
       "food-photo": "gpt-6.1-terra", "food-label": "gpt-6.1-terra", "food-describe": "gpt-6.1-terra",
+        "nutrition-goals": "gpt-6.1-terra",
     });
   });
 

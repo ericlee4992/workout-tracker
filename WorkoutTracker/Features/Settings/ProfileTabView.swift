@@ -4,7 +4,7 @@ import SwiftUI
 /// Soft redesign S6: the Profile tab's root, laid out like the approved prototype (`SoftProfileScreen`, tag
 /// `design/soft-approved-2026-11-07`) and grouped as the user chose (D80): the account card, **Goals & tracking** (what
 /// you track — Heart rate zones now; N3 adds Nutrition goals, N9 Body weight and Apple Health), **Settings** (what you
-/// set once — Preferences, Ask AI, Export & backup; N3 adds Personal details), then Help and the app's version. Every
+/// set once — Preferences, Export & backup; N3 adds Personal details), then Help and the app's version. Every
 /// setting that sat inline on the old page (`SettingsView` before S6) is one tap further.
 struct ProfileTabView: View {
     @Environment(\.modelContext) private var modelContext
@@ -29,7 +29,6 @@ struct ProfileTabView: View {
     @State private var showPersonalDetails = false
     @State private var showExportBackup = false
     @State private var showMaxHeartRateSheet = false
-    @State private var showAskAISheet = false
     @State private var showFeedback = false
     @State private var showWhatsNew = false
     @State private var showProfile = false
@@ -90,7 +89,6 @@ struct ProfileTabView: View {
         .navigationDestination(isPresented: $showPersonalDetails) { PersonalDetailsView() }
         .navigationDestination(isPresented: $showExportBackup) { ExportBackupView() }
         .sheet(isPresented: $showMaxHeartRateSheet) { MaxHeartRateSheet() }
-        .sheet(isPresented: $showAskAISheet) { AskAISettingsSheet() }
         .navigationDestination(isPresented: $showProfile) {
             ProfileScreen(usCustomary: unitSystem == .usCustomary) { outcome in
                 switch outcome {
@@ -135,12 +133,6 @@ struct ProfileTabView: View {
         return "\(goal.calories.formatted(.number.precision(.fractionLength(0)))) cal"
     }
 
-    /// One status — On, Sign In or Paused (ticket 06: AI runs on the server, signed in, D60).
-    private var askAIStatus: String {
-        guard TerraAccess.ready(account) else { return "Sign In" }
-        return account.profile?.aiPaused == true ? "Paused" : "On"
-    }
-
     private var showsOnlyCopyNotice: Bool {
         BackupStatus.showsOnlyCopyNotice(
             lastExport: lastExportSeconds.map(Date.init(timeIntervalSinceReferenceDate:)), now: .now)
@@ -183,8 +175,8 @@ struct ProfileTabView: View {
                     .accessibilityIdentifier("profilePersonalDetails")
                 ProfileRow(SettingsView.pageTitle, symbol: "slider.horizontal.3") { showSettings = true }
                     .accessibilityIdentifier("profileSettings")
-                ProfileRow("Ask AI", symbol: "sparkles", value: askAIStatus) { showAskAISheet = true }
-                    .accessibilityIdentifier("askAISettings")
+                // N14 (D85): no Ask AI row — the app's AI features ask for their permission at first use, and the
+                // account card shows today's use.
                 // The one line the old Export section had to keep saying (codex-review 06) rides on the row.
                 ProfileRow("Export & backup", symbol: "square.and.arrow.up",
                            subtitle: showsOnlyCopyNotice ? "This phone holds the only copy until you export." : nil) {

@@ -218,7 +218,8 @@ struct ExportCollector {
             proteinOverridden: goal.proteinOverridden, carbsOverridden: goal.carbsOverridden,
             fatOverridden: goal.fatOverridden, createdAt: dateFormat.string(from: goal.createdAt),
             desiredWeightValue: goal.desiredWeightValue, desiredWeightUnit: goal.desiredWeightUnit,
-            desiredWeightKg: goal.desiredWeightKg, paceKgPerWeek: goal.paceKgPerWeek)
+            desiredWeightKg: goal.desiredWeightKg, paceKgPerWeek: goal.paceKgPerWeek,
+            generated: goal.generated ? true : nil)
     }
 
     private func bodyWeight(from weight: BodyWeightEntry) -> ExportSnapshot.BodyWeightRow {

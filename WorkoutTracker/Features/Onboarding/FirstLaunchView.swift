@@ -6,6 +6,7 @@ import SwiftUI
 struct FirstLaunchView: View {
     var welcome: WelcomeView
     @Environment(OnboardingCoordinator.self) private var onboarding
+    @Environment(AccountStore.self) private var account
     @Environment(\.modelContext) private var modelContext
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var saveFailure: String?
@@ -16,7 +17,8 @@ struct FirstLaunchView: View {
                 GoalSetupFlow(draft: draft,
                               onFinish: { finish($0, thenTour: false) },
                               onClose: nil,
-                              onTour: { finish($0, thenTour: true) })
+                              onTour: { finish($0, thenTour: true) },
+                              generator: GoalPlanService.generator(account))
                     .transition(.opacity)
             } else {
                 welcome

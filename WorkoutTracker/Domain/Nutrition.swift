@@ -386,6 +386,10 @@ final class NutritionGoal {
     var desiredWeightUnit: WeightUnit?
     var desiredWeightKg: Double?
     var paceKgPerWeek: Double?
+    // N14 (D85): the numbers came from the server's plan (the goal setup, signed in), not the calculation — they stay as
+    // they are when Personal details change, until the setup runs again or Recalculate. A typed number keeps its own
+    // flag. Additive with a default: SwiftData migrates build 11's store lightweightly (`GeneratedGoalsMigrationTests`).
+    var generated: Bool = false
 
     init(id: UUID = UUID(), effectiveFrom: Date, calories: Double, proteinGrams: Double, carbsGrams: Double,
          fatGrams: Double, createdAt: Date = .now) {

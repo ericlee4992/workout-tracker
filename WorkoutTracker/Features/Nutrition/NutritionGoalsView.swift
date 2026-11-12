@@ -1,14 +1,15 @@
 import SwiftData
 import SwiftUI
 
-/// Nutrition N3 — Profile → Goals & tracking → Nutrition goals (mock approved by the user 2026-11-09). N13 (D84): the
-/// Goal weight row runs the goal setup (prefilled) in place of the Goal menu.
+/// Nutrition N3 — Profile → Goals & tracking → Nutrition goals (mock approved by the user 2026-11-09). N14 (D85, the
+/// user 2026-11-12): the numbers and one command, Generate Goals, which runs the goal setup (prefilled); the Personal
+/// details, Activity and Goal weight rows are gone (Personal details stays in Profile → Settings).
 ///
-/// The eye lands on the calorie figure (the hero); the three macros sit under it as equal tiles; the two choices the
-/// goal is "based on" (activity, goal) and Personal details are rows below. Tapping a number opens a small editor (the
-/// user's choice); a typed number reads "Typed by you" and Recalculate appears. Every change is stored through
-/// `NutritionGoalStore` (a dated goal: past days keep theirs). Without complete Personal details there is nothing to
-/// calculate: the numbers are absent and the Personal details row says Not set.
+/// The eye lands on the calorie figure (the hero); the three macros sit under it as equal tiles; Generate Goals under
+/// them. Tapping a number opens a small editor (the user's choice); a typed number reads "Typed by you", the server's
+/// "Generated", and Recalculate (back to the calculation) appears. Every change is stored through `NutritionGoalStore`
+/// (a dated goal: past days keep theirs). Without complete Personal details there is nothing to show: Generate Goals
+/// alone, which collects them.
 struct NutritionGoalsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.look) private var look
@@ -17,12 +18,10 @@ struct NutritionGoalsView: View {
     @Query private var allPreferences: [AppPreferences]
     @Query(sort: \BodyWeightEntry.measuredAt, order: .reverse) private var weights: [BodyWeightEntry]
     @State private var editing: Number?
-    @State private var showDetails = false
     /// N13 (D84): the goal setup, run from the Goal weight row, prefilled.
     @State private var setup: GoalSetupDraft?
     @State private var saveFailure: String?
-    /// Choices made before Personal details are complete (no goal to hold them yet); applied to the first goal.
-    @State private var pending: NutritionGoalStore.Choices?
+    @Environment(AccountStore.self) private var account
 
     enum Number: Identifiable, Hashable {
         case calories
@@ -34,9 +33,7 @@ struct NutritionGoalsView: View {
         goals.max { ($0.effectiveFrom, $0.createdAt, $0.id.uuidString) < ($1.effectiveFrom, $1.createdAt, $1.id.uuidString) }
     }
 
-    private var choices: NutritionGoalStore.Choices {
-        hasDetails ? NutritionGoalStore.choices(of: current) : pending ?? NutritionGoalStore.choices(of: current)
-    }
+    private var choices: NutritionGoalStore.Choices { NutritionGoalStore.choices(of: current) }
 
     private var macros: Macros? {
         current.map { Macros(calories: $0.calories, proteinGrams: $0.proteinGrams, carbsGrams: $0.carbsGrams,
@@ -49,9 +46,11 @@ struct NutritionGoalsView: View {
                 LookNavTitle("Nutrition goals")
                 // Without complete details nothing can be calculated or edited (codex-review-n3): no numbers.
                 if hasDetails, let macros { numbers(macros) }
-                basedOn
-                if choices.overrides != .none {
-                    Button("Recalculate") { change { $0.overrides = .none } }
+                // N14 (D85): one command — the goal setup, prefilled; its plan comes from the server when signed in.
+                PrimaryButton("Generate Goals", symbol: "sparkles", action: openSetup)
+                    .accessibilityIdentifier("nutritionGoalsGenerate")
+                if hasDetails && (choices.overrides != .none || choices.generated != nil) {
+                    Button("Recalculate") { change { $0.overrides = .none; $0.generated = nil } }
                         .buttonStyle(.borderless)
                         .font(.system(.body, weight: .semibold))
                         .foregroundStyle(look.textPrimary)
@@ -72,12 +71,9 @@ struct NutritionGoalsView: View {
         .navigationBarTitleDisplayMode(.inline)
         // Personal details may have changed since the goal was stored (e.g. a new day's age): bring it up to date.
         .task { refresh() }
-        .onChange(of: hasDetails) { _, complete in
-            if complete, let pending { change { $0 = pending } }  // every held choice, Recalculate (no overrides) too
-        }
-        .navigationDestination(isPresented: $showDetails) { PersonalDetailsView() }
         .fullScreenCover(item: $setup) { draft in
-            GoalSetupFlow(draft: draft, onFinish: saveSetup, onClose: { setup = nil }, onTour: nil)
+            GoalSetupFlow(draft: draft, onFinish: saveSetup, onClose: { setup = nil }, onTour: nil,
+                          generator: GoalPlanService.generator(account))
                 .lookLayer()
                 .alert("Couldn't save", isPresented: Binding(get: { saveFailure != nil },
                                                              set: { if !$0 { saveFailure = nil } })) {
@@ -107,7 +103,8 @@ struct NutritionGoalsView: View {
                         Spacer(minLength: 8)
                         pencil
                     }
-                    Text(choices.overrides.calories == nil ? "Calculated" : "Typed by you")
+                    Text(choices.overrides.calories != nil ? "Typed by you"
+                         : (choices.generated != nil ? "Generated" : "Calculated"))
                         .font(look.font.footnote)
                         .foregroundStyle(look.textSecondary)
                 }
@@ -170,32 +167,6 @@ struct NutritionGoalsView: View {
         }
     }
 
-    // MARK: Based on
-
-    private var basedOn: some View {
-        VStack(alignment: .leading, spacing: look.space.header) {
-            SectionHeader("Based on")
-            LookList(separatorInset: 54) {
-                ProfileRow("Goal weight", symbol: "flag", value: goalSummary) { openSetup() }
-                    .accessibilityIdentifier("nutritionGoalsGoalWeight")
-                ActivityMenu(choices: choices) { apply in change(apply) }
-                ProfileRow("Personal details", symbol: "person.text.rectangle", subtitle: detailsSummary) {
-                    showDetails = true
-                }
-                .accessibilityIdentifier("nutritionGoalsDetails")
-            }
-        }
-    }
-
-    /// "63.5 kg · 0.35 kg a week" (the goal setup's desired weight as entered, the pace in its unit); "Maintain"; a goal
-    /// from before N13 by its name ("Lose weight").
-    private var goalSummary: String {
-        let goal = choices.goal
-        guard goal != .maintain, let desired = choices.desired, let pace = choices.paceKgPerWeek else { return goal.label }
-        return "\(GoalSetupFormat.number(desired.value)) \(desired.unit.rawValue) · "
-            + "\(GoalSetupFormat.pace(pace, unit: desired.unit)) \(desired.unit.rawValue) a week"
-    }
-
     private func openSetup() {
         do { setup = GoalSetupDraft(prefill: try GoalSetupStore.prefill(in: modelContext)) }
         catch { saveFailure = error.localizedDescription }
@@ -204,7 +175,6 @@ struct NutritionGoalsView: View {
     private func saveSetup(_ answers: GoalSetupStore.Answers) {
         do {
             try GoalSetupStore.commit(answers, in: modelContext)
-            pending = nil
             setup = nil
         } catch {
             saveFailure = error.localizedDescription
@@ -252,15 +222,9 @@ struct NutritionGoalsView: View {
     }
 
     private func change(_ apply: (inout NutritionGoalStore.Choices) -> Void) {
-        guard hasDetails else {
-            var held = pending ?? NutritionGoalStore.choices(of: current)
-            apply(&held)
-            pending = held
-            return
-        }
+        guard hasDetails else { return }  // nothing shown to change without details (the numbers are absent)
         do {
             try withoutActuallyEscaping(apply) { try NutritionGoalStore.update(in: modelContext, change: $0) }
-            pending = nil
         } catch {
             saveFailure = error.localizedDescription
         }
