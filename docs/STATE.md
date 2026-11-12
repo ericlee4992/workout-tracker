@@ -3,7 +3,28 @@
 Updated **2026-11-12: 0.2.0 (12) uploaded (N14 on top of build 11); next: the user's TestFlight steps, Gate S first.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
+## RESUME HERE (2026-11-12, end of the P1 / N13 / N14 session)
+
+- **Git:** everything merged and pushed; `main` = `f8b300dc` (home checkout clean). Nothing in progress on any branch.
+- **Shipped to TestFlight:** **0.2.0 (12)** uploaded 2026-11-12 17:55 EST = P1 workout lag + N13 goal setup + N14 AI
+  goals (build 11 was uploaded earlier the same day; the user kept the version at 0.2.0 so external review is likely
+  skipped). Records: `work-record/release/0.2.0-build-11.md`, `0.2.0-build-12.md`.
+- **Server:** deployed 2026-11-12 (Worker `4c9d03db`, migration 0009, privacy "Effective November 12, 2026").
+- **The user's next steps (not the agent's):** App Store Connect → build 12 to Developer → **Gate S on the phone before
+  installing** (stored-format change since build 10: N13 + N14) → install and check Generate Goals signed in (the first
+  live `nutrition-goals` request), What's New, a workout (P1's phone check: P1 acceptance 1–2) → Friends with the edited
+  What to Test note → Submit.
+- **Next ticket (agent):** **0.2.2 = [N12 Korean food DB](../work-record/nutrition/issues/12-korean-food-database.md)**
+  (needs the user's data.go.kr key) — in its own Paseo worktree off `main`; a new Codex reviewer agent there (the one in
+  the N13 workspace, `edd217f6-…`, goes when that workspace is archived).
+- **Open for the user (not blocking):** N13's and N14's new strings and own decisions (their tickets); App Store Connect
+  → App Privacy: sex / age / weight declared for App Functionality (N14).
+- **Dated chores:** delete server D1 backups `~/WorkoutTracker-Backups/server/2026-11-11-release-r` by **2026-12-11** and
+  `2026-11-12-n14-ai-goals` by **2026-12-12** (the privacy policy promises it).
+- **Cleanup:** archive Paseo workspace "N13 goal setup" (`~/.paseo/worktrees/1qmeipq9/nutrition-13-goal-setup`); the
+  P1 workspace was archived earlier. Branches are kept.
+
+## History below (older NOW entries; superseded by RESUME HERE)
 
 - **2026-11-12: N14 AI goals DONE — Codex clear (round 3), merged into `main`; server deployed.** [Ticket](../work-record/nutrition/issues/14-ai-goals.md),
   D85, review `work-record/nutrition/codex-review-n14.md`. Nutrition goals = numbers + Generate Goals; the plan from the
