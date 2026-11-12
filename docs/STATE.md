@@ -1,14 +1,16 @@
 # Current project state
 
-Updated **2026-11-11, N8 merged; R in progress on `ericlee4992/release-r` (full UI suite running).** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
 
 - **Resume here (2026-11-11): R in progress** (branch `ericlee4992/release-r`; ticket
   `work-record/nutrition/issues/11-combined-release.md` → Progress has the checklist state, drafts and what waits for
-  the user: What's New / What to Test / privacy approval + effective date, deploy, App Privacy, Gate S). Limits kept
-  (the user). Full UI suite running (the user's go). N12 (Korean food DB) written, after R.
+  the user). Done: limits kept, full UI suite (381/386 + fixes), What's New (build 10) and What to Test approved,
+  README, privacy/support copy (Codex clear), **server deployed 2026-11-11** (migrations 0007+0008, `USDA_API_KEY`,
+  Worker `901eda5d`; backup in `~/WorkoutTracker-Backups/server/2026-11-11-release-r`, delete by 2026-12-11). Next:
+  App Privacy answers (the user), Gate S on the phone, build 10 (bump, archive, upload). N12 (Korean food DB) after R.
   **N8 DONE — Codex clear (round 5), merged into `main`.** N8 = barcode (Open Food
   Facts → USDA branded) + online search (USDA generic) through the server (`server/src/food.ts`, migration 0008, D1
   cache, per-account limit) and the app (Barcode mode, lookup screens, Log food "More foods", serving picker,
