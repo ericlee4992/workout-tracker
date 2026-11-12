@@ -468,7 +468,7 @@ final class AskAIUITests: XCTestCase {
     func testSignedOutRoutineOffersSignIn() { signedOutRoutine(large: false) }
     func testSignedOutRoutineAccessibility() { signedOutRoutine(large: true) }
     /// Public beta ticket 06: no key anywhere. Signed out, Equipment offers Sign In instead of Generate (the sign-in
-    /// sheet), and its Ask AI row opens the Ask AI sheet — Sign In and the permissions, no key field.
+    /// sheet); N14: no Ask AI row.
     private func signedOutRoutine(large: Bool) {
         app.launchArguments = ["-uiTestReset"] + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : [])
         app.launch(); app.openTrain()
@@ -480,15 +480,8 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(any("signInWithApple").waitForExistence(timeout: 5))
         app.buttons["signInClose"].tap()
         XCTAssertTrue(any("signInWithApple").waitForNonExistence(timeout: 5))
-        let row = any("routineAskAIRow"); reach(row); row.tap()
-        // Floodlight ticket 09: the sheet opens at its content height (full height at AX sizes).
-        let done = app.buttons["askAIDone"]
-        let settled = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in done.exists && done.isHittable }, object: nil)
-        XCTAssertEqual(XCTWaiter.wait(for: [settled], timeout: 5), .completed)
-        XCTAssertTrue(app.buttons["askAISignIn"].exists)
-        shot("ai-settings-signedout-\(large ? "axl" : "default")")
-        reach(app.switches["Send equipment photos to OpenAI"].firstMatch)
-        shot("ai-settings-permissions-\(large ? "axl" : "default")")
+        // N14 (D85): no Ask AI row (and no sheet) — Sign In above is the way in.
+        XCTAssertFalse(any("routineAskAIRow").exists)
         XCTAssertFalse(app.secureTextFields.firstMatch.exists, "no key field")
     }
 }

@@ -1,7 +1,6 @@
 import XCTest
 
-// Public beta ticket 06 (app half, UI-first): AI through the server, signed in — Settings' Ask AI card and sheet
-// (signed out, signed in with today's use, paused), Scan Machine's consent and sign-in steps and its over-limit and
+// Public beta ticket 06 (app half, UI-first): AI through the server, signed in — Scan Machine's consent and sign-in steps and its over-limit and
 // paused errors, Ask AI for Templates signed out and over its limit, and New Model's suggestion signed out — on the
 // sample account and the Terra fixture, in light and dark at Default and AccessibilityL.
 final class FloodlightAIAccessUITests: XCTestCase {
@@ -49,23 +48,6 @@ final class FloodlightAIAccessUITests: XCTestCase {
         XCTAssertTrue(last.exists && last.isHittable, "\(name): reached \(last)")
     }
 
-    private func openSettings() {
-        app.openProfile()
-        XCTAssertTrue(any("askAISettings").waitForExistence(timeout: 10))
-    }
-
-    private func openAskAISheet(_ name: String) {
-        openSettings()
-        let card = any("askAISettings")
-        for _ in 0..<8 { guard !onScreen(card) else { break }; app.swipeUp() }
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("\(name)-settings")
-        card.tap()
-        XCTAssertTrue(app.buttons["askAIDone"].waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 1.0)
-        pages("\(name)-sheet", until: app.links.firstMatch.exists ? app.links.firstMatch : any("askAIStatus"))
-    }
-
     private func openScan() {
         app.openTrain("Gyms")
         let iron = any("gymRow.Iron Temple")
@@ -98,21 +80,7 @@ final class FloodlightAIAccessUITests: XCTestCase {
     private func capture(appearance: String, large: Bool) {
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
 
-        // Settings → Ask AI: signed out, signed in, paused.
-        launch(appearance: appearance, large: large, flags: ["-uiTestProfileSignedOut"])
-        openAskAISheet("ai06-signedout-\(suffix)")
-        XCTAssertTrue(app.buttons["askAISignIn"].exists)
-        app.terminate()
-
-        launch(appearance: appearance, large: large, flags: ["-uiTestProfileSample"])
-        openAskAISheet("ai06-signedin-\(suffix)")
-        XCTAssertTrue(any("askAIUse.scan-machine").exists)
-        app.terminate()
-
-        launch(appearance: appearance, large: large, flags: ["-uiTestProfileSample", "-uiTestAIPaused"])
-        openAskAISheet("ai06-paused-\(suffix)")
-        app.terminate()
-
+        // (Settings → Ask AI went with N14, D85.)
         // Scan Machine: consent (signed in), then the sign-in step (signed out).
         launch(appearance: appearance, large: large, flags: ["-uiTestProfileSample", "-uiTestTerraNeedsConsent"])
         openScan()
@@ -142,12 +110,14 @@ final class FloodlightAIAccessUITests: XCTestCase {
             app.terminate()
         }
 
-        // Ask AI for Templates signed out: the Ask AI row and Sign In in the bar.
+        // Ask AI for Templates signed out: Sign In in the bar (N14: no Ask AI row).
         launch(appearance: appearance, large: large, flags: ["-uiTestProfileSignedOut"])
         openRoutineEquipment()
         let signIn = app.buttons["routineSignIn"]
         XCTAssertTrue(signIn.exists)
-        pages("ai06-routine-signedout-\(suffix)", until: any("routineAskAIRow"), floor: signIn.frame.minY - 60)
+        XCTAssertFalse(any("routineAskAIRow").exists)
+        pages("ai06-routine-signedout-\(suffix)", until: app.switches["allowAIRoutine"].firstMatch.exists
+              ? app.switches["allowAIRoutine"].firstMatch : any("allowAIRoutine"), floor: signIn.frame.minY - 60)
         app.terminate()
 
         // …and over its limit.

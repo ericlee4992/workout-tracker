@@ -136,20 +136,8 @@ final class FloodlightSettingsUITests: XCTestCase {
         app.buttons["appUnitPreference.usCustomary"].tap()
         app.openProfile()  // the selected tab again: back to Profile's root
 
-        // X02 (ticket 06: no key; this store has no account): Off with Sign In, then the permissions.
-        let askAI = app.buttons["askAISettings"]
-        reach(askAI)
-        XCTAssertEqual(askAI.label, "Ask AI, Sign In")
-        askAI.tap()
-        let done = app.buttons["askAIDone"]
-        XCTAssertTrue(done.waitForExistence(timeout: 5))
-        Thread.sleep(forTimeInterval: 1.0)
-        XCTAssertEqual(any("askAIStatus").label, "Ask AI, Off, Sign in to use AI.")
-        XCTAssertTrue(app.buttons["askAISignIn"].exists)
-        shoot("floodlight-09-x02-\(suffix)-1")
-        page(to: app.links.firstMatch, name: "floodlight-09-x02-\(suffix)")
-        done.tap()
-        XCTAssertTrue(done.waitForNonExistence(timeout: 5))
+        // X02 (Ask AI) is gone (N14, D85): the AI features ask at first use.
+        XCTAssertFalse(app.buttons["askAISettings"].exists, "no Ask AI row")
 
         // X03, now Profile → Export & backup: idle (an export five days ago), sharing, then the file card.
         app.openExportBackup()
@@ -234,33 +222,15 @@ final class FloodlightSettingsUITests: XCTestCase {
         XCTAssertEqual(any("globalWorkingRest").value as? String, "2:15")
     }
 
-    /// Ticket 06: no key anywhere. Signed out the row and the sheet say Sign In, which opens the sign-in sheet; signed
-    /// in they say On with who is signed in and today's use.
-    func testAskAIFollowsTheAccount() {
+    /// N14 (D85): Profile has no Ask AI row, signed out or in; the account card still shows today's use.
+    func testProfileHasNoAskAIRow() {
         launch(extra: ["-uiTestProfileSignedOut"], settingsFixture: false)
-        let row = app.buttons["askAISettings"]
-        reach(row)
-        XCTAssertEqual(row.label, "Ask AI, Sign In")
-        row.tap()
-        let status = any("askAIStatus")
-        XCTAssertTrue(status.waitForExistence(timeout: 5))
-        XCTAssertEqual(status.label, "Ask AI, Off, Sign in to use AI.")
-        XCTAssertFalse(app.secureTextFields.firstMatch.exists, "no key field")
-        app.buttons["askAISignIn"].tap()
-        XCTAssertTrue(any("signInWithApple").waitForExistence(timeout: 5))
-        app.buttons["signInClose"].tap()
-        XCTAssertTrue(any("signInWithApple").waitForNonExistence(timeout: 5))
-        app.buttons["askAIDone"].tap()
+        XCTAssertTrue(app.buttons["profileExportBackup"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["askAISettings"].exists)
         app.terminate()
-
         launch(extra: ["-uiTestProfileSample"], settingsFixture: false)
-        reach(row)
-        XCTAssertEqual(row.label, "Ask AI, On")
-        row.tap()
-        XCTAssertTrue(status.waitForExistence(timeout: 5))
-        XCTAssertEqual(status.label, "Ask AI, On, Signed in as Alex Kim")
-        XCTAssertFalse(app.buttons["askAISignIn"].exists)
-        XCTAssertEqual(any("askAIUse.scan-machine").label, "Machine scans, 12 of 60 used today")
+        XCTAssertTrue(app.buttons["profileExportBackup"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["askAISettings"].exists)
     }
 
     /// A cancelled share records nothing; a completed one (Copy) moves the mark to now.

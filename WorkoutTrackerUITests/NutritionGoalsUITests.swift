@@ -88,12 +88,10 @@ final class NutritionGoalsUITests: XCTestCase {
         let recalculate = app.buttons["nutritionGoalsRecalculate"]
         XCTAssertTrue(recalculate.waitForExistence(timeout: 5))
 
-        // A typed number stays when the activity changes; the calories follow it. (N13: the goal itself is set by the
-        // goal setup — GoalSetupUITests.)
-        let before = calories.label
-        any("nutritionGoalsActivity").tap()
-        app.buttons["Light"].firstMatch.tap()
-        XCTAssertTrue(NSPredicate(format: "label != %@", before).evaluate(with: calories), "the calories followed the activity")
+        // N14 (D85): no Activity, Goal weight or Personal details rows here — one command, Generate Goals.
+        XCTAssertTrue(app.buttons["nutritionGoalsGenerate"].exists)
+        XCTAssertFalse(any("nutritionGoalsActivity").exists || any("nutritionGoalsDetails").exists
+                       || any("nutritionGoalsGoalWeight").exists)
         XCTAssertTrue(protein.label.contains("200"), protein.label)
 
         recalculate.tap()
@@ -118,75 +116,16 @@ final class NutritionGoalsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["saveMaxHeartRate"].waitForNonExistence(timeout: 5))
 
         app.buttons["profileNutritionGoals"].tap()
-        let details = app.buttons["nutritionGoalsDetails"]
-        XCTAssertTrue(details.waitForExistence(timeout: 5))
-        XCTAssertTrue(details.label.contains("Not set"), details.label)
+        XCTAssertTrue(app.buttons["nutritionGoalsGenerate"].waitForExistence(timeout: 5), "the way to set it up again")
         XCTAssertFalse(any("nutritionGoalsCalories").exists, "no numbers to edit without complete details")
+        XCTAssertFalse(app.buttons["nutritionGoalsRecalculate"].exists)
         XCTAssertFalse(app.alerts.firstMatch.exists, "opening the page is not an error")
     }
 
-    /// codex-review-n3b #1: Recalculate pressed while the details are incomplete is kept, and applied once they are
-    /// complete again — the typed number does not come back.
-    func testRecalculateWhileDetailsAreIncompleteSticks() {
-        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestPersonalDetails"]
-        app.launch()
-        app.openProfile()
-        app.buttons["profileNutritionGoals"].tap()
-        let protein = app.buttons["nutritionGoals.Protein"]
-        XCTAssertTrue(protein.waitForExistence(timeout: 5))
-        protein.tap()
-        type("200", into: "goalProteinField")
-        save()
-        XCTAssertTrue(protein.label.contains("Typed by you"), protein.label)
-
-        app.openProfile()  // pops to the root
-        let zones = app.buttons["heartRateZonesSettings"]
-        XCTAssertTrue(zones.waitForExistence(timeout: 5))
-        zones.tap()
-        let useBirthDate = app.switches["useBirthDate"]
-        XCTAssertTrue(useBirthDate.waitForExistence(timeout: 5))
-        useBirthDate.switches.firstMatch.exists ? useBirthDate.switches.firstMatch.tap() : useBirthDate.tap()
-        app.buttons["saveMaxHeartRate"].tap()
-        XCTAssertTrue(app.buttons["saveMaxHeartRate"].waitForNonExistence(timeout: 5))
-
-        app.buttons["profileNutritionGoals"].tap()
-        let recalculate = app.buttons["nutritionGoalsRecalculate"]
-        XCTAssertTrue(recalculate.waitForExistence(timeout: 5), "the typed protein still offers Recalculate")
-        recalculate.tap()
-        XCTAssertTrue(recalculate.waitForNonExistence(timeout: 5))
-
-        app.buttons["nutritionGoalsDetails"].tap()
-        tapRow("personalBirthDate")
-        XCTAssertTrue(any("birthDatePicker").waitForExistence(timeout: 5))
-        save()  // the picker opens on 30 years ago: the details are complete again
-        app.navigationBars.buttons.element(boundBy: 0).tap()  // back to Nutrition goals
-        XCTAssertTrue(protein.waitForExistence(timeout: 5))
-        XCTAssertFalse(protein.label.contains("Typed by you"), "Recalculate was kept: \(protein.label)")
-        XCTAssertFalse(recalculate.exists)
-    }
+    // codex-review-n3b #1's test (Recalculate held while the details were incomplete) went with N14: without
+    // details there are no numbers and no Recalculate to hold.
 
     // N3's onboarding goals sheet (Welcome → Skip → the sheet) gave way to N13's goal setup: GoalSetupUITests.
-
-    /// Scrolls a Personal details row on screen (AccessibilityL pushes the lower rows down) and taps it.
-    private func tapRow(_ id: String) {
-        let row = app.buttons[id]
-        XCTAssertTrue(row.waitForExistence(timeout: 5), id)
-        reveal(row)
-        row.tap()
-    }
-
-    /// Short drags towards `element` until it is hittable — never a full swipe down, which at the top of a sheet's
-    /// content dismisses the sheet (the first dark/AXL run).
-    private func reveal(_ element: XCUIElement) {
-        for _ in 0..<10 where !(element.exists && element.isHittable) {
-            let below = !element.exists || element.frame.minY > app.frame.midY
-            let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: below ? 0.7 : 0.45))
-            let to = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: below ? 0.45 : 0.7))
-            from.press(forDuration: 0.05, thenDragTo: to)
-            Thread.sleep(forTimeInterval: 0.3)
-        }
-        XCTAssertTrue(element.isHittable, "reached \(element)")
-    }
 
     // MARK: Captures
 

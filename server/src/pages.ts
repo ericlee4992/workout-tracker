@@ -6,7 +6,9 @@
 /** The day the policy went live (the user, 2026-10-15). Change it with the text; `npm run deploy` refuses a placeholder. */
 // Release R (2026-11-11): the user approved the nutrition, Apple Health and barcode/search wording and this date (the
 // deploy day). Change the date with the text; `npm run deploy` refuses a "[…" placeholder (predeploy).
-export const POLICY_EFFECTIVE_DATE = "November 11, 2026";
+// N14 (2026-11-12): goal-setup answers sent for nutrition goals; Profile → Ask AI removed. Waiting for the user's
+// approval of the wording (2026-11-12); the date must be the deploy day.
+export const POLICY_EFFECTIVE_DATE = "November 12, 2026";  // tentative: set to the deploy day
 export const DEVELOPER_NAME = "Eunchan Lee";
 export const SUPPORT_EMAIL = "ericlee4992@gmail.com";
 
@@ -87,18 +89,21 @@ time; deleting your account removes it.</li>
 
 <h2>AI features (optional, signed in)</h2>
 <p>Stacked’s AI features — identifying a machine from a photo, suggesting exercises for a machine, building a week of
-templates, estimating the food in a meal photo or a description, and reading a food’s nutrition label — run through my
-server on my OpenAI account. The training features ask your permission the first time and remember it; you can turn
-each of those permissions off in Profile → Ask AI. Scanning or describing food has no separate prompt: a food photo,
-label or description is sent only when you take the photo, choose it, or tap Estimate, and you can always log food by
-hand instead.</p>
+templates, estimating the food in a meal photo or a description, reading a food’s nutrition label, and making your
+daily nutrition goals — run through my server on my OpenAI account. The training features ask your permission the
+first time and remember your answer (reinstalling the app asks again). Scanning or describing food has no separate
+prompt: a food photo, label or description is sent only when you take the photo, choose it, or tap Estimate, and you
+can always log food by hand instead. Making nutrition goals has no separate prompt either: your goal-setup answers are
+sent when you reach the plan in the goal setup while signed in; signed out, or if my server cannot answer, your goals
+are calculated on your iPhone instead.</p>
 <ul>
 <li><strong>What is sent:</strong> for machine identification, the photo (re-encoded on your iPhone without its
 location or camera details) and the app’s list of exercises; for exercise suggestions, the machine’s manufacturer and
 model as you typed them, any text read from its label, and the list of exercises; for templates, your goals,
 experience, schedule, optional height and weight, and the exercises and cardio available to you; for food, the meal
-or label photo (re-encoded the same way) with any note you add, or the words you typed to describe what you ate. Each
-is sent for one estimate. The app does not automatically include your workout history, your food log or readings from
+or label photo (re-encoded the same way) with any note you add, or the words you typed to describe what you ate; for
+nutrition goals, your goal-setup answers — sex, age, height, your current weight as you entered it in Stacked, how
+often you work out, your goal, and the weight and weekly pace you chose. Each is sent for one estimate. The app does not automatically include your workout history, your food log or readings from
 Apple Health.</li>
 <li><strong>Where it goes:</strong> to my server, which passes it to OpenAI to produce the answer and returns the
 answer to you. My server does not store the photo, what you sent or the answer, and does not log them. My requests ask
@@ -197,8 +202,9 @@ logging workouts and food by hand works without one. To delete your account and 
 from my server: on Profile, tap your name or email at the top, then Delete Account…. The privacy policy explains what can
 remain for a while (backups, a pending Sign in with Apple revocation) and how to have feedback you sent while signed
 out deleted.</li>
-<li>To stop sending data to OpenAI, turn off the permissions in Profile → Ask AI, and log food by hand rather than
-scanning or describing it.</li>
+<li>To stop sending data to OpenAI, decline the AI features’ permission prompts (or reinstall the app to be asked
+again), log food by hand rather than scanning or describing it, and set your nutrition goals while signed out (they
+are then calculated on your iPhone).</li>
 </ul>
 <p>Details: the <a href="/privacy">privacy policy</a>.</p>
 `;

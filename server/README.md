@@ -27,6 +27,7 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 | `POST /v1/ai/food-photo` | nutrition N6: `{ jpeg, note? }` (a meal photo, as scan-machine's; a one-line note ≤ 300 characters) → `{ result: { items: [{ name, portion, grams, calories, protein, carbs, fat, confidence }] } }` (≤ 15 items; none when no food) |
 | `POST /v1/ai/food-label` | `{ jpeg }` (a nutrition facts panel) → `{ result: { found, servingSize, servingGrams, servingsPerContainer, calories, protein, carbs, fat, saturatedFat, fiber, sugar, sodiumMg } }` — numbers only as printed, null when not |
 | `POST /v1/ai/food-describe` | `{ text }` (≤ 500 characters, line breaks allowed) → `{ result: { items: [...] } }` as food-photo |
+| `POST /v1/ai/nutrition-goals` | nutrition N14: `{ sex, ageYears, heightCm, weightKg, activity, goal, desiredWeightKg?, paceKgPerWeek? }` (the goal setup's answers; desired and pace unless maintain) → `{ result: { calories, protein, carbs, fat } }` (whole numbers; 500–10,000 cal, 0–1,000 g); 20 a day; migration 0009 |
 | `GET /v1/food/barcode/:code` | nutrition N8: a scanned GTIN (8, 12, 13 or 14 digits, valid check digit; the app expands UPC-E) → `{ found: true, food }` or `{ found: false }`. Open Food Facts first, then USDA FoodData Central branded foods |
 | `GET /v1/food/search?q=` | nutrition N8: 2–100 characters → `{ foods: [...] }`, at most 10 USDA generic foods (Foundation, SR Legacy, FNDDS), the food itself before dishes with it |
 | `GET /v1/ai/usage` | `{ day, resetsAt, paused, flows: { <flow>: { used, limit } } }` |
@@ -96,7 +97,7 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
 - **Off switch:** `node scripts/ai.mjs pause` (everyone) or `pause --account <id>`; `resume`; `status`. It is a D1 row,
   read on every request: effective at once, no app build or deploy.
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB;
-  `/v1/ai/scan-machine` 3 MB — a 2 MB JPEG is about 2.7 MB as base64; `routine-week` 256 KB; `model-exercises` 128 KB; `food-photo` and `food-label` 3 MB; `food-describe` 16 KB); Apple's key set is cached for
+  `/v1/ai/scan-machine` 3 MB — a 2 MB JPEG is about 2.7 MB as base64; `routine-week` 256 KB; `model-exercises` 128 KB; `food-photo` and `food-label` 3 MB; `food-describe` 16 KB; `nutrition-goals` 4 KB); Apple's key set is cached for
   an hour, an unknown key ID refetches it at most once per five minutes, and every call to Apple times out after 5 s.
 - Errors are `{ "error": "<code>" }` and never contain tokens or keys; request bodies are not logged.
 

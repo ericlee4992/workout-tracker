@@ -85,9 +85,10 @@ final class GoalSetupUITests: XCTestCase {
         XCTAssertTrue(goals.waitForExistence(timeout: 10))
         XCTAssertTrue(goals.label.hasSuffix("cal"), goals.label)
         goals.tap()
-        let goalWeight = app.buttons["nutritionGoalsGoalWeight"]
-        XCTAssertTrue(goalWeight.waitForExistence(timeout: 5))
-        XCTAssertTrue(goalWeight.label.contains("a week"), goalWeight.label)
+        // Signed out (no server): the plan was calculated on the phone (N14 fallback), the typed protein kept.
+        let calories = any("nutritionGoalsCalories")
+        XCTAssertTrue(calories.waitForExistence(timeout: 5))
+        XCTAssertTrue(calories.label.contains("Calculated"), calories.label)
         XCTAssertTrue(app.buttons["nutritionGoals.Protein"].label.contains("150"), "the typed protein was saved")
 
         // Answered: the next launch goes straight to the app.
@@ -103,15 +104,16 @@ final class GoalSetupUITests: XCTestCase {
         launch(["-uiTestDesignSample", "-uiTestPersonalDetails"])
         app.openProfile()
         app.buttons["profileNutritionGoals"].tap()
-        let goalWeight = app.buttons["nutritionGoalsGoalWeight"]
-        XCTAssertTrue(goalWeight.waitForExistence(timeout: 5))
-        XCTAssertTrue(goalWeight.label.contains("Maintain"), goalWeight.label)
-        XCTAssertFalse(any("nutritionGoalsGoal").exists, "the Goal menu gave way to the setup")
+        // N14 (D85): the numbers and one command — no Personal details, Activity or Goal weight rows.
+        let generate = app.buttons["nutritionGoalsGenerate"]
+        XCTAssertTrue(generate.waitForExistence(timeout: 5))
+        XCTAssertFalse(any("nutritionGoalsGoalWeight").exists || any("nutritionGoalsActivity").exists
+                       || any("nutritionGoalsDetails").exists || any("nutritionGoalsGoal").exists)
         let calories = any("nutritionGoalsCalories")
         let before = calories.label
 
         // Close leaves everything as it was.
-        goalWeight.tap()
+        generate.tap()
         let close = app.buttons["goalSetupClose"]
         XCTAssertTrue(close.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["goalSetupContinue"].isEnabled, "prefilled from Personal details")
@@ -119,13 +121,47 @@ final class GoalSetupUITests: XCTestCase {
         XCTAssertTrue(close.waitForNonExistence(timeout: 5))
         XCTAssertEqual(calories.label, before)
 
-        goalWeight.tap()
+        generate.tap()
         XCTAssertTrue(app.buttons["goalSetupContinue"].waitForExistence(timeout: 5))
         app.completeGoalSetup(goal: "gain", prefilled: true)
         XCTAssertTrue(app.buttons["goalSetupFinish"].waitForNonExistence(timeout: 5), "Save Goals closes the setup")
-        XCTAssertTrue(goalWeight.waitForExistence(timeout: 5))
-        XCTAssertTrue(goalWeight.label.contains("a week"), goalWeight.label)
+        XCTAssertTrue(generate.waitForExistence(timeout: 5))
         XCTAssertNotEqual(calories.label, before, "a gain adds calories")
+        XCTAssertTrue(calories.label.contains("Calculated"), "signed out: calculated (\(calories.label))")
+    }
+
+    /// N14 (D85): signed in, the plan page asks the server (the Terra fixture's 2,100 cal plan) and says Generated; the
+    /// saved goal keeps it. With the server failing, the calculation stands in with one line.
+    func testSignedInThePlanIsGeneratedAndAFailureFallsBack() {
+        launch(["-uiTestDesignSample", "-uiTestPersonalDetails", "-uiTestTerra", "-uiTestTerraSlow"])
+        app.openProfile()
+        app.buttons["profileNutritionGoals"].tap()
+        let generate = app.buttons["nutritionGoalsGenerate"]
+        XCTAssertTrue(generate.waitForExistence(timeout: 5))
+        generate.tap()
+        app.completeGoalSetup(goal: "maintain", prefilled: true, tapFinish: false) { page in
+            guard page == "plan" else { return }
+            XCTAssertTrue(self.any("goalSetupGenerating").exists, "a loading state while the server works")
+            XCTAssertFalse(self.app.buttons["goalSetupFinish"].isEnabled, "nothing saved mid-request")
+        }
+        let planCalories = any("goalSetupCalories")
+        XCTAssertTrue(planCalories.waitForExistence(timeout: 15))
+        XCTAssertTrue(planCalories.label.contains("2,100") && planCalories.label.contains("Generated"), planCalories.label)
+        app.buttons["goalSetupFinish"].tap()
+        XCTAssertTrue(generate.waitForExistence(timeout: 5))
+        let calories = any("nutritionGoalsCalories")
+        XCTAssertTrue(calories.label.contains("2,100") && calories.label.contains("Generated"), calories.label)
+        XCTAssertTrue(app.buttons["nutritionGoalsRecalculate"].exists, "back to the calculation")
+        app.terminate()
+
+        launch(["-uiTestDesignSample", "-uiTestPersonalDetails", "-uiTestTerra", "-uiTestTerraOffline"])
+        app.openProfile()
+        app.buttons["profileNutritionGoals"].tap()
+        XCTAssertTrue(generate.waitForExistence(timeout: 5))
+        generate.tap()
+        app.completeGoalSetup(goal: "maintain", prefilled: true, tapFinish: false)
+        XCTAssertTrue(any("goalSetupCalculatedFallback").waitForExistence(timeout: 10))
+        XCTAssertTrue(any("goalSetupCalories").label.contains("Calculated"))
     }
 
     // MARK: Captures

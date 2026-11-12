@@ -54,4 +54,50 @@ consent screen, no "AI" wording). New decision **D85**.
 
 ## Progress
 
-Started 2026-11-12.
+### 2026-11-12 — built (Claude)
+
+**Server.** `nutrition-goals` flow in `server/src/ai.ts` (FOOD_MODEL `gpt-6.1-terra`, low effort, 2,000 output tokens;
+input re-serialized from checked fields — sex, ageYears 13–110, heightCm 100–260, weightKg 20–400, activity, goal,
+desired 20–400 kg and pace 0.01–2 kg a week unless maintain; reply `{calories, protein, carbs, fat}` whole numbers,
+500–10,000 / 0–1,000, else `ai_invalid`; 20 a day; 4 KB body); migration `0009_nutrition_goals_flow.sql` (ai_usage
+CHECK rebuilt, rows kept); `test/nutrition-goals-ai.test.ts`; README. `npm test` **305/305**, `tsc` clean.
+**Not deployed** (needs the user's go + the privacy wording below).
+
+**App.** `Domain/GoalPlanAI.swift` (request body; reply check), `Features/GoalSetup/GoalPlanService.swift` (signed-in
+generator; the Terra fixture under `-uiTestTerra`), `AIFlow.nutritionGoals`. `GoalSetupDraft`: asks once per request
+(answers incl. pace + desired) on the plan page; while asking, "Making your plan" + a spinner, Start/Save disabled;
+failure → the calculation with a line; typed numbers sit on top of the server's plan; `answers.generated`.
+`NutritionGoal.generated` (Bool, default false) — the stored numbers stay through Personal details / weight changes
+until the setup runs again or Recalculate (which goes back to the calculation); typed numbers keep their flags;
+`NutritionGoalStore.Choices.generated`, `resolve(generated:overrides:)`. Setup prefill: the latest weight **entered in
+Stacked** (`latestEnteredWeight`). Nutrition goals: numbers + **Generate Goals** (+ Recalculate when typed over or
+generated); Personal details, Activity and Goal weight rows removed (`ActivityMenu` deleted). Profile: Ask AI row and
+`AskAISettingsSheet` deleted; the AI week's equipment step loses its "Ask AI — On/Sign In" row (its Sign In command
+stays); the tour's Profile caption drops "Ask AI". First-use permission prompts unchanged.
+
+**Data (stored-format change).** `StoreFormatGuardTests.approvedFingerprint` `9d83c203…`, `build11Fingerprint`
+`d339bba6…` (0.2.0 (11)). Fixture `Fixtures/Build11.store` (build-11 format, written by `main` `99bafefd` with the
+design sample, Personal details, food sample + diary, nutrition charts; its goal given 170 lb / 0.4 kg a week with
+sqlite3) + `GeneratedGoalsMigrationTests`. Export **v14** (`nutritionGoals[].generated`, true only). **Gate S before the
+phone installs the build that carries this.**
+
+**Own decisions:** 20 plans a day; low reasoning effort; the reply is checked only for plausibility (the editors'
+bounds), as the user chose "AI decides freely"; one ask per set of answers (a failure is not retried until an answer
+changes; Generate Goals again retries); Recalculate on a generated goal goes back to the calculation; "Generated" label.
+
+**New strings (the user's decision):** "Generate Goals" · "Making your plan" · "Working out your calories and
+macros…" · "Generated" · "Couldn't reach the server, so this plan was calculated on your phone." · tour: "Your
+profile: units, appearance and backups — and this tour again."
+
+**Privacy page — draft for approval** (`server/src/pages.ts`; date tentative "November 12, 2026" → the deploy day):
+- AI features list adds "making your daily nutrition goals"; "you can turn each of those permissions off in Profile →
+  Ask AI" → "remember your answer (reinstalling the app asks again)"; new: "Making nutrition goals has no separate
+  prompt either: your goal-setup answers are sent when you reach the plan in the goal setup while signed in; signed
+  out, or if my server cannot answer, your goals are calculated on your iPhone instead."
+- What is sent adds: "for nutrition goals, your goal-setup answers — sex, age, height, your current weight as you
+  entered it in Stacked, how often you work out, your goal, and the weight and weekly pace you chose."
+- Support page: "To stop sending data to OpenAI, decline the AI features' permission prompts (or reinstall the app to
+  be asked again), log food by hand rather than scanning or describing it, and set your nutrition goals while signed
+  out (they are then calculated on your iPhone)."
+- App Store Connect → App Privacy: check that Health & Fitness / sensitive data (sex, age, weight) are declared as
+  collected for App Functionality (the user's step).
