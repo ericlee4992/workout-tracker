@@ -114,3 +114,16 @@ ratios and the 2 s cadence are what transfer.
   for before/after.
 
 ## Comments
+
+- **2026-11-11, second opinion (Fable 5.2, static read, nothing measured; asked by the user).** Agrees with causes 1,
+  3 and 4 above. Adds, to measure during the fix: (a) each set row's `.task(id: prefillTaskID)` re-runs the
+  whole-history "previous" lookup whenever the row reappears in the lazy `List`, a scroll cost; (b)
+  `ActiveWorkoutView` passes fresh closures to every card and row, so each body pass re-renders all visible rows; (c)
+  Add Exercise reads `recent` (all finished workouts, sorted) twice per body. Focus suspects: the per-row conditional
+  keyboard `.toolbar` rebuilt during commit + badge animation, and `.scrollDismissesKeyboard(.interactively)`.
+  **Possible data issue (unverified):** `isDirty` is row `@State` and is never reset, so a row only loses its
+  protection if `List` discards its state off-screen. If it does, `applyPrefill` (`PreviousPerformance.swift:133`)
+  could overwrite a committed, typed but uncompleted first set with last session's values when the row reappears. It
+  checks neither `prefilledAt` nor existing typed values. To reproduce with a UI test before or with the fix; if it
+  reproduces, guard it (skip when the set has values without `prefilledAt`).
+
