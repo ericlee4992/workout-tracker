@@ -1,7 +1,7 @@
 # N12 — Korean food database (식품영양성분DB) for barcodes and search
 
 Type: feature
-Status: **approved — after release R** (the user, 2026-11-11: "add that as a new update after release")
+Status: **approved — release 0.2.2** (the user, 2026-11-11: after 0.2.1 = workout lag + goal setup)
 Blocked by: R
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-12-korean-db` off `main`.

@@ -11,8 +11,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   README, privacy/support copy (Codex clear), **server deployed 2026-11-11** (migrations 0007+0008, `USDA_API_KEY`,
   Worker `901eda5d`; backup in `~/WorkoutTracker-Backups/server/2026-11-11-release-r`, delete by 2026-12-11). Next:
   App Privacy done (Search History added). **Stacked 0.2.0 (10) uploaded 2026-11-11 20:07 EST** from `main` `e48ca60`.
-  Next: Developer group → Gate S (phone `00008130-001E10C01E62001C`, has 0.1.0 (9)) → install + phone check → Friends.
-  N12 (Korean food DB) after R.
+  In Developer; **the user installed it and is testing** (2026-11-11) — Gate S was not taken first (the N1 safety copy
+  covers the update; offer a container copy). Friends: the user, soon, with the What to Test note.
+  **Next updates (the user, 2026-11-11):** **0.2.1** = [P1 workout lag](../work-record/performance/issues/01-workout-lag.md)
+  ("the whole app lags during a workout": typing, scrolling, Add Exercise) then [N13 goal setup](../work-record/nutrition/issues/13-goal-setup.md)
+  (required on first launch, no skip; asks sex and age too; reference screenshots local only in ~/Downloads);
+  **0.2.2** = [N12 Korean food DB](../work-record/nutrition/issues/12-korean-food-database.md) (the user's data.go.kr key).
   **N8 DONE — Codex clear (round 5), merged into `main`.** N8 = barcode (Open Food
   Facts → USDA branded) + online search (USDA generic) through the server (`server/src/food.ts`, migration 0008, D1
   cache, per-account limit) and the app (Barcode mode, lookup screens, Log food "More foods", serving picker,

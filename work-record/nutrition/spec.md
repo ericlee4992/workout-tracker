@@ -58,6 +58,7 @@ weight join the training log; Today shows both.
 | [N9](issues/09-body-weight-health.md) | Body weight logging and Apple Health | N2 |
 | [N10](issues/10-progress-history-nutrition.md) | Progress body/nutrition metrics, History food line | N5, N9 |
 | [R](issues/11-combined-release.md) | The combined release (Phase 1 + 2) to testers | all |
-| [N12](issues/12-korean-food-database.md) | Korean food database (식품영양성분DB): Korean search, "Is this it?" for Korean barcodes — after R (the user, 2026-11-11) | R |
+| [N12](issues/12-korean-food-database.md) | Korean food database (식품영양성분DB): Korean search, "Is this it?" for Korean barcodes — release 0.2.2 | R |
+| [N13](issues/13-goal-setup.md) | Goal setup: current/desired weight, pace, then the goals; required on first launch — release 0.2.1 | R |
 
-Order of work: S5 ([Today's up next](../soft-redesign/issues/05-today-up-next.md), before N1) → N1 → N2 → S6 ([Profile like the prototype](../soft-redesign/issues/06-profile-layout.md), the user 2026-11-08) → N3 → N4 → N5 → N6 → N7 → N8 → N9 → N10 → R (one ticket at a time, in this workspace), then N12 as an update after R.
+Order of work: S5 ([Today's up next](../soft-redesign/issues/05-today-up-next.md), before N1) → N1 → N2 → S6 ([Profile like the prototype](../soft-redesign/issues/06-profile-layout.md), the user 2026-11-08) → N3 → N4 → N5 → N6 → N7 → N8 → N9 → N10 → R (one ticket at a time, in this workspace), then 0.2.1 (P1 workout lag, N13 goal setup) and 0.2.2 (N12 Korean food database).
