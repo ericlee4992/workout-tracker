@@ -105,7 +105,8 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   in, the plan comes from the server (the answers, with the current weight as entered in Stacked — never one read
   from Apple Health — are sent through it to OpenAI), and signed out or when the server can't answer it is calculated
   on the phone (Mifflin–St Jeor, the pace, a calorie floor). Generated numbers stay until you generate again or
-  Recalculate. The Ask AI section in Profile is gone: the AI features ask at first use.
+  Recalculate. The Ask AI section in Profile is gone: the training AI features (Scan Machine, exercise suggestions, Ask AI for
+  Templates) ask at first use; food scanning and goal generation have no separate prompt.
 - **A safety copy before data changes** *(on `main`, not yet in TestFlight)*. Before an update first opens your data
   in a new stored format, the app copies it on the phone (the newest two copies are kept, inside the iPhone's own
   backup); Profile → Export & backup → Safety copy restores one, at the next launch.

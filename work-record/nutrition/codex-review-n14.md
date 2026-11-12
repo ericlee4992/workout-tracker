@@ -146,3 +146,85 @@ Standards: three findings (two P2 data-handling/copy issues, one P3 navigation i
 (preview/save weight mismatch and cancellation cached as failure). Five findings remain.
 
 Verdict: not clear
+
+## Round 2
+
+Reviewed 2026-11-12 at `9eb5b7bc2e87ecec398d113ac9f4d6e874aba98e`, using
+`git diff 62cb8012..HEAD` and the round-2 brief. The checkout was clean at the start.
+
+### Standards
+
+#### R2-1 — P3: Limit the README's first-use prompt claim to training features
+
+`README.md:108` says “the AI features ask at first use.” That includes nutrition-goal generation and food flows,
+which intentionally have no such prompt under D85/D83. A reader could incorrectly expect a prompt before the
+setup answers are sent. The revised privacy policy correctly limits this statement to training features.
+
+**Fix:** say “the training AI features ask at first use” (or name those features), retaining the accurate
+server/fallback explanation above it. This is a remaining public-overview accuracy issue under AGENTS.md, not a
+request to add a consent screen or alter the user's decision.
+
+The original R1/R2/R3 changes otherwise address the findings: the privacy paragraph explicitly names the goal-setup
+exception and keeps the Health-data promise; README describes Generate Goals, the actual server/local behavior,
+entered-weight restriction and v14 marker; What's New now names Generate Goals and its copy test follows.
+A public read-only GET of the [privacy page](https://stacked-server.stacked-server.workers.dev/privacy) confirmed the
+exception and Health-data promise are live; captured at `/tmp/codex-n14/r2/live-privacy.html`. No account was used
+and no deployment was performed. Worker ID `4c9d03db` is recorded in the author's ticket; I verified page content,
+not Cloudflare deployment metadata.
+
+### Spec
+
+No new concrete production finding established.
+
+- **R4 resolved:** prefill remains app-only, while commit compares the confirmed pair against the actual latest
+  weigh-in from any source. A different latest Health weight now causes one new app-source confirmation; value,
+  entered unit and normalized kg are preserved. Repeating an unchanged save sees that newest matching pair and
+  does not add another entry. The new generated/calculated integration cases assert saved input weight, calories,
+  app source, timestamp and subsequent refresh consistency.
+- The new confirmation uses the existing `ModelContext.didSave` observer → scheduled Health sync →
+  `HealthSyncPlan.weightWrites` → `writeWeights/reconcile` path. Imported Health rows remain in history; the new
+  app entry is eligible for writing when that setting and authorization are enabled. Actual device receipt remains
+  unverified.
+- **R5's reported cancellation case resolved:** the production service and fixture propagate cancellation, the
+  client maps canceled URL requests to `CancellationError`, and the draft clears pending state without caching
+  failure. The updated temporary harness reports **two calls**, generationFailed=false and a generated plan after
+  Back/cancel/completion/return. The new unit test also exercises a suspended cancellable generator and retry;
+  the existing actual-failure test still verifies one attempt for unchanged answers.
+- The cancellation test waits for the canceled task to finish before retrying. Rapid return while cancellation
+  is still completing and overlapping changed-answer requests are not stress-tested; no concrete production
+  failure in those interleavings was established in this round.
+
+### Round-2 verification
+
+Runner `/tmp/codex-n14/r2/run.sh`, PID **45492**, completed; simulator preparation ran first on WT-Floodlight
+`9E822EF6-DC67-4958-AEA2-D53D2D36D674`; current source rebuilt in `/tmp/codex-n13/dd`.
+
+- Independent **build-for-testing**: exit **0**, `/tmp/codex-n14/r2/build.log` and `build.status`.
+- Independent **Unit**: **1341/1341**, no failures or skips, exit **0**, `/tmp/codex-n14/r2/unit.xcresult`.
+  Checked the actual exit status and xcresult summary (`unit-summary.json`).
+- Independent server **npm test**: **305/305 Vitest + 4/4 Node script tests**, exit **0**;
+  **typecheck**: exit **0**. Logs/statuses under `/tmp/codex-n14/r2/server-test.*` and `server-typecheck.*`.
+- Updated temporary source-extracted harness: `/tmp/codex-n14/r2/Repro.swift`, `repro`, `repro.log`.
+  The cancellation case now retries successfully. The saved-weight behavior is verified by the actual SwiftData
+  integration tests above; the harness's weight/calorie calculation is only supporting arithmetic evidence.
+- Independent **Full plan narrowed to AAAWarmUpUITests + GoalSetupUITests + FloodlightWhatsNewUITests**:
+  **13/13**, no failures or skips, exit **0**, two workers, `/tmp/codex-n14/r2/ui.xcresult`.
+  Checked `ui.status` and `ui-summary.json`; no serial rerun was needed.
+- Exported What's New attachments to `/tmp/codex-n14/r2/captures/`, with readable copies in `captures-named/`.
+  Inspected light/dark default and scrolled AccessibilityL captures: Generate Goals is the displayed destination,
+  and the changed line and remaining items are readable above Continue. No layout finding.
+- Checked `git diff --check`; only the review report is changed in this checkout.
+
+Verified: independent build — exit 0; Unit — 1341/1341, exit 0, `/tmp/codex-n14/r2/unit.xcresult`;
+named UI selection — 13/13, exit 0, `/tmp/codex-n14/r2/ui.xcresult`; server — 305/305 Vitest + 4/4 script tests,
+exit 0, typecheck exit 0; live public privacy exception; cancellation reproduction and capture inspection.
+
+Not verified: signed-in device request to the live AI server; phone installation/Gate S; real HealthKit receipt;
+human VoiceOver; runtime Reduce Motion; cancellation/navigation stress interleavings noted above; full UI suite.
+No deployment or live-account request was made during this review.
+
+Known flaky: none seen in this round's runs.
+
+Standards: one P3 wording finding (R2-1). Spec: no new concrete findings; the reported R4/R5 cases are resolved.
+
+Verdict: not clear

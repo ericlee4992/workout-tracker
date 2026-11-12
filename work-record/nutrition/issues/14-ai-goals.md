@@ -150,3 +150,8 @@ Verified: AAAWarmUp + GoalSetupUITests + FloodlightWhatsNewUITests — 13/13, ex
 Not verified: a signed-in request from a device; the phone (Gate S first)
 Known flaky: none seen
 ```
+
+### 2026-11-12 — Codex round 2: not clear (R2-1 P3, README wording) → fixed
+
+README: "the training AI features (Scan Machine, exercise suggestions, Ask AI for Templates) ask at first use; food
+scanning and goal generation have no separate prompt." Docs-only fix (no code change since `9eb5b7bc`).
