@@ -11,7 +11,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   Goal weight row on Nutrition goals). Stored-format change (NutritionGoal + desired weight + pace; fingerprint
   `d339bba6…`; 0.2.0 fixture `Release020.store`): **Gate S before the user's phone gets 0.2.1.** Unit 1320/1320; UI 32/32
   (ProfileAI classes). Evidence and own decisions in the [ticket](../work-record/nutrition/issues/13-goal-setup.md#progress);
-  review brief `work-record/nutrition/codex-review-n13-prompt.md`, report `codex-review-n13.md`. Then: merge (ff) and
+  review brief `work-record/nutrition/codex-review-n13-prompt.md`, report `codex-review-n13.md`; **Codex round 1 running** — Paseo Codex agent `edd217f6-2a56-463d-abf4-8bbcf958a5af` (reuse it for later rounds). Then: merge (ff) and
   release 0.2.1 with P1 (TestFlight steps are the user's).
 - **2026-11-11 (late): tooling moved from Orca to Paseo** (the user; Orca may come back — its setup is kept in
   [tools-orca](agents/tools-orca.md), the active one is [tools-paseo](agents/tools-paseo.md)). Codex reviewer = a Paseo
