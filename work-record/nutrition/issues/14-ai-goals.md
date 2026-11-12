@@ -1,7 +1,7 @@
 # N14 — Nutrition goals: one "Generate Goals" button; AI-generated goals; no Ask AI section
 
 Type: feature
-Status: **in progress** (the user, 2026-11-12)
+Status: **done — Codex clear (round 3), merged into `main` 2026-11-12; server deployed** (Worker `4c9d03db`). Next build carrying it: the user's call (Gate S first).
 Implementer: Claude; Reviewer: Codex (Paseo agent `edd217f6-…`), to "clear".
 Branch: `ericlee4992/nutrition-14-ai-goals` off `main` `99bafefd` (worktree `~/.paseo/worktrees/1qmeipq9/nutrition-13-goal-setup`).
 Decisions: reopens **D84** ("calculated on the phone only") and D80's Nutrition goals rows; extends D83(7)/(8) (no
@@ -155,3 +155,10 @@ Known flaky: none seen
 
 README: "the training AI features (Scan Machine, exercise suggestions, Ask AI for Templates) ask at first use; food
 scanning and goal generation have no separate prompt." Docs-only fix (no code change since `9eb5b7bc`).
+
+### 2026-11-12 — Codex round 3: clear → merged
+
+Codex (agent `edd217f6-…`): R2-1 resolved, no findings — **Verdict: clear** (docs-only round; rounds 1–2 ran build,
+Unit 1341/1341, server 305/305 + typecheck, UI 37/37 then 13/13). Merged into `main` (fast-forward). Open: the next
+TestFlight build (the user's go; Gate S before the phone installs it — fingerprint `9d83c203…`); a signed-in request
+from a device to the live server; the new strings above for the user.

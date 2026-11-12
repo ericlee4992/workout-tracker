@@ -228,3 +228,39 @@ Known flaky: none seen in this round's runs.
 Standards: one P3 wording finding (R2-1). Spec: no new concrete findings; the reported R4/R5 cases are resolved.
 
 Verdict: not clear
+
+
+## Round 3
+
+Reviewed 2026-11-12 at `5acbe3fbc02802e580460ad754a8aff45c7e9271`, using
+`git diff 9eb5b7bc..HEAD` and the round-3 brief. The checkout was clean at the start.
+
+### Standards
+
+No findings. **R2-1 resolved:** README now limits first-use prompts to the three training features and explicitly
+states that food scanning and goal generation have no separate prompt. The broader server/local fallback and
+app-entered-weight explanation remains intact.
+
+### Spec
+
+No findings. The wording matches D83(7) and D85. A fresh public read-only GET of the
+[live privacy page](https://stacked-server.stacked-server.workers.dev/privacy) confirmed the same distinction:
+training features request permission; food and goal generation have no separate prompt. The goal-setup exception
+is also present. Retrieved HTML: `/tmp/codex-n14/r3/live-privacy.html`. No account or deployment was involved.
+
+### Verification
+
+Verified: documentation consistency against D83/D85 and the live privacy page; `git diff --check`; the diff contains
+only README and review/ticket documentation. No source, tests, project settings or link targets changed.
+
+**No build or test rerun**, as requested for this docs-only round. Round-2 evidence remains applicable:
+independent Unit 1341/1341, focused UI 13/13, server 305/305 Vitest + 4/4 script tests, build and typecheck successful.
+
+Not verified: new runtime checks this round; the prior device/live-AI/HealthKit/human-accessibility limitations remain.
+Gate S is still required before the stored-format-changing build reaches the phone.
+
+Known flaky: none newly observed; no tests rerun in this round.
+
+Standards: 0 findings. Spec: 0 findings. No outstanding N14 review findings.
+
+Verdict: clear

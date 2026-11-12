@@ -1,19 +1,18 @@
 # Current project state
 
-Updated **2026-11-12: 0.2.0 (11) uploaded; N14 (AI goals) in review, server deployed.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-12: 0.2.0 (11) uploaded; N14 (AI goals) merged and its server deployed; next build is the user's call.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
 
-- **2026-11-12: N14 AI goals — built, server deployed, Codex round 1 running.** Branch `ericlee4992/nutrition-14-ai-goals`
-  in `~/.paseo/worktrees/1qmeipq9/nutrition-13-goal-setup`; [ticket](../work-record/nutrition/issues/14-ai-goals.md) (D85
-  pending in DECISIONS). Nutrition goals = numbers + Generate Goals; the plan from the server signed in (fallback: the
-  calculation); `NutritionGoal.generated` (fingerprint `9d83c203…`, fixture `Build11.store`) → **Gate S before the next
-  build reaches the phone**; Profile → Ask AI removed. Server deployed (migration 0009, Worker `fdcfa32f`, privacy
-  "Effective November 12, 2026"; D1 backup `~/WorkoutTracker-Backups/server/2026-11-12-n14-ai-goals`, delete by
-  2026-12-12). Unit 1339/1339, server 305/305, UI 37/37. Codex agent `edd217f6-…`; report `codex-review-n14.md`.
-  Next: fixes → clear → merge; next TestFlight build (0.2.0 (12)?) is the user's call; What's New line "Find it in
-  Profile → Nutrition goals → Goal weight." is now outdated (build 11 shipped it).
+- **2026-11-12: N14 AI goals DONE — Codex clear (round 3), merged into `main`; server deployed.** [Ticket](../work-record/nutrition/issues/14-ai-goals.md),
+  D85, review `work-record/nutrition/codex-review-n14.md`. Nutrition goals = numbers + Generate Goals; the plan from the
+  server signed in (fallback: the calculation); `NutritionGoal.generated` (fingerprint `9d83c203…`, fixture
+  `Build11.store`); Profile → Ask AI removed. Server: migration 0009, Worker `4c9d03db` (privacy "Effective November 12,
+  2026" with the goal-setup exception); D1 backup `~/WorkoutTracker-Backups/server/2026-11-12-n14-ai-goals` (delete by
+  2026-12-12). **Next build (0.2.0 (12)?) is the user's call; Gate S on the phone before installing it.** Not yet: a
+  signed-in goal request from a device. For the user: N14's new strings (ticket). Branch kept; the worktree
+  (`~/.paseo/worktrees/1qmeipq9/nutrition-13-goal-setup`, workspace "N13 goal setup") can be archived.
 - **2026-11-12: N13 goal setup DONE — Codex clear (round 3), merged into `main`.** Branch
   `ericlee4992/nutrition-13-goal-setup` (kept); workspace "N13 goal setup" can be archived. D84 = the user's prototype
   answers. Stored-format change (NutritionGoal + desired weight + pace; fingerprint `d339bba6…`; fixture
