@@ -101,3 +101,14 @@ profile: units, appearance and backups — and this tour again."
   out (they are then calculated on your iPhone)."
 - App Store Connect → App Privacy: check that Health & Fitness / sensitive data (sex, age, weight) are declared as
   collected for App Functionality (the user's step).
+
+### 2026-11-12 — privacy approved, server deployed
+
+The user: "privacy page wording is good. you can deploy server." Backup
+`~/WorkoutTracker-Backups/server/2026-11-12-n14-ai-goals/stacked.sql` (check-export: restores cleanly, every row count
+equal; **delete by 2026-12-12**). Migration **0009** applied remotely (`ai_usage` rows kept: 5; CHECK includes
+`nutrition-goals`). **Deployed** from branch `ericlee4992/nutrition-14-ai-goals` `5a14da06` (before the Codex review —
+the user's go; a review finding in the server is redeployed): Worker version `fdcfa32f-2cd3-4662-906e-4c3b3c5dbb95`
+(cron kept). Live: `/v1/health` ok; `/privacy` "Effective November 12, 2026" with the goal-setup answers, no "Profile →
+Ask AI"; `/support` the new stop-sending line; `POST /v1/ai/nutrition-goals` → 401 signed out. Not yet: a signed-in
+request from the app (needs a build with N14 on the phone).

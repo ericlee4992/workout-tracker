@@ -6,9 +6,9 @@
 /** The day the policy went live (the user, 2026-10-15). Change it with the text; `npm run deploy` refuses a placeholder. */
 // Release R (2026-11-11): the user approved the nutrition, Apple Health and barcode/search wording and this date (the
 // deploy day). Change the date with the text; `npm run deploy` refuses a "[…" placeholder (predeploy).
-// N14 (2026-11-12): goal-setup answers sent for nutrition goals; Profile → Ask AI removed. Waiting for the user's
-// approval of the wording (2026-11-12); the date must be the deploy day.
-export const POLICY_EFFECTIVE_DATE = "November 12, 2026";  // tentative: set to the deploy day
+// N14 (2026-11-12): goal-setup answers sent for nutrition goals; Profile → Ask AI removed. Wording approved by the user
+// ("privacy page wording is good") and deployed the same day.
+export const POLICY_EFFECTIVE_DATE = "November 12, 2026";
 export const DEVELOPER_NAME = "Eunchan Lee";
 export const SUPPORT_EMAIL = "ericlee4992@gmail.com";
 
