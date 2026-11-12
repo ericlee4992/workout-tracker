@@ -147,7 +147,7 @@ struct TodayView: View {
     }
 
     private var weekSummary: WeekSummary {
-        WeekSummaryMath.summary(of: finishedWorkouts.compactMap(WeekSummaryInput.init(workout:)), now: now)
+        WeekSummaryMath.summary(ofWorkouts: finishedWorkouts, now: now)
     }
 
     private func weekFood(_ summary: WeekSummary) -> [Date: FoodDay] {

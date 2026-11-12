@@ -192,6 +192,66 @@ struct PreviousPerformanceTests {
         #expect(row.reps == nil)
     }
 
+    /// Performance P1 (found by the second opinion, reproduced by `LivePrefillUITests`): the row's dirty flag lives
+    /// in the row, so a rebuilt row (minimise and resume, a relaunch) reports clean. A value the user typed is in the
+    /// model — values without `prefilledAt` — and must not be replaced by last session's numbers.
+    @Test func aTypedValueIsNeverReplacedEvenFromACleanRow() throws {
+        let rig = try makeRig()
+        try log(
+            rig: rig, gym: rig.gymA, machine: rig.machineA,
+            values: [(.working, 60, .kg, 10)], start: Date(timeIntervalSince1970: 100))
+        let workout = try rig.session.startWorkout(at: rig.gymA, on: Date(timeIntervalSince1970: 300))
+        let entry = try rig.session.addEntry(for: rig.exercise, to: workout, machine: rig.machineA)
+        let row = try #require(WorkoutSession.orderedSets(of: entry).first)
+        let candidate = try #require(try rig.history.prefill(for: row))
+
+        row.weightUnit = .kg
+        try rig.session.commitWeight("77", for: row)
+        #expect(try !rig.history.applyPrefill(candidate, to: row, isDirty: false))
+        #expect(row.weightValue == 77)
+        #expect(row.reps == nil)
+
+        // Typed reps alone count too.
+        let second = try rig.session.addSet(to: entry)
+        try rig.session.commitReps("6", for: second)
+        #expect(try !rig.history.applyPrefill(candidate, to: second, isDirty: false))
+        #expect(second.reps == 6 && second.weightValue == nil)
+
+        // A row seeded by prefill is still the prefill's to refresh.
+        let third = try rig.session.addSet(to: entry)
+        #expect(try rig.history.applyPrefill(candidate, to: third, isDirty: false))
+        #expect(try rig.history.applyPrefill(candidate, to: third, isDirty: false))
+        #expect(third.weightValue == 60 && third.reps == 10)
+    }
+
+    /// Performance P1: the live workout hands the finished history it already holds; `reference` and `prefill`
+    /// must pick the same row as when they read every entry themselves, whatever order the list is in.
+    @Test func sharedFinishedHistoryGivesTheSameReference() throws {
+        let rig = try makeRig()
+        try log(rig: rig, gym: rig.gymA, machine: rig.machineA,
+                values: [(.warmup, 20, .kg, 12), (.working, 60, .kg, 10)], start: Date(timeIntervalSince1970: 100))
+        try log(rig: rig, gym: rig.gymA, machine: rig.machineA,
+                values: [(.warmup, 25, .kg, 12), (.working, 62.5, .kg, 9)], start: Date(timeIntervalSince1970: 200))
+        try log(rig: rig, gym: rig.gymB, machine: rig.machineB,
+                values: [(.working, 135, .lb, 8)], start: Date(timeIntervalSince1970: 250))
+        let workout = try rig.session.startWorkout(at: rig.gymA, on: Date(timeIntervalSince1970: 300))
+        let entry = try rig.session.addEntry(for: rig.exercise, to: workout, machine: rig.machineA)
+        let warmup = try #require(WorkoutSession.orderedSets(of: entry).first)
+        warmup.type = .warmup
+        let working = try rig.session.addSet(to: entry)
+        working.type = .working // a new row copies the type above it
+
+        let finished = try SetBadgeMath.finishedEntries(in: rig.context)
+        for list in [finished, finished.reversed()] {
+            let shared = PerformanceHistory(context: rig.context, finishedEntries: Array(list))
+            for row in [warmup, working] {
+                #expect(try shared.reference(for: row) == rig.history.reference(for: row))
+                #expect(try shared.prefill(for: row) == rig.history.prefill(for: row))
+            }
+        }
+        #expect(try rig.history.reference(for: working)?.displayLabel == "62.5 kg × 9")
+    }
+
     @Test func noHistoryMachineHasNoPrefillButFallbackLayersDisplay() throws {
         let rig = try makeRig()
         try log(

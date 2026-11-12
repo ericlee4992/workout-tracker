@@ -97,6 +97,9 @@ struct ActiveWorkoutView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// New best / First time marks, per set (recomputed when their inputs change, not per frame).
     @State private var badges: [UUID: SetBadge] = [:]
+    /// Performance P1: the finished history every reading on this screen judges against (marks, the fresh-best
+    /// band, the Lock Screen card, each row's PREVIOUS), read once instead of by each of them on every commit.
+    @State private var finishedHistory = FinishedHistoryCache()
     /// L03: the new best the user just logged, on the rest slab for a few seconds.
     @State private var freshBest: LiveFreshBest?
 
@@ -239,6 +242,7 @@ struct ActiveWorkoutView: View {
             }
             // Inside the list and the rest slab only: the sheets over the cover stay Floodlight.
             .environment(\.look, screenLook)
+            .environment(\.finishedHistory, finishedHistory)
             .sensoryFeedback(.restDone, trigger: restExpiryCount)
             .navigationTitle(workout.isDeleted ? "Workout" : workout.historyTitle)
             .navigationBarTitleDisplayMode(.inline)
@@ -586,7 +590,8 @@ struct ActiveWorkoutView: View {
     /// The band's content for `set`, or nil when it is not (or no longer) a new best in its scope.
     private func freshBest(for set: SetRecord) -> LiveFreshBest? {
         guard !set.isDeleted, set.completedAt != nil, let entry = set.entry, !entry.isDeleted,
-              let outcome = try? SetBadgeMath.outcomes(for: entry, in: modelContext)[set.id],
+              let finished = try? finishedHistory.finishedEntries(in: modelContext),
+              let outcome = SetBadgeMath.outcomes(for: entry, finishedEntries: finished)[set.id],
               outcome.badge == .newBest, let reps = set.reps else { return nil }
         return LiveFreshBest(
             setID: set.id, entryID: entry.id,
@@ -614,9 +619,10 @@ struct ActiveWorkoutView: View {
     private func refreshBadges() {
         guard !workout.isDeleted else { badges = [:]; freshBest = nil; return }
         var result: [UUID: SetBadge] = [:]
-        for entry in entries {
-            if let marks = try? SetBadgeMath.badges(for: entry, in: modelContext) {
-                result.merge(marks) { first, _ in first }
+        // One history read for every entry (P1); a failed read marks nothing, as a failed read per entry did.
+        if let finished = try? finishedHistory.finishedEntries(in: modelContext) {
+            for entry in entries {
+                result.merge(SetBadgeMath.badges(for: entry, finishedEntries: finished)) { first, _ in first }
             }
         }
         if result != badges {
@@ -762,7 +768,8 @@ struct ActiveWorkoutView: View {
             state = base.state
         } else {
             state = WorkoutActivityContent.make(for: workout, in: modelContext, heart: heart,
-                                                restResult: lastRestResult, degradedRestSetID: degradedRestSetID)
+                                                restResult: lastRestResult, degradedRestSetID: degradedRestSetID,
+                                                finishedEntries: try? finishedHistory.finishedEntries(in: modelContext))
             activityBase = (key, state)
         }
         return WorkoutActivityContent.refreshed(state, for: workout, heart: heart)

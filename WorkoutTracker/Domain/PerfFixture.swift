@@ -17,7 +17,11 @@ enum PerfFixture {
         WorkoutTrackerStore.fixtureIsEnabled(launchArgument)
     }
 
-    static let historyCount = 150
+    /// With `-uiTestPerfNoHistory` too: the same live workout over an empty history (the control run).
+    static let noHistoryArgument = "-uiTestPerfNoHistory"
+    static var historyCount: Int {
+        ProcessInfo.processInfo.arguments.contains(noHistoryArgument) ? 0 : 150
+    }
     static let gymName = "Perf Gym"
 
     /// Catalog exercises the history rotates through; the live workout uses the first eight.

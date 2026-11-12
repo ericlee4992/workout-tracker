@@ -59,4 +59,37 @@ struct SensorCheckpointWriteTests {
             .reduce(0) { $0 + ((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
         print("SENSOR_CHECKPOINT_WRITE_PROBE rows=\(result.rows) insert_save_notifications=\(result.saves) retained_store_bytes=\(bytes) legacy_repeated_blob_payload_bytes=\(legacyBlobBytes) elapsed_seconds=\(Date().timeIntervalSince(began))")
     }
+
+    /// Performance P1: in a workout with no new readings the recorder's 2 s refresh must not touch the store.
+    /// It used to reassign the workout's sensor checkpoints (unchanged) and save every tick, and every change
+    /// re-ran the queries of Today, History and Progress behind the workout — the lag during every workout.
+    @Test func aRefreshWithNothingNewWritesNothing() throws {
+        let container = try ModelContainer(
+            for: WorkoutTrackerStore.schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let context = ModelContext(container)
+        let workout = try WorkoutSession(context: context).startWorkout(at: nil, on: Date())
+        let monitor = HeartRateMonitor(provider: DisabledHeartRateProvider())
+        let recorder = CardioRecorder(collectsDeviceSensors: false)
+        recorder.attach(to: workout, monitor: monitor)
+        try context.save()
+        var saves = 0
+        let token = NotificationCenter.default.addObserver(
+            forName: ModelContext.didSave, object: context, queue: nil) { _ in saves += 1 }
+        defer { NotificationCenter.default.removeObserver(token) }
+
+        recorder.refresh()
+        #expect(!context.hasChanges, "an unchanged checkpoint is not reassigned")
+        #expect(saves == 0)
+
+        // A new reading is still written and saved at once.
+        monitor.ingestForTesting(HeartRateSample(bpm: 120, date: Date(), source: .fixture))
+        recorder.refresh()
+        #expect(try context.fetchCount(FetchDescriptor<WorkoutSensorSample>()) == 1)
+        #expect(!context.hasChanges)
+        #expect(saves == 1)
+        recorder.refresh()
+        #expect(saves == 1)
+        recorder.stop()
+    }
 }
+

@@ -224,9 +224,9 @@ struct StartWorkoutView: View {
     // MARK: This week
 
     @ViewBuilder private var weekCard: some View {
-        let inputs = finishedWorkouts.compactMap(WeekSummaryInput.init(workout:))
-        let summary = WeekSummaryMath.summary(of: inputs, now: .now)
-        if inputs.isEmpty && activeWorkouts.isEmpty {
+        let summary = WeekSummaryMath.summary(ofWorkouts: finishedWorkouts, now: .now)
+        // The query holds finished workouts only, so "none at all" is the store's whole history being empty.
+        if finishedWorkouts.isEmpty && activeWorkouts.isEmpty {
             // First run: no scoreboard of zeros, just the week waiting for its first workout.
             WorkoutFirstWeekCard(days: summary.days)
         } else {

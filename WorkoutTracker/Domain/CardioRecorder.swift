@@ -171,10 +171,13 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
                 context.insert(WorkoutSensorSample(sample: sample, workout: workout))
             }
             checkpointSampleCount = monitor.samples.count
-            workout.sensorActiveEnergyCheckpoint = monitor.provider.activeEnergyKilocalories
-            workout.sensorBasalEnergyCheckpoint = monitor.provider.basalEnergyKilocalories
-            workout.sensorMaxHeartRateBpm = monitor.maxHeartRate?.bpm
-            workout.sensorMaxHeartRateEstimated = monitor.maxHeartRate?.isEstimated
+            // Performance P1: assign only what changed. Even an identical assignment marks the workout changed,
+            // and every change re-runs the app's queries — Today, History and Progress behind the workout,
+            // every 2 s in a workout with no sensor at all.
+            Self.assign(monitor.provider.activeEnergyKilocalories, to: \.sensorActiveEnergyCheckpoint, of: workout)
+            Self.assign(monitor.provider.basalEnergyKilocalories, to: \.sensorBasalEnergyCheckpoint, of: workout)
+            Self.assign(monitor.maxHeartRate?.bpm, to: \.sensorMaxHeartRateBpm, of: workout)
+            Self.assign(monitor.maxHeartRate?.isEstimated, to: \.sensorMaxHeartRateEstimated, of: workout)
         }
         guard let segment = workout.unfinishedCardio, !segment.isDeleted, segment.isRunning,
               let start = segment.activeStartedAt else { persist(); return }
@@ -213,7 +216,14 @@ final class CardioRecorder: NSObject, CLLocationManagerDelegate {
         }
         lastSpeedPoint = (source, meters, date)
     }
+    private static func assign<Value: Equatable>(_ value: Value, to path: ReferenceWritableKeyPath<Workout, Value>,
+                                                 of workout: Workout) {
+        if workout[keyPath: path] != value { workout[keyPath: path] = value }
+    }
+    /// Saves only when something is pending (P1): a save with nothing to write still notifies every view
+    /// that reads a model.
     private func persist() {
+        guard context?.hasChanges == true else { return }
         do { try context?.save() }
         catch { errorMessage = "Could not save cardio: \(error.localizedDescription)" }
     }

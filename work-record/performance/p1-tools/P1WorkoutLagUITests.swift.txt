@@ -1,0 +1,67 @@
+import QuartzCore
+import XCTest
+
+// [DEBUG-p1] Temporary measurement driver for performance ticket P1: the heavy store's live workout, driven through
+// idle, typing, scrolling and Add Exercise, with phase marks on the shared host clock (CACurrentMediaTime) so the
+// app's probe log can be split per phase. Remove or turn into the regression guard before commit.
+final class P1WorkoutLagUITests: XCTestCase {
+    private let app = XCUIApplication()
+
+    private func mark(_ phase: String) {
+        print("P1MARK \(phase) \(String(format: "%.3f", CACurrentMediaTime()))")
+    }
+
+    func testDriveLiveWorkout() {
+        continueAfterFailure = false
+        app.launchArguments = ["-uiTestReset", "-uiTestPerfStore"]
+            + (ProcessInfo.processInfo.environment["P1_EXTRA_ARGS"]?.split(separator: " ").map(String.init) ?? [])
+        app.launchEnvironment["P1_PROBE"] = "1"
+        for (key, value) in ProcessInfo.processInfo.environment where key.hasPrefix("P1_") {
+            app.launchEnvironment[key] = value
+        }
+        app.launch()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 90))
+        Thread.sleep(forTimeInterval: 12)
+
+        mark("idle")
+        Thread.sleep(forTimeInterval: 10)
+
+        mark("type")
+        // The last exercise's sets are unlogged: scroll to the end and type into its last three rows.
+        let list = app.collectionViews.firstMatch
+        let add = app.buttons["addExercise"].firstMatch
+        for _ in 0..<12 where !(add.exists && add.isHittable) { list.swipeUp(velocity: .fast) }
+        Thread.sleep(forTimeInterval: 2)
+        mark("typing")
+        let weights = app.textFields.matching(identifier: "setRow.weight")
+        let reps = app.textFields.matching(identifier: "setRow.reps")
+        let count = weights.count
+        print("P1INFO weight fields \(count)")
+        for index in max(0, count - 3)..<count {
+            let weight = weights.element(boundBy: index)
+            weight.tap()
+            weight.typeText("125")
+            let rep = reps.element(boundBy: index)
+            rep.tap()
+            rep.typeText("9")
+        }
+        app.buttons["keyboardDone"].firstMatch.tap()
+        Thread.sleep(forTimeInterval: 2)
+
+        mark("scroll")
+        for _ in 0..<5 { list.swipeDown(velocity: .default) }
+        for _ in 0..<5 { list.swipeUp(velocity: .default) }
+        Thread.sleep(forTimeInterval: 2)
+
+        mark("add")
+        for _ in 0..<12 where !(add.exists && add.isHittable) { list.swipeUp(velocity: .fast) }
+        XCTAssertTrue(add.isHittable)
+        add.tap()
+        let search = app.searchFields.firstMatch.exists ? app.searchFields.firstMatch : app.textFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 10))
+        search.tap()
+        search.typeText("Curl")
+        Thread.sleep(forTimeInterval: 2)
+        mark("end")
+    }
+}

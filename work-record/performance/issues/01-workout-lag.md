@@ -103,7 +103,7 @@ History/Progress body cost on their own (~1 % each in the samples), and the phon
 real store and a heart-rate source, which adds sample rows every tick). Mac simulator times are not phone times; the
 ratios and the 2 s cadence are what transfer.
 
-### Proposed fix (waiting for the user)
+### Proposed fix (approved by the user 2026-11-11: "yes, start")
 
 - F1 `CardioRecorder.refresh`: assign only changed values and save only when something changed (no write at all in a
   lifting workout without a sensor); keep the cadence for real cardio/heart-rate.
@@ -118,6 +118,65 @@ ratios and the 2 s cadence are what transfer.
 - Guards: unit tests (recorder refresh without a sensor leaves `hasChanges` false; week summary unchanged with the
   filter; badges/previous identical with the shared read) and a timing check on the perf store; rerun the same loops
   for before/after.
+
+**2026-11-11 — fix implemented (branch, not merged).** What changed, all behaviour-identical except the data fix:
+
+- **F1 `CardioRecorder.refresh`** assigns the four sensor checkpoints only when they differ and `persist()` saves only
+  when the context has changes. A lifting workout without a sensor no longer touches the store; heart-rate samples
+  are still written and saved at once.
+- **F2 week summary** — `WeekSummaryMath.summary(ofWorkouts:)` builds inputs only from `windowStart` (last week's first
+  day); Today and the Workout tab's "This week" card use it. `summary(of:)` uses the same `windowStart`.
+- **F3 shared finished history** — `FinishedHistoryCache` (Domain) holds the finished workouts' entries (membership
+  only; contents read live), checked against two SQL counts before each use. The live screen owns one and uses it
+  for the marks (`SetBadgeMath.badges/outcomes(for:finishedEntries:)`, one read per refresh instead of one per
+  entry), the fresh-best band, the Lock Screen content (`WorkoutActivityContent.make(…, finishedEntries:)`) and
+  each row's PREVIOUS (`PerformanceHistory(context:finishedEntries:)`, via the `finishedHistory` environment value;
+  used only by `latestEntry(matching:)`, a maximum over a total order).
+- **F4 `PerformanceHistory.historicalEntries`** tests "has a completed set" with `contains` instead of sorting every
+  entry's sets.
+- **F5 typed values are never prefilled over.** Reproduced first: `LivePrefillUITests` types 77 into the incline
+  press's first set (nothing logged in that exercise), minimises and resumes — on `main`'s logic the row shows (and
+  the store holds) last session's 55; a temporary trace showed `applyPrefill` called on the rebuilt row with
+  `dirty=false` and the typed 77. Fix: `applyPrefill` also refuses a set that `holdsTypedValues` (values without
+  `prefilledAt`; every commit clears it, only prefill and carry-forward set it). The test fails with the guard
+  switched off (55) and passes with it (77). A first version of the test was wrong (it scrolled, and the field index
+  then named another exercise's row); fixed by skipping the rest instead of scrolling. Fix 2 as first proposed ("only
+  the heart-rate readout redraws") was dropped: measured, the workout screen's own redraws were 2–3 % of the main
+  thread; the cost was the history scans above.
+- Test-only: `-uiTestPerfNoHistory` (the same live workout over an empty history, the control run).
+
+### After (same loops, Release simulator build)
+
+| Measurement | Before | After | No-history control |
+|---|---|---|---|
+| Idle 20 s, no heart rate | 8.4 s frozen, worst 2.2 s, CPU 58 % | **0.05 s**, worst 51 ms, CPU 11 % | — |
+| Idle 20 s, heart rate 1/s | 19.0 s frozen, worst 3.6 s, CPU 100 % | **2.3 s**, worst **83 ms**, CPU 17 % | 1.1 s, worst 68 ms, CPU 15 % |
+| One Today week summary | 550–650 ms | ~18 ms | — |
+| One badge refresh (8 entries) | 1.6–2.2 s | ~45 ms (first read of a screen ~575 ms) | — |
+| One Lock Screen content build | 630–880 ms | ~10 ms | — |
+| Driver: idle / scroll-to-end / typing / scroll / Add Exercise (frozen share) | 32–39 % / 66–69 % / 36–44 s frozen / 41 % / not reached | 0 % / 38 % / 50 % / 14 % / 59 % | 1 % / 37 % / 49 % / 15 % / 61 % |
+
+With the fixes the heavy store behaves like the empty-history control in every driven phase; what remains there is
+the UI-test tool (its accessibility snapshots took 25 % of the main thread while typing) and the simulator keyboard,
+present with no history at all. With heart rate, each saved sample still costs a short stutter (~60 ms on the Mac
+simulator; 83 ms worst), about twice the no-history control: every save makes SwiftData re-notify every view that
+reads a workout. The remaining lever is saving samples less often — a durability trade-off left to the user, only if
+the phone still shows it.
+
+Probes for re-measuring (the phone check): `p1-tools/probe.patch` (`patch -p0 < work-record/performance/p1-tools/probe.patch`
+from the repo root; adds `P1Probe.swift` and the `[DEBUG-p1]` lines) and `p1-tools/P1WorkoutLagUITests.swift.txt`
+(copy into `WorkoutTrackerUITests/` as `.swift`). Never commit either applied.
+
+### Verification (2026-11-11)
+
+- `xcodebuild build-for-testing` Debug: exit 0 after the probes were removed.
+- Unit plan (`-testPlan Unit`): **1,289 tests in 136 suites passed**, exit 0 (`/tmp/p1/unit-clean.xcresult`). New:
+  `WeekSummaryTests.windowedSummaryEqualsTheWholeHistorysSummary`,
+  `SensorCheckpointWriteTests.aRefreshWithNothingNewWritesNothing`,
+  `PreviousPerformanceTests.aTypedValueIsNeverReplacedEvenFromACleanRow` and `.sharedFinishedHistoryGivesTheSameReference`,
+  `FinishedHistoryCacheTests.sharedHistoryMarksEqualPerEntryReadsAndFollowHistoryChanges`.
+- `LivePrefillUITests` (new, added to the Workout plan): passes, exit 0; fails with the guard off (shown above).
+- Not yet: the Workout area plan (73 UI tests, ~20–25 min — asking the user first), Codex review, the phone.
 
 ## Comments
 

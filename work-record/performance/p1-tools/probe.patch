@@ -1,0 +1,218 @@
+--- /dev/null
++++ WorkoutTracker/App/P1Probe.swift
+@@ -0,0 +1,58 @@
++// [DEBUG-p1] Temporary measurement probe for performance ticket P1. Remove before commit.
++import QuartzCore
++import Foundation
++
++@MainActor
++final class P1Probe: NSObject {
++    static let shared = P1Probe()
++    static let isOn = ProcessInfo.processInfo.environment["P1_PROBE"] != nil
++    private var link: CADisplayLink?
++    private var last: CFTimeInterval = 0
++    private var counts: [String: Int] = [:]
++    private var spent: [String: Double] = [:]
++    private var reportStart = CACurrentMediaTime()
++
++    nonisolated(unsafe) static let fileURL = URL.temporaryDirectory.appending(path: "p1probe.log")
++    nonisolated(unsafe) static var handle: FileHandle? = {
++        FileManager.default.createFile(atPath: fileURL.path, contents: nil)
++        return try? FileHandle(forWritingTo: fileURL)
++    }()
++    nonisolated static func emit(_ s: String) {
++        let line = Data("[DEBUG-p1] \(String(format: "%.3f", CACurrentMediaTime())) \(s)\n".utf8)
++        FileHandle.standardError.write(line)
++        handle?.write(line)
++    }
++    func start() {
++        guard Self.isOn, link == nil else { return }
++        let link = CADisplayLink(target: self, selector: #selector(tick(_:)))
++        link.add(to: .main, forMode: .common)
++        self.link = link
++        Self.emit("probe on")
++    }
++    @objc private func tick(_ link: CADisplayLink) {
++        if last > 0 {
++            let gap = link.timestamp - last
++            if gap > 0.034 { Self.emit("hitch \(Int(gap * 1000)) ms") }
++        }
++        last = link.timestamp
++        let now = CACurrentMediaTime()
++        if now - reportStart >= 5 {
++            let line = counts.sorted { $0.key < $1.key }
++                .map { "\($0.key)=\($0.value)" + (spent[$0.key].map { String(format: "/%.0fms", $0 * 1000) } ?? "") }
++                .joined(separator: " ")
++            Self.emit("5s bodies: \(line)")
++            counts = [:]; spent = [:]; reportStart = now
++        }
++    }
++    static func body(_ name: String) {
++        guard isOn else { return }
++        shared.counts[name, default: 0] += 1
++    }
++    static func time<T>(_ name: String, _ work: () -> T) -> T {
++        guard isOn else { return work() }
++        let t = CACurrentMediaTime(); let r = work()
++        shared.counts[name, default: 0] += 1
++        shared.spent[name, default: 0] += CACurrentMediaTime() - t
++        return r
++    }
++}
+--- WorkoutTracker/App/RootView.swift
++++ WorkoutTracker/App/RootView.swift
+@@ -148,6 +148,7 @@
+         // The tour's sample app is a fresh RootView whose first step is already set: show its tab now (the
+         // onChange above only sees later steps). Before S2 the default tab happened to be the first step's.
+         .onAppear { if let tab = tour?.current?.tab { show(tab) } }
++        .onAppear { P1Probe.shared.start() } // [DEBUG-p1]
+         .onAppear(perform: recoverActiveWorkout)
+         .onAppear(perform: applyLaunchOverride)
+     }
+--- WorkoutTracker/Domain/CardioRecorder.swift
++++ WorkoutTracker/Domain/CardioRecorder.swift
+@@ -161,6 +161,7 @@
+     }
+     func refresh() {
+         guard !shuttingDown else { return }
++        if ProcessInfo.processInfo.environment["P1_NO_CARDIO_TICK"] != nil { return } // [DEBUG-p1]
+         measurementTime = clock()
+         guard let workout, !workout.isDeleted else { return }
+         // New beats are appended as individual rows. The small scalar checkpoint
+@@ -224,6 +225,8 @@
+     /// that reads a model.
+     private func persist() {
+         guard context?.hasChanges == true else { return }
++        if ProcessInfo.processInfo.environment["P1_NO_CARDIO_SAVE"] != nil { return } // [DEBUG-p1]
++        if ProcessInfo.processInfo.environment["P1_PROBE"] != nil { FileHandle.standardError.write(Data("[DEBUG-p1] cardio save hasChanges=\(context?.hasChanges ?? false)\n".utf8)) } // [DEBUG-p1]
+         do { try context?.save() }
+         catch { errorMessage = "Could not save cardio: \(error.localizedDescription)" }
+     }
+--- WorkoutTracker/Domain/PreviousPerformance.swift
++++ WorkoutTracker/Domain/PreviousPerformance.swift
+@@ -141,6 +141,7 @@
+         to target: SetRecord,
+         isDirty: Bool
+     ) throws -> Bool {
++        P1Probe.emit("applyPrefill set=\(target.id.uuidString.prefix(4)) w=\(String(describing: target.weightValue)) r=\(String(describing: target.reps)) pf=\(target.prefilledAt != nil) dirty=\(isDirty) cand=\(value.weightValue ?? -1)") // [DEBUG-p1]
+         guard !isDirty, target.completedAt == nil, !Self.holdsTypedValues(target),
+               !entryHasOtherCompletedSet(than: target)
+         else { return false }
+--- WorkoutTracker/Domain/WorkoutSession.swift
++++ WorkoutTracker/Domain/WorkoutSession.swift
+@@ -721,6 +721,7 @@
+     /// falling through to `commitWeight` keeps a mode change mid-edit from
+     /// silently doubling the user's number.
+     func commitPerSide(_ text: String, for set: SetRecord) throws {
++        P1Probe.emit("commitPerSide set=\(set.id.uuidString.prefix(4)) text=\(text)") // [DEBUG-p1]
+         guard let barWeight = set.barWeightValue else {
+             return try commitWeight(text, for: set)
+         }
+--- WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift
++++ WorkoutTracker/Features/ActiveWorkout/ActiveWorkoutView.swift
+@@ -110,6 +110,8 @@
+     }
+ 
+     var body: some View {
++        let _ = P1Probe.body("Workout") // [DEBUG-p1]
++        let _ = P1Probe.isOn ? Self._printChanges() : () // [DEBUG-p1]
+         NavigationStack {
+             // A List, not a ScrollView, SO THAT EXERCISES CAN BE DRAGGED
+             // (requested 2026-08-29). `.onMove` is List-only; every row is
+@@ -619,12 +621,14 @@
+     private func refreshBadges() {
+         guard !workout.isDeleted else { badges = [:]; freshBest = nil; return }
+         var result: [UUID: SetBadge] = [:]
++        P1Probe.time("Workout.badges") { // [DEBUG-p1]
+         // One history read for every entry (P1); a failed read marks nothing, as a failed read per entry did.
+         if let finished = try? finishedHistory.finishedEntries(in: modelContext) {
+             for entry in entries {
+                 result.merge(SetBadgeMath.badges(for: entry, finishedEntries: finished)) { first, _ in first }
+             }
+         }
++        } // [DEBUG-p1]
+         if result != badges {
+             withAnimation(reduceMotion ? nil : .spring(response: 0.35, dampingFraction: 0.6)) { badges = result }
+         }
+@@ -767,9 +771,9 @@
+         if let base = activityBase, base.key == key {
+             state = base.state
+         } else {
+-            state = WorkoutActivityContent.make(for: workout, in: modelContext, heart: heart,
++            state = P1Probe.time("Workout.activity") { WorkoutActivityContent.make(for: workout, in: modelContext, heart: heart, // [DEBUG-p1]
+                                                 restResult: lastRestResult, degradedRestSetID: degradedRestSetID,
+-                                                finishedEntries: try? finishedHistory.finishedEntries(in: modelContext))
++                                                finishedEntries: try? finishedHistory.finishedEntries(in: modelContext)) } // [DEBUG-p1]
+             activityBase = (key, state)
+         }
+         return WorkoutActivityContent.refreshed(state, for: workout, heart: heart)
+--- WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift
++++ WorkoutTracker/Features/ActiveWorkout/ExerciseEntryCard.swift
+@@ -43,6 +43,8 @@
+     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+ 
+     var body: some View {
++        let _ = P1Probe.body("Card") // [DEBUG-p1]
++        let _ = P1Probe.isOn ? Self._printChanges() : () // [DEBUG-p1]
+         VStack(alignment: .leading, spacing: 10) {
+             titleRow
+             if entry.plannedRestSeconds != nil, !entry.plannedRepsBySet.isEmpty {
+--- WorkoutTracker/Features/ActiveWorkout/LiveSetRow.swift
++++ WorkoutTracker/Features/ActiveWorkout/LiveSetRow.swift
+@@ -94,6 +94,7 @@
+     }
+ 
+     var body: some View {
++        let _ = P1Probe.body("SetRow") // [DEBUG-p1]
+         ZStack(alignment: .trailing) {
+             if swipeOffset < 0 { swipeDeleteButton }
+             rowContent
+--- WorkoutTracker/Features/History/HistoryView.swift
++++ WorkoutTracker/Features/History/HistoryView.swift
+@@ -79,6 +79,7 @@
+     }
+ 
+     var body: some View {
++        let _ = P1Probe.body("History") // [DEBUG-p1]
+         NavigationStack(path: $path) {
+             Group {
+                 if workouts.isEmpty && foodEntries.isEmpty {
+--- WorkoutTracker/Features/Progress/ProgressTabView.swift
++++ WorkoutTracker/Features/Progress/ProgressTabView.swift
+@@ -50,6 +50,7 @@
+     }
+ 
+     var body: some View {
++        let _ = P1Probe.body("Progress") // [DEBUG-p1]
+         NavigationStack {
+             ScrollView {
+                 VStack(alignment: .leading, spacing: look.space.group) {
+--- WorkoutTracker/Features/Today/TodayView.swift
++++ WorkoutTracker/Features/Today/TodayView.swift
+@@ -74,6 +74,7 @@
+     @Environment(AccountStore.self) private var account
+ 
+     var body: some View {
++        let _ = P1Probe.body("Today") // [DEBUG-p1]
+         NavigationStack {
+             ScrollView {
+                 VStack(alignment: .leading, spacing: look.space.section) {
+@@ -147,7 +148,7 @@
+     }
+ 
+     private var weekSummary: WeekSummary {
+-        WeekSummaryMath.summary(ofWorkouts: finishedWorkouts, now: now)
++        P1Probe.time("Today.week") { WeekSummaryMath.summary(ofWorkouts: finishedWorkouts, now: now) } // [DEBUG-p1]
+     }
+ 
+     private func weekFood(_ summary: WeekSummary) -> [Date: FoodDay] {
+--- WorkoutTracker/Features/Train/TrainView.swift
++++ WorkoutTracker/Features/Train/TrainView.swift
+@@ -29,6 +29,7 @@
+     @Binding var startLiftingRequest: Bool
+ 
+     var body: some View {
++        let _ = P1Probe.body("Train") // [DEBUG-p1]
+         // Only the chosen part exists. Keeping all three alive behind opacity left the hidden parts' navigation
+         // stacks in the accessibility tree (`accessibilityHidden` does not reach a stack's UIKit pages), so
+         // VoiceOver and UI tests met two "Add Exercise" buttons. A switch therefore drops the other parts' pushed

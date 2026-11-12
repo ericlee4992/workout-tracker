@@ -130,4 +130,46 @@ struct WeekSummaryTests {
         #expect(summary.days[2].minutes == 61)
         #expect(summary.minutes == 61)
     }
+
+    /// Performance P1: Today and the Workout tab build inputs only from last week's start on. The result must
+    /// be the summary of the whole history: same days, counts, minutes, families and last-week count,
+    /// including workouts on the window's first instant, just before it, and months back.
+    @Test @MainActor func windowedSummaryEqualsTheWholeHistorysSummary() throws {
+        let container = try ModelContainer(
+            for: WorkoutTrackerStore.schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true)])
+        let context = container.mainContext
+        let press = Exercise(name: "Chest Press", loadType: .weighted, muscleGroup: "Chest")
+        context.insert(press)
+        let now = date(24) // Thursday; this week starts Monday 21, last week Monday 14.
+        let windowStart = calendar.startOfDay(for: date(14))
+        #expect(WeekSummaryMath.windowStart(now: now, calendar: calendar) == windowStart)
+        var starts = [windowStart, windowStart.addingTimeInterval(-1), date(13), date(20, 23), date(21, 0),
+                      date(23, 7), date(23), now.addingTimeInterval(3600), date(26)]
+        // Two months of older history, every other day.
+        for day in stride(from: 2, through: 60, by: 2) {
+            starts.append(calendar.date(byAdding: .day, value: -day, to: date(13))!)
+        }
+        for (index, start) in starts.enumerated() {
+            let workout = Workout(startedAt: start, finishedAt: start.addingTimeInterval(Double(40 + index) * 60))
+            context.insert(workout)
+            let entry = ExerciseEntry(order: 0, workout: workout, exercise: press, snapshotExerciseID: press.id,
+                                      snapshotLoadType: press.loadType, snapshotExerciseName: press.name)
+            context.insert(entry)
+            for order in 0..<(1 + index % 3) {
+                let set = SetRecord(order: order, type: .working, reps: 8)
+                set.completedAt = start
+                set.entry = entry
+                context.insert(set)
+            }
+        }
+        try context.save()
+        let workouts = try context.fetch(FetchDescriptor<Workout>(sortBy: [SortDescriptor(\.startedAt, order: .reverse)]))
+
+        let whole = WeekSummaryMath.summary(
+            of: workouts.compactMap(WeekSummaryInput.init(workout:)), now: now, calendar: calendar)
+        let windowed = WeekSummaryMath.summary(ofWorkouts: workouts, now: now, calendar: calendar)
+        #expect(windowed == whole)
+        #expect(whole.lastWeekWorkoutCount == 2) // the window's first instant and Sunday 20 at 23:00; none older
+        #expect(whole.workoutCount == 5)
+    }
 }

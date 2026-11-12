@@ -13,6 +13,8 @@ import SwiftUI
 /// plates on ONE end (D39/D40).
 struct LiveSetRow: View {
     @Environment(\.modelContext) private var modelContext
+    /// The live screen's shared finished history (P1); nil elsewhere, where the row reads it itself.
+    @Environment(\.finishedHistory) private var finishedHistory
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -476,7 +478,8 @@ struct LiveSetRow: View {
     private func loadPreviousAndPrefill() {
         guard !set.isDeleted else { return }
         do {
-            let history = PerformanceHistory(context: modelContext)
+            let history = PerformanceHistory(
+                context: modelContext, finishedEntries: try? finishedHistory?.finishedEntries(in: modelContext))
             // PREVIOUS stays beside a completed set; `applyPrefill` never touches one.
             guard let candidate = try history.reference(for: set) else {
                 previous = nil
@@ -505,4 +508,10 @@ struct LiveSetRow: View {
             entry?.preset?.id.uuidString ?? "no-preset",
         ].joined(separator: "|")
     }
+}
+
+extension EnvironmentValues {
+    /// The live workout's `FinishedHistoryCache`, so each set row's PREVIOUS does not read every entry ever
+    /// logged (performance P1).
+    @Entry var finishedHistory: FinishedHistoryCache?
 }

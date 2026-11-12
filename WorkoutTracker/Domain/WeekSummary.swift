@@ -96,6 +96,23 @@ extension WeekSummaryInput {
 }
 
 enum WeekSummaryMath {
+    /// The earliest start `summary` reads: the first day of the previous calendar week. Anything older
+    /// cannot change the summary.
+    static func windowStart(now: Date, calendar: Calendar = .current) -> Date {
+        let start = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .day, value: -7, to: start) ?? start
+    }
+
+    /// `summary` straight from finished workouts, building inputs only for the ones it reads (this week and
+    /// last). Performance P1: an input orders every entry and reads every set, and Today and the Workout tab
+    /// re-run this on every store change — during a workout, each heart-rate sample. Over the whole history
+    /// that cost ~0.6 s per pass on 150 workouts and froze the live workout behind them.
+    static func summary(ofWorkouts workouts: [Workout], now: Date, calendar: Calendar = .current) -> WeekSummary {
+        let from = windowStart(now: now, calendar: calendar)
+        let inputs = workouts.filter { $0.startedAt >= from }.compactMap(WeekSummaryInput.init(workout:))
+        return summary(of: inputs, now: now, calendar: calendar)
+    }
+
     /// The week containing `now` in `calendar` (its locale's first weekday — the same weeks
     /// History's calendar draws). Workouts belong to the day they STARTED on, as everywhere in
     /// History (`WorkoutCalendar`). `lastWeekWorkoutCount` is the previous calendar week.
@@ -124,7 +141,7 @@ enum WeekSummaryMath {
                 isFuture: day > today,
                 workouts: items.map(dayWorkout)))
         }
-        let lastWeekStart = calendar.date(byAdding: .day, value: -7, to: start) ?? start
+        let lastWeekStart = windowStart(now: now, calendar: calendar)
         let lastWeek = workouts.filter { $0.startedAt >= lastWeekStart && $0.startedAt < start }.count
         return WeekSummary(
             days: days,

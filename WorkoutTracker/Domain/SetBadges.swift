@@ -80,6 +80,19 @@ extension SetBadgeMath {
         try outcomes(for: entry, in: context).mapValues(\.badge)
     }
 
+    /// `badges(for:in:)` against a history read once with `finishedEntries(in:)`, for marking several
+    /// entries together. Performance P1: the live workout marks every entry on each commit, and one history
+    /// read per entry cost ~2 s per commit on 150 workouts.
+    static func badges(for entry: ExerciseEntry, finishedEntries: [ExerciseEntry]) -> [UUID: SetBadge] {
+        outcomes(for: entry, finishedEntries: finishedEntries).mapValues(\.badge)
+    }
+
+    /// `outcomes(for:in:)` against a history read once (`finishedEntries(in:)` or `FinishedHistoryCache`).
+    static func outcomes(for entry: ExerciseEntry, finishedEntries: [ExerciseEntry]) -> [UUID: SetBadgeOutcome] {
+        guard let (current, history) = inputs(for: entry, finishedEntries: finishedEntries) else { return [:] }
+        return outcomes(current: current, history: history)
+    }
+
     /// History is only what was logged BEFORE this workout started: a past workout opened in
     /// History is judged against its own past, not against later sessions.
     static func outcomes(for entry: ExerciseEntry, in context: ModelContext) throws -> [UUID: SetBadgeOutcome] {

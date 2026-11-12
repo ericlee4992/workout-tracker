@@ -89,9 +89,15 @@ struct PerformanceSummary: Sendable, Equatable {
 /// current context before its own snapshot is captured.
 struct PerformanceHistory {
     let context: ModelContext
+    /// Performance P1: the finished workouts' entries when the caller already holds them (the live workout's
+    /// `FinishedHistoryCache`), so `reference`/`prefill` do not read every entry ever logged per row. Used only
+    /// by `latestEntry(matching:)`, which picks a maximum over a total order, so the list's order cannot change
+    /// the result.
+    let finishedEntries: [ExerciseEntry]?
 
-    init(context: ModelContext) {
+    init(context: ModelContext, finishedEntries: [ExerciseEntry]? = nil) {
         self.context = context
+        self.finishedEntries = finishedEntries
     }
 
     /// Prefill source for one draft row, matched by exact set type and its
@@ -135,7 +141,7 @@ struct PerformanceHistory {
         to target: SetRecord,
         isDirty: Bool
     ) throws -> Bool {
-        guard !isDirty, target.completedAt == nil,
+        guard !isDirty, target.completedAt == nil, !Self.holdsTypedValues(target),
               !entryHasOtherCompletedSet(than: target)
         else { return false }
         target.reps = value.reps
@@ -152,6 +158,14 @@ struct PerformanceHistory {
         target.prefilledAt = .now
         try context.save()
         return true
+    }
+
+    /// Values the user typed: present without `prefilledAt` (every commit clears it; only prefill and
+    /// carry-forward set it). Performance P1: `isDirty` is the ROW's memory, and a rebuilt row — minimise and
+    /// resume, a relaunch — reports clean, so last session's numbers replaced a typed but not yet logged weight
+    /// (reproduced by `LivePrefillUITests`). The model is the durable record of what was typed.
+    static func holdsTypedValues(_ set: SetRecord) -> Bool {
+        set.prefilledAt == nil && (set.weightValue != nil || set.reps != nil)
     }
 
     private func entryHasOtherCompletedSet(than target: SetRecord) -> Bool {
@@ -351,19 +365,30 @@ struct PerformanceHistory {
 
     // MARK: Selection
 
+    /// Performance P1: runs on every lookup (each set row's PREVIOUS, the Lock Screen card), over every entry
+    /// ever logged. The completed-set test is `contains`, not `completedSets(of:)`, which sorted every
+    /// entry's sets only to ask whether one was completed — same rows, without the sort.
     private func historicalEntries() throws -> [ExerciseEntry] {
-        try context.fetch(FetchDescriptor<ExerciseEntry>()).filter {
-            $0.snapshotCapturedAt != nil
-                && $0.workout?.finishedAt != nil
-                && !$0.isDeleted
-                && !completedSets(of: $0).isEmpty
-        }
+        try context.fetch(FetchDescriptor<ExerciseEntry>()).filter(Self.isHistorical)
     }
 
     private func latestEntry(
         matching predicate: (ExerciseEntry) -> Bool
     ) throws -> ExerciseEntry? {
-        latestEntry(in: try historicalEntries(), matching: predicate)
+        latestEntry(in: try finishedEntries.map(Self.historical) ?? historicalEntries(), matching: predicate)
+    }
+
+    /// `historicalEntries()`'s rule applied to a finished workouts' entry list (same rows: an entry belongs to a
+    /// finished workout exactly when its workout is finished).
+    private static func historical(_ entries: [ExerciseEntry]) -> [ExerciseEntry] {
+        entries.filter(isHistorical)
+    }
+
+    private static func isHistorical(_ entry: ExerciseEntry) -> Bool {
+        entry.snapshotCapturedAt != nil
+            && !entry.isDeleted
+            && entry.workout?.finishedAt != nil
+            && (entry.sets ?? []).contains { $0.completedAt != nil }
     }
 
     private func latestEntry(

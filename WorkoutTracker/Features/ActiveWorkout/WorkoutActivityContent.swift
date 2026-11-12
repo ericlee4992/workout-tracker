@@ -21,8 +21,11 @@ enum WorkoutActivityContent {
         heart: Heart?,
         restResult: WorkoutActivityAttributes.RestResult? = nil,
         degradedRestSetID: UUID? = nil,
-        now: Date = .now
+        now: Date = .now,
+        finishedEntries: [ExerciseEntry]? = nil
     ) -> WorkoutActivityAttributes.ContentState {
+        // `finishedEntries`: the live screen's `FinishedHistoryCache` (P1), so the card does not read the whole
+        // history again on each commit; the Lock Screen commands, which run without the screen, read it here.
         let entries = WorkoutSession.orderedEntries(of: workout).filter { !$0.isDeleted }
         let sets = entries.flatMap { WorkoutSession.orderedSets(of: $0) }
         let completed = sets.filter { $0.completedAt != nil }.count
@@ -43,12 +46,14 @@ enum WorkoutActivityContent {
         if workout.restEndsAt != nil, let restSet {
             state.rest = restKind(for: restSet, in: context, degradedRestSetID: degradedRestSetID)
             if let entry = restSet.entry,
-               let badges = try? SetBadgeMath.badges(for: entry, in: context) {
+               let badges = finishedEntries.map({ SetBadgeMath.badges(for: entry, finishedEntries: $0) })
+                    ?? (try? SetBadgeMath.badges(for: entry, in: context)) {
                 state.restFollowsNewBest = badges[restSet.id] == .newBest
             }
         }
         state.restResult = restResult
-        state.next = nextSet(in: workout, restEntryID: restSet?.entry?.id, context: context)
+        state.next = nextSet(in: workout, restEntryID: restSet?.entry?.id, context: context,
+                             finishedEntries: finishedEntries)
         if let segment = workout.unfinishedCardio {
             state.cardio = cardio(segment, in: workout, now: now)
         }
@@ -97,8 +102,8 @@ enum WorkoutActivityContent {
         return degradedRestSetID == set.id ? .fallback : .heartRate(targetBpm: rule.thresholdBpm)
     }
 
-    static func nextSet(in workout: Workout, restEntryID: UUID?,
-                        context: ModelContext) -> WorkoutActivityAttributes.NextSet? {
+    static func nextSet(in workout: Workout, restEntryID: UUID?, context: ModelContext,
+                        finishedEntries: [ExerciseEntry]? = nil) -> WorkoutActivityAttributes.NextSet? {
         guard let next = WorkoutSession.nextSet(in: workout), let entry = next.entry else { return nil }
         let name = entry.exercise?.name ?? entry.snapshotExerciseName
         let sets = WorkoutSession.orderedSets(of: entry)
@@ -119,7 +124,8 @@ enum WorkoutActivityContent {
             line = look.nextSetLabel(number: number, value: value, rowUnit: next.weightUnit, loadType: loadType)
         }
         let showsWeight = loadType.takesWeight && next.weightValue != nil
-        let previous = (try? PerformanceHistory(context: context).reference(for: next))?.displayLabel
+        let previous = (try? PerformanceHistory(context: context, finishedEntries: finishedEntries)
+            .reference(for: next))?.displayLabel
         return WorkoutActivityAttributes.NextSet(
             marker: next.type.marker ?? "\(number)",
             supersetLetter: Supersets.memberLabel(for: entry, in: workout),
