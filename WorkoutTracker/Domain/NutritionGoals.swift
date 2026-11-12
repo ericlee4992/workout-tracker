@@ -15,6 +15,8 @@ enum NutritionGoals {
         var sex: BiologicalSex
         var activity: ActivityLevel
         var goal: WeightGoal
+        /// N13: the chosen pace, kg a week; nil = N3's fixed adjustment (`goalAdjustment`). Ignored for maintain.
+        var paceKgPerWeek: Double? = nil
     }
 
     /// The numbers the user typed over the calculation; nil = follow the calculation.
@@ -73,9 +75,13 @@ enum NutritionGoals {
         }
     }
 
-    /// The calculated daily calories, whole kcal.
+    /// The calculated daily calories, whole kcal: the pace's adjustment when there is one (N13, `GoalPlan`), else
+    /// N3's fixed one.
     static func calories(_ inputs: Inputs) -> Double {
-        let energy = restingEnergy(inputs) * activityFactor(inputs.activity) + goalAdjustment(inputs.goal)
+        let adjustment = inputs.goal == .maintain ? 0 : inputs.paceKgPerWeek.map {
+            GoalPlan.dailyAdjustment(goal: inputs.goal, kgPerWeek: $0)
+        } ?? goalAdjustment(inputs.goal)
+        let energy = restingEnergy(inputs) * activityFactor(inputs.activity) + adjustment
         return max(energy, calorieFloor(inputs.sex)).rounded()
     }
 

@@ -379,6 +379,13 @@ final class NutritionGoal {
     var carbsOverridden: Bool = false
     var fatOverridden: Bool = false
     var createdAt: Date = Date()
+    // N13 (D84): the goal setup's desired weight as entered `(value, unit)` with its kg (D52), and the pace in kg a
+    // week. nil for maintain, for a goal made before N13 (it keeps N3's fixed −500 / +250 adjustment) or typed only.
+    // Additive optionals: SwiftData migrates 0.2.0's store lightweightly (`GoalSetupMigrationTests`).
+    var desiredWeightValue: Double?
+    var desiredWeightUnit: WeightUnit?
+    var desiredWeightKg: Double?
+    var paceKgPerWeek: Double?
 
     init(id: UUID = UUID(), effectiveFrom: Date, calories: Double, proteinGrams: Double, carbsGrams: Double,
          fatGrams: Double, createdAt: Date = .now) {

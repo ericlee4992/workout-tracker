@@ -3,22 +3,24 @@ import SwiftUI
 
 /// Public beta ticket 02 (spec Q8b): owns first launch — whether the welcome page shows — and the guided tour's
 /// lifetime, including the temporary sample world it runs in. Lives at the app level so Settings → Show Tour and the
-/// welcome page start the same tour.
+/// plan page start the same tour.
+///
+/// N13 (D84): a new install's welcome page leads into the goal setup (Get Started; no Skip) and the cover stays until the
+/// plan is saved — quitting part-way brings the welcome back at the next launch, because the page counts as answered
+/// only once the setup is saved. The plan page's Show Me Around saves, then starts the tour.
 @Observable
 @MainActor
 final class OnboardingCoordinator {
-    /// Set once the welcome page has been answered (Skip or the tour); a new version shows it again.
+    /// Set once the welcome page has been answered — since N13, once the goal setup it leads into is saved; a new
+    /// version shows it again.
     static let welcomeSeenKey = "onboarding.welcomeSeen.v1"
     /// UI tests start from an empty store, which would show the welcome page in every one of them; it shows under
     /// `-uiTestReset` only when a test asks for it with this argument.
     static let uiTestArgument = "-uiTestOnboarding"
 
     var showsWelcome = false
-    /// Nutrition N3: the goals sheet, offered once after the Welcome page is answered (Skip, or the tour it started
-    /// ends) when there is no goal yet. Under `-uiTestReset` only with `foodGoalsUITestArgument`, like the welcome page.
-    var showsFoodGoals = false
-    static let foodGoalsUITestArgument = "-uiTestFoodGoalsStep"
-    private var foodGoalsPending = false
+    /// N13: the goal setup's answers once Get Started is tapped; nil while the welcome page shows.
+    private(set) var setup: GoalSetupDraft?
     private(set) var tour: TourController?
     /// The tour's world: in memory only, discarded when the tour ends.
     private(set) var sampleContainer: ModelContainer?
@@ -44,29 +46,27 @@ final class OnboardingCoordinator {
             uiTestRequested: ProcessInfo.processInfo.arguments.contains(Self.uiTestArgument))
     }
 
-    func skipWelcome() {
-        defaults.set(true, forKey: Self.welcomeSeenKey)
-        foodGoalsPending = true
-        showsWelcome = false
+    /// Get Started: into the goal setup, inside the same cover.
+    func beginSetup(now: Date = .now) {
+        setup = GoalSetupDraft(now: now)
     }
 
-    /// Shows the goals sheet if the Welcome page was just answered and no tour is running (called when the Welcome
-    /// cover closes and when the app's own screens return after the tour).
-    func offerFoodGoalsIfPending(in context: ModelContext) {
-        guard foodGoalsPending, tour == nil, !showsWelcome else { return }
-        foodGoalsPending = false
-        if WorkoutTrackerStore.isUITestReset
-            && !ProcessInfo.processInfo.arguments.contains(Self.foodGoalsUITestArgument) { return }
-        let hasGoal = ((try? context.fetchCount(FetchDescriptor<NutritionGoal>())) ?? 0) > 0
-        showsFoodGoals = !hasGoal
+    /// The plan's Start (or Show Me Around): saves the answers, marks the welcome answered and closes the cover; with
+    /// `thenTour`, starts the tour. Throws when the save fails — the cover stays, with the answers.
+    func finishSetup(_ answers: GoalSetupStore.Answers, in context: ModelContext, thenTour: Bool,
+                     now: Date = .now) throws {
+        try GoalSetupStore.commit(answers, in: context, now: now)
+        defaults.set(true, forKey: Self.welcomeSeenKey)
+        showsWelcome = false
+        setup = nil
+        if thenTour { startTour(realContext: context) }
     }
 
     /// Starts the tour on a fresh in-memory sample store. Refuses while a real workout runs: the tour swaps the
     /// whole app to the sample world, and the running workout's screen must not be torn down under the user.
     func startTour(realContext: ModelContext) {
-        if showsWelcome { foodGoalsPending = true }  // started from the Welcome page, not Profile → Show Tour
-        defaults.set(true, forKey: Self.welcomeSeenKey)
-        showsWelcome = false
+        // Only Profile → Show Tour and the saved plan start it (N13): the welcome cover is never left unfinished.
+        guard !showsWelcome else { return }
         // Read-only and fail-closed (codex-review-02): an unknown answer refuses rather than starting.
         let unfinished = try? realContext.fetchCount(FetchDescriptor<Workout>(predicate: #Predicate { $0.finishedAt == nil }))
         guard let unfinished else {

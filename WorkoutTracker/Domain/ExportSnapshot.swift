@@ -58,7 +58,9 @@ struct ExportSnapshot: Codable, Equatable {
     /// `bodyWeights`, and their counts; N3 adds Personal details to `preferences` (height, sex). All optional, so a
     /// v1–v11 file still decodes. Nutrition per serving, as stored;
     /// an entry's totals are per serving × `servings`. JSON only: the CSV stays a ledger of sets and cardio.
-    static let currentSchemaVersion = 12
+    /// 13 — nutrition N13: `nutritionGoals[]` gain `desiredWeightValue`, `desiredWeightUnit`, `desiredWeightKg` and
+    /// `paceKgPerWeek` (the goal setup), each omitted when absent, so a v12 file still decodes.
+    static let currentSchemaVersion = 13
 
     var schemaVersion: Int = ExportSnapshot.currentSchemaVersion
     var exportedAt: String
@@ -627,6 +629,11 @@ extension ExportSnapshot {
         var carbsOverridden: Bool
         var fatOverridden: Bool
         var createdAt: String
+        /// N13 (v13): the desired weight as entered and its kg, and the pace in kg a week. Absent when nil.
+        var desiredWeightValue: Double? = nil
+        var desiredWeightUnit: WeightUnit? = nil
+        var desiredWeightKg: Double? = nil
+        var paceKgPerWeek: Double? = nil
     }
 
     /// The entered `(value, unit)` and `normalizedKg`, like every exported weight.

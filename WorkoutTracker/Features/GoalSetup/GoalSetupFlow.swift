@@ -8,12 +8,12 @@ import SwiftUI
 /// middle; Continue, the one filled command, in the thumb's bottom third.
 struct GoalSetupFlow: View {
     @Bindable var draft: GoalSetupDraft
-    /// The plan's commit (first launch: "Start"; Nutrition goals: "Save Goals").
-    var onFinish: () -> Void
+    /// The plan's commit (first launch: "Start"; Nutrition goals: "Save Goals"). The host saves the answers.
+    var onFinish: (GoalSetupStore.Answers) -> Void
     /// Nutrition goals only: closes without saving. nil on first launch (no way out unfinished).
     var onClose: (() -> Void)?
-    /// First launch, prototype option A: the plan page also offers the tour.
-    var onTour: (() -> Void)?
+    /// First launch (D84): the plan page also offers the tour — the answers are saved first.
+    var onTour: ((GoalSetupStore.Answers) -> Void)?
     @Environment(\.look) private var look
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var editing: NutritionGoalsView.Number?
@@ -82,10 +82,13 @@ struct GoalSetupFlow: View {
     private var bottomBar: some View {
         VStack(spacing: 6) {
             if draft.step == .plan {
-                PrimaryButton(draft.isExistingUser ? "Save Goals" : "Start", action: onFinish)
-                    .accessibilityIdentifier("goalSetupFinish")
+                PrimaryButton(draft.isExistingUser ? "Save Goals" : "Start") {
+                    if let answers = draft.answers { onFinish(answers) }
+                }
+                .disabled(draft.answers == nil)
+                .accessibilityIdentifier("goalSetupFinish")
                 if let onTour, !draft.isExistingUser {
-                    Button(action: onTour) {
+                    Button { if let answers = draft.answers { onTour(answers) } } label: {
                         Text("Show Me Around")
                             .font(look.font.body.weight(.semibold))
                             .foregroundStyle(look.textSecondary)
@@ -242,12 +245,28 @@ struct GoalSetupFlow: View {
                 (.maintain, WeightGoal.maintain.label, nil, "equal"),
                 (.gain, WeightGoal.gain.label, nil, "arrow.up.right"),
             ], selection: $draft.goal, idPrefix: "goalSetupGoal")
+            if let block = draft.goalBlocked {
+                Text(goalBlockText(block))
+                    .font(look.font.footnote)
+                    .foregroundStyle(look.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 10)
+                    .padding(.horizontal, 4)
+                    .accessibilityIdentifier("goalSetupGoalBlocked")
+            }
+        }
+    }
+
+    private func goalBlockText(_ block: GoalSetupDraft.GoalBlock) -> String {
+        switch block {
+        case .atLowestWeight: "You're already at the lowest healthy weight for your height."
+        case .calorieFloor(let floor): "Losing would take your calories under \(GoalSetupFormat.calories(floor)) a day."
         }
     }
 
     private var desiredPage: some View {
         VStack(alignment: .leading, spacing: 0) {
-            question(draft.goal == .gain ? "What weight are you aiming for?" : "What weight are you aiming for?")
+            question("What weight are you aiming for?")
             VStack(spacing: 18) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(GoalSetupFormat.number(draft.desired))
@@ -269,8 +288,7 @@ struct GoalSetupFlow: View {
                     StepCapsule(symbol: "minus", label: "Less") { move { draft.stepDesired(by: -1) } }
                     StepCapsule(symbol: "plus", label: "More") { move { draft.stepDesired(by: 1) } }
                 }
-                if draft.goal == .lose, let range = draft.desiredRange,
-                   abs(draft.desiredKg - range.lowerBound) < GoalSetupDraft.lowestTolerance(draft.weightUnit) {
+                if draft.desiredAtLowest {
                     Text("The lowest healthy weight for your height.")
                         .font(look.font.footnote)
                         .foregroundStyle(look.textSecondary)
@@ -419,11 +437,6 @@ struct GoalSetupFlow: View {
             }
         }
     }
-}
-
-extension GoalSetupDraft {
-    /// Within half a step of the lowest desired weight (the healthy-weight line).
-    static func lowestTolerance(_ unit: WeightUnit) -> Double { unit == .kg ? 0.5 : 0.5 }
 }
 
 // MARK: - Pieces

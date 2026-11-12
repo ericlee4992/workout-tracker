@@ -31,6 +31,16 @@ enum NutritionGoalStore {
         var activity: ActivityLevel = .moderate
         var goal: WeightGoal = .maintain
         var overrides: NutritionGoals.Overrides = .none
+        /// N13: the goal setup's desired weight and pace (kg a week); nil before the setup ran, and for maintain.
+        var desired: DesiredWeight?
+        var paceKgPerWeek: Double?
+    }
+
+    /// N13: a desired weight as entered (D52) — the kg follows from it.
+    struct DesiredWeight: Equatable {
+        var value: Double
+        var unit: WeightUnit
+        var kg: Double { WeightMath.normalizedKg(value: value, unit: unit) }
     }
 
     static func details(in context: ModelContext) throws -> Details? {
@@ -65,19 +75,23 @@ enum NutritionGoalStore {
     /// The choices a stored goal carries: its activity and goal, and each overridden number as typed.
     static func choices(of goal: NutritionGoal?) -> Choices {
         guard let goal else { return Choices() }
+        var desired: DesiredWeight?
+        if let value = goal.desiredWeightValue, let unit = goal.desiredWeightUnit { desired = .init(value: value, unit: unit) }
         return Choices(
             activity: goal.activity ?? .moderate, goal: goal.goal ?? .maintain,
             overrides: .init(calories: goal.caloriesOverridden ? goal.calories : nil,
                              proteinGrams: goal.proteinOverridden ? goal.proteinGrams : nil,
                              carbsGrams: goal.carbsOverridden ? goal.carbsGrams : nil,
-                             fatGrams: goal.fatOverridden ? goal.fatGrams : nil))
+                             fatGrams: goal.fatOverridden ? goal.fatGrams : nil),
+            desired: desired, paceKgPerWeek: goal.paceKgPerWeek)
     }
 
     static func inputs(_ details: Details, _ choices: Choices, on date: Date,
                        calendar: Calendar = .current) -> NutritionGoals.Inputs {
         .init(weightKg: details.weightKg, heightCm: details.heightCm,
               ageYears: NutritionGoals.age(birthDate: details.birthDate, on: date, calendar: calendar),
-              sex: details.sex, activity: choices.activity, goal: choices.goal)
+              sex: details.sex, activity: choices.activity, goal: choices.goal,
+              paceKgPerWeek: choices.goal == .maintain ? nil : choices.paceKgPerWeek)
     }
 
     /// Applies `change` to the current choices and stores the result (see the type's comment). Returns the goal in
@@ -120,6 +134,11 @@ enum NutritionGoalStore {
         goal.proteinOverridden = choices.overrides.proteinGrams != nil
         goal.carbsOverridden = choices.overrides.carbsGrams != nil
         goal.fatOverridden = choices.overrides.fatGrams != nil
+        let desired = choices.goal == .maintain ? nil : choices.desired
+        goal.desiredWeightValue = desired?.value
+        goal.desiredWeightUnit = desired?.unit
+        goal.desiredWeightKg = desired?.kg
+        goal.paceKgPerWeek = inputs.paceKgPerWeek
         try context.save()
         return goal
     }
@@ -162,5 +181,8 @@ enum NutritionGoalStore {
             && goal.proteinOverridden == (choices.overrides.proteinGrams != nil)
             && goal.carbsOverridden == (choices.overrides.carbsGrams != nil)
             && goal.fatOverridden == (choices.overrides.fatGrams != nil)
+            && goal.paceKgPerWeek == inputs.paceKgPerWeek
+            && goal.desiredWeightValue == (choices.goal == .maintain ? nil : choices.desired?.value)
+            && goal.desiredWeightUnit == (choices.goal == .maintain ? nil : choices.desired?.unit)
     }
 }

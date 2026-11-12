@@ -84,8 +84,9 @@ enum GoalPlan {
 
     /// The calculated daily calories at a pace, never below the floor. Whole kcal.
     static func calories(_ inputs: NutritionGoals.Inputs, kgPerWeek: Double) -> Double {
-        let energy = maintenanceCalories(inputs) + dailyAdjustment(goal: inputs.goal, kgPerWeek: kgPerWeek)
-        return max(energy, NutritionGoals.calorieFloor(inputs.sex)).rounded()
+        var inputs = inputs
+        inputs.paceKgPerWeek = kgPerWeek
+        return NutritionGoals.calories(inputs)
     }
 
     /// Weeks to the desired weight at a pace (fractional); nil when there is nothing to reach or no pace.

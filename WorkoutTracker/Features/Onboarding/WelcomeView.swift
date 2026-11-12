@@ -5,9 +5,9 @@ import SwiftUI
 /// to take the guided tour. Ticket 03 (the user's choice, 2026-10-13): Sign in with Apple sits under the tour, so the
 /// tour stays the one primary command and the app reads as usable without an account (guideline 5.1.1(v)); once
 /// signed in, the button gives way to "Signed in as …" and the tour / Skip choice stays. Ticket 04 adds Google here.
+/// N13 (D84): the one command is Get Started, into the required goal setup — no Skip; the tour moved to the plan page.
 struct WelcomeView: View {
-    var onTour: () -> Void
-    var onSkip: () -> Void
+    var onStart: () -> Void
     /// False in a build without a server (and in UI tests without a sample flag): no sign-in on this page.
     var showsSignIn = false
     /// The name once signed in; nil shows Apple's button.
@@ -42,8 +42,8 @@ struct WelcomeView: View {
                 .scrollBounceBehavior(.basedOnSize)
             }
             VStack(spacing: 10) {
-                PrimaryButton("Show Me Around", action: onTour)
-                    .accessibilityIdentifier("welcomeTour")
+                PrimaryButton("Get Started", action: onStart)
+                    .accessibilityIdentifier("welcomeGetStarted")
                 if let signedInName {
                     SettingsNotice(symbol: "checkmark", text: "Signed in as \(signedInName).", emphasized: true)
                         .frame(minHeight: 44)
@@ -68,14 +68,6 @@ struct WelcomeView: View {
                             .accessibilityIdentifier("signInFailure")
                     }
                 }
-                Button(action: onSkip) {
-                    Text("Skip")
-                        .font(look.font.body.weight(.semibold))
-                        .foregroundStyle(look.textSecondary)
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .contentShape(Rectangle())
-                }
-                .accessibilityIdentifier("welcomeSkip")
             }
             .padding(.horizontal, look.space.margin)
             .padding(.bottom, 8)

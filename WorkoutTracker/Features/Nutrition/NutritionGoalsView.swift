@@ -1,7 +1,8 @@
 import SwiftData
 import SwiftUI
 
-/// Nutrition N3 — Profile → Goals & tracking → Nutrition goals (mock approved by the user 2026-11-09).
+/// Nutrition N3 — Profile → Goals & tracking → Nutrition goals (mock approved by the user 2026-11-09). N13 (D84): the
+/// Goal weight row runs the goal setup (prefilled) in place of the Goal menu.
 ///
 /// The eye lands on the calorie figure (the hero); the three macros sit under it as equal tiles; the two choices the
 /// goal is "based on" (activity, goal) and Personal details are rows below. Tapping a number opens a small editor (the
@@ -17,6 +18,8 @@ struct NutritionGoalsView: View {
     @Query(sort: \BodyWeightEntry.measuredAt, order: .reverse) private var weights: [BodyWeightEntry]
     @State private var editing: Number?
     @State private var showDetails = false
+    /// N13 (D84): the goal setup, run from the Goal weight row, prefilled.
+    @State private var setup: GoalSetupDraft?
     @State private var saveFailure: String?
     /// Choices made before Personal details are complete (no goal to hold them yet); applied to the first goal.
     @State private var pending: NutritionGoalStore.Choices?
@@ -73,6 +76,14 @@ struct NutritionGoalsView: View {
             if complete, let pending { change { $0 = pending } }  // every held choice, Recalculate (no overrides) too
         }
         .navigationDestination(isPresented: $showDetails) { PersonalDetailsView() }
+        .fullScreenCover(item: $setup) { draft in
+            GoalSetupFlow(draft: draft, onFinish: saveSetup, onClose: { setup = nil }, onTour: nil)
+                .lookLayer()
+                .alert("Couldn't save", isPresented: Binding(get: { saveFailure != nil },
+                                                             set: { if !$0 { saveFailure = nil } })) {
+                    Button("OK", role: .cancel) {}
+                } message: { Text(saveFailure ?? "") }
+        }
         .sheet(item: $editing) { number in editor(number) }
         .alert("Couldn't save", isPresented: Binding(get: { saveFailure != nil }, set: { if !$0 { saveFailure = nil } })) {
             Button("OK", role: .cancel) {}
@@ -165,12 +176,38 @@ struct NutritionGoalsView: View {
         VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Based on")
             LookList(separatorInset: 54) {
-                GoalChoiceMenus(choices: choices) { apply in change(apply) }
+                ProfileRow("Goal weight", symbol: "flag", value: goalSummary) { openSetup() }
+                    .accessibilityIdentifier("nutritionGoalsGoalWeight")
+                ActivityMenu(choices: choices) { apply in change(apply) }
                 ProfileRow("Personal details", symbol: "person.text.rectangle", subtitle: detailsSummary) {
                     showDetails = true
                 }
                 .accessibilityIdentifier("nutritionGoalsDetails")
             }
+        }
+    }
+
+    /// "63.5 kg · 0.35 kg a week" (the goal setup's desired weight as entered, the pace in its unit); "Maintain"; a goal
+    /// from before N13 by its name ("Lose weight").
+    private var goalSummary: String {
+        let goal = choices.goal
+        guard goal != .maintain, let desired = choices.desired, let pace = choices.paceKgPerWeek else { return goal.label }
+        return "\(GoalSetupFormat.number(desired.value)) \(desired.unit.rawValue) · "
+            + "\(GoalSetupFormat.pace(pace, unit: desired.unit)) \(desired.unit.rawValue) a week"
+    }
+
+    private func openSetup() {
+        do { setup = GoalSetupDraft(prefill: try GoalSetupStore.prefill(in: modelContext)) }
+        catch { saveFailure = error.localizedDescription }
+    }
+
+    private func saveSetup(_ answers: GoalSetupStore.Answers) {
+        do {
+            try GoalSetupStore.commit(answers, in: modelContext)
+            pending = nil
+            setup = nil
+        } catch {
+            saveFailure = error.localizedDescription
         }
     }
 

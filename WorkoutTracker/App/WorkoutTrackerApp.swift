@@ -244,21 +244,14 @@ struct WorkoutTrackerApp: App {
                         .onAppear {
                             onboarding.evaluateFirstLaunch(in: modelContainer.mainContext)
                             evaluateWhatsNew()
-                            // N3: back from a tour the Welcome page started → the goals sheet.
-                            onboarding.offerFoodGoalsIfPending(in: modelContainer.mainContext)
                         }
-                        .sheet(isPresented: $onboarding.showsFoodGoals) { FoodGoalsSetupSheet() }
-                        // PROTOTYPE (N13): the goal setup under `-goalSetupPrototype` (UI-test stores only).
-                        .goalSetupPrototype()
                         .sheet(item: $whatsNew, onDismiss: {
                             if let build = whatsNewShown { WhatsNew.markSeen(build) }
                             whatsNewShown = nil
                         }) { WhatsNewSheet(entry: $0) }
-                        .fullScreenCover(isPresented: $onboarding.showsWelcome, onDismiss: {
-                            onboarding.offerFoodGoalsIfPending(in: modelContainer.mainContext)
-                        }) {
-                            WelcomeView(onTour: { onboarding.startTour(realContext: modelContainer.mainContext) },
-                                        onSkip: { onboarding.skipWelcome() },
+                        // N13 (D84): the welcome page, then the required goal setup, in one cover.
+                        .fullScreenCover(isPresented: $onboarding.showsWelcome) {
+                            FirstLaunchView(welcome: WelcomeView(onStart: { onboarding.beginSetup() },
                                         showsSignIn: account.isAvailable,
                                         signedInName: ProfileSample.welcomeSignedInName
                                             ?? (account.isSignedIn ? account.profile?.displayName ?? AccountDisplayCopy.unnamed : nil),
@@ -266,7 +259,7 @@ struct WorkoutTrackerApp: App {
                                         signingIn: account.signingIn,
                                         onAppleRequest: account.prepare,
                                         onAppleCompletion: { result in Task { await account.complete(result) } },
-                                        onGoogle: GoogleSignIn.isAvailable ? { Task { await account.signInWithGoogle() } } : nil)
+                                        onGoogle: GoogleSignIn.isAvailable ? { Task { await account.signInWithGoogle() } } : nil))
                         }
                         .environment(account)
                         .environment(health)
