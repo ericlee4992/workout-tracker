@@ -10,7 +10,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   the user). Done: limits kept, full UI suite (381/386 + fixes), What's New (build 10) and What to Test approved,
   README, privacy/support copy (Codex clear), **server deployed 2026-11-11** (migrations 0007+0008, `USDA_API_KEY`,
   Worker `901eda5d`; backup in `~/WorkoutTracker-Backups/server/2026-11-11-release-r`, delete by 2026-12-11). Next:
-  App Privacy answers (the user), Gate S on the phone, build 10 (bump, archive, upload). N12 (Korean food DB) after R.
+  App Privacy done (Search History added). **Stacked 0.2.0 (10) uploaded 2026-11-11 20:07 EST** from `main` `e48ca60`.
+  Next: Developer group → Gate S (phone `00008130-001E10C01E62001C`, has 0.1.0 (9)) → install + phone check → Friends.
+  N12 (Korean food DB) after R.
   **N8 DONE — Codex clear (round 5), merged into `main`.** N8 = barcode (Open Food
   Facts → USDA branded) + online search (USDA generic) through the server (`server/src/food.ts`, migration 0008, D1
   cache, per-account limit) and the app (Barcode mode, lookup screens, Log food "More foods", serving picker,
