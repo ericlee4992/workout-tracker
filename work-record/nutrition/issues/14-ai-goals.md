@@ -112,3 +112,17 @@ the user's go; a review finding in the server is redeployed): Worker version `fd
 (cron kept). Live: `/v1/health` ok; `/privacy` "Effective November 12, 2026" with the goal-setup answers, no "Profile →
 Ask AI"; `/support` the new stop-sending line; `POST /v1/ai/nutrition-goals` → 401 signed out. Not yet: a signed-in
 request from the app (needs a build with N14 on the phone).
+
+### 2026-11-12 — verification (before Codex)
+
+Captures: `work-record/nutrition/captures/14/` (Nutrition goals light/dark × Default/AXL; Profile without Ask AI).
+```
+Verified: Unit plan — 1339/1339, exit 0, /tmp/n14-unit2.xcresult
+Verified: server npm test — 305/305; tsc clean
+Verified: Full plan -only-testing AAAWarmUp, GoalSetupUITests (7, incl. the generated plan with -uiTestTerra and the
+  offline fallback), NutritionGoalsUITests (6), FloodlightSettingsUITests (10), FloodlightAIAccessUITests (10),
+  AskAIUITests testSignedOutRoutine×2, FloodlightTourUITests testWelcomeAndTourLight — 37/37, exit 0, 2 workers,
+  /tmp/n14-ui1.xcresult
+Not verified: a signed-in request from a device to the deployed server; the phone (Gate S first); human VoiceOver
+Known flaky: none seen
+```
