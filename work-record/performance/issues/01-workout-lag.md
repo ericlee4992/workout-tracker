@@ -67,6 +67,7 @@ alive under the workout.
 | Idle 20 s in the open workout, untouched | CPU 58 %; 13 freezes totalling **8.4 s**, worst **2.2 s** |
 | …with the recorder's save off (`P1_NO_CARDIO_SAVE`) | unchanged: 8.6 s frozen, worst 2.5 s — the save is not needed |
 | …with the recorder's 2 s refresh off (`P1_NO_CARDIO_TICK`) | after launch settles: **0** freezes, **0** hidden-tab bodies |
+| Idle 20 s **with heart rate** (`EXTRA_ARGS=-uiTestHeartRate`, fixture feed: 1 beat/s; the user wears AirPods for heart rate) | CPU 100 %; **19.0 s of 20 s frozen**, worst 3.6 s; 25 recorder saves; Today re-runs 10–14× per 5 s (3.5–6.1 s of week summary per 5 s); the workout's cards/rows re-render ~100× per 5 s |
 | Driver, idle 10 s | 3.1–3.9 s frozen (32–39 %); 0 ms with the refresh off |
 | Driver, scrolling to the end | 66–69 % of the time frozen |
 | Driver, typing weight + reps in 3 sets | 36–44 s frozen, worst 3.6–7.0 s; after a weight, the reps field did not take focus (driver fails there in every run, also with the refresh off) |
@@ -78,7 +79,9 @@ alive under the workout.
 
 ### Causes (from the measurements)
 
-1. **Trigger — the cardio recorder's 2 s refresh runs in every workout.** `CardioRecorder.attach` starts a 2 s timer
+1. **Trigger — the cardio recorder's 2 s refresh runs in every workout, and again on every heart-rate sample**
+   (`WorkoutHeartRateCoordinator.swift:128-135` calls `cardio.refresh()` per sample). With heart rate the writes are
+   real (new sample rows each time), so "write only on change" alone cannot stop them for the user. `CardioRecorder.attach` starts a 2 s timer
    (`CardioRecorder.swift:97`); `refresh()` assigns the workout's sensor checkpoint fields every time, even unchanged
    and with no sensor or cardio (`:171-176`), then saves (`:216`). Every save had `hasChanges == true`. SwiftData's
    `@Query` reacts to the change itself (switching off only the save changed nothing), so every tab behind the cover
@@ -109,6 +112,9 @@ ratios and the 2 s cadence are what transfer.
   this with `finishedEntries`); consider caching it for the live workout (finished history does not change while it
   runs except through History edits — invalidate then).
 - F4 `PerformanceHistory`: fetch only finished, matching entries (predicate) and reuse one read per refresh.
+- F5 (heart rate): keep heart-rate changes from re-rendering the whole workout list (the readout in its own small
+  view) and make the hidden tabs cheap (F2); only if that is not enough, write samples less often — a durability
+  trade-off for the user to decide.
 - Guards: unit tests (recorder refresh without a sensor leaves `hasChanges` false; week summary unchanged with the
   filter; badges/previous identical with the shared read) and a timing check on the perf store; rerun the same loops
   for before/after.

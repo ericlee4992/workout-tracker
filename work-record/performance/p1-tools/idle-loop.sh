@@ -8,7 +8,7 @@ out=/tmp/p1/idle-$label.log
 xcrun simctl install $D $APP
 xcrun simctl terminate $D com.example.workouttracker 2>/dev/null
 envs=(SIMCTL_CHILD_P1_PROBE=1); for e in "$@"; do envs+=("SIMCTL_CHILD_$e"); done
-env "${envs[@]}" xcrun simctl launch --console-pspawn $D com.example.workouttracker -uiTestReset -uiTestPerfStore > $out 2>&1 &
+env "${envs[@]}" xcrun simctl launch --console-pspawn $D com.example.workouttracker -uiTestReset -uiTestPerfStore ${EXTRA_ARGS:-} > $out 2>&1 &
 lp=$!
 sleep 12
 PID=$(pgrep -f "$D.*WorkoutTracker.app/WorkoutTracker -uiTest" | head -1)
