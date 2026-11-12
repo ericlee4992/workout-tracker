@@ -95,3 +95,46 @@ Standards: one P3 documentation finding. Requested version consistency: one P3 p
 What's New behavior and copy: clear. Two consistency findings remain.
 
 Verdict: not clear
+
+
+## Round 2
+
+Reviewed 2026-11-12 at `a587202e33a77be0922cee14e4228afa279e9585`, using
+`git diff edb2ccb8..HEAD` on `ericlee4992/release-0.2.0-11`. The checkout was clean at the start.
+
+### Standards
+
+No findings. **R11-1 resolved:** README identifies export v13 and goal setup with **0.2.0 (11)**. STATE names that
+build in the active release, Gate S and phone-check instructions, preserves the superseded 0.2.1 planning as history,
+and leaves archive/upload and installation pending.
+
+### Spec / version consistency
+
+No findings. **R11-2 resolved:** Watch Debug and Release now use `MARKETING_VERSION = 0.2.0`. Reparsed all five
+native targets and both configurations: all **10/10** configuration pairs have **build 11 / version 0.2.0**.
+Audit retained at `/tmp/codex-r11/r2/versions.json`.
+
+The diff changes only version metadata, documentation and the committed previous review. Product behavior,
+What's New strings and tests are unchanged; round-1 findings are closed.
+
+### Verification
+
+Independent `xcodebuild build` for the WorkoutTracker scheme on WT-Floodlight
+`9E822EF6-DC67-4958-AEA2-D53D2D36D674`: **exit 0**, `BUILD SUCCEEDED`.
+Log/status: `/tmp/codex-r11/r2/build.log`, `/tmp/codex-r11/r2/build.status`.
+Also checked the target/configuration map, documentation consistency and `git diff --check`.
+
+**No test rerun**, as requested: there are no source or test changes warranting one. Round-1 evidence remains
+applicable: independent Unit **1326/1326** and inspected author UI **6/6**.
+
+Verified: independent build — exit 0; all ten target/configuration version pairs are 0.2.0 (11);
+active documentation aligned; both findings resolved.
+
+Not verified: test rerun this round; Watch binary; Release archive/upload; phone installation/Gate S.
+The stored-format change still requires Gate S before installing build 11 on the phone.
+
+Known flaky: none observed; no tests rerun in this round.
+
+Standards: 0 findings. Spec: 0 findings. No outstanding release-review findings.
+
+Verdict: clear
