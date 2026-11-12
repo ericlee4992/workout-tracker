@@ -2,7 +2,7 @@
 
 Type: feature
 Status: **approved — for 0.2.1** (the user, 2026-11-11; after [P1 workout lag](../../performance/issues/01-workout-lag.md))
-Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
+Implementer: Claude; Reviewer: Codex (a Paseo Codex agent), to "clear".
 Branch (when built): `ericlee4992/nutrition-13-goal-setup` off `main`.
 Spec: [nutrition](../spec.md). Decisions: D70 (goals calculated, every number editable), D80 (Profile), D52 (units).
 Builds on: N3 (`Domain/NutritionGoals.swift`: Mifflin–St Jeor × activity, goal adjustment, calorie floor; Personal
@@ -51,6 +51,63 @@ version is its own design in the Soft look (`ios-design` skill) — the steps an
 
 ## Progress
 
-Not started (after P1).
+### 2026-11-12 — prototype (UI-first), waiting for the user's choices
+
+Branch `ericlee4992/nutrition-13-goal-setup` off `main` `e6255e85`. Built in the app itself (not the separate
+DesignPrototype project), so the approved screens become the real ones:
+
+- `Domain/GoalPlan.swift` — the pace math (real, to be unit-tested): paces, the floor, calories at a pace, time to
+  the desired weight, the desired-weight range, workouts a week → activity.
+- `Features/GoalSetup/GoalSetupDraft.swift` (the answers in memory), `GoalSetupFlow.swift` (the pages).
+- `Features/GoalSetup/GoalSetupPrototype.swift` — **PROTOTYPE, throwaway**: sample answers, saves nothing, an orange
+  switcher for the welcome/tour order (A/B/C) and new install vs existing user. Run: launch with
+  `-uiTestReset -goalSetupPrototype` (`-goalSetupPrototypeStep N` starts at page N; `-goalSetupPrototypeCapture` hides
+  the switcher; `-goalSetupPrototypeOrder B`, `-goalSetupPrototypeExisting`). Hooked in `WorkoutTrackerApp` with one
+  `.goalSetupPrototype()` line. Removed after the user picks.
+- Build: `xcodebuild build` (simulator, WT-iPhone27) exit 0. No tests yet (prototype).
+- Captures: `work-record/nutrition/captures/13-prototype/` — contact sheets `a-*` (welcome A + pages 1–5) and `b-*`
+  (pages 6–9), light/dark × default/AccessibilityL; single pages in `steps/`.
+
+**The flow (pages):** sex → date of birth (wheel, "N years old") → height (wheel: cm, or ft + in) and weight (the
+figure with − / +; Metric/Imperial switch) → workouts a week → goal → desired weight (− / +, "−5 kg from now") → pace
+(slider + Slow / Recommended / Fast, then "Goal reached <date> · in N weeks" and "Daily calories") → the plan
+("Lose 5 kg by Feb 20, 2027"; calories hero + protein / carbs / fat tiles, tap to type over, Recalculate) → Start.
+Maintain skips desired weight and pace. Back on every page but the first; Close only for existing users.
+
+**Safe rates (the pace bounds; `GoalPlan`):**
+
+| Goal | Slow | Recommended | Fast | Hard cap | Sources |
+|---|---|---|---|---|---|
+| Lose | 0.25 % body weight a week | 0.5 % | 1 % | 0.9 kg (2 lb) a week | CDC "1 to 2 pounds a week"; Helms et al. 2014 (JISSN): 0.5–1 % a week keeps muscle for people who lift |
+| Gain | 0.125 % | 0.25 % | 0.5 % | 0.5 kg a week | Iraki et al. 2019 (Sports): 0.25–0.5 % a week for a lean gain |
+
+- Energy: ≈ 7,700 kcal per kg → pace × 1,100 kcal a day per kg a week.
+- The calories never go below the N3 floor (1,200 women / 1,500 men / 1,350 unspecified). A loss pace that would need
+  fewer is not offered: Fast is held to what the floor allows, and the page says "Held so your calories stay at or
+  above 1,200 cal a day." If not even 0.05 kg a week fits, no pace is offered (to decide: the flow then suggests
+  Maintain).
+- A desired weight to lose to stops at a BMI of 18.5 for the height (WHO underweight line; "The lowest healthy weight
+  for your height."); a gain goal goes up to +30 kg.
+- Paces round to 0.05 kg / 0.1 lb; desired weight steps 0.5 kg / 1 lb.
+- Example (prototype sample): woman, 30, 168 cm, 68.5 kg, 3–5 workouts → maintenance 2,207; recommended 0.35 kg a week
+  → 1,822 cal; 5 kg in 15 weeks.
+
+**Own decisions (for the user to confirm):** workouts a week 0–2 → Light (1.375), 3–5 → Moderate (1.55), 6+ → Very
+active (1.725) — Sedentary and Extra active stay reachable from Nutrition goals' Activity menu; sex and date of birth
+are two pages (one question a page); height on a wheel, weight as a figure with − / + (the Log weight pattern);
+existing users start on page 1 with every answer prefilled.
+
+**New strings (the user's decision):** "What's your sex?" / "Used to estimate your calories." · "When were you born?"
+/ "N years old" · "Your height and weight" / "Metric" "Imperial" / "Height" "Weight" · "How often do you work out?" /
+"Sets how active you are for the estimate." / "0–2 a week" "Now and then" / "3–5 a week" "A few times a week" / "6 or
+more a week" "Most days" · "What's your goal?" · "What weight are you aiming for?" / "−5 kg from now" / "The lowest
+healthy weight for your height." · "How fast do you want to lose?" / "…to gain?" / "kg a week" / "Slow"
+"Recommended" "Fast" / "Held so your calories stay at or above N cal a day." / "Goal reached" "in N weeks" "Daily
+calories" · "Your plan is ready" / "Lose N kg by <date>" / "Stay at N kg" · "Continue" "Start" "Save Goals" "Get
+Started".
+
+**Open for the user:** (1) welcome and tour order — A: Welcome ("Get Started", no Skip) → setup → plan offers Show Me
+Around; B: setup → today's Welcome (tour / Skip); C: setup only, tour from Profile → Show Tour; (2) the pace bounds
+above; (3) the existing-user entry on Nutrition goals; (4) anything in the look or wording.
 
 ## Comments

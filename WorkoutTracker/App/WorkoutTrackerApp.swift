@@ -248,6 +248,8 @@ struct WorkoutTrackerApp: App {
                             onboarding.offerFoodGoalsIfPending(in: modelContainer.mainContext)
                         }
                         .sheet(isPresented: $onboarding.showsFoodGoals) { FoodGoalsSetupSheet() }
+                        // PROTOTYPE (N13): the goal setup under `-goalSetupPrototype` (UI-test stores only).
+                        .goalSetupPrototype()
                         .sheet(item: $whatsNew, onDismiss: {
                             if let build = whatsNewShown { WhatsNew.markSeen(build) }
                             whatsNewShown = nil

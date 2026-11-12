@@ -5,6 +5,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## NOW: nutrition phase — next C1 + N9b (one task), tested and reviewed together
 
+- **2026-11-12: N13 goal setup — prototype built, waiting for the user's choices.** Paseo workspace "N13 goal setup",
+  `~/.paseo/worktrees/1qmeipq9/nutrition-13-goal-setup`, branch `ericlee4992/nutrition-13-goal-setup` off `main`
+  `e6255e85`. In-app prototype (launch `-uiTestReset -goalSetupPrototype`; orange switcher for welcome/tour order A/B/C
+  and new vs existing user); captures in `work-record/nutrition/captures/13-prototype/`. Open for the user: the
+  welcome/tour order, the pace bounds, the existing-user entry, wording ([ticket](../work-record/nutrition/issues/13-goal-setup.md#progress)).
+  Next after the answers: remove the prototype wrapper, wire persistence (stored-format change: migration + safety
+  copy + `StoreFormatGuardTests`, export/import), first-launch gating, Nutrition goals entry, tests, Codex.
 - **2026-11-11 (late): tooling moved from Orca to Paseo** (the user; Orca may come back — its setup is kept in
   [tools-orca](agents/tools-orca.md), the active one is [tools-paseo](agents/tools-paseo.md)). Codex reviewer = a Paseo
   Codex agent, `gpt-6-astra` high, **full access** (the user). The Orca terminal IDs below are retired. **0.2.1 started:**
