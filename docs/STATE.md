@@ -11,7 +11,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   `Release020.store`). Evidence: Unit 1326/1326, UI 32/32 then 7/7 after fixes ([ticket](../work-record/nutrition/issues/13-goal-setup.md#progress),
   review `work-record/nutrition/codex-review-n13.md`). Codex agent `edd217f6-2a56-463d-abf4-8bbcf958a5af` (this
   workspace). **Next: 0.2.0 (11)** (P1 + N13; record `work-record/release/0.2.0-build-11.md`, branch
-  `ericlee4992/release-0.2.0-11`) — the user said build it for upload; archive/upload after the release review clears;
+  `ericlee4992/release-0.2.0-11`) — **uploaded 2026-11-12 04:32 EST** (`main` `4be8a758`; release review clear) — next the user: Developer group, then Friends
+  with the What to Test note;
   **Gate S on the user's phone before installing build 11** (stored-format change); then P1's phone check. For the user
   (not blocking): N13's new strings and own decisions (ticket).
 - **2026-11-11 (late): tooling moved from Orca to Paseo** (the user; Orca may come back — its setup is kept in
