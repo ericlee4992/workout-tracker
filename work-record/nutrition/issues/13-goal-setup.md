@@ -181,3 +181,30 @@ Not verified: the user's phone (Gate S before 0.2.1 installs: a stored-format ch
   required by the tier; ask first)
 Known flaky: none seen
 ```
+
+### 2026-11-12 — Codex round 1: not clear (4 × P2, 1 × P3) → fixed
+
+Report `work-record/nutrition/codex-review-n13.md`. Fixes (`GoalSetupDraft` rewritten around **entered pairs**: height,
+current weight and desired weight are each kept as `(value, unit)` at full precision — the prefilled pair until the user
+changes that answer; Metric ⇄ Imperial changes only what is shown; the calculation, the bounds and the commit read the
+pairs):
+- **R1** unit toggles no longer rewrite untouched measurements (171 cm stays 171 cm; 100 lb shown as 45.4 kg stays
+  100 lb, no weigh-in). Test `unitSwitchesLeaveUntouchedMeasurementsAsEntered`.
+- **R2** an untouched desired weight survives a reopened setup in other units (75 kg stays 75 kg; − goes to the next
+  whole lb). Test `reopeningKeepsAnUntouchedDesiredWeightAsEntered`.
+- **R3** the weight field reads "Current weight, lb/kg"; the slider "Weekly pace".
+- **R4** the BMI bound uses the height that will be saved (180.49 cm), in both unit systems. Test
+  `theLowestDesiredWeightUsesTheSavedHeight`.
+- **R5** `selectableDesired` = the whole steps inside the range; Lose is refused on the goal page when none fits;
+  `inside()` removed; − / + clamp to the steps. Test `anAdmittedLossAlwaysHasASelectableDesiredWeight` (sweep of
+  heights × weights near the line, kg and lb).
+- Evidence gaps: the migration test now refreshes the migrated goal (unchanged); AccessibilityL captures add scrolled
+  pace and plan pages (`*-scrolled-*-axl.png`).
+
+```
+Verified: Unit plan — 1324/1324, exit 0, /tmp/n13-unit3.xcresult
+Verified: ProfileAI -only-testing AAAWarmUp + GoalSetupUITests — 7/7, exit 0, 2 workers, /tmp/n13-ui3.xcresult
+  (captures re-exported to work-record/nutrition/captures/13/, scrolled AXL pages looked at)
+Not verified: as round 1 (phone / Gate S, device HealthKit, human VoiceOver, runtime Reduce Motion)
+Known flaky: none seen
+```

@@ -148,6 +148,13 @@ final class GoalSetupUITests: XCTestCase {
             index += 1
             Thread.sleep(forTimeInterval: 0.6)
             self.shoot("n13-\(index)-\(page)-\(tag)")
+            // AccessibilityL: the blocks below the first viewport too (codex-review-n13 evidence).
+            if large, page == "pace" || page == "plan" {
+                let from = self.app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+                from.press(forDuration: 0.05, thenDragTo: self.app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.2)))
+                Thread.sleep(forTimeInterval: 0.6)
+                self.shoot("n13-\(index)-\(page)-scrolled-\(tag)")
+            }
         }
     }
 }

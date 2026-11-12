@@ -319,8 +319,9 @@ struct GoalSetupFlow: View {
                     .padding(.top, 8)
                     if paces.fast > paces.slow {
                         Slider(value: $draft.paceKg, in: paces.slow...paces.fast,
-                               step: GoalPlan.paceStepKg(draft.weightUnit))
+                               step: GoalPlan.paceStepKg(draft.weightUnit)) { Text("Weekly pace") }
                             .tint(look.action)
+                            .accessibilityLabel("Weekly pace")
                             .accessibilityIdentifier("goalSetupPaceSlider")
                             .accessibilityValue("\(GoalSetupFormat.pace(draft.paceKg, unit: draft.weightUnit)) \(draft.weightUnit.rawValue) a week")
                     }
@@ -484,6 +485,8 @@ private struct FigureStepper: View {
                     .multilineTextAlignment(.center)
                     .fixedSize()
                     .foregroundStyle(look.textPrimary)
+                    // codex-review-n13 R3: the quantity being edited, not the "0" placeholder.
+                    .accessibilityLabel("Current weight, \(unit)")
                     .accessibilityIdentifier(fieldID)
                 Text(unit).font(look.font.headline.weight(.medium)).foregroundStyle(look.textSecondary)
             }

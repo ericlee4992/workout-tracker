@@ -3,6 +3,11 @@ import Observation
 
 /// Nutrition N13: the goal setup's answers while the flow runs, in memory until the plan's commit
 /// (`GoalSetupStore.commit`). A new install starts empty; an existing user's run starts from `GoalSetupStore.Prefill`.
+///
+/// Height, current weight and desired weight are each kept as the **entered pair** `(value, unit)` at full precision —
+/// the prefilled one until the user changes that answer, then what they set (D52). Metric ⇄ imperial only changes
+/// what is shown; the calculation, the bounds and the commit all read the pairs, so a unit switch or a reopened
+/// setup never rewrites a value the user did not touch (codex-review-n13 R1, R2, R4).
 @Observable
 @MainActor
 final class GoalSetupDraft: Identifiable {
@@ -20,15 +25,16 @@ final class GoalSetupDraft: Identifiable {
     var step: Step = .sex
     var sex: BiologicalSex?
     var birthDate: Date
-    var units: Units
-    /// The height as shown: whole cm, or whole inches.
-    var heightCm: Int = 170
-    var heightInches: Int = 67
-    var weightText: String = ""
+    private(set) var units: Units
+    /// The height to save: as prefilled, or as last set on the wheel (whole cm or whole inches).
+    private(set) var heightEntry: GoalSetupStore.Height
+    /// The weight to save: as prefilled, or as last typed or stepped; nil while the field holds no valid weight.
+    private(set) var weightEntry: GoalSetupStore.Weight?
+    private var weightTextStorage = ""
     var workouts: GoalPlan.WorkoutsPerWeek?
     var goal: WeightGoal?
-    /// In the weight's unit; 0 until the desired-weight page is reached.
-    var desired: Double = 0
+    /// The desired weight to save: as prefilled, or as last stepped; nil until the desired-weight page is reached.
+    private(set) var desiredEntry: NutritionGoalStore.DesiredWeight?
     /// kg a week; 0 until the pace page is reached.
     var paceKg: Double = 0
     var overrides: NutritionGoals.Overrides = .none
@@ -49,40 +55,77 @@ final class GoalSetupDraft: Identifiable {
         let usesPounds = prefill?.weight.map { $0.unit == .lb }
             ?? prefill?.height.map { $0.unit == .inches } ?? usCustomary
         units = usesPounds ? .imperial : .metric
+        heightEntry = prefill?.height ?? (usesPounds ? .init(value: 67, unit: .inches) : .init(value: 170, unit: .cm))
         guard let prefill else { return }
         sex = prefill.sex
         if let date = prefill.birthDate { birthDate = date }
-        if let height = prefill.height {
-            heightCm = Self.clamp(Int(height.cm.rounded()), Self.heightCmRange)
-            heightInches = Self.clamp(Int((height.cm / 2.54).rounded()), Self.heightInchesRange)
-        }
-        if let weight = prefill.weight {
-            let shown = WeightMath.convert(weight.value, from: weight.unit, to: weightUnit)
-            weightText = FoodNumber.text((shown * 10).rounded() / 10)
-        }
+        weightEntry = prefill.weight
+        weightTextStorage = shownWeightText
         if let choices = prefill.choices {
             workouts = GoalPlan.WorkoutsPerWeek(activity: choices.activity)
             goal = choices.goal
             overrides = choices.overrides
-            if let stored = choices.desired {
-                desired = rounded(WeightMath.convert(stored.value, from: stored.unit, to: weightUnit), step: desiredStep)
-            }
+            desiredEntry = choices.desired
             paceKg = choices.paceKgPerWeek ?? 0
         }
     }
 
     var weightUnit: WeightUnit { units == .metric ? .kg : .lb }
-    var weight: Double? {
-        Double(weightText.replacingOccurrences(of: ",", with: ".")).flatMap {
-            BodyWeightLog.range(for: weightUnit).contains($0) ? $0 : nil
+
+    // MARK: Height (the wheel shows the entry in the shown units)
+
+    var height: GoalSetupStore.Height { heightEntry }
+
+    /// The wheel's cm; setting it is an answer in cm.
+    var heightCm: Int {
+        get { Self.clamp(Int(heightEntry.cm.rounded()), Self.heightCmRange) }
+        set { heightEntry = .init(value: Double(newValue), unit: .cm) }
+    }
+
+    /// The wheel's total inches; setting it is an answer in inches.
+    var heightInches: Int {
+        get { Self.clamp(Int((heightEntry.cm / 2.54).rounded()), Self.heightInchesRange) }
+        set { heightEntry = .init(value: Double(newValue), unit: .inches) }
+    }
+
+    // MARK: Weight (the field shows the entry in the shown unit)
+
+    /// The field's text; typing makes the typed number, in the shown unit, the answer.
+    var weightText: String {
+        get { weightTextStorage }
+        set {
+            weightTextStorage = newValue
+            weightEntry = Double(newValue.replacingOccurrences(of: ",", with: "."))
+                .flatMap { BodyWeightLog.range(for: weightUnit).contains($0) ? .init(value: $0, unit: weightUnit) : nil }
         }
     }
-    var weightKg: Double? { weight.map { WeightMath.normalizedKg(value: $0, unit: weightUnit) } }
-    var height: GoalSetupStore.Height {
-        units == .metric ? .init(value: Double(heightCm), unit: .cm) : .init(value: Double(heightInches), unit: .inches)
+
+    /// The weight in the shown unit, full precision.
+    var weight: Double? { weightEntry.map { WeightMath.convert($0.value, from: $0.unit, to: weightUnit) } }
+    var weightKg: Double? { weightEntry?.kg }
+
+    private var shownWeightText: String {
+        guard let weightEntry else { return "" }
+        if weightEntry.unit == weightUnit { return FoodNumber.text(weightEntry.value) }
+        return FoodNumber.text((WeightMath.convert(weightEntry.value, from: weightEntry.unit, to: weightUnit) * 10).rounded() / 10)
     }
+
+    func stepWeight(by sign: Double) {
+        guard let weight else { return }
+        let next = ((weight + sign * BodyWeightLog.step(for: weightUnit)) * 10).rounded() / 10
+        if BodyWeightLog.range(for: weightUnit).contains(next) { weightText = FoodNumber.text(next) }
+    }
+
+    // MARK: Desired weight (shown in the shown unit; − / + move on whole steps)
+
+    /// The desired weight in the shown unit, full precision; 0 before there is one.
+    var desired: Double {
+        desiredEntry.map { WeightMath.convert($0.value, from: $0.unit, to: weightUnit) } ?? 0
+    }
+    var desiredKg: Double { desiredEntry?.kg ?? 0 }
+    var desiredStep: Double { weightUnit == .kg ? 0.5 : 1 }
+
     var ageYears: Int { NutritionGoals.age(birthDate: birthDate, on: now) }
-    var desiredKg: Double { WeightMath.normalizedKg(value: desired, unit: weightUnit) }
 
     var activity: ActivityLevel? {
         guard let workouts else { return nil }
@@ -101,37 +144,54 @@ final class GoalSetupDraft: Identifiable {
         switch step {
         case .sex: sex != nil
         case .birthDate: Self.ageRange.contains(ageYears)
-        case .body: weight != nil
+        case .body: weightEntry != nil
         case .workouts: workouts != nil
         case .goal: goal != nil && goalBlocked == nil
-        case .desired: desiredRange?.contains(desiredKg) ?? false
+        case .desired: desiredIsValid
         case .pace: paces != nil
         case .plan: answers != nil
         }
     }
 
-    /// Why the chosen goal cannot be planned: losing when today's weight is already at the lowest healthy weight for
-    /// the height, or when any loss would take the calories under the floor.
+    /// Why the chosen goal cannot be planned: losing when no desired weight (on the − / + steps) lies between the
+    /// lowest healthy weight for the height and today's, or when any loss would take the calories under the floor.
     enum GoalBlock: Equatable { case atLowestWeight, calorieFloor(Double) }
 
     var goalBlocked: GoalBlock? {
         guard goal == .lose, let sex else { return nil }
-        if desiredRange == nil { return .atLowestWeight }
+        if selectableDesired == nil { return .atLowestWeight }
         if paces == nil { return .calorieFloor(NutritionGoals.calorieFloor(sex)) }
         return nil
     }
 
     var inputs: NutritionGoals.Inputs? {
         guard let sex, let weightKg, let activity, let goal else { return nil }
-        return .init(weightKg: weightKg, heightCm: height.cm, ageYears: ageYears, sex: sex, activity: activity,
+        return .init(weightKg: weightKg, heightCm: heightEntry.cm, ageYears: ageYears, sex: sex, activity: activity,
                      goal: goal, paceKgPerWeek: goal == .maintain ? nil : paceKg)
     }
 
     var paces: GoalPlan.Paces? { inputs.flatMap { GoalPlan.paces($0, unit: weightUnit) } }
 
+    /// The allowed desired weights, kg, from the height that will be saved (full precision).
     var desiredRange: ClosedRange<Double>? {
         guard let goal, let weightKg else { return nil }
-        return GoalPlan.desiredRange(goal: goal, currentKg: weightKg, heightCm: height.cm)
+        return GoalPlan.desiredRange(goal: goal, currentKg: weightKg, heightCm: heightEntry.cm)
+    }
+
+    /// The whole steps (0.5 kg / 1 lb) inside the allowed range, in the shown unit; nil when none fits
+    /// (codex-review-n13 R5).
+    var selectableDesired: ClosedRange<Double>? {
+        guard let range = desiredRange else { return nil }
+        let step = desiredStep
+        let low = (WeightMath.convert(range.lowerBound, from: .kg, to: weightUnit) / step - 1e-9).rounded(.up) * step
+        let high = (WeightMath.convert(range.upperBound, from: .kg, to: weightUnit) / step + 1e-9).rounded(.down) * step
+        guard low <= high, range.contains(WeightMath.normalizedKg(value: low, unit: weightUnit)) else { return nil }
+        return low...high
+    }
+
+    private var desiredIsValid: Bool {
+        guard let desiredEntry, let range = desiredRange else { return false }
+        return range.contains(desiredEntry.kg)
     }
 
     /// The calories at the chosen pace (maintain: no adjustment).
@@ -150,14 +210,14 @@ final class GoalSetupDraft: Identifiable {
         return GoalPlan.weeks(fromKg: weightKg, toKg: desiredKg, kgPerWeek: paceKg)
     }
 
-    /// What the plan's commit saves; nil while an answer is missing.
+    /// What the plan's commit saves — the entered pairs; nil while an answer is missing.
     var answers: GoalSetupStore.Answers? {
-        guard let sex, let weight, let activity, let goal, Self.ageRange.contains(ageYears) else { return nil }
+        guard let sex, let weightEntry, let activity, let goal, Self.ageRange.contains(ageYears) else { return nil }
         let losesOrGains = goal != .maintain
-        if losesOrGains && (paceKg <= 0 || !(desiredRange?.contains(desiredKg) ?? false)) { return nil }
-        return .init(sex: sex, birthDate: birthDate, height: height, weight: .init(value: weight, unit: weightUnit),
+        if losesOrGains && (paceKg <= 0 || !desiredIsValid) { return nil }
+        return .init(sex: sex, birthDate: birthDate, height: heightEntry, weight: weightEntry,
                      activity: activity, goal: goal,
-                     desired: losesOrGains ? .init(value: desired, unit: weightUnit) : nil,
+                     desired: losesOrGains ? desiredEntry : nil,
                      paceKgPerWeek: losesOrGains ? paceKg : nil, overrides: overrides)
     }
 
@@ -178,16 +238,15 @@ final class GoalSetupDraft: Identifiable {
     }
 
     /// Defaults a page needs when it is reached: a desired weight outside its range (none yet, or the goal or weight
-    /// changed) becomes 5 kg (10 lb) from today's in the goal's direction, kept inside the range; a pace outside the
-    /// offered ones becomes the recommended pace.
+    /// changed) becomes 5 kg (10 lb) from today's in the goal's direction, on a whole step inside the range; a pace
+    /// outside the offered ones becomes the recommended pace. A valid prefilled desired weight is kept as entered.
     private func prepare(_ next: Step) {
         switch next {
         case .desired:
-            guard let range = desiredRange, let weight, !range.contains(desiredKg) else { return }
+            guard !desiredIsValid, let selectable = selectableDesired, let weight else { return }
             let offset = weightUnit == .kg ? 5.0 : 10.0
-            let start = WeightMath.normalizedKg(value: goal == .gain ? weight + offset : weight - offset, unit: weightUnit)
-            let kg = min(max(start, range.lowerBound), range.upperBound)
-            desired = inside(rounded(WeightMath.convert(kg, from: .kg, to: weightUnit), step: desiredStep), range)
+            let start = rounded(goal == .gain ? weight + offset : weight - offset, step: desiredStep)
+            desiredEntry = .init(value: min(max(start, selectable.lowerBound), selectable.upperBound), unit: weightUnit)
         case .pace:
             if let paces, !(paces.slow - 1e-9...paces.fast + 1e-9).contains(paceKg) { paceKg = paces.recommended }
         default:
@@ -195,51 +254,29 @@ final class GoalSetupDraft: Identifiable {
         }
     }
 
-    /// A rounded desired weight nudged back inside the range by whole steps.
-    private func inside(_ value: Double, _ range: ClosedRange<Double>) -> Double {
-        var value = value
-        while WeightMath.normalizedKg(value: value, unit: weightUnit) < range.lowerBound { value += desiredStep }
-        while WeightMath.normalizedKg(value: value, unit: weightUnit) > range.upperBound { value -= desiredStep }
-        return value
-    }
-
-    var desiredStep: Double { weightUnit == .kg ? 0.5 : 1 }
-
+    /// − / +: to the next whole step in the shown unit (from an off-step prefilled value, the nearest step that way),
+    /// kept inside the selectable steps.
     func stepDesired(by sign: Double) {
-        guard let range = desiredRange else { return }
-        let next = rounded(desired + sign * desiredStep, step: desiredStep)
-        if range.contains(WeightMath.normalizedKg(value: next, unit: weightUnit)) { desired = next }
+        guard let selectable = selectableDesired else { return }
+        let position = desired / desiredStep
+        let onStep = abs(position - position.rounded()) < 1e-6
+        let target = onStep ? position.rounded() + sign : (sign > 0 ? position.rounded(.up) : position.rounded(.down))
+        let next = target * desiredStep
+        guard selectable.contains(next) else { return }
+        desiredEntry = .init(value: next, unit: weightUnit)
     }
 
-    /// The desired weight is at the lowest offered (a BMI of 18.5).
+    /// The desired weight is the lowest step offered (a BMI of 18.5).
     var desiredAtLowest: Bool {
-        guard goal == .lose, let range = desiredRange else { return false }
-        return !range.contains(WeightMath.normalizedKg(value: desired - desiredStep, unit: weightUnit))
+        guard goal == .lose, let selectable = selectableDesired else { return false }
+        return desired - desiredStep < selectable.lowerBound - 1e-6
     }
 
-    func stepWeight(by sign: Double) {
-        guard let weight else { return }
-        let next = ((weight + sign * BodyWeightLog.step(for: weightUnit)) * 10).rounded() / 10
-        if BodyWeightLog.range(for: weightUnit).contains(next) { weightText = FoodNumber.text(next) }
-    }
-
-    /// Metric ⇄ imperial converts what is on screen (nothing stored is rewritten until the commit, and then only what
-    /// changed — `GoalSetupStore`).
+    /// Metric ⇄ imperial: only what is shown changes; the entered pairs stay as they are.
     func switchUnits(to new: Units) {
         guard new != units else { return }
-        let oldUnit = weightUnit
-        if new == .imperial {
-            heightInches = Self.clamp(Int((Double(heightCm) / 2.54).rounded()), Self.heightInchesRange)
-        } else {
-            heightCm = Self.clamp(Int((Double(heightInches) * 2.54).rounded()), Self.heightCmRange)
-        }
         units = new
-        if let value = Double(weightText.replacingOccurrences(of: ",", with: ".")) {
-            weightText = FoodNumber.text((WeightMath.convert(value, from: oldUnit, to: weightUnit) * 10).rounded() / 10)
-        }
-        if desired > 0 {
-            desired = rounded(WeightMath.convert(desired, from: oldUnit, to: weightUnit), step: desiredStep)
-        }
+        if weightEntry != nil { weightTextStorage = shownWeightText }
     }
 
     private func rounded(_ value: Double, step: Double) -> Double { (value / step).rounded() * step }
