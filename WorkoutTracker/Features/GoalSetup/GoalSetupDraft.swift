@@ -257,19 +257,24 @@ final class GoalSetupDraft: Identifiable {
     /// − / +: to the next whole step in the shown unit (from an off-step prefilled value, the nearest step that way),
     /// kept inside the selectable steps.
     func stepDesired(by sign: Double) {
-        guard let selectable = selectableDesired else { return }
+        guard let next = nextDesired(by: sign) else { return }
+        desiredEntry = .init(value: next, unit: weightUnit)
+    }
+
+    /// Where − / + would go, in the shown unit; nil when that is outside the selectable steps.
+    private func nextDesired(by sign: Double) -> Double? {
+        guard let selectable = selectableDesired else { return nil }
         let position = desired / desiredStep
         let onStep = abs(position - position.rounded()) < 1e-6
         let target = onStep ? position.rounded() + sign : (sign > 0 ? position.rounded(.up) : position.rounded(.down))
         let next = target * desiredStep
-        guard selectable.contains(next) else { return }
-        desiredEntry = .init(value: next, unit: weightUnit)
+        return selectable.contains(next) ? next : nil
     }
 
-    /// The desired weight is the lowest step offered (a BMI of 18.5).
+    /// No lower target is offered: − would leave the range (a BMI of 18.5). The same candidate as −'s
+    /// (codex-review-n13 R2-2: an off-step 133.38 lb still has 133 lb below it).
     var desiredAtLowest: Bool {
-        guard goal == .lose, let selectable = selectableDesired else { return false }
-        return desired - desiredStep < selectable.lowerBound - 1e-6
+        goal == .lose && selectableDesired != nil && nextDesired(by: -1) == nil
     }
 
     /// Metric ⇄ imperial: only what is shown changes; the entered pairs stay as they are.

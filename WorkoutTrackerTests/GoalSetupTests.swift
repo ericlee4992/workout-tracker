@@ -349,25 +349,74 @@ struct GoalSetupTests {
         #expect(draft.desiredEntry == .init(value: 165, unit: .lb))
     }
 
-    /// R4: the bounds use the height that will be saved (180.49 cm), not the 180 cm shown.
+    /// R4: the bounds use the height that will be saved (180.49 cm), not the 180 cm shown — untouched, and after a wheel
+    /// edit inside the same rounding (R2-1: 181 → 180 cm saves 180 cm, the height the bound was checked against).
     @Test func theLowestDesiredWeightUsesTheSavedHeight() throws {
         let precise = GoalSetupStore.Height(value: 180.49, unit: .cm)
-        let lowest = 18.5 * 1.8049 * 1.8049
+        let born = calendar.date(from: DateComponents(year: 1990, month: 5, day: 1))!
         for units in [GoalSetupDraft.Units.metric, .imperial] {
-            let weight = GoalSetupStore.Weight(value: 65, unit: .kg)
-            let draft = GoalSetupDraft(prefill: .init(sex: .male, birthDate: date(1), height: precise, weight: weight),
-                                       now: date(12), calendar: calendar)
-            draft.switchUnits(to: units)
-            draft.workouts = .some
-            draft.goal = .lose
-            draft.step = .goal
-            draft.advance()
-            #expect(draft.step == .desired)
-            #expect(draft.desiredKg >= lowest, "\(units): \(draft.desiredKg) kg is at or above BMI 18.5")
-            for _ in 0..<5 { draft.stepDesired(by: -1) }
-            #expect(draft.desiredKg >= lowest && draft.desiredAtLowest)
-            #expect(draft.answers == nil || draft.answers?.height == precise)
+            for editsHeight in [false, true] {
+                let context = try context()
+                let preferences = try AppPreferences.canonical(in: context)
+                preferences.setHeight(value: 180.49, unit: .cm)
+                preferences.birthDate = born
+                preferences.sex = .male
+                context.insert(BodyWeightEntry(measuredAt: date(8), value: 65, unit: .kg, createdAt: date(8)))
+                try context.save()
+                let draft = GoalSetupDraft(prefill: try GoalSetupStore.prefill(in: context), now: date(12),
+                                           calendar: calendar)
+                draft.switchUnits(to: units)
+                if editsHeight { draft.heightCm = 181; draft.heightCm = 180 }
+                draft.workouts = .some
+                draft.goal = .lose
+                draft.step = .goal
+                draft.advance()
+                #expect(draft.step == .desired)
+                for _ in 0..<5 { draft.stepDesired(by: -1) }
+                #expect(draft.desiredAtLowest)
+                draft.step = .pace
+                draft.paceKg = 0.3
+                let answers = try #require(draft.answers, "\(units), edited \(editsHeight)")
+                #expect(answers.height == (editsHeight ? .init(value: 180, unit: .cm) : precise))
+                try GoalSetupStore.commit(answers, in: context, now: date(12), calendar: calendar)
+                let saved = try #require(preferences.heightCm)
+                let goal = try #require(try NutritionGoalStore.latestGoal(in: context))
+                let bmi = try #require(goal.desiredWeightKg) / (saved / 100 * saved / 100)
+                #expect(saved == (editsHeight ? 180 : 180.49), "the saved height is the answer")
+                #expect(bmi >= 18.5, "\(units), edited \(editsHeight): BMI \(bmi)")
+            }
         }
+    }
+
+    /// R2-1: a weight edit inside one display rounding is a new weigh-in.
+    @Test func aSmallWeightEditIsANewWeighIn() throws {
+        let context = try context()
+        context.insert(BodyWeightEntry(measuredAt: date(8), value: 176.37, unit: .lb, createdAt: date(8)))
+        try context.save()
+        let draft = GoalSetupDraft(prefill: try GoalSetupStore.prefill(in: context), now: date(12), calendar: calendar)
+        draft.weightText = "176.36"
+        var edited = answers(height: .init(value: 71, unit: .inches), weight: try #require(draft.weightEntry))
+        edited.desired = .init(value: 165, unit: .lb)
+        try GoalSetupStore.commit(edited, in: context, now: date(12), calendar: calendar)
+        let values = try context.fetch(FetchDescriptor<BodyWeightEntry>()).map(\.value).sorted()
+        #expect(values == [176.36, 176.37])
+    }
+
+    /// R2-2: an off-step preserved target just above the lowest step is not "the lowest" until − reaches that step.
+    @Test func theLowestCaptionFollowsTheMinusStep() throws {
+        var choices = NutritionGoalStore.Choices()
+        choices.goal = .lose
+        choices.desired = .init(value: 60.5, unit: .kg)
+        choices.paceKgPerWeek = 0.3
+        let draft = GoalSetupDraft(prefill: .init(sex: .male, birthDate: date(1), height: .init(value: 180.49, unit: .cm),
+                                                  weight: .init(value: 143.3, unit: .lb), choices: choices),
+                                   now: date(12), calendar: calendar)
+        draft.step = .goal
+        draft.advance()
+        #expect(draft.step == .desired && abs(draft.desired - 60.5 / WeightMath.kilogramsPerPound) < 1e-9)
+        #expect(!draft.desiredAtLowest, "133 lb is still below 133.38 lb")
+        draft.stepDesired(by: -1)
+        #expect(draft.desiredEntry == .init(value: 133, unit: .lb) && draft.desiredAtLowest)
     }
 
     /// R5: a loss range narrower than one step is refused on the goal page; any admitted loss has a selectable

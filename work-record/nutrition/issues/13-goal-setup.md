@@ -208,3 +208,18 @@ Verified: ProfileAI -only-testing AAAWarmUp + GoalSetupUITests — 7/7, exit 0, 
 Not verified: as round 1 (phone / Gate S, device HealthKit, human VoiceOver, runtime Reduce Motion)
 Known flaky: none seen
 ```
+
+### 2026-11-12 — Codex round 2: not clear (R2-1 P2, R2-2 P3) → fixed
+
+- **R2-1** `GoalSetupStore.isUnchanged` compares the entered pairs exactly (the draft keeps an untouched answer as the
+  stored pair, so any difference is an edit): 180.49 → 181 → 180 cm saves 180 cm (the height the BMI bound used);
+  176.37 → 176.36 lb is a weigh-in. Tests: `theLowestDesiredWeightUsesTheSavedHeight` now commits (metric/imperial ×
+  untouched/edited, saved height and target BMI ≥ 18.5), `aSmallWeightEditIsANewWeighIn`.
+- **R2-2** `desiredAtLowest` uses −'s own candidate (`nextDesired`). Test `theLowestCaptionFollowsTheMinusStep`.
+
+```
+Verified: Unit plan — 1326/1326, exit 0, /tmp/n13-unit4.xcresult
+Verified: ProfileAI -only-testing AAAWarmUp + GoalSetupUITests — 7/7, exit 0, 2 workers, /tmp/n13-ui4.xcresult
+Not verified: as before (phone / Gate S, device HealthKit, human VoiceOver, runtime Reduce Motion)
+Known flaky: none seen
+```

@@ -55,20 +55,18 @@ enum GoalSetupStore {
                        choices: goal.map { NutritionGoalStore.choices(of: $0) })
     }
 
-    /// Whether `shown` is just `stored` as the flow displays it (whole cm, or whole inches) — the user did not change
-    /// it, so the stored value stays as entered.
-    static func isUnchanged(_ shown: Height, stored: Height?) -> Bool {
+    /// Whether the answer is the stored pair itself. The flow keeps an untouched answer as the stored `(value, unit)`
+    /// (`GoalSetupDraft`), so any difference is a real edit — even one inside a display rounding (codex-review-n13
+    /// R2-1: 180.49 → 181 → 180 cm must save 180 cm, which the BMI bound was checked against).
+    static func isUnchanged(_ answer: Height, stored: Height?) -> Bool {
         guard let stored else { return false }
-        let converted = shown.unit == stored.unit ? stored.value
-            : (shown.unit == .cm ? stored.value * 2.54 : stored.value / 2.54)
-        return converted.rounded() == shown.value.rounded()
+        return answer.unit == stored.unit && abs(answer.value - stored.value) < 1e-9
     }
 
-    /// Whether `shown` is the latest weight as the flow displays it (one decimal in the shown unit).
-    static func isUnchanged(_ shown: Weight, stored: Weight?) -> Bool {
+    /// Whether the answer is the latest weight's pair itself (176.37 → 176.36 lb is a new weigh-in).
+    static func isUnchanged(_ answer: Weight, stored: Weight?) -> Bool {
         guard let stored else { return false }
-        let converted = WeightMath.convert(stored.value, from: stored.unit, to: shown.unit)
-        return (converted * 10).rounded() == (shown.value * 10).rounded()
+        return answer.unit == stored.unit && abs(answer.value - stored.value) < 1e-9
     }
 
     /// Saves the answers (see the type's comment). Returns the goal in force.
