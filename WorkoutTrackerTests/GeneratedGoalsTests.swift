@@ -121,14 +121,14 @@ struct GeneratedGoalsTests {
     @Test func aCancelledAskIsNotAFailure() async throws {
         let draft = readyDraft(goal: .maintain)
         var asked = 0
+        // Never answers: it only ends by being cancelled, so the outcome does not depend on timing.
         let slow: GoalSetupDraft.Generator = { _, _ in
             asked += 1
-            try await Task.sleep(for: .seconds(30))
-            return self.served
+            while true { try await Task.sleep(for: .milliseconds(10)) }
         }
         let task = Task { await draft.generate(with: slow) }
-        for _ in 0..<50 where !draft.isGenerating { await Task.yield() }
-        #expect(draft.isGenerating)
+        for _ in 0..<1_000 where !draft.isGenerating { try await Task.sleep(for: .milliseconds(5)) }
+        #expect(draft.isGenerating && asked == 1)
         task.cancel()
         await task.value
         #expect(!draft.isGenerating && !draft.generationFailed && draft.generatedPlan == nil)
