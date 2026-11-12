@@ -5,7 +5,7 @@ import Foundation
 //
 // The user's rules (2026-10-17): shown once, on the first launch of a build at or after the entry's, to people who
 // UPDATED — a fresh install gets the guided tour instead; never over a workout in progress (it waits for the next
-// launch); readable again from Settings. The last build whose notes were seen lives in UserDefaults.
+// launch); readable again from Profile → What's New. The last build whose notes were seen lives in UserDefaults.
 
 struct WhatsNewEntry: Equatable, Identifiable, Sendable {
     struct Item: Equatable, Sendable {

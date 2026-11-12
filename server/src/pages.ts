@@ -26,7 +26,7 @@ export const PRIVACY_BODY = `
 <p><em>Effective ${POLICY_EFFECTIVE_DATE}. Stacked is made by ${DEVELOPER_NAME} (“I”), an individual developer.
 Contact: ${mail}.</em></p>
 
-<p><strong>The short version.</strong> The workouts you log stay on your iPhone; I never receive them. An account is
+<p><strong>The short version.</strong> The workouts and food you log stay on your iPhone; I never receive them. An account is
 optional; it holds your name, email and training profile. If you use the AI features, what you send goes through my
 server to OpenAI. If you send feedback, it comes to me. TestFlight, which delivers the beta, shares some information
 with me too. I don’t sell data, show ads, or track you across other companies’ apps or websites.</p>
@@ -52,12 +52,13 @@ privacy policy, and I receive nothing from it.</li>
 label, or choose a photo. The app’s own label reader works on your iPhone. A meal photo you log is kept in the app on
 your iPhone with its entry, so your log can show it, and is deleted with the entry; other photos are not kept. The AI
 features send the photo for processing, as described below; a photo leaves your iPhone only then.</li>
-<li><strong>Your exports.</strong> Settings → Export makes a file of your workout data: JSON (the fullest record,
-including heart-rate series and routes) or CSV (a table of sets and cardio). You choose where it goes; that
-destination may be another app or service with its own policy.</li>
+<li><strong>Your exports.</strong> Profile → Export &amp; backup → Export makes a file of your data: JSON (the fullest
+record — your workouts with heart-rate series and routes, and your food log, foods and meals, nutrition goals, body
+weights and personal details; meal photos themselves are not included) or CSV (a table of sets and cardio). You choose
+where it goes; that destination may be another app or service with its own policy.</li>
 </ul>
-<p><strong>Deleting the app</strong> removes the data the app keeps on your iPhone. It does not remove workouts it
-saved to Apple Health (manage those in the Health app), files you exported or shared, copies in your iCloud or
+<p><strong>Deleting the app</strong> removes the data the app keeps on your iPhone. It does not remove what it
+saved to Apple Health — workouts, body weights and food nutrition (manage those in the Health app) — files you exported or shared, copies in your iCloud or
 computer backups, or anything on my server (see <a href="#deleting">Deleting your data</a>).</p>
 
 <h2>TestFlight (the beta)</h2>
@@ -88,7 +89,7 @@ time; deleting your account removes it.</li>
 <p>Stacked’s AI features — identifying a machine from a photo, suggesting exercises for a machine, building a week of
 templates, estimating the food in a meal photo or a description, and reading a food’s nutrition label — run through my
 server on my OpenAI account. The training features ask your permission the first time and remember it; you can turn
-each of those permissions off in Settings → Ask AI. Scanning or describing food has no separate prompt: a food photo,
+each of those permissions off in Profile → Ask AI. Scanning or describing food has no separate prompt: a food photo,
 label or description is sent only when you take the photo, choose it, or tap Estimate, and you can always log food by
 hand instead.</p>
 <ul>
@@ -119,7 +120,7 @@ limit abuse; the counts are removed after about two days and when you delete you
 on your iPhone like any other food.</p>
 
 <h2>Feedback (optional)</h2>
-<p>If you send feedback from Settings → Send Feedback, my server keeps your message, its category, the screenshot if
+<p>If you send feedback from Profile → Send Feedback, my server keeps your message, its category, the screenshot if
 you attach one (re-encoded on your iPhone without its location or camera details), and the details the form shows
 before sending: the app version and build, iOS version and iPhone model, and your account if you are signed in. I read
 it to fix and improve the app. Feedback sent while signed out is not attached to an account, but what you write or
@@ -149,13 +150,13 @@ websites.</p>
 
 <h2 id="deleting">Deleting your data</h2>
 <ul>
-<li><strong>Your account:</strong> in Settings, tap your name or email at the top, then Delete Account…. This deletes from
+<li><strong>Your account:</strong> on Profile, tap your name or email at the top, then Delete Account…. This deletes from
 my live database, at once, your account, sessions, training profile, AI records, and the feedback you sent while
 signed in. The feedback’s screenshots are deleted right after; if that fails, an hourly job retries until they are
 gone. Any copy I downloaded is deleted within 30 days. Stacked’s Sign in with Apple access is revoked with Apple; if revocation fails, I keep the encrypted token
 separately from your deleted account record, solely to retry revocation for up to 30 days, and the app tells you how
-to stop Sign in with Apple yourself in iOS Settings → Apple Account → Sign in with Apple. Your workouts on your iPhone
-are not touched.</li>
+to stop Sign in with Apple yourself in iOS Settings → Apple Account → Sign in with Apple. Your workouts and food on your
+iPhone are not touched.</li>
 <li><strong>Backups:</strong> deleted data can remain for up to 7 days in the database’s recovery history, and for up
 to 30 days in a copy of the database I make before risky maintenance; I delete those copies after 30 days. If I ever
 have to restore the database from one of these, data deleted after it was made could reappear. I would delete again
@@ -180,7 +181,7 @@ export const SUPPORT_BODY = `
 
 <h2>Getting help or reporting a problem</h2>
 <ul>
-<li><strong>In the app:</strong> Settings → Send Feedback. You can attach a screenshot; you can send it signed in or
+<li><strong>In the app:</strong> Profile → Send Feedback. You can attach a screenshot; you can send it signed in or
 out.</li>
 <li><strong>Through TestFlight:</strong> take a screenshot while using Stacked and choose Share Beta Feedback, or
 open Stacked in the TestFlight app and tap Send Beta Feedback.</li>
@@ -189,12 +190,14 @@ open Stacked in the TestFlight app and tap Send Beta Feedback.</li>
 
 <h2>Your data</h2>
 <ul>
-<li>Your workouts are stored only on your iPhone. Settings → Export saves a copy as JSON or CSV.</li>
-<li>An account is optional and needed only for the AI features. To delete your account and the data linked to it
-from my server: in Settings, tap your name or email at the top, then Delete Account…. The privacy policy explains what can
+<li>Your workouts and food are stored only on your iPhone. Profile → Export &amp; backup → Export saves a copy as JSON
+or CSV.</li>
+<li>An account is optional. You need one for the AI features and to look foods up online (barcodes and search);
+logging workouts and food by hand works without one. To delete your account and the data linked to it
+from my server: on Profile, tap your name or email at the top, then Delete Account…. The privacy policy explains what can
 remain for a while (backups, a pending Sign in with Apple revocation) and how to have feedback you sent while signed
 out deleted.</li>
-<li>To stop sending data to OpenAI, turn off the permissions in Settings → Ask AI, and log food by hand rather than
+<li>To stop sending data to OpenAI, turn off the permissions in Profile → Ask AI, and log food by hand rather than
 scanning or describing it.</li>
 </ul>
 <p>Details: the <a href="/privacy">privacy policy</a>.</p>

@@ -59,6 +59,11 @@ Ship the Soft redesign and nutrition together as one TestFlight build (build **1
 4. README: Today picture added (`docs/readme/today.png`, dark, default size, food + goals sample, 603 px), the food
    and barcode/search text (N8). Server README has the N6/N8 endpoints. The "not yet in TestFlight" marks change when
    build 10 is in TestFlight.
+   **Codex R round 1 (`codex-review-r.md`): not clear — 3 P3, privacy/support copy:** S1 paths said "Settings →"
+   (now Profile → Send Feedback / Ask AI / Export &amp; backup → Export / the account card → Delete Account); S2
+   "account needed only for the AI features" (now also online food lookup; hand logging works without); S3 export and
+   deletion text now name the nutrition data (JSON carries food, foods/meals, goals, body weights, personal details,
+   not meal photos; Health keeps workouts, body weights and food nutrition). Fixed; server 283/283 + tsc.
 5.–9. Not started — need the user (privacy approval + date before the deploy; App Privacy; Gate S on the phone).
 
 ### Draft — What's New (build 10, in-app, once after updating)
