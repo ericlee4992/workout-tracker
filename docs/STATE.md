@@ -12,8 +12,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   `~/.paseo/worktrees/1qmeipq9/perf-01-workout-lag`, branch `ericlee4992/perf-01-workout-lag` off `main` `97e63f9`);
   diagnose with measurements first, then N13. **P1 fixed on the branch (2026-11-11, `f379ba7`, pushed, not merged)**: the lag's
   causes and a typed-values-prefilled-over bug fixed; idle with heart rate 19.0 s of 20 s frozen → 2.3 s; Unit plan
-  green (1,289). See the [ticket](../work-record/performance/issues/01-workout-lag.md#progress). Next: the Workout
-  area plan (~20–25 min, asking the user), Codex review (with c81a24c), then the phone check with a dev build. Still the user's: release 0.2.0 (10) to Friends with the What to Test
+  green (1,289). See the [ticket](../work-record/performance/issues/01-workout-lag.md#progress). Workout plan 73/74
+  (the known flake passes alone). **Codex round 1 running** — Paseo Codex agent `2208216c-5a8a-48fa-ab89-876ff0ffdd22`
+  (reuse it for later rounds), report `work-record/performance/codex-review-p1.md`. Then the phone check with a dev build. Still the user's: release 0.2.0 (10) to Friends with the What to Test
   note, then the phone check.
 - **Resume here (2026-11-11): R in progress** (branch `ericlee4992/release-r`; ticket
   `work-record/nutrition/issues/11-combined-release.md` → Progress has the checklist state, drafts and what waits for
