@@ -21,6 +21,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   → App Privacy: sex / age / weight declared for App Functionality (N14).
 - **Dated chores:** delete server D1 backups `~/WorkoutTracker-Backups/server/2026-11-11-release-r` by **2026-12-11** and
   `2026-11-12-n14-ai-goals` by **2026-12-12** (the privacy policy promises it).
+- **Own models (separate, private repo `github.com/ericlee4992/stacked-ml`, local `~/orca/projects/stacked-ml`):** the
+  user's RTX 5080 Windows laptop sets up the environment and runs/trains models there, starting with meal photos
+  (compare local vision models with GPT first, distil only if needed). Its docs/STATE.md "For the app repo" lists
+  anything that needs an app/server change (routing to a self-hosted model + privacy wording) — done from the Mac.
 - **Cleanup:** archive Paseo workspace "N13 goal setup" (`~/.paseo/worktrees/1qmeipq9/nutrition-13-goal-setup`); the
   P1 workspace was archived earlier. Branches are kept.
 
