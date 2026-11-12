@@ -106,7 +106,9 @@ healthy weight for your height." · "How fast do you want to lose?" / "…to gai
 calories" · "Your plan is ready" / "Lose N kg by <date>" / "Stay at N kg" · "Continue" "Start" "Save Goals" "Get
 Started".
 
-**Open for the user:** (1) welcome and tour order — A: Welcome ("Get Started", no Skip) → setup → plan offers Show Me
+**The user's answers (2026-11-12, D84):** order **A** (welcome first with Get Started, no Skip; the plan page offers Show Me Around); the pace bounds **as proposed**; existing users get a **Goal weight row under Based on** on Nutrition goals (it replaces the Goal menu). Wording and look: no change asked.
+
+~~Open for the user:~~ (asked) (1) welcome and tour order — A: Welcome ("Get Started", no Skip) → setup → plan offers Show Me
 Around; B: setup → today's Welcome (tour / Skip); C: setup only, tour from Profile → Show Tour; (2) the pace bounds
 above; (3) the existing-user entry on Nutrition goals; (4) anything in the look or wording.
 
