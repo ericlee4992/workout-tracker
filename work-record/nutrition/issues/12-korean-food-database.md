@@ -128,6 +128,19 @@ ingredients need the 품목대표 filter or our own ranking.
 | 식품안전나라 main page | No (portal home) |
 | 가공식품 품목별 영양성분 DB_20221231 (15112364) | No — 720 rows, one-off 2022, 공공누리 제4유형 (no commercial use, no changes) |
 
+### Other Korean sources (searched 2026-11-12, after the user asked for more)
+
+| Source | What it gives | Verdict |
+|---|---|---|
+| **HACCP 제품이미지 및 포장지표기정보** (data.go.kr 15033307, 한국식품안전관리인증원; `apis.data.go.kr/B553748/CertImgListServiceV3/getCertImgListServiceV3`) | Per HACCP-certified product: **barcode**, Korean name, report number, maker, capacity, the label's nutrition (`nutrient`, one text field), allergens, ingredients, package images; since 2017, "real time"; licence 제한 없음; dev and operating accounts both auto-approved | **Most promising for barcodes.** No barcode filter (name, report number, maker, type only), so barcodes would need a copy kept on our server, refreshed regularly. Not yet tested: the user's key is not registered for it (`SERVICE_KEY_IS_NOT_REGISTERED_ERROR`) — needs a one-click 활용신청 on data.go.kr. To check then: row count, how many 880 products, the `nutrient` text format |
+| **푸드QR 정보 서비스** (15143798, `apis.data.go.kr/1471000/FoodQrInfoService02`, 11 operations) | **Barcode filter** (`brcd_no`) everywhere; structured label nutrition (nutrient name, amount, unit, per-serving and total amounts) | Good shape, tiny reach: under 0.1% of foods carried Food QR (2025 National Assembly audit). Key not registered either. A cheap extra fallback at most |
+| 유통바코드 I2570 (식품안전나라) | barcode → name, report number | No: 53,245 rows loaded 2015, lacks Shin Ramyun |
+| 식품 회수·판매중지 정보 (15074318) | Recalls with **barcode**, reason, grade, photo | Optional idea: warn when a scanned product is recalled. Out of N12's scope |
+| 조리식품의 레시피 DB (15060073) | ~Korean home recipes with weight per serving, kcal, carbs, protein, fat, sodium; 제한 없음 | Optional: home dishes per serving; the main DB's dishes already cover most |
+| 원재료성식품 표준데이터 (15100065) | Raw foods as a file download | Goes with the 15100066/15100070 files if we build the representative items in |
+| 농진청 메뉴젠 음식별 영양성분 (15143461) | Dishes by ingredient | No: 공공누리 제4유형 (no commercial use, no changes) |
+| 전국건강기능식품영양성분 표준데이터 (15155983) | Health-supplement nutrition | Low priority (most protein powders are ordinary foods here) |
+
 ### Decisions to ask the user
 
 1. Search architecture: live API only (slow, poor order) / **the 9,235 representative items built into the server
