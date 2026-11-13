@@ -525,42 +525,32 @@ struct ExerciseProgressView: View {
     /// One read of this exercise's history per render: the series, the variation's sets and
     /// each day's workout.
     private struct ProgressData {
-        var history: [(input: RecordSetInput, workout: Workout)]
+        var history: [ExerciseHistory.Item]
         var series: ProgressSeries
         var scoped: [RecordSetInput]
         var recordDays: Set<Date>
         /// The workout holding each charted day's best set — the set the Sessions row shows.
         var workouts: [Date: Workout]
-        /// The machine that best set was on (nil-free: days whose best was on no machine are absent).
-        var machines: [Date: UUID]
+        /// The entry that logged each charted day's best set — its snapshot names that set's machine.
+        var entries: [Date: ExerciseEntry]
 
-        init(history: [(input: RecordSetInput, workout: Workout)], variation: ProgressVariationKey) {
+        init(history: [ExerciseHistory.Item], variation: ProgressVariationKey) {
             self.history = history
             let inputs = history.map(\.input)
             series = ProgressSeriesMath.series(for: inputs, variation: variation)
             scoped = ProgressSeriesMath.scoped(inputs, to: variation)
             recordDays = ProgressSeriesMath.recordDays(series)
-            // The same pick as the series (`ProgressSeriesMath.series`): per day, the best set by
-            // the records' rank (plain bodyweight: most reps), first one kept on a tie — so a
-            // session row opens the workout that set it, not merely the day's latest (Codex 05).
-            var best: [Date: (input: RecordSetInput, workout: Workout)] = [:]
-            for item in history where ProgressSeriesMath.scoped([item.input], to: variation).count == 1
-                && RecordsMath.isEligible(item.input) {
-                let day = Calendar.current.startOfDay(for: item.input.completedAt ?? .distantPast)
-                guard let incumbent = best[day] else { best[day] = item; continue }
-                let better = variation.loadType == .bodyweight
-                    ? (item.input.reps ?? 0) > (incumbent.input.reps ?? 0)
-                    : RecordsMath.outranks(item.input, incumbent.input)
-                if better { best[day] = item }
-            }
+            // The same pick as the series: a session row opens the workout that set the day's best, not merely
+            // the day's latest (Codex 05), and names that set's own entry's machine.
+            let best = ExerciseHistory.bestPerDay(history, variation: variation)
             workouts = best.mapValues(\.workout)
-            machines = best.compactMapValues(\.input.machineID)
+            entries = best.mapValues(\.entry)
         }
     }
 
     /// Every finished set logged against this exercise, in SNAPSHOT terms (D23), across all variations, with its
     /// workout (`ExerciseHistory`, shared with the Progress tab). Scoping happens in the series.
-    private var history: [(input: RecordSetInput, workout: Workout)] {
+    private var history: [ExerciseHistory.Item] {
         ExerciseHistory.items(for: exerciseID, in: modelContext)
     }
 
@@ -608,12 +598,7 @@ struct ExerciseProgressView: View {
     /// machine.
     private func sessionMachines(_ data: ProgressData) -> [Date: String] {
         guard resolvedVariation.equipment == .anyMachine else { return [:] }
-        var out: [Date: String] = [:]
-        for (day, id) in data.machines {
-            guard let workout = data.workouts[day] else { continue }
-            out[day] = ExerciseOverview.sessionMachineName(machineID: id, exerciseID: exerciseID, in: workout)
-        }
-        return out
+        return data.entries.compactMapValues(ExerciseOverview.machineName(of:))
     }
 }
 

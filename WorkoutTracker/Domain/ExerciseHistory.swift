@@ -5,7 +5,9 @@ import SwiftData
 /// progress charts draw. One reader for `ExerciseProgressView` and the Progress tab (ticket 16), so the two cannot
 /// disagree about which sets count; scoping to a variation and eligibility stay with `ProgressSeriesMath`.
 enum ExerciseHistory {
-    typealias Item = (input: RecordSetInput, workout: Workout)
+    /// A set as the charts read it, with its workout and the entry that logged it — the entry carries the snapshot
+    /// names of that exact context (D23), e.g. a pooled session row's machine (live-workout 03).
+    typealias Item = (input: RecordSetInput, workout: Workout, entry: ExerciseEntry)
 
     /// One exercise's history.
     static func items(for exerciseID: UUID, in context: ModelContext) -> [Item] {
@@ -43,7 +45,27 @@ enum ExerciseHistory {
             presetID: entry.snapshotPresetID,
             setType: set.type, reps: set.reps,
             weightValue: set.weightValue, weightUnit: set.weightUnit,
-            normalizedKg: set.normalizedKg, completedAt: set.completedAt), workout))
+            normalizedKg: set.normalizedKg, completedAt: set.completedAt), workout, entry))
+    }
+
+    /// Per calendar day, the item holding that day's best set in `variation` — the same pick as
+    /// `ProgressSeriesMath.series` (eligible sets only; the records' rank, plain bodyweight by most reps; the first
+    /// kept on a tie). A Sessions row opens that set's workout (Codex 05) and, under All machines, names that set's
+    /// own entry's machine — not another entry of the same workout (live-workout 03, Codex review 03b).
+    static func bestPerDay(
+        _ items: [Item], variation: ProgressVariationKey, calendar: Calendar = .current
+    ) -> [Date: Item] {
+        var best: [Date: Item] = [:]
+        for item in items where ProgressSeriesMath.scoped([item.input], to: variation).count == 1
+            && RecordsMath.isEligible(item.input) {
+            let day = calendar.startOfDay(for: item.input.completedAt ?? .distantPast)
+            guard let incumbent = best[day] else { best[day] = item; continue }
+            let better = variation.loadType == .bodyweight
+                ? (item.input.reps ?? 0) > (incumbent.input.reps ?? 0)
+                : RecordsMath.outranks(item.input, incumbent.input)
+            if better { best[day] = item }
+        }
+        return best
     }
 }
 

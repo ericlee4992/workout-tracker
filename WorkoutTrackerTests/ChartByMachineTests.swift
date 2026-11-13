@@ -162,30 +162,49 @@ struct ChartByMachineTests {
 
     // MARK: - Names from the right snapshot (Codex review 03, findings 1 and 3)
 
-    /// A session row under All machines names the machine as THAT workout logged it: renamed between sessions, each
-    /// keeps its own name (D23).
-    @Test func eachPooledSessionKeepsItsOwnMachineName() throws {
+    /// A session row under All machines names the machine as the entry that set the day's best logged it (D23):
+    /// renamed between workouts, or between two entries of ONE workout on the same machine (a rename mid-workout,
+    /// then a preset change splits the frozen entry — Codex review 03b), each set keeps its own name. The heavier
+    /// set under the other preset is outside the chart and must not lend its name.
+    @Test func eachPooledSessionNamesTheEntryThatSetItsBest() throws {
         let context = try makeContext()
         let exercise = Exercise(name: "Chest Press", loadType: .weighted, muscleGroup: "Chest")
-        let machineID = UUID()
+        let machineID = UUID(), otherMachineID = UUID()
         context.insert(exercise)
-        func logged(label: String, gym: String) -> Workout {
-            let workout = Workout(startedAt: .now)
+        func finished(day: Int) -> Workout {
+            let start = Date(timeIntervalSince1970: Double(day) * 86_400 + 36_000)
+            let workout = Workout(startedAt: start)
+            workout.finishedAt = start.addingTimeInterval(3_600)
             context.insert(workout)
-            context.insert(ExerciseEntry(
-                order: 0, workout: workout, exercise: exercise, snapshotCapturedAt: .now,
-                snapshotExerciseID: exercise.id, snapshotMachineID: machineID, snapshotLoadType: .weighted,
-                snapshotExerciseName: exercise.name, snapshotMachineLabel: label, snapshotGymName: gym))
             return workout
         }
-        let before = logged(label: "Press", gym: "Iron Temple")
-        let after = logged(label: "Chest Press 2", gym: "Iron Temple Gangnam")
+        func entry(_ workout: Workout, order: Int, machine: UUID, label: String, gym: String, preset: UUID?,
+                   kg: Double) {
+            let entry = ExerciseEntry(
+                order: order, workout: workout, exercise: exercise, snapshotCapturedAt: workout.startedAt,
+                snapshotExerciseID: exercise.id, snapshotMachineID: machine, snapshotLoadType: .weighted,
+                snapshotExerciseName: exercise.name, snapshotMachineLabel: label, snapshotGymName: gym,
+                snapshotPresetID: preset)
+            context.insert(entry)
+            let set = SetRecord(order: 0, reps: 8, weightValue: kg, weightUnit: .kg, normalizedKg: kg,
+                                completedAt: workout.startedAt.addingTimeInterval(Double(order + 1) * 600))
+            set.entry = entry
+            context.insert(set)
+        }
+        let day1 = finished(day: 1)
+        entry(day1, order: 0, machine: machineID, label: "Press", gym: "Iron Temple", preset: nil, kg: 80)
+        entry(day1, order: 1, machine: machineID, label: "Chest Press 2", gym: "Iron Temple", preset: narrow, kg: 60)
+        let day2 = finished(day: 2)
+        entry(day2, order: 0, machine: otherMachineID, label: "Chest Press", gym: "Hotel Gym", preset: narrow, kg: 70)
         try context.save()
-        #expect(ExerciseOverview.sessionMachineName(machineID: machineID, exerciseID: exercise.id, in: before)
-            == "Press · Iron Temple")
-        #expect(ExerciseOverview.sessionMachineName(machineID: machineID, exerciseID: exercise.id, in: after)
-            == "Chest Press 2 · Iron Temple Gangnam")
-        #expect(ExerciseOverview.sessionMachineName(machineID: UUID(), exerciseID: exercise.id, in: after) == nil)
+
+        let items = ExerciseHistory.items(for: exercise.id, in: context)
+        let best = ExerciseHistory.bestPerDay(
+            items, variation: ProgressVariationKey(loadType: .weighted, equipment: .anyMachine, presetID: narrow))
+        let names = Set(best.values.compactMap { ExerciseOverview.machineName(of: $0.entry) })
+        #expect(names == ["Chest Press · Hotel Gym", "Chest Press 2 · Iron Temple"])
+        #expect(best.values.map(\.input.normalizedKg).sorted { ($0 ?? 0) < ($1 ?? 0) } == [60, 70],
+                "the 80 kg set under no preset is another variation")
     }
 
     /// Opened before the first completed set on a machine and preset with no history, the selector names them from

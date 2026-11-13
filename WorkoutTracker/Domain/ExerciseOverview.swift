@@ -504,13 +504,11 @@ extension ExerciseOverview {
             equipmentName: equipmentName, gymName: gymName, presetName: presetName)
     }
 
-    /// "Chest Press 2 · Iron Temple": the machine as THAT workout logged it (D23) — a session row under All machines
-    /// (live-workout 03). Per workout, not the first entry anywhere with the machine id, so a machine or gym renamed
-    /// between sessions keeps each session's own name. nil when the workout has no such entry.
-    static func sessionMachineName(machineID: UUID, exerciseID: UUID, in workout: Workout) -> String? {
-        guard let entry = (workout.entries ?? []).first(where: {
-            !$0.isDeleted && $0.snapshotExerciseID == exerciseID && $0.snapshotMachineID == machineID
-        }) else { return nil }
+    /// "Chest Press 2 · Iron Temple": the machine as THIS entry logged it (D23) — a session row under All machines
+    /// names the entry that set the day's best (live-workout 03), so a machine or gym renamed between sessions, or
+    /// between two entries of one workout, keeps each set's own name. nil for an entry on no machine.
+    static func machineName(of entry: ExerciseEntry) -> String? {
+        guard entry.snapshotMachineID != nil else { return nil }
         return [entry.snapshotMachineLabel ?? "Machine", entry.snapshotGymName].compactMap { $0 }
             .joined(separator: " · ")
     }

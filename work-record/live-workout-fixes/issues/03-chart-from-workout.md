@@ -179,3 +179,23 @@ Known flaky (likely): FloodlightLiveUITests.testMakingAFreshBestAWarmupTakesTheB
 Not verified: on a phone
 ```
 
+
+## Codex review 03b — response (round 2)
+
+Report: [`codex-review-03b.md`](../codex-review-03b.md) (not clear: one P2; findings 2 and 3 resolved; the band
+failure judged intermittent automation timing, unrelated — a testing follow-up should address idle synchronization,
+not only the wait length).
+
+1. **The winning entry, not its workout.** `ExerciseHistory.Item` now carries the entry that logged the set; the
+   day's best is picked in the Domain (`ExerciseHistory.bestPerDay`, moved from the view unchanged) and the pooled
+   row names that entry (`ExerciseOverview.machineName(of:)`; `sessionMachineName` removed). Regression:
+   `ChartByMachineTests.eachPooledSessionNamesTheEntryThatSetItsBest` — two entries on one machine in one workout
+   with different frozen labels and presets, the winning one second; the heavier set under the other preset stays out.
+
+```
+Verified: Unit plan — 1358/1358 passed, exit 0, build/results/unit-03d.xcresult
+Verified: FloodlightLiveUITests.testLiveChartOpensOnTheMachineInUseAndSwitchesMachines + ProgressChartTooltipUITests
+          (4) — 5/5 passed, exit 0, build/results/ui-03d.xcresult (the chart's Sessions rows and History's chart)
+Not verified: on a phone
+Known flaky: FloodlightLiveUITests.testMakingAFreshBestAWarmupTakesTheBandAway — see round 1 evidence; follow-up below
+```
