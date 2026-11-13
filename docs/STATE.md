@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-13: N12 Korean food data merged into `main` and the server deployed (Worker `16f93322`); next: TestFlight 0.2.0 (13). Earlier 2026-11-12: 0.2.0 (12) uploaded (N14 on top of build 11); the user's TestFlight steps, Gate S first.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-13: 0.2.0 (13) uploaded (N12 Korean food data; server Worker `16f93322`); next: the user's TestFlight steps (no Gate S). Earlier 2026-11-12: 0.2.0 (12) uploaded (N14 on top of build 11); the user's TestFlight steps, Gate S first.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-12, end of the P1 / N13 / N14 session)
@@ -9,9 +9,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   `ericlee4992/nutrition-12-korean-db` kept; [ticket](../work-record/nutrition/issues/12-korean-food-database.md), D86,
   review `work-record/nutrition/codex-review-n12.md`). Worker **`16f93322`** with secrets `MFDS_API_KEY` +
   `FOODSAFETY_API_KEY`; privacy "Effective November 13, 2026"; no migration. The user approved screens, strings and
-  privacy wording. **Next: TestFlight 0.2.0 (13)** (the user: keep 0.2.0, raise the build) = N12 — release record, What's
-  New / What to Test, archive + upload; then on the phone: a Korean search and a Korean barcode signed in (the first
-  live check through the deployed route). No stored-format change since build 12 (no Gate S for N12). Follow-up:
+  privacy wording. **0.2.0 (13) uploaded 2026-11-13 01:55 EST** (`main` `f6faa31f`, release review clear; record
+  `work-record/release/0.2.0-build-13.md`; What's New "New: Korean foods"). **The user's next steps:** Developer →
+  install (**no Gate S**) → signed in, a Korean search (김치찌개) and a Korean barcode (the first live N12 check) →
+  Friends with the What to Test note → Submit. Follow-up:
   [dev-speed 02](../work-record/dev-speed/issues/02-ui-test-launch-unfinished-workout.md). Workspace "N12 Korean food
   DB" and its Codex agent `006b23e1-…` can be archived.
 - **Git:** `main` = N12 + the deploy date commit; home checkout updated.

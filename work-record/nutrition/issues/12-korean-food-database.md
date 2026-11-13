@@ -1,7 +1,7 @@
 # N12 — Korean food database (식품영양성분DB) for barcodes and search
 
 Type: feature
-Status: **done — Codex clear (round 4), merged into `main` and server deployed 2026-11-13**; ships in TestFlight **0.2.0 (13)** (the user: keep 0.2.0)
+Status: **done — Codex clear (round 4), merged into `main` and server deployed 2026-11-13**; **uploaded in TestFlight 0.2.0 (13)** 2026-11-13 (`work-record/release/0.2.0-build-13.md`)
 Blocked by: R
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-12-korean-db` off `main`.
