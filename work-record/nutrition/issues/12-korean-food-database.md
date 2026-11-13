@@ -64,6 +64,77 @@ candidate right?). Recorded here. Decide from it:
 
 ## Progress
 
-Not started (after R).
+**2026-11-12 — Step 1 coverage check done (branch `ericlee4992/nutrition-12-korean-db` off `main` `f56bf476`); waiting
+on the user's scope decisions (below) before any code.** The key was read at run time from `~/.config/workouttracker/mfds.env`
+by a throwaway script in `/tmp` (never printed; `server/.dev.vars` was not needed and does not exist). Raw outputs:
+`/tmp/n12data/` (local, not kept).
+
+### The API (식품영양성분DB정보, data.go.kr 15127578), confirmed with the key
+
+- `GET https://apis.data.go.kr/1471000/FoodNtrCpntDbInfo03/getFoodNtrCpntDbInq03?serviceKey=…&type=json&pageNo&numOfRows`
+  + filters `FOOD_NM_KR` (substring match), `MAKER_NM`, `ITEM_REPORT_NO` (prefix match — filter exactly ourselves;
+  the field can hold several numbers joined by `/`), `DB_CLASS_NM` (`품목대표` / `상용제품`), `FOOD_CAT1_NM`,
+  `RESEARCH_YMD`, `UPDATE_DATE`. The key goes in the URL (no header option) — never log URLs.
+- Reply `{header: {resultCode: "00"}, body: {totalCount, items: [...]}}`; every value a string, numbers with
+  thousands commas (`"2,117.000"`), missing values `""`. ~3.5 KB per row (157 nutrient fields).
+- Fields we need: `FOOD_NM_KR`, `MAKER_NM`, `DB_GRP_CM/NM` (`D` 음식, `P` 가공식품, `R1` 원재료성), `SERVING_SIZE`
+  = the basis (`100g` / `100mL`), `AMT_NUM1` kcal, `AMT_NUM3` protein, `AMT_NUM4` fat, `AMT_NUM6` carbs, `AMT_NUM7`
+  sugars, `AMT_NUM8` fibre, `AMT_NUM13` sodium mg, `AMT_NUM24` saturated fat, `NUTRI_AMOUNT_SERVING` (1회 섭취참고량,
+  often a category text like "유탕면(봉지)120g"), `Z10500` (식품중량: package / dish weight, e.g. "400.000g"),
+  `ITEM_REPORT_NO`, `SUB_REF_NAME` (출처: 식품의약품안전처, 국립식량과학원, …), `FOOD_CD`.
+- Size: 347,334 rows — 9,235 `품목대표` (dishes, raw foods, generic processed foods) and 338,099 `상용제품`
+  (brand products and restaurant-chain items).
+- Speed: 1.4–12 s per call (most 2–6 s) — sometimes over N8's 8 s upstream timeout.
+- Order: fixed internal order (dishes, then products, then raw foods), not relevance: "바나나" has 1,871 matches and
+  "바나나, 생것" is on the last page. With `DB_CLASS_NM=품목대표` it is among 14 results.
+- Licence: 이용허락범위 **제한 없음** (no restriction), free. Credit still planned ("식품의약품안전처 식품영양성분DB").
+- Limits: development account 10,000 calls/day (auto-approved); the **operating account needs 심의승인** (a review,
+  requested by registering the app as a 활용사례) — the user's step before release if more traffic is needed.
+- Data quirks: duplicates (the same dish from several survey years); restaurant-chain rows often give kcal, protein
+  and sodium but blank fat/carbs; some dishes per 100 mL; the raw egg is "달걀", not "계란".
+
+### Searches (Korean)
+
+Dishes (김치찌개 401, 비빔밥 817, 떡볶이 2,907, 김밥 3,099), products (불닭볶음면 50, 새우깡 19, 허니버터칩 9,
+바나나맛우유 11, 초코파이 202, 비비고 430) and raw foods (with 품목대표: 바나나, 사과, 삼겹살, 우유) are all well
+covered, with sensible numbers. Weak spots: generic words match many dishes first (닭가슴살 → sandwiches); raw
+ingredients need the 품목대표 filter or our own ranking.
+
+### Barcodes (20 real Korean codes; Open Food Facts, C005 via its public sample key, then this DB)
+
+- Open Food Facts holds only **6,457** products with an `880` code (C005 lists ~260,000 barcode rows). Its most-scanned
+  ones: 92 of 100 with nutrition; its least-scanned / newest: ~65 with nutrition, ~20–25 name only, ~11 nothing.
+- Its names for Korean products are almost all **English or French** ("Original Onion Ring", "Ottogi Korea Pancake
+  Mix"), and this DB matches Korean names only: **searching this DB by the Open Food Facts name found 0 of 11** products
+  that lacked nutrition there.
+- 6 popular (Shin Ramyun, Buldak, Pepero, Jin Ramen, …): Open Food Facts had nutrition for all 6.
+- 7 with weak entries: 3 had nutrition by now; 4 name only — C005 knew 3 of the 4, and this DB had the exact product
+  by C005's report number for 1 (양파링 오리지널).
+- 7 not in Open Food Facts (taken from C005's own sample list, so older, mostly discontinued products): this DB had 1
+  (매일맛있는진간장골드).
+- Net: of 11 barcodes with no nutrition in Open Food Facts, this DB rescued **2 (only through C005)**, 0 by name.
+- C005: barcode → Korean name, maker, report number; last modified **2020-08-13**; 5 of 13 modern products tested
+  were missing from it; separate key from 식품안전나라 (sample key: 5 rows a call).
+
+### The user's Chrome tabs (2026-11-12; read through Chrome's tab list — agent-desktop lacks Accessibility permission)
+
+| Tab | Useful? |
+|---|---|
+| 식품의약품안전처_식품영양성분DB정보 (15127578) | Yes — the API above, the main source |
+| 전국통합식품영양성분정보(음식) 표준데이터 (15100070) | Yes, as a whole-file download (CSV/JSON) of the dishes, or its own API (up to 1,000 rows a page; separate 활용신청, auto-approved). Licence to confirm |
+| 전국통합식품영양성분정보(가공식품) 표준데이터 (15100066) | Same, for processed foods (updated 2026-11-05) |
+| K-FIND 식품영양성분 데이터베이스 OpenAPI page | A hub linking the same datasets (plus 원재료성식품 and 국가표준식품성분표); its "영양성분 DB 내려받기" is the official full download |
+| 바코드연계제품정보 C005 | Only for barcode → report number; frozen since 2020; small gain (above) |
+| 식품안전나라 main page | No (portal home) |
+| 가공식품 품목별 영양성분 DB_20221231 (15112364) | No — 720 rows, one-off 2022, 공공누리 제4유형 (no commercial use, no changes) |
+
+### Decisions to ask the user
+
+1. Search architecture: live API only (slow, poor order) / **the 9,235 representative items built into the server
+   from the download (instant, well ranked) + the live API for brand products** (recommended) / a full copy (heavy).
+2. Barcodes: C005 is not worth a second key now (2 of 11 rescued). Instead, a Korean barcode Open Food Facts can't
+   fill opens the Korean search with the name prefilled (editable, "Is this it?" confirm, saved with the barcode).
+3. Restaurant rows with blank fat/carbs: hide them, or show them with the blanks as "not given" (N8 reads blank macros
+   as 0).
 
 ## Comments
