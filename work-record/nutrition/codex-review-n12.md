@@ -339,3 +339,122 @@ rerun, BarcodeSearch not-found still failed. Follow-up belongs to N12 acceptance
 and diagnose the entry/launch behavior before claiming a green focused scope. R6–R8 are independent of these failures.
 
 Verdict: not clear
+
+## Round 3
+
+Reviewed on **2026-11-13**, `af19f582..09eb57ac`, exact implementation HEAD
+`09eb57acde535425dfea6c5c937fb21c07d011a7`, branch `ericlee4992/nutrition-12-korean-db`; clean starting tree.
+Read current STATE, ticket fixes, amended D86 and the changed source/callers. STATE's old round-1 wording is stale;
+Git/ticket establish the current review. Separate standards/spec passes completed. Only this report changes.
+Evidence: `/tmp/codex-n12-r3/` (fresh build updates `/tmp/codex-n12-r1/dd`).
+
+### Spec
+
+#### R9 — P2: The MFDS reader still turns malformed rows into cacheable misses
+
+`server/src/korean.ts:214–217`, consumed by `server/src/food.ts:550–555` and the report-number barcode bridge.
+
+R7 is fixed for the two reported readers, Food QR and C005. The adjacent MFDS reader still returns
+`items.filter(isObject)`: an otherwise successful envelope with `totalCount: 1, items: [null]` becomes a valid
+empty answer. For a search with no bundled match, it is cached as an empty search for a day; in a report-number
+lookup it can cause a barcode miss to be cached for a day. This is another instance of the brief/N8 rule that
+malformed provider replies must not become cached misses.
+
+**This predates the round-3 diff; it is an additional discovered reader gap, not a regression introduced by the
+fixes.** The requested QR/C005 corrections are acknowledged below.
+
+**Reproduced offline with the current route functions:** `mfds-probe.cjs`/`mfds-probe.jsonl`, exit **0**. Fake
+MFDS `[null]` gives search `{foods: []}` and barcode `{found: false}`, each with **one cache write, TTL 1 day**.
+OFF/USDA legitimately miss; the barcode case supplies a matching C005 report number so MFDS is reached. Valid-empty
+MFDS controls produce the same output/cache behavior. No provider call, real key or production cache was involved.
+
+**Fix:** validate MFDS's raw items before discarding elements, as the QR/C005 fixes now do. Non-object items should
+be an upstream failure: search with no usable local result returns 502/no cache; a Korean bridge failure with no
+food remains a soft barcode miss/no cache. Cover both paths and retain the valid-empty controls.
+
+### Standards
+
+No new documented-standard or substantive smell finding in the fix diff. The transient metadata is explicitly
+authorized by amended D86; there is no remaining storage/export requirement for this note. No schema or
+relationship change was introduced.
+
+### R6–R8 disposition and regression assessment
+
+- **R6 fixed.** Food QR derives `notListed` from the raw macro fields before nulls become zero. The replay of
+  `probe.cjs` now returns `notListed: ["carbs", "fat"]` for 187 kcal/5 g protein with those macros absent. The new
+  route test also checks that explicitly supplied zeros generate no missing-macro list.
+- **R7 reported cases fixed.** Replayed `[null]` responses for QR and C005 now each return a soft miss with **zero
+  cache writes**. New tests include a valid-empty control that is still cached. R9 is the remaining MFDS boundary.
+- **R8 resolved by the user's changed decision, not by adding persistence.** D86 now explicitly limits the note to
+  where a food is found. The UserDefaults dictionary, override and writes are removed; its former backup/restore
+  finding no longer applies. No new source references to `foodDatabaseNotListed`, `notListedDefaults` or
+  `setNotListed` remain.
+- **All selected-food callers traced.** An online result sets `selectedNotListed` and opens with
+  `selectedFromSearch = true`; a local food row sets it false and passes `[]`. Fresh barcode answers and picked
+  candidates copy their own `notListed`, replacing any prior selection's list. A local barcode hit creates a fresh
+  `BarcodeState` with the default empty list. Later offline/local reopening therefore intentionally has no note.
+- **Tests match the changed contract.** The unit suite checks source metadata/copy and that saving creates no
+  `foodDatabase` defaults key. The UI test asserts the online note, logs the food, then reopens the local row and
+  asserts no note. Removed persistence assertions implement the explicit D86 change rather than hide an unfixed
+  requirement.
+- **Scan-helper retry is bounded.** Both helpers retain the camera-mode assertion and all later behavioral
+  assertions. They retry the scan-button tap once only if the camera has not appeared and the original button is
+  still hittable. Passing with that helper would establish flow coverage, not diagnose the original missed tap.
+- The earlier C005 log-sentinel probe still reports `sentinelLeaked: false`. Test-plan and full-branch whitespace
+  checks pass. Search variants/cache rules and barcode-link-on-log behavior were not changed by this fix.
+
+### Round-3 verification
+
+Xcode 27.2; prepared WT-iPhone27 `47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`, iOS 27.0, then rebuilt after all source/test
+changes. The requested unit and UI scopes are used. No source edits, live calls, credential access, deployment or
+physical-device install. Executions and capture inspection are complete; the remaining UI failure is retained.
+
+| Check | Command / scope | Result |
+|---|---|---|
+| Server typecheck | `cd server && npm run typecheck` | exit **0**, `typecheck.log` |
+| Server suite | `cd server && npx vitest run` | **339/339**, 10 files, exit **0**, `server.log` |
+| Simulator | `scripts/prepare-test-simulator.sh 47D21838-69A6-4BCB-AE90-B0D9C0AAA70B` | exit **0**, `prepare.log` |
+| Build | `xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=47D21838-69A6-4BCB-AE90-B0D9C0AAA70B' -derivedDataPath /tmp/codex-n12-r1/dd` | exit **0**, `build.log` |
+| Unit | `test-without-building`, same project/scheme/destination/derived data, `-only-testing:WorkoutTrackerTests/FoodDatabaseTests -parallel-testing-enabled NO -resultBundlePath /tmp/codex-n12-r3/unit.xcresult` | **15/15**, no failures/skips, exit **0**, `unit-summary.json` |
+| UI | Same test base; `-only-testing:WorkoutTrackerUITests/KoreanFoodUITests -only-testing:WorkoutTrackerUITests/BarcodeSearchUITests -parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 2 -parallel-testing-worker-count 2 -resultBundlePath /tmp/codex-n12-r3/ui.xcresult` | **13/14**, 1 failure, no skips, exit **65**, `ui.log`, `ui-summary.json` |
+| Failed case, serial | Prepared simulator again; same test base with `-only-testing:WorkoutTrackerUITests/KoreanFoodUITests/testAKoreanBarcodeOffersIsThisItAndTheLoggedFoodOpensNextTime -parallel-testing-enabled NO -resultBundlePath /tmp/codex-n12-r3/ui-serial.xcresult` | **0/1**, 1 failure, no skips, exit **65**, `ui-serial.log`, `ui-serial-summary.json`; unchanged source/binary |
+| Plans / whitespace | `python3 scripts/test-plans.py --check`; `git diff --check f56bf476...HEAD` | both exit **0** |
+| Current-source probes | `node /tmp/codex-n12-r3/probe.cjs`; `node /tmp/codex-n12-r3/mfds-probe.cjs` | both exit **0**; outputs inspected |
+
+**UI assessment:** BarcodeSearch passed **8/8**, including the not-found case that failed in round 2. KoreanFood
+passed **5/6**, including the amended online-note → log → local-reopen-without-note assertion and both capture tests.
+`testAKoreanBarcodeOffersIsThisItAndTheLoggedFoodOpensNextTime` failed in both parallel and serial runs at
+`KoreanFoodUITests.swift:43`, the final wait for `scanFoodMode.barcode` on the initial `scanBarcode()` call
+(`:68`). The added retry has therefore not eliminated the entry instability in this reviewer environment.
+
+The serial failure is **not simply an unchanged Today screen**: its exported hierarchy includes Today and an
+`Outdoor Run +1` navigation surface, and the final frame extracted from its test recording shows **Choose Cardio**.
+See `ui-failure.json`, `ui-serial-failure.json`, `serial-attachments/manifest.json` and `serial-failure.png`.
+This establishes unexpected navigation before barcode mode, not its root cause; investigate fixture launch/layout
+settling and the tap target before treating the helper retry as sufficient. No source regression is inferred solely
+from the failed automation. AVAudioSession main-thread warnings remain in the result summaries. Both bundles are
+preserved, and this round has **13/14** distinct requested UI cases passing, not a green focused scope.
+
+**Captures:** exported `ui.xcresult` attachments (exit **0**). Inspected light Default and dark AccessibilityL
+selected-food shots (`77566E27-2B90-4457-AD5A-55CD9F82346C.png`,
+`06D129A3-6F2E-4ED2-B41B-41AE2B947418.png`) and the scrolled Korean-search pair
+(`6DFF3FD5-2392-475E-BCD5-1AE6E524D299.png`, `477E3C29-23F4-42F3-9D22-E6398DEDF319.png`). The transient note and
+source credit remain fully readable; no new layout finding. The absence of the note on local reopening is checked
+by the passing behavioral UI test, not a separate capture. Names/IDs are mapped in `attachments/manifest.json`.
+
+Spec: **1 P2 finding** (R9, pre-existing in the N12 implementation). Standards: **0 new findings**. R6–R8 resolved.
+
+Verified: server typecheck and 339/339 tests, fresh build, FoodDatabaseTests 15/15 (`unit.xcresult`), plans and
+whitespace checks, all exit 0; QR/C005 and log regression probes; MFDS malformed-array issue reproduced offline;
+UI 13/14, exit 65 (`ui.xcresult`), and failed-case rerun 0/1, exit 65 (`ui-serial.xcresult`), both summaries inspected;
+changed-state Default/AccessibilityL captures inspected. Evidence root `/tmp/codex-n12-r3/`.
+
+Not verified: a passing Korean found/picked-and-linked barcode UI case this round (both runs failed before barcode
+mode); live MFDS/QR/C005 or deployed routes, physical camera/phone, production logs/cache, human VoiceOver, full UI
+suite, dark Default/light AccessibilityL captures. No persistence of the note is required or claimed under amended D86.
+
+Known flaky / unresolved verification: the Korean barcode case's initial navigation failed twice despite the helper
+retry. Prior passing evidence and intermittent entry failures remain in rounds 1–2. Follow-up belongs to N12's
+acceptance-2 verification, using the serial failure recording above; do not claim this run resolved the instability.
+
+Verdict: not clear
