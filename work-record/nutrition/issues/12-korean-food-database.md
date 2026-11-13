@@ -173,6 +173,19 @@ prefix match; the field can list several numbers joined by `/`):
 C005 is the largest bridge (~260,000 barcode rows, frozen 2020, direct barcode lookup, its own key from 식품안전나라);
 earlier it rescued 2 of 11. Worth re-testing with a real key now that the bridge is the plan.
 
+### C005 with the user's own key (2026-11-12)
+
+The user added `FOODSAFETY_API_KEY` (식품안전나라) to `~/.config/workouttracker/mfds.env` (mode 600) through a Terminal
+prompt that hid it; it works (`https://openapi.foodsafetykorea.go.kr/api/<key>/C005/json/1/20/BAR_CD=<code>` — the key
+is in the URL path: never log URLs). Test on 176 Korean (`880`) codes taken from Open Food Facts (76 without nutrition
+there — several are cosmetics, so not foods — and 100 with):
+- C005 knew 14 of the 76 and 21 of the 100; 9 calls answered `INFO-500` (server error; not retried).
+- Through C005's report number, 식품영양성분DB had the exact product for 5 of the 76 (육개장, 청정원쇠고기볶음고추장,
+  양파링 오리지널, 지도표재래식성경식탁김, 옛날고추맛기름) and 11 of the 100.
+- HACCP label numbers: 3 of the 76; Food QR: 0.
+- **All Korean sources together gave numbers for 7 of the 76** Open Food Facts gaps (~9%); 4 of the 7 only through C005.
+Conclusion: Korean barcodes stay mostly a gap whatever we add; Korean name search and the label scan carry the weight.
+
 ### Decisions to ask the user
 
 1. Search architecture: live API only (slow, poor order) / **the 9,235 representative items built into the server
