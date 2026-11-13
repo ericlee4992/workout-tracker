@@ -184,3 +184,158 @@ in the parallel run, passed unchanged serially. Cause unresolved; follow-up belo
 evidence in `issues/12-korean-food-database.md`. The reproduced R1–R4 defects are independent of this intermittent test.
 
 Verdict: not clear
+
+## Round 2
+
+Reviewed fix commit `6ed3cdf0ca77f0c9e6b0a3e89f980527a6c70434` against `aa29dc51` on
+`ericlee4992/nutrition-12-korean-db`. Starting checkout was clean. Reread current STATE, the ticket's round-1 fix
+record, this report and the changed source/callers. STATE still describes round 1 as running; Git and the ticket
+establish that the fixes are committed but not merged/deployed. Separate standards/spec passes completed. Only this
+report is modified. Evidence: `/tmp/codex-n12-r2/`; the fresh build updates `/tmp/codex-n12-r1/dd`.
+
+### Spec
+
+#### R6 — P2: Food QR still omits the completeness metadata the new app requires
+
+`WorkoutTracker/Domain/FoodDatabase.swift:158–164`, fed by `server/src/korean.ts:343–364`.
+
+The R2 fix makes the app rely exclusively on `notListed`, but only `fromKoreanRow` emits that field. Food QR's
+normalizer also accepts missing macros and turns them into zeros, yet never includes `notListed` in its result.
+A Food QR label that lists calories and protein but omits carbs/fat therefore opens without the D86 missing-macros
+note. The removed heuristic previously warned for this example; the new exact-metadata path loses the disclosure.
+
+**Reproduced offline with current source:** a consistent, correctly identified Food QR label containing only
+187 kcal and 5 g protein per 100 g is accepted as `foodQR`, with carbs/fat **0** and **no `notListed` property**.
+`probe.cjs`/`probe.jsonl` and `qr-food.json`, exit **0**. The app parser's absent-field default is `[]`, and `save`
+clears the side-store entry for that list, so `SelectedFoodView` has no note. The server reproduction is executed;
+the parser/save/display consequence is source-traced. This is not an observed live provider record.
+
+**Fix:** derive Food QR's missing macro list from the raw null fields before zero conversion, using the same
+contract as MFDS. Cover an incomplete QR label through normalization, app parsing and kept-food note lookup; keep
+valid zero values distinct from absent values.
+
+#### R7 — P2: Non-object barcode rows still become cached misses
+
+`server/src/korean.ts:299–302,392–395`.
+
+R3 now rejects objects with missing/wrong/mismatching barcode fields, but filters away non-object values **before**
+checking whether a nonempty response contained any verified match. A successful envelope with `items: [null]`
+(Food QR) or `row: [null]` (C005) becomes `rows: []`, bypasses the malformed-response guard and returns an ordinary
+empty result. This violates the brief/N8 contract that malformed provider replies must not be cached as misses.
+
+**Reproduced through current `lookupBarcode`, offline:** with OFF/USDA legitimate misses and the other Korean
+service legitimately empty, each malformed provider array independently returns `{found: false}` and writes a
+**one-day negative cache entry**. `probe.cjs`/`probe.jsonl`, exit **0**, fake fetch/D1 dependencies only. This is a
+malformed-provider boundary, not a live outage observation.
+
+**Fix:** validate the raw collection before discarding elements, or base the unmatched/nonempty guard on the
+original collection. Non-object entries must not turn an invalid answer into an authoritative empty answer. Add
+both provider cases through the route, checking 200 soft failure with no cache write, and retain valid empty/matching
+controls.
+
+### Standards
+
+#### R8 — P2: The metadata side store can disagree with restored nutrition
+
+`WorkoutTracker/Domain/FoodDatabase.swift:343–359,462–463`; backup/restore integration in
+`WorkoutTracker/Domain/SafetyCopy.swift:83–85,103–123,188–202`.
+
+The dictionary stores only the latest completeness list per database ID, independently of the stored food version.
+Safety copies restore only the store/WAL/SHM files. If a copy contains missing fat, then a later complete refresh
+clears its dictionary entry, restoring the copy brings back the original zero fat but leaves the newer empty
+metadata: the required note disappears. Reversing the sequence attaches a missing-fat note to complete restored
+nutrition. The nutrition spec's backup/export data rule and D86 disclosure require the metadata to describe the
+food actually restored. Source completeness is not merely an appearance preference.
+
+**Reproduced with the current file-copy/restore and metadata helpers:** `restore-probe.swift` extracts the actual
+`SafetyCopies` implementation and current defaults/note helpers; it uses isolated defaults and sentinel store bytes,
+not a live database. In both directions the original store bytes restore successfully while the note remains from
+the newer version (`restore-probe.log`, exit **0**): original incomplete → `note=none`; original complete →
+`Fat isn't listed for this food; it counts as 0.` The probe's temporary files/defaults suite are removed. This
+executes the file-swap/metadata mismatch, not a full SwiftData migration or phone restore.
+
+`ExportCollector.swift:182–193` and `ExportSnapshot.SavedFoodRow` also omit this metadata, so the JSON backup loses
+the distinction between source-missing and genuine zero. That omission is source-traced, not an import test.
+
+**Fix:** bind completeness to the corresponding stored food version and preserve it through backup/export/restore.
+If using a side store to honor D86's no-schema-change constraint, it must participate consistently in that lifecycle;
+otherwise explicitly reopen the stored-format decision. Add both restore directions and backup fidelity coverage.
+
+### Round-1 disposition and other checks
+
+- **R1 fixed:** spaced and unspaced provider queries run concurrently, merged and ranked. The spaced cache key stays
+  distinct; an unspaced query still makes one call. Either form failing marks the answer incomplete and prevents
+  caching; usable results from the other form remain available. Both failing with no local results returns 502.
+  These paths are source-checked and covered by the passing server suite; no additional live requests this round.
+- **R2 original beer/potato cases fixed:** `notListed` is parsed explicitly; complete beer no longer generates the
+  heuristic warning, and missing fat can be named. Current unit coverage passes. R6 and R8 cover the remaining
+  producer/lifecycle gaps, not a recurrence of the original energy calculation.
+- **R3 original reproduction fixed:** missing, numeric, empty and different barcode fields are rejected. Zero-padded
+  identity is retained; all-invalid object rows take the soft-failure path and are not negative-cached. R7 covers
+  the still-unhandled non-object array boundary.
+- **R4 fixed:** C005 diagnostics accept only bounded `INFO/ERROR-` plus three digits, otherwise `malformed`.
+  Reran a sentinel error-field probe: `sentinelLeaked: false`, logged `food upstream c005 malformed`. New tests also
+  check fake URL/key/barcode/query sentinels. No real key was read or printed this round.
+- **R5 fixed:** test-plan registration and generated TodayTrain plan agree; `scripts/test-plans.py --check` exits 0.
+  The privacy routing wording and trailing blank line are corrected; full-branch whitespace check exits 0.
+- **Test isolation:** no concrete concurrent defaults race found. The suite is `@MainActor`, serialized, and the
+  override test executes synchronously with deferred restoration of the prior defaults instance. Its assertions
+  read the same isolated defaults; they do not exercise a real store restore, which is why R8 remains uncovered.
+
+### Round-2 verification
+
+Xcode 27.2; WT-iPhone27 `47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`, iOS 27.0. Prepared the simulator, rebuilt after the
+source/test changes, ran the affected unit suite, then the two requested UI classes with two workers. Reran the two
+failed cases serially on the unchanged binary. No source edits, deployment, physical install, secret access or full
+UI suite. The requested executions and capture review are complete; one UI case remains failing as detailed below.
+
+| Check | Command / scope | Result |
+|---|---|---|
+| Server typecheck | `cd server && npm run typecheck` | exit **0**, `typecheck.log` |
+| Server tests | `cd server && npx vitest run` | **337/337**, 10 files, exit **0**, `server.log` |
+| Simulator | `scripts/prepare-test-simulator.sh 47D21838-69A6-4BCB-AE90-B0D9C0AAA70B` | exit **0**, `prepare.log` |
+| Build | `xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=47D21838-69A6-4BCB-AE90-B0D9C0AAA70B' -derivedDataPath /tmp/codex-n12-r1/dd` | exit **0**, `build.log` |
+| Unit | `test-without-building` with that project/scheme/destination/derived data; `-only-testing:WorkoutTrackerTests/FoodDatabaseTests -parallel-testing-enabled NO -resultBundlePath /tmp/codex-n12-r2/unit.xcresult` | **15/15**, no failures/skips, exit **0**, `unit.log`, `unit-summary.json` |
+| UI | Same test base; `-only-testing:WorkoutTrackerUITests/KoreanFoodUITests -only-testing:WorkoutTrackerUITests/BarcodeSearchUITests -parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 2 -parallel-testing-worker-count 2 -resultBundlePath /tmp/codex-n12-r2/ui.xcresult` | **12/14**, 2 failures, no skips, exit **65**; PID **43910**, `ui.log`, `ui-summary.json` |
+| UI failure rerun | Prepared simulator again; same test base with `-only-testing:WorkoutTrackerUITests/BarcodeSearchUITests/testABarcodeNotFoundOffersTheLabelScanAndManualAdd -only-testing:WorkoutTrackerUITests/KoreanFoodUITests/testAKoreanBarcodeOffersIsThisItAndTheLoggedFoodOpensNextTime -parallel-testing-enabled NO -resultBundlePath /tmp/codex-n12-r2/ui-serial.xcresult` | **1/2**, 1 failure, no skips, exit **65**; `ui-serial.log`, `ui-serial-summary.json` |
+| Plans | `python3 scripts/test-plans.py --check` | exit **0**, `test-plans.log` |
+| Whitespace | `git diff --check f56bf476...HEAD` | exit **0**, `diff-check.log` |
+| Diagnostic probes | `node /tmp/codex-n12-r2/probe.cjs`; `swift /tmp/codex-n12-r2/restore-probe.swift` | both exit **0**; incorrect behaviors recorded above |
+
+**UI results inspected directly:** the parallel run passed BarcodeSearch 7/8 and KoreanFood 5/6. Failures:
+
+- `BarcodeSearchUITests.testABarcodeNotFoundOffersTheLabelScanAndManualAdd`, helper `scanBarcode`, line **37**:
+  `scanFoodMode.barcode` did not appear. This failed again at the same line in the serial rerun. The same case passed
+  serially in round 1, but this round does **not** have passing reviewer evidence for it.
+- `KoreanFoodUITests.testAKoreanBarcodeOffersIsThisItAndTheLoggedFoodOpensNextTime`, helper `scanBarcode`, line
+  **38**, also waiting for `scanFoodMode.barcode`. It **passed** in the unchanged serial rerun.
+
+The first test of each class failed in parallel; the serial run's first case failed while its second passed. This
+pattern is consistent with the earlier camera-entry instability, but its cause is not established and no new source
+defect is inferred from timing alone. All six N12 cases have passing evidence across the bundles; the full requested
+scope remains **13/14 distinct cases passing** this round. Failure details are retained in `ui-failure-barcode.json`,
+`ui-failure-korean.json` and `ui-serial-failure.json`. AVAudioSession main-thread warnings remain in the summaries.
+
+**Captures:** attachment export exited **0** (`attachments/manifest.json`). Inspected the changed note in light
+Default (`AEC07178-F3B3-4F47-B364-3B9A7A91F7B5.png`) and dark AccessibilityL, scrolled
+(`FFFC4331-6B1F-4E5D-8F51-56E6B570BD82.png`): the named-macro wording wraps fully. Inspected the new
+`search-korean-2` pair (`481EE299-4DC2-476D-9935-136A695F1FE9.png` and
+`2DE1300C-03E7-45B8-805C-E9AFA031324E.png`): the full Korean-source credit is visible at AccessibilityL after
+scrolling, closing round 1's capture gap. No additional layout finding in those changed states.
+
+Spec: **2 P2 findings** (R6, R7). Standards: **1 P2** (R8). No additional P1/P3 findings.
+
+Verified: server typecheck, 337/337 server tests, fresh app build, FoodDatabaseTests 15/15 (`unit.xcresult`), plans and
+whitespace checks, all exit 0; current-source offline probes; R1/R4/R5 corrections and original R2/R3 cases checked;
+UI 12/14, exit 65 (`ui.xcresult`), then 1/2, exit 65 (`ui-serial.xcresult`), results inspected; changed Default/
+AccessibilityL captures inspected. Evidence `/tmp/codex-n12-r2/`.
+
+Not verified: a passing barcode-not-found UI case this round (failed both runs); real provider calls, deployed routes,
+production logs/cache, physical camera/phone, full SwiftData restore/export round trip, full UI suite, human VoiceOver,
+dark Default/light AccessibilityL captures.
+
+Known flaky / unresolved verification: camera entry in the two named cases above; Korean candidate case passed on
+rerun, BarcodeSearch not-found still failed. Follow-up belongs to N12 acceptance-2 verification; preserve both bundles
+and diagnose the entry/launch behavior before claiming a green focused scope. R6–R8 are independent of these failures.
+
+Verdict: not clear
