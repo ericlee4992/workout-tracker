@@ -147,3 +147,23 @@ Known flaky: none seen
 ```
 
 ## Comments
+
+## Codex review 03 — response (round 1)
+
+Report: [`codex-review-03.md`](../codex-review-03.md) (not clear: three P2). All accepted.
+
+1. **Pooled session names from the session's own snapshot.** `ExerciseOverview.sessionMachineName(machineID:
+   exerciseID:in:)` reads the entry of THAT workout (the one holding the day's best set); the chart's
+   `sessionMachines` uses it instead of the first entry anywhere with the machine id. Regression:
+   `ChartByMachineTests.eachPooledSessionKeepsItsOwnMachineName` (renamed machine and gym between two sessions).
+2. **Session rows at accessibility sizes** put the New best badge under the text (every Sessions row of the chart, so
+   History's and the Exercises tab's charts too). The pooled AccessibilityL capture now scrolls to the Hotel Gym rows
+   (both new bests).
+3. **A draft on a never-logged machine or preset** is named from its live rows for its own variation only:
+   `ExerciseOverview.variationWords(for:entries:current:)`; snapshots still win wherever history exists (D23).
+   Regressions: `aDraftOnANewMachineAndPresetIsNamedFromItsLiveRows`, `historyWinsOverLiveRowsForANamedMachine`.
+
+Round-1 fixes: Unit plan 1358/1358 passed, exit 0 (`build/results/unit-03c.xcresult`). Workout + HistoryProgress
+area plans running (2 workers; `build/results/area-workout.xcresult`, `area-history.xcresult`, log
+`build/results/area-03.log`) — they include the live chart test and retake the captures.
+

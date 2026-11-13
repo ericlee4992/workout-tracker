@@ -435,9 +435,13 @@ struct ExerciseProgressView: View {
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("progressSessionMachine")
                 }
+                // At accessibility sizes the badge goes under the text, which keeps the row's width (ios-design).
+                if typeSize.isAccessibilitySize && data.recordDays.contains(point.date) {
+                    NewBestBadge(kind: .newBest).padding(.top, 4)
+                }
             }
             Spacer(minLength: 8)
-            if data.recordDays.contains(point.date) { NewBestBadge(kind: .newBest) }
+            if !typeSize.isAccessibilitySize && data.recordDays.contains(point.date) { NewBestBadge(kind: .newBest) }
             if data.workouts[point.date] != nil {
                 Image(systemName: "chevron.right")
                     .font(.system(.footnote, weight: .semibold))
@@ -589,7 +593,7 @@ struct ExerciseProgressView: View {
     private func variationLabels(_ options: [(key: ProgressVariationKey, days: Int)]) -> [ProgressVariationKey: String] {
         let entries = allEntries
         return ProgressSeriesMath.labels(for: options.map {
-            (key: $0.key, words: ExerciseOverview.variationWords(for: $0.key, entries: entries))
+            (key: $0.key, words: ExerciseOverview.variationWords(for: $0.key, entries: entries, current: lastTime))
         })
     }
 
@@ -599,18 +603,17 @@ struct ExerciseProgressView: View {
         (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
     }
 
-    /// Under All machines, which machine each session's best set was on: "Chest Press 2 · Iron Temple", from the
-    /// snapshot (D23). Empty for any other variation, where the selector already names the one machine.
+    /// Under All machines, which machine each session's best set was on: "Chest Press 2 · Iron Temple", as that
+    /// session's own snapshot says (D23). Empty for any other variation, where the selector already names the one
+    /// machine.
     private func sessionMachines(_ data: ProgressData) -> [Date: String] {
         guard resolvedVariation.equipment == .anyMachine else { return [:] }
-        let entries = allEntries
-        return data.machines.mapValues { id in
-            let words = ExerciseOverview.variationWords(
-                for: ProgressVariationKey(loadType: resolvedVariation.loadType, equipment: .machine(id),
-                                          presetID: resolvedVariation.presetID),
-                entries: entries)
-            return [words.equipmentName, words.gymName].compactMap { $0 }.joined(separator: " · ")
+        var out: [Date: String] = [:]
+        for (day, id) in data.machines {
+            guard let workout = data.workouts[day] else { continue }
+            out[day] = ExerciseOverview.sessionMachineName(machineID: id, exerciseID: exerciseID, in: workout)
         }
+        return out
     }
 }
 

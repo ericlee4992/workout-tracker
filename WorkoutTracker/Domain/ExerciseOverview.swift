@@ -473,7 +473,17 @@ extension ExerciseOverview {
 
     /// The snapshot words for a progress variation — as logged, not as today's rows say (D23).
     /// Naming policy lives in `ProgressSeriesMath.labels`.
-    static func variationWords(for key: ProgressVariationKey, entries: [ExerciseEntry]) -> ProgressVariationWords {
+    ///
+    /// - Parameter current: the live entry a chart was opened from (live-workout 03). Before its first completed set
+    ///   its machine, gym and preset are not snapshotted yet (D19), so a machine or preset with no history would read
+    ///   "Machine" / "Variation"; for the entry's own variation its live rows name it instead. Snapshots still win
+    ///   wherever history exists.
+    static func variationWords(
+        for key: ProgressVariationKey, entries: [ExerciseEntry], current: ExerciseEntry? = nil
+    ) -> ProgressVariationWords {
+        let live = current.flatMap { entry in
+            entry.snapshotCapturedAt == nil && ProgressVariationKey.current(for: entry) == key ? entry : nil
+        }
         var equipmentName: String?
         var gymName: String?
         switch key.equipment {
@@ -481,16 +491,27 @@ extension ExerciseOverview {
             equipmentName = tag.label
         case .machine(let machineID):
             let entry = entries.first { $0.snapshotMachineID == machineID }
-            equipmentName = entry?.snapshotMachineLabel ?? "Machine"
-            gymName = entry?.snapshotGymName
+            equipmentName = entry?.snapshotMachineLabel ?? live?.machine?.label ?? "Machine"
+            gymName = entry == nil ? live?.machine?.gym?.name : entry?.snapshotGymName
         case .unrecorded, .anyMachine:
             break
         }
         let presetName = key.presetID.map { id in
-            entries.first { $0.snapshotPresetID == id }?.snapshotPresetName ?? "Variation"
+            entries.first { $0.snapshotPresetID == id }?.snapshotPresetName ?? live?.preset?.name ?? "Variation"
         }
         return ProgressVariationWords(
             loadType: key.loadType, equipment: key.equipment,
             equipmentName: equipmentName, gymName: gymName, presetName: presetName)
+    }
+
+    /// "Chest Press 2 · Iron Temple": the machine as THAT workout logged it (D23) — a session row under All machines
+    /// (live-workout 03). Per workout, not the first entry anywhere with the machine id, so a machine or gym renamed
+    /// between sessions keeps each session's own name. nil when the workout has no such entry.
+    static func sessionMachineName(machineID: UUID, exerciseID: UUID, in workout: Workout) -> String? {
+        guard let entry = (workout.entries ?? []).first(where: {
+            !$0.isDeleted && $0.snapshotExerciseID == exerciseID && $0.snapshotMachineID == machineID
+        }) else { return nil }
+        return [entry.snapshotMachineLabel ?? "Machine", entry.snapshotGymName].compactMap { $0 }
+            .joined(separator: " · ")
     }
 }

@@ -159,4 +159,77 @@ struct ChartByMachineTests {
             == ProgressVariationKey(loadType: .assisted, equipment: .machine(machine.id), presetID: nil),
             "frozen: the snapshot, not the live rows")
     }
+
+    // MARK: - Names from the right snapshot (Codex review 03, findings 1 and 3)
+
+    /// A session row under All machines names the machine as THAT workout logged it: renamed between sessions, each
+    /// keeps its own name (D23).
+    @Test func eachPooledSessionKeepsItsOwnMachineName() throws {
+        let context = try makeContext()
+        let exercise = Exercise(name: "Chest Press", loadType: .weighted, muscleGroup: "Chest")
+        let machineID = UUID()
+        context.insert(exercise)
+        func logged(label: String, gym: String) -> Workout {
+            let workout = Workout(startedAt: .now)
+            context.insert(workout)
+            context.insert(ExerciseEntry(
+                order: 0, workout: workout, exercise: exercise, snapshotCapturedAt: .now,
+                snapshotExerciseID: exercise.id, snapshotMachineID: machineID, snapshotLoadType: .weighted,
+                snapshotExerciseName: exercise.name, snapshotMachineLabel: label, snapshotGymName: gym))
+            return workout
+        }
+        let before = logged(label: "Press", gym: "Iron Temple")
+        let after = logged(label: "Chest Press 2", gym: "Iron Temple Gangnam")
+        try context.save()
+        #expect(ExerciseOverview.sessionMachineName(machineID: machineID, exerciseID: exercise.id, in: before)
+            == "Press · Iron Temple")
+        #expect(ExerciseOverview.sessionMachineName(machineID: machineID, exerciseID: exercise.id, in: after)
+            == "Chest Press 2 · Iron Temple Gangnam")
+        #expect(ExerciseOverview.sessionMachineName(machineID: UUID(), exerciseID: exercise.id, in: after) == nil)
+    }
+
+    /// Opened before the first completed set on a machine and preset with no history, the selector names them from
+    /// the live rows (they are not snapshotted yet, D19) — not "Machine" and "Variation".
+    @Test func aDraftOnANewMachineAndPresetIsNamedFromItsLiveRows() throws {
+        let context = try makeContext()
+        let exercise = Exercise(name: "Chest Press", loadType: .weighted, muscleGroup: "Chest")
+        let gym = Gym(name: "Iron Temple")
+        let machine = MachineInstance(label: "Chest Press 3", gym: gym, model: nil)
+        let preset = ExercisePreset(name: "Wide grip", exercise: exercise)
+        for object in [exercise, gym, machine, preset] as [any PersistentModel] { context.insert(object) }
+        let workout = try WorkoutSession(context: context).startWorkout(at: gym)
+        let entry = try WorkoutSession(context: context).addEntry(for: exercise, to: workout, machine: machine)
+        entry.preset = preset
+        let key = ProgressVariationKey.current(for: entry)
+
+        let words = ExerciseOverview.variationWords(for: key, entries: [entry], current: entry)
+        #expect(words.equipmentName == "Chest Press 3")
+        #expect(words.gymName == "Iron Temple")
+        #expect(words.presetName == "Wide grip")
+        #expect(ProgressSeriesMath.labels(for: [(key: key, words: words)])[key] == "Chest Press 3 · Iron Temple · Wide grip")
+
+        // Only for the entry's own variation: another machine with no history stays unnamed.
+        let other = ProgressVariationKey(loadType: .weighted, equipment: .machine(UUID()), presetID: nil)
+        #expect(ExerciseOverview.variationWords(for: other, entries: [entry], current: entry).equipmentName == "Machine")
+    }
+
+    /// Where history exists, its snapshot names the machine, even while the live row says otherwise (D23).
+    @Test func historyWinsOverLiveRowsForANamedMachine() throws {
+        let context = try makeContext()
+        let exercise = Exercise(name: "Chest Press", loadType: .weighted, muscleGroup: "Chest")
+        let gym = Gym(name: "Iron Temple Gangnam")
+        let machine = MachineInstance(label: "Chest Press 2 (renamed)", gym: gym, model: nil)
+        for object in [exercise, gym, machine] as [any PersistentModel] { context.insert(object) }
+        let past = ExerciseEntry(
+            order: 0, exercise: exercise, snapshotCapturedAt: .now, snapshotExerciseID: exercise.id,
+            snapshotMachineID: machine.id, snapshotLoadType: .weighted, snapshotExerciseName: exercise.name,
+            snapshotMachineLabel: "Chest Press 2", snapshotGymName: "Iron Temple")
+        context.insert(past)
+        let workout = try WorkoutSession(context: context).startWorkout(at: gym)
+        let entry = try WorkoutSession(context: context).addEntry(for: exercise, to: workout, machine: machine)
+        let words = ExerciseOverview.variationWords(
+            for: ProgressVariationKey.current(for: entry), entries: [past, entry], current: entry)
+        #expect(words.equipmentName == "Chest Press 2")
+        #expect(words.gymName == "Iron Temple")
+    }
 }

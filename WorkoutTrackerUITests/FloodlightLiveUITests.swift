@@ -296,8 +296,10 @@ final class FloodlightLiveUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 0.5)
         shoot("live-fixes-03-machines-\(tag)")
         pooled.tap()
-        for _ in 0..<5 where !any("progressSessionMachine").isHittable { app.swipeUp() }
-        XCTAssertTrue(any("progressSessionMachine").exists, "each pooled session names its machine")
+        // Down to the Hotel Gym sessions (rows 3–4, both new bests): the badge beside or under the machine name.
+        let hotelRow = all("progressSessionMachine").element(boundBy: 3)
+        for _ in 0..<6 where !(hotelRow.exists && hotelRow.isHittable) { app.swipeUp() }
+        XCTAssertTrue(hotelRow.exists, "each pooled session names its machine")
         Thread.sleep(forTimeInterval: 0.5)
         shoot("live-fixes-03-all-machines-\(tag)")
     }
