@@ -458,3 +458,122 @@ retry. Prior passing evidence and intermittent entry failures remain in rounds 1
 acceptance-2 verification, using the serial failure recording above; do not claim this run resolved the instability.
 
 Verdict: not clear
+
+## Round 4
+
+Reviewed **2026-11-13**, `281ee5dd..bc04955d`, implementation HEAD
+`bc04955dbb659e89f8a17e88727bc9651a49a119`, branch `ericlee4992/nutrition-12-korean-db`; clean starting tree.
+Reread STATE, the round-3 fix/diagnosis record, source diff and earlier findings. STATE's round-1 status remains
+stale; this section records the actual round. Separate standards/spec passes completed. Only this report changes.
+Evidence root: `/tmp/codex-n12-r4/`.
+
+### Spec
+
+**R9 is fixed. No new product-spec finding in this diff.** `mfds()` rejects non-object entries before normalization.
+The executed current-source replay (`mfds-probe.cjs`/`mfds-probe.jsonl`, exit **0**) confirms:
+
+- Malformed `[null]`, search without bundled matches: **502 `food_unavailable`, zero cache writes**.
+- Malformed `[null]`, search with bundled matches: **9 local foods, zero cache writes**.
+- Malformed `[null]`, report-number barcode lookup: **soft miss, zero cache writes**.
+- Valid-empty controls: empty search/barcode miss cached for **1 day**; local search results cached for **7 days**.
+
+The additional regression replay (`probe.cjs`/`probe.jsonl`, exit **0**) keeps QR/C005 malformed rows uncached,
+retains QR `notListed: ["carbs", "fat"]`, and keeps the C005 diagnostic sentinel out of logs. These probes use fake
+fetch/D1 dependencies and no real keys. Added route tests cover the R9 failure and valid-empty paths.
+
+### Standards
+
+No new documented-standard or substantive smell finding. The scan helper adds a bounded, best-effort stability/
+hittability wait without removing the camera-mode assertion or later flow assertions. Reaching its five-second
+deadline is not itself success: the existing tap and barcode-mode assertion still execute. No production Swift
+source, schema, relationship or D86 behavior changed in this fix.
+
+### Camera-entry diagnosis: observed facts and limits
+
+Inspected the author's `/tmp/n12data/ui-r4-004412.xcresult` (**13/14**) and
+`/tmp/n12data/ui-r4s-005159.xcresult` (**2/2**), plus its serial log's `TEST EXECUTE SUCCEEDED`. Saved summaries as
+`author-ui-summary.json` and `author-ui-serial-summary.json`. The author reports serial exit 0; the result/log
+confirm success, but that process's numeric exit was not independently captured by this reviewer.
+
+The author's failed-case activity tree (`author-activities.json`) and video establish more than the final hierarchy:
+
+- Recording begins at **00:45:09.803**. At offsets **5 s and 12 s**, the app visibly presents the active
+  **Outdoor Run +1** workout, before the first scan-button tap.
+- The scan tap starts at **00:45:26.589** (about **16.8 s** into the recording); XCTest reports
+  **`Computed hit point {-1, -1} after scrolling to visible`** at **00:45:26.838**.
+- At **17 s** the workout is still visible; at **19 s and 22 s**, **Choose Cardio** is visible. Thus the ticket's
+  claim that **Choose Cardio was already open before this tap is not supported by the recording**. The active
+  workout was already present; the sheet appears afterward.
+
+Extracted evidence: `author-before-5.png`, `author-before-12.png`, `author-before-17.png`, `author-after-19.png`,
+`author-after-22.png`; exported original video/hierarchies remain in `author-attachments/`. The hierarchy confirms
+Today/Resume workout beneath the presented workout/cardio UI.
+
+**Assessment:** I agree with tracking this launch/fixture/navigation issue as a separate follow-up from N12's food
+lookup implementation: the recorded unexpected workout precedes entry to that feature, and N12 does not change
+Today, workout/cardio implementation, app initialization or UI-test store-reset code. I do **not** regard the precise
+cause as proven, or the issue as demonstrated to be parallel-only/pre-existing outside the store. The test-store
+reset code removes its directory; how this workout is supplied/presented remains to be established. Prior reviewer
+serial failures in rounds 2–3 also remain valid evidence despite the author's later serial pass. The test comments'
+moving-target explanation and the ticket's restored-clone-state explanation are hypotheses, not interchangeable
+proven diagnoses. Follow-up should inspect launch arguments, fixture creation and presentation/restoration state,
+using the recording timeline rather than only the final accessibility hierarchy.
+
+### Round-4 verification
+
+Xcode 27.2; WT-iPhone27 `47D21838-69A6-4BCB-AE90-B0D9C0AAA70B`, iOS 27.0, prepared before the first run. Rebuilt the
+changed UI test bundle into `/tmp/codex-n12-r1/dd`; also reran FoodDatabaseTests under the standing review rule.
+The requested two UI classes run with two workers. No live provider calls, secrets, deployment or physical install.
+All requested executions are complete. The UI results below remain non-green because of the separately assessed
+camera-entry issue; they are not represented as passing reviewer runs.
+
+| Check | Command / scope | Result |
+|---|---|---|
+| Typecheck | `cd server && npm run typecheck` | exit **0**, `typecheck.log` |
+| Server | `cd server && npx vitest run` | **341/341**, 10 files, exit **0**, `server.log` |
+| Simulator | `scripts/prepare-test-simulator.sh 47D21838-69A6-4BCB-AE90-B0D9C0AAA70B` | exit **0**, `prepare.log` |
+| Build | `xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=47D21838-69A6-4BCB-AE90-B0D9C0AAA70B' -derivedDataPath /tmp/codex-n12-r1/dd` | exit **0**, `build.log` |
+| Unit | `test-without-building`, same project/scheme/destination/derived data; `-only-testing:WorkoutTrackerTests/FoodDatabaseTests -parallel-testing-enabled NO -resultBundlePath /tmp/codex-n12-r4/unit.xcresult` | **15/15**, no failures/skips, exit **0**, `unit-summary.json` |
+| UI | Same test base; `-only-testing:WorkoutTrackerUITests/KoreanFoodUITests -only-testing:WorkoutTrackerUITests/BarcodeSearchUITests -parallel-testing-enabled YES -maximum-concurrent-test-simulator-destinations 2 -parallel-testing-worker-count 2 -resultBundlePath /tmp/codex-n12-r4/ui.xcresult` | **12/14**, 2 failures, no skips, exit **65**, `ui.log`, `ui-summary.json` |
+| Affected cases, serial | Prepared simulator again; same test base with `-only-testing:WorkoutTrackerUITests/BarcodeSearchUITests/testABarcodeNotFoundOffersTheLabelScanAndManualAdd -only-testing:WorkoutTrackerUITests/KoreanFoodUITests/testAKoreanBarcodeOffersIsThisItAndTheLoggedFoodOpensNextTime -parallel-testing-enabled NO -resultBundlePath /tmp/codex-n12-r4/ui-serial.xcresult` | **1/2**, 1 failure, no skips, exit **65**, `ui-serial.log`, `ui-serial-summary.json` |
+| Warm-launch diagnostic | Same serial command selecting only `BarcodeSearchUITests/testABarcodeNotFoundOffersTheLabelScanAndManualAdd`, no additional simulator preparation/reset; `-resultBundlePath /tmp/codex-n12-r4/ui-warm.xcresult` | **0/1**, 1 failure, no skips, exit **65**, `ui-warm.log`, `ui-warm-summary.json` |
+| Plans / whitespace | `python3 scripts/test-plans.py --check`; `git diff --check f56bf476...HEAD` | both exit **0** |
+| Probes | `node /tmp/codex-n12-r4/mfds-probe.cjs`; `node /tmp/codex-n12-r4/probe.cjs` | both exit **0**, outputs inspected |
+
+The parallel failures are the same two initial-camera-entry cases: BarcodeSearch at `BarcodeSearchUITests.swift:57`
+and KoreanFood at `KoreanFoodUITests.swift:58`, waiting for `scanFoodMode.barcode`. The Korean case passed in the
+unchanged serial rerun; BarcodeSearch failed again. A single additional focused run tested whether the now-running
+simulator improved that case; it still failed, so this does not support a simple cold-launch explanation. No further
+reruns were used to seek a green result. Failure details are in `ui-failure-barcode.json`, `ui-failure-korean.json`,
+`ui-serial-failure.json` and `ui-warm-failure.json`. The 12 other cases passed, including transient-note behavior and
+both classes' captures. This reviewer has **13/14 distinct cases passing** this round. The author's inspected serial
+bundle provides passing evidence for both affected cases on this implementation, but does not erase these failures.
+
+Exported fresh attachments (exit **0**) and inspected selected-food light Default
+(`F7AA832F-475F-42BD-8B41-F4B507EC98CF.png`) and scrolled dark AccessibilityL
+(`BC3374E2-D274-42A3-9F78-F41547FEA720.png`): note and credit remain readable, with no new layout finding. The actual
+screen code is unchanged in this round. Attachment mapping is in `attachments/manifest.json`.
+
+Spec: **0 outstanding findings**. Standards: **0 new findings**. R1–R9 dispositions are recorded above; the amended
+D86 deliberately resolves the former note-persistence requirement. Camera-entry follow-up remains separate.
+
+**Clearance scope:** the N12 code review is clear. The original findings are resolved and the requested checks have
+been executed and inspected. I accept the documented camera-entry instability as a separate launch/test-fixture
+follow-up based on the before-feature video evidence, unchanged relevant production code, and inspected passing
+author coverage. This is **not** certification of a green reviewer UI run, a resolved launch defect, or the ticket's
+specific clone-state explanation. Keep that follow-up and the contradictory serial results visible.
+
+Verified: server typecheck and 341/341 tests, fresh build, FoodDatabaseTests 15/15 (`unit.xcresult`), plans and
+whitespace checks, all exit 0; current-source regression probes; author's result bundles and failure timeline inspected;
+reviewer UI 12/14, exit 65 (`ui.xcresult`), serial 1/2, exit 65 (`ui-serial.xcresult`), warm diagnostic 0/1, exit 65
+(`ui-warm.xcresult`), all summaries inspected; fresh Default/AccessibilityL captures inspected.
+
+Not verified: a green full focused UI run in this reviewer environment; live services/deployment, physical camera/
+phone, production logs/cache, human VoiceOver, full UI suite; root cause of the unexpected workout at test launch.
+
+Known flaky / follow-up: the two named WT-iPhone27 initial camera-entry cases. The Korean case passed serially this
+round; BarcodeSearch remained failing even in the warm diagnostic, while the author's two-case serial bundle passes.
+Track the launch/fixture/navigation investigation proposed in N12's round-3 fix section, with the timeline corrections
+above; the stability wait does not establish that the problem is fixed.
+
+Verdict: clear
