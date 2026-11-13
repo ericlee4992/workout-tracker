@@ -33,9 +33,14 @@ final class KoreanFoodUITests: XCTestCase {
     }
 
     private func scanBarcode() {
-        app.buttons["scanFoodButton"].tap()
+        let button = app.buttons["scanFoodButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        button.tap()
         let mode = app.buttons["scanFoodMode.barcode"]
-        XCTAssertTrue(mode.waitForExistence(timeout: 5))
+        // A tap made while Today is still settling after launch can be lost (codex-review-n12: the camera never
+        // opened, the app still on Today, in parallel runs): tap once more, as `openLogFood` does for its pill.
+        if !mode.waitForExistence(timeout: 5), button.isHittable { button.tap() }
+        XCTAssertTrue(mode.waitForExistence(timeout: 10))
         mode.tap()
     }
 
@@ -136,6 +141,15 @@ final class KoreanFoodUITests: XCTestCase {
         let note = app.staticTexts["selectedFoodMacrosNotListed"]
         XCTAssertTrue(note.waitForExistence(timeout: 5))
         XCTAssertEqual(note.label, "Carbs and fat aren't listed for this food; they count as 0.")
+
+        // Logged, then reopened from the user's own foods: its numbers only — the note shows where a food is found
+        // (D86, the user 2026-11-13).
+        foodLog.tap()
+        let mine = app.buttons["logFoodRow.떡볶이, 로제떡볶이"]
+        XCTAssertTrue(mine.waitForExistence(timeout: 10))
+        mine.tap()
+        XCTAssertTrue(foodLog.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["selectedFoodMacrosNotListed"].exists)
 
         // A complete food carries no note.
         app.navigationBars.buttons.element(boundBy: 0).tap()

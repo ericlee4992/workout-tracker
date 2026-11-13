@@ -296,7 +296,9 @@ async function foodQR(env: Env, deps: Deps, operation: string, code: string): Pr
   // Only rows that name this barcode (the filter is the service's; a reply is not trusted to have applied it — a row
   // without one, or with another, is never taken for this product: codex-review-n12 R3). Rows, none of them ours: a
   // malformed reply, a failure (never a miss to cache).
-  const rows = list.filter(isObject);
+  // An entry that is not a row at all is a malformed reply too, never dropped into an empty answer (R7).
+  if (list.some((r) => !isObject(r))) throw new Upstream("foodqr", "malformed");
+  const rows = list as Record<string, unknown>[];
   const ours = rows.filter((r) => sameCode(r.BRCD_NO, code));
   if (rows.length > 0 && ours.length === 0) throw new Upstream("foodqr", "malformed");
   return ours;
@@ -359,9 +361,11 @@ export function fromFoodQRLabel(code: string, rows: Record<string, unknown>[], n
     text: `${first.perPackage ? "1 package" : "1 serving"} (${round(first.amount)} ${first.unit})`,
     grams: first.unit === "g" ? round(first.amount) : null, nutrients: atBasis,
   };
+  // As 식품영양성분DB's rows: a macro the label leaves out is kept as 0 and listed (codex-review-n12 R6).
+  const notListed = (["protein", "carbs", "fat"] as const).filter((m) => raw[m] === null);
   return {
     id: `foodqr:${code}`, source: "foodQR", name: productName, brand: null, barcode: code, per100g, per100Unit: first.unit,
-    serving, measures: [],
+    serving, measures: [], ...(notListed.length > 0 ? { notListed } : {}),
   };
 }
 
@@ -389,7 +393,8 @@ async function c005(env: Env, deps: Deps, code: string): Promise<Record<string, 
     throw new Upstream("c005", typeof result === "string" && /^(INFO|ERROR)-\d{3}$/.test(result) ? result : "malformed");
   }
   // As Food QR's: only rows that name this barcode (R3).
-  const rows = service.row.filter(isObject);
+  if (service.row.some((r) => !isObject(r))) throw new Upstream("c005", "malformed");
+  const rows = service.row as Record<string, unknown>[];
   const ours = rows.filter((r) => sameCode(r.BAR_CD, code));
   if (rows.length > 0 && ours.length === 0) throw new Upstream("c005", "malformed");
   return ours;

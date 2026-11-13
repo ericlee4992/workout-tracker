@@ -12,6 +12,8 @@ struct SelectedFoodView: View {
     var source: FoodSource
     var onLogged: (FoodLogReceipt) -> Void
     var onDeleted: () -> Void = {}
+    /// N12: the macros the source leaves blank, when the food was opened where it was found (a search or a barcode).
+    var notListed: [DatabaseFood.Macro] = []
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -62,7 +64,7 @@ struct SelectedFoodView: View {
                     LookNavTitle(food.name, subtitle: food.brand)
                     amount
                     MacroSummary(macros: eaten)
-                    if let note = FoodDatabase.notListedNote(FoodDatabase.notListed(databaseID: food.databaseID)) {
+                    if let note = FoodDatabase.notListedNote(notListed) {
                         // N12 (D86): what the source leaves blank (restaurant chains); those macros count as 0.
                         Text(note)
                             .font(look.font.footnote)

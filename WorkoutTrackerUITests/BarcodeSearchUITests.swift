@@ -32,9 +32,14 @@ final class BarcodeSearchUITests: XCTestCase {
     }
 
     private func scanBarcode() {
-        app.buttons["scanFoodButton"].tap()
+        let button = app.buttons["scanFoodButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        button.tap()
         let mode = app.buttons["scanFoodMode.barcode"]
-        XCTAssertTrue(mode.waitForExistence(timeout: 5))
+        // A tap made while Today is still settling after launch can be lost (codex-review-n12: the camera never
+        // opened, the app still on Today, in parallel runs): tap once more, as `openLogFood` does for its pill.
+        if !mode.waitForExistence(timeout: 5), button.isHittable { button.tap() }
+        XCTAssertTrue(mode.waitForExistence(timeout: 10))
         mode.tap()
     }
 

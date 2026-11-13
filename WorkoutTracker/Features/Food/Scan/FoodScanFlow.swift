@@ -61,6 +61,8 @@ struct FoodScanFlow: View {
         var candidates: Candidates?
         /// The food opened from the candidates: logging it links the barcode.
         var picked = false
+        /// N12: what the found or picked food's source leaves blank, for the note (none for one already on the phone).
+        var notListed: [DatabaseFood.Macro] = []
     }
 
     /// N12: the foods matching a name, for "Is this it?". `query` is what was searched; a late answer for another query
@@ -109,7 +111,8 @@ struct FoodScanFlow: View {
                 case .barcodeFood:
                     if let food = barcode?.food {
                         SelectedFoodView(food: food, meal: meal ?? MealSlot.forTime(.now), source: .barcode,
-                                         onLogged: { _ in linkPicked(); done() }, onDeleted: { path.removeAll() })
+                                         onLogged: { _ in linkPicked(); done() }, onDeleted: { path.removeAll() },
+                                         notListed: barcode?.notListed ?? [])
                     }
                 }
             }
@@ -163,6 +166,7 @@ struct FoodScanFlow: View {
                     return
                 }
                 barcode?.food = try FoodDatabase.save(found, in: context)
+                barcode?.notListed = found.notListed
                 path = [.barcodeFood]
             } catch is CancellationError {
                 return
@@ -201,6 +205,7 @@ struct FoodScanFlow: View {
     private func pick(_ food: DatabaseFood) {
         do {
             barcode?.food = try FoodDatabase.save(food, in: context)
+            barcode?.notListed = food.notListed
             barcode?.picked = true
             path = [.barcodeLookup, .barcodeFood]
         } catch {

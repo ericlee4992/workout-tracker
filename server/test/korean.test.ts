@@ -306,6 +306,30 @@ describe("Korean barcodes", () => {
     expect(await body(await barcode(ONION_RING))).toMatchObject({ found: true, food: { id: "mfds:P-ONION" } });
   });
 
+  it("a reply with entries that are not rows is a failure, never a cached miss (R7)", async () => {
+    h.food.foodQR = (operation) => operation === "getFoodQrProdMnfInfo02" ? qrAnswer([null]) : qrAnswer([]);
+    expect(await body(await barcode(ONION_RING))).toEqual({ found: false });
+    expect(await count("food_cache")).toBe(0);
+    h.food.foodQR = () => qrAnswer([]);
+    h.food.c005 = () => c005Answer([null]);
+    expect(await body(await barcode(ONION_RING))).toEqual({ found: false });
+    expect(await count("food_cache")).toBe(0);
+    // Valid empty answers from both: a miss, cached.
+    h.food.c005 = () => c005Answer([]);
+    expect(await body(await barcode(ONION_RING))).toEqual({ found: false });
+    expect(await count("food_cache")).toBe(1);
+  });
+
+  it("a Food QR label without carbs and fat lists them as not listed; a label giving 0 does not (R6)", async () => {
+    const partial = [qrNutrient("열량", "187.000", "kcal", "100.000", "100g당"), qrNutrient("단백질", "5.000", "g", "100.000", "100g당")];
+    h.food.foodQR = qr({ getFoodQrProdNsd02: () => qrAnswer(partial) });
+    expect((await body(await barcode(ONION_RING))).food).toMatchObject({
+      source: "foodQR", notListed: ["carbs", "fat"], per100g: { calories: 187, protein: 5, carbs: 0, fat: 0 },
+    });
+    expect(fromFoodQRLabel(ONION_RING, [...partial, qrNutrient("탄수화물", "0", "g", "100.000", "100g당"),
+      qrNutrient("지방", "0", "g", "100.000", "100g당")], null)).not.toHaveProperty("notListed");
+  });
+
   it("C005's result code reaches the log only in its documented shape (R4)", async () => {
     const logs: string[] = [];
     vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => { logs.push(args.map(String).join(" ")); });

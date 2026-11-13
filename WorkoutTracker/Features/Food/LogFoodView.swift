@@ -27,6 +27,8 @@ struct LogFoodView: View {
     @State private var selected: SavedFood?
     /// N8: `selected` came from the online results (logged as `.search`).
     @State private var selectedFromSearch = false
+    /// N12: what its source leaves blank, for the note — only when opened from the online results.
+    @State private var selectedNotListed: [DatabaseFood.Macro] = []
     /// N8: the online results for the query they were asked for.
     @State private var online: OnlineResults?
     @State private var selectedMeal: SavedMeal?
@@ -162,7 +164,8 @@ struct LogFoodView: View {
                                  // Its Undo would have no food to put back; the entries it logged stay.
                                  if receipt?.food === food { receipt = nil }
                                  selected = nil
-                             })
+                             },
+                             notListed: selectedFromSearch ? selectedNotListed : [])
         }
         .navigationDestination(item: $selectedMeal) { savedMeal in
             SelectedMealView(savedMeal: savedMeal, meal: meal,
@@ -396,6 +399,7 @@ struct LogFoodView: View {
                 do {
                     let saved = try FoodDatabase.save(food, in: context)
                     selectedFromSearch = true
+                    selectedNotListed = food.notListed
                     selected = saved
                 } catch {
                     failure = error.localizedDescription

@@ -340,26 +340,10 @@ enum FoodDatabase {
         Set(foods.map { attribution($0.source) }).sorted()
     }
 
-    /// N12 (D86): which macros a kept database food's source leaves blank, by its database id. Kept beside the store,
-    /// not in it — a note for display, so `SavedFood` keeps its stored format (no migration); what the source says,
-    /// never guessed from the numbers (codex-review-n12 R2). Written whenever a database food is saved.
-    nonisolated(unsafe) static var notListedDefaults: UserDefaults = .standard
-    static let notListedKey = "foodDatabaseNotListed"
-
-    static func notListed(databaseID: String?) -> [DatabaseFood.Macro] {
-        guard let databaseID,
-              let names = (notListedDefaults.dictionary(forKey: notListedKey) as? [String: [String]])?[databaseID] else { return [] }
-        let blank = Set(names.compactMap(DatabaseFood.Macro.init(rawValue:)))
-        return DatabaseFood.Macro.allCases.filter(blank.contains)
-    }
-
-    static func setNotListed(_ macros: [DatabaseFood.Macro], databaseID: String) {
-        var all = notListedDefaults.dictionary(forKey: notListedKey) as? [String: [String]] ?? [:]
-        all[databaseID] = macros.isEmpty ? nil : macros.map(\.rawValue)
-        notListedDefaults.set(all, forKey: notListedKey)
-    }
-
-    /// The note under a food's macros: "Fat isn't listed for this food; it counts as 0." — nil when nothing is blank.
+    /// N12 (D86, the user 2026-11-13): the note under a food's macros where it was found — a search result or a barcode
+    /// answer, from the source's own `notListed` (never guessed from the numbers, codex-review-n12 R2). A food reopened
+    /// later from Recent or Saved shows its numbers only: nothing about it is kept beside the store (R8).
+    /// "Fat isn't listed for this food; it counts as 0." — nil when nothing is blank.
     static func notListedNote(_ macros: [DatabaseFood.Macro]) -> String? {
         let names = macros.map { macro in
             switch macro {
@@ -460,7 +444,6 @@ enum FoodDatabase {
         saved.servingOptions = stored.options
         saved.updatedAt = date
         try context.save()
-        setNotListed(food.notListed, databaseID: food.id)
         return saved
     }
 

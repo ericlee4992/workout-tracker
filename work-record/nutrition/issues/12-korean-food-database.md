@@ -320,4 +320,21 @@ Evidence after the fixes: server **337/337** + typecheck + page tests 27/27; app
 `FoodDatabaseTests` **15/15**; UI `KoreanFoodUITests` + `BarcodeSearchUITests` **14/14** with 2 workers, exit 0
 (`/tmp/n12data/ui-r2-*.xcresult`) — the N8 not-found case Codex saw fail once in parallel passed here.
 
+### Codex round 2 — not clear (R6–R8), fixed (2026-11-13)
+
+- **R6 (P2):** Food QR's label foods now list the macros the label leaves out (`notListed`), as 식품영양성분DB's do; a
+  label giving 0 lists nothing. Test through the route.
+- **R7 (P2):** a Food QR or C005 reply holding entries that are not rows (`[null]`) is a failure (soft, not cached),
+  never an empty answer. Tests for both, with valid-empty controls (cached).
+- **R8 (P2):** the note's side store could disagree with a restored food and was missing from the export. **The user
+  chose (2026-11-13) "Note only when found"** over storing the note in the food (a stored-format change + Gate S): the
+  note shows where the food is found — a search result or a barcode answer (found or picked) opened from there — and a
+  food reopened later from Recent or Saved shows its numbers only. The `UserDefaults` side store is removed; nothing is
+  kept beside the store. D86 updated. UI test: logged, then reopened from the user's foods → no note.
+- UI flake Codex saw (the scan button's tap lost while Today settles; app still on Today): `scanBarcode()` in both
+  classes now waits for the button and taps once more if the camera has not opened (as `openLogFood` does).
+
+Evidence: server **339/339** + typecheck; build-for-testing exit 0; `FoodDatabaseTests` **15/15**; UI
+`KoreanFoodUITests` + `BarcodeSearchUITests` **14/14** with 2 workers, exit 0 (`/tmp/n12data/ui-r3-*.xcresult`).
+
 ## Comments
