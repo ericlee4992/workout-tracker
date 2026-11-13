@@ -16,6 +16,8 @@ struct ScanEntryEditor: View {
     @State private var meal: MealSlot
     @State private var items: [FoodEstimate.Item]
     @State private var failure: String?
+    /// N15: this meal (as on screen) is in My meals — re-read after the bookmark and when the draft changes.
+    @State private var mealSaved = false
     /// Read once: after Delete the entry is gone while the sheet slides away, so the body never reads it.
     private let photo: UIImage?
     private let time: Date
@@ -76,6 +78,15 @@ struct ScanEntryEditor: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                // N15 (D87): a meal photo saves as ONE meal in My meals, its items with it.
+                ToolbarItem(placement: .topBarTrailing) {
+                    SaveBookmark(isSaved: mealSaved, saveLabel: "Save to My meals",
+                                 removeLabel: "Remove from My meals", identifier: "scanEntrySaveMeal",
+                                 action: toggleMeal)
+                        .disabled(!canSave && !mealSaved)
+                }
+                // Its own glass, apart from Save: the bookmark acts at once, Save commits the edits.
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
                         .disabled(!canSave)
@@ -87,6 +98,7 @@ struct ScanEntryEditor: View {
                     ScanItemEditor(item: $items[index]) { items.removeAll { $0.id == id } }
                 }
             }
+            .task(id: mealIdentity) { refreshMealSaved() }
             .alert(FoodCopy.saveFailed, isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
                 Button("OK", role: .cancel) {}
             } message: {
@@ -147,9 +159,31 @@ struct ScanEntryEditor: View {
         items.append(FoodEstimate.Item(name: "", portion: "", grams: nil, calories: 0, protein: 0, carbs: 0, fat: 0))
     }
 
+    /// The meal as on screen: its name and its named items (a nameless new item is dropped, as Save drops it).
+    private var keptItems: [FoodEstimate.Item] { items.filter { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty } }
+
+    /// What decides whether this meal is in My meals: the name and every item's content.
+    private var mealIdentity: [String] {
+        [name] + keptItems.map { "\($0.name)|\($0.portion)|\($0.grams ?? -1)|\($0.calories)|\($0.protein)|\($0.carbs)|\($0.fat)" }
+    }
+
+    private func refreshMealSaved() {
+        mealSaved = FoodSaving.savedMeal(name: name, items: keptItems, in: context) != nil
+    }
+
+    private func toggleMeal() {
+        do {
+            try FoodSaving.toggleMeal(name: name.trimmingCharacters(in: .whitespacesAndNewlines), meal: meal,
+                                      items: keptItems, in: context)
+            refreshMealSaved()
+        } catch {
+            failure = error.localizedDescription
+        }
+    }
+
     private func save() {
         // A new item left without a name is dropped rather than saved nameless.
-        let kept = items.filter { !$0.name.trimmingCharacters(in: .whitespaces).isEmpty }
+        let kept = keptItems
         do {
             try FoodScan.update(entry, name: name, meal: meal, items: kept, in: context)
             dismiss()
@@ -189,6 +223,10 @@ struct ScanItemEditor: View {
     /// The numbers as stored when the editor opened: an unchanged field keeps its exact value, not its rounded text
     /// (codex-review-n7 S3, as Edit entry does).
     @State private var stored: [EditableNumber] = []
+    /// N15: this item (as on screen) is in Saved foods.
+    @State private var saved = false
+    @Environment(\.modelContext) private var context
+    @State private var failure: String?
 
     var body: some View {
         ScrollView {
@@ -214,6 +252,23 @@ struct ScanItemEditor: View {
         .lookScreenBackground()
         .navigationTitle(name.isEmpty ? "Item" : name)
         .navigationBarTitleDisplayMode(.inline)
+        // N15 (D87): each item of a meal photo can be saved on its own.
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                SaveBookmark(isSaved: saved, saveLabel: "Save to Saved foods", removeLabel: "Remove from Saved foods",
+                             identifier: "scanItemSaveFood", action: toggleSaved)
+                    .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty && !saved)
+            }
+        }
+        .task(id: [name, portion, grams, calories, protein, carbs, fat]) {
+            guard loaded else { return }
+            saved = FoodSaving.isSaved(current, in: context)
+        }
+        .alert(FoodCopy.saveFailed, isPresented: Binding(get: { failure != nil }, set: { if !$0 { failure = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(failure ?? "")
+        }
         .onAppear {
             guard !loaded else { return }
             loaded = true
@@ -234,13 +289,30 @@ struct ScanItemEditor: View {
     /// read keeps the item's value; a blank macro is 0, a blank weight none.
     private func apply() {
         guard stored.count == 5 else { return }
-        item.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        item.portion = portion.trimmingCharacters(in: .whitespacesAndNewlines)
-        item.grams = ScanItemNumbers.optional(stored[0], grams, keeping: item.grams)
-        item.calories = ScanItemNumbers.required(stored[1], calories, keeping: item.calories)
-        item.protein = ScanItemNumbers.optional(stored[2], protein, keeping: item.protein) ?? 0
-        item.carbs = ScanItemNumbers.optional(stored[3], carbs, keeping: item.carbs) ?? 0
-        item.fat = ScanItemNumbers.optional(stored[4], fat, keeping: item.fat) ?? 0
+        item = current
+    }
+
+    /// The item as the fields read now, by `apply`'s rules — what Back keeps and what the bookmark saves.
+    private var current: FoodEstimate.Item {
+        guard stored.count == 5 else { return item }
+        var out = item
+        out.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        out.portion = portion.trimmingCharacters(in: .whitespacesAndNewlines)
+        out.grams = ScanItemNumbers.optional(stored[0], grams, keeping: item.grams)
+        out.calories = ScanItemNumbers.required(stored[1], calories, keeping: item.calories)
+        out.protein = ScanItemNumbers.optional(stored[2], protein, keeping: item.protein) ?? 0
+        out.carbs = ScanItemNumbers.optional(stored[3], carbs, keeping: item.carbs) ?? 0
+        out.fat = ScanItemNumbers.optional(stored[4], fat, keeping: item.fat) ?? 0
+        return out
+    }
+
+    private func toggleSaved() {
+        do {
+            try FoodSaving.toggle(current, in: context)
+            saved = FoodSaving.isSaved(current, in: context)
+        } catch {
+            failure = error.localizedDescription
+        }
     }
 }
 

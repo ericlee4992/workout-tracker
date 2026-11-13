@@ -231,8 +231,10 @@ extension FoodNutrition {
 }
 
 extension SavedFood {
-    /// N8: a food from a database that was only opened — never logged, bookmarked or made the user's own.
-    var isCachedLookup: Bool { databaseID != nil && !createdByUser && !isSaved && lastUsedAt == nil }
+    /// Not one of the user's foods: never logged, bookmarked or made by the user. N8: a food from a database that was
+    /// only opened. N15: a food saved from an entry or a photo's item and then un-saved (it has no database id) — it
+    /// leaves the lists rather than lingering in All, and is not deleted (entries linked to it keep the link).
+    var isCachedLookup: Bool { !createdByUser && !isSaved && lastUsedAt == nil }
 
     var macros: Macros {
         Macros(calories: calories, proteinGrams: proteinGrams, carbsGrams: carbsGrams, fatGrams: fatGrams)

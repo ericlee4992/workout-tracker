@@ -368,4 +368,51 @@ final class ScanFoodUITests: XCTestCase {
         reveal(card)
         shoot("today-describe-card")
     }
+
+    // MARK: N15 — a meal photo saves as a meal, its items as foods (D87)
+
+    func testAMealPhotoSavesAsAMealAndAnItemAsAFood() { saveAMealPhoto("light", large: false) }
+    func testCaptureSavedMealDarkAccessibility() { saveAMealPhoto("dark", large: true) }
+
+    private func saveAMealPhoto(_ appearance: String, large: Bool) {
+        launch(appearance, large: large)
+        openCamera()
+        app.buttons["scanFoodShutter"].tap()
+        let entry = app.buttons["todayEntry.Poke bowl"]
+        XCTAssertTrue(entry.waitForExistence(timeout: 10))
+        reveal(entry)
+        entry.tap()
+        let saveMeal = app.buttons["scanEntrySaveMeal"]
+        XCTAssertTrue(saveMeal.waitForExistence(timeout: 5), "a meal photo offers the bookmark")
+        XCTAssertEqual(saveMeal.label, "Save to My meals")
+        saveMeal.tap()
+        XCTAssertEqual(saveMeal.label, "Remove from My meals")
+        shoot("n15-meal-saved")
+
+        let tuna = app.buttons["scanItem.Tuna poke"]
+        for _ in 0..<4 where !tuna.isHittable { app.swipeUp() }
+        tuna.tap()
+        let saveItem = app.buttons["scanItemSaveFood"]
+        XCTAssertTrue(saveItem.waitForExistence(timeout: 5), "each item offers the bookmark")
+        XCTAssertEqual(saveItem.label, "Save to Saved foods")
+        saveItem.tap()
+        XCTAssertEqual(saveItem.label, "Remove from Saved foods")
+        shoot("n15-item-saved")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(saveMeal.waitForExistence(timeout: 5))
+        XCTAssertEqual(saveMeal.label, "Remove from My meals", "the meal is still the one in My meals")
+        app.buttons["Cancel"].tap()
+        guard !large else { return }
+
+        let pill = app.buttons["logFoodPill"]
+        for _ in 0..<6 where !(pill.exists && pill.isHittable) { app.swipeDown() }
+        pill.tap()
+        let meals = app.buttons["logFoodTab.My meals"].firstMatch
+        XCTAssertTrue(meals.waitForExistence(timeout: 5))
+        meals.tap()
+        XCTAssertTrue(app.buttons["logFoodRow.meal.Poke bowl"].waitForExistence(timeout: 5), "one meal in My meals")
+        app.buttons["logFoodTab.Saved foods"].firstMatch.tap()
+        XCTAssertTrue(app.buttons["logFoodRow.Tuna poke"].waitForExistence(timeout: 5), "the item in Saved foods")
+    }
 }
+

@@ -157,4 +157,65 @@ final class TodayFoodUITests: XCTestCase {
         app.buttons["todaySetGoals"].tap()
         XCTAssertTrue(app.staticTexts["Nutrition goals"].waitForExistence(timeout: 5))
     }
+
+    // MARK: N15 — save any food you open (D87)
+
+    func testAnyLoggedFoodCanBeSaved() { saveFromTheLog(appearance: "light", large: false) }
+    func testCaptureSavedEntryDarkAccessibility() { saveFromTheLog(appearance: "dark", large: true) }
+
+    /// Banana (logged from a food) bookmarks that food; the Manual Add entry (no food behind it) makes one. The bookmark
+    /// acts at once — Cancel keeps it — and both reach Log food's Saved foods; un-saved, Banana leaves it.
+    private func saveFromTheLog(appearance: String, large: Bool) {
+        let tag = "\(appearance)-\(large ? "axl" : "default")"
+        launch(appearance: appearance, large: large)
+        let bookmark = app.buttons["editEntrySaveFood"]
+        let banana = app.buttons["todayEntry.Banana"]
+        reveal(banana)
+        banana.tap()
+        XCTAssertTrue(bookmark.waitForExistence(timeout: 5), "an entry offers the bookmark")
+        XCTAssertEqual(bookmark.label, "Save to Saved foods")
+        shoot("n15-edit-\(tag)")
+        bookmark.tap()
+        XCTAssertEqual(bookmark.label, "Remove from Saved foods")
+        shoot("n15-edit-saved-\(tag)")
+        app.buttons["Cancel"].tap()
+
+        let manual = app.buttons["todayEntry.Manual Add"]
+        reveal(manual)
+        manual.tap()
+        XCTAssertTrue(bookmark.waitForExistence(timeout: 5))
+        XCTAssertEqual(bookmark.label, "Save to Saved foods", "nothing saved behind it yet")
+        bookmark.tap()
+        XCTAssertEqual(bookmark.label, "Remove from Saved foods")
+        app.buttons["Cancel"].tap()
+        guard !large else { return }
+
+        openSavedFoods()
+        XCTAssertTrue(app.buttons["logFoodRow.Banana"].waitForExistence(timeout: 5), "the food behind the entry")
+        XCTAssertTrue(app.buttons["logFoodRow.Manual Add"].exists, "a new food made from the entry")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        // Un-saved from the log, Banana leaves Saved foods (the Manual Add food stays).
+        XCTAssertTrue(any("todayEaten").waitForExistence(timeout: 5))
+        reveal(banana)
+        banana.tap()
+        XCTAssertTrue(bookmark.waitForExistence(timeout: 5))
+        XCTAssertEqual(bookmark.label, "Remove from Saved foods", "it stays saved after Cancel")
+        bookmark.tap()
+        XCTAssertEqual(bookmark.label, "Save to Saved foods")
+        app.buttons["Cancel"].tap()
+        openSavedFoods()
+        XCTAssertTrue(app.buttons["logFoodRow.Manual Add"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["logFoodRow.Banana"].exists)
+    }
+
+    private func openSavedFoods() {
+        let pill = app.buttons["logFoodPill"]
+        for _ in 0..<6 where !(pill.exists && pill.isHittable) { app.swipeDown() }
+        pill.tap()
+        let tab = app.buttons["logFoodTab.Saved foods"].firstMatch
+        XCTAssertTrue(tab.waitForExistence(timeout: 5))
+        tab.tap()
+    }
 }
+

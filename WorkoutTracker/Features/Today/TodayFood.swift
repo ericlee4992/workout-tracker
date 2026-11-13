@@ -407,6 +407,15 @@ struct EditEntrySheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                // N15 (D87): any food that opens can be saved — the food behind the entry, or a new one made from it.
+                ToolbarItem(placement: .topBarTrailing) {
+                    SaveBookmark(isSaved: FoodSaving.isSaved(entry), saveLabel: "Save to Saved foods",
+                                 removeLabel: "Remove from Saved foods", identifier: "editEntrySaveFood",
+                                 action: toggleSaved)
+                        .disabled(numbers == nil && !FoodSaving.isSaved(entry))
+                }
+                // Its own glass, apart from Save: the bookmark acts at once, Save commits the edits.
+                ToolbarSpacer(.fixed, placement: .topBarTrailing)
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
                         .disabled(numbers == nil)
@@ -460,6 +469,20 @@ struct EditEntrySheet: View {
             try FoodLog.update(entry, servings: servings, meal: meal, calories: numbers.0, proteinGrams: numbers.1,
                                carbsGrams: numbers.2, fatGrams: numbers.3, in: context)
             dismiss()
+        } catch {
+            failure = error.localizedDescription
+        }
+    }
+
+    /// The food saved is the one on screen: this entry's name and serving with the numbers as they read now (a blank
+    /// macro is 0, as Save stores it); the entry's other facts (fiber, sugar, …) come with it.
+    private func toggleSaved() {
+        let n = numbers ?? (entry.calories, entry.proteinGrams, entry.carbsGrams, entry.fatGrams)
+        do {
+            try FoodSaving.toggle(entry, name: title, perServing: FoodNutrition(
+                calories: n.0, proteinGrams: n.1, carbsGrams: n.2, fatGrams: n.3,
+                saturatedFatGrams: entry.saturatedFatGrams, fiberGrams: entry.fiberGrams,
+                sugarGrams: entry.sugarGrams, sodiumMilligrams: entry.sodiumMilligrams), in: context)
         } catch {
             failure = error.localizedDescription
         }

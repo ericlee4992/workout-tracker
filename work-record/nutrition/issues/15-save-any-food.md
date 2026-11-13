@@ -1,7 +1,7 @@
 # N15 — Save any food you open, including from Today's log
 
 Type: feature
-Status: **approved — after [live-workout 03](../../live-workout-fixes/issues/03-chart-from-workout.md)** (the user,
+Status: **in progress** (was: approved — after [live-workout 03](../../live-workout-fixes/issues/03-chart-from-workout.md)** (the user,
 2026-11-13; ticket 2 of 2)
 Implementer: Claude; Reviewer: Codex, to "clear".
 Branch (when built): `ericlee4992/nutrition-15-save-any-food` off `main` after ticket 03 merges.
@@ -41,8 +41,57 @@ Entries from a photo, a description, a label or Manual Add have no `SavedFood` b
 2. An entry without a food creates one; a meal photo saves as a meal in My meals.
 3. Unit + UI tests, captures, Codex clear.
 
+## Design (2026-11-13)
+
+**Where a food opens, and its save control** — the bookmark in the bar, the same face as `SelectedFoodView`'s, acting
+at once (no Save needed), filled in the action colour when saved:
+
+| Screen | Opens from | Saves |
+|---|---|---|
+| `SelectedFoodView` | Log food (search, recent, My foods, Saved foods), a barcode | the food (unchanged) |
+| `EditEntrySheet` | Today's log, History's day food page | the food behind the entry; none → a new food from it |
+| `ScanEntryEditor` | a meal photo / description entry (Today, History) | the meal as ONE meal in My meals |
+| `ScanItemEditor` | an item of that meal | the item as a food in Saved foods |
+| `SelectedMealView` | My meals | already in My meals (Edit / Delete there) |
+
+**Decisions taken:**
+
+- **The food saved is the one on screen:** the entry's name ("Manual Add" for a nameless one), serving and the numbers
+  as they read now; its other facts (fiber, sugar, saturated fat, sodium) come with it. Not "made by the user" (Saved
+  foods, not My foods — D81), no database credit (it has none).
+- **No duplicate:** the entry is linked to the food (`FoodEntry.savedFood`, an existing field); a second tap toggles it.
+- **No stored-format change.** A photo meal and its items have no link field, so their saved copy is found by content
+  (same name, serving and numbers). Editing one after saving reads as not saved, and saving again makes a second copy.
+  **The user, 2026-11-13: keep it that way (no new link field, so no Gate S)**, after the trade-off was explained.
+- **Un-saving deletes nothing logged:** a food leaves Saved foods (`isSaved` false); a food that only ever was a saved
+  copy then leaves every list (`SavedFood.isCachedLookup` no longer needs a database id). A meal has no saved flag — My
+  meals is the list — so un-saving deletes that meal; entries logged from it stay.
+- A photo meal saves usually-for the meal it was logged to; each item is one serving of its portion ("1 cup" → 1 cup,
+  blank → 1 serving) with its weight.
+
+**New strings (the user's decision):** "Save to My meals", "Remove from My meals" (VoiceOver labels of the meal
+bookmark). The food bookmark reuses "Save to Saved foods" / "Remove from Saved foods".
+
 ## Progress
 
-Not started.
+- 2026-11-13 (Claude): `Domain/FoodSaving.swift`, `Features/Food/SaveBookmark.swift`, the bookmark on `EditEntrySheet`,
+  `ScanEntryEditor` and `ScanItemEditor` (in its own glass, a fixed `ToolbarSpacer` apart from Save, after the first
+  captures showed it fused with Save); `SavedFood.isCachedLookup` no longer needs a database id. The filled bookmark is
+  the toolbar's ink, not violet — the same code and look as `SelectedFoodView`'s existing bookmark (iOS 26 glass
+  toolbars render items monochrome); left as is for consistency.
+- Tests: `FoodSavingTests` (8); UI `TodayFoodUITests.testAnyLoggedFoodCanBeSaved` (Banana from a food, the Manual Add
+  entry with none; Cancel keeps the bookmark; both reach Saved foods; un-saved Banana leaves it),
+  `ScanFoodUITests.testAMealPhotoSavesAsAMealAndAnItemAsAFood` (the meal reaches My meals, the item Saved foods), and
+  their dark AccessibilityL capture runs. First run: the meal test looked for `logFoodRow.Poke bowl`; a meal's row is
+  `logFoodRow.meal.Poke bowl` (the feature worked — the snapshot showed the meal) — test fixed.
+- Captures in [`captures/n15/`](../captures/n15/): the entry sheet before/after saving (light Default, dark
+  AccessibilityL), the meal editor and the item screen saved (both). Whole at both sizes.
+
+```
+Verified: Unit plan — 1366/1366 passed, exit 0, build/results/n15-unit.xcresult
+Verified: TodayFoodUITests (2 new) + ScanFoodUITests (2 new) — 4/4 passed, exit 0, build/results/n15-ui3.xcresult
+Not verified: the TodayTrain area plan (pending before merge); on a phone
+Known flaky: none seen
+```
 
 ## Comments

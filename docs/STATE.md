@@ -12,8 +12,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   merged before the next. Release afterwards: the user's call.
   **Ticket 1 — DONE: Codex clear (round 3), merged into `main` 2026-11-13** (branch kept; Codex agent
   `562c6d70-3c94-4da0-9760-a287cdd9a84b` in this workspace — reuse it for N15). Open for the user: its new strings
-  (ticket). Follow-up to propose: a dev-speed ticket for the flaky live "New best" band test waits. **Next: N15** on a
-  new branch off `main` (`ericlee4992/nutrition-15-save-any-food`), UI-first.
+  (ticket). Follow-up to propose: a dev-speed ticket for the flaky live "New best" band test waits. **N15 in progress** on
+  `ericlee4992/nutrition-15-save-any-food` (same worktree): built, unit + 4 UI tests green, captures in
+  `work-record/nutrition/captures/n15/`; Codex round 1 next (brief `work-record/nutrition/codex-review-n15-prompt.md`);
+  the TodayTrain plan before merge. The user: no link field for photo meals/items (content match, no Gate S).
 
 - **N12 Korean food data — DONE: merged into `main` and server deployed 2026-11-13** (Codex clear, round 4; branch
   `ericlee4992/nutrition-12-korean-db` kept; [ticket](../work-record/nutrition/issues/12-korean-food-database.md), D86,
