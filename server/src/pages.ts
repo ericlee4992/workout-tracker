@@ -120,11 +120,14 @@ are removed by an hourly clean-up job.</li>
 <h2>Barcodes and food search (optional, signed in)</h2>
 <p>When you scan a food’s barcode, or search for a food by name while signed in, the app sends the barcode number or
 the words you typed to my server, which looks them up at Open Food Facts and the U.S. Department of Agriculture’s
-FoodData Central and returns the food. Your account, name and network address are not sent to either. My server keeps
+FoodData Central and returns the food. A search in Korean, and the barcode of a Korean product, are also looked up at
+Korea’s Ministry of Food and Drug Safety (its food nutrition database and Food QR service on data.go.kr, and the Food
+Safety Korea barcode list). Your account, name and network address are not sent to any of them. My server keeps
 the answers for up to 30 days so the next lookup is quicker; that copy is shared by everyone and linked to no account,
 and a search is kept only as a one-way code made from its words. It also counts each account’s lookups per day to
 limit abuse; the counts are removed after about two days and when you delete your account. A food you log is then kept
-on your iPhone like any other food.</p>
+on your iPhone like any other food — and when you pick which food a barcode is, that choice stays on your iPhone
+too.</p>
 
 <h2>Feedback (optional)</h2>
 <p>If you send feedback from Profile → Send Feedback, my server keeps your message, its category, the screenshot if
@@ -149,6 +152,8 @@ what you sent. The database also keeps a recovery history for 7 days.</li>
 <li><strong>OpenAI</strong> processes AI requests as described above.</li>
 <li><strong>Open Food Facts</strong> and <strong>USDA FoodData Central</strong> receive barcode numbers and search words
 from my server, as described above.</li>
+<li><strong>Korea’s Ministry of Food and Drug Safety</strong> (through data.go.kr and Food Safety Korea) receives the
+barcode numbers of Korean products and search words in Korean from my server, as described above.</li>
 <li><strong>Apple</strong> provides Sign in with Apple, TestFlight and map imagery; <strong>Google</strong> provides
 Google sign-in.</li>
 </ul>
