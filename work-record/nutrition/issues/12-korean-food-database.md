@@ -278,4 +278,21 @@ row's edge); fixed (16/10 pt as Log food's rows) and retaken.
 (4 in the first run, the 2 whose test code was wrong — the Cancel id, the fixture's offline flag, a wrong expectation —
 passed after the fixes; captures 2/2 after the row fix).
 
+### Before review (2026-11-12)
+
+- Privacy page draft (`server/src/pages.ts`, `a913fc7f`): Korea's Ministry of Food and Drug Safety named as a source
+  for a Korean search and a Korean product's barcode; a barcode choice stays on the iPhone; a new line in the services
+  list. **Waiting for the user's approval**; `POLICY_EFFECTIVE_DATE` is set on the deploy day. Root README updated.
+- Unit plan **1,345/1,345** (`-testPlan Unit`, exit 0, `/tmp/n12data/unitplan-*.xcresult`); UI `BarcodeSearchUITests`
+  **8/8** (2 workers, exit 0, `/tmp/n12data/ui-n8-*.xcresult`); server 334/334 + page tests 27/27.
+
+```
+Verified: server suite 334/334 + typecheck; live check through the functions (9 searches, 8 barcodes); app build;
+  Unit plan 1,345/1,345; FoodDatabaseTests 15/15; UI KoreanFoodUITests 6/6 (incl. captures at Default and
+  AccessibilityL); UI BarcodeSearchUITests 8/8
+Not verified: the deployed route (deploy needs the user's go and the two Worker secrets); a real camera reading a
+  Korean barcode; the full UI suite (not required: the change is confined to the food scan/search screens)
+Known flaky: none seen in these runs
+```
+
 ## Comments

@@ -70,7 +70,9 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   changes the goal — and protein to go; without goals it offers to set them. Today's log lists the food by meal; tap an
   entry to change its servings, meal or numbers, or delete it with Undo.
   **Log food** opens the meal (preset by the time of day), tabs **All / My foods / My meals / Saved foods** and a
-  search: your own foods first, then (signed in) more foods from USDA FoodData Central, each with its servings. Each food or meal has a **+** that logs one serving at once, with Undo; tapping a food
+  search: your own foods first, then (signed in) more foods from USDA FoodData Central — or, for a search in Korean
+  *(on this branch, not yet in TestFlight)*, Korean dishes, plain foods and products from Korea's Ministry of Food and
+  Drug Safety (식품영양성분DB) — each with its servings. Each food or meal has a **+** that logs one serving at once, with Undo; tapping a food
   picks the servings. **Manual Add** logs a one-off entry (a name is optional, so calories alone are enough);
   **Add food** creates one of My foods in two steps (brand, description, serving, servings per container → nutrition);
   the bookmark keeps any food in Saved foods; **Create meal** groups foods you eat together. Each entry keeps its own
@@ -80,8 +82,10 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   the meal, its photo kept on the iPhone with it (a photo chosen from the library is logged when it was taken). Tap it
   to edit the name, meal or any item, or delete it with Undo. *Food label*: the label inside the box is read and opens
   as a food to name and log, saved to My foods if you like. *Barcode*: a product's barcode is read as soon as it is in
-  the band and looked up at Open Food Facts, then USDA; the food opens to log, credited to its source, and stays on
-  the iPhone, so it scans offline next time. Not found offers the label scan or Manual Add. Typing in Log food's search
+  the band and looked up at Open Food Facts, then USDA (a Korean product's also through the ministry's Food QR and
+  barcode list); the food opens to log, credited to its source, and stays on the iPhone, so it scans offline next time.
+  Not found offers the label scan or Manual Add — and, when a source knows the product's name, the foods matching it
+  ("Is this it?"): the one you log is remembered for that barcode. Typing in Log food's search
   also offers **Estimate "…"**, logged the same way. Meal photos stay out of the JSON export (it carries their items).
 - **Body weight** *(on `main`, not yet in TestFlight)*. Profile → Body weight shows your
   latest weight and its history; Log weight takes the figure with ± steps in your unit (kg or lb, kept as entered) and
