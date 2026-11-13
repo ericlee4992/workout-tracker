@@ -160,6 +160,19 @@ The same data.go.kr key works for both once applied for (one key, three services
   without nutrition in Open Food Facts, HACCP filled **2** (양파링, 부침가루) directly by barcode.
 - Licences: both 제한 없음. Operating approval: HACCP automatic; Food QR and 식품영양성분DB by review (심의승인).
 
+### Bridge: barcode → report number → 식품영양성분DB (2026-11-12, the user's question)
+
+식품영양성분DB has no barcode; its product key is `ITEM_REPORT_NO`. HACCP rows carry `prdlstReportNo` beside the
+barcode (5,663 barcode rows with one), Food QR has `IMRPT_NO` (`getFoodQrProdMnfInfo02`), C005 `PRDLST_REPORT_NO`.
+Sample of 80 HACCP barcodes, looked up by report number with an exact match on our side (the API's filter is a
+prefix match; the field can list several numbers joined by `/`):
+- of 50 **without** label numbers in HACCP: **8 found** (16%; e.g. 치킨브레스트햄, 오뚜기 바삭김말이, 동원훈제연어슬라이스)
+  → roughly 300 more barcodes with numbers;
+- of 30 **with** label numbers: **16 found** (53%) — for those, the DB's clean per-100 numbers can replace parsing
+  HACCP's text.
+C005 is the largest bridge (~260,000 barcode rows, frozen 2020, direct barcode lookup, its own key from 식품안전나라);
+earlier it rescued 2 of 11. Worth re-testing with a real key now that the bridge is the plan.
+
 ### Decisions to ask the user
 
 1. Search architecture: live API only (slow, poor order) / **the 9,235 representative items built into the server
