@@ -5,6 +5,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## RESUME HERE (2026-11-12, end of the P1 / N13 / N14 session)
 
+- **0.2.0 (14) — archived, upload BLOCKED (2026-11-13 15:49):** both tickets (live-workout 03, N15); no What's New, no
+  Gate S; release review clear; `main` `20634c0f`; archive `/tmp/r14-release/Stacked-0.2.0-14-20634c0f.xcarchive`.
+  Upload fails "Failed to Use Accounts": **the user signs in at Xcode → Settings → Accounts**, then rerun the export
+  (`work-record/release/0.2.0-build-14.md`).
 - **Next tickets (the user, 2026-11-13), in order, in Paseo workspace "Workout chart + save foods"
   (`~/.paseo/worktrees/1qmeipq9/workout-chart-machines`):** 1) [live-workout 03 — the chart from a live workout, by
   machine](../work-record/live-workout-fixes/issues/03-chart-from-workout.md) (branch `ericlee4992/workout-chart-machines`);
