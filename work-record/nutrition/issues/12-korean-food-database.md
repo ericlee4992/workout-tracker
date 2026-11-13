@@ -186,7 +186,7 @@ there — several are cosmetics, so not foods — and 100 with):
 - **All Korean sources together gave numbers for 7 of the 76** Open Food Facts gaps (~9%); 4 of the 7 only through C005.
 Conclusion: Korean barcodes stay mostly a gap whatever we add; Korean name search and the label scan carry the weight.
 
-### Decisions to ask the user
+### Decisions (asked 2026-11-12; answered — D86)
 
 1. Search architecture: live API only (slow, poor order) / **the 9,235 representative items built into the server
    from the download (instant, well ranked) + the live API for brand products** (recommended) / a full copy (heavy).
@@ -194,5 +194,21 @@ Conclusion: Korean barcodes stay mostly a gap whatever we add; Korean name searc
    fill opens the Korean search with the name prefilled (editable, "Is this it?" confirm, saved with the barcode).
 3. Restaurant rows with blank fat/carbs: hide them, or show them with the blanks as "not given" (N8 reads blank macros
    as 0).
+
+### The user's answers (2026-11-12) → D86
+
+- Plan: Korean name search (representative items built into the server + live API for brand products); barcodes
+  through Food QR and C005 → 식품영양성분DB; no HACCP copy for now.
+- Restaurant rows without fat/carbs: shown, with a "not listed by the source" note, kept as 0 (no stored-format
+  change; true blanks would need a migration and Gate S).
+
+### Build plan
+
+1. Server: Korean search (bundled representative items + live products, ranked, cached, limited), barcode chain
+   (Food QR → C005 → 식품영양성분DB), normalisation, missing-key behaviour, tests.
+2. App: UI-first captures for the user (Korean results + credit, the "not listed" note, not found → Korean search
+   prefilled → "Is this it?"), then wiring, unit + focused UI tests.
+3. Privacy page wording (new sources) — the user approves; README.
+4. Codex review to clear; merge; deploy + secrets with the user's go.
 
 ## Comments
