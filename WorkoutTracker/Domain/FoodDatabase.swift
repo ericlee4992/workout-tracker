@@ -71,6 +71,9 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
     /// What `per100g` is per: 100 g, or 100 ml for a drink — never converted without a density (codex-review-n8 S2).
     enum Per100Unit: String, Sendable { case g, ml }
 
+    /// N12 (D86): a macro its source leaves blank (kept as 0 in the numbers).
+    enum Macro: String, Sendable, CaseIterable { case protein, carbs, fat }
+
     struct Nutrients: Equatable, Sendable {
         var calories: Double
         var protein: Double
@@ -109,6 +112,8 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
     var per100Unit: Per100Unit
     var serving: Serving?
     var measures: [Measure]
+    /// N12: the macros the source leaves blank (the server's `notListed`); empty when it gives all three.
+    var notListed: [Macro] = []
 
     /// ODbL asks for Open Food Facts to be credited wherever its data is shown; USDA's is public domain, and the Korean
     /// ministry's unrestricted (이용허락범위 제한 없음), both credited alike.
@@ -150,13 +155,17 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
                   grams <= Self.maxGrams else { return nil }
             return Measure(text: text, grams: grams)
         }
+        // Unknown names are ignored (a newer server may say more); each macro once, in a fixed order.
+        let blank = Set((json["notListed"] as? [String] ?? []).compactMap(Macro.init(rawValue:)))
         self.init(id: id, source: source, name: name, brand: Self.text(json["brand"], max: 100),
                   barcode: (json["barcode"] as? String).flatMap { FoodBarcode.normalize($0) },
-                  per100g: per100g, per100Unit: unit, serving: serving, measures: Array(measures.prefix(6)))
+                  per100g: per100g, per100Unit: unit, serving: serving, measures: Array(measures.prefix(6)),
+                  notListed: Macro.allCases.filter(blank.contains))
     }
 
     init(id: String, source: Source, name: String, brand: String? = nil, barcode: String? = nil,
-         per100g: Nutrients? = nil, per100Unit: Per100Unit = .g, serving: Serving? = nil, measures: [Measure] = []) {
+         per100g: Nutrients? = nil, per100Unit: Per100Unit = .g, serving: Serving? = nil, measures: [Measure] = [],
+         notListed: [Macro] = []) {
         self.id = id
         self.source = source
         self.name = name
@@ -166,6 +175,7 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
         self.per100Unit = per100Unit
         self.serving = serving
         self.measures = measures
+        self.notListed = notListed
     }
 
     private static func number(_ value: Any?) -> Double? {
@@ -330,12 +340,40 @@ enum FoodDatabase {
         Set(foods.map { attribution($0.source) }).sorted()
     }
 
-    /// N12 (D86): a database food whose source leaves macros blank (restaurant chains in 식품영양성분DB give calories,
-    /// protein and sodium only) keeps them as 0. Told apart by its numbers — protein, carbs and fat account for under
-    /// half of its calories — so the note works for a food kept on the phone too, with no stored marker.
-    static func macrosIncomplete(databaseID: String?, calories: Double, protein: Double, carbs: Double, fat: Double) -> Bool {
-        guard databaseID != nil, calories >= 20 else { return false }
-        return protein * 4 + carbs * 4 + fat * 9 < calories * 0.5
+    /// N12 (D86): which macros a kept database food's source leaves blank, by its database id. Kept beside the store,
+    /// not in it — a note for display, so `SavedFood` keeps its stored format (no migration); what the source says,
+    /// never guessed from the numbers (codex-review-n12 R2). Written whenever a database food is saved.
+    nonisolated(unsafe) static var notListedDefaults: UserDefaults = .standard
+    static let notListedKey = "foodDatabaseNotListed"
+
+    static func notListed(databaseID: String?) -> [DatabaseFood.Macro] {
+        guard let databaseID,
+              let names = (notListedDefaults.dictionary(forKey: notListedKey) as? [String: [String]])?[databaseID] else { return [] }
+        let blank = Set(names.compactMap(DatabaseFood.Macro.init(rawValue:)))
+        return DatabaseFood.Macro.allCases.filter(blank.contains)
+    }
+
+    static func setNotListed(_ macros: [DatabaseFood.Macro], databaseID: String) {
+        var all = notListedDefaults.dictionary(forKey: notListedKey) as? [String: [String]] ?? [:]
+        all[databaseID] = macros.isEmpty ? nil : macros.map(\.rawValue)
+        notListedDefaults.set(all, forKey: notListedKey)
+    }
+
+    /// The note under a food's macros: "Fat isn't listed for this food; it counts as 0." — nil when nothing is blank.
+    static func notListedNote(_ macros: [DatabaseFood.Macro]) -> String? {
+        let names = macros.map { macro in
+            switch macro {
+            case .protein: "protein"
+            case .carbs: "carbs"
+            case .fat: "fat"
+            }
+        }
+        guard let first = names.first else { return nil }
+        let list = names.count == 1 ? first : names.dropLast().joined(separator: ", ") + " and " + names.last!
+        let subject = list.prefix(1).uppercased() + list.dropFirst()
+        // "Carbs" reads as plural; one other macro is singular.
+        let plural = names.count > 1 || first == "carbs"
+        return "\(subject) \(plural ? "aren't" : "isn't") listed for this food; \(plural ? "they count" : "it counts") as 0."
     }
 
     /// A product name the server sent for the "Is this it?" search: one line, 1–200 characters.
@@ -422,6 +460,7 @@ enum FoodDatabase {
         saved.servingOptions = stored.options
         saved.updatedAt = date
         try context.save()
+        setNotListed(food.notListed, databaseID: food.id)
         return saved
     }
 

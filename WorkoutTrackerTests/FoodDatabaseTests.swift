@@ -315,15 +315,42 @@ struct FoodDatabaseTests {
                                                                   "Food data from USDA FoodData Central"])
     }
 
-    @Test func aDatabaseFoodWithoutMostOfItsMacrosIsToldApartByItsNumbers() {
-        // 로제떡볶이 from a restaurant chain: 187 kcal, 5 g protein, fat and carbs not listed (kept as 0).
-        #expect(FoodDatabase.macrosIncomplete(databaseID: "mfds:D2", calories: 187, protein: 5, carbs: 0, fat: 0))
-        // A complete food, a lean one (chicken breast: protein carries the calories), and the user's own: no note.
-        #expect(!FoodDatabase.macrosIncomplete(databaseID: "mfds:D1", calories: 144, protein: 3.5, carbs: 26, fat: 3))
-        #expect(!FoodDatabase.macrosIncomplete(databaseID: "mfds:R1", calories: 106, protein: 23, carbs: 0, fat: 1))
-        #expect(!FoodDatabase.macrosIncomplete(databaseID: nil, calories: 187, protein: 5, carbs: 0, fat: 0))
-        // Too few calories to tell (coffee, tea).
-        #expect(!FoodDatabase.macrosIncomplete(databaseID: "mfds:P1", calories: 5, protein: 0, carbs: 0, fat: 0))
+    @Test func theMacrosASourceLeavesBlankAreWhatItSaysKeptForTheFoodAndNamedInTheNote() throws {
+        let defaults = try #require(UserDefaults(suiteName: "FoodDatabaseTests.notListed.\(UUID())"))
+        let previous = FoodDatabase.notListedDefaults
+        FoodDatabase.notListedDefaults = defaults
+        defer { FoodDatabase.notListedDefaults = previous }
+        let store = try context()
+
+        // The server's list, read in a fixed order; an unknown name is ignored.
+        let potato = try #require(DatabaseFood(json: json(["id": "mfds:R102-001180001-0000", "source": "mfds",
+                                                           "name": "감자, 자색, 생것", "notListed": ["fat", "fiber"]])))
+        #expect(potato.notListed == [.fat])
+        let rose = try #require(DatabaseFood(json: json(["id": "mfds:D2", "source": "mfds", "notListed": ["fat", "carbs"]])))
+        #expect(rose.notListed == [.carbs, .fat])
+        // Beer gives all three (its few grams explain little of its calories — alcohol): no list, no note
+        // (codex-review-n12 R2: never guessed from the numbers).
+        let beer = try #require(DatabaseFood(json: json(["id": "mfds:P115-104010400-0008", "source": "mfds", "name": "맥주"])))
+        #expect(beer.notListed.isEmpty)
+
+        // Kept for the food when it is saved, so it reopens with its note (offline too).
+        for food in [potato, rose, beer] { _ = try FoodDatabase.save(food, in: store) }
+        #expect(FoodDatabase.notListed(databaseID: "mfds:R102-001180001-0000") == [.fat])
+        #expect(FoodDatabase.notListed(databaseID: "mfds:D2") == [.carbs, .fat])
+        #expect(FoodDatabase.notListed(databaseID: "mfds:P115-104010400-0008").isEmpty)
+        #expect(FoodDatabase.notListed(databaseID: nil).isEmpty)
+        // Saved again with every macro given (the source filled them in): the note goes.
+        var complete = potato
+        complete.notListed = []
+        _ = try FoodDatabase.save(complete, in: store)
+        #expect(FoodDatabase.notListed(databaseID: "mfds:R102-001180001-0000").isEmpty)
+
+        #expect(FoodDatabase.notListedNote([]) == nil)
+        #expect(FoodDatabase.notListedNote([.fat]) == "Fat isn't listed for this food; it counts as 0.")
+        #expect(FoodDatabase.notListedNote([.carbs]) == "Carbs aren't listed for this food; they count as 0.")
+        #expect(FoodDatabase.notListedNote([.carbs, .fat]) == "Carbs and fat aren't listed for this food; they count as 0.")
+        #expect(FoodDatabase.notListedNote([.protein, .carbs, .fat])
+                == "Protein, carbs and fat aren't listed for this food; they count as 0.")
     }
 
     @Test func oneKoreanSyllableIsASearchOtherwiseTwoCharacters() {

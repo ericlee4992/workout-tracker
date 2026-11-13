@@ -62,10 +62,9 @@ struct SelectedFoodView: View {
                     LookNavTitle(food.name, subtitle: food.brand)
                     amount
                     MacroSummary(macros: eaten)
-                    if FoodDatabase.macrosIncomplete(databaseID: food.databaseID, calories: food.calories,
-                                                     protein: food.proteinGrams, carbs: food.carbsGrams, fat: food.fatGrams) {
-                        // N12 (D86): a source that leaves macros blank (restaurant chains); they count as 0.
-                        Text("Not all macros are listed for this food; they count as 0.")
+                    if let note = FoodDatabase.notListedNote(FoodDatabase.notListed(databaseID: food.databaseID)) {
+                        // N12 (D86): what the source leaves blank (restaurant chains); those macros count as 0.
+                        Text(note)
                             .font(look.font.footnote)
                             .foregroundStyle(look.textSecondary)
                             .accessibilityIdentifier("selectedFoodMacrosNotListed")

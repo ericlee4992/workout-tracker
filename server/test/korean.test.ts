@@ -80,9 +80,18 @@ describe("Korean search", () => {
     });
   });
 
-  it("spaces are dropped for the API (신라면 건면 → 신라면건면); one syllable is a search (밥)", async () => {
-    await search("신라면 건면");
-    expect(h.food.mfdsCalls[0]!.FOOD_NM_KR).toBe("신라면건면");
+  it("a query with spaces is asked as typed and unspaced, merged (codex-review-n12 R1); one syllable is a search (밥)", async () => {
+    // The API matches a literal substring: "양파링 오리지널" is found only spaced, "신라면건면" only unspaced.
+    h.food.mfds = (params) => mfdsAnswer(params.FOOD_NM_KR === "양파링 오리지널"
+      ? [mfdsItem({ FOOD_CD: "P-SPACED", FOOD_NM_KR: "양파링 오리지널" })]
+      : params.FOOD_NM_KR === "양파링오리지널" ? [mfdsItem({ FOOD_CD: "P-UNSPACED", FOOD_NM_KR: "양파링오리지널", MAKER_NM: "다른식품(주)" })] : []);
+    const ids = (await body(await search("양파링 오리지널"))).foods.map((f: any) => f.id);
+    expect(h.food.mfdsCalls.map((c) => c.FOOD_NM_KR).sort()).toEqual(["양파링 오리지널", "양파링오리지널"]);
+    expect(ids).toEqual(expect.arrayContaining(["mfds:P-SPACED", "mfds:P-UNSPACED"]));
+    // Typed without spaces: one form, one call, its own cache entry (not the spaced query's).
+    await search("양파링오리지널");
+    expect(h.food.mfdsCalls).toHaveLength(3);
+    expect(await count("food_cache")).toBe(2);
     const rice = await search("밥");
     expect(rice.status).toBe(200);
     expect((await body(rice)).foods.length).toBeGreaterThan(0);
@@ -132,6 +141,15 @@ describe("Korean search", () => {
     expect(row!.key).toMatch(/^search:ko:live:[0-9a-f]{64}$/);
     const used = await h.env.DB.prepare("SELECT count FROM food_limits WHERE kind = 'search'").first<{ count: number }>();
     expect(used!.count).toBe(2);
+  });
+
+  it("one form failing: the other's products still shown, the answer not cached", async () => {
+    h.food.mfds = (params) => params.FOOD_NM_KR === "양파링 오리지널"
+      ? mfdsAnswer([mfdsItem({ FOOD_CD: "P-SPACED", FOOD_NM_KR: "양파링 오리지널" })])
+      : new Response("busy", { status: 503 });
+    const ids = (await body(await search("양파링 오리지널"))).foods.map((f: any) => f.id);
+    expect(ids).toContain("mfds:P-SPACED");
+    expect(await count("food_cache")).toBe(0);
   });
 
   it("the live API down: the built-in foods alone, not cached; nothing built in either: 502", async () => {
@@ -261,6 +279,45 @@ describe("Korean barcodes", () => {
     // …but a Korean source that finds it answers.
     h.food.foodQR = qr({ getFoodQrProdNsd02: () => qrAnswer(qrLabel()) });
     expect(await body(await barcode(ONION_RING))).toMatchObject({ found: true, food: { source: "foodQR" } });
+  });
+
+  it("Food QR and C005 rows must name this barcode: missing, other or wrong-typed codes are never used, nor cached (R3)", async () => {
+    const label = qrLabel().map((r) => ({ ...r, PRDCT_NM: "다른 제품" }));
+    for (const BRCD_NO of [undefined, 12345678, "08801234567893", ""]) {
+      await h.env.DB.prepare("DELETE FROM food_cache").run();
+      h.food.foodQR = qr({
+        getFoodQrProdMnfInfo02: () => qrAnswer([{ BRCD_NO, PRDCT_NM: "다른 제품", IMRPT_NO: "1991046110125" }]),
+        getFoodQrProdNsd02: () => qrAnswer(label.map((r) => ({ ...r, BRCD_NO }))),
+      });
+      h.food.mfds = () => mfdsAnswer([mfdsItem({ FOOD_CD: "P-OTHER", FOOD_NM_KR: "다른 제품", ITEM_REPORT_NO: "1991046110125" })]);
+      const response = await barcode(ONION_RING);
+      expect(response.status).toBe(200);
+      expect(await body(response)).toEqual({ found: false });
+      // A reply naming only other products is a failure, not a miss to remember.
+      expect(await count("food_cache")).toBe(0);
+    }
+    h.food.foodQR = () => qrAnswer([]);
+    h.food.c005 = () => c005Answer([{ BAR_CD: "8801234567893", PRDLST_NM: "다른 제품", PRDLST_REPORT_NO: "1991046110125" }]);
+    expect(await body(await barcode(ONION_RING))).toEqual({ found: false });
+    expect(await count("food_cache")).toBe(0);
+    // The same code zero-padded is this product.
+    h.food.c005 = () => c005Answer([{ BAR_CD: `0${ONION_RING}`, PRDLST_NM: "양파링 오리지널", PRDLST_REPORT_NO: "1991046110125" }]);
+    h.food.mfds = () => mfdsAnswer([mfdsItem({ FOOD_CD: "P-ONION", FOOD_NM_KR: "양파링 오리지널", ITEM_REPORT_NO: "1991046110125" })]);
+    expect(await body(await barcode(ONION_RING))).toMatchObject({ found: true, food: { id: "mfds:P-ONION" } });
+  });
+
+  it("C005's result code reaches the log only in its documented shape (R4)", async () => {
+    const logs: string[] = [];
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => { logs.push(args.map(String).join(" ")); });
+    const sentinel = `${FOODSAFETY_KEY} https://x.test/${ONION_RING}?q=양파링`;
+    h.food.c005 = () => Response.json({ C005: { RESULT: { CODE: sentinel, MSG: sentinel } } });
+    await barcode(ONION_RING);
+    expect(logs).toContain("food upstream c005 malformed");
+    await h.env.DB.prepare("DELETE FROM food_cache").run();
+    h.food.c005 = () => Response.json({ C005: { RESULT: { CODE: "INFO-300", MSG: "유효 호출건수를 이미 초과하셨습니다." } } });
+    await barcode(ONION_RING);
+    expect(logs).toContain("food upstream c005 INFO-300");
+    for (const line of logs) for (const secret of [FOODSAFETY_KEY, ONION_RING, "https", "양파링"]) expect(line).not.toContain(secret);
   });
 
   it("a non-Korean code never asks the Korean sources; without their keys a Korean code skips them", async () => {

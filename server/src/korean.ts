@@ -227,15 +227,21 @@ export async function searchKorean(env: Env, deps: Deps, query: string): Promise
   let products: KoreanRow[] = [];
   let failed = false;
   if (env.MFDS_API_KEY) {
-    try {
-      // The API matches a substring of the name as typed; the compact form finds "신라면건면" for "신라면 건면" too.
-      const items = await mfds(env, deps, { numOfRows: String(LIVE_ROWS), FOOD_NM_KR: query.replace(/\s+/g, ""), DB_CLASS_NM: "상용제품" });
-      products = items.map(fromMFDSItem).filter((r): r is KoreanRow => r !== null);
-    } catch (error) {
-      if (!(error instanceof Upstream)) throw error;
-      console.error("food upstream", error.source, error.status);
-      failed = true;
-    }
+    // The API matches a literal substring of the name, spaces included: "양파링 오리지널" finds the product named so,
+    // "양파링오리지널" nothing — and "신라면건면" is found only unspaced (codex-review-n12 R1). A query with spaces is
+    // asked both ways, at once; one form failing marks the answer incomplete (not cached) without hiding the other's.
+    const forms = [...new Set([query, query.replace(/\s+/g, "")])];
+    const answers = await Promise.all(forms.map(async (form) => {
+      try {
+        return await mfds(env, deps, { numOfRows: String(LIVE_ROWS), FOOD_NM_KR: form, DB_CLASS_NM: "상용제품" });
+      } catch (error) {
+        if (!(error instanceof Upstream)) throw error;
+        console.error("food upstream", error.source, error.status);
+        failed = true;
+        return [];
+      }
+    }));
+    products = answers.flat().map(fromMFDSItem).filter((r): r is KoreanRow => r !== null);
   }
   const foods: DatabaseFood[] = [];
   for (const row of rankKorean(query, [...local, ...products])) {
@@ -267,6 +273,13 @@ const reportNumber = (value: unknown) => {
 /** A source that was asked and did not answer (kept apart from every value it could answer). */
 const FAILED = Symbol("failed");
 
+/** A barcode as a source gives it — digits, as text — is this GTIN, whatever its zero padding (8–14 digits). */
+export function sameCode(value: unknown, code: string): boolean {
+  if (typeof value !== "string") return false;
+  const digits = value.trim();
+  return /^\d{8,14}$/.test(digits) && digits.padStart(14, "0") === code.padStart(14, "0");
+}
+
 /** Food QR stores a GTIN as 14 digits with a leading 0. */
 const qrBarcode = (code: string) => code.padStart(14, "0");
 
@@ -280,8 +293,13 @@ async function foodQR(env: Env, deps: Deps, operation: string, code: string): Pr
   if (items === undefined && Number(body.body.totalCount) === 0) return [];
   const list = Array.isArray(items) ? items : isObject(items) && Array.isArray(items.item) ? items.item : null;
   if (!list) throw new Upstream("foodqr", "malformed");
-  // Only rows for this barcode (the filter is the service's; a reply is not trusted to have applied it).
-  return list.filter(isObject).filter((r) => typeof r.BRCD_NO !== "string" || r.BRCD_NO.replace(/^0+/, "") === code.replace(/^0+/, ""));
+  // Only rows that name this barcode (the filter is the service's; a reply is not trusted to have applied it — a row
+  // without one, or with another, is never taken for this product: codex-review-n12 R3). Rows, none of them ours: a
+  // malformed reply, a failure (never a miss to cache).
+  const rows = list.filter(isObject);
+  const ours = rows.filter((r) => sameCode(r.BRCD_NO, code));
+  if (rows.length > 0 && ours.length === 0) throw new Upstream("foodqr", "malformed");
+  return ours;
 }
 
 /** Food QR's nutrient names → the food shape, with the unit each must be in. */
@@ -363,9 +381,18 @@ async function c005(env: Env, deps: Deps, code: string): Promise<Record<string, 
   const body = await fetchJSON(deps, "c005", url, { headers: { accept: "application/json" } });
   const service = isObject(body) ? body.C005 : null;
   if (!isObject(service) || !isObject(service.RESULT)) throw new Upstream("c005", "malformed");
-  if (service.RESULT.CODE === "INFO-200") return [];
-  if (service.RESULT.CODE !== "INFO-000" || !Array.isArray(service.row)) throw new Upstream("c005", String(service.RESULT.CODE ?? "malformed"));
-  return service.row.filter(isObject).filter((r) => r.BAR_CD === undefined || String(r.BAR_CD).trim() === code);
+  const result = service.RESULT.CODE;
+  if (result === "INFO-200") return [];
+  // Its code reaches the log only in its documented shape ("INFO-300", "ERROR-500"); anything else is "malformed" —
+  // a reply's text never reaches the log (codex-review-n12 R4).
+  if (result !== "INFO-000" || !Array.isArray(service.row)) {
+    throw new Upstream("c005", typeof result === "string" && /^(INFO|ERROR)-\d{3}$/.test(result) ? result : "malformed");
+  }
+  // As Food QR's: only rows that name this barcode (R3).
+  const rows = service.row.filter(isObject);
+  const ours = rows.filter((r) => sameCode(r.BAR_CD, code));
+  if (rows.length > 0 && ours.length === 0) throw new Upstream("c005", "malformed");
+  return ours;
 }
 
 /** Asks Food QR (two operations) and C005 at once — whichever keys are set — and gathers what they know. */
@@ -422,4 +449,3 @@ export async function bridge(env: Env, deps: Deps, numbers: string[], code: stri
   const food = results.find((r): r is DatabaseFood => r !== null && r !== FAILED) ?? null;
   return { food, failed: !food && results.includes(FAILED) };
 }
-

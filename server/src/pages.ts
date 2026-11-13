@@ -120,9 +120,10 @@ are removed by an hourly clean-up job.</li>
 <h2>Barcodes and food search (optional, signed in)</h2>
 <p>When you scan a food’s barcode, or search for a food by name while signed in, the app sends the barcode number or
 the words you typed to my server, which looks them up at Open Food Facts and the U.S. Department of Agriculture’s
-FoodData Central and returns the food. A search in Korean, and the barcode of a Korean product, are also looked up at
-Korea’s Ministry of Food and Drug Safety (its food nutrition database and Food QR service on data.go.kr, and the Food
-Safety Korea barcode list). Your account, name and network address are not sent to any of them. My server keeps
+FoodData Central and returns the food. A search in Korean is looked up instead at Korea’s Ministry of Food and Drug
+Safety (its food nutrition database on data.go.kr); the barcode of a Korean product is looked up there too (that
+database, its Food QR service and the Food Safety Korea barcode list), as well as at Open Food Facts and FoodData
+Central. Your account, name and network address are not sent to any of them. My server keeps
 the answers for up to 30 days so the next lookup is quicker; that copy is shared by everyone and linked to no account,
 and a search is kept only as a one-way code made from its words. It also counts each account’s lookups per day to
 limit abuse; the counts are removed after about two days and when you delete your account. A food you log is then kept

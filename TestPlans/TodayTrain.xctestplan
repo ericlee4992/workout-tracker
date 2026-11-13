@@ -21,7 +21,8 @@
         "LogFoodFlowUITests",
         "TodayFoodUITests",
         "ScanFoodUITests",
-        "BarcodeSearchUITests"
+        "BarcodeSearchUITests",
+        "KoreanFoodUITests"
       ],
       "target": {
         "containerPath": "container:WorkoutTracker.xcodeproj",

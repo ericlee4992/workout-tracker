@@ -295,4 +295,29 @@ Not verified: the deployed route (deploy needs the user's go and the two Worker 
 Known flaky: none seen in these runs
 ```
 
+### Codex round 1 — not clear (5 findings), fixed (2026-11-12)
+
+Report `work-record/nutrition/codex-review-n12.md` (`aa29dc51`). Fixes:
+- **R1 (P2) spaces:** the live API matches a literal substring — a query with spaces is now asked as typed **and**
+  unspaced, at once, merged; one form failing leaves the answer uncached without hiding the other's; the cache key is
+  the query as typed (spaces collapsed, not removed). Tests: both forms, merge, separate cache entries, partial failure.
+- **R2 (P2) the note:** no longer guessed from the numbers. The app reads the server's `notListed`, keeps it per food
+  beside the store (`UserDefaults`, key `foodDatabaseNotListed`, by database id — written on every save of a database
+  food; no stored-format change, D86) and names what is blank: "Fat isn't listed for this food; it counts as 0." /
+  "Carbs and fat aren't listed …; they count as 0." (**strings changed** — for the user). Unit test covers beer
+  (complete, no note), the purple potato (fat only), reopen, and a later complete save clearing it.
+- **R3 (P2) identity:** Food QR and C005 rows count only when they name this barcode (8–14 digits, zero padding
+  ignored); a reply whose rows all name other products is a failure (soft: not cached). Live check: real Food QR rows
+  of both operations carry `BRCD_NO`. Tests: missing, numeric, other, empty codes; zero-padded C005 accepted.
+- **R4 (P2) logs:** C005's code is logged only in its documented shape (`INFO-…` / `ERROR-…` + 3 digits), else
+  "malformed". Test with key/URL/barcode/query sentinels.
+- **R5 (P3):** `KoreanFoodUITests` added to TodayTrain (`scripts/test-plans.py`, plans regenerated; `--check` exit 0).
+- Also: the privacy draft now says a Korean **search** goes to the ministry **instead of** USDA, and a Korean barcode
+  there as well as Open Food Facts and USDA; the trailing blank line removed (`git diff --check` clean); a scrolled
+  capture `search-korean-2` added (the credit at AccessibilityL).
+
+Evidence after the fixes: server **337/337** + typecheck + page tests 27/27; app build-for-testing exit 0;
+`FoodDatabaseTests` **15/15**; UI `KoreanFoodUITests` + `BarcodeSearchUITests` **14/14** with 2 workers, exit 0
+(`/tmp/n12data/ui-r2-*.xcresult`) — the N8 not-found case Codex saw fail once in parallel passed here.
+
 ## Comments

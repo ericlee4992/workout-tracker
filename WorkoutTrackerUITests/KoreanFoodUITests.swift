@@ -135,7 +135,7 @@ final class KoreanFoodUITests: XCTestCase {
         XCTAssertTrue(foodLog.waitForExistence(timeout: 5))
         let note = app.staticTexts["selectedFoodMacrosNotListed"]
         XCTAssertTrue(note.waitForExistence(timeout: 5))
-        XCTAssertEqual(note.label, "Not all macros are listed for this food; they count as 0.")
+        XCTAssertEqual(note.label, "Carbs and fat aren't listed for this food; they count as 0.")
 
         // A complete food carries no note.
         app.navigationBars.buttons.element(boundBy: 0).tap()
@@ -184,6 +184,9 @@ final class KoreanFoodUITests: XCTestCase {
         XCTAssertTrue(rose.waitForExistence(timeout: 10))
         search.typeText("\n")
         shoot("search-korean")
+        // Scrolled: the credit under the results (behind the tab bar at AccessibilityL before scrolling).
+        app.swipeUp()
+        shoot("search-korean-2")
         reveal(rose)
         rose.tap()
         XCTAssertTrue(foodLog.waitForExistence(timeout: 5))

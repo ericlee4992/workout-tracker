@@ -543,7 +543,9 @@ export async function searchFoods(env: Env, deps: Deps, accountID: string, raw: 
 /** A Korean search (N12): counted as a search; cached apart from USDA's, and apart with and without brand products. */
 async function searchInKorean(env: Env, deps: Deps, accountID: string, query: string) {
   await countLookup(env, deps, accountID, "search");
-  const key = `search:ko:${env.MFDS_API_KEY ? "live" : "local"}:${await sha256Hex(query.toLowerCase().replace(/\s+/g, ""))}`;
+  // Keyed by the query as typed (spaces collapsed, not removed): "양파링 오리지널" and "양파링오리지널" find different
+  // brand products (codex-review-n12 R1).
+  const key = `search:ko:${env.MFDS_API_KEY ? "live" : "local"}:${await sha256Hex(query.toLowerCase())}`;
   const cached = await readCache<DatabaseFood[]>(env, deps, key);
   if (cached) return { foods: cached.value };
   const { foods, failed } = await searchKorean(env, deps, query);
