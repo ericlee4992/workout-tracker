@@ -1,7 +1,7 @@
 # N15 — Save any food you open, including from Today's log
 
 Type: feature
-Status: **in progress** (was: approved — after [live-workout 03](../../live-workout-fixes/issues/03-chart-from-workout.md)** (the user,
+Status: **done — Codex clear (round 3), merged into `main` 2026-11-13** (was: approved — after [live-workout 03](../../live-workout-fixes/issues/03-chart-from-workout.md)** (the user,
 2026-11-13; ticket 2 of 2)
 Implementer: Claude; Reviewer: Codex, to "clear".
 Branch (when built): `ericlee4992/nutrition-15-save-any-food` off `main` after ticket 03 merges.
@@ -127,3 +127,17 @@ their grams. Regression: `theEditedWeightIsSaved` extended.
 ```
 Verified: Unit plan — 1370/1370 passed, exit 0, build/results/n15-unit3.xcresult
 ```
+
+## Review result and merge
+
+Codex round 3: **clear** ([`codex-review-n15c.md`](../codex-review-n15c.md)). Area plan before merge:
+
+```
+Verified: TodayTrain plan — 72/72 passed, exit 0, build/results/n15-todaytrain.xcresult (2 workers)
+Verified: Unit plan — 1370/1370 passed, exit 0, build/results/n15-unit3.xcresult
+Not verified: on a phone
+Known flaky: none seen
+```
+
+Merged into `main` by fast-forward, 2026-11-13. No stored-format change (no Gate S).
+

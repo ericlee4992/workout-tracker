@@ -12,11 +12,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   merged before the next. Release afterwards: the user's call.
   **Ticket 1 — DONE: Codex clear (round 3), merged into `main` 2026-11-13** (branch kept; Codex agent
   `562c6d70-3c94-4da0-9760-a287cdd9a84b` in this workspace — reuse it for N15). Open for the user: its new strings
-  (ticket). Follow-up to propose: a dev-speed ticket for the flaky live "New best" band test waits. **N15: Codex clear (round 3, `e572db5a`)** on
-  `ericlee4992/nutrition-15-save-any-food` (same worktree). Unit 1370/1370. **Before merge: the TodayTrain area plan
-  (~30 min) — waiting for the user's OK**, then fast-forward `main`. The user: no link field for photo meals/items
-  (content match, no Gate S); no violet, icon only; match the app's current screens, not the ios-design skill
-  (AGENTS.md updated on this branch).
+  (ticket). Follow-up to propose: a dev-speed ticket for the flaky live "New best" band test waits. **N15 — DONE: Codex clear (round 3), TodayTrain 72/72, merged
+  into `main` 2026-11-13** (branch kept). Both tickets of this workspace are merged; the workspace can be archived.
+  The user's rules from this session: no link field for photo meals/items (content match, no Gate S); no violet,
+  icon only; match the app's current screens, not the ios-design skill (AGENTS.md). Open for the user: live-workout
+  03's new VoiceOver strings; a release (TestFlight) is the user's call. Follow-up to propose: a dev-speed ticket for
+  the flaky live "New best" band test waits.
 
 - **N12 Korean food data — DONE: merged into `main` and server deployed 2026-11-13** (Codex clear, round 4; branch
   `ericlee4992/nutrition-12-korean-db` kept; [ticket](../work-record/nutrition/issues/12-korean-food-database.md), D86,
