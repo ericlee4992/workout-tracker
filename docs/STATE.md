@@ -6,11 +6,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## RESUME HERE (2026-11-12, end of the P1 / N13 / N14 session)
 
 - **N12 in progress (2026-11-12):** Paseo workspace "N12 Korean food DB", branch `ericlee4992/nutrition-12-korean-db`
-  (worktree `~/.paseo/worktrees/1qmeipq9/nutrition-12-korean-db`). Step 1 coverage check **done and recorded** in the
-  [ticket](../work-record/nutrition/issues/12-korean-food-database.md#progress); no code yet. **Next: the user's answers**
-  to its three scope questions (search architecture, C005 / barcode flow, blank-macro rows), then server → app → privacy
-  wording → Codex. No Codex agent started yet for N12.
-
+  (worktree `~/.paseo/worktrees/1qmeipq9/nutrition-12-korean-db`). Decided: **D86** (Korean search from 식품영양성분DB;
+  Korean barcodes via Food QR + C005 → 식품영양성분DB; restaurant rows shown with a note). **Server built and
+  live-checked** (`84cc952e`, 334/334); [ticket](../work-record/nutrition/issues/12-korean-food-database.md#progress).
+  Keys on the Mac: `~/.config/workouttracker/mfds.env` (`MFDS_API_KEY`, `FOODSAFETY_API_KEY`). **Next: app UI-first
+  captures** (Korean results + credit, the "not listed" note, barcode not found → Korean search → "Is this it?"), then
+  wiring, tests, privacy wording (the user approves), Codex (none started yet for N12), merge; deploy + the two Worker
+  secrets with the user's go.
 - **Git:** everything merged and pushed; `main` = `f8b300dc` (home checkout clean). Nothing in progress on any branch.
 - **Shipped to TestFlight:** **0.2.0 (12)** uploaded 2026-11-12 17:55 EST = P1 workout lag + N13 goal setup + N14 AI
   goals (build 11 was uploaded earlier the same day; the user kept the version at 0.2.0 so external review is likely

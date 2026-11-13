@@ -211,4 +211,19 @@ Conclusion: Korean barcodes stay mostly a gap whatever we add; Korean name searc
 3. Privacy page wording (new sources) — the user approves; README.
 4. Codex review to clear; merge; deploy + secrets with the user's go.
 
+### Server built (2026-11-12, `84cc952e`)
+
+`server/src/korean.ts` (+ `food.ts` routes, `env.ts` keys, `scripts/build-korean-foods.mjs`, `src/data/korean-foods.json`:
+6,531 representative items, 668 KB, Worker 224 KB gzip in a dry-run build). Server suite **334/334** (`npx vitest run`;
+new `test/korean.test.ts`, 29 tests), typecheck clean. Synonyms added after the live check: 닭가슴살 → 닭고기 가슴
+(the raw breast), 프로틴 → 단백질.
+
+**Live check** (the real services; keys copied to a temporary git-ignored `server/.dev.vars`, deleted after; output
+masked for both keys), through the functions (`searchKorean`, `koreanBarcode`, `bridge`), not the deployed route:
+- Searches 2.2–5.0 s, 10 results each: 바나나 → 바나나, 생것 first; 김치찌개 → 김치찌개 (1 serving 400 g), its kinds;
+  신라면 → 신라면 / 컵 / 건면 / 블랙 / 툼바 with packages; 불닭볶음면 → its versions (140 g); 계란 → 달걀 rows;
+  밥 → 멥쌀, 백미, 밥 …; 바나나맛우유 → per 100 ml with 200 ml packages; 로제떡볶이 → products.
+- Barcodes ~5 s each (all sources at once): 7 of 8 resolved through report numbers — 양파링 오리지널, 육개장, 청정원
+  쇠고기볶음고추장, 지도표재래식성경식탁김, 국탕이지 육류, 통소시지김밥, 신라면; 샘표고등어 not in 식품영양성분DB.
+
 ## Comments
