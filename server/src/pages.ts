@@ -8,7 +8,7 @@
 // deploy day). Change the date with the text; `npm run deploy` refuses a "[…" placeholder (predeploy).
 // N14 (2026-11-12): goal-setup answers sent for nutrition goals; Profile → Ask AI removed. Wording approved by the user
 // ("privacy page wording is good") and deployed the same day.
-export const POLICY_EFFECTIVE_DATE = "November 12, 2026";
+export const POLICY_EFFECTIVE_DATE = "November 13, 2026";
 export const DEVELOPER_NAME = "Eunchan Lee";
 export const SUPPORT_EMAIL = "ericlee4992@gmail.com";
 
