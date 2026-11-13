@@ -45,6 +45,12 @@ enum WhatsNew {
             .init(symbol: "bolt", text: "Smoother workouts: typing and scrolling no longer lag."),
             .init(symbol: "person.crop.circle", text: "The Ask AI section is gone: Scan Machine, exercise suggestions and Ask AI for Templates ask the first time you use them."),
         ]),
+        // Build 13 (0.2.0, the user 2026-11-13: a small page of its own, knowing that only the newest unseen page is
+        // shown — someone updating from build 11 or older sees this one, not build 12's): N12 Korean food data.
+        WhatsNewEntry(build: 13, title: "New: Korean foods", items: [
+            .init(symbol: "magnifyingglass", text: "Search in Korean for Korean dishes, plain foods and products — 김치찌개, 신라면, 닭가슴살."),
+            .init(symbol: "barcode.viewfinder", text: "Scanning a Korean product finds more of them; if not, pick it from the matching Korean foods."),
+        ]),
     ]
 
     static var latest: WhatsNewEntry? { entries.max { $0.build < $1.build } }

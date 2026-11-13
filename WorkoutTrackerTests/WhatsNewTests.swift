@@ -56,9 +56,10 @@ struct WhatsNewTests {
         #expect(WhatsNew.lastSeen(defaults) == 9)
     }
 
-    /// The shipped entries are the ones the user approved: build 7 (Progress) and, newest, build 12 (0.2.0: release R + P1 + N13 + N14).
+    /// The shipped entries are the ones the user approved: build 7 (Progress), build 12 (0.2.0: release R + P1 + N13 +
+    /// N14) and, newest, build 13 (0.2.0: N12 Korean foods).
     @Test func theShippedEntriesAreAsApproved() throws {
-        #expect(WhatsNew.entries.map(\.build) == [7, 12])
+        #expect(WhatsNew.entries.map(\.build) == [7, 12, 13])
         let progress = WhatsNew.entries[0]
         #expect(progress.title == "New: Progress")
         #expect(progress.items.map(\.text) == [
@@ -67,9 +68,16 @@ struct WhatsNewTests {
             "Long-press a chart to change what it shows, move it or remove it.",
         ])
         let latest = try #require(WhatsNew.latest)
-        #expect(latest.build == 12)
-        #expect(latest.title == "New: Food, goals and a fresh look")
+        #expect(latest.build == 13)
+        #expect(latest.title == "New: Korean foods")
         #expect(latest.items.map(\.text) == [
+            "Search in Korean for Korean dishes, plain foods and products — 김치찌개, 신라면, 닭가슴살.",
+            "Scanning a Korean product finds more of them; if not, pick it from the matching Korean foods.",
+        ])
+        let food = WhatsNew.entries[1]
+        #expect(food.build == 12)
+        #expect(food.title == "New: Food, goals and a fresh look")
+        #expect(food.items.map(\.text) == [
             "Log food from Today: search, scan a barcode or a label, or take a photo of your meal.",
             "Set calorie and protein goals; Today shows what's left.",
             "Set the weight you're aiming for and how fast — slow, recommended or fast.",
