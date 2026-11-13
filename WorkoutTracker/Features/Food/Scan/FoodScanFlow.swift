@@ -10,7 +10,8 @@ import UIKit
 // the estimate arrives (D82). A label is cropped to the box (D53), read here, and opens the food prefilled. A barcode
 // (N8, D72) is read as soon as it is in the band: a food already on the phone opens at once (offline too), else the
 // server looks it up (Open Food Facts, then USDA) and the found food opens to log; not found offers the label scan and
-// Manual Add. In UI tests (`-uiTestTerra`) and on the Simulator the drawn sample stands in for the camera.
+// Manual Add. N12 (D86): not found with a name from a source (a Korean product's), the foods matching that name are
+// listed as "Is this it?"; the one the user logs is linked to the barcode, so the next scan opens it. In UI tests (`-uiTestTerra`) and on the Simulator the drawn sample stands in for the camera.
 
 /// One photo from the shutter or the library, ready to send.
 struct FoodScanShot {
@@ -40,6 +41,7 @@ struct FoodScanFlow: View {
     @State private var cameraMode: FoodScanMode = .meal
     @State private var barcode: BarcodeState?
     @State private var lookupTask: Task<Void, Never>?
+    @State private var candidatesTask: Task<Void, Never>?
     /// The code just left (back to the camera): not read again for a moment, so it does not reopen at once while it is
     /// still in the band.
     @State private var resting: (code: String, until: Date)?
@@ -53,6 +55,20 @@ struct FoodScanFlow: View {
         var code: String
         var food: SavedFood?
         var notFound = false
+        var failure: FoodDatabaseError?
+        /// N12: not found, what a source calls the product — the "Is this it?" search starts from it.
+        var name: String?
+        var candidates: Candidates?
+        /// The food opened from the candidates: logging it links the barcode.
+        var picked = false
+    }
+
+    /// N12: the foods matching a name, for "Is this it?". `query` is what was searched; a late answer for another query
+    /// is ignored.
+    struct Candidates {
+        var query: String
+        var foods: [DatabaseFood] = []
+        var loading = true
         var failure: FoodDatabaseError?
     }
 
@@ -85,13 +101,15 @@ struct FoodScanFlow: View {
                 case .labelFood:
                     LabelFoodStep(label: $label, meal: meal, onRetake: retake, onLogged: done)
                 case .barcodeLookup:
-                    FoodScanBarcodeLookup(barcode: $barcode, onCancel: { lookupTask?.cancel(); dismiss() },
-                                          onRetry: retryLookup, onLabel: scanLabelInstead, onManual: manual)
+                    FoodScanBarcodeLookup(barcode: $barcode,
+                                          onCancel: { lookupTask?.cancel(); candidatesTask?.cancel(); dismiss() },
+                                          onRetry: retryLookup, onLabel: scanLabelInstead, onManual: manual,
+                                          onSearch: searchCandidates, onPick: pick)
                         .toolbar(.hidden, for: .navigationBar)
                 case .barcodeFood:
                     if let food = barcode?.food {
                         SelectedFoodView(food: food, meal: meal ?? MealSlot.forTime(.now), source: .barcode,
-                                         onLogged: { _ in done() }, onDeleted: { path.removeAll() })
+                                         onLogged: { _ in linkPicked(); done() }, onDeleted: { path.removeAll() })
                     }
                 }
             }
@@ -103,10 +121,11 @@ struct FoodScanFlow: View {
             // Back at the camera from a barcode: that code rests a moment, and nothing of the lookup is kept.
             guard steps.isEmpty, let code = barcode?.code else { return }
             lookupTask?.cancel()
+            candidatesTask?.cancel()
             resting = (code, Date.now.addingTimeInterval(3))
             barcode = nil
         }
-        .onDisappear { readTask?.cancel(); lookupTask?.cancel() }
+        .onDisappear { readTask?.cancel(); lookupTask?.cancel(); candidatesTask?.cancel() }
     }
 
     // MARK: Barcode (N8)
@@ -135,9 +154,14 @@ struct FoodScanFlow: View {
         lookupTask?.cancel()
         lookupTask = Task {
             do {
-                let found = try await FoodDatabaseAccess.barcode(code, client: client)
+                let answer = try await FoodDatabaseAccess.barcode(code, client: client)
                 guard !Task.isCancelled, barcode?.attempt == attempt else { return }
-                guard let found else { barcode?.notFound = true; return }
+                guard let found = answer.food else {
+                    barcode?.notFound = true
+                    barcode?.name = answer.name
+                    if let name = answer.name { searchCandidates(name) }
+                    return
+                }
                 barcode?.food = try FoodDatabase.save(found, in: context)
                 path = [.barcodeFood]
             } catch is CancellationError {
@@ -147,6 +171,49 @@ struct FoodScanFlow: View {
                 barcode?.failure = error as? FoodDatabaseError ?? .unavailable
             }
         }
+    }
+
+    // MARK: Is this it? (N12)
+
+    /// The foods matching `query` (the product's name, or what the user typed over it).
+    private func searchCandidates(_ query: String) {
+        let query = query.trimmingCharacters(in: .whitespaces)
+        guard let attempt = barcode?.attempt, FoodDatabase.searchable(query) else { return }
+        let client = FoodDatabaseAccess.client(account)
+        barcode?.candidates = Candidates(query: query)
+        candidatesTask?.cancel()
+        candidatesTask = Task {
+            do {
+                let foods = try await FoodDatabaseAccess.search(query, client: client)
+                guard !Task.isCancelled, barcode?.attempt == attempt, barcode?.candidates?.query == query else { return }
+                barcode?.candidates = Candidates(query: query, foods: foods, loading: false)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled, barcode?.attempt == attempt, barcode?.candidates?.query == query else { return }
+                barcode?.candidates = Candidates(query: query, loading: false,
+                                                 failure: error as? FoodDatabaseError ?? .unavailable)
+            }
+        }
+    }
+
+    /// A candidate opens to log, over the list (Back returns to it). Nothing is linked until it is logged.
+    private func pick(_ food: DatabaseFood) {
+        do {
+            barcode?.food = try FoodDatabase.save(food, in: context)
+            barcode?.picked = true
+            path = [.barcodeLookup, .barcodeFood]
+        } catch {
+            // Not kept on the phone (a save that failed): the list stays, saying so.
+            barcode?.candidates?.failure = .unavailable
+        }
+    }
+
+    /// Logged from the candidates: the barcode now opens this food. The entry is already logged; a link that fails to
+    /// save only means the next scan asks again.
+    private func linkPicked() {
+        guard let state = barcode, state.picked, let food = state.food else { return }
+        try? FoodDatabase.link(food, barcode: state.code, in: context)
     }
 
     private func retryLookup() {
@@ -159,6 +226,7 @@ struct FoodScanFlow: View {
     /// Not in the database: the camera again, in Food label mode.
     private func scanLabelInstead() {
         lookupTask?.cancel()
+        candidatesTask?.cancel()
         // Chosen, not backed out of: no resting code (the user may scan another barcode at once).
         barcode = nil
         cameraMode = .label
@@ -671,20 +739,161 @@ private struct FoodScanSignIn: View {
 // MARK: - Looking up a barcode (N8)
 
 /// The scanned code while it is looked up; then, when neither database has it, "Not in the database" with Scan the
-/// label and Manual Add (D72), or why the lookup failed, with Try again and Manual Add.
+/// label and Manual Add (D72), or why the lookup failed, with Try again and Manual Add. N12: not found with a product
+/// name, the foods matching it as "Is this it?" (the eye lands on the first; the label scan steps down beside Manual
+/// Add) — see `candidatesBody`.
 private struct FoodScanBarcodeLookup: View {
     @Binding var barcode: FoodScanFlow.BarcodeState?
     var onCancel: () -> Void
     var onRetry: () -> Void
     var onLabel: () -> Void
     var onManual: () -> Void
+    var onSearch: (String) -> Void
+    var onPick: (DatabaseFood) -> Void
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
+    @State private var query = ""
 
     private var notFound: Bool { barcode?.notFound ?? false }
     private var failure: FoodDatabaseError? { barcode?.failure }
 
     var body: some View {
+        if notFound, let name = barcode?.name {
+            candidatesBody(name)
+        } else {
+            lookupBody
+        }
+    }
+
+    // MARK: Is this it? (N12)
+
+    private func candidatesBody(_ name: String) -> some View {
+        VStack(spacing: 0) {
+            ScanTopBar(title: "Barcode", onCancel: onCancel)
+            ScrollView {
+                VStack(alignment: .leading, spacing: look.space.section) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ScanInlineTitle(title: "Barcode")
+                        codeLine
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Not in the database").font(look.font.title3).foregroundStyle(look.textPrimary)
+                            Text("Is it one of these? If not, scan the label or add it by hand.")
+                                .font(look.font.subhead).foregroundStyle(look.textSecondary)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityIdentifier("scanFoodBarcodeNotFound")
+                    }
+                    candidates
+                }
+                .padding(.horizontal, look.space.margin)
+                .padding(.top, 6)
+                .padding(.bottom, 24)
+            }
+            .scrollIndicators(.hidden)
+            .scrollDismissesKeyboard(.immediately)
+            ScanBottomBar {
+                // Equal fallbacks, neither in the accent: the list above is the step's choice.
+                Button("Scan the label", action: onLabel)
+                    .buttonStyle(.lookSecondary)
+                    .accessibilityIdentifier("scanFoodBarcodeLabel")
+                Button("Manual Add", action: onManual)
+                    .buttonStyle(.lookSecondary)
+                    .accessibilityIdentifier("scanFoodManual")
+            }
+        }
+        .lookScreenBackground()
+        .onAppear { if query.isEmpty { query = barcode?.candidates?.query ?? name } }
+    }
+
+    /// The code that was read, small: the list is the point of this step.
+    private var codeLine: some View {
+        Label {
+            Text(barcode?.code ?? "")
+                .font(.system(.body, design: .monospaced, weight: .semibold))
+                .foregroundStyle(look.textSecondary)
+        } icon: {
+            Image(systemName: "barcode").foregroundStyle(look.textSecondary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Barcode \(barcode?.code ?? "")")
+        .accessibilityIdentifier("scanFoodBarcodeCode")
+    }
+
+    private var candidates: some View {
+        VStack(alignment: .leading, spacing: look.space.header) {
+            SectionHeader("Is this it?")
+            searchField
+            let state = barcode?.candidates
+            if state?.loading ?? true {
+                note("Searching…").accessibilityIdentifier("scanFoodCandidatesSearching")
+            } else if let failure = state?.failure {
+                note(failure.localizedDescription).accessibilityIdentifier("scanFoodCandidatesFailure")
+            } else if let foods = state?.foods, !foods.isEmpty {
+                LookList(separatorInset: 16) {
+                    ForEach(foods) { food in candidateRow(food) }
+                }
+                Text(FoodDatabase.attributions(foods).joined(separator: "\n"))
+                    .font(look.font.footnote)
+                    .foregroundStyle(look.textSecondary)
+                    .accessibilityIdentifier("scanFoodCandidatesAttribution")
+            } else {
+                note("No foods found by that name.").accessibilityIdentifier("scanFoodCandidatesEmpty")
+            }
+        }
+    }
+
+    /// The product's name, editable: a shorter one often finds it ("샘표고등어" → "고등어").
+    private var searchField: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass").foregroundStyle(look.textSecondary).accessibilityHidden(true)
+            TextField("Product name", text: $query)
+                .font(look.font.body)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .onSubmit { onSearch(query) }
+                .accessibilityIdentifier("scanFoodCandidatesSearch")
+        }
+        .padding(.horizontal, 12)
+        .frame(minHeight: 44)
+        .lookSurface(.panel)
+    }
+
+    private func candidateRow(_ food: DatabaseFood) -> some View {
+        let stored = FoodDatabase.storedServing(food)
+        return Button { onPick(food) } label: {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(food.name).font(.system(.body, weight: .semibold)).foregroundStyle(look.textPrimary)
+                    Text(FoodCopy.foodLine(brand: food.brand, calories: stored.nutrition.calories,
+                                           serving: ServingText.format(value: stored.serving.value,
+                                                                       unit: stored.serving.unit,
+                                                                       grams: stored.serving.grams)))
+                        .font(look.font.footnote).foregroundStyle(look.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Image(systemName: "chevron.right")
+                    .font(.system(.footnote, weight: .semibold))
+                    .foregroundStyle(look.textTertiary)
+                    .accessibilityHidden(true)
+            }
+            // As Log food's rows: inset inside the list's surface, at least 44 pt.
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .frame(minHeight: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("scanFoodCandidate.\(food.name)")
+    }
+
+    private func note(_ text: String) -> some View {
+        Text(text).font(look.font.footnote).foregroundStyle(look.textSecondary)
+    }
+
+    // MARK: Looking up, not found, failed
+
+    private var lookupBody: some View {
         VStack(spacing: 0) {
             ScanTopBar(title: "Barcode", onCancel: onCancel)
             ScanStepBody {

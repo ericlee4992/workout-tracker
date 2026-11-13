@@ -226,4 +226,56 @@ masked for both keys), through the functions (`searchKorean`, `koreanBarcode`, `
 - Barcodes ~5 s each (all sources at once): 7 of 8 resolved through report numbers — 양파링 오리지널, 육개장, 청정원
   쇠고기볶음고추장, 지도표재래식성경식탁김, 국탕이지 육류, 통소시지김밥, 신라면; 샘표고등어 not in 식품영양성분DB.
 
+### App, UI-first (2026-11-12) — captures waiting for the user
+
+**Job, state, bold element (ios-design step 1).** Barcode not found **with a product name**: the screen exists so the
+user can pick the product among the foods matching its name in one tap; the eye lands on the first candidate row (top);
+Scan the label steps down from the accent to the secondary style beside Manual Add (equal fallbacks). Without a name
+(N8's state) the screen is unchanged. Log food: unchanged composition; a Korean search fills "More foods". Selected
+food: unchanged; a note under the macros when the source leaves macros blank.
+
+```
+Cancel        Barcode            ← top bar
+▮▮ 8801043036597                 ← the code, one small line (was the 108 pt disc)
+Not in the database              ← title3
+Is it one of these? If not, …    ← subhead
+Is this it?                      ← section header
+[🔍 양파링 오리지널          ]    ← editable name (Search re-asks)
+┌ 양파링 오리지널          › ┐   ← BOLD: first row (name semibold, brand · cal · serving)
+└ …                          ┘
+Food data from Korea's …         ← credit
+──────────────────────────
+[ Scan the label ]  [ Manual Add ]  ← two equal secondary buttons, stacked
+```
+
+**Tells.** Same container on everything: absent (search field and list are the only surfaces). Chips: absent. All-caps
+labels: absent. Middle-dot metadata: deliberate — the row's line is Log food's existing `FoodCopy.foodLine`. Accent:
+absent on this state (no accent command; the list is the choice). Equal full-width blocks: the two fallback buttons,
+deliberate (equal options, equal size). Website layout / empty first viewport: absent (the list starts in the first
+third). Control dressed as primary: absent. Default-size-only layout: absent — AccessibilityL wraps every line, the
+step scrolls (it did not before: a fixed column).
+
+**Behaviour.** Not found with a name → the app searches the name at once; tapping a row opens it (Back returns to the
+list); **logging it links the barcode** (`FoodDatabase.link`), so the next scan opens it from the phone; only opening it
+links nothing. Saving a food from a search no longer clears a barcode linked earlier (`save` keeps it). The note's rule
+(`FoodDatabase.macrosIncomplete`): a database food whose protein, carbs and fat explain under half its calories (≥ 20
+kcal) — no stored marker, so it works for a food kept on the phone. Log food searches from one character in Korean.
+
+**New strings (the user's decision):**
+- "Is it one of these? If not, scan the label or add it by hand." (not found, with candidates)
+- "Is this it?" (section header)
+- "Product name" (search field placeholder)
+- "No foods found by that name."
+- "Food data from Korea's Ministry of Food and Drug Safety" (credit, both Korean sources)
+- "Not all macros are listed for this food; they count as 0." (selected food)
+
+**Captures** (fixture; light Default and dark AccessibilityL; `KoreanFoodUITests` capture tests, result bundle
+`/tmp/n12data/ui-capture-*.xcresult`, exported PNGs `/tmp/n12data/shots/n12-*.png`): is-this-it, is-this-it-2 (scrolled),
+is-this-it-no-match, search-korean, food-not-listed, food-not-listed-2. First run found the rows unpadded (text on the
+row's edge); fixed (16/10 pt as Log food's rows) and retaken.
+
+**Tests so far:** server 334/334; app build green; unit `FoodDatabaseTests` 15/15 (4 new); UI `KoreanFoodUITests` 6/6
+(4 in the first run, the 2 whose test code was wrong — the Cancel id, the fixture's offline flag, a wrong expectation —
+passed after the fixes; captures 2/2 after the row fix).
+
 ## Comments

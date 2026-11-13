@@ -2,8 +2,9 @@ import Foundation
 import SwiftData
 
 // Nutrition N8 (D72): foods from a database — a scanned barcode (Open Food Facts, then USDA branded foods) or a search
-// by name (USDA generic foods), through the app's server (server/README → Food databases). The server normalises both
-// sources to one shape; the app checks every answer again (the server is not trusted to have) and keeps a food the
+// by name (USDA generic foods), through the app's server (server/README → Food databases). N12 (D86): a search in Korean
+// comes from 식품의약품안전처's 식품영양성분DB, and a Korean barcode may too (or from Food QR's label). The server
+// normalises every source to one shape; the app checks every answer again (the server is not trusted to have) and keeps a food the
 // user opens or logs as a `SavedFood` (not one of My foods), so it works offline next time.
 
 /// A scanned code as the server's key: a GTIN with a valid check digit — EAN-8, UPC-A or EAN-13 (a 14-digit GTIN with
@@ -50,9 +51,23 @@ enum FoodBarcode {
     }
 }
 
-/// A food as the server answers (one shape for both databases), checked by the app.
+/// A food as the server answers (one shape for every database), checked by the app.
 struct DatabaseFood: Equatable, Identifiable, Sendable {
-    enum Source: String, Sendable { case openFoodFacts, usda }
+    enum Source: String, Sendable {
+        case openFoodFacts, usda
+        /// N12: 식품의약품안전처 — 식품영양성분DB, and Food QR's label numbers.
+        case mfds, foodQR
+
+        /// The prefix of its foods' ids (`SavedFood.databaseID`).
+        var idPrefix: String {
+            switch self {
+            case .openFoodFacts: "off:"
+            case .usda: "usda:"
+            case .mfds: "mfds:"
+            case .foodQR: "foodqr:"
+            }
+        }
+    }
     /// What `per100g` is per: 100 g, or 100 ml for a drink — never converted without a density (codex-review-n8 S2).
     enum Per100Unit: String, Sendable { case g, ml }
 
@@ -84,7 +99,7 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
         var grams: Double
     }
 
-    /// `off:<code>` or `usda:<fdcId>` (`SavedFood.databaseID`).
+    /// `off:<code>`, `usda:<fdcId>`, `mfds:<식품코드>` or `foodqr:<code>` (`SavedFood.databaseID`).
     var id: String
     var source: Source
     var name: String
@@ -95,7 +110,8 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
     var serving: Serving?
     var measures: [Measure]
 
-    /// ODbL asks for Open Food Facts to be credited wherever its data is shown; USDA's is public domain, credited alike.
+    /// ODbL asks for Open Food Facts to be credited wherever its data is shown; USDA's is public domain, and the Korean
+    /// ministry's unrestricted (이용허락범위 제한 없음), both credited alike.
     var attribution: String { FoodDatabase.attribution(source) }
 
     // MARK: Checking the server's answer
@@ -110,7 +126,7 @@ struct DatabaseFood: Equatable, Identifiable, Sendable {
     init?(json: [String: Any]) {
         guard let id = json["id"] as? String, let sourceText = json["source"] as? String,
               let source = Source(rawValue: sourceText),
-              id.hasPrefix(source == .openFoodFacts ? "off:" : "usda:"), id.count <= 64,
+              id.hasPrefix(source.idPrefix), id.count <= 64,
               let name = Self.text(json["name"], max: Self.maxName) else { return nil }
         // A missing unit is grams (the server always sends one); an unknown one is not a food the app understands.
         guard let unit = json["per100Unit"] == nil ? .g : (json["per100Unit"] as? String).flatMap(Per100Unit.init) else {
@@ -214,6 +230,13 @@ enum FoodDatabaseError: LocalizedError, Equatable {
     }
 }
 
+/// What a barcode lookup answers: the food, or — not found — what a source calls the product (N12: prefills the
+/// "Is this it?" search; a Korean name when a Korean source has one).
+struct BarcodeAnswer: Equatable, Sendable {
+    var food: DatabaseFood?
+    var name: String?
+}
+
 /// `GET /v1/food/barcode/:code` and `GET /v1/food/search?q=` with the session. Nothing here logs the token, the code
 /// or the query.
 struct FoodDatabaseClient: Sendable {
@@ -235,16 +258,17 @@ struct FoodDatabaseClient: Sendable {
         return request
     }
 
-    /// The food for a normalised barcode, or nil when neither database has a usable one.
-    func barcode(_ code: String) async throws -> DatabaseFood? {
+    /// The food for a normalised barcode; not found (no database has a usable one), the name a source gave, if any.
+    func barcode(_ code: String) async throws -> BarcodeAnswer {
         let object = try await get(request(path: "v1/food/barcode/\(code)"))
         guard let found = object["found"] as? Bool else { throw FoodDatabaseError.unavailable }
-        guard found else { return nil }
+        let name = (object["name"] as? String).flatMap(FoodDatabase.productName)
+        guard found else { return BarcodeAnswer(name: name) }
         // Found, but not a food the app would log: as good as not found.
-        return (object["food"] as? [String: Any]).flatMap(DatabaseFood.init(json:))
+        return BarcodeAnswer(food: (object["food"] as? [String: Any]).flatMap(DatabaseFood.init(json:)), name: name)
     }
 
-    /// Up to ten generic foods for `query`; the ones the app would not log are dropped.
+    /// Up to ten foods for `query`; the ones the app would not log are dropped.
     func search(_ query: String) async throws -> [DatabaseFood] {
         let object = try await get(request(path: "v1/food/search", query: [URLQueryItem(name: "q", value: query)]))
         guard let foods = object["foods"] as? [[String: Any]] else { throw FoodDatabaseError.unavailable }
@@ -288,15 +312,49 @@ enum FoodDatabase {
         switch source {
         case .openFoodFacts: "Food data from Open Food Facts"
         case .usda: "Food data from USDA FoodData Central"
+        case .mfds, .foodQR: "Food data from Korea's Ministry of Food and Drug Safety"
         }
     }
 
-    /// The credit for a saved food that came from a database (`off:` / `usda:`), nil for the user's own.
+    /// The credit for a saved food that came from a database (by its id's prefix), nil for the user's own.
     static func attribution(databaseID: String?) -> String? {
         guard let databaseID else { return nil }
-        if databaseID.hasPrefix("off:") { return attribution(.openFoodFacts) }
-        if databaseID.hasPrefix("usda:") { return attribution(.usda) }
+        for source in [DatabaseFood.Source.openFoodFacts, .usda, .mfds, .foodQR] where databaseID.hasPrefix(source.idPrefix) {
+            return attribution(source)
+        }
         return nil
+    }
+
+    /// The credits for foods shown together: one line per database, in a stable order.
+    static func attributions(_ foods: [DatabaseFood]) -> [String] {
+        Set(foods.map { attribution($0.source) }).sorted()
+    }
+
+    /// N12 (D86): a database food whose source leaves macros blank (restaurant chains in 식품영양성분DB give calories,
+    /// protein and sodium only) keeps them as 0. Told apart by its numbers — protein, carbs and fat account for under
+    /// half of its calories — so the note works for a food kept on the phone too, with no stored marker.
+    static func macrosIncomplete(databaseID: String?, calories: Double, protein: Double, carbs: Double, fat: Double) -> Bool {
+        guard databaseID != nil, calories >= 20 else { return false }
+        return protein * 4 + carbs * 4 + fat * 9 < calories * 0.5
+    }
+
+    /// A product name the server sent for the "Is this it?" search: one line, 1–200 characters.
+    static func productName(_ raw: String) -> String? {
+        let name = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty, name.count <= 200, !name.contains(where: \.isNewline) else { return nil }
+        return name
+    }
+
+    /// Whether a search is long enough to ask the server: two characters, or one in Korean (밥, 떡 — N12).
+    static func searchable(_ query: String) -> Bool {
+        let query = query.trimmingCharacters(in: .whitespaces)
+        return query.count >= 2 || (query.count == 1 && containsHangul(query))
+    }
+
+    /// Hangul syllables or jamo: such a search goes to the Korean database (the server decides; the app only words it).
+    static func containsHangul(_ text: String) -> Bool {
+        text.unicodeScalars.contains { (0x1100...0x11FF).contains($0.value) || (0x3130...0x318F).contains($0.value)
+            || (0xAC00...0xD7AF).contains($0.value) }
     }
 
     /// The food already on the phone for a scanned code — so a food logged once scans offline: one of My foods first,
@@ -347,7 +405,8 @@ enum FoodDatabase {
         if existing == nil { context.insert(saved) }
         saved.name = food.name
         saved.brand = food.brand
-        saved.barcode = food.barcode
+        // A source without a barcode (a search result) keeps the one the user linked ("Is this it?", N12).
+        saved.barcode = food.barcode ?? saved.barcode
         saved.servingValue = stored.serving.value
         saved.servingUnit = stored.serving.unit
         saved.servingGrams = stored.serving.grams
@@ -364,5 +423,13 @@ enum FoodDatabase {
         saved.updatedAt = date
         try context.save()
         return saved
+    }
+
+    /// N12: the barcode a food was confirmed for ("Is this it?") — a scanned code links it, so the next scan opens it.
+    static func link(_ food: SavedFood, barcode code: String, in context: ModelContext) throws {
+        guard FoodBarcode.normalize(code) == code, food.barcode != code else { return }
+        food.barcode = code
+        food.updatedAt = .now
+        try context.save()
     }
 }

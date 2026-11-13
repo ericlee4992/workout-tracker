@@ -261,7 +261,7 @@ struct FoodDatabaseTests {
             return (200, Self.data(["found": true, "food": self.json()]))
         }
         defer { FoodDBStub.respond = nil }
-        #expect(try await client().barcode("3017620422003")?.name == "Hazelnut spread")
+        #expect(try await client().barcode("3017620422003").food?.name == "Hazelnut spread")
         let foods = try await client().search("chicken & rice")
         #expect(foods.map(\.id) == ["usda:1"])  // the unusable one is dropped
         #expect(seen.values == ["GET /v1/food/barcode/3017620422003? Bearer tok-1",
@@ -271,10 +271,15 @@ struct FoodDatabaseTests {
     @Test func notFoundAndEveryErrorReadAsTheAppSaysThem() async throws {
         defer { FoodDBStub.respond = nil }
         FoodDBStub.respond = { _ in (200, Self.data(["found": false])) }
-        #expect(try await client().barcode("3017620422003") == nil)
+        #expect(try await client().barcode("3017620422003") == BarcodeAnswer())
+        // N12: not found with the name a source gave (for the "Is this it?" search); a name that is not one line is dropped.
+        FoodDBStub.respond = { _ in (200, Self.data(["found": false, "name": " 양파링 오리지널 "])) }
+        #expect(try await client().barcode("8801043036597") == BarcodeAnswer(name: "양파링 오리지널"))
+        FoodDBStub.respond = { _ in (200, Self.data(["found": false, "name": "two\nlines"])) }
+        #expect(try await client().barcode("8801043036597") == BarcodeAnswer())
         // Found, but nothing the app would log: as not found.
         FoodDBStub.respond = { _ in (200, Self.data(["found": true, "food": ["id": "x"]])) }
-        #expect(try await client().barcode("3017620422003") == nil)
+        #expect(try await client().barcode("3017620422003").food == nil)
         let cases: [(Int, String, FoodDatabaseError)] = [
             (429, "food_limit", .limit), (502, "food_unavailable", .unavailable),
             (503, "server_not_configured", .notConfigured), (500, "server_error", .unavailable),
@@ -290,6 +295,61 @@ struct FoodDatabaseTests {
         #expect(refused.values == ["tok-1"])
         FoodDBStub.respond = nil  // the stub fails the load as no connection
         await #expect(throws: FoodDatabaseError.offline) { try await client().search("rice") }
+    }
+
+    // MARK: N12 — Korean sources
+
+    @Test func koreanFoodsAreReadWithTheirOwnIdsAndCredit() throws {
+        let food = try #require(DatabaseFood(json: json(["id": "mfds:P108-001000300-0738", "source": "mfds", "name": "신라면건면사발"])))
+        #expect(food.source == .mfds)
+        #expect(food.attribution == "Food data from Korea's Ministry of Food and Drug Safety")
+        #expect(DatabaseFood(json: json(["id": "foodqr:8801043036597", "source": "foodQR"]))?.source == .foodQR)
+        // An id that does not match its source, or an unknown source (an older server never sends one): not a food.
+        #expect(DatabaseFood(json: json(["id": "off:1", "source": "mfds"])) == nil)
+        #expect(DatabaseFood(json: json(["id": "hacc:1", "source": "haccp"])) == nil)
+        #expect(FoodDatabase.attribution(databaseID: "mfds:D306-266000000-0001") == "Food data from Korea's Ministry of Food and Drug Safety")
+        #expect(FoodDatabase.attribution(databaseID: "foodqr:8801043036597") == "Food data from Korea's Ministry of Food and Drug Safety")
+        #expect(FoodDatabase.attribution(databaseID: nil) == nil)
+        let usda = try #require(DatabaseFood(json: json(["id": "usda:1", "source": "usda"])))
+        #expect(FoodDatabase.attributions([food, usda, food]) == ["Food data from Korea's Ministry of Food and Drug Safety",
+                                                                  "Food data from USDA FoodData Central"])
+    }
+
+    @Test func aDatabaseFoodWithoutMostOfItsMacrosIsToldApartByItsNumbers() {
+        // 로제떡볶이 from a restaurant chain: 187 kcal, 5 g protein, fat and carbs not listed (kept as 0).
+        #expect(FoodDatabase.macrosIncomplete(databaseID: "mfds:D2", calories: 187, protein: 5, carbs: 0, fat: 0))
+        // A complete food, a lean one (chicken breast: protein carries the calories), and the user's own: no note.
+        #expect(!FoodDatabase.macrosIncomplete(databaseID: "mfds:D1", calories: 144, protein: 3.5, carbs: 26, fat: 3))
+        #expect(!FoodDatabase.macrosIncomplete(databaseID: "mfds:R1", calories: 106, protein: 23, carbs: 0, fat: 1))
+        #expect(!FoodDatabase.macrosIncomplete(databaseID: nil, calories: 187, protein: 5, carbs: 0, fat: 0))
+        // Too few calories to tell (coffee, tea).
+        #expect(!FoodDatabase.macrosIncomplete(databaseID: "mfds:P1", calories: 5, protein: 0, carbs: 0, fat: 0))
+    }
+
+    @Test func oneKoreanSyllableIsASearchOtherwiseTwoCharacters() {
+        #expect(FoodDatabase.searchable("밥"))
+        #expect(FoodDatabase.searchable(" 떡 "))
+        #expect(!FoodDatabase.searchable("a"))
+        #expect(FoodDatabase.searchable("ab"))
+        #expect(!FoodDatabase.searchable(" "))
+        #expect(FoodDatabase.containsHangul("ramen 라면"))
+        #expect(!FoodDatabase.containsHangul("ramen"))
+    }
+
+    @Test func aConfirmedFoodKeepsItsBarcodeWhenSavedAgainFromASearch() throws {
+        let store = try context()
+        let found = try #require(DatabaseFood(json: json(["id": "mfds:P-ONION", "source": "mfds", "name": "양파링 오리지널", "barcode": NSNull()])))
+        let saved = try FoodDatabase.save(found, in: store)
+        try FoodDatabase.link(saved, barcode: "8801043036597", in: store)
+        #expect(saved.barcode == "8801043036597")
+        // The same food from a search (no barcode): the link stays, so the next scan still opens it.
+        let again = try FoodDatabase.save(found, in: store)
+        #expect(again === saved)
+        #expect(again.barcode == "8801043036597")
+        #expect(FoodDatabase.local(barcode: "8801043036597", in: [again]) === saved)
+        // Not a valid product code: nothing is linked.
+        try FoodDatabase.link(saved, barcode: "12345", in: store)
+        #expect(saved.barcode == "8801043036597")
     }
 }
 

@@ -4,7 +4,8 @@ import Foundation
 /// fixture below, which stands in for the server (no network). Flags: `-uiTestBarcodeNotFound` (neither database has
 /// it), `-uiTestTerraOffline` (no connection), `-uiTestFoodDatabaseOfflineAfterOne` (the connection goes after the
 /// first answer), `-uiTestFoodSearchOff` (search not set up on the server), `-uiTestBarcodeNoRead` (the fixture camera
-/// reads nothing, for captures of Barcode mode itself).
+/// reads nothing, for captures of Barcode mode itself), `-uiTestBarcodeKorean` (N12: not found, with a Korean name for
+/// the "Is this it?" search; `-uiTestBarcodeKoreanNoMatch`: a name nothing matches).
 enum FoodDatabaseAccess {
     /// The server client for this session; nil signed out. A 401 signs the phone out, as the AI client does.
     @MainActor static func client(_ account: AccountStore) -> FoodDatabaseClient? {
@@ -14,7 +15,7 @@ enum FoodDatabaseAccess {
         })
     }
 
-    static func barcode(_ code: String, client: FoodDatabaseClient?) async throws -> DatabaseFood? {
+    static func barcode(_ code: String, client: FoodDatabaseClient?) async throws -> BarcodeAnswer {
         if TerraAccess.fixture { return try await FoodDatabaseFixture.barcode(code) }
         guard let client else { throw FoodDatabaseError.signedOut }
         return try await client.barcode(code)
@@ -27,8 +28,8 @@ enum FoodDatabaseAccess {
     }
 }
 
-/// The UI tests' food databases: one packaged food for any barcode, and a few generic foods by name. Shaped as the
-/// server answers, through the same checks (`DatabaseFood(json:)`).
+/// The UI tests' food databases: one packaged food for any barcode, a few generic foods by name, and (N12) Korean foods
+/// for a search in Korean. Shaped as the server answers, through the same checks (`DatabaseFood(json:)`).
 enum FoodDatabaseFixture {
     /// The code the fixture camera "reads" in Barcode mode (a valid EAN-13).
     static let barcode = "3017620422003"
@@ -44,17 +45,19 @@ enum FoodDatabaseFixture {
         answered += 1
     }
 
-    static func barcode(_ code: String) async throws -> DatabaseFood? {
+    static func barcode(_ code: String) async throws -> BarcodeAnswer {
         try await wait()
-        if arguments.contains("-uiTestBarcodeNotFound") { return nil }
-        return DatabaseFood(json: [
+        if arguments.contains("-uiTestBarcodeKoreanNoMatch") { return BarcodeAnswer(name: "샘표고등어") }
+        if arguments.contains("-uiTestBarcodeKorean") { return BarcodeAnswer(name: "양파링 오리지널") }
+        if arguments.contains("-uiTestBarcodeNotFound") { return BarcodeAnswer() }
+        return BarcodeAnswer(food: DatabaseFood(json: [
             "id": "off:\(code)", "source": "openFoodFacts", "name": "Hazelnut spread", "brand": "Sample Pantry",
             "barcode": code,
             "per100g": nutrients(539, 6.3, 57.5, 30.9, saturatedFat: 10.6, fiber: 0, sugar: 56.3, sodiumMg: 42.8),
             "serving": ["text": "15 g", "grams": 15,
                         "nutrients": nutrients(81, 0.9, 8.6, 4.6, saturatedFat: 1.6, fiber: 0, sugar: 8.4, sodiumMg: 6.4)],
             "measures": [] as [Any],
-        ])
+        ]))
     }
 
     static func search(_ query: String) async throws -> [DatabaseFood] {
@@ -62,7 +65,10 @@ enum FoodDatabaseFixture {
         if arguments.contains("-uiTestFoodSearchOff") { throw FoodDatabaseError.notConfigured }
         let q = query.lowercased()
         var foods: [[String: Any]] = []
-        if q.contains("banana") {
+        if FoodDatabase.containsHangul(q) {
+            foods = korean.filter { ($0["name"] as? String)?.replacingOccurrences(of: " ", with: "")
+                .contains(q.replacingOccurrences(of: " ", with: "")) ?? false }
+        } else if q.contains("banana") {
             foods = [
                 generic(173_944, "Bananas, raw", nutrients(89, 1.1, 22.8, 0.3, fiber: 2.6, sugar: 12.2, sodiumMg: 1),
                         measures: [("1 medium", 118), ("1 cup, sliced", 150)]),
@@ -75,6 +81,29 @@ enum FoodDatabaseFixture {
         }
         return foods.compactMap(DatabaseFood.init(json:))
     }
+
+    /// N12: 식품영양성분DB as the server normalises it — a product with its package, a dish with its portion, and a
+    /// restaurant dish that lists no fat or carbs (kept as 0).
+    private static let korean: [[String: Any]] = [
+        ["id": "mfds:P-ONION-1", "source": "mfds", "name": "양파링 오리지널", "brand": "(주)농심",
+         "per100g": nutrients(469, 6.25, 63.75, 21.25, saturatedFat: 7.5, sugar: 5, sodiumMg: 525),
+         "serving": ["text": "1 package (84 g)", "grams": 84,
+                     "nutrients": nutrients(394, 5.25, 53.55, 17.85, saturatedFat: 6.3, sugar: 4.2, sodiumMg: 441)],
+         "measures": [] as [Any]],
+        ["id": "mfds:P-ONION-2", "source": "mfds", "name": "양파링 매콤한맛", "brand": "(주)농심",
+         "per100g": nutrients(472, 6.1, 63.1, 22, sodiumMg: 610),
+         "serving": ["text": "1 package (80 g)", "grams": 80, "nutrients": nutrients(378, 4.9, 50.5, 17.6, sodiumMg: 488)],
+         "measures": [] as [Any]],
+        ["id": "mfds:D-KIMCHI", "source": "mfds", "name": "김치찌개",
+         "per100g": nutrients(61, 3.77, 2.98, 3.75, saturatedFat: 0.69, fiber: 2.1, sugar: 0.76, sodiumMg: 491),
+         "serving": ["text": "1 serving (400 g)", "grams": 400,
+                     "nutrients": nutrients(244, 15.08, 11.92, 15, saturatedFat: 2.76, fiber: 8.4, sugar: 3.04, sodiumMg: 1964)],
+         "measures": [] as [Any]],
+        ["id": "mfds:D-ROSE", "source": "mfds", "name": "떡볶이, 로제떡볶이", "brand": "치킨플러스",
+         "per100g": nutrients(187, 5.03, 0, 0, sodiumMg: 436),
+         "serving": ["text": "1 serving (100 g)", "grams": 100, "nutrients": nutrients(187, 5.03, 0, 0, sodiumMg: 436)],
+         "measures": [] as [Any], "notListed": ["carbs", "fat"]],
+    ]
 
     private static func generic(_ fdcId: Int, _ name: String, _ per100g: [String: Any],
                                 measures: [(String, Double)]) -> [String: Any] {

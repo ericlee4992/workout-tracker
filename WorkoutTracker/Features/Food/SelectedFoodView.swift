@@ -4,7 +4,8 @@ import SwiftUI
 /// Nutrition N4 — a food chosen from Log Food: how much, its numbers, Log. The eye lands on the calories for the
 /// chosen amount (the hero); servings is the control above it; Log is the one primary command at the bottom. The
 /// bookmark in the bar puts the food in Saved foods or takes it out (D81); one of My foods also offers Edit (the Add
-/// food form, filled in). N8: a food from a database offers its other servings (by weight) and credits its source.
+/// food form, filled in). N8: a food from a database offers its other servings (by weight) and credits its source; N12:
+/// one whose source leaves macros blank says so under them.
 struct SelectedFoodView: View {
     var food: SavedFood
     var meal: MealSlot
@@ -61,6 +62,14 @@ struct SelectedFoodView: View {
                     LookNavTitle(food.name, subtitle: food.brand)
                     amount
                     MacroSummary(macros: eaten)
+                    if FoodDatabase.macrosIncomplete(databaseID: food.databaseID, calories: food.calories,
+                                                     protein: food.proteinGrams, carbs: food.carbsGrams, fat: food.fatGrams) {
+                        // N12 (D86): a source that leaves macros blank (restaurant chains); they count as 0.
+                        Text("Not all macros are listed for this food; they count as 0.")
+                            .font(look.font.footnote)
+                            .foregroundStyle(look.textSecondary)
+                            .accessibilityIdentifier("selectedFoodMacrosNotListed")
+                    }
                     other
                     if let credit = FoodDatabase.attribution(databaseID: food.databaseID) {
                         Text(credit)

@@ -60,10 +60,11 @@ struct LogFoodView: View {
         var failure: FoodDatabaseError?
     }
 
-    /// What the online search asks for: the query on All, two characters or more, signed in; "" for none.
+    /// What the online search asks for: the query on All, two characters or more (one in Korean, N12), signed in; ""
+    /// for none.
     private var onlineQuery: String {
         let query = search.trimmingCharacters(in: .whitespaces)
-        guard tab == .all, query.count >= 2, TerraAccess.ready(account) else { return "" }
+        guard tab == .all, FoodDatabase.searchable(query), TerraAccess.ready(account) else { return "" }
         return query
     }
 
@@ -370,7 +371,8 @@ struct LogFoodView: View {
                     LookList(separatorInset: 16) {
                         ForEach(onlineFoods) { food in onlineRow(food) }
                     }
-                    Text(FoodDatabase.attribution(.usda))
+                    // N12: each database the results came from (USDA, or the Korean ministry for a Korean search).
+                    Text(FoodDatabase.attributions(onlineFoods).joined(separator: "\n"))
                         .font(look.font.footnote)
                         .foregroundStyle(look.textSecondary)
                         .accessibilityIdentifier("logFoodOnlineAttribution")
