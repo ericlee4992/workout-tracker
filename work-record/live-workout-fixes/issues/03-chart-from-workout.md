@@ -1,7 +1,7 @@
 # 03 — The chart from a live workout, by machine
 
 Type: feature
-Status: **in progress — built, captures for the user** (the user, 2026-11-13; ticket 1 of 2, before [N15](../../nutrition/issues/15-save-any-food.md))
+Status: **done — Codex clear (round 3), merged into `main` 2026-11-13** (the user, 2026-11-13; ticket 1 of 2, before [N15](../../nutrition/issues/15-save-any-food.md))
 Implementer: Claude; Reviewer: Codex (a Paseo Codex agent in this workspace), to "clear".
 Branch: `ericlee4992/workout-chart-machines` off `main` `7dc65b82` (Paseo workspace "Workout chart + save foods",
 `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`).
@@ -199,3 +199,11 @@ Verified: FloodlightLiveUITests.testLiveChartOpensOnTheMachineInUseAndSwitchesMa
 Not verified: on a phone
 Known flaky: FloodlightLiveUITests.testMakingAFreshBestAWarmupTakesTheBandAway — see round 1 evidence; follow-up below
 ```
+
+## Review result and merge
+
+Codex round 3: **clear** ([`codex-review-03c.md`](../codex-review-03c.md); its own build, Unit 1358/1358 and 5 focused
+UI tests). Merged into `main` by fast-forward, 2026-11-13. Open for the user (not blocking): the new strings above.
+Follow-up: the live "New best" band tests wait on timing (`testMakingAFreshBestAWarmupTakesTheBandAway` failed 2 of
+~10 runs here, at two different waits; Codex: synchronise on idle, not only a longer wait) — propose a dev-speed ticket.
+
