@@ -337,4 +337,28 @@ Evidence after the fixes: server **337/337** + typecheck + page tests 27/27; app
 Evidence: server **339/339** + typecheck; build-for-testing exit 0; `FoodDatabaseTests` **15/15**; UI
 `KoreanFoodUITests` + `BarcodeSearchUITests` **14/14** with 2 workers, exit 0 (`/tmp/n12data/ui-r3-*.xcresult`).
 
+### Codex round 3 — not clear (R9), fixed (2026-11-13)
+
+- **R9 (P2):** 식품영양성분DB's reader now treats a reply holding entries that are not rows (`items: [null]`) as a
+  failure, as R7 did for Food QR and C005: a search with nothing built in answers 502, one with built-in foods shows
+  them uncached; a report-number lookup leaves the barcode miss uncached. Tests for both, with valid-empty controls.
+- **The camera-entry failure, diagnosed:** reproduced on Codex's simulator WT-iPhone27 in a parallel run (BarcodeSearch
+  not-found case, 00:45). The failure hierarchy shows Today with **"Resume workout — Outdoor Run +1"** and the
+  **Choose Cardio** sheet already open over it **before** the test's tap (the scan button was never hittable: XCTest's
+  hit point {-1, -1}) — an unfinished cardio workout present on that clone at launch despite `-uiTestReset`. The same
+  two cases **pass serially** on WT-iPhone27 (2/2, exit 0, `/tmp/n12data/ui-r4s-*.xcresult`) and every run on
+  WT-Floodlight passes. Not N12 (no Today, workout or cardio code changed); proposed follow-up: find what restores an
+  active Outdoor Run on a parallel clone (state outside the store that `-uiTestReset` does not clear). The helpers now
+  also wait for the scan button to hold still before tapping (harmless; not the cause).
+
+Evidence: server **341/341** + typecheck; build-for-testing exit 0; UI on WT-iPhone27, 2 workers: **13/14**, exit 65
+(the case above; `/tmp/n12data/ui-r4-*.xcresult`), then the two scan-entry cases serially **2/2**, exit 0.
+
+```
+Known flaky: BarcodeSearchUITests.testABarcodeNotFoundOffersTheLabelScanAndManualAdd and
+  KoreanFoodUITests.testAKoreanBarcodeOffersIsThisItAndTheLoggedFoodOpensNextTime — on parallel clones of
+  WT-iPhone27 the app can launch with an unfinished Outdoor Run and Choose Cardio open over Today; pass serially
+  there and in every WT-Floodlight run (pre-existing launch state, outside N12)
+```
+
 ## Comments

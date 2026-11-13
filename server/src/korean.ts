@@ -213,8 +213,9 @@ async function mfds(env: Env, deps: Deps, params: Record<string, string>): Promi
   }
   const items = body.body.items;
   if (items === undefined && Number(body.body.totalCount) === 0) return [];
-  if (!Array.isArray(items)) throw new Upstream("mfds", "malformed");
-  return items.filter(isObject);
+  // An entry that is not a row is a malformed reply, never dropped into an empty answer (codex-review-n12 R9, as R7).
+  if (!Array.isArray(items) || items.some((item) => !isObject(item))) throw new Upstream("mfds", "malformed");
+  return items as Record<string, unknown>[];
 }
 
 /**

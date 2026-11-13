@@ -163,6 +163,18 @@ describe("Korean search", () => {
     expect(await body(nothing)).toEqual({ error: "food_unavailable" });
   });
 
+  it("a reply holding entries that are not rows is a failure: nothing built in → 502, nothing cached (R9)", async () => {
+    h.food.mfds = () => mfdsAnswer([null]);
+    expect((await search("쀍쀍없는제품")).status).toBe(502);
+    // With built-in foods: those, not cached.
+    expect((await search("김치찌개")).status).toBe(200);
+    expect(await count("food_cache")).toBe(0);
+    // A valid empty answer: cached (the control).
+    h.food.mfds = () => mfdsAnswer([]);
+    await search("쀍쀍없는제품");
+    expect(await count("food_cache")).toBe(1);
+  });
+
   it("an error envelope from data.go.kr is a failure, never an empty result to cache", async () => {
     h.food.mfds = () => Response.json({ header: { resultCode: "22", resultMsg: "LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR" } });
     expect((await search("쀍쀍없는제품")).status).toBe(502);
@@ -328,6 +340,16 @@ describe("Korean barcodes", () => {
     });
     expect(fromFoodQRLabel(ONION_RING, [...partial, qrNutrient("탄수화물", "0", "g", "100.000", "100g당"),
       qrNutrient("지방", "0", "g", "100.000", "100g당")], null)).not.toHaveProperty("notListed");
+  });
+
+  it("a malformed 식품영양성분DB reply to a report-number lookup leaves the barcode miss uncached (R9)", async () => {
+    h.food.c005 = () => c005Answer([{ BAR_CD: ONION_RING, PRDLST_NM: "양파링 오리지널", PRDLST_REPORT_NO: "1991046110125" }]);
+    h.food.mfds = () => mfdsAnswer([null]);
+    expect(await body(await barcode(ONION_RING))).toEqual({ found: false, name: "양파링 오리지널" });
+    expect(await count("food_cache")).toBe(0);
+    h.food.mfds = () => mfdsAnswer([]);
+    expect(await body(await barcode(ONION_RING))).toEqual({ found: false, name: "양파링 오리지널" });
+    expect(await count("food_cache")).toBe(1);
   });
 
   it("C005's result code reaches the log only in its documented shape (R4)", async () => {

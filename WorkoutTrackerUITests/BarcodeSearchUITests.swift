@@ -31,14 +31,29 @@ final class BarcodeSearchUITests: XCTestCase {
         XCTAssertTrue(app.buttons["logFoodPill"].waitForExistence(timeout: 15))
     }
 
+    /// Waits (up to 5 s) until `element` is hittable and its frame is the same on two reads 0.3 s apart.
+    private func waitUntilStill(_ element: XCUIElement) {
+        var last = element.frame
+        let end = Date().addingTimeInterval(5)
+        while Date() < end {
+            Thread.sleep(forTimeInterval: 0.3)
+            let now = element.frame
+            if now == last, element.isHittable { return }
+            last = now
+        }
+    }
+
     private func scanBarcode() {
         let button = app.buttons["scanFoodButton"]
         XCTAssertTrue(button.waitForExistence(timeout: 10))
+        // Today settles after launch (its cards load and move): a tap made meanwhile lands on whatever is under the
+        // button's old place — once Choose Cardio (codex-review-n12 round 3). Tap once it has held still.
+        waitUntilStill(button)
         button.tap()
         let mode = app.buttons["scanFoodMode.barcode"]
         // A tap made while Today is still settling after launch can be lost (codex-review-n12: the camera never
         // opened, the app still on Today, in parallel runs): tap once more, as `openLogFood` does for its pill.
-        if !mode.waitForExistence(timeout: 5), button.isHittable { button.tap() }
+        if !mode.waitForExistence(timeout: 5), button.isHittable { waitUntilStill(button); button.tap() }
         XCTAssertTrue(mode.waitForExistence(timeout: 10))
         mode.tap()
     }
