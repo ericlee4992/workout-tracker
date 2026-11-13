@@ -7,12 +7,14 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 - **N12 in progress (2026-11-12):** Paseo workspace "N12 Korean food DB", branch `ericlee4992/nutrition-12-korean-db`
   (worktree `~/.paseo/worktrees/1qmeipq9/nutrition-12-korean-db`). Decided: **D86** (Korean search from 식품영양성분DB;
-  Korean barcodes via Food QR + C005 → 식품영양성분DB; restaurant rows shown with a note). **Server built and
-  live-checked** (`84cc952e`, 334/334); [ticket](../work-record/nutrition/issues/12-korean-food-database.md#progress).
-  Keys on the Mac: `~/.config/workouttracker/mfds.env` (`MFDS_API_KEY`, `FOODSAFETY_API_KEY`). **Next: app UI-first
-  captures** (Korean results + credit, the "not listed" note, barcode not found → Korean search → "Is this it?"), then
-  wiring, tests, privacy wording (the user approves), Codex (none started yet for N12), merge; deploy + the two Worker
-  secrets with the user's go.
+  Korean barcodes via Food QR + C005 → 식품영양성분DB; restaurant rows shown with a note). **Server and app built**
+  (server 334/334, live-checked; Unit plan 1,345/1,345; UI KoreanFoodUITests 6/6, BarcodeSearchUITests 8/8);
+  [ticket](../work-record/nutrition/issues/12-korean-food-database.md#progress). **Codex round 1 running**: Paseo agent
+  `006b23e1-2c83-43d0-9727-93ba37515353` ("N12 Codex review"; reuse it), brief
+  `work-record/nutrition/codex-review-n12-prompt.md`, report `work-record/nutrition/codex-review-n12.md`. **Waiting on
+  the user:** the captures (`/tmp/n12data/shots/n12-*.png`), the six new strings and the privacy wording (ticket). Keys
+  on the Mac: `~/.config/workouttracker/mfds.env` (`MFDS_API_KEY`, `FOODSAFETY_API_KEY`). After clear: merge; deploy +
+  the two Worker secrets only with the user's go (set `POLICY_EFFECTIVE_DATE` that day).
 - **Git:** everything merged and pushed; `main` = `f8b300dc` (home checkout clean). Nothing in progress on any branch.
 - **Shipped to TestFlight:** **0.2.0 (12)** uploaded 2026-11-12 17:55 EST = P1 workout lag + N13 goal setup + N14 AI
   goals (build 11 was uploaded earlier the same day; the user kept the version at 0.2.0 so external review is likely
