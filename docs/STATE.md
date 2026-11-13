@@ -1,21 +1,23 @@
 # Current project state
 
-Updated **2026-11-12: 0.2.0 (12) uploaded (N14 on top of build 11); next: the user's TestFlight steps, Gate S first.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-13: N12 Korean food data merged into `main` (Codex clear, round 4); deploy waits for the user. Earlier 2026-11-12: 0.2.0 (12) uploaded (N14 on top of build 11); the user's TestFlight steps, Gate S first.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-12, end of the P1 / N13 / N14 session)
 
-- **N12 in progress (2026-11-12):** Paseo workspace "N12 Korean food DB", branch `ericlee4992/nutrition-12-korean-db`
-  (worktree `~/.paseo/worktrees/1qmeipq9/nutrition-12-korean-db`). Decided: **D86** (Korean search from 식품영양성분DB;
-  Korean barcodes via Food QR + C005 → 식품영양성분DB; restaurant rows shown with a note). **Server and app built**
-  (server 334/334, live-checked; Unit plan 1,345/1,345; UI KoreanFoodUITests 6/6, BarcodeSearchUITests 8/8);
-  [ticket](../work-record/nutrition/issues/12-korean-food-database.md#progress). **Codex round 1 running**: Paseo agent
-  `006b23e1-2c83-43d0-9727-93ba37515353` ("N12 Codex review"; reuse it), brief
-  `work-record/nutrition/codex-review-n12-prompt.md`, report `work-record/nutrition/codex-review-n12.md`. **Waiting on
-  the user:** the captures (`/tmp/n12data/shots/n12-*.png`), the six new strings and the privacy wording (ticket). Keys
-  on the Mac: `~/.config/workouttracker/mfds.env` (`MFDS_API_KEY`, `FOODSAFETY_API_KEY`). After clear: merge; deploy +
-  the two Worker secrets only with the user's go (set `POLICY_EFFECTIVE_DATE` that day).
-- **Git:** everything merged and pushed; `main` = `f8b300dc` (home checkout clean). Nothing in progress on any branch.
+- **N12 Korean food data — DONE in code, merged into `main` 2026-11-13** (Codex clear, round 4; branch
+  `ericlee4992/nutrition-12-korean-db` kept; [ticket](../work-record/nutrition/issues/12-korean-food-database.md),
+  D86, review `work-record/nutrition/codex-review-n12.md`). Korean search from 식품영양성분DB (built-in representative
+  items + live brand products); Korean barcodes via Food QR + C005 → 식품영양성분DB; "Is this it?" (link on log); the
+  not-listed note where a food is found. Evidence: server 341/341; Unit plan 1,345/1,345 (before review);
+  FoodDatabaseTests 15/15; KoreanFoodUITests + BarcodeSearchUITests 14/14 on WT-Floodlight. **Waiting on the user:**
+  captures (`/tmp/n12data/shots*/n12-*.png`), the new strings and the privacy wording (ticket); then **deploy** (server
+  not yet deployed): `npx wrangler secret put MFDS_API_KEY` and `FOODSAFETY_API_KEY` (the user, in Terminal; values in
+  `~/.config/workouttracker/mfds.env`), set `POLICY_EFFECTIVE_DATE`, `npm run deploy`, then a live check; release
+  0.2.2 later (version/build the user's call). Codex agent `006b23e1-2c83-43d0-9727-93ba37515353` (workspace "N12
+  Korean food DB"; archive the workspace after deploy). Follow-up: [dev-speed 02](../work-record/dev-speed/issues/02-ui-test-launch-unfinished-workout.md)
+  (UI tests: an unfinished Outdoor Run at launch on WT-iPhone27).
+- **Git:** N12 merged into `main` 2026-11-13 (see above); the home checkout needs `git pull` to show it.
 - **Shipped to TestFlight:** **0.2.0 (12)** uploaded 2026-11-12 17:55 EST = P1 workout lag + N13 goal setup + N14 AI
   goals (build 11 was uploaded earlier the same day; the user kept the version at 0.2.0 so external review is likely
   skipped). Records: `work-record/release/0.2.0-build-11.md`, `0.2.0-build-12.md`.

@@ -1,7 +1,7 @@
 # N12 — Korean food database (식품영양성분DB) for barcodes and search
 
 Type: feature
-Status: **approved — release 0.2.2** (the user, 2026-11-11: after 0.2.1 = workout lag + goal setup)
+Status: **built — Codex clear (round 4), merged into `main` 2026-11-13; deploy waits for the user** (release 0.2.2)
 Blocked by: R
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-12-korean-db` off `main`.
@@ -343,12 +343,12 @@ Evidence: server **339/339** + typecheck; build-for-testing exit 0; `FoodDatabas
   failure, as R7 did for Food QR and C005: a search with nothing built in answers 502, one with built-in foods shows
   them uncached; a report-number lookup leaves the barcode miss uncached. Tests for both, with valid-empty controls.
 - **The camera-entry failure, diagnosed:** reproduced on Codex's simulator WT-iPhone27 in a parallel run (BarcodeSearch
-  not-found case, 00:45). The failure hierarchy shows Today with **"Resume workout — Outdoor Run +1"** and the
-  **Choose Cardio** sheet already open over it **before** the test's tap (the scan button was never hittable: XCTest's
-  hit point {-1, -1}) — an unfinished cardio workout present on that clone at launch despite `-uiTestReset`. The same
+  not-found case, 00:45). An **active "Outdoor Run +1" workout** is on screen ~5 s after launch, before any tap; the
+  scan button is not hittable (XCTest's hit point {-1, -1}); **Choose Cardio** appears after the tap (corrected by
+  Codex round 4 from the recording's timeline — the sheet was not open before the tap). Cause not established. The same
   two cases **pass serially** on WT-iPhone27 (2/2, exit 0, `/tmp/n12data/ui-r4s-*.xcresult`) and every run on
-  WT-Floodlight passes. Not N12 (no Today, workout or cardio code changed); proposed follow-up: find what restores an
-  active Outdoor Run on a parallel clone (state outside the store that `-uiTestReset` does not clear). The helpers now
+  WT-Floodlight passes. Not N12 (no Today, workout or cardio code changed); follow-up
+  [dev-speed 02](../../dev-speed/issues/02-ui-test-launch-unfinished-workout.md). The helpers now
   also wait for the scan button to hold still before tapping (harmless; not the cause).
 
 Evidence: server **341/341** + typecheck; build-for-testing exit 0; UI on WT-iPhone27, 2 workers: **13/14**, exit 65
@@ -356,9 +356,20 @@ Evidence: server **341/341** + typecheck; build-for-testing exit 0; UI on WT-iPh
 
 ```
 Known flaky: BarcodeSearchUITests.testABarcodeNotFoundOffersTheLabelScanAndManualAdd and
-  KoreanFoodUITests.testAKoreanBarcodeOffersIsThisItAndTheLoggedFoodOpensNextTime — on parallel clones of
-  WT-iPhone27 the app can launch with an unfinished Outdoor Run and Choose Cardio open over Today; pass serially
-  there and in every WT-Floodlight run (pre-existing launch state, outside N12)
+  KoreanFoodUITests.testAKoreanBarcodeOffersIsThisItAndTheLoggedFoodOpensNextTime — on WT-iPhone27 the app can
+  launch with an active Outdoor Run, so the scan button is not hittable (Codex: also serial and warm; the author's
+  serial pair passed); every WT-Floodlight run passes. Cause unknown, outside N12: dev-speed 02
 ```
+
+### Codex round 4 — **clear** (2026-11-13)
+
+`work-record/nutrition/codex-review-n12.md` Round 4 (`83b0ddca`): R1–R9 resolved; server 341/341, build,
+FoodDatabaseTests 15/15, plans and whitespace checks green. Reviewer UI on WT-iPhone27 12/14 (parallel), 1/2 serial,
+0/1 warm — the two camera-entry cases; cleared as a separate launch/fixture issue (dev-speed 02), not certified as
+green UI on that simulator. Diagnosis wording corrected above per its timeline.
+
+**Next:** merge into `main` (done below). For the user: the captures, the strings (incl. the note's specific wording)
+and the privacy wording; then deploy with the two Worker secrets (`MFDS_API_KEY`, `FOODSAFETY_API_KEY`) and
+`POLICY_EFFECTIVE_DATE` set that day — only with the user's go.
 
 ## Comments
