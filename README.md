@@ -13,7 +13,8 @@ and nothing was comparable. Stacked anchors machine sets to a specific machine a
 gym (free weights and bodyweight work are logged too). Previous performance and records are per
 machine first, per equipment model second, and per exercise only as a last resort — each layer
 labelled so you know what you're comparing against. Sets are prefilled only from that same
-machine.
+machine. During a workout, an exercise's chart icon opens its progress chart with last time's sets on top, and a
+machine exercise can switch between each machine it was logged on (or all of them).
 
 <!-- Screenshots in docs/readme/: the capture UI tests' Soft look (dark, default text size, built-in sample data),
 taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resized to 603 px wide. Retake them when a shown screen changes visibly (AGENTS.md). -->

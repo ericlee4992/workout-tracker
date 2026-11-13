@@ -47,6 +47,13 @@ enum DesignSampleFixture {
     /// press and the leg press (Most used, Best set) and both activities (Distance). Pair it with
     /// `-uiTestDesignHistory` so the lifts climb.
     static let progressArgument = "-uiTestDesignProgress"
+    /// With `-uiTestDesignMachines` too (live-workout 03, the chart by machine): the chest press has more history on
+    /// two machines — Chest Press 2 at Iron Temple 22 days ago, and the same model, "Chest Press", at Hotel Gym
+    /// (New York) 20 and 16 days ago, heavier — so the chart's selector lists both machines and All machines.
+    static let machinesArgument = "-uiTestDesignMachines"
+    static var machinesIsEnabled: Bool {
+        isEnabled && ProcessInfo.processInfo.arguments.contains(machinesArgument)
+    }
     static var progressIsEnabled: Bool {
         isEnabled && ProcessInfo.processInfo.arguments.contains(progressArgument)
     }
@@ -200,6 +207,7 @@ enum DesignSampleFixture {
         let exercisesIsEnabled = launchVariants && Self.exercisesIsEnabled
         let historyIsEnabled = launchVariants && Self.historyIsEnabled
         let liveIsEnabled = launchVariants && Self.liveIsEnabled
+        let machinesIsEnabled = launchVariants && Self.machinesIsEnabled
         let isEnabled = launchVariants && Self.isEnabled
         guard try context.fetch(FetchDescriptor<Workout>()).isEmpty else { return }
         let exercises = try context.fetch(FetchDescriptor<Exercise>())
@@ -278,6 +286,9 @@ enum DesignSampleFixture {
         if gymsIsEnabled { try addGymsExtras(to: gym, machines: machineFor, models: models, now: now, in: context) }
         if exercisesIsEnabled {
             addExercisesExtras(at: gym, machines: machineFor, exercise: exercise, now: now, in: context)
+        }
+        if machinesIsEnabled, let press = exercise("Seated Chest Press") {
+            try addMachinesExtras(press, at: gym, machine: machineFor["Seated Chest Press"], now: now, in: context)
         }
         try context.save()
         try GymSelection.remember(gym, in: context)
@@ -394,6 +405,47 @@ enum DesignSampleFixture {
             workout.historyEditedAt = workout.finishedAt?.addingTimeInterval(86_400)
         default:
             break
+        }
+    }
+
+    /// The chart-by-machine captures' extras (`-uiTestDesignMachines`): the chest press on a second machine of the
+    /// same model at Hotel Gym (heavier — another machine's numbers), and once more on Chest Press 2.
+    private static func addMachinesExtras(_ press: Exercise, at gym: Gym, machine: MachineInstance?, now: Date,
+                                          in context: ModelContext) throws {
+        let hotelName = "Hotel Gym"
+        let hotel = try context.fetch(FetchDescriptor<Gym>()).first { $0.name == hotelName }
+            ?? Gym(name: hotelName, city: "New York", defaultUnit: .lb)
+        if hotel.modelContext == nil { context.insert(hotel) }
+        let away = MachineInstance(label: "Chest Press", gym: hotel, model: machine?.model)
+        context.insert(away)
+        let calendar = Calendar.current
+        // (days ago, gym, machine, (weight lb, reps) per working set)
+        let days: [(Int, Gym, MachineInstance?, [(Double, Int)])] = [
+            (22, gym, machine, [(35, 10), (40, 8)]),
+            (20, hotel, away, [(60, 10), (65, 8)]),
+            (16, hotel, away, [(65, 10), (70, 8)]),
+        ]
+        for (daysAgo, place, used, sets) in days {
+            guard let day = calendar.date(byAdding: .day, value: -daysAgo, to: now) else { continue }
+            let start = calendar.date(bySettingHour: 7, minute: 30, second: 0, of: day) ?? day
+            let workout = Workout(startedAt: start, snapshotGymName: place.name, gym: place)
+            workout.finishedAt = start.addingTimeInterval(45 * 60)
+            context.insert(workout)
+            let entry = ExerciseEntry(
+                order: 0, workout: workout, exercise: press, machine: used, snapshotCapturedAt: start,
+                snapshotExerciseID: press.id, snapshotMachineID: used?.id, snapshotModelID: used?.model?.id,
+                snapshotGymID: place.id, snapshotLoadType: press.loadType, snapshotExerciseName: press.name,
+                snapshotMachineLabel: used?.label, snapshotModelName: used?.model?.displayName,
+                snapshotGymName: place.name)
+            context.insert(entry)
+            for (index, row) in sets.enumerated() {
+                let set = SetRecord(
+                    order: index, type: .working, reps: row.1, weightValue: row.0, weightUnit: .lb,
+                    normalizedKg: WeightMath.normalizedKg(value: row.0, unit: .lb),
+                    completedAt: start.addingTimeInterval(Double(index * 150)))
+                set.entry = entry
+                context.insert(set)
+            }
         }
     }
 

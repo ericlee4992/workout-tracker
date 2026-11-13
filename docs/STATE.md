@@ -10,6 +10,10 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   machine](../work-record/live-workout-fixes/issues/03-chart-from-workout.md) (branch `ericlee4992/workout-chart-machines`);
   2) [N15 — save any food you open](../work-record/nutrition/issues/15-save-any-food.md). D87. Each UI-first, Codex clear,
   merged before the next. Release afterwards: the user's call.
+  **Ticket 1 — built on the branch (2026-11-13):** chart from the live card with "Last time" on top, machine selector
+  (each machine "name · gym" + All machines), `PreviousPerformanceSheet` removed; unit + 4 UI tests green; captures in
+  `work-record/live-workout-fixes/captures/03/`. **Next:** the user looks at the captures and the new strings (ticket);
+  Codex review (a new Paseo Codex agent in this workspace); the Workout + HistoryProgress plans before merge.
 
 - **N12 Korean food data — DONE: merged into `main` and server deployed 2026-11-13** (Codex clear, round 4; branch
   `ericlee4992/nutrition-12-korean-db` kept; [ticket](../work-record/nutrition/issues/12-korean-food-database.md), D86,

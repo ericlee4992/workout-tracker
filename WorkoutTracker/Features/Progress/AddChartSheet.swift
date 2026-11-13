@@ -306,6 +306,7 @@ private struct ChooseLiftChart: View {
     private func glyph(_ equipment: ProgressEquipment) -> String {
         switch equipment {
         case .machine: LookIcon.machine
+        case .anyMachine: LookIcon.allMachines
         case .freeWeight(let tag): tag.historySymbol
         case .unrecorded: "circle.dashed"
         }

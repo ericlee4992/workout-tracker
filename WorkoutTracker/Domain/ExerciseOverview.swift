@@ -483,7 +483,7 @@ extension ExerciseOverview {
             let entry = entries.first { $0.snapshotMachineID == machineID }
             equipmentName = entry?.snapshotMachineLabel ?? "Machine"
             gymName = entry?.snapshotGymName
-        case .unrecorded:
+        case .unrecorded, .anyMachine:
             break
         }
         let presetName = key.presetID.map { id in

@@ -46,6 +46,9 @@ enum PinnedLiftVariation: Codable, Equatable, Sendable {
         case .machine(let id): self = .fixed(loadType: key.loadType, machineID: id, freeWeightTag: nil, presetID: key.presetID)
         case .freeWeight(let tag): self = .fixed(loadType: key.loadType, machineID: nil, freeWeightTag: tag, presetID: key.presetID)
         case .unrecorded: self = .fixed(loadType: key.loadType, machineID: nil, freeWeightTag: nil, presetID: key.presetID)
+        // "All machines" (D87) is a choice made on the chart, never offered when pinning (`AddChartSheet` lists
+        // `rankedVariations`, which has no pool) and not storable in this flat shape: it falls back to Most used.
+        case .anyMachine: self = .mostUsed
         }
     }
 

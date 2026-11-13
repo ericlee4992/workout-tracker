@@ -56,6 +56,9 @@ struct PreviousPerformanceSnapshot: Sendable, Equatable {
     var workoutDate: Date
     var gymName: String?
     var equipmentLabel: String
+    /// The same without the catalog model — "Chest Press 2 · Narrow grip" — for a place that names the gym beside it
+    /// and has no room for a model line ("Last time", live-workout 03).
+    var shortEquipmentLabel: String
     var sets: [PreviousSetValue]
 }
 
@@ -492,6 +495,9 @@ struct PerformanceHistory {
             workoutDate: workout.finishedAt ?? workout.startedAt,
             gymName: entry.snapshotGymName,
             equipmentLabel: entry.snapshotEquipmentLabel,
+            shortEquipmentLabel: [entry.snapshotMachineLabel ?? entry.snapshotFreeWeightTag?.label ?? "No equipment",
+                                  entry.snapshotPresetName].compactMap { $0 }.filter { !$0.isEmpty }
+                .joined(separator: " · "),
             sets: completedSets(of: entry).map(value(from:)))
     }
 }

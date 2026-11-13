@@ -37,13 +37,13 @@ Four levels:
 
 ## History, PRs, integrity
 
-- **Previous performance** uses layered fallback, each layer clearly labeled:
+- **Previous performance** uses layered fallback, each layer clearly labeled (since live-workout 03, D87, it is the "Last time" section on top of the chart the live exercise opens: the most specific layer with a session, a fallback named as such):
   1. This machine
   2. Same equipment model at another gym
   3. The exercise on any equipment
 - **Prefill comes only from same-machine history.** Fallback layers are reference display, never prefilled into inputs.
 - Records, previous performance and prefill are keyed by preset as well as by equipment (D36) — a machine with no preset chosen is its own group, which is what every set logged before 2026-08-12 is.
-- **Progress charts are per variation** (milestone 9): the chart's unit is (snapshot load type, equipment — exact machine / free-weight tag / unrecorded — preset), resolved from HISTORY, opening on the most-trained variation with a picker for the rest; a History session's chart button opens on THAT session's variation. Pooling barbell and dumbbell into one line was a defect (D36 one axis over).
+- **Progress charts are per variation** (milestone 9): the chart's unit is (snapshot load type, equipment — exact machine / free-weight tag / unrecorded — preset), resolved from HISTORY, opening on the most-trained variation with a picker for the rest; a History session's chart button opens on THAT session's variation. From a live workout the chart opens over the workout on the machine in use, "Last time" on top; machines are listed by name · gym, and "All machines" (offered when two or more machines have history, per load type and preset) pools only machine sets — chosen, never a default (D87). Pooling barbell and dumbbell into one line was a defect (D36 one axis over).
 - **Progress tab** (public beta ticket 16, D63): a 5th tab of user-pinned charts, lifting (per variation or "Most used"; Best set / Volume / 1RM) and cardio (per activity; Distance / Pace or Speed / Time), one panel each in the user's order; pins are an app setting outside the store. A lifting panel opens the exercise chart above; a cardio panel opens the cardio progress sheet (bests and sessions).
 - **History has a calendar** (marked days = finished workouts by START day, the same day the list files them under; tap a day to open the session) and a **heart-rate section per session** (average / max / active / total calories, and the 15 s-bucket graph when a series was recorded).
 - **The one sanctioned rewrite of frozen snapshots is D51**: dumbbell-tagged sets of a barbell/machine movement are reclassified onto that movement's dumbbell exercise, once per row, with `reclassifiedAt` / `reclassifiedFromExerciseName` on the row, exported, and shown in History. Not a user edit (`historyEditedAt` untouched); Settings shows the running count. Everything else stays frozen (D19/D23/D47).

@@ -33,11 +33,19 @@ struct ExerciseProgressView: View {
     ///   is looking at one — History opens the chart on the variation THAT
     ///   session used (its snapshot type, tag and preset), not on whichever the
     ///   user has trained most. nil defers to history.
-    init(exerciseID: UUID, exerciseName: String, initialVariation: ProgressVariationKey? = nil) {
+    /// - Parameter lastTime: the live entry the chart was opened from (live-workout 03, D87): its "Last time"
+    ///   section leads the page. nil everywhere else.
+    init(exerciseID: UUID, exerciseName: String, initialVariation: ProgressVariationKey? = nil,
+         lastTime: ExerciseEntry? = nil) {
         self.exerciseID = exerciseID
         self.exerciseName = exerciseName
+        self.lastTime = lastTime
         _variation = State(initialValue: initialVariation)
     }
+
+    let lastTime: ExerciseEntry?
+    /// "Last time"'s session, loaded once on appear (`LastTimeSection.load`).
+    @State private var lastTimeLayer: PerformanceLayerResult?
 
     @State private var metric: Metric = .bestSet
     /// The day the thumb picked; nil shows the most recent.
@@ -63,6 +71,11 @@ struct ExerciseProgressView: View {
                         .foregroundStyle(look.textPrimary)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityAddTraits(.isHeader)
+                    if lastTime == nil { variationControl(data) }
+                }
+                // From a live workout: what was done last time leads, then the chart's machine selector (D87).
+                if let lastTime {
+                    if let section = LastTimeSection(entry: lastTime, layer: lastTimeLayer) { section }
                     variationControl(data)
                 }
                 switch data.series.confidence {
@@ -128,6 +141,7 @@ struct ExerciseProgressView: View {
         // asks for the variation.
         .onAppear {
             if variation == nil { variation = ProgressSeriesMath.defaultVariation(in: data.history.map(\.input)) }
+            if let lastTime { lastTimeLayer = LastTimeSection.load(for: lastTime, in: modelContext) }
         }
     }
 
@@ -159,8 +173,19 @@ struct ExerciseProgressView: View {
                     get: { resolvedVariation },
                     set: { variation = $0; selectedDate = nil; metric = .bestSet; ticks += 1 })
                 ) {
-                    ForEach(options, id: \.key) { item in
-                        Text(label(for: item, labels: labels)).tag(item.key)
+                    // D87: the machines first — All machines, then each machine by name and gym — and the
+                    // other variations (free weights, nothing recorded) after a divider.
+                    let machines = options.filter { $0.key.equipment.isMachine }
+                    let others = options.filter { !$0.key.equipment.isMachine }
+                    Section {
+                        ForEach(machines, id: \.key) { item in
+                            Text(label(for: item, labels: labels)).tag(item.key)
+                        }
+                    }
+                    Section {
+                        ForEach(others, id: \.key) { item in
+                            Text(label(for: item, labels: labels)).tag(item.key)
+                        }
                     }
                 }
             } label: {
@@ -182,6 +207,7 @@ struct ExerciseProgressView: View {
     private func glyph(_ equipment: ProgressEquipment) -> String {
         switch equipment {
         case .machine: LookIcon.machine
+        case .anyMachine: LookIcon.allMachines
         case .freeWeight(let tag): tag.historySymbol
         case .unrecorded: "circle.dashed"
         }
@@ -378,12 +404,13 @@ struct ExerciseProgressView: View {
     /// Every day of this variation, newest first; each opens its workout.
     private func sessions(_ data: ProgressData) -> some View {
         let points = Array(data.series.points.reversed())
+        let machines = sessionMachines(data)
         return VStack(alignment: .leading, spacing: look.space.header) {
             SectionHeader("Sessions", trailing: HistoryRendering.pluralized(points.count, "day", "days"))
             VStack(spacing: 0) {
                 ForEach(Array(points.enumerated()), id: \.element.id) { index, point in
                     if index > 0 { LookDivider().padding(.leading, 16) }
-                    sessionRow(point, data: data)
+                    sessionRow(point, data: data, machine: machines[point.date])
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: look.radius.panel, style: .continuous))
@@ -392,7 +419,7 @@ struct ExerciseProgressView: View {
     }
 
     @ViewBuilder
-    private func sessionRow(_ point: ProgressPoint, data: ProgressData) -> some View {
+    private func sessionRow(_ point: ProgressPoint, data: ProgressData, machine: String?) -> some View {
         let row = HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(HistoryFormat.shortDayTitle(point.date))
@@ -401,6 +428,13 @@ struct ExerciseProgressView: View {
                 Text(asEntered(point))
                     .font(look.historyRowNumber)
                     .foregroundStyle(look.textPrimary)
+                if let machine {
+                    Text(machine)
+                        .font(look.font.footnote)
+                        .foregroundStyle(look.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("progressSessionMachine")
+                }
             }
             Spacer(minLength: 8)
             if data.recordDays.contains(point.date) { NewBestBadge(kind: .newBest) }
@@ -493,6 +527,8 @@ struct ExerciseProgressView: View {
         var recordDays: Set<Date>
         /// The workout holding each charted day's best set — the set the Sessions row shows.
         var workouts: [Date: Workout]
+        /// The machine that best set was on (nil-free: days whose best was on no machine are absent).
+        var machines: [Date: UUID]
 
         init(history: [(input: RecordSetInput, workout: Workout)], variation: ProgressVariationKey) {
             self.history = history
@@ -514,6 +550,7 @@ struct ExerciseProgressView: View {
                 if better { best[day] = item }
             }
             workouts = best.mapValues(\.workout)
+            machines = best.compactMapValues(\.input.machineID)
         }
     }
 
@@ -534,7 +571,10 @@ struct ExerciseProgressView: View {
     /// order — the picker lists what the user has trained, not every preset
     /// that happens to exist.
     private func availableVariations(_ data: ProgressData) -> [(key: ProgressVariationKey, days: Int)] {
-        let ranked = ProgressSeriesMath.rankedVariations(in: data.history.map(\.input))
+        let inputs = data.history.map(\.input)
+        // "All machines" leads its machines (D87); it is offered here, never ranked into the default.
+        let ranked = ProgressSeriesMath.pooledMachineVariations(in: inputs)
+            + ProgressSeriesMath.rankedVariations(in: inputs)
         // The variation on screen must be IN the list even when it has nothing
         // eligible to chart (a warmup-only session opened from History): a
         // Picker whose selection matches no row shows its title instead, and
@@ -547,14 +587,30 @@ struct ExerciseProgressView: View {
     /// Distinct labels for every listed variation — the Domain owns the rule
     /// (`ProgressSeriesMath.labels`); this only supplies the snapshot words.
     private func variationLabels(_ options: [(key: ProgressVariationKey, days: Int)]) -> [ProgressVariationKey: String] {
-        ProgressSeriesMath.labels(for: options.map { (key: $0.key, words: words(for: $0.key)) })
+        let entries = allEntries
+        return ProgressSeriesMath.labels(for: options.map {
+            (key: $0.key, words: ExerciseOverview.variationWords(for: $0.key, entries: entries))
+        })
     }
 
-    /// The snapshot words for a variation — as logged, not as today's rows say
-    /// (D23). Naming policy lives in `ProgressSeriesMath.labels`.
-    private func words(for key: ProgressVariationKey) -> ProgressVariationWords {
-        let entries = (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
-        return ExerciseOverview.variationWords(for: key, entries: entries)
+    /// Every entry, read once per use: the snapshot words for a variation come from them — as logged, not as
+    /// today's rows say (D23). Naming policy lives in `ProgressSeriesMath.labels`.
+    private var allEntries: [ExerciseEntry] {
+        (try? modelContext.fetch(FetchDescriptor<ExerciseEntry>())) ?? []
+    }
+
+    /// Under All machines, which machine each session's best set was on: "Chest Press 2 · Iron Temple", from the
+    /// snapshot (D23). Empty for any other variation, where the selector already names the one machine.
+    private func sessionMachines(_ data: ProgressData) -> [Date: String] {
+        guard resolvedVariation.equipment == .anyMachine else { return [:] }
+        let entries = allEntries
+        return data.machines.mapValues { id in
+            let words = ExerciseOverview.variationWords(
+                for: ProgressVariationKey(loadType: resolvedVariation.loadType, equipment: .machine(id),
+                                          presetID: resolvedVariation.presetID),
+                entries: entries)
+            return [words.equipmentName, words.gymName].compactMap { $0 }.joined(separator: " · ")
+        }
     }
 }
 

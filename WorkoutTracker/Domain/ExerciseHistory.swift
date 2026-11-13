@@ -46,3 +46,23 @@ enum ExerciseHistory {
             normalizedKg: set.normalizedKg, completedAt: set.completedAt), workout))
     }
 }
+
+extension ProgressVariationKey {
+    /// The variation an entry is performing — for a live entry, right now (live-workout 03, D87: the chart opened
+    /// from a workout opens on the machine in use). A draft's equipment, preset and load type are still its live
+    /// rows, editable until the first completed set freezes the snapshot (D19); after that the snapshot is the
+    /// truth (D23), as `PerformanceHistory` reads it.
+    static func current(for entry: ExerciseEntry) -> ProgressVariationKey {
+        guard entry.snapshotCapturedAt == nil else {
+            return ProgressVariationKey(
+                loadType: entry.snapshotLoadType,
+                equipment: ProgressEquipment(
+                    machineID: entry.snapshotMachineID, freeWeightTag: entry.snapshotFreeWeightTag),
+                presetID: entry.snapshotPresetID)
+        }
+        return ProgressVariationKey(
+            loadType: entry.exercise?.loadType ?? entry.snapshotLoadType,
+            equipment: ProgressEquipment(machineID: entry.machine?.id, freeWeightTag: entry.freeWeightTag),
+            presetID: entry.preset?.id)
+    }
+}

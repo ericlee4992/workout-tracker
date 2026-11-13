@@ -283,6 +283,7 @@ struct PreviousPerformanceTests {
             layers.first { $0.kind == .sameModelElsewhere }?.snapshot)
         #expect(sameModel.gymName == "Gym B")
         #expect(sameModel.equipmentLabel == "Press B · Life Fitness Insignia")
+        #expect(sameModel.shortEquipmentLabel == "Press B", "Last time names the machine, not its model (live-workout 03)")
         #expect(sameModel.sets.first?.weightUnit == .lb)
         #expect(sameModel.sets.first?.weightValue == 140)
     }
@@ -306,6 +307,7 @@ struct PreviousPerformanceTests {
         #expect(layers.map(\.kind) == [.thisEquipment, .anyEquipment])
         #expect(layers[0].snapshot?.equipmentLabel == "Barbell")
         #expect(layers[1].snapshot?.equipmentLabel == "Dumbbell")
+        #expect(layers[1].snapshot?.shortEquipmentLabel == "Dumbbell")
     }
 
     @Test func duplicateEntriesInSourceWorkoutUseLastEntryOrder() throws {

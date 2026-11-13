@@ -88,6 +88,20 @@ enum ProgressEquipment: Hashable, Sendable {
     /// No machine and no tag: added from History, or logged before tags
     /// existed. A real group, and an honest label for it, not a wildcard.
     case unrecorded
+    /// "All machines" (D87): every MACHINE set of the load type and preset, pooled across machines and gyms.
+    /// The one deliberate exception to D1/D8's "a weight on one machine is not a weight on another" — the user
+    /// asked to see the exercise across machines — so it is only ever chosen, never a default
+    /// (`variations`/`defaultVariation` do not produce it; `pooledMachineVariations` does), and it is labelled
+    /// as the pool it is. Free-weight and unrecorded sets stay out: they are not machines.
+    case anyMachine
+
+    /// One machine or All machines — the rows the chart's machine selector groups together (D87).
+    var isMachine: Bool {
+        switch self {
+        case .machine, .anyMachine: true
+        case .freeWeight, .unrecorded: false
+        }
+    }
 
     init(machineID: UUID?, freeWeightTag: EquipmentTag?) {
         if let machineID { self = .machine(machineID) }
@@ -100,6 +114,7 @@ enum ProgressEquipment: Hashable, Sendable {
     fileprivate var sortKey: String {
         switch self {
         case .freeWeight(let tag): "0-\(tag.rawValue)"
+        case .anyMachine: "1-"
         case .machine(let id): "1-\(id.uuidString)"
         case .unrecorded: "2"
         }
@@ -181,6 +196,26 @@ enum ProgressSeriesMath {
         let bRank = (-b.days, b.key.presetID == nil ? 0 : 1, b.key.loadType.rawValue,
                      b.key.equipment.sortKey, b.key.presetID?.uuidString ?? "")
         return aRank < bRank
+    }
+
+    /// "All machines" for each load type and preset whose eligible sets were logged on two or more machines,
+    /// with its days (D87). Not part of `variations`: a pool always has at least as many days as any one
+    /// machine, so ranking it there would make it every chart's default — the pooling D1/D8 forbid unless asked.
+    /// With one machine the pool IS that machine, so it is not offered twice.
+    static func pooledMachineVariations(
+        in sets: [RecordSetInput], calendar: Calendar = .current
+    ) -> [(key: ProgressVariationKey, days: Int)] {
+        var machines: [ProgressVariationKey: Set<UUID>] = [:]
+        var days: [ProgressVariationKey: Set<Date>] = [:]
+        for set in sets where RecordsMath.isEligible(set) {
+            guard let machineID = set.machineID, let completedAt = set.completedAt else { continue }
+            let key = ProgressVariationKey(loadType: set.loadType, equipment: .anyMachine, presetID: set.presetID)
+            machines[key, default: []].insert(machineID)
+            days[key, default: []].insert(calendar.startOfDay(for: completedAt))
+        }
+        return machines.filter { $0.value.count > 1 }.keys
+            .map { (key: $0, days: days[$0]?.count ?? 0) }
+            .sorted { precedes($0, $1) }
     }
 
     /// The variation a chart should open on: the first of `rankedVariations`.
@@ -280,7 +315,11 @@ enum ProgressSeriesMath {
     static func scoped(_ sets: [RecordSetInput], to variation: ProgressVariationKey) -> [RecordSetInput] {
         sets
             .filter { $0.loadType == variation.loadType }
-            .filter { ProgressEquipment(machineID: $0.machineID, freeWeightTag: $0.freeWeightTag) == variation.equipment }
+            .filter { set in
+                variation.equipment == .anyMachine
+                    ? set.machineID != nil
+                    : ProgressEquipment(machineID: set.machineID, freeWeightTag: set.freeWeightTag) == variation.equipment
+            }
             .filter { $0.presetID == variation.presetID }
     }
 
@@ -358,9 +397,9 @@ extension ProgressSeriesMath {
     /// How much of a variation's words a label spends. Terse by default; a
     /// colliding row escalates one stage at a time, in this order.
     enum LabelStage: Int, CaseIterable, Comparable {
-        case terse, equipment, loadType, gym
+        case terse, equipment, loadType
         static func < (l: Self, r: Self) -> Bool { l.rawValue < r.rawValue }
-        var next: LabelStage { LabelStage(rawValue: rawValue + 1) ?? .gym }
+        var next: LabelStage { LabelStage(rawValue: rawValue + 1) ?? .loadType }
     }
 
     /// One label per variation, and NO two the same.
@@ -368,8 +407,9 @@ extension ProgressSeriesMath {
     /// codex-review 01b: hiding "No equipment recorded" behind a preset name
     /// let a preset the user had called "Dumbbell" render identically to the
     /// dumbbell tag, and two machines with the same frozen label collided too.
-    /// So: start terse, and only where labels collide add discriminators —
-    /// the equipment word, then the load type, then the machine's gym. When
+    /// So: start terse (a machine's gym is part of its terse label, D87), and
+    /// only where labels collide add discriminators — the equipment word, then
+    /// the load type. When
     /// the stages are spent, ordinals — allocated against EVERY label in the
     /// list, including user-typed names that already look like "X (2)"
     /// (codex-review 01c), so the floor cannot itself create a duplicate.
@@ -381,12 +421,18 @@ extension ProgressSeriesMath {
             switch w.equipment {
             case .unrecorded:
                 if w.presetName == nil || stage >= .equipment { parts.append("No equipment recorded") }
-            default:
+            case .anyMachine:
+                parts.append("All machines")
+            case .machine:
+                // D87: a machine is named with its gym from the start — "Chest Press · Gold's" — because the
+                // picker is where the user chooses between machines, and the same label at two gyms is common.
+                parts.append(w.equipmentName ?? "Machine")
+                if let gym = w.gymName { parts.append(gym) }
+            case .freeWeight:
                 parts.append(w.equipmentName ?? "Machine")
             }
             if let preset = w.presetName { parts.append(preset) }
             if stage >= .loadType { parts.append(w.loadType.badge) }
-            if stage >= .gym, case .machine = w.equipment, let gym = w.gymName { parts.append(gym) }
             return parts.joined(separator: " · ")
         }
         func collisions(in labels: [ProgressVariationKey: String]) -> Set<ProgressVariationKey> {
@@ -405,7 +451,7 @@ extension ProgressSeriesMath {
                 ($0.key, render($0.words, at: stage[$0.key] ?? .terse))
             })
             let colliding = collisions(in: out)
-            let raisable = colliding.filter { (stage[$0] ?? .gym) < .gym }
+            let raisable = colliding.filter { (stage[$0] ?? .loadType) < .loadType }
             if raisable.isEmpty { break }
             for key in raisable { stage[key] = stage[key]?.next }
         }

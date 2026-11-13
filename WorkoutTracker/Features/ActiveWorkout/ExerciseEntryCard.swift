@@ -280,8 +280,9 @@ struct ExerciseEntryCard: View {
 
     private var titleActions: some View {
         HStack(spacing: 10) {
-            CardIconButton(look.previousPerformanceSymbol, accessibilityLabel: "Previous performance",
+            CardIconButton(look.previousPerformanceSymbol, accessibilityLabel: "Progress",
                            action: showPerformance)
+                .accessibilityIdentifier("entryChart")
             Menu {
                 if entry.exercise != nil {
                     Button("Rest Durations…", systemImage: "timer") {

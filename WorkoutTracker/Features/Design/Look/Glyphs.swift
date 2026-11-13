@@ -32,6 +32,8 @@ struct WeightStackGlyph: Shape {
 struct LookIcon: View {
     /// Pass as a symbol name to draw the machine (weight-stack) glyph.
     static let machine = "lookicon.machine"
+    /// "All machines" on a progress chart (D87): the pool of every machine an exercise was logged on.
+    static let allMachines = "square.stack.3d.up"
 
     var name: String
     /// The glyph's text style (the machine glyph scales with it like a symbol).

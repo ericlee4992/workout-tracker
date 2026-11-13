@@ -355,9 +355,16 @@ struct ActiveWorkoutView: View {
                 MachinePickerSheet(entry: entry)
                     .presentationDetents([.medium, .large])
             }
+            // Live-workout 03 (D87): the chart, over the workout (which keeps running), with "Last time" on top
+            // and opening on the machine in use. It replaced Previous performance; prefill is unchanged.
             .sheet(item: $performanceEntry) { entry in
-                PreviousPerformanceSheet(entry: entry)
-                    .presentationDetents([.medium, .large])
+                NavigationStack {
+                    ExerciseProgressView(
+                        exerciseID: entry.exercise?.id ?? entry.snapshotExerciseID,
+                        exerciseName: entry.exercise?.name ?? entry.snapshotExerciseName,
+                        initialVariation: .current(for: entry),
+                        lastTime: entry)
+                }
             }
             .sheet(isPresented: $showCardioPicker) {
                 // Planned targets start only while nothing records (CardioSession refuses otherwise).

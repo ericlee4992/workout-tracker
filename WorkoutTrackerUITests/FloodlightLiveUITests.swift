@@ -255,4 +255,89 @@ final class FloodlightLiveUITests: XCTestCase {
         waitForExpectations(timeout: 3)
         XCTAssertTrue(band.label.contains("up from 110 lb × 8"), band.label)
     }
+
+    // MARK: live-workout 03 — the chart from a live exercise, by machine (D87)
+
+    /// `-uiTestDesignMachines`: the chest press's history is on Chest Press 2 at Iron Temple (the machine in use;
+    /// 22, 12 and 7 days ago, best 45 lb × 8) and on the same model, "Chest Press", at Hotel Gym (20 and 16 days ago,
+    /// best 70 lb × 8).
+    private func openLiveChart(_ extra: [String] = []) {
+        launch(["-uiTestDesignMachines"] + extra)
+        let chart = app.buttons["entryChart"].firstMatch
+        XCTAssertTrue(chart.waitForExistence(timeout: 5), "each live exercise offers its chart")
+        chart.tap()
+        XCTAssertTrue(any("lastTime").waitForExistence(timeout: 10), "Last time leads the chart")
+    }
+
+    func testCaptureLiveChartLight() { captureLiveChart("light", large: false) }
+    func testCaptureLiveChartDark() { captureLiveChart("dark", large: false) }
+    func testCaptureLiveChartLightAccessibility() { captureLiveChart("light", large: true) }
+
+    /// The first viewport (Last time, the machine selector, the chart), then the selector open, then All machines
+    /// scrolled to its sessions (each names its machine).
+    private func captureLiveChart(_ appearance: String, large: Bool) {
+        openLiveChart(["-appearance", appearance]
+                      + (large ? ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityL"] : []))
+        let tag = "\(appearance)-\(large ? "axl" : "default")"
+        Thread.sleep(forTimeInterval: 1)
+        shoot("live-fixes-03-chart-\(tag)")
+        if large {
+            app.swipeUp()
+            Thread.sleep(forTimeInterval: 0.5)
+            shoot("live-fixes-03-chart-\(tag)-2")
+            app.swipeDown(); app.swipeDown()
+        }
+        let picker = any("chartVariationPicker")
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        if !picker.isHittable { app.swipeUp() }
+        picker.tap()
+        let pooled = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "All machines")).firstMatch
+        XCTAssertTrue(pooled.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 0.5)
+        shoot("live-fixes-03-machines-\(tag)")
+        pooled.tap()
+        for _ in 0..<5 where !any("progressSessionMachine").isHittable { app.swipeUp() }
+        XCTAssertTrue(any("progressSessionMachine").exists, "each pooled session names its machine")
+        Thread.sleep(forTimeInterval: 0.5)
+        shoot("live-fixes-03-all-machines-\(tag)")
+    }
+
+    /// Acceptance 1–2: the chart icon opens the chart on the machine in use with Last time on top; the selector lists
+    /// each machine (name · gym) and All machines, the chart follows the choice, and closing returns to the workout.
+    func testLiveChartOpensOnTheMachineInUseAndSwitchesMachines() {
+        openLiveChart()
+        let lastSets = all("lastTimeSet")
+        XCTAssertEqual(lastSets.count, 3, "last time on Chest Press 2: a warmup and two working sets")
+        XCTAssertTrue(lastSets.element(boundBy: 2).label.contains("45 lb × 8"), lastSets.element(boundBy: 2).label)
+        XCTAssertFalse(any("lastTimeFallback").exists, "this machine has history: no fallback note")
+
+        let picker = any("chartVariationPicker")
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        XCTAssertTrue(picker.label.hasPrefix("Chest Press 2 · Iron Temple"), "opens on the machine in use: \(picker.label)")
+        let selection = any("chartSelection")
+        XCTAssertTrue(selection.waitForExistence(timeout: 5))
+        XCTAssertTrue(selection.label.contains("45"), "Chest Press 2's newest best: \(selection.label)")
+        XCTAssertFalse(selection.label.contains("70"), "Hotel Gym's machine is not pooled in: \(selection.label)")
+
+        picker.tap()
+        let hotel = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Chest Press · Hotel Gym")).firstMatch
+        XCTAssertTrue(hotel.waitForExistence(timeout: 5), "the other machine, named with its gym")
+        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "All machines")).firstMatch.exists)
+        hotel.tap()
+        let switched = any("chartSelection")
+        XCTAssertTrue(switched.waitForExistence(timeout: 5))
+        XCTAssertTrue(switched.label.contains("70"), "Hotel Gym's machine charts on its own: \(switched.label)")
+        XCTAssertEqual(all("lastTimeSet").count, 3, "Last time stays on the machine in use")
+
+        any("chartVariationPicker").tap()
+        let pooled = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "All machines")).firstMatch
+        XCTAssertTrue(pooled.waitForExistence(timeout: 5))
+        pooled.tap()
+        XCTAssertTrue(any("chartVariationPicker").label.hasPrefix("All machines"), any("chartVariationPicker").label)
+        for _ in 0..<4 where !any("progressSessionMachine").exists { app.swipeUp() }
+        XCTAssertTrue(any("progressSessionMachine").exists, "each pooled session names its machine")
+
+        app.buttons["closeProgress"].tap()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 5), "closing returns to the workout")
+    }
 }
