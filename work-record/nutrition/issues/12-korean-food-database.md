@@ -1,7 +1,7 @@
 # N12 — Korean food database (식품영양성분DB) for barcodes and search
 
 Type: feature
-Status: **built — Codex clear (round 4), merged into `main` 2026-11-13; deploy waits for the user** (release 0.2.2)
+Status: **done — Codex clear (round 4), merged into `main` and server deployed 2026-11-13**; ships in TestFlight **0.2.0 (13)** (the user: keep 0.2.0)
 Blocked by: R
 Implementer: Claude; Reviewer: Codex (visible Orca terminal), to "clear".
 Branch (when built): `ericlee4992/nutrition-12-korean-db` off `main`.
@@ -371,5 +371,18 @@ green UI on that simulator. Diagnosis wording corrected above per its timeline.
 **Next:** merge into `main` (done below). For the user: the captures, the strings (incl. the note's specific wording)
 and the privacy wording; then deploy with the two Worker secrets (`MFDS_API_KEY`, `FOODSAFETY_API_KEY`) and
 `POLICY_EFFECTIVE_DATE` set that day — only with the user's go.
+
+### Approved and deployed (2026-11-13)
+
+- The user approved the screens, the strings and the privacy wording ("looks good").
+- Worker secrets `MFDS_API_KEY` and `FOODSAFETY_API_KEY` set by the user (a Terminal script piping the values from
+  `~/.config/workouttracker/mfds.env`, never shown); `wrangler secret list` shows both.
+- `POLICY_EFFECTIVE_DATE` = "November 13, 2026" (`bbba8d5b`, on `main`); `npm run deploy` from `bbba8d5b`: Worker version
+  **`16f93322-b3ee-4ee7-9ef9-ccf404a61bc6`**, 225 KB gzip; no migration (none in N12), so no D1 backup.
+- Checked live: `/privacy` shows the date and the Korean wording; `GET /v1/food/search` and `/v1/food/barcode/:code`
+  answer 401 unsigned. **Not yet:** a signed-in Korean search / barcode through the deployed route (needs the app on
+  the phone — build 13). Build 12 (TestFlight) drops the new `mfds` / `foodQR` foods as unknown: a Korean search shows
+  "No more foods found", a Korean barcode "Not in the database", as before N12.
+- Release: **0.2.0 (13)** (the user, 2026-11-13: "release as 0.2.0 again").
 
 ## Comments
