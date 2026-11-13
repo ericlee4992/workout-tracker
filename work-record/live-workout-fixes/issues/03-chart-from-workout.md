@@ -163,7 +163,19 @@ Report: [`codex-review-03.md`](../codex-review-03.md) (not clear: three P2). All
    `ExerciseOverview.variationWords(for:entries:current:)`; snapshots still win wherever history exists (D23).
    Regressions: `aDraftOnANewMachineAndPresetIsNamedFromItsLiveRows`, `historyWinsOverLiveRowsForANamedMachine`.
 
-Round-1 fixes: Unit plan 1358/1358 passed, exit 0 (`build/results/unit-03c.xcresult`). Workout + HistoryProgress
-area plans running (2 workers; `build/results/area-workout.xcresult`, `area-history.xcresult`, log
-`build/results/area-03.log`) — they include the live chart test and retake the captures.
+**Evidence after the round-1 fixes (`09d185b9`, 2026-11-13, Claude):** captures retaken by the Workout run (the pooled
+AccessibilityL capture now shows the Hotel Gym rows with the badge under the machine name).
+
+```
+Verified: Unit plan — 1358/1358 passed, exit 0, build/results/unit-03c.xcresult
+Verified: HistoryProgress plan — 46/46 passed, exit 0, build/results/area-history.xcresult (2 workers)
+Verified: Workout plan — 78/79, exit 65, build/results/area-workout.xcresult (2 workers); the one failure below
+Known flaky (likely): FloodlightLiveUITests.testMakingAFreshBestAWarmupTakesTheBandAway — a 3 s wait on the live
+          "New best" band (`liveNewBest`). In the plan it did not go away; alone it passed 7 of 8 on the branch
+          (rerun-band-1…8; run 1 failed earlier, at "the New best band lands", 143 s for one test), and 5 of 5 on
+          main 7dc65b82 (/tmp, removed). The band's logic is untouched by this ticket (the band's tap action now opens
+          the chart; the test never taps it). Two different failure points, both timing waits on a loaded Mac.
+          Follow-up if Codex agrees: dev-speed ticket to give the band waits more slack.
+Not verified: on a phone
+```
 

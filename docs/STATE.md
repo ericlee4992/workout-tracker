@@ -13,7 +13,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   **Ticket 1 — built on the branch (2026-11-13):** chart from the live card with "Last time" on top, machine selector
   (each machine "name · gym" + All machines), `PreviousPerformanceSheet` removed; unit + 4 UI tests green; captures in
   `work-record/live-workout-fixes/captures/03/`. **Next:** the user looks at the captures and the new strings (ticket);
-  Codex review round 1 running (Paseo Codex agent `562c6d70-3c94-4da0-9760-a287cdd9a84b`, reuse it; brief
+  Codex round 1 not clear (3 × P2, fixed in `09d185b9`); round 2 running — (Paseo Codex agent `562c6d70-3c94-4da0-9760-a287cdd9a84b`, reuse it; brief
   `work-record/live-workout-fixes/codex-review-03-prompt.md`, report `codex-review-03.md`); the Workout +
   HistoryProgress plans before merge (ask the user if over ~20 min).
 
