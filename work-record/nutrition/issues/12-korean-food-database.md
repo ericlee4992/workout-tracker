@@ -141,6 +141,25 @@ ingredients need the 품목대표 filter or our own ranking.
 | 농진청 메뉴젠 음식별 영양성분 (15143461) | Dishes by ingredient | No: 공공누리 제4유형 (no commercial use, no changes) |
 | 전국건강기능식품영양성분 표준데이터 (15155983) | Health-supplement nutrition | Low priority (most protein powders are ordinary foods here) |
 
+### HACCP and Food QR, tested with the key (2026-11-12, after the user's 활용신청)
+
+The same data.go.kr key works for both once applied for (one key, three services). Both lists downloaded in full
+(HACCP 147 pages of 100, ~1.5 s each; Food QR 27 pages).
+- **HACCP** (`CertImgListServiceV3`): 14,653 products (11,427 식품, 3,226 축산물). The `barcode` field is often
+  "알수없음"; **5,194 valid unique barcodes** (5,157 with `880`), **3,445 of them with label numbers** in `nutrient`.
+  `nutrient` is free text in varying forms ("열량 187kcal,나트륨 23.41mg,…"; "1회 제공량 기준(…) : 열량(kcal) 515kcal,
+  …"; "100g당/총 내용량 300g 열량 80kcal, 나트륨 0% 0mg, …") — its basis (per serving, per 100 g, per package) must
+  be parsed and a row skipped when unclear. Keys absent when empty. No barcode filter (a `barcode=` parameter is
+  ignored), so barcodes need a server-side copy (refresh: 147 calls).
+- **Food QR** (`FoodQrInfoService02`): 2,653 products, **2,324 valid barcodes**; `getFoodQrProdNsd02?brcd_no=` (the
+  barcode as 14 digits with a leading 0) gives clean rows per nutrient (`NIRWMT_NM` 열량/나트륨/탄수화물/…, `CTA`,
+  `IGRD_UCD`, basis `NTRTN_INDCT_TCT` + unit) — usable live, 2–4 s.
+- Together **7,491 distinct barcodes** (27 in both). Overlap with ~240 Open Food Facts Korean codes sampled: 16
+  (HACCP), 1 (Food QR) — mostly products Open Food Facts lacks; it has 6,457 Korean codes.
+- The 20-code test: HACCP knew 4 (신라면, 까르보불닭볶음면, 양파링, 부침가루), all with numbers; Food QR 0. Of the 11
+  without nutrition in Open Food Facts, HACCP filled **2** (양파링, 부침가루) directly by barcode.
+- Licences: both 제한 없음. Operating approval: HACCP automatic; Food QR and 식품영양성분DB by review (심의승인).
+
 ### Decisions to ask the user
 
 1. Search architecture: live API only (slow, poor order) / **the 9,235 representative items built into the server
