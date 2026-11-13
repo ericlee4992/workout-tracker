@@ -2,10 +2,16 @@
 
 Target: `ec0e3a96..dead49d2972e9ef3c66ab382fb08a36951d2a035`, branch
 `ericlee4992/nutrition-15-save-any-food`. Clean checkout at start. Reviewed the N15 ticket, D81/D82/D83/D87,
-AGENTS, and the project's SwiftUI/SwiftData/ios-design guidance. The user's choice of content matching without
+AGENTS, and the project's SwiftUI/SwiftData guidance. Per the user's 2026-11-13 update, design is judged against
+the current app screens, not the outdated ios-design skill; the monochrome, icon-only bookmark is their choice.
+The user's choice of content matching without
 new photo-item/meal link fields is respected; none of these findings requires a schema change.
 
-**Checkpoint: independent UI verification still running.**
+**Final report — 2026-11-13. Three P2 findings and one P3; independent build, Unit and focused UI checks pass.**
+
+During verification, `441f8ff1` updated AGENTS and the ticket with the user's current-design instruction and
+committed this report's checkpoint. That instruction is incorporated here; product code remains `dead49d2`, the
+binary reviewed and tested. This reviewer changed only this report.
 
 ## Standards
 
@@ -66,16 +72,18 @@ Only WT-Redesign-2 `EB4328A1-87BD-4850-A3B2-A6E604701F1C`; preparation script ru
 
 - Independent build-for-testing passed, exit 0 (`build.log`, `build.exit`).
 - Independent Unit plan: 1366/1366 passed, exit 0 (`unit.log`, `unit.exit`, `unit.xcresult`), summary inspected.
-- Independent UI running: TodayTrain plan narrowed to TodayFoodUITests and ScanFoodUITests (24 tests),
-  two workers on the designated destination; exec session 29223 (`ui.log`, `ui.exit`, `ui.xcresult`).
+- Independent UI: TodayTrain plan narrowed to TodayFoodUITests and ScanFoodUITests — 24/24 passed, exit 0,
+  two workers on clones of the designated destination (`ui.log`, `ui.exit`, `ui.xcresult`), summary inspected.
+  This includes all four new bookmark tests and the adjacent editing, deletion/Undo, scan and capture flows.
 - Author xcresult summaries inspected directly: `n15-unit.xcresult` 1366/1366 passed;
   `n15-ui3.xcresult` 4/4 passed.
 - Test-plan consistency check passed. Diff whitespace check reports added blank EOF lines in the two UI-test files.
 
 Verified: independent build exit 0; Unit 1366/1366, exit 0, `/tmp/wt-n15-codex-review/unit.xcresult`;
+          TodayFoodUITests + ScanFoodUITests 24/24, exit 0, `/tmp/wt-n15-codex-review/ui.xcresult`;
           source/caller review; all eight supplied captures; author's xcresult summaries.
-Not verified: independent UI completion; regressions for #2–4; full TodayTrain area plan; phone behavior.
-Known flaky: none seen in this round yet.
+Not verified: regressions for #2–4; full TodayTrain area plan (author's pending merge check); phone behavior.
+Known flaky: none seen in this round.
 
 Standards: 1 finding, worst P3. Spec: 3 findings, worst P2.
 

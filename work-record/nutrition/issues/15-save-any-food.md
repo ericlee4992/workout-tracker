@@ -96,3 +96,23 @@ Known flaky: none seen
 ```
 
 ## Comments
+
+## Codex review N15 — response (round 1)
+
+Report: [`codex-review-n15.md`](../codex-review-n15.md) (not clear: three P2, one P3). All accepted; no schema change.
+
+1. **P3 README:** Today's log entries and a scanned meal's bookmarks are in the overview.
+2. **Full content before a match** (`FoodSaving.copies(of:)`, `savedMeal`): a candidate must carry nothing a photo
+   item cannot (no brand, barcode, other facts, servings per container, other servings; a meal item also no linked
+   food), so a richer food or My meals meal with the same headline numbers is never "this one" and never deleted.
+   Regressions: `aRicherMealWithTheSameNumbersIsNotThisOne`, `aRicherFoodIsNotAnItemsCopy`.
+3. **The Weight field wins** over a weight inside the portion text (`food(from:)`), for foods, meals and matching.
+   Regression: `theEditedWeightIsSaved`.
+4. **Saved state over every copy:** an item is saved when any copy is; un-saving takes every saved copy out; saving
+   again re-saves the oldest copy (deterministic order) rather than making another. Regression:
+   `anUnsavedDuplicateNeverHidesASavedCopy`. Also removed the extra blank line at the end of the two UI test files.
+
+```
+Verified: Unit plan — 1370/1370 passed, exit 0, build/results/n15-unit2.xcresult
+Not verified yet: TodayTrain area plan (~30 min; asking the user); UI unchanged this round (Domain + README only)
+```

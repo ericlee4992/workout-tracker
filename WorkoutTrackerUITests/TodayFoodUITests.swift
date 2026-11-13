@@ -218,4 +218,3 @@ final class TodayFoodUITests: XCTestCase {
         tab.tap()
     }
 }
-

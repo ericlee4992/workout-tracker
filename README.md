@@ -69,7 +69,8 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
 - **Food logging** *(on `main`, not yet in TestFlight)*. On Today each day's ring fills toward that day's calorie goal
   in protein · carbs · fat colours; the fuel card shows what's left (or over), what you ate and burned — burned never
   changes the goal — and protein to go; without goals it offers to set them. Today's log lists the food by meal; tap an
-  entry to change its servings, meal or numbers, or delete it with Undo.
+  entry to change its servings, meal or numbers, or delete it with Undo — or bookmark it into Saved foods (the food
+  it came from, or a new food made from the entry) *(on this branch)*.
   **Log food** opens the meal (preset by the time of day), tabs **All / My foods / My meals / Saved foods** and a
   search: your own foods first, then (signed in) more foods from USDA FoodData Central — or, for a search in Korean
   *(on this branch, not yet in TestFlight)*, Korean dishes, plain foods and products from Korea's Ministry of Food and
@@ -81,7 +82,8 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   **Scan food** (signed in; the camera beside Log food, or in Log food's bar) has three modes. *Scan food*: the camera
   closes at once and Today's log shows the photo with a progress ring; the estimate is logged as one entry named for
   the meal, its photo kept on the iPhone with it (a photo chosen from the library is logged when it was taken). Tap it
-  to edit the name, meal or any item, or delete it with Undo. *Food label*: the label inside the box is read and opens
+  to edit the name, meal or any item, or delete it with Undo; its bookmark saves the whole meal to My meals, and each
+  item's bookmark saves that item to Saved foods *(on this branch)*. *Food label*: the label inside the box is read and opens
   as a food to name and log, saved to My foods if you like. *Barcode*: a product's barcode is read as soon as it is in
   the band and looked up at Open Food Facts, then USDA (a Korean product's also through the ministry's Food QR and
   barcode list); the food opens to log, credited to its source, and stays on the iPhone, so it scans offline next time.

@@ -415,4 +415,3 @@ final class ScanFoodUITests: XCTestCase {
         XCTAssertTrue(app.buttons["logFoodRow.Tuna poke"].waitForExistence(timeout: 5), "the item in Saved foods")
     }
 }
-

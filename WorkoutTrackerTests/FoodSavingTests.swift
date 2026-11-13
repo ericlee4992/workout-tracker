@@ -166,4 +166,72 @@ struct FoodSavingTests {
         edited.fat = 15
         #expect(FoodSaving.savedMeal(name: "Poke bowl", items: [edited], in: context) == nil)
     }
+
+    // MARK: Codex review N15, round 1
+
+    /// A meal built in My meals with the same name and headline numbers but more facts (a brand, sodium) is a
+    /// different meal: the photo meal does not read as saved, and its bookmark never deletes that meal.
+    @Test func aRicherMealWithTheSameNumbersIsNotThisOne() throws {
+        let context = try context()
+        var draft = MealDraftItem(food: FoodSaving.food(from: tuna))
+        draft.savedFood = nil
+        draft.brand = "Ocean Co."
+        draft.nutrition.sodiumMilligrams = 600
+        let mine = try FoodLog.saveMeal(nil, name: "Poke bowl", usualMeal: nil, items: [draft], at: now, in: context)
+        #expect(FoodSaving.savedMeal(name: "Poke bowl", items: [tuna], in: context) == nil)
+
+        try FoodSaving.toggleMeal(name: "Poke bowl", meal: .lunch, items: [tuna], at: now, in: context)
+        #expect(try meals(context).count == 2, "a second, photo-made meal")
+        try FoodSaving.toggleMeal(name: "Poke bowl", meal: .lunch, items: [tuna], at: now, in: context)
+        #expect(try meals(context) == [mine], "un-saving took out the photo meal only")
+    }
+
+    /// The same for a food: one with more facts is not the item's copy.
+    @Test func aRicherFoodIsNotAnItemsCopy() throws {
+        let context = try context()
+        let richer = FoodSaving.food(from: tuna)
+        richer.sodiumMilligrams = 600
+        richer.isSaved = true
+        context.insert(richer)
+        try context.save()
+        #expect(!FoodSaving.isSaved(tuna, in: context))
+    }
+
+    /// The item's Weight field wins over a weight inside its portion text — for a food and for a meal.
+    @Test func theEditedWeightIsSaved() throws {
+        let context = try context()
+        var item = tuna
+        item.portion = "1 cup (150 g)"
+        item.grams = 200
+        #expect(FoodSaving.food(from: item).servingGrams == 200 && FoodSaving.food(from: item).servingUnit == "cup")
+        try FoodSaving.toggle(item, at: now, in: context)
+        #expect(try foods(context).first?.servingGrams == 200)
+        try FoodSaving.toggleMeal(name: "Poke bowl", meal: .lunch, items: [item], at: now, in: context)
+        #expect(try meals(context).first?.orderedItems.first?.servingGrams == 200)
+
+        var weightOnly = item
+        weightOnly.grams = 180
+        #expect(!FoodSaving.isSaved(weightOnly, in: context), "a weight-only edit is another food")
+    }
+
+    /// One saved and one un-saved identical copy (two Manual Add entries saved, one un-saved): the item reads as saved,
+    /// and un-saving takes out the saved one rather than re-saving the duplicate.
+    @Test func anUnsavedDuplicateNeverHidesASavedCopy() throws {
+        let context = try context()
+        let older = FoodSaving.food(from: tuna)
+        older.createdAt = now
+        context.insert(older)                      // un-saved
+        let newer = FoodSaving.food(from: tuna)
+        newer.createdAt = now.addingTimeInterval(60)
+        newer.isSaved = true
+        context.insert(newer)
+        try context.save()
+        #expect(FoodSaving.isSaved(tuna, in: context))
+        try FoodSaving.toggle(tuna, at: now, in: context)
+        #expect(!older.isSaved && !newer.isSaved && !FoodSaving.isSaved(tuna, in: context))
+        try FoodSaving.toggle(tuna, at: now, in: context)
+        #expect(older.isSaved && !newer.isSaved, "the oldest copy goes back in; nothing new is made")
+        #expect(try foods(context).count == 2)
+    }
 }
+
