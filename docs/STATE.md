@@ -5,6 +5,12 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 
 ## RESUME HERE (2026-11-12, end of the P1 / N13 / N14 session)
 
+- **Next tickets (the user, 2026-11-13), in order, in Paseo workspace "Workout chart + save foods"
+  (`~/.paseo/worktrees/1qmeipq9/workout-chart-machines`):** 1) [live-workout 03 — the chart from a live workout, by
+  machine](../work-record/live-workout-fixes/issues/03-chart-from-workout.md) (branch `ericlee4992/workout-chart-machines`);
+  2) [N15 — save any food you open](../work-record/nutrition/issues/15-save-any-food.md). D87. Each UI-first, Codex clear,
+  merged before the next. Release afterwards: the user's call.
+
 - **N12 Korean food data — DONE: merged into `main` and server deployed 2026-11-13** (Codex clear, round 4; branch
   `ericlee4992/nutrition-12-korean-db` kept; [ticket](../work-record/nutrition/issues/12-korean-food-database.md), D86,
   review `work-record/nutrition/codex-review-n12.md`). Worker **`16f93322`** with secrets `MFDS_API_KEY` +
