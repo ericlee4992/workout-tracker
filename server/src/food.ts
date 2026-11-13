@@ -3,12 +3,15 @@ import { sha256Hex } from "./crypto";
 import type { Deps, Env } from "./env";
 import { characterCount } from "./text";
 import { newYorkDay } from "./time";
+import { type NotListed, bridge, hasHangul, koreanBarcode, searchKorean } from "./korean";
 
 // Nutrition N8 (D72): food databases through the server. A barcode is looked up at Open Food Facts first, then at USDA
 // FoodData Central's branded foods; a search by name goes to USDA's generic foods (Foundation, SR Legacy, FNDDS). Every
 // answer is normalised to one food shape (per 100 g and per serving) and cached in D1 — hits and misses, each with an
 // expiry. Signed in only, with a modest per-account daily limit (no AI cost). Nothing about the account is sent to
-// either database; the cache is linked to no account and keeps a typed search only as a one-way hash.
+// either database; the cache is linked to no account and keeps a typed search only as a one-way hash. N12 (D86) adds
+// Korean food data (korean.ts): a search in Korean goes to 식품영양성분DB, and a Korean barcode (880…) is also asked of
+// Food QR and C005, whose report numbers lead to 식품영양성분DB.
 
 export const OFF_PRODUCT_URL = "https://world.openfoodfacts.org/api/v2/product/";
 export const USDA_SEARCH_URL = "https://api.nal.usda.gov/fdc/v1/foods/search";
@@ -50,11 +53,11 @@ export interface Measure { text: string; grams: number }
 /** What `per100g` is per: 100 g, or 100 ml for a drink (codex-review-n8 S2) — never converted without a density. */
 export type Per100Unit = "g" | "ml";
 
-/** The one food shape both databases are normalised to. */
+/** The one food shape every database is normalised to. */
 export interface DatabaseFood {
-  /** `off:<code>` or `usda:<fdcId>`: the app's `SavedFood.databaseID`. */
+  /** `off:<code>`, `usda:<fdcId>`, `mfds:<식품코드>` or `foodqr:<code>`: the app's `SavedFood.databaseID`. */
   id: string;
-  source: "openFoodFacts" | "usda";
+  source: "openFoodFacts" | "usda" | "mfds" | "foodQR";
   name: string;
   brand: string | null;
   barcode: string | null;
@@ -65,6 +68,8 @@ export interface DatabaseFood {
   serving: { text: string; grams: number | null; nutrients: Nutrients } | null;
   /** Other portions (USDA generic foods), heaviest-ranked first; scale `per100g` by `grams / 100`. */
   measures: Measure[];
+  /** N12 (D86): macros the source leaves blank (kept as 0 and shown with a note); absent when it gives all three. */
+  notListed?: NotListed[];
 }
 
 // MARK: - Input
@@ -90,18 +95,19 @@ export function validCheckDigit(code: string): boolean {
   return (10 - (sum % 10)) % 10 === check;
 }
 
-/** A search as typed: whitespace collapsed, 2–100 characters, no control characters; null otherwise. */
+/** A search as typed: whitespace collapsed, 2–100 characters (one is enough in Korean, where a syllable is a word: 밥,
+ *  떡 — N12), no control characters; null otherwise. */
 export function cleanQuery(raw: string | null): string | null {
   if (raw === null) return null;
   const query = raw.replace(/\s+/g, " ").trim();
   const length = characterCount(query);
-  if (length < 2 || length > 100 || /[\u0000-\u001f\u007f]/.test(query)) return null;
+  if (length < (hasHangul(query) ? 1 : 2) || length > 100 || /[\u0000-\u001f\u007f]/.test(query)) return null;
   return query;
 }
 
 // MARK: - Normalisation
 
-const round = (value: number, places = 2) => Math.round(value * 10 ** places) / 10 ** places;
+export const round = (value: number, places = 2) => Math.round(value * 10 ** places) / 10 ** places;
 
 /** A finite, non-negative number at most `max` (a number given as text, as Open Food Facts sometimes does, counts);
  *  null otherwise. For a serving's size or a portion's weight, where an unusable one is simply left out. */
@@ -112,16 +118,16 @@ function amount(value: unknown, max: number): number | null {
 
 /** A supplied nutrient (codex-review-n8 S5): `null` when the source does not give it, `INVALID` when it gives one that
  *  is not a finite, non-negative number — which makes the whole set unusable rather than read as missing or zero. */
-const INVALID = Symbol("invalid");
-type Field = number | null | typeof INVALID;
+export const INVALID = Symbol("invalid");
+export type Field = number | null | typeof INVALID;
 
-function field(value: unknown): Field {
+export function field(value: unknown): Field {
   if (value === undefined || value === null || (typeof value === "string" && value.trim() === "")) return null;
   const n = typeof value === "string" ? Number(value) : value;
   return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : INVALID;
 }
 
-function text(value: unknown, max: number): string | null {
+export function text(value: unknown, max: number): string | null {
   if (typeof value !== "string") return null;
   const cleaned = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
   if (cleaned.length === 0) return null;
@@ -148,7 +154,7 @@ const tolerance = (unit: Per100Unit) => (unit === "ml" ? 1.5 : 1.05);
  * value out of bounds, negative or not a number makes the set unusable — the source's numbers are wrong, so the food is
  * not logged with them. Macros the source omits are 0 (as the app's forms read a blank); the others stay unknown.
  */
-function nutrients(raw: Record<keyof Nutrients, Field>, basis: Basis, kcalMax: number): Nutrients | null {
+export function nutrients(raw: Record<keyof Nutrients, Field>, basis: Basis, kcalMax: number): Nutrients | null {
   const values = Object.values(raw);
   if (values.includes(INVALID)) return null;
   const v = raw as Record<keyof Nutrients, number | null>;
@@ -170,7 +176,7 @@ function nutrients(raw: Record<keyof Nutrients, Field>, basis: Basis, kcalMax: n
 }
 
 /** `per100` scaled to `amount` of the same unit (a serving or a portion). */
-function scale(per100: Nutrients, amount: number, unit: Per100Unit): Nutrients | null {
+export function scale(per100: Nutrients, amount: number, unit: Per100Unit): Nutrients | null {
   const f = amount / 100;
   const s = (v: number | null) => (v === null ? null : v * f);
   return nutrients({
@@ -179,8 +185,8 @@ function scale(per100: Nutrients, amount: number, unit: Per100Unit): Nutrients |
   }, { amount, unit }, PER_SERVING_KCAL);
 }
 
-const PER_100_KCAL = 900;
-const PER_SERVING_KCAL = 10_000;
+export const PER_100_KCAL = 900;
+export const PER_SERVING_KCAL = 10_000;
 const MAX_GRAMS = 100_000;
 const kj = (value: Field): Field => (typeof value === "number" ? value / 4.184 : value);
 /** The first value a source gives (energy in kcal, else kJ…); an invalid one is not passed over for the next. */
@@ -330,15 +336,15 @@ export function fromUSDAGeneric(food: Record<string, unknown>): DatabaseFood | n
 
 // MARK: - Upstream
 
-class Upstream extends Error {
+export class Upstream extends Error {
   constructor(readonly source: string, readonly status: string) { super(`${source} ${status}`); this.name = "Upstream"; }
 }
 
 /** An HTTP not-found, kept apart from every JSON value a reply can decode to (codex-review-n8-b R2-S2: a 200 `null`
  *  read as a miss). */
-const NOT_FOUND = Symbol("not found");
+export const NOT_FOUND = Symbol("not found");
 
-async function fetchJSON(deps: Deps, source: string, url: string, init: RequestInit, missStatus?: number): Promise<unknown> {
+export async function fetchJSON(deps: Deps, source: string, url: string, init: RequestInit, missStatus?: number): Promise<unknown> {
   let response: Response;
   try {
     response = await deps.fetch(url, { ...init, signal: AbortSignal.timeout(FOOD_TIMEOUT_MS) });
@@ -350,19 +356,22 @@ async function fetchJSON(deps: Deps, source: string, url: string, init: RequestI
   try { return await response.json(); } catch { throw new Upstream(source, "malformed"); }
 }
 
-/** Open Food Facts: a product, or null when it has none usable. Its v2 API answers 404 `{status: 0}` for an unknown code. */
-async function openFoodFacts(code: string, deps: Deps): Promise<DatabaseFood | null> {
+/** Open Food Facts: a product (null when it has none usable) and its name even then (N12: the "Is this it?" search).
+ *  Its v2 API answers 404 `{status: 0}` for an unknown code. */
+async function openFoodFacts(code: string, deps: Deps): Promise<{ food: DatabaseFood | null; name: string | null }> {
   const fields = "code,product_name,product_name_en,generic_name,brands,quantity,serving_size,serving_quantity," +
     "serving_quantity_unit,nutriments";
   const body = await fetchJSON(deps, "off", `${OFF_PRODUCT_URL}${code}.json?fields=${fields}`,
     { headers: { "user-agent": FOOD_USER_AGENT, accept: "application/json" } }, 404);
-  if (body === NOT_FOUND) return null;  // 404: not in Open Food Facts
+  if (body === NOT_FOUND) return { food: null, name: null };  // 404: not in Open Food Facts
   // Only `{status: 0}` is a miss and only `{status: 1, product: {…}}` a product; any other reply is a failure, never a
   // miss to cache (codex-review-n8 S4).
   if (!isObject(body)) throw new Upstream("off", "malformed");
-  if (body.status === 0) return null;
+  if (body.status === 0) return { food: null, name: null };
   if (body.status !== 1 || !isObject(body.product)) throw new Upstream("off", "malformed");
-  return fromOpenFoodFacts(code, body.product);
+  const product = body.product;
+  const name = text(product.product_name, MAX_NAME) ?? text(product.product_name_en, MAX_NAME);
+  return { food: fromOpenFoodFacts(code, product), name };
 }
 
 /** USDA's food search; the key travels in a header, never in a URL. */
@@ -377,7 +386,7 @@ async function usdaSearch(key: string, deps: Deps, query: string, dataType: stri
   return body.foods.filter(isObject);
 }
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
+export const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 /** The same GTIN whatever its length in USDA's `gtinUpc` (12-digit UPCs, sometimes 13 or 14 digits; an EAN-8 padded
@@ -436,41 +445,78 @@ async function countLookup(env: Env, deps: Deps, accountID: string, kind: FoodKi
 
 // MARK: - Routes
 
+/** A miss as cached (N12): the name a source gave, for the app's "Is this it?" search. A row from before N12 holds `null`. */
+interface Miss { found: false; name: string | null }
+
+const answer = (value: DatabaseFood | Miss | null) =>
+  value && "id" in value ? { found: true, food: value } : value?.name ? { found: false, name: value.name } : { found: false };
+
 /**
- * `GET /v1/food/barcode/:code` → `{ found: true, food }` or `{ found: false }`. Open Food Facts first, then USDA
- * branded foods (when the key is set). Hits are cached 30 days, misses a day. A miss is not cached when USDA was not
- * asked (no key yet) or when either source failed — the next try may find it — and a failure with nothing found is
- * `502 food_unavailable`.
+ * `GET /v1/food/barcode/:code` → `{ found: true, food }` or `{ found: false, name? }`. Open Food Facts first, then USDA
+ * branded foods (when the key is set). A Korean code (GS1 Korea, 880…) is also asked of Food QR and C005 (N12) — all at
+ * once, the app waits 25 s — and a report number they give leads to 식품영양성분DB: Open Food Facts' food first, then
+ * 식품영양성분DB's, Food QR's label, USDA's. `name` (a Korean name when a Korean source has one) prefills the app's
+ * "Is this it?" search. Hits are cached 30 days, misses a day. A miss is not cached when USDA was not asked (no key
+ * yet) or when a source failed — the next try may find it; Open Food Facts or USDA failing with nothing found is
+ * `502 food_unavailable`, a Korean source failing only leaves the miss uncached.
  */
 export async function lookupBarcode(env: Env, deps: Deps, accountID: string, raw: string) {
   const code = normalizeBarcode(raw);
   if (!code) throw new AuthError("invalid_barcode", 400);
   await countLookup(env, deps, accountID, "barcode");
   const key = `barcode:${code}`;
-  const cached = await readCache<DatabaseFood | null>(env, deps, key);
-  if (cached) return cached.value ? { found: true, food: cached.value } : { found: false };
+  const cached = await readCache<DatabaseFood | Miss | null>(env, deps, key);
+  if (cached) return answer(cached.value);
+  const { food, name, failed, softFailed } = code.startsWith("880") ? await lookUpKorean(env, deps, code) : await lookUpElsewhere(env, deps, code);
+  if (food) {
+    await writeCache(env, deps, key, food, BARCODE_HIT_TTL_MS);
+    return answer(food);
+  }
+  if (failed) throw new AuthError("food_unavailable", 502);
+  const miss: Miss = { found: false, name };
+  if (env.USDA_API_KEY && !softFailed) await writeCache(env, deps, key, miss, BARCODE_MISS_TTL_MS);
+  return answer(miss);
+}
+
+interface Lookup { food: DatabaseFood | null; name: string | null; failed: boolean; softFailed: boolean }
+
+/** Open Food Facts, then USDA (N8's order). */
+async function lookUpElsewhere(env: Env, deps: Deps, code: string): Promise<Lookup> {
   let failed = false;
-  let food: DatabaseFood | null = null;
-  try { food = await openFoodFacts(code, deps); } catch (error) { failed = true; logUpstream(error); }
+  let found: { food: DatabaseFood | null; name: string | null } = { food: null, name: null };
+  try { found = await openFoodFacts(code, deps); } catch (error) { failed = true; logUpstream(error); }
+  let food = found.food;
   if (!food && env.USDA_API_KEY) {
     try { food = await usdaBarcode(code, env.USDA_API_KEY, deps); } catch (error) { failed = true; logUpstream(error); }
   }
-  if (food) {
-    await writeCache(env, deps, key, food, BARCODE_HIT_TTL_MS);
-    return { found: true, food };
-  }
-  if (failed) throw new AuthError("food_unavailable", 502);
-  if (env.USDA_API_KEY) await writeCache(env, deps, key, null, BARCODE_MISS_TTL_MS);
-  return { found: false };
+  return { food, name: found.name, failed, softFailed: false };
+}
+
+/** A Korean code: Open Food Facts, USDA, Food QR and C005 at once, then 식품영양성분DB by the report numbers found. */
+async function lookUpKorean(env: Env, deps: Deps, code: string): Promise<Lookup> {
+  let failed = false;
+  const off = openFoodFacts(code, deps).catch((error) => { failed = true; logUpstream(error); return { food: null, name: null }; });
+  const usda = env.USDA_API_KEY
+    ? usdaBarcode(code, env.USDA_API_KEY, deps).catch((error) => { failed = true; logUpstream(error); return null; })
+    : Promise.resolve(null);
+  const [found, usdaFood, korean] = await Promise.all([off, usda, koreanBarcode(env, deps, code)]);
+  if (found.food) return { food: found.food, name: found.name, failed: false, softFailed: false };
+  const bridged = await bridge(env, deps, korean.reportNumbers, code);
+  const food = bridged.food ?? korean.label ?? usdaFood;
+  return { food, name: korean.name ?? found.name, failed: !food && failed, softFailed: korean.failed || bridged.failed };
 }
 
 /**
- * `GET /v1/food/search?q=` → `{ foods: [...] }`, at most ten USDA generic foods (e.g. "banana", "chicken breast").
- * Cached under the query's hash: a week, a day when nothing matched. Without the USDA key: `503 server_not_configured`.
+ * `GET /v1/food/search?q=` → `{ foods: [...] }`, at most ten foods. A query in Korean (N12) searches 식품영양성분DB —
+ * the representative items built into the server and, with `MFDS_API_KEY`, the live API's brand products; any other
+ * goes to USDA's generic foods (e.g. "banana", "chicken breast"). Cached under the query's hash: a week, a day when
+ * nothing matched (a Korean answer without its brand products is not cached). Without the USDA key a non-Korean search
+ * is `503 server_not_configured`.
  */
 export async function searchFoods(env: Env, deps: Deps, accountID: string, raw: string | null) {
   const query = cleanQuery(raw);
   if (!query) throw new AuthError("invalid_query", 400);
+  if (hasHangul(query)) return searchInKorean(env, deps, accountID, query);
   if (!env.USDA_API_KEY) throw new AuthError("server_not_configured", 503);
   await countLookup(env, deps, accountID, "search");
   const key = `search:${await sha256Hex(query.toLowerCase())}`;
@@ -491,6 +537,19 @@ export async function searchFoods(env: Env, deps: Deps, accountID: string, raw: 
   }
   foods.splice(0, foods.length, ...rankFoods(query, foods).slice(0, SEARCH_RESULTS));
   await writeCache(env, deps, key, foods, foods.length > 0 ? SEARCH_TTL_MS : EMPTY_SEARCH_TTL_MS);
+  return { foods };
+}
+
+/** A Korean search (N12): counted as a search; cached apart from USDA's, and apart with and without brand products. */
+async function searchInKorean(env: Env, deps: Deps, accountID: string, query: string) {
+  await countLookup(env, deps, accountID, "search");
+  const key = `search:ko:${env.MFDS_API_KEY ? "live" : "local"}:${await sha256Hex(query.toLowerCase().replace(/\s+/g, ""))}`;
+  const cached = await readCache<DatabaseFood[]>(env, deps, key);
+  if (cached) return { foods: cached.value };
+  const { foods, failed } = await searchKorean(env, deps, query);
+  // Nothing of our own and the live API down: say so, rather than an empty list the app reads as "no match".
+  if (failed && foods.length === 0) throw new AuthError("food_unavailable", 502);
+  if (!failed) await writeCache(env, deps, key, foods, foods.length > 0 ? SEARCH_TTL_MS : EMPTY_SEARCH_TTL_MS);
   return { foods };
 }
 

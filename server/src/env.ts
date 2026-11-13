@@ -21,6 +21,12 @@ export interface Env {
   /** Secret (nutrition N8): the user's api.data.gov key for USDA FoodData Central. Unset: barcodes use Open Food Facts
    *  only and search answers 503 server_not_configured. */
   USDA_API_KEY?: string;
+  /** Secret (nutrition N12): the user's data.go.kr key — 식품영양성분DB (brand products in a Korean search; report
+   *  numbers → foods) and Food QR. Unset: a Korean search uses the built-in representative items only, and a Korean
+   *  barcode skips Food QR and the report-number lookup. Travels in URLs, which are never logged. */
+  MFDS_API_KEY?: string;
+  /** Secret (nutrition N12): the user's 식품안전나라 key for C005 (barcode → report number). Unset: C005 is skipped. */
+  FOODSAFETY_API_KEY?: string;
 }
 
 /** What the handler takes from the outside world, so tests can replace it. */

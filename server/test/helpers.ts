@@ -4,6 +4,7 @@ import { GOOGLE_KEYS_URL, resetGoogleKeyCache } from "../src/google";
 import { base64UrlEncode, sha256Hex, utf8 } from "../src/crypto";
 import type { Deps, Env } from "../src/env";
 import { createHandler } from "../src/index";
+import { C005_URL, FOOD_QR_URL, MFDS_URL } from "../src/korean";
 
 /** A fake Apple: its own RSA signing key (and a second, unpublished one for forged tokens), a fake token and revoke
  *  endpoint, and the calls they received. Nothing in these tests reaches the network. */
@@ -162,12 +163,22 @@ export interface Harness {
   food: FakeFoodDatabases;
 }
 
-/** Nutrition N8: the two food databases. Each records its calls; `off` / `usda` answer them (default: nothing found). */
+/** Nutrition N8: the two food databases; N12: the three Korean services. Each records its calls and answers them
+ *  (default: nothing found). */
 export interface FakeFoodDatabases {
   offCalls: { url: string; userAgent: string | null }[];
   usdaCalls: { url: string; body: Record<string, unknown>; apiKey: string | null }[];
   off: (code: string) => Promise<Response> | Response;
   usda: (body: Record<string, unknown>) => Promise<Response> | Response;
+  /** 식품영양성분DB: the query's parameters (serviceKey included). */
+  mfdsCalls: Record<string, string>[];
+  mfds: (params: Record<string, string>) => Promise<Response> | Response;
+  /** Food QR: the operation and the query's parameters. */
+  foodQRCalls: { operation: string; params: Record<string, string> }[];
+  foodQR: (operation: string, params: Record<string, string>) => Promise<Response> | Response;
+  /** C005: the key in the path and the barcode. */
+  c005Calls: { key: string; code: string }[];
+  c005: (code: string) => Promise<Response> | Response;
 }
 
 export interface FakeOpenAI {
@@ -180,6 +191,8 @@ export interface FakeOpenAI {
 
 export const OPENAI_KEY = "fake-key";
 export const USDA_KEY = "fake-usda-key";
+export const MFDS_KEY = "fake-mfds-key+/=";
+export const FOODSAFETY_KEY = "fake-foodsafety-key";
 
 /** A completed Responses API reply whose single output_text is `result` as JSON. */
 export function openAIReply(result: unknown, usage = { input_tokens: 1200, output_tokens: 300, output_tokens_details: { reasoning_tokens: 200 } }) {
@@ -221,6 +234,10 @@ export async function harness(): Promise<Harness> {
     offCalls: [], usdaCalls: [],
     off: () => Response.json({ status: 0, status_verbose: "product not found" }, { status: 404 }),
     usda: () => Response.json({ totalHits: 0, foods: [] }),
+    mfdsCalls: [], foodQRCalls: [], c005Calls: [],
+    mfds: () => Response.json({ header: { resultCode: "00", resultMsg: "NORMAL SERVICE." }, body: { pageNo: 1, totalCount: 0, numOfRows: 10 } }),
+    foodQR: () => Response.json({ header: { resultCode: "00", resultMsg: "NORMAL SERVICE." }, body: { pageNo: 1, totalCount: 0, numOfRows: 50 } }),
+    c005: () => Response.json({ C005: { total_count: "0", RESULT: { MSG: "해당하는 데이터가 없습니다.", CODE: "INFO-200" } } }),
   };
   const deps: Deps = {
     now: () => clock.now,
@@ -230,6 +247,22 @@ export async function harness(): Promise<Harness> {
       if (url.startsWith("https://world.openfoodfacts.org/api/v2/product/")) {
         food.offCalls.push({ url, userAgent: new Headers(init?.headers).get("user-agent") });
         return food.off(url.slice("https://world.openfoodfacts.org/api/v2/product/".length).split(".")[0]!);
+      }
+      const params = (u: string) => Object.fromEntries(new URL(u).searchParams);
+      if (url.startsWith(MFDS_URL + "?")) {
+        food.mfdsCalls.push(params(url));
+        return food.mfds(params(url));
+      }
+      if (url.startsWith(FOOD_QR_URL)) {
+        const operation = new URL(url).pathname.split("/").pop()!;
+        food.foodQRCalls.push({ operation, params: params(url) });
+        return food.foodQR(operation, params(url));
+      }
+      if (url.startsWith(C005_URL)) {
+        const match = /^\/api\/([^/]+)\/C005\/json\/1\/20\/BAR_CD=(\d+)$/.exec(new URL(url).pathname)!;
+        const call = { key: decodeURIComponent(match[1]!), code: match[2]! };
+        food.c005Calls.push(call);
+        return food.c005(call.code);
       }
       if (url === "https://api.nal.usda.gov/fdc/v1/foods/search") {
         const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
@@ -275,6 +308,8 @@ export async function harness(): Promise<Harness> {
     OPENAI_API_KEY: OPENAI_KEY,
     GOOGLE_CLIENT_ID,
     USDA_API_KEY: USDA_KEY,
+    MFDS_API_KEY: MFDS_KEY,
+    FOODSAFETY_API_KEY: FOODSAFETY_KEY,
   };
   const handle = createHandler(deps);
   const call: Harness["call"] = (method, path, options = {}) => {

@@ -28,8 +28,8 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 | `POST /v1/ai/food-label` | `{ jpeg }` (a nutrition facts panel) → `{ result: { found, servingSize, servingGrams, servingsPerContainer, calories, protein, carbs, fat, saturatedFat, fiber, sugar, sodiumMg } }` — numbers only as printed, null when not |
 | `POST /v1/ai/food-describe` | `{ text }` (≤ 500 characters, line breaks allowed) → `{ result: { items: [...] } }` as food-photo |
 | `POST /v1/ai/nutrition-goals` | nutrition N14: `{ sex, ageYears, heightCm, weightKg, activity, goal, desiredWeightKg?, paceKgPerWeek? }` (the goal setup's answers; desired and pace unless maintain) → `{ result: { calories, protein, carbs, fat } }` (whole numbers; 500–10,000 cal, 0–1,000 g); 20 a day; migration 0009 |
-| `GET /v1/food/barcode/:code` | nutrition N8: a scanned GTIN (8, 12, 13 or 14 digits, valid check digit; the app expands UPC-E) → `{ found: true, food }` or `{ found: false }`. Open Food Facts first, then USDA FoodData Central branded foods |
-| `GET /v1/food/search?q=` | nutrition N8: 2–100 characters → `{ foods: [...] }`, at most 10 USDA generic foods (Foundation, SR Legacy, FNDDS), the food itself before dishes with it |
+| `GET /v1/food/barcode/:code` | nutrition N8: a scanned GTIN (8, 12, 13 or 14 digits, valid check digit; the app expands UPC-E) → `{ found: true, food }` or `{ found: false, name? }`. Open Food Facts first, then USDA FoodData Central branded foods; a Korean code (880…) is also asked of Food QR and C005, whose report numbers lead to 식품영양성분DB (N12). `name`: what a source calls the product, for the app's "Is this it?" search |
+| `GET /v1/food/search?q=` | nutrition N8: 2–100 characters (1 in Korean) → `{ foods: [...] }`, at most 10: USDA generic foods (Foundation, SR Legacy, FNDDS), the food itself before dishes with it; a query in Korean searches 식품영양성분DB instead (N12) |
 | `GET /v1/ai/usage` | `{ day, resetsAt, paused, flows: { <flow>: { used, limit } } }` |
 | `POST /v1/feedback` | multipart: `category` (bug/idea/other), `message` (1–4,000 characters), `appVersion`, `build`, `systemVersion`, `model`, optional `screenshot` (JPEG/PNG ≤ 5 MB) → `201 { id }`; signed in or out |
 | `GET /privacy`, `GET /support`, `GET /v1/health` | pages / liveness |
@@ -94,6 +94,21 @@ is stored. Apple's refresh token (kept to revoke on deletion, as Apple requires)
   never a URL. Logs name only the source and its status — never the code, the query or the key. Open Food Facts data is
   ODbL: the app shows "Food data from Open Food Facts" wherever it shows it. The hourly cron prunes expired cache rows
   and earlier days' counts (two more statements: at most 40 of Workers Free's 50).
+- **Korean food data** (nutrition N12, D86; `src/korean.ts`): a search containing Hangul goes to 식품의약품안전처's
+  **식품영양성분DB** (data.go.kr 15127578; licence 이용허락범위 제한 없음): its ~6,500 representative items (dishes,
+  raw foods, generic products; one row per name) are built in as `src/data/korean-foods.json` — rebuilt with
+  `MFDS_API_KEY=… node scripts/build-korean-foods.mjs` (≈ 93 calls) before a release — and ranked here (the name itself,
+  its first part, a name starting with the query, a later part, anywhere; raw food before dish before product; spaces
+  ignored; 계란 = 달걀, 닭가슴살 = 닭고기 가슴, 프로틴 = 단백질); with `MFDS_API_KEY`, the live API adds brand products
+  (상용제품, 30 asked). Food ids `mfds:<식품코드>`, source `mfds`; a row that leaves protein, carbs or fat blank (restaurant
+  chains) keeps them 0 and lists them in `notListed` (the app shows a note). A dish's portion and a product's package
+  (up to 1 kg) become the serving. Cached as `search:ko:<live|local>:<hash>`; an answer without brand products because
+  the live API failed is not cached (nothing at all and the API down: `502`). A Korean barcode (880…) asks Open Food
+  Facts, USDA, **Food QR** (data.go.kr 15143798, same key: the product's report number and its label) and **C005**
+  (식품안전나라 바코드연계제품정보, `FOODSAFETY_API_KEY`: report numbers) at once; up to 3 report numbers are looked up
+  in 식품영양성분DB (an exact number: the API's filter matches a prefix). Order: Open Food Facts' food, 식품영양성분DB's,
+  Food QR's label (one consistent basis only; `foodqr:<code>`, source `foodQR`), USDA's. A Korean source failing leaves
+  a miss uncached rather than `502`. The keys travel in URLs (the APIs take no header): URLs are never logged.
 - **Off switch:** `node scripts/ai.mjs pause` (everyone) or `pause --account <id>`; `resume`; `status`. It is a D1 row,
   read on every request: effective at once, no app build or deploy.
 - **Limits:** request bodies are counted in bytes from the stream and cut off past 64 KB (feedback: 5 MB + 64 KB;
@@ -125,6 +140,8 @@ npm run migrate:local && npm run dev    # http://localhost:8787 — sign-in need
    openssl rand -base64 32 | npx wrangler secret put TOKEN_ENC_KEY
    npx wrangler secret put OPENAI_API_KEY      # the developer's OpenAI key (ticket 06); typed at the prompt
    npx wrangler secret put USDA_API_KEY        # nutrition N8: the api.data.gov key for USDA FoodData Central
+   npx wrangler secret put MFDS_API_KEY        # nutrition N12: the data.go.kr key (식품영양성분DB + Food QR)
+   npx wrangler secret put FOODSAFETY_API_KEY  # nutrition N12: the 식품안전나라 key (C005)
    ```
    Keep the `.p8` somewhere safe outside this folder; `TOKEN_ENC_KEY` must not change once accounts exist (it decrypts
    the stored refresh tokens).

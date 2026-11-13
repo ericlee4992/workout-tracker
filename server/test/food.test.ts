@@ -499,7 +499,8 @@ describe("normalisation helpers", () => {
 
   it("queries and names", () => {
     expect(cleanQuery("  chicken \n breast ")).toBe("chicken breast");
-    expect(cleanQuery("닭")).toBeNull();
+    expect(cleanQuery("닭")).toBe("닭");  // N12: one Korean syllable is a word
+    expect(cleanQuery("a")).toBeNull();
     expect(cleanQuery("닭가슴살")).toBe("닭가슴살");
     expect(tidyName("COCA-COLA CLASSIC")).toBe("Coca-Cola Classic");
     expect(tidyName("Bananas, raw")).toBe("Bananas, raw");
