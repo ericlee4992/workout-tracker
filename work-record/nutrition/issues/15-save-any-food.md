@@ -116,3 +116,14 @@ Report: [`codex-review-n15.md`](../codex-review-n15.md) (not clear: three P2, on
 Verified: Unit plan — 1370/1370 passed, exit 0, build/results/n15-unit2.xcresult
 Not verified yet: TodayTrain area plan (~30 min; asking the user); UI unchanged this round (Domain + README only)
 ```
+
+## Codex review N15b — response (round 2)
+
+Report: [`codex-review-n15b.md`](../codex-review-n15b.md) (not clear: one P2; round-1 #1, #2, #4 resolved). Accepted: a
+portion that is itself a weight ("150 g") now follows the Weight field — saved as 200 g, shown "200 g" for the food
+and the meal item (`FoodSaving.food(from:)`); count and volume portions ("1 cup") keep their unit with the Weight as
+their grams. Regression: `theEditedWeightIsSaved` extended.
+
+```
+Verified: Unit plan — 1370/1370 passed, exit 0, build/results/n15-unit3.xcresult
+```

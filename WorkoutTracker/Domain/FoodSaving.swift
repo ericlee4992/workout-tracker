@@ -93,12 +93,17 @@ enum FoodSaving {
     /// An item as a food: its name; one serving of its portion ("1 cup" → 1 cup, blank → 1 serving); the item's Weight
     /// field when it has one — it is the number the user can edit, so it wins over a weight inside the portion text
     /// ("1 cup (150 g)" with Weight 200 → 200 g; Codex review N15) — else the portion's; the item's numbers for that
-    /// serving. Not inserted.
+    /// serving. A portion that is itself a weight ("150 g") becomes the Weight too — the serving reads "200 g", not
+    /// "150 g" stored with 200 g behind it (Codex review N15b). Not inserted.
     static func food(from item: FoodEstimate.Item) -> SavedFood {
-        let serving = ServingText.parse(item.portion) ?? ServingText(value: 1, unit: ServingText.defaultUnit)
+        var serving = ServingText.parse(item.portion) ?? ServingText(value: 1, unit: ServingText.defaultUnit)
+        if let grams = item.grams {
+            if ["g", "gram", "grams"].contains(serving.unit.lowercased()) { serving.value = grams }
+            serving.grams = grams
+        }
         return SavedFood(
             name: item.name.trimmingCharacters(in: .whitespacesAndNewlines), servingValue: serving.value,
-            servingUnit: serving.unit, servingGrams: item.grams ?? serving.grams, calories: item.calories,
+            servingUnit: serving.unit, servingGrams: serving.grams, calories: item.calories,
             proteinGrams: item.protein, carbsGrams: item.carbs, fatGrams: item.fat)
     }
 

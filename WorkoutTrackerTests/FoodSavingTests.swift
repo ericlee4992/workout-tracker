@@ -212,6 +212,18 @@ struct FoodSavingTests {
         var weightOnly = item
         weightOnly.grams = 180
         #expect(!FoodSaving.isSaved(weightOnly, in: context), "a weight-only edit is another food")
+
+        // A portion that is itself a weight follows the Weight field, so the serving SHOWS the edited weight (N15b).
+        var rice = tuna
+        rice.name = "Rice"
+        rice.portion = "150 g"
+        rice.grams = 200
+        let food = FoodSaving.food(from: rice)
+        #expect(food.servingValue == 200 && food.servingUnit == "g" && food.servingGrams == 200)
+        #expect(ServingText.format(value: food.servingValue, unit: food.servingUnit, grams: food.servingGrams) == "200 g")
+        try FoodSaving.toggleMeal(name: "Rice bowl", meal: .lunch, items: [rice], at: now, in: context)
+        let mealItem = try #require(try meals(context).first { $0.name == "Rice bowl" }?.orderedItems.first)
+        #expect(mealItem.servingText == "200 g")
     }
 
     /// One saved and one un-saved identical copy (two Manual Add entries saved, one un-saved): the item reads as saved,
