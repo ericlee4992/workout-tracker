@@ -77,8 +77,9 @@ bookmark). The food bookmark reuses "Save to Saved foods" / "Remove from Saved f
 - 2026-11-13 (Claude): `Domain/FoodSaving.swift`, `Features/Food/SaveBookmark.swift`, the bookmark on `EditEntrySheet`,
   `ScanEntryEditor` and `ScanItemEditor` (in its own glass, a fixed `ToolbarSpacer` apart from Save, after the first
   captures showed it fused with Save); `SavedFood.isCachedLookup` no longer needs a database id. The filled bookmark is
-  the toolbar's ink, not violet — the same code and look as `SelectedFoodView`'s existing bookmark (iOS 26 glass
-  toolbars render items monochrome); left as is for consistency.
+  the toolbar's ink, as `SelectedFoodView`'s — right: **the user, 2026-11-13: no violet (the Soft look, D67), no
+  visible wording, the icon alone**; the VoiceOver labels stay (spoken only). The user also set that the ios-design
+  skill is outdated: match the app's current screens (AGENTS.md).
 - Tests: `FoodSavingTests` (8); UI `TodayFoodUITests.testAnyLoggedFoodCanBeSaved` (Banana from a food, the Manual Add
   entry with none; Cancel keeps the bookmark; both reach Saved foods; un-saved Banana leaves it),
   `ScanFoodUITests.testAMealPhotoSavesAsAMealAndAnItemAsAFood` (the meal reaches My meals, the item Saved foods), and

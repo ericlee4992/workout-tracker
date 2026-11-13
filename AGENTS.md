@@ -99,10 +99,11 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 
 ## Task-specific guides
 
-- **Screen design, restyling, or review:** read
-  [.agents/skills/ios-design/SKILL.md](.agents/skills/ios-design/SKILL.md), including its
-  `REFERENCE.md` and `REVIEW.md` as directed. This path links to the single maintained skill in
-  `.claude/skills/ios-design/`. Show real default/AccessibilityL captures for UI decisions.
+- **Screen design, restyling, or review:** match the app's current screens — their colours, type,
+  controls and patterns — not the ios-design skill (the user, 2026-11-13: it is outdated; it still
+  describes the Floodlight look that D67's Soft look replaced). Never cite the skill as a reason for a
+  change or a finding. Show real default/AccessibilityL captures for UI decisions. The skill
+  ([.agents/skills/ios-design/SKILL.md](.agents/skills/ios-design/SKILL.md)) stays for reference only.
 - **SwiftUI or SwiftData code, writing or reviewing:** the vendored `swiftui-pro` and
   `swiftdata-pro` skills apply; these project rules override them. Keep Swift 5 language mode
   and the existing concurrency style. Layout targets iPhone portrait; apply iPad, iPhone Duo and
