@@ -152,7 +152,9 @@ jobs:
           trap 'kill "$heartbeat" 2>/dev/null || true' EXIT
 
           # The Unit test plan, as run locally (DEVELOPMENT → Tiers and test plans). A test that runs past the
-          # allowance fails by name instead of hanging the job.
+          # allowance fails by name instead of hanging the job. 10 minutes, not 2: every test starts at once and the
+          # main-actor ones wait their turn on this slower virtual Mac, so at 120 s 139 healthy tests "timed out"
+          # (2026-11-14); a truly stuck test still fails well inside the step's 25 minutes.
           # STACKED_CI=1 in the test host (TestEnvironment.isCI): skips the tests that run on-device text recognition,
           # which hangs on this virtual Mac (2026-11-14); they run locally.
           export TEST_RUNNER_STACKED_CI=1
@@ -163,8 +165,8 @@ jobs:
             -sdk iphonesimulator \
             -destination "id=${{ steps.sim.outputs.udid }}" \
             -test-timeouts-enabled YES \
-            -default-test-execution-time-allowance 120 \
-            -maximum-test-execution-time-allowance 300 \
+            -default-test-execution-time-allowance 600 \
+            -maximum-test-execution-time-allowance 600 \
             CODE_SIGNING_ALLOWED=NO \
             | tee xcodebuild.log \
             `# xcodebuild's exit code decides pass/fail (set -o pipefail); the` \
