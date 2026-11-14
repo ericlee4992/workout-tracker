@@ -59,9 +59,8 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 
 ## Workflow and verification
 
-- Each ticket names its implementer; the other agent reviews it independently (T6). T6's recorded default
-  (2026-09-17) is Codex implements, Claude reviews; since the Floodlight redesign the user's tickets have named Claude
-  as implementer and Codex as reviewer. The author does not supply the independent clearance. Give the reviewer the ticket, diff, relevant decisions, and evidence; resolve
+- Claude implements and Codex independently reviews (T6, the user 2026-11-14); a ticket may name Codex as
+  implementer, and then Claude reviews. The author does not supply the independent clearance. Give the reviewer the ticket, diff, relevant decisions, and evidence; resolve
   findings and re-review fixes.
 - **Self-check before every review round.** Reread your own diff as a hostile reviewer for the defect classes Codex
   keeps finding here, fix what you find, then send it:

@@ -1,15 +1,10 @@
 name: Tests
 
-# Unit tests only, on every PR and every push to main.
+# Unit tests only, on every PR, every push to main, and by hand.
 #
-# The XCUITest suite is deliberately NOT here. It takes ~9 minutes, and GitHub
-# bills macOS runners at 10x the minute rate — a handful of PRs a month would
-# swallow a private repo's whole allowance to re-prove what a local run already
-# proves. Run it before merging anything that touches a screen:
-#
-#   xcodebuild test -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
-#     -sdk iphonesimulator -destination 'platform=iOS Simulator,name=WT-iPhone' \
-#     -only-testing:WorkoutTrackerUITests
+# The XCUITest suite is deliberately NOT here: it takes far longer and needs the simulators and fixtures the local
+# test plans set up. UI tests run locally, chosen per docs/DEVELOPMENT.md → Verification scope (test plans in
+# TestPlans/). Local verification is the merge gate; this job is a second, automatic check of the unit tests.
 #
 # No signing secrets are needed: simulator builds do not sign, and the team ID
 # lives in Config/Local.xcconfig, which is gitignored and optional (see
@@ -19,6 +14,9 @@ on:
   pull_request:
   push:
     branches: [main]
+  # Run by hand on any branch (Actions → Tests → Run workflow, or `gh workflow run tests.yml --ref <branch>`), e.g. to
+  # prove a CI change before it reaches main.
+  workflow_dispatch:
 
 concurrency:
   group: tests-${{ github.ref }}
@@ -32,7 +30,12 @@ jobs:
     # seconds on 2026-08-25 with nothing but a deployment-target warning to say
     # why. Raising the deployment target silently broke CI; it was merged before
     # anyone noticed, which is the no-PR workflow working exactly as documented.
-    runs-on: macos-26
+    #
+    # xcode-27, NOT macos-26 (2026-11-14). The app is built with Xcode 27 (27.2 locally); macos-26's newest Xcode is
+    # 26.6, whose compiler failed on LiveSetRow.swift — every Tests run from 2026-08-18 to 2026-11-14 failed or was
+    # cancelled (none passed). `xcode-27` is GitHub's macOS 27 + Xcode 27 image, a public preview as of 2026-11
+    # (https://github.com/actions/runner-images/issues/14404); move to its GA label when there is one.
+    runs-on: xcode-27
     # 30 killed all three runs this workflow has ever had (2026-08-18, and twice
     # on 2026-08-22) — always mid-`Unit tests`, never with a diagnosis, because
     # of the two problems fixed in that step below. 60 is not a claim that the
@@ -41,6 +44,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      # The image's default Xcode may lag the one the app is built with; pick the same one (27.2), else the newest 27.
+      - name: Select Xcode
+        run: |
+          set -euo pipefail
+          xcode=/Applications/Xcode_27.2.app
+          [ -d "$xcode" ] || xcode=$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)
+          sudo xcode-select -s "$xcode/Contents/Developer"
 
       - name: Show toolchain
         run: xcodebuild -version
@@ -56,7 +67,7 @@ jobs:
           have=$(xcrun --sdk iphonesimulator --show-sdk-version | cut -d. -f1)
           echo "project needs iOS ${required}; this runner's newest iOS SDK is ${have}"
           if [ "$have" -lt "$required" ]; then
-            echo "::error::Runner SDK iOS ${have} is older than the project's deployment target iOS ${required} (see D42). This is a RUNNER IMAGE problem, not a code problem — the same commit builds locally on Xcode 26. Bump runs-on to an image with Xcode ${required}."
+            echo "::error::Runner SDK iOS ${have} is older than the project's deployment target iOS ${required} (see D42). This is a RUNNER IMAGE problem, not a code problem — the same commit builds locally on Xcode 27. Bump runs-on to an image with Xcode ${required} or later."
             exit 1
           fi
 
@@ -135,13 +146,16 @@ jobs:
             `# CoreData "error:" lines while creating the store on first launch,` \
             `# which are noise, not failures.` \
             | grep -E --line-buffered '✘|Test run with|TEST (SUCCEEDED|FAILED)' \
-            || (echo "--- last 100 lines ---"; tail -100 xcodebuild.log; exit 1)
+            || (echo "--- compiler errors ---"; grep -E '\.swift:[0-9]+:[0-9]+: error:' xcodebuild.log | sort -u | head -40 || true
+                echo "--- last 100 lines ---"; tail -100 xcodebuild.log; exit 1)
 
       # `always()`, not `failure()`: a timeout cancels the job rather than
       # failing it, so `failure()` skipped this step on all three timeouts and
       # the one artifact that could explain them was discarded with the runner.
       - name: Upload build log
         if: always()
+        # The log is a diagnostic: GitHub's artifact service timing out (seen 2026-11-14) must not fail the job.
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: xcodebuild-log

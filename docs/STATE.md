@@ -14,8 +14,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Done 2026-11-14 (from the user's `/insights` review):** `scripts/testflight.sh` (archive / check / upload — the
   export options are written fresh each run; exit 2 = Xcode signed out), DEVELOPMENT's TestFlight checklist steps 3–5,
   an AGENTS.md accuracy pass (implementer per ticket, a pre-review self-check list, the STATE-top rule, CI's real
-  status, delete rules, the design rule) and this STATE top. Codex clear (round 3); merged into `main`. **Open for
-  the user:** whether to make "Claude implements, Codex reviews" T6's official default.
+  status, delete rules, the design rule) and this STATE top. Codex clear (round 3); merged into `main`. T6's default is
+  now "Claude implements, Codex reviews" (the user, 2026-11-14).
 - **Next product work (the user to pick):** [research on what other apps lack](../work-record/research/2026-11-13-competitor-gaps.md)
   (2026-11-13). Proposed first: machine setup memory (seat/pins, with a note), logging a set from the Lock Screen,
   an "oil or sauce?" question after a meal-photo estimate; then the "It's taken" swap and a beginner machine card.
