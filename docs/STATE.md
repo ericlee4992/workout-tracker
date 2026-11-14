@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-14: 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 chart by machine + N15 save any food; no Gate S) — next: the user's TestFlight steps. In progress: release script + AGENTS.md accuracy pass (branch `ericlee4992/release-script-agents`).** Earlier: 0.2.0 (13) N12 Korean foods and (12) N13/N14 uploaded 2026-11-12/13. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-14: 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 chart by machine + N15 save any food; no Gate S) — next: the user's TestFlight steps. Release script and AGENTS.md accuracy pass merged 2026-11-14.** Earlier: 0.2.0 (13) N12 Korean foods and (12) N13/N14 uploaded 2026-11-12/13. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-14)
@@ -11,12 +11,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   next steps:** Developer → install → try the live chart and the food bookmark → Friends with the What to Test note →
   Submit. Builds 12 and 13 were uploaded before it (their records hold their own steps: build 12 needed **Gate S**
   on the phone before installing — N13/N14 changed the stored format; build 13 did not).
-- **In progress (this session, Paseo workspace "Workout chart + save foods",
-  `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`, branch `ericlee4992/release-script-agents`):** from the
-  user's `/insights` report — `scripts/testflight.sh` (archive with checks; upload writing its export options fresh,
-  exit 2 when Xcode is signed out), DEVELOPMENT's TestFlight checklist steps 3–5, an AGENTS.md accuracy pass (who
-  implements, CI, delete rules, design rule, a pre-review self-check list, the STATE-header rule), this STATE top.
-  Next: Codex review (agent `562c6d70-3c94-4da0-9760-a287cdd9a84b`, reuse), then merge.
+- **Done 2026-11-14 (from the user's `/insights` review):** `scripts/testflight.sh` (archive / check / upload — the
+  export options are written fresh each run; exit 2 = Xcode signed out), DEVELOPMENT's TestFlight checklist steps 3–5,
+  an AGENTS.md accuracy pass (implementer per ticket, a pre-review self-check list, the STATE-top rule, CI's real
+  status, delete rules, the design rule) and this STATE top. Codex clear (round 3); merged into `main`. **Open for
+  the user:** whether to make "Claude implements, Codex reviews" T6's official default.
 - **Next product work (the user to pick):** [research on what other apps lack](../work-record/research/2026-11-13-competitor-gaps.md)
   (2026-11-13). Proposed first: machine setup memory (seat/pins, with a note), logging a set from the Lock Screen,
   an "oil or sauce?" question after a meal-photo estimate; then the "It's taken" swap and a beginner machine card.
