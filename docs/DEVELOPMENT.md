@@ -414,10 +414,14 @@ TestFlight build **without launching**; if installation demands a delete, stop; 
 
 ## CI, scanner tooling, and time-based behavior
 
-- CI needs a runner/toolchain capable of the iOS 26 APIs (`macos-26`; `macos-15` failed).
-  Local tests are the pre-merge gate. The hosted Tests job has never passed: it used to hang (the user deferred that
-  investigation) and, as of 2026-11-14, fails to compile `LiveSetRow.swift` on the runner's Xcode 26.6. If reopened,
-  inspect its uploaded log, match the runner's Xcode to the local one and set a bounded step timeout.
+- CI (`.github/workflows/tests.yml`) runs the Unit plan on GitHub's `xcode-27` image (a public preview; move to its GA
+  label when there is one), selecting the local Xcode (27.2). Local tests are the pre-merge gate. History: `macos-15`
+  could not build iOS 26; `macos-26`'s Xcode 26.6 failed to compile `LiveSetRow.swift`; on the virtual Mac
+  `VNRecognizeTextRequest` never returns (the test host's stack sample showed it), which is why the unit run "hung" —
+  the text-recognition tests are disabled when `STACKED_CI=1` (the workflow sets `TEST_RUNNER_STACKED_CI`). Every test
+  starts at once and main-actor tests queue on the slower runner, so the per-test allowance is 10 minutes (2 timed
+  out 139 healthy tests). If a run is still going at 12 minutes the workflow samples the test host's stacks into the
+  `xcodebuild-log` artifact — read that before guessing. First green run: 2026-11-14.
 - Anaconda's old Brotli decoder broke the Anthropic tooling client with
   `process() takes no keyword arguments`. `llm_reader.py` uses `Accept-Encoding: identity` to
   bypass it. The tooling key in `Config/anthropic.key` is distinct from the phone's keychain key.

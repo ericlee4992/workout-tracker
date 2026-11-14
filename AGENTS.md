@@ -112,11 +112,11 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 - Code commits must preserve a successful `xcodebuild build`. Before closing a feature, check
   internal functions and doc comments against their callers. Verify gated settings are reachable
   and mirrored messages are actually sent; testing only the gate or receiver misses these defects.
-- **Local verification is the gate.** GitHub CI's Tests workflow runs after each push to `main` but has never passed:
-  216 runs from 2026-08-18 to 2026-11-14, 143 failed and 73 cancelled (some superseded, some stuck). The latest runs
-  fail to compile `LiveSetRow.swift` on the runner's Xcode 26.6, while the app builds locally on Xcode 27. A Tests run
-  failing with that compile error says nothing about a change; any other failure is read like any other test result.
-  Fixing the runner is open in STATE. The Server workflow passes.
+- **Local verification is the gate; CI is a second check.** GitHub's Tests workflow runs the Unit test plan after each
+  push to `main` (and by hand: `gh workflow run tests.yml --ref <branch>`) on the `xcode-27` image with Xcode 27.2,
+  in about 20 minutes. It first passed 2026-11-14 (run 43588010018), after 216 runs that never had: macos-26's Xcode
+  26.6 could not compile the app, and on-device text recognition hangs on the virtual Mac — so the 9 tests that run it
+  are skipped there (`TestEnvironment.isCI`) and run only locally. A red Tests run is a real failure: read it.
 - **TestFlight builds:** follow DEVELOPMENT's [TestFlight build checklist](docs/DEVELOPMENT.md#testflight-build-checklist);
   `scripts/testflight.sh` archives (with its checks) and uploads. Whether to release, the version number, What's New
   and the What to Test note are the user's decisions.

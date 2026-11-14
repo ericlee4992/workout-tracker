@@ -29,7 +29,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   (their tickets); App Store Connect → App Privacy: sex / age / weight declared for App Functionality (N14).
 - **Follow-ups to propose:** a dev-speed ticket for the flaky live "New best" band test waits
   (`testMakingAFreshBestAWarmupTakesTheBandAway`); [dev-speed 02](../work-record/dev-speed/issues/02-ui-test-launch-unfinished-workout.md);
-  **GitHub CI's Tests workflow has never passed** (the runner fails to compile `LiveSetRow.swift`; AGENTS.md).
+  GitHub CI's Tests workflow — fixed on `ericlee4992/ci-and-t6` (first green run 2026-11-14, `xcode-27` image; the 9
+  text-recognition tests skipped there); merging after Codex review.
 - **The user's rules from 2026-11-13:** match the app's current screens, not the outdated ios-design skill (AGENTS.md);
   no violet, icon-only bookmark; no link field for photo meals/items (content match, no Gate S).
 - **Dated chores:** delete server D1 backups `~/WorkoutTracker-Backups/server/2026-11-11-release-r` by **2026-12-11** and
