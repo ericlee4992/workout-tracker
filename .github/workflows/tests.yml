@@ -136,6 +136,16 @@ jobs:
           (
             while sleep 60; do
               echo "[heartbeat +$((SECONDS / 60))m] $(tail -n 1 xcodebuild.log 2>/dev/null | cut -c1-140)"
+              # Locally the unit tests take ~2 minutes. Still running at 12: record what the test host is doing (its
+              # threads' stacks) so a hang names its cause; saved with the log as an artifact.
+              if [ $((SECONDS / 60)) -eq 12 ]; then
+                for pid in $(pgrep -f 'WorkoutTracker.app/WorkoutTracker' || true); do
+                  sample "$pid" 3 -file "hang-sample-$pid.txt" >/dev/null 2>&1 || true
+                  echo "--- test host $pid: main thread ---"
+                  awk '/Thread_[0-9]+.*DispatchQueue_1: com.apple.main-thread/{p=1} p{print; if (++n>60) exit}' \
+                    "hang-sample-$pid.txt" 2>/dev/null | cut -c1-160 || true
+                done
+              fi
             done
           ) &
           heartbeat=$!
@@ -172,5 +182,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: xcodebuild-log
-          path: xcodebuild.log
+          path: |
+            xcodebuild.log
+            hang-sample-*.txt
           if-no-files-found: ignore
