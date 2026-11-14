@@ -256,15 +256,21 @@ tickets 08 and 13):
    (`WorkoutTracker/Domain/WhatsNew.swift`) with **this build's number**, a title and a few lines the user approved;
    it shows once to people updating to that build or later (not on a fresh install, not over a workout in progress)
    and stays readable in Settings → What's New. Its capture test is `FloodlightWhatsNewUITests` (`-uiTestWhatsNew`).
-3. **Build number:** raise `CURRENT_PROJECT_VERSION` in every target (`project.pbxproj`, all occurrences), check
-   `xcodebuild build`, commit, fast-forward `main`, push.
+3. **Build number and release review:** on a `release-<version>-<build>` branch, raise `CURRENT_PROJECT_VERSION` in
+   every target (`project.pbxproj`, all occurrences), check `xcodebuild build` and the Unit plan, and write the release
+   record (`work-record/release/<version>-build-<build>.md`: contents, Gate S or why not, the notes, evidence). Codex
+   reviews the branch (`codex-review-<version>-build-<build>.md`) to "clear"; then fast-forward `main` and push.
 4. **Archive** from the detached `release-build` checkout at that `main` commit (`Config/Local.xcconfig` present):
-   `xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -configuration Release -destination
-   generic/platform=iOS -archivePath <scratch>/Stacked-<version>-<build>-<commit>.xcarchive -allowProvisioningUpdates
-   archive`. Check the archive's app and widget `CFBundleVersion`, production `WTServerURL`, `WTGoogleClientID`, team.
-5. **Upload:** `xcodebuild -exportArchive -archivePath … -exportOptionsPlist UploadOptions.plist -exportPath …
-   -allowProvisioningUpdates` (`method` app-store-connect, `destination` upload, automatic signing, the team ID,
-   `manageAppVersionAndBuildNumber` false); require "Upload succeeded".
+   `git -C <release-build> checkout --detach origin/main`, then, inside it, `scripts/testflight.sh archive` (default
+   output `/tmp/stacked-release-<version>-<build>/`). The script refuses a dirty checkout or targets that
+   disagree on version/build, and checks the archive: app and widget version and build, a production `https`
+   `WTServerURL`, `WTGoogleClientID` present, signed by the team in `Local.xcconfig`. It ends with `ARCHIVE OK`.
+5. **Upload:** in the same checkout, `scripts/testflight.sh upload <the .xcarchive>`. It writes the export options (`app-store-connect`,
+   `upload`, automatic signing, the team from `Local.xcconfig`, `manageAppVersionAndBuildNumber` false) fresh into a
+   temporary folder on every run — the old hand-written file in `/tmp` was lost twice between builds — and requires
+   "Upload succeeded" (`UPLOAD OK`). **Exit 2 = Xcode is not signed in to App Store Connect** ("Failed to Use Accounts",
+   seen 2026-11-13 after an Xcode update): the user signs in at Xcode → Settings → Accounts; an agent cannot enter the
+   password or code. Then rerun the upload on the same archive.
 6. **App Store Connect** (Apple processes the build in 10–30 min): neither group adds new builds automatically.
    **Developer** (internal) → Builds → + → the build → Add (no review). **Friends** (external) → Builds → + → the
    build → Next → paste the What to Test note → Submit for Review. The agent may select and fill; the user clicks
@@ -407,8 +413,9 @@ TestFlight build **without launching**; if installation demands a delete, stop; 
 ## CI, scanner tooling, and time-based behavior
 
 - CI needs a runner/toolchain capable of the iOS 26 APIs (`macos-26`; `macos-15` failed).
-  Local tests are the pre-merge gate. The hosted unit job has historically hung; the user
-  deferred investigation. If reopened, inspect its uploaded log and set a bounded step timeout.
+  Local tests are the pre-merge gate. The hosted Tests job has never passed: it used to hang (the user deferred that
+  investigation) and, as of 2026-11-14, fails to compile `LiveSetRow.swift` on the runner's toolchain. If reopened,
+  inspect its uploaded log, match the runner's Xcode to the local one and set a bounded step timeout.
 - Anaconda's old Brotli decoder broke the Anthropic tooling client with
   `process() takes no keyword arguments`. `llm_reader.py` uses `Accept-Encoding: identity` to
   bypass it. The tooling key in `Config/anthropic.key` is distinct from the phone's keychain key.

@@ -1,4 +1,4 @@
-# Workout Tracker — agent guide
+# Stacked (repository name: Workout Tracker) — agent guide
 
 ## Start and resume
 
@@ -28,7 +28,9 @@ status, the build/test steps or the folder layout, update README (and its screen
 on the same branch before merging. Keep personal details, tester data and secrets out of it.
 
 Keep STATE as a short current handoff. Update existing facts instead of prepending another
-session transcript. At meaningful checkpoints and before ending a session, record the exact
+session transcript. **Its top says the newest state:** whenever STATE changes, rewrite the "Updated …" line under the
+title and the first RESUME HERE bullets to match, then reread the top of the file before saying STATE is updated (a
+stale header after "STATE updated" has happened twice). At meaningful checkpoints and before ending a session, record the exact
 branch/commit, completed and remaining work, user decisions, verification scope/results, and
 next action. For a running task, put its process identity and log/result paths in the ticket
 and link it from STATE. Put detailed progress in the ticket and stable decisions in DECISIONS.
@@ -57,9 +59,25 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 
 ## Workflow and verification
 
-- Codex is the default implementer; Claude independently reviews (T6). If Claude implements,
-  Codex reviews. The author does not supply the independent clearance. Give the reviewer the
-  ticket, diff, relevant decisions, and evidence; resolve findings and re-review fixes.
+- Claude implements and Codex independently reviews (T6); if Codex implements, Claude reviews. The author does not
+  supply the independent clearance. Give the reviewer the ticket, diff, relevant decisions, and evidence; resolve
+  findings and re-review fixes.
+- **Self-check before every review round.** Reread your own diff as a hostile reviewer for the defect classes Codex
+  keeps finding here, fix what you find, then send it:
+  - *the wrong record*: a name, snapshot or value looked up from "the first match" instead of the exact entry, set or
+    workout it belongs to (D23); two records sharing an identity (same timestamp, same id);
+  - *matches that ignore fields*: "same content" or dedupe checks that compare only some fields, so a richer or
+    different row matches — and gets changed or deleted;
+  - *stale or overridden values*: an older value overwriting a newer one; a derived value (a portion's grams, a
+    default) silently replacing what the user edited; state that is not refreshed at a day or week boundary;
+  - *state that leaks or is lost*: edits surviving Cancel or a failed save, choices lost on a tab switch, a draft
+    (unfrozen) entry read as if frozen or the reverse, a first-use row with no name;
+  - *privacy and data safety*: Health or personal data reaching an AI prompt or the server; a safety copy, export or
+    delete that misses a field or a relationship;
+  - *errors read as absence*: a failed fetch or recovery treated as "nothing there";
+  - *screens*: AccessibilityL layouts (stack, never truncate what is needed), Reduce Motion, empty states;
+    full-history fetches per row or per render;
+  - *claims*: README, ticket and doc comments that say more than the code does; a regression test for each fix.
 - **Agent tooling: Paseo** (since 2026-11-11) — follow [tools-paseo](docs/agents/tools-paseo.md) for the Codex
   reviewer, the test progress tab, worktrees and handoff. The Orca setup is kept in
   [tools-orca](docs/agents/tools-orca.md); to switch back, point this line there.
@@ -92,8 +110,13 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 - Code commits must preserve a successful `xcodebuild build`. Before closing a feature, check
   internal functions and doc comments against their callers. Verify gated settings are reachable
   and mirrored messages are actually sent; testing only the gate or receiver misses these defects.
-- CI runs unit tests on PRs and pushes to `main`; in this no-PR workflow it runs after merge.
-  Local verification is the gate. The user deferred the hanging hosted runner investigation.
+- **Local verification is the gate.** GitHub CI's Tests workflow runs after each push to `main` but has never passed
+  (216 runs since 2026-09, every one failed or hung and was cancelled; checked 2026-11-14). Now the hosted runner's
+  toolchain fails to compile the app (first error in `LiveSetRow.swift`) that builds locally on Xcode 27. A red Tests
+  run is therefore not news about a change; fixing the runner is open in STATE. The Server workflow passes.
+- **TestFlight builds:** follow DEVELOPMENT's [TestFlight build checklist](docs/DEVELOPMENT.md#testflight-build-checklist);
+  `scripts/testflight.sh` archives (with its checks) and uploads. Whether to release, the version number, What's New
+  and the What to Test note are the user's decisions.
 - Before schema changes or device installation, follow DEVELOPMENT's migration, backup,
   signing, binary freshness, and launch checks. Current phone facts live only in STATE.
 
@@ -108,10 +131,11 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
   `swiftdata-pro` skills apply; these project rules override them. Keep Swift 5 language mode
   and the existing concurrency style. Layout targets iPhone portrait; apply iPad, iPhone Duo and
   resizability advice only when a ticket asks. Keep each relationship's delete rule in
-  `Domain/Models.swift`: catalog and context links into history (exercise, preset, machine,
-  gym) `.nullify`, so history survives; owned rows (workout → entries, cardio, sensor samples;
-  entry → sets; template → items; exercise → presets) `.cascade`. Schema changes follow DEVELOPMENT's
-  migration and backup steps. `ios-design` decides fonts, spacing and colour. Report
+  `Domain/Models.swift` and `Domain/Nutrition.swift`: catalog and context links into history (exercise, preset,
+  machine, gym; a saved food behind an entry or a meal item) `.nullify`, so history survives; owned rows (workout →
+  entries, cardio, sensor samples; entry → sets; template → items; exercise → presets; food entry → items, photo; saved
+  meal → items) `.cascade`. Schema changes follow DEVELOPMENT's migration and backup steps. Fonts, spacing and colour
+  come from the app's current screens (above). Report
   modernisation and file splits as separate findings, outside the ticket's diff. Pinned source
   and update steps: [DEVELOPMENT](docs/DEVELOPMENT.md#vendored-agent-skills).
 - **Ticket creation or updates:** [issue tracker](docs/agents/issue-tracker.md);

@@ -1,62 +1,94 @@
 # Current project state
 
-Updated **2026-11-13: 0.2.0 (13) uploaded (N12 Korean food data; server Worker `16f93322`); next: the user's TestFlight steps (no Gate S). Earlier 2026-11-12: 0.2.0 (12) uploaded (N14 on top of build 11); the user's TestFlight steps, Gate S first.** Earlier: **2026-11-11, R in progress: server deployed (food flows, barcodes/search, privacy dated Nov 11); next App Privacy, Gate S, build 10.** Nutrition phase: N1–N7, S6, N6 code and N9a merged into `main`; C1 + N9b and N10 merged 2026-11-11; next N8, R. Soft redesign S1–S6 merged earlier; build 9 is the testers' live build (no TestFlight build before release R, D76). The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-14: 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 chart by machine + N15 save any food; no Gate S) — next: the user's TestFlight steps. In progress: release script + AGENTS.md accuracy pass (branch `ericlee4992/release-script-agents`).** Earlier: 0.2.0 (13) N12 Korean foods and (12) N13/N14 uploaded 2026-11-12/13. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## RESUME HERE (2026-11-12, end of the P1 / N13 / N14 session)
+## RESUME HERE (2026-11-14)
 
-- **0.2.0 (14) uploaded 2026-11-13 16:14 EST** (`main` `20634c0f`; live-workout 03 + N15; no What's New, no Gate S;
-  release review clear; record `work-record/release/0.2.0-build-14.md`). **The user's next steps:** Developer → install →
-  try the live chart and the food bookmark → Friends with the What to Test note → Submit. The Paseo workspace
-  "Workout chart + save foods" and its Codex agent `562c6d70-…` can be archived (branches kept).
-- **Next tickets (the user, 2026-11-13), in order, in Paseo workspace "Workout chart + save foods"
-  (`~/.paseo/worktrees/1qmeipq9/workout-chart-machines`):** 1) [live-workout 03 — the chart from a live workout, by
-  machine](../work-record/live-workout-fixes/issues/03-chart-from-workout.md) (branch `ericlee4992/workout-chart-machines`);
-  2) [N15 — save any food you open](../work-record/nutrition/issues/15-save-any-food.md). D87. Each UI-first, Codex clear,
-  merged before the next. Release afterwards: the user's call.
-  **Ticket 1 — DONE: Codex clear (round 3), merged into `main` 2026-11-13** (branch kept; Codex agent
-  `562c6d70-3c94-4da0-9760-a287cdd9a84b` in this workspace — reuse it for N15). Open for the user: its new strings
-  (ticket). Follow-up to propose: a dev-speed ticket for the flaky live "New best" band test waits. **N15 — DONE: Codex clear (round 3), TodayTrain 72/72, merged
-  into `main` 2026-11-13** (branch kept). Both tickets of this workspace are merged; the workspace can be archived.
-  The user's rules from this session: no link field for photo meals/items (content match, no Gate S); no violet,
-  icon only; match the app's current screens, not the ios-design skill (AGENTS.md). Open for the user: live-workout
-  03's new VoiceOver strings; a release (TestFlight) is the user's call. Follow-up to propose: a dev-speed ticket for
-  the flaky live "New best" band test waits.
-
-- **N12 Korean food data — DONE: merged into `main` and server deployed 2026-11-13** (Codex clear, round 4; branch
-  `ericlee4992/nutrition-12-korean-db` kept; [ticket](../work-record/nutrition/issues/12-korean-food-database.md), D86,
-  review `work-record/nutrition/codex-review-n12.md`). Worker **`16f93322`** with secrets `MFDS_API_KEY` +
-  `FOODSAFETY_API_KEY`; privacy "Effective November 13, 2026"; no migration. The user approved screens, strings and
-  privacy wording. **0.2.0 (13) uploaded 2026-11-13 01:55 EST** (`main` `f6faa31f`, release review clear; record
-  `work-record/release/0.2.0-build-13.md`; What's New "New: Korean foods"). **The user's next steps:** Developer →
-  install (**no Gate S**) → signed in, a Korean search (김치찌개) and a Korean barcode (the first live N12 check) →
-  Friends with the What to Test note → Submit. Follow-up:
-  [dev-speed 02](../work-record/dev-speed/issues/02-ui-test-launch-unfinished-workout.md). Workspace "N12 Korean food
-  DB" and its Codex agent `006b23e1-…` can be archived.
-- **Git:** `main` = N12 + the deploy date commit; home checkout updated.
-- **Shipped to TestFlight:** **0.2.0 (12)** uploaded 2026-11-12 17:55 EST = P1 workout lag + N13 goal setup + N14 AI
-  goals (build 11 was uploaded earlier the same day; the user kept the version at 0.2.0 so external review is likely
-  skipped). Records: `work-record/release/0.2.0-build-11.md`, `0.2.0-build-12.md`.
-- **Server:** deployed 2026-11-12 (Worker `4c9d03db`, migration 0009, privacy "Effective November 12, 2026").
-- **The user's next steps (not the agent's):** App Store Connect → build 12 to Developer → **Gate S on the phone before
-  installing** (stored-format change since build 10: N13 + N14) → install and check Generate Goals signed in (the first
-  live `nutrition-goals` request), What's New, a workout (P1's phone check: P1 acceptance 1–2) → Friends with the edited
-  What to Test note → Submit.
-- **Next ticket (agent):** **0.2.2 = [N12 Korean food DB](../work-record/nutrition/issues/12-korean-food-database.md)**
-  (needs the user's data.go.kr key) — in its own Paseo worktree off `main`; a new Codex reviewer agent there (the one in
-  the N13 workspace, `edd217f6-…`, goes when that workspace is archived).
-- **Open for the user (not blocking):** N13's and N14's new strings and own decisions (their tickets); App Store Connect
-  → App Privacy: sex / age / weight declared for App Functionality (N14).
+- **Shipped:** **0.2.0 (14) uploaded 2026-11-13 16:14 EST** (`main` `20634c0f`): [live-workout 03](../work-record/live-workout-fixes/issues/03-chart-from-workout.md)
+  (the chart from a live exercise, by machine) + [N15](../work-record/nutrition/issues/15-save-any-food.md) (save any
+  food you open); no What's New (the user), no Gate S; record `work-record/release/0.2.0-build-14.md`. **The user's
+  next steps:** Developer → install → try the live chart and the food bookmark → Friends with the What to Test note →
+  Submit. Builds 12 and 13 were uploaded before it (their records hold their own steps: build 12 needed **Gate S**
+  on the phone before installing — N13/N14 changed the stored format; build 13 did not).
+- **In progress (this session, Paseo workspace "Workout chart + save foods",
+  `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`, branch `ericlee4992/release-script-agents`):** from the
+  user's `/insights` report — `scripts/testflight.sh` (archive with checks; upload writing its export options fresh,
+  exit 2 when Xcode is signed out), DEVELOPMENT's TestFlight checklist steps 3–5, an AGENTS.md accuracy pass (who
+  implements, CI, delete rules, design rule, a pre-review self-check list, the STATE-header rule), this STATE top.
+  Next: Codex review (agent `562c6d70-3c94-4da0-9760-a287cdd9a84b`, reuse), then merge.
+- **Next product work (the user to pick):** [research on what other apps lack](../work-record/research/2026-11-13-competitor-gaps.md)
+  (2026-11-13). Proposed first: machine setup memory (seat/pins, with a note), logging a set from the Lock Screen,
+  an "oil or sauce?" question after a meal-photo estimate; then the "It's taken" swap and a beginner machine card.
+- **Open for the user (not blocking):** live-workout 03's VoiceOver strings ("Last time", "Same model at another gym",
+  "Not on this machine", "Other equipment", "All machines", "Progress"); N13's and N14's strings and own decisions
+  (their tickets); App Store Connect → App Privacy: sex / age / weight declared for App Functionality (N14).
+- **Follow-ups to propose:** a dev-speed ticket for the flaky live "New best" band test waits
+  (`testMakingAFreshBestAWarmupTakesTheBandAway`); [dev-speed 02](../work-record/dev-speed/issues/02-ui-test-launch-unfinished-workout.md);
+  **GitHub CI's Tests workflow has never passed** (the runner fails to compile `LiveSetRow.swift`; AGENTS.md).
+- **The user's rules from 2026-11-13:** match the app's current screens, not the outdated ios-design skill (AGENTS.md);
+  no violet, icon-only bookmark; no link field for photo meals/items (content match, no Gate S).
 - **Dated chores:** delete server D1 backups `~/WorkoutTracker-Backups/server/2026-11-11-release-r` by **2026-12-11** and
   `2026-11-12-n14-ai-goals` by **2026-12-12** (the privacy policy promises it).
 - **Own models (separate, private repo `github.com/ericlee4992/stacked-ml`, local `~/orca/projects/stacked-ml`):** the
   user's RTX 5080 Windows laptop sets up the environment and runs/trains models there, starting with meal photos
   (compare local vision models with GPT first, distil only if needed). Its docs/STATE.md "For the app repo" lists
   anything that needs an app/server change (routing to a self-hosted model + privacy wording) — done from the Mac.
-- **Cleanup:** archive Paseo workspace "N13 goal setup" (`~/.paseo/worktrees/1qmeipq9/nutrition-13-goal-setup`); the
-  P1 workspace was archived earlier. Branches are kept.
+- **Cleanup (the user's go):** Paseo workspaces "N12 Korean food DB" (Codex agent `006b23e1-…`), "N13 goal setup"
+  (`edd217f6-…`) and, once this branch merges, "Workout chart + save foods" can be archived. Branches are kept.
 
 ## History below (older NOW entries; superseded by RESUME HERE)
+
+- **2026-11-13: RESUME HERE as it stood before the 2026-11-14 rewrite (superseded; kept verbatim):**
+  - **0.2.0 (14) uploaded 2026-11-13 16:14 EST** (`main` `20634c0f`; live-workout 03 + N15; no What's New, no Gate S;
+    release review clear; record `work-record/release/0.2.0-build-14.md`). **The user's next steps:** Developer → install →
+    try the live chart and the food bookmark → Friends with the What to Test note → Submit. The Paseo workspace
+    "Workout chart + save foods" and its Codex agent `562c6d70-…` can be archived (branches kept).
+  - **Next tickets (the user, 2026-11-13), in order, in Paseo workspace "Workout chart + save foods"
+    (`~/.paseo/worktrees/1qmeipq9/workout-chart-machines`):** 1) [live-workout 03 — the chart from a live workout, by
+    machine](../work-record/live-workout-fixes/issues/03-chart-from-workout.md) (branch `ericlee4992/workout-chart-machines`);
+    2) [N15 — save any food you open](../work-record/nutrition/issues/15-save-any-food.md). D87. Each UI-first, Codex clear,
+    merged before the next. Release afterwards: the user's call.
+    **Ticket 1 — DONE: Codex clear (round 3), merged into `main` 2026-11-13** (branch kept; Codex agent
+    `562c6d70-3c94-4da0-9760-a287cdd9a84b` in this workspace — reuse it for N15). Open for the user: its new strings
+    (ticket). Follow-up to propose: a dev-speed ticket for the flaky live "New best" band test waits. **N15 — DONE: Codex clear (round 3), TodayTrain 72/72, merged
+    into `main` 2026-11-13** (branch kept). Both tickets of this workspace are merged; the workspace can be archived.
+    The user's rules from this session: no link field for photo meals/items (content match, no Gate S); no violet,
+    icon only; match the app's current screens, not the ios-design skill (AGENTS.md). Open for the user: live-workout
+    03's new VoiceOver strings; a release (TestFlight) is the user's call. Follow-up to propose: a dev-speed ticket for
+    the flaky live "New best" band test waits.
+  - **N12 Korean food data — DONE: merged into `main` and server deployed 2026-11-13** (Codex clear, round 4; branch
+    `ericlee4992/nutrition-12-korean-db` kept; [ticket](../work-record/nutrition/issues/12-korean-food-database.md), D86,
+    review `work-record/nutrition/codex-review-n12.md`). Worker **`16f93322`** with secrets `MFDS_API_KEY` +
+    `FOODSAFETY_API_KEY`; privacy "Effective November 13, 2026"; no migration. The user approved screens, strings and
+    privacy wording. **0.2.0 (13) uploaded 2026-11-13 01:55 EST** (`main` `f6faa31f`, release review clear; record
+    `work-record/release/0.2.0-build-13.md`; What's New "New: Korean foods"). **The user's next steps:** Developer →
+    install (**no Gate S**) → signed in, a Korean search (김치찌개) and a Korean barcode (the first live N12 check) →
+    Friends with the What to Test note → Submit. Follow-up:
+    [dev-speed 02](../work-record/dev-speed/issues/02-ui-test-launch-unfinished-workout.md). Workspace "N12 Korean food
+    DB" and its Codex agent `006b23e1-…` can be archived.
+  - **Git:** `main` = N12 + the deploy date commit; home checkout updated.
+  - **Shipped to TestFlight:** **0.2.0 (12)** uploaded 2026-11-12 17:55 EST = P1 workout lag + N13 goal setup + N14 AI
+    goals (build 11 was uploaded earlier the same day; the user kept the version at 0.2.0 so external review is likely
+    skipped). Records: `work-record/release/0.2.0-build-11.md`, `0.2.0-build-12.md`.
+  - **Server:** deployed 2026-11-12 (Worker `4c9d03db`, migration 0009, privacy "Effective November 12, 2026").
+  - **The user's next steps (not the agent's):** App Store Connect → build 12 to Developer → **Gate S on the phone before
+    installing** (stored-format change since build 10: N13 + N14) → install and check Generate Goals signed in (the first
+    live `nutrition-goals` request), What's New, a workout (P1's phone check: P1 acceptance 1–2) → Friends with the edited
+    What to Test note → Submit.
+  - **Next ticket (agent):** **0.2.2 = [N12 Korean food DB](../work-record/nutrition/issues/12-korean-food-database.md)**
+    (needs the user's data.go.kr key) — in its own Paseo worktree off `main`; a new Codex reviewer agent there (the one in
+    the N13 workspace, `edd217f6-…`, goes when that workspace is archived).
+  - **Open for the user (not blocking):** N13's and N14's new strings and own decisions (their tickets); App Store Connect
+    → App Privacy: sex / age / weight declared for App Functionality (N14).
+  - **Dated chores:** delete server D1 backups `~/WorkoutTracker-Backups/server/2026-11-11-release-r` by **2026-12-11** and
+    `2026-11-12-n14-ai-goals` by **2026-12-12** (the privacy policy promises it).
+  - **Own models (separate, private repo `github.com/ericlee4992/stacked-ml`, local `~/orca/projects/stacked-ml`):** the
+    user's RTX 5080 Windows laptop sets up the environment and runs/trains models there, starting with meal photos
+    (compare local vision models with GPT first, distil only if needed). Its docs/STATE.md "For the app repo" lists
+    anything that needs an app/server change (routing to a self-hosted model + privacy wording) — done from the Mac.
+  - **Cleanup:** archive Paseo workspace "N13 goal setup" (`~/.paseo/worktrees/1qmeipq9/nutrition-13-goal-setup`); the
+    P1 workspace was archived earlier. Branches are kept.
 
 - **2026-11-12: N14 AI goals DONE — Codex clear (round 3), merged into `main`; server deployed.** [Ticket](../work-record/nutrition/issues/14-ai-goals.md),
   D85, review `work-record/nutrition/codex-review-n14.md`. Nutrition goals = numbers + Generate Goals; the plan from the
