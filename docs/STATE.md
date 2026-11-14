@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-14 (late): IN PROGRESS — CI fix + T6 default on branch `ericlee4992/ci-and-t6` (first green GitHub Tests run 43588010018), Codex review running; then merge. 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-14 (late): IN PROGRESS — CI fix + T6 default on branch `ericlee4992/ci-and-t6` (first green GitHub Tests run 43588010018); Codex round 1 not clear (3 findings, fixed in `b228c97c`), round 2 running; then merge. 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-14)
@@ -20,10 +20,14 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   and DEVELOPMENT's CI note describe this. **Verified:** run 43588010018 (branch, workflow_dispatch) success — 1370
   tests, TEST SUCCEEDED, artifact shows exactly the 9 skips; locally Unit plan 1370/1370 none skipped
   (`build/results/ci-flag-off.xcresult`) and 1370 with the 9 skipped under the flag (`ci-flag-on.xcresult`). **Codex
-  review running** (agent `562c6d70-3c94-4da0-9760-a287cdd9a84b`, brief `work-record/dev-speed/codex-review-ci-prompt.md`,
-  report `work-record/dev-speed/codex-review-ci.md` — read its `Verdict:` line).
-  **Next, in order:** (1) read the Codex report; fix findings, rerun what they touch (CI by `gh workflow run tests.yml
-  --ref ericlee4992/ci-and-t6`, ~20 min), re-review to "clear"; (2) fast-forward `main` from the home checkout
+  round 1** (agent `562c6d70-3c94-4da0-9760-a287cdd9a84b`, report `work-record/dev-speed/codex-review-ci.md`): not
+  clear — P2 the corpus harness was skipped on CI even in its Vision-free `SCANNER_LLM=1` mode (now skipped only in
+  Vision mode), P3 README's Building section, P3 STATE's merge command; all fixed in `b228c97c`. Round-1 fixes
+  verified locally: OCR + corpus suites flag off 11/11, flag on 2 passed / 9 skipped, flag on + SCANNER_LLM 3 passed / 8
+  skipped (`build/results/r2-*.xcresult`); branch CI run 43590959069 dispatched on `b228c97c`. **Codex round 2
+  running** (brief `work-record/dev-speed/codex-review-ci-b-prompt.md`, report `…/codex-review-ci-b.md` — read its
+  `Verdict:` line).
+  **Next, in order:** (1) read the round-2 report and run 43590959069's result; fix findings, re-review to "clear"; (2) fast-forward `main` from the home checkout
   (`H="…/orca/projects/Health App"; git -C "$H" pull --ff-only && git -C "$H" merge --ff-only
   origin/ericlee4992/ci-and-t6 && git -C "$H" push`), refresh
   `release-build` (`git -C "…/workspaces/Health App/release-build" checkout --detach origin/main`); (3) confirm the push
