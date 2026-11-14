@@ -263,8 +263,10 @@ tickets 08 and 13):
 4. **Archive** from the detached `release-build` checkout at that `main` commit (`Config/Local.xcconfig` present):
    `git -C <release-build> checkout --detach origin/main`, then, inside it, `scripts/testflight.sh archive` (default
    output `/tmp/stacked-release-<version>-<build>/`). The script refuses a dirty checkout or targets that
-   disagree on version/build, and checks the archive: app and widget version and build, a production `https`
-   `WTServerURL`, `WTGoogleClientID` present, signed by the team in `Local.xcconfig`. It ends with `ARCHIVE OK`.
+   disagree on version/build, and checks the archive (`scripts/testflight.sh check <archive>` reruns them): the widget
+   is embedded with the app's identifier `.widget`; app and widget version and build; `WTServerURL` exactly the
+   production server in `Config/Shared.xcconfig` (a `Local.xcconfig` override never ships); `WTGoogleClientID`
+   present; signed by the team in `Local.xcconfig`. It ends with `ARCHIVE OK`.
 5. **Upload:** in the same checkout, `scripts/testflight.sh upload <the .xcarchive>`. It writes the export options (`app-store-connect`,
    `upload`, automatic signing, the team from `Local.xcconfig`, `manageAppVersionAndBuildNumber` false) fresh into a
    temporary folder on every run — the old hand-written file in `/tmp` was lost twice between builds — and requires
@@ -414,7 +416,7 @@ TestFlight build **without launching**; if installation demands a delete, stop; 
 
 - CI needs a runner/toolchain capable of the iOS 26 APIs (`macos-26`; `macos-15` failed).
   Local tests are the pre-merge gate. The hosted Tests job has never passed: it used to hang (the user deferred that
-  investigation) and, as of 2026-11-14, fails to compile `LiveSetRow.swift` on the runner's toolchain. If reopened,
+  investigation) and, as of 2026-11-14, fails to compile `LiveSetRow.swift` on the runner's Xcode 26.6. If reopened,
   inspect its uploaded log, match the runner's Xcode to the local one and set a bounded step timeout.
 - Anaconda's old Brotli decoder broke the Anthropic tooling client with
   `process() takes no keyword arguments`. `llm_reader.py` uses `Accept-Encoding: identity` to

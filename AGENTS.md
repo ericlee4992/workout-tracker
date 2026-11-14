@@ -59,8 +59,9 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 
 ## Workflow and verification
 
-- Claude implements and Codex independently reviews (T6); if Codex implements, Claude reviews. The author does not
-  supply the independent clearance. Give the reviewer the ticket, diff, relevant decisions, and evidence; resolve
+- Each ticket names its implementer; the other agent reviews it independently (T6). T6's recorded default
+  (2026-09-17) is Codex implements, Claude reviews; since the Floodlight redesign the user's tickets have named Claude
+  as implementer and Codex as reviewer. The author does not supply the independent clearance. Give the reviewer the ticket, diff, relevant decisions, and evidence; resolve
   findings and re-review fixes.
 - **Self-check before every review round.** Reread your own diff as a hostile reviewer for the defect classes Codex
   keeps finding here, fix what you find, then send it:
@@ -72,8 +73,10 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
     default) silently replacing what the user edited; state that is not refreshed at a day or week boundary;
   - *state that leaks or is lost*: edits surviving Cancel or a failed save, choices lost on a tab switch, a draft
     (unfrozen) entry read as if frozen or the reverse, a first-use row with no name;
-  - *privacy and data safety*: Health or personal data reaching an AI prompt or the server; a safety copy, export or
-    delete that misses a field or a relationship;
+  - *privacy and data safety*: personal or Health data reaching an AI prompt or the server beyond what a decision
+    allows (D85's goal setup sends its own answers — sex, age, height, the weight entered there — signed in; nothing
+    read from Apple Health goes unless a decision says so); a safety copy, export or delete that misses a field or a
+    relationship;
   - *errors read as absence*: a failed fetch or recovery treated as "nothing there";
   - *screens*: AccessibilityL layouts (stack, never truncate what is needed), Reduce Motion, empty states;
     full-history fetches per row or per render;
@@ -110,10 +113,11 @@ work on a branch in another worktree keeps its STATE there, not in the main chec
 - Code commits must preserve a successful `xcodebuild build`. Before closing a feature, check
   internal functions and doc comments against their callers. Verify gated settings are reachable
   and mirrored messages are actually sent; testing only the gate or receiver misses these defects.
-- **Local verification is the gate.** GitHub CI's Tests workflow runs after each push to `main` but has never passed
-  (216 runs since 2026-09, every one failed or hung and was cancelled; checked 2026-11-14). Now the hosted runner's
-  toolchain fails to compile the app (first error in `LiveSetRow.swift`) that builds locally on Xcode 27. A red Tests
-  run is therefore not news about a change; fixing the runner is open in STATE. The Server workflow passes.
+- **Local verification is the gate.** GitHub CI's Tests workflow runs after each push to `main` but has never passed:
+  216 runs from 2026-08-18 to 2026-11-14, 143 failed and 73 cancelled (some superseded, some stuck). The latest runs
+  fail to compile `LiveSetRow.swift` on the runner's Xcode 26.6, while the app builds locally on Xcode 27. A Tests run
+  failing with that compile error says nothing about a change; any other failure is read like any other test result.
+  Fixing the runner is open in STATE. The Server workflow passes.
 - **TestFlight builds:** follow DEVELOPMENT's [TestFlight build checklist](docs/DEVELOPMENT.md#testflight-build-checklist);
   `scripts/testflight.sh` archives (with its checks) and uploads. Whether to release, the version number, What's New
   and the What to Test note are the user's decisions.

@@ -20,6 +20,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 - **Next product work (the user to pick):** [research on what other apps lack](../work-record/research/2026-11-13-competitor-gaps.md)
   (2026-11-13). Proposed first: machine setup memory (seat/pins, with a note), logging a set from the Lock Screen,
   an "oil or sauce?" question after a meal-photo estimate; then the "It's taken" swap and a beginner machine card.
+- **Still unverified on a phone (the user's TestFlight installs):** P1 workout lag, acceptance 1–2
+  ([ticket](../work-record/performance/issues/01-workout-lag.md)); the first signed-in Generate Goals request
+  (N14, [build 12 record](../work-record/release/0.2.0-build-12.md) — **Gate S before installing build 12 or later** if
+  the phone is still on build 10 or older); the first signed-in Korean search (김치찌개) and Korean barcode (N12,
+  [build 13 record](../work-record/release/0.2.0-build-13.md)); live-workout 03 and N15 (build 14).
 - **Open for the user (not blocking):** live-workout 03's VoiceOver strings ("Last time", "Same model at another gym",
   "Not on this machine", "Other equipment", "All machines", "Progress"); N13's and N14's strings and own decisions
   (their tickets); App Store Connect → App Privacy: sex / age / weight declared for App Functionality (N14).

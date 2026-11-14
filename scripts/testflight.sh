@@ -3,6 +3,7 @@
 #
 #   scripts/testflight.sh archive [out-dir]   in the release-build checkout, detached at the main commit to ship
 #   scripts/testflight.sh upload <archive>     upload that archive to App Store Connect
+#   scripts/testflight.sh check <archive>      rerun the archive checks on an existing archive
 #
 # Why a script: the export options file used to live in /tmp and was lost twice between builds, breaking the upload.
 # It is now written fresh on every upload from the team ID in Config/Local.xcconfig (gitignored — the team ID stays out
@@ -54,32 +55,48 @@ archive() {
     die "archive failed — see $out/archive.log"
   fi
   grep -q "ARCHIVE SUCCEEDED" "$out/archive.log" || die "no ARCHIVE SUCCEEDED in $out/archive.log"
+  check "$path"
+  echo "ARCHIVE OK: $path"
+}
 
-  # What must be true of a build testers install.
-  local app widget server google signed
-  app=$(ls -d "$path"/Products/Applications/*.app | head -1)
+# What must be true of a build testers install: run after every archive, and on its own (`check`).
+check() {
+  local path=${1:-}
+  [ -n "$path" ] && [ -d "$path" ] || die "usage: scripts/testflight.sh check <path to .xcarchive>"
+  local version build team
+  version=$(project_setting MARKETING_VERSION)
+  build=$(project_setting CURRENT_PROJECT_VERSION)
+  team=$(team_id)
+  local app widget server google signed production app_id widget_id
+  app=$(ls -d "$path"/Products/Applications/*.app 2>/dev/null | head -1)
   [ -d "$app" ] || die "no app in the archive"
-  for bundle in "$app" "$app"/PlugIns/*.appex; do
-    [ -d "$bundle" ] || continue
+  # The Live Activity widget must be embedded: an archive without it would install and lose the Lock Screen card.
+  widget="$app/PlugIns/WorkoutTrackerWidget.appex"
+  [ -d "$widget" ] || die "the widget (WorkoutTrackerWidget.appex) is missing from the archive"
+  app_id=$($plistbuddy -c "Print :CFBundleIdentifier" "$app/Info.plist")
+  widget_id=$($plistbuddy -c "Print :CFBundleIdentifier" "$widget/Info.plist")
+  [ "$widget_id" = "$app_id.widget" ] || die "widget identifier $widget_id is not $app_id.widget"
+  for bundle in "$app" "$widget"; do
     local v b
     v=$($plistbuddy -c "Print :CFBundleShortVersionString" "$bundle/Info.plist")
     b=$($plistbuddy -c "Print :CFBundleVersion" "$bundle/Info.plist")
     [ "$v" = "$version" ] && [ "$b" = "$build" ] || die "$(basename "$bundle") is $v ($b), expected $version ($build)"
     echo "  $(basename "$bundle"): $v ($b)"
   done
+  # Exactly the production server Config/Shared.xcconfig names — a Local.xcconfig override (a local or staging
+  # server) must never ship. xcconfig writes `//` as `/$()/`.
+  production=$(sed -n 's/^[[:space:]]*WT_SERVER_URL[[:space:]]*=[[:space:]]*\(.*[^[:space:]]\)[[:space:]]*$/\1/p' \
+    Config/Shared.xcconfig | tail -1 | sed 's|/\$()/|//|')
+  case "$production" in https://*) ;; *) die "no https WT_SERVER_URL in Config/Shared.xcconfig" ;; esac
   server=$($plistbuddy -c "Print :WTServerURL" "$app/Info.plist" 2>/dev/null || true)
-  case "$server" in
-    https://*) case "$server" in *localhost*|*127.0.0.1*) die "WTServerURL points at this Mac: $server" ;; esac ;;
-    *) die "WTServerURL is not a production https URL: '${server}'" ;;
-  esac
-  echo "  WTServerURL: production https"
+  [ "$server" = "$production" ] || die "WTServerURL is '$server', not the production server $production"
+  echo "  WTServerURL: the production server"
   google=$($plistbuddy -c "Print :WTGoogleClientID" "$app/Info.plist" 2>/dev/null || true)
   [ -n "$google" ] || die "WTGoogleClientID is empty"
   echo "  WTGoogleClientID: present"
   signed=$(codesign -dv "$app" 2>&1 | sed -n 's/^TeamIdentifier=//p')
   [ "$signed" = "$team" ] || die "signed by team '$signed', expected $team"
   echo "  team: matches Config/Local.xcconfig"
-  echo "ARCHIVE OK: $path"
 }
 
 upload() {
@@ -112,20 +129,22 @@ PLIST
     -exportPath "$scratch/export" -allowProvisioningUpdates > "$log" 2>&1
   local status=$?
   set -e
+  if [ $status -eq 0 ] && grep -q "Upload succeeded" "$log"; then
+    echo "UPLOAD OK: Upload succeeded ($(date '+%Y-%m-%d %H:%M %Z'))"
+    return 0
+  fi
   if grep -q "Failed to Use Accounts\|App Store Connect access for" "$log"; then
     echo "testflight: Xcode is not signed in to App Store Connect." >&2
     echo "  The user signs in at Xcode → Settings → Accounts (Apple Account, team $team), then run upload again." >&2
     exit 2
   fi
-  if [ $status -ne 0 ] || ! grep -q "Upload succeeded" "$log"; then
-    grep -E "error" "$log" | head -10 >&2 || true
-    die "upload failed (exit $status) — see $log"
-  fi
-  echo "UPLOAD OK: Upload succeeded ($(date '+%Y-%m-%d %H:%M %Z'))"
+  grep -E "error" "$log" | head -10 >&2 || true
+  die "upload failed (exit $status) — see $log"
 }
 
 case "${1:-}" in
   archive) shift; archive "${1:-}" ;;
   upload) shift; upload "${1:-}" ;;
-  *) echo "usage: scripts/testflight.sh archive [out-dir] | upload <archive>" >&2; exit 1 ;;
+  check) shift; check "${1:-}" && echo "CHECK OK" ;;
+  *) echo "usage: scripts/testflight.sh archive [out-dir] | upload <archive> | check <archive>" >&2; exit 1 ;;
 esac
