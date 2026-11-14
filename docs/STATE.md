@@ -1,12 +1,12 @@
 # Current project state
 
-Updated **2026-11-14 (late): IN PROGRESS — CI fix + T6 default on branch `ericlee4992/ci-and-t6` (first green GitHub Tests run 43588010018); Codex round 1 not clear (3 findings, fixed in `b228c97c`), round 2 running; then merge. 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-14 (late): IN PROGRESS — CI fix + T6 default on branch `ericlee4992/ci-and-t6` (first green GitHub Tests run 43588010018); Codex round 1 not clear (3 findings, fixed `b228c97c`), round 2 clear; branch CI run 43590959069 then failed 2 live-activity tests (90 s rests ran out on the slow runner; test-only fix `f6d76f08`); Codex round 3 + CI run 43592530127 running; then merge. 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-14)
 
 - **IN PROGRESS (resume here) — CI fix + T6, branch `ericlee4992/ci-and-t6`** (worktree
-  `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`, Paseo workspace "Workout chart + save foods"; tip `50b92ab8`+,
+  `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`, Paseo workspace "Workout chart + save foods"; tip `48dca7e4`+,
   pushed; off `main` `d5abfdbf`). The user asked: make "Claude implements, Codex reviews" T6's official default (done:
   DECISIONS T6, AGENTS.md) and fix GitHub CI's Tests workflow, which never passed in 216 runs. Done on the branch:
   `.github/workflows/tests.yml` → `runs-on: xcode-27` (GitHub preview image) selecting Xcode 27.2 (macos-26's Xcode 26.6
@@ -24,10 +24,13 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   clear — P2 the corpus harness was skipped on CI even in its Vision-free `SCANNER_LLM=1` mode (now skipped only in
   Vision mode), P3 README's Building section, P3 STATE's merge command; all fixed in `b228c97c`. Round-1 fixes
   verified locally: OCR + corpus suites flag off 11/11, flag on 2 passed / 9 skipped, flag on + SCANNER_LLM 3 passed / 8
-  skipped (`build/results/r2-*.xcresult`); branch CI run 43590959069 dispatched on `b228c97c`. **Codex round 2
-  running** (brief `work-record/dev-speed/codex-review-ci-b-prompt.md`, report `…/codex-review-ci-b.md` — read its
-  `Verdict:` line).
-  **Next, in order:** (1) read the round-2 report and run 43590959069's result; fix findings, re-review to "clear"; (2) fast-forward `main` from the home checkout
+  skipped (`build/results/r2-*.xcresult`). **Round 2 clear** (`…/codex-review-ci-b.md`). Branch CI run 43590959069
+  (`b228c97c`) **failed 2/1370**: `aColdPlusFifteenAttachesTheRuntimeAndReachesTheWatch` and
+  `aRestSentBeforeAProviderRunsReachesItOnceStarted` took ~338 s waiting for the main actor, so their 90 s rests ran out
+  (the app rightly ignores Skip on a finished rest and replays only a running one). Fix `f6d76f08` (tests only): those
+  rests last an hour; the two classes 21/21 locally (`build/results/r3-activity.xcresult`). **Codex round 3 running**
+  (brief `…/codex-review-ci-c-prompt.md`, report `…/codex-review-ci-c.md`); **CI run 43592530127** on `f6d76f08` running.
+  **Next, in order:** (1) read the round-3 report and run 43592530127's result; fix findings, re-review to "clear"; (2) fast-forward `main` from the home checkout
   (`H="…/orca/projects/Health App"; git -C "$H" pull --ff-only && git -C "$H" merge --ff-only
   origin/ericlee4992/ci-and-t6 && git -C "$H" push`), refresh
   `release-build` (`git -C "…/workspaces/Health App/release-build" checkout --detach origin/main`); (3) confirm the push
