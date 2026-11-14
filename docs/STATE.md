@@ -24,7 +24,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   report `work-record/dev-speed/codex-review-ci.md` — read its `Verdict:` line).
   **Next, in order:** (1) read the Codex report; fix findings, rerun what they touch (CI by `gh workflow run tests.yml
   --ref ericlee4992/ci-and-t6`, ~20 min), re-review to "clear"; (2) fast-forward `main` from the home checkout
-  (`git -C "…/orca/projects/Health App" pull --ff-only && merge --ff-only origin/ericlee4992/ci-and-t6 && push`), refresh
+  (`H="…/orca/projects/Health App"; git -C "$H" pull --ff-only && git -C "$H" merge --ff-only
+  origin/ericlee4992/ci-and-t6 && git -C "$H" push`), refresh
   `release-build` (`git -C "…/workspaces/Health App/release-build" checkout --detach origin/main`); (3) confirm the push
   to `main` triggers a green Tests run (`gh run list --workflow tests.yml --branch main`); (4) rewrite this bullet and
   the "Follow-ups" CI line as done; tell the user. Gotchas: macOS has no `timeout`; `gh run view --log` is empty while a

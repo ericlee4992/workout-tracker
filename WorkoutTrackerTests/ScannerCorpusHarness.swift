@@ -58,7 +58,13 @@ struct ScannerCorpusHarness {
         entry.catalogModel.map { "\(entry.brand) \($0)" }
     }
 
-    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) @MainActor func measureTheCorpus() async throws {
+    /// TEST_RUNNER_SCANNER_LLM=1: read saved transcriptions instead of running Vision (see `measureTheCorpus`).
+    private static var readsSavedTranscriptions: Bool { ProcessInfo.processInfo.environment["SCANNER_LLM"] == "1" }
+
+    // Skipped on CI only in the Vision mode: the saved-transcription mode never calls text recognition, so it still
+    // runs there when asked for.
+    @Test(.disabled(if: TestEnvironment.isCI && !readsSavedTranscriptions, TestEnvironment.noTextRecognition))
+    @MainActor func measureTheCorpus() async throws {
         let manifestURL = Self.corpusURL.appending(path: "manifest.json")
         guard let data = try? Data(contentsOf: manifestURL) else {
             print("ScannerCorpusHarness: no manifest at \(manifestURL.path) — nothing to measure.")
@@ -76,7 +82,7 @@ struct ScannerCorpusHarness {
         // TEST_RUNNER_SCANNER_LLM=1: use the transcriptions Claude produced
         // (`tools/llm_reader.py` → corpus/llm-readings.json) in place of Vision,
         // through the same matcher — the LLM-as-plate-reader experiment.
-        let useLLM = ProcessInfo.processInfo.environment["SCANNER_LLM"] == "1"
+        let useLLM = Self.readsSavedTranscriptions
         var llmReadings: [String: [String]] = [:]
         if useLLM {
             let url = Self.corpusURL.appending(path: "llm-readings.json")

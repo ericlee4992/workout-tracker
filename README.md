@@ -131,9 +131,10 @@ kept and for how long; [support](https://stacked-server.stacked-server.workers.d
 
 ## Building
 
-Requires iOS 26. Builds and tests are verified with Xcode 27; Xcode 26 currently fails to
-compile one file on the hosted CI runner (an open issue in [`docs/STATE.md`](docs/STATE.md)).
-The simulator build needs no signing:
+Requires iOS 26 and Xcode 27 (Xcode 26.6 cannot compile the app). GitHub's Tests workflow runs
+the unit tests on GitHub's `xcode-27` runner image (Xcode 27.2) after each push to `main`. It skips
+the 9 tests that run on-device text recognition, which hangs on GitHub's virtual Mac; those run
+locally. The simulator build needs no signing:
 
 ```sh
 xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \

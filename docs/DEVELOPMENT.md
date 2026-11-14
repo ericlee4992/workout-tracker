@@ -418,7 +418,8 @@ TestFlight build **without launching**; if installation demands a delete, stop; 
   label when there is one), selecting the local Xcode (27.2). Local tests are the pre-merge gate. History: `macos-15`
   could not build iOS 26; `macos-26`'s Xcode 26.6 failed to compile `LiveSetRow.swift`; on the virtual Mac
   `VNRecognizeTextRequest` never returns (the test host's stack sample showed it), which is why the unit run "hung" —
-  the text-recognition tests are disabled when `STACKED_CI=1` (the workflow sets `TEST_RUNNER_STACKED_CI`). Every test
+  the text-recognition tests are disabled when `STACKED_CI=1` (the workflow sets `TEST_RUNNER_STACKED_CI`; the corpus
+  harness still runs there with `SCANNER_LLM=1`, which reads saved transcriptions, not Vision). Every test
   starts at once and main-actor tests queue on the slower runner, so the per-test allowance is 10 minutes (2 timed
   out 139 healthy tests). If a run is still going at 12 minutes the workflow samples the test host's stacks into the
   `xcodebuild-log` artifact — read that before guessing. First green run: 2026-11-14.
