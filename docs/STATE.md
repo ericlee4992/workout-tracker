@@ -1,17 +1,42 @@
 # Current project state
 
-Updated **2026-11-14: 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 chart by machine + N15 save any food; no Gate S) — next: the user's TestFlight steps. Release script and AGENTS.md accuracy pass merged 2026-11-14.** Earlier: 0.2.0 (13) N12 Korean foods and (12) N13/N14 uploaded 2026-11-12/13. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-14 (late): IN PROGRESS — CI fix + T6 default on branch `ericlee4992/ci-and-t6` (first green GitHub Tests run 43588010018), Codex review running; then merge. 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-14)
 
+- **IN PROGRESS (resume here) — CI fix + T6, branch `ericlee4992/ci-and-t6`** (worktree
+  `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`, Paseo workspace "Workout chart + save foods"; tip `0b04776d`,
+  pushed; off `main` `d5abfdbf`). The user asked: make "Claude implements, Codex reviews" T6's official default (done:
+  DECISIONS T6, AGENTS.md) and fix GitHub CI's Tests workflow, which never passed in 216 runs. Done on the branch:
+  `.github/workflows/tests.yml` → `runs-on: xcode-27` (GitHub preview image) selecting Xcode 27.2 (macos-26's Xcode 26.6
+  could not compile `LiveSetRow.swift`); `workflow_dispatch`; plain-iPhone simulator picker (it had picked "iPhone
+  Duo"); `-testPlan Unit`; per-test allowance 600 s (120 s timed out 139 healthy tests queued for the main actor);
+  25-min step cap; `.swift` errors printed on failure; artifact upload `continue-on-error`; a heartbeat that `sample`s the
+  test host at 12 min into the `xcodebuild-log` artifact. Root cause of the old "hangs": `VNRecognizeTextRequest` never
+  returns on the virtual Mac — the 8 `MachineLabelOCRTests` that call `MachineLabelOCR.perform/read` and
+  `ScannerCorpusHarness.measureTheCorpus` are `.disabled(if: TestEnvironment.isCI, …)` (`WorkoutTrackerTests/
+  TestEnvironment.swift`; `STACKED_CI` via `TEST_RUNNER_STACKED_CI=1` in the workflow); they run locally. AGENTS.md
+  and DEVELOPMENT's CI note describe this. **Verified:** run 43588010018 (branch, workflow_dispatch) success — 1370
+  tests, TEST SUCCEEDED, artifact shows exactly the 9 skips; locally Unit plan 1370/1370 none skipped
+  (`build/results/ci-flag-off.xcresult`) and 1370 with the 9 skipped under the flag (`ci-flag-on.xcresult`). **Codex
+  review running** (agent `562c6d70-3c94-4da0-9760-a287cdd9a84b`, brief `work-record/dev-speed/codex-review-ci-prompt.md`,
+  report `work-record/dev-speed/codex-review-ci.md` — read its `Verdict:` line).
+  **Next, in order:** (1) read the Codex report; fix findings, rerun what they touch (CI by `gh workflow run tests.yml
+  --ref ericlee4992/ci-and-t6`, ~20 min), re-review to "clear"; (2) fast-forward `main` from the home checkout
+  (`git -C "…/orca/projects/Health App" pull --ff-only && merge --ff-only origin/ericlee4992/ci-and-t6 && push`), refresh
+  `release-build` (`git -C "…/workspaces/Health App/release-build" checkout --detach origin/main`); (3) confirm the push
+  to `main` triggers a green Tests run (`gh run list --workflow tests.yml --branch main`); (4) rewrite this bullet and
+  the "Follow-ups" CI line as done; tell the user. Gotchas: macOS has no `timeout`; `gh run view --log` is empty while a
+  run is in progress — use `gh api repos/ericlee4992/workout-tracker/actions/jobs/<id>/logs`; Swift Testing results only
+  print at the end of the run on CI.
 - **Shipped:** **0.2.0 (14) uploaded 2026-11-13 16:14 EST** (`main` `20634c0f`): [live-workout 03](../work-record/live-workout-fixes/issues/03-chart-from-workout.md)
   (the chart from a live exercise, by machine) + [N15](../work-record/nutrition/issues/15-save-any-food.md) (save any
   food you open); no What's New (the user), no Gate S; record `work-record/release/0.2.0-build-14.md`. **The user's
   next steps:** Developer → install → try the live chart and the food bookmark → Friends with the What to Test note →
   Submit. Builds 12 and 13 were uploaded before it (their records hold their own steps: build 12 needed **Gate S**
   on the phone before installing — N13/N14 changed the stored format; build 13 did not).
-- **Done 2026-11-14 (from the user's `/insights` review):** `scripts/testflight.sh` (archive / check / upload — the
+- **Done 2026-11-14 (from the user's `/insights` review; merged, `main` `d5abfdbf`):** `scripts/testflight.sh` (archive / check / upload — the
   export options are written fresh each run; exit 2 = Xcode signed out), DEVELOPMENT's TestFlight checklist steps 3–5,
   an AGENTS.md accuracy pass (implementer per ticket, a pre-review self-check list, the STATE-top rule, CI's real
   status, delete rules, the design rule) and this STATE top. Codex clear (round 3); merged into `main`. T6's default is
