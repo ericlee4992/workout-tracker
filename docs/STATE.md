@@ -6,7 +6,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
 ## RESUME HERE (2026-11-14)
 
 - **IN PROGRESS (resume here) — CI fix + T6, branch `ericlee4992/ci-and-t6`** (worktree
-  `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`, Paseo workspace "Workout chart + save foods"; tip `0b04776d`,
+  `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`, Paseo workspace "Workout chart + save foods"; tip `50b92ab8`+,
   pushed; off `main` `d5abfdbf`). The user asked: make "Claude implements, Codex reviews" T6's official default (done:
   DECISIONS T6, AGENTS.md) and fix GitHub CI's Tests workflow, which never passed in 216 runs. Done on the branch:
   `.github/workflows/tests.yml` → `runs-on: xcode-27` (GitHub preview image) selecting Xcode 27.2 (macos-26's Xcode 26.6
