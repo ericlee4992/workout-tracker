@@ -90,6 +90,12 @@ jobs:
               tail = runtime.rsplit(".", 1)[-1]          # ...SimRuntime.iOS-18-2
               return tuple(int(p) for p in tail.split("-")[1:] if p.isdigit())
 
+          # A plain numbered iPhone ("iPhone 18 Pro", "iPhone 18"), as the app is tested locally — not whatever sorts
+          # last by name: that picked "iPhone Duo" on 2026-11-14, and the unit tests hung there for 50 minutes.
+          import re
+          def plain(name):
+              return 2 if re.fullmatch(r"iPhone \d+ Pro", name) else 1 if re.fullmatch(r"iPhone \d+", name) else 0
+
           best = None
           for runtime, devices in data.items():
               if "SimRuntime.iOS" not in runtime:
@@ -97,7 +103,7 @@ jobs:
               for device in devices:
                   if not device.get("isAvailable") or not device["name"].startswith("iPhone"):
                       continue
-                  key = (version(runtime), device["name"])
+                  key = (plain(device["name"]), version(runtime), device["name"])
                   if best is None or key > best[0]:
                       best = (key, device)
 
@@ -113,6 +119,8 @@ jobs:
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
 
       - name: Unit tests
+        # Normal runs take minutes; a hang must end with a named test, not at the job's hour.
+        timeout-minutes: 25
         run: |
           set -euo pipefail
           set -o pipefail
@@ -133,12 +141,17 @@ jobs:
           heartbeat=$!
           trap 'kill "$heartbeat" 2>/dev/null || true' EXIT
 
+          # The Unit test plan, as run locally (DEVELOPMENT → Tiers and test plans). A test that runs past the
+          # allowance fails by name instead of hanging the job.
           xcodebuild test \
             -project WorkoutTracker.xcodeproj \
             -scheme WorkoutTracker \
+            -testPlan Unit \
             -sdk iphonesimulator \
             -destination "id=${{ steps.sim.outputs.udid }}" \
-            -only-testing:WorkoutTrackerTests \
+            -test-timeouts-enabled YES \
+            -default-test-execution-time-allowance 120 \
+            -maximum-test-execution-time-allowance 300 \
             CODE_SIGNING_ALLOWED=NO \
             | tee xcodebuild.log \
             `# xcodebuild's exit code decides pass/fail (set -o pipefail); the` \
