@@ -98,7 +98,9 @@ struct WorkoutActivityProviderTests {
     @Test func aRestSentBeforeAProviderRunsReachesItOnceStarted() async {
         var feeds: [WatchFeed] = []
         let provider = WorkoutActivityProvider { _ in let feed = WatchFeed(); feeds.append(feed); return feed }
-        let end = Date.now.addingTimeInterval(90)
+        // An hour: only a rest still running is replayed, and on GitHub's slower runner this test once took 338 s
+        // (run 43590959069), so a 90-second rest ran out before the phase switch.
+        let end = Date.now.addingTimeInterval(3600)
         provider.sendRest(endsAt: end)
         _ = await provider.start()
         #expect(feeds.first?.sent == [nil, end])

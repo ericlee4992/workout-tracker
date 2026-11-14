@@ -56,7 +56,10 @@ struct WorkoutActivityContentTests {
         return Rig(container: container, workout: workout, press: press, row: row, pressSets: sets)
     }
 
-    private func startRest(_ rig: Rig, after set: SetRecord, seconds: TimeInterval = 90) throws {
+    /// An hour by default: a command only acts on a rest still running, and on GitHub's slower runner a test can wait
+    /// minutes for the main actor (2026-11-14, run 43590959069: 338 s), so a 90-second rest ran out mid-test and
+    /// "Skip" found nothing to skip.
+    private func startRest(_ rig: Rig, after set: SetRecord, seconds: TimeInterval = 3600) throws {
         rig.workout.restStartedAt = .now.addingTimeInterval(-10)
         rig.workout.restEndsAt = .now.addingTimeInterval(seconds - 10)
         rig.workout.restStartedBySetID = set.id
