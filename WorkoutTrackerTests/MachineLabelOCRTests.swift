@@ -85,7 +85,7 @@ struct MachineLabelOCRTests {
         ])
     }
 
-    @Test func readsARenderedNamePlateTopLineFirst() throws {
+    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) func readsARenderedNamePlateTopLineFirst() throws {
         let image = renderLabel(
             brand: "LIFE FITNESS", model: "Insignia Series Chest Press",
             extras: ["MAX 300 LB"])
@@ -107,7 +107,7 @@ struct MachineLabelOCRTests {
     /// Scanner accuracy, ticket 03: only text inside the region is read. The
     /// rendered plate has the brand at the top, the model in the middle and a
     /// rating at the bottom; a band around the middle reads the model alone.
-    @Test func onlyTextInsideTheRegionOfInterestIsRead() throws {
+    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) func onlyTextInsideTheRegionOfInterestIsRead() throws {
         let image = renderLabel(
             brand: "LIFE FITNESS", model: "Insignia Series Chest Press",
             extras: ["MAX 300 LB"])
@@ -125,7 +125,7 @@ struct MachineLabelOCRTests {
 
     /// The region is expressed in the UPRIGHT image's coordinates: a photo
     /// taken sideways, tagged with its orientation, reads the same band.
-    @Test func theRegionOfInterestFollowsTheOrientation() async throws {
+    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) func theRegionOfInterestFollowsTheOrientation() async throws {
         let upright = renderLabel(brand: "LIFE FITNESS", model: "Insignia Series Chest Press", extras: ["MAX 300 LB"])
         let rotated = UIImage(cgImage: rotatedClockwise(upright), scale: 1, orientation: .left)
         let middle = CGRect(x: 0, y: 0.42, width: 1, height: 0.33)
@@ -135,7 +135,7 @@ struct MachineLabelOCRTests {
         #expect(!text.contains("life fitness") && !text.contains("300"), "read: \(reading.text)")
     }
 
-    @Test func aPhotographedPlateFindsItsCatalogRow() throws {
+    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) func aPhotographedPlateFindsItsCatalogRow() throws {
         let image = renderLabel(
             brand: "LIFE FITNESS", model: "Insignia Series Chest Press",
             extras: ["MAX 300 LB", "READ MANUAL BEFORE USE"])
@@ -154,7 +154,7 @@ struct MachineLabelOCRTests {
     /// and this app orders lines by vertical position to decide which one is
     /// the brand — so the orientation the photo was taken at has to reach the
     /// request (codex-review, finding 5).
-    @Test func aRotatedPhotoIsReadUpright() async throws {
+    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) func aRotatedPhotoIsReadUpright() async throws {
         let upright = renderLabel(
             brand: "LIFE FITNESS", model: "Insignia Series Chest Press")
         // What a phone held sideways actually produces: sideways *pixels* plus
@@ -173,7 +173,7 @@ struct MachineLabelOCRTests {
 
     /// Upside down as well as sideways — a plate photographed from above a
     /// machine is a real way to hold a phone.
-    @Test func anUpsideDownPhotoIsReadUpright() async throws {
+    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) func anUpsideDownPhotoIsReadUpright() async throws {
         let upright = renderLabel(
             brand: "LIFE FITNESS", model: "Insignia Series Chest Press")
         let flipped = UIImage(
@@ -189,7 +189,7 @@ struct MachineLabelOCRTests {
 
     /// A photo from the library can be `CIImage`-backed (HEIC, or edited) and
     /// have no `cgImage` at all. Calling that unreadable would be a lie.
-    @Test func aCIImageBackedPhotoIsStillReadable() async throws {
+    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) func aCIImageBackedPhotoIsStillReadable() async throws {
         let rendered = renderLabel(
             brand: "LIFE FITNESS", model: "Insignia Series Chest Press")
         let ciBacked = UIImage(ciImage: CIImage(cgImage: rendered))
@@ -199,7 +199,7 @@ struct MachineLabelOCRTests {
         #expect(MachineLabelText.normalized(reading.text).contains("chest press"))
     }
 
-    @Test func aBlankPhotoReportsThatItSawNothing() async {
+    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) func aBlankPhotoReportsThatItSawNothing() async {
         let renderer = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 400))
         let blank = renderer.image { context in
             UIColor.lightGray.setFill()

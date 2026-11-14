@@ -58,7 +58,7 @@ struct ScannerCorpusHarness {
         entry.catalogModel.map { "\(entry.brand) \($0)" }
     }
 
-    @Test @MainActor func measureTheCorpus() async throws {
+    @Test(.disabled(if: TestEnvironment.isCI, TestEnvironment.noTextRecognition)) @MainActor func measureTheCorpus() async throws {
         let manifestURL = Self.corpusURL.appending(path: "manifest.json")
         guard let data = try? Data(contentsOf: manifestURL) else {
             print("ScannerCorpusHarness: no manifest at \(manifestURL.path) — nothing to measure.")

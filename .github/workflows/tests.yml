@@ -153,6 +153,9 @@ jobs:
 
           # The Unit test plan, as run locally (DEVELOPMENT → Tiers and test plans). A test that runs past the
           # allowance fails by name instead of hanging the job.
+          # STACKED_CI=1 in the test host (TestEnvironment.isCI): skips the tests that run on-device text recognition,
+          # which hangs on this virtual Mac (2026-11-14); they run locally.
+          export TEST_RUNNER_STACKED_CI=1
           xcodebuild test \
             -project WorkoutTracker.xcodeproj \
             -scheme WorkoutTracker \
