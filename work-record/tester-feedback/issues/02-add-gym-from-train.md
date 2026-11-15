@@ -80,3 +80,22 @@ Real Default/AccessibilityL captures of A, B and C (a temporary `-protoGymAdd` l
 **Verified:** build; Unit 1291/1291; TrainAddGymUITests 8/8; FloodlightWorkoutTabUITests, GymsFlowsUITests,
 TemplateMachinesUITests (in the 22 passed); the tour class and the Ask AI gym test serially. **Not verified:** on a
 phone. **Known flaky:** `AskAIUITests` goal typing under parallel load (passed serially).
+
+### Review round 1 (Codex, `codex-review-02.md`): changes requested → fixed
+
+Both findings were in older code the new entry point now uses (`GymEditorSheet`'s add path, `select` → `remember`).
+- **1 (P2)** a failed Add left the inserted gym pending in the screen's context (Cancel could later save it; a retry
+  made a second). **2 (P2)** the screen showed the new gym selected even if remembering it failed (a second save,
+  its error swallowed in Release).
+- Fix: `Domain/GymCreation.create` writes the gym and, with `selecting`, the remembered selection in **one save on an
+  isolated context**, rolling it back and rethrowing on failure (the `AIRoutinePersistence` pattern, so the user's other
+  unsaved edits are untouched). `GymEditorSheet` add mode uses it (`selectsCreated`); Train passes `selectsCreated: true`
+  and only sets its local `selectedGym` after the save succeeded; Ask AI's Add Gym… also passes `selectsCreated: true`.
+  Gyms' Add Gym… is unchanged in behaviour (no selection).
+- `GymCreationTests` (new): one save for gym + selection; not selecting keeps the pick; **failed save → nothing pending,
+  the next screen save makes no gym, the stored pick unchanged, a retry makes exactly one**; a failed save spares the
+  screen's unsaved edits. D89 notes the one-save rule.
+- Round 2 verification (author): build-for-testing exit 0; `GymCreationTests` + `GymSelectionTests` 7/7; Unit plan
+  **1295/1295** (`build/results/tf02-r2-unitplan.xcresult`); `TrainAddGymUITests` 8/8 + `TemplateMachinesUITests` 2/2 +
+  `AskAIUITests/testRoutineGymPickerRemembersExistingGymAndNoGym` 1/1, serial, exit 0 (`build/results/tf02-r2-ui.xcresult`).
+  Not verified: Ask AI's Add Gym… in a UI test (none exists; the same sheet path is covered by Train's tests).

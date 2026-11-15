@@ -136,9 +136,10 @@ struct StartWorkoutView: View {
             .sheet(isPresented: $showingTemplateEditor) {
                 TemplateEditorSheet(template: editingTemplate)
             }
-            // Tester feedback 02: Save makes the new gym the selected, remembered one (D1); Cancel creates nothing.
+            // Tester feedback 02: Save makes the new gym the selected, remembered one (D1) — stored in the same save as
+            // the gym (`selectsCreated`), so the screen only shows a pick that was saved; Cancel creates nothing.
             .sheet(isPresented: $addingGym) {
-                GymEditorSheet(onSave: { created in select(created) })
+                GymEditorSheet(selectsCreated: true, onSave: { created in selectedGym = created })
             }
             .onAppear(perform: restoreSelectedGym)
             // A gym deleted (archived) elsewhere — Gyms → Edit Gym → Delete Gym… — while it is the

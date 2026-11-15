@@ -127,7 +127,7 @@ struct AIRoutineSheet: View {
         }
         .sheet(isPresented: $signingIn) { AccountSignInSheet() }
         .sheet(isPresented: $showingNewGym) {
-            GymEditorSheet(onSave: { created in select(created) })
+            GymEditorSheet(selectsCreated: true, onSave: { created in select(created) })
         }
         .sheet(item: $scanningGym, onDismiss: {
             if let pending = manualGymPending { manualGymPending = nil; manualGym = pending }

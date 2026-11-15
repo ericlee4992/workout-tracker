@@ -16,6 +16,8 @@ struct GymEditorSheet: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// nil = create a new gym; non-nil = edit that gym in place.
     var gym: Gym?
+    /// Add mode: also remember the new gym as the selected one (D1), in the same save (`GymCreation`).
+    var selectsCreated = false
     var onSave: (Gym) -> Void = { _ in }
     @Query private var allPreferences: [AppPreferences]
     @State private var saveFailure: String?
@@ -182,13 +184,15 @@ struct GymEditorSheet: View {
                     gym, name: name, city: city, defaultUnit: defaultUnit)
                 onSave(gym)
             } else {
-                let created = Gym(
-                    name: trimmedName,
-                    city: trimmedCity.isEmpty ? nil : trimmedCity,
-                    defaultUnit: defaultUnit)
-                modelContext.insert(created)
-                try modelContext.save()
-                onSave(created)
+                // codex-review-02: one isolated save that rolls back on failure, so a failed Add leaves nothing pending
+                // here — Cancel then creates no gym, and a retry makes exactly one.
+                let id = try GymCreation.create(
+                    name: trimmedName, city: trimmedCity.isEmpty ? nil : trimmedCity, defaultUnit: defaultUnit,
+                    selecting: selectsCreated, in: modelContext.container)
+                // Saved: the sheet closes even if this context cannot hand the row back (nothing to retry).
+                if let created = try? modelContext.fetch(FetchDescriptor<Gym>(predicate: #Predicate { $0.id == id })).first {
+                    onSave(created)
+                }
             }
         } catch {
             saveFailure = error.localizedDescription
