@@ -28,7 +28,7 @@ struct ScanMachineLabelSheet: View {
     /// The user accepted a catalog row.
     let onUseModel: (EquipmentModel) -> Void
     /// The user wants a new model, prefilled with (manufacturer, model name)
-    /// and carrying the plate's lines as read — camera or AI — so the New
+    /// and carrying the plate's lines as the camera read them, so the New
     /// Model sheet can ask which exercises the machine serves (ticket 06).
     let onCreateNew: (String, String, [String]) -> Void
 
@@ -47,13 +47,6 @@ struct ScanMachineLabelSheet: View {
     /// Fails the capture if the camera never calls back (codex-review-03).
     @State private var captureTimeout: Task<Void, Never>?
     @State private var index: CatalogMatchIndex?
-    /// An ask is in flight (ticket 05). Gates the button; one ask at a time.
-    @State private var asking = false
-    /// The ask itself, so a rescan or the sheet going away CANCELS the
-    /// request rather than letting it land later (codex-review-05, high),
-    /// and its identity, so only the ask still in flight may touch the sheet.
-    @State private var askTask: Task<Void, Never>?
-    @State private var askRequest: UUID?
 
     private enum Phase {
         case idle
@@ -68,23 +61,6 @@ struct ScanMachineLabelSheet: View {
         var matches: [CatalogMatch]
         var manufacturerGuess: String
         var modelNameGuess: String
-        /// Who read the plate — the camera (Vision) or, after Ask AI, Claude.
-        var source: ReadingSource = .camera
-        /// What D33 preselected when these results were presented, as
-        /// distinct from what the user has since tapped: the Ask AI button
-        /// keys on this, so tapping a candidate does not hide it.
-        var preselectedID: UUID?
-        /// The box crop an ask would send (ticket 05, D53) — kept in memory
-        /// only while these results are on screen, and only when an ask is
-        /// possible at all. Never written anywhere.
-        var crop: Data?
-        /// Why the last ask produced nothing, shown under the button.
-        var askNote: String?
-    }
-
-    enum ReadingSource {
-        case camera
-        case ai
     }
 
     /// The source *and* the presentation as one value.
@@ -130,11 +106,8 @@ struct ScanMachineLabelSheet: View {
                 .ignoresSafeArea()
             }
             .onAppear(perform: start)
-            // Neither the 8 s capture timeout nor an ask outlives the sheet.
-            .onDisappear {
-                abandonCapture()
-                abandonAsk()
-            }
+            // The 8 s capture timeout does not outlive the sheet.
+            .onDisappear(perform: abandonCapture)
         }
         .lookSheetGround()
         .presentationBackground(isScanning ? Color.black : look.groundSheet)
@@ -302,7 +275,7 @@ struct ScanMachineLabelSheet: View {
 
     /// The shutter: one still, read once, inside the box. Under the fixture
     /// the rendered plate is read whole — it IS the plate — so its box is
-    /// the plate's own edges, and the crop path runs for real.
+    /// the plate's own edges.
     private func shutter() {
         guard case .scanning = phase, !capturing else { return }
         capturing = true
@@ -352,7 +325,6 @@ struct ScanMachineLabelSheet: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 readingCard(results)
-                askSection(results)
                 if leadWithCreateNew && !results.matches.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         MakeRow(title: "Add this as a new model") { createNew(results) }
@@ -394,7 +366,7 @@ struct ScanMachineLabelSheet: View {
 
     private func readingCard(_ results: Results) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(results.source == .ai ? "What Ask AI read" : "What the camera read")
+            Text("What the camera read")
                 .font(.system(.footnote, weight: .semibold))
                 .foregroundStyle(look.textSecondary)
                 .padding(.leading, 4)
@@ -407,42 +379,6 @@ struct ScanMachineLabelSheet: View {
                 .padding(look.space.panelPadding)
                 .lookSurface(.panel)
                 .accessibilityIdentifier("scanReadingText")
-            // The counting client the ticket asks for: under the fixture the
-            // stubs count every call and the sheet shows the tally, so a UI
-            // test can assert "none" or "one" (codex-review-05b).
-            if AskAI.fixtureIsEnabled {
-                footnote("AI calls: \(AskAIFixtureLedger.calls)")
-                    .accessibilityIdentifier("scanAskAICalls")
-            }
-        }
-    }
-
-    // Ticket 05 (D53): only when the phone could not place the plate,
-    // only on a tap, only the box crop. A camera reading that preselected
-    // never shows this; an AI reading is not asked about again.
-    @ViewBuilder
-    private func askSection(_ results: Results) -> some View {
-        if results.source == .camera, results.preselectedID == nil, results.crop != nil,
-           AskAI.transcriber != nil {
-            VStack(alignment: .leading, spacing: 8) {
-                if asking {
-                    HStack(spacing: 10) {
-                        ProgressView()
-                        Text("Asking AI…").font(look.font.body).foregroundStyle(look.textPrimary)
-                    }
-                    .frame(minHeight: 44)
-                    .accessibilityIdentifier("scanAskAIStatus")
-                } else {
-                    Button("Ask AI about this plate") { ask(results) }
-                        .buttonStyle(.lookSecondary)
-                        .accessibilityIdentifier("scanAskAI")
-                }
-                if let note = results.askNote {
-                    footnote(note).accessibilityIdentifier("scanAskAINote")
-                } else {
-                    footnote("Sends the plate inside the box (plus a small margin around it) to Claude, with your key, and ranks what it reads here.")
-                }
-            }
         }
     }
 
@@ -613,7 +549,6 @@ struct ScanMachineLabelSheet: View {
 
     private func restartScanning() {
         abandonCapture()
-        abandonAsk()
         selectedID = nil
         phase = .scanning
     }
@@ -646,37 +581,24 @@ struct ScanMachineLabelSheet: View {
     private func read(_ image: UIImage, regionOfInterest: CGRect? = nil) {
         phase = .reading
         selectedID = nil
-        abandonAsk()
         Task {
             do {
                 // Vision runs off the main actor and reads the photo in the
                 // orientation it was taken; the image is not retained past this
-                // call (D34) — only, when an ask is possible, the box crop it
-                // would send (D53), and only while the results are up. No box
-                // (the library photo) means no crop and no ask: the whole
-                // photo never leaves the phone (codex-review-05).
+                // call, and no photo leaves the phone (D34).
                 let reading = try await MachineLabelOCR.read(image, regionOfInterest: regionOfInterest)
-                let crop: Data? = if let regionOfInterest, AskAI.transcriber != nil {
-                    await Task.detached(priority: .userInitiated) {
-                        LabelCrop.jpeg(image, region: regionOfInterest)
-                    }.value
-                } else {
-                    nil
-                }
                 guard let index = catalogIndexIfLoaded() else {
                     phase = .failed("Could not read the equipment catalog.")
                     return
                 }
-                present(reading, in: index, source: .camera, crop: crop)
+                present(reading, in: index)
             } catch {
                 phase = .failed(error.localizedDescription)
             }
         }
     }
 
-    private func present(
-        _ reading: LabelReading, in index: CatalogMatchIndex, source: ReadingSource, crop: Data?
-    ) {
+    private func present(_ reading: LabelReading, in index: CatalogMatchIndex) {
         let matches = CatalogMatcher.rank(reading, in: index)
         // The create-new guesses read the REPAIRED plate — `SCYBEX` proposes
         // `Cybex` — while `Results.reading`, what the sheet echoes back as
@@ -684,70 +606,15 @@ struct ScanMachineLabelSheet: View {
         let repaired = index.repaired(reading)
         let manufacturer = MachineLabelText.guessManufacturer(
             in: repaired, knownManufacturers: index.manufacturers) ?? ""
-        // Preselected, never applied on its own (D33) — whoever read the plate.
+        // Preselected, never applied on its own (D33).
         let preselected = CatalogMatcher.preselection(from: matches)?.modelID
         phase = .results(Results(
             reading: reading,
             matches: matches,
             manufacturerGuess: manufacturer,
             modelNameGuess: MachineLabelText.guessModelName(
-                in: repaired, manufacturer: manufacturer),
-            source: source,
-            preselectedID: preselected,
-            crop: crop))
+                in: repaired, manufacturer: manufacturer)))
         selectedID = preselected
-    }
-
-    /// Ask AI (ticket 05, D53): one call with the box crop; the reply is
-    /// ranked by the same matcher and presented as a fresh reading. Any
-    /// failure leaves these results exactly as they are, with a note; nothing
-    /// is retried on its own. One ask at a time, by identity: a rescan, a
-    /// new photo or the sheet going away cancels it, and a reply that is not
-    /// the in-flight request's is dropped (codex-review-05).
-    private func ask(_ results: Results) {
-        guard askTask == nil, case .results = phase, let crop = results.crop,
-              let transcriber = AskAI.transcriber, let index = catalogIndexIfLoaded()
-        else { return }
-        let request = UUID()
-        askRequest = request
-        asking = true
-        askTask = Task {
-            let outcome: Result<PlateTranscription, Error>
-            do {
-                outcome = .success(try await transcriber.transcribe(jpeg: crop))
-            } catch {
-                outcome = .failure(error)
-            }
-            // Only the request still in flight may touch the sheet. `asking`
-            // and the task handle are released by their owner only.
-            guard !Task.isCancelled, askRequest == request, case .results(let current) = phase else { return }
-            askTask = nil
-            askRequest = nil
-            asking = false
-            switch outcome {
-            case .success(let transcription):
-                let reading = transcription.labelReading
-                if reading.isEmpty {
-                    var noted = current
-                    noted.askNote = "Couldn't find a name plate in the box."
-                    phase = .results(noted)
-                } else {
-                    present(reading, in: index, source: .ai, crop: nil)
-                }
-            case .failure(let error):
-                var noted = current
-                noted.askNote = error.localizedDescription
-                phase = .results(noted)
-            }
-        }
-    }
-
-    /// Cancels the ask in flight, if any, without reporting it.
-    private func abandonAsk() {
-        askTask?.cancel()
-        askTask = nil
-        askRequest = nil
-        asking = false
     }
 
     /// Built once per sheet and cached across rescans.
@@ -787,17 +654,9 @@ struct ScanMachineLabelSheet: View {
 /// `-uiTestReset` (`WorkoutTrackerStore.fixtureIsEnabled`; codex-review-05).
 enum ScanFixture {
     static let launchArgument = "-uiTestScanFixture"
-    /// With the fixture: a plate that names NO brand (the corpus's Cybex
-    /// placard `g022`, whose brand is a logo), so nothing preselects and the
-    /// Ask AI path (ticket 05) can be driven.
-    static let noBrandArgument = "-uiTestScanFixtureNoBrand"
 
     static var isEnabled: Bool {
         WorkoutTrackerStore.fixtureIsEnabled(launchArgument)
-    }
-
-    static var plateNamesNoBrand: Bool {
-        isEnabled && ProcessInfo.processInfo.arguments.contains(noBrandArgument)
     }
 
     /// The rendered plate's own edges as a framing box (Vision region,
@@ -806,7 +665,8 @@ enum ScanFixture {
 
     /// A rendered name plate for a model the seeded catalog really contains,
     /// on a dark canvas around it — so the plate's box is a BOX: inset enough
-    /// that the crop's margin still leaves canvas out (codex-review-05b).
+    /// that `LabelCrop`'s margin still leaves canvas out (codex-review-05b; its
+    /// unit tests crop this image).
     static func image() -> UIImage {
         let canvas = CGSize(width: 2_000, height: 800)
         let plate = CGRect(x: 200, y: 150, width: 1_600, height: 500)
@@ -815,15 +675,9 @@ enum ScanFixture {
             context.fill(CGRect(origin: .zero, size: canvas))
             UIColor.white.setFill()
             context.fill(plate)
-            if plateNamesNoBrand {
-                draw("CONVERGING PLATE LOADED", in: canvas, y: plate.minY + 80, fontSize: 80)
-                draw("OVERHEAD PRESS", in: canvas, y: plate.minY + 230, fontSize: 88)
-                draw("MAX 300 LB", in: canvas, y: plate.minY + 380, fontSize: 40)
-            } else {
-                draw("LIFE FITNESS", in: canvas, y: plate.minY + 60, fontSize: 64)
-                draw("Insignia Series Chest Press", in: canvas, y: plate.minY + 200, fontSize: 88)
-                draw("MAX 300 LB", in: canvas, y: plate.minY + 380, fontSize: 40)
-            }
+            draw("LIFE FITNESS", in: canvas, y: plate.minY + 60, fontSize: 64)
+            draw("Insignia Series Chest Press", in: canvas, y: plate.minY + 200, fontSize: 88)
+            draw("MAX 300 LB", in: canvas, y: plate.minY + 380, fontSize: 40)
         }
     }
 

@@ -1,16 +1,16 @@
 import CoreGraphics
 
-/// Scanner accuracy, ticket 05 — which pixels leave the phone when the user
-/// taps Ask AI: the framing box, not the frame (D53).
+/// Which pixels of a label photo leave the phone: the framing box, not the
+/// frame (D53's crop rule — made for the plate Ask AI, removed 2026-11-14 —
+/// and used now by Scan Food's label photos from the camera).
 ///
 /// Pure geometry, so the crop the request carries is pinned by a unit test:
 /// Vision's region (normalised, bottom-left origin, in the upright photo) →
 /// a pixel rectangle (top-left origin) in that photo, with a small margin
-/// so a plate whose edge sits on the box line is not sliced, clamped to the
+/// so a label whose edge sits on the box line is not sliced, clamped to the
 /// photo. **Fails closed**: no box, or a degenerate one, is `nil` — and then
-/// there is nothing to send and no Ask AI. The whole photo never leaves the
-/// phone, not from the shutter and not from the library, where there is no
-/// box at all (codex-review-05, high).
+/// there is nothing to send. The whole camera frame never leaves the phone
+/// this way (codex-review-05, high).
 enum LabelCrop {
     /// Margin added on each side, as a fraction of the box's own size.
     static let margin: CGFloat = 0.08

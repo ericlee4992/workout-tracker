@@ -1,107 +1,23 @@
 import Foundation
 
-/// Historical plate-reader compatibility for the explicit on-device scanner's test fixtures.
-/// Production AI recognition is IdentifyEquipmentSheet → AIServerClient (D56, D60); no key is read.
-protocol PlateTranscriber: Sendable {
-    func transcribe(jpeg: Data) async throws -> PlateTranscription
-}
-
-/// Ticket 06: which of the app's exercises a new machine serves.
+/// Ticket 06: which of the app's exercises a new machine serves. Production answers come from the server's
+/// `model-exercises` flow (`ServerExerciseProposer`, D60); a stub stands in under the UI-test fixtures.
 protocol ExerciseProposer: Sendable {
     func propose(plate: PlateDescription, candidates: [ExerciseCandidate]) async throws -> [ExerciseProposal]
 }
 
-/// The Messages API over `URLSession`: one POST, bytes in, bytes out. Every
-/// Ask AI feature shares it; the request and reply shapes are the pure
-/// `…API` enums, unit-tested without a key. The endpoint is a parameter so
-/// a proxy is a configuration, not a rewrite.
-struct AnthropicMessagesClient: Sendable {
-    /// How the caller is identified: Anthropic's own header for the
-    /// developer's key, or a bearer token for a proxy in front of the API
-    /// (codex-review-05: "a proxy is a config change" has to include the
-    /// header, not just the URL).
-    enum Credential: Sendable, Equatable {
-        case apiKey(String)
-        case bearer(String)
-    }
-
-    let credential: Credential
-    var endpoint: URL = PlateTranscriptionAPI.defaultEndpoint
-    /// The experiment's calls took 2–3 s; a gym's signal is worse than a desk's.
-    static let timeout: TimeInterval = 8
-
-    /// The request as it goes on the wire — pure, so the headers are pinned
-    /// by a unit test.
-    func request(for body: Data) -> URLRequest {
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.timeoutInterval = Self.timeout
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(PlateTranscriptionAPI.apiVersion, forHTTPHeaderField: "anthropic-version")
-        switch credential {
-        case .apiKey(let key): request.setValue(key, forHTTPHeaderField: "x-api-key")
-        case .bearer(let token): request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        }
-        request.httpBody = body
-        return request
-    }
-
-    func send(_ body: Data) async throws -> Data {
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await URLSession.shared.data(for: request(for: body))
-        } catch let error as URLError {
-            switch error.code {
-            case .notConnectedToInternet, .networkConnectionLost, .dnsLookupFailed,
-                 .cannotFindHost, .cannotConnectToHost, .internationalRoamingOff, .dataNotAllowed:
-                throw PlateTranscriptionError.offline
-            case .timedOut:
-                throw PlateTranscriptionError.timedOut
-            default:
-                throw PlateTranscriptionError.unavailable(status: error.code.rawValue)
-            }
-        }
-        if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
-            throw PlateTranscriptionAPI.error(status: http.statusCode, body: data)
-        }
-        return data
-    }
-}
-
-struct AnthropicPlateTranscriber: PlateTranscriber {
-    let client: AnthropicMessagesClient
-    var model: String = PlateTranscriptionAPI.defaultModel
-
-    func transcribe(jpeg: Data) async throws -> PlateTranscription {
-        try PlateTranscriptionAPI.parse(
-            await client.send(PlateTranscriptionAPI.requestBody(jpeg: jpeg, model: model)))
-    }
-}
-
-struct AnthropicExerciseProposer: ExerciseProposer {
-    let client: AnthropicMessagesClient
-    var model: String = PlateTranscriptionAPI.defaultModel
-
-    func propose(plate: PlateDescription, candidates: [ExerciseCandidate]) async throws -> [ExerciseProposal] {
-        try ExerciseProposalAPI.parse(
-            await client.send(ExerciseProposalAPI.requestBody(plate: plate, candidates: candidates, model: model)),
-            candidates: candidates)
-    }
-}
-
-/// Who answers an ask, and whether one is possible at all.
+/// Who answers "Suggest exercises with AI", and whether one is possible at all.
 enum AskAI {
-    /// UI-test stand-in: stub answers, so the sheet's Ask AI path runs end to
-    /// end in the Simulator signed out and with no network. Obeys the fixture
+    /// UI-test stand-in: stub answers, so the New Model sheet's suggestion runs end
+    /// to end in the Simulator signed out and with no network. Obeys the fixture
     /// rule (`WorkoutTrackerStore.fixtureIsEnabled`).
     static let fixtureArgument = "-uiTestAskAI"
-    /// With the fixture: the ask fails as if offline / as a refusal.
+    /// With the fixture: the suggestion fails as if offline / as a refusal / timed out.
     static let offlineArgument = "-uiTestAskAIOffline"
     static let refusedArgument = "-uiTestAskAIRefused"
     static let timeoutArgument = "-uiTestAskAITimeout"
-    /// With the fixture: the ask takes a few seconds, so a rescan or a
-    /// dismissal can be driven while it is in flight.
+    /// With the fixture: the suggestion takes a few seconds, so a dismissal can be
+    /// driven while it is in flight.
     static let slowArgument = "-uiTestAskAISlow"
 
     static var fixtureIsEnabled: Bool {
@@ -114,11 +30,6 @@ enum AskAI {
         fixtureIsEnabled || TerraAccess.ready(account)
     }
 
-    static var transcriber: PlateTranscriber? {
-        if fixtureIsEnabled { return StubPlateTranscriber(failure: stubFailure) }
-        return nil // Replaced by consent-gated IdentifyEquipmentSheet; no legacy network calls.
-    }
-
     /// Ticket 06: the create-new sheet's "Suggest exercises with AI" —
     /// through the server for the signed-in session (public beta 06).
     @MainActor static func proposer(_ account: AccountStore) -> ExerciseProposer? {
@@ -126,42 +37,18 @@ enum AskAI {
         return TerraAccess.client(account).map(ServerExerciseProposer.init(client:))
     }
 
-    private static var stubFailure: PlateTranscriptionError? {
+    private static var stubFailure: AskAIError? {
         let arguments = ProcessInfo.processInfo.arguments
         return arguments.contains(offlineArgument) ? .offline
             : arguments.contains(refusedArgument) ? .refused
             : arguments.contains(timeoutArgument) ? .timedOut : nil
     }
 
-    /// The stubs' latency: long enough under `-uiTestAskAISlow` to rescan
-    /// through it. Throws on cancellation, as the real request does.
+    /// The stub's latency: long enough under `-uiTestAskAISlow` to act while it
+    /// is in flight. Throws on cancellation, as the real request does.
     static func stubDelay() async throws {
-        await MainActor.run { AskAIFixtureLedger.calls += 1 }
         let slow = ProcessInfo.processInfo.arguments.contains(slowArgument)
         try await Task.sleep(for: .milliseconds(slow ? 4_000 : 300))
-    }
-}
-
-/// Under `-uiTestAskAI`: how many calls the stubs have taken — the
-/// "counting client" that proves no call happens before the on-device read
-/// failed to place the plate, and one tap is one call.
-@MainActor
-enum AskAIFixtureLedger {
-    static var calls = 0
-}
-
-/// The fixture's answer: what the experiment's stub-worthy plate came back
-/// as — a Cybex Eagle NX Overhead Press, a real seeded row, read with the
-/// brand the brandless fixture plate lacks.
-struct StubPlateTranscriber: PlateTranscriber {
-    let failure: PlateTranscriptionError?
-
-    func transcribe(jpeg: Data) async throws -> PlateTranscription {
-        try await AskAI.stubDelay()
-        if let failure { throw failure }
-        return PlateTranscription(
-            brand: "Cybex", model: "Eagle NX Overhead Press",
-            lines: ["Cybex", "Eagle NX Overhead Press"], confidence: .high)
     }
 }
 
@@ -169,7 +56,7 @@ struct StubPlateTranscriber: PlateTranscriber {
 /// serves (Machine Shoulder Press for an overhead press), picked from the
 /// list it was SENT — so the stub can only ever answer with a real id.
 struct StubExerciseProposer: ExerciseProposer {
-    let failure: PlateTranscriptionError?
+    let failure: AskAIError?
 
     func propose(plate: PlateDescription, candidates: [ExerciseCandidate]) async throws -> [ExerciseProposal] {
         try await AskAI.stubDelay()
@@ -187,7 +74,6 @@ struct ServerExerciseProposer: ExerciseProposer {
         guard !candidates.isEmpty else { return [] }
         let data = try await client.complete(.modelExercises,
                                              json: AIServerClient.modelExercisesBody(plate: plate, candidates: candidates))
-        let wrapped = try JSONSerialization.data(withJSONObject: ["content": [["type": "text", "text": String(decoding: data, as: UTF8.self)]]])
-        return try ExerciseProposalAPI.parse(wrapped, candidates: candidates)
+        return try ExerciseProposalAPI.parse(data, candidates: candidates)
     }
 }

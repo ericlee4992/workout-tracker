@@ -3,9 +3,9 @@ import UIKit
 
 /// Scanner accuracy, ticket 05 — `LabelCrop` meets UIKit: the pixels.
 extension LabelCrop {
-    /// The bytes an ask sends: the box (plus `margin`) cut from the upright
-    /// photo, no longer than `maxSide`, JPEG — or nil when there is no box
-    /// worth the name, and then no ask is offered. Runs wherever it is
+    /// The bytes a label request sends: the box (plus `margin`) cut from the
+    /// upright photo, no longer than `maxSide`, JPEG — or nil when there is no
+    /// box worth the name, and then nothing is sent. Runs wherever it is
     /// called; nothing is written anywhere.
     static func jpeg(_ image: UIImage, region: CGRect) -> Data? {
         guard let upright = uprightCGImage(image) else { return nil }

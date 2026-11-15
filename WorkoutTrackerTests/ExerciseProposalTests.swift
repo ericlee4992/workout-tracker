@@ -11,36 +11,9 @@ struct ExerciseProposalTests {
     private var candidates: [ExerciseCandidate] { [shoulder, chest, row] }
     private let plate = PlateDescription(brand: "Cybex", model: "Eagle NX Overhead Press", lines: ["Cybex", "Eagle NX Overhead Press"])
 
-    @Test func theRequestCarriesThePlateAndTheListAndConstrainsIdsToIt() throws {
-        let body = try ExerciseProposalAPI.requestBody(plate: plate, candidates: candidates)
-        let object = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
-        let messages = try #require(object["messages"] as? [[String: Any]])
-        let content = try #require(messages[0]["content"] as? [[String: Any]])
-        #expect(content.count == 1 && content[0]["type"] as? String == "text", "text only — no image")
-        let text = try #require(content[0]["text"] as? String)
-        #expect(text.contains("brand: Cybex"))
-        #expect(text.contains("Eagle NX Overhead Press"))
-        #expect(text.contains("\(shoulder.id.uuidString) | Machine Shoulder Press | Shoulders"))
-        #expect(text.contains("\(row.id.uuidString) | Seated Row | -"))
-
-        let output = try #require(object["output_config"] as? [String: Any])
-        let format = try #require(output["format"] as? [String: Any])
-        let schema = try #require(format["schema"] as? [String: Any])
-        let properties = try #require(schema["properties"] as? [String: Any])
-        let proposals = try #require(properties["proposals"] as? [String: Any])
-        let items = try #require(proposals["items"] as? [String: Any])
-        let itemProperties = try #require(items["properties"] as? [String: Any])
-        let idField = try #require(itemProperties["exercise_id"] as? [String: Any])
-        #expect(Set(idField["enum"] as? [String] ?? []) == Set(candidates.map(\.id.uuidString)))
-    }
-
+    /// The server's `model-exercises` result object, as `AIServerClient.complete` hands it over (its `result`).
     private func reply(_ proposals: [[String: Any]]) -> Data {
-        let inner = try! JSONSerialization.data(withJSONObject: ["proposals": proposals])
-        let object: [String: Any] = [
-            "type": "message", "stop_reason": "end_turn",
-            "content": [["type": "text", "text": String(decoding: inner, as: UTF8.self)]],
-        ]
-        return try! JSONSerialization.data(withJSONObject: object)
+        try! JSONSerialization.data(withJSONObject: ["proposals": proposals])
     }
 
     @Test func parsesInOrderAndKeepsReasons() throws {
@@ -76,13 +49,11 @@ struct ExerciseProposalTests {
         #expect(try ExerciseProposalAPI.parse(data, candidates: many).count == ExerciseProposalAPI.maximumProposals)
     }
 
-    @Test func refusalsAndErrorsAreTheSameAsForATranscription() {
-        let refusal: [String: Any] = ["type": "message", "stop_reason": "refusal", "content": []]
-        #expect(throws: PlateTranscriptionError.refused) {
-            try ExerciseProposalAPI.parse(try JSONSerialization.data(withJSONObject: refusal), candidates: candidates)
-        }
-        #expect(throws: PlateTranscriptionError.malformed) {
-            try ExerciseProposalAPI.parse(Data("{}".utf8), candidates: candidates)
+    @Test func aReplyThatIsNotTheProposalObjectIsMalformed() {
+        for body in ["{}", "[]", "not json", #"{"proposals": "none"}"#] {
+            #expect(throws: AskAIError.malformed, "\(body)") {
+                try ExerciseProposalAPI.parse(Data(body.utf8), candidates: candidates)
+            }
         }
     }
 
@@ -92,5 +63,16 @@ struct ExerciseProposalTests {
         #expect(proposals.map(\.id) == [shoulder.id])
         #expect(try await stub.propose(plate: plate, candidates: []).isEmpty)
         #expect(AskAI.proposer(AccountStore(client: nil)) == nil, "signed out → no proposer (ticket 06)")
+    }
+
+    /// Outside the fixture a suggestion needs a signed-in account; the unit test process has neither.
+    @MainActor @Test func signedOutMeansNoSuggestion() {
+        #expect(AskAI.fixtureIsEnabled == false)
+        #expect(AskAI.isAvailable(AccountStore(client: nil)) == false)
+    }
+
+    @Test func aFailedSuggestionSaysWhy() {
+        #expect(AskAIError.offline.localizedDescription == "Ask AI needs a connection — you look offline.")
+        #expect(AskAIError.malformed.localizedDescription == "The answer could not be read.")
     }
 }

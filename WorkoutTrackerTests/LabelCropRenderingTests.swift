@@ -3,7 +3,7 @@ import Testing
 import UIKit
 @testable import WorkoutTracker
 
-/// Scanner accuracy, ticket 05 — the PIXELS an ask sends, from an
+/// Scanner accuracy, ticket 05 — the PIXELS a label crop sends, from an
 /// EXIF-oriented photo like the shutter's (codex-review-05: the rectangle
 /// arithmetic alone did not prove the orientation wiring).
 struct LabelCropRenderingTests {
