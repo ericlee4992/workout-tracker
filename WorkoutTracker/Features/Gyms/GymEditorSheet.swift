@@ -84,6 +84,9 @@ struct GymEditorSheet: View {
         .lookSheetGround()
         .presentationDragIndicator(.visible)
         .onAppear(perform: load)
+        // codex-review-02 R3-1: a saved gym not yet handed back closes only through Add (retry) or Cancel (one last
+        // hand-back) — a swipe would skip both and leave the screen on its old pick.
+        .interactiveDismissDisabled(addAttempt.committedID != nil)
         .alert("Delete \(gym?.name ?? "gym")?", isPresented: $confirmDelete) {
             Button("Delete Gym", role: .destructive, action: deleteGym)
             Button("Cancel", role: .cancel) {}

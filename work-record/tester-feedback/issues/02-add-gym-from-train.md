@@ -113,3 +113,12 @@ Both findings were in older code the new entry point now uses (`GymEditorSheet`'
   stored pick = the gym shown), `resolvingAGymThatIsNotThereThrows`.
 - Round 3 verification (author): build-for-testing exit 0; Unit plan **1297/1297** (`build/results/tf02-r3-unit.xcresult`);
   `TrainAddGymUITests` 8/8 + `TemplateMachinesUITests` 2/2, serial, exit 0 (`build/results/tf02-r3-ui.xcresult`).
+
+### Review round 3 (Codex): changes requested → fixed
+
+- **R3-1 (P2)** a swipe-down could close the sheet after a saved-but-not-handed-back Add, skipping Cancel's last
+  hand-back. Fix: `.interactiveDismissDisabled(addAttempt.committedID != nil)`. In that state only Add (retry) or
+  Cancel closes the sheet; normal sheets still swipe away.
+- Round 4 verification (author): build exit 0; `TrainAddGymUITests` 8/8 serial, exit 0
+  (`build/results/tf02-r4-ui.xcresult`). Not verified at runtime: the failure state itself (it needs a forced fetch
+  failure; covered by `GymCreationTests` at the domain level, and the modifier was checked by reading the code).

@@ -117,3 +117,47 @@ xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphones
 **Known flaky:** no failures or flakes observed this round. Round 1's author-side parallel goal-typing failure remains historical, with a passing serial rerun recorded above.
 
 Verdict: changes requested
+
+
+## Round 3
+
+Reviewed `git diff fb5b1519..f3758033` at HEAD `f3758033c5345256dd9d84e7a699a05dc41a0b6f`, branch `ericlee4992/add-gym-from-train`. No implementation edits or commits. The explicitly accepted limitation after the Cancel button retries resolution and still fails is respected below.
+
+### Standards
+
+R2-1 is fixed for Add/retry: `GymCreation.resolve` throws for missing rows; `GymAddAttempt` records the ID after successful creation and before fallible resolution. Failed creation leaves it unset, while failed resolution retains it, so another Add resolves the same gym without another insert. The sheet displays the error, leaves Add available, locks saved fields, and calls `onSave`/dismisses only after resolution succeeds. Normal Cancel and editing an existing gym remain unchanged. No additional standards finding in that state transition.
+
+### Spec
+
+1. **R3-1, P2 — interactive dismissal bypasses the final recovery attempt.** `WorkoutTracker/Features/Gyms/GymEditorSheet.swift:84–86` leaves the sheet swipe-dismissable. The recovery retry exists only in `cancel()` at `:216–220`, invoked by the header button. After a committed save and failed resolution, dragging down closes the sheet without running that retry; neither Train nor Ask AI's presenting sheet supplies an equivalent dismissal callback. Train can therefore remain on its old selection even when the next resolution would succeed. The accepted residual is an explicit Cancel **after one final hand-back attempt**; this gesture bypasses that attempt. **Fix:** apply `.interactiveDismissDisabled(addAttempt.committedID != nil)` to the sheet content, retaining the explicit Cancel button as the accepted exit, or provide equivalent recovery on every dismissal path. A failure-state interaction check should establish that a swipe cannot bypass recovery. Static finding; the post-commit failure was not injected into the running sheet this round.
+
+Apart from R3-1, the new regression tests address the prior finding: `aFailedHandBackRetriesTheSameGym` requires the initial error, a retained committed ID, exactly one create and gym, and a final returned gym matching persisted selection. It would fail a retry that recreates the row or ignores the resolution error. `resolvingAGymThatIsNotThereThrows` rejects treating absence as success. The existing transaction/failure/persistence tests remain relevant. All four GymEditorSheet caller intentions remain intact.
+
+Standards: **0 new findings**; Spec: **1 P2 dismissal-path finding**. The user-accepted Cancel-button fallback itself is **not** a finding.
+
+### Verification
+
+Xcode **27.2 (27B52)**; WT-Floodlight (`9E822EF6-DC67-4958-AEA2-D53D2D36D674`), iOS 27.0. Independent derived data `build/dd-codex`; serial execution.
+
+- `scripts/prepare-test-simulator.sh`: exit **0**, ready/booted.
+- `git diff --check fb5b1519..f3758033`: exit **0**.
+- Independent build: exit **0**, `BUILD SUCCEEDED`; `build/logs/codex-tf02-r3-build.log` and `.status`.
+- Independent `GymCreationTests` + `GymSelectionTests`: **9/9 passed**, 0 failed/skipped, exit **0**; `build/results/codex-tf02-r3-unit.xcresult`. Actual summary inspected with `xcrun xcresulttool get test-results summary --path …` (exit **0**); log/status and summary JSON in `build/logs/codex-tf02-r3-unit.*`.
+- Author artifacts inspected: `build/results/tf02-r3-unit.xcresult` **1297/1297**, and `build/results/tf02-r3-ui.xcresult` **10/10** (Train 8 + TemplateMachines 2), each 0 failed/skipped. Both summary-inspection commands exit **0**; corresponding logs contain successful test-execution markers. Author-reported process exits **0**; separate author status files are absent.
+- **No UI tests rerun.** The inspected author UI covers unchanged normal entry/save/cancel flows. The new recovery logic is exercised in the independent unit suite; repeating the normal Train UI cases would not exercise the failed-resolution swipe escape in R3-1. Failure-state sheet appearance and dismissal were inspected statically, not claimed as runtime-verified.
+
+Exact independent commands (runner `build/codex-tf02-r3-run.py`, PID **8026**, completed):
+
+```sh
+xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath build/dd-codex build
+
+xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath build/dd-codex test -testPlan Unit -parallel-testing-enabled NO -resultBundlePath build/results/codex-tf02-r3-unit.xcresult -collect-test-diagnostics never -only-testing:WorkoutTrackerTests/GymCreationTests -only-testing:WorkoutTrackerTests/GymSelectionTests
+```
+
+**Verified:** independent build and focused gym suites **9/9**, exit **0**; author full Unit **1297/1297** and UI **10/10** inspected; create-once/retry and missing-row behavior verified by the new unit tests.
+
+**Not verified:** failure-state sheet controls/interactive dismissal at runtime (R3-1); no reviewer UI execution this round; Ask AI Add Gym/device-only behavior remain outside the current UI evidence. The explicitly accepted Cancel-after-retry residual remains documented in the ticket.
+
+**Known flaky:** none observed this round. Earlier parallel goal-entry timing failure remains historical, with its successful serial rerun above.
+
+Verdict: changes requested
