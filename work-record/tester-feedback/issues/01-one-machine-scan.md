@@ -1,6 +1,6 @@
 # 01 — One machine scan: remove "Read label on device"
 
-Status: implemented, in review (Claude implements, Codex reviews — T6); branch `ericlee4992/one-machine-scan`
+Status: **done — Codex clear (round 3), merged into `main`**; branch `ericlee4992/one-machine-scan` kept. Privacy page not deployed (the user's go).
 Type: task
 
 ## The user's request (2026-11-14)
@@ -138,3 +138,12 @@ is unchanged); the privacy page live (not deployed — the user's go). **Known f
 - Round 3 verification (author; camera code changed): `build-for-testing` exit 0; Unit plan **1291/1291**
   (`build/results/tf01-r3-unit.xcresult`); `ScanFoodUITests` + `FloodlightScanUITests/testScanMachineAddsTheMachineDirectly`
   + `testCaptureScanLightDefault` **17/17**, exit 0 (`build/results/tf01-r3-ui.xcresult`).
+
+### Review round 3 (Codex): **clear**
+
+Codex built and ran the 13 affected unit tests (13/13) and inspected the author's 17/17 UI xcresult. Report:
+`work-record/tester-feedback/codex-review-01.md`. Merged into `main` by fast-forward.
+
+**Left for the user:** deploy the privacy page (set `POLICY_EFFECTIVE_DATE` to the deploy day, then `npm run deploy`
+per DEVELOPMENT's server steps) — before or with the TestFlight build that ships this. **Follow-up to propose:** the
+known-flaky `GymsFlowsUITests/testMachinePageEditsApplyAndDeleteCloses` (failed once under parallel load).

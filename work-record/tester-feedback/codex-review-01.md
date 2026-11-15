@@ -98,3 +98,41 @@ Standards: **1 low-priority cleanup finding**; Spec: **0 remaining findings**. T
 **Known flaky:** the round-1 machine-name assertion failed once in parallel and passed in the serial class rerun; no new execution or causal claim this round.
 
 Verdict: changes requested
+
+
+## Round 3
+
+Reviewed `git diff ec2faa8e..39e71a48` at HEAD `39e71a481a6b650f49910fdd5c170e95d3ecdbee`, branch `ericlee4992/one-machine-scan`. Clean checkout before appending this section. No source edits, commits, deployment or merge performed by this review.
+
+### Standards
+
+No remaining findings. **R2-1 is resolved:** `CapturedLabel.region`, the unused pending box/view-size storage, region calculation and fixture argument are removed. Both capture consumers still receive the same request ID and image. The framing box still sets focus/exposure at its center; pending clearing, cancellation/generation guards and error callbacks are preserved. Updated comments describe the remaining payload accurately.
+
+### Spec
+
+No remaining findings. Scan Machine continues to use the full image; Scan Food still snapshots its own framing geometry at shutter time, maps that geometry in `FoodScanCameraContent.photo(_:)` and sends camera-label crops through `LabelCrop.jpeg`. The removed value had no consumer, so this cleanup does not change UI behavior. Round-1 SPEC and comment findings remain resolved. Standards: **0**; Spec: **0**.
+
+### Verification
+
+- `scripts/prepare-test-simulator.sh`: exit **0**, WT-Floodlight ready. Xcode **27.2 (27B52)**, simulator `9E822EF6-DC67-4958-AEA2-D53D2D36D674`.
+- Independent `xcodebuild build`: exit **0**, `BUILD SUCCEEDED`; `build/logs/codex-tf01-r3-build.log` and `.status`.
+- Independent focused Unit scope: `LabelFramingBoxTests`, `LabelCropTests`, `LabelCropRenderingTests` — **13/13 passed, 0 failed, 0 skipped**, exit **0**. Result: `build/results/codex-tf01-r3-unit.xcresult`; log/status: `build/logs/codex-tf01-r3-unit.{log,status}`. Actual xcresult summary inspected with `xcrun xcresulttool get test-results summary --path build/results/codex-tf01-r3-unit.xcresult` (inspection exit **0**).
+- Inspected the author's current UI result `build/results/tf01-r3-ui.xcresult`: **17/17 passed, 0 failed, 0 skipped**, no failure entries. The corresponding log contains `TEST EXECUTE SUCCEEDED`; author reports exit **0**. Also inspected their current full Unit result `build/results/tf01-r3-unit.xcresult`: **1291/1291 passed**, 0 failed/skipped, log `TEST EXECUTE SUCCEEDED`, author-reported exit **0**. Both summary-inspection commands exited **0**; separate author exit-status files are absent.
+- **UI tests were not rerun**, per the review brief and AGENTS' later-round rule: no UI behavior or UI-test logic changed. The author's focused camera-flow UI result and this review's independent build/unit checks cover this removal; earlier broader UI evidence remains recorded above.
+- `git diff --check ec2faa8e..39e71a48`: exit **0**. Confirmed no remaining `captured.region`, obsolete `pending.box/viewSize/request` access, or region argument at either CapturedLabel construction site.
+
+Exact independent commands (runner `build/codex-tf01-r3-run.py`, PID 66677, completed; own derived data `build/dd-codex`):
+
+```sh
+xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath build/dd-codex build
+
+xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath build/dd-codex test -testPlan Unit -parallel-testing-enabled NO -resultBundlePath build/results/codex-tf01-r3-unit.xcresult -collect-test-diagnostics never -only-testing:WorkoutTrackerTests/LabelFramingBoxTests -only-testing:WorkoutTrackerTests/LabelCropTests -only-testing:WorkoutTrackerTests/LabelCropRenderingTests
+```
+
+**Verified:** independent build and framing/crop Unit scope **13/13**, exit **0**; inspected author UI **17/17** and full Unit **1291/1291**; static preservation of request identity, focus, cancellation and food cropping. All review findings resolved.
+
+**Not verified:** physical camera/auto-focus behavior or a live signed-in phone request; no reviewer UI execution this round; deployed privacy page and post-merge CI remain pending as previously recorded. Manual New Model submission remains outside the earlier capture-only coverage.
+
+**Known flaky:** round 1's machine-name assertion failed once in parallel and passed in the serial class rerun; no failures observed in this round's independent tests or inspected author results.
+
+Verdict: clear
