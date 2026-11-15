@@ -508,6 +508,8 @@ struct WorkoutActivityContentTests {
         let commands = WorkoutActivityCommands(coordinator: coordinator, activity: WorkoutActivityController(presenter: presenter))
         commands.use(rig.container)
         commands.notifications = FakeNotifications()
+        let clock = TestClock()
+        coordinator.now = { clock.time }  // inside the no-reading grace: only the reading can end this rest
         #expect(coordinator.workoutID == nil, "cold: no runtime, no screen")
         await commands.logSet(try shown(rig))
         #expect(rig.pressSets[2].completedAt != nil)
@@ -545,7 +547,15 @@ struct WorkoutActivityContentTests {
     }
 
     /// A cold Done's heart-rate rest: a runtime with a scripted sensor and no screen.
+    /// The coordinator's D43 clock, frozen and moved by the test (codex-review-04-ci #2): a delayed tick cannot pass the
+    /// 20 s no-reading grace on its own while a recovery test waits for its sample.
+    final class TestClock {
+        var time: Date
+        init(_ time: Date = .now) { self.time = time }
+    }
+
     private struct ColdHeartRateRest {
+        let clock: TestClock
         let rig: Rig
         let provider: StubHeartRateProvider
         let coordinator: WorkoutHeartRateCoordinator
@@ -567,14 +577,17 @@ struct WorkoutActivityContentTests {
         commands.use(rig.container)
         let notifications = FakeNotifications()
         commands.notifications = notifications
+        let clock = TestClock()
+        coordinator.now = { clock.time }  // frozen before the rest starts: inside the grace until a test moves it
         await commands.logSet(try shown(rig))
         try #require(rig.workout.restEndsAt != nil && coordinator.onSample == nil)
-        return ColdHeartRateRest(rig: rig, provider: provider, coordinator: coordinator, commands: commands,
+        return ColdHeartRateRest(clock: clock, rig: rig, provider: provider, coordinator: coordinator, commands: commands,
                                  presenter: presenter, notifications: notifications)
     }
 
-    /// Polls until `condition` holds, up to five minutes: on GitHub's runner the main actor can wait minutes for its
-    /// turn (2026-11-15, run 43698481749: these tests took 310 s and a 3-second wait gave up). Returns at once when it holds.
+    /// Polls until `condition` holds, up to five minutes — hang protection only; it returns as soon as the condition holds.
+    /// On GitHub's runner these tests took 310 s (2026-11-15, run 43698481749), long enough for the real clock to pass the
+    /// rests they assumed; the D43 clock is now the test's own (`TestClock`).
     private func waitUntil(_ condition: () -> Bool) async throws {
         let deadline = Date.now.addingTimeInterval(300)
         while !condition(), Date.now < deadline { try await Task.sleep(for: .milliseconds(50)) }
@@ -586,10 +599,16 @@ struct WorkoutActivityContentTests {
         struct SaveFailed: Error {}
         let cold = try await coldHeartRateRest()
         let end = cold.rig.workout.restEndsAt
-        cold.commands.save = { _ in throw SaveFailed() }
+        var failedTransitions = 0
+        cold.commands.save = { context in
+            // Only the recovery's own save fails (the rest already cleared in memory); other pending edits save.
+            if cold.rig.workout.restEndsAt == nil { failedTransitions += 1; throw SaveFailed() }
+            try context.save()
+        }
         cold.provider.emit(HeartRateSample(bpm: 104, date: .now, source: .fixture))
-        try await Task.sleep(for: .milliseconds(400))
-        #expect(cold.rig.workout.restEndsAt == end, "the rest is back as it was saved")
+        try await waitUntil { failedTransitions >= 1 }
+        #expect(failedTransitions >= 1, "the recovery's save was attempted and failed")
+        #expect(cold.rig.workout.restEndsAt == end, "rolled back: the rest is as it was saved")
         #expect(cold.coordinator.lastRestResult == nil)
         cold.commands.save = { try $0.save() }
         cold.provider.emit(HeartRateSample(bpm: 103, date: .now, source: .fixture))
@@ -608,16 +627,23 @@ struct WorkoutActivityContentTests {
         let start = try #require(cold.rig.workout.restStartedAt)
         let cap = try #require(cold.rig.workout.restEndsAt)
         let standard = try RestTimerService(context: cold.rig.context).durationSeconds(for: set)
-        cold.coordinator.now = { .now.addingTimeInterval(30) }  // past the 20 s grace, no sample ever
-        cold.commands.save = { _ in throw SaveFailed() }
+        var failedTransitions = 0
+        cold.commands.save = { context in
+            // Only the fallback's own save fails (the end already moved in memory); other pending edits save.
+            if cold.rig.workout.restEndsAt != cap { failedTransitions += 1; throw SaveFailed() }
+            try context.save()
+        }
         cold.coordinator.restEvaluatorInterval = .milliseconds(20)
-        cold.coordinator.restEvaluator = cold.coordinator.restEvaluator  // restart the tick at the new period
-        try await Task.sleep(for: .milliseconds(300))
+        let evaluator = cold.coordinator.restEvaluator
+        cold.coordinator.restEvaluator = evaluator  // restart the tick at the new period
+        cold.clock.time = start.addingTimeInterval(30)  // past the 20 s grace, no sample ever
+        try await waitUntil { failedTransitions >= 1 }
+        #expect(failedTransitions >= 1, "the fallback's save was attempted and failed")
         #expect(cold.coordinator.degradedRestSetID == nil, "a failed fallback save marks nothing")
-        #expect(cold.rig.workout.restEndsAt == cap, "the cap stays as saved")
+        #expect(cold.rig.workout.restEndsAt == cap, "rolled back: the cap as saved")
         cold.commands.save = { try $0.save() }
         try await waitUntil { cold.coordinator.degradedRestSetID != nil }
-        #expect(cold.coordinator.degradedRestSetID == set.id)
+        #expect(cold.coordinator.degradedRestSetID == set.id, "the next tick retried")
         #expect(cold.rig.workout.restEndsAt == start.addingTimeInterval(TimeInterval(standard)), "the standard timer")
         #expect(cold.presenter.lastState?.rest == .fallback, "the card says it fell back")
         cold.coordinator.end(cold.rig.workout)
@@ -639,6 +665,8 @@ struct WorkoutActivityContentTests {
         commands.use(rig.container)
         commands.notifications = FakeNotifications()
         commands.installRestEvaluator()
+        let clock = TestClock()
+        coordinator.now = { clock.time }
         // The live screen: attaches the runtime and claims the samples; then minimise.
         _ = coordinator.monitor(for: rig.workout, maxHeartRate: nil)
         var screenChecks = 0
@@ -651,7 +679,7 @@ struct WorkoutActivityContentTests {
         let set = rig.pressSets[2]
         let start = try #require(rig.workout.restStartedAt)
         let standard = try RestTimerService(context: rig.context).durationSeconds(for: set)
-        coordinator.now = { .now.addingTimeInterval(30) }
+        clock.time = start.addingTimeInterval(30)  // past the 20 s grace, no sample ever
         coordinator.restEvaluatorInterval = .milliseconds(20)
         let evaluator = coordinator.restEvaluator
         coordinator.restEvaluator = evaluator  // restart the tick at the new period
