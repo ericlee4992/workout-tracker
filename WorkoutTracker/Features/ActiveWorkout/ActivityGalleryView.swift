@@ -17,6 +17,13 @@ enum ActivityGallery {
         return args[index + 1]
     }
 
+    /// MOCK: `-protoLogSet A|B` draws that option of the Lock Screen Log/Done control.
+    static var logSetMock: String? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-protoLogSet"), args.indices.contains(index + 1) else { return nil }
+        return args[index + 1]
+    }
+
     static let attributes = WorkoutActivityAttributes(
         workoutID: UUID(uuidString: "00000000-0000-0000-0000-00000000A11E")!,
         startedAt: .now.addingTimeInterval(-(18 * 60 + 42)), gymName: "Iron Temple")
@@ -99,7 +106,7 @@ struct ActivityGalleryView: View {
         let palette = ActivityPalette.lockScreen(scheme)
         ScrollView {
             VStack(spacing: 18) {
-                Text("Z01 · \(name)")
+                Text("Z01 · \(name)\(ActivityGallery.logSetMock.map { " · option \($0)" } ?? "")")
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("activityGallery")
@@ -155,6 +162,7 @@ struct ActivityGalleryView: View {
         }
         .background { wallpaper.ignoresSafeArea() }
         .environment(\.activityDrawsRingsStatically, true)
+        .environment(\.activityLogSetMock, ActivityGallery.logSetMock)
     }
 
     /// A neutral dusk wallpaper (the prototype's), low in saturation so the card is the loudest thing.

@@ -126,6 +126,57 @@ extension EnvironmentValues {
     /// true in the app's activity gallery: a timer `ProgressView` is a ring only inside a widget
     /// (in an app it is a spinner), so the gallery draws the ring's fraction at render time.
     @Entry var activityDrawsRingsStatically = false
+    /// MOCK (log a set from the Lock Screen, options for the user; removed once one is chosen): "A" = a Done pill in
+    /// the ready card, "B" = a full-width Log row in place of its footer; nil = today's card.
+    @Entry var activityLogSetMock: String? = nil
+}
+
+/// MOCK: the Log/Done control, drawn only (no intent yet).
+struct ActivityLogSetMockButton: View {
+    var next: WorkoutActivityAttributes.NextSet
+    var wide: Bool
+    var palette: ActivityPalette
+
+    var body: some View {
+        Group {
+            if wide {
+                HStack(spacing: 6) {
+                    Image(systemName: "checkmark").font(.system(.subheadline).weight(.heavy))
+                    Text("Log \(valueText)")
+                }
+                .font(.system(.callout).weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .foregroundStyle(palette.onLive)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(palette.live, in: Capsule())
+            } else {
+                ActivityPill(title: "Done", symbol: "checkmark", prominent: true, palette: palette)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Log \(spokenMarker), \(valueText)")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityIdentifier("activityLogSet")
+    }
+
+    private var valueText: String {
+        switch (next.weight, next.reps) {
+        case let (weight?, reps?): "\(weight) \(next.unit ?? "") × \(reps)"
+        case let (nil, reps?): "\(reps) reps"
+        case let (weight?, nil): "\(weight) \(next.unit ?? "")"
+        default: ""
+        }
+    }
+
+    private var spokenMarker: String {
+        switch next.marker {
+        case "W": "warmup"
+        case "D": "drop set"
+        case "F": "failure set"
+        default: "set \(next.marker)"
+        }
+    }
 }
 
 /// A ring drawn by the system from a time span (the rest draining, a cardio target filling), or a
@@ -594,6 +645,7 @@ struct WorkoutActivityCard: View {
     var attributes: WorkoutActivityAttributes
     var isStale: Bool
     var palette: ActivityPalette
+    @Environment(\.activityLogSetMock) private var logMock
 
     var body: some View {
         let now = Date.now
@@ -669,7 +721,7 @@ struct WorkoutActivityCard: View {
             HStack(spacing: 12) {
                 ActivityNextMarker(next: next, palette: palette, side: 42, lit: isRecovered(result))
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Next").font(ActivityType.label).foregroundStyle(palette.textSecondary)
+                    Text(logMock == "A" ? "Now" : "Next").font(ActivityType.label).foregroundStyle(palette.textSecondary)
                     if next.weight != nil || next.reps != nil {
                         ActivitySetValue(next: next, palette: palette)
                     } else {
@@ -679,7 +731,9 @@ struct WorkoutActivityCard: View {
                 }
                 .layoutPriority(1)
                 Spacer(minLength: 6)
-                if let previous = next.previous {
+                if logMock == "A", next.weight != nil || next.reps != nil {
+                    ActivityLogSetMockButton(next: next, wide: false, palette: palette)
+                } else if let previous = next.previous {
                     VStack(alignment: .trailing, spacing: 3) {
                         Text("PREVIOUS").font(ActivityType.columnHeader).tracking(0.6).foregroundStyle(palette.textSecondary)
                         Text(previous).font(.system(.subheadline).weight(.semibold)).foregroundStyle(palette.textSecondary)
@@ -743,6 +797,8 @@ struct WorkoutActivityCard: View {
                 HStack(spacing: 14) { cardioFigures; Spacer(minLength: 4); heart }
                 VStack(alignment: .leading, spacing: 6) { cardioFigures; heart }
             }
+        case .ready where logMock == "B" && state.next.map { $0.weight != nil || $0.reps != nil } == true:
+            ActivityLogSetMockButton(next: state.next!, wide: true, palette: palette)
         case .resting, .ready:
             if let result = state.shownResult(at: now, isStale: isStale) {
                 ViewThatFits(in: .horizontal) {
@@ -908,6 +964,7 @@ struct ActivityIslandExpandedTrailing: View {
     var state: WorkoutActivityAttributes.ContentState
     var isStale: Bool
     private let palette = ActivityPalette.island
+    @Environment(\.activityLogSetMock) private var logMock
 
     var body: some View {
         Group {
@@ -943,7 +1000,7 @@ struct ActivityIslandExpandedTrailing: View {
             case .ready:
                 if let next = state.next, next.weight != nil || next.reps != nil {
                     VStack(alignment: .trailing, spacing: 0) {
-                        Text("Next").font(ActivityType.label).foregroundStyle(palette.textSecondary)
+                        Text(logMock == "A" ? "Now" : "Next").font(ActivityType.label).foregroundStyle(palette.textSecondary)
                         ActivitySetValue(next: next, palette: palette, style: .title2)
                     }
                     .fixedSize()
@@ -961,6 +1018,7 @@ struct ActivityIslandExpandedBottom: View {
     var attributes: WorkoutActivityAttributes
     var isStale: Bool
     private let palette = ActivityPalette.island
+    @Environment(\.activityLogSetMock) private var logMock
 
     var body: some View {
         let phase = state.phase(at: .now, isStale: isStale)
@@ -1002,7 +1060,7 @@ struct ActivityIslandExpandedBottom: View {
                 ActivityRestResultRow(result: result, palette: palette)
             } else if let line = supportLine(phase) {
                 Text(line).font(.system(.footnote).weight(.semibold)).foregroundStyle(palette.textSecondary).lineLimit(1)
-            } else if phase == .ready, let previous = state.next?.previous {
+            } else if phase == .ready, logMock != "A", let previous = state.next?.previous {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text("PREVIOUS").font(ActivityType.columnHeader).tracking(0.6)
                     Text(previous).font(.system(.footnote).weight(.semibold))
@@ -1038,8 +1096,12 @@ struct ActivityIslandExpandedBottom: View {
         case .resting:
             ActivityCommands(kind: .rest, workoutID: attributes.workoutID, palette: palette)
         case .ready:
-            ActivitySetsReadout(done: state.completedSets, total: state.totalSets ?? state.completedSets,
-                                palette: palette, ringSize: 22, showsWord: true)
+            if logMock != nil, let next = state.next, next.weight != nil || next.reps != nil {
+                ActivityLogSetMockButton(next: next, wide: false, palette: palette)
+            } else {
+                ActivitySetsReadout(done: state.completedSets, total: state.totalSets ?? state.completedSets,
+                                    palette: palette, ringSize: 22, showsWord: true)
+            }
         }
     }
 }
