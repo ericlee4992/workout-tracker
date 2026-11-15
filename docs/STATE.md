@@ -14,7 +14,7 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
      `WorkoutActivityContentTests` (the slow runner took 310 s; real clock passed the rests; a 3 s wait). Fix (test-only)
      on `ericlee4992/ci-timing-tests` (off `26642ef8`): `11bd5591` (hour/2-hour rests, 5-min wait) + `2f5e7db1` (frozen
      D43 `TestClock`; failing saves acknowledged). Codex: round 1 changes requested (`work-record/live-workout-fixes/
-     codex-review-04-ci.md`), **round 2 sent** (its report goes in the same file; it was still uncommitted in the
+     codex-review-04-ci.md`), **round 2: clear** (report committed on `ci-timing-tests`; was formerly uncommitted in the
      worktree at handoff — commit it on `ci-timing-tests`). CI on the branch: 43700178994 was **cancelled**
      (superseded); the run that counts is **43700754494** (`2f5e7db1`). Locally 31/31 ×3.
   3. When both are green/clear: commit the review file on `ci-timing-tests`, fast-forward `main` to it, then rebase or
