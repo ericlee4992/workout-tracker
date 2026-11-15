@@ -1,6 +1,6 @@
 # 02 — Add a gym from the Train screen
 
-Status: implemented, in review (Claude implements, Codex reviews — T6); branch `ericlee4992/add-gym-from-train`
+Status: **done — Codex clear (round 4), merged into `main`**; branch `ericlee4992/add-gym-from-train` kept.
 Type: task
 
 ## The user's request (2026-11-14)
@@ -122,3 +122,8 @@ Both findings were in older code the new entry point now uses (`GymEditorSheet`'
 - Round 4 verification (author): build exit 0; `TrainAddGymUITests` 8/8 serial, exit 0
   (`build/results/tf02-r4-ui.xcresult`). Not verified at runtime: the failure state itself (it needs a forced fetch
   failure; covered by `GymCreationTests` at the domain level, and the modifier was checked by reading the code).
+
+### Review round 4 (Codex): **clear**
+
+Report: `work-record/tester-feedback/codex-review-02.md`. Merged into `main` by fast-forward. **Follow-up to propose:** a
+UI test for Ask AI's Add Gym… (none exists).

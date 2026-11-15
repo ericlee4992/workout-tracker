@@ -1,22 +1,25 @@
 # Current project state
 
-Updated **2026-11-14 (night): NOW — [tester feedback](../work-record/tester-feedback/README.md) 01 (one machine scan) **done, merged** (privacy page deploy waits for the user); 02 (add a gym from Train, option C, D89) implemented on `ericlee4992/add-gym-from-train`, in Codex review, in `~/.paseo/worktrees/1qmeipq9/tester-feedback`. Done today: scanner 07 (`main` `ec14ca50`), GitHub CI fixed + T6 default; Tests run 43659136836 on `main` green. 0.2.0 (14) uploaded 2026-11-13 — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-15: NEXT — the user's call: deploy the privacy page (tester feedback 01) and a TestFlight build with [tester feedback](../work-record/tester-feedback/README.md) 01 + 02 (both done, merged into `main`). 0.2.0 (14) uploaded 2026-11-13 — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-14)
 
-- **NOW (resume here) — [tester feedback](../work-record/tester-feedback/README.md)**, worktree
-  `~/.paseo/worktrees/1qmeipq9/tester-feedback` (Paseo workspace "Tester feedback: one scan + add gym").
-  **[01 one machine scan](../work-record/tester-feedback/issues/01-one-machine-scan.md): done** — Codex clear round 3,
-  merged into `main` (branch `ericlee4992/one-machine-scan` kept; D88): the form's one scan row "Scan Machine"; the
-  on-device reader, New Model's "Suggest exercises" (the user: remove it too), their tests, the corpus harness and
-  CI's `STACKED_CI` skip removed. **Privacy page changed, not deployed:** its date is the `[effective date]`
-  placeholder — ask the user before `npm run deploy` and set the date then. Codex reviewer agent `4ba7c5cd-…` (this
-  workspace; reuse it for 02). GitHub Tests on `main` after the merge: 43674788460 green.
-  **[02 add a gym from Train](../work-record/tester-feedback/issues/02-add-gym-from-train.md): implemented** on
-  `ericlee4992/add-gym-from-train` — the user chose **C** from captures (D89): menu "Add Gym…" with gyms, "Add Your
-  Gym…" row with none. Verified: Unit 1291, TrainAddGymUITests 8/8, Train/tour/gym classes. **In Codex review**
-  (`work-record/tester-feedback/codex-review-02.md`). Next: findings → clear → fast-forward `main`.
+- **NEXT (resume here) — the user's decisions:** (1) **deploy the privacy page** — `server/src/pages.ts`'s
+  `POLICY_EFFECTIVE_DATE` is the `[effective date]` placeholder (so `npm run deploy` refuses); set it to the deploy day
+  and follow DEVELOPMENT's server steps, before or with the build that ships ticket 01; (2) **a TestFlight build** with
+  tester feedback 01 + 02 (version, What's New, What to Test are the user's). No stored-format change in either ticket
+  (no Gate S).
+- **Done 2026-11-15 — [tester feedback](../work-record/tester-feedback/README.md)** (worktree
+  `~/.paseo/worktrees/1qmeipq9/tester-feedback`, Codex reviewer agent `4ba7c5cd-…` there; branches kept):
+  [01 one machine scan](../work-record/tester-feedback/issues/01-one-machine-scan.md) (D88; Codex clear round 3; GitHub
+  Tests on `main` 43674788460 green) — the machine form's one scan row "Scan Machine"; the on-device reader, New
+  Model's "Suggest exercises", their tests, the corpus harness and CI's `STACKED_CI` skip removed.
+  [02 add a gym from Train](../work-record/tester-feedback/issues/02-add-gym-from-train.md) (D89, option C; Codex clear
+  round 4) — "Add Gym…" at the end of Train's gym menu, "Add Your Gym…" in place of the empty picker; the gym and its
+  remembered selection are one rollback-safe save (`GymCreation`). Unit plan 1297/1297.
+- **Follow-ups to propose:** the flaky `GymsFlowsUITests/testMachinePageEditsApplyAndDeleteCloses` (parallel load) and
+  `AskAIUITests` goal typing under load; a UI test for Ask AI's Add Gym….
 - **Done 2026-11-14 — [scanner 07](../work-record/scanner-accuracy/issues/07-remove-plate-ask-ai.md)** (merged into
   `main`; branch `ericlee4992/remove-ask-ai-plate` kept). The user asked whether machine scans all use GPT: Scan
   Machine sends one photo (label or whole machine) to the server's `scan-machine` flow on GPT-5.6 Terra; the machine

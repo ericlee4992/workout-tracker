@@ -161,3 +161,35 @@ xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphones
 **Known flaky:** none observed this round. Earlier parallel goal-entry timing failure remains historical, with its successful serial rerun above.
 
 Verdict: changes requested
+
+
+## Round 4
+
+Reviewed `git diff f3758033..9fd6b713` at HEAD `9fd6b713abe739d875703b0f4d90963f59f1affc`, branch `ericlee4992/add-gym-from-train`. Only this report changed during review; no implementation edits or commits.
+
+### Standards
+
+No remaining findings. The root `.interactiveDismissDisabled(addAttempt.committedID != nil)` prevents a swipe from bypassing recovery after a committed Add. It leaves ordinary add sheets, creation-save failures and existing-gym editing swipe-dismissable because their committed ID is nil. Explicit Add and Cancel still use their existing recovery paths and programmatic dismissal.
+
+### Spec
+
+**R3-1 resolved.** Add retries the same saved gym; Cancel makes its final resolution attempt before closing. The accepted residual if that explicit Cancel attempt also fails is preserved. All findings from rounds 1–3 are resolved. Standards: **0**; Spec: **0**.
+
+### Verification
+
+- Independent build, exit **0**, `BUILD SUCCEEDED`: `build/logs/codex-tf02-r4-build.log`; actual process exit in `build/logs/codex-tf02-r4-build.status`. Runner `build/codex-tf02-r4-build.py`, PID **11163**, completed. Own derived data `build/dd-codex`.
+- `git diff --check f3758033..9fd6b713`: exit **0**.
+- Inspected author `build/results/tf02-r4-ui.xcresult` with `xcrun xcresulttool get test-results summary --path …`: inspection exit **0**, **8/8 passed**, 0 failed/skipped. `build/logs/tf02-r4-ui.log` contains `TEST EXECUTE SUCCEEDED`; author reports process exit **0**, with no separate author status file present.
+- No further Unit/UI runs, as requested for this one-line modifier. Round 3's independent gym suites **9/9** and inspected full Unit **1297/1297** remain applicable to unchanged domain code. The failure-state dismissal guard was verified in source, not through a forced UI fetch failure.
+
+```sh
+xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath build/dd-codex build
+```
+
+**Verified:** independent build exit **0**; author Train UI **8/8** inspected; dismissal guard correctly depends on the saved-attempt state. All review findings resolved.
+
+**Not verified:** failure-state swipe blocking at runtime; no new reviewer test execution this round; earlier device/Ask AI creation UI limitations remain. The explicitly accepted Cancel-after-final-retry fallback remains as documented in the ticket.
+
+**Known flaky:** none observed this round; prior history remains above.
+
+Verdict: clear
