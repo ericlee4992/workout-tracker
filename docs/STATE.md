@@ -1,11 +1,18 @@
 # Current project state
 
-Updated **2026-11-15: [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) uploaded 01:18 EST (tester feedback 01 + 02; privacy page deployed) — the user's TestFlight steps next.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-15: NOW — [live-workout 04](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md) (Done on the Lock Screen logs the current set; D90) implemented on `ericlee4992/lock-screen-log-set` in `~/.paseo/worktrees/1qmeipq9/lock-screen-log-set`, in Codex review. [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) uploaded 01:18 EST — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-15)
 
-- **NOW (resume here) — [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) uploaded 2026-11-15 01:18 EST**
+- **NOW (resume here) — [live-workout 04, log a set from the Lock Screen](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md)**
+  (D90), worktree `~/.paseo/worktrees/1qmeipq9/lock-screen-log-set` (Paseo workspace "Log a set from the Lock Screen"),
+  branch `ericlee4992/lock-screen-log-set` `46e47450`. The user approved the mock (option A revised: "Now" + Done, no
+  PREVIOUS; log as shown, start rest; card keeps Light/Dark). Verified: Unit 1302/1302, FloodlightSystemUITests 7/7
+  (Done pressed on the Simulator's real Lock Screen card), FloodlightLive + CoreLoop 32/32. **In Codex review**: agent
+  `d1f3aad2-…` in that workspace, report `work-record/live-workout-fixes/codex-review-04.md`. Next: findings → clear →
+  fast-forward `main`.
+- **[0.2.0 (15)](../work-record/release/0.2.0-build-15.md) uploaded 2026-11-15 01:18 EST**
   (`main` `ed8825ad` + records; tester feedback 01 + 02; no What's New; no Gate S; Codex release review clear). Server
   deployed the same night (privacy page effective November 15, 2026, checked live). **The user's steps:** processing →
   Developer → install → try Scan Machine in Add Machine and Add Gym… from Train → Friends with the What to Test note
