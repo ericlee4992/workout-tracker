@@ -1,9 +1,25 @@
 # Current project state
 
-Updated **2026-11-15: [live-workout 04](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md) (Done on the Lock Screen logs the current set; D90) done — Codex clear round 4, merged into `main`. Next: the user's call (a TestFlight build with it, or the next feature). [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) uploaded 01:18 EST — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-15: NOW — [release 0.2.0 (16)](../work-record/release/0.2.0-build-16.md) (Lock Screen Done) is held: GitHub Tests on `main` 43698481749 failed in live-workout 04's timing tests (test-only); fix on `ericlee4992/ci-timing-tests`, in Codex review + CI. Resume in `~/.paseo/worktrees/1qmeipq9/lock-screen-log-set`.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-15)
+
+- **NOW (resume here) — finish release 0.2.0 (16)**, worktree `~/.paseo/worktrees/1qmeipq9/lock-screen-log-set`
+  (Paseo workspace "Log a set from the Lock Screen"; Codex reviewer agent `d1f3aad2-…` there).
+  1. Release branch `ericlee4992/release-0.2.0-16` `f93a716c` (off `main` `26642ef8`): build 16, record
+     `work-record/release/0.2.0-build-16.md` (no What's New, the user's note, no Gate S, no server change). **Codex
+     release review: clear** (`work-record/release/codex-review-0.2.0-build-16.md`).
+  2. **Blocker:** GitHub Tests on `main` 43698481749 (`26642ef8`) **failed**: 3 timing tests in
+     `WorkoutActivityContentTests` (the slow runner took 310 s; real clock passed the rests; a 3 s wait). Fix (test-only)
+     on `ericlee4992/ci-timing-tests` (off `26642ef8`): `11bd5591` (hour/2-hour rests, 5-min wait) + `2f5e7db1` (frozen
+     D43 `TestClock`; failing saves acknowledged). Codex: round 1 changes requested (`work-record/live-workout-fixes/
+     codex-review-04-ci.md`), **round 2 sent**. CI on the branch: run 43700178994 (first commit) and **43700754494**
+     (`2f5e7db1`). Locally 31/31 ×3.
+  3. When both are green/clear: commit the review file on `ci-timing-tests`, fast-forward `main` to it, then rebase or
+     recreate the release branch on that `main` (build 16 + record; note the CI fix in the record), push, fast-forward
+     `main`, archive from `…/workspaces/Health App/release-build` (`scripts/testflight.sh archive`), upload (exit 2 = ask
+     the user to sign Xcode in), record, STATE. Then the user's TestFlight steps.
 
 - **Done 2026-11-15 — [live-workout 04, log a set from the Lock Screen](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md)**
   (D90; Codex clear round 4; merged into `main`, branch `ericlee4992/lock-screen-log-set` kept). Once rest is over the
