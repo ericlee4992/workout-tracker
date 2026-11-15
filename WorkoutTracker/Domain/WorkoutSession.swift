@@ -49,6 +49,8 @@ extension ExerciseEntry {
 struct WorkoutSession {
 
     let context: ModelContext
+    /// The completion toggle's save. Tests inject a failing one (live-workout 04, codex-review-04 #1).
+    var persist: (ModelContext) throws -> Void = { try $0.save() }
     /// Owns rest-timer teardown so ending a workout can never leave a pending
     /// local notification behind (it used to be correct only because every
     /// call site happened to skip the timer first).
@@ -845,7 +847,7 @@ struct WorkoutSession {
         } else {
             set.completedAt = nil
         }
-        try context.save()
+        try persist(context)
     }
 
     // MARK: - Notes

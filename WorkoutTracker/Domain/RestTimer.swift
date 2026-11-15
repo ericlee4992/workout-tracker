@@ -114,6 +114,8 @@ struct RestTimerService {
     let context: ModelContext
     let clock: any RestClock
     let notifications: any RestNotificationScheduling
+    /// Every save this service makes. Tests inject a failing one (live-workout 04, codex-review-04 #2).
+    var persist: (ModelContext) throws -> Void = { try $0.save() }
 
     init(
         context: ModelContext,
@@ -180,7 +182,7 @@ struct RestTimerService {
         if !isCompleted {
             if workout.restStartedBySetID == set.id {
                 clear(workout)
-                try context.save()
+                try persist(context)
                 notifications.cancel()
             }
             return try currentState(for: workout)
@@ -204,7 +206,7 @@ struct RestTimerService {
         workout.restEndsAt = end
         workout.restStartedAt = clock.now
         workout.restStartedBySetID = set.id
-        try context.save()
+        try persist(context)
         switch plan.mode {
         case .standard:
             notifications.schedule(at: end)
@@ -287,7 +289,7 @@ struct RestTimerService {
             // never reported. End it now — and schedule ONCE, not twice as round
             // 1 did.
             clear(workout)
-            try context.save()
+            try persist(context)
             notifications.schedule(
                 at: clock.now.addingTimeInterval(1),
                 title: "Rest complete", body: body)
@@ -295,7 +297,7 @@ struct RestTimerService {
         }
 
         workout.restEndsAt = standardEnd
-        try context.save()
+        try persist(context)
         notifications.schedule(at: standardEnd, title: "Rest complete", body: body)
         return RestTimerState(
             end: standardEnd,
@@ -310,7 +312,7 @@ struct RestTimerService {
     func finishRecovered(_ workout: Workout, bpm: Int) throws {
         guard workout.restEndsAt != nil else { return }
         clear(workout)
-        try context.save()
+        try persist(context)
         // +1s rather than `now`: a UNTimeIntervalNotificationTrigger of zero is
         // rejected, and the app may well be backgrounded — which is exactly the
         // case this alarm exists for.
@@ -327,7 +329,7 @@ struct RestTimerService {
         let remaining = end.timeIntervalSince(clock.now)
         guard remaining > 0 else {
             clear(workout)
-            try context.save()
+            try persist(context)
             notifications.cancel()
             return nil
         }
@@ -340,7 +342,7 @@ struct RestTimerService {
         guard let state = try currentState(for: workout) else { return nil }
         let end = state.end.addingTimeInterval(TimeInterval(seconds))
         workout.restEndsAt = end
-        try context.save()
+        try persist(context)
         notifications.schedule(at: end)
         // `restStartedAt` is untouched, so the total grows with the extension
         // and the bar keeps shrinking from wherever it was.
@@ -361,7 +363,7 @@ struct RestTimerService {
 
     func skip(_ workout: Workout) throws {
         clear(workout)
-        try context.save()
+        try persist(context)
         notifications.cancel()
     }
 
@@ -390,7 +392,7 @@ struct RestTimerService {
         row.heartRateThresholdBpm = heartRateThresholdBpm.map { max(30, min(240, $0)) }
         row.heartRateCapSeconds = heartRateCapSeconds.map { max(15, $0) }
         row.updatedAt = clock.now
-        try context.save()
+        try persist(context)
     }
 
     private func clear(_ workout: Workout) {

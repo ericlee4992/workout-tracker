@@ -131,7 +131,28 @@ enum WorkoutActivityContent {
             unit: showsWeight ? next.weightUnit.rawValue : nil,
             reps: next.reps,
             // Only a set the row's check could log gets Done (a weight without reps cannot be logged, A1).
-            setID: WorkoutSession.isLoggable(next) ? next.id : nil)
+            setID: WorkoutSession.isLoggable(next) ? next.id : nil,
+            fingerprint: WorkoutSession.isLoggable(next) ? logFingerprint(of: next) : nil)
+    }
+
+    /// Everything that decides what logging `set` records (codex-review-04 #3): the set and its type, the exact stored
+    /// weight (bit pattern — the card's string rounds), unit, reps, bar, and the entry's exercise, machine, preset and
+    /// free-weight tag. A Done whose fingerprint no longer matches the store logs nothing.
+    static func logFingerprint(of set: SetRecord) -> String {
+        let entry = set.entry
+        return [
+            set.id.uuidString,
+            set.type.rawValue,
+            set.weightValue.map { String($0.bitPattern) } ?? "-",
+            set.weightUnit.rawValue,
+            set.reps.map(String.init) ?? "-",
+            set.barWeightValue.map { String($0.bitPattern) } ?? "-",
+            entry?.id.uuidString ?? "-",
+            entry?.exercise?.id.uuidString ?? entry?.snapshotExerciseID.uuidString ?? "-",
+            entry?.machine?.id.uuidString ?? "-",
+            entry?.preset?.id.uuidString ?? "-",
+            entry?.freeWeightTag?.rawValue ?? "-",
+        ].joined(separator: "|")
     }
 
     static func cardio(_ segment: CardioSegment, in workout: Workout, now: Date) -> WorkoutActivityAttributes.Cardio {

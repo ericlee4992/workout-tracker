@@ -45,9 +45,9 @@ struct WorkoutActivityIntent: LiveActivityIntent {
     }
 }
 
-/// Live-workout 04: Done on the card — log the set it showed, with the value it showed. The app logs it only while that
-/// set is still the workout's next set with exactly that value (`WorkoutActivityCommands.logSet`); a card that has
-/// fallen behind the workout never logs anything.
+/// Live-workout 04: Done on the card — log the set it showed, as it showed it. The app logs it only while that set is
+/// still the workout's next set with the same fingerprint (`WorkoutActivityCommands.logSet`); a card that has fallen
+/// behind the workout never logs anything.
 struct WorkoutActivityLogSetIntent: LiveActivityIntent {
     static let title: LocalizedStringResource = "Log set"
     /// A button on the workout's own card, not a shortcut anyone composes.
@@ -55,25 +55,21 @@ struct WorkoutActivityLogSetIntent: LiveActivityIntent {
 
     @Parameter(title: "Workout") var workoutID: String
     @Parameter(title: "Set") var setID: String
-    @Parameter(title: "Weight") var weight: String?
-    @Parameter(title: "Unit") var unit: String?
-    @Parameter(title: "Reps") var reps: Int?
+    @Parameter(title: "Fingerprint") var fingerprint: String
 
     init() {}
 
     init(workoutID: UUID, next: WorkoutActivityAttributes.NextSet) {
         self.workoutID = workoutID.uuidString
         self.setID = next.setID?.uuidString ?? ""
-        self.weight = next.weight
-        self.unit = next.unit
-        self.reps = next.reps
+        self.fingerprint = next.fingerprint ?? ""
     }
 
     @MainActor
     func perform() async throws -> some IntentResult {
         if let workout = UUID(uuidString: workoutID), let set = UUID(uuidString: setID) {
             await WorkoutActivityCommandBridge.logSetHandler?(
-                WorkoutActivityShownSet(workoutID: workout, setID: set, weight: weight, unit: unit, reps: reps))
+                WorkoutActivityShownSet(workoutID: workout, setID: set, fingerprint: fingerprint))
         }
         return .result()
     }
@@ -83,9 +79,7 @@ struct WorkoutActivityLogSetIntent: LiveActivityIntent {
 struct WorkoutActivityShownSet: Hashable, Sendable {
     var workoutID: UUID
     var setID: UUID
-    var weight: String?
-    var unit: String?
-    var reps: Int?
+    var fingerprint: String
 }
 
 /// Where a performed command goes. Set by the app at launch; nil in the widget extension.

@@ -127,6 +127,9 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         /// it is still the next set with the value shown. (Last time's value is no longer carried: the card shows the
         /// current set only.)
         var setID: UUID?
+        /// Everything that decides what Done would log, exactly (codex-review-04 #3: the display strings round the
+        /// weight and omit the set's type): Done sends it back and the app logs only if it still matches.
+        var fingerprint: String?
 
         /// Done is offered only for a set the app can log (the user, 2026-11-15: no Done without a value).
         var isLoggable: Bool { setID != nil }

@@ -67,3 +67,32 @@ Mock captures: `captures/04/mock-options-AB.png` (today, A, B), `captures/04/moc
 
 **Not verified:** on a phone (the Simulator's real Live Activity is the closest check); a cold background launch by
 Done (the existing commands' cold path is unit-tested and shared). **Known flaky:** none seen.
+
+### Review round 1 (Codex, `codex-review-04.md`): changes requested → fixed
+
+- **#1 (High) a failed completion save** left the stamp, snapshot and gym memory in the context. Now edits already
+  pending are saved first (they are the user's; autosave would), and a failed completion save is **rolled back whole**,
+  the card refreshed; the same Done works once saving does.
+- **#2 a failed rest save** was published as a running rest. Now a failed rest save (start or superset skip) rolls back
+  only the rest — the set stays logged — and only the restored rest is broadcast and pushed (no notification, no alarm
+  for an unsaved rest; a failed skip leaves the running rest and its notification as they were).
+- **#3 the stale-card match** missed the set's type and compared a rounded weight. The card now carries a **log
+  fingerprint** (`WorkoutActivityContent.logFingerprint`: set id, type, exact weight bits, unit, reps, bar, entry,
+  exercise, machine, preset, free-weight tag); Done sends it back and the app logs only if the store's next set still
+  has it. The intent carries the set id and the fingerprint instead of display strings.
+- **#4 (High) a cold-launch Done** started a heart-rate rest that nothing evaluated. D43's check moved from the live
+  screen into `WorkoutHeartRateCoordinator.evaluateHeartRateRest` (the screen calls it and only redraws); a runtime no
+  screen has claimed runs it on each sample (`restEvaluator`, set by `WorkoutActivityCommands`, cleared when the
+  workout's runtime ends) and tells the Watch, alarm, screen and card. A dead sensor still falls back only when
+  something ticks — in the background the cap ends the rest, as D43 already accepts.
+- Test seams: `WorkoutSession.persist`, `RestTimerService.persist`, `WorkoutActivityCommands.save` (default
+  `context.save()`).
+- New tests: type change / unseen decimal refused; failed completion save rolled back (context, store, memory,
+  snapshot) and retried; failed rest save keeps the set and publishes no rest; failed superset skip keeps the running
+  rest; cold Done heart-rate rest ended early by a recovering sample with no screen.
+- Round 2 verification (author): build-for-testing exit 0; Unit plan **1307/1307**
+  (`build/results/ls04-r2-unit.xcresult`); UI (2 workers): `HeartRateUITests`, `FloodlightLiveUITests`, the real
+  Lock Screen Done and +15s/Skip tests, gallery light — **27/28** (`build/results/ls04-ui2.xcresult`); the one failure,
+  `FloodlightLiveUITests/testTheKeyboardUnitSwitchFollowsTheFocusedWeight` ("lb" ≠ "kg" while the keyboard's unit
+  switch followed focus — no rest or Live Activity code involved), passed alone and serially
+  (`build/results/ls04-ui2-rerun.xcresult`) and in round 1's 32/32: **known flaky** under parallel load.

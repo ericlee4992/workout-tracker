@@ -296,7 +296,7 @@ struct WorkoutActivityContentTests {
     private func shown(_ rig: Rig) throws -> WorkoutActivityShownSet {
         let next = try #require(WorkoutActivityContent.make(for: rig.workout, in: rig.context, heart: nil).next)
         return WorkoutActivityShownSet(workoutID: rig.workout.id, setID: try #require(next.setID),
-                                       weight: next.weight, unit: next.unit, reps: next.reps)
+                                       fingerprint: try #require(next.fingerprint))
     }
 
     @Test func theCardsCurrentSetCarriesItsIdAndIsLoggableOnlyWithAValue() throws {
@@ -363,8 +363,9 @@ struct WorkoutActivityContentTests {
         do {
             let rig = try rig(); let c = commands(rig)
             var card = try shown(rig)
-            card.setID = rig.row.sets!.first!.id
-            card.weight = "40"; card.reps = 10
+            let rowSet = rig.row.sets!.first!
+            card.setID = rowSet.id
+            card.fingerprint = WorkoutActivityContent.logFingerprint(of: rowSet)
             #expect(!c.commands.performLogSet(card))
             #expect(rig.row.sets!.first!.completedAt == nil && rig.pressSets[2].completedAt == nil)
         }
@@ -388,6 +389,136 @@ struct WorkoutActivityContentTests {
             #expect(!c.commands.performLogSet(unknown))
             #expect(rig.pressSets[2].completedAt == nil && c.presenter.starts == 0)
         }
+    }
+
+    /// codex-review-04 #3: the set's type and the exact stored weight are part of what was shown.
+    @Test func aDoneAfterTheTypeOrAnUnseenDecimalChangedLogsNothing() throws {
+        // Made a warmup in the app: same id, weight, unit and reps, a different set.
+        do {
+            let rig = try rig(); let c = commands(rig)
+            let card = try shown(rig)
+            rig.pressSets[2].type = .warmup
+            try rig.context.save()
+            #expect(!c.commands.performLogSet(card))
+            #expect(rig.pressSets[2].completedAt == nil)
+        }
+        // 50.001 → 50.004 kg: both show "50".
+        do {
+            let rig = try rig(); let c = commands(rig)
+            rig.pressSets[2].weightValue = 50.001
+            try rig.context.save()
+            let card = try shown(rig)
+            rig.pressSets[2].weightValue = 50.004
+            try rig.context.save()
+            #expect(WorkoutActivityContent.make(for: rig.workout, in: rig.context, heart: nil).next?.weight == "50")
+            #expect(!c.commands.performLogSet(card))
+            #expect(rig.pressSets[2].completedAt == nil)
+        }
+    }
+
+    /// codex-review-04 #1: a failed completion save leaves nothing behind — not in the context, not in the store — and
+    /// the same set can then be logged.
+    @Test func aFailedCompletionSaveIsRolledBackAndCanBeRetried() throws {
+        struct SaveFailed: Error {}
+        let rig = try rig()
+        let gym = Gym(name: "Iron Temple")
+        rig.context.insert(gym)
+        rig.workout.gym = gym
+        try rig.context.save()
+        let c = commands(rig)
+        let card = try shown(rig)
+        c.commands.save = { _ in throw SaveFailed() }
+        #expect(!c.commands.performLogSet(card))
+        let set = rig.pressSets[2]
+        #expect(set.completedAt == nil && rig.press.snapshotCapturedAt == nil, "the stamp and the snapshot are undone")
+        #expect(try rig.context.fetchCount(FetchDescriptor<GymExerciseMemory>()) == 0, "and the gym memory")
+        #expect(!rig.context.hasChanges)
+        let setID = set.id
+        let stored = try #require(try ModelContext(rig.container).fetch(FetchDescriptor<SetRecord>(predicate: #Predicate { $0.id == setID })).first)
+        #expect(stored.completedAt == nil, "nothing reached the store")
+        #expect(rig.workout.restEndsAt == nil && c.notifications.scheduled.isEmpty)
+        #expect(c.presenter.lastState?.next?.setID == setID, "the card is refreshed, still on the set")
+        c.commands.save = { try $0.save() }
+        #expect(c.commands.performLogSet(card), "the same Done works once saving does")
+        #expect(set.completedAt != nil)
+    }
+
+    /// codex-review-04 #2: a failed rest save keeps the logged set but publishes no rest that was never saved.
+    @Test func aFailedRestSaveKeepsTheSetAndPublishesNoRest() throws {
+        struct SaveFailed: Error {}
+        let rig = try rig()
+        let c = commands(rig)
+        var saves = 0
+        c.commands.save = { context in
+            saves += 1
+            if saves >= 2 { throw SaveFailed() }  // 1: the set's check; 2: its rest
+            try context.save()
+        }
+        let card = try shown(rig)
+        try rig.context.save()  // reading the card may create the preferences row; nothing else is pending
+        #expect(c.commands.performLogSet(card), "the set itself was logged")
+        let setID = rig.pressSets[2].id
+        let stored = try #require(try ModelContext(rig.container).fetch(FetchDescriptor<SetRecord>(predicate: #Predicate { $0.id == setID })).first)
+        #expect(stored.completedAt != nil)
+        #expect(rig.workout.restEndsAt == nil && rig.workout.restStartedBySetID == nil, "the unsaved rest is rolled back")
+        #expect(c.notifications.scheduled.isEmpty, "no notification for it")
+        #expect(c.alarm.deadlines.isEmpty, "no alarm for it")
+        #expect(c.presenter.lastState?.restEndsAt == nil, "the card shows no rest")
+    }
+
+    /// codex-review-04 #2, the superset branch: a failed skip leaves the running rest exactly as it was.
+    @Test func aFailedSupersetSkipLeavesTheRunningRest() throws {
+        struct SaveFailed: Error {}
+        let rig = try rig()
+        let group = UUID()
+        rig.press.supersetGroupID = group
+        rig.row.supersetGroupID = group
+        let rowSet = try #require(rig.row.sets?.first)
+        rowSet.completedAt = .now
+        try rig.context.save()
+        try startRest(rig, after: rowSet)
+        let end = try #require(rig.workout.restEndsAt)
+        let c = commands(rig)
+        let card = try shown(rig)
+        try rig.context.save()  // reading the card may create the preferences row; nothing else is pending
+        var saves = 0
+        c.commands.save = { context in
+            saves += 1
+            if saves >= 2 { throw SaveFailed() }  // 1: the set's check; 2: the skip
+            try context.save()
+        }
+        #expect(c.commands.performLogSet(card))
+        #expect(rig.pressSets[2].completedAt != nil)
+        #expect(rig.workout.restEndsAt == end && rig.workout.restStartedBySetID == rowSet.id, "the rest still runs")
+        #expect(c.notifications.cancellations == 0, "its notification stays armed")
+        #expect(c.presenter.lastState?.restEndsAt == end)
+    }
+
+    /// codex-review-04 #4: a Done after a cold launch starts a heart-rate rest with no live screen; a recovering
+    /// reading still ends it early (D43), and the card says so.
+    @Test func aColdDoneHeartRateRestEndsEarlyWithoutTheScreen() async throws {
+        let rig = try rig()
+        try RestTimerService(context: rig.context).setOverride(
+            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: nil,
+            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 240)
+        let provider = StubHeartRateProvider()
+        let coordinator = WorkoutHeartRateCoordinator(alarm: DeadlineAlarm(), makeProvider: { _ in provider },
+                                                      cardio: CardioRecorder(collectsDeviceSensors: false))
+        let presenter = SilentWorkoutActivityPresenter()
+        let commands = WorkoutActivityCommands(coordinator: coordinator, activity: WorkoutActivityController(presenter: presenter))
+        commands.use(rig.container)
+        commands.notifications = FakeNotifications()
+        #expect(coordinator.workoutID == nil, "cold: no runtime, no screen")
+        await commands.logSet(try shown(rig))
+        #expect(rig.pressSets[2].completedAt != nil)
+        #expect(rig.workout.restEndsAt != nil && coordinator.onSample == nil)
+        provider.emit(HeartRateSample(bpm: 104, date: .now, source: .fixture))
+        for _ in 0..<40 where rig.workout.restEndsAt != nil { try await Task.sleep(for: .milliseconds(50)) }
+        #expect(rig.workout.restEndsAt == nil, "the reading under the target ended the rest")
+        #expect(coordinator.lastRestResult == .recovered(bpm: 104, targetBpm: 110))
+        #expect(presenter.lastState?.restEndsAt == nil, "the card was re-pushed")
+        coordinator.end(rig.workout)
+        await coordinator.settled()
     }
 
     /// D48 through the shared rule: Done on a superset member that is not the last starts no rest and skips one running.

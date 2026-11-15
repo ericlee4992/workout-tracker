@@ -48,6 +48,9 @@ final class WorkoutHeartRateCoordinator {
     /// Forwarded to the screen when it is on screen. Nil after minimise, which
     /// is fine: the alarm above does not depend on it.
     var onSample: (() -> Void)?
+    /// Live-workout 04: D43's check for a runtime no screen has claimed (`onSample` nil) — a Done on the Lock Screen
+    /// after a cold launch starts a heart-rate rest with no live screen. Set by `WorkoutActivityCommands`.
+    var restEvaluator: (() -> Void)?
     /// The heart-rate rest that already fell back to the timer (D43). Kept on the workout's
     /// runtime, not the screen, so a late sample after minimise and resume cannot turn it back
     /// into a heart-rate rest, and the Lock Screen card keeps calling it a fallback
@@ -132,7 +135,7 @@ final class WorkoutHeartRateCoordinator {
             restAlarmLog.debug("sample tick")
             self?.soundRestAlarmIfDue()
             self?.cardio.refresh()
-            self?.onSample?()
+            if let onSample = self?.onSample { onSample() } else { self?.restEvaluator?() }
         }
         monitor = fresh
         workoutID = workout.id
@@ -226,6 +229,47 @@ final class WorkoutHeartRateCoordinator {
 
     /// Mirrors the phone's rest timer onto the watch, if one is listening, and
     /// arms the audible alarm for that rest.
+    enum HeartRateRestOutcome: Equatable {
+        case unchanged
+        /// The reading came under the target: the rest is over (`lastRestResult` says how).
+        case recovered
+        /// No reading: the rest fell back to the standard timer (nil when that timer had already run out).
+        case degraded(RestTimerState?)
+    }
+
+    /// D43: while a heart-rate rest runs, the threshold can end it before its cap, and a missing reading drops it to
+    /// the standard timer. The cap itself is the persisted `restEndsAt`, so it still fires through the ordinary path —
+    /// after a relaunch or in the background; this only ever ends a rest EARLY or shortens it. Moved here from the live
+    /// screen (live-workout 04) so the screen and a screenless runtime run the same check.
+    @discardableResult
+    func evaluateHeartRateRest(for workout: Workout, restTimer: RestTimerService, now: Date = .now) throws -> HeartRateRestOutcome {
+        guard !workout.isDeleted,
+              let start = workout.restStartedAt,
+              workout.restEndsAt != nil,
+              let setID = workout.restStartedBySetID,
+              let set = (workout.entries ?? []).lazy.flatMap({ $0.sets ?? [] }).first(where: { $0.id == setID && !$0.isDeleted }),
+              let plan = try? restTimer.restPlan(for: set),
+              let rule = plan.rule,
+              degradedRestSetID != setID,
+              let monitor, self.workoutID == workout.id
+        else { return .unchanged }
+        switch rule.evaluate(samples: monitor.samplesFromCurrentSource, start: start, asOf: now) {
+        case .finished(.recovered(_, let bpm)):
+            try restTimer.finishRecovered(workout, bpm: bpm)
+            lastRestResult = .recovered(bpm: bpm, targetBpm: rule.thresholdBpm)
+            // `finishRecovered` clears `restEndsAt`, so the cap alarm can no longer fire for this rest — the two
+            // endings cannot both sound.
+            soundRecovered()
+            return .recovered
+        case .degraded:
+            // codex-review 2.1 (critical): the cap is not the standard timer; the user's standard rest is shorter.
+            degradedRestSetID = setID
+            return .degraded(try restTimer.degradeToStandard(workout, set: set))
+        case .resting, .finished(.cap):
+            return .unchanged
+        }
+    }
+
     func broadcastRest(endsAt: Date?) {
         (monitor?.provider as? WatchRestBroadcasting)?.sendRest(endsAt: endsAt)
         restEndsAt = endsAt
@@ -326,6 +370,7 @@ final class WorkoutHeartRateCoordinator {
             restFactsWorkoutID = nil
         }
         onSample = nil
+        restEvaluator = nil
         alarm.endSession()
     }
 }

@@ -44,6 +44,8 @@ final class WorkoutActivityCommands {
     var attachRuntime: (Workout, ModelContext) -> Void
     /// Injected by tests; the real scheduler otherwise.
     var notifications: any RestNotificationScheduling = UserNotificationScheduler.shared
+    /// Done's saves (the set's check and its rest). Tests inject a failing one (codex-review-04 #1, #2).
+    var save: (ModelContext) throws -> Void = { try $0.save() }
 
     init(coordinator: WorkoutHeartRateCoordinator? = nil, activity: WorkoutActivityController? = nil,
          attachRuntime: ((Workout, ModelContext) -> Void)? = nil) {
@@ -125,28 +127,46 @@ final class WorkoutActivityCommands {
     /// Live-workout 04: logs the set the card showed. Returns whether it logged it.
     ///
     /// The wrong record is the danger here (AGENTS): a card can lag the workout — the set already checked in the
-    /// app, deleted, its value edited, another set now next. So the card's own "current set" is rebuilt from the
-    /// store and must match what was shown in every field (the set's id, weight, unit, reps); anything else logs
-    /// nothing and the card is re-pushed so it catches up. A Done on a stale card never logs a different set or value.
+    /// app, deleted, its value or type edited, another set now next. So the card's current set is rebuilt from the
+    /// store and its fingerprint (`WorkoutActivityContent.logFingerprint`: the set, type, exact weight, unit, reps,
+    /// bar, exercise, machine, preset, tag) must equal what was shown; anything else logs nothing and the card is
+    /// re-pushed so it catches up.
+    ///
+    /// Saves (codex-review-04 #1, #2): edits already pending in the context are the user's, so they are saved first;
+    /// then a failed completion save is rolled back whole (stamp, snapshot, memory) and a failed rest save rolls back
+    /// only the rest — the set stays logged — and only the restored rest is published.
     @discardableResult
     func performLogSet(_ shown: WorkoutActivityShownSet) -> Bool {
         apply("logSet", workoutID: shown.workoutID, refreshesWhenUnchanged: true) { workout, context, rest in
             guard let current = WorkoutActivityContent.nextSet(in: workout, restEntryID: nil), current.isLoggable,
-                  current.setID == shown.setID, current.weight == shown.weight, current.unit == shown.unit,
-                  current.reps == shown.reps,
+                  current.setID == shown.setID, current.fingerprint == shown.fingerprint,
                   let set = WorkoutSession.nextSet(in: workout), set.id == shown.setID, set.completedAt == nil
             else {
-                Self.log.notice("logSet refused: the card no longer shows the workout's next set")
+                Self.log.notice("logSet refused: the card no longer shows the workout's next set as it is")
                 return false
             }
-            // The set row's check: the snapshot (D23), gym memory, the save. Throws on an unloggable row (A1).
-            try WorkoutSession(context: context).toggleCompletion(of: set)
-            // From here the set IS logged: a rest failure must not hide that, so it is reported, not thrown.
-            self.coordinator.lastRestResult = nil
+            if context.hasChanges { try self.save(context) }
+            var session = WorkoutSession(context: context, notifications: self.notifications)
+            session.persist = self.save
             do {
-                try rest.restAfterCompletionChange(of: set, isCompleted: true)
+                // The set row's check: the stamp, the snapshot (D23), gym memory, the save. Throws on an unloggable
+                // row (A1).
+                try session.toggleCompletion(of: set)
             } catch {
-                Self.log.error("logSet: the rest did not start: \(String(describing: error), privacy: .public)")
+                context.rollback()
+                Self.log.error("logSet: the set was not saved: \(String(describing: error), privacy: .public)")
+                return false
+            }
+            // From here the set IS logged.
+            self.coordinator.lastRestResult = nil
+            var restTimer = rest
+            restTimer.persist = self.save
+            do {
+                try restTimer.restAfterCompletionChange(of: set, isCompleted: true)
+            } catch {
+                // Only the rest's own changes are pending (the set was saved): back to the rest as it was saved.
+                context.rollback()
+                Self.log.error("logSet: the rest was not saved: \(String(describing: error), privacy: .public)")
             }
             // The fallback belongs to its rest (the live screen's rule, codex-review-11b #2).
             if let degraded = self.coordinator.degradedRestSetID,
@@ -156,6 +176,37 @@ final class WorkoutActivityCommands {
             self.coordinator.broadcastRest(endsAt: workout.restEndsAt)
             return true
         }
+    }
+
+    /// D43 for a runtime no screen has claimed (a Done after a cold launch started a heart-rate rest): the coordinator's
+    /// check on each sample, then the Watch, the alarm, the screen and the card told — what the screen's redraw does.
+    func evaluateRestWithoutScreen(workoutID: UUID) {
+        guard coordinator.onSample == nil, let context = container?.mainContext,
+              let workout = try? context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.id == workoutID })).first,
+              !workout.isDeleted, workout.finishedAt == nil
+        else { return }
+        let rest = RestTimerService(context: context, notifications: notifications)
+        let outcome: WorkoutHeartRateCoordinator.HeartRateRestOutcome
+        do {
+            outcome = try coordinator.evaluateHeartRateRest(for: workout, restTimer: rest)
+        } catch {
+            Self.log.error("heart-rate rest check failed: \(String(describing: error), privacy: .public)")
+            return
+        }
+        guard outcome != .unchanged else { return }
+        coordinator.broadcastRest(endsAt: workout.restEndsAt)
+        NotificationCenter.default.post(name: Self.didApply, object: workoutID)
+        pushCard(workout, in: context)
+    }
+
+    private func pushCard(_ workout: Workout, in context: ModelContext) {
+        let monitor = coordinator.workoutID == workout.id ? coordinator.monitor : nil
+        let heart = monitor.map { WorkoutActivityContent.Heart(bpm: $0.isStale ? nil : $0.current?.bpm, zone: $0.currentZone) }
+        activity.show(
+            workoutID: workout.id, startedAt: workout.startedAt, gymName: workout.gym?.name,
+            state: WorkoutActivityContent.make(for: workout, in: context, heart: heart,
+                                               restResult: coordinator.lastRestResult,
+                                               degradedRestSetID: coordinator.degradedRestSetID))
     }
 
     /// The steps every card command shares: the live workout, its runtime, how an expired rest ended; then the
@@ -174,6 +225,9 @@ final class WorkoutActivityCommands {
         // A cold launch (or a runtime ended by a crash) has no session for this workout yet:
         // start it first, so the alarm, the Watch and the recorder move with the command.
         attachRuntime(workout, context)
+        // D43 without a screen (live-workout 04): the runtime checks a heart-rate rest on each sample until a screen
+        // claims `onSample`.
+        coordinator.restEvaluator = { [weak self] in self?.evaluateRestWithoutScreen(workoutID: workoutID) }
         let monitor = coordinator.workoutID == workout.id ? coordinator.monitor : nil
         let heart = monitor.map { WorkoutActivityContent.Heart(bpm: $0.isStale ? nil : $0.current?.bpm, zone: $0.currentZone) }
         // `RestTimerService` clears a rest that has run out; say how it ended first, as the live
@@ -190,17 +244,14 @@ final class WorkoutActivityCommands {
         } catch {
             // Never fatal: a failed lock-screen command leaves the workout as it was.
             Self.log.error("command \(name, privacy: .public) failed: \(String(describing: error), privacy: .public)")
+            if refreshesWhenUnchanged { pushCard(workout, in: context) }
             return false
         }
         guard changed || refreshesWhenUnchanged else { return false }
 
         Self.log.notice("command \(name, privacy: .public) \(changed ? "applied" : "refused, card refreshed", privacy: .public); rest ends \(String(describing: workout.restEndsAt), privacy: .public)")
         if changed { NotificationCenter.default.post(name: Self.didApply, object: workoutID) }
-        activity.show(
-            workoutID: workout.id, startedAt: workout.startedAt, gymName: workout.gym?.name,
-            state: WorkoutActivityContent.make(for: workout, in: context, heart: heart,
-                                               restResult: coordinator.lastRestResult,
-                                               degradedRestSetID: coordinator.degradedRestSetID))
+        pushCard(workout, in: context)
         return changed
     }
 }

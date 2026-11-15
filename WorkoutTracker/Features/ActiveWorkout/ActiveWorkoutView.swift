@@ -695,54 +695,23 @@ struct ActiveWorkoutView: View {
         else { workoutActivity.endAny() }
     }
 
-    /// D43: while a heart-rate rest is running, the threshold can end it before
-    /// its cap does. The cap itself is the persisted `restEndsAt`, so it still
-    /// fires through the ordinary path — including after a relaunch, and while
-    /// the app is backgrounded. This only ever ends a rest EARLY.
+    /// D43 (the threshold ends a heart-rate rest early; no reading drops it to the standard timer), run by the
+    /// workout's runtime — the same check a screenless runtime runs (live-workout 04). The screen only redraws.
     private func evaluateHeartRateRest() {
-        guard !workout.isDeleted,
-              let start = workout.restStartedAt,
-              workout.restEndsAt != nil,
-              let setID = workout.restStartedBySetID,
-              let set = restStartingSet(setID),
-              let plan = try? restTimer.restPlan(for: set),
-              let rule = plan.rule,
-              degradedRestSetID != setID
-        else { return }
-
-        guard let heartRate else { return }
-        let state = rule.evaluate(
-            samples: heartRate.samplesFromCurrentSource, start: start, asOf: .now)
-        switch state {
-        case .finished(.recovered(_, let bpm)):
-            do {
-                try restTimer.finishRecovered(workout, bpm: bpm)
-                lastRestResult = .recovered(bpm: bpm, targetBpm: rule.thresholdBpm)
-                // `finishRecovered` clears `restEndsAt`, so the cap alarm can
-                // no longer fire for this rest — the two endings cannot both
-                // sound.
-                heartRateCoordinator.soundRecovered()
+        do {
+            switch try heartRateCoordinator.evaluateHeartRateRest(for: workout, restTimer: restTimer) {
+            case .recovered:
                 refreshRest()
-            } catch {
-                assertionFailure("Failed to finish recovered rest: \(error)")
+            case .degraded(let state?):
+                restEnd = state.end
+                restTotal = state.total
+            case .degraded(nil):
+                refreshRest()
+            case .unchanged:
+                break
             }
-        case .degraded:
-            // codex-review 2.1 (critical): this used to do nothing, on the
-            // false claim that the cap WAS the standard timer. The cap is four
-            // minutes; the user's standard rest is one or two.
-            do {
-                degradedRestSetID = setID
-                if let state = try restTimer.degradeToStandard(workout, set: set) {
-                    restEnd = state.end
-                    restTotal = state.total
-                } else {
-                    refreshRest()
-                }
-            } catch {
-                assertionFailure("Failed to degrade rest: \(error)")
-            }
-        case .resting, .finished(.cap):
-            break
+        } catch {
+            assertionFailure("Failed to evaluate the heart-rate rest: \(error)")
         }
     }
 
