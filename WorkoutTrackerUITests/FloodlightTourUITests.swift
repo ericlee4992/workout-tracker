@@ -89,6 +89,8 @@ final class FloodlightTourUITests: XCTestCase {
     }
 
     /// Where the real app's controls are, read before a tour hides them (the tour's sample app lays out the same).
+    /// `gymPicker` is the gym row's slot: on the user's empty store it is "Add Your Gym…" (tester feedback 02, D89);
+    /// in the tour's sample, which has a gym, the picker sits there.
     private struct Spots { let start: CGRect; let settings: CGRect; let historyTab: CGRect; let gymPicker: CGRect }
 
     private func tap(_ rect: CGRect) {
@@ -100,9 +102,10 @@ final class FloodlightTourUITests: XCTestCase {
     private func startTourFromSettings(_ extra: [String] = [], tapStartImmediately: Bool = false) -> Spots {
         launch(extra)
         app.openTrain()
-        XCTAssertTrue(app.buttons["gymPicker"].waitForExistence(timeout: 15))
+        let gymRow = app.descendants(matching: .any).matching(identifier: "trainAddGym").firstMatch
+        XCTAssertTrue(gymRow.waitForExistence(timeout: 15))
         let spots = Spots(start: app.trainStartButton("startEmptyWorkout").frame, settings: app.tabBars.buttons["Profile"].frame,
-                          historyTab: app.tabBars.buttons["History"].frame, gymPicker: app.buttons["gymPicker"].frame)
+                          historyTab: app.tabBars.buttons["History"].frame, gymPicker: gymRow.frame)
         app.openProfile()
         let row = app.buttons["showTour"]
         for _ in 0..<8 { guard !row.isHittable else { break }; app.swipeUp() }

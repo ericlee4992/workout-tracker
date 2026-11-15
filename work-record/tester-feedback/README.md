@@ -7,4 +7,4 @@ What's New and the What to Test note are the user's decisions.
 | # | Ticket | Status |
 |---|---|---|
 | 01 | [One machine scan: remove "Read label on device"](issues/01-one-machine-scan.md) | done — Codex clear, merged (privacy page deploy waits for the user) |
-| 02 | [Add a gym from the Train screen](issues/02-add-gym-from-train.md) | ready |
+| 02 | [Add a gym from the Train screen](issues/02-add-gym-from-train.md) | implemented (option C, D89), in Codex review (branch `ericlee4992/add-gym-from-train`) |

@@ -1,6 +1,6 @@
 # 02 — Add a gym from the Train screen
 
-Status: ready (Claude implements, Codex reviews — T6); after 01
+Status: implemented, in review (Claude implements, Codex reviews — T6); branch `ericlee4992/add-gym-from-train`
 Type: task
 
 ## The user's request (2026-11-14)
@@ -39,4 +39,44 @@ Match the app's current screens (AGENTS.md design rule), not the ios-design skil
 
 ## Progress
 
-(none yet)
+### The user's choice (2026-11-14)
+
+Real Default/AccessibilityL captures of A, B and C (a temporary `-protoGymAdd` launch switch, removed;
+`build/captures/tf02/tf02-options-sheet.png`) → the user asked how C looks with gyms (identical to A: the menu item) →
+**C**. Recorded as D89.
+
+### What changed (`5510b9fe`)
+
+- `StartWorkoutView`: `gymRow` — no gyms: `TrainMakeRow` "Add Your Gym…" (id `trainAddGym`) in place of the "No gym"
+  picker; with gyms: the picker, whose menu ends with a divider and "Add Gym…" (plus icon, id `trainAddGym`), copying
+  Ask AI's gym menu. Both open `GymEditorSheet()`; `onSave` → `select(created)` (selected + `GymSelection.remember`,
+  D1). Cancel never calls `onSave`, so nothing is created and the pick stays. The `tour.gymPicker` anchor stays on the
+  row; the tour's sample world has a gym, so its step shows the picker as before. Archived gyms stay out (the `gyms`
+  query filters them).
+- Tests: `TrainAddGymUITests` (new, TodayTrain plan): menu Add Gym… → Save selects it and Gyms marks it "Current"
+  (remembered in the store, D1); Cancel keeps Iron Temple and creates nothing; the first gym from "Add Your Gym…" at
+  Default and AccessibilityL (frame and height checks); captures light/dark × Default/AccessibilityL.
+  `FloodlightTourUITests.assertBackOnTheUsersEmptyStore` now checks the empty store's "Add Your Gym…" row (its "No gym"
+  picker no longer exists there).
+- Docs: D89; README's gyms bullet (and its stale "read its name plate on the phone" from before ticket 01).
+- "Still selected after relaunch": the selection is `AppPreferences.selectedGymID`, read at launch by
+  `restoreSelectedGym`; a UI test cannot relaunch onto the same store (`-uiTestReset` wipes it, by design), so the tests
+  check the stored value through Gyms' "Current" badge, which reads it. `GymSelection` is unit-tested (`GymSelectionTests`).
+
+### Verification (author)
+
+- `build-for-testing` exit 0. `TrainAddGymUITests` **8/8** (`build/results/tf02-new.xcresult`; captures
+  `build/captures/tf02-final/`).
+- Unit plan + `FloodlightTourUITests`, `FloodlightWorkoutTabUITests`, `GymsFlowsUITests`, `TemplateMachinesUITests`,
+  `AskAIUITests/testRoutineGymPickerRemembersExistingGymAndNoGym` (2 workers; `build/tf02-ui.sh`, logs
+  `build/logs/tf02-{unit,ui}.log`, results `build/results/tf02-{unit,ui}.xcresult`): Unit **1291/1291**; UI **22/27**
+  — four `FloodlightTourUITests` failed because `startTourFromSettings` read the gym picker's frame on the user's empty
+  store, where the row is now "Add Your Gym…" (fixed: it reads that row's slot; the tour's sample, with a gym, still
+  shows the picker there), and `AskAIUITests/testRoutineGymPickerRemembersExistingGymAndNoGym` failed in `typeGoals`
+  (the goal text not fully entered within 5 s under parallel load — unrelated to the gym row).
+- Serial rerun after the fix (`build/results/tf02-rerun.xcresult`): `FloodlightTourUITests` **10/10** +
+  `testRoutineGymPickerRemembersExistingGymAndNoGym` **1/1**, exit 0.
+
+**Verified:** build; Unit 1291/1291; TrainAddGymUITests 8/8; FloodlightWorkoutTabUITests, GymsFlowsUITests,
+TemplateMachinesUITests (in the 22 passed); the tour class and the Ask AI gym test serially. **Not verified:** on a
+phone. **Known flaky:** `AskAIUITests` goal typing under parallel load (passed serially).

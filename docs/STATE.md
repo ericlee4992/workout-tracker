@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-14 (night): NOW — [tester feedback](../work-record/tester-feedback/README.md) 01 (one machine scan) **done, merged** (privacy page deploy waits for the user); 02 (add a gym from Train) next, in `~/.paseo/worktrees/1qmeipq9/tester-feedback`. Done today: scanner 07 (`main` `ec14ca50`), GitHub CI fixed + T6 default; Tests run 43659136836 on `main` green. 0.2.0 (14) uploaded 2026-11-13 — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-14 (night): NOW — [tester feedback](../work-record/tester-feedback/README.md) 01 (one machine scan) **done, merged** (privacy page deploy waits for the user); 02 (add a gym from Train, option C, D89) implemented on `ericlee4992/add-gym-from-train`, in Codex review, in `~/.paseo/worktrees/1qmeipq9/tester-feedback`. Done today: scanner 07 (`main` `ec14ca50`), GitHub CI fixed + T6 default; Tests run 43659136836 on `main` green. 0.2.0 (14) uploaded 2026-11-13 — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-14)
@@ -12,9 +12,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   on-device reader, New Model's "Suggest exercises" (the user: remove it too), their tests, the corpus harness and
   CI's `STACKED_CI` skip removed. **Privacy page changed, not deployed:** its date is the `[effective date]`
   placeholder — ask the user before `npm run deploy` and set the date then. Codex reviewer agent `4ba7c5cd-…` (this
-  workspace; reuse it for 02). **Next:** 02 [add a gym from Train](../work-record/tester-feedback/issues/02-add-gym-from-train.md)
-  on branch `ericlee4992/add-gym-from-train` (show options A/B/C as default + AccessibilityL captures first); check
-  GitHub's Tests run on `main` after the 01 merge.
+  workspace; reuse it for 02). GitHub Tests on `main` after the merge: 43674788460 green.
+  **[02 add a gym from Train](../work-record/tester-feedback/issues/02-add-gym-from-train.md): implemented** on
+  `ericlee4992/add-gym-from-train` — the user chose **C** from captures (D89): menu "Add Gym…" with gyms, "Add Your
+  Gym…" row with none. Verified: Unit 1291, TrainAddGymUITests 8/8, Train/tour/gym classes. **In Codex review**
+  (`work-record/tester-feedback/codex-review-02.md`). Next: findings → clear → fast-forward `main`.
 - **Done 2026-11-14 — [scanner 07](../work-record/scanner-accuracy/issues/07-remove-plate-ask-ai.md)** (merged into
   `main`; branch `ericlee4992/remove-ask-ai-plate` kept). The user asked whether machine scans all use GPT: Scan
   Machine sends one photo (label or whole machine) to the server's `scan-machine` flow on GPT-5.6 Terra; the machine
