@@ -3,7 +3,7 @@
 Updated **2026-11-15: NEXT — the user's call: deploy the privacy page (tester feedback 01) and a TestFlight build with [tester feedback](../work-record/tester-feedback/README.md) 01 + 02 (both done, merged into `main`). 0.2.0 (14) uploaded 2026-11-13 — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## RESUME HERE (2026-11-14)
+## RESUME HERE (2026-11-15)
 
 - **NEXT (resume here) — the user's decisions:** (1) **deploy the privacy page** — `server/src/pages.ts`'s
   `POLICY_EFFECTIVE_DATE` is the `[effective date]` placeholder (so `npm run deploy` refuses); set it to the deploy day
