@@ -1,15 +1,17 @@
 # Current project state
 
-Updated **2026-11-15: NEXT — the user's call: deploy the privacy page (tester feedback 01) and a TestFlight build with [tester feedback](../work-record/tester-feedback/README.md) 01 + 02 (both done, merged into `main`). 0.2.0 (14) uploaded 2026-11-13 — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-15: NOW — [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) (tester feedback 01 + 02): privacy page deployed, archive OK, **upload waits for the user to sign Xcode in to App Store Connect**; then rerun the upload on the same archive. 0.2.0 (14) uploaded 2026-11-13.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-15)
 
-- **NEXT (resume here) — the user's decisions:** (1) **deploy the privacy page** — `server/src/pages.ts`'s
-  `POLICY_EFFECTIVE_DATE` is the `[effective date]` placeholder (so `npm run deploy` refuses); set it to the deploy day
-  and follow DEVELOPMENT's server steps, before or with the build that ships ticket 01; (2) **a TestFlight build** with
-  tester feedback 01 + 02 (version, What's New, What to Test are the user's). No stored-format change in either ticket
-  (no Gate S).
+- **NOW (resume here) — [release 0.2.0 (15)](../work-record/release/0.2.0-build-15.md)** (`main` `ed8825ad`; Codex
+  release review clear; no What's New; no Gate S; the What to Test note is in the record). **Server deployed** (privacy
+  page effective November 15, 2026, checked live). **Archive OK** at
+  `/tmp/stacked-release-0.2.0-15/Stacked-0.2.0-15-ed8825ad.xcarchive`. **Upload: exit 2** — the user signs in at Xcode →
+  Settings → Accounts, then in `…/workspaces/Health App/release-build`: `scripts/testflight.sh upload <that archive>`.
+  After upload, the user's steps: Developer → install (no Gate S) → try the one scan and Add Gym… from Train → Friends
+  with the What to Test note → Submit.
 - **Done 2026-11-15 — [tester feedback](../work-record/tester-feedback/README.md)** (worktree
   `~/.paseo/worktrees/1qmeipq9/tester-feedback`, Codex reviewer agent `4ba7c5cd-…` there; branches kept):
   [01 one machine scan](../work-record/tester-feedback/issues/01-one-machine-scan.md) (D88; Codex clear round 3; GitHub
