@@ -46,12 +46,30 @@ final class WorkoutHeartRateCoordinator {
     /// once per sample.
     private var lastSoundedRestEnd: Date?
     /// Forwarded to the screen when it is on screen. Nil after minimise, which
-    /// is fine: the alarm above does not depend on it.
+    /// is fine: the alarm above does not depend on it. Claimed and released by the live screen
+    /// (`claimSamples` / `releaseSamples`, codex-review-04 R3: a dismissed screen used to keep it, so the runtime
+    /// believed a screen was still evaluating D43).
     var onSample: (() -> Void)?
-    /// Live-workout 04: D43's check for a runtime no screen has claimed (`onSample` nil) — a Done on the Lock Screen
-    /// after a cold launch starts a heart-rate rest with no live screen. Set by `WorkoutActivityCommands`. It runs on
-    /// each sample AND on its own tick (codex-review-04 R2 #3): the no-reading fallback needs time to pass, not a sample
-    /// — the screen's liveness tick does that job when the screen is up.
+    /// The workout whose live screen holds `onSample`.
+    @ObservationIgnored private(set) var sampleOwner: UUID?
+
+    /// The live screen for `workoutID` takes the sample tick (it evaluates D43 and redraws).
+    func claimSamples(for workoutID: UUID, _ handler: @escaping () -> Void) {
+        onSample = handler
+        sampleOwner = workoutID
+    }
+
+    /// The live screen for `workoutID` went away (minimised, dismissed): the runtime's own `restEvaluator` takes over.
+    /// A screen for another workout keeps its claim.
+    func releaseSamples(for workoutID: UUID) {
+        guard sampleOwner == workoutID else { return }
+        onSample = nil
+        sampleOwner = nil
+    }
+    /// Live-workout 04: D43's check for a runtime no screen has claimed (`onSample` nil) — a minimised workout, or a
+    /// Done on the Lock Screen after a cold launch. Installed once by `WorkoutActivityCommands` for the app's life. The
+    /// runtime's own tick (codex-review-04 R2 #3, R3) runs whichever check owns the workout — the screen's or this one —
+    /// while a workout is attached: the no-reading fallback needs time to pass, not a sample.
     @ObservationIgnored
     var restEvaluator: (() -> Void)? {
         didSet { restartRestEvaluatorTicks() }
@@ -73,7 +91,9 @@ final class WorkoutHeartRateCoordinator {
             while !Task.isCancelled {
                 try? await Task.sleep(for: self?.restEvaluatorInterval ?? .seconds(5))
                 guard let self, !Task.isCancelled else { return }
-                if self.onSample == nil { self.restEvaluator?() }
+                guard self.workoutID != nil else { continue }
+                // The same hand-off as a sample: the screen's check when it owns the workout, else the runtime's.
+                if let onSample = self.onSample { onSample() } else { self.restEvaluator?() }
             }
         }
     }
@@ -406,7 +426,7 @@ final class WorkoutHeartRateCoordinator {
             restFactsWorkoutID = nil
         }
         onSample = nil
-        restEvaluator = nil
+        sampleOwner = nil
         alarm.endSession()
     }
 }

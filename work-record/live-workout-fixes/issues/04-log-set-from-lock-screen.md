@@ -114,3 +114,23 @@ Done (the existing commands' cold path is unit-tested and shared). **Known flaky
 - Round 3 verification (author): build-for-testing exit 0; Unit plan **1310/1310** (`build/results/ls04-r3-unit.xcresult`);
   `WorkoutActivityContentTests` 29/29 three more times (timing-sensitive tests stable); `HeartRateUITests` + the two
   real Lock Screen tests serially **7/7**, exit 0 (`build/results/ls04-r3-ui.xcresult`).
+
+### Review round 3 (Codex): changes requested → fixed
+
+- **R3 (High)** a minimised workout kept the dismissed screen's `onSample`, so the runtime never ran its own D43 check
+  (and a dismissed screen cannot redraw or push). Now the live screen **claims** the samples on appear
+  (`claimSamples(for:)`) and **releases** them on disappear (`releaseSamples(for:)`, only its own workout's claim);
+  `WorkoutActivityCommands.install` installs the runtime's `restEvaluator` once for the app's life (D43 for whichever
+  workout is attached while no screen owns it — a minimised workout, not only a cold launch); `end` no longer clears it.
+  The runtime's tick runs whichever check owns the workout (the screen's while it is up, else the runtime's), the same
+  hand-off as a sample, while a workout is attached.
+- Tests: a workout claimed by its screen, minimised, then Done with no reading falls back through the runtime (and the
+  released screen is never called; another workout cannot release the claim); with the screen up the tick runs the
+  screen's check, not the runtime's.
+- Round 4 verification (author): build-for-testing exit 0; Unit plan **1312/1312** (`build/results/ls04-r4-unit.xcresult`);
+  `WorkoutActivityContentTests` three more times, all exit 0; UI (2 workers): `HeartRateUITests`, `FloodlightLiveUITests`
+  and the three real Live Activity tests — **26/28** (`build/results/ls04-ui4.xcresult`); both failures passed alone
+  serially (`build/results/ls04-ui4-rerun.xcresult`): the known-flaky keyboard unit test, and
+  `testRealLiveActivityEndsWhenTheWorkoutIsCancelled` ("the workout's card is up before the cancel" — two real Live
+  Activity tests on parallel clones competing for Notification Center; run serially it passes). **Known flaky in
+  parallel:** both; the real Live Activity tests are best run serially.

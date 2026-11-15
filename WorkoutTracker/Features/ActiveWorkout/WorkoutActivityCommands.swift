@@ -67,6 +67,16 @@ final class WorkoutActivityCommands {
         WorkoutActivityCommandBridge.logSetHandler = { [weak self] shown in
             await self?.logSet(shown)
         }
+        installRestEvaluator()
+    }
+
+    /// D43 for whichever workout's runtime is attached while no screen owns it (codex-review-04 R3: a minimised
+    /// workout, not only a cold launch). Installed for the app's life; idempotent.
+    func installRestEvaluator() {
+        coordinator.restEvaluator = { [weak self] in
+            guard let self, let id = self.coordinator.workoutID else { return }
+            self.evaluateRestWithoutScreen(workoutID: id)
+        }
     }
 
     /// The store commands act on (tests use their own, without installing the intent handler).
@@ -226,9 +236,9 @@ final class WorkoutActivityCommands {
         // A cold launch (or a runtime ended by a crash) has no session for this workout yet:
         // start it first, so the alarm, the Watch and the recorder move with the command.
         attachRuntime(workout, context)
-        // D43 without a screen (live-workout 04): the runtime checks a heart-rate rest on each sample until a screen
-        // claims `onSample`.
-        coordinator.restEvaluator = { [weak self] in self?.evaluateRestWithoutScreen(workoutID: workoutID) }
+        // D43 without a screen (live-workout 04): the runtime checks a heart-rate rest on each sample and tick while no
+        // screen claims them. (Normally installed at launch; here too for a commands instance that was not installed.)
+        if coordinator.restEvaluator == nil { installRestEvaluator() }
         let monitor = coordinator.workoutID == workout.id ? coordinator.monitor : nil
         let heart = monitor.map { WorkoutActivityContent.Heart(bpm: $0.isStale ? nil : $0.current?.bpm, zone: $0.currentZone) }
         // `RestTimerService` clears a rest that has run out; say how it ended first, as the live

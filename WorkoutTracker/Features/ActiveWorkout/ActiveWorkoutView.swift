@@ -405,6 +405,9 @@ struct ActiveWorkoutView: View {
                 MaxHeartRateSheet()
             }
             .onAppear(perform: refreshRest)
+            // Minimised or dismissed: the runtime evaluates D43 itself and tells the Watch, alarm and card
+            // (codex-review-04 R3) — a dismissed screen can no longer redraw or push anything.
+            .onDisappear { heartRateCoordinator.releaseSamples(for: workout.id) }
             .onAppear(perform: refreshBadges)
             .onAppear(perform: loadRecentAtGym)
             .onChange(of: workout.isDeleted ? nil : workout.gym?.id) { _, _ in loadRecentAtGym() }
@@ -423,7 +426,7 @@ struct ActiveWorkoutView: View {
                 // The coordinator owns the sample tick and forwards it here.
                 // The alarm hangs off its end, not this one, so it survives
                 // this screen being dismissed.
-                heartRateCoordinator.onSample = { evaluateHeartRateRest() }
+                heartRateCoordinator.claimSamples(for: workout.id) { evaluateHeartRateRest() }
                 pushActivityState()
                 heartRate = monitor
                 cardioFocus = workout.unfinishedCardio != nil || (!workout.orderedCardio.isEmpty && workout.entries?.isEmpty != false)

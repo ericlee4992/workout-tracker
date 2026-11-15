@@ -621,6 +621,62 @@ struct WorkoutActivityContentTests {
         await cold.coordinator.settled()
     }
 
+    /// codex-review-04 R3: a workout opened on its screen and then minimised — the screen claimed the samples, then
+    /// released them — still falls back with no reading after a Done, through the runtime.
+    @Test func aMinimisedWorkoutStillFallsBackWithoutAReading() async throws {
+        let rig = try rig()
+        try RestTimerService(context: rig.context).setOverride(
+            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: nil,
+            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 240)
+        let provider = StubHeartRateProvider()
+        let coordinator = WorkoutHeartRateCoordinator(alarm: DeadlineAlarm(), makeProvider: { _ in provider },
+                                                      cardio: CardioRecorder(collectsDeviceSensors: false))
+        let presenter = SilentWorkoutActivityPresenter()
+        let commands = WorkoutActivityCommands(coordinator: coordinator, activity: WorkoutActivityController(presenter: presenter))
+        commands.use(rig.container)
+        commands.notifications = FakeNotifications()
+        commands.installRestEvaluator()
+        // The live screen: attaches the runtime and claims the samples; then minimise.
+        _ = coordinator.monitor(for: rig.workout, maxHeartRate: nil)
+        var screenChecks = 0
+        coordinator.claimSamples(for: rig.workout.id) { screenChecks += 1 }
+        coordinator.releaseSamples(for: UUID())
+        #expect(coordinator.onSample != nil, "another workout's screen cannot release this one's claim")
+        coordinator.releaseSamples(for: rig.workout.id)
+        #expect(coordinator.onSample == nil, "minimised: released")
+        await commands.logSet(try shown(rig))
+        let set = rig.pressSets[2]
+        let start = try #require(rig.workout.restStartedAt)
+        let standard = try RestTimerService(context: rig.context).durationSeconds(for: set)
+        coordinator.now = { .now.addingTimeInterval(30) }
+        coordinator.restEvaluatorInterval = .milliseconds(20)
+        let evaluator = coordinator.restEvaluator
+        coordinator.restEvaluator = evaluator  // restart the tick at the new period
+        try await waitUntil { coordinator.degradedRestSetID != nil }
+        #expect(coordinator.degradedRestSetID == set.id)
+        #expect(rig.workout.restEndsAt == start.addingTimeInterval(TimeInterval(standard)))
+        #expect(presenter.lastState?.rest == .fallback)
+        #expect(screenChecks == 0, "the released screen is not called")
+        coordinator.end(rig.workout)
+        await coordinator.settled()
+    }
+
+    /// With the screen up the runtime's tick runs the SCREEN's check (it redraws), not its own.
+    @Test func theTickRunsTheScreensCheckWhileTheScreenOwnsTheWorkout() async throws {
+        let rig = try rig()
+        let coordinator = WorkoutHeartRateCoordinator(alarm: DeadlineAlarm(), makeProvider: { _ in StubHeartRateProvider() },
+                                                      cardio: CardioRecorder(collectsDeviceSensors: false))
+        _ = coordinator.monitor(for: rig.workout, maxHeartRate: nil)
+        var screen = 0, runtime = 0
+        coordinator.claimSamples(for: rig.workout.id) { screen += 1 }
+        coordinator.restEvaluatorInterval = .milliseconds(20)
+        coordinator.restEvaluator = { runtime += 1 }
+        try await waitUntil { screen >= 2 }
+        #expect(screen >= 2 && runtime == 0)
+        coordinator.end(rig.workout)
+        await coordinator.settled()
+    }
+
     /// D48 through the shared rule: Done on a superset member that is not the last starts no rest and skips one running.
     @Test func doneInsideASupersetSkipsTheRestLikeTheCheck() throws {
         let rig = try rig()

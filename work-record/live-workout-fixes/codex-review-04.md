@@ -278,3 +278,107 @@ Known flaky: author's `FloodlightLiveUITests/testTheKeyboardUnitSwitchFollowsThe
 failed under the two-worker run and passed alone; none seen in the reviewer runs.
 
 Verdict: changes requested
+
+## Round 3 — `60826bc3`, 2026-11-15
+
+Reviewed `git diff bad36c74..60826bc3`; actual HEAD
+`60826bc331268f8ded1c127fc1d441e2fba4ff26`, branch `ericlee4992/lock-screen-log-set`, initially
+clean. Read STATE and the ticket's round-2-fix section; STATE's older implementation SHA does
+not describe this review tip. Only this report was changed; no commit.
+
+### Standards
+
+No additional standards findings in this round's diff. Round-2 #1 and #2 are addressed:
+
+- The fingerprint now includes `effectiveLoadType`, so an unfrozen load-type edit invalidates
+  the card while an already frozen entry retains its snapshot meaning.
+- Recovery/fallback saves run after pending edits have been saved. A pre-save failure exits
+  before the transition and outside the rollback catch, preserving those edits. After a successful
+  pre-save, the synchronous MainActor transition introduces only its own pending changes, which
+  are rolled back on failure. Runtime result/fallback flags and notification/alarm changes occur
+  after successful persistence; a failed transition remains retryable.
+- The tick's task weakly captures the coordinator. Its strong binding is confined to an iteration,
+  after the sleep. Reassignment cancels the previous task, checks cancellation after sleep, and
+  installs one replacement. `end` reaches `releaseAlarm`, clears `restEvaluator`, and cancels its
+  task. There is no new retain cycle or concurrent evaluation: sample/tick handling is synchronous
+  on MainActor, and completed/degraded state gates subsequent evaluations.
+
+### Spec
+
+1. **High — the independent fallback tick is suppressed after minimizing a workout.**
+   `WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:76`;
+   `WorkoutTracker/Features/ActiveWorkout/WorkoutActivityCommands.swift:184`.
+   The new tick assumes a non-nil `onSample` means the live screen's liveness timer is active.
+   However, `ActiveWorkoutView.swift:426` installs that callback and never clears it when the
+   screen disappears. Its minimize action (`:665–672`) dismisses the full-screen cover through
+   `RootView.swift:126` without ending the workout runtime. The view's `onReceive(livenessTick)`
+   subscription is gone, but `onSample` remains set until runtime teardown. Therefore, in the
+   normal open workout → minimize → Lock Screen Done → no sensor samples flow, the new task
+   wakes but skips evaluation while that callback remains installed; `evaluateRestWithoutScreen`
+   also rejects the same state.
+   The heart-rate cap and its cap notification remain instead of D43's standard-timer fallback.
+   This still violates the ticket's explicit support for a minimized workout, even while the
+   app process is executing.
+
+   **Fix:** give the runtime reliable ownership of D43 evaluation independently of a retained
+   view callback, or detach that callback when its owning screen disappears with appropriate
+   workout/owner identity checks. Ensure recovery/fallback still publishes the Watch, alarm and
+   card updates after the screen is dismissed. Add a regression covering a runtime that was
+   claimed by the live screen, then minimized, followed by Done and no incoming samples. The new
+   cold test starts with `onSample == nil`, so it cannot expose this case.
+
+Standards: 0 new findings. Spec: 1 High finding. Round-2 #3 is fixed for a truly cold runtime,
+but its new ownership guard leaves the minimized-workout path unresolved. This finding is based
+on source/lifecycle tracing; it was not reproduced through a newly authored UI test.
+
+### Regression coverage and verification
+
+The three new tests exercise the previously missing effective-load-type match, failed recovery
+followed by retry, and no-sample periodic fallback with a failed save then retry. Their assertions
+would reject the corresponding round-2 behavior: stale load type would be accepted, recovery
+would leave the deadline cleared on failure, and no-sample fallback would never occur. The
+fallback test runs the actual periodic trigger with a shortened interval and advanced clock;
+it does not invoke the evaluator directly. Test strength was inspected, not mutation-tested.
+Unrelated-edit preservation and task teardown/screen ownership were traced in source rather
+than covered by new dedicated tests.
+
+Reviewer commands (Xcode 27.2 / WT-Floodlight, same environment as prior rounds):
+
+```sh
+scripts/prepare-test-simulator.sh
+# exit 0
+
+xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+  -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' \
+  -derivedDataPath build/dd-codex
+# exit 0; TEST BUILD SUCCEEDED
+
+xcodebuild test-without-building -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+  -testPlan Unit -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' \
+  -derivedDataPath build/dd-codex -parallel-testing-enabled NO -collect-test-diagnostics never \
+  -resultBundlePath build/results/ls04-codex-r3-unit.xcresult
+# exit 0; 1310/1310, 0 failed, 0 skipped; TEST EXECUTE SUCCEEDED
+
+git diff --check bad36c74..60826bc3
+# exit 0
+```
+
+Logs/status files: `build/results/ls04-codex-r3-{build,unit}.{log,status}`. Build and Unit run
+completed; actual exit status and xcresult summary were inspected. No competing build/test run.
+
+Inspected the author's `build/results/ls04-r3-ui.xcresult` summary and actual log
+`build/logs/ls04-r3-ui.log`: **7/7 Passed, 0 failed, 0 skipped**, `TEST EXECUTE SUCCEEDED`.
+It contains HeartRateUITests (5) and real Lock Screen Done plus +15s/Skip (2), all serial.
+The author reports exit 0; no separate retained shell-status file for this UI run was found.
+Also inspected `build/results/ls04-r3-unit.xcresult`: **1310/1310 Passed**, no failures/skips.
+UI was not rerun this round, as requested: no screen/UI-test source changed, and repeating these
+existing cases would not exercise the missing minimized/no-sample lifecycle regression.
+
+Verified: reviewer build exit 0; Unit 1310/1310, exit 0,
+`build/results/ls04-codex-r3-unit.xcresult`; author's UI 7/7 and Unit 1310/1310 result bundles inspected.
+Not verified: the minimized/no-sample path and its fix;
+physical-device, OS cold-launch delivery and real sensor/Watch behavior.
+Known flaky: prior round's keyboard-unit-focus case failed under parallel load and passed alone;
+not selected this round. None seen in this round's reviewer run.
+
+Verdict: changes requested
