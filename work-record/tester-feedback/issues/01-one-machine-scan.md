@@ -1,6 +1,6 @@
 # 01 — One machine scan: remove "Read label on device"
 
-Status: ready (Claude implements, Codex reviews — T6)
+Status: implemented, in review (Claude implements, Codex reviews — T6); branch `ericlee4992/one-machine-scan`
 Type: task
 
 ## The user's request (2026-11-14)
@@ -63,4 +63,56 @@ Scan Machine's result); D34's note about the on-device scan. Ask the user if any
 
 ## Progress
 
-(none yet)
+### The user's answers (2026-11-14)
+
+- **"Suggest exercises": remove it too.** New Model's AI suggestion appeared only for a plate the on-device reader had
+  read (`plateLines` non-empty), so with the reader gone nothing could show it. Removed as unused, with its client,
+  consent key and the profile's "Exercise suggestions" usage tile. The server's `model-exercises` flow **stays** for
+  installed builds (server README says so); the privacy page names it as "earlier versions of the app only".
+- **Signed out: no change.** One scan row for everyone; signed out it opens Scan Machine's own sign-in step.
+- **Wording: "Scan Machine"** (from the before/after captures), like the gym page.
+
+### What changed (`d1f9064e`)
+
+- Machine form: one scan row "Scan Machine" (id `scanMachineLabel` kept) + Catalog model; the offline sheet, `ScanDraft`
+  and its New Model path removed.
+- Deleted (each checked for callers outside the removed path first): `ScanMachineLabelSheet`, `MachineLabelOCR`,
+  `MachineLabelDictionary`, `CatalogMatcher` (+ `CatalogMatchIndex`, `CatalogMatch`), `MachineLabelRepair`,
+  `MachineLabelText` (+ `LabelReading` — not shared after all: only the reader used it), `ScanScoreMeter`,
+  `AskAI` (+ proposers), `ExerciseProposal` (+ `ExerciseCandidate`, `PlateDescription`, `AskAIError`),
+  `AIFlow.modelExercises` + `modelExercisesBody`, `TerraAccess.exerciseConsentKey`. Tests: `MachineLabelOCRTests`,
+  `CatalogMatcherTests`, `CatalogMatcherAdversarialTests`, `MachineLabelRepairTests`, `ScannerCorpusHarness`,
+  `ExerciseProposalTests`, `TestEnvironment`, `ScanMachineLabelUITests`; the New Model suggestion UI tests
+  (`FloodlightAIAccessUITests.captureNewModel`, `AskAIUITests.testManualModelSuggestionsRequireConsentAndKeepConfirmation`)
+  and `FloodlightScanUITests`' Read Label captures (replaced by machine form captures `tf01-machine-form-*`).
+- Kept (shared): `LabelCameraView`, `LabelFramingBox`, `LabelCrop` (+ rendering), `ImagePicker`, `CaptureAvailability`,
+  the `Scan/` step views, `EquipmentIdentityResolution`, `AddModelSheet` (ModelPicker's path). `ScanFixture` (the
+  rendered plate) moved to `Features/Gyms/Scan/ScanFixture.swift`; its `-uiTestScanFixture` flag (reader only) removed.
+- After the deletions, a sweep of every identifier in the deleted files found nothing left referenced only by its
+  definition. No `import Vision` remains in the app or tests.
+- CI: `TEST_RUNNER_STACKED_CI` removed from `.github/workflows/tests.yml`; AGENTS, DEVELOPMENT and README's CI lines
+  updated. `scripts/test-plans.py` / `GymsExercises.xctestplan` drop `ScanMachineLabelUITests` (`--check` passes).
+- Docs: D88 (new); D33, D34, D35, D53, D56 annotated; SPEC line 30; README features + AI-section line; server README's
+  `model-exercises` row.
+- Privacy page (`server/src/pages.ts`): the "app's own label reader" sentence removed; exercise suggestions dropped from
+  the feature list and named "earlier versions of the app only" in What is sent. **`POLICY_EFFECTIVE_DATE` is the
+  `[effective date]` placeholder, so `npm run deploy` refuses until the user approves and the date is set to the
+  deploy day.** Not deployed.
+
+### Verification (author)
+
+- Captures before/after (light default + AXL; after also dark): `build/captures/tf01-before/`, `tf01-after/`
+  (gitignored; `FloodlightScanUITests/testCaptureMachineForm*`).
+- `xcodebuild build-for-testing` exit 0 (`build/logs/bft-2.log`).
+- Unit plan: **1291/1291 passed** (`build/results/tf01-unit.xcresult`; 1370 before — the 79 removed tests).
+- Server: `npx vitest run` 341/341, `node --test` 4/4, `tsc --noEmit` clean.
+- Focused UI (2 workers, `build/tf01-ui.sh`, log `build/logs/tf01-ui.log`, `build/results/tf01-ui.xcresult`):
+  `FloodlightScanUITests`, `ScanFoodUITests`, `GymsFlowsUITests`, `TemplateMachinesUITests`,
+  `FloodlightAIAccessUITests`, `FloodlightAccountUITests`, `FloodlightProfileUITests/testCaptureProfile*` (the AI
+  usage tiles, now two) and the Scan Machine tests of `AskAIUITests` (generic scan, failure/rescan, scan during routine
+  setup, routine scanner consent, edited label, the four identities, photo consent) — **73/73 passed, exit 0**
+  (xcresult summary: 73 passed, 0 failed, 0 skipped).
+
+**Verified:** build; Unit plan 1291/1291; server tests and typecheck; the 73 focused UI tests above; captures of the
+form. **Not verified:** a live signed-in Scan Machine from the form on a phone (the fixture drives it; the code path
+is unchanged); the privacy page live (not deployed — the user's go). **Known flaky:** none seen.

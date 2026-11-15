@@ -1,19 +1,20 @@
 # Current project state
 
-Updated **2026-11-14 (late): NEXT — [tester feedback](../work-record/tester-feedback/README.md) tickets 01 (one machine scan: remove "Read label on device") and 02 (add a gym from Train), for the next update, in a new session. Done today: scanner 07 (`main` `ec14ca50`), GitHub CI fixed + T6 default. 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-14 (night): NOW — [tester feedback](../work-record/tester-feedback/README.md) 01 (one machine scan) implemented on `ericlee4992/one-machine-scan` in `~/.paseo/worktrees/1qmeipq9/tester-feedback`, in Codex review; then 02 (add a gym from Train). Done today: scanner 07 (`main` `ec14ca50`), GitHub CI fixed + T6 default; Tests run 43659136836 on `main` green. 0.2.0 (14) uploaded 2026-11-13 — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-14)
 
-- **NEXT (resume here) — [tester feedback](../work-record/tester-feedback/README.md), the user's two asks for the next
-  update (2026-11-14), in a new session, in order, each UI-first and Codex-clear before the next:**
-  [01 one machine scan](../work-record/tester-feedback/issues/01-one-machine-scan.md) — remove the machine form's
-  "Read label on device" (testers: inaccurate, misreads manufacturers) and its now-unused code/tests; Scan Machine
-  (GPT-5.6 Terra) is the one scan, manual catalog entry the offline path; the privacy page changes (server deploy = the
-  user's go); then [02 add a gym from Train](../work-record/tester-feedback/issues/02-add-gym-from-train.md) — create a
-  gym from Train → Templates' gym picker (options A/B/C to show the user as captures). Work in a new worktree off
-  `main` (Paseo `create_workspace`, branch `ericlee4992/one-machine-scan`); start a Codex reviewer there (the old one,
-  `562c6d70-…`, lives in this workspace).
+- **NOW (resume here) — [tester feedback](../work-record/tester-feedback/README.md)**, worktree
+  `~/.paseo/worktrees/1qmeipq9/tester-feedback` (Paseo workspace "Tester feedback: one scan + add gym").
+  **[01 one machine scan](../work-record/tester-feedback/issues/01-one-machine-scan.md): implemented** on
+  `ericlee4992/one-machine-scan` (D88): the form's one scan row "Scan Machine"; the on-device reader, New Model's
+  "Suggest exercises" (the user: remove it too), their tests, the corpus harness and CI's `STACKED_CI` skip removed.
+  Verified: Unit 1291/1291, 73 focused UI tests, server 341+4. **In Codex review** (report
+  `work-record/tester-feedback/codex-review-01.md`). **Privacy page changed, not deployed:** its date is the
+  `[effective date]` placeholder — ask the user before `npm run deploy` and set the date then. Next: fix findings →
+  clear → fast-forward `main` → 02 [add a gym from Train](../work-record/tester-feedback/issues/02-add-gym-from-train.md)
+  on its own branch (show options A/B/C as default + AccessibilityL captures first).
 - **Done 2026-11-14 — [scanner 07](../work-record/scanner-accuracy/issues/07-remove-plate-ask-ai.md)** (merged into
   `main`; branch `ericlee4992/remove-ask-ai-plate` kept). The user asked whether machine scans all use GPT: Scan
   Machine sends one photo (label or whole machine) to the server's `scan-machine` flow on GPT-5.6 Terra; the machine
@@ -25,7 +26,8 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   The Tests workflow, which never passed in 216 runs, now runs the Unit plan on GitHub's `xcode-27` image (Xcode 27.2;
   macos-26's Xcode 26.6 could not compile the app). Root cause of the old "hangs": `VNRecognizeTextRequest` never returns
   on the virtual Mac, so the 9 tests that run on-device text recognition are `.disabled(if: TestEnvironment.isCI)` there
-  and run locally (the corpus harness still runs on CI in its Vision-free `SCANNER_LLM=1` mode). Per-test allowance
+  and run locally (the corpus harness still runs on CI in its Vision-free `SCANNER_LLM=1` mode; all of these were
+  removed with the on-device reader in tester feedback 01). Per-test allowance
   600 s; a 12-minute stack-sample heartbeat goes into the `xcodebuild-log` artifact. Two live-activity tests had 90 s
   rests that ran out while they waited minutes for the main actor on the runner; they now use an hour (`f6d76f08`,
   test-only). README, AGENTS.md and DEVELOPMENT's CI note describe all this; DECISIONS T6 records the review default.
