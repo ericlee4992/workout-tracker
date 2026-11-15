@@ -69,3 +69,32 @@ xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphones
 **Known flaky:** `GymsFlowsUITests/testMachinePageEditsApplyAndDeleteCloses` — one blank-name restoration assertion failed in the parallel run, passed in the full serial class rerun; follow-up suggested above. No other failures observed.
 
 Verdict: changes requested
+
+
+## Round 2
+
+Reviewed `git diff 74fbf76d..ec2faa8e` at HEAD `ec2faa8ef55dd5968beceda3a04bf3a0eadbbd12`, branch `ericlee4992/one-machine-scan`. The checkout was clean before appending this section. This revision changes documentation/comments and records round 1; no runtime or test logic changed.
+
+### Standards
+
+1. **R2-1, P3 — the replacement camera comment describes a consumer that does not exist; the old region payload is now unused.** `WorkoutTracker/Features/Gyms/LabelCameraView.swift:13` says `CapturedLabel.region` is the box that `LabelCrop` crops for Scan Food; the revised comment at `:291` repeats that claim. However, Scan Machine consumes only `requestID` and `image` (`IdentifyEquipmentSheet.swift:102`), and Scan Food explicitly computes its own taller framing region from its capture snapshot (`FoodScanFlow.swift:587–595`). No caller reads `CapturedLabel.region`. The field at `LabelCameraView.swift:15`, its calculation at `:305`, and its fixture argument at `FoodScanFlow.swift:574` remain from the retired reader. This is missed removal cleanup exposed by the revised comment, not a camera behavior failure. **Suggested fix:** remove the unused payload field, its calculation, the now-unused `pending` box/view-size storage, and the fixture argument; describe the remaining capture payload accurately. Preserve Scan Food's independent region calculation and the shared `LabelFramingBox`/`LabelCrop` helpers. This addresses ticket 01's explicit no-dead-code acceptance and AGENTS' requirement that comments match callers. The ScanSteps and UI-test header corrections are accurate.
+
+### Spec
+
+Round-1 finding 2 is **resolved**. `docs/SPEC.md:30` now correctly describes signed-in requests through Stacked's server and the server-held provider key. Verified against `AIServerClient.request` (`AIServerClient.swift:56`), `TerraAccess.client` (`TerraAccess.swift:36`), the server's authenticated route and `proxyAI` (`server/src/ai.ts:652,666`), and normal-launch `LegacyOpenAIKey.purge()` (`WorkoutTrackerApp.swift:37`, `AIServerClient.swift:185`). No remaining Spec finding in the revised sentence.
+
+Standards: **1 low-priority cleanup finding**; Spec: **0 remaining findings**. The remaining change request is the unused camera payload and inaccurate replacement comment above.
+
+### Verification
+
+- Inspected the complete round-2 diff and `git diff --check 74fbf76d..ec2faa8e` (exit **0**). All Swift changes in this revision are comments.
+- Inspected the author's `build/logs/tf01-r2-build.log`: command is `xcodebuild build -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath build/dd`; the log ends with `** BUILD SUCCEEDED **`. Author-reported exit **0**; no separate exit-status file is present. No additional build was necessary for this documentation-only round.
+- **No Unit, UI or server tests rerun**, as requested. Re-read actual prior xcresult summaries with `xcrun xcresulttool get test-results summary --path …` (each inspection exit **0**) and their original status files: Unit **1291/1291**, original exit **0**; primary UI **72/73**, original exit **65**, one failure and no skips; serial gym class **4/4**, exit **0**; extra editors **4/4**, exit **0**. Existing round-1 evidence remains applicable to unchanged executable code.
+
+**Verified:** revised SPEC against actual request/key/purge code; two corrected comment locations; author build-success log; docs-only diff and whitespace check; prior test artifacts inspected.
+
+**Not verified:** no new execution of tests this round; the live-device, manual-model-submit, undeployed-policy and post-merge CI limits recorded in round 1 remain unchanged.
+
+**Known flaky:** the round-1 machine-name assertion failed once in parallel and passed in the serial class rerun; no new execution or causal claim this round.
+
+Verdict: changes requested

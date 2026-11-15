@@ -571,7 +571,7 @@ private struct FoodScanCameraContent: View {
                 let art = mode == .meal ? FoodScanArt.meal : FoodScanArt.label
                 Task {
                     try? await Task.sleep(for: .seconds(2))
-                    photo(CapturedLabel(requestID: id, image: art, region: CGRect(x: 0, y: 0, width: 1, height: 1)))
+                    photo(CapturedLabel(requestID: id, image: art))
                 }
             }
         }

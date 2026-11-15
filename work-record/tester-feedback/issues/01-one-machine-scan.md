@@ -129,3 +129,12 @@ is unchanged); the privacy page live (not deployed — the user's go). **Known f
   placeholder; test and screen unchanged by this ticket) and passing 4/4 in a serial class rerun — **known flaky** under
   load (passed in the author's run too).
 - Round 2 verification (author): docs/comments only → `xcodebuild build` exit 0; no test rerun needed.
+
+### Review round 2 (Codex): changes requested → fixed
+
+- **R2-1 (P3)** `CapturedLabel.region` had no reader (Scan Machine uses the image; Scan Food maps its own box): removed
+  the field, its calculation, the stored view size/box (`pending` is now the request only; the box still sets the
+  focus point), and the fixture's argument in `FoodScanFlow`; comments describe the payload as it is.
+- Round 3 verification (author; camera code changed): `build-for-testing` exit 0; Unit plan **1291/1291**
+  (`build/results/tf01-r3-unit.xcresult`); `ScanFoodUITests` + `FloodlightScanUITests/testScanMachineAddsTheMachineDirectly`
+  + `testCaptureScanLightDefault` **17/17**, exit 0 (`build/results/tf01-r3-ui.xcresult`).
