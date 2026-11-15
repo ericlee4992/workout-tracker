@@ -1,10 +1,19 @@
 # Current project state
 
-Updated **2026-11-14 (late): DONE — scanner 07 merged (the switched-off plate Ask AI / Claude code removed; D56 names GPT-5.6 Terra), after GitHub CI fixed + T6 default. Nothing in progress; next product work is the user's pick. 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-14 (late): NEXT — [tester feedback](../work-record/tester-feedback/README.md) tickets 01 (one machine scan: remove "Read label on device") and 02 (add a gym from Train), for the next update, in a new session. Done today: scanner 07 (`main` `ec14ca50`), GitHub CI fixed + T6 default. 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-14)
 
+- **NEXT (resume here) — [tester feedback](../work-record/tester-feedback/README.md), the user's two asks for the next
+  update (2026-11-14), in a new session, in order, each UI-first and Codex-clear before the next:**
+  [01 one machine scan](../work-record/tester-feedback/issues/01-one-machine-scan.md) — remove the machine form's
+  "Read label on device" (testers: inaccurate, misreads manufacturers) and its now-unused code/tests; Scan Machine
+  (GPT-5.6 Terra) is the one scan, manual catalog entry the offline path; the privacy page changes (server deploy = the
+  user's go); then [02 add a gym from Train](../work-record/tester-feedback/issues/02-add-gym-from-train.md) — create a
+  gym from Train → Templates' gym picker (options A/B/C to show the user as captures). Work in a new worktree off
+  `main` (Paseo `create_workspace`, branch `ericlee4992/one-machine-scan`); start a Codex reviewer there (the old one,
+  `562c6d70-…`, lives in this workspace).
 - **Done 2026-11-14 — [scanner 07](../work-record/scanner-accuracy/issues/07-remove-plate-ask-ai.md)** (merged into
   `main`; branch `ericlee4992/remove-ask-ai-plate` kept). The user asked whether machine scans all use GPT: Scan
   Machine sends one photo (label or whole machine) to the server's `scan-machine` flow on GPT-5.6 Terra; the machine
