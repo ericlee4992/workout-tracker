@@ -20,6 +20,15 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
      recreate the release branch on that `main` (build 16 + record; note the CI fix in the record), push, fast-forward
      `main`, archive from `…/workspaces/Health App/release-build` (`scripts/testflight.sh archive`), upload (exit 2 = ask
      the user to sign Xcode in), record, STATE. Then the user's TestFlight steps.
+  4. **Goal / why:** testers asked for logging a set without unlocking (research: Hevy has it); build 16 ships it.
+     The user chose (2026-11-15): 0.2.0 (16), **no What's New**, the build-16-only What to Test note (in the record).
+     Build 15 (tester feedback 01+02) was uploaded 01:18 EST; its TestFlight steps are the user's.
+  5. **Gotchas:** this worktree is checked out on `ericlee4992/release-0.2.0-16` (STATE here is newer than `main`'s);
+     the CI fix lives on `ericlee4992/ci-timing-tests` — switch branches with care (`git switch`), nothing is stashed.
+     Real Live Activity UI tests and `testTheKeyboardUnitSwitchFollowsTheFocusedWeight` are flaky in parallel — run
+     serially. `gh run view <id> --log-failed` reads a failed CI run. Reviewer runs: never overlap with your own
+     build/test runs. If CI on the fix branch fails again, read the log before changing anything; the app code passed
+     every local run (Unit plan 1312/1312).
 
 - **Done 2026-11-15 — [live-workout 04, log a set from the Lock Screen](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md)**
   (D90; Codex clear round 4; merged into `main`, branch `ericlee4992/lock-screen-log-set` kept). Once rest is over the
