@@ -499,8 +499,8 @@ struct WorkoutActivityContentTests {
     @Test func aColdDoneHeartRateRestEndsEarlyWithoutTheScreen() async throws {
         let rig = try rig()
         try RestTimerService(context: rig.context).setOverride(
-            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: nil,
-            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 240)
+            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: 3600,
+            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 7200)
         let provider = StubHeartRateProvider()
         let coordinator = WorkoutHeartRateCoordinator(alarm: DeadlineAlarm(), makeProvider: { _ in provider },
                                                       cardio: CardioRecorder(collectsDeviceSensors: false))
@@ -513,7 +513,7 @@ struct WorkoutActivityContentTests {
         #expect(rig.pressSets[2].completedAt != nil)
         #expect(rig.workout.restEndsAt != nil && coordinator.onSample == nil)
         provider.emit(HeartRateSample(bpm: 104, date: .now, source: .fixture))
-        for _ in 0..<40 where rig.workout.restEndsAt != nil { try await Task.sleep(for: .milliseconds(50)) }
+        try await waitUntil { rig.workout.restEndsAt == nil }
         #expect(rig.workout.restEndsAt == nil, "the reading under the target ended the rest")
         #expect(coordinator.lastRestResult == .recovered(bpm: 104, targetBpm: 110))
         #expect(presenter.lastState?.restEndsAt == nil, "the card was re-pushed")
@@ -557,8 +557,8 @@ struct WorkoutActivityContentTests {
     private func coldHeartRateRest() async throws -> ColdHeartRateRest {
         let rig = try rig()
         try RestTimerService(context: rig.context).setOverride(
-            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: nil,
-            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 240)
+            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: 3600,
+            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 7200)
         let provider = StubHeartRateProvider()
         let coordinator = WorkoutHeartRateCoordinator(alarm: DeadlineAlarm(), makeProvider: { _ in provider },
                                                       cardio: CardioRecorder(collectsDeviceSensors: false))
@@ -573,8 +573,11 @@ struct WorkoutActivityContentTests {
                                  presenter: presenter, notifications: notifications)
     }
 
+    /// Polls until `condition` holds, up to five minutes: on GitHub's runner the main actor can wait minutes for its
+    /// turn (2026-11-15, run 43698481749: these tests took 310 s and a 3-second wait gave up). Returns at once when it holds.
     private func waitUntil(_ condition: () -> Bool) async throws {
-        for _ in 0..<60 where !condition() { try await Task.sleep(for: .milliseconds(50)) }
+        let deadline = Date.now.addingTimeInterval(300)
+        while !condition(), Date.now < deadline { try await Task.sleep(for: .milliseconds(50)) }
     }
 
     /// codex-review-04 R2 #2: a failed save when the reading recovers leaves the rest as it was saved, and the next
@@ -626,8 +629,8 @@ struct WorkoutActivityContentTests {
     @Test func aMinimisedWorkoutStillFallsBackWithoutAReading() async throws {
         let rig = try rig()
         try RestTimerService(context: rig.context).setOverride(
-            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: nil,
-            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 240)
+            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: 3600,
+            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 7200)
         let provider = StubHeartRateProvider()
         let coordinator = WorkoutHeartRateCoordinator(alarm: DeadlineAlarm(), makeProvider: { _ in provider },
                                                       cardio: CardioRecorder(collectsDeviceSensors: false))
