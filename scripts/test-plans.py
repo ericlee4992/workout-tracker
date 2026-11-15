@@ -24,7 +24,7 @@ AREAS = {
     "TodayTrain": [
         "TodayUpNextUITests", "TemplateDetailUITests", "TemplateMachinesUITests", "FloodlightWorkoutTabUITests",
         "LogFoodUITests", "LogFoodFlowUITests", "TodayFoodUITests", "ScanFoodUITests", "BarcodeSearchUITests",
-        "KoreanFoodUITests",
+        "KoreanFoodUITests", "TrainAddGymUITests",
     ],
     "Workout": [
         "CoreLoopUITests", "FloodlightLiveUITests", "FloodlightFinishUITests", "CardioUITests",

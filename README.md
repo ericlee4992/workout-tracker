@@ -35,9 +35,10 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
 - **Five tabs.** Today (this week, the day's food against your goal, today's template — learned from the order you train
   in, or your own split — and today's log), Train (templates, gyms and exercises, Start Lifting / Start Cardio), History, Progress and Profile (your
   account card, settings grouped into short pages, and help).
-- **Gyms and machines.** Each gym has its own machines. Adding one can read its name plate on
-  the phone and match it against a seeded catalog of 1,877 equipment models from 23
-  manufacturers.
+- **Gyms and machines.** Each gym has its own machines. Add a gym from Train's gym menu (or
+  "Add Your Gym…" before you have one) or from Gyms. Give a machine its model from a seeded
+  catalog of 1,877 equipment models from 23 manufacturers, or, signed in, let Scan Machine
+  identify it from a photo.
 - **Fast logging.** Set rows arrive prefilled from your last session on that machine;
   confirming an untouched row is one tap. Add Exercise picks by name or by the gym's machines (a
   machine fills in its exercise). Weights keep the unit you entered, kg or lb, and

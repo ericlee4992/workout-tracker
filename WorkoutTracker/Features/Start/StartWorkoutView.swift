@@ -35,6 +35,8 @@ struct StartWorkoutView: View {
     @State private var showingTemplateEditor = false
     @State private var showingCardioPicker = false
     @State private var showingAIRoutine = false
+    /// Tester feedback 02 (D89): New Gym from Train, without visiting Gyms.
+    @State private var addingGym = false
     /// Soft redesign S5 (D77): the user's split and Today's "Not today" choice (view preferences), so the leading card
     /// shows the same template as Today; `now` follows the day (`refreshingNow`).
     @AppStorage(MySplitStore.key) private var splitData = Data()
@@ -66,7 +68,7 @@ struct StartWorkoutView: View {
                     // ONE Start, Start Lifting / Start Cardio step down to a quiet pair, the other templates follow,
                     // and "This week" moves to the end (a look back, not the reason to open the tab).
                     VStack(spacing: 12) {
-                        gymPicker
+                        gymRow
                             .tourAnchor("tour.gymPicker").id("tour.gymPicker")
                         if leadTemplate != nil {
                             upNextCard
@@ -133,6 +135,10 @@ struct StartWorkoutView: View {
             }
             .sheet(isPresented: $showingTemplateEditor) {
                 TemplateEditorSheet(template: editingTemplate)
+            }
+            // Tester feedback 02: Save makes the new gym the selected, remembered one (D1); Cancel creates nothing.
+            .sheet(isPresented: $addingGym) {
+                GymEditorSheet(onSave: { created in select(created) })
             }
             .onAppear(perform: restoreSelectedGym)
             // A gym deleted (archived) elsewhere — Gyms → Edit Gym → Delete Gym… — while it is the
@@ -387,6 +393,17 @@ struct StartWorkoutView: View {
         catch { assertionFailure("Failed to remember gym selection: \(error)") }
     }
 
+    /// Tester feedback 02 (D89, option C): with no gyms there is nothing to pick, so the row is the way to add the
+    /// first one; once there are gyms it is the picker, whose menu ends with Add Gym….
+    @ViewBuilder private var gymRow: some View {
+        if gyms.isEmpty {
+            TrainMakeRow(title: "Add Your Gym…", symbol: "plus") { addingGym = true }
+                .accessibilityIdentifier("trainAddGym")
+        } else {
+            gymPicker
+        }
+    }
+
     /// The gym is a VALUE, not a command (codex-review-10): a neutral row, the system menu
     /// lists the gyms.
     private var gymPicker: some View {
@@ -412,6 +429,10 @@ struct StartWorkoutView: View {
                     }
                 }
             }
+            // Tester feedback 02 (D89): as in Ask AI's gym menu.
+            Divider()
+            Button("Add Gym…", systemImage: "plus") { addingGym = true }
+                .accessibilityIdentifier("trainAddGym")
         } label: {
             GymPickerLabel(name: selectedGym?.name ?? "No gym", city: selectedGym?.city, unit: currentUnit)
         }

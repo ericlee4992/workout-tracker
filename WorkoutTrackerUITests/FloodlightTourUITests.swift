@@ -26,13 +26,14 @@ final class FloodlightTourUITests: XCTestCase {
 
     private var freshWelcome: [String] { ["-uiTestOnboarding", "-uiTestOnboardingFresh"] }
 
-    /// The user's own store is the empty UI-test store: its gym picker reads "No gym".
+    /// The user's own store is the empty UI-test store: with no gyms, Train's gym row is "Add Your Gym…" (tester
+    /// feedback 02, D89) — the tour's sample has a gym, so its picker would show instead.
     private func assertBackOnTheUsersEmptyStore() {
-        // S2: the gym picker lives in Train → Templates (the tour can end on any tab).
+        // S2: the gym row lives in Train → Templates (the tour can end on any tab).
         app.openTrain()
-        let picker = app.buttons["gymPicker"]
-        XCTAssertTrue(picker.waitForExistence(timeout: 10))
-        XCTAssertTrue(picker.label.contains("No gym"), "back on the user's store, not the sample (\(picker.label))")
+        let add = app.descendants(matching: .any).matching(identifier: "trainAddGym").firstMatch
+        XCTAssertTrue(add.waitForExistence(timeout: 10), "back on the user's store, not the sample")
+        XCTAssertFalse(app.buttons["gymPicker"].exists, "the sample's gym picker is gone")
     }
 
     private func walkTour(_ name: String) {
