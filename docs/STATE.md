@@ -1,39 +1,16 @@
 # Current project state
 
-Updated **2026-11-15: NOW — upload [release 0.2.0 (16)](../work-record/release/0.2.0-build-16.md) (Lock Screen Done); the user asked "can you upload the build". Blocker cleared: the CI test fix (`ericlee4992/ci-timing-tests` `c7486a97`) is Codex-clear and its GitHub Tests run 43700754494 passed. Next: merge it into `main`, rebase the release on it, archive, upload. Worktree `~/.paseo/worktrees/1qmeipq9/lock-screen-log-set`.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-15: [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) uploaded 14:41 EST (Lock Screen Done, D90; `main` `0449f245`) — the user's TestFlight steps next. Build 15 (01:18 EST) likewise.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-15)
 
-- **NOW (resume here) — finish release 0.2.0 (16)**, worktree `~/.paseo/worktrees/1qmeipq9/lock-screen-log-set`
-  (Paseo workspace "Log a set from the Lock Screen"; Codex reviewer agent `d1f3aad2-…` there).
-  1. Release branch `ericlee4992/release-0.2.0-16` `f93a716c` (off `main` `26642ef8`): build 16, record
-     `work-record/release/0.2.0-build-16.md` (no What's New, the user's note, no Gate S, no server change). **Codex
-     release review: clear** (`work-record/release/codex-review-0.2.0-build-16.md`).
-  2. **Blocker (cleared 2026-11-15):** the fix branch's CI run **43700754494 passed** and Codex round 2 was clear.
-     History: GitHub Tests on `main` 43698481749 (`26642ef8`) **failed**: 3 timing tests in
-     `WorkoutActivityContentTests` (the slow runner took 310 s; real clock passed the rests; a 3 s wait). Fix (test-only)
-     on `ericlee4992/ci-timing-tests` (off `26642ef8`): `11bd5591` (hour/2-hour rests, 5-min wait) + `2f5e7db1` (frozen
-     D43 `TestClock`; failing saves acknowledged). Codex: round 1 changes requested (`work-record/live-workout-fixes/
-     codex-review-04-ci.md`), **round 2: clear** (report committed on `ci-timing-tests`; was formerly uncommitted in the
-     worktree at handoff — commit it on `ci-timing-tests`). CI on the branch: 43700178994 was **cancelled**
-     (superseded); the run that counts is **43700754494** (`2f5e7db1`). Locally 31/31 ×3.
-  3. When both are green/clear: commit the review file on `ci-timing-tests`, fast-forward `main` to it, then rebase or
-     recreate the release branch on that `main` (build 16 + record; note the CI fix in the record), push, fast-forward
-     `main`, archive from `…/workspaces/Health App/release-build` (`scripts/testflight.sh archive`), upload (exit 2 = ask
-     the user to sign Xcode in), record, STATE. Then the user's TestFlight steps.
-  4. **Goal / why:** testers asked for logging a set without unlocking (research: Hevy has it); build 16 ships it.
-     The user chose (2026-11-15): 0.2.0 (16), **no What's New**, the build-16-only What to Test note (in the record).
-     Build 15 (tester feedback 01+02) was uploaded 01:18 EST; its TestFlight steps are the user's.
-  5. **Gotchas:** at handoff the worktree was checked out on `ericlee4992/ci-timing-tests` (Codex's review switched it);
-     this STATE is on `ericlee4992/release-0.2.0-16` (newer than `main`'s and the fix branch's) — read it from there
-     (`git show origin/ericlee4992/release-0.2.0-16:docs/STATE.md`) and carry it forward when recreating the release;
-     the CI fix lives on `ericlee4992/ci-timing-tests` — switch branches with care (`git switch`), nothing is stashed.
-     Real Live Activity UI tests and `testTheKeyboardUnitSwitchFollowsTheFocusedWeight` are flaky in parallel — run
-     serially. `gh run view <id> --log-failed` reads a failed CI run. Reviewer runs: never overlap with your own
-     build/test runs. If CI on the fix branch fails again, read the log before changing anything; the app code passed
-     every local run (Unit plan 1312/1312).
-
+- **NOW (resume here) — [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) uploaded 2026-11-15 14:41 EST**
+  (`main` `0449f245`; live-workout 04, D90; no What's New; no Gate S; no server change; Codex release review clear;
+  the CI timing-test fix merged first, branch `ericlee4992/ci-timing-tests`). **The user's steps:** processing →
+  Developer → install → try Done on the Lock Screen after a rest → Friends with the What to Test note (in the record) →
+  Submit. Check GitHub Tests on `main` `0449f245`. Workspaces "Tester feedback" and "Log a set from the Lock Screen"
+  (Codex agents `4ba7c5cd-…`, `d1f3aad2-…`) can be archived (the user's go; branches kept).
 - **Done 2026-11-15 — [live-workout 04, log a set from the Lock Screen](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md)**
   (D90; Codex clear round 4; merged into `main`, branch `ericlee4992/lock-screen-log-set` kept). Once rest is over the
   Live Activity shows the current set ("Now") with Done; Done logs exactly the set shown (a fingerprint; a stale card
