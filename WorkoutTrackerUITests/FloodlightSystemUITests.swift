@@ -50,6 +50,8 @@ final class FloodlightSystemUITests: XCTestCase {
             let cardio = state.hasPrefix("cardio")
             XCTAssertEqual(app.buttons["activitySkipRest"].exists, resting, "\(state): Skip")
             XCTAssertEqual(app.buttons["activityPauseResume"].exists, cardio, "\(state): Pause")
+            // Live-workout 04: Done once rest is over and the current set has a value (not after the last set).
+            XCTAssertEqual(app.buttons["activityLogSet"].exists, !resting && !cardio && state != "done", "\(state): Done")
             // The system clips the Lock Screen card at 160 pt (codex-review-11 #5).
             let card = any("galleryLockScreen").frame
             XCTAssertLessThanOrEqual(card.height, 160, "\(state): the card is \(card.height) pt tall")
@@ -157,6 +159,54 @@ final class FloodlightSystemUITests: XCTestCase {
         // The card stays on the Simulator's Lock Screen; the next real-activity run ends it (a new
         // workout's card ends any card left by another, WorkoutActivityController).
         app.terminate()
+    }
+
+    /// Live-workout 04: Done pressed ON THE CARD logs the current set in the app and starts its rest. The fixture is
+    /// mid-rest, so Skip on the card first brings it to the set.
+    func testRealLiveActivityDoneLogsTheSet() {
+        app.launchArguments = ["-uiTestReset", "-uiTestDesignSample", "-uiTestDesignLive", "-uiTestRealLiveActivity",
+                               "-appearance", "dark"]
+        app.launch()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 15))
+        guard let before = setsDoneInApp() else { return XCTFail("no N/M sets in the header") }
+        Thread.sleep(forTimeInterval: 2)
+        XCUIDevice.shared.press(.home)
+        Thread.sleep(forTimeInterval: 1.5)
+        openNotificationCenter()
+        let allow = springboard.buttons.matching(NSPredicate(format: "label ENDSWITH 'Allow' AND NOT (label BEGINSWITH 'Don')")).firstMatch
+        if allow.waitForExistence(timeout: 2) {
+            allow.tap()
+            Thread.sleep(forTimeInterval: 1.5)
+        }
+        let skip = springboard.buttons["Skip rest"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 5), "the card's Skip")
+        skip.tap()
+        Thread.sleep(forTimeInterval: 5)
+        closeNotificationCenter()
+        openNotificationCenter()
+        let done = springboard.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Log '")).firstMatch
+        XCTAssertTrue(done.waitForExistence(timeout: 8), "the card's Done once the rest is over")
+        shoot("04-real-card-now", XCUIScreen.main.screenshot())
+        done.tap()
+        Thread.sleep(forTimeInterval: 5)
+        closeNotificationCenter()
+        openNotificationCenter()
+        shoot("04-real-card-after-done", XCUIScreen.main.screenshot())
+        closeNotificationCenter()
+
+        app.activate()
+        XCTAssertTrue(app.buttons["finishWorkout"].waitForExistence(timeout: 10))
+        XCTAssertEqual(setsDoneInApp(), before + 1, "Done on the card logged one set")
+        XCTAssertNotNil(restSecondsInApp(), "and started its rest")
+        shoot("04-real-app-after-done")
+        app.terminate()
+    }
+
+    /// The header's "N/M" sets figure, N.
+    private func setsDoneInApp() -> Int? {
+        let figure = app.staticTexts.matching(NSPredicate(format: "label MATCHES '^[0-9]+/[0-9]+$'")).firstMatch
+        guard figure.waitForExistence(timeout: 5) else { return nil }
+        return figure.label.split(separator: "/").first.flatMap { Int($0) }
     }
 
     /// Public beta ticket 21 (the user, 2026-10-18: "Even after cancelling a workout, the live

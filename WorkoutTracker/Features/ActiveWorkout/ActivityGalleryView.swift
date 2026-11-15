@@ -17,13 +17,6 @@ enum ActivityGallery {
         return args[index + 1]
     }
 
-    /// MOCK: `-protoLogSet A|B` draws that option of the Lock Screen Log/Done control.
-    static var logSetMock: String? {
-        let args = ProcessInfo.processInfo.arguments
-        guard let index = args.firstIndex(of: "-protoLogSet"), args.indices.contains(index + 1) else { return nil }
-        return args[index + 1]
-    }
-
     static let attributes = WorkoutActivityAttributes(
         workoutID: UUID(uuidString: "00000000-0000-0000-0000-00000000A11E")!,
         startedAt: .now.addingTimeInterval(-(18 * 60 + 42)), gymName: "Iron Temple")
@@ -32,7 +25,7 @@ enum ActivityGallery {
     static func state(_ name: String, now: Date = .now) -> (state: WorkoutActivityAttributes.ContentState, isStale: Bool) {
         let chestNext = WorkoutActivityAttributes.NextSet(
             marker: "3", supersetLetter: nil, exerciseName: "Seated Chest Press", line: "Next · Set 3 · 110 lb × 8",
-            weight: "110", unit: "lb", reps: 8, previous: "105 lb × 8")
+            weight: "110", unit: "lb", reps: 8, setID: UUID())
         var s = WorkoutActivityAttributes.ContentState(
             heartRateBpm: 128, zoneLabel: "Zone 2", restEndsAt: now.addingTimeInterval(84), completedSets: 7,
             currentExercise: "Seated Chest Press", zoneLevel: 2, totalSets: 18, restStartedAt: now.addingTimeInterval(-36),
@@ -54,18 +47,18 @@ enum ActivityGallery {
             s.completedSets = 5; s.totalSets = 21; s.heartRateBpm = 131
             s.currentExercise = "Bench Press"
             s.next = .init(marker: "3", supersetLetter: "A", exerciseName: "Bench Press", line: "Next · Bench Press",
-                           weight: "135", unit: "lb", reps: 8, previous: "135 lb × 8")
+                           weight: "135", unit: "lb", reps: 8, setID: UUID())
         case "warmup":
             s.restEndsAt = nil; s.restStartedAt = nil; s.rest = nil
             s.completedSets = 8
             s.currentExercise = "Incline Chest Press"
             s.next = .init(marker: "W", supersetLetter: nil, exerciseName: "Incline Chest Press",
-                           line: "Next · Warmup · 45 lb × 12", weight: "45", unit: "lb", reps: 12, previous: "90 lb × 10")
+                           line: "Next · Warmup · 45 lb × 12", weight: "45", unit: "lb", reps: 12, setID: UUID())
         case "nohr":
             s.heartRateBpm = nil; s.zoneLabel = nil; s.zoneLevel = nil
         case "nextExercise":
             s.next = .init(marker: "1", supersetLetter: nil, exerciseName: "Incline Chest Press",
-                           line: "Next · Incline Chest Press", weight: "90", unit: "lb", reps: 10, previous: "90 lb × 10")
+                           line: "Next · Incline Chest Press", weight: "90", unit: "lb", reps: 10, setID: UUID())
         case "timer":
             ended(.timer, length: 120)
         case "recovered":
@@ -106,7 +99,7 @@ struct ActivityGalleryView: View {
         let palette = ActivityPalette.lockScreen(scheme)
         ScrollView {
             VStack(spacing: 18) {
-                Text("Z01 · \(name)\(ActivityGallery.logSetMock.map { " · option \($0)" } ?? "")")
+                Text("Z01 · \(name)")
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .accessibilityIdentifier("activityGallery")
@@ -162,7 +155,6 @@ struct ActivityGalleryView: View {
         }
         .background { wallpaper.ignoresSafeArea() }
         .environment(\.activityDrawsRingsStatically, true)
-        .environment(\.activityLogSetMock, ActivityGallery.logSetMock)
     }
 
     /// A neutral dusk wallpaper (the prototype's), low in saturation so the card is the loudest thing.

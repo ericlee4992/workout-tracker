@@ -1,6 +1,6 @@
 # 04 — Log a set from the Lock Screen (Live Activity)
 
-Status: in progress (Claude implements, Codex reviews — T6); branch `ericlee4992/lock-screen-log-set`
+Status: implemented, in review (Claude implements, Codex reviews — T6); branch `ericlee4992/lock-screen-log-set`
 Type: task
 
 ## The user's request (2026-11-15)
@@ -34,4 +34,36 @@ Mock captures: `captures/04/mock-options-AB.png` (today, A, B), `captures/04/moc
 
 ## Progress
 
-(implementation next)
+### What changed
+
+- **Widget (shared with the app):** `NextSet.setID` — present only when `WorkoutSession.isLoggable` (reps, and a weight
+  where taken), so `isLoggable` = Done offered; `NextSet.previous` removed (nothing draws it; the builder no longer
+  reads `PerformanceHistory` for it on every push). `WorkoutActivityLogSetIntent` (a `LiveActivityIntent`, runs in the
+  app) carries the workout, the set and the value shown; `WorkoutActivityCommandBridge.logSetHandler`.
+  `ActivityLogSetButton` ("Done", VoiceOver "Log set 3, 110 lb × 8" / warmup / drop / failure). Card ready instrument:
+  "Now" + value + Done (no PREVIOUS); island expanded: "Now", Done in place of the sets readout, no PREVIOUS line.
+- **App:** `WorkoutActivityCommands.performLogSet` — rebuilds the card's current set from the store and logs only if
+  the set id, weight, unit and reps all match what was shown and it is still `WorkoutSession.nextSet` and undone;
+  otherwise logs nothing and re-pushes the card. Then `WorkoutSession.toggleCompletion` (the row's check) and
+  `RestTimerService.restAfterCompletionChange` → `broadcastRest`, `didApply`, card push. The command steps shared by
+  +15s / Skip / Pause / Resume / Done are one `apply` (no behaviour change for the old commands).
+- **Shared rest rule:** D48 (no rest between superset members; a running one skipped) moved from
+  `ActiveWorkoutView.updateRest` into `RestTimerService.restAfterCompletionChange`, used by the screen and by Done.
+- Mock code, the `-protoLogSet` switch and `LockScreenLogSetMockUITests` removed. D90; README; SPEC.
+
+### Verification (author)
+
+- `build-for-testing` exit 0. Unit plan **1302/1302** (`build/results/ls04-unit.xcresult`): new
+  `WorkoutActivityContentTests` (the card's set id only for a loggable set; Done logs the shown set, starts the rest,
+  notification, alarm, card; a stale Done — value edited, set already checked, not the next set, set deleted, workout
+  finished / unknown — logs nothing and refreshes the card; Done inside a superset skips the rest) and
+  `RestTimerTests.supersetMembersRestOnlyAfterTheLastOne`.
+- `FloodlightSystemUITests` **7/7** (`build/results/ls04-sys.xcresult`): the gallery in light/dark × Default/AXL with a
+  Done check per state and the 160 pt check; **`testRealLiveActivityDoneLogsTheSet` presses Done on the Simulator's
+  real Lock Screen card** — the app's header goes N → N+1 sets and its rest runs (captures `04-real-*`, copied to
+  `captures/04/`).
+- After the loggability fix: `FloodlightLiveUITests` 20 + `CoreLoopUITests` 9 + the real Done test + gallery light /
+  dark AXL — **32/32**, exit 0 (2 workers; `build/results/ls04-ui.xcresult`).
+
+**Not verified:** on a phone (the Simulator's real Live Activity is the closest check); a cold background launch by
+Done (the existing commands' cold path is unit-tested and shared). **Known flaky:** none seen.

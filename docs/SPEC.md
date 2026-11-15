@@ -101,8 +101,8 @@ AccessibilityL captures in `work-record/redesign-floodlight/captures/`.
 The app icon is the dumbbell in violet on ink, with Dark and Tinted appearances
 (`scripts/render-app-icon.py`). The Live Activity follows the system appearance and carries the
 Floodlight tokens as literals (`WorkoutTrackerWidget/Shared/WorkoutActivityViews.swift`): resting
-(the draining ring, the countdown, +15s / Skip, the next set, heart and sets), ready (the next set
-to load beside last time's value, and how the last rest ended) and cardio (the target ring, the
+(the draining ring, the countdown, +15s / Skip, the next set, heart and sets), ready (the current set, "Now", with
+Done — D90 — and how the last rest ended) and cardio (the target ring, the
 segment's clock, Pause / Resume, distance and pace). The buttons are App Intents that run in the
 app (`WorkoutActivityCommands`); every countdown and clock is ticked by the system (D46).
 

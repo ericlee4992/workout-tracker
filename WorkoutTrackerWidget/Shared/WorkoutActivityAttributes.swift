@@ -122,8 +122,14 @@ struct WorkoutActivityAttributes: ActivityAttributes {
         var weight: String?
         var unit: String?
         var reps: Int?
-        /// Last time's value for this set ("105 lb × 8").
-        var previous: String?
+        /// The set itself, present only when the app could log it as it stands (`WorkoutSession.isLoggable`: reps,
+        /// and a weight where the exercise takes one). Live-workout 04: Done on the card logs THIS set, and only while
+        /// it is still the next set with the value shown. (Last time's value is no longer carried: the card shows the
+        /// current set only.)
+        var setID: UUID?
+
+        /// Done is offered only for a set the app can log (the user, 2026-11-15: no Done without a value).
+        var isLoggable: Bool { setID != nil }
     }
 
     struct Cardio: Codable, Hashable {

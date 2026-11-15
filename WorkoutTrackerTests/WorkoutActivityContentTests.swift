@@ -290,6 +290,125 @@ struct WorkoutActivityContentTests {
         #expect(c.presenter.starts == 0, "nothing pushed for a refused command")
     }
 
+    // MARK: Done on the card (live-workout 04)
+
+    /// What the card showed: its current set, as the builder made it.
+    private func shown(_ rig: Rig) throws -> WorkoutActivityShownSet {
+        let next = try #require(WorkoutActivityContent.make(for: rig.workout, in: rig.context, heart: nil).next)
+        return WorkoutActivityShownSet(workoutID: rig.workout.id, setID: try #require(next.setID),
+                                       weight: next.weight, unit: next.unit, reps: next.reps)
+    }
+
+    @Test func theCardsCurrentSetCarriesItsIdAndIsLoggableOnlyWithAValue() throws {
+        let rig = try rig()
+        let next = try #require(WorkoutActivityContent.make(for: rig.workout, in: rig.context, heart: nil).next)
+        #expect(next.setID == rig.pressSets[2].id && next.isLoggable)
+        rig.pressSets[2].completedAt = .now
+        try rig.context.save()
+        let empty = try #require(WorkoutActivityContent.make(for: rig.workout, in: rig.context, heart: nil).next)
+        #expect(empty.setID == nil && !empty.isLoggable, "no value, no Done")
+        // A weight without reps is shown but cannot be logged (A1), so no Done either.
+        rig.pressSets[3].weightValue = 55
+        try rig.context.save()
+        let weightOnly = try #require(WorkoutActivityContent.make(for: rig.workout, in: rig.context, heart: nil).next)
+        #expect(weightOnly.weight == "55" && weightOnly.setID == nil && !weightOnly.isLoggable)
+    }
+
+    @Test func doneLogsTheShownSetAndStartsItsRestAlarmAndCard() throws {
+        let rig = try rig()
+        let c = commands(rig)
+        var posted = false
+        let observer = NotificationCenter.default.addObserver(forName: WorkoutActivityCommands.didApply, object: nil, queue: nil) { note in
+            posted = (note.object as? UUID) == rig.workout.id
+        }
+        defer { NotificationCenter.default.removeObserver(observer) }
+        c.commands.coordinator.lastRestResult = .timer(seconds: 90)
+        #expect(c.commands.performLogSet(try shown(rig)))
+        let set = rig.pressSets[2]
+        #expect(set.completedAt != nil && set.weightValue == 50 && set.reps == 8, "logged as shown")
+        #expect(rig.press.snapshotCapturedAt != nil, "the set row's check: the snapshot is taken (D23)")
+        #expect(rig.workout.restStartedBySetID == set.id && rig.workout.restEndsAt != nil, "its rest started")
+        #expect(c.notifications.scheduled.count == 1, "the rest notification is scheduled")
+        #expect(!c.alarm.deadlines.isEmpty, "the audible alarm is queued")
+        #expect(c.commands.coordinator.lastRestResult == nil, "the last rest's result is gone")
+        #expect(posted, "the live screen re-reads the workout")
+        let state = try #require(c.presenter.lastState)
+        #expect(state.completedSets == 3 && state.phase(at: .now, isStale: false) == .resting, "the card shows the rest")
+    }
+
+    /// The wrong record (AGENTS): a card that lags the workout logs nothing and is brought up to date.
+    @Test func aStaleDoneLogsNothingAndRefreshesTheCard() throws {
+        // The value was edited in the app after the card was drawn.
+        do {
+            let rig = try rig(); let c = commands(rig)
+            let card = try shown(rig)
+            rig.pressSets[2].reps = 10
+            try rig.context.save()
+            #expect(!c.commands.performLogSet(card))
+            #expect(rig.pressSets[2].completedAt == nil && rig.workout.restEndsAt == nil)
+            #expect(c.presenter.lastState?.next?.reps == 10, "the card catches up")
+        }
+        // The set was already checked in the app (the next set moved on).
+        do {
+            let rig = try rig(); let c = commands(rig)
+            let card = try shown(rig)
+            rig.pressSets[2].completedAt = .now.addingTimeInterval(-5)
+            try rig.context.save()
+            #expect(!c.commands.performLogSet(card))
+            #expect(rig.pressSets[3].completedAt == nil, "no other set is logged in its place")
+            #expect(c.presenter.lastState?.next?.exerciseName == "Chest Press" && c.presenter.lastState?.next?.isLoggable == false,
+                    "the card catches up: set 3 has no value yet")
+        }
+        // The shown set is not the workout's next set.
+        do {
+            let rig = try rig(); let c = commands(rig)
+            var card = try shown(rig)
+            card.setID = rig.row.sets!.first!.id
+            card.weight = "40"; card.reps = 10
+            #expect(!c.commands.performLogSet(card))
+            #expect(rig.row.sets!.first!.completedAt == nil && rig.pressSets[2].completedAt == nil)
+        }
+        // The set was deleted.
+        do {
+            let rig = try rig(); let c = commands(rig)
+            let card = try shown(rig)
+            rig.context.delete(rig.pressSets[2])
+            try rig.context.save()
+            #expect(!c.commands.performLogSet(card))
+            #expect(rig.pressSets[3].completedAt == nil)
+        }
+        // The workout finished (or is unknown): nothing logged, nothing pushed.
+        do {
+            let rig = try rig(); let c = commands(rig)
+            let card = try shown(rig)
+            rig.workout.finishedAt = .now
+            try rig.context.save()
+            #expect(!c.commands.performLogSet(card))
+            var unknown = card; unknown.workoutID = UUID()
+            #expect(!c.commands.performLogSet(unknown))
+            #expect(rig.pressSets[2].completedAt == nil && c.presenter.starts == 0)
+        }
+    }
+
+    /// D48 through the shared rule: Done on a superset member that is not the last starts no rest and skips one running.
+    @Test func doneInsideASupersetSkipsTheRestLikeTheCheck() throws {
+        let rig = try rig()
+        let group = UUID()
+        rig.press.supersetGroupID = group
+        rig.row.supersetGroupID = group
+        let rowSet = try #require(rig.row.sets?.first)
+        rowSet.completedAt = .now
+        try rig.context.save()
+        try startRest(rig, after: rowSet)
+        let c = commands(rig)
+        let card = try shown(rig)
+        #expect(card.setID == rig.pressSets[2].id, "the press (A) is next")
+        #expect(c.commands.performLogSet(card))
+        #expect(rig.pressSets[2].completedAt != nil)
+        #expect(rig.workout.restEndsAt == nil, "no rest between members; the running one is skipped")
+        #expect(c.notifications.cancellations >= 1)
+    }
+
     @Test func pauseAndResumeOnTheCardDriveTheCardioSegment() throws {
         let rig = try rig()
         let segment = try CardioSession(context: rig.context).start(.indoorRun, in: rig.workout, at: .now.addingTimeInterval(-120))

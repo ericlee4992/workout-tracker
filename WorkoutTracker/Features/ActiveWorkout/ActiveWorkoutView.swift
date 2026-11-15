@@ -931,34 +931,10 @@ struct ActiveWorkoutView: View {
                 degradedRestSetID = nil
             }
         }
-        // D48: inside a superset, no rest until the LAST member. Moving
-        // straight from A to B with no rest is the entire point of the
-        // technique, so a timer firing between members would be telling the
-        // user to do the opposite of what they chose.
-        //
-        // Only completion is gated. UN-completing must still reach the timer,
-        // or a mistaken tap would leave a rest running with nothing behind it.
-        if isCompleted, let entry = set.entry, !entry.isDeleted,
-           !Supersets.shouldRest(afterCompletingSetIn: entry, in: workout) {
-            // SKIP a rest already running, do not merely decline to start one.
-            //
-            // codex-review 2 (high): returning early left an earlier member's
-            // rest scheduled. Complete B1 (rest starts), then A2 before it
-            // expires, and that rest sat there between A2 and B2 — precisely
-            // where D48 says there is none, with its notification still armed.
-            if restEnd != nil {
-                do {
-                    try restTimer.skip(workout)
-                    restEnd = nil
-                } catch {
-                    assertionFailure("Failed to clear rest between superset members: \(error)")
-                }
-            }
-            return
-        }
+        // D48 (no rest between superset members) lives in `restAfterCompletionChange`, shared with the Lock Screen's
+        // Done (live-workout 04). A skipped rest comes back as nil, which clears `restEnd` like the old path did.
         do {
-            showRestTimer(try restTimer.handleCompletionChange(
-                of: set, isCompleted: isCompleted))
+            showRestTimer(try restTimer.restAfterCompletionChange(of: set, isCompleted: isCompleted))
         } catch {
             assertionFailure("Failed to update rest timer: \(error)")
         }

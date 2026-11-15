@@ -308,4 +308,43 @@ struct RestTimerTests {
         #expect(rig.workout.restStartedBySetID == nil)
         #expect(notifications.cancellations == 1)
     }
+
+    /// Live-workout 04: D48 moved from the live screen into `restAfterCompletionChange`, shared with the Lock Screen's
+    /// Done. Inside a superset no rest until the last member, and a running rest is skipped; the last member rests;
+    /// un-completing still reaches the timer.
+    @Test func supersetMembersRestOnlyAfterTheLastOne() throws {
+        let rig = try makeRig(context: makeInMemoryContext())
+        let clock = FakeClock(now: Date(timeIntervalSince1970: 100))
+        let notifications = FakeNotifications()
+        let timer = RestTimerService(context: rig.context, clock: clock, notifications: notifications)
+        let partnerExercise = Exercise(name: "Seated Row")
+        rig.context.insert(partnerExercise)
+        let partner = ExerciseEntry(order: 1, workout: rig.workout, exercise: partnerExercise,
+                                    snapshotExerciseID: partnerExercise.id, snapshotLoadType: .weighted,
+                                    snapshotExerciseName: partnerExercise.name)
+        rig.context.insert(partner)
+        let partnerSet = SetRecord(order: 0, type: .working, entry: partner)
+        rig.context.insert(partnerSet)
+        #expect(Supersets.group([rig.entry, partner]))
+        try rig.context.save()
+
+        // A rest already running (from before the superset round) is skipped by member A.
+        rig.warmup.completedAt = clock.now
+        _ = try timer.handleCompletionChange(of: rig.warmup, isCompleted: true)
+        #expect(rig.workout.restEndsAt != nil)
+        rig.working.completedAt = clock.now
+        #expect(try timer.restAfterCompletionChange(of: rig.working, isCompleted: true) == nil)
+        #expect(rig.workout.restEndsAt == nil, "no rest between members; the running one is skipped")
+        #expect(notifications.cancellations == 1)
+
+        // The last member (B) rests.
+        partnerSet.completedAt = clock.now
+        let rest = try #require(try timer.restAfterCompletionChange(of: partnerSet, isCompleted: true))
+        #expect(rig.workout.restStartedBySetID == partnerSet.id && rest.end > clock.now)
+
+        // Un-completing B cancels the rest it started (only completion is gated).
+        partnerSet.completedAt = nil
+        _ = try timer.restAfterCompletionChange(of: partnerSet, isCompleted: false)
+        #expect(rig.workout.restEndsAt == nil)
+    }
 }

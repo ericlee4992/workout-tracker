@@ -148,6 +148,21 @@ struct RestTimerService {
             : preferences.globalWorkingRestSeconds)
     }
 
+    /// The rest after a set's completion changed, as the live screen and the Lock Screen's Done both apply it
+    /// (live-workout 04: one rule for both). D48: inside a superset there is no rest until the LAST member — a rest
+    /// already running is SKIPPED, not merely left alone (codex-review 2, high: an earlier member's rest left between
+    /// A2 and B2 with its notification armed). Only completion is gated; un-completing always reaches the timer, or a
+    /// mistaken tap would leave a rest running with nothing behind it. Otherwise `handleCompletionChange`.
+    @discardableResult
+    func restAfterCompletionChange(of set: SetRecord, isCompleted: Bool) throws -> RestTimerState? {
+        if isCompleted, let entry = set.entry, !entry.isDeleted, let workout = entry.workout,
+           !Supersets.shouldRest(afterCompletingSetIn: entry, in: workout) {
+            if workout.restEndsAt != nil { try skip(workout) }
+            return nil
+        }
+        return try handleCompletionChange(of: set, isCompleted: isCompleted)
+    }
+
     /// Call after WorkoutSession toggles completion. A completion starts or
     /// replaces the timer. An un-completion only cancels when this exact set
     /// started the current timer; it never starts a new one.

@@ -43,7 +43,7 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   confirming an untouched row is one tap. Add Exercise picks by name or by the gym's machines (a
   machine fills in its exercise). Weights keep the unit you entered, kg or lb, and
   are never silently converted. Supersets, presets (grips, stances), and the workout with its
-  rest timer on the Lock Screen.
+  rest timer on the Lock Screen, where Done logs the current set and starts its rest.
 - **Cardio.** Indoor machines and outdoor walks, runs and rides with a GPS route — on their
   own or in the same workout as lifting.
 - **Templates.** Save a workout as a plan and start it at any gym (Today suggests the one that comes next; My Split sets

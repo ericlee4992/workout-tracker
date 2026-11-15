@@ -6,8 +6,8 @@ import SwiftData
 // One builder for every pusher: the live screen (with its heart-rate monitor and the rest
 // result it saw) and `WorkoutActivityCommands` (a command pressed on the card while the
 // workout is minimised or the app is in the background). The rules match the live screen's:
-// the next set (`WorkoutSession.nextSet`), its line (the rest bar's, with the unit), last
-// time's value (`PerformanceHistory.reference`), the new-best mark (`SetBadgeMath`).
+// the next set (`WorkoutSession.nextSet`), its line (the rest bar's, with the unit), the new-best mark
+// (`SetBadgeMath`). Live-workout 04: the card shows the current set only, so last time's value is no longer read here.
 
 enum WorkoutActivityContent {
     struct Heart {
@@ -52,8 +52,7 @@ enum WorkoutActivityContent {
             }
         }
         state.restResult = restResult
-        state.next = nextSet(in: workout, restEntryID: restSet?.entry?.id, context: context,
-                             finishedEntries: finishedEntries)
+        state.next = nextSet(in: workout, restEntryID: restSet?.entry?.id)
         if let segment = workout.unfinishedCardio {
             state.cardio = cardio(segment, in: workout, now: now)
         }
@@ -102,8 +101,7 @@ enum WorkoutActivityContent {
         return degradedRestSetID == set.id ? .fallback : .heartRate(targetBpm: rule.thresholdBpm)
     }
 
-    static func nextSet(in workout: Workout, restEntryID: UUID?, context: ModelContext,
-                        finishedEntries: [ExerciseEntry]? = nil) -> WorkoutActivityAttributes.NextSet? {
+    static func nextSet(in workout: Workout, restEntryID: UUID?) -> WorkoutActivityAttributes.NextSet? {
         guard let next = WorkoutSession.nextSet(in: workout), let entry = next.entry else { return nil }
         let name = entry.exercise?.name ?? entry.snapshotExerciseName
         let sets = WorkoutSession.orderedSets(of: entry)
@@ -124,8 +122,6 @@ enum WorkoutActivityContent {
             line = look.nextSetLabel(number: number, value: value, rowUnit: next.weightUnit, loadType: loadType)
         }
         let showsWeight = loadType.takesWeight && next.weightValue != nil
-        let previous = (try? PerformanceHistory(context: context, finishedEntries: finishedEntries)
-            .reference(for: next))?.displayLabel
         return WorkoutActivityAttributes.NextSet(
             marker: next.type.marker ?? "\(number)",
             supersetLetter: Supersets.memberLabel(for: entry, in: workout),
@@ -134,7 +130,8 @@ enum WorkoutActivityContent {
             weight: showsWeight ? next.weightValue.map { WeightMath.displayNumber($0) } : nil,
             unit: showsWeight ? next.weightUnit.rawValue : nil,
             reps: next.reps,
-            previous: previous)
+            // Only a set the row's check could log gets Done (a weight without reps cannot be logged, A1).
+            setID: WorkoutSession.isLoggable(next) ? next.id : nil)
     }
 
     static func cardio(_ segment: CardioSegment, in workout: Workout, now: Date) -> WorkoutActivityAttributes.Cardio {
