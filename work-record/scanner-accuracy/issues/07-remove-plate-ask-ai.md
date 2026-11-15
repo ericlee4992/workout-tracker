@@ -1,6 +1,6 @@
 # 07 — Remove the switched-off plate "Ask AI" (Claude) and correct D56's model
 
-Status: in progress (Claude implements, Codex reviews — T6)
+Status: done — merged into `main` 2026-11-14 (Claude implemented, Codex reviewed — T6)
 Branch: `ericlee4992/remove-ask-ai-plate` (off `main` `56db78ab`), worktree `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`
 
 ## Why
@@ -63,3 +63,9 @@ Verified: build; the full Unit plan; the label sheet's UI tests and the suggesti
 Not verified: the full UI suite (routine scope per DEVELOPMENT — a removal confined to these files);
 a live signed-in suggestion against the server (the parse change is byte-for-byte the same input).
 Known flaky: none seen.
+
+## Review
+
+Codex round 1 clear, 0 findings ([report](../codex-review-07.md)): independent build, the 26 affected unit tests and
+the 3 UI tests all exit 0; parser equivalence traced for every result `AIServerClient.complete` can return; the
+LabelCrop tests moved with all 13 assertions.
