@@ -1,6 +1,6 @@
 # 04 — Log a set from the Lock Screen (Live Activity)
 
-Status: implemented, in review (Claude implements, Codex reviews — T6); branch `ericlee4992/lock-screen-log-set`
+Status: **done — Codex clear (round 4), merged into `main`**; branch `ericlee4992/lock-screen-log-set` kept.
 Type: task
 
 ## The user's request (2026-11-15)
@@ -134,3 +134,10 @@ Done (the existing commands' cold path is unit-tested and shared). **Known flaky
   `testRealLiveActivityEndsWhenTheWorkoutIsCancelled` ("the workout's card is up before the cancel" — two real Live
   Activity tests on parallel clones competing for Notification Center; run serially it passes). **Known flaky in
   parallel:** both; the real Live Activity tests are best run serially.
+
+### Review round 4 (Codex): **clear**
+
+Codex built, ran the Unit plan (1312/1312) and the real Lock Screen Done and cancellation tests serially (2/2), and
+inspected the other UI results. Report: `work-record/live-workout-fixes/codex-review-04.md`. Merged into `main`.
+**Follow-ups to propose:** the keyboard unit-switch test and the real Live Activity tests are flaky in parallel (run
+the real ones serially); a phone check of Done from the Lock Screen (next TestFlight build).

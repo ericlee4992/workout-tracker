@@ -1,17 +1,19 @@
 # Current project state
 
-Updated **2026-11-15: NOW — [live-workout 04](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md) (Done on the Lock Screen logs the current set; D90) implemented on `ericlee4992/lock-screen-log-set` in `~/.paseo/worktrees/1qmeipq9/lock-screen-log-set`, in Codex review. [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) uploaded 01:18 EST — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-15: [live-workout 04](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md) (Done on the Lock Screen logs the current set; D90) done — Codex clear round 4, merged into `main`. Next: the user's call (a TestFlight build with it, or the next feature). [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) uploaded 01:18 EST — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-15)
 
-- **NOW (resume here) — [live-workout 04, log a set from the Lock Screen](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md)**
-  (D90), worktree `~/.paseo/worktrees/1qmeipq9/lock-screen-log-set` (Paseo workspace "Log a set from the Lock Screen"),
-  branch `ericlee4992/lock-screen-log-set` `46e47450`. The user approved the mock (option A revised: "Now" + Done, no
-  PREVIOUS; log as shown, start rest; card keeps Light/Dark). Verified: Unit 1302/1302, FloodlightSystemUITests 7/7
-  (Done pressed on the Simulator's real Lock Screen card), FloodlightLive + CoreLoop 32/32. **In Codex review**: agent
-  `d1f3aad2-…` in that workspace, report `work-record/live-workout-fixes/codex-review-04.md`. Next: findings → clear →
-  fast-forward `main`.
+- **Done 2026-11-15 — [live-workout 04, log a set from the Lock Screen](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md)**
+  (D90; Codex clear round 4; merged into `main`, branch `ericlee4992/lock-screen-log-set` kept). Once rest is over the
+  Live Activity shows the current set ("Now") with Done; Done logs exactly the set shown (a fingerprint; a stale card
+  logs nothing and refreshes) and starts its rest through the same path as the in-app check. Along the way: D48's
+  superset rule moved into `RestTimerService.restAfterCompletionChange`; D43's heart-rate rest check moved into
+  `WorkoutHeartRateCoordinator` (the screen claims/releases it; the runtime runs it minimised or cold, with its own
+  tick); failed saves roll back. Unit 1312/1312; real Lock Screen Done test passes. **Not yet on a phone** — it ships
+  in the next TestFlight build (the user's call). Workspace "Log a set from the Lock Screen" and its Codex agent
+  `d1f3aad2-…` can be archived (the user's go).
 - **[0.2.0 (15)](../work-record/release/0.2.0-build-15.md) uploaded 2026-11-15 01:18 EST**
   (`main` `ed8825ad` + records; tester feedback 01 + 02; no What's New; no Gate S; Codex release review clear). Server
   deployed the same night (privacy page effective November 15, 2026, checked live). **The user's steps:** processing →

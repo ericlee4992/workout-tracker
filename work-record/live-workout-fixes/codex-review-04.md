@@ -382,3 +382,106 @@ Known flaky: prior round's keyboard-unit-focus case failed under parallel load a
 not selected this round. None seen in this round's reviewer run.
 
 Verdict: changes requested
+
+## Round 4 — `09c19957`, 2026-11-15
+
+Reviewed `git diff 60826bc3..09c19957`; actual HEAD
+`09c19957ba21e1e63e6c464e2d87079e72fdca5d`, branch `ericlee4992/lock-screen-log-set`, clean at
+review start. Read STATE and the ticket's round-3-fix section, and verified the actual source
+against Git. STATE still names the earlier implementation tip. Only this report was edited;
+no commit was made.
+
+### Standards
+
+No findings. The previous save boundaries and stale-card guards remain intact. The new ownership
+methods associate the callback with its workout; release from a different workout leaves the
+current claim alone. The installed evaluator captures its commands owner weakly and resolves the
+currently attached workout dynamically, rather than retaining the workout from an earlier command.
+
+The periodic task intentionally now lives with the app's evaluator. It uses a weak coordinator
+capture and skips dispatch when `workoutID` is nil. End/cancel clears attachment and callback
+ownership; installing a replacement evaluator cancels the previous task. The task can remain
+asleep between workouts, but cannot evaluate an unattached workout. The screenless path also
+fetches the requested workout and rejects deleted/finished workouts.
+
+### Spec
+
+No findings. The round-3 minimized-workout defect is addressed:
+
+- The screen claims samples when its task attaches the runtime and releases its own workout's
+  claim on disappearance. Minimize therefore hands evaluation to the runtime; resume reclaims
+  it. An old screen's disappearance cannot release a different workout's claim.
+- `WorkoutActivityCommands.install` installs the evaluator before the UI runs
+  (`WorkoutTrackerApp.prepare` calls it). It remains available after finish/cancel for the next
+  attached workout. Normal replacement tears down the old runtime and clears its claim first.
+- Each runtime sample/tick routes to one owner: the claimed screen or the runtime evaluator.
+  The screen also retains its existing liveness timer. These checks are synchronous on MainActor;
+  cleared-rest and degraded-set guards prevent duplicate recovery/fallback transitions when
+  successive checks run. The screen retains its redraw path; the runtime publishes the Watch,
+  alarm and card updates when the screen has released ownership.
+
+Standards: 0 findings. Spec: 0 findings. The remaining finding from round 3 is closed; no earlier
+blocking finding remains open in the reviewed implementation.
+
+### Test strength and verification
+
+The new minimized-workout test checks another workout cannot release the claim, the matching
+release clears it, no-sample fallback runs through the actual periodic trigger, the card reports
+fallback, and the released screen is never invoked. The visible-screen test checks ticks reach
+the screen and not the runtime handler. Those assertions detect the prior retained-callback and
+tick-routing behavior. The real SwiftUI claim/release calls and finish/cancel/second-workout
+paths were additionally traced in source. No mutation testing or new reviewer test code was used.
+
+Reviewer commands, Xcode 27.2 (`27B52`), WT-Floodlight (iPhone 15 Pro Max, iOS Simulator 27.0):
+
+```sh
+scripts/prepare-test-simulator.sh
+# exit 0
+
+xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+  -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' \
+  -derivedDataPath build/dd-codex
+# exit 0; TEST BUILD SUCCEEDED
+
+xcodebuild test-without-building -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+  -testPlan Unit -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' \
+  -derivedDataPath build/dd-codex -parallel-testing-enabled NO -collect-test-diagnostics never \
+  -resultBundlePath build/results/ls04-codex-r4-unit.xcresult
+# exit 0; 1312/1312, 0 failed, 0 skipped
+
+xcodebuild test-without-building -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+  -testPlan Full -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' \
+  -derivedDataPath build/dd-codex -parallel-testing-enabled NO \
+  -only-testing:WorkoutTrackerUITests/FloodlightSystemUITests/testRealLiveActivityDoneLogsTheSet \
+  -only-testing:WorkoutTrackerUITests/FloodlightSystemUITests/testRealLiveActivityEndsWhenTheWorkoutIsCancelled \
+  -collect-test-diagnostics never -resultBundlePath build/results/ls04-codex-r4-ui.xcresult
+# exit 0; 2/2, 0 failed, 0 skipped; TEST EXECUTE SUCCEEDED
+
+git diff --check 60826bc3..09c19957
+# exit 0
+```
+
+Actual status files and xcresult summaries inspected. Reviewer logs/status files:
+`build/results/ls04-codex-r4-{build,unit,ui}.{log,status}`. Runs were sequential, with no competing
+build/test run. The two real Lock Screen tests independently verified Done and cancellation.
+
+Author evidence inspected: `build/results/ls04-r4-unit.xcresult` **1312/1312 Passed**;
+`build/results/ls04-ui4.xcresult` **26/28**, two failures, zero skips, actual
+`build/logs/ls04-ui4.status` **exit 65**. Failures were the keyboard unit-focus assertion and the
+real-activity cancellation test's precondition that the card was visible. Both passed in
+`build/results/ls04-ui4-rerun.xcresult` (**2/2**, zero failures/skips; rerun log says
+`TEST EXECUTE SUCCEEDED`; no separate rerun shell-status artifact found). The adjacent
+HeartRate/FloodlightLive results were inspected rather than rerun. Parallel Notification Center
+contention is the author's explanation for the cancellation failure, not independently established
+here; the reviewer's serial cancellation check passed as well.
+
+Verified: reviewer build exit 0; Unit **1312/1312**, exit 0,
+`build/results/ls04-codex-r4-unit.xcresult`; real Lock Screen Done and cancellation **2/2**, exit 0,
+`build/results/ls04-codex-r4-ui.xcresult`. Author's adjacent UI result and serial rerun inspected.
+Not verified: physical-device behavior, OS cold-background launch delivery, and real sensor/Watch
+hardware; a dedicated end-to-end UI test of minimize → resume → second workout (unit coverage
+and lifecycle source tracing were used).
+Known flaky: author's parallel keyboard-unit-focus and Live Activity cancellation cases failed
+and then passed serially. None seen in this round's reviewer runs.
+
+Verdict: clear
