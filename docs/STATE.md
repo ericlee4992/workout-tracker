@@ -1,10 +1,20 @@
 # Current project state
 
-Updated **2026-11-14 (late): DONE — GitHub CI fixed and T6 default ("Claude implements, Codex reviews") merged into `main` `0a4bed76`; the first green Tests run on `main` (43593969132). Nothing in progress; next product work is the user's pick. 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-14 (late): IN PROGRESS — scanner 07 (remove the switched-off plate Ask AI / Claude code; D56 names GPT-5.6 Terra) on branch `ericlee4992/remove-ask-ai-plate`, Codex review running; then merge. Earlier today: GitHub CI fixed + T6 default merged (`main` `56db78ab`, first green Tests run on main 43593969132). 0.2.0 (14) uploaded 2026-11-13 (live-workout 03 + N15; no Gate S) — the user's TestFlight steps.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-14)
 
+- **IN PROGRESS (resume here) — [scanner 07](../work-record/scanner-accuracy/issues/07-remove-plate-ask-ai.md),
+  branch `ericlee4992/remove-ask-ai-plate`** (same worktree `~/.paseo/worktrees/1qmeipq9/workout-chart-machines`, off
+  `main` `56db78ab`; tip `57d91580`+, pushed). The user asked whether machine scans all use GPT (no: Scan Machine → GPT-5.6
+  Terra on the server; "Read label on device" → Vision on the phone) and then to remove the leftovers: the unreachable
+  plate "Ask AI" (Claude) and its client, and D56's stale model line. Implemented; full Unit plan 1361/1361, label sheet
+  + suggestion UI tests 3/3 (evidence in the ticket). **Codex review running** (agent `562c6d70-…`, brief
+  `work-record/scanner-accuracy/codex-review-07-prompt.md`, report `…/codex-review-07.md` — read its `Verdict:` line).
+  **Next:** fix findings to "clear"; fast-forward `main` (`H="…/orca/projects/Health App"; git -C "$H" pull --ff-only &&
+  git -C "$H" merge --ff-only origin/ericlee4992/remove-ask-ai-plate && git -C "$H" push`), refresh `release-build`,
+  check the main Tests run; rewrite this bullet as done.
 - **Done 2026-11-14 — GitHub CI fixed + T6 default (merged, `main` `0a4bed76`; branch `ericlee4992/ci-and-t6` kept).**
   The Tests workflow, which never passed in 216 runs, now runs the Unit plan on GitHub's `xcode-27` image (Xcode 27.2;
   macos-26's Xcode 26.6 could not compile the app). Root cause of the old "hangs": `VNRecognizeTextRequest` never returns
