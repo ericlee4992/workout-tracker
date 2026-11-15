@@ -15,7 +15,6 @@ struct WorkoutTrackerApp: App {
     init() {
         if WorkoutTrackerStore.isUITestReset {
             UserDefaults.standard.removeObject(forKey: TerraAccess.photoConsentKey)
-            UserDefaults.standard.removeObject(forKey: TerraAccess.exerciseConsentKey)
             UserDefaults.standard.removeObject(forKey: TerraAccess.routineConsentKey)
             // Per-device facts outside the store start fresh too (ticket 09).
             ExportRecord.clear()

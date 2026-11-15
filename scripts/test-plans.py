@@ -39,7 +39,7 @@ AREAS = {
     ],
     "GymsExercises": [
         "FloodlightGymsUITests", "GymsFlowsUITests", "MachineDeletionUITests", "FloodlightScanUITests",
-        "ScanMachineLabelUITests", "FloodlightExercisesUITests",
+        "FloodlightExercisesUITests",
     ],
     "ProfileAI": [
         "FloodlightProfileUITests", "FloodlightSettingsUITests", "FloodlightAccountUITests", "FloodlightGoogleUITests",

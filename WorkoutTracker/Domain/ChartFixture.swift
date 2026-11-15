@@ -3,7 +3,7 @@ import SwiftData
 
 // A few weeks of history for one exercise, seeded under a launch argument.
 //
-// WHY THIS EXISTS, in the same spirit as `-uiTestScanFixture` and
+// WHY THIS EXISTS, in the same spirit as `-uiTestTerra` and
 // `-uiTestHeartRate`: the simulator has no camera and no heartbeat, and it also
 // has NO PAST. A progress chart needs sessions on different days, and a UI test
 // can only ever log workouts today — which collapse into a single point, the

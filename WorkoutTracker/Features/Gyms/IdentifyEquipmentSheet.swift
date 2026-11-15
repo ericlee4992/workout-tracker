@@ -8,7 +8,7 @@ import UIKit
 /// the camera, user decision 2) → sign in (ticket 06) → camera → identifying → error / result → added. Two
 /// ways in (user decision 1): **add** mode (the gym page's Scan Machine, AI routine setup) saves
 /// the confirmed machine itself and shows the Added step; **fill-form** mode (the machine form's
-/// "Scan equipment…") hands the confirmed proposal back to the form and saves nothing here.
+/// "Scan Machine" row) hands the confirmed proposal back to the form and saves nothing here.
 struct IdentifyEquipmentSheet: View {
     enum Mode {
         case fillForm((EquipmentIdentification) -> Void)

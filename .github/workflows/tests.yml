@@ -155,9 +155,8 @@ jobs:
           # allowance fails by name instead of hanging the job. 10 minutes, not 2: every test starts at once and the
           # main-actor ones wait their turn on this slower virtual Mac, so at 120 s 139 healthy tests "timed out"
           # (2026-11-14); a truly stuck test still fails well inside the step's 25 minutes.
-          # STACKED_CI=1 in the test host (TestEnvironment.isCI): skips the tests that run on-device text recognition,
-          # which hangs on this virtual Mac (2026-11-14); they run locally.
-          export TEST_RUNNER_STACKED_CI=1
+          # Every test runs here: the on-device text-recognition tests that hung on this virtual Mac (and were skipped
+          # with STACKED_CI=1) went with the machine form's label reader (tester feedback 01, 2026-11-14).
           xcodebuild test \
             -project WorkoutTracker.xcodeproj \
             -scheme WorkoutTracker \

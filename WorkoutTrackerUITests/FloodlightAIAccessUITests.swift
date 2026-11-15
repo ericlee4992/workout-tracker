@@ -199,42 +199,4 @@ final class FloodlightAIAccessUITests: XCTestCase {
         retry.tap()
         XCTAssertTrue(any("routineDay.0").waitForExistence(timeout: 12), "the week arrives")
     }
-
-    func testCaptureNewModelLightDefault() { captureNewModel(appearance: "light", large: false) }
-    func testCaptureNewModelLightAccessibility() { captureNewModel(appearance: "light", large: true) }
-    func testCaptureNewModelDarkDefault() { captureNewModel(appearance: "dark", large: false) }
-    func testCaptureNewModelDarkAccessibility() { captureNewModel(appearance: "dark", large: true) }
-
-    /// New Model from a read plate, signed out: the suggestion asks to sign in.
-    private func captureNewModel(appearance: String, large: Bool) {
-        let suffix = "\(appearance)-\(large ? "axl" : "default")"
-        launch(appearance: appearance, large: large, flags: ["-uiTestProfileSignedOut", "-uiTestScanFixture"])
-        app.openTrain("Gyms")
-        let iron = any("gymRow.Iron Temple")
-        XCTAssertTrue(iron.waitForExistence(timeout: 15))
-        iron.tap()
-        let addMachine = app.buttons["addMachine"]
-        for _ in 0..<8 { guard !onScreen(addMachine) else { break }; app.swipeUp() }
-        addMachine.tap()
-        app.buttons["scanMachineLabel"].tap()
-        let cancel = app.buttons["scanCancel"]
-        XCTAssertTrue(cancel.waitForExistence(timeout: 5))
-        cancel.tap()
-        app.buttons["scanLabelOffline"].tap()
-        let shutter = app.buttons["scanShutter"]
-        XCTAssertTrue(shutter.waitForExistence(timeout: 5))
-        shutter.tap()
-        let create = app.buttons["scanCreateNew"]
-        XCTAssertTrue(create.waitForExistence(timeout: 15))
-        let bar = app.buttons["scanUseCandidate"]
-        for _ in 0..<8 { guard !(create.isHittable && (!bar.exists || create.frame.maxY < bar.frame.minY - 20)) else { break }; app.swipeUp() }
-        create.tap()
-        // A Form's rows exist once scrolled into view (the section starts below the fold at AX sizes).
-        XCTAssertTrue(app.navigationBars["New Model"].waitForExistence(timeout: 5))
-        let note = any("newModelSuggestSignIn")
-        for _ in 0..<10 { guard !onScreen(note, floor: app.frame.maxY - 30) else { break }; app.swipeUp(); Thread.sleep(forTimeInterval: 0.4) }
-        XCTAssertTrue(app.buttons["newModelSuggestExercises"].exists && note.exists)
-        Thread.sleep(forTimeInterval: 0.6)
-        shoot("ai06-newmodel-signedout-\(suffix)")
-    }
 }

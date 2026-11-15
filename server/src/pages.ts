@@ -8,7 +8,10 @@
 // deploy day). Change the date with the text; `npm run deploy` refuses a "[…" placeholder (predeploy).
 // N14 (2026-11-12): goal-setup answers sent for nutrition goals; Profile → Ask AI removed. Wording approved by the user
 // ("privacy page wording is good") and deployed the same day.
-export const POLICY_EFFECTIVE_DATE = "November 13, 2026";
+// Tester feedback 01 (2026-11-14, D88): the on-device label reader and New Model's exercise suggestions are removed from
+// the app; the suggestion line now names only earlier versions (the server still answers them). The date is the
+// placeholder until the user approves the deploy, so `npm run deploy` refuses it until then; set it to the deploy day.
+export const POLICY_EFFECTIVE_DATE = "[effective date]";
 export const DEVELOPER_NAME = "Eunchan Lee";
 export const SUPPORT_EMAIL = "ericlee4992@gmail.com";
 
@@ -53,7 +56,7 @@ using location, and indoor cardio may use motion data. The route stays in the ap
 the app asks Apple Maps for map imagery of the area around it; Apple’s handling of that request is covered by Apple’s
 privacy policy, and I receive nothing from it.</li>
 <li><strong>Camera and photos.</strong> You can photograph a machine or its label, a meal, or a food’s nutrition
-label, or choose a photo. The app’s own label reader works on your iPhone. A meal photo you log is kept in the app on
+label, or choose a photo. A meal photo you log is kept in the app on
 your iPhone with its entry, so your log can show it, and is deleted with the entry; other photos are not kept. The AI
 features send the photo for processing, as described below; a photo leaves your iPhone only then.</li>
 <li><strong>Your exports.</strong> Profile → Export &amp; backup → Export makes a file of your data: JSON (the fullest
@@ -90,7 +93,7 @@ time; deleting your account removes it.</li>
 <p>These stay until you change them or delete your account.</p>
 
 <h2>AI features (optional, signed in)</h2>
-<p>Stacked’s AI features — identifying a machine from a photo, suggesting exercises for a machine, building a week of
+<p>Stacked’s AI features — identifying a machine from a photo, building a week of
 templates, estimating the food in a meal photo or a description, reading a food’s nutrition label, and making your
 daily nutrition goals — run through my server on my OpenAI account. The training features ask your permission the
 first time and remember your answer (reinstalling the app asks again). Scanning or describing food has no separate
@@ -100,8 +103,9 @@ sent when you reach the plan in the goal setup while signed in; signed out, or i
 are calculated on your iPhone instead.</p>
 <ul>
 <li><strong>What is sent:</strong> for machine identification, the photo (re-encoded on your iPhone without its
-location or camera details) and the app’s list of exercises; for exercise suggestions, the machine’s manufacturer and
-model as you typed them, any text read from its label, and the list of exercises; for templates, your goals,
+location or camera details) and the app’s list of exercises; for exercise suggestions for a new machine (earlier
+versions of the app only), the machine’s manufacturer and model as you typed them, any text read from its label, and
+the list of exercises; for templates, your goals,
 experience, schedule, optional height and weight, and the exercises and cardio available to you; for food, the meal
 or label photo (re-encoded the same way) with any note you add, or the words you typed to describe what you ate; for
 nutrition goals, your goal-setup answers — sex, age, height, your current weight as you entered it in Stacked, how

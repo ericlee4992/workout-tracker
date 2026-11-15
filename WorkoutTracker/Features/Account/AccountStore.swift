@@ -357,8 +357,9 @@ final class AccountStore {
 
     // MARK: Display
 
-    static let flowTitles = [("scan-machine", "Machine scans"), ("routine-week", "Template weeks"),
-                             ("model-exercises", "Exercise suggestions")]
+    /// The training flows the profile shows. The server still counts `model-exercises` (New Model's "Suggest
+    /// exercises", which older builds call); this build has no such button (tester feedback 01, D88), so it is not shown.
+    static let flowTitles = [("scan-machine", "Machine scans"), ("routine-week", "Template weeks")]
 
     static func display(_ account: AccountClient.Profile, usage: AccountClient.Usage?) -> AccountProfile {
         AccountProfile(

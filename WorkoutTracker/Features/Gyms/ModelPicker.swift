@@ -447,21 +447,17 @@ struct TypeChip: View {
 ///
 /// Floodlight redesign ticket 06 (G06 New Model): a preview of what will be made, the manufacturer
 /// and model, the equipment type as glyph chips, then the exercises — the linked ones as removable
-/// chips on top, "Suggest exercises" (unchanged rules), a search and the checklist.
+/// chips on top, a search and the checklist. (Its AI "Suggest exercises" appeared only for a plate the on-device
+/// label reader had read; both were removed in tester feedback 01, D88 — Scan Machine proposes exercises itself.)
 struct AddModelSheet: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     @Environment(\.look) private var look
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    /// Prefill from a scanned name plate (D35) or the picker's search. Both stay editable: the
-    /// prefill proposes a name, the user owns it.
+    /// Prefill from the picker's search. It stays editable: the prefill proposes a name, the user owns it.
     var initialManufacturer: String = ""
     var initialModelName: String = ""
-    /// The plate as the scanner read it (ticket 06): with a reading and Ask
-    /// AI available, the Exercises section offers "Suggest with AI". Empty
-    /// for a hand-entered model, and then nothing is offered.
-    var plateLines: [String] = []
     var onCreate: (EquipmentModel) -> Void
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
     @State private var manufacturer = ""
@@ -470,18 +466,6 @@ struct AddModelSheet: View {
     @State private var linkedExerciseIDs: Set<UUID> = []
     @State private var exerciseQuery = ""
     @State private var loadedPrefill = false
-    /// Why AI ticked a row, shown under it until the user unticks it.
-    @State private var proposalReasons: [UUID: String] = [:]
-    @State private var proposing = false
-    @State private var proposalNote: String?
-    /// The proposal in flight, so Cancel, Add and the sheet going away
-    /// CANCEL the paid request rather than let it land on dead state
-    /// (codex-review-05b).
-    @AppStorage(TerraAccess.exerciseConsentKey) private var exerciseConsent = false
-    @State private var confirmSendModel = false
-    @Environment(AccountStore.self) private var account
-    @State private var signingIn = false
-    @State private var proposalTask: Task<Void, Never>?
 
     var body: some View {
         NavigationStack {
@@ -513,42 +497,6 @@ struct AddModelSheet: View {
                     .listRowBackground(Color.clear)
                 } header: {
                     sectionTitle("Equipment type")
-                }
-                // Ticket 06 (D53's rules): one tap, one call, the app's own
-                // exercise list in and ids from it out; the ticks stay the
-                // user's to change, and nothing is saved until Add.
-                if !plateLines.isEmpty {
-                    let ready = AskAI.isAvailable(account)
-                    Section {
-                        if proposing {
-                            HStack(spacing: 10) {
-                                ProgressView()
-                                Text("Asking AI…")
-                            }
-                            .accessibilityIdentifier("newModelSuggestStatus")
-                        } else {
-                            Button {
-                                // Ticket 06: signed out, the tap signs in first (AI needs an account).
-                                if !ready { signingIn = true }
-                                else if exerciseConsent || AskAI.fixtureIsEnabled { suggestExercises() }
-                                else { confirmSendModel = true }
-                            } label: {
-                                Label("Suggest exercises", systemImage: "sparkles")
-                            }
-                            .accessibilityIdentifier("newModelSuggestExercises")
-                        }
-                    } footer: {
-                        if let proposalNote {
-                            Text(proposalNote)
-                                .accessibilityIdentifier("newModelSuggestNote")
-                        } else if !ready {
-                            Text(AIServerError.signedOut.errorDescription ?? "")
-                                .accessibilityIdentifier("newModelSuggestSignIn")
-                        } else {
-                            Text("Sends the manufacturer and model above, the plate's text and this exercise list (names and muscle groups) through Stacked’s server to OpenAI; it picks from the list and you keep the final say.")
-                        }
-                    }
-                    .lookListRows()
                 }
                 Section {
                     if !linkedExerciseIDs.isEmpty {
@@ -584,24 +532,11 @@ struct AddModelSheet: View {
                 .lookListRows()
             }
             .lookGroupedList()
-            .alert("Send model details to OpenAI?", isPresented: $confirmSendModel) {
-                Button("Allow and send") { exerciseConsent = true; suggestExercises() }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("Sends the typed manufacturer/model, plate text and exercise names through Stacked’s server to OpenAI. You can revoke this in Settings. OpenAI API data policies apply.")
-            }
-            .onChange(of: exerciseConsent) { _, allowed in if !allowed { abandonProposal() } }
-            .sheet(isPresented: $signingIn) { AccountSignInSheet() }
-            // A suggestion still out when the session ends or changes is abandoned (codex-review-06-app F2).
-            .onChange(of: account.token) { _, _ in abandonProposal() }
             .navigationTitle("New Model")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
-                        abandonProposal()
-                        dismiss()
-                    }
+                    Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Add") { addModel() }
@@ -610,7 +545,6 @@ struct AddModelSheet: View {
                 }
             }
             .onAppear(perform: applyPrefill)
-            .onDisappear(perform: abandonProposal)
         }
     }
 
@@ -680,12 +614,7 @@ struct AddModelSheet: View {
                     Text(exercise.name)
                         .font(.system(.body, weight: on ? .semibold : .regular))
                         .foregroundStyle(look.textPrimary)
-                    if on, let reason = proposalReasons[exercise.id], !reason.isEmpty {
-                        Label(reason, systemImage: "sparkles")
-                            .font(.caption)
-                            .foregroundStyle(look.textSecondary)
-                            .accessibilityIdentifier("newModelExerciseReason.\(exercise.name)")
-                    } else if let group = exercise.muscleGroup {
+                    if let group = exercise.muscleGroup {
                         Text(group).font(.caption).foregroundStyle(look.textSecondary)
                     }
                 }
@@ -741,62 +670,12 @@ struct AddModelSheet: View {
     private func toggle(_ id: UUID) {
         if linkedExerciseIDs.contains(id) {
             linkedExerciseIDs.remove(id)
-            proposalReasons[id] = nil
         } else {
             linkedExerciseIDs.insert(id)
         }
     }
 
-    /// Ticket 06: ask once, tick what comes back, say why. Any failure
-    /// leaves the sheet exactly as it was, with a note under the button.
-    private func suggestExercises() {
-        guard exerciseConsent || AskAI.fixtureIsEnabled else { return }
-        guard !proposing, let proposer = AskAI.proposer(account) else { signingIn = !AskAI.isAvailable(account); return }
-        let candidates = exercises.map {
-            ExerciseCandidate(id: $0.id, name: $0.name, muscleGroup: $0.muscleGroup)
-        }
-        let plate = PlateDescription(
-            brand: trimmedManufacturer, model: trimmedModelName, lines: plateLines)
-        proposing = true
-        let session = AISessionBinding.bind(account)
-        proposalTask = Task {
-            let outcome: Result<[ExerciseProposal], Error>
-            do {
-                outcome = .success(try await proposer.propose(plate: plate, candidates: candidates))
-            } catch {
-                outcome = .failure(error)
-            }
-            // Cancelled (Cancel, Add, dismissal): the sheet is gone or
-            // done; nothing here may touch it.
-            guard !Task.isCancelled else { return }
-            proposalTask = nil
-            proposing = false
-            // Signed out or replaced meanwhile: nothing from this suggestion lands (codex-review-06-app B1).
-            guard session.isCurrent() else { return }
-            switch outcome {
-            case .success(let proposals) where proposals.isEmpty:
-                proposalNote = "Couldn't tell which exercises this machine serves."
-            case .success(let proposals):
-                for proposal in proposals {
-                    linkedExerciseIDs.insert(proposal.id)
-                    proposalReasons[proposal.id] = proposal.reason
-                }
-                proposalNote = nil
-            case .failure(let error):
-                if case AIServerError.signedOut = error, let refused = session.token { account.invalidate(token: refused) }
-                proposalNote = error.localizedDescription
-            }
-        }
-    }
-
-    private func abandonProposal() {
-        proposalTask?.cancel()
-        proposalTask = nil
-        proposing = false
-    }
-
     private func addModel() {
-        abandonProposal()
         // Preserve the catalog's display order in the stored link list.
         let orderedIDs = exercises.map(\.id).filter(linkedExerciseIDs.contains)
         let model = EquipmentModel(

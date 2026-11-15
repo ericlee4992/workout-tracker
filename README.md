@@ -64,8 +64,8 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   distance). Tap one for the full chart, its bests and sessions; its "…" or a long-press moves or removes it.
   Add Chart lists the exercises you've logged by body area.
 - **Optional account and AI.** Sign in with Apple or Google to identify a machine from a
-  photo, get exercise suggestions for a new machine, or have Ask AI build a week of
-  templates from your training profile. Each training AI feature asks first; every AI feature has a daily limit.
+  photo (Scan Machine) or have Ask AI build a week of templates from your training profile;
+  signed out, pick the machine's model from the catalog yourself. Each training AI feature asks first; every AI feature has a daily limit.
 - **Food logging** *(on `main`, not yet in TestFlight)*. On Today each day's ring fills toward that day's calorie goal
   in protein · carbs · fat colours; the fuel card shows what's left (or over), what you ate and burned — burned never
   changes the goal — and protein to go; without goals it offers to set them. Today's log lists the food by meal; tap an
@@ -112,7 +112,7 @@ taken 2026-11-08 (Today and Log food added with nutrition, 2026-11-11) and resiz
   in, the plan comes from the server (the answers, with the current weight as entered in Stacked — never one read
   from Apple Health — are sent through it to OpenAI), and signed out or when the server can't answer it is calculated
   on the phone (Mifflin–St Jeor, the pace, a calorie floor). Generated numbers stay until you generate again or
-  Recalculate. The Ask AI section in Profile is gone: the training AI features (Scan Machine, exercise suggestions, Ask AI for
+  Recalculate. The Ask AI section in Profile is gone: the training AI features (Scan Machine and Ask AI for
   Templates) ask at first use; food scanning and goal generation have no separate prompt.
 - **A safety copy before data changes** *(on `main`, not yet in TestFlight)*. Before an update first opens your data
   in a new stored format, the app copies it on the phone (the newest two copies are kept, inside the iPhone's own
@@ -132,9 +132,8 @@ kept and for how long; [support](https://stacked-server.stacked-server.workers.d
 ## Building
 
 Requires iOS 26 and Xcode 27 (Xcode 26.6 cannot compile the app). GitHub's Tests workflow runs
-the unit tests on GitHub's `xcode-27` runner image (Xcode 27.2) after each push to `main`. It skips
-the 9 tests that run on-device text recognition, which hangs on GitHub's virtual Mac; those run
-locally. The simulator build needs no signing:
+the unit tests on GitHub's `xcode-27` runner image (Xcode 27.2) after each push to `main`. The
+simulator build needs no signing:
 
 ```sh
 xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \

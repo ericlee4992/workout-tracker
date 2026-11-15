@@ -445,26 +445,6 @@ final class AskAIUITests: XCTestCase {
         XCTAssertTrue(app.buttons["scanShutter"].waitForExistence(timeout: 5))
     }
 
-    func testManualModelSuggestionsRequireConsentAndKeepConfirmation() {
-        launch(["-uiTestScanFixture"])
-        scanner()
-        let cancel = app.buttons["scanCancel"]; XCTAssertTrue(cancel.waitForExistence(timeout: 5)); cancel.tap()
-        app.buttons["scanLabelOffline"].tap()
-        let shutter = app.buttons["scanShutter"]; XCTAssertTrue(shutter.waitForExistence(timeout: 5)); shutter.tap()
-        let create = app.buttons["scanCreateNew"]; XCTAssertTrue(create.waitForExistence(timeout: 15))
-        // Clear of the pinned Use This bar: a tap on a row half under it lands on the bar.
-        let bar = app.buttons["scanUseCandidate"]
-        for _ in 0..<8 { guard !(create.isHittable && (!bar.exists || create.frame.maxY < bar.frame.minY - 20)) else { break }; app.swipeUp() }
-        create.tap()
-        let suggest = app.buttons["newModelSuggestExercises"]; XCTAssertTrue(suggest.waitForExistence(timeout: 5)); reach(suggest); suggest.tap()
-        XCTAssertTrue(app.alerts["Send model details to OpenAI?"].waitForExistence(timeout: 5))
-        app.alerts.buttons["Allow and send"].tap()
-        let save = app.buttons["saveNewModel"]
-        let enabled = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: save)
-        XCTAssertEqual(XCTWaiter.wait(for: [enabled], timeout: 10), .completed)
-        XCTAssertTrue(app.navigationBars["New Model"].exists)
-    }
-
     func testSignedOutRoutineOffersSignIn() { signedOutRoutine(large: false) }
     func testSignedOutRoutineAccessibility() { signedOutRoutine(large: true) }
     /// Public beta ticket 06: no key anywhere. Signed out, Equipment offers Sign In instead of Generate (the sign-in

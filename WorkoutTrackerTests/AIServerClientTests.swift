@@ -44,21 +44,6 @@ struct AIServerClientTests {
         #expect(rows == [["id": id.uuidString, "name": "Seated Chest Press", "loadType": "weighted"]])
     }
 
-    @Test func modelExercisesSendsThePlateAndTheListAndOmitsAMissingGroup() {
-        let a = UUID(), b = UUID()
-        let body = AIServerClient.modelExercisesBody(
-            plate: PlateDescription(brand: "Cybex", model: "Eagle NX", lines: ["Cybex", "OVERHEAD PRESS"]),
-            candidates: [ExerciseCandidate(id: a, name: "Machine Shoulder Press", muscleGroup: "Shoulders"),
-                         ExerciseCandidate(id: b, name: "Plank", muscleGroup: nil)])
-        #expect(Set(body.keys) == ["plate", "candidates"])
-        let plate = body["plate"] as? [String: Any]
-        #expect(plate?["brand"] as? String == "Cybex")
-        #expect(plate?["lines"] as? [String] == ["Cybex", "OVERHEAD PRESS"])
-        let rows = body["candidates"] as? [[String: String]]
-        #expect(rows == [["id": a.uuidString, "name": "Machine Shoulder Press", "muscleGroup": "Shoulders"],
-                         ["id": b.uuidString, "name": "Plank"]])
-    }
-
     @Test func routineSendsTheRequestAsTheAppEncodesIt() async throws {
         let request = AIRoutineRequest(goals: "Build strength.", experience: "Intermediate", days: 3, minutes: 45,
                                        heightCm: nil, weightKg: 80, exercises: [], cardioActivities: [.outdoorWalk])
@@ -137,7 +122,7 @@ struct AIServerClientTests {
         let refused = SentBox()
         AIStub.respond = { _ in (401, Self.json(["error": "unauthorized"])) }
         await #expect(throws: AIServerError.signedOut) {
-            try await client(onUnauthorized: { refused.append($0) }).complete(.modelExercises, json: [:])
+            try await client(onUnauthorized: { refused.append($0) }).complete(.routineWeek, json: [:])
         }
         #expect(refused.paths == ["tok-1"])
     }

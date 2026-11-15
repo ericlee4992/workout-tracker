@@ -4,8 +4,8 @@ import UIKit
 // Floodlight redesign ticket 07 — the Scan sheets' shared pieces, ported from the prototype's
 // Scan area (ScanSupport.swift): the framing corners, the identifying sweep, the sheet's top and
 // bottom bars, the primary with its neutral disabled face, the outcome stamp, radio marks, the
-// score meter, the photo tile and the scroll with a pinned bar. Used by the Scan Machine sheet
-// (IdentifyEquipmentSheet), Read Label (ScanMachineLabelSheet) and Correct Model.
+// photo tile and the scroll with a pinned bar. Used by the Scan Machine sheet
+// (IdentifyEquipmentSheet), Correct Model and Scan Food.
 
 extension EnvironmentValues {
     /// True while scrolled content is hidden under the pinned bottom bar (the bar draws its
@@ -384,42 +384,6 @@ struct ScanRadio: View {
         .frame(width: side, height: side)
         .animation(.spring(response: 0.25, dampingFraction: 0.6), value: selected)
         .accessibilityHidden(true)
-    }
-}
-
-/// A 0…1 score as ten lit scoreboard cells and the plain percentage — the on-device matcher's
-/// score (D33 shows it). Fills on appear; Reduce Motion: it is simply there.
-struct ScanScoreMeter: View {
-    var value: Double
-    @Environment(\.look) private var look
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var shown: Double = 0
-    @ScaledMetric(relativeTo: .footnote) private var height: CGFloat = 8
-
-    var body: some View {
-        HStack(spacing: 10) {
-            let lit = Int((shown * 10).rounded())
-            HStack(spacing: 3) {
-                ForEach(0..<10, id: \.self) { i in
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(i < lit ? look.done : look.ringTrack)
-                }
-            }
-            .frame(height: height + 2)
-            .frame(maxWidth: .infinity)
-            Text("\(Int((value * 100).rounded()))%")
-                .font(look.font.fieldNumber)
-                .monospacedDigit()
-                .foregroundStyle(look.textPrimary)
-                .fixedSize()
-        }
-        .onAppear {
-            if reduceMotion { shown = value } else { withAnimation(.easeOut(duration: 0.7).delay(0.15)) { shown = value } }
-        }
-        .onChange(of: value) { _, new in shown = new }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Score")
-        .accessibilityValue("\(Int((value * 100).rounded())) percent")
     }
 }
 

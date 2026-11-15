@@ -27,18 +27,6 @@ struct MachineEditorSheet: View {
     /// typed is the user's.
     @State private var modelDerivedLabel: String?
     @State private var showingScanner = false
-    @State private var showingOfflineScanner = false
-    /// A scan that found nothing in the catalog hands its reading here, so the
-    /// New Model sheet opens prefilled with what the plate said (D35).
-    @State private var scanCreatedModel: ScanDraft?
-
-    private struct ScanDraft: Identifiable {
-        let id = UUID()
-        let manufacturer: String
-        let modelName: String
-        /// The plate as read, for the exercise proposal (ticket 06).
-        let plateLines: [String]
-    }
 
     var body: some View {
         NavigationStack {
@@ -63,14 +51,14 @@ struct MachineEditorSheet: View {
                             }
                         }
                         .accessibilityIdentifier("catalogModel")
+                        // Tester feedback 01 (D88): Scan Machine is the one scan — the on-device label reader was removed;
+                        // the catalog picker above is the manual path, signed out or offline.
                         Button {
                             showingScanner = true
                         } label: {
-                            Label("Scan equipment…", systemImage: "camera.viewfinder")
+                            Label("Scan Machine", systemImage: "camera.viewfinder")
                         }
                         .accessibilityIdentifier("scanMachineLabel")
-                        Button("Read label on device") { showingOfflineScanner = true }
-                            .accessibilityIdentifier("scanLabelOffline")
                     }
                     .lookListRows()
                 } else {
@@ -166,18 +154,6 @@ struct MachineEditorSheet: View {
                         modelDerivedLabel = result.labelWasEdited ? nil : result.label
                     }
                 }
-            }
-            .sheet(isPresented: $showingOfflineScanner) {
-                ScanMachineLabelSheet(onUseModel: { model = $0 }, onCreateNew: { manufacturer, modelName, lines in
-                    scanCreatedModel = ScanDraft(manufacturer: manufacturer, modelName: modelName, plateLines: lines)
-                })
-            }
-            .sheet(item: $scanCreatedModel) { draft in
-                AddModelSheet(
-                    initialManufacturer: draft.manufacturer,
-                    initialModelName: draft.modelName,
-                    plateLines: draft.plateLines,
-                    onCreate: { model = $0 })
             }
         }
     }

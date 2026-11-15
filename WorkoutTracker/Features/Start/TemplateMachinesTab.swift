@@ -3,7 +3,7 @@ import SwiftUI
 
 /// Public beta ticket 23 (the user, 2026-10-23: "When adding new template on my own, i can't add new machine or scan
 /// machine"): the template editor's Machines tab. The machines at a gym — the Workout tab's selected gym first, a menu
-/// to switch (the switch stays in this sheet) — then Add Machine… (its form has Scan equipment…). Picking a
+/// to switch (the switch stays in this sheet) — then Add Machine… (its form has Scan Machine). Picking a
 /// one-exercise machine adds its exercise; a station asks which (D7). The editor remembers the machine for that
 /// exercise at that gym when the template is saved (D66). Stays open for more, like the Exercises tab.
 struct TemplateMachinesTab: View {

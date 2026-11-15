@@ -267,7 +267,7 @@ final class HeartRateMonitor {
 enum HeartRateProviders {
     /// Launch argument that swaps HealthKit for the scripted series, so the
     /// simulator — which has no heartbeat, no AirPods and no Watch — can drive
-    /// the whole feature. Same shape as `-uiTestScanFixture`, for the same
+    /// the whole feature. Same shape as `-uiTestTerra`, for the same
     /// reason: a camera and a heart are both unavailable to a test runner.
     static let uiTestArgument = "-uiTestHeartRate"
 

@@ -82,6 +82,8 @@ struct AccountTests {
         #expect(throws: AccountClient.Failure.refused("malformed")) { try AccountClient.profile(from: ["provider": "apple"]) }
     }
 
+    /// The server still reports `model-exercises` (older builds' New Model suggestions); this build has no such
+    /// feature (tester feedback 01, D88), so the profile does not show it.
     @MainActor @Test func theDisplayFallsBackAndOrdersTheAIFigures() throws {
         var bare = Self.profileJSON
         bare["displayName"] = NSNull(); bare["email"] = NSNull()
@@ -92,8 +94,8 @@ struct AccountTests {
         #expect(shown.displayName == AccountDisplayCopy.unnamed)
         #expect(shown.email == AccountDisplayCopy.noEmail)
         #expect(shown.provider == "Apple")
-        #expect(shown.aiUsage.map(\.flow) == ["scan-machine", "routine-week", "model-exercises"])
-        #expect(shown.aiUsage.map(\.title) == ["Machine scans", "Template weeks", "Exercise suggestions"])
+        #expect(shown.aiUsage.map(\.flow) == ["scan-machine", "routine-week"])
+        #expect(shown.aiUsage.map(\.title) == ["Machine scans", "Template weeks"])
         #expect(shown.aiPaused)
     }
 

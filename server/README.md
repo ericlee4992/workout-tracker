@@ -23,7 +23,7 @@ every push to `main` (after publication, in this no-PR workflow), so turn on the
 | `DELETE /v1/account` | deletes every row now (feedback and its screenshots too); revokes Apple's tokens → `{ deleted, appleRevocation: "done" \| "pending" \| "manual" }` |
 | `POST /v1/ai/scan-machine` | `{ exercises: [{ id, name, loadType }], jpeg: <base64 of a JPEG ≤ 2 MB, ≤ 4096 px a side> }` → `{ result }` (the model's JSON) |
 | `POST /v1/ai/routine-week` | the app's routine request `{ goals, experience, days, minutes, heightCm?, weightKg?, exercises, cardioActivities }` → `{ result }` |
-| `POST /v1/ai/model-exercises` | `{ plate: { brand, model, lines }, candidates: [{ id, name, muscleGroup? }] }` → `{ result }` |
+| `POST /v1/ai/model-exercises` | `{ plate: { brand, model, lines }, candidates: [{ id, name, muscleGroup? }] }` → `{ result }` — called only by app builds before tester feedback 01 (D88), which removed New Model's Suggest exercises; kept while those builds are installed |
 | `POST /v1/ai/food-photo` | nutrition N6: `{ jpeg, note? }` (a meal photo, as scan-machine's; a one-line note ≤ 300 characters) → `{ result: { items: [{ name, portion, grams, calories, protein, carbs, fat, confidence }] } }` (≤ 15 items; none when no food) |
 | `POST /v1/ai/food-label` | `{ jpeg }` (a nutrition facts panel) → `{ result: { found, servingSize, servingGrams, servingsPerContainer, calories, protein, carbs, fat, saturatedFat, fiber, sugar, sodiumMg } }` — numbers only as printed, null when not |
 | `POST /v1/ai/food-describe` | `{ text }` (≤ 500 characters, line breaks allowed) → `{ result: { items: [...] } }` as food-photo |

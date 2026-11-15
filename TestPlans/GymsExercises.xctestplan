@@ -17,7 +17,6 @@
         "GymsFlowsUITests",
         "MachineDeletionUITests",
         "FloodlightScanUITests",
-        "ScanMachineLabelUITests",
         "FloodlightExercisesUITests"
       ],
       "target": {

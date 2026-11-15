@@ -36,7 +36,6 @@ enum ProfileSample {
             aiUsage: [
                 .init(flow: "scan-machine", title: "Machine scans", used: 12, limit: 60),
                 .init(flow: "routine-week", title: "Template weeks", used: 2, limit: 10),
-                .init(flow: "model-exercises", title: "Exercise suggestions", used: 0, limit: 60),
             ],
             aiResetsAt: AIResetCopy.nextReset(), aiPaused: flag("-uiTestAIPaused"))
     }

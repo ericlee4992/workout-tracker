@@ -83,11 +83,11 @@ final class TemplateMachinesUITests: XCTestCase {
         XCTAssertTrue(gym.label.contains("Iron Temple"), gym.label)
         shoot("beta-23-machines")
 
-        // Add Machine… opens the machine form, which has Scan equipment….
+        // Add Machine… opens the machine form, which has Scan Machine.
         let addMachine = app.buttons["templateAddMachine"]
         reach(addMachine)
         addMachine.tap()
-        XCTAssertTrue(app.buttons["scanMachineLabel"].waitForExistence(timeout: 5), "Scan equipment… in the form")
+        XCTAssertTrue(app.buttons["scanMachineLabel"].waitForExistence(timeout: 5), "Scan Machine in the form")
         shoot("beta-23-add-machine")
         app.buttons["Cancel"].firstMatch.tap()
         XCTAssertTrue(addMachine.waitForExistence(timeout: 5))

@@ -1,8 +1,8 @@
 import XCTest
 
 // Floodlight redesign ticket 07: the Scan sheets — Scan Machine (consent, camera, identifying,
-// the result for each identity, the error, sign in (public beta 06), Change exercises, Added), Read Label
-// (viewfinder, results) and Correct Model — on record in light and dark at Default and
+// the result for each identity, the error, sign in (public beta 06), Change exercises, Added), the machine
+// form's one scan row (tester feedback 01) and Correct Model — on record in light and dark at Default and
 // AccessibilityL on the design sample's Iron Temple; plus the direct-add and correction flows.
 final class FloodlightScanUITests: XCTestCase {
     private var app: XCUIApplication!
@@ -228,38 +228,25 @@ final class FloodlightScanUITests: XCTestCase {
         XCTAssertTrue(app.textFields["machineLabel"].waitForExistence(timeout: 5))
     }
 
-    // MARK: Read Label (on device)
+    // MARK: The machine form (tester feedback 01: one scan, the GPT flow; no on-device label reader)
 
-    func testCaptureReadLabelLightDefault() { captureReadLabel(appearance: "light", large: false) }
-    func testCaptureReadLabelLightAccessibility() { captureReadLabel(appearance: "light", large: true) }
-    func testCaptureReadLabelDarkDefault() { captureReadLabel(appearance: "dark", large: false) }
-    func testCaptureReadLabelDarkAccessibility() { captureReadLabel(appearance: "dark", large: true) }
+    func testCaptureMachineFormLightDefault() { captureMachineForm(appearance: "light", large: false) }
+    func testCaptureMachineFormLightAccessibility() { captureMachineForm(appearance: "light", large: true) }
+    func testCaptureMachineFormDarkDefault() { captureMachineForm(appearance: "dark", large: false) }
+    func testCaptureMachineFormDarkAccessibility() { captureMachineForm(appearance: "dark", large: true) }
 
-    private func captureReadLabel(appearance: String, large: Bool) {
-        launch(["-uiTestScanFixture"], appearance: appearance, large: large)
+    private func captureMachineForm(appearance: String, large: Bool) {
+        launch([], appearance: appearance, large: large)
         let suffix = "\(appearance)-\(large ? "axl" : "default")"
         openIronTemple()
         let add = any("addMachine")
         reach(add)
         add.tap()
-        let offline = app.buttons["scanLabelOffline"]
-        XCTAssertTrue(offline.waitForExistence(timeout: 5))
-        offline.tap()
-        let shutter = app.buttons["scanShutter"]
-        XCTAssertTrue(shutter.waitForExistence(timeout: 10))
-        XCTAssertTrue(any("scanFramingBox").exists)
-        Thread.sleep(forTimeInterval: 2.0) // the sheet slides up over the form; let it land
-        shoot("floodlight-07-readlabel-camera-\(suffix)")
-        shutter.tap()
-        let candidate = any("scanCandidate.Insignia Series Chest Press")
-        XCTAssertTrue(candidate.waitForExistence(timeout: 20))
-        let use = app.buttons["scanUseCandidate"]
-        XCTAssertTrue(use.isEnabled, "a confident match arrives preselected (D33)")
-        Thread.sleep(forTimeInterval: 1.2)
-        shoot("floodlight-07-readlabel-results-\(suffix)-1")
-        reach(any("scanCreateNew"), bar: use, name: "floodlight-07-readlabel-results-\(suffix)", limit: 4)
-        use.tap()
-        XCTAssertTrue(app.textFields["machineLabel"].waitForExistence(timeout: 5))
+        let scan = app.buttons["scanMachineLabel"]
+        XCTAssertTrue(scan.waitForExistence(timeout: 5))
+        Thread.sleep(forTimeInterval: 1.5) // the sheet slides up; let it land
+        shoot("tf01-machine-form-\(suffix)-1")
+        reach(any("machineUnitPicker"), name: "tf01-machine-form-\(suffix)", limit: 3)
     }
 
     // MARK: Correct Model

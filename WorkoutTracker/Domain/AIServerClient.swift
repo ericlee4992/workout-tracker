@@ -7,7 +7,6 @@ import Security
 enum AIFlow: String, CaseIterable, Sendable {
     case scanMachine = "scan-machine"
     case routineWeek = "routine-week"
-    case modelExercises = "model-exercises"
     /// Nutrition N6/N7: a meal photo, a nutrition label, a description.
     case foodPhoto = "food-photo"
     case foodLabel = "food-label"
@@ -20,7 +19,6 @@ enum AIFlow: String, CaseIterable, Sendable {
         switch self {
         case .scanMachine: "machine scans"
         case .routineWeek: "template weeks"
-        case .modelExercises: "exercise suggestions"
         case .foodPhoto: "meal photos"
         case .foodLabel: "food labels"
         case .foodDescribe: "food descriptions"
@@ -47,16 +45,6 @@ struct AIServerClient: Sendable {
     static func scanBody(exercises: [(id: UUID, name: String, loadType: String)], jpeg: Data) -> [String: Any] {
         ["exercises": exercises.map { ["id": $0.id.uuidString, "name": $0.name, "loadType": $0.loadType] },
          "jpeg": jpeg.base64EncodedString()]
-    }
-
-    /// New Model: the plate as typed and read, and the app's exercise list.
-    static func modelExercisesBody(plate: PlateDescription, candidates: [ExerciseCandidate]) -> [String: Any] {
-        ["plate": ["brand": plate.brand, "model": plate.model, "lines": plate.lines],
-         "candidates": candidates.map { candidate -> [String: Any] in
-             var row: [String: Any] = ["id": candidate.id.uuidString, "name": candidate.name]
-             if let group = candidate.muscleGroup { row["muscleGroup"] = group }
-             return row
-         }]
     }
 
     /// Scan Food (N7): one re-encoded JPEG — the whole meal photo, or the label's crop (D53).
