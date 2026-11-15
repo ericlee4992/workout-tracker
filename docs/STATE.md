@@ -14,8 +14,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
      `WorkoutActivityContentTests` (the slow runner took 310 s; real clock passed the rests; a 3 s wait). Fix (test-only)
      on `ericlee4992/ci-timing-tests` (off `26642ef8`): `11bd5591` (hour/2-hour rests, 5-min wait) + `2f5e7db1` (frozen
      D43 `TestClock`; failing saves acknowledged). Codex: round 1 changes requested (`work-record/live-workout-fixes/
-     codex-review-04-ci.md`), **round 2 sent**. CI on the branch: run 43700178994 (first commit) and **43700754494**
-     (`2f5e7db1`). Locally 31/31 ×3.
+     codex-review-04-ci.md`), **round 2 sent** (its report goes in the same file; it was still uncommitted in the
+     worktree at handoff — commit it on `ci-timing-tests`). CI on the branch: 43700178994 was **cancelled**
+     (superseded); the run that counts is **43700754494** (`2f5e7db1`). Locally 31/31 ×3.
   3. When both are green/clear: commit the review file on `ci-timing-tests`, fast-forward `main` to it, then rebase or
      recreate the release branch on that `main` (build 16 + record; note the CI fix in the record), push, fast-forward
      `main`, archive from `…/workspaces/Health App/release-build` (`scripts/testflight.sh archive`), upload (exit 2 = ask
@@ -23,7 +24,9 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   4. **Goal / why:** testers asked for logging a set without unlocking (research: Hevy has it); build 16 ships it.
      The user chose (2026-11-15): 0.2.0 (16), **no What's New**, the build-16-only What to Test note (in the record).
      Build 15 (tester feedback 01+02) was uploaded 01:18 EST; its TestFlight steps are the user's.
-  5. **Gotchas:** this worktree is checked out on `ericlee4992/release-0.2.0-16` (STATE here is newer than `main`'s);
+  5. **Gotchas:** at handoff the worktree was checked out on `ericlee4992/ci-timing-tests` (Codex's review switched it);
+     this STATE is on `ericlee4992/release-0.2.0-16` (newer than `main`'s and the fix branch's) — read it from there
+     (`git show origin/ericlee4992/release-0.2.0-16:docs/STATE.md`) and carry it forward when recreating the release;
      the CI fix lives on `ericlee4992/ci-timing-tests` — switch branches with care (`git switch`), nothing is stashed.
      Real Live Activity UI tests and `testTheKeyboardUnitSwitchFollowsTheFocusedWeight` are flaky in parallel — run
      serially. `gh run view <id> --log-failed` reads a failed CI run. Reviewer runs: never overlap with your own
