@@ -10,8 +10,9 @@
 // ("privacy page wording is good") and deployed the same day.
 // Tester feedback 01 (2026-11-14, D88): the on-device label reader and New Model's exercise suggestions are removed from
 // the app; the suggestion line now names only earlier versions (the server still answers them). The date is the
-// placeholder until the user approves the deploy, so `npm run deploy` refuses it until then; set it to the deploy day.
-export const POLICY_EFFECTIVE_DATE = "[effective date]";
+// placeholder until the user approves the deploy. The user approved the wording and the deploy on 2026-11-15
+// ("deploy and build testflight build").
+export const POLICY_EFFECTIVE_DATE = "November 15, 2026";
 export const DEVELOPER_NAME = "Eunchan Lee";
 export const SUPPORT_EMAIL = "ericlee4992@gmail.com";
 
