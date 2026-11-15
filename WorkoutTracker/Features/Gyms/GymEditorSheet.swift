@@ -21,6 +21,8 @@ struct GymEditorSheet: View {
     var onSave: (Gym) -> Void = { _ in }
     @Query private var allPreferences: [AppPreferences]
     @State private var saveFailure: String?
+    /// Add mode: the gym is created at most once (codex-review-02 R2-1).
+    @State private var addAttempt = GymAddAttempt()
     @State private var name = ""
     @State private var city = ""
     @State private var unitIndex = 0
@@ -49,7 +51,7 @@ struct GymEditorSheet: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            SheetHeader(cancel: { dismiss() }, title: gym == nil ? "New Gym" : "Edit Gym", commit: save,
+            SheetHeader(cancel: cancel, title: gym == nil ? "New Gym" : "Edit Gym", commit: save,
                         commitTitle: gym == nil ? "Add" : "Save", commitEnabled: canCommit,
                         commitIdentifier: "saveGym", reflowsTitle: true)
             ScrollView {
@@ -58,11 +60,15 @@ struct GymEditorSheet: View {
                         Text(saveFailure).font(look.font.footnote).foregroundStyle(look.destructive)
                     }
                     preview
-                    LookList {
-                        field("Name", prompt: "Required", text: $name, which: .name, identifier: "gymName")
-                        field("City", prompt: "Optional", text: $city, which: .city, identifier: "gymCity")
+                    // Once the gym is saved, its fields are what was saved: an edit now would not reach it.
+                    Group {
+                        LookList {
+                            field("Name", prompt: "Required", text: $name, which: .name, identifier: "gymName")
+                            field("City", prompt: "Optional", text: $city, which: .city, identifier: "gymCity")
+                        }
+                        unitSection
                     }
-                    unitSection
+                    .disabled(addAttempt.committedID != nil)
                     if gym != nil {
                         DestructiveRowButton("Delete Gym…") { confirmDelete = true }
                             .accessibilityIdentifier("deleteGym")
@@ -185,18 +191,31 @@ struct GymEditorSheet: View {
                 onSave(gym)
             } else {
                 // codex-review-02: one isolated save that rolls back on failure, so a failed Add leaves nothing pending
-                // here — Cancel then creates no gym, and a retry makes exactly one.
-                let id = try GymCreation.create(
-                    name: trimmedName, city: trimmedCity.isEmpty ? nil : trimmedCity, defaultUnit: defaultUnit,
-                    selecting: selectsCreated, in: modelContext.container)
-                // Saved: the sheet closes even if this context cannot hand the row back (nothing to retry).
-                if let created = try? modelContext.fetch(FetchDescriptor<Gym>(predicate: #Predicate { $0.id == id })).first {
-                    onSave(created)
-                }
+                // here — Cancel then creates no gym, and a retry makes exactly one. If the saved gym cannot be handed
+                // back (R2-1), the sheet stays with the error and Add resolves the SAME gym again.
+                let created = try addAttempt.run(
+                    create: {
+                        try GymCreation.create(
+                            name: trimmedName, city: trimmedCity.isEmpty ? nil : trimmedCity, defaultUnit: defaultUnit,
+                            selecting: selectsCreated, in: modelContext.container)
+                    },
+                    resolve: { try GymCreation.resolve($0, in: modelContext) })
+                onSave(created)
             }
         } catch {
-            saveFailure = error.localizedDescription
+            saveFailure = addAttempt.committedID == nil
+                ? error.localizedDescription
+                : "\(trimmedName) was saved but could not be opened here (\(error.localizedDescription)). Tap Add to try again."
             return
+        }
+        dismiss()
+    }
+
+    /// Cancel. After a saved-but-not-handed-back Add (R2-1) the gym exists, so it is handed back once more before the
+    /// sheet closes; if that fails too, the gym and its remembered selection are still saved and show from next launch.
+    private func cancel() {
+        if let id = addAttempt.committedID, let created = try? GymCreation.resolve(id, in: modelContext) {
+            onSave(created)
         }
         dismiss()
     }

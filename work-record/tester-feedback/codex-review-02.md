@@ -60,3 +60,60 @@ xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphones
 **Known flaky:** the author's Ask AI goal-entry wait failed in the broader parallel run and passed serially; exact timing cause was not independently established. No failures or flakes observed in this review's runs. The four original tour failures were stale test assumptions corrected before this review, not classified as flakes.
 
 Verdict: changes requested
+
+
+## Round 2
+
+Reviewed `git diff 18207d90..fb5b1519` at `fb5b15197ddf722704395773a68c2b8be8b255b5`, branch `ericlee4992/add-gym-from-train`. Only this report changed during review; no implementation edits or commits.
+
+### Standards
+
+1. **R2-1, P2 — failed post-commit resolution silently skips the selection callback.** `WorkoutTracker/Features/Gyms/GymEditorSheet.swift:192–201`: after `GymCreation.create` has committed both the gym and `selectedGymID`, the main-context fetch is wrapped in `try?`. A fetch error or missing result skips `onSave` and still reaches `dismiss()`. Train's local `selectedGym` consequently stays on the previous gym while the persisted preference points to the new one; `restoreSelectedGym` has already run once and does not repair this on dismissal. The new comment explicitly permits this failure. This violates AGENTS' errors-as-absence rule and the displayed/remembered selection agreement the fix is intended to guarantee. **Fix:** retain the successfully committed ID and handle resolution/completion explicitly, surfacing and recovering a failed handoff without rerunning creation. A retry after commit must resolve the same ID, not insert another gym. Alternatively make the selection callback independent of this optional fetch while preserving reliable context-safe model access. Add a regression that commits successfully, fails resolution, then recovers, checking one gym, one committed selection and the final displayed pick. Static control-flow finding; no fetch fault was injected in this review.
+
+The original failed-save cleanup is fixed: the helper disables autosave, writes gym and selection together, rolls back only its isolated context, and rethrows. The screen's save-error branch runs before any callback. No unrelated edits are rolled back. No additional standards findings.
+
+### Spec and caller checks
+
+The same R2-1 failure violates D89's selected-and-remembered promise; there are **no additional independent Spec findings**.
+
+- `GymCreation` resolves the original transaction issues: a failing creation save leaves neither gym nor selection pending in the screen; a successful creation save stores both together. The second-save window is removed from Train's new-gym callback, which now only assigns its local selection after success.
+- All GymEditorSheet callers checked: Train and Ask AI set `selectsCreated: true`; Gyms' add defaults to false; GymDetail's edit mode retains the existing update behavior. Ask AI still uses its existing `select → onSelectGym` callback; creation has already persisted the selection, so this does not independently reproduce the original two-save failure.
+- Main-context visibility in the normal path is **observed**, not just inferred: the independent Train add test fetches/receives the new gym, displays it as selected, and checks Gyms' “Current” badge from AppPreferences. Empty-store creation also passes at default and AccessibilityL. No stale-main-context defect was observed in these successful flows.
+- The four new helper tests assert meaningful persisted outcomes: one save with both gym data and selected ID, not-selecting preserving the old ID, failed save followed by another screen save leaving no gym, retry producing exactly one, and unrelated pending edits surviving failure. These address the prior failure scenarios at the helper boundary; old tests exercised only successful persistence and untouched Cancel. No mutation run against the old implementation was performed. The new tests read fresh contexts and do not cover the post-save fetch/callback failure in R2-1; UI results supply ordinary main-context refresh evidence.
+
+Standards: **1 P2**. Spec: **the same P2**, no additional finding. One unique remaining issue.
+
+### Verification
+
+Xcode **27.2 (27B52)**; WT-Floodlight (`9E822EF6-DC67-4958-AEA2-D53D2D36D674`), iOS 27.0; own derived data `build/dd-codex`. Reviewer runs were serial and did not overlap.
+
+| Check | Exit | Result / evidence |
+|---|---:|---|
+| `scripts/prepare-test-simulator.sh` | 0 | Ready/booted |
+| `python3 scripts/test-plans.py --check` | 0 | Current mapping |
+| `git diff --check 18207d90..fb5b1519` | 0 | Clean |
+| Independent build | 0 | BUILD SUCCEEDED; `build/logs/codex-tf02-r2-build.log` |
+| Independent Unit plan | 0 | **1295/1295**, 0 failed/skipped; `build/results/codex-tf02-r2-unit.xcresult` |
+| Independent TrainAddGymUITests only | 0 | **8/8**, 0 failed/skipped; `build/results/codex-tf02-r2-ui.xcresult` |
+
+Counts were read from actual xcresult summaries (`xcrun xcresulttool get test-results summary --path …`, inspection exit 0), and independent process exits from `build/logs/codex-tf02-r2-{build,unit,ui}.status`. Logs and saved summary JSONs are alongside those files.
+
+Inspected, **not rerun**, the author's `build/results/tf02-r2-ui.xcresult`: **11/11 passed**, 0 failed/skipped (Train 8, TemplateMachines 2, Ask AI existing-gym/no-gym selection 1). Log contains TEST EXECUTE SUCCEEDED; author-reported exit 0, no separate exit-status file present. The author's full Unit result `build/results/tf02-r2-unitplan.xcresult` is also **1295/1295**, 0 failed/skipped. Both inspection commands exited 0. Ask AI's new-gym creation itself has no UI case, as the ticket acknowledges; its callback was traced statically. No other UI classes were run by this reviewer.
+
+Exact independent commands (runner `build/codex-tf02-r2-run.py`, PID **99532**, completed):
+
+```sh
+xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath build/dd-codex build
+
+xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath build/dd-codex test -testPlan Unit -parallel-testing-enabled NO -resultBundlePath build/results/codex-tf02-r2-unit.xcresult -collect-test-diagnostics never
+
+xcodebuild -project WorkoutTracker.xcodeproj -scheme WorkoutTracker -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' -derivedDataPath build/dd-codex test -testPlan Full -parallel-testing-enabled NO -resultBundlePath build/results/codex-tf02-r2-ui.xcresult -collect-test-diagnostics never -only-testing:WorkoutTrackerUITests/TrainAddGymUITests
+```
+
+**Verified:** independent build, Unit **1295/1295**, Train UI **8/8**, all exit **0**; ordinary main-context gym/preference visibility; helper rollback/retry tests; other caller source and author UI artifacts inspected.
+
+**Not verified:** forced post-commit fetch/resolution failure (R2-1); Ask AI's Add Gym path end-to-end; device-only behavior. No claim that successful tests cover these failure paths.
+
+**Known flaky:** no failures or flakes observed this round. Round 1's author-side parallel goal-typing failure remains historical, with a passing serial rerun recorded above.
+
+Verdict: changes requested

@@ -78,4 +78,30 @@ struct GymCreationTests {
         }
         #expect(screen.hasChanges && iron.city == "Seoul", "the unrelated edit is still pending")
     }
+
+    /// R2-1: the save succeeds but the hand-back fails; Add again resolves the same gym — one gym, one remembered
+    /// selection, and the screen ends up holding that gym.
+    @Test func aFailedHandBackRetriesTheSameGym() throws {
+        let (container, screen, _) = try storeWithSelectedGym()
+        var attempt = GymAddAttempt()
+        var creates = 0
+        let create = {
+            creates += 1
+            return try GymCreation.create(name: "Harbor Gym", city: nil, defaultUnit: nil, selecting: true, in: container)
+        }
+        #expect(throws: GymCreation.Missing.self) {
+            try attempt.run(create: create, resolve: { _ in throw GymCreation.Missing() })
+        }
+        let committed = try #require(attempt.committedID)
+        let shown = try attempt.run(create: create, resolve: { try GymCreation.resolve($0, in: screen) })
+        #expect(creates == 1, "the retry did not create again")
+        #expect(shown.id == committed && shown.name == "Harbor Gym", "the screen holds the saved gym")
+        #expect(try gymNames(container) == ["Harbor Gym", "Iron Temple"])
+        #expect(try storedSelection(container) == committed, "one remembered selection, the shown one")
+    }
+
+    @Test func resolvingAGymThatIsNotThereThrows() throws {
+        let (_, screen, _) = try storeWithSelectedGym()
+        #expect(throws: GymCreation.Missing.self) { try GymCreation.resolve(UUID(), in: screen) }
+    }
 }

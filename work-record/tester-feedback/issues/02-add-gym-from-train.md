@@ -99,3 +99,17 @@ Both findings were in older code the new entry point now uses (`GymEditorSheet`'
   **1295/1295** (`build/results/tf02-r2-unitplan.xcresult`); `TrainAddGymUITests` 8/8 + `TemplateMachinesUITests` 2/2 +
   `AskAIUITests/testRoutineGymPickerRemembersExistingGymAndNoGym` 1/1, serial, exit 0 (`build/results/tf02-r2-ui.xcresult`).
   Not verified: Ask AI's Add Gym… in a UI test (none exists; the same sheet path is covered by Train's tests).
+
+### Review round 2 (Codex): changes requested → fixed
+
+- **R2-1 (P2)** after a successful save, a failed fetch of the new gym (`try?`) skipped `onSave` and still closed the
+  sheet, so Train kept showing the old gym while the new one was stored as the pick. Fix: `GymAddAttempt` creates at
+  most once and then hands the gym back through `GymCreation.resolve`, which **throws** (`Missing`) rather than
+  answering nil. A failed hand-back keeps the sheet open: "<name> was saved but could not be opened here (…). Tap Add
+  to try again." The fields lock once saved, and Add resolves the SAME gym. Cancel after such a save tries the
+  hand-back once; if that fails too, the gym and its remembered selection are saved and show from the next launch.
+  That is the one accepted residual, after an explicit Cancel.
+- Tests: `GymCreationTests.aFailedHandBackRetriesTheSameGym` (save ok, hand-back fails, retry: one create, one gym,
+  stored pick = the gym shown), `resolvingAGymThatIsNotThereThrows`.
+- Round 3 verification (author): build-for-testing exit 0; Unit plan **1297/1297** (`build/results/tf02-r3-unit.xcresult`);
+  `TrainAddGymUITests` 8/8 + `TemplateMachinesUITests` 2/2, serial, exit 0 (`build/results/tf02-r3-ui.xcresult`).

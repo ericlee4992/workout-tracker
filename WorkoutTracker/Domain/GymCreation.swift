@@ -32,3 +32,30 @@ enum GymCreation {
         return gym.id
     }
 }
+
+extension GymCreation {
+    struct Missing: Error, LocalizedError {
+        var errorDescription: String? { "The new gym could not be found." }
+    }
+
+    /// The created gym in the screen's context. Throws instead of answering nil: a gym that was saved but cannot be
+    /// handed back is an error to show and retry, not "nothing there" (codex-review-02 R2-1).
+    static func resolve(_ id: UUID, in context: ModelContext) throws -> Gym {
+        guard let gym = try context.fetch(FetchDescriptor<Gym>(predicate: #Predicate { $0.id == id })).first else {
+            throw Missing()
+        }
+        return gym
+    }
+}
+
+/// One New Gym sheet's Add (codex-review-02 R2-1): the gym is created at most once, then handed back. If the hand-back
+/// fails after the save, Save again resolves the SAME gym rather than making another.
+struct GymAddAttempt {
+    private(set) var committedID: UUID?
+
+    mutating func run<Result>(create: () throws -> UUID, resolve: (UUID) throws -> Result) throws -> Result {
+        let id = try committedID ?? create()
+        committedID = id
+        return try resolve(id)
+    }
+}
