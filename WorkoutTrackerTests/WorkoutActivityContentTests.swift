@@ -521,6 +521,106 @@ struct WorkoutActivityContentTests {
         await coordinator.settled()
     }
 
+    /// codex-review-04 R2 #1: the load type the set would be logged under is part of what was shown — until the entry
+    /// is frozen (D23), after which a catalog edit changes nothing about it.
+    @Test func aDoneAfterTheLoadTypeChangedLogsNothingUntilTheEntryIsFrozen() throws {
+        do {
+            let rig = try rig(); let c = commands(rig)
+            let card = try shown(rig)
+            rig.press.exercise?.loadType = .bodyweight
+            try rig.context.save()
+            #expect(!c.commands.performLogSet(card), "shown as weighted, now bodyweight")
+            #expect(rig.pressSets[2].completedAt == nil)
+        }
+        do {
+            let rig = try rig(); let c = commands(rig)
+            rig.press.snapshotCapturedAt = .now.addingTimeInterval(-60)
+            rig.press.snapshotLoadType = .weighted
+            try rig.context.save()
+            let card = try shown(rig)
+            rig.press.exercise?.loadType = .bodyweight
+            try rig.context.save()
+            #expect(c.commands.performLogSet(card), "a frozen entry keeps its load type, so the card still holds")
+        }
+    }
+
+    /// A cold Done's heart-rate rest: a runtime with a scripted sensor and no screen.
+    private struct ColdHeartRateRest {
+        let rig: Rig
+        let provider: StubHeartRateProvider
+        let coordinator: WorkoutHeartRateCoordinator
+        let commands: WorkoutActivityCommands
+        let presenter: SilentWorkoutActivityPresenter
+        let notifications: FakeNotifications
+    }
+
+    private func coldHeartRateRest() async throws -> ColdHeartRateRest {
+        let rig = try rig()
+        try RestTimerService(context: rig.context).setOverride(
+            for: try #require(rig.press.exercise), warmupSeconds: nil, workingSeconds: nil,
+            restMode: .heartRate, heartRateThresholdBpm: 110, heartRateCapSeconds: 240)
+        let provider = StubHeartRateProvider()
+        let coordinator = WorkoutHeartRateCoordinator(alarm: DeadlineAlarm(), makeProvider: { _ in provider },
+                                                      cardio: CardioRecorder(collectsDeviceSensors: false))
+        let presenter = SilentWorkoutActivityPresenter()
+        let commands = WorkoutActivityCommands(coordinator: coordinator, activity: WorkoutActivityController(presenter: presenter))
+        commands.use(rig.container)
+        let notifications = FakeNotifications()
+        commands.notifications = notifications
+        await commands.logSet(try shown(rig))
+        try #require(rig.workout.restEndsAt != nil && coordinator.onSample == nil)
+        return ColdHeartRateRest(rig: rig, provider: provider, coordinator: coordinator, commands: commands,
+                                 presenter: presenter, notifications: notifications)
+    }
+
+    private func waitUntil(_ condition: () -> Bool) async throws {
+        for _ in 0..<60 where !condition() { try await Task.sleep(for: .milliseconds(50)) }
+    }
+
+    /// codex-review-04 R2 #2: a failed save when the reading recovers leaves the rest as it was saved, and the next
+    /// reading tries again.
+    @Test func aFailedRecoverySaveKeepsTheRestAndTheNextReadingRetries() async throws {
+        struct SaveFailed: Error {}
+        let cold = try await coldHeartRateRest()
+        let end = cold.rig.workout.restEndsAt
+        cold.commands.save = { _ in throw SaveFailed() }
+        cold.provider.emit(HeartRateSample(bpm: 104, date: .now, source: .fixture))
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(cold.rig.workout.restEndsAt == end, "the rest is back as it was saved")
+        #expect(cold.coordinator.lastRestResult == nil)
+        cold.commands.save = { try $0.save() }
+        cold.provider.emit(HeartRateSample(bpm: 103, date: .now, source: .fixture))
+        try await waitUntil { cold.rig.workout.restEndsAt == nil }
+        #expect(cold.rig.workout.restEndsAt == nil && cold.coordinator.lastRestResult != nil, "the next reading ended it")
+        cold.coordinator.end(cold.rig.workout)
+        await cold.coordinator.settled()
+    }
+
+    /// codex-review-04 R2 #3: with no reading at all, the screenless runtime's own tick drops the rest to the standard
+    /// timer once the grace period passes (D43) — and a failed save there is retried on the next tick.
+    @Test func noReadingFallsBackToTheTimerWithoutAScreenOrASample() async throws {
+        struct SaveFailed: Error {}
+        let cold = try await coldHeartRateRest()
+        let set = cold.rig.pressSets[2]
+        let start = try #require(cold.rig.workout.restStartedAt)
+        let cap = try #require(cold.rig.workout.restEndsAt)
+        let standard = try RestTimerService(context: cold.rig.context).durationSeconds(for: set)
+        cold.coordinator.now = { .now.addingTimeInterval(30) }  // past the 20 s grace, no sample ever
+        cold.commands.save = { _ in throw SaveFailed() }
+        cold.coordinator.restEvaluatorInterval = .milliseconds(20)
+        cold.coordinator.restEvaluator = cold.coordinator.restEvaluator  // restart the tick at the new period
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(cold.coordinator.degradedRestSetID == nil, "a failed fallback save marks nothing")
+        #expect(cold.rig.workout.restEndsAt == cap, "the cap stays as saved")
+        cold.commands.save = { try $0.save() }
+        try await waitUntil { cold.coordinator.degradedRestSetID != nil }
+        #expect(cold.coordinator.degradedRestSetID == set.id)
+        #expect(cold.rig.workout.restEndsAt == start.addingTimeInterval(TimeInterval(standard)), "the standard timer")
+        #expect(cold.presenter.lastState?.rest == .fallback, "the card says it fell back")
+        cold.coordinator.end(cold.rig.workout)
+        await cold.coordinator.settled()
+    }
+
     /// D48 through the shared rule: Done on a superset member that is not the last starts no rest and skips one running.
     @Test func doneInsideASupersetSkipsTheRestLikeTheCheck() throws {
         let rig = try rig()

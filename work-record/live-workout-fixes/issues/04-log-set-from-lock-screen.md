@@ -96,3 +96,21 @@ Done (the existing commands' cold path is unit-tested and shared). **Known flaky
   `FloodlightLiveUITests/testTheKeyboardUnitSwitchFollowsTheFocusedWeight` ("lb" ≠ "kg" while the keyboard's unit
   switch followed focus — no rest or Live Activity code involved), passed alone and serially
   (`build/results/ls04-ui2-rerun.xcresult`) and in round 1's 32/32: **known flaky** under parallel load.
+
+### Review round 2 (Codex): changes requested → fixed
+
+- **R2 #1** the fingerprint lacked the load type: it now includes the entry's effective load type (the frozen snapshot
+  once captured, D23). Tests: a weighted → bodyweight edit before the first completion refuses Done; after the entry is
+  frozen the same catalog edit leaves the card valid.
+- **R2 #2** a failed save in the moved D43 transitions (recovered, fell back) left the rest cleared/changed in memory
+  and the fallback mark set. Now pending edits are saved first, a failed transition save is rolled back (the rest as
+  saved, its notification and alarm untouched), and `degradedRestSetID` is set only after the save — the next sample
+  or tick retries. Test: a failed recovery save keeps the rest; the next reading ends it.
+- **R2 #3** the no-reading fallback needed a sample. A screenless runtime now also runs D43 on its own tick
+  (`restEvaluatorInterval`, 5 s; the screen's liveness tick does this when the screen is up), so a dead or missing
+  sensor falls back to the standard timer after the 20 s grace while the app runs. (When iOS suspends the app nothing
+  runs; the persisted cap then ends the rest.) Test: a cold Done with no sample ever falls back (a failed fallback save
+  first, retried on the next tick) and the card says "fallback". The coordinator's `now` is injectable for this.
+- Round 3 verification (author): build-for-testing exit 0; Unit plan **1310/1310** (`build/results/ls04-r3-unit.xcresult`);
+  `WorkoutActivityContentTests` 29/29 three more times (timing-sensitive tests stable); `HeartRateUITests` + the two
+  real Lock Screen tests serially **7/7**, exit 0 (`build/results/ls04-r3-ui.xcresult`).

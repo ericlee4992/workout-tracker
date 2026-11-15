@@ -49,8 +49,34 @@ final class WorkoutHeartRateCoordinator {
     /// is fine: the alarm above does not depend on it.
     var onSample: (() -> Void)?
     /// Live-workout 04: D43's check for a runtime no screen has claimed (`onSample` nil) — a Done on the Lock Screen
-    /// after a cold launch starts a heart-rate rest with no live screen. Set by `WorkoutActivityCommands`.
-    var restEvaluator: (() -> Void)?
+    /// after a cold launch starts a heart-rate rest with no live screen. Set by `WorkoutActivityCommands`. It runs on
+    /// each sample AND on its own tick (codex-review-04 R2 #3): the no-reading fallback needs time to pass, not a sample
+    /// — the screen's liveness tick does that job when the screen is up.
+    @ObservationIgnored
+    var restEvaluator: (() -> Void)? {
+        didSet { restartRestEvaluatorTicks() }
+    }
+    /// The screenless tick's period (the screen's liveness tick is 2 s; a fallback a few seconds late is harmless).
+    @ObservationIgnored
+    var restEvaluatorInterval: Duration = .seconds(5)
+    /// The clock D43 is judged against. Tests move it.
+    @ObservationIgnored
+    var now: () -> Date = { .now }
+    @ObservationIgnored
+    private var restEvaluatorTicks: Task<Void, Never>?
+
+    private func restartRestEvaluatorTicks() {
+        restEvaluatorTicks?.cancel()
+        restEvaluatorTicks = nil
+        guard restEvaluator != nil else { return }
+        restEvaluatorTicks = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: self?.restEvaluatorInterval ?? .seconds(5))
+                guard let self, !Task.isCancelled else { return }
+                if self.onSample == nil { self.restEvaluator?() }
+            }
+        }
+    }
     /// The heart-rate rest that already fell back to the timer (D43). Kept on the workout's
     /// runtime, not the screen, so a late sample after minimise and resume cannot turn it back
     /// into a heart-rate rest, and the Lock Screen card keeps calling it a fallback
@@ -241,8 +267,13 @@ final class WorkoutHeartRateCoordinator {
     /// the standard timer. The cap itself is the persisted `restEndsAt`, so it still fires through the ordinary path —
     /// after a relaunch or in the background; this only ever ends a rest EARLY or shortens it. Moved here from the live
     /// screen (live-workout 04) so the screen and a screenless runtime run the same check.
+    ///
+    /// Saves (codex-review-04 R2 #2): edits already pending are the user's and are saved first; a failed recovery or
+    /// fallback save is rolled back — the rest stays as it was saved, its notification and alarm untouched — and the
+    /// fallback mark is set only once saved, so the next sample or tick tries again.
     @discardableResult
-    func evaluateHeartRateRest(for workout: Workout, restTimer: RestTimerService, now: Date = .now) throws -> HeartRateRestOutcome {
+    func evaluateHeartRateRest(for workout: Workout, restTimer: RestTimerService, now: Date? = nil) throws -> HeartRateRestOutcome {
+        let now = now ?? self.now()
         guard !workout.isDeleted,
               let start = workout.restStartedAt,
               workout.restEndsAt != nil,
@@ -253,9 +284,11 @@ final class WorkoutHeartRateCoordinator {
               degradedRestSetID != setID,
               let monitor, self.workoutID == workout.id
         else { return .unchanged }
+        let context = restTimer.context
         switch rule.evaluate(samples: monitor.samplesFromCurrentSource, start: start, asOf: now) {
         case .finished(.recovered(_, let bpm)):
-            try restTimer.finishRecovered(workout, bpm: bpm)
+            if context.hasChanges { try restTimer.persist(context) }
+            do { try restTimer.finishRecovered(workout, bpm: bpm) } catch { context.rollback(); throw error }
             lastRestResult = .recovered(bpm: bpm, targetBpm: rule.thresholdBpm)
             // `finishRecovered` clears `restEndsAt`, so the cap alarm can no longer fire for this rest — the two
             // endings cannot both sound.
@@ -263,8 +296,11 @@ final class WorkoutHeartRateCoordinator {
             return .recovered
         case .degraded:
             // codex-review 2.1 (critical): the cap is not the standard timer; the user's standard rest is shorter.
+            if context.hasChanges { try restTimer.persist(context) }
+            let state: RestTimerState?
+            do { state = try restTimer.degradeToStandard(workout, set: set) } catch { context.rollback(); throw error }
             degradedRestSetID = setID
-            return .degraded(try restTimer.degradeToStandard(workout, set: set))
+            return .degraded(state)
         case .resting, .finished(.cap):
             return .unchanged
         }

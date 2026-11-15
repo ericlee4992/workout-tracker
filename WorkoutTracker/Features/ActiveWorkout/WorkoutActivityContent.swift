@@ -136,8 +136,9 @@ enum WorkoutActivityContent {
     }
 
     /// Everything that decides what logging `set` records (codex-review-04 #3): the set and its type, the exact stored
-    /// weight (bit pattern — the card's string rounds), unit, reps, bar, and the entry's exercise, machine, preset and
-    /// free-weight tag. A Done whose fingerprint no longer matches the store logs nothing.
+    /// weight (bit pattern — the card's string rounds), unit, reps, bar, and the entry's exercise, its effective load type
+    /// (the frozen snapshot once captured, D23 — codex-review-04 R2 #1), machine, preset and free-weight tag. A Done
+    /// whose fingerprint no longer matches the store logs nothing.
     static func logFingerprint(of set: SetRecord) -> String {
         let entry = set.entry
         return [
@@ -149,6 +150,7 @@ enum WorkoutActivityContent {
             set.barWeightValue.map { String($0.bitPattern) } ?? "-",
             entry?.id.uuidString ?? "-",
             entry?.exercise?.id.uuidString ?? entry?.snapshotExerciseID.uuidString ?? "-",
+            entry.map { $0.effectiveLoadType.rawValue } ?? "-",
             entry?.machine?.id.uuidString ?? "-",
             entry?.preset?.id.uuidString ?? "-",
             entry?.freeWeightTag?.rawValue ?? "-",

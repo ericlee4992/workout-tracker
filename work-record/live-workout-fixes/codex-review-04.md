@@ -143,3 +143,138 @@ not injected runtime failures.
 Known flaky: none seen.
 
 Verdict: changes requested
+
+## Round 2 — `bad36c74`, 2026-11-15
+
+Reviewed `git diff 46e47450..bad36c74`; actual HEAD
+`bad36c7496df404213f5aa6beb71e552f78b826f`, branch `ericlee4992/lock-screen-log-set`, clean at
+the start of review. STATE still names the earlier implementation tip; Git and the ticket's
+round-1-fix section establish this round's scope. No app/test changes or commit by the reviewer.
+
+### Standards
+
+1. **Medium — the new fingerprint still omits the effective load type.**
+   `WorkoutTracker/Features/ActiveWorkout/WorkoutActivityContent.swift:141–155`.
+   Before an entry's first completion, show a weighted `50 kg × 8` set, then change that exercise
+   to bodyweight in the app. `EditExerciseLoadTypeSheet.save` changes the exercise's load type
+   without clearing its draft weights/reps (`EditExerciseLoadTypeSheet.swift:120–128`). The set
+   stays loggable and its fingerprint is identical, although the current card now displays reps
+   only. Old Done is accepted and freezes bodyweight history instead of the weighted context
+   shown by the old card. This is still the partial-field matching defect from round-1 #3 and
+   violates D23/D90.
+
+   **Fix:** include `entry.effectiveLoadType` in the fingerprint, using the frozen snapshot once
+   captured. Add a stale-card test for a load-type edit before first completion and a complementary
+   frozen-entry case so a later catalog edit cannot reinterpret or invalidate its snapshot.
+
+2. **Medium — the newly added screenless rest evaluator does not recover from persistence failure.**
+   `WorkoutTracker/Features/ActiveWorkout/WorkoutActivityCommands.swift:188–194`;
+   `WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:258,266–267`.
+   A recovering sample calls `finishRecovered`, which clears the rest fields before saving. A
+   failed save reaches this log-and-return catch with the deadline still nil in memory, so future
+   samples cannot retry; the previously armed cap notification/alarm remains. On degradation,
+   the deadline is changed/cleared before saving and `degradedRestSetID` is set before persistence
+   succeeds, also blocking retries after a failure. Later unrelated saves can persist those
+   failed mutations. The old screen had this weakness, but the new background path now exposes
+   it for cold Done; the start/skip rollback added this round does not cover these transitions.
+
+   **Fix:** restore rest-owned persisted fields after failed recovery/degradation while preserving
+   unrelated edits; commit runtime flags only after persistence succeeds. Keep the prior
+   notification/alarm/card state consistent, and allow retry. Use the new persistence seam to
+   test both failing transitions, not only starting/skipping rest.
+
+### Spec
+
+3. **High — the no-reading half of round-1 #4 remains unresolved.**
+   `WorkoutTracker/Domain/WorkoutHeartRateCoordinator.swift:138`;
+   `WorkoutTracker/Features/ActiveWorkout/WorkoutActivityCommands.swift:230`.
+   `restEvaluator` runs only from a received sample. With a cold Done and a denied, disabled or
+   disconnected sensor, no sample arrives to invoke the fallback. The rest retains its heart-rate
+   cap (typically 240 seconds) and “heart rate didn't reach the target” notification instead of
+   the configured standard timer (typically 120 seconds) and no-reading explanation. D43 says
+   “With no live source it degrades to the standard timer and says it degraded.” The ticket's
+   new assertion that the cap-only case is already accepted by D43 does not match that decision.
+   This is not a demand that code execute while iOS has suspended it: the runtime currently has
+   no independent fallback trigger even while it is executing.
+
+   **Fix:** handle a known unavailable/failed provider and expiration of the initial-reading grace
+   period independently of sample arrival, establishing the appropriate persisted fallback and
+   notification. Add a cold-Done test that emits no samples and advances a controlled clock.
+
+Standards: 2 findings, worst Medium. Spec: 1 remaining finding, High; #1 also violates D90's
+“as shown” contract. The successful live-screen recovery/degradation branches preserve their
+prior redraw behavior, result and fallback-set ownership through the shared coordinator.
+
+### Prior fixes and test strength
+
+- Round-1 #1 is addressed: pending edits are saved before the completion rollback boundary;
+  a completion failure restores the stamp, snapshot and memory and refreshes the card. The
+  pre-save itself fails before completion is attempted, preserving pending edits in memory.
+- Round-1 #2 is addressed for rest start and superset skip: completion is already saved, so the
+  later rollback restores the old rest while keeping the set logged. Notification side effects
+  remain after successful persistence. Finding #2 above concerns the newly added evaluator.
+- Round-1 #3's set-type and exact-weight examples are fixed; effective load type is still missing.
+- Round-1 #4's recovering-sample case is fixed. The test delivers through the actual fake-provider
+  stream with no screen and checks the persisted-model transition and card update. No-reading
+  fallback is neither triggered nor covered by that test.
+
+The new failure tests reach the intended completion/rest save boundaries and assert restoration,
+memory/snapshot state, notification/alarm/card output, and retry where applicable. They would
+detect removal of the rollback behavior. The stale-type/raw-weight and cold recovery cases also
+exercise the prior semantic failures. This was checked by source tracing, not by editing or
+mutation-testing the source. There is no dedicated pending-edit preservation test, nor tests
+for this round's three findings.
+
+### Round 2 verification
+
+Same Xcode 27.2 (`27B52`) and booted WT-Floodlight simulator as round 1. Executed:
+
+```sh
+scripts/prepare-test-simulator.sh
+# exit 0
+
+xcodebuild build-for-testing -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+  -sdk iphonesimulator -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' \
+  -derivedDataPath build/dd-codex
+# exit 0; TEST BUILD SUCCEEDED
+
+xcodebuild test-without-building -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+  -testPlan Unit -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' \
+  -derivedDataPath build/dd-codex -parallel-testing-enabled NO -collect-test-diagnostics never \
+  -resultBundlePath build/results/ls04-codex-r2-unit.xcresult
+# exit 0; 1307/1307, 0 failed, 0 skipped
+
+xcodebuild test-without-building -project WorkoutTracker.xcodeproj -scheme WorkoutTracker \
+  -testPlan Full -destination 'platform=iOS Simulator,id=9E822EF6-DC67-4958-AEA2-D53D2D36D674' \
+  -derivedDataPath build/dd-codex -parallel-testing-enabled NO \
+  -only-testing:WorkoutTrackerUITests/FloodlightSystemUITests/testRealLiveActivityDoneLogsTheSet \
+  -only-testing:WorkoutTrackerUITests/FloodlightSystemUITests/testRealLiveActivityCommandsReachTheWorkout \
+  -collect-test-diagnostics never -resultBundlePath build/results/ls04-codex-r2-ui.xcresult
+# exit 0; 2/2, 0 failed, 0 skipped; TEST EXECUTE SUCCEEDED
+
+git diff --check 46e47450..bad36c74
+# exit 0
+```
+
+Logs and actual status files: `build/results/ls04-codex-r2-{build,unit,ui}.{log,status}`.
+Both test runs completed; actual status files and xcresult summaries were checked. The two real
+Lock Screen tests passed serially, including Done with the new fingerprint intent. No competing
+build/test run occurred.
+
+Author evidence inspected with `xcresulttool get test-results summary`: Unit
+`build/results/ls04-r2-unit.xcresult` **1307/1307 Passed**; UI
+`build/results/ls04-ui2.xcresult` **27/28**, one keyboard-unit-focus failure (`lb` versus `kg`),
+actual `build/logs/ls04-ui2.status` **exit 65**. Serial rerun
+`build/results/ls04-ui2-rerun.xcresult` **1/1 Passed**, with `TEST EXECUTE SUCCEEDED` in its log;
+no separate shell-status file for that rerun was found. The adjacent HeartRate/FloodlightLive
+selection was inspected rather than repeated, as requested.
+
+Verified: reviewer build exit 0; Unit 1307/1307, exit 0,
+`build/results/ls04-codex-r2-unit.xcresult`; real Lock Screen Done and +15s/Skip 2/2, exit 0,
+`build/results/ls04-codex-r2-ui.xcresult`; author UI result and focused rerun inspected as above.
+Not verified: fixes for the remaining findings; physical-device,
+OS cold-launch delivery and real sensor/Watch behavior. Remaining defects are source-traced.
+Known flaky: author's `FloodlightLiveUITests/testTheKeyboardUnitSwitchFollowsTheFocusedWeight`
+failed under the two-worker run and passed alone; none seen in the reviewer runs.
+
+Verdict: changes requested

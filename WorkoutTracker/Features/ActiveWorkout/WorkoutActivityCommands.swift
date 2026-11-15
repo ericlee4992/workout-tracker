@@ -185,7 +185,8 @@ final class WorkoutActivityCommands {
               let workout = try? context.fetch(FetchDescriptor<Workout>(predicate: #Predicate { $0.id == workoutID })).first,
               !workout.isDeleted, workout.finishedAt == nil
         else { return }
-        let rest = RestTimerService(context: context, notifications: notifications)
+        var rest = RestTimerService(context: context, notifications: notifications)
+        rest.persist = save
         let outcome: WorkoutHeartRateCoordinator.HeartRateRestOutcome
         do {
             outcome = try coordinator.evaluateHeartRateRest(for: workout, restTimer: rest)
