@@ -1,8 +1,8 @@
 import XCTest
 
 // Public beta ticket 06 (app half, UI-first): AI through the server, signed in — Scan Machine's consent and sign-in steps and its over-limit and
-// paused errors, Ask AI for Templates signed out and over its limit, and New Model's suggestion signed out — on the
-// sample account and the Terra fixture, in light and dark at Default and AccessibilityL.
+// paused errors and Ask AI for Templates signed out and over its limit (New Model's suggestion was removed in tester
+// feedback 01, D88) — on the sample account and the Terra fixture, in light and dark at Default and AccessibilityL.
 final class FloodlightAIAccessUITests: XCTestCase {
     private var app: XCUIApplication!
 

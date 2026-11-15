@@ -244,7 +244,7 @@ struct ScanSignInStep: View {
 // MARK: - Camera (S01)
 
 /// The viewfinder, always dark. The one bold element is the violet shutter; the framing brackets
-/// are a guide only — the whole photo is sent (D56), unlike Read Label's plate box. The gym chip
+/// are a guide only — the whole photo is sent (D56), unlike Scan Food's label box. The gym chip
 /// carries the gym's machine count, so the scan's target is visible before Add. Camera
 /// unavailable: the stated reason, and "Choose a photo instead" becomes the filled command.
 struct ScanCameraStep: View {

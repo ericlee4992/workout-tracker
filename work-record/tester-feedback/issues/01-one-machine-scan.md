@@ -116,3 +116,16 @@ Scan Machine's result); D34's note about the on-device scan. Ask the user if any
 **Verified:** build; Unit plan 1291/1291; server tests and typecheck; the 73 focused UI tests above; captures of the
 form. **Not verified:** a live signed-in Scan Machine from the form on a phone (the fixture drives it; the code path
 is unchanged); the privacy page live (not deployed — the user's go). **Known flaky:** none seen.
+
+### Review round 1 (Codex, `codex-review-01.md`): changes requested → fixed
+
+- **2 (P2) SPEC line 30** still described the private-trial phone key and a planned backend: now says requests go
+  signed in through Stacked's server, which holds the OpenAI key (D60); the phone holds none and a leftover trial key is
+  purged at launch.
+- **1 (P3) stale comments**: `LabelCameraView` (region now described for `LabelCrop`), `ScanSteps` camera step (Scan
+  Food's label box, not Read Label), `FloodlightAIAccessUITests` header (New Model suggestion removed).
+- Codex's run: build, Unit 1291/1291, server checks, 4 extra New Model editor tests passed; focused UI 72/73 with
+  `GymsFlowsUITests/testMachinePageEditsApplyAndDeleteCloses` failing once in the parallel run (blank name read as the
+  placeholder; test and screen unchanged by this ticket) and passing 4/4 in a serial class rerun — **known flaky** under
+  load (passed in the author's run too).
+- Round 2 verification (author): docs/comments only → `xcodebuild build` exit 0; no test rerun needed.

@@ -10,8 +10,8 @@ struct CapturedLabel {
     /// mistaken for a newer request's (codex-review-03b).
     let requestID: UUID
     let image: UIImage
-    /// `MachineLabelOCR`'s `regionOfInterest` — normalised, bottom-left
-    /// origin, in the upright photo.
+    /// The framing box — normalised, bottom-left origin, in the upright photo — that `LabelCrop` crops to
+    /// (Scan Food's label photo).
     let region: CGRect
 }
 
@@ -288,8 +288,8 @@ extension LabelCameraController: AVCapturePhotoCaptureDelegate {
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         resumeContinuousFocus()
         // The encoded representation carries the orientation the photo was
-        // taken at; `UIImage(data:)` keeps it and `MachineLabelOCR` hands it
-        // to Vision, whose region is then in the upright image's coordinates.
+        // taken at; `UIImage(data:)` keeps it, so `region` is in the upright
+        // image's coordinates when `LabelCrop` crops to it.
         let decoded = error == nil ? photo.fileDataRepresentation().flatMap(UIImage.init(data:)) : nil
         let failure = error.map { "Could not take the photo: \($0.localizedDescription)" }
             ?? (decoded == nil ? "The photo could not be read." : nil)
