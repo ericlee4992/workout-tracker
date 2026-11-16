@@ -48,6 +48,7 @@ struct MachineDetailView: View {
             .padding(.bottom, 40)
         }
         .scrollDismissesKeyboard(.interactively)
+        .mySettingsPrototypeCaptureScroll() // PROTOTYPE (machine-settings 01)
         .lookScreenBackground()
         .onScrollGeometryChange(for: Bool.self) { geo in
             geo.contentOffset.y + geo.contentInsets.top > 56
@@ -77,6 +78,7 @@ struct MachineDetailView: View {
             MachineModelCorrectionSheet(machine: machine)
         }
         .renameModelAlert($renamingModel, manufacturer: $modelManufacturer, modelName: $modelName)
+        .mySettingsPrototypePageSheet() // PROTOTYPE (machine-settings 01)
     }
 
     // MARK: Hero
@@ -296,6 +298,8 @@ struct MachineDetailView: View {
                     .padding(.vertical, 12)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                // PROTOTYPE (machine-settings 01): a My settings row per exercise served, in memory only.
+                if MySettingsPrototype.isEnabled { MySettingsPrototypeRows(machine: machine) }
             }
         }
     }

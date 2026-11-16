@@ -404,6 +404,7 @@ struct ActiveWorkoutView: View {
             } content: {
                 MaxHeartRateSheet()
             }
+            .mySettingsPrototypeSwitcher() // PROTOTYPE (machine-settings 01)
             .onAppear(perform: refreshRest)
             // Minimised or dismissed: the runtime evaluates D43 itself and tells the Watch, alarm and card
             // (codex-review-04 R3) — a dismissed screen can no longer redraw or push anything.

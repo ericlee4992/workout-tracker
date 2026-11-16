@@ -50,6 +50,8 @@ struct ExerciseEntryCard: View {
                     .font(look.font.subhead).foregroundStyle(look.textSecondary)
             }
             machineRow
+            // PROTOTYPE (machine-settings 01): My settings, in memory only (`MySettingsPrototype.swift`).
+            if MySettingsPrototype.isEnabled { mySettingsPrototypeSlot }
             barRow
 
             if loadType == .assisted {
@@ -90,6 +92,7 @@ struct ExerciseEntryCard: View {
         .padding(.top, 12)
         .padding(.bottom, 14)
         .lookSurface(.panel)
+        .mySettingsPrototypeCardSheet(entry) // PROTOTYPE (machine-settings 01)
         .sheet(isPresented: $showingRestSettings) {
             Group {
                 if let exercise = entry.exercise {
@@ -288,6 +291,13 @@ struct ExerciseEntryCard: View {
                     Button("Rest Durations…", systemImage: "timer") {
                         showingRestSettings = true
                     }
+                }
+                // PROTOTYPE (machine-settings 01): only when the entry has a machine.
+                if MySettingsPrototype.isEnabled, !entry.isDeleted, entry.machine != nil, entry.exercise != nil {
+                    Button(MySettingsCopy.menuItem, systemImage: "slider.horizontal.3") {
+                        MySettingsPrototype.shared.cardEditingEntryID = entry.id
+                    }
+                    .accessibilityIdentifier("mySettings.menuItem")
                 }
                 // Offered whether or not this entry is ALREADY grouped.
                 // codex-review 2 (high): hiding it once grouped meant B could

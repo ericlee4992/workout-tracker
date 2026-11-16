@@ -1,15 +1,16 @@
 # Current project state
 
-Updated **2026-11-16: nothing in progress. [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) (Lock Screen Done, D90) uploaded 2026-11-15 14:41 EST and [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) (tester feedback) 01:18 EST — the user's TestFlight steps next. `main` `f67efbed`; GitHub Tests 43753859116 green.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-16: machine-settings 01 "My settings" — a tappable Simulator prototype is built and waiting for the user's verdict (branch `ericlee4992/machine-settings-prototype`, worktree `~/.paseo/worktrees/1qmeipq9/machine-settings`; nothing saved, no schema change; D91 proposed). [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) and (15) uploaded 2026-11-15 — the user's TestFlight steps still pending. `main` `9d7ac436`; GitHub Tests 43753859116 green.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-16)
 
-- **NOW (resume here) — [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) uploaded 2026-11-15 14:41 EST**
+- **NOW (resume here) — [machine-settings 01, My settings](../work-record/machine-settings/issues/01-my-settings.md): prototype waiting for the user.** A note per gym machine × exercise (the user, 2026-11-16: per machine AND exercise; name "My settings"; first-use hint yes). Built in the app: `Features/ActiveWorkout/MySettingsViews.swift` (views to keep) and `MySettingsPrototype.swift` (throwaway; in-memory notes, sample world, orange switcher), hooks marked `PROTOTYPE (machine-settings 01)`. Launch on WT-iPhone27 with `-uiTestReset -uiTestDesignSample -uiTestDesignLive -uiTestDesignGyms -mySettingsPrototype`. `xcodebuild build` exit 0; 24 captures in `work-record/machine-settings/captures/01-prototype/`. **Next:** the user's verdict on the card line, the first-use chip and the station rows → then the real build (schema change, Gate S; remove the prototype; Codex review), or drop it. D91 is proposed until then.
+- **Earlier — [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) uploaded 2026-11-15 14:41 EST**
   (`main` `0449f245`; live-workout 04, D90; no What's New; no Gate S; no server change; Codex release review clear;
   the CI timing-test fix merged first, branch `ericlee4992/ci-timing-tests`). **The user's steps:** processing →
   Developer → install → try Done on the Lock Screen after a rest → Friends with the What to Test note (in the record) →
-  Submit. GitHub Tests on `main` `f67efbed`: **43753859116 green**. All work is merged and pushed; no branch is open.
+  Submit. GitHub Tests on `main` `f67efbed`: **43753859116 green**. Everything before machine-settings 01 is merged and pushed.
   **Cleanup (the user's go):** Paseo workspaces "Tester feedback: one scan + add gym"
   (`~/.paseo/worktrees/1qmeipq9/tester-feedback`, Codex `4ba7c5cd-…`) and "Log a set from the Lock Screen"
   (`~/.paseo/worktrees/1qmeipq9/lock-screen-log-set`, Codex `d1f3aad2-…`) can be archived (branches kept).
