@@ -3,7 +3,7 @@
 Updated **2026-11-16: nothing in progress. [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) (Lock Screen Done, D90) uploaded 2026-11-15 14:41 EST and [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) (tester feedback) 01:18 EST — the user's TestFlight steps next. `main` `f67efbed`; GitHub Tests 43753859116 green.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
-## RESUME HERE (2026-11-15)
+## RESUME HERE (2026-11-16)
 
 - **NOW (resume here) — [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) uploaded 2026-11-15 14:41 EST**
   (`main` `0449f245`; live-workout 04, D90; no What's New; no Gate S; no server change; Codex release review clear;
