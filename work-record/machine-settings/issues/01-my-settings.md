@@ -90,3 +90,11 @@ Schema change (Gate S: DEVELOPMENT's migration + backup steps): a new owned row 
 blank-removes; UI tests for card edit/cancel and the machine page; remove the prototype file and hooks; Codex review.
 
 ## Comments
+
+### 2026-11-16 — the user: keep the first-use hint as is
+
+The user asked why the Machine Shoulder Press card shows "Add My Settings" and the Incline Press doesn't (the
+Incline Press has sample history; the chip is first-use only). Offered: (1) keep it first-use only, the "⋯" menu and
+the machine page otherwise, or (2) show it whenever there is no note, with a per-machine "Not needed". **The user:
+"keep it as is."** Known trade-off: a machine used before the feature never shows the chip; its note is added from
+"⋯ → My Settings…" or the machine page. Question 2 above is settled; 1 and 3 are still open.
