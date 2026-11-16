@@ -1,6 +1,6 @@
 # Current project state
 
-Updated **2026-11-15: [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) uploaded 14:41 EST (Lock Screen Done, D90; `main` `0449f245`) — the user's TestFlight steps next. Build 15 (01:18 EST) likewise.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
+Updated **2026-11-16: nothing in progress. [0.2.0 (16)](../work-record/release/0.2.0-build-16.md) (Lock Screen Done, D90) uploaded 2026-11-15 14:41 EST and [0.2.0 (15)](../work-record/release/0.2.0-build-15.md) (tester feedback) 01:18 EST — the user's TestFlight steps next. `main` `f67efbed`; GitHub Tests 43753859116 green.** Earlier: 0.2.0 (13) N12 and (12) N13/N14. The previous STATE (Floodlight delivery, the Oct 10–11 free re-sign, the Oct 3 public-beta handoff) is
 archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-before-testflight.md). Verify Git on resume.
 
 ## RESUME HERE (2026-11-15)
@@ -9,8 +9,11 @@ archived byte-for-byte: [STATE before TestFlight](archive/STATE-2026-10-13-befor
   (`main` `0449f245`; live-workout 04, D90; no What's New; no Gate S; no server change; Codex release review clear;
   the CI timing-test fix merged first, branch `ericlee4992/ci-timing-tests`). **The user's steps:** processing →
   Developer → install → try Done on the Lock Screen after a rest → Friends with the What to Test note (in the record) →
-  Submit. Check GitHub Tests on `main` `0449f245`. Workspaces "Tester feedback" and "Log a set from the Lock Screen"
-  (Codex agents `4ba7c5cd-…`, `d1f3aad2-…`) can be archived (the user's go; branches kept).
+  Submit. GitHub Tests on `main` `f67efbed`: **43753859116 green**. All work is merged and pushed; no branch is open.
+  **Cleanup (the user's go):** Paseo workspaces "Tester feedback: one scan + add gym"
+  (`~/.paseo/worktrees/1qmeipq9/tester-feedback`, Codex `4ba7c5cd-…`) and "Log a set from the Lock Screen"
+  (`~/.paseo/worktrees/1qmeipq9/lock-screen-log-set`, Codex `d1f3aad2-…`) can be archived (branches kept).
+  **Next work (the user to pick):** a phone check of builds 15–16 first; then the competitor-gaps research list (below).
 - **Done 2026-11-15 — [live-workout 04, log a set from the Lock Screen](../work-record/live-workout-fixes/issues/04-log-set-from-lock-screen.md)**
   (D90; Codex clear round 4; merged into `main`, branch `ericlee4992/lock-screen-log-set` kept). Once rest is over the
   Live Activity shows the current set ("Now") with Done; Done logs exactly the set shown (a fingerprint; a stale card
